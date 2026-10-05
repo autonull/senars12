@@ -146,7 +146,14 @@ describe('F5 — §8 dispositions', () => {
         generateText: async () => '(bridge-->link).',
       } as unknown as never,
       nar.gates,
-      { enableProactiveEnrichment: true, enrichmentIntervalMs: 60000, maxConceptsPerCycle: 10, minConnectionsForEnrichment: 2, enableExplanationGeneration: false, enableQAService: false },
+      {
+        enableProactiveEnrichment: true,
+        enrichmentIntervalMs: 60000,
+        maxConceptsPerCycle: 10,
+        minConnectionsForEnrichment: 2,
+        enableExplanationGeneration: false,
+        enableQAService: false,
+      },
       { adapter }
     );
     const before = lmCalls;

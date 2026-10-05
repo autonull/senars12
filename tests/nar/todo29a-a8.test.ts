@@ -38,7 +38,9 @@ const hold = (memory: Memory, name: string, count: number, f = 0.9, c = 0.9): vo
 
 /** A store with one concept carrying `tasks` beliefs and no others. */
 const loaded = (options: { concepts: number; tasks: number }): Memory =>
-  new Memory(options.concepts > 0 ? { maxConcepts: options.concepts, maxTasks: options.tasks } : {});
+  new Memory(
+    options.concepts > 0 ? { maxConcepts: options.concepts, maxTasks: options.tasks } : {}
+  );
 
 describe('TODO29.a A8 — the resource inventory', () => {
   it('names every resource once', () => {
@@ -55,10 +57,7 @@ describe('TODO29.a A8 — the resource inventory', () => {
   });
 
   it('covers both of TODO28’s audited accumulator sites', () => {
-    for (const file of [
-      'nar/src/kernel/source-reputation.ts',
-      'nar/src/rl/impls/QBeliefStore.ts',
-    ])
+    for (const file of ['nar/src/kernel/source-reputation.ts', 'nar/src/rl/impls/QBeliefStore.ts'])
       expect(
         RESOURCE_CONTRACTS.some(
           (contract) => contract.owner === file || contract.capacity.module === file

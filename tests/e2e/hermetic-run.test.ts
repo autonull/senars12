@@ -65,7 +65,8 @@ describe('TODO28 §7.3 — hermetic seeded run', () => {
     const { NAR } = await import('@senars/nar/nar.js');
     const { e2eNARConfig } = await import('./fixtures');
     const { makeId } = await import('@senars/util');
-    const AMBIENT_UUID = '00000000-0000-4000-8000-00000000ffff' as `${string}-${string}-${string}-${string}-${string}`;
+    const AMBIENT_UUID =
+      '00000000-0000-4000-8000-00000000ffff' as `${string}-${string}-${string}-${string}-${string}`;
     const restoreAmbient = vi.spyOn(crypto, 'randomUUID').mockReturnValue(AMBIENT_UUID);
     const nar = new NAR(e2eNARConfig({ ids: sequentialIdSource() }));
     await nar.initialize();

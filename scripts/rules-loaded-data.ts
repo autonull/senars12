@@ -16,10 +16,7 @@
  *    of the text.
  * 4. **An empty table is a runnable state.** Absence is a value, not a crash.
  */
-import {
-  BUILTIN_RULE_ARTIFACT_VERSION,
-  RULE_TABLE_SCHEMA_VERSION,
-} from '@senars/core/schemas';
+import { BUILTIN_RULE_ARTIFACT_VERSION, RULE_TABLE_SCHEMA_VERSION } from '@senars/core/schemas';
 
 import { LMProposalProducer } from '../nar/src/proposal/lm-rule-producer.js';
 import { loadBuiltinTable } from '../nar/src/rules/impls/builtin-table.js';
@@ -42,7 +39,8 @@ for (const violation of loadedDataViolations(scanSubject())) {
 // ── 3: enumerable, versioned, revertable ───────────────────────────────────
 const table = loadBuiltinTable();
 const enumeration = table.enumerate();
-if (enumeration.revision !== 0) failures.push(`builtin table is at r${enumeration.revision}, expected r0`);
+if (enumeration.revision !== 0)
+  failures.push(`builtin table is at r${enumeration.revision}, expected r0`);
 if (enumeration.rules.length !== BUILTIN_DECLARATIONS.length) {
   failures.push(
     `enumeration lists ${enumeration.rules.length} rules, declarations say ${BUILTIN_DECLARATIONS.length}`
@@ -51,7 +49,11 @@ if (enumeration.rules.length !== BUILTIN_DECLARATIONS.length) {
 if (enumeration.artifactVersion !== BUILTIN_RULE_ARTIFACT_VERSION) {
   failures.push(`artifact version ${enumeration.artifactVersion} is not the shipped one`);
 }
-if (!enumeration.rules.every((rule) => rule.provenance.kind === 'builtin' && rule.ruleSetRevision === 0)) {
+if (
+  !enumeration.rules.every(
+    (rule) => rule.provenance.kind === 'builtin' && rule.ruleSetRevision === 0
+  )
+) {
   failures.push('a built-in entry carries a revision or provenance that is not its own');
 }
 
@@ -85,12 +87,17 @@ if (empty.entries().length !== 0) failures.push('an empty table loaded rules fro
 
 // ── version mismatch fails loudly, not by coercion ─────────────────────────
 try {
-  RuleTableStore.from({ ...table.artifact(), schemaVersion: RULE_TABLE_SCHEMA_VERSION + 1 }, RULE_BODIES);
+  RuleTableStore.from(
+    { ...table.artifact(), schemaVersion: RULE_TABLE_SCHEMA_VERSION + 1 },
+    RULE_BODIES
+  );
   failures.push('an incompatible artifact schema version loaded without complaint');
 } catch (error) {
   if (!(error instanceof RuleTableError)) throw error;
   if (error.faults[0]?.reason !== 'schema-version') {
-    failures.push(`an incompatible version failed for the wrong reason: ${error.faults[0]?.reason}`);
+    failures.push(
+      `an incompatible version failed for the wrong reason: ${error.faults[0]?.reason}`
+    );
   }
 }
 

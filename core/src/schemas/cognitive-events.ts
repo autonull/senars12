@@ -246,12 +246,13 @@ type Mintable<T extends CognitiveEvent['type']> = Omit<
 export const mintCognitiveEvent = <T extends CognitiveEvent['type']>(
   type: T,
   draft: Mintable<T>
-): CognitiveEventOf<T> => ({
-  ...draft,
-  type,
-  timestamp: draft.timestamp ?? Date.now(),
-  correlationId: draft.correlationId ?? generateId('corr'),
-} as CognitiveEventOf<T>);
+): CognitiveEventOf<T> =>
+  ({
+    ...draft,
+    type,
+    timestamp: draft.timestamp ?? Date.now(),
+    correlationId: draft.correlationId ?? generateId('corr'),
+  }) as CognitiveEventOf<T>;
 
 export const validateCognitiveEvent = (event: unknown): CognitiveEvent =>
   parseOrThrow(CognitiveEventSchema, 'CognitiveEvent', event);

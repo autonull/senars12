@@ -102,11 +102,38 @@ describe('Bench 38 — Bounded Runtime', () => {
 
   it('D15 — SessionStore bounds restored sessions and their history', () => {
     const store = new SessionStore({ maxSessions: 2, maxHistoryPerSession: 2 });
-    const restored = { history: Array.from({ length: 5 }, (_, i) => ({ role: 'user' as const, content: `m${i}`, timestamp: i })) };
-    store.load('a', { ...restored, id: 'sess-a', key: 'a', createdAt: 0, lastSeenAt: 0, metadata: {} });
+    const restored = {
+      history: Array.from({ length: 5 }, (_, i) => ({
+        role: 'user' as const,
+        content: `m${i}`,
+        timestamp: i,
+      })),
+    };
+    store.load('a', {
+      ...restored,
+      id: 'sess-a',
+      key: 'a',
+      createdAt: 0,
+      lastSeenAt: 0,
+      metadata: {},
+    });
     expect(store.getOrCreate('a').history.map((h) => h.content)).toEqual(['m3', 'm4']);
-    store.load('b', { id: 'sess-b', key: 'b', history: [], createdAt: 0, lastSeenAt: 0, metadata: {} });
-    store.load('c', { id: 'sess-c', key: 'c', history: [], createdAt: 0, lastSeenAt: 0, metadata: {} });
+    store.load('b', {
+      id: 'sess-b',
+      key: 'b',
+      history: [],
+      createdAt: 0,
+      lastSeenAt: 0,
+      metadata: {},
+    });
+    store.load('c', {
+      id: 'sess-c',
+      key: 'c',
+      history: [],
+      createdAt: 0,
+      lastSeenAt: 0,
+      metadata: {},
+    });
     expect(store.size()).toBe(2);
     expect([...store.values()].map((s) => s.key).sort()).toEqual(['b', 'c']);
     expect(store.getOrCreate('a').history).toEqual([]); // LRU-evicted, recreated fresh
@@ -126,7 +153,9 @@ describe('Bench 38 — Bounded Runtime', () => {
 
   it('D17 — Memory revision log is capped', () => {
     const memory = new Memory();
-    const record = (memory as unknown as { recordRevision(e: unknown): void }).recordRevision.bind(memory);
+    const record = (memory as unknown as { recordRevision(e: unknown): void }).recordRevision.bind(
+      memory
+    );
     for (let i = 0; i < 1010; i++) {
       record({ term: '(a-->b)', type: 'revision', timestamp: i, truth: { f: 1, c: 0.9 } });
     }
@@ -159,5 +188,4 @@ describe('Bench 38 — Bounded Runtime', () => {
       g.saturate([adder as never, rule as never, runaway as never], { maxSteps: 5, maxNodes: 3 })
     ).not.toThrow();
   });
-
 });

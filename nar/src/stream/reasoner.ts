@@ -95,7 +95,11 @@ export class StreamReasoner {
    * queued ones already paid for their place and dropping them would refund a
    * decision the system has already acted on.
    */
-  dispatch(prompt: string, prior?: TruthType, derive?: LMRequest['derive']): ProvisionalBelief | null {
+  dispatch(
+    prompt: string,
+    prior?: TruthType,
+    derive?: LMRequest['derive']
+  ): ProvisionalBelief | null {
     const id = `lm-${++this.seq}`;
     if (this.queue.length >= this.maxPending) {
       this.dropped++;
@@ -136,7 +140,8 @@ export class StreamReasoner {
     const batch = this.queue.splice(0, this.maxBatch);
     if (batch.length === 0) return [];
     if (
-      !this.gates.getBudgetGate().check({ operation: 'lm-call', estimatedCost: batch.length }).granted
+      !this.gates.getBudgetGate().check({ operation: 'lm-call', estimatedCost: batch.length })
+        .granted
     ) {
       this.queue.unshift(...batch);
       trimCapped(this.queue, this.maxPending);

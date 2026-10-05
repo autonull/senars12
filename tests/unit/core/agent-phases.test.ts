@@ -123,7 +123,10 @@ describe('Agent cycle phases (extracted)', () => {
     const onEngineError = vi.fn();
     const host = makeHost({
       engines: new Map([
-        ['broken', { id: 'broken', reason: () => Promise.reject(new Error('engine down')) } as never],
+        [
+          'broken',
+          { id: 'broken', reason: () => Promise.reject(new Error('engine down')) } as never,
+        ],
       ]),
       onEngineError,
     });

@@ -108,9 +108,15 @@ describe('MetaGame Sandbox - Gate 5', () => {
     it('should create SelfMetaGame with focus bag and game focuses', () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.7 });
+        gateRegistry: createGateRegistry(),
+        id: 'gridworld',
+        weight: 0.7,
+      });
       const focus2 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'bandit', weight: 0.3 });
+        gateRegistry: createGateRegistry(),
+        id: 'bandit',
+        weight: 0.3,
+      });
       focusBag.add(focus1);
       focusBag.add(focus2);
 
@@ -145,9 +151,15 @@ describe('MetaGame Sandbox - Gate 5', () => {
     it('should set focus weight via ^focus_weight', () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.7 });
+        gateRegistry: createGateRegistry(),
+        id: 'gridworld',
+        weight: 0.7,
+      });
       const focus2 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'bandit', weight: 0.3 });
+        gateRegistry: createGateRegistry(),
+        id: 'bandit',
+        weight: 0.3,
+      });
       focusBag.add(focus1);
       focusBag.add(focus2);
 
@@ -171,7 +183,10 @@ describe('MetaGame Sandbox - Gate 5', () => {
     it('should clamp focus weight to [0, 1]', () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'gridworld',
+        weight: 0.5,
+      });
       focusBag.add(focus1);
 
       const selfMetaGame = createSelfMetaGame({
@@ -192,7 +207,10 @@ describe('MetaGame Sandbox - Gate 5', () => {
     it('should set knob values via ^knob_set', () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'gridworld',
+        weight: 0.5,
+      });
       focusBag.add(focus1);
 
       const selfMetaGame = createSelfMetaGame({
@@ -213,7 +231,10 @@ describe('MetaGame Sandbox - Gate 5', () => {
     it('should clamp knob values to configured range', () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'gridworld',
+        weight: 0.5,
+      });
       focusBag.add(focus1);
 
       const selfMetaGame = createSelfMetaGame({
@@ -236,7 +257,10 @@ describe('MetaGame Sandbox - Gate 5', () => {
     it('should throw for unknown knobs', () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'gridworld',
+        weight: 0.5,
+      });
       focusBag.add(focus1);
 
       const selfMetaGame = createSelfMetaGame({
@@ -253,12 +277,18 @@ describe('MetaGame Sandbox - Gate 5', () => {
     it('should disable reflex in a GameFocus', () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'gridworld',
+        weight: 0.5,
+      });
       focusBag.add(focus1);
 
       const game = createGridWorldGame({ id: 'gw', grid: ['S..', '...', '..G'], seed: 42 });
       const gameFocus = createGameFocus({
-        gateRegistry: createGateRegistry(), focusId: 'gridworld', game });
+        gateRegistry: createGateRegistry(),
+        focusId: 'gridworld',
+        game,
+      });
       const reflex = new TabularQReflex('tabular-q', { epsilon: 0.1 });
       gameFocus.bindReflex(reflex);
 
@@ -280,7 +310,10 @@ describe('MetaGame Sandbox - Gate 5', () => {
     it('should throw when disabling reflex in non-existent focus', () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'gridworld',
+        weight: 0.5,
+      });
       focusBag.add(focus1);
 
       const selfMetaGame = createSelfMetaGame({
@@ -301,7 +334,10 @@ describe('MetaGame Sandbox - Gate 5', () => {
     it('should create MetaFocus with SelfMetaGame', () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.7 });
+        gateRegistry: createGateRegistry(),
+        id: 'gridworld',
+        weight: 0.7,
+      });
       focusBag.add(focus1);
 
       const gameFocuses = new Map<string, any>();
@@ -327,12 +363,18 @@ describe('MetaGame Sandbox - Gate 5', () => {
     it('should step and incorporate focus reports into tasks', async () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.7 });
+        gateRegistry: createGateRegistry(),
+        id: 'gridworld',
+        weight: 0.7,
+      });
       focusBag.add(focus1);
 
       const game = createGridWorldGame({ id: 'gw', grid: ['S..', '...', '..G'], seed: 42 });
       const gameFocus = createGameFocus({
-        gateRegistry: createGateRegistry(), focusId: 'gridworld', game });
+        gateRegistry: createGateRegistry(),
+        focusId: 'gridworld',
+        game,
+      });
       const reflex = new TabularQReflex('tabular-q', { epsilon: 0.1 });
       gameFocus.bindReflex(reflex);
 
@@ -365,9 +407,15 @@ describe('MetaGame Sandbox - Gate 5', () => {
     it('should rebalance focus weights and affect budget allocation', () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'gridworld', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'gridworld',
+        weight: 0.5,
+      });
       const focus2 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'bandit', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'bandit',
+        weight: 0.5,
+      });
       focusBag.add(focus1);
       focusBag.add(focus2);
 

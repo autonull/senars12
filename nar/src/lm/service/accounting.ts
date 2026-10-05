@@ -16,7 +16,8 @@ import {
   type LMTask,
   recordLMCall,
   stopwatch,
-} from '@senars/util';import type { LMProviderName, LMSettings } from '../env-config.js';
+} from '@senars/util';
+import type { LMProviderName, LMSettings } from '../env-config.js';
 import type { GrammarName } from '../grammars/index.js';
 import { loadGrammar } from '../grammars/index.js';
 import type { ProviderRuntime } from '../provider-runtime.js';

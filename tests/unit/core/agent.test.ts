@@ -75,7 +75,9 @@ describe('Agent', () => {
   });
 
   it('E4: grades the completed trace via traceGrader (narration + tool calls)', async () => {
-    const traceGrader = vi.fn().mockResolvedValue({ groundedness: { score: 0.9, abstained: false }, risks: [] });
+    const traceGrader = vi
+      .fn()
+      .mockResolvedValue({ groundedness: { score: 0.9, abstained: false }, risks: [] });
     const agent = new Agent({
       traceGrader,
       cortex: { synthesize: vi.fn().mockResolvedValue({ text: 'I handled it.' }) } as never,

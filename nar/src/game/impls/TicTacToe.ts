@@ -21,14 +21,20 @@ export interface TicTacToeConfig {
 }
 
 const LINES: Array<[number, number, number]> = [
-  [0, 1, 2], [3, 4, 5], [6, 7, 8],
-  [0, 3, 6], [1, 4, 7], [2, 5, 8],
-  [0, 4, 8], [2, 4, 6],
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  [0, 3, 6],
+  [1, 4, 7],
+  [2, 5, 8],
+  [0, 4, 8],
+  [2, 4, 6],
 ];
 
 const winnerOf = (board: CellValue[]): Player | 'draw' | null => {
   for (const [a, b, c] of LINES)
-    if (board[a] !== '.' && board[a] === board[b] && board[b] === board[c]) return board[a] as Player;
+    if (board[a] !== '.' && board[a] === board[b] && board[b] === board[c])
+      return board[a] as Player;
   return board.every((v) => v !== '.') ? 'draw' : null;
 };
 
@@ -73,17 +79,32 @@ export class TicTacToeGame implements Game<TicTacToeState, TicTacToeAction> {
     this.id = config.id ?? 'tictactoe';
     this.rng = new SeededRNG(config.seed ?? 1);
     this.opponent = config.opponent ?? 'random';
-    this.state_ = { board: Array(9).fill('.') as CellValue[], turn: 'X', terminal: false, winner: null };
+    this.state_ = {
+      board: Array(9).fill('.') as CellValue[],
+      turn: 'X',
+      terminal: false,
+      winner: null,
+    };
   }
 
   reset(): void {
-    this.state_ = { board: Array(9).fill('.') as CellValue[], turn: 'X', terminal: false, winner: null };
+    this.state_ = {
+      board: Array(9).fill('.') as CellValue[],
+      turn: 'X',
+      terminal: false,
+      winner: null,
+    };
   }
 
   /** Deep copy for baseline lookahead. */
   clone(): TicTacToeGame {
     const copy = new TicTacToeGame({ id: this.id, seed: 1, opponent: this.opponent });
-    copy.state_ = { board: [...this.state_.board], turn: this.state_.turn, terminal: this.state_.terminal, winner: this.state_.winner };
+    copy.state_ = {
+      board: [...this.state_.board],
+      turn: this.state_.turn,
+      terminal: this.state_.terminal,
+      winner: this.state_.winner,
+    };
     copy.rng.setState(this.rng.getState());
     return copy;
   }
@@ -127,8 +148,12 @@ export class TicTacToeGame implements Game<TicTacToeState, TicTacToeAction> {
   }
 
   observe(): Perception {
-    const features: Record<string, number> = { openCells: this.state_.board.filter((v) => v === '.').length };
-    for (let i = 0; i < 9; i++) features[`cell${i}`] = this.state_.board[i] === 'X' ? 1 : this.state_.board[i] === 'O' ? 2 : 0;
+    const features: Record<string, number> = {
+      openCells: this.state_.board.filter((v) => v === '.').length,
+    };
+    for (let i = 0; i < 9; i++)
+      features[`cell${i}`] =
+        this.state_.board[i] === 'X' ? 1 : this.state_.board[i] === 'O' ? 2 : 0;
     return {
       stateId: this.boardHash(),
       features,
@@ -143,9 +168,7 @@ export class TicTacToeGame implements Game<TicTacToeState, TicTacToeAction> {
   }
 
   render(): string {
-    return [0, 3, 6]
-      .map((i) => this.state_.board.slice(i, i + 3).join(' '))
-      .join('\n');
+    return [0, 3, 6].map((i) => this.state_.board.slice(i, i + 3).join(' ')).join('\n');
   }
 }
 

@@ -8,7 +8,11 @@
  * Usage: tsx scripts/system-one-bakeoff.ts [dataset.jsonl]
  */
 import { readJsonl } from '@senars/util';
-import { runBakeOff, type BakeOffCase, type HeadCandidateSpec } from '../nar/src/lm/system-one/distill.js';
+import {
+  runBakeOff,
+  type BakeOffCase,
+  type HeadCandidateSpec,
+} from '../nar/src/lm/system-one/distill.js';
 import { createIsotonicCalibrator } from '../nar/src/lm/system-one/calibration.js';
 
 interface DatasetRow {

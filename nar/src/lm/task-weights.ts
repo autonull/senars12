@@ -2,13 +2,12 @@ import { createTaskWeight, type Budget } from '../types/core.js';
 
 export type LMWeightKind = 'enrichment' | 'context' | 'revision' | 'fallback';
 
-const LM_WEIGHT_DEFAULTS: Record<LMWeightKind, readonly [priority: number, durability: number]> =
-  {
-    enrichment: [0.4, 0.8],
-    context: [0.5, 0.8],
-    revision: [0.7, 0.8],
-    fallback: [0.7, 0.8],
-  } as const;
+const LM_WEIGHT_DEFAULTS: Record<LMWeightKind, readonly [priority: number, durability: number]> = {
+  enrichment: [0.4, 0.8],
+  context: [0.5, 0.8],
+  revision: [0.7, 0.8],
+  fallback: [0.7, 0.8],
+} as const;
 
 export const lmTaskWeight = (kind: LMWeightKind, priority?: number): Budget => {
   const [defaultPriority, durability] = LM_WEIGHT_DEFAULTS[kind];

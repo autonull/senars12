@@ -51,8 +51,7 @@ export const meetsParityAcceptance = (
 ): boolean => {
   const acceptance = PARITY_ACCEPTANCE[env] ?? DEFAULT_ACCEPTANCE;
   return (
-    aggregateRatio >= acceptance.minAggregateRatio &&
-    seedPassRate >= acceptance.minSeedPassRate
+    aggregateRatio >= acceptance.minAggregateRatio && seedPassRate >= acceptance.minSeedPassRate
   );
 };
 
@@ -64,5 +63,4 @@ export interface SeedRatio {
 export const computeSeedPassRate = <T extends SeedRatio>(
   results: readonly T[],
   floor: number = PER_SEED_RATIO_FLOOR
-): number =>
-  safeRatio(results.filter((r) => r.ratio >= floor).length, results.length);
+): number => safeRatio(results.filter((r) => r.ratio >= floor).length, results.length);

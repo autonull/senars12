@@ -1,5 +1,8 @@
 import { CognitiveController, createDefaultRegistry } from '@senars/nar/cognitive';
-import { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '@senars/nar/config/cognitive-parameters';
+import {
+  DEFAULT_COGNITIVE_PARAMETERS,
+  type CognitiveParameters,
+} from '@senars/nar/config/cognitive-parameters';
 import { MetricsCollector } from '@senars/nar/metrics';
 import { RuleProcessor } from '@senars/nar/rules';
 import { createRulePattern, type RegisteredRule } from '@senars/nar/rules/types';
@@ -24,13 +27,7 @@ export const createTestController = (
   rlfp?: RLFPLearner,
   processor: RuleProcessor = new RuleProcessor()
 ): CognitiveController =>
-  new CognitiveController(
-    createDefaultRegistry(),
-    memory,
-    processor,
-    rlfp,
-    params
-  );
+  new CognitiveController(createDefaultRegistry(), memory, processor, rlfp, params);
 
 /**
  * Transitive inheritance: `(a-->b)` and `(b-->c)` give `(a-->c)`.

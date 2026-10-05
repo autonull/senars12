@@ -14,7 +14,9 @@ import { getMemory } from './constants.js';
 export const averageRuleDuration = (rules: readonly ModelRuleStats[] | null): number =>
   mean(rules ?? [], (r) => r.stats.averageDuration);
 
-export const analyzePerformancePatterns = (rules: readonly ModelRuleStats[] | null): PerformancePatterns => {
+export const analyzePerformancePatterns = (
+  rules: readonly ModelRuleStats[] | null
+): PerformancePatterns => {
   const avgDuration = averageRuleDuration(rules);
 
   let memoryUsage = 0;

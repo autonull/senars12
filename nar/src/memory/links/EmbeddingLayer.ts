@@ -48,7 +48,12 @@ export class EmbeddingLayer extends Layer {
     const key = termKey(term);
     this.termEmbeddings.set(key, { term, embedding });
 
-    for (const neighbor of this.neighborsOf(key, embedding, this.maxLinksPerConcept, this.similarityThreshold)) {
+    for (const neighbor of this.neighborsOf(
+      key,
+      embedding,
+      this.maxLinksPerConcept,
+      this.similarityThreshold
+    )) {
       this.addLink({
         sourceTerm: term,
         targetTerm: neighbor.term,

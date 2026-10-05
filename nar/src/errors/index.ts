@@ -63,4 +63,3 @@ export class RewardGateError extends GateError {
     this.name = 'RewardGateError';
   }
 }
-

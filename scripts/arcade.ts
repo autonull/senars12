@@ -42,7 +42,15 @@ import { tetrisHeuristicPlacement } from '../tests/nar/rl/baselines/tetris.js';
 import { ticTacToeHeuristicAction } from '../tests/nar/rl/baselines/tictactoe.js';
 import { ReinforceLearner, TabularQLearner, type RLLearner } from './lib/rl-arms.js';
 
-type Arm = 'manifold' | 'lm' | 'replica' | 'heuristic' | 'random' | 'nal' | 'qlearning' | 'policygradient';
+type Arm =
+  | 'manifold'
+  | 'lm'
+  | 'replica'
+  | 'heuristic'
+  | 'random'
+  | 'nal'
+  | 'qlearning'
+  | 'policygradient';
 
 const gameRegistry = createArcadeRegistry();
 
@@ -203,8 +211,19 @@ async function buildCognitiveArm(
 }
 
 async function main(): Promise<void> {
-  const { games, arms, episodes, seed, seeds, render, cognitive, resume, sessionPath, otel, distill } =
-    parseArgs();
+  const {
+    games,
+    arms,
+    episodes,
+    seed,
+    seeds,
+    render,
+    cognitive,
+    resume,
+    sessionPath,
+    otel,
+    distill,
+  } = parseArgs();
   if (otel) {
     const { initOtel } = await import('../nar/src/otel/index.js');
     initOtel({
@@ -242,212 +261,218 @@ async function main(): Promise<void> {
   }
 
   async function runSeed(
-  baseSeed: number,
-  games: string[],
-  arms: Arm[],
-  episodes: number,
-  render: boolean,
-  cognitive: boolean,
-  distill: boolean,
-  dataset: import('../nar/src/lm/system-one/distill.js').JudgmentDataset | undefined,
-  rng: SeededRNG,
-  notes: string[]
-): Promise<BrierHarness> {
-  const harness = new BrierHarness();
+    baseSeed: number,
+    games: string[],
+    arms: Arm[],
+    episodes: number,
+    render: boolean,
+    cognitive: boolean,
+    distill: boolean,
+    dataset: import('../nar/src/lm/system-one/distill.js').JudgmentDataset | undefined,
+    rng: SeededRNG,
+    notes: string[]
+  ): Promise<BrierHarness> {
+    const harness = new BrierHarness();
 
-  for (const arm of arms) {
-    for (const gameName of games) {
-      // Pure arms: no kernel gates — direct game play (baseline controls).
-      if (arm === 'heuristic' || arm === 'random' || arm === 'qlearning' || arm === 'policygradient') {
-        const heuristic = heuristics[gameName];
-        if (arm === 'heuristic' && !heuristic) {
-          notes.push(`heuristic arm on ${gameName}: no baseline — skipped`);
+    for (const arm of arms) {
+      for (const gameName of games) {
+        // Pure arms: no kernel gates — direct game play (baseline controls).
+        if (
+          arm === 'heuristic' ||
+          arm === 'random' ||
+          arm === 'qlearning' ||
+          arm === 'policygradient'
+        ) {
+          const heuristic = heuristics[gameName];
+          if (arm === 'heuristic' && !heuristic) {
+            notes.push(`heuristic arm on ${gameName}: no baseline — skipped`);
+            continue;
+          }
+          const learner: RLLearner | null =
+            arm === 'qlearning'
+              ? new TabularQLearner(new SeededRNG(baseSeed + games.indexOf(gameName)))
+              : arm === 'policygradient'
+                ? new ReinforceLearner(new SeededRNG(baseSeed + games.indexOf(gameName) + 1))
+                : null;
+          for (let e = 0; e < episodes; e++) {
+            const game = gameRegistry.create(gameName, baseSeed + e) as GameInterface<
+              unknown,
+              string | number
+            >;
+            let steps = 0;
+            while (true) {
+              const perception = game.observe();
+              if (perception.terminal) break;
+              if (steps >= 150) break;
+              const legal = (game.legalActions(game.state()) as Array<string | number>).map(String);
+              if (legal.length === 0) break;
+              const t0 = performance.now();
+              let action: string;
+              let predicted: number;
+              if (arm === 'random') {
+                action = legal[rng.nextInt(legal.length)]!;
+                predicted = 1 / legal.length;
+              } else if (arm === 'heuristic') {
+                action = String(heuristic!(game));
+                predicted = 0.8;
+              } else {
+                const key = (game as { stateKey?: () => string }).stateKey?.() ?? String(steps);
+                ({ action, predicted } = learner!.act(key, legal));
+              }
+              const latencyMs = performance.now() - t0;
+              const outcome = game.step(action as never);
+              steps++;
+              if (learner) {
+                const over = outcome.terminal;
+                learner.feedback(
+                  outcome.reward,
+                  over ? '' : ((game as { stateKey?: () => string }).stateKey?.() ?? String(steps)),
+                  over
+                    ? []
+                    : (game.legalActions(game.state()) as Array<string | number>).map(String),
+                  over
+                );
+              }
+              startArcadeTickSpan(arm, gameName, steps).finish({
+                action,
+                latencyMs,
+                reward: outcome.reward,
+                terminal: outcome.terminal,
+                handover: false,
+              });
+              harness.record({
+                arm,
+                game: gameName,
+                stateId: (game as { stateKey?: () => string }).stateKey?.() ?? String(steps),
+                action,
+                predicted,
+                observed: clamp01(outcome.reward),
+                reward: outcome.reward,
+                latencyMs,
+                handover: false,
+              });
+              if (render) {
+                console.log(`\n[${arm}/${gameName}] step ${steps} → ${action}`);
+                console.log(renderGame(game));
+              }
+            }
+            learner?.endEpisode();
+          }
           continue;
         }
-        const learner: RLLearner | null =
-          arm === 'qlearning'
-            ? new TabularQLearner(new SeededRNG(baseSeed + games.indexOf(gameName)))
-            : arm === 'policygradient'
-              ? new ReinforceLearner(new SeededRNG(baseSeed + games.indexOf(gameName) + 1))
-              : null;
+
+        // Cognitive arms: kernel-gated GameFocus play (A1 scheduler drive). The
+        // nal arm forces cognitive mode regardless of --mode so it is always a
+        // comparable arm in the summary table; GameFocus's own G2 schema
+        // induction grows advisory rules from experience at episode end.
+        const armCognitive = cognitive || arm === 'nal';
+        const built = await buildCognitiveArm(arm, gameName, dataset);
+        if ('note' in built) {
+          notes.push(`${gameName}: ${built.note}`);
+          continue;
+        }
+        if (built.headLoaded) notes.push(`${arm}/${gameName}: distilled reflex_value head active`);
+        const recording = wrapReflex(built.reflex, recordingReflex(), vetoAwareReflex());
+        let promotedCount = 0;
         for (let e = 0; e < episodes; e++) {
           const game = gameRegistry.create(gameName, baseSeed + e) as GameInterface<
             unknown,
             string | number
           >;
+          const focus = new GameFocus({
+            focusId: `${arm}-${gameName}-${e}`,
+            game,
+            cognitive: armCognitive,
+            schemaInduction: armCognitive,
+            gateRegistry: createGateRegistry(),
+          });
+          if (armCognitive)
+            for (const [action, consequence, truth] of cognitiveRules[gameName] ?? [])
+              focus.seedRule(action, consequence, truth);
+          focus.bindReflex(recording);
+          if (built.manifold)
+            focus.setReflexPrefetchContext?.({
+              manifold: built.manifold as never,
+              embeddingCache: built.cache as never,
+              budget: createSystemOneBudget(),
+            });
           let steps = 0;
           while (true) {
             const perception = game.observe();
             if (perception.terminal) break;
             if (steps >= 150) break;
-            const legal = (game.legalActions(game.state()) as Array<string | number>).map(String);
-            if (legal.length === 0) break;
             const t0 = performance.now();
-            let action: string;
-            let predicted: number;
-            if (arm === 'random') {
-              action = legal[rng.nextInt(legal.length)]!;
-              predicted = 1 / legal.length;
-            } else if (arm === 'heuristic') {
-              action = String(heuristic!(game));
-              predicted = 0.8;
-            } else {
-              const key =
-                (game as { stateKey?: () => string }).stateKey?.() ?? String(steps);
-              ({ action, predicted } = learner!.act(key, legal));
-            }
+            const { gameOutcome } = await focus.step(10);
             const latencyMs = performance.now() - t0;
-            const outcome = game.step(action as never);
             steps++;
-            if (learner) {
-              const over = outcome.terminal;
-              learner.feedback(
-                outcome.reward,
-                over ? '' : ((game as { stateKey?: () => string }).stateKey?.() ?? String(steps)),
-                over ? [] : (game.legalActions(game.state()) as Array<string | number>).map(String),
-                over
-              );
-            }
+            if (!gameOutcome) continue;
+            const top = recordedProposals(recording).reduce<ActionProposal | null>(
+              (best, p) =>
+                !best || p.value * p.confidence > best.value * best.confidence ? p : best,
+              null
+            );
+            const panel = focus.getPanelLog().at(-1);
             startArcadeTickSpan(arm, gameName, steps).finish({
-              action,
+              action: top?.action,
               latencyMs,
-              reward: outcome.reward,
-              terminal: outcome.terminal,
-              handover: false,
+              reward: gameOutcome.reward,
+              terminal: gameOutcome.terminal,
+              handover: focus.didLastTickHandover(),
+              decision: panel?.decision,
             });
             harness.record({
               arm,
               game: gameName,
               stateId: (game as { stateKey?: () => string }).stateKey?.() ?? String(steps),
-              action,
-              predicted,
-              observed: clamp01(outcome.reward),
-              reward: outcome.reward,
+              action: gameOutcome.terminal || top ? String(top?.action ?? '') : '',
+              predicted: top ? clamp01(top.confidence) : 0.5,
+              observed: clamp01(gameOutcome.reward),
+              reward: gameOutcome.reward,
               latencyMs,
-              handover: false,
+              handover: focus.didLastTickHandover(),
             });
             if (render) {
-              console.log(`\n[${arm}/${gameName}] step ${steps} → ${action}`);
+              console.log(
+                `\n[${arm}/${gameName}] step ${steps} → ${top?.action ?? 'n/a'} (p=${top?.confidence?.toFixed(2) ?? '-'})`
+              );
               console.log(renderGame(game));
             }
+            if (armCognitive && panel) {
+              const d = panel.decision;
+              console.log(
+                `[panel] c${panel.cycle} proposals=[${panel.proposalActions.join(',')}] → ${d.action ?? '∅'} src=${d.source}${d.vetoedBy ? ` VETOED by ${d.vetoedBy}` : ''}${panel.handover ? ' HANDOVER' : ''} deriv=${panel.nalDerivations.length} w=${panel.focusWeight.toFixed(3)}`
+              );
+            }
           }
-          learner?.endEpisode();
-        }
-        continue;
-      }
-
-      // Cognitive arms: kernel-gated GameFocus play (A1 scheduler drive). The
-      // nal arm forces cognitive mode regardless of --mode so it is always a
-      // comparable arm in the summary table; GameFocus's own G2 schema
-      // induction grows advisory rules from experience at episode end.
-      const armCognitive = cognitive || arm === 'nal';
-      const built = await buildCognitiveArm(arm, gameName, dataset);
-      if ('note' in built) {
-        notes.push(`${gameName}: ${built.note}`);
-        continue;
-      }
-      if (built.headLoaded) notes.push(`${arm}/${gameName}: distilled reflex_value head active`);
-      const recording = wrapReflex(built.reflex, recordingReflex(), vetoAwareReflex());
-      let promotedCount = 0;
-      for (let e = 0; e < episodes; e++) {
-        const game = gameRegistry.create(gameName, baseSeed + e) as GameInterface<
-          unknown,
-          string | number
-        >;
-        const focus = new GameFocus({
-          focusId: `${arm}-${gameName}-${e}`,
-          game,
-          cognitive: armCognitive,
-          schemaInduction: armCognitive,
-          gateRegistry: createGateRegistry(),
-        });
-        if (armCognitive)
-          for (const [action, consequence, truth] of cognitiveRules[gameName] ?? [])
-            focus.seedRule(action, consequence, truth);
-        focus.bindReflex(recording);
-        if (built.manifold)
-          focus.setReflexPrefetchContext?.({
-            manifold: built.manifold as never,
-            embeddingCache: built.cache as never,
-            budget: createSystemOneBudget(),
-          });
-        let steps = 0;
-        while (true) {
-          const perception = game.observe();
-          if (perception.terminal) break;
-          if (steps >= 150) break;
-          const t0 = performance.now();
-          const { gameOutcome } = await focus.step(10);
-          const latencyMs = performance.now() - t0;
-          steps++;
-          if (!gameOutcome) continue;
-          const top = recordedProposals(recording).reduce<ActionProposal | null>(
-            (best, p) =>
-              !best || p.value * p.confidence > best.value * best.confidence ? p : best,
-            null
-          );
-          const panel = focus.getPanelLog().at(-1);
-          startArcadeTickSpan(arm, gameName, steps).finish({
-            action: top?.action,
-            latencyMs,
-            reward: gameOutcome.reward,
-            terminal: gameOutcome.terminal,
-            handover: focus.didLastTickHandover(),
-            decision: panel?.decision,
-          });
-          harness.record({
-            arm,
-            game: gameName,
-            stateId: (game as { stateKey?: () => string }).stateKey?.() ?? String(steps),
-            action: gameOutcome.terminal || top ? String(top?.action ?? '') : '',
-            predicted: top ? clamp01(top.confidence) : 0.5,
-            observed: clamp01(gameOutcome.reward),
-            reward: gameOutcome.reward,
-            latencyMs,
-            handover: focus.didLastTickHandover(),
-          });
-          if (render) {
-            console.log(
-              `\n[${arm}/${gameName}] step ${steps} → ${top?.action ?? 'n/a'} (p=${top?.confidence?.toFixed(2) ?? '-'})`
-            );
-            console.log(renderGame(game));
-          }
-          if (armCognitive && panel) {
-            const d = panel.decision;
-            console.log(
-              `[panel] c${panel.cycle} proposals=[${panel.proposalActions.join(',')}] → ${d.action ?? '∅'} src=${d.source}${d.vetoedBy ? ` VETOED by ${d.vetoedBy}` : ''}${panel.handover ? ' HANDOVER' : ''} deriv=${panel.nalDerivations.length} w=${panel.focusWeight.toFixed(3)}`
-            );
-          }
-        }
-        focus.markEpisodeEnd();
-        const reflexStats = built.reflex as {
-          decisions?: number;
-          failures?: number;
-          served?: number;
-        };
-        if (typeof reflexStats.decisions === 'number')
-          notes.push(
-            `${arm}/${gameName} ep${e}: lm decisions=${reflexStats.decisions} served=${reflexStats.served ?? 'n/a'} fallback-serving failures=${reflexStats.failures}`
-          );
-        if (armCognitive) {
-          const promoted = focus.getPromotedSchemas();
-          if (promoted.length > promotedCount) {
-            promotedCount = promoted.length;
+          focus.markEpisodeEnd();
+          const reflexStats = built.reflex as {
+            decisions?: number;
+            failures?: number;
+            served?: number;
+          };
+          if (typeof reflexStats.decisions === 'number')
             notes.push(
-              `${arm}/${gameName} ep${e}: schema induction promoted ${promoted.map((s) => `${s.action}→${s.kind}`).join(',')}`
+              `${arm}/${gameName} ep${e}: lm decisions=${reflexStats.decisions} served=${reflexStats.served ?? 'n/a'} fallback-serving failures=${reflexStats.failures}`
+            );
+          if (armCognitive) {
+            const promoted = focus.getPromotedSchemas();
+            if (promoted.length > promotedCount) {
+              promotedCount = promoted.length;
+              notes.push(
+                `${arm}/${gameName} ep${e}: schema induction promoted ${promoted.map((s) => `${s.action}→${s.kind}`).join(',')}`
+              );
+            }
+            const v = focus.getVetoStats();
+            console.log(
+              `[panel] episode ${e}: vetos=${v.totalVetos} rate=${v.vetoRate.toFixed(2)} justifications=${focus.getVetoJustifications().length}`
             );
           }
-          const v = focus.getVetoStats();
-          console.log(
-            `[panel] episode ${e}: vetos=${v.totalVetos} rate=${v.vetoRate.toFixed(2)} justifications=${focus.getVetoJustifications().length}`
-          );
         }
       }
     }
-  }
 
-  return harness;
-}
+    return harness;
+  }
 
   const seedCount = Math.max(1, Math.floor(seeds));
   const perSeed: Array<{ seed: number; rows: ReturnType<BrierHarness['aggregate']> }> = [];
@@ -455,10 +480,24 @@ async function main(): Promise<void> {
   for (let i = 0; i < seedCount; i++) {
     const baseSeed = seed + i;
     const seedRng = new SeededRNG(baseSeed);
-    const h = await runSeed(baseSeed, playableGames, arms, episodes, render, cognitive, distill, dataset, seedRng, notes);
+    const h = await runSeed(
+      baseSeed,
+      playableGames,
+      arms,
+      episodes,
+      render,
+      cognitive,
+      distill,
+      dataset,
+      seedRng,
+      notes
+    );
     perSeed.push({ seed: baseSeed, rows: h.aggregate() });
     lastHarness = h;
-    const line = h.aggregate().map((a) => `${a.arm}=${a.macroBrier.toFixed(4)}`).join(' ');
+    const line = h
+      .aggregate()
+      .map((a) => `${a.arm}=${a.macroBrier.toFixed(4)}`)
+      .join(' ');
     console.log(`[seed ${baseSeed}] ${line}`);
   }
 
@@ -501,13 +540,19 @@ async function main(): Promise<void> {
     console.log(`\n=== Across ${seedCount} seeds (mean ± sd of macroBrier) ===`);
     const armNames = [...new Set(perSeed.flatMap((s) => s.rows.map((r) => r.arm)))].sort();
     for (const arm of armNames) {
-      const vals = perSeed.map((s) => s.rows.find((r) => r.arm === arm)?.macroBrier).filter((v): v is number => typeof v === 'number');
-      const micros = perSeed.map((s) => s.rows.find((r) => r.arm === arm)?.microBrier).filter((v): v is number => typeof v === 'number');
+      const vals = perSeed
+        .map((s) => s.rows.find((r) => r.arm === arm)?.macroBrier)
+        .filter((v): v is number => typeof v === 'number');
+      const micros = perSeed
+        .map((s) => s.rows.find((r) => r.arm === arm)?.microBrier)
+        .filter((v): v is number => typeof v === 'number');
       const m = vals.length ? mean(vals, (v) => v) : NaN;
       const sd = vals.length > 1 ? stdDev(vals, (v) => v) : 0;
       const mm = micros.length ? mean(micros, (v) => v) : NaN;
       const msd = micros.length > 1 ? stdDev(micros, (v) => v) : 0;
-      console.log(`${arm}: n=${vals.length} macroBrier=${m.toFixed(4)}±${sd.toFixed(4)} microBrier=${mm.toFixed(4)}±${msd.toFixed(4)}`);
+      console.log(
+        `${arm}: n=${vals.length} macroBrier=${m.toFixed(4)}±${sd.toFixed(4)} microBrier=${mm.toFixed(4)}±${msd.toFixed(4)}`
+      );
     }
   }
   console.log('\n=== Arcade summary (last seed) ===');

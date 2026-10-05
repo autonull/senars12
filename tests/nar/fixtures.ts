@@ -14,4 +14,7 @@ export const E2E_CONFIG = {
 
 export const createTestNAR = (overrides?: Partial<typeof E2E_CONFIG>) =>
   new NAR({
-      ...DEFAULT_CONFIG, ...E2E_CONFIG, ...overrides });
+    ...DEFAULT_CONFIG,
+    ...E2E_CONFIG,
+    ...overrides,
+  });

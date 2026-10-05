@@ -23,7 +23,12 @@ describe('TaskManager', () => {
 
   describe('addTask', () => {
     test('adds task to pending', () => {
-      const task = createTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.9));
+      const task = createTask(
+        TermBuilder.atom('test'),
+        'belief',
+        Truth.TRUE,
+        createTaskWeight(0.9)
+      );
       manager.addTask(task);
       expect(manager.size).toBe(1);
     });
@@ -31,7 +36,12 @@ describe('TaskManager', () => {
 
   describe('processPending', () => {
     test('moves tasks to memory', async () => {
-      const task = createTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.9));
+      const task = createTask(
+        TermBuilder.atom('test'),
+        'belief',
+        Truth.TRUE,
+        createTaskWeight(0.9)
+      );
       manager.addTask(task);
       const processed = await manager.processPending();
       expect(processed).toHaveLength(1);
@@ -39,7 +49,12 @@ describe('TaskManager', () => {
     });
 
     test('clears pending after processing', async () => {
-      const task = createTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.9));
+      const task = createTask(
+        TermBuilder.atom('test'),
+        'belief',
+        Truth.TRUE,
+        createTaskWeight(0.9)
+      );
       manager.addTask(task);
       await manager.processPending();
       expect(manager.size).toBe(0);

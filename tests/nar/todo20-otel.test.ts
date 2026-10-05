@@ -42,7 +42,10 @@ describe('Bench 65 — observability', () => {
     expect(decision.vetoedBy).toBe('nal-trap');
     const span = collector.findByName('negotiator.resolve');
     expect(span).toBeDefined();
-    expect(attrsOf(span!)).toMatchObject({ 'negotiator.vetoed': true, 'negotiator.veto_reason': 'nal-trap' });
+    expect(attrsOf(span!)).toMatchObject({
+      'negotiator.vetoed': true,
+      'negotiator.veto_reason': 'nal-trap',
+    });
   });
 
   it('emits a schema promotion span and counter (O1/O4)', () => {
@@ -70,7 +73,8 @@ describe('Bench 65 — observability', () => {
     });
   });
 
-  it('enriches JSON logs with traceId/spanId inside a span (O2)', async () => {    const lines: string[] = [];
+  it('enriches JSON logs with traceId/spanId inside a span (O2)', async () => {
+    const lines: string[] = [];
     const orig = console.log;
     console.log = (m: string) => lines.push(m);
     try {
@@ -99,12 +103,16 @@ describe('Bench 65 — observability', () => {
 
   it('HTTP /health/ready returns 200 and 503 from the readiness probe (O3)', async () => {
     const makeConn = (ready: boolean) =>
-      new HTTPConnection(
-        { type: 'http', config: { name: 'bench', port: 0 } } as never,
-        { emit: () => undefined, logger: createLogger({ level: 'error' }), health: () => ({ ready, checks: {} }) }
-      );
+      new HTTPConnection({ type: 'http', config: { name: 'bench', port: 0 } } as never, {
+        emit: () => undefined,
+        logger: createLogger({ level: 'error' }),
+        health: () => ({ ready, checks: {} }),
+      });
     for (const ready of [true, false]) {
-      const conn = makeConn(ready) as unknown as { connect(): Promise<void>; server: import('node:http').Server };
+      const conn = makeConn(ready) as unknown as {
+        connect(): Promise<void>;
+        server: import('node:http').Server;
+      };
       await conn.connect();
       const { port } = conn.server.address() as { port: number };
       const res = await fetch(`http://127.0.0.1:${port}/health/ready`);

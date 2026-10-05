@@ -4,7 +4,6 @@ import { NALExtendedRules, TermBuilder } from '../../nar/src';
 describe('NAL2 Instance and Property Copula Rules', () => {
   const { inheritance, setExt: instance, setInt: property, atom } = TermBuilder;
 
-
   describe('instanceConversion', () => {
     test('converts inheritance to instance form', () => {
       const bird = atom('bird');

@@ -82,7 +82,12 @@ export type AbstainReason =
   | 'verification-veto'
   | 'no-candidates';
 
-export { BANDS, COGNITIVE_AXES, CognitiveAxisSchema as cognitiveAxisSchema, bandOrdinal } from '@senars/util';
+export {
+  BANDS,
+  COGNITIVE_AXES,
+  CognitiveAxisSchema as cognitiveAxisSchema,
+  bandOrdinal,
+} from '@senars/util';
 export type { BandDecision, CognitiveAxis };
 
 export interface HeadResult {

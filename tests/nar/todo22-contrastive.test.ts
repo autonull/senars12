@@ -71,7 +71,12 @@ describe('contrastive core', () => {
 
   it('ContrastiveMemory stores, scores, calibrates and caps per replay mix', async () => {
     const memory = new ContrastiveMemory({ maxPerRubric: 5, positiveShare: 0.6 });
-    const positives = ['sunny meadow', 'sunny meadow walks', 'sunny meadow breeze', 'sunny meadow birds'];
+    const positives = [
+      'sunny meadow',
+      'sunny meadow walks',
+      'sunny meadow breeze',
+      'sunny meadow birds',
+    ];
     const negatives = ['dark storm', 'dark storm thunder'];
     // Phase C (REFACTOR.todo1): admission is priority-gated — the 4th positive
     // (tie priority, bag full) is rejected, so 5 exemplars are admitted.
@@ -133,9 +138,10 @@ describe('hard-negative mining', () => {
     const episodic = {
       getEpisodes: async ({ type, limit }: { type?: string; limit?: number }) =>
         type === 'error'
-          ? [
-              { timestamp: 1, type: 'error', content: 'tool deploy failed', metadata: {} },
-            ].slice(0, limit ?? 10)
+          ? [{ timestamp: 1, type: 'error', content: 'tool deploy failed', metadata: {} }].slice(
+              0,
+              limit ?? 10
+            )
           : [],
     } as never;
     const nar = makeNar([]);

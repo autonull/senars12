@@ -117,4 +117,8 @@ export const REACTION_KINDS: readonly ReactionKind[] = [
 ];
 
 export const emptyReactionDistribution = (): Record<ReactionKind, number> =>
-  keyedBy(REACTION_KINDS, (kind) => kind, () => 0);
+  keyedBy(
+    REACTION_KINDS,
+    (kind) => kind,
+    () => 0
+  );

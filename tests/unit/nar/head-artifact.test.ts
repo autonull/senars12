@@ -33,11 +33,15 @@ const rows = (count = 16) =>
   }));
 
 const trained = () =>
-  trainHead(rows(), { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' }, {
-    epochs: 5,
-    actionFeatureDim: DIM,
-    seed: 3,
-  });
+  trainHead(
+    rows(),
+    { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' },
+    {
+      epochs: 5,
+      actionFeatureDim: DIM,
+      seed: 3,
+    }
+  );
 
 describe('head artifacts', () => {
   it('round-trips a trained head through disk and back to the same scores', async () => {
@@ -72,7 +76,9 @@ describe('head artifacts', () => {
     const block = actionFeatures('left', bundle.config.embeddingDim);
     let z = bias;
     for (let i = 0; i < bundle.config.embeddingDim; i++) {
-      z += (weights[i]! * (embedding[i]! * block[i]! - bundle.config.mean[i]!)) / bundle.config.std[i]!;
+      z +=
+        (weights[i]! * (embedding[i]! * block[i]! - bundle.config.mean[i]!)) /
+        bundle.config.std[i]!;
     }
     const expected =
       bundle.config.kind === 'logistic' ? 1 / (1 + Math.exp(-z)) : Math.min(1, Math.max(0, z));
@@ -83,9 +89,9 @@ describe('head artifacts', () => {
   it('rejects a config naming a rubric or an axis the vocabulary does not have', () => {
     const config = exportArtifacts(trained()).config;
     expect(HeadArtifactConfigSchema.safeParse(config).success).toBe(true);
-    expect(
-      HeadArtifactConfigSchema.safeParse({ ...config, rubric: 'not_a_rubric' }).success
-    ).toBe(false);
+    expect(HeadArtifactConfigSchema.safeParse({ ...config, rubric: 'not_a_rubric' }).success).toBe(
+      false
+    );
     expect(HeadArtifactConfigSchema.safeParse({ ...config, axis: 'x' }).success).toBe(false);
     expect(HeadArtifactConfigSchema.safeParse({ ...config, kind: 'quantum' }).success).toBe(false);
   });
@@ -117,9 +123,6 @@ describe('head artifacts', () => {
     const outDir = mkdtempSync(join(tmpdir(), 'head-artifact-'));
     await writeHeadArtifacts(trained(), outDir);
     // Validation passing is not authentication: the weights hash is a separate claim.
-    await expect(loadHeadArtifacts(outDir, `sha256:${'c'.repeat(64)}`)).rejects.toThrow(
-      /digest/i
-    );
+    await expect(loadHeadArtifacts(outDir, `sha256:${'c'.repeat(64)}`)).rejects.toThrow(/digest/i);
   });
 });
-

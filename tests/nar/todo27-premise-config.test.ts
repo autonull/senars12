@@ -29,7 +29,11 @@ const memoryWithLinks = (): Memory => {
     const term = atom(name);
     const concept = memory.addConcept(term);
     concept.writeAttention({ reason: 'assign', value: priority });
-    concept.addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createTaskWeight(priority) });
+    concept.addTask('belief', {
+      term,
+      truth: Truth.create(0.9, 0.9),
+      budget: createTaskWeight(priority),
+    });
   };
   add('cat', 0.1);
   add('animal', 0.1);
@@ -40,12 +44,18 @@ const memoryWithLinks = (): Memory => {
 
 const primary = () => createBeliefTask(atom('cat'), Truth.create(0.9, 0.9), 0.9);
 
-const selected = (r: CognitiveRegistry, config: Record<string, unknown>, memory = memoryWithLinks()) =>
-  r.resolve<Strategy>('premise', 'sampled', config).selectSecondary(primary(), memory).map((t) => t.term.toString());
+const selected = (
+  r: CognitiveRegistry,
+  config: Record<string, unknown>,
+  memory = memoryWithLinks()
+) =>
+  r
+    .resolve<Strategy>('premise', 'sampled', config)
+    .selectSecondary(primary(), memory)
+    .map((t) => t.term.toString());
 
 /** The premise slot, by name — the registry is the only way to get a strategy. */
-const premise = (name: string): Strategy =>
-  createDefaultRegistry().get<Strategy>('premise', name);
+const premise = (name: string): Strategy => createDefaultRegistry().get<Strategy>('premise', name);
 
 describe('Bench 105 — premise source, scorer, filters, minScore', () => {
   it('scorer decides which premise ranks first', () => {
@@ -88,12 +98,25 @@ describe('Bench 105 — premise source, scorer, filters, minScore', () => {
 
   it('filters drop concepts the strategy may not consider', () => {
     const memory = new Memory({ enableEmbeddingLayer: false });
-    for (const [name, kind] of [['cat', 'atom'], ['dog', 'atom'], ['poodle', 'inheritance']] as const) {
-      const term = kind === 'atom' ? atom(name) : { kind: 'inheritance' as const, args: [atom('dog'), atom(name)] };
-      memory.addConcept(term).addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createTaskWeight(0.5) });
+    for (const [name, kind] of [
+      ['cat', 'atom'],
+      ['dog', 'atom'],
+      ['poodle', 'inheritance'],
+    ] as const) {
+      const term =
+        kind === 'atom'
+          ? atom(name)
+          : { kind: 'inheritance' as const, args: [atom('dog'), atom(name)] };
+      memory
+        .addConcept(term)
+        .addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createTaskWeight(0.5) });
     }
     const all = selected(registry(), { source: 'concepts', filters: [], limit: 10 }, memory);
-    const inherited = selected(registry(), { source: 'concepts', filters: ['inheritanceOnly'], limit: 10 }, memory);
+    const inherited = selected(
+      registry(),
+      { source: 'concepts', filters: ['inheritanceOnly'], limit: 10 },
+      memory
+    );
     expect(all.length).toBeGreaterThan(inherited.length);
     expect(inherited).toHaveLength(1);
   });
@@ -108,9 +131,15 @@ describe('Bench 105 — premise source, scorer, filters, minScore', () => {
   it('a typo in the scorer or filter is a validation error, not an empty result', () => {
     const r = registry();
     const [registration] = r.list('premise').filter((entry) => entry.name === 'sampled');
-    expect(() => r.resolve('premise', 'sampled', { scorer: 'priorty' })).toThrow(ConfigurationError);
-    expect(() => r.resolve('premise', 'sampled', { filters: ['sharedAtom'] })).toThrow(ConfigurationError);
-    expect(() => r.resolve('premise', 'sampled', { source: 'links', wheres: [] })).toThrow(ConfigurationError);
+    expect(() => r.resolve('premise', 'sampled', { scorer: 'priorty' })).toThrow(
+      ConfigurationError
+    );
+    expect(() => r.resolve('premise', 'sampled', { filters: ['sharedAtom'] })).toThrow(
+      ConfigurationError
+    );
+    expect(() => r.resolve('premise', 'sampled', { source: 'links', wheres: [] })).toThrow(
+      ConfigurationError
+    );
     expect(registration?.name).toBe('sampled');
   });
 
@@ -124,7 +153,10 @@ describe('Bench 105 — premise source, scorer, filters, minScore', () => {
     const task = primary();
     const registered = registry().get<Strategy>('premise', 'sampled');
     expect(registered.selectSecondary(task, memory).map((t) => t.term.toString())).toEqual(
-      createDefaultRegistry().get<Strategy>('premise', 'sampled').selectSecondary(task, memory).map((t) => t.term.toString())
+      createDefaultRegistry()
+        .get<Strategy>('premise', 'sampled')
+        .selectSecondary(task, memory)
+        .map((t) => t.term.toString())
     );
   });
 
@@ -145,8 +177,10 @@ describe('Bench 105 — premise source, scorer, filters, minScore', () => {
     const catalog = { list: (type: Parameters<typeof r.list>[0]) => r.list(type) };
     expect(validateParameters({}, catalog).errors).toEqual([]);
     expect(
-      validateParameters({ strategies: { premise: { type: 'sampled', config: { filters: ['nope'] } } } as never }, catalog)
-        .errors[0]
+      validateParameters(
+        { strategies: { premise: { type: 'sampled', config: { filters: ['nope'] } } } as never },
+        catalog
+      ).errors[0]
     ).toMatch(/filters/);
   });
 });

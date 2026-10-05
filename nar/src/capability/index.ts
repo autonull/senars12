@@ -9,7 +9,13 @@ export type {
   CapabilitySpaceOptions,
 } from './space.js';
 export { CapabilitySpace } from './space.js';
-export { CapabilityOntology, createCapabilityOntology, type CapabilityOntologyEntry, type CapabilitySchema, type CapabilityType } from './ontology.js';
+export {
+  CapabilityOntology,
+  createCapabilityOntology,
+  type CapabilityOntologyEntry,
+  type CapabilitySchema,
+  type CapabilityType,
+} from './ontology.js';
 export type { WasiSandboxOptions, WasmModuleOptions } from './wasi-sandbox.js';
 export {
   assertWasmPathContained,

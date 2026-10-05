@@ -40,7 +40,10 @@ import { fromRoot } from './lib/root.js';
 const FIXTURE = fromRoot('tests/fixtures/proposal-stream.jsonl');
 
 /** The files whose closure must contain no provider module. */
-const REPLAY_MODULES = [fromRoot('nar/src/proposal/replay.ts'), fromRoot('nar/src/kernel/replay.ts')];
+const REPLAY_MODULES = [
+  fromRoot('nar/src/proposal/replay.ts'),
+  fromRoot('nar/src/kernel/replay.ts'),
+];
 
 /** Module prefixes that would mean a replay could ask a provider. */
 const PROVIDER_PREFIXES = ['nar/src/lm/', 'nar/src/reflex/', 'nar/src/game/', 'nar/src/focus/'];
@@ -52,7 +55,9 @@ const load = (): CognitiveEvent[] =>
     .map((line, index) => {
       const parsed = CognitiveEventSchema.safeParse(JSON.parse(line));
       if (!parsed.success)
-        throw new Error(`fixture line ${index + 1} is not a CognitiveEvent — a proposal fixture is an event log, not a second format`);
+        throw new Error(
+          `fixture line ${index + 1} is not a CognitiveEvent — a proposal fixture is an event log, not a second format`
+        );
       return parsed.data;
     });
 
@@ -76,7 +81,10 @@ if (canonical(first) !== canonical(second))
 // would be the "second representation of state" §5.9 refuses.
 const snapshot = replayCognitiveState(events).proposals;
 if (snapshot.revision !== first.revision)
-  fail('replay:agrees', `cognitive-state head r${snapshot.revision} vs proposal head r${first.revision}`);
+  fail(
+    'replay:agrees',
+    `cognitive-state head r${snapshot.revision} vs proposal head r${first.revision}`
+  );
 if (snapshot.admissions.length !== first.admissions.length)
   fail(
     'replay:agrees',
@@ -95,7 +103,8 @@ for (const module of REPLAY_MODULES) {
     if (hit) fail('replay:no-provider', `${module} reaches ${hit} via ${specifier}`);
   }
   for (const specifier of specifiersOf(module))
-    if (specifier.includes('@senars/lm')) fail('replay:no-provider', `${module} imports ${specifier}`);
+    if (specifier.includes('@senars/lm'))
+      fail('replay:no-provider', `${module} imports ${specifier}`);
 }
 
 // 3 — a stream from a future commit must not replay against incompatible state.
@@ -111,19 +120,30 @@ try {
   if (!(error instanceof ProposalReplayError)) throw error;
   refusal = error.message;
 }
-if (!refusal) fail('replay:schema-version', `a v${PROPOSAL_SCHEMA_VERSION + 1} stream replayed without complaint`);
+if (!refusal)
+  fail(
+    'replay:schema-version',
+    `a v${PROPOSAL_SCHEMA_VERSION + 1} stream replayed without complaint`
+  );
 else if (!refusal.includes(`v${PROPOSAL_SCHEMA_VERSION + 1}`))
   fail('replay:schema-version', `the refusal does not name the offending version: ${refusal}`);
 
 // 4 — revision refusal.
-if (first.revision === 0) fail('replay:revision', 'the fixture recorded no admission, so it gates nothing');
+if (first.revision === 0)
+  fail('replay:revision', 'the fixture recorded no admission, so it gates nothing');
 const staleAtFinal = staleAdmissions(events, first.revision);
 if (staleAtFinal.length > 0)
-  fail('replay:revision', `the stream's own head revision calls ${staleAtFinal.length} of its admissions stale`);
+  fail(
+    'replay:revision',
+    `the stream's own head revision calls ${staleAtFinal.length} of its admissions stale`
+  );
 const staleOneShort = staleAdmissions(events, first.revision - 1);
 const expectedStale = first.admissions.filter((a) => a.resultingRevision === first.revision).length;
 if (staleOneShort.length !== expectedStale)
-  fail('replay:revision', `R against R-1 flagged ${staleOneShort.length} stale admissions, expected ${expectedStale}`);
+  fail(
+    'replay:revision',
+    `R against R-1 flagged ${staleOneShort.length} stale admissions, expected ${expectedStale}`
+  );
 
 console.log(
   `replay:proposal — fixture ${FIXTURE.replace(`${process.cwd()}/`, '')}\n` +
@@ -133,11 +153,15 @@ console.log(
 for (const admission of first.admissions) {
   console.log(
     `  admitted ${admission.kind.padEnd(7)} ${admission.proposalId.padEnd(12)} r${admission.baseRevision}→r${admission.resultingRevision}` +
-      (admission.declaration ? `  ${admission.declaration.ruleId} (${admission.declaration.truthFn})` : '')
+      (admission.declaration
+        ? `  ${admission.declaration.ruleId} (${admission.declaration.truthFn})`
+        : '')
   );
 }
 for (const rejection of first.rejections) {
-  console.log(`  rejected ${rejection.kind.padEnd(7)} ${rejection.proposalId.padEnd(12)} ${rejection.reason}`);
+  console.log(
+    `  rejected ${rejection.kind.padEnd(7)} ${rejection.proposalId.padEnd(12)} ${rejection.reason}`
+  );
 }
 console.log(
   `  two reductions byte-identical: ${canonical(first) === canonical(second)}\n` +

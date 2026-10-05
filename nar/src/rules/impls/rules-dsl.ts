@@ -8,6 +8,11 @@
  *
  * @see ./nal for NALRules, ./extended for NALExtendedRules, ./registration for the table.
  */
-export { BUILTIN_DECLARATIONS, DISABLED_RULES, NAL_EXTENDED_RULES, RULE_BODIES } from './registration.js';
+export {
+  BUILTIN_DECLARATIONS,
+  DISABLED_RULES,
+  NAL_EXTENDED_RULES,
+  RULE_BODIES,
+} from './registration.js';
 export { NALExtendedRules } from '../extended/index.js';
 export { NALRules } from '../nal/index.js';

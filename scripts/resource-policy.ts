@@ -22,7 +22,9 @@ const pad = (text: string, width: number): string => text.padEnd(width);
 const idWidth = Math.max(...contracts.map((c) => c.id.length));
 
 for (const contract of contracts) {
-  console.log(`  ${pad(contract.id, idWidth)}  ${contract.capacity.symbol}${contract.capacity.field ? `.${contract.capacity.field}` : ''}`);
+  console.log(
+    `  ${pad(contract.id, idWidth)}  ${contract.capacity.symbol}${contract.capacity.field ? `.${contract.capacity.field}` : ''}`
+  );
   console.log(`  ${' '.repeat(idWidth)}  holds     ${contract.holds}`);
   console.log(`  ${' '.repeat(idWidth)}  owner     ${contract.owner}`);
   console.log(`  ${' '.repeat(idWidth)}  retention ${contract.retention}`);

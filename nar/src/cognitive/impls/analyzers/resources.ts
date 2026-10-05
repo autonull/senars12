@@ -9,7 +9,7 @@ import type { ResourceUsage } from '../../types.js';
 import { getMemory } from './constants.js';
 
 export const getResourceAnalysis = (
-  nar: SelfHost | null,
+  nar: SelfHost | null
 ): Omit<ResourceUsage, 'highPriorityConcepts' | 'lowPriorityConcepts'> => {
   if (!nar) return { conceptCount: 0, avgConceptPriority: 0, memoryUsage: getMemory() };
   const concepts = nar.listConcepts();

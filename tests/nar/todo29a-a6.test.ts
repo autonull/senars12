@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { BUILTIN_DECLARATIONS, loadBuiltinTable, RuleIndex, RuleProcessor } from '@senars/nar/rules';
+import {
+  BUILTIN_DECLARATIONS,
+  loadBuiltinTable,
+  RuleIndex,
+  RuleProcessor,
+} from '@senars/nar/rules';
 import { createRulePattern } from '@senars/nar/rules/types';
 import type { InferenceTable, RegisteredRule } from '@senars/nar/rules/types';
 import { bucketCensus, kindViolations } from '../../scripts/lib/dispatch-table.js';
@@ -52,9 +57,7 @@ describe('every registered rule declares its kinds', () => {
   it('the shipped table is non-empty and fully keyed', () => {
     expect(BUILTIN_DECLARATIONS.length).toBeGreaterThan(0);
 
-    const undeclared = BUILTIN_DECLARATIONS.filter(
-      (r) => !r.left.op || !r.right.op
-    );
+    const undeclared = BUILTIN_DECLARATIONS.filter((r) => !r.left.op || !r.right.op);
     expect(undeclared.map((r) => r.ruleId)).toEqual([]);
   });
 
@@ -85,7 +88,12 @@ describe('dispatch is a port', () => {
     };
     const processor = new RuleProcessor([rule('noop', 1, ['atom', 'atom'])], spy);
 
-    const input = (term: Term) => ({ term, truth: Truth.NEUTRAL, stamp: Stamp.createInput(), occurrenceTime: createTimestamp() });
+    const input = (term: Term) => ({
+      term,
+      truth: Truth.NEUTRAL,
+      stamp: Stamp.createInput(),
+      occurrenceTime: createTimestamp(),
+    });
     processor.processSync(
       input(TermBuilder.atom('a')),
       input(TermBuilder.inheritance(TermBuilder.atom('x'), TermBuilder.atom('y'))!)
@@ -96,7 +104,12 @@ describe('dispatch is a port', () => {
 
   it('the processor exposes its table so a caller can extend it', () => {
     const processor = new RuleProcessor([rule('base', 1, ['atom', 'atom'])]);
-    expect(processor.getTable().candidates('atom', 'atom').map((r) => r.id)).toEqual(['base']);
+    expect(
+      processor
+        .getTable()
+        .candidates('atom', 'atom')
+        .map((r) => r.id)
+    ).toEqual(['base']);
   });
 });
 

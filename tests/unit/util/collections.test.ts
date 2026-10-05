@@ -201,7 +201,13 @@ describe('buckets', () => {
   });
 
   it('exposes the first item seen for a key as the bucket head', () => {
-    const [firstBucket] = buckets([{ k: 1, n: 'a' }, { k: 1, n: 'b' }], (r) => r.k);
+    const [firstBucket] = buckets(
+      [
+        { k: 1, n: 'a' },
+        { k: 1, n: 'b' },
+      ],
+      (r) => r.k
+    );
     expect(firstBucket?.[0]?.n).toBe('a');
   });
 });
@@ -215,20 +221,42 @@ describe('keyedBy', () => {
   });
 
   it('projects the value without a second pass', () => {
-    expect(keyedBy([{ id: 'a', n: 2 }], (r) => r.id, (r) => r.n)).toEqual({ a: 2 });
+    expect(
+      keyedBy(
+        [{ id: 'a', n: 2 }],
+        (r) => r.id,
+        (r) => r.n
+      )
+    ).toEqual({ a: 2 });
   });
 
   it('keeps the last occurrence, as the `Object.fromEntries` copy it replaces did', () => {
-    expect(keyedBy([{ id: 'a', n: 1 }, { id: 'a', n: 2 }], (r) => r.id, (r) => r.n)).toEqual({
+    expect(
+      keyedBy(
+        [
+          { id: 'a', n: 1 },
+          { id: 'a', n: 2 },
+        ],
+        (r) => r.id,
+        (r) => r.n
+      )
+    ).toEqual({
       a: 2,
     });
   });
 
   it('agrees with the `Object.fromEntries` copy on unique keys', () => {
-    const items = [{ id: 'x', n: 1 }, { id: 'y', n: 2 }];
-    expect(keyedBy(items, (r) => r.id, (r) => r.n)).toEqual(
-      Object.fromEntries(items.map((r) => [r.id, r.n]))
-    );
+    const items = [
+      { id: 'x', n: 1 },
+      { id: 'y', n: 2 },
+    ];
+    expect(
+      keyedBy(
+        items,
+        (r) => r.id,
+        (r) => r.n
+      )
+    ).toEqual(Object.fromEntries(items.map((r) => [r.id, r.n])));
   });
 });
 
@@ -242,7 +270,15 @@ describe('mapToRecord', () => {
   });
 
   it('passes the key to the projection', () => {
-    expect(mapToRecord(new Map([['a', 1], ['b', 2]]), (value, key) => `${key}${value}`)).toEqual({
+    expect(
+      mapToRecord(
+        new Map([
+          ['a', 1],
+          ['b', 2],
+        ]),
+        (value, key) => `${key}${value}`
+      )
+    ).toEqual({
       a: 'a1',
       b: 'b2',
     });

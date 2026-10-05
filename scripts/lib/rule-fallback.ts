@@ -30,13 +30,15 @@ export interface FallbackFailure {
 }
 
 /** A rule with no declared body, and a rule whose declared body never ran. */
-export const checkFallbacks = (
-  subjects: readonly FallbackSubject[]
-): readonly FallbackFailure[] =>
+export const checkFallbacks = (subjects: readonly FallbackSubject[]): readonly FallbackFailure[] =>
   subjects.flatMap((subject) => {
     if (!subject.hasFallback)
       return [
-        { kind: 'missing-fallback' as const, ruleId: subject.id, detail: 'no symbolic body declared' },
+        {
+          kind: 'missing-fallback' as const,
+          ruleId: subject.id,
+          detail: 'no symbolic body declared',
+        },
       ];
     if (subject.fallbackRuns === undefined) return [];
     if (subject.fallbackRuns > 0) return [];

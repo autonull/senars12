@@ -1,6 +1,14 @@
 import type { Task } from '../types';
 import type { Term } from '../terms';
-import { getArgs, getConsequent, getPredicate, getSubject, isAtomic, isCompound, operationNameOf } from '../terms';
+import {
+  getArgs,
+  getConsequent,
+  getPredicate,
+  getSubject,
+  isAtomic,
+  isCompound,
+  operationNameOf,
+} from '../terms';
 
 /** Typed semantic signals emitted by task classification. */
 export type TaskSignal =
@@ -69,7 +77,11 @@ export function classifyTask(term: Term): TaskSignal[] {
     // Check for schema promotion pattern: (X --> schema_promoted)
     if (term.kind === 'inheritance') {
       const subject = getSubject(term);
-      if (subject && isAtomic(subject) && (subject.symbol === 'schema_promoted' || subject.symbol === 'schema.promoted')) {
+      if (
+        subject &&
+        isAtomic(subject) &&
+        (subject.symbol === 'schema_promoted' || subject.symbol === 'schema.promoted')
+      ) {
         signals.push('schema-promoted');
       }
     }
@@ -77,13 +89,21 @@ export function classifyTask(term: Term): TaskSignal[] {
     // Check for capability addition pattern
     if (term.kind === 'inheritance') {
       const subject = getSubject(term);
-      if (subject && isAtomic(subject) && (subject.symbol === 'capability_added' || subject.symbol === 'capability.added')) {
+      if (
+        subject &&
+        isAtomic(subject) &&
+        (subject.symbol === 'capability_added' || subject.symbol === 'capability.added')
+      ) {
         signals.push('capability-added');
       }
     }
 
     // Check for goal achievement/failure in implications (predictive or retrospective)
-    if (term.kind === 'implication' || term.kind === 'predictive' || term.kind === 'retrospective') {
+    if (
+      term.kind === 'implication' ||
+      term.kind === 'predictive' ||
+      term.kind === 'retrospective'
+    ) {
       const consequent = getConsequent(term);
       if (consequent && isAtomic(consequent)) {
         if (consequent.symbol.includes('achieved') || consequent.symbol.includes('success')) {

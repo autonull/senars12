@@ -51,7 +51,10 @@ export const splitWords = (text: string, splitPattern: RegExp = /\s+/): string[]
  * other line, so four sites each re-stated "trim each, drop the blanks".
  */
 export const splitLines = (text: string): string[] =>
-  text.split('\n').map((line) => line.trim()).filter(Boolean);
+  text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
 
 /**
  * Escape every regexp metacharacter in `text`, so untrusted text becomes a

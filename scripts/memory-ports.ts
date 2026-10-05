@@ -69,7 +69,8 @@ const violations = (): FacadeViolation[] => {
       if (target === null) return [];
       // A specifier may name the file, the directory (→ its barrel), or either with
       // an explicit extension, so all four resolutions count as naming the facade.
-      const namesFacade = [`${target}.ts`, target, `${target}/index.ts`].includes(FACADE) ||
+      const namesFacade =
+        [`${target}.ts`, target, `${target}/index.ts`].includes(FACADE) ||
         [`${target}.ts`, target, `${target}/index.ts`].includes(BARREL);
       if (!namesFacade) return [];
       return [

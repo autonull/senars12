@@ -1,6 +1,11 @@
 import type { GateRegistry } from './kernel/index.js';
 import type { LMService, SeNARSRegistry } from './lm';
-import { BidirectionalFeedbackLoop, getQualityModel, ProactiveEnricher, shadowValidator } from './lm';
+import {
+  BidirectionalFeedbackLoop,
+  getQualityModel,
+  ProactiveEnricher,
+  shadowValidator,
+} from './lm';
 import type { Memory } from './memory';
 import type { Task } from './types';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
@@ -40,7 +45,9 @@ export class NARLM {
         systemOneDeps && systemOneDeps.getManifold()
           ? {
               adapter: createSystemOneLMRuleAdapter({
-                dispatcher: systemOneDeps.getDispatcher() as Parameters<typeof createSystemOneLMRuleAdapter>[0]['dispatcher'],
+                dispatcher: systemOneDeps.getDispatcher() as Parameters<
+                  typeof createSystemOneLMRuleAdapter
+                >[0]['dispatcher'],
                 nar: {
                   getCycleCount: () => 0,
                   getSystemOneEmbeddingCache: systemOneDeps.getEmbeddingCache,

@@ -60,7 +60,8 @@ describe('TODO17 Bench 33 — Open one-pass wire bridge', () => {
     const [p] = await manifold.judgeBatch(pointer, [query], budget);
     expect(p?.kind).toBe('classify');
     expect(p?.abstained).toBe(false);
-    const dist = (p as unknown as { distribution: Array<{ option: string; p: number }> }).distribution;
+    const dist = (p as unknown as { distribution: Array<{ option: string; p: number }> })
+      .distribution;
     expect(dist.map((d) => d.option).sort()).toEqual(['down', 'up']);
     expect((p as unknown as { top: { option: string } }).top.option).toBe('up');
   });
@@ -73,7 +74,13 @@ describe('TODO17 Bench 33 — Open one-pass wire bridge', () => {
       pointer,
       [
         { kind: 'evaluate', instruction: 'value', rubric: 'reflex_value', axis: 'teleological' },
-        { kind: 'evaluate', instruction: 'value', rubric: 'risk', axis: 'teleological', levels: ['low', 'high'] },
+        {
+          kind: 'evaluate',
+          instruction: 'value',
+          rubric: 'risk',
+          axis: 'teleological',
+          levels: ['low', 'high'],
+        },
         { kind: 'evaluate', instruction: 'safe?', rubric: 'feasibility', axis: 'teleological' },
       ],
       budget
@@ -91,7 +98,10 @@ describe('TODO17 Bench 33 — Open one-pass wire bridge', () => {
     const boolFetch: typeof fetch = async (_url, init) => {
       const request = JSON.parse(String(init?.body)) as { questions: Array<{ id: string }> };
       return new Response(
-        JSON.stringify({ model: 'kev:1.0', answers: request.questions.map((q) => ({ id: q.id, boolean: true })) }),
+        JSON.stringify({
+          model: 'kev:1.0',
+          answers: request.questions.map((q) => ({ id: q.id, boolean: true })),
+        }),
         { status: 200 }
       );
     };

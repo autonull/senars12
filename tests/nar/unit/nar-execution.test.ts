@@ -62,7 +62,12 @@ describe('NARExecution', () => {
 
   describe('run', () => {
     test('processes pending tasks', async () => {
-      const task = createTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createTaskWeight(0.9));
+      const task = createTask(
+        TermBuilder.atom('test'),
+        'belief',
+        Truth.TRUE,
+        createTaskWeight(0.9)
+      );
       taskManager.addTask(task);
 
       const derived = await execution.run(1);
@@ -224,7 +229,9 @@ describe('NARExecution', () => {
           activationDecayRate: 0.01,
           consolidationInterval: 10,
         });
-        const freshTaskManager = new TaskManager(freshMemory, { gateRegistry: createGateRegistry() });
+        const freshTaskManager = new TaskManager(freshMemory, {
+          gateRegistry: createGateRegistry(),
+        });
         const freshController = createTestController(freshMemory, inferenceParams(10));
         const exec = new NARExecution({
           gates: createGateRegistry(),
@@ -254,7 +261,9 @@ describe('NARExecution', () => {
           activationDecayRate: 0.01,
           consolidationInterval: 10,
         });
-        const freshTaskManager = new TaskManager(freshMemory, { gateRegistry: createGateRegistry() });
+        const freshTaskManager = new TaskManager(freshMemory, {
+          gateRegistry: createGateRegistry(),
+        });
         const freshController = createTestController(freshMemory, inferenceParams(10));
         const exec = new NARExecution({
           gates: createGateRegistry(),

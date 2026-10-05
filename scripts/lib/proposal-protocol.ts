@@ -64,7 +64,9 @@ export const scanProtocol = (): ProtocolSubject => {
   const lifecycle = read('nar/src/proposal/lifecycle.ts');
   return {
     doc: read(PROTOCOL_DOC),
-    reasons: [...(between(proposal, 'PROPOSAL_REJECTIONS = [', '] as const').matchAll(/'([^']+)'/g) ?? [])]
+    reasons: [
+      ...(between(proposal, 'PROPOSAL_REJECTIONS = [', '] as const').matchAll(/'([^']+)'/g) ?? []),
+    ]
       .map(([, reason]) => reason)
       .filter((reason): reason is string => reason !== undefined),
     schemaVersion: Number(/PROPOSAL_SCHEMA_VERSION = (\d+)/.exec(proposal)?.[1] ?? NaN),
@@ -112,7 +114,10 @@ export const protocolViolations = (subject: ProtocolSubject): ProtocolViolation[
     ],
     [
       'two-kinds-only',
-      () => subject.kinds.length === 2 && subject.kinds.includes('content') && subject.kinds.includes('rule'),
+      () =>
+        subject.kinds.length === 2 &&
+        subject.kinds.includes('content') &&
+        subject.kinds.includes('rule'),
       `PROPOSAL_KINDS must declare exactly content and rule, saw ${subject.kinds.join(', ') || 'none'}`,
     ],
     [
@@ -120,7 +125,9 @@ export const protocolViolations = (subject: ProtocolSubject): ProtocolViolation[
       () => {
         const content = subject.payloadFields.content ?? [];
         const rule = subject.payloadFields.rule ?? [];
-        return content.length > 0 && rule.length > 0 && !content.some((field) => rule.includes(field));
+        return (
+          content.length > 0 && rule.length > 0 && !content.some((field) => rule.includes(field))
+        );
       },
       'the content and rule payloads must not share a field, or the distinction is a flag',
     ],
@@ -140,7 +147,5 @@ export const protocolViolations = (subject: ProtocolSubject): ProtocolViolation[
       'both queues need a positive declared depth — an unbounded queue has no overflow policy',
     ],
   ];
-  return rules
-    .filter(([, holds]) => !holds())
-    .map(([rule, , detail]) => ({ rule, detail }));
+  return rules.filter(([, holds]) => !holds()).map(([rule, , detail]) => ({ rule, detail }));
 };

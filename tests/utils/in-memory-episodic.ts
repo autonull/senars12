@@ -4,7 +4,11 @@ import type { Episode, EpisodicMemory, EpisodeType } from '../../util/src/types/
 export class InMemoryEpisodicMemory implements EpisodicMemory {
   readonly episodes: Episode[] = [];
 
-  async log(type: EpisodeType, content: string, metadata: Record<string, unknown> = {}): Promise<void> {
+  async log(
+    type: EpisodeType,
+    content: string,
+    metadata: Record<string, unknown> = {}
+  ): Promise<void> {
     this.episodes.push({ timestamp: Date.now(), type, content, metadata });
   }
 
@@ -17,7 +21,9 @@ export class InMemoryEpisodicMemory implements EpisodicMemory {
   }
 
   async getEpisodes(options?: { type?: EpisodeType; limit?: number }): Promise<Episode[]> {
-    const filtered = options?.type ? this.episodes.filter((e) => e.type === options.type) : this.episodes;
+    const filtered = options?.type
+      ? this.episodes.filter((e) => e.type === options.type)
+      : this.episodes;
     return options?.limit !== undefined ? filtered.slice(-options.limit) : filtered;
   }
 

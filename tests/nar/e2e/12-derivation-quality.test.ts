@@ -47,7 +47,9 @@ describe('M9: Derivation Quality — Zero contradictory/redundant terms', () => 
     // Print all beliefs for debugging
     console.log('\n=== All Beliefs ===');
     for (const belief of beliefs) {
-      console.log(`  ${belief.term} f=${belief.truth.f.toFixed(2)};c=${belief.truth.c.toFixed(2)}%`);
+      console.log(
+        `  ${belief.term} f=${belief.truth.f.toFixed(2)};c=${belief.truth.c.toFixed(2)}%`
+      );
     }
 
     // Check for contradictory conjunctions (X & --X) - should be reduced to FALSE
@@ -57,7 +59,11 @@ describe('M9: Derivation Quality — Zero contradictory/redundant terms', () => 
       for (const arg of args) {
         if (arg.kind === 'negation') {
           const negated = arg.args[0];
-          if (args.some((a) => a === negated || (a.kind === 'atom' && a.symbol === (negated as any).symbol))) {
+          if (
+            args.some(
+              (a) => a === negated || (a.kind === 'atom' && a.symbol === (negated as any).symbol)
+            )
+          ) {
             return true;
           }
         }
@@ -154,7 +160,7 @@ describe('M9: Derivation Quality — Zero contradictory/redundant terms', () => 
     await nar.dispose();
   });
 
-test('term reducers reach fixed point for all canonical forms', () => {
+  test('term reducers reach fixed point for all canonical forms', () => {
     // Test that TERM_REDUCERS correctly reduce problematic terms
     const testCases = [
       // Nested conjunction - flatten
@@ -209,28 +215,29 @@ test('term reducers reach fixed point for all canonical forms', () => {
     // This test ensures all derived terms pass the canonical gate
     // The actual gate is `pnpm terms:canonical` which tests the reducer fixed point
     // We just verify the reducers work as expected
-    
+
     // Test a variety of edge cases - use valid Narsese syntax
     const edgeCases = [
-      '(A & (B & C))',   // should flatten to (A & B & C)
-      '(&,A,B,A)',       // should dedupe to (&,A,B)
-      '(|,A,B,A)',       // should dedupe to (|,A,B)
-      '--(--A)',         // double negation, should reduce to A
-      '(&,TRUE,A)',      // should reduce to A
-      '(&,FALSE,A)',     // should reduce to FALSE
-      '(|,TRUE,A)',      // should reduce to TRUE
-      '(|,FALSE,A)',     // should reduce to A
+      '(A & (B & C))', // should flatten to (A & B & C)
+      '(&,A,B,A)', // should dedupe to (&,A,B)
+      '(|,A,B,A)', // should dedupe to (|,A,B)
+      '--(--A)', // double negation, should reduce to A
+      '(&,TRUE,A)', // should reduce to A
+      '(&,FALSE,A)', // should reduce to FALSE
+      '(|,TRUE,A)', // should reduce to TRUE
+      '(|,FALSE,A)', // should reduce to A
     ];
 
     for (const input of edgeCases) {
       const parsed = termParser.parse(input);
       const canonical = canonicalTerm(parsed);
-      
+
       // Verify it's actually canonical (no reducer applies)
       for (const reducer of TERM_REDUCERS) {
-        expect(reducer.applies(canonical), 
-          `Reducer ${reducer.id} should not apply to canonical term ${canonical} from ${input}`)
-          .toBe(false);
+        expect(
+          reducer.applies(canonical),
+          `Reducer ${reducer.id} should not apply to canonical term ${canonical} from ${input}`
+        ).toBe(false);
       }
     }
   });

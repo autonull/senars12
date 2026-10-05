@@ -36,8 +36,15 @@ const syntheticRecords = (harness: BrierHarness): void => {
     const observed = rng.next() < 0.5 ? 1 : 0;
     const predicted = Math.max(0.02, Math.min(0.98, observed + (rng.next() - 0.5) * 0.2));
     harness.record({
-      arm: 'honest', game: 'snake', stateId: `s${i}`, action: '0',
-      predicted, observed, reward: observed, latencyMs: 1, handover: false,
+      arm: 'honest',
+      game: 'snake',
+      stateId: `s${i}`,
+      action: '0',
+      predicted,
+      observed,
+      reward: observed,
+      latencyMs: 1,
+      handover: false,
     });
   }
   // shuffled-probability control: predictions decoupled from outcomes
@@ -45,8 +52,15 @@ const syntheticRecords = (harness: BrierHarness): void => {
     const observed = rng.next() < 0.5 ? 1 : 0;
     const predicted = rng.next();
     harness.record({
-      arm: 'shuffled', game: 'snake', stateId: `t${i}`, action: '0',
-      predicted, observed, reward: observed, latencyMs: 1, handover: false,
+      arm: 'shuffled',
+      game: 'snake',
+      stateId: `t${i}`,
+      action: '0',
+      predicted,
+      observed,
+      reward: observed,
+      latencyMs: 1,
+      handover: false,
     });
   }
   // random control: advantage signal ≈ 0 (predictions unbiased w.r.t. outcomes)
@@ -54,8 +68,15 @@ const syntheticRecords = (harness: BrierHarness): void => {
     const predicted = 0.5 + (rng.next() - 0.5) * 0.1;
     const observed = rng.next() < predicted ? 1 : 0;
     harness.record({
-      arm: 'random', game: 'snake', stateId: `r${i}`, action: '0',
-      predicted, observed, reward: observed, latencyMs: 1, handover: false,
+      arm: 'random',
+      game: 'snake',
+      stateId: `r${i}`,
+      action: '0',
+      predicted,
+      observed,
+      reward: observed,
+      latencyMs: 1,
+      handover: false,
     });
   }
 };
@@ -138,7 +159,11 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
   it('E7 cognitive mode: belief seeding → NAL veto with recorder-verified justification + per-tick panel', async () => {
     const game = createGridWorldGame({ id: 'cog-grid', grid: ['S..', '..G'], seed: 5 });
     const focus = new GameFocus({
-      gateRegistry: createGateRegistry(), focusId: 'cog-focus', game, cognitive: true });
+      gateRegistry: createGateRegistry(),
+      focusId: 'cog-focus',
+      game,
+      cognitive: true,
+    });
     focus.bindReflex(new FixedConfidenceReflex(0.9));
     // Domain rule: gridworld 'S..' starts on the top row — moving up (0) bumps the wall.
     focus.seedRule('0', 'wall_bump', { f: 0.1, c: 0.95 });
@@ -187,13 +212,43 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     const loaded = loadSession(path)!;
     expect(loaded.completed).toEqual({ 'manifold/snake': 2 });
     expect(loaded.bagWeights).toEqual({ 'manifold-snake': 1.5 });
-    expect(isResumable(loaded, { seed: 7, games: ['snake', 'tetris'], arms: ['lm', 'manifold'], targetEpisodes: 5 })).toBe(true);
+    expect(
+      isResumable(loaded, {
+        seed: 7,
+        games: ['snake', 'tetris'],
+        arms: ['lm', 'manifold'],
+        targetEpisodes: 5,
+      })
+    ).toBe(true);
 
     // config mismatch ⇒ not resumable (seed / games / arms / episodes)
-    expect(isResumable(loaded, { seed: 8, games: ['snake', 'tetris'], arms: ['lm', 'manifold'], targetEpisodes: 5 })).toBe(false);
-    expect(isResumable(loaded, { seed: 7, games: ['snake'], arms: ['lm', 'manifold'], targetEpisodes: 5 })).toBe(false);
-    expect(isResumable(loaded, { seed: 7, games: ['snake', 'tetris'], arms: ['lm'], targetEpisodes: 5 })).toBe(false);
-    expect(isResumable(loaded, { seed: 7, games: ['snake', 'tetris'], arms: ['lm', 'manifold'], targetEpisodes: 4 })).toBe(false);
+    expect(
+      isResumable(loaded, {
+        seed: 8,
+        games: ['snake', 'tetris'],
+        arms: ['lm', 'manifold'],
+        targetEpisodes: 5,
+      })
+    ).toBe(false);
+    expect(
+      isResumable(loaded, {
+        seed: 7,
+        games: ['snake'],
+        arms: ['lm', 'manifold'],
+        targetEpisodes: 5,
+      })
+    ).toBe(false);
+    expect(
+      isResumable(loaded, { seed: 7, games: ['snake', 'tetris'], arms: ['lm'], targetEpisodes: 5 })
+    ).toBe(false);
+    expect(
+      isResumable(loaded, {
+        seed: 7,
+        games: ['snake', 'tetris'],
+        arms: ['lm', 'manifold'],
+        targetEpisodes: 4,
+      })
+    ).toBe(false);
 
     // corruption ⇒ null (caller starts fresh with a note, never crashes)
     writeFileSync(path, '{not json', 'utf-8');
@@ -202,7 +257,9 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
   });
 
   it('G5 arcade OTel spans: tick spans recorded with arm/game attributes, veto + handover events', async () => {
-    const { InMemorySpanExporter, SimpleSpanProcessor } = await import('@opentelemetry/sdk-trace-node');
+    const { InMemorySpanExporter, SimpleSpanProcessor } = await import(
+      '@opentelemetry/sdk-trace-node'
+    );
     const exporter = new InMemorySpanExporter();
     // `initOtel`, not `provider.register()`: the arcade tracer reads the
     // provider `otel/index.ts` owns, and the global registration is a
@@ -279,7 +336,11 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     const { createTetrisGame } = await import('@senars/nar/game');
     const game = createTetrisGame({ seed: 21, width: 6, height: 8, pieceCap: 20 });
     const focus = new GameFocus({
-      gateRegistry: createGateRegistry(), focusId: 'schema-focus', game, schemaInduction: true });
+      gateRegistry: createGateRegistry(),
+      focusId: 'schema-focus',
+      game,
+      schemaInduction: true,
+    });
     let reflexI = 0;
     const cycle = {
       id: 'cycle',
@@ -297,9 +358,13 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     // produced must be NAL-derivable in the focus memory (bad ⇒ veto-eligible).
     expect(promoted.length).toBeLessThanOrEqual(2);
     for (const schema of promoted) {
-      const derivations = (focus.getFocus() as {
-        getNALDerivations: (a: string) => Array<{ action: string; truth: { f: number; c: number } }>;
-      }).getNALDerivations(schema.action);
+      const derivations = (
+        focus.getFocus() as {
+          getNALDerivations: (
+            a: string
+          ) => Array<{ action: string; truth: { f: number; c: number } }>;
+        }
+      ).getNALDerivations(schema.action);
       expect(derivations.length).toBeGreaterThan(0);
       const expected = schema.kind === 'bad' ? { f: 0.1, c: 0.9 } : { f: 0.9, c: 0.9 };
       expect(derivations.some((d) => d.truth.f === expected.f && d.truth.c === expected.c)).toBe(
@@ -317,7 +382,9 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     await orig(dir);
     const json = JSON.parse(readFileSync(`${dir}/arcade.json`, 'utf-8'));
     expect(json.summary.length).toBe(3);
-    expect(readFileSync(`${dir}/arcade.md`, 'utf-8')).toContain('Arcade decision-calibration report');
+    expect(readFileSync(`${dir}/arcade.md`, 'utf-8')).toContain(
+      'Arcade decision-calibration report'
+    );
     rmSync(dir, { recursive: true, force: true });
     void mkdirSync;
   });

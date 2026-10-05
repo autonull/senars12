@@ -57,14 +57,18 @@ const ruleProposal = (overrides: Partial<RuleProposal> = {}): RuleProposal => ({
 const harness = () => {
   const store = loadBuiltinTable();
   const admitted: { declaration: RuleDeclaration; revision: number; baseRevision: number }[] = [];
-  const producer = new LMProposalProducer(new StreamReasoner({ gates: createGateRegistry() }), {} as never, {
-    admitRule: {
-      admit: (declaration, at) => {
-        admitted.push({ declaration, ...at });
-        store.admit(declaration, at.revision, at.baseRevision, { proposalId: at.proposalId });
+  const producer = new LMProposalProducer(
+    new StreamReasoner({ gates: createGateRegistry() }),
+    {} as never,
+    {
+      admitRule: {
+        admit: (declaration, at) => {
+          admitted.push({ declaration, ...at });
+          store.admit(declaration, at.revision, at.baseRevision, { proposalId: at.proposalId });
+        },
       },
-    },
-  });
+    }
+  );
   return { store, producer, admitted };
 };
 
@@ -205,7 +209,11 @@ describe('the index is a projection, never authoritative', () => {
 
     expect(index.candidates('atom', 'atom').map((r) => r.id)).toContain('test:phantom');
     // The artifact never saw it, so a rebuild does not.
-    expect(loadBuiltinTable().entries().some((e) => e.ruleId === 'test:phantom')).toBe(false);
+    expect(
+      loadBuiltinTable()
+        .entries()
+        .some((e) => e.ruleId === 'test:phantom')
+    ).toBe(false);
   });
 
   it('replaying the admission events rebuilds the same table', () => {
@@ -251,7 +259,9 @@ describe('the index is a projection, never authoritative', () => {
         resultingRevision: 1,
       },
     };
-    expect(RuleTableStore.fromEvents([content], RULE_BODIES, BUILTIN_DECLARATIONS).revision).toBe(0);
+    expect(RuleTableStore.fromEvents([content], RULE_BODIES, BUILTIN_DECLARATIONS).revision).toBe(
+      0
+    );
   });
 });
 
@@ -270,12 +280,9 @@ describe('load failures are loud', () => {
 
   it('a rule whose body resolves to nothing is refused, not admitted inert', () => {
     const entry = { ...loadBuiltinTable().entries()[0]!, body: 'nothing:implements:this' };
-    expect(() =>
-      RuleTableStore.from(
-        tableArtifact([entry]),
-        RULE_BODIES
-      )
-    ).toThrow(/unresolved-body/);
+    expect(() => RuleTableStore.from(tableArtifact([entry]), RULE_BODIES)).toThrow(
+      /unresolved-body/
+    );
   });
 
   it('two entries claiming one ruleId is a fault, not a silent overwrite', () => {
@@ -288,9 +295,9 @@ describe('load failures are loud', () => {
   it('a revision that does not advance is refused', () => {
     const store = loadBuiltinTable();
     store.admit(DECLARATION, 1, 0, { proposalId: 'rp-1' });
-    expect(() => store.admit({ ...DECLARATION, ruleId: 'test:again' }, 1, 0, { proposalId: 'x' })).toThrow(
-      RuleTableError
-    );
+    expect(() =>
+      store.admit({ ...DECLARATION, ruleId: 'test:again' }, 1, 0, { proposalId: 'x' })
+    ).toThrow(RuleTableError);
   });
 });
 
@@ -311,13 +318,17 @@ describe('a rule proposal has a path to becoming a rule', () => {
   it('a refused rule proposal never reaches the table, and says so', () => {
     const events: CognitiveEvent[] = [];
     const store = loadBuiltinTable();
-    const producer = new LMProposalProducer(new StreamReasoner({ gates: createGateRegistry() }), {} as never, {
-      record: (event) => events.push(event),
-      admitRule: {
-        admit: (declaration, at) =>
-          store.admit(declaration, at.revision, at.baseRevision, { proposalId: at.proposalId }),
-      },
-    });
+    const producer = new LMProposalProducer(
+      new StreamReasoner({ gates: createGateRegistry() }),
+      {} as never,
+      {
+        record: (event) => events.push(event),
+        admitRule: {
+          admit: (declaration, at) =>
+            store.admit(declaration, at.revision, at.baseRevision, { proposalId: at.proposalId }),
+        },
+      }
+    );
 
     // A malformed proposal throws rather than recording a rejection — A3's
     // `failed-schema` gap, recorded as a known improvement. So the refusal
@@ -328,9 +339,7 @@ describe('a rule proposal has a path to becoming a rule', () => {
     expect(store.revision).toBe(0);
     const rejected = events.filter((event) => event.type === 'proposal.rejected');
     expect(rejected).toHaveLength(1);
-    expect((rejected[0] as { payload: { reason: string } }).payload.reason).toBe(
-      'stale-revision'
-    );
+    expect((rejected[0] as { payload: { reason: string } }).payload.reason).toBe('stale-revision');
   });
 
   it('a stale rule proposal is rejected against the committed revision', () => {
@@ -415,8 +424,11 @@ describe('the table is enumerable at runtime', () => {
     expect(declared!.apply([left, right])?.toString()).toBe('(swan-->animal)');
 
     store.revert(0);
-    expect(store.index().candidates('inheritance', 'inheritance').map((r) => r.id)).not.toContain(
-      'test:learned'
-    );
+    expect(
+      store
+        .index()
+        .candidates('inheritance', 'inheritance')
+        .map((r) => r.id)
+    ).not.toContain('test:learned');
   });
 });

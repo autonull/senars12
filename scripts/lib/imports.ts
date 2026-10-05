@@ -120,7 +120,7 @@ export interface ImportEdge {
   offset: number;
 }
 
-const SPECIFIER = "['\"]([^'\"]+)['\"]";
+const SPECIFIER = '[\'"]([^\'"]+)[\'"]';
 
 /**
  * Every module specifier a file loads — static, side-effect, and dynamic.

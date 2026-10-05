@@ -3,11 +3,15 @@ import { NAR } from '@senars/nar';
 import { createNAR } from '@senars/nar';
 import type { LMService } from '@senars/nar/lm';
 import { createLMServiceCortex } from '@senars/nar/lm/system-one/cortex-adapter';
-import type { CognitiveContext, SynthesisQuery, ReasoningBudget } from '@senars/nar/lm/system-one/types';
+import type {
+  CognitiveContext,
+  SynthesisQuery,
+  ReasoningBudget,
+} from '@senars/nar/lm/system-one/types';
 
 /**
  * Bench 16 — Cortex Ladder
- * 
+ *
  * Obligation: `LMServiceCortex` adapter:
  * - mock-LM `proposeAndJudge` yields real candidates (not `candidate_N`)
  * - candidates parse via `termParser`
@@ -22,7 +26,9 @@ describe('Bench 16 — Cortex Ladder', () => {
   beforeEach(async () => {
     mockLMService = {
       generateText: vi.fn().mockResolvedValue('(robin-->bird).\n(cat-->animal).\n(dog-->mammal).'),
-      tryGenerateText: vi.fn().mockResolvedValue('(robin-->bird).\n(cat-->animal).\n(dog-->mammal).'),
+      tryGenerateText: vi
+        .fn()
+        .mockResolvedValue('(robin-->bird).\n(cat-->animal).\n(dog-->mammal).'),
       getStats: vi.fn().mockReturnValue({}),
       setProgressCallback: vi.fn(),
     } as unknown as LMService;
@@ -47,7 +53,11 @@ describe('Bench 16 — Cortex Ladder', () => {
           maxMemoryMbPerCycle: 256,
         },
         provisional: { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30000 },
-        distillation: { datasetPath: './data/systemone-distillation.jsonl', bakeOffSamplingRate: 0.1, driftEceBound: 0.15 },
+        distillation: {
+          datasetPath: './data/systemone-distillation.jsonl',
+          bakeOffSamplingRate: 0.1,
+          driftEceBound: 0.15,
+        },
       },
       maxConcepts: 1000,
     });
@@ -87,10 +97,10 @@ describe('Bench 16 — Cortex Ladder', () => {
 
     // Should yield real Narsese candidates, not stub candidate_N
     expect(peaResult.candidates.length).toBeGreaterThan(0);
-    expect(peaResult.candidates.every(c => c.startsWith('candidate_'))).toBe(false);
-    
+    expect(peaResult.candidates.every((c) => c.startsWith('candidate_'))).toBe(false);
+
     // Should contain valid Narsese terms
-    expect(peaResult.candidates.some(c => c.includes('-->'))).toBe(true);
+    expect(peaResult.candidates.some((c) => c.includes('-->'))).toBe(true);
   });
 
   it('candidates parse via termParser', async () => {
@@ -172,15 +182,20 @@ describe('Bench 16 — Cortex Ladder', () => {
       consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
     };
 
-    const peaResult = await dispatcher.proposeAndJudge(context, synthesisQuery, judgmentQueries, budget);
+    const peaResult = await dispatcher.proposeAndJudge(
+      context,
+      synthesisQuery,
+      judgmentQueries,
+      budget
+    );
 
     // Should have real candidates, not stubs
     expect(peaResult.candidates.length).toBeGreaterThan(0);
-    expect(peaResult.candidates.every(c => c.startsWith('candidate_'))).toBe(false);
-    
+    expect(peaResult.candidates.every((c) => c.startsWith('candidate_'))).toBe(false);
+
     // Should have admitted candidates with truth values
     expect(peaResult.admitted.length).toBeGreaterThanOrEqual(0);
-    
+
     // Candidates should be valid Narsese
     const { termParser } = await import('@senars/nar/terms');
     for (const candidate of peaResult.candidates) {
@@ -218,7 +233,11 @@ describe('Bench 16 — Cortex Ladder', () => {
           maxMemoryMbPerCycle: 256,
         },
         provisional: { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30000 },
-        distillation: { datasetPath: './data/systemone-distillation.jsonl', bakeOffSamplingRate: 0.1, driftEceBound: 0.15 },
+        distillation: {
+          datasetPath: './data/systemone-distillation.jsonl',
+          bakeOffSamplingRate: 0.1,
+          driftEceBound: 0.15,
+        },
       },
       maxConcepts: 1000,
     });
@@ -253,11 +272,11 @@ describe('Bench 16 — Cortex Ladder', () => {
 
     // Should not throw, should fall back to Tier 3 (symbolic)
     const peaResult = await dispatcher.proposeAndJudge(context, synthesisQuery, [], budget);
-    
+
     expect(peaResult).toBeDefined();
     expect(peaResult.candidates).toBeDefined();
     expect(Array.isArray(peaResult.candidates)).toBe(true);
-    
+
     await failingNar.dispose();
   });
 

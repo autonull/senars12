@@ -26,10 +26,7 @@ export interface SemanticSimilarity {
   similarity(a: Concept['term'], b: Concept['term']): number;
 }
 
-export interface MemoryView
-  extends ConceptReader,
-    GoalEnumeration,
-    Pick<ConceptReader, 'size'> {
+export interface MemoryView extends ConceptReader, GoalEnumeration, Pick<ConceptReader, 'size'> {
   getFocus(): Focus;
   /** The link surface, as a port: recall and strength, not the manager's storage. */
   links(): LinkPort;

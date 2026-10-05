@@ -199,12 +199,12 @@ describe('Truth', () => {
 
   describe('normalize', () => {
     test.each`
-      frequency      | confidence     | expectedF | expectedC
-      ${1.5}         | ${0.95}        | ${1.0}    | ${0.95}
-      ${-0.5}        | ${-0.1}        | ${0.0}    | ${0.0}
-      ${0.9}         | ${1.0}         | ${0.9}    | ${Truth.MAX_CONFIDENCE}
-      ${0.9}         | ${1.5}         | ${0.9}    | ${Truth.MAX_CONFIDENCE}
-      ${Number.NaN}  | ${Number.NaN}  | ${0.5}    | ${0.9}
+      frequency     | confidence    | expectedF | expectedC
+      ${1.5}        | ${0.95}       | ${1.0}    | ${0.95}
+      ${-0.5}       | ${-0.1}       | ${0.0}    | ${0.0}
+      ${0.9}        | ${1.0}        | ${0.9}    | ${Truth.MAX_CONFIDENCE}
+      ${0.9}        | ${1.5}        | ${0.9}    | ${Truth.MAX_CONFIDENCE}
+      ${Number.NaN} | ${Number.NaN} | ${0.5}    | ${0.9}
     `(
       'brings an out-of-domain value into the domain',
       ({ frequency, confidence, expectedF, expectedC }) => {
@@ -490,7 +490,10 @@ describe('term metrics', () => {
  */
 describe('operator commutativity', () => {
   const product = (...symbols: string[]) =>
-    TermBuilder.compound('product', symbols.map((symbol) => TermBuilder.atom(symbol)!));
+    TermBuilder.compound(
+      'product',
+      symbols.map((symbol) => TermBuilder.atom(symbol)!)
+    );
 
   test('product order is preserved, so two products are two terms', () => {
     expect(product('bird', 'cat').toString()).toBe('(bird,cat)');
@@ -504,4 +507,3 @@ describe('operator commutativity', () => {
     expect(TermBuilder.conjunction(bird, cat)).toBe(TermBuilder.conjunction(cat, bird));
   });
 });
-

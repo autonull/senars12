@@ -11,7 +11,12 @@ import type { Episode } from '@senars/util';
  * are excluded there by construction).
  */
 const reaction = (turnId: string, kind: string): Episode =>
-  ({ type: 'reaction', content: JSON.stringify({ turnId, kind }), metadata: { turnId, kind }, timestamp: 0 }) as Episode;
+  ({
+    type: 'reaction',
+    content: JSON.stringify({ turnId, kind }),
+    metadata: { turnId, kind },
+    timestamp: 0,
+  }) as Episode;
 
 const source = (reactions: Episode[], grades: Record<string, number>): CurriculumSource => ({
   reactions: async () => reactions,
@@ -32,7 +37,7 @@ describe('TODO25 Bench 79 — selectProbes', () => {
   });
 
   it('deterministic: same data ⇒ identical selection, digest tie-break on equal scores', async () => {
-    const grades = { 'b': 0.1, 'a': 0.1, 'c': 0.1 };
+    const grades = { b: 0.1, a: 0.1, c: 0.1 };
     const run = () => selectProbes(source([], grades), { limit: 10 });
     const [r1, r2] = await Promise.all([run(), run()]);
     expect(r1).toEqual(r2);

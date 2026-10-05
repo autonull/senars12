@@ -51,14 +51,22 @@ if (rows.length === 0) {
   process.exit(1);
 }
 
-const model = trainHead(rows, { headId: values.head, rubric, axis: 'teleological' }, {
-  kind: values.kind === 'logistic' ? 'logistic' : 'linear',
-  epochs: Number(values.epochs),
-});
+const model = trainHead(
+  rows,
+  { headId: values.head, rubric, axis: 'teleological' },
+  {
+    kind: values.kind === 'logistic' ? 'logistic' : 'linear',
+    epochs: Number(values.epochs),
+  }
+);
 
 const bundle = await writeHeadArtifacts(model, values.out);
-console.log(`Trained '${values.head}' on ${model.metrics.samples} rows over ${model.metrics.epochs} epochs`);
-console.log(`  holdout Brier: ${model.metrics.holdoutLoss.toFixed(4)}  correlation: ${(model.metrics.valueCorrelation ?? 0).toFixed(4)}`);
+console.log(
+  `Trained '${values.head}' on ${model.metrics.samples} rows over ${model.metrics.epochs} epochs`
+);
+console.log(
+  `  holdout Brier: ${model.metrics.holdoutLoss.toFixed(4)}  correlation: ${(model.metrics.valueCorrelation ?? 0).toFixed(4)}`
+);
 console.log(`  MODEL_DIGEST: ${bundle.modelDigest}`);
 console.log(`Artifacts written to ${values.out} (config.json, weights.bin, MODEL_DIGEST)`);
 

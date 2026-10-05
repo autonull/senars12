@@ -13,7 +13,16 @@ describe('evaluateExpression', () => {
   });
 
   it('rejects non-arithmetic input', () => {
-    for (const expr of ['process.exit(1)', 'constructor', '1 + a', 'import("fs")', 'this', '', '1; 2', '(1']) {
+    for (const expr of [
+      'process.exit(1)',
+      'constructor',
+      '1 + a',
+      'import("fs")',
+      'this',
+      '',
+      '1; 2',
+      '(1',
+    ]) {
       expect(() => evaluateExpression(expr)).toThrow(ExpressionError);
     }
   });

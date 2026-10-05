@@ -48,9 +48,7 @@ describe('InputProcessor task typing', () => {
   });
 
   it('honours the configured default when the mark is absent', () => {
-    expect(new InputProcessor({ defaultType: 'question' }).detectType('(a-->b)')).toBe(
-      'question'
-    );
+    expect(new InputProcessor({ defaultType: 'question' }).detectType('(a-->b)')).toBe('question');
   });
 
   it('an explicit type overrides the mark', () => {

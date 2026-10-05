@@ -30,12 +30,8 @@ describe('Bench 61b — Kernel Layering (X2)', () => {
   });
 
   it('ingress still fails closed on judge faults (D1 preserved)', async () => {
-    const { KernelPerceptionGate } = await import(
-      '../../nar/src/kernel/KernelPerceptionGate.js'
-    );
-    const { SystemOneIngressJudge } = await import(
-      '../../nar/src/lm/system-one/ingress-judge.js'
-    );
+    const { KernelPerceptionGate } = await import('../../nar/src/kernel/KernelPerceptionGate.js');
+    const { SystemOneIngressJudge } = await import('../../nar/src/lm/system-one/ingress-judge.js');
     const gate = new KernelPerceptionGate({
       systemOne: {
         enabled: true,
@@ -65,9 +61,9 @@ describe('Bench 61b — Kernel Layering (X2)', () => {
     });
     expect(result.admitted).toBe(false);
     expect(result.rejectionReason).toContain('fail-closed');
-    const violation = gate
-      .getEventLog()
-      .find((e) => e.type === 'policy.violation') as { payload: { detail: string } };
+    const violation = gate.getEventLog().find((e) => e.type === 'policy.violation') as {
+      payload: { detail: string };
+    };
     expect(violation).toBeDefined();
     expect(violation.payload.detail).toContain('systemone_ingress_error');
   });

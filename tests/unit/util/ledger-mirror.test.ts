@@ -45,7 +45,7 @@ describe('Ledger mirror', () => {
     expect(ledger.records().map((r) => r.label)).toEqual(['a', 'b']);
   });
 
-  it('holds the schema-applied row rather than the caller\'s draft', async () => {
+  it("holds the schema-applied row rather than the caller's draft", async () => {
     const ledger = createLedger(await tmpBase(), RowSchema, { mirror: { maxSize: 10 } });
 
     ledger.append({ label: 'a' });

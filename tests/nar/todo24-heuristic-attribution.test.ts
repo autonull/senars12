@@ -16,8 +16,12 @@ const capture = (attribution: 'explicit' | 'cues') =>
     config: { enabled: true, attribution },
   });
 
-const chat = async (cap: DialogueCapture, correlationId: string, utterance: string, response = 'ok'): Promise<string | undefined> =>
-  cap.onExchange({ correlationId, utterance, response });
+const chat = async (
+  cap: DialogueCapture,
+  correlationId: string,
+  utterance: string,
+  response = 'ok'
+): Promise<string | undefined> => cap.onExchange({ correlationId, utterance, response });
 
 /** [utterance, intended kind] — ground truth scripted by the bench author. */
 const GROUND_TRUTH: readonly (readonly [string, ReactionKind])[] = [
@@ -73,9 +77,19 @@ describe('TODO24 Bench 76 — Heuristic reaction attribution (DQ2)', () => {
     const cap = capture('cues');
     const t1 = await chat(cap, 'corr-a', 'what dissolves salt?', 'salt dissolves in oil');
     await chat(cap, 'corr-a', 'actually, I meant water, not oil');
-    const t2 = await chat(cap, 'corr-a', 'and how does the manifold handle OOD?', 'via the OOD head');
+    const t2 = await chat(
+      cap,
+      'corr-a',
+      'and how does the manifold handle OOD?',
+      'via the OOD head'
+    );
     const t3 = await chat(cap, 'corr-a', 'thanks, that clarified it');
-    const t4 = await chat(cap, 'corr-a', 'tell me about episodic memory instead', 'it is append-only');
+    const t4 = await chat(
+      cap,
+      'corr-a',
+      'tell me about episodic memory instead',
+      'it is append-only'
+    );
 
     expect(cap.getTurn(t1!)!.reaction?.kind).toBe('correct'); // cued by turn 2's utterance
     expect(cap.getTurn(t2!)!.reaction?.kind).toBe('accept'); // "thanks" reacts to the OOD answer

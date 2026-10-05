@@ -30,7 +30,13 @@ describe('System One — Explicit Safety Floor (R6)', () => {
         throw new Error('Manifold unavailable');
       },
       health() {
-        return { backendId: 'failing' as any, ready: false, breakerOpen: true, rollingEce: 1.0, queueDepth: 0 };
+        return {
+          backendId: 'failing' as any,
+          ready: false,
+          breakerOpen: true,
+          rollingEce: 1.0,
+          queueDepth: 0,
+        };
       },
     };
 
@@ -59,7 +65,13 @@ describe('System One — Explicit Safety Floor (R6)', () => {
         throw new Error('Manifold unavailable');
       },
       health() {
-        return { backendId: 'failing' as any, ready: false, breakerOpen: true, rollingEce: 1.0, queueDepth: 0 };
+        return {
+          backendId: 'failing' as any,
+          ready: false,
+          breakerOpen: true,
+          rollingEce: 1.0,
+          queueDepth: 0,
+        };
       },
     };
 
@@ -88,7 +100,13 @@ describe('System One — Explicit Safety Floor (R6)', () => {
         throw new Error('Manifold unavailable');
       },
       health() {
-        return { backendId: 'failing' as any, ready: false, breakerOpen: true, rollingEce: 1.0, queueDepth: 0 };
+        return {
+          backendId: 'failing' as any,
+          ready: false,
+          breakerOpen: true,
+          rollingEce: 1.0,
+          queueDepth: 0,
+        };
       },
     };
 
@@ -117,7 +135,13 @@ describe('System One — Explicit Safety Floor (R6)', () => {
         throw new Error('Manifold unavailable');
       },
       health() {
-        return { backendId: 'failing' as any, ready: false, breakerOpen: true, rollingEce: 1.0, queueDepth: 0 };
+        return {
+          backendId: 'failing' as any,
+          ready: false,
+          breakerOpen: true,
+          rollingEce: 1.0,
+          queueDepth: 0,
+        };
       },
     };
 
@@ -149,7 +173,13 @@ describe('System One — Explicit Safety Floor (R6)', () => {
         throw new Error('Manifold unavailable');
       },
       health() {
-        return { backendId: 'failing' as any, ready: false, breakerOpen: true, rollingEce: 1.0, queueDepth: 0 };
+        return {
+          backendId: 'failing' as any,
+          ready: false,
+          breakerOpen: true,
+          rollingEce: 1.0,
+          queueDepth: 0,
+        };
       },
     };
 

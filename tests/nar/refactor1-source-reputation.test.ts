@@ -91,8 +91,8 @@ describe('Bench 85 — source reputation', () => {
     // Ledger writes to daily files in the directory
     const { readdirSync, readFileSync } = await import('node:fs');
     const files = readdirSync(path);
-    expect(files.some(f => f.endsWith('.jsonl'))).toBe(true);
-    const content = readFileSync(join(path, files.find(f => f.endsWith('.jsonl'))!), 'utf-8');
+    expect(files.some((f) => f.endsWith('.jsonl'))).toBe(true);
+    const content = readFileSync(join(path, files.find((f) => f.endsWith('.jsonl'))!), 'utf-8');
     expect(content.trim().split('\n')).toHaveLength(3);
     const reloaded = new SourceReputation({ path });
     await reloaded.ready;

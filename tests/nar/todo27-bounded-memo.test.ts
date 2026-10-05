@@ -24,7 +24,6 @@ const DERIVATIONS = ['default', 'anytime', 'focused', 'sampled'] as const;
 const configs = (count: number) =>
   Array.from({ length: count }, (_, i) => ({ minStrength: i / (count * 2) }));
 
-
 describe('Bench 106 — memoized instances are bounded', () => {
   it('a repeated digest is still the same instance', () => {
     const r = registry();

@@ -107,7 +107,10 @@ describe('TODO29.a A9 — a proposal stream is a sufficient fixture', () => {
         'queue-overflow',
         'evicted-reference',
       ]);
-      expect(state.declarations.map((d) => d.ruleId)).toEqual(['learned.grid-2', 'learned.corridor']);
+      expect(state.declarations.map((d) => d.ruleId)).toEqual([
+        'learned.grid-2',
+        'learned.corridor',
+      ]);
     });
 
     it('counts rejections by reason, so a refusal policy is measurable', () => {

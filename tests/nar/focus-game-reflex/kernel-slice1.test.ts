@@ -23,7 +23,9 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
 
     it('should step and process tasks', async () => {
       const focus = createFocus({
-        gateRegistry: createGateRegistry(), id: 'step-focus' });
+        gateRegistry: createGateRegistry(),
+        id: 'step-focus',
+      });
 
       const report = await focus.step(10);
       expect(report.focusId).toBe('step-focus');
@@ -33,7 +35,10 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
 
     it('should set weight', () => {
       const focus = createFocus({
-        gateRegistry: createGateRegistry(), id: 'weight-focus', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'weight-focus',
+        weight: 0.5,
+      });
       focus.setWeight(0.8);
       expect(focus.weight).toBe(0.8);
     });
@@ -44,9 +49,15 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
       const focusBag = new FocusBag({ capacity: 10 });
 
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'f1', weight: 0.7 });
+        gateRegistry: createGateRegistry(),
+        id: 'f1',
+        weight: 0.7,
+      });
       const focus2 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'f2', weight: 0.3 });
+        gateRegistry: createGateRegistry(),
+        id: 'f2',
+        weight: 0.3,
+      });
 
       focusBag.add(focus1);
       focusBag.add(focus2);
@@ -61,9 +72,15 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
     it('should track total weight', () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'f1', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'f1',
+        weight: 0.5,
+      });
       const focus2 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'f2', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'f2',
+        weight: 0.5,
+      });
 
       focusBag.add(focus1);
       focusBag.add(focus2);
@@ -74,9 +91,15 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
     it('should rebalance weights', () => {
       const focusBag = new FocusBag({ capacity: 10 });
       const focus1 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'f1', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'f1',
+        weight: 0.5,
+      });
       const focus2 = createFocus({
-        gateRegistry: createGateRegistry(), id: 'f2', weight: 0.5 });
+        gateRegistry: createGateRegistry(),
+        id: 'f2',
+        weight: 0.5,
+      });
 
       focusBag.add(focus1);
       focusBag.add(focus2);

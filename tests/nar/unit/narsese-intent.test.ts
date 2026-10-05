@@ -5,24 +5,44 @@ import { termParser } from '@senars/nar/terms';
 
 describe('the Narsese ingress router', () => {
   it('names the kind from the punctuation', () => {
-    expect(dispatchNarseseIntent('(cat --> animal).')).toEqual({ kind: 'belief', text: '(cat --> animal).' });
-    expect(dispatchNarseseIntent('(cat --> animal)!')).toEqual({ kind: 'goal', text: '(cat --> animal)!' });
-    expect(dispatchNarseseIntent('(whiskers --> ?what)?')).toEqual({ kind: 'question', text: '(whiskers --> ?what)?' });
+    expect(dispatchNarseseIntent('(cat --> animal).')).toEqual({
+      kind: 'belief',
+      text: '(cat --> animal).',
+    });
+    expect(dispatchNarseseIntent('(cat --> animal)!')).toEqual({
+      kind: 'goal',
+      text: '(cat --> animal)!',
+    });
+    expect(dispatchNarseseIntent('(whiskers --> ?what)?')).toEqual({
+      kind: 'question',
+      text: '(whiskers --> ?what)?',
+    });
   });
 
   it('strips a tense marker the term parser rejects', () => {
-    expect(dispatchNarseseIntent('(cat --> animal). :!:', )).toEqual({ kind: 'belief', text: '(cat --> animal).' });
+    expect(dispatchNarseseIntent('(cat --> animal). :!:')).toEqual({
+      kind: 'belief',
+      text: '(cat --> animal).',
+    });
   });
 
   it('the classifier and the router cannot disagree about the same utterance', () => {
-    for (const text of ['(cat --> animal).', '(cat --> animal)!', '(a ==> b)?', '{a --> b}.', 'hello world.']) {
+    for (const text of [
+      '(cat --> animal).',
+      '(cat --> animal)!',
+      '(a ==> b)?',
+      '{a --> b}.',
+      'hello world.',
+    ]) {
       const intent = dispatchNarseseIntent(text);
       const classified = classify(text);
       if (!intent) {
         expect(classified, text).toBe('nl-implicit');
         continue;
       }
-      expect(classified, text).toBe(intent.kind === 'question' ? 'narsese-question' : 'narsese-belief');
+      expect(classified, text).toBe(
+        intent.kind === 'question' ? 'narsese-question' : 'narsese-belief'
+      );
     }
   });
 

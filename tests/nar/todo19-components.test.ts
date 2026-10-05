@@ -20,10 +20,7 @@ import {
   createCognitionRegistries,
   tuneAction,
 } from '../../nar/src/game/index.js';
-import {
-  ParameterScopeError,
-  createParameterTable,
-} from '../../nar/src/config/parameter-table.js';
+import { ParameterScopeError, createParameterTable } from '../../nar/src/config/parameter-table.js';
 import { createSelfMetaGame } from '../../nar/src/game/impls/SelfMetaGame.js';
 import { describeMetaGameActions } from '../../nar/src/game/meta-spec.js';
 import { MetaGame } from '../../nar/src/game/impls/MetaGame.js';
@@ -64,7 +61,14 @@ describe('Bench 43 — Component Contracts', () => {
   });
 
   it('sensors fail closed: error context ⇒ zero confidence, finite features', () => {
-    const bad: any = { nar: { getStatistics: () => { throw new Error('boom'); }, getCycleCount: () => 0 } };
+    const bad: any = {
+      nar: {
+        getStatistics: () => {
+          throw new Error('boom');
+        },
+        getCycleCount: () => 0,
+      },
+    };
     for (const s of DEFAULT_SENSORS) {
       const r = s.read(bad);
       expect(r.confidence).toBeLessThanOrEqual(1);
@@ -86,18 +90,27 @@ describe('Bench 43 — Component Contracts', () => {
 
   it('tune is scope-enforced: a game scope cannot reach system knobs', () => {
     const table = createParameterTable();
-    table.register({ name: 'focusWeight', scope: 'system', min: 0, max: 1, value: 0.5, owner: 'self-meta-game' });
+    table.register({
+      name: 'focusWeight',
+      scope: 'system',
+      min: 0,
+      max: 1,
+      value: 0.5,
+      owner: 'self-meta-game',
+    });
     const tune = tuneAction();
     // game scope touching a system parameter ⇒ rejected
-    expect(() => tune.execute!({ parameterTable: table, scope: 'game:rps', args: ['focusWeight', 1] } as never))
-      .toThrow(ParameterScopeError);
+    expect(() =>
+      tune.execute!({ parameterTable: table, scope: 'game:rps', args: ['focusWeight', 1] } as never)
+    ).toThrow(ParameterScopeError);
     // the owning scope applies it
-    expect(tune.execute!({ parameterTable: table, scope: 'system', args: ['focusWeight', 0.9] } as never)).toBe(0.9);
+    expect(
+      tune.execute!({ parameterTable: table, scope: 'system', args: ['focusWeight', 0.9] } as never)
+    ).toBe(0.9);
   });
 
   it('rewards are firewall-classified; composition is weighted', () => {
-    for (const r of DEFAULT_REWARDS)
-      expect(['extrinsic', 'intrinsic']).toContain(r.classification);
+    for (const r of DEFAULT_REWARDS) expect(['extrinsic', 'intrinsic']).toContain(r.classification);
     const composed = composeReward(
       [GROUNDEDNESS_REWARD, TASK_SETTLED_REWARD, VETO_PENALTY, SPEND_EFFICIENCY_REWARD],
       { groundedness: 1, 'task-settled': 0.5, 'veto-penalty': 0.5, 'spend-efficiency': 0 },
@@ -135,7 +148,10 @@ describe('Bench 43 — Component Contracts', () => {
     // registries share the same component instances ⇒ same readings
     const { sensors: r1 } = createCognitionRegistries();
     const r2 = new SensorRegistry();
-    DEFAULT_SENSORS.forEach((s) => { r1.register(s); r2.register(s); });
+    DEFAULT_SENSORS.forEach((s) => {
+      r1.register(s);
+      r2.register(s);
+    });
     expect(r1.all()[0]!.read(c)).toEqual(r2.all()[0]!.read(c));
   });
 

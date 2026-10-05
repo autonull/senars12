@@ -49,7 +49,10 @@ const transcript = async (cycles: number) => {
 const focus = [term(FOCUS)];
 
 const ranked = await transcript(10);
-const committedBefore = ranked.memory.listConcepts().map((c) => c.term.toString()).sort();
+const committedBefore = ranked.memory
+  .listConcepts()
+  .map((c) => c.term.toString())
+  .sort();
 
 const beliefs = ranked.getBeliefs();
 const relevant = ranked.query.getRelevantBeliefs(focus);
@@ -65,7 +68,10 @@ for (const task of relevant.slice(0, 5)) {
   console.log(`    ${relevanceScore(task.term, focus).toFixed(3)}  ${task.term.toString()}`);
 }
 
-const committedAfter = ranked.memory.listConcepts().map((c) => c.term.toString()).sort();
+const committedAfter = ranked.memory
+  .listConcepts()
+  .map((c) => c.term.toString())
+  .sort();
 if (committedAfter.join() !== committedBefore.join()) {
   failures.push('reading with relevance ranking changed the committed store');
 }

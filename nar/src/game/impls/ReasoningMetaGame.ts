@@ -1,4 +1,8 @@
-import { createParameterTable, type ParameterScope, type ParameterTable } from '../../config/parameter-table.js';
+import {
+  createParameterTable,
+  type ParameterScope,
+  type ParameterTable,
+} from '../../config/parameter-table.js';
 import type { ReasoningGame } from './ReasoningGame.js';
 
 /**
@@ -12,7 +16,11 @@ export class ReasoningMetaGame {
   private readonly table: ParameterTable;
   private readonly scope: ParameterScope;
 
-  constructor(game: ReasoningGame, weights: Record<string, number>, table: ParameterTable = createParameterTable()) {
+  constructor(
+    game: ReasoningGame,
+    weights: Record<string, number>,
+    table: ParameterTable = createParameterTable()
+  ) {
     this.id = `meta:${game.id}`;
     this.table = table;
     this.scope = `game:${game.id}`;
@@ -44,7 +52,9 @@ export class ReasoningMetaGame {
   }
 
   getRewardWeights(): Record<string, number> {
-    return Object.fromEntries([...this.table.list(this.scope)].map(([k, v]) => [k.replace('reward.', ''), v]));
+    return Object.fromEntries(
+      [...this.table.list(this.scope)].map(([k, v]) => [k.replace('reward.', ''), v])
+    );
   }
 
   /** Cross-scope tune attempts are rejected (scope enforcement, C3/R4.4). */

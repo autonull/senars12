@@ -20,7 +20,12 @@ export {
   type FocusSchedulerOptions,
   type SchedulerTickResult,
 } from './focus-scheduler.js';
-export { createFocusTree, FocusTree, type FocusTreeOptions, type FocusTreeRollup } from './FocusTree.js';
+export {
+  createFocusTree,
+  FocusTree,
+  type FocusTreeOptions,
+  type FocusTreeRollup,
+} from './FocusTree.js';
 export type { TickPanelEntry } from './GameFocus.js';
 export { createGameFocus, GameFocus } from './GameFocus.js';
 export type { MetaFocusOptions } from './MetaFocus.js';

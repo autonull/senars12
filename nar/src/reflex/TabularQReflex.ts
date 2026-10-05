@@ -1,4 +1,4 @@
-import { 
+import {
   ambientRng,
   anneal,
   lerpUpdate,
@@ -8,7 +8,7 @@ import {
   rampConfidence,
   type RandomSource,
   shuffleInPlace,
- } from '@senars/util';
+} from '@senars/util';
 import type { Perception } from '../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
 import { byExpectedValue } from './Reflex.js';

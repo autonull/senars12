@@ -10,7 +10,8 @@ import { DialogueCapture, sha256 } from '../../nar/src/dialogue/impls/DialogueCa
 import { REACTION_KINDS } from '../../nar/src/dialogue/types.js';
 import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic.js';
 
-const embed = async (text: string): Promise<number[]> => Array.from({ length: 8 }, (_, i) => (text.charCodeAt(i % text.length) % 7) / 7);
+const embed = async (text: string): Promise<number[]> =>
+  Array.from({ length: 8 }, (_, i) => (text.charCodeAt(i % text.length) % 7) / 7);
 const cache = () => createEmbeddingCache({ generator: { generate: embed }, dimension: 8 });
 
 function newDataset() {
@@ -22,7 +23,11 @@ describe('TODO24 bench 71: reaction labels + exclusions + redaction', () => {
   it('correct yields a two-row preference pair (observed 0/1, REACTION_SOURCE)', async () => {
     const dataset = newDataset();
     const d = new DialogueCapture({ dataset, embeddingCache: cache(), config: { enabled: true } });
-    const turnId = await d.onExchange({ correlationId: 's1', utterance: 'hello', response: 'world' });
+    const turnId = await d.onExchange({
+      correlationId: 's1',
+      utterance: 'hello',
+      response: 'world',
+    });
     await d.bindReaction(turnId!, 'correct', 'I meant something else');
     const rows = dataset.all().filter((r) => r.source === 'reaction');
     expect(rows).toHaveLength(2);
@@ -60,9 +65,33 @@ describe('TODO24 bench 71: reaction labels + exclusions + redaction', () => {
 
   it('createFrozenEvalSet default-excludes REACTION_SOURCE (I1)', () => {
     const dataset = newDataset();
-    dataset.record({ evidenceId: 'e1', rubric: 'groundedness', axis: 'epistemic', label: 'x', score: 0.9, observed: 1, source: 'label' });
-    dataset.record({ evidenceId: 'e2', rubric: 'groundedness', axis: 'epistemic', label: 'x', score: 0.4, observed: 0, source: 'reaction' });
-    dataset.record({ evidenceId: 'e3', rubric: 'groundedness', axis: 'epistemic', label: 'x', score: 0.4, observed: 0, source: 'conversation' });
+    dataset.record({
+      evidenceId: 'e1',
+      rubric: 'groundedness',
+      axis: 'epistemic',
+      label: 'x',
+      score: 0.9,
+      observed: 1,
+      source: 'label',
+    });
+    dataset.record({
+      evidenceId: 'e2',
+      rubric: 'groundedness',
+      axis: 'epistemic',
+      label: 'x',
+      score: 0.4,
+      observed: 0,
+      source: 'reaction',
+    });
+    dataset.record({
+      evidenceId: 'e3',
+      rubric: 'groundedness',
+      axis: 'epistemic',
+      label: 'x',
+      score: 0.4,
+      observed: 0,
+      source: 'conversation',
+    });
     const set = createFrozenEvalSet(dataset);
     expect(set.rows).toHaveLength(1);
   });
@@ -70,7 +99,11 @@ describe('TODO24 bench 71: reaction labels + exclusions + redaction', () => {
   it('no raw correction text appears in any persisted row (I6)', async () => {
     const dataset = newDataset();
     const d = new DialogueCapture({ dataset, embeddingCache: cache(), config: { enabled: true } });
-    const turnId = await d.onExchange({ correlationId: 's', utterance: 'SECRET-UTTERANCE', response: 'SECRET-RESPONSE' });
+    const turnId = await d.onExchange({
+      correlationId: 's',
+      utterance: 'SECRET-UTTERANCE',
+      response: 'SECRET-RESPONSE',
+    });
     await d.bindReaction(turnId!, 'correct', 'SECRET-CORRECTION');
     const serialized = JSON.stringify(dataset.all()) + JSON.stringify(d.getTurn(turnId!));
     expect(serialized).not.toContain('SECRET-CORRECTION');
@@ -103,7 +136,11 @@ describe('TODO24 bench 71: reaction labels + exclusions + redaction', () => {
       config: { enabled: true, retention: 'with-text', textStorePath: textDir },
     });
     expect(d.textStore).toBeDefined();
-    const turnId = await d.onExchange({ correlationId: 's', utterance: 'hello there', response: 'hi friend' });
+    const turnId = await d.onExchange({
+      correlationId: 's',
+      utterance: 'hello there',
+      response: 'hi friend',
+    });
     await d.bindReaction(turnId!, 'correct', 'the actual fix');
     const records = await d.textStore!.read();
     expect(records).toHaveLength(1);
@@ -125,7 +162,9 @@ describe('TODO24 bench 71: reaction labels + exclusions + redaction', () => {
     const dataset = newDataset();
     const episodic = new InMemoryEpisodicMemory();
     const d = new DialogueCapture({ dataset, episodic, config: { enabled: false } });
-    expect(await d.onExchange({ correlationId: 's', utterance: 'q', response: 'r' })).toBeUndefined();
+    expect(
+      await d.onExchange({ correlationId: 's', utterance: 'q', response: 'r' })
+    ).toBeUndefined();
     await d.bindReaction('missing', 'accept');
     expect(dataset.all()).toHaveLength(0);
     expect(episodic.episodes).toHaveLength(0);

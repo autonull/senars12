@@ -69,13 +69,29 @@ export class NodeDetailDrawer extends BaseComponent {
    * per-id map that avoided the capture reintroduced the drift this removes, and
    * grew with every node the user ever touched.
    */
-  private readonly commitNodeTruth = debounce((nodeId: string, frequency: number, confidence: number) => {
-    send({ type: 'object.set', kind: 'node', id: nodeId, patch: { truth: { frequency, confidence } } });
-  }, 120);
+  private readonly commitNodeTruth = debounce(
+    (nodeId: string, frequency: number, confidence: number) => {
+      send({
+        type: 'object.set',
+        kind: 'node',
+        id: nodeId,
+        patch: { truth: { frequency, confidence } },
+      });
+    },
+    120
+  );
 
-  private readonly commitEdgeTruth = debounce((edgeId: string, frequency: number, confidence: number) => {
-    send({ type: 'object.set', kind: 'edge', id: edgeId, patch: { truth: { frequency, confidence } } });
-  }, 120);
+  private readonly commitEdgeTruth = debounce(
+    (edgeId: string, frequency: number, confidence: number) => {
+      send({
+        type: 'object.set',
+        kind: 'edge',
+        id: edgeId,
+        patch: { truth: { frequency, confidence } },
+      });
+    },
+    120
+  );
 
   override disconnectedCallback(): void {
     this.commitNodeTruth.cancel();

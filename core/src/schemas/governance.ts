@@ -67,8 +67,7 @@ export const RiskLevelSchema = z.enum(RISK_LEVELS);
 export type RiskLevel = (typeof RISK_LEVELS)[number];
 
 /** The caps spelling of a risk tier — the only conversion between the two vocabularies. */
-export const riskLevelOf = (risk: CapabilityRisk): RiskLevel =>
-  RISK_LEVEL_BY_CAPABILITY_RISK[risk];
+export const riskLevelOf = (risk: CapabilityRisk): RiskLevel => RISK_LEVEL_BY_CAPABILITY_RISK[risk];
 
 export const GameDomainSchema = z.enum(['external', 'self']);
 export type GameDomain = z.infer<typeof GameDomainSchema>;

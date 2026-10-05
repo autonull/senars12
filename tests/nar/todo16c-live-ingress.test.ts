@@ -6,7 +6,7 @@ import { Truth } from '@senars/nar/terms';
 
 /**
  * Bench 15 — Live Ingress Calibration
- * 
+ *
  * Obligation: `nar.input("the robin is a bird")` with `systemOne.enabled: true`:
  * - raw utterance reaches the manifold (not the parsed term)
  * - all 6 heads consumed (illocution flag on task, ambiguity→Question injection on abstain, tense→occurrenceTime, source_quality→ceiling source)
@@ -49,7 +49,11 @@ describe('Bench 15 — Live Ingress Calibration', () => {
           maxMemoryMbPerCycle: 256,
         },
         provisional: { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30000 },
-        distillation: { datasetPath: './data/systemone-distillation.jsonl', bakeOffSamplingRate: 0.1, driftEceBound: 0.15 },
+        distillation: {
+          datasetPath: './data/systemone-distillation.jsonl',
+          bakeOffSamplingRate: 0.1,
+          driftEceBound: 0.15,
+        },
       },
       maxConcepts: 1000,
     });
@@ -95,7 +99,7 @@ describe('Bench 15 — Live Ingress Calibration', () => {
     // This test documents the expected behavior when real manifold is active
     const eventBus = nar.getSystemEventBus();
     const judgmentEvents: any[] = [];
-    
+
     eventBus.on('judgment.resolved', (event: any) => {
       judgmentEvents.push(event);
     });
@@ -118,13 +122,13 @@ describe('Bench 15 — Live Ingress Calibration', () => {
   it('disabled flag uses legacy path', async () => {
     // Use Narsese format for both to ensure they parse identically
     const input = '(robin-->bird).';
-    
+
     await expect(narDisabled.input(input)).resolves.not.toThrow();
     await expect(nar.input(input)).resolves.not.toThrow();
-    
+
     const disabledBeliefs = narDisabled.getBeliefs();
     const enabledBeliefs = nar.getBeliefs();
-    
+
     // Both should process the input (may or may not admit depending on gate)
     // The key is that disabled path uses legacy parsing-first approach
     // while enabled path uses manifold-first approach
@@ -142,9 +146,9 @@ describe('Bench 15 — Integration with createAgentFromEnv', () => {
       systemOne: { enabled: true },
       maxConcepts: 100,
     });
-    
+
     expect(factory.isSystemOneEnabled()).toBe(true);
-    
+
     await factory.dispose();
   });
 });

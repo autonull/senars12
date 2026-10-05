@@ -1,10 +1,15 @@
 import type { Game, GameOutcome, Perception } from '../Game.js';
-import { SeededRNG, shuffleInPlace } from  '@senars/util';
+import { SeededRNG, shuffleInPlace } from '@senars/util';
 
 export type Cell = { r: number; c: number };
 export type Direction = 0 | 1 | 2 | 3; // up, right, down, left
 
-const DELTAS: Record<Direction, Cell> = { 0: { r: -1, c: 0 }, 1: { r: 0, c: 1 }, 2: { r: 1, c: 0 }, 3: { r: 0, c: -1 } };
+const DELTAS: Record<Direction, Cell> = {
+  0: { r: -1, c: 0 },
+  1: { r: 0, c: 1 },
+  2: { r: 1, c: 0 },
+  3: { r: 0, c: -1 },
+};
 const OPPOSITE: Record<Direction, Direction> = { 0: 2, 1: 3, 2: 0, 3: 1 };
 
 export interface SnakeState {
@@ -86,7 +91,13 @@ export class SnakeGame implements Game<SnakeState, Direction> {
       seed: 1,
       maxSteps: this.maxSteps,
     });
-    copy.state_ = { snake: this.state_.snake.map((s) => ({ ...s })), apple: { ...this.state_.apple }, dir: this.state_.dir, steps: this.state_.steps, terminal: this.state_.terminal };
+    copy.state_ = {
+      snake: this.state_.snake.map((s) => ({ ...s })),
+      apple: { ...this.state_.apple },
+      dir: this.state_.dir,
+      steps: this.state_.steps,
+      terminal: this.state_.terminal,
+    };
     copy.rng.setState(this.rng.getState());
     copy.spawnBag.push(...this.spawnBag);
     return copy;
@@ -115,7 +126,8 @@ export class SnakeGame implements Game<SnakeState, Direction> {
     for (const dir of [0, 1, 2, 3] as Direction[]) {
       if (dir === OPPOSITE[state.dir] && state.snake.length > 1) continue;
       const d = DELTAS[dir];
-      if (!this.hits({ r: state.snake[0]!.r + d.r, c: state.snake[0]!.c + d.c }, state)) out.push(dir);
+      if (!this.hits({ r: state.snake[0]!.r + d.r, c: state.snake[0]!.c + d.c }, state))
+        out.push(dir);
     }
     return out;
   }
@@ -141,7 +153,11 @@ export class SnakeGame implements Game<SnakeState, Direction> {
     if (state.snake.length === this.width * this.height) state.terminal = true;
     if (state.steps >= this.maxSteps) state.terminal = true;
 
-    return { reward, terminal: state.terminal, info: { steps: state.steps, length: state.snake.length } };
+    return {
+      reward,
+      terminal: state.terminal,
+      info: { steps: state.steps, length: state.snake.length },
+    };
   }
 
   observe(): Perception {

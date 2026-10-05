@@ -6,18 +6,10 @@ import type {
   PolicyViolationEvent,
   ReasoningBudget,
 } from '@senars/core/schemas';
-import type {
-  IActionGate,
-  IBudgetGate,
-  IPerceptionGate,
-  IRewardGate,
-} from './interfaces.js';
+import type { IActionGate, IBudgetGate, IPerceptionGate, IRewardGate } from './interfaces.js';
 import { KernelActionGate, type KernelActionGateConfig } from './KernelActionGate.js';
 import { KernelBudgetGate, type KernelBudgetGateConfig } from './KernelBudgetGate.js';
-import {
-  KernelPerceptionGate,
-  type KernelPerceptionGateConfig,
-} from './KernelPerceptionGate.js';
+import { KernelPerceptionGate, type KernelPerceptionGateConfig } from './KernelPerceptionGate.js';
 import { KernelRewardGate, type KernelRewardGateConfig } from './KernelRewardGate.js';
 import type { SourceReputation } from './source-reputation.js';
 

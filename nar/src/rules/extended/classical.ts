@@ -2,7 +2,14 @@
  * Classical extended NAL rules: modus ponens, modus tollens, disjunctive syllogism, conversion.
  */
 import type { Term } from '../../terms';
-import { getPredicate, getSubject, TermBuilder, termsEqual, isDisjunction, isNegation } from '../../terms';
+import {
+  getPredicate,
+  getSubject,
+  TermBuilder,
+  termsEqual,
+  isDisjunction,
+  isNegation,
+} from '../../terms';
 import type { RuleFn } from '../types.js';
 
 export const modusPonens: RuleFn = ([imp, antecedent]: [Term, Term]): Term | undefined => {

@@ -10,19 +10,57 @@ const dist = (pairs: [string, number][]) => pairs.map(([option, p]) => ({ option
 describe('shannonEntropy', () => {
   it('is zero for a point mass and maximal for a uniform spread', () => {
     expect(shannonEntropy(dist([['a', 1]]))).toBe(0);
-    expect(shannonEntropy(dist([['a', 0.5], ['b', 0.5]]))).toBe(1);
-    expect(shannonEntropy(dist([['a', 0.25], ['b', 0.25], ['c', 0.25], ['d', 0.25]]))).toBe(2);
+    expect(
+      shannonEntropy(
+        dist([
+          ['a', 0.5],
+          ['b', 0.5],
+        ])
+      )
+    ).toBe(1);
+    expect(
+      shannonEntropy(
+        dist([
+          ['a', 0.25],
+          ['b', 0.25],
+          ['c', 0.25],
+          ['d', 0.25],
+        ])
+      )
+    ).toBe(2);
   });
 
   it('ignores zero-probability options', () => {
-    expect(shannonEntropy(dist([['a', 0.5], ['b', 0.5], ['c', 0]]))).toBe(1);
+    expect(
+      shannonEntropy(
+        dist([
+          ['a', 0.5],
+          ['b', 0.5],
+          ['c', 0],
+        ])
+      )
+    ).toBe(1);
   });
 });
 
 describe('topOption', () => {
   it('picks the highest probability, tolerating ties and emptiness', () => {
-    expect(topOption(dist([['a', 0.2], ['b', 0.8]]))?.option).toBe('b');
-    expect(topOption(dist([['a', 0.5], ['b', 0.5]]))?.option).toBe('a');
+    expect(
+      topOption(
+        dist([
+          ['a', 0.2],
+          ['b', 0.8],
+        ])
+      )?.option
+    ).toBe('b');
+    expect(
+      topOption(
+        dist([
+          ['a', 0.5],
+          ['b', 0.5],
+        ])
+      )?.option
+    ).toBe('a');
     expect(topOption([])).toEqual({ option: '', p: 0 });
   });
 });

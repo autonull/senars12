@@ -48,13 +48,28 @@ describe('TODO24 bench 73: retrospect diagnostic', () => {
     const r = await retrospect('sess-1', ep, {
       traceGrades: new Map([['sess-2', 0.9]]),
       contradictionTerms: ['<a-->b>'],
-      proposals: [{ proposalId: '00000000-0000-4000-8000-000000000000', kind: 'focus-weight', riskTier: 'low', payload: {}, rewardDomain: 'epistemic' }],
+      proposals: [
+        {
+          proposalId: '00000000-0000-4000-8000-000000000000',
+          kind: 'focus-weight',
+          riskTier: 'low',
+          payload: {},
+          rewardDomain: 'epistemic',
+        },
+      ],
     });
     expect(r.version).toBe('retrospective-v1');
     expect(r.sessionId).toBe('sess-1');
     expect(r.turnCount).toBe(12);
     expect(r.reactionCount).toBe(3);
-    expect(r.reactionDistribution).toEqual({ accept: 2, correct: 1, reject: 0, clarify: 0, redirect: 0, abandon: 0 });
+    expect(r.reactionDistribution).toEqual({
+      accept: 2,
+      correct: 1,
+      reject: 0,
+      clarify: 0,
+      redirect: 0,
+      abandon: 0,
+    });
     expect(r.corrections).toHaveLength(1);
     expect(r.corrections[0]!.correctionDigest).toMatch(/^sha256:/);
     expect(r.corrections[0]!.originalDigest).toMatch(/^sha256:/);
@@ -92,7 +107,10 @@ describe('TODO24 bench 73: retrospect diagnostic', () => {
     expect(all[all.length - 1]!.sessionId).toBe('tampered');
     // Tamper with the digest pin by overwriting the file with a corrupt entry.
     const files = await readdir(dir);
-    const jsonlFiles = files.filter((f) => f.endsWith('.jsonl')).sort().reverse();
+    const jsonlFiles = files
+      .filter((f) => f.endsWith('.jsonl'))
+      .sort()
+      .reverse();
     const path = join(dir, jsonlFiles[0]!);
     // Write a corrupt entry (wrong digest) as the only line
     const corruptEntry = JSON.stringify({
@@ -110,11 +128,25 @@ describe('TODO24 bench 73: retrospect diagnostic', () => {
       truth: { frequency: 0.9, confidence: 0.6 },
     };
     const full = {
-      reactionDistribution: { accept: 2, correct: 0, reject: 0, clarify: 0, redirect: 0, abandon: 0 },
+      reactionDistribution: {
+        accept: 2,
+        correct: 0,
+        reject: 0,
+        clarify: 0,
+        redirect: 0,
+        abandon: 0,
+      },
       provenance: { turnIds: ['t1', 't2'] },
     } as unknown as Parameters<typeof extractLessons>[0];
     expect(extractLessons(full, lesson)).toHaveLength(1);
-    expect(extractLessons(full, { ...lesson, truth: { frequency: 0.9, confidence: 0.3 } })).toHaveLength(0);
-    expect(extractLessons({ ...full, reactionDistribution: { ...full.reactionDistribution, accept: 1 } }, lesson)).toHaveLength(0);
+    expect(
+      extractLessons(full, { ...lesson, truth: { frequency: 0.9, confidence: 0.3 } })
+    ).toHaveLength(0);
+    expect(
+      extractLessons(
+        { ...full, reactionDistribution: { ...full.reactionDistribution, accept: 1 } },
+        lesson
+      )
+    ).toHaveLength(0);
   });
 });

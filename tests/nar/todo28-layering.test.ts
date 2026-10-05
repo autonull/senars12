@@ -82,8 +82,8 @@ describe('TODO28 — module specifier extraction', () => {
     const source = [
       'const t = `',
       `import { fake } from '@senars/nar/terms';`,
-      '  .map(([k, v]) => `${k}: z.${typeof v === \'string\' ? \'string()\' : \'unknown()\'}`)',
-      '  .join(\',\')',
+      "  .map(([k, v]) => `${k}: z.${typeof v === 'string' ? 'string()' : 'unknown()'}`)",
+      "  .join(',')",
       '`;',
       `import { real } from './real.js';`,
     ].join('\n');
@@ -91,7 +91,7 @@ describe('TODO28 — module specifier extraction', () => {
   });
 
   it('sees a real import nested inside an interpolation', () => {
-    const source = 'const p = `${(await import(\'@senars/metta\')).createMeTTa()}`;';
+    const source = "const p = `${(await import('@senars/metta')).createMeTTa()}`;";
     expect(importEdges(source).map((e) => [e.specifier, e.dynamic])).toEqual([
       ['@senars/metta', true],
     ]);
@@ -139,7 +139,11 @@ describe('TODO28 — the repository contains the shapes the gate must survive', 
         for (const edge of importEdges(readFileSync(file, 'utf-8'))) {
           const target = /^@senars\/(util|core|io|nar|metta)(?:\/|$)/.exec(edge.specifier)?.[1];
           if (!target || target === pkg) continue;
-          if (['util', 'core', 'io', 'nar', 'metta'].indexOf(target) <= ['util', 'core', 'io', 'nar', 'metta'].indexOf(pkg)) continue;
+          if (
+            ['util', 'core', 'io', 'nar', 'metta'].indexOf(target) <=
+            ['util', 'core', 'io', 'nar', 'metta'].indexOf(pkg)
+          )
+            continue;
           violations.push(`${file} -> ${edge.specifier}`);
         }
       }

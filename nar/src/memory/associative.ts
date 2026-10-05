@@ -61,9 +61,9 @@ export class LinkLayerMemory implements AssociativeMemory {
   ) {}
 
   recall(term: Term, { limit = 10, minStrength = 0 }: RecallOptions = {}): RecallHit[] {
-    return (this.layer()?.getLinksByTerm(term, { minPriority: minStrength, maxResults: limit }) ?? []).map(
-      (link) => ({ term: link.targetTerm, strength: link.priority })
-    );
+    return (
+      this.layer()?.getLinksByTerm(term, { minPriority: minStrength, maxResults: limit }) ?? []
+    ).map((link) => ({ term: link.targetTerm, strength: link.priority }));
   }
 
   associate(from: Term, to: Term, { strength, type }: AssociateOptions = {}): boolean {
@@ -119,7 +119,11 @@ export class AssociativeRegistry {
 
     // Memoized, but the memo resolves the layer per recall, so replacing the
     // layer behind the name is still observed.
-    return getOrInsert(this.memories, name, () => new LinkLayerMemory(name, () => this.layers?.(name)));
+    return getOrInsert(
+      this.memories,
+      name,
+      () => new LinkLayerMemory(name, () => this.layers?.(name))
+    );
   }
 
   names(): string[] {

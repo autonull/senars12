@@ -125,5 +125,3 @@ export interface SearchSpaceParam {
 export interface SearchSpace {
   parameters: Record<string, SearchSpaceParam>;
 }
-
-

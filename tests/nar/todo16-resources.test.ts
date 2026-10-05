@@ -226,7 +226,9 @@ describe('System One — AIKR Resource Accounting (Bench 12)', () => {
 
     recordJudgmentMetric('epistemic', 'evaluate', 1, false, 12);
 
-    expect(await metricValue('senars_systemone_judgments_total', judgments)).toBe((judged ?? 0) + 1);
+    expect(await metricValue('senars_systemone_judgments_total', judgments)).toBe(
+      (judged ?? 0) + 1
+    );
     expect(await metricValue('senars_systemone_judgment_latency_ms', { tier: '1' })).toBe(12);
   });
 });

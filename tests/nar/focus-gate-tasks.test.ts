@@ -17,7 +17,8 @@ describe('toAtomSymbol', () => {
   });
 
   it('always yields a valid symbol', () => {
-    for (const raw of ['', 'a b', '^^^', 'a--b']) expect(isValidAtomSymbol(toAtomSymbol(raw))).toBe(true);
+    for (const raw of ['', 'a b', '^^^', 'a--b'])
+      expect(isValidAtomSymbol(toAtomSymbol(raw))).toBe(true);
   });
 });
 
@@ -57,16 +58,18 @@ describe('outcome projection', () => {
   });
 
   it('omits the terminal flag while the episode runs', () => {
-    expect(outcomeTasks({ reward: 1, terminal: false } as never, pinned()).map((t) => t.term.toString())).toEqual([
-      '[reward_positive]',
-    ]);
+    expect(
+      outcomeTasks({ reward: 1, terminal: false } as never, pinned()).map((t) => t.term.toString())
+    ).toEqual(['[reward_positive]']);
   });
 });
 
 describe('proposal projection', () => {
   it('weights a goal by value times confidence', () => {
     const tasks = proposalTasks(
-      [{ source: 'reflex-a', action: 'move', args: { dir: 'left' }, value: 0.8, confidence: 0.5 }] as never,
+      [
+        { source: 'reflex-a', action: 'move', args: { dir: 'left' }, value: 0.8, confidence: 0.5 },
+      ] as never,
       pinned()
     );
 

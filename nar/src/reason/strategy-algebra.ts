@@ -104,8 +104,7 @@ class CompositeDerivation implements CompositionStrategy {
   }
 }
 
-const sequenceRun =
-  (stages: readonly CompositionStrategy[]): CompositionRun =>
+const sequenceRun = (stages: readonly CompositionStrategy[]): CompositionRun =>
   async function* (primary, secondaries, processor, ctx) {
     for (const stage of stages) {
       if (ctx.signal?.aborted) return;
@@ -113,8 +112,7 @@ const sequenceRun =
     }
   };
 
-const parallelRun =
-  (branches: readonly CompositionStrategy[]): CompositionRun =>
+const parallelRun = (branches: readonly CompositionStrategy[]): CompositionRun =>
   async function* (primary, secondaries, processor, ctx) {
     const pending = new Map<AsyncGenerator<Task>, Promise<IteratorResult<Task>>>();
     for (const branch of branches) {
@@ -149,19 +147,17 @@ const parallelRun =
     }
   };
 
-const conditionalRun =
-  (
-    when: (primary: Task, ctx: CompositionContext) => boolean,
-    thenBranch: CompositionStrategy,
-    otherwise?: CompositionStrategy
-  ): CompositionRun =>
+const conditionalRun = (
+  when: (primary: Task, ctx: CompositionContext) => boolean,
+  thenBranch: CompositionStrategy,
+  otherwise?: CompositionStrategy
+): CompositionRun =>
   async function* (primary, secondaries, processor, ctx) {
     const branch = when(primary, ctx) ? thenBranch : otherwise;
     if (branch) yield* branch.derive(primary, secondaries, processor, ctx);
   };
 
-const loopRun =
-  (body: CompositionStrategy, maxIterations: number): CompositionRun =>
+const loopRun = (body: CompositionStrategy, maxIterations: number): CompositionRun =>
   async function* (primary, secondaries, processor, ctx) {
     const bound = clamp(Math.floor(maxIterations), 1, LOOP_HARD_CAP);
     for (let i = 0; i < bound; i++) {
@@ -176,8 +172,11 @@ const loopRun =
     }
   };
 
-const timeoutRun =
-  (ms: number, body: CompositionStrategy, fallback?: CompositionStrategy): CompositionRun =>
+const timeoutRun = (
+  ms: number,
+  body: CompositionStrategy,
+  fallback?: CompositionStrategy
+): CompositionRun =>
   async function* (primary, secondaries, processor, ctx) {
     if (ctx.signal?.aborted) return;
     const gen = body.derive(primary, secondaries, processor, ctx);
@@ -217,7 +216,10 @@ export function describeStrategyExpression(expr: StrategyExpression): string {
   }
 }
 
-function buildRun(expr: Exclude<StrategyExpression, string>, resolve: StrategyResolver): CompositionRun {
+function buildRun(
+  expr: Exclude<StrategyExpression, string>,
+  resolve: StrategyResolver
+): CompositionRun {
   const child = (e: StrategyExpression): CompositionStrategy =>
     typeof e === 'string' ? resolve(e) : composeStrategy(e, resolve);
   switch (expr.op) {
@@ -226,15 +228,26 @@ function buildRun(expr: Exclude<StrategyExpression, string>, resolve: StrategyRe
     case 'parallel':
       return parallelRun(expr.branches.map(child));
     case 'conditional':
-      return conditionalRun(expr.when, child(expr.then), expr.otherwise ? child(expr.otherwise) : undefined);
+      return conditionalRun(
+        expr.when,
+        child(expr.then),
+        expr.otherwise ? child(expr.otherwise) : undefined
+      );
     case 'loop':
       return loopRun(child(expr.body), expr.maxIterations ?? 2);
     case 'timeout':
-      return timeoutRun(expr.ms, child(expr.body), expr.fallback ? child(expr.fallback) : undefined);
+      return timeoutRun(
+        expr.ms,
+        child(expr.body),
+        expr.fallback ? child(expr.fallback) : undefined
+      );
   }
 }
 
-export function composeStrategy(expr: StrategyExpression, resolve: StrategyResolver): CompositionStrategy {
+export function composeStrategy(
+  expr: StrategyExpression,
+  resolve: StrategyResolver
+): CompositionStrategy {
   if (typeof expr === 'string') return resolve(expr);
   return new CompositeDerivation(expr, buildRun(expr, resolve));
 }

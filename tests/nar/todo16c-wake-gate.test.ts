@@ -61,12 +61,20 @@ describe('wake gate (E5)', () => {
 
   it('abstain and unfitted heads fail open to wake', async () => {
     const abstainCase = relevanceManifold(0.9, { abstain: true });
-    const abstainGate = createWakeGate({ manifold: abstainCase.manifold, embeddingCache: abstainCase.cache, budget });
+    const abstainGate = createWakeGate({
+      manifold: abstainCase.manifold,
+      embeddingCache: abstainCase.cache,
+      budget,
+    });
     expect((await abstainGate('note')).decision).toBe('wake');
     expect((await abstainGate('note')).reason).toBe('abstain');
 
     const unfittedCase = relevanceManifold(0.1, { fitted: false });
-    const unfittedGate = createWakeGate({ manifold: unfittedCase.manifold, embeddingCache: unfittedCase.cache, budget });
+    const unfittedGate = createWakeGate({
+      manifold: unfittedCase.manifold,
+      embeddingCache: unfittedCase.cache,
+      budget,
+    });
     const unfitted = await unfittedGate('note');
     expect(unfitted.decision).toBe('wake');
     expect(unfitted.reason).toBe('unfitted');

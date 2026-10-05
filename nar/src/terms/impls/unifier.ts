@@ -1,8 +1,4 @@
-import {
-  Unifier,
-  type UnifierDialect,
-  type UnifierSubstitution,
-} from '@senars/util';
+import { Unifier, type UnifierDialect, type UnifierSubstitution } from '@senars/util';
 import type { Term } from '../types.js';
 import { isVariableSymbol } from '../types.js';
 import { getArgs, sameKind, termKey, termsEqual } from './accessors.js';

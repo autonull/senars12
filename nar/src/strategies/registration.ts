@@ -34,7 +34,9 @@ export type ResolutionTier = 0 | 1 | 2;
 /** The slice of a Zod schema the registry uses: validate, default, and explain. */
 export interface ConfigSchema {
   parse(config: unknown): StrategyConfig;
-  safeParse(config: unknown): { success: true; data: StrategyConfig } | { success: false; error: ZodError };
+  safeParse(
+    config: unknown
+  ): { success: true; data: StrategyConfig } | { success: false; error: ZodError };
 }
 
 /**
@@ -137,8 +139,11 @@ export const stateful = (spec: {
 };
 
 /** A pre-built singleton: the instance *is* the registration (Invariant S1). */
-export const singleton = (name: string, description: string, instance: StrategyImpl): StrategyRegistration =>
-  stateful({ name, description, factory: () => instance });
+export const singleton = (
+  name: string,
+  description: string,
+  instance: StrategyImpl
+): StrategyRegistration => stateful({ name, description, factory: () => instance });
 
 /** Recursively key-sorted JSON, so `{a,b}` and `{b,a}` are one configuration. */
 export const canonicalJson = (value: unknown): string => stableStringify(value, true);
@@ -147,8 +152,9 @@ export const canonicalJson = (value: unknown): string => stableStringify(value, 
 export const configDigest = (name: string, config: StrategyConfig): string =>
   sha256Hex(`${name}\u0000${canonicalJson(config)}`);
 
-export const isStrategyExpression = (spec: StrategySpec | CompositeSpec): spec is Exclude<StrategyExpression, string> =>
-  typeof spec === 'object' && !Array.isArray(spec);
+export const isStrategyExpression = (
+  spec: StrategySpec | CompositeSpec
+): spec is Exclude<StrategyExpression, string> => typeof spec === 'object' && !Array.isArray(spec);
 
 /** One line for any spec, for ledgers, logs and error messages. */
 export const describeSpec = (spec: StrategySpec): string =>
@@ -178,7 +184,9 @@ export const strategySpecErrors = (
   const errors: string[] = [];
 
   if (config !== undefined && (Array.isArray(spec) || isStrategyExpression(spec))) {
-    errors.push(`strategies.${slot}.config: a composed ${type} slot takes no config — configure its parts instead`);
+    errors.push(
+      `strategies.${slot}.config: a composed ${type} slot takes no config — configure its parts instead`
+    );
   }
 
   if (isStrategyExpression(spec)) {
@@ -191,12 +199,17 @@ export const strategySpecErrors = (
   }
 
   const names = ensureArray(spec);
-  if (names.length === 0) errors.push(`strategies.${slot}.type: a composed slot needs at least one strategy name`);
+  if (names.length === 0)
+    errors.push(`strategies.${slot}.type: a composed slot needs at least one strategy name`);
 
   for (const [index, name] of names.entries()) {
     const registration = byName.get(name);
     if (!registration) {
-      errors.push(Array.isArray(spec) ? unknownName(`${slot}[${index}]`, type, name, known) : unknownName(slot, type, name, known));
+      errors.push(
+        Array.isArray(spec)
+          ? unknownName(`${slot}[${index}]`, type, name, known)
+          : unknownName(slot, type, name, known)
+      );
       continue;
     }
     if (config === undefined) continue;

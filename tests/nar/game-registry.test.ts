@@ -16,13 +16,19 @@ import {
 } from '@senars/nar/game';
 import { describe, expect, it } from 'vitest';
 
-const play = (game: Game, action: string): { reward: number; terminal: boolean } => game.step(action as never);
+const play = (game: Game, action: string): { reward: number; terminal: boolean } =>
+  game.step(action as never);
 
 describe('GameRegistry', () => {
   it('registers, lists, and creates by name', () => {
     const registry = new GameRegistry();
     expect(registry.has('catch')).toBe(false);
-    registry.register({ name: 'catch', description: 'd', actionLegend: 'a', create: (seed) => createCatchGame({ seed }) });
+    registry.register({
+      name: 'catch',
+      description: 'd',
+      actionLegend: 'a',
+      create: (seed) => createCatchGame({ seed }),
+    });
     expect(registry.names()).toEqual(['catch']);
     expect(registry.create('catch', 7).id).toBe('catch');
   });
@@ -98,9 +104,12 @@ describe('arithmetic game', () => {
 
   it('scores correct answers +1, wrong 0', () => {
     const game = createArithmeticGame({ seed: 9, questions: 2 });
-    const correctOf = (f: Record<string, number>): number => (f.op === 0 ? f.a! + f.b! : f.a! - f.b!);
+    const correctOf = (f: Record<string, number>): number =>
+      f.op === 0 ? f.a! + f.b! : f.a! - f.b!;
     const candidatesOf = (f: Record<string, number>): number[] =>
-      Object.entries(f).filter(([k]) => k.startsWith('option')).map(([, v]) => v as number);
+      Object.entries(f)
+        .filter(([k]) => k.startsWith('option'))
+        .map(([, v]) => v as number);
     const q1 = game.observe().features!;
     expect(play(game, String(candidatesOf(q1).indexOf(correctOf(q1)))).reward).toBe(1);
     const q2 = game.observe().features!;

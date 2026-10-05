@@ -34,10 +34,7 @@ describe('MemoryIndex', () => {
     });
 
     test('a compound term is not findable by a symbol it mentions', () => {
-      const compound = TermBuilder.inheritance(
-        TermBuilder.atom('A'),
-        TermBuilder.atom('B')
-      )!;
+      const compound = TermBuilder.inheritance(TermBuilder.atom('A'), TermBuilder.atom('B'))!;
       index.index(new Concept(compound));
 
       expect(index.getByAtomic('A')).toEqual([]);

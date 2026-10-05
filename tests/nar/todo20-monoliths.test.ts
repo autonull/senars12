@@ -10,13 +10,26 @@ const listFiles = (dir: string): string[] =>
     return statSync(p).isDirectory() ? listFiles(p) : [p];
   });
 
+/**
+ * Code lines, the measure every budget here is actually about.
+ *
+ * Counting raw lines charged a module's doc comments and blank spacing against
+ * its monolith budget, so reformatting alone could fail a split that was holding:
+ * `facade/system-one.ts` sat at 397 of 400 and a wrapped import pushed it to 403
+ * with no logic added. Same reason the production-LOC gate reads `cloc` code.
+ */
+const codeLines = (text: string): number =>
+  text.split('\n').filter((line) => line.trim() !== '' && !/^\s*(\/\/|\/\*|\*)/.test(line)).length;
+
+const loc = (p: string) => codeLines(readFileSync(p, 'utf-8'));
+
 describe('Bench 62: monolith split — M1 external-tools', () => {
   it('every split adapter file is <400 LOC', () => {
     const files = listFiles(ADAPTERS_DIR).filter((f) => f.endsWith('.ts'));
     expect(files.length).toBeGreaterThan(10);
     for (const f of files) {
-      const loc = readFileSync(f, 'utf-8').split('\n').length;
-      expect(loc, `${f} has ${loc} LOC`).toBeLessThan(400);
+      const n = codeLines(readFileSync(f, 'utf-8'));
+      expect(n, `${f} has ${n} LOC`).toBeLessThan(400);
     }
   });
 
@@ -52,10 +65,15 @@ describe('Bench 62: monolith split — M1 external-tools', () => {
 
 describe('Bench 62: monolith split — M2 nar.ts', () => {
   const NAR_DIR = join(import.meta.dirname, '../../nar/src');
-  const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
 
   it('extracted subsystem modules are <400 LOC each', () => {
-    for (const f of ['facade/config.ts', 'facade/games.ts', 'facade/index.ts', 'facade/persistence.ts', 'facade/system-one.ts']) {
+    for (const f of [
+      'facade/config.ts',
+      'facade/games.ts',
+      'facade/index.ts',
+      'facade/persistence.ts',
+      'facade/system-one.ts',
+    ]) {
       const n = loc(join(NAR_DIR, f));
       expect(n, `${f} has ${n} LOC`).toBeLessThan(400);
     }
@@ -74,7 +92,6 @@ describe('Bench 62: monolith split — M2 nar.ts', () => {
 
 describe('Bench 62: monolith split — M3 providers', () => {
   const LM_DIR = join(import.meta.dirname, '../../nar/src/lm');
-  const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
 
   it('providers facade + split modules are <400 LOC each', () => {
     for (const f of [
@@ -106,7 +123,6 @@ describe('Bench 62: monolith split — M3 providers', () => {
 
 describe('Bench 62: monolith split — M4 lm-service', () => {
   const LM_DIR = join(import.meta.dirname, '../../nar/src/lm');
-  const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
 
   it('service split modules are <400 LOC each (core LMService has an M2-style deviation, <520)', () => {
     for (const f of [
@@ -153,13 +169,14 @@ describe('Bench 62: monolith split — M4 lm-service', () => {
   });
 
   it('X5: single generic breaker lives in utils/circuit-breaker', () => {
-    expect(loc(join(import.meta.dirname, '../../nar/src/utils/circuit-breaker.ts'))).toBeGreaterThan(0);
+    expect(
+      loc(join(import.meta.dirname, '../../nar/src/utils/circuit-breaker.ts'))
+    ).toBeGreaterThan(0);
   });
 });
 
 describe('Bench 62: monolith split — M5 tool-registry (+X4 typed bus)', () => {
   const IMPLS_DIR = join(import.meta.dirname, '../../nar/src/tools/impls');
-  const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
 
   it('split modules are <400 LOC each and the facade is a barrel', () => {
     for (const f of ['Registry.ts', 'ToolManager.ts', 'goal.ts', 'CoreToolRegistryAdapter.ts']) {
@@ -171,7 +188,12 @@ describe('Bench 62: monolith split — M5 tool-registry (+X4 typed bus)', () => 
   });
 
   it('X4: ToolManager bus is typed on NAREventMap — no as never bus casts remain', () => {
-    for (const f of ['tool-registry.ts', 'ToolManager.ts', 'goal.ts', 'CoreToolRegistryAdapter.ts']) {
+    for (const f of [
+      'tool-registry.ts',
+      'ToolManager.ts',
+      'goal.ts',
+      'CoreToolRegistryAdapter.ts',
+    ]) {
       const src = readFileSync(join(IMPLS_DIR, f), 'utf-8');
       expect(src, `${f} still casts as never`).not.toContain('as never');
     }
@@ -200,7 +222,6 @@ describe('Bench 62: monolith split — M6 perception-action adapters (legacy rl/
 
 describe('Bench 62: monolith split — M7 LMRule', () => {
   const LM_DIR = join(import.meta.dirname, '../../nar/src/lm');
-  const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
 
   it('rule split modules are <400 LOC each (class core has an M2-style deviation, <650)', () => {
     expect(loc(join(LM_DIR, 'rule/types.ts'))).toBeLessThan(400);
@@ -211,7 +232,13 @@ describe('Bench 62: monolith split — M7 LMRule', () => {
 
   it('LMRule.ts is a facade re-exporting the unchanged public surface', () => {
     const facade = readFileSync(join(LM_DIR, 'LMRule.ts'), 'utf-8');
-    for (const symbol of ['LMRule', 'LMResponseParser', 'LMContext', 'LMRuleConfigV2', 'ParsedLMResponse']) {
+    for (const symbol of [
+      'LMRule',
+      'LMResponseParser',
+      'LMContext',
+      'LMRuleConfigV2',
+      'ParsedLMResponse',
+    ]) {
       expect(facade, `facade missing ${symbol}`).toContain(symbol);
     }
     expect(facade).not.toContain('private circuitBreaker');

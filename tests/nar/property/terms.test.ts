@@ -4,11 +4,22 @@ import { canonicalTerm, TermBuilder, termsEqual } from '../../../nar/src/terms';
 import { VALID_ATOM_CHARS } from '../../../nar/src/terms/impls/valid-atom.js';
 
 // Valid atom characters: alphanumerics and underscore only (per Narsese grammar)
-const validAtomStr = fc.string({ minLength: 1, maxLength: 10 }).map((s) => s.split('').filter(c => VALID_ATOM_CHARS.includes(c)).join('')).filter((s) => s.length > 0);
+const validAtomStr = fc
+  .string({ minLength: 1, maxLength: 10 })
+  .map((s) =>
+    s
+      .split('')
+      .filter((c) => VALID_ATOM_CHARS.includes(c))
+      .join('')
+  )
+  .filter((s) => s.length > 0);
 const atomArb = validAtomStr.map((s) => TermBuilder.atom(s));
 const termArb: fc.Arbitrary<Term> = fc.oneof(
   atomArb,
-  fc.tuple(atomArb, atomArb).map(([a, b]) => TermBuilder.inheritance(a, b)).filter((t): t is Term => t !== undefined),
+  fc
+    .tuple(atomArb, atomArb)
+    .map(([a, b]) => TermBuilder.inheritance(a, b))
+    .filter((t): t is Term => t !== undefined),
   fc.tuple(atomArb, atomArb).map(([a, b]) => TermBuilder.conjunction(a, b))
 ) as fc.Arbitrary<Term>;
 

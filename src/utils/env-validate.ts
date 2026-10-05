@@ -135,7 +135,10 @@ export const validateEnv = (): ValidationResult => {
     }
   }
 
-  return { unknown: unknown.sort(), mistyped: mistyped.sort((a, b) => a.name.localeCompare(b.name)) };
+  return {
+    unknown: unknown.sort(),
+    mistyped: mistyped.sort((a, b) => a.name.localeCompare(b.name)),
+  };
 };
 
 export const assertValidEnv = (): void => {

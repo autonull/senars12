@@ -39,16 +39,28 @@ describe('Bench 46 — Domain Deployment', () => {
       const embedding = new Float32Array(dim).map((_, j) => Math.sin(i + j));
       return { embedding, action: 'cycle', target: i % 2 === 0 ? 0.9 : 0.1 };
     });
-    const model = trainHead(rows, { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' }, { actionFeatureDim: 0, seed: 3 });
+    const model = trainHead(
+      rows,
+      { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' },
+      { actionFeatureDim: 0, seed: 3 }
+    );
     const dir = mkdtempSync(join(tmpdir(), 'device-head-'));
-    const { writeHeadBundle, loadHeadBundle } = await import('../../nar/src/lm/system-one/wasi-head-bundle.js');
-    const { wasmPath, modelDigest } = await writeHeadBundle(dir, { weights: model.weights, bias: model.bias });
+    const { writeHeadBundle, loadHeadBundle } = await import(
+      '../../nar/src/lm/system-one/wasi-head-bundle.js'
+    );
+    const { wasmPath, modelDigest } = await writeHeadBundle(dir, {
+      weights: model.weights,
+      bias: model.bias,
+    });
     const e = new Float32Array(dim).map((_, j) => Math.sin(2 + j));
 
-    const wired = await NARBuilder.fromProfile('device').withDeviceHead({ wasmPath, modelDigest, dimension: dim }).build();
+    const wired = await NARBuilder.fromProfile('device')
+      .withDeviceHead({ wasmPath, modelDigest, dimension: dim })
+      .build();
     expect(wired.describe().subsystems).toContain('deviceHead');
     expect(wired.describe().subsystems).not.toContain('lm');
-    const head = await loadHeadBundle({ wasmPath, modelDigest, dimension: dim });    await expect(wired.deviceHead!.evaluate(e)).resolves.toBeCloseTo(await head.evaluate(e), 5);
+    const head = await loadHeadBundle({ wasmPath, modelDigest, dimension: dim });
+    await expect(wired.deviceHead!.evaluate(e)).resolves.toBeCloseTo(await head.evaluate(e), 5);
     await wired.agent.stop();
 
     const mismatch = NARBuilder.fromProfile('device').withDeviceHead({
@@ -58,7 +70,9 @@ describe('Bench 46 — Domain Deployment', () => {
     });
     await expect(mismatch.build()).rejects.toBeInstanceOf(BuilderError);
     // Dimension is bound at call time — a wrong-dimension embedding fails closed.
-    const wrongDim = await NARBuilder.fromProfile('device').withDeviceHead({ wasmPath, modelDigest, dimension: dim + 1 }).build();
+    const wrongDim = await NARBuilder.fromProfile('device')
+      .withDeviceHead({ wasmPath, modelDigest, dimension: dim + 1 })
+      .build();
     await expect(wrongDim.deviceHead!.evaluate(e)).rejects.toThrow(/expects 9 inputs/);
     await wrongDim.agent.stop();
   });
@@ -74,7 +88,14 @@ describe('Bench 46 — Domain Deployment', () => {
 
   it('ParameterTable/config roundtrip: register → set → clamp → persisted values', () => {
     const table = createParameterTable();
-    table.register({ name: 'focusWeight', scope: 'game:rps', min: 0, max: 1, value: 0.5, owner: 'meta:rps' });
+    table.register({
+      name: 'focusWeight',
+      scope: 'game:rps',
+      min: 0,
+      max: 1,
+      value: 0.5,
+      owner: 'meta:rps',
+    });
     expect(table.set('game:rps', 'focusWeight', 2.5)).toBe(1);
     expect(table.get('game:rps', 'focusWeight')).toBe(1);
     expect(() => table.set('system', 'focusWeight', 0.2)).toThrow(ParameterScopeError);
@@ -82,7 +103,12 @@ describe('Bench 46 — Domain Deployment', () => {
 
   it('P1 — same-run NAL A/B: paired rule/no-rule episodes, same seed, veto effect reported', async () => {
     const result = await runNalAB(
-      () => createGridWorldGame({ id: 'nal-ab-grid', grid: ['S..', '..G'], seed: 5 }) as unknown as Game,
+      () =>
+        createGridWorldGame({
+          id: 'nal-ab-grid',
+          grid: ['S..', '..G'],
+          seed: 5,
+        }) as unknown as Game,
       () => scriptedReflex('0'),
       20
     );
@@ -94,7 +120,9 @@ describe('Bench 46 — Domain Deployment', () => {
   it('profile-driven arcade arm: reasoning:* playable through the arcade registry', () => {
     const registry = registerReasoningGames(createArcadeRegistry());
     const game = registry.create('reasoning:tool-use', 3);
-    expect(game.legalActions((game as unknown as { state: () => unknown }).state()).length).toBeGreaterThan(0);
+    expect(
+      game.legalActions((game as unknown as { state: () => unknown }).state()).length
+    ).toBeGreaterThan(0);
   });
 
   it('grep-guard — fast lane excludes load-sensitive suites; slow lane collects them', () => {
@@ -103,7 +131,13 @@ describe('Bench 46 — Domain Deployment', () => {
     };
     const unit = pkg.scripts['test:unit'];
     const slow = pkg.scripts['test:load-sensitive'];
-    for (const suite of ['todo16-slo', 'parity-restoration', 'bandit-epsilon-greedy', 'todo17b-failclosed', 'budgetgate-verification']) {
+    for (const suite of [
+      'todo16-slo',
+      'parity-restoration',
+      'bandit-epsilon-greedy',
+      'todo17b-failclosed',
+      'budgetgate-verification',
+    ]) {
       expect(unit).toContain(suite);
       expect(slow).toContain(suite);
     }

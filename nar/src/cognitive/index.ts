@@ -42,4 +42,8 @@ export type {
 } from '../strategies/registration.js';
 export { CognitiveController } from './impls/CognitiveController.js';
 export { runCounterfactual } from './impls/counterfactual.js';
-export { CognitiveRegistry, createDefaultRegistry, resolveSlot } from './impls/CognitiveRegistry.js';
+export {
+  CognitiveRegistry,
+  createDefaultRegistry,
+  resolveSlot,
+} from './impls/CognitiveRegistry.js';

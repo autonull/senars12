@@ -17,7 +17,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { compoundOf, atomOf, rawCompoundCtors, clearTerms } from '../../nar/src/terms/impls/intern.js';
+import {
+  compoundOf,
+  atomOf,
+  rawCompoundCtors,
+  clearTerms,
+} from '../../nar/src/terms/impls/intern.js';
 import { termKey, isCompound } from '../../nar/src/terms/index.js';
 import { termParser, type Term } from '../../nar/src/terms/index.js';
 

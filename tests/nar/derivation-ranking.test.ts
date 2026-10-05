@@ -26,9 +26,7 @@ describe('todo7: derivation ranking', () => {
     expect(out.map((r) => r.term.toString())).toEqual(['(c-->d)', '(e-->f)']);
   });
   it('giant terms penalized; low confidence sinks', () => {
-    expect(scoreDerivation('x'.repeat(5000), 1, 1)).toBeLessThan(
-      scoreDerivation('(a-->b)', 1, 1)
-    );
+    expect(scoreDerivation('x'.repeat(5000), 1, 1)).toBeLessThan(scoreDerivation('(a-->b)', 1, 1));
     const out = rankDerivations([t('(a-->b)', 1, 0.1), t('(c-->d)', 0.8, 0.9)]);
     expect(out[0]?.term.toString()).toBe('(c-->d)');
   });

@@ -77,7 +77,10 @@ describe('System One — Semantic Reflex Activation (Bench 18)', () => {
   it('GameFocus calls prefetch at the attend stage, never after propose (sync contract)', async () => {
     const game = new GridWorldGame({ grid, seed: 42 });
     const focus = new GameFocus({
-      gateRegistry: createGateRegistry(), focusId: 'bench18', game });
+      gateRegistry: createGateRegistry(),
+      focusId: 'bench18',
+      game,
+    });
 
     const prefetchSpy = vi.fn(async () => {});
     const incumbent = new EpsilonGreedyReflex('bandit-fallback', { numArms: 4, epsilon: 0 });
@@ -109,7 +112,10 @@ describe('System One — Semantic Reflex Activation (Bench 18)', () => {
   it('no prefetch context ⇒ zero prefetch calls (disabled path byte-identical)', async () => {
     const game = new GridWorldGame({ grid, seed: 42 });
     const focus = new GameFocus({
-      gateRegistry: createGateRegistry(), focusId: 'bench18-off', game });
+      gateRegistry: createGateRegistry(),
+      focusId: 'bench18-off',
+      game,
+    });
     const prefetchSpy = vi.fn(async () => {});
     const incumbent = new EpsilonGreedyReflex('bandit-fallback', { numArms: 4, epsilon: 0 });
     focus.bindReflex({

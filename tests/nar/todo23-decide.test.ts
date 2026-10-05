@@ -34,11 +34,7 @@ const cache = createEmbeddingCache({
   generator: { generate: async (text: string) => [...directional(text)] },
 });
 
-const evaluateProp = (
-  rubric: string,
-  score: number,
-  abstained = false
-): JudgmentProposition =>
+const evaluateProp = (rubric: string, score: number, abstained = false): JudgmentProposition =>
   ({
     kind: 'evaluate',
     axis: 'epistemic',
@@ -77,22 +73,31 @@ const classifyProp = (
   }) as never;
 
 /** Scripted tiered judge: deterministic scores by rubric. */
-const scriptedJudge = (scores: Record<string, number>): DecideDeps['judge'] => async (
-  _pointer,
-  queries
-) => queries.map((q: JudgmentQuery) => {
-  const rubric = q.kind === 'classify' ? (q.rubric ?? 'task_type') : q.rubric;
-  if (q.kind === 'classify') {
-    const space = q.space;
-    const p = 1 / space.length;
-    return classifyProp(rubric, space.map((option) => ({ option, p })));
-  }
-  return evaluateProp(rubric, scores[rubric] ?? 0.5);
-});
+const scriptedJudge =
+  (scores: Record<string, number>): DecideDeps['judge'] =>
+  async (_pointer, queries) =>
+    queries.map((q: JudgmentQuery) => {
+      const rubric = q.kind === 'classify' ? (q.rubric ?? 'task_type') : q.rubric;
+      if (q.kind === 'classify') {
+        const space = q.space;
+        const p = 1 / space.length;
+        return classifyProp(
+          rubric,
+          space.map((option) => ({ option, p }))
+        );
+      }
+      return evaluateProp(rubric, scores[rubric] ?? 0.5);
+    });
 
 const decider = (overrides: Partial<DecideDeps> = {}) =>
   createDecider({
-    judge: scriptedJudge({ groundedness: 0.9, relevance: 0.4, injection: 0.9, ambiguity: 0.2, plausibility: 0.6 }),
+    judge: scriptedJudge({
+      groundedness: 0.9,
+      relevance: 0.4,
+      injection: 0.9,
+      ambiguity: 0.2,
+      plausibility: 0.6,
+    }),
     embeddingCache: cache,
     ...overrides,
   });
@@ -119,7 +124,9 @@ describe('decide facade', () => {
   });
 
   it('abstains when every head abstains, with a reason', async () => {
-    const result = await decider({ judge: async (_p, qs) => qs.map(() => evaluateProp('groundedness', 0, true)) }).decide({
+    const result = await decider({
+      judge: async (_p, qs) => qs.map(() => evaluateProp('groundedness', 0, true)),
+    }).decide({
       context: 'anything',
       queries: [{ kind: 'evaluate', instruction: 'g', rubric: 'groundedness', axis: 'epistemic' }],
       budget: BUDGET,
@@ -149,7 +156,11 @@ describe('decide facade', () => {
       rubric: 'plausibility' as const,
       axis: 'epistemic' as const,
     }));
-    const result = await decider({ maxBatchSize: 2 }).decide({ context: 'x', queries, budget: BUDGET });
+    const result = await decider({ maxBatchSize: 2 }).decide({
+      context: 'x',
+      queries,
+      budget: BUDGET,
+    });
     expect(result.verdicts).toHaveLength(5);
     expect(result.verdicts.every((v) => v.proposition)).toBe(true);
   });

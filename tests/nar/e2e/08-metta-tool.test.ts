@@ -38,7 +38,8 @@ describe('M3: MeTTa Verified — metta tool executes via ActionGate', () => {
     try {
       // Execute a simple MeTTa program: (add (succ 0) (succ 0)) → (succ (succ 0))
       const result = await nar.executeTool('metta', {
-        program: '(= (add $x 0) $x)\n(= (add $x (succ $y)) (succ (add $x $y)))\n(add (succ 0) (succ 0))',
+        program:
+          '(= (add $x 0) $x)\n(= (add $x (succ $y)) (succ (add $x $y)))\n(add (succ 0) (succ 0))',
       });
 
       // The result should contain the evaluated expression

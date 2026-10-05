@@ -8,12 +8,7 @@
  * admission — each with the reason code the document promises.
  */
 
-import type {
-  CognitiveEvent,
-  ContentProposal,
-  Proposal,
-  RuleProposal,
-} from '@senars/core/schemas';
+import type { CognitiveEvent, ContentProposal, Proposal, RuleProposal } from '@senars/core/schemas';
 import { PROPOSAL_KINDS, PROPOSAL_SCHEMA_VERSION, ProposalSchema } from '@senars/core/schemas';
 import type { AdmissionVerdict } from '@senars/nar/proposal/lifecycle.js';
 import { ProposalLifecycle, type ProposalQueueLimits } from '@senars/nar/proposal/lifecycle.js';
@@ -114,9 +109,9 @@ describe('A3 — the eight decisions are documented, and the document is the con
   });
 
   it('a rejection reason the lifecycle uses but the schema does not declare fails', () => {
-    expect(rulesOf({ ...subject, reasons: subject.reasons.filter((r) => r !== 'cancelled') })).toContain(
-      'every-declared-reason-is-reachable'
-    );
+    expect(
+      rulesOf({ ...subject, reasons: subject.reasons.filter((r) => r !== 'cancelled') })
+    ).toContain('every-declared-reason-is-reachable');
   });
 
   it('both queues are bounded, because an unbounded queue has no overflow policy', () => {
@@ -154,7 +149,11 @@ describe('A3 — D3: overflow is a per-kind policy, and both are recorded', () =
     for (const id of ['c1', 'c2', 'c3', 'c4']) lifecycle.submit(content(id));
     lifecycle.submit(rule('r1'));
 
-    expect(lifecycle.stats()).toMatchObject({ contentPending: 3, rulePending: 1, contentDropped: 1 });
+    expect(lifecycle.stats()).toMatchObject({
+      contentPending: 3,
+      rulePending: 1,
+      contentDropped: 1,
+    });
   });
 });
 
@@ -242,8 +241,11 @@ describe('A3 — D8: replay reads the log, and a cancellation is not a silence',
     for (const id of ['c1', 'c2']) lifecycle.submit(content(id));
     expect(lifecycle.admit().map((verdict) => lifecycle.commit(verdict))).toEqual([1, 2]);
 
-    expect(events.map((event) => (event.type === 'proposal.admitted' ? event.payload.resultingRevision : null)))
-      .toEqual([1, 2]);
+    expect(
+      events.map((event) =>
+        event.type === 'proposal.admitted' ? event.payload.resultingRevision : null
+      )
+    ).toEqual([1, 2]);
     expect(ProposalLifecycle.fromEvents(events).stats().revision).toBe(2);
   });
 
@@ -287,7 +289,12 @@ describe('A3 — D8: replay reads the log, and a cancellation is not a silence',
     expect(lifecycle.cancel('nope')).toBe(false);
     expect(lifecycle.pending()).toBe(2);
     expect(reasons(events)).toEqual([]);
-    expect(lifecycle.admit().map((verdict) => verdict.proposal.proposalId).sort()).toEqual(['c1', 'r1']);
+    expect(
+      lifecycle
+        .admit()
+        .map((verdict) => verdict.proposal.proposalId)
+        .sort()
+    ).toEqual(['c1', 'r1']);
   });
 
   it('a miss leaves the tail intact, which is what the splice(-1, 1) bug ate', () => {
@@ -295,7 +302,11 @@ describe('A3 — D8: replay reads the log, and a cancellation is not a silence',
     for (const id of ['c1', 'c2', 'c3']) lifecycle.submit(content(id));
 
     expect(lifecycle.cancel('absent')).toBe(false);
-    expect(lifecycle.admit().map((verdict) => verdict.proposal.proposalId)).toEqual(['c1', 'c2', 'c3']);
+    expect(lifecycle.admit().map((verdict) => verdict.proposal.proposalId)).toEqual([
+      'c1',
+      'c2',
+      'c3',
+    ]);
   });
 
   it('cancelling one queue leaves the other queue alone', () => {
@@ -313,7 +324,9 @@ describe('A3 — D8: replay reads the log, and a cancellation is not a silence',
 describe('A3 — the schema is the seam contract', () => {
   it('both kinds validate, and both declare the envelope fields', () => {
     for (const proposal of [content('c1'), rule('r1')] satisfies Proposal[]) {
-      expect(ProposalSchema.parse(proposal)).toMatchObject({ schemaVersion: PROPOSAL_SCHEMA_VERSION });
+      expect(ProposalSchema.parse(proposal)).toMatchObject({
+        schemaVersion: PROPOSAL_SCHEMA_VERSION,
+      });
     }
     expect(PROPOSAL_KINDS).toEqual(['content', 'rule']);
   });

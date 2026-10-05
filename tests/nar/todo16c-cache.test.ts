@@ -5,7 +5,7 @@ import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
 
 /**
  * Bench 17 — Cache Correctness at Scale
- * 
+ *
  * Obligation: Write 20k unique texts (> pool size):
  * - no two live pointers share a buffer (read-verify distinct embeddings)
  * - read() O(1) (no scan — assert via pointer→entry index)
@@ -27,7 +27,9 @@ describe('Bench 17 — Cache Correctness at Scale', () => {
     });
   });
 
-  it('write 20k unique texts: no two live pointers share a buffer', { timeout: 60_000 }, async () => {
+  it('write 20k unique texts: no two live pointers share a buffer', {
+    timeout: 60_000,
+  }, async () => {
     const pointers: EmbeddingPointer[] = [];
     const texts: string[] = [];
 

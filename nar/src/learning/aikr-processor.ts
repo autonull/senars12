@@ -6,7 +6,7 @@
  * under pressure (AIKR); processing is interruptible via AbortSignal and
  * deterministic under an injected RandomSource.
  */
-import { 
+import {
   ambientRng,
   LruCache,
   type RandomSource,
@@ -15,7 +15,7 @@ import {
   type Weighted,
   weightedSample,
   weightedSampleBy,
- } from '@senars/util';
+} from '@senars/util';
 import type { Bag, BagItem, BagOptions } from '../bag/Bag.js';
 import { createBag } from '../bag/index.js';
 
@@ -70,7 +70,11 @@ export class BagPrioritySampling<T extends BagItem> implements BagSamplingStrate
   constructor(private readonly temperature = 1.0) {}
   select(items: T[], budget: number, rng: RandomSource): T[] {
     const t = invTemperature(this.temperature);
-    return weightedSampleBy(softmaxWeights(items, (item) => item.priority * t), budget, rng);
+    return weightedSampleBy(
+      softmaxWeights(items, (item) => item.priority * t),
+      budget,
+      rng
+    );
   }
 }
 
@@ -95,7 +99,9 @@ export class PowerLawSampling<T extends BagItem> implements BagSamplingStrategy<
 export class FairnessSampling<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'fairness';
   /** Aging counters, bounded by recency: unbounded, this grew with every id the bag ever admitted. */
-  readonly #sinceSampled: LruCache<string, number> = new LruCache({ maxSize: FAIRNESS_TRACKED_CAPACITY });
+  readonly #sinceSampled: LruCache<string, number> = new LruCache({
+    maxSize: FAIRNESS_TRACKED_CAPACITY,
+  });
   constructor(
     private readonly ageFactor = 0.5,
     private readonly temperature = 1.0
@@ -134,7 +140,11 @@ export class TopKSampling<T extends BagItem> implements BagSamplingStrategy<T> {
     const k = Math.max(this.k ?? budget, budget);
     const top = selectTopN(items, k, (item) => item.priority);
     const t = invTemperature(this.temperature);
-    return weightedSampleBy(softmaxWeights(top, (item) => item.priority * t), budget, rng);
+    return weightedSampleBy(
+      softmaxWeights(top, (item) => item.priority * t),
+      budget,
+      rng
+    );
   }
 }
 

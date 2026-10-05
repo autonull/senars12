@@ -24,7 +24,10 @@ const noMemo = new Unifier(DIALECT, { memoize: false });
 
 describe('generic unifier', () => {
   it('binds variables structurally, leaving free variables unbound', () => {
-    const s = unifier.unify(node('f', varNode('x'), varNode('y')), node('f', plain('a'), varNode('y')));
+    const s = unifier.unify(
+      node('f', varNode('x'), varNode('y')),
+      node('f', plain('a'), varNode('y'))
+    );
     expect(s?.get('x')).toEqual(plain('a'));
     expect(s?.has('y')).toBe(false);
   });
@@ -45,7 +48,13 @@ describe('generic unifier', () => {
 
   it('leaves the caller substitution untouched on failure', () => {
     const pre = new Map<string, T>();
-    expect(unifier.unify(node('f', varNode('x'), varNode('y')), node('f', plain('a'), plain('b'), plain('c')), pre)).toBeNull();
+    expect(
+      unifier.unify(
+        node('f', varNode('x'), varNode('y')),
+        node('f', plain('a'), plain('b'), plain('c')),
+        pre
+      )
+    ).toBeNull();
     expect(pre.size).toBe(0);
   });
 
@@ -57,7 +66,9 @@ describe('generic unifier', () => {
 
   it('rejects cyclic bindings under the occurs check', () => {
     expect(unifier.unify(varNode('x'), node('f', varNode('x')))).toBeNull();
-    expect(unifier.unify(varNode('x'), node('f', varNode('x')), new Map(), { occursCheck: false })).not.toBeNull();
+    expect(
+      unifier.unify(varNode('x'), node('f', varNode('x')), new Map(), { occursCheck: false })
+    ).not.toBeNull();
   });
 
   it('detects occurs through an existing binding', () => {
@@ -99,9 +110,8 @@ describe('generic unifier', () => {
   });
 
   it('reports variables in first-occurrence order without duplicates', () => {
-    expect(unifier.variables(node('f', varNode('x'), node('g', varNode('y'), varNode('x'))))).toEqual([
-      'x',
-      'y',
-    ]);
+    expect(
+      unifier.variables(node('f', varNode('x'), node('g', varNode('y'), varNode('x'))))
+    ).toEqual(['x', 'y']);
   });
 });

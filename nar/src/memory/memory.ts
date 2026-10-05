@@ -372,9 +372,7 @@ export class Memory implements MemoryPorts {
     // `toSorted` by the same key: `sortBy` wraps every entry in a `{item, key}` pair and
     // calls the key once per element *and* per comparison, so ranking cost C wrapper
     // objects and ~C log C closure calls per window.
-    const sorted = this.residentEntries().toSorted(
-      (a, b) => b.value.priority - a.value.priority
-    );
+    const sorted = this.residentEntries().toSorted((a, b) => b.value.priority - a.value.priority);
     const start = sorted.length > windowSize ? nextInt(rng, sorted.length - windowSize + 1) : 0;
     return sorted.slice(start, start + windowSize).map((entry) => entry.value);
   }

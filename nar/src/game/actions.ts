@@ -13,7 +13,12 @@ export const CYCLE: CognitionAction = { id: 'cycle', cost: 1, tier: 0, domain: '
 export const REST: CognitionAction = { id: 'rest', cost: 0, tier: 0, domain: 'game' };
 export const REVISE: CognitionAction = { id: 'revise', cost: 2, tier: 0, domain: 'game' };
 export const CONSOLIDATE: CognitionAction = { id: 'consolidate', cost: 3, tier: 2, domain: 'game' };
-export const SPAWN_SUBGOAL: CognitionAction = { id: 'spawn_subgoal', cost: 2, tier: 2, domain: 'game' };
+export const SPAWN_SUBGOAL: CognitionAction = {
+  id: 'spawn_subgoal',
+  cost: 2,
+  tier: 2,
+  domain: 'game',
+};
 export const CLARIFY: CognitionAction = { id: 'clarify', cost: 2, tier: 2, domain: 'game' };
 export const ASK_LM: CognitionAction = { id: 'ask_lm', cost: 4, tier: 2, domain: 'game' };
 
@@ -33,9 +38,18 @@ export const tuneAction = (): CognitionAction => ({
 });
 
 /** Tier filtering: a tier-N context only offers actions with tier ≤ N. */
-export const actionsForTier = (tier: number, actions: readonly CognitionAction[]): CognitionAction[] =>
-  actions.filter((a) => a.tier <= tier);
+export const actionsForTier = (
+  tier: number,
+  actions: readonly CognitionAction[]
+): CognitionAction[] => actions.filter((a) => a.tier <= tier);
 
 export const DEFAULT_ACTIONS: readonly CognitionAction[] = [
-  CYCLE, REST, REVISE, CONSOLIDATE, SPAWN_SUBGOAL, CLARIFY, ASK_LM, tuneAction(),
+  CYCLE,
+  REST,
+  REVISE,
+  CONSOLIDATE,
+  SPAWN_SUBGOAL,
+  CLARIFY,
+  ASK_LM,
+  tuneAction(),
 ];

@@ -14,7 +14,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SourceReputation } from '@senars/nar/kernel/source-reputation.js';
 import { QBeliefStore } from '../../nar/src/rl/impls/QBeliefStore.js';
-import { AIKRProcessor, AikrBagOptions, ProcessOptions, BagPrioritySampling } from '@senars/nar/learning/aikr-processor.js';
+import {
+  AIKRProcessor,
+  AikrBagOptions,
+  ProcessOptions,
+  BagPrioritySampling,
+} from '@senars/nar/learning/aikr-processor.js';
 import { PriorityBag } from '@senars/nar/bag/Bag.js';
 import { shadowValidator, ShadowValidationResult } from '@senars/nar/lm/shadow-validation.js';
 import { verifyCascade } from '@senars/nar/lm/system-one/verify.js';
@@ -31,7 +36,12 @@ import { EpisodeConsolidatorOptions } from '@senars/nar';
 import { ProposalBagOptions } from '@senars/nar/meta';
 import { MiningBagOptions } from '@senars/nar/lm/system-one/hard-negatives.js';
 import { SchemaInductionConfig } from '@senars/nar/learning';
-import type { ModelDigest, BackendId, QueryId, CalibrationVersion } from '@senars/nar/lm/system-one/types.js';
+import type {
+  ModelDigest,
+  BackendId,
+  QueryId,
+  CalibrationVersion,
+} from '@senars/nar/lm/system-one/types.js';
 
 const MODEL_DIGEST = 'model-sha256' as ModelDigest;
 const BACKEND_ID = 'b1' as BackendId;
@@ -42,7 +52,7 @@ class MockMemory {
   private concepts = new Map<string, { beliefs: Array<{ term: Term; truth?: Truth }> }>();
 
   listConcepts() {
-    return Array.from(this.concepts.values()).map(c => ({
+    return Array.from(this.concepts.values()).map((c) => ({
       getBeliefs: () => c.beliefs,
     }));
   }
@@ -221,7 +231,7 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
       const processor = new AIKRProcessor<{ id: string; priority: number }, string>({
         bag,
         pressureThreshold: 0.5,
-        process: async (items) => items.map(i => `processed-${i.id}`),
+        process: async (items) => items.map((i) => `processed-${i.id}`),
       });
 
       processor.admit({ id: 'item1', priority: 1 });
@@ -262,18 +272,24 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
   });
 
   describe('verifyCascade: returns JudgmentProvenance', () => {
-    const makeEvaluateProp = (overrides: Partial<{
-      score: number;
-      modelDigest: ModelDigest;
-      queryId: QueryId;
-      calibration: { version: CalibrationVersion; fitted: boolean; ece: number };
-      tier: 0 | 1 | 2 | 3;
-    }> = {}) => ({
+    const makeEvaluateProp = (
+      overrides: Partial<{
+        score: number;
+        modelDigest: ModelDigest;
+        queryId: QueryId;
+        calibration: { version: CalibrationVersion; fitted: boolean; ece: number };
+        tier: 0 | 1 | 2 | 3;
+      }> = {}
+    ) => ({
       kind: 'evaluate' as const,
       axis: 'epistemic' as const,
       score: overrides.score ?? 0.85,
       abstained: false,
-      calibration: overrides.calibration ?? { version: CALIBRATION_VERSION, fitted: true, ece: 0.05 },
+      calibration: overrides.calibration ?? {
+        version: CALIBRATION_VERSION,
+        fitted: true,
+        ece: 0.05,
+      },
       modelDigest: overrides.modelDigest ?? MODEL_DIGEST,
       queryId: (overrides.queryId ?? 'q1') as QueryId,
       backendId: BACKEND_ID,
@@ -304,7 +320,9 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
       expect(result.provenance).toBeDefined();
       expect(result.provenance.modelDigest).toBe('model-sha256');
       expect(result.provenance.calibrationDigest).toBeDefined();
-      expect(result.provenance.inputDigest).toBe(createHash('sha256').update('test statement').digest('hex'));
+      expect(result.provenance.inputDigest).toBe(
+        createHash('sha256').update('test statement').digest('hex')
+      );
       expect(result.provenance.fitted).toBe(true);
       expect(result.provenance.abstained).toBe(false);
       expect(result.provenance.band).toBe('act');
@@ -321,7 +339,13 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
             return [makeEvaluateProp({ score: 0.6 })];
           }
           // Stage 2
-          return [makeEvaluateProp({ score: 0.9, queryId: 'q2' as QueryId, calibration: { version: 'v2' as CalibrationVersion, fitted: true, ece: 0.05 } })];
+          return [
+            makeEvaluateProp({
+              score: 0.9,
+              queryId: 'q2' as QueryId,
+              calibration: { version: 'v2' as CalibrationVersion, fitted: true, ece: 0.05 },
+            }),
+          ];
         },
       };
 
@@ -335,7 +359,13 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
         consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
       };
 
-      const result = await verifyCascade(mockJudge, sharedContext, 'uncertain statement', bands, budget);
+      const result = await verifyCascade(
+        mockJudge,
+        sharedContext,
+        'uncertain statement',
+        bands,
+        budget
+      );
 
       expect(result.decision).toBe('review');
       expect(result.verification).toBeDefined();
@@ -381,9 +411,19 @@ describe('Bench 98 — Phase D: Bounded accumulators + AIKRProcessor consolidati
         consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
       };
 
-      await reflex.prefetch('state1', 123 as any, ['action1', 'action2', 'action3'], mockManifold as any, budget);
+      await reflex.prefetch(
+        'state1',
+        123 as any,
+        ['action1', 'action2', 'action3'],
+        mockManifold as any,
+        budget
+      );
 
-      const proposals = reflex.propose({ stateId: 'state1' } as any, ['action1', 'action2', 'action3']);
+      const proposals = reflex.propose({ stateId: 'state1' } as any, [
+        'action1',
+        'action2',
+        'action3',
+      ]);
 
       expect(proposals.length).toBeGreaterThan(0);
       for (const p of proposals) {

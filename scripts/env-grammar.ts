@@ -61,7 +61,9 @@ export interface RawEnvRead {
 }
 
 const sources = (): string[] =>
-  SOURCE_ROOTS.flatMap((root) => sourceFiles(join(ROOT, root))).filter((file) => file.endsWith('.ts'));
+  SOURCE_ROOTS.flatMap((root) => sourceFiles(join(ROOT, root))).filter((file) =>
+    file.endsWith('.ts')
+  );
 
 const reads = (source: string, file: string): RawEnvRead[] => {
   const lines = source.split('\n');

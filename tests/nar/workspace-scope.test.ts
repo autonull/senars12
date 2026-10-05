@@ -9,11 +9,14 @@ describe('fs tool workspace scope', () => {
   writeFileSync(join(workspace, 'inside.txt'), 'ok');
 
   const tools = createFileSystemTools({ workspaceRoot: workspace });
-  const run = async (name: 'fs_read' | 'fs_write', args: object): Promise<Record<string, unknown>> =>
-    (await tools[name].execute(args as never, { toolCallId: 't', messages: [] } as never)) as Record<
-      string,
-      unknown
-    >;
+  const run = async (
+    name: 'fs_read' | 'fs_write',
+    args: object
+  ): Promise<Record<string, unknown>> =>
+    (await tools[name].execute(
+      args as never,
+      { toolCallId: 't', messages: [] } as never
+    )) as Record<string, unknown>;
 
   it('reads a path inside the workspace', async () => {
     expect(await run('fs_read', { path: 'inside.txt' })).toEqual({

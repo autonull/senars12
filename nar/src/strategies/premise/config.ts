@@ -47,7 +47,10 @@ const filterSpec = z.union([
   z.object({ highConfidence: unitInterval }).strict(),
 ]);
 
-const scorer = z.union([enumOf(PREMISE_SCORER_NAMES), z.object({ linear: linearWeights }).strict()]);
+const scorer = z.union([
+  enumOf(PREMISE_SCORER_NAMES),
+  z.object({ linear: linearWeights }).strict(),
+]);
 
 /** The sampling pipeline a primitive exposes, minus the two size knobs. */
 export interface PremiseSampleSpec {
@@ -74,4 +77,5 @@ export const premiseSampleShape = (
   scorer: scorer.default(spec.scorer ?? PREMISE_SAMPLE_FALLBACK.scorer),
   filters: z.array(filterSpec).default(spec.filters ?? PREMISE_SAMPLE_FALLBACK.filters),
   minScore: unitInterval.default(spec.minScore ?? PREMISE_SAMPLE_FALLBACK.minScore),
-  skipSameTerm: z.boolean().default(spec.skipSameTerm ?? PREMISE_SAMPLE_FALLBACK.skipSameTerm),});
+  skipSameTerm: z.boolean().default(spec.skipSameTerm ?? PREMISE_SAMPLE_FALLBACK.skipSameTerm),
+});

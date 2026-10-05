@@ -1,4 +1,13 @@
-import { ambientRng, BoundedRing, maxBy, mean, nextInt, type RandomSource, selectTopN, weightedMean } from '@senars/util';
+import {
+  ambientRng,
+  BoundedRing,
+  maxBy,
+  mean,
+  nextInt,
+  type RandomSource,
+  selectTopN,
+  weightedMean,
+} from '@senars/util';
 
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import type { RewardModel } from './RewardModel.js';

@@ -46,7 +46,10 @@ describe('Bench — nar reaches MeTTa only through the port', () => {
     const toolNames = async (metta?: ReturnType<typeof createMettaPort>): Promise<string[]> => {
       const agent = await createAgent({ metta });
       try {
-        return agent.motor.list().map((tool) => tool.name).sort();
+        return agent.motor
+          .list()
+          .map((tool) => tool.name)
+          .sort();
       } finally {
         await agent.stop();
       }

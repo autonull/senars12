@@ -8,7 +8,11 @@
  * spec twice yields the same registered name.
  */
 
-import { composeStrategy, type StrategyExpression, type StrategyResolver } from '../../reason/strategy-algebra';
+import {
+  composeStrategy,
+  type StrategyExpression,
+  type StrategyResolver,
+} from '../../reason/strategy-algebra';
 import { CompositeAttention } from '../../strategies/attention/CompositeAttention.js';
 import { CompositeLMRuleSelector } from '../../strategies/lm-selectors/CompositeLMRuleSelector.js';
 import { CompositeSampling } from '../../strategies/sampling/CompositeSampling.js';
@@ -21,12 +25,17 @@ import type {
   StrategyImpl,
   StrategyType,
 } from '../../strategies/types.js';
-import { describeSpec, isStrategyExpression, type CompositeSpec } from '../../strategies/registration.js';
+import {
+  describeSpec,
+  isStrategyExpression,
+  type CompositeSpec,
+} from '../../strategies/registration.js';
 
 const COMPOSED_PREFIX = 'composed:';
 
 /** The stable registry name for a composed slot — `describeSpec` is the one renderer. */
-export const composedName = (spec: CompositeSpec): string => `${COMPOSED_PREFIX}${describeSpec(spec)}`;
+export const composedName = (spec: CompositeSpec): string =>
+  `${COMPOSED_PREFIX}${describeSpec(spec)}`;
 
 /**
  * One composite class per slot: the spec form is uniform, the semantics are not.
@@ -38,9 +47,7 @@ const COMBINERS = {
   premise: (parts: StrategyImpl[]) => new CompositeStrategy(parts as Strategy[], 'dedup'),
   'lm-rule': (parts: StrategyImpl[]) => new CompositeLMRuleSelector(parts as ModelRuleSelector[]),
   attention: (parts: StrategyImpl[]) =>
-    new CompositeAttention(
-      (parts as AttentionModel[]).map((model) => ({ model, weight: 1 }))
-    ),
+    new CompositeAttention((parts as AttentionModel[]).map((model) => ({ model, weight: 1 }))),
 } satisfies Record<string, (parts: StrategyImpl[]) => StrategyImpl>;
 
 /**

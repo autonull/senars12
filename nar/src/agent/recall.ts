@@ -1,6 +1,8 @@
 /** Episodes matching a free-text query, newest first; empty without episodic memory. */
 export const recallEpisodes = async (
-  config: { episodicMemory?: { getEpisodes(o: { limit: number }): Promise<{ content: string }[]> } },
+  config: {
+    episodicMemory?: { getEpisodes(o: { limit: number }): Promise<{ content: string }[]> };
+  },
   query?: string,
   limit = 50
 ): Promise<{ content: string }[]> => {

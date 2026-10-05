@@ -87,7 +87,10 @@ describe('U2 — the read path does not change what is committed', () => {
     const plain = await transcriptNAR();
 
     const committed = (nar: Awaited<ReturnType<typeof transcriptNAR>>) =>
-      nar.memory.listConcepts().map((c) => c.term.toString()).sort();
+      nar.memory
+        .listConcepts()
+        .map((c) => c.term.toString())
+        .sort();
 
     const before = committed(ranked);
     expect(before.length).toBeGreaterThan(0);

@@ -70,14 +70,17 @@ describe('loadConfig: env overrides merge into the file, they do not replace it'
   });
 
   it('lets a mapped var win over the file, and leaves the file alone when unset', async () => {
-    await withConfigFile({ capabilities: { senars: { memoryFile: 'from-file.json' } } }, async (path) => {
-      for (const key of MAPPED) delete process.env[key];
-      expect((await loadConfig(path)).capabilities.senars.memoryFile).toBe('from-file.json');
+    await withConfigFile(
+      { capabilities: { senars: { memoryFile: 'from-file.json' } } },
+      async (path) => {
+        for (const key of MAPPED) delete process.env[key];
+        expect((await loadConfig(path)).capabilities.senars.memoryFile).toBe('from-file.json');
 
-      setEnv('SENARS_SENARS_ENABLED', 'off');
-      expect((await loadConfig(path)).capabilities.senars.enabled).toBe(false);
-      expect((await loadConfig(path)).capabilities.senars.memoryFile).toBe('from-file.json');
-    });
+        setEnv('SENARS_SENARS_ENABLED', 'off');
+        expect((await loadConfig(path)).capabilities.senars.enabled).toBe(false);
+        expect((await loadConfig(path)).capabilities.senars.memoryFile).toBe('from-file.json');
+      }
+    );
   });
 });
 

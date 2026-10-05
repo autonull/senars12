@@ -51,7 +51,9 @@ describe('CognitiveParameters bounds (property)', () => {
   it('mergeParameters never drops unrelated defaults', () => {
     fc.assert(
       fc.property(fc.float({ min: 0, max: 1, noNaN: true }), (v) => {
-        const merged = mergeParameters({ priority: { initialPriority: v } } as Partial<CognitiveParameters>);
+        const merged = mergeParameters({
+          priority: { initialPriority: v },
+        } as Partial<CognitiveParameters>);
         expect(merged.lm).toEqual(DEFAULT_COGNITIVE_PARAMETERS.lm);
         expect(merged.memory).toEqual(DEFAULT_COGNITIVE_PARAMETERS.memory);
       }),

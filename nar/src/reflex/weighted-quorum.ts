@@ -74,9 +74,7 @@ export class NalVetoArbitration implements ArbitrationStrategy {
       };
     }
     const fallback = bestOf(
-      reflexProposals.filter(
-        (p) => !nalDerivations.some((d) => this.#isVetoingAction(d, p.action))
-      )
+      reflexProposals.filter((p) => !nalDerivations.some((d) => this.#isVetoingAction(d, p.action)))
     );
     return {
       action: bestReflex.action,
@@ -95,10 +93,13 @@ export class NalVetoArbitration implements ArbitrationStrategy {
 
   #isVetoingAction(derivation: NALDerivation, proposedAction: string): boolean {
     const key = `${derivation.action}|${derivation.truth.f}|${derivation.truth.c}|${proposedAction}`;
-    return getOrInsert(this.#vetoMemo, key, () =>
-      derivation.action === proposedAction &&
-      derivation.truth.f < 0.3 &&
-      derivation.truth.c >= this.#nalVetoThreshold
+    return getOrInsert(
+      this.#vetoMemo,
+      key,
+      () =>
+        derivation.action === proposedAction &&
+        derivation.truth.f < 0.3 &&
+        derivation.truth.c >= this.#nalVetoThreshold
     );
   }
 }

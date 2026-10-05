@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { createTaskWeight, createTask, DEFAULT_CONFIG, TermBuilder, Truth } from '../../../../nar/src';
+import {
+  createTaskWeight,
+  createTask,
+  DEFAULT_CONFIG,
+  TermBuilder,
+  Truth,
+} from '../../../../nar/src';
 import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
 import { NAR } from '../../../../nar/src/nar';
 import {

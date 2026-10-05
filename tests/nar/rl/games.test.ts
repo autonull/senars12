@@ -72,7 +72,9 @@ describe('Games (DQ2: Game is the only environment interface)', () => {
       }
 
       const driftedMeans = game.getCurrentMeans();
-      const changed = driftedMeans.some((m: number, i: number) => Math.abs(m - (initialMeans[i] ?? 0)) > 0.01);
+      const changed = driftedMeans.some(
+        (m: number, i: number) => Math.abs(m - (initialMeans[i] ?? 0)) > 0.01
+      );
       expect(changed).toBe(true);
     });
 

@@ -76,7 +76,6 @@ export interface ToolSpec {
 }
 
 /** What a registry reports about a tool without handing back its body. */
-export type ToolDescriptor = Pick<
-  ToolSpec,
-  'name' | 'description' | 'capabilities' | 'tags'
-> & { version?: string };
+export type ToolDescriptor = Pick<ToolSpec, 'name' | 'description' | 'capabilities' | 'tags'> & {
+  version?: string;
+};

@@ -101,7 +101,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   },
   {
     id: 'memory.tasks',
-    holds: 'tasks held across every resident concept — the dominant consumer, not the concept count',
+    holds:
+      'tasks held across every resident concept — the dominant consumer, not the concept count',
     owner: 'nar/src/memory/memory.ts',
     capacity: memory('maxTasks'),
     unbounded:
@@ -117,7 +118,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
     owner: 'nar/src/memory/lifecycle/archive.ts',
     capacity: memory('archiveMaxConcepts'),
     retention: 'drop-oldest',
-    overflow: 'LruCache evicts the least recently retrieved; no signal — the archive is a cache, not a store',
+    overflow:
+      'LruCache evicts the least recently retrieved; no signal — the archive is a cache, not a store',
     pressureSignal: null,
   },
   {
@@ -139,7 +141,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
       field: 'REVISION_LOG_CAP',
     },
     retention: 'drop-oldest',
-    overflow: 'BoundedRing drops the oldest entry; a dropped revision is a lost history, not a lost belief',
+    overflow:
+      'BoundedRing drops the oldest entry; a dropped revision is a lost history, not a lost belief',
     pressureSignal: null,
   },
   {
@@ -157,14 +160,18 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
     owner: 'nar/src/kernel/event-ring.ts',
     capacity: { module: 'nar/src/kernel/event-ring.ts', symbol: 'GATE_LOG_CAPACITY' },
     retention: 'drop-oldest',
-    overflow: 'BoundedRing drops the oldest event; the ring is an audit window, not the source of truth',
+    overflow:
+      'BoundedRing drops the oldest event; the ring is an audit window, not the source of truth',
     pressureSignal: null,
   },
   {
     id: 'kernel.source-reputation',
     holds: 'per-source reputation, keyed by a source id that arrives on the wire',
     owner: 'nar/src/kernel/source-reputation.ts',
-    capacity: { module: 'nar/src/kernel/source-reputation.ts', symbol: 'DEFAULT_REPUTATION_CAPACITY' },
+    capacity: {
+      module: 'nar/src/kernel/source-reputation.ts',
+      symbol: 'DEFAULT_REPUTATION_CAPACITY',
+    },
     retention: 'drop-oldest',
     overflow: 'LruCache evicts the least recently seen source',
     pressureSignal: null,
@@ -250,7 +257,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
     owner: 'nar/src/rules/impls/rule-table.ts',
     capacity: { module: 'nar/src/rules/impls/rule-table.ts', symbol: 'RULE_TABLE_MAX_HISTORY' },
     retention: 'drop-oldest',
-    overflow: 'oldest revision is dropped when history exceeds RULE_TABLE_MAX_HISTORY; revert to a dropped revision fails with artifact-version error',
+    overflow:
+      'oldest revision is dropped when history exceeds RULE_TABLE_MAX_HISTORY; revert to a dropped revision fails with artifact-version error',
     pressureSignal: null,
   },
 ] as const satisfies readonly ResourceContract[];

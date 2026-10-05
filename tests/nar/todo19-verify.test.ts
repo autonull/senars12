@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import type { EmbeddingPointer, JudgmentProposition, ReasoningBudget } from '../../nar/src/lm/system-one/types.js';
-import { consensusFanout, fanoutWithinBudget, verifyCascade } from '../../nar/src/lm/system-one/verify.js';
+import type {
+  EmbeddingPointer,
+  JudgmentProposition,
+  ReasoningBudget,
+} from '../../nar/src/lm/system-one/types.js';
+import {
+  consensusFanout,
+  fanoutWithinBudget,
+  verifyCascade,
+} from '../../nar/src/lm/system-one/verify.js';
 
 /**
  * P2 (TODO19): SDE-style verify cascade + consensus fan-out budget knob.
@@ -9,14 +17,24 @@ import { consensusFanout, fanoutWithinBudget, verifyCascade } from '../../nar/sr
 
 const pointer = { digest: 'verify-test' } as unknown as EmbeddingPointer;
 const budget = (maxLMCalls: number, llmCalls = 0): ReasoningBudget => ({
-  maxCycles: 100, maxDepth: 10, maxMemoryOps: 100, maxLMCalls,
+  maxCycles: 100,
+  maxDepth: 10,
+  maxMemoryOps: 100,
+  maxLMCalls,
   consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls },
 });
 
-const prop = (score: number | undefined): JudgmentProposition[] => [{
-  kind: 'evaluate', rubric: 'plausibility', axis: 'epistemic',
-  ...(score === undefined ? { abstained: true } : { abstained: false, score, top: { option: 'true', p: score } }),
-}] as unknown as JudgmentProposition[];
+const prop = (score: number | undefined): JudgmentProposition[] =>
+  [
+    {
+      kind: 'evaluate',
+      rubric: 'plausibility',
+      axis: 'epistemic',
+      ...(score === undefined
+        ? { abstained: true }
+        : { abstained: false, score, top: { option: 'true', p: score } }),
+    },
+  ] as unknown as JudgmentProposition[];
 
 /** Scripted judge: pops one score per judgeBatch call. */
 const judge = (scores: (number | undefined)[]) => {
@@ -79,7 +97,13 @@ describe('P2 — consensus fan-out as a budget knob', () => {
         return { proposition: prop(0.5)[0]!, agreement: 1, independent: k <= 1 };
       },
     };
-    await consensusFanout(j, pointer, { kind: 'evaluate', rubric: 'plausibility', axis: 'epistemic' } as never, 4, budget(2));
+    await consensusFanout(
+      j,
+      pointer,
+      { kind: 'evaluate', rubric: 'plausibility', axis: 'epistemic' } as never,
+      4,
+      budget(2)
+    );
     expect(seen).toEqual([2]);
   });
 });

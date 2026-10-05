@@ -112,7 +112,9 @@ describe('Bench 96 — Ledger<T> primitive', () => {
       // Manually create an old file (2 days old)
       const oldDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]!;
       const oldFile = join(dir, `${oldDate}.jsonl`);
-      await import('node:fs/promises').then((fs) => fs.writeFile(oldFile, '{"at":1,"value":1}\n', 'utf-8'));
+      await import('node:fs/promises').then((fs) =>
+        fs.writeFile(oldFile, '{"at":1,"value":1}\n', 'utf-8')
+      );
 
       // Run retention sweep manually
       await ledger.runRetentionSweep();
@@ -244,9 +246,30 @@ describe('Bench 96 — Ledger<T> primitive', () => {
         { at: 4000, quality: 0.8 },
       ];
 
-      ledger.append({ at: 1500, writer: 'test', scope: 'test', parameter: 'p1', oldValue: 1, newValue: 2 });
-      ledger.append({ at: 2500, writer: 'test', scope: 'test', parameter: 'p2', oldValue: 1, newValue: 3 });
-      ledger.append({ at: 3500, writer: 'test', scope: 'test', parameter: 'p3', oldValue: 1, newValue: 4 });
+      ledger.append({
+        at: 1500,
+        writer: 'test',
+        scope: 'test',
+        parameter: 'p1',
+        oldValue: 1,
+        newValue: 2,
+      });
+      ledger.append({
+        at: 2500,
+        writer: 'test',
+        scope: 'test',
+        parameter: 'p2',
+        oldValue: 1,
+        newValue: 3,
+      });
+      ledger.append({
+        at: 3500,
+        writer: 'test',
+        scope: 'test',
+        parameter: 'p3',
+        oldValue: 1,
+        newValue: 4,
+      });
 
       // p1: before=0.5, after=0.65 → improved
       // p2: before=0.65, after=0.75 → improved

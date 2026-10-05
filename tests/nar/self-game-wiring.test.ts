@@ -23,8 +23,13 @@ const report = (focusId: string, derivations: number, tasksProcessed: number): F
 
 const setup = (weight: number) => {
   const focusBag = new FocusBag({ capacity: 10 });
-  focusBag.add(new Focus({
-    gateRegistry: createGateRegistry(), id: 'f1', weight }));
+  focusBag.add(
+    new Focus({
+      gateRegistry: createGateRegistry(),
+      id: 'f1',
+      weight,
+    })
+  );
   const game = createSelfMetaGame({
     gates: createGateRegistry(),
     id: 'self',

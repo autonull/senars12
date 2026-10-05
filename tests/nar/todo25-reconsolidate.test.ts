@@ -47,9 +47,11 @@ describe('TODO25 Bench 78 — reconsolidate', () => {
     await persistRetrospective(retrospective('s2', 2), dir);
     const ingested: string[] = [];
     const source = { load: (n: number) => loadRetrospectives(n, dir) };
-    const sink = { input: async (term: string) => {
-      ingested.push(term);
-    } };
+    const sink = {
+      input: async (term: string) => {
+        ingested.push(term);
+      },
+    };
     // Use a ledger path without .jsonl suffix to avoid conflict with retrospective file scanning
     const ledgerPath = join(dir, 'reconsolidated-ledger');
     const first = new Reconsolidator(source, sink, seed, ledgerPath);
@@ -64,10 +66,17 @@ describe('TODO25 Bench 78 — reconsolidate', () => {
   it('retrospectives below the lesson bar (≥2 accepts) consolidate to nothing but still pin their digest', async () => {
     dir = await mkdtemp(join(tmpdir(), 'reconsolidate-'));
     await persistRetrospective(retrospective('s3', 1), dir);
-    const sink = { input: async () => {
-      throw new Error('must not be called');
-    } };
-    const r = new Reconsolidator({ load: (n: number) => loadRetrospectives(n, dir) }, sink, seed, join(dir, 'ledger.jsonl'));
+    const sink = {
+      input: async () => {
+        throw new Error('must not be called');
+      },
+    };
+    const r = new Reconsolidator(
+      { load: (n: number) => loadRetrospectives(n, dir) },
+      sink,
+      seed,
+      join(dir, 'ledger.jsonl')
+    );
     expect(await r.reconsolidate()).toEqual({ ingested: 0, skipped: 0 });
   });
 

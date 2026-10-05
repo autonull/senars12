@@ -8,7 +8,10 @@ import {
 } from '../../nar/src/lm/system-one/dispatcher.js';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { chargeJudgment, resourceCostToLmCalls } from '../../nar/src/lm/system-one/resource-gate.js';
+import {
+  chargeJudgment,
+  resourceCostToLmCalls,
+} from '../../nar/src/lm/system-one/resource-gate.js';
 import type { EmbeddingPointer, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
 
 const budget = {
@@ -21,7 +24,12 @@ const budget = {
 
 const QUERIES: JudgmentQuery[] = [
   { kind: 'evaluate', instruction: 'Evaluate relevance', rubric: 'relevance', axis: 'epistemic' },
-  { kind: 'classify', instruction: 'Classify task type', space: ['belief', 'goal'], axis: 'epistemic' },
+  {
+    kind: 'classify',
+    instruction: 'Classify task type',
+    space: ['belief', 'goal'],
+    axis: 'epistemic',
+  },
 ];
 
 const makeCache = () => {
@@ -64,7 +72,10 @@ describe('System One — flow-level resource accounting (Bench 28)', () => {
 
     for (let i = 0; i < 200; i++) {
       const verdict = chargeJudgment(gate, 'bench28-deny', {
-        tokensIn: 1, tokensOut: 0, computeMs: 1, memoryMb: 1,
+        tokensIn: 1,
+        tokensOut: 0,
+        computeMs: 1,
+        memoryMb: 1,
       });
       if (!verdict.granted) break;
     }

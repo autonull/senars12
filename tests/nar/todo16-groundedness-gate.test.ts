@@ -16,7 +16,10 @@ test('groundedness gate returns false for ungrounded narration (score < threshol
   const manifold = createManifold(cache, { abstainThreshold: 0 });
   const gate = createGroundednessGate({ manifold, embeddingCache: cache, threshold: 0.7 });
 
-  const result = await gate('This is an ungrounded narration with no evidence.', 'test-correlation');
+  const result = await gate(
+    'This is an ungrounded narration with no evidence.',
+    'test-correlation'
+  );
   expect(result.grounded).toBe(false);
 });
 

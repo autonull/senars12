@@ -179,7 +179,12 @@ describe('TODO22 CLM — dispatcher contrastive routing', () => {
     };
     const dispatcher = createDispatcher(
       true,
-      { embeddingCache: cache, tier1Manifold: manifold, contrastive: memory, budgetGate: mockBudgetGate },
+      {
+        embeddingCache: cache,
+        tier1Manifold: manifold,
+        contrastive: memory,
+        budgetGate: mockBudgetGate,
+      },
       cortex as never
     );
     const context = { tickId: 't1', topBeliefs: [], topGoals: ['pick'], workingMemory: [] };

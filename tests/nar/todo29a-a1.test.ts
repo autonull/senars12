@@ -77,7 +77,11 @@ interface Rig {
 }
 
 const rig = (respond: (prompt: string) => Promise<string>, callTimeoutMs = 100): Rig => {
-  const memory = new Memory({ maxConcepts: 100, activationDecayRate: 0.01, consolidationInterval: 10 });
+  const memory = new Memory({
+    maxConcepts: 100,
+    activationDecayRate: 0.01,
+    consolidationInterval: 10,
+  });
   const processor = new RuleProcessor();
   processor.setConfig({ memory });
   const controller = createTestController(memory, inferenceParams(3), undefined, processor);
@@ -117,16 +121,12 @@ describe('A1 — the live cycle has a stage vocabulary', () => {
     const begins = execution
       .getCycleTrace()
       .regions()
-      .filter((event) => event.phase === 'begin' && (CYCLE_STAGES as readonly string[]).includes(event.stage))
+      .filter(
+        (event) =>
+          event.phase === 'begin' && (CYCLE_STAGES as readonly string[]).includes(event.stage)
+      )
       .map((event) => event.stage);
-    expect(begins).toEqual([
-      'perceive',
-      'attend',
-      'reason',
-      'authorize',
-      'propose',
-      'learn',
-    ]);
+    expect(begins).toEqual(['perceive', 'attend', 'reason', 'authorize', 'propose', 'learn']);
   });
 
   it('never opens a stage inside another', async () => {
@@ -157,7 +157,12 @@ describe('A1 — the live cycle has a stage vocabulary', () => {
   it('a run with no declared stimulus leaves regions unlabelled rather than mislabelled', async () => {
     const { execution } = rig(async () => '(x-->y).');
     await execution.run(1);
-    expect(execution.getCycleTrace().regions().every((r) => r.correlationId === undefined)).toBe(true);
+    expect(
+      execution
+        .getCycleTrace()
+        .regions()
+        .every((r) => r.correlationId === undefined)
+    ).toBe(true);
   });
 
   it('detects a proposal opened inside a reason stage', () => {
@@ -167,9 +172,7 @@ describe('A1 — the live cycle has a stage vocabulary', () => {
       { cycle: 1, stage: 'propose', phase: 'end', at: 2 },
       { cycle: 1, stage: 'reason', phase: 'end', at: 3 },
     ];
-    expect(findInCycleProposals(nested)).toEqual([
-      { cycle: 1, outer: 'reason', inner: 'propose' },
-    ]);
+    expect(findInCycleProposals(nested)).toEqual([{ cycle: 1, outer: 'reason', inner: 'propose' }]);
   });
 });
 
@@ -284,7 +287,10 @@ describe('A1 — the seam spends against the registry it was given', () => {
   };
 
   it('two NARs in one process do not share LM budget', async () => {
-    const [spent, untouched] = await Promise.all([reasonerWith(exhausted()), reasonerWith(answered())]);
+    const [spent, untouched] = await Promise.all([
+      reasonerWith(exhausted()),
+      reasonerWith(answered()),
+    ]);
 
     expect(spent.settled).toEqual([]);
     expect(spent.pending).toBe(1);
@@ -301,7 +307,12 @@ describe('A1 — a bounded queue drops the newest work, and says so', () => {
     const processor = new RuleProcessor();
     const producer = new LMProposalProducer(reasoner, processor);
     const work = (): ModelRuleWork => ({
-      p1: { term: inheritance(atom('a'), atom('b')) as Term, truth: Truth.TRUE, stamp: Stamp.createInput(), occurrenceTime: createTimestamp() },
+      p1: {
+        term: inheritance(atom('a'), atom('b')) as Term,
+        truth: Truth.TRUE,
+        stamp: Stamp.createInput(),
+        occurrenceTime: createTimestamp(),
+      },
     });
 
     expect(producer.stage(work())).toBe(true);
@@ -314,7 +325,11 @@ describe('A1 — a bounded queue drops the newest work, and says so', () => {
 
 describe('A1 — the no-producer configuration still reasons', () => {
   it('a NAR with zero producers derives and admits', async () => {
-    const memory = new Memory({ maxConcepts: 100, activationDecayRate: 0.01, consolidationInterval: 10 });
+    const memory = new Memory({
+      maxConcepts: 100,
+      activationDecayRate: 0.01,
+      consolidationInterval: 10,
+    });
     const processor = new RuleProcessor();
     processor.setConfig({ memory });
     const gates = createGateRegistry();

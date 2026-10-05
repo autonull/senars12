@@ -25,7 +25,10 @@ const checkRange = (key: string, value: number, prop: ToolSchemaProperty): void 
 
 const checkText = (key: string, value: string, prop: ToolSchemaProperty): void => {
   if (prop.minLength !== undefined && value.length < prop.minLength)
-    throw new ToolError(`String ${key} is too short`, { parameter: key, minLength: prop.minLength });
+    throw new ToolError(`String ${key} is too short`, {
+      parameter: key,
+      minLength: prop.minLength,
+    });
   if (prop.maxLength !== undefined && value.length > prop.maxLength)
     throw new ToolError(`String ${key} is too long`, { parameter: key, maxLength: prop.maxLength });
   if (prop.pattern && !new RegExp(prop.pattern).test(value))
@@ -63,7 +66,8 @@ export const validateToolArgs = (schema: ToolSchema, args: Record<string, unknow
   if (Object.keys(declared).length === 0) return;
   for (const [key, value] of Object.entries(args)) {
     const prop = declared[key];
-    if (!prop) throw new ToolError(`Unknown parameter: ${key}`, { tool: schema.type, parameter: key });
+    if (!prop)
+      throw new ToolError(`Unknown parameter: ${key}`, { tool: schema.type, parameter: key });
     validateProp(key, value, prop);
   }
 };

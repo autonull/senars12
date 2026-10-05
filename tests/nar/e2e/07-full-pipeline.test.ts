@@ -124,8 +124,10 @@ describe('M1: End-to-End Pipeline — NL → PerceptionGate → NAL → QueryAPI
 
       // Check if clarification question was injected
       const questions = nar.getQuestions();
-      const hasClarificationQuestion = questions.some((q) =>
-        termKey(q.term).includes('ambiguity') || q.term.toString().includes('bank') && q.term.toString().includes('?')
+      const hasClarificationQuestion = questions.some(
+        (q) =>
+          termKey(q.term).includes('ambiguity') ||
+          (q.term.toString().includes('bank') && q.term.toString().includes('?'))
       );
 
       // The ambiguity head should detect ambiguity and inject a clarification question
@@ -137,7 +139,9 @@ describe('M1: End-to-End Pipeline — NL → PerceptionGate → NAL → QueryAPI
         const { record } = answerWithDerivation.derivation;
         const ruleIds = record.steps.map((s) => s.ruleId);
         // Check for ambiguity-related processing
-        expect(ruleIds.some((id) => id.includes('ambiguity') || id.includes('clarification'))).toBe(true);
+        expect(ruleIds.some((id) => id.includes('ambiguity') || id.includes('clarification'))).toBe(
+          true
+        );
       }
 
       await nar.stop();
@@ -200,7 +204,14 @@ describe('M1: End-to-End Pipeline — NL → PerceptionGate → NAL → QueryAPI
       // Each scope must be within its ceiling
       expect(s.ceiling).toBeGreaterThanOrEqual(s.spent);
       // No unexpected termination reasons
-      expect(['cycle-budget', 'depth-budget', 'llm-budget', 'deadline', 'backpressure', 'none']).toContain(s.terminationReason);
+      expect([
+        'cycle-budget',
+        'depth-budget',
+        'llm-budget',
+        'deadline',
+        'backpressure',
+        'none',
+      ]).toContain(s.terminationReason);
     }
 
     await nar.stop();

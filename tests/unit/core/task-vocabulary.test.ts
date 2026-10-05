@@ -1,8 +1,4 @@
-import {
-  ChatMessage,
-  GraphNodeDataView,
-  NarConceptNode,
-} from '@senars/core/protocol';
+import { ChatMessage, GraphNodeDataView, NarConceptNode } from '@senars/core/protocol';
 import {
   FormalizationBatchSchema,
   FormalizationCandidateSchema,
@@ -80,11 +76,12 @@ describe('task vocabulary', () => {
     expect(taskTypeForPunctuation(mark)).toBe(taskType);
     expect(ChatMessage.safeParse(chatMessage(mark)).success).toBe(true);
     expect(NarConceptNode.safeParse(conceptNode(mark)).success).toBe(true);
-    expect(GraphNodeDataView.safeParse({ ...conceptNode(mark), nodeType: 'nar:concept' }).success)
-      .toBe(true);
+    expect(
+      GraphNodeDataView.safeParse({ ...conceptNode(mark), nodeType: 'nar:concept' }).success
+    ).toBe(true);
   });
 
-  it('rejects a mark that is no task kind\'s mark', () => {
+  it("rejects a mark that is no task kind's mark", () => {
     expect(taskTypeForPunctuation('@')).toBeNull();
     expect(ChatMessage.safeParse(chatMessage('@')).success).toBe(false);
   });
@@ -95,7 +92,7 @@ describe('task vocabulary', () => {
     expect(TASK_TYPES.length).toBe(TASK_BAG_KINDS.length + 1);
   });
 
-  it('tolerates only marks that are a task kind\'s mark or none at all', () => {
+  it("tolerates only marks that are a task kind's mark or none at all", () => {
     expect(TOLERANT_PUNCTUATIONS[0]).toBe('');
     for (const mark of TOLERANT_PUNCTUATIONS.slice(1)) {
       expect(taskTypeForPunctuation(mark)).not.toBeNull();

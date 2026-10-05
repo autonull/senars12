@@ -11,10 +11,13 @@ export const questionPrologResolutionScenario = createScenarioSpec({
     { type: 'run', cycles: 10 },
     { type: 'input', text: '(john-->parent)?', taskType: 'question' },
     { type: 'run', cycles: 10 },
-    { type: 'assert', check: (trace) => {
-      if (trace.cycleCount < 1) {
-        throw new Error('Expected at least 1 cycle');
-      }
-    }},
+    {
+      type: 'assert',
+      check: (trace) => {
+        if (trace.cycleCount < 1) {
+          throw new Error('Expected at least 1 cycle');
+        }
+      },
+    },
   ],
 });

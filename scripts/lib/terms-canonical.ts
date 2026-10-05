@@ -24,7 +24,14 @@ import { operationTerm, readOperationTerm } from '../../nar/src/terms/impls/oper
 import { termParser } from '../../nar/src/terms/impls/parser-peggy.js';
 import { serializeTerm } from '../../nar/src/terms/impls/serialize.js';
 import { OPERATORS } from '../../nar/src/terms/operators.js';
-import { canonicalTask, canonicalTerm, Stamp, TASK_REDUCERS, TERM_REDUCERS, Truth } from '../../nar/src/terms/index.js';
+import {
+  canonicalTask,
+  canonicalTerm,
+  Stamp,
+  TASK_REDUCERS,
+  TERM_REDUCERS,
+  Truth,
+} from '../../nar/src/terms/index.js';
 import type { OperatorKey, Term } from '../../nar/src/terms/types.js';
 import { ROOT } from './root.js';
 
@@ -69,7 +76,8 @@ export const canonicalFormFailures = (): string[] => {
     ['LEGACY_KINDS', LEGACY],
   ] as const) {
     for (const [symbol, kind] of entries) {
-      if (!(kind in OPERATORS)) failures.push(`${table} maps '${symbol}' to unknown kind '${kind}'`);
+      if (!(kind in OPERATORS))
+        failures.push(`${table} maps '${symbol}' to unknown kind '${kind}'`);
       if (!TOKENS.has(symbol)) failures.push(`${table} maps '${symbol}' but no rule accepts it`);
     }
   }
@@ -90,10 +98,7 @@ export const canonicalFormFailures = (): string[] => {
     negation: 1,
     // n-ary kinds use their declared arity (0 = use 2 for binary test)
   };
-  for (const [kind, { arity }] of Object.entries(OPERATORS) as [
-    OperatorKey,
-    { arity: number },
-  ][]) {
+  for (const [kind, { arity }] of Object.entries(OPERATORS) as [OperatorKey, { arity: number }][]) {
     const testArity = effectiveArity[kind] ?? Math.max(arity, 1);
     const term = TermBuilder.compound(kind, [a, b].slice(0, testArity));
     const text = serializeTerm(term);
@@ -132,11 +137,13 @@ export const canonicalFormFailures = (): string[] => {
 
   const members = [a, b, TermBuilder.atom('c'), TermBuilder.atom('d')];
   // Sequence is binary in SeNARS despite nary=true/arity=0 in OPERATORS
-  const isNary = (k: OperatorKey): boolean =>
-    k !== 'sequence' && OPERATORS[k].nary;
+  const isNary = (k: OperatorKey): boolean => k !== 'sequence' && OPERATORS[k].nary;
   const effectiveDeclared = (k: OperatorKey): number =>
     k === 'sequence' ? 2 : k === 'operation' ? 2 : k === 'negation' ? 1 : OPERATORS[k].arity;
-  for (const [kind] of Object.entries(OPERATORS) as [OperatorKey, typeof OPERATORS[OperatorKey]][]) {
+  for (const [kind] of Object.entries(OPERATORS) as [
+    OperatorKey,
+    (typeof OPERATORS)[OperatorKey],
+  ][]) {
     const declared = effectiveDeclared(kind);
     const nary = isNary(kind);
     // A binary kind has no reading at three members — `createCompound` keeps the
@@ -196,7 +203,10 @@ export const canonicalFormFailures = (): string[] => {
    * covered by construction rather than by remembering to add a case.
    */
   const canonicalCorpus: Term[] = [];
-  for (const [kind] of Object.entries(OPERATORS) as [OperatorKey, typeof OPERATORS[OperatorKey]][]) {
+  for (const [kind] of Object.entries(OPERATORS) as [
+    OperatorKey,
+    (typeof OPERATORS)[OperatorKey],
+  ][]) {
     const declared = effectiveDeclared(kind);
     const nary = isNary(kind);
     for (const n of nary ? [2, 3, 4] : [declared]) {
@@ -204,12 +214,24 @@ export const canonicalFormFailures = (): string[] => {
       canonicalCorpus.push(TermBuilder.compound(kind, operands));
       if (nary)
         canonicalCorpus.push(
-          TermBuilder.compound(kind, operands.map((m) => TermBuilder.compound(kind, [a, m])))
+          TermBuilder.compound(
+            kind,
+            operands.map((m) => TermBuilder.compound(kind, [a, m]))
+          )
         );
     }
   }
   // Narsese sentences an author may write, each of which must parse to a canonical term.
-  for (const text of ['--a', '(--a)', '--(a,b)', '(a&b)', '(&,a,b,c)', '(a,b,c)', '(a&|b)', '(a&/b)']) {
+  for (const text of [
+    '--a',
+    '(--a)',
+    '--(a,b)',
+    '(a&b)',
+    '(&,a,b,c)',
+    '(a,b,c)',
+    '(a&|b)',
+    '(a&/b)',
+  ]) {
     const parsed = termParser.parse(text) as Term;
     canonicalCorpus.push(parsed);
   }
@@ -222,7 +244,9 @@ export const canonicalFormFailures = (): string[] => {
       failures.push(`canonicalTerm rewrote an already-canonical ${serializeTerm(term)}`);
     for (const reducer of TERM_REDUCERS)
       if (reducer.applies(term))
-        failures.push(`term reducer '${reducer.id}' still applies to canonical ${serializeTerm(term)}`);
+        failures.push(
+          `term reducer '${reducer.id}' still applies to canonical ${serializeTerm(term)}`
+        );
   }
 
   /**
@@ -233,7 +257,10 @@ export const canonicalFormFailures = (): string[] => {
    * kind is covered by construction.
    */
   const admissibilityCorpus: Term[] = [];
-  for (const [kind] of Object.entries(OPERATORS) as [OperatorKey, typeof OPERATORS[OperatorKey]][]) {
+  for (const [kind] of Object.entries(OPERATORS) as [
+    OperatorKey,
+    (typeof OPERATORS)[OperatorKey],
+  ][]) {
     const declared = effectiveDeclared(kind);
     const nary = isNary(kind);
     for (const n of nary ? [2, 3, 4] : [declared]) {
@@ -241,21 +268,24 @@ export const canonicalFormFailures = (): string[] => {
       admissibilityCorpus.push(TermBuilder.compound(kind, operands));
       if (nary)
         admissibilityCorpus.push(
-          TermBuilder.compound(kind, operands.map((m) => TermBuilder.compound(kind, [a, m])))
+          TermBuilder.compound(
+            kind,
+            operands.map((m) => TermBuilder.compound(kind, [a, m]))
+          )
         );
     }
   }
   // Also test terms that reducers actually apply to (non-canonical forms)
   for (const text of [
-    '(a&b&b)',       // dedupe-args
+    '(a&b&b)', // dedupe-args
     '(&,a,(&,b,c))', // flatten-nested
-    '(--(--a))',     // double-negation
-    '(--TRUE)',      // negate-true
-    '(--FALSE)',     // negate-false
-    '(a&TRUE)',      // conjunction-true
-    '(a&FALSE)',     // conjunction-false
-    '(a|TRUE)',      // disjunction-true
-    '(a|FALSE)',     // disjunction-false
+    '(--(--a))', // double-negation
+    '(--TRUE)', // negate-true
+    '(--FALSE)', // negate-false
+    '(a&TRUE)', // conjunction-true
+    '(a&FALSE)', // conjunction-false
+    '(a|TRUE)', // disjunction-true
+    '(a|FALSE)', // disjunction-false
   ]) {
     try {
       admissibilityCorpus.push(termParser.parse(text) as Term);
@@ -295,11 +325,15 @@ export const canonicalFormFailures = (): string[] => {
     if (termKey(negated.term) !== termKey(positive.term))
       failures.push(`--x. %${f}%;0.7% and x. %${1 - f}%;0.7% are not one claim`);
     if (Math.abs(negated.truth.f - positive.truth.f) > 1e-9)
-      failures.push(`(--x).f = 1 - f_x failed at f=${f}: ${negated.truth.f} != ${positive.truth.f}`);
+      failures.push(
+        `(--x).f = 1 - f_x failed at f=${f}: ${negated.truth.f} != ${positive.truth.f}`
+      );
     if (negated.truth.c !== 0.7)
       failures.push(`confidence was not carried through the negation rule at f=${f}`);
     if (negated.stamp !== stamp)
-      failures.push(`the negation rule rewrote the stamp at f=${f} — it is a reduction, not a revision`);
+      failures.push(
+        `the negation rule rewrote the stamp at f=${f} — it is a reduction, not a revision`
+      );
     for (const reducer of TASK_REDUCERS)
       if (reducer.applies(negated))
         failures.push(`task reducer '${reducer.id}' still applies to a canonical claim at f=${f}`);
@@ -315,7 +349,9 @@ export const canonicalFormFailures = (): string[] => {
   ] as const;
   for (const [one, other] of spelled)
     if (termKey(one) !== termKey(other))
-      failures.push(`${serializeTerm(one)} and ${serializeTerm(other)} are one claim but two terms`);
+      failures.push(
+        `${serializeTerm(one)} and ${serializeTerm(other)} are one claim but two terms`
+      );
 
   // ...and the flattening stops where nesting is the claim.
   if (termsEqual(TermBuilder.product(a, b), TermBuilder.product(b, a)))

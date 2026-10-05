@@ -29,9 +29,7 @@ export interface DeclaredKinds {
 
 const identityOf = (rule: DeclaredKinds): string => rule.ruleId ?? rule.id ?? '(unnamed)';
 const declaredOf = (rule: DeclaredKinds): [string | undefined, string | undefined] =>
-  rule.pattern
-    ? [rule.pattern.left?.op, rule.pattern.right?.op]
-    : [rule.left?.op, rule.right?.op];
+  rule.pattern ? [rule.pattern.left?.op, rule.pattern.right?.op] : [rule.left?.op, rule.right?.op];
 
 export interface KindViolation {
   readonly ruleId: string;
@@ -40,10 +38,7 @@ export interface KindViolation {
 }
 
 /** Every kind a rule may declare: the atom kind plus the operator table. */
-export const KNOWN_RULE_KINDS: ReadonlySet<string> = new Set([
-  'atom',
-  ...Object.keys(OPERATORS),
-]);
+export const KNOWN_RULE_KINDS: ReadonlySet<string> = new Set(['atom', ...Object.keys(OPERATORS)]);
 
 export const kindViolations = (rules: readonly DeclaredKinds[]): KindViolation[] =>
   rules.flatMap((rule): KindViolation[] => {

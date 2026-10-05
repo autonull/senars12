@@ -93,10 +93,10 @@ describe('nar web_search adapter', () => {
         }),
       ],
     });
-    const out = await tools.web_search.execute(
-      { query: 'kittens', count: 3 },
-      { toolCallId: 't', messages: [] } as never
-    );
+    const out = await tools.web_search.execute({ query: 'kittens', count: 3 }, {
+      toolCallId: 't',
+      messages: [],
+    } as never);
     expect(calls).toEqual([['kittens', 3]]);
     expect(out).toMatchObject({ via: 'fake', query: 'kittens' });
   });
@@ -109,10 +109,10 @@ describe('nar web_search adapter', () => {
         }),
       ],
     });
-    const out = await tools.web_search.execute(
-      { query: 'q', count: 2 },
-      { toolCallId: 't', messages: [] } as never
-    );
+    const out = await tools.web_search.execute({ query: 'q', count: 2 }, {
+      toolCallId: 't',
+      messages: [],
+    } as never);
     expect(out).toMatchObject({ via: 'none', results: [] });
   });
 });

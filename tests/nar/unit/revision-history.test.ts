@@ -57,7 +57,12 @@ describe('Pillar 1: revision history', () => {
     it('only returns entries for the requested term', () => {
       const memory = new Memory();
       memory.addTask(TermBuilder.atom('a'), 'belief', Truth.create(1, 0.9), createTaskWeight(0.9));
-      memory.addTask(TermBuilder.atom('b'), 'belief', Truth.create(0.5, 0.9), createTaskWeight(0.9));
+      memory.addTask(
+        TermBuilder.atom('b'),
+        'belief',
+        Truth.create(0.5, 0.9),
+        createTaskWeight(0.9)
+      );
       const a = TermBuilder.atom('a');
       const b = TermBuilder.atom('b');
       expect(memory.getRevisionHistory(a).length).toBe(1);

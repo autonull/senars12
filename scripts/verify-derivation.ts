@@ -27,7 +27,10 @@ const records = parsed.success ? parsed.data : [DerivationRecordSchema.parse(raw
 
 let failed = 0;
 for (const record of records) {
-  const result = verifyRecord(record, { strict, epsilon: Number.isNaN(epsilon) ? undefined : epsilon });
+  const result = verifyRecord(record, {
+    strict,
+    epsilon: Number.isNaN(epsilon) ? undefined : epsilon,
+  });
   console.log(
     `${result.ok ? 'PASS' : 'FAIL'} ${result.derivationId} (truth verified: ${result.truthVerified}, skipped: ${result.truthSkipped})`
   );

@@ -178,7 +178,10 @@ function handleTestEndpoints(
     });
     req.on('end', async () => {
       try {
-        const { statements, narsese } = JSON.parse(body) as { statements?: string[]; narsese?: string };
+        const { statements, narsese } = JSON.parse(body) as {
+          statements?: string[];
+          narsese?: string;
+        };
         const lines = statements ?? splitLines(narsese ?? '');
         const narEngine = agent?.engines.get('nar') as
           | { nar?: { believe: (s: string) => Promise<void>; run: (n: number) => void } }

@@ -22,8 +22,6 @@ import { resolveProfile } from './profiles.js';
 export type { CapabilityTier, NARProfileName, NARProfileSpec } from './profiles.js';
 export { NAR_PROFILES, resolveProfile } from './profiles.js';
 
-
-
 import { NAR, type NARConfig } from '../nar.js';
 import type { CreateAgentConfig } from './config.js';
 

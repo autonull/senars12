@@ -21,7 +21,9 @@ export const e2eStrategyRegistry = (): CognitiveRegistry => {
 };
 
 /** Deterministic cognitive parameters: LM off, tracing on, no CPU throttle. */
-export const e2eCognitiveParams = (overrides?: DeepPartial<CognitiveParameters>): CognitiveParameters =>
+export const e2eCognitiveParams = (
+  overrides?: DeepPartial<CognitiveParameters>
+): CognitiveParameters =>
   deepMerge(
     deepMerge(DEFAULT_COGNITIVE_PARAMETERS, {
       strategies: {
@@ -74,5 +76,7 @@ export const waitForMessage = <T>(
   timeoutMs = 5000
 ): Promise<T> =>
   waitFor(() => messages.find(predicate), timeoutMs).catch((err: unknown) => {
-    throw new Error(`waitForMessage timed out: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(
+      `waitForMessage timed out: ${err instanceof Error ? err.message : String(err)}`
+    );
   });

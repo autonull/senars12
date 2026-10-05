@@ -64,9 +64,12 @@ export class LinkManager {
     sourceTerm: Term,
     options?: { layer?: string; type?: LinkType; minPriority?: number }
   ): LinkEntry[] {
-    return this.layers
-      .get(options?.layer ?? DEFAULT_LAYER)
-      ?.getLinksByTerm(sourceTerm, { type: options?.type, minPriority: options?.minPriority }) ?? [];
+    return (
+      this.layers
+        .get(options?.layer ?? DEFAULT_LAYER)
+        ?.getLinksByTerm(sourceTerm, { type: options?.type, minPriority: options?.minPriority }) ??
+      []
+    );
   }
 
   removeByTerm(sourceTerm: Term, targetTerm: Term, type?: LinkType): boolean {

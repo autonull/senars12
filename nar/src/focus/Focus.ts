@@ -190,7 +190,14 @@ export class Focus implements BagItem {
       known.totalTasks++;
       return;
     }
-    const concept: FocusConcept = { id, priority, term, truth, activation: priority, totalTasks: 1 };
+    const concept: FocusConcept = {
+      id,
+      priority,
+      term,
+      truth,
+      activation: priority,
+      totalTasks: 1,
+    };
     // `add` either takes the entry or refuses it — it never evicts — so a taken
     // entry leaves the index current and the guard below stays valid. Rebuilding
     // per insert instead would have made admitting a tick's worth of new beliefs
@@ -243,7 +250,8 @@ export class Focus implements BagItem {
       // Implication/inheritance: the antecedent/subject atom names the action.
       if (isImplication(term) || isInheritance(term)) {
         const subject = getAntecedent(term) ?? getSubject(term);
-        if (subject && isAtomic(subject) && subject.symbol) this.recordDerivations(subject.symbol, concept);
+        if (subject && isAtomic(subject) && subject.symbol)
+          this.recordDerivations(subject.symbol, concept);
       }
     }
   }

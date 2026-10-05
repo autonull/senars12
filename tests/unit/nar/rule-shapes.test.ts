@@ -5,8 +5,7 @@ import { TermBuilder, termsEqual } from '../../../nar/src/terms/index.js';
 import type { Term } from '../../../nar/src/terms/types.js';
 
 const atom = (s: string): Term => TermBuilder.atom(s);
-const inh = (s: string, p: string): Term =>
-  TermBuilder.inheritance(atom(s), atom(p)) as Term;
+const inh = (s: string, p: string): Term => TermBuilder.inheritance(atom(s), atom(p)) as Term;
 
 describe('getVars', () => {
   it('finds a variable at the root', () => {

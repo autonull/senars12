@@ -49,7 +49,8 @@ describe('Bench 111 — fundamentals capabilities are gated', () => {
     const logs = join(REPO, 'logs');
     if (!existsSync(logs)) return;
     for (const file of readdirSync(logs)) {
-      if (file.startsWith('routing-') && file.endsWith('.jsonl')) rmSync(join(logs, file), { force: true });
+      if (file.startsWith('routing-') && file.endsWith('.jsonl'))
+        rmSync(join(logs, file), { force: true });
     }
   });
 

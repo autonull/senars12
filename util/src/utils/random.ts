@@ -178,7 +178,12 @@ export const weightedSample = <T>(
   count: number,
   weightOf: (item: T) => number,
   rng: RandomSource
-): T[] => weightedSampleBy(items.map((item) => ({ item, weight: weightOf(item) })), count, rng);
+): T[] =>
+  weightedSampleBy(
+    items.map((item) => ({ item, weight: weightOf(item) })),
+    count,
+    rng
+  );
 
 /**
  * The index of a weight-proportional draw over `count` slots, or -1 when the

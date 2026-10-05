@@ -4,7 +4,10 @@
  * worker machinery), so the lane exercises the real reasoning path out-of-process.
  */
 import { appendFileSync } from 'node:fs';
-import { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '@senars/nar/config/cognitive-parameters';
+import {
+  DEFAULT_COGNITIVE_PARAMETERS,
+  type CognitiveParameters,
+} from '@senars/nar/config/cognitive-parameters';
 
 const bin = process.env.LANE_BIN ?? 'senars';
 
@@ -21,21 +24,29 @@ const boundedLMParams: CognitiveParameters = {
 const optionsByBin: Record<string, { narConfig?: Record<string, unknown> }> = {
   senars: { narConfig: { maxConcepts: 100, cognitiveParams: boundedLMParams } },
   repl: { narConfig: { cognitiveParams: boundedLMParams } },
-  'bot': { narConfig: { cognitiveParams: boundedLMParams } },
+  bot: { narConfig: { cognitiveParams: boundedLMParams } },
   'mcp-server': { narConfig: { cognitiveParams: boundedLMParams } },
   'multi-agent': { narConfig: { maxConcepts: 50, cognitiveParams: boundedLMParams } },
   'multi-agent-demo': { narConfig: { maxConcepts: 50, cognitiveParams: boundedLMParams } },
 };
 
 const crashLog = (msg: string): void => {
-  try { appendFileSync('/tmp/lane-driver.log', `[${bin}] ${msg}\n`); } catch {}
+  try {
+    appendFileSync('/tmp/lane-driver.log', `[${bin}] ${msg}\n`);
+  } catch {}
 };
 
 const { createAgentFromEnv } = await import('../../../src/bin/lib/lifecycle.js');
 const ctx = await createAgentFromEnv(optionsByBin[bin] as never);
 
-process.on('uncaughtException', (e) => { crashLog(`uncaught: ${e.stack ?? e.message}`); process.exit(3); });
-process.on('unhandledRejection', (e) => { crashLog(`unhandled: ${e}`); process.exit(4); });
+process.on('uncaughtException', (e) => {
+  crashLog(`uncaught: ${e.stack ?? e.message}`);
+  process.exit(3);
+});
+process.on('unhandledRejection', (e) => {
+  crashLog(`unhandled: ${e}`);
+  process.exit(4);
+});
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 let health = ctx.agent.health();

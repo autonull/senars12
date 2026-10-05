@@ -56,5 +56,7 @@ export const canonicalTask = (task: Task): Task => {
     if (next === current) return current;
     current = { ...next, term: canonicalTerm(next.term) };
   }
-  throw new Error(`canonicalTask did not reach a fixed point in ${MAX_PASSES} passes: ${task.term}`);
+  throw new Error(
+    `canonicalTask did not reach a fixed point in ${MAX_PASSES} passes: ${task.term}`
+  );
 };

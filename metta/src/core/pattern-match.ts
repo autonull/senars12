@@ -1,4 +1,11 @@
-import type { ExpressionAtom, GroundedAtom, MeTTaAtom, NumberAtom, StringAtom, SymbolAtom } from '../types/ast.js';
+import type {
+  ExpressionAtom,
+  GroundedAtom,
+  MeTTaAtom,
+  NumberAtom,
+  StringAtom,
+  SymbolAtom,
+} from '../types/ast.js';
 
 /**
  * Structural pattern match used by every space implementation.

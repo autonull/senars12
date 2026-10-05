@@ -56,7 +56,9 @@ const capture = <T>(run: () => T): T => {
   return withSpan('tick', {}, run);
 };
 
-beforeAll(async () => { await initOtel({ otlpEndpoint: undefined, spanProcessors: [processor] }); });
+beforeAll(async () => {
+  await initOtel({ otlpEndpoint: undefined, spanProcessors: [processor] });
+});
 afterAll(async () => {
   await shutdownOtel();
 });
@@ -207,7 +209,9 @@ describe('Bench 101b — config changes behaviour in every stateless slot', () =
     const primary = task('cat');
     const permissive = r.resolve<Strategy>('premise', 'term-link', { minStrength: 0 });
     const strict = r.resolve<Strategy>('premise', 'term-link', { minStrength: 0.9 });
-    expect(permissive.selectSecondary(primary, memory).map((t) => t.term.toString())).toContain('animal');
+    expect(permissive.selectSecondary(primary, memory).map((t) => t.term.toString())).toContain(
+      'animal'
+    );
     expect(strict.selectSecondary(primary, memory)).toEqual([]);
   });
 
@@ -236,7 +240,8 @@ describe('Bench 101b — config changes behaviour in every stateless slot', () =
     const secondaries = ['a', 'b', 'c'].map(task);
 
     const wideEngine = countingEngine();
-    for await (const _ of wide.derive(task('p'), secondaries, wideEngine, derivationContext)) void _;
+    for await (const _ of wide.derive(task('p'), secondaries, wideEngine, derivationContext))
+      void _;
     const narrowEngine = countingEngine();
     for await (const _ of narrow.derive(task('p'), secondaries, narrowEngine, derivationContext))
       void _;
@@ -248,7 +253,12 @@ describe('Bench 101b — config changes behaviour in every stateless slot', () =
   it('lm-rule: offset rotates which rules a cycle starts from', () => {
     const r = registry();
     const rules = ['a', 'b', 'c'].map((name) => rule(name));
-    const context = { maxRules: 2, rotationIndex: 0, conceptPriority: 0.5, premiseCount: 2 as const };
+    const context = {
+      maxRules: 2,
+      rotationIndex: 0,
+      conceptPriority: 0.5,
+      premiseCount: 2 as const,
+    };
     const atZero = r.resolve<ModelRuleSelector>('lm-rule', 'rotation', { offset: 0 });
     const atOne = r.resolve<ModelRuleSelector>('lm-rule', 'rotation', { offset: 1 });
     expect(atZero.select(rules, context).map((rule) => rule.name)).toEqual(['a', 'b']);

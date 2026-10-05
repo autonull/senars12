@@ -8,8 +8,7 @@ import { createLlamaCppFetch, MODEL_PLACEHOLDER } from '../../nar/src/lm/provide
  * placeholder id is ever sent twice to a healthy server.
  */
 
-const okModels = (id: string) =>
-  new Response(JSON.stringify({ data: [{ id }] }), { status: 200 });
+const okModels = (id: string) => new Response(JSON.stringify({ data: [{ id }] }), { status: 200 });
 
 describe('Bench 39 — Provider Boot-Order Resilience', () => {
   afterEach(() => {
@@ -17,7 +16,7 @@ describe('Bench 39 — Provider Boot-Order Resilience', () => {
   });
 
   it('probe failure before server readiness is retried on the next call', async () => {
-let probeCalls = 0;
+    let probeCalls = 0;
     let chatCalls = 0;
     const fetchMock = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
@@ -61,16 +60,16 @@ let probeCalls = 0;
 
     await llamacppFetch('http://localhost:8080/v1/chat/completions', init); // probe fails
     await llamacppFetch('http://localhost:8080/v1/chat/completions', init); // probe succeeds
-    const lastBody = JSON.parse(
-      String(fetchMock.mock.calls.at(-1)![1]?.body)
-    ) as { model: string };
+    const lastBody = JSON.parse(String(fetchMock.mock.calls.at(-1)![1]?.body)) as { model: string };
     expect(lastBody.model).toBe('qwen-local');
   });
 
   it('a resolved alias is memoized; the placeholder is never re-sent', async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (input) =>
-      String(input).endsWith('/v1/models') ? okModels('qwen-local') : new Response('ok')
-    );
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async (input) =>
+        String(input).endsWith('/v1/models') ? okModels('qwen-local') : new Response('ok')
+      );
     vi.stubGlobal('fetch', fetchMock);
 
     const llamacppFetch = createLlamaCppFetch();
@@ -83,9 +82,7 @@ let probeCalls = 0;
     await llamacppFetch('http://localhost:8080/v1/chat/completions', init);
     // memoized: no extra /v1/models probe, alias stays
     expect(fetchMock.mock.calls.length).toBe(callsAfterFirst + 1);
-    const lastBody = JSON.parse(
-      String(fetchMock.mock.calls.at(-1)![1]?.body)
-    ) as { model: string };
+    const lastBody = JSON.parse(String(fetchMock.mock.calls.at(-1)![1]?.body)) as { model: string };
     expect(lastBody.model).toBe('qwen-local');
   });
 });

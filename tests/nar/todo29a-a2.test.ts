@@ -19,16 +19,17 @@ import {
 import { RuleProcessor } from '../../nar/src/rules/impls/processor.js';
 import { loadBuiltinTable } from '../../nar/src/rules/impls/builtin-table.js';
 import { RuleTableStore } from '../../nar/src/rules/impls/rule-table.js';
-import {
-  BUILTIN_DECLARATIONS,
-  RULE_BODIES,
-} from '../../nar/src/rules/impls/registration.js';
+import { BUILTIN_DECLARATIONS, RULE_BODIES } from '../../nar/src/rules/impls/registration.js';
 import type { ModelRule } from '@senars/nar/rules/types';
 import { parseJsonObject } from '@senars/util';
 
 const A2_TABLE = 'A2 — the shipped table is exactly the registered NAL rules';
 import { describe, expect, it } from 'vitest';
-import { coreLayerViolations, isCyclePath, resolveInNar } from '../../scripts/lib/layer-boundary.js';
+import {
+  coreLayerViolations,
+  isCyclePath,
+  resolveInNar,
+} from '../../scripts/lib/layer-boundary.js';
 import { ROOT } from '../../scripts/lib/root.js';
 
 const at = (source: string, file = `${ROOT}/nar/src/memory/embedding.ts`) =>
@@ -152,9 +153,11 @@ describe(A2_TABLE, () => {
   });
 
   it('every declared rule is loaded, and none is loaded twice', () => {
-    expect(shipped().map((rule) => rule.ruleId).sort()).toEqual(
-      declared.map((rule) => rule.ruleId).sort()
-    );
+    expect(
+      shipped()
+        .map((rule) => rule.ruleId)
+        .sort()
+    ).toEqual(declared.map((rule) => rule.ruleId).sort());
   });
 
   it('the table is a committed count, so a rule cannot arrive unnoticed', () => {

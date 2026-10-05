@@ -3,7 +3,11 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DigestMismatchError } from '../../nar/src/lm/system-one/wasi-runtime.js';
-import { JudgmentDataset, runBakeOff, type BakeOffCase } from '../../nar/src/lm/system-one/distill.js';
+import {
+  JudgmentDataset,
+  runBakeOff,
+  type BakeOffCase,
+} from '../../nar/src/lm/system-one/distill.js';
 import {
   assertFrozenNonRegression,
   createFrozenEvalSet,
@@ -23,7 +27,15 @@ const datasetWith = (
   const tmp = mkdtempSync(join(tmpdir(), 's1-eval-'));
   const d = new JudgmentDataset(tmp);
   for (const [i, r] of rows.entries()) {
-    d.record({ evidenceId: `e${i}`, rubric: r.rubric, axis: 'epistemic', label: 'x', score: r.score, observed: r.observed, source: r.source });
+    d.record({
+      evidenceId: `e${i}`,
+      rubric: r.rubric,
+      axis: 'epistemic',
+      label: 'x',
+      score: r.score,
+      observed: r.observed,
+      source: r.source,
+    });
   }
   return d;
 };
@@ -60,7 +72,10 @@ describe('frozen eval set', () => {
     const loaded = await loadEvalSet(path);
     expect(loaded.digest).toBe(set.digest);
 
-    const tampered: FrozenEvalSet = { ...loaded, rows: [{ headId: 'groundedness', predicted: 0.01, observed: 0 }] };
+    const tampered: FrozenEvalSet = {
+      ...loaded,
+      rows: [{ headId: 'groundedness', predicted: 0.01, observed: 0 }],
+    };
     await writeEvalSet(tampered, path);
     await expect(loadEvalSet(path)).rejects.toThrow(DigestMismatchError);
   });
@@ -81,7 +96,16 @@ describe('frozen eval set', () => {
       { rubric: 'a', score: 0.9, observed: 1, source: 'label' },
       { rubric: 'a', score: 0.2, observed: 0, source: 'label' },
     ]);
-    d.record({ evidenceId: 'ood1', rubric: 'b', axis: 'epistemic', label: 'x', score: 0.5, observed: 1, source: 'label', domain: 'ood' });
+    d.record({
+      evidenceId: 'ood1',
+      rubric: 'b',
+      axis: 'epistemic',
+      label: 'x',
+      score: 0.5,
+      observed: 1,
+      source: 'label',
+      domain: 'ood',
+    });
     const set = createFrozenEvalSet(d);
     const { inDomain, ood } = splitOod(set.rows);
     expect(inDomain).toHaveLength(2);
@@ -91,19 +115,53 @@ describe('frozen eval set', () => {
 
   it('promotion gate throws on frozen-set regression', () => {
     expect(() =>
-      assertFrozenNonRegression({ brier: 0.1, ece: 0, count: 10 }, { brier: 0.11, ece: 0, count: 10 })
+      assertFrozenNonRegression(
+        { brier: 0.1, ece: 0, count: 10 },
+        { brier: 0.11, ece: 0, count: 10 }
+      )
     ).not.toThrow();
     expect(() =>
-      assertFrozenNonRegression({ brier: 0.1, ece: 0, count: 10 }, { brier: 0.2, ece: 0, count: 10 })
+      assertFrozenNonRegression(
+        { brier: 0.1, ece: 0, count: 10 },
+        { brier: 0.2, ece: 0, count: 10 }
+      )
     ).toThrow(EvalRegressionError);
   });
 
   it('runBakeOff rejects candidates that regress on the frozen set', () => {
-    const ok = runBakeOff(undefined, { headId: 'h', modelDigest: 'x', calibrationVersion: 'v', abstainThreshold: 0.5, enabled: true }, cases(0), 0.02, 0.1, false, { cases: cases(0) });
+    const ok = runBakeOff(
+      undefined,
+      {
+        headId: 'h',
+        modelDigest: 'x',
+        calibrationVersion: 'v',
+        abstainThreshold: 0.5,
+        enabled: true,
+      },
+      cases(0),
+      0.02,
+      0.1,
+      false,
+      { cases: cases(0) }
+    );
     expect(ok.accepted).toBe(true);
     expect(ok.frozen?.nonRegression).toBe(true);
 
-    const regressed = runBakeOff(undefined, { headId: 'h', modelDigest: 'x', calibrationVersion: 'v', abstainThreshold: 0.5, enabled: true }, cases(0), 0.02, 0.1, false, { cases: cases(0.5) });
+    const regressed = runBakeOff(
+      undefined,
+      {
+        headId: 'h',
+        modelDigest: 'x',
+        calibrationVersion: 'v',
+        abstainThreshold: 0.5,
+        enabled: true,
+      },
+      cases(0),
+      0.02,
+      0.1,
+      false,
+      { cases: cases(0.5) }
+    );
     expect(regressed.accepted).toBe(false);
     expect(regressed.reason).toMatch(/Frozen-set regression/);
   });

@@ -34,7 +34,11 @@ import { recallEpisodes } from './recall.js';
 import { WSConnection } from '@senars/io/connections/ws';
 import type { ConnectionConfig } from '@senars/util/types/transport';
 import { handleDelegationMessage, createDelegation } from '../cooperation/delegation.js';
-import type { DelegationPeer, CognitiveTaskDelegation, CognitiveTaskResult } from '../cooperation/delegation.js';
+import type {
+  DelegationPeer,
+  CognitiveTaskDelegation,
+  CognitiveTaskResult,
+} from '../cooperation/delegation.js';
 import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas/truth';
 import { Truth } from '../terms';
 import { WebSocket } from 'ws';
@@ -50,16 +54,16 @@ class NARDelegationPeer implements DelegationPeer {
 
   async executeTask(delegation: CognitiveTaskDelegation): Promise<CognitiveTaskResult> {
     const { taskId, taskType, narseseContext } = delegation;
-    
+
     try {
       // Execute the LM rule through the NAR's processor
       const processor = this.nar.getProcessor();
       const rule = processor.getModelRule(taskType);
-      
+
       if (!rule) {
         return { taskId, resultNarsese: [], success: false, error: `Rule ${taskType} not found` };
       }
-      
+
       // For the test, we'll use a simple KB lookup for questions
       if (taskType === 'lm-curiosity-question' && narseseContext.includes('?what')) {
         // Try to answer from KB
@@ -72,14 +76,14 @@ class NARDelegationPeer implements DelegationPeer {
           };
         }
       }
-      
+
       // Parse the narsese context as a term
       const { termParser } = await import('../terms');
       const goalTerm = termParser.parse(narseseContext);
-      
+
       // Fallback: apply the rule with empty premises (primary = goal term)
       const tasks = await rule.apply(goalTerm);
-      
+
       if (tasks && tasks.length > 0) {
         // Extract the conclusion terms from the resulting tasks
         const resultTerms = tasks.map((t) => t.term.toString());
@@ -89,7 +93,7 @@ class NARDelegationPeer implements DelegationPeer {
           success: true,
         };
       }
-      
+
       return { taskId, resultNarsese: [], success: false, error: 'No candidates generated' };
     } catch (error) {
       return {
@@ -129,7 +133,7 @@ interface NarAgentApi {
 
   /** Delegate a cognitive task to another agent over WebSocket. */
   delegate(params: {
-    target: string;           // ws://host:port
+    target: string; // ws://host:port
     task: { type: string; term: string };
     ruleId: string;
   }): Promise<{ truth?: Truth; confidence?: number; error?: string }>;
@@ -348,11 +352,14 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
             await handleDelegationMessage(peer, message.text, (result) => {
               // Reply directly to the client that sent the request - send raw JSON
               const client = (wsConn as any).clients?.get(message.sender);
-              if (client?.ws?.readyState === 1) { // WebSocket.OPEN
-                client.ws.send(JSON.stringify({
-                  type: 'cognitive-delegation-result',
-                  result,
-                }));
+              if (client?.ws?.readyState === 1) {
+                // WebSocket.OPEN
+                client.ws.send(
+                  JSON.stringify({
+                    type: 'cognitive-delegation-result',
+                    result,
+                  })
+                );
               }
             });
             return;
@@ -456,7 +463,9 @@ const judgeOnManifold = async (narEngine: NAREngine, text: string): Promise<stri
     const results = await manifold.judgeBatch(pointer, queries, createSystemOneBudget());
     return results
       .map((r, i) =>
-        r.kind === 'evaluate' ? `${queries[i]!.rubric}=${r.score.toFixed(2)}` : `${queries[i]!.rubric}=abstained`
+        r.kind === 'evaluate'
+          ? `${queries[i]!.rubric}=${r.score.toFixed(2)}`
+          : `${queries[i]!.rubric}=abstained`
       )
       .join(' ');
   } catch {
@@ -552,22 +561,22 @@ function attachNarApi(
     ruleId: string;
   }): Promise<{ truth?: Truth; confidence?: number; error?: string }> => {
     const { target, task, ruleId } = params;
-    
+
     // Parse target URL
     const url = new URL(target);
     const host = url.hostname;
     const port = parseInt(url.port) || 8765;
     const wsUrl = `ws://${host}:${port}`;
-    
+
     // Create a raw WebSocket client connection
     const ws = new WebSocket(wsUrl);
-    
+
     return new Promise((resolve) => {
       const disarmDeadline = deadline(DELEGATION_TIMEOUT_MS, () => {
         resolve({ error: 'Delegation timeout' });
         ws.close();
       });
-      
+
       ws.on('open', () => {
         // Send delegation message
         const delegation = {
@@ -581,14 +590,14 @@ function attachNarApi(
         };
         ws.send(JSON.stringify(delegation));
       });
-      
+
       ws.on('message', async (data) => {
         {
           const message = parseJsonOr<{ type?: string; result?: any }>(data.toString(), {});
           if (message.type === 'cognitive-delegation-result' && message.result) {
             disarmDeadline();
             ws.close();
-            
+
             const result = message.result;
             if (result.success && result.resultNarsese?.length > 0) {
               // Admit the result through PerceptionGate with PEER_AGENT quality
@@ -598,7 +607,7 @@ function attachNarApi(
                   await nar.input(termStr, 'belief', Truth.create(1.0, 0.5));
                 }
                 await nar.run(3);
-                
+
                 // Query the result
                 const answer = await nar.ask(task.term);
                 if (answer?.truth) {
@@ -618,12 +627,12 @@ function attachNarApi(
           }
         }
       });
-      
+
       ws.on('error', (err) => {
         disarmDeadline();
         resolve({ error: `WebSocket error: ${err.message}` });
       });
-      
+
       ws.on('close', () => {
         disarmDeadline();
       });

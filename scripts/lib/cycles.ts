@@ -11,7 +11,12 @@
  */
 export type CycleVerdict =
   | { readonly ok: true }
-  | { readonly ok: false; readonly reason: 'regression'; readonly over: number; readonly chains: readonly string[] }
+  | {
+      readonly ok: false;
+      readonly reason: 'regression';
+      readonly over: number;
+      readonly chains: readonly string[];
+    }
   | { readonly ok: false; readonly reason: 'slack'; readonly slack: number };
 
 /**
@@ -26,9 +31,12 @@ export const checkCycleBudget = (
   chains: readonly string[] = []
 ): CycleVerdict => {
   if (count > baseline) {
-    return { ok: false, reason: 'regression', over: count - baseline, chains: chains.slice(baseline) };
+    return {
+      ok: false,
+      reason: 'regression',
+      over: count - baseline,
+      chains: chains.slice(baseline),
+    };
   }
-  return count < baseline
-    ? { ok: false, reason: 'slack', slack: baseline - count }
-    : { ok: true };
+  return count < baseline ? { ok: false, reason: 'slack', slack: baseline - count } : { ok: true };
 };

@@ -80,7 +80,8 @@ export class FocusScheduler {
       focus.step(budget).then((r) => r.focusReport as FocusStepReport),
       this.deadlineMs
     );
-    if (report) publishFocusStepReport(this.metaGame, this.schedulerAdapter, report.focusId, report);
+    if (report)
+      publishFocusStepReport(this.metaGame, this.schedulerAdapter, report.focusId, report);
     this.ticks++;
     return { focusId: focus.focus.id, report, yielded };
   }

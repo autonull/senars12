@@ -22,7 +22,10 @@ export interface OptionalSubsystems {
   proofMettaProposer: ProofMettaProposer | undefined;
 }
 
-export const createOptionalSubsystems = (config: NARConfig, rng?: RandomSource): OptionalSubsystems => {
+export const createOptionalSubsystems = (
+  config: NARConfig,
+  rng?: RandomSource
+): OptionalSubsystems => {
   const consolidation = config.episodeConsolidation;
   const mining = config.hardNegativeMining;
   const proposer = config.proofMettaProposer;

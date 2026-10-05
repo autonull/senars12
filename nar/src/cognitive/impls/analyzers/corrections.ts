@@ -11,7 +11,7 @@ import { detectInefficientChains } from './reasoning-patterns.js';
 
 export const identifyIssues = async (
   nar: SelfHost | null,
-  monitor: MetacognitiveMonitor,
+  monitor: MetacognitiveMonitor
 ): Promise<IdentifiedIssues> => {
   const issues: IdentifiedIssues = {
     contradictions: [],

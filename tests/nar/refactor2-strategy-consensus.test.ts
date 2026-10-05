@@ -23,7 +23,10 @@ import { Negotiator } from '@senars/nar/reflex';
 import { NalVetoArbitration, WeightedQuorum } from '@senars/nar/reflex';
 import { CognitiveRegistry } from '@senars/nar/cognitive';
 import { MetricsCollector } from '@senars/nar/metrics';
-import { composeStrategy, describeStrategyExpression } from '@senars/nar/reason/strategy-algebra.js';
+import {
+  composeStrategy,
+  describeStrategyExpression,
+} from '@senars/nar/reason/strategy-algebra.js';
 import { CognitiveController } from '@senars/nar/cognitive/impls/CognitiveController.js';
 import type { DerivationContext, DerivationStrategy } from '@senars/nar/strategies';
 import type { Task } from '@senars/nar/types';
@@ -94,7 +97,13 @@ const stubManifold = (): JudgmentManifold => {
   return {
     judgeBatch: async (_ctx, queries) => queries.map((_, i) => prop(i)),
     consensus: async () => ({ proposition: prop(0), agreement: 1, independent: true }),
-    health: () => ({ backendId: 'stub' as never, ready: true, breakerOpen: false, rollingEce: 0, queueDepth: 0 }),
+    health: () => ({
+      backendId: 'stub' as never,
+      ready: true,
+      breakerOpen: false,
+      rollingEce: 0,
+      queueDepth: 0,
+    }),
   };
 };
 
@@ -105,14 +114,22 @@ const judgeRequest = () => ({
   taskType: 'belief' as const,
 });
 
-const mettaEvaluate = (engine: ReturnType<typeof createMeTTa>) => (expr: string): boolean | null => {
-  try {
-    const result = Effect.runSync(engine.evaluate(parseMeTTa(expr)));
-    return result.kind === 0 ? (result.value === 'True' ? true : result.value === 'False' ? false : null) : null;
-  } catch {
-    return null;
-  }
-};
+const mettaEvaluate =
+  (engine: ReturnType<typeof createMeTTa>) =>
+  (expr: string): boolean | null => {
+    try {
+      const result = Effect.runSync(engine.evaluate(parseMeTTa(expr)));
+      return result.kind === 0
+        ? result.value === 'True'
+          ? true
+          : result.value === 'False'
+            ? false
+            : null
+        : null;
+    } catch {
+      return null;
+    }
+  };
 
 // ── strategy algebra ──────────────────────────────────────────────────────
 
@@ -126,10 +143,7 @@ describe('Bench 90 — strategy composition algebra', () => {
   });
 
   it('parallel takes the first result exclusively', async () => {
-    const firstWins = composeStrategy(
-      { op: 'parallel', branches: ['never', 'emit:2'] },
-      resolver
-    );
+    const firstWins = composeStrategy({ op: 'parallel', branches: ['never', 'emit:2'] }, resolver);
     const tasks: string[] = [];
     for await (const t of firstWins.derive(makeTask('p'), [], new RuleProcessor() as never, ctx()))
       tasks.push(String(t.term));
@@ -167,12 +181,14 @@ describe('Bench 90 — strategy composition algebra', () => {
   it('loop is bounded and stops when the body yields nothing', async () => {
     const s = composeStrategy({ op: 'loop', body: 'emit:1', maxIterations: 5 }, resolver);
     const tasks: Task[] = [];
-    for await (const t of s.derive(makeTask('p'), [], new RuleProcessor() as never, ctx())) tasks.push(t);
+    for await (const t of s.derive(makeTask('p'), [], new RuleProcessor() as never, ctx()))
+      tasks.push(t);
     expect(tasks).toHaveLength(5);
 
     const empty = composeStrategy({ op: 'loop', body: 'never', maxIterations: 5 }, resolver);
     const none: Task[] = [];
-    for await (const t of empty.derive(makeTask('p'), [], new RuleProcessor() as never, ctx())) none.push(t);
+    for await (const t of empty.derive(makeTask('p'), [], new RuleProcessor() as never, ctx()))
+      none.push(t);
     expect(none).toHaveLength(0);
   });
 
@@ -192,13 +208,23 @@ describe('Bench 90 — strategy composition algebra', () => {
     controller.abort();
     const sequence = composeStrategy({ op: 'sequence', stages: ['emit:1'] }, resolver);
     const seq: Task[] = [];
-    for await (const t of sequence.derive(makeTask('p'), [], new RuleProcessor() as never, ctx(controller.signal)))
+    for await (const t of sequence.derive(
+      makeTask('p'),
+      [],
+      new RuleProcessor() as never,
+      ctx(controller.signal)
+    ))
       seq.push(t);
     expect(seq).toHaveLength(0);
 
     const loop = composeStrategy({ op: 'loop', body: 'emit:1', maxIterations: 3 }, resolver);
     const looped: Task[] = [];
-    for await (const t of loop.derive(makeTask('p'), [], new RuleProcessor() as never, ctx(controller.signal)))
+    for await (const t of loop.derive(
+      makeTask('p'),
+      [],
+      new RuleProcessor() as never,
+      ctx(controller.signal)
+    ))
       looped.push(t);
     expect(looped).toHaveLength(0);
   });
@@ -259,8 +285,14 @@ describe('Bench 90 — controller wiring', () => {
 
   it('a composed expression resolves once and is reused (C7)', () => {
     const { controller, registry } = makeController();
-    const first = registry.resolve('derivation', { op: 'sequence', stages: ['default', 'anytime'] });
-    const second = registry.resolve('derivation', { op: 'sequence', stages: ['default', 'anytime'] });
+    const first = registry.resolve('derivation', {
+      op: 'sequence',
+      stages: ['default', 'anytime'],
+    });
+    const second = registry.resolve('derivation', {
+      op: 'sequence',
+      stages: ['default', 'anytime'],
+    });
     expect(second).toBe(first);
   });
 });
@@ -273,21 +305,33 @@ describe('Bench 90 — consensus', () => {
 
   it('default arbitration stays NAL veto (plain Negotiator parity)', () => {
     const nal = new Negotiator();
-    const supportive = nal.resolve([go], [{ action: 'go', truth: { f: 0.9, c: 0.9 }, source: 'b1' }]);
+    const supportive = nal.resolve(
+      [go],
+      [{ action: 'go', truth: { f: 0.9, c: 0.9 }, source: 'b1' }]
+    );
     expect(supportive.action).toBe('go');
     expect(supportive.vetoedBy).toBeNull();
-    const vetoed = nal.resolve([trap], [{ action: 'trap', truth: { f: 0.1, c: 0.95 }, source: 'b1' }]);
+    const vetoed = nal.resolve(
+      [trap],
+      [{ action: 'trap', truth: { f: 0.1, c: 0.95 }, source: 'b1' }]
+    );
     expect(vetoed.vetoedBy).toBe('nal-b1');
     expect(vetoed.actionExecuted).toBeNull();
   });
 
   it('WeightedQuorum: NAL support adds weight; a confirmed trap sinks below the floor', () => {
     const quorum = new WeightedQuorum();
-    const supported = quorum.decide([go], [{ action: 'go', truth: { f: 0.9, c: 0.9 }, source: 'b1' }]);
+    const supported = quorum.decide(
+      [go],
+      [{ action: 'go', truth: { f: 0.9, c: 0.9 }, source: 'b1' }]
+    );
     expect(supported.action).toBe('go');
 
     // 0.81 reflex base − 0.95 opposing vote ⇒ below the quorum floor ⇒ yield.
-    const sunk = quorum.decide([trap], [{ action: 'trap', truth: { f: 0.1, c: 0.95 }, source: 'b1' }]);
+    const sunk = quorum.decide(
+      [trap],
+      [{ action: 'trap', truth: { f: 0.1, c: 0.95 }, source: 'b1' }]
+    );
     expect(sunk.action).toBeNull();
 
     // Mixed evidence: supportive derivation outvotes the trap ⇒ acts (≠ NAL veto).
@@ -304,10 +348,7 @@ describe('Bench 90 — consensus', () => {
   it('WeightedQuorum respects the reflex threshold and empty inputs', () => {
     const quorum = new WeightedQuorum({ reflexThreshold: 0.5 });
     expect(quorum.decide([], [])).toMatchObject({ action: null, source: 'none' });
-    const weak = quorum.decide(
-      [{ action: 'w', value: 0.3, confidence: 0.9, source: 'r' }],
-      []
-    );
+    const weak = quorum.decide([{ action: 'w', value: 0.3, confidence: 0.9, source: 'r' }], []);
     expect(weak.action).toBeNull();
   });
 
@@ -382,7 +423,10 @@ describe('Bench 90 — consensus', () => {
     });
     // Production GameFocus wiring uses reflexThreshold: -1 (kernel-gated).
     const neg = new Negotiator({ proposers: [proposer], reflexThreshold: -1 });
-    const decision = neg.resolve([{ action: 'good', value: 0.2, confidence: 0.4, source: 'reflex' }], []);
+    const decision = neg.resolve(
+      [{ action: 'good', value: 0.2, confidence: 0.4, source: 'reflex' }],
+      []
+    );
     expect(decision.action).toBe('good');
     expect(decision.source).toBe('reflex');
   });
@@ -569,7 +613,10 @@ describe('Bench 90 — curriculum reputation feed', () => {
       { reactions: async () => reactions, grades: () => new Map() },
       { sourceReputation: { multiplier: () => 1 } }
     );
-    const legacy = await selectProbes({ reactions: async () => reactions, grades: () => new Map() });
+    const legacy = await selectProbes({
+      reactions: async () => reactions,
+      grades: () => new Map(),
+    });
     expect(withOption).toEqual(legacy);
   });
 

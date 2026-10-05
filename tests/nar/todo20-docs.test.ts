@@ -24,7 +24,10 @@ describe('Bench 70 — K1: ADR log', () => {
       'gpu-offload',
     ];
     for (const slug of required) {
-      expect(adrs.some((f) => f.endsWith(`-${slug}.md`)), `missing ADR: ${slug}`).toBe(true);
+      expect(
+        adrs.some((f) => f.endsWith(`-${slug}.md`)),
+        `missing ADR: ${slug}`
+      ).toBe(true);
     }
   });
 

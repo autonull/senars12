@@ -38,7 +38,11 @@ const ACTION_FEATURE_SEED = 0x9e3779b9;
 const GAME_FEATURE_SEED = 0x85ebca6b;
 
 /** Deterministic per-action feature block so one head can score (state, action) pairs. */
-export function actionFeatures(action: string, dim: number, seed = ACTION_FEATURE_SEED): Float32Array {
+export function actionFeatures(
+  action: string,
+  dim: number,
+  seed = ACTION_FEATURE_SEED
+): Float32Array {
   return fillSeededUnitRange(new Float32Array(dim), seededStringHash(action, seed ^ dim));
 }
 
@@ -460,7 +464,10 @@ export function bakeOffSharedHead(
 function weightsBytes(weights: Float32Array, bias: number): Buffer {
   const biasBuf = Buffer.alloc(4);
   biasBuf.writeFloatLE(bias);
-  return Buffer.concat([Buffer.from(weights.buffer, weights.byteOffset, weights.byteLength), biasBuf]);
+  return Buffer.concat([
+    Buffer.from(weights.buffer, weights.byteOffset, weights.byteLength),
+    biasBuf,
+  ]);
 }
 
 const digestWeights = (weights: Float32Array, bias: number): string =>
@@ -500,29 +507,28 @@ const digest = z.string().min(1);
 /** `satisfies z.ZodType<HeadArtifactConfig>` makes the schema and the interface one
  *  declaration: a field added to either without the other is a compile error, not a
  *  config that parses one way and types the other. */
-export const HeadArtifactConfigSchema = z
-  .strictObject({
-    headId: z.string().min(1),
-    rubric: rubricIdSchema,
-    axis: cognitiveAxisSchema,
-    kind: z.enum(['linear', 'logistic']),
-    embeddingDim: dim(1),
-    actionFeatureDim: dim(0),
-    gameFeatureDim: dim(0),
-    encoder: z.object({ modelId: z.string().min(1), dimension: dim(1) }),
-    metrics: z.object({
-      samples: dim(0),
-      epochs: dim(0),
-      trainLoss: z.number(),
-      holdoutLoss: z.number(),
-      valueCorrelation: z.number().optional(),
-    }),
-    mean: z.array(z.number()),
-    std: z.array(z.number()),
-    encoderDigest: digest,
-    weightsDigest: digest,
-    modelDigest: digest,
-  }) satisfies z.ZodType<HeadArtifactConfig>;
+export const HeadArtifactConfigSchema = z.strictObject({
+  headId: z.string().min(1),
+  rubric: rubricIdSchema,
+  axis: cognitiveAxisSchema,
+  kind: z.enum(['linear', 'logistic']),
+  embeddingDim: dim(1),
+  actionFeatureDim: dim(0),
+  gameFeatureDim: dim(0),
+  encoder: z.object({ modelId: z.string().min(1), dimension: dim(1) }),
+  metrics: z.object({
+    samples: dim(0),
+    epochs: dim(0),
+    trainLoss: z.number(),
+    holdoutLoss: z.number(),
+    valueCorrelation: z.number().optional(),
+  }),
+  mean: z.array(z.number()),
+  std: z.array(z.number()),
+  encoderDigest: digest,
+  weightsDigest: digest,
+  modelDigest: digest,
+}) satisfies z.ZodType<HeadArtifactConfig>;
 
 export function exportArtifacts(model: TrainedHeadModel): HeadArtifactBundle {
   const encoderId = encoderDigest(model.encoder.modelId, model.encoder.dimension);

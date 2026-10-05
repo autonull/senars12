@@ -41,11 +41,7 @@ export type AuthDecision = 'allow' | 'ignore' | 'auth_bound';
 
 /** Structural auth contract satisfied by io's AuthManager (io→util edge forbids direct import). */
 export interface BridgeAuthHandler {
-  checkAuth(
-    connectionId: string,
-    senderId: string,
-    message: string
-  ): AuthDecision;
+  checkAuth(connectionId: string, senderId: string, message: string): AuthDecision;
   bindUser(connectionId: string, senderId: string): void;
 }
 

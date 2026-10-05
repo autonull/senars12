@@ -238,9 +238,7 @@ export class GovernanceResolver {
     return this.router.getAwaitingApproval();
   }
 
-  drainAwaitingValidation(
-    actuators: ProposalActuators = {}
-  ): Array<{
+  drainAwaitingValidation(actuators: ProposalActuators = {}): Array<{
     proposal: SelfImprovementProposal;
     route: ProposalRoute;
     applied: boolean;

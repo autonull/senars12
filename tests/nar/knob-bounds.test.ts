@@ -23,7 +23,10 @@ const BOUNDS_BY_NAME = new Map<string, { category: string; row: BoundsRow }>(
   Object.entries(cognitiveBounds).flatMap(([category, rows]) =>
     Object.entries(rows).map(
       ([name, row]) =>
-        [name, { category, row: row as BoundsRow }] as [string, { category: string; row: BoundsRow }]
+        [name, { category, row: row as BoundsRow }] as [
+          string,
+          { category: string; row: BoundsRow },
+        ]
     )
   )
 );

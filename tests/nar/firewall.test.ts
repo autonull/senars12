@@ -27,10 +27,7 @@ describe('SymbolicFirewall', () => {
     expect(fw.check('x'.repeat(501), 'belief').allowed).toBe(false);
     // Deep AST nesting (inheritance chain depth 9) exceeds maxDepth 8
     expect(
-      fw.check(
-        '(a-->(b-->(c-->(d-->(e-->(f-->(g-->(h-->(i-->j)))))))))',
-        'belief'
-      ).allowed
+      fw.check('(a-->(b-->(c-->(d-->(e-->(f-->(g-->(h-->(i-->j)))))))))', 'belief').allowed
     ).toBe(false);
   });
 

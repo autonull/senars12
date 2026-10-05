@@ -3,7 +3,10 @@ import { z } from 'zod';
 import { type SelfToolsContext, writeAndValidate } from './context.js';
 
 /** Template implementations a scaffolded capability can be generated from. */
-const scaffoldTemplates = (capabilityId: string, parameters: Record<string, unknown>): Record<string, string> => ({
+const scaffoldTemplates = (
+  capabilityId: string,
+  parameters: Record<string, unknown>
+): Record<string, string> => ({
   tool_template: `
 import { tool } from 'ai';
 import { z } from 'zod';

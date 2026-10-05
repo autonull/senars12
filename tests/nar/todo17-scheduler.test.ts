@@ -23,7 +23,10 @@ const report = (focusId: string, derivations: number, tasksProcessed: number): F
 const stubFocus = (id: string, weight: number, step: () => Promise<unknown>): GameFocusType =>
   ({
     focus: createFocus({
-      gateRegistry: createGateRegistry(), id, weight }),
+      gateRegistry: createGateRegistry(),
+      id,
+      weight,
+    }),
     step,
   }) as unknown as GameFocusType;
 
@@ -98,7 +101,10 @@ describe('TODO17 Bench 29 — FocusScheduler fairness', () => {
     const bag = new FocusBag({ capacity: 8 });
     const game = createGridWorldGame({ id: 'sched-grid', grid: ['S.', '.G'], seed: 3 });
     const focus = new GameFocus({
-      gateRegistry: createGateRegistry(), focusId: 'grid', game });
+      gateRegistry: createGateRegistry(),
+      focusId: 'grid',
+      game,
+    });
     bag.add(focus.focus);
     const scheduler = new FocusScheduler({ bag, seed: 5 });
     scheduler.register(focus);

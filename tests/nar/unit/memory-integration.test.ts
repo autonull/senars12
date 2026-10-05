@@ -96,7 +96,9 @@ describe('Phase 5: Memory Integration', () => {
         ['high', 0.9],
         ['mid', 0.5],
       ] as const) {
-        memory.addConcept(TermBuilder.atom(name)).writeAttention({ reason: 'assign', value: priority });
+        memory
+          .addConcept(TermBuilder.atom(name))
+          .writeAttention({ reason: 'assign', value: priority });
       }
 
       expect(memory.topConcepts(3).map((c) => c.term.toString())).toEqual(['high', 'mid', 'low']);

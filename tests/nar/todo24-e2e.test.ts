@@ -8,7 +8,11 @@ import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cach
 import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
 import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
 import { DialogueCapture } from '../../nar/src/dialogue/impls/DialogueCapture.js';
-import { loadRetrospectives, persistRetrospective, retrospect } from '../../nar/src/dialogue/impls/retrospect.js';
+import {
+  loadRetrospectives,
+  persistRetrospective,
+  retrospect,
+} from '../../nar/src/dialogue/impls/retrospect.js';
 
 const makeEpisodic = async (): Promise<EpisodicMemory> =>
   new EpisodicMemory({
@@ -29,14 +33,19 @@ describe('TODO24 bench 74: end-to-end flywheel', () => {
     const d = new DialogueCapture({
       dataset,
       episodic: ep,
-      embeddingCache: createEmbeddingCache({ generator: { generate: async (t) => [t.length % 5, 1, 2] }, dimension: 3 }),
+      embeddingCache: createEmbeddingCache({
+        generator: { generate: async (t) => [t.length % 5, 1, 2] },
+        dimension: 3,
+      }),
       config: { enabled: true },
     });
 
     // Capture + react
     const ids: string[] = [];
     for (let i = 0; i < 12; i++) {
-      ids.push((await d.onExchange({ correlationId: 'e2e', utterance: `u${i}`, response: `r${i}` }))!);
+      ids.push(
+        (await d.onExchange({ correlationId: 'e2e', utterance: `u${i}`, response: `r${i}` }))!
+      );
     }
     await d.bindReaction(ids[1]!, 'correct', 'the corrected answer');
     await d.bindReaction(ids[4]!, 'reject');
@@ -74,7 +83,13 @@ describe('TODO24 bench 74: end-to-end flywheel', () => {
 
     // High-risk proposals never auto-apply
     const highRisk = router.route(
-      { ...proposal, proposalId: uuidv4(), kind: 'patch-apply', riskTier: 'high', payload: { patch: 'x' } },
+      {
+        ...proposal,
+        proposalId: uuidv4(),
+        kind: 'patch-apply',
+        riskTier: 'high',
+        payload: { patch: 'x' },
+      },
       'human-approved-production'
     );
     expect(highRisk.applied).toBe(false);

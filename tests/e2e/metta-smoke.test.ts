@@ -11,7 +11,6 @@ interface ClientMessage {
   [key: string]: unknown;
 }
 
-
 describe('Agent-as-Kernel: Metta smoke test (real WS + Agent + MettaEngine)', () => {
   let agent: Agent;
   let server: TestServer;
@@ -20,7 +19,6 @@ describe('Agent-as-Kernel: Metta smoke test (real WS + Agent + MettaEngine)', ()
   const send = (msg: ClientMessage): void => ws.send(JSON.stringify(msg));
 
   beforeAll(async () => {
-
     agent = new Agent({ id: 'metta-smoke-test' });
     agent.start();
 
@@ -68,7 +66,10 @@ describe('Agent-as-Kernel: Metta smoke test (real WS + Agent + MettaEngine)', ()
 
   it('lens.set works on MeTTa graph', async () => {
     send({ type: 'lens.set', lens: 'belief' });
-    const delta = await waitForMessage(received, (m) => m.type === 'cognitive.delta' && 'lens' in m);
+    const delta = await waitForMessage(
+      received,
+      (m) => m.type === 'cognitive.delta' && 'lens' in m
+    );
     expect(delta.type === 'cognitive.delta').toBe(true);
   });
 });

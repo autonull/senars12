@@ -1,4 +1,4 @@
-import { 
+import {
   ambientRng,
   flooredRatio,
   nextInt,
@@ -7,7 +7,7 @@ import {
   type RandomSource,
   safeRatio,
   softFalloff,
- } from '@senars/util';
+} from '@senars/util';
 
 import type { PreferenceData } from './PreferenceCollector.js';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';

@@ -24,7 +24,7 @@ async function runWithCyclesPerStep(
 ): Promise<number> {
   const env = new GridWorldGame({ ...baseGridConfig, seed });
   const nar = new NAR({
-      ...DEFAULT_CONFIG,
+    ...DEFAULT_CONFIG,
     enableTools: true,
     enableSelf: false,
     enableRLFP: false,

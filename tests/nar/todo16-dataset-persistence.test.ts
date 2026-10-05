@@ -62,22 +62,23 @@ describe('JudgmentDataset — File Persistence (R8)', () => {
 
   it('load reads labels from JSONL file', async () => {
     // Create a test file
-    const content = [
-      JSON.stringify({
-        evidenceId: 'aaa',
-        rubric: 'conflict',
-        axis: 'epistemic',
-        label: 'support',
-        source: 'ShadowValidator',
-      }),
-      JSON.stringify({
-        evidenceId: 'bbb',
-        rubric: 'risk',
-        axis: 'teleological',
-        label: 'approved',
-        source: 'ApprovalService',
-      }),
-    ].join('\n') + '\n';
+    const content =
+      [
+        JSON.stringify({
+          evidenceId: 'aaa',
+          rubric: 'conflict',
+          axis: 'epistemic',
+          label: 'support',
+          source: 'ShadowValidator',
+        }),
+        JSON.stringify({
+          evidenceId: 'bbb',
+          rubric: 'risk',
+          axis: 'teleological',
+          label: 'approved',
+          source: 'ApprovalService',
+        }),
+      ].join('\n') + '\n';
 
     await fs.writeFile(testFile, content, 'utf-8');
 
@@ -145,11 +146,24 @@ describe('JudgmentDataset — File Persistence (R8)', () => {
   });
 
   it('load skips malformed lines', async () => {
-    const content = [
-      JSON.stringify({ evidenceId: 'good1', rubric: 'a', axis: 'epistemic', label: 'x', source: 's' }),
-      'not valid json',
-      JSON.stringify({ evidenceId: 'good2', rubric: 'b', axis: 'teleological', label: 'y', source: 't' }),
-    ].join('\n') + '\n';
+    const content =
+      [
+        JSON.stringify({
+          evidenceId: 'good1',
+          rubric: 'a',
+          axis: 'epistemic',
+          label: 'x',
+          source: 's',
+        }),
+        'not valid json',
+        JSON.stringify({
+          evidenceId: 'good2',
+          rubric: 'b',
+          axis: 'teleological',
+          label: 'y',
+          source: 't',
+        }),
+      ].join('\n') + '\n';
 
     await fs.writeFile(testFile, content, 'utf-8');
     const dataset = await JudgmentDataset.load(testFile);

@@ -7,7 +7,10 @@ import { rankedSample } from './scored.js';
 export const goalBiasScore =
   (goals: readonly { term: Term }[]) =>
   (c: Concept): number =>
-    c.priority * (goals.some((g) => containsSubterm(c.term, g.term) || containsSubterm(g.term, c.term)) ? 1.5 : 1.0);
+    c.priority *
+    (goals.some((g) => containsSubterm(c.term, g.term) || containsSubterm(g.term, c.term))
+      ? 1.5
+      : 1.0);
 
 export class GoalBiasedSampling implements SamplingStrategy {
   readonly metadata = {

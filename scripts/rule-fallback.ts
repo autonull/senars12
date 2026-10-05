@@ -46,7 +46,10 @@ for (const def of ruleDefs) {
     activationCondition: () => true,
   });
   rule.setEventBus(bus);
-  await rule.apply(inheritance(atom('cat'), atom('animal')), inheritance(atom('cat'), atom('animal')));
+  await rule.apply(
+    inheritance(atom('cat'), atom('animal')),
+    inheritance(atom('cat'), atom('animal'))
+  );
   subjects.push({ id: def.id, hasFallback: rule.hasSymbolicFallback, fallbackRuns: events.length });
 }
 
@@ -63,8 +66,13 @@ for (const subject of subjects) {
 console.log();
 
 if (failures.length > 0) {
-  for (const failure of failures) console.error(`rule:has-fallback FAILED — ${failure.kind} ${failure.ruleId}: ${failure.detail}`);
+  for (const failure of failures)
+    console.error(
+      `rule:has-fallback FAILED — ${failure.kind} ${failure.ruleId}: ${failure.detail}`
+    );
   process.exit(1);
 }
 
-console.log('rule:has-fallback ok — every model-backed rule derives symbolically when the model does not.\n');
+console.log(
+  'rule:has-fallback ok — every model-backed rule derives symbolically when the model does not.\n'
+);

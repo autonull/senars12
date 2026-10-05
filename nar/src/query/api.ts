@@ -111,10 +111,7 @@ export class QueryAPI {
    * ranking over an unchanged store (TODO30 §1.2 option B): the same derivation
    * set, in the order a reader cares about.
    */
-  getRelevantBeliefs(
-    focus: readonly Term[],
-    options?: Omit<RelevanceOptions, 'focus'>
-  ): Task[] {
+  getRelevantBeliefs(focus: readonly Term[], options?: Omit<RelevanceOptions, 'focus'>): Task[] {
     return this.limitResults(byRelevance(this.getBeliefs(), { ...options, focus }));
   }
 
@@ -161,7 +158,9 @@ export class QueryAPI {
     const neighbours = this.memory.findSimilarConcepts(questionTerm, 5);
     const adjacent = neighbours.flatMap((concept) => this.evidenceFor(concept));
     const grounded = hasVariable(questionTerm)
-      ? neighbours.find((concept) => concept.beliefBag.peek()?.truth && unify(questionTerm, concept.term))
+      ? neighbours.find(
+          (concept) => concept.beliefBag.peek()?.truth && unify(questionTerm, concept.term)
+        )
       : undefined;
     const belief = grounded?.beliefBag.peek();
 
@@ -201,9 +200,7 @@ export class QueryAPI {
 
   private evidenceFor(concept: Concept): Task[] {
     const belief = concept.beliefBag.peek();
-    return belief?.truth
-      ? [this.createTaskFromBelief(concept.term, belief, concept.priority)]
-      : [];
+    return belief?.truth ? [this.createTaskFromBelief(concept.term, belief, concept.priority)] : [];
   }
 
   private createTaskFromBelief(

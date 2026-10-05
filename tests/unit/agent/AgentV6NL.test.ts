@@ -10,7 +10,10 @@ import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
 
 function makeEpisodicMemory(): { ep: EpisodicMemory; basePath: string } {
   const basePath = mkdtempSync(join(tmpdir(), 'episodic-nl-'));
-  return { ep: new EpisodicMemory({ enabled: true, basePath, retentionDays: 1, maxEntriesPerFile: 1000 }), basePath };
+  return {
+    ep: new EpisodicMemory({ enabled: true, basePath, retentionDays: 1, maxEntriesPerFile: 1000 }),
+    basePath,
+  };
 }
 
 describe('Agent v6 — NL integration (real ModelRunner loop)', () => {

@@ -12,7 +12,6 @@ interface ClientMessage {
   [key: string]: unknown;
 }
 
-
 describe('Agent-as-Kernel: smoke test (real WS + Agent + NAREngine)', () => {
   let agent: Agent;
   let server: TestServer;
@@ -89,7 +88,10 @@ describe('Agent-as-Kernel: smoke test (real WS + Agent + NAREngine)', () => {
 
   it('lens.set re-emits a delta tagged with the chosen lens', async () => {
     send({ type: 'lens.set', lens: 'contradiction' });
-    const delta = await waitForMessage(received, (m) => m.type === 'cognitive.delta' && 'lens' in m);
+    const delta = await waitForMessage(
+      received,
+      (m) => m.type === 'cognitive.delta' && 'lens' in m
+    );
     expect(delta.type === 'cognitive.delta').toBe(true);
   });
 

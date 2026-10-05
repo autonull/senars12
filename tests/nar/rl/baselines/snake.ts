@@ -33,7 +33,12 @@ function floodFill(game: SnakeGame, start: { r: number; c: number }): number {
   while (queue.length > 0 && count < 256) {
     const cur = queue.pop()!;
     count++;
-    for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+    for (const [dr, dc] of [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1],
+    ] as const) {
       const r = cur.r + dr;
       const c = cur.c + dc;
       const key = `${r},${c}`;

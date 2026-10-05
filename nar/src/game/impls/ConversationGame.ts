@@ -68,17 +68,27 @@ export class ConversationGame implements Game<ConversationState, ConversationAct
         this._state.history.push({ role: 'assistant', content: action.content ?? 'Understood.' });
         return { reward: 0.5, terminal: false, info: { actionType: 'acknowledge' } };
       case 'clarify':
-        this._state.history.push({ role: 'assistant', content: action.content ?? 'Could you clarify?' });
+        this._state.history.push({
+          role: 'assistant',
+          content: action.content ?? 'Could you clarify?',
+        });
         return { reward: 0.3, terminal: false, info: { actionType: 'clarify' } };
       case 'answer':
         this._state.history.push({ role: 'assistant', content: action.content ?? 'Answer.' });
         return { reward: 1.0, terminal: false, info: { actionType: 'answer' } };
       case 'defer':
-        this._state.history.push({ role: 'assistant', content: action.content ?? 'I need to think about this.' });
+        this._state.history.push({
+          role: 'assistant',
+          content: action.content ?? 'I need to think about this.',
+        });
         return { reward: 0.1, terminal: false, info: { actionType: 'defer' } };
       case 'tool_use':
         this._state.history.push({ role: 'assistant', content: `Using tool: ${action.toolName}` });
-        return { reward: 0.7, terminal: false, info: { actionType: 'tool_use', tool: action.toolName } };
+        return {
+          reward: 0.7,
+          terminal: false,
+          info: { actionType: 'tool_use', tool: action.toolName },
+        };
       default:
         return { reward: 0, terminal: false, info: { actionType: 'unknown' } };
     }

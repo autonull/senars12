@@ -201,7 +201,10 @@ export class ProviderRuntime {
   }
 
   /** Effective circuit breaker config for a provider (settings > provider defaults > global defaults). */
-  getEffectiveCircuitConfig(provider: LMProviderName, settings?: LMSettings): CircuitBreakerSettings {
+  getEffectiveCircuitConfig(
+    provider: LMProviderName,
+    settings?: LMSettings
+  ): CircuitBreakerSettings {
     const s = settings ?? this.getLMSettings();
     const fileCfg = s.circuitBreaker?.[provider];
     const providerDefaults = PROVIDER_CIRCUIT_DEFAULTS[provider] ?? {};

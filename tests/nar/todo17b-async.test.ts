@@ -51,7 +51,9 @@ describe('Bench 37 — Async Honesty', () => {
   });
 
   it('D5 — stream records spend for the served provider', async () => {
-    const service = new LMService((await import('../../nar/src/lm/index.js')).createSeNARSRegistry());
+    const service = new LMService(
+      (await import('../../nar/src/lm/index.js')).createSeNARSRegistry()
+    );
     if (!service.hasModel()) return; // no provider in this environment — skip
     let chunks = 0;
     for await (const _chunk of service.stream('Say anything.')) chunks++;
@@ -60,7 +62,9 @@ describe('Bench 37 — Async Honesty', () => {
   });
 
   it('D5 — repeated stream of the same prompt is cache-served', async () => {
-    const service = new LMService((await import('../../nar/src/lm/index.js')).createSeNARSRegistry());
+    const service = new LMService(
+      (await import('../../nar/src/lm/index.js')).createSeNARSRegistry()
+    );
     if (!service.hasModel()) return;
     let first = '';
     for await (const c of service.stream('cache probe xyz')) first += c;

@@ -47,16 +47,10 @@ export const unionComposition: RuleFn = buildBinaryInhRule(
   }
 );
 
-export const difference: RuleFn = buildBinaryInhRule(
-  sameSubjectWithPredicates,
-  (inh1, inh2) => {
-    const sub1 = getSubject(inh1);
-    const pred1 = getPredicate(inh1),
-      pred2 = getPredicate(inh2);
-    if (!sub1 || !pred1 || !pred2) return undefined;
-    return TermBuilder.inheritance(
-      sub1,
-      TermBuilder.conjunction(pred1, TermBuilder.negation(pred2))
-    );
-  }
-);
+export const difference: RuleFn = buildBinaryInhRule(sameSubjectWithPredicates, (inh1, inh2) => {
+  const sub1 = getSubject(inh1);
+  const pred1 = getPredicate(inh1),
+    pred2 = getPredicate(inh2);
+  if (!sub1 || !pred1 || !pred2) return undefined;
+  return TermBuilder.inheritance(sub1, TermBuilder.conjunction(pred1, TermBuilder.negation(pred2)));
+});

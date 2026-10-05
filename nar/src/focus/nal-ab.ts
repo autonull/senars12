@@ -17,14 +17,24 @@ export interface NalABResult {
   delta: number;
 }
 
-const playEpisode = async (game: Game, reflex: Reflex, seedRule: boolean, ticks: number): Promise<{ focus: GameFocus; total: number }> => {
+const playEpisode = async (
+  game: Game,
+  reflex: Reflex,
+  seedRule: boolean,
+  ticks: number
+): Promise<{ focus: GameFocus; total: number }> => {
   const focus = new GameFocus({
     focusId: 'nal-ab',
     game,
     cognitive: true,
     gateRegistry: createGateRegistry(),
   });
-  if (seedRule) focus.seedRule(reflex.propose(game.state(), game.legalActions(game.state()))[0]!.action, 'nal_ab', { f: 0.1, c: 0.95 });
+  if (seedRule)
+    focus.seedRule(
+      reflex.propose(game.state(), game.legalActions(game.state()))[0]!.action,
+      'nal_ab',
+      { f: 0.1, c: 0.95 }
+    );
   focus.bindReflex(reflex);
   let total = 0;
   for (let t = 0; t < ticks; t++) {

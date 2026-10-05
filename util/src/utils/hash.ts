@@ -26,8 +26,7 @@ export const fnv1aCombine = (acc: number, val: number): number =>
  *  string hashing share one home rather than one hand-rolled loop per caller. */
 export const seededStringHash = (value: string, seed: number): number => {
   let hash = seed >>> 0;
-  for (let i = 0; i < value.length; i++)
-    hash = mul32(hash ^ value.charCodeAt(i), 0x85ebca6b) >>> 0;
+  for (let i = 0; i < value.length; i++) hash = mul32(hash ^ value.charCodeAt(i), 0x85ebca6b) >>> 0;
   return hash;
 };
 

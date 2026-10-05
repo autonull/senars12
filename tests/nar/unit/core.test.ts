@@ -136,10 +136,10 @@ describe('Result types', () => {
   });
 
   test.each`
-    result              | expected
-    ${ok(1)}            | ${true}
-    ${err(new Error())} | ${false}
-    ${ok('test')}       | ${true}
+    result                  | expected
+    ${ok(1)}                | ${true}
+    ${err(new Error())}     | ${false}
+    ${ok('test')}           | ${true}
     ${err(new TypeError())} | ${false}
   `('isOk/isErr detection', ({ result, expected }) => {
     expect(isOk(result)).toBe(expected);

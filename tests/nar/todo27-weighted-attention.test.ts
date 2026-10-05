@@ -41,9 +41,18 @@ describe('Bench 108 — weighted attention is configuration', () => {
     const r = registry();
     // Both members prime at 0.3, so any non-zero weighting primes at 0.3.
     for (const models of [
-      [{ name: 'simple', weight: 1 }, { name: 'spreading', weight: 1 }],
-      [{ name: 'simple', weight: 3 }, { name: 'spreading', weight: 1 }],
-      [{ name: 'simple', weight: 1 }, { name: 'spreading', weight: 99 }],
+      [
+        { name: 'simple', weight: 1 },
+        { name: 'spreading', weight: 1 },
+      ],
+      [
+        { name: 'simple', weight: 3 },
+        { name: 'spreading', weight: 1 },
+      ],
+      [
+        { name: 'simple', weight: 1 },
+        { name: 'spreading', weight: 99 },
+      ],
     ]) {
       expect(primed(composite(r, models))).toBe(0.3);
     }
@@ -51,7 +60,10 @@ describe('Bench 108 — weighted attention is configuration', () => {
 
   it('a zero-weight member contributes nothing, not everything', () => {
     const r = registry();
-    const weighted = composite(r, [{ name: 'simple', weight: 0 }, { name: 'spreading', weight: 1 }]);
+    const weighted = composite(r, [
+      { name: 'simple', weight: 0 },
+      { name: 'spreading', weight: 1 },
+    ]);
     const plain = r.resolve<AttentionModel>('attention', 'spreading');
     expect(primed(weighted)).toBe(primed(plain));
   });
@@ -71,7 +83,9 @@ describe('Bench 108 — weighted attention is configuration', () => {
     const catalog = { list: (type: Parameters<typeof r.list>[0]) => r.list(type) };
     const errors = validateParameters(
       {
-        strategies: { attention: { type: 'composite', config: { models: [{ name: 'spreding', weight: 1 }] } } } as never,
+        strategies: {
+          attention: { type: 'composite', config: { models: [{ name: 'spreding', weight: 1 }] } },
+        } as never,
       },
       catalog
     ).errors;
@@ -95,8 +109,14 @@ describe('Bench 108 — weighted attention is configuration', () => {
 
   it('two spellings of the same weighting are the same instance', () => {
     const r = registry();
-    const a = composite(r, [{ name: 'simple', weight: 1 }, { name: 'spreading', weight: 3 }]);
-    const b = composite(r, [{ name: 'spreading', weight: 3 }, { name: 'simple', weight: 1 }]);
+    const a = composite(r, [
+      { name: 'simple', weight: 1 },
+      { name: 'spreading', weight: 3 },
+    ]);
+    const b = composite(r, [
+      { name: 'spreading', weight: 3 },
+      { name: 'simple', weight: 1 },
+    ]);
     expect(b).toBe(a);
   });
 

@@ -70,12 +70,10 @@ describe('gate correlation ids are minted where they are used', () => {
       const before = minted();
 
       expect(
-        gate.check({ operation: 'lm-call', estimatedCost: 1, correlationId: 'utterance-7' })
-          .granted
+        gate.check({ operation: 'lm-call', estimatedCost: 1, correlationId: 'utterance-7' }).granted
       ).toBe(true);
       expect(
-        gate.check({ operation: 'lm-call', estimatedCost: 1, correlationId: 'utterance-7' })
-          .granted
+        gate.check({ operation: 'lm-call', estimatedCost: 1, correlationId: 'utterance-7' }).granted
       ).toBe(true);
 
       expect(minted()).toBe(before);

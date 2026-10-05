@@ -10,7 +10,12 @@ import { NAR } from '@senars/nar/nar.js';
 import type { NARConfig } from '@senars/nar/facade/config.js';
 import { e2eNARConfig } from './fixtures.js';
 
-const PROOF_METTA = { enabled: true, maxRules: 100, minConfidence: 0.5, patternMinSupport: 2 } as const;
+const PROOF_METTA = {
+  enabled: true,
+  maxRules: 100,
+  minConfidence: 0.5,
+  patternMinSupport: 2,
+} as const;
 
 const bootedNAR = async (config: NARConfig): Promise<NAR> => {
   const nar = new NAR(config);
@@ -50,7 +55,9 @@ describe('D1 — Self-Improvement Loop E2E', () => {
     const records = nar.getProcessor().getRecorder().drain();
     expect(records.length).toBeGreaterThan(0);
     expect(
-      records.some((r) => r.steps.some((s) => s.ruleId.includes('transitivity') || s.ruleId.includes('deduction')))
+      records.some((r) =>
+        r.steps.some((s) => s.ruleId.includes('transitivity') || s.ruleId.includes('deduction'))
+      )
     ).toBe(true);
 
     await nar.consolidateLearning({ budget: 5 });
@@ -73,7 +80,13 @@ describe('D1 — Self-Improvement Loop E2E', () => {
     );
 
     try {
-      for (const [from, to] of [['a', 'b'], ['b', 'c'], ['c', 'd'], ['d', 'e'], ['e', 'f']] as const) {
+      for (const [from, to] of [
+        ['a', 'b'],
+        ['b', 'c'],
+        ['c', 'd'],
+        ['d', 'e'],
+        ['e', 'f'],
+      ] as const) {
         await nar2.believe(`(${from} --> ${to}). %1.0;0.9%`);
       }
 

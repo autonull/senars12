@@ -353,9 +353,9 @@ describe('E3 — CapabilityOntology provenance and registration', () => {
 
   it('refuses a capability whose prerequisite is missing', () => {
     const ontology = createCapabilityOntology();
-    expect(() => ontology.registerBuiltin('rule', 'r2', 'rule', schema, () => 1, 50, ['nope'])).toThrow(
-      /Prerequisite/
-    );
+    expect(() =>
+      ontology.registerBuiltin('rule', 'r2', 'rule', schema, () => 1, 50, ['nope'])
+    ).toThrow(/Prerequisite/);
   });
 
   it('projects registered capabilities into the CapabilitySpace', () => {

@@ -92,7 +92,8 @@ describe('NARIO', () => {
   beforeEach(() => {
     nar = new NAR();
     taskManager = new TaskManager(nar.memory, {
-      gateRegistry: createGateRegistry(),});
+      gateRegistry: createGateRegistry(),
+    });
     nario = new NARIO(nar.memory, taskManager, nar.getConfig(), nar.gates);
   });
 
@@ -248,7 +249,8 @@ describe('Integration: inference + NARIO', () => {
   beforeEach(() => {
     nar = new NAR();
     taskManager = new TaskManager(nar.memory, {
-      gateRegistry: createGateRegistry(),});
+      gateRegistry: createGateRegistry(),
+    });
     inference = nar.cognitiveController.getInferenceController();
     nario = new NARIO(nar.memory, taskManager, nar.getConfig(), nar.gates);
   });

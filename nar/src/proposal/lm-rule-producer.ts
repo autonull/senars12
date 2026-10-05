@@ -38,7 +38,12 @@ import type {
 import { PROPOSAL_SCHEMA_VERSION } from '@senars/core/schemas';
 import { SerialQueue } from '@senars/util';
 import { createDerivedTask } from '../reason/inference-utils.js';
-import type { ModelRuleWork, ModelRuleWorkSink, RulePromptContext, RuleResult } from '../rules/types.js';
+import type {
+  ModelRuleWork,
+  ModelRuleWorkSink,
+  RulePromptContext,
+  RuleResult,
+} from '../rules/types.js';
 import type { LMBackend, StreamReasoner, StreamReasonerStats } from '../stream/reasoner.js';
 import type { Task } from '../types';
 import { ProposalLifecycle } from './lifecycle.js';

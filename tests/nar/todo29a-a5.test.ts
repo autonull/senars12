@@ -175,10 +175,14 @@ class FakeStore implements MemoryPorts {
     return [];
   }
   findConcepts(pattern: string, limit = 10): Concept[] {
-    return this.listConcepts().filter((c) => c.term.toString().includes(pattern)).slice(0, limit);
+    return this.listConcepts()
+      .filter((c) => c.term.toString().includes(pattern))
+      .slice(0, limit);
   }
   findSimilarConcepts(term: Concept['term'], limit = 10): Concept[] {
-    return this.listConcepts().filter((c) => c.term.toString() === term.toString()).slice(0, limit);
+    return this.listConcepts()
+      .filter((c) => c.term.toString() === term.toString())
+      .slice(0, limit);
   }
   getRelatedConcepts(term: Concept['term'], limit = 10): Concept[] {
     return this.findSimilarConcepts(term, limit);
@@ -268,7 +272,10 @@ describe('A5 — memory is a set of ports', () => {
         sample: (mem, n) => mem.listConcepts().slice(0, n),
       },
       { name: 'none', selectSecondary: () => [] },
-      { metadata: { name: 'empty', version: '1', description: 'derives nothing' }, derive: async function* () {} } as never,
+      {
+        metadata: { name: 'empty', version: '1', description: 'derives nothing' },
+        derive: async function* () {},
+      } as never,
       {
         ...DEFAULT_COGNITIVE_PARAMETERS.inference,
         maxDerivationsPerStep: 10,
@@ -300,9 +307,7 @@ describe('A5 — memory is a set of ports', () => {
     // The rule the gate applies, on a file that is not one.
     const cyclePath = `${ROOT}/nar/src/reason/inference-controller.ts`;
     expect(isCyclePath(cyclePath)).toBe(true);
-    expect(resolveInNar(cyclePath, '../memory/view.js')).toBe(
-      `${ROOT}/nar/src/memory/view`
-    );
+    expect(resolveInNar(cyclePath, '../memory/view.js')).toBe(`${ROOT}/nar/src/memory/view`);
     // The ports resolve where the gate expects them to.
     expect(resolveInNar(cyclePath, '../memory/ports/index.js')).toBe(
       `${ROOT}/nar/src/memory/ports/index`

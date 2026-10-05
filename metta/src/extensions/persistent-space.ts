@@ -15,7 +15,8 @@ export interface PersistentSpaceOptions {
 }
 
 export class PersistentSpace extends ArraySpace {
-  private readonly opts: PersistentSpaceOptions & Required<Pick<PersistentSpaceOptions, 'saveInterval'>>;
+  private readonly opts: PersistentSpaceOptions &
+    Required<Pick<PersistentSpaceOptions, 'saveInterval'>>;
   private stopSaveTimer: (() => void) | undefined;
 
   constructor(id: string, opts: PersistentSpaceOptions) {

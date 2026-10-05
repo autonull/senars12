@@ -149,7 +149,10 @@ export class BrierHarness {
           )
         ),
         macroReward: mean(this.gamesByArm(arm), (game) =>
-          mean(rows.filter((r) => r.game === game), (r) => r.reward)
+          mean(
+            rows.filter((r) => r.game === game),
+            (r) => r.reward
+          )
         ),
         macroReturn: mean(this.gamesByArm(arm), (game) =>
           sumBy(
@@ -181,7 +184,7 @@ export class BrierHarness {
     const rows = this.summary()
       .map(
         (s) =>
-          `| ${s.arm} | ${s.ticks} | ${s.brier.toFixed(4)} | ${s.ece.toFixed(4)} | ${s.meanReward.toFixed(4)} | ${pct(s.handoverRate , 1)} | ${s.return.toFixed(3)} |`
+          `| ${s.arm} | ${s.ticks} | ${s.brier.toFixed(4)} | ${s.ece.toFixed(4)} | ${s.meanReward.toFixed(4)} | ${pct(s.handoverRate, 1)} | ${s.return.toFixed(3)} |`
       )
       .join('\n');
     return [
@@ -224,4 +227,3 @@ export class BrierHarness {
     await writeFile(join(dir, 'arcade.md'), this.toMarkdown());
   }
 }
-

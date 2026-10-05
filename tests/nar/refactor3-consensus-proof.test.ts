@@ -13,7 +13,13 @@ const runtime = createMeTTa();
 const evaluate = (expression: string): boolean | null => {
   try {
     const atom = Effect.runSync(runtime.evaluate(parseMeTTa(expression)));
-    return atom.kind === 0 ? (atom.value === 'True' ? true : atom.value === 'False' ? false : null) : null;
+    return atom.kind === 0
+      ? atom.value === 'True'
+        ? true
+        : atom.value === 'False'
+          ? false
+          : null
+      : null;
   } catch {
     return null;
   }

@@ -278,16 +278,18 @@ describe('Property-Based Tests', () => {
   });
 
   describe('NAL Operation Laws', () => {
-    const truthArb = fc.record({
-      f: fc.float({ min: 0, max: 1 }),
-      c: fc
-        .float({
-          min: 0,
-          max: Math.fround(Truth.MAX_CONFIDENCE),
-          noNaN: true,
-        })
-        .map((c) => Math.min(c, Truth.MAX_CONFIDENCE)),
-    }).map(({ f, c }) => Truth.create(f, c));
+    const truthArb = fc
+      .record({
+        f: fc.float({ min: 0, max: 1 }),
+        c: fc
+          .float({
+            min: 0,
+            max: Math.fround(Truth.MAX_CONFIDENCE),
+            noNaN: true,
+          })
+          .map((c) => Math.min(c, Truth.MAX_CONFIDENCE)),
+      })
+      .map(({ f, c }) => Truth.create(f, c));
 
     it('revision is commutative', () => {
       fc.assert(

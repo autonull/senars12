@@ -1,4 +1,13 @@
-import { ambientRng, BoundedRing, createLogger, maxBy, nextInt, toolError, errMsg, stopwatch } from '@senars/util';
+import {
+  ambientRng,
+  BoundedRing,
+  createLogger,
+  maxBy,
+  nextInt,
+  toolError,
+  errMsg,
+  stopwatch,
+} from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import type { ToolFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';

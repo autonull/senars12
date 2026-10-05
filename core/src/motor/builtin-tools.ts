@@ -264,11 +264,15 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     if (!first) return missing('tavily_search', 'a query');
     return keyedProvider(first, 'tavily', envStr('TAVILY_API_KEY'), tavilySearch);
   }),
-  defineCmd('brave_search', 'Search the web via Brave Search API (requires BRAVE_API_KEY)', (args) => {
-    const first = argAt(args, 0);
-    if (!first) return missing('brave_search', 'a query');
-    return keyedProvider(first, 'brave', braveApiKey(), braveSearch);
-  }),
+  defineCmd(
+    'brave_search',
+    'Search the web via Brave Search API (requires BRAVE_API_KEY)',
+    (args) => {
+      const first = argAt(args, 0);
+      if (!first) return missing('brave_search', 'a query');
+      return keyedProvider(first, 'brave', braveApiKey(), braveSearch);
+    }
+  ),
   defineCmd('web_fetch', 'Fetch a web page read-only and return its text content', async (args) => {
     const url = textAt(args, 0);
     if (!url) return missing('web_fetch', 'a URL');

@@ -39,7 +39,9 @@ describe('Bench 27 — Per-Call Model Override', () => {
   it('unknown model id throws — no silent failover', async () => {
     await withEnv({ LM_PROVIDER: 'mock' }, async () => {
       const service = createLMService();
-      await expect(service.generateText('ping', { model: 'builtin:does-not-exist' })).rejects.toThrow();
+      await expect(
+        service.generateText('ping', { model: 'builtin:does-not-exist' })
+      ).rejects.toThrow();
     });
   });
 
@@ -108,7 +110,11 @@ describe('Bench 27 — Per-Call Model Override', () => {
         workingMemory: ['w1'],
         tickId: 't1',
       } as never;
-      const query: SynthesisQuery = { kind: 'synthesize', instruction: 'give candidates', maxCandidates: 2 } as never;
+      const query: SynthesisQuery = {
+        kind: 'synthesize',
+        instruction: 'give candidates',
+        maxCandidates: 2,
+      } as never;
       const results = [];
       for await (const prop of cortex.synthesize(context, query, {} as never)) results.push(prop);
       const first = results[0]!;

@@ -92,10 +92,7 @@ export class InferenceController {
 
   async *run(maxResults = 100, signal?: AbortSignal): AsyncGenerator<Task> {
     // Unbounded by anything but `maxResults`, so the cycle paces itself by yielding.
-    yield* this.cycle(
-      { maxResults, paceMs: this.config.cpuThrottleMs },
-      signal
-    );
+    yield* this.cycle({ maxResults, paceMs: this.config.cpuThrottleMs }, signal);
   }
 
   getStats(): { derivations: number } {
@@ -144,14 +141,14 @@ export class InferenceController {
       });
       if (boost !== 0) concept.writeAttention({ reason: 'prime', amount: boost });
 
-const task = createBeliefTaskFromConcept(concept);
-        if (!task) continue;
-        // Secondary premise consideration is its own declared bound (§5.7): a
-        // population-sized scan is unbounded work in a step that is not. Absent
-        // a budget port the consideration is unbudgeted, as it always was.
-        const consider = this.budgets ? this.budgets.charge('premises') : true;
-        if (!consider) return;
-        const secondaries = this.strategy.selectSecondary(task, this.memory);
+      const task = createBeliefTaskFromConcept(concept);
+      if (!task) continue;
+      // Secondary premise consideration is its own declared bound (§5.7): a
+      // population-sized scan is unbounded work in a step that is not. Absent
+      // a budget port the consideration is unbudgeted, as it always was.
+      const consider = this.budgets ? this.budgets.charge('premises') : true;
+      if (!consider) return;
+      const secondaries = this.strategy.selectSecondary(task, this.memory);
 
       for await (const derived of this.derivationStrategy.derive(
         task,

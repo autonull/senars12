@@ -31,11 +31,7 @@ export class CoreToolRegistryAdapter implements ToolRegistryDelegate {
     return this.manager.list();
   }
 
-  execute(
-    name: string,
-    args: Record<string, unknown>,
-    context?: ToolContext
-  ): Promise<ToolResult> {
+  execute(name: string, args: Record<string, unknown>, context?: ToolContext): Promise<ToolResult> {
     return this.manager.execute(name, args, context);
   }
 

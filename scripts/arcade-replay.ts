@@ -20,13 +20,24 @@ interface ArcadeRecord {
 }
 
 interface ArcadeReport {
-  summary: { arm: string; ticks: number; brier: number; ece: number; meanReward: number; return: number }[];
+  summary: {
+    arm: string;
+    ticks: number;
+    brier: number;
+    ece: number;
+    meanReward: number;
+    return: number;
+  }[];
   handoverByGame: { game: string; handovers: number }[];
   records: ArcadeRecord[];
 }
 
 const esc = (s: unknown): string =>
-  String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 
 const num = (n: number): string => (Number.isInteger(n) ? String(n) : n.toFixed(3));
 
@@ -35,7 +46,10 @@ const summaryTable = (report: ArcadeReport): string => `
   <thead><tr><th>arm</th><th>ticks</th><th>brier</th><th>ece</th><th>mean reward</th><th>return</th></tr></thead>
   <tbody>
     ${report.summary
-      .map((s) => `<tr><td>${esc(s.arm)}</td><td>${s.ticks}</td><td>${num(s.brier)}</td><td>${num(s.ece)}</td><td>${num(s.meanReward)}</td><td>${num(s.return)}</td></tr>`)
+      .map(
+        (s) =>
+          `<tr><td>${esc(s.arm)}</td><td>${s.ticks}</td><td>${num(s.brier)}</td><td>${num(s.ece)}</td><td>${num(s.meanReward)}</td><td>${num(s.return)}</td></tr>`
+      )
       .join('\n')}
   </tbody>
 </table>`;
@@ -60,9 +74,10 @@ const gameSections = (report: ArcadeReport): string => {
   }
   return [...byGame]
     .map(
-      ([game, arms]) => `<section><h2>${esc(game)}</h2>${[...arms]
-        .map(([arm, recs]) => `<h3>${esc(arm)}</h3>${timeline(recs)}`)
-        .join('')}</section>`
+      ([game, arms]) =>
+        `<section><h2>${esc(game)}</h2>${[...arms]
+          .map(([arm, recs]) => `<h3>${esc(arm)}</h3>${timeline(recs)}`)
+          .join('')}</section>`
     )
     .join('\n');
 };
@@ -92,4 +107,6 @@ const report = JSON.parse(readFileSync(inFile, 'utf8')) as ArcadeReport;
 const out = outFile ?? join(inFile, '..', 'arcade-replay.html');
 mkdirSync(join(out, '..'), { recursive: true });
 writeFileSync(out, html(report));
-console.log(`arcade replay report → ${out} (${report.summary.length} arms, ${report.records.length} records)`);
+console.log(
+  `arcade replay report → ${out} (${report.summary.length} arms, ${report.records.length} records)`
+);

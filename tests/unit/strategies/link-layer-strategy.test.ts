@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Layer, LinkManager } from '../../../nar/src/memory/links';
 import { Memory } from '../../../nar/src/memory/memory.js';
 import { LINK_LAYER } from '../../../nar/src/memory/links/types.js';
-import {
-  createLinkLayerStrategy,
-} from '../../../nar/src/strategies/premise/term-link.js';
+import { createLinkLayerStrategy } from '../../../nar/src/strategies/premise/term-link.js';
 import { createDefaultRegistry } from '../../../nar/src/cognitive';
 import type { Strategy } from '../../../nar/src/strategies/types';
 import { atom, Truth, type Term } from '../../../nar/src/terms';
@@ -66,10 +64,9 @@ describe('LinkLayerStrategy', () => {
     links.addLink(cat, animal, { type: 'inheritance', priority: 0.8 });
     links.addLink(cat, whiskers, { priority: 0.05 });
 
-    const premises = createDefaultRegistry().resolve<Strategy>('premise', 'term-link', {  minStrength: 0.5  }).selectSecondary(
-      createBeliefTask(cat, Truth.create(0.9, 0.9), 0.9),
-      memory
-    );
+    const premises = createDefaultRegistry()
+      .resolve<Strategy>('premise', 'term-link', { minStrength: 0.5 })
+      .selectSecondary(createBeliefTask(cat, Truth.create(0.9, 0.9), 0.9), memory);
 
     expect(terms(premises)).toEqual([animal.toString()]);
   });
@@ -92,10 +89,12 @@ describe('LinkLayerStrategy', () => {
     const memory = memoryWith();
     const manager = new LinkManager({ layers: { term: 10 } });
 
-    expect(createLinkLayerStrategy(LINK_LAYER.EMBEDDING).selectSecondary(
-      createBeliefTask(cat, Truth.create(0.9, 0.9), 0.9),
-      memory
-    )).toEqual([]);
+    expect(
+      createLinkLayerStrategy(LINK_LAYER.EMBEDDING).selectSecondary(
+        createBeliefTask(cat, Truth.create(0.9, 0.9), 0.9),
+        memory
+      )
+    ).toEqual([]);
     expect(manager.getLayer(LINK_LAYER.EMBEDDING)).toBeUndefined();
   });
 

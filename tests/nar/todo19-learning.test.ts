@@ -131,7 +131,11 @@ describe('Bench 45 — Learning Closure', () => {
         });
       }
     }
-    const meta = { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' } satisfies HeadIdentity;
+    const meta = {
+      headId: 'reflex_value',
+      rubric: 'reflex_value',
+      axis: 'teleological',
+    } satisfies HeadIdentity;
     const bakeOff = bakeOffSharedHead(rows, meta, { seed: 42, holdoutFraction: 0.25 });
     expect(Object.keys(bakeOff.scores).sort()).toEqual(['conversation', 'research', 'tool-use']);
     for (const [game, s] of Object.entries(bakeOff.scores)) {
@@ -193,9 +197,9 @@ describe('Bench 45 — Learning Closure', () => {
       { embedding: e, action: 'a', target: 0.5, game: 'g1' },
       { embedding: e, action: 'b', target: 0.4, game: 'g1' },
     ];
-    expect(() => bakeOffSharedHead(tagged, { headId: 'r', rubric: 'reflex_value', axis: 'teleological' })).toThrow(
-      /≥2 games/
-    );
+    expect(() =>
+      bakeOffSharedHead(tagged, { headId: 'r', rubric: 'reflex_value', axis: 'teleological' })
+    ).toThrow(/≥2 games/);
   });
 
   it('L4 — SchemaStore: second run starts with the first run schema count and improves', () => {

@@ -129,9 +129,9 @@ describe('LM call accounting', () => {
       gate
     );
     expect(value).toBe('pong');
-    expect(await accounting.execute({ ...envelope, run: async () => (calls++, 'skipped') }, gate)).toBe(
-      'pong'
-    );
+    expect(
+      await accounting.execute({ ...envelope, run: async () => (calls++, 'skipped') }, gate)
+    ).toBe('pong');
     expect(calls).toBe(1);
     expect(accounting.stats.totalCalls).toBe(2);
     expect(accounting.getSpend().mock?.tokensOut).toBe(4);
@@ -150,7 +150,10 @@ describe('LM call accounting', () => {
     };
     let calls = 0;
     const first = await accounting.execute(
-      { ...envelope, run: async ({ report }) => (calls++, (report({ inputTokens: 1 }), { ok: true })) },
+      {
+        ...envelope,
+        run: async ({ report }) => (calls++, report({ inputTokens: 1 }), { ok: true }),
+      },
       gate
     );
     const second = await accounting.execute(

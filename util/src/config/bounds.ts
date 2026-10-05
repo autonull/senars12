@@ -82,34 +82,39 @@ const rowAt = (table: BoundTable, path: string): BoundRow => {
       throw new Error(`Unknown bound: ${path}`);
     scope = (scope as Record<string, unknown>)[segment];
   }
-  if (typeof scope !== 'object' || scope === null || typeof (scope as BoundRow).default !== 'number')
+  if (
+    typeof scope !== 'object' ||
+    scope === null ||
+    typeof (scope as BoundRow).default !== 'number'
+  )
     throw new Error(`Unknown bound: ${path}`);
   return scope as BoundRow;
 };
 
-const project =
-  <Path extends string>(resolve: (path: Path) => BoundRow): BoundProjection<Path> => ({
-    at: (path, prop) => resolve(path)[prop],
-    row: resolve,
-    range: (path) => {
-      const { min, max, default: value } = resolve(path);
-      return { min, max, default: value };
-    },
-    spec: (path) => {
-      const { min, max, step } = resolve(path);
-      return { min, max, step };
-    },
-    schema: (path, { int = false, defaulted = true } = {}) => {
-      const row = resolve(path);
-      const bounded = z.number().min(row.min).max(row.max);
-      const typed = int ? bounded.int() : bounded;
-      return defaulted ? typed.default(row.default) : typed;
-    },
-    quantize: (path, value) => {
-      const row = resolve(path);
-      return clamp(Math.round(value / row.step) * row.step, row.min, row.max);
-    },
-  });
+const project = <Path extends string>(
+  resolve: (path: Path) => BoundRow
+): BoundProjection<Path> => ({
+  at: (path, prop) => resolve(path)[prop],
+  row: resolve,
+  range: (path) => {
+    const { min, max, default: value } = resolve(path);
+    return { min, max, default: value };
+  },
+  spec: (path) => {
+    const { min, max, step } = resolve(path);
+    return { min, max, step };
+  },
+  schema: (path, { int = false, defaulted = true } = {}) => {
+    const row = resolve(path);
+    const bounded = z.number().min(row.min).max(row.max);
+    const typed = int ? bounded.int() : bounded;
+    return defaulted ? typed.default(row.default) : typed;
+  },
+  quantize: (path, value) => {
+    const row = resolve(path);
+    return clamp(Math.round(value / row.step) * row.step, row.min, row.max);
+  },
+});
 
 /** The whole flat table's landing values and schemas, keyed by row — the projections a
  *  config schema and a `DEFAULT_*` constant each used to re-derive row by row. */
@@ -135,5 +140,4 @@ export const flatBounds = <const T extends FlatBoundTable>(table: T): FlatBoundP
 /** Projections for a table addressed by `category.key`. */
 export const nestedBounds = <const T extends NestedBoundTable>(
   table: T
-): BoundProjection<NestedBoundPath<T>> =>
-  project((path) => rowAt(table, path));
+): BoundProjection<NestedBoundPath<T>> => project((path) => rowAt(table, path));

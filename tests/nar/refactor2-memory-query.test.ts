@@ -237,7 +237,10 @@ describe('Store-wide task reads', () => {
     const kinds = query.getTasksByKind();
     // The store read the persistence save makes: three lists, one walk of the store.
     expect(kinds.belief.map((t) => t.term.toString()).sort()).toEqual(
-      query.getBeliefs().map((t) => t.term.toString()).sort()
+      query
+        .getBeliefs()
+        .map((t) => t.term.toString())
+        .sort()
     );
     expect(kinds.goal.map((t) => t.type)).toEqual(query.getGoals().map((t) => t.type));
     expect(kinds.question.map((t) => t.type)).toEqual(query.getQuestions().map((t) => t.type));

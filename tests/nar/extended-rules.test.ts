@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { BUILTIN_DECLARATIONS, DISABLED_RULES, NAL_EXTENDED_RULES, RULE_BODIES } from '../../nar/src/rules';
+import {
+  BUILTIN_DECLARATIONS,
+  DISABLED_RULES,
+  NAL_EXTENDED_RULES,
+  RULE_BODIES,
+} from '../../nar/src/rules';
 
 const bodyOfDisabled = (ruleId: string): string | undefined =>
   NAL_EXTENDED_RULES.find((rule) => rule.id === ruleId)?.body;

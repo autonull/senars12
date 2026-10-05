@@ -200,9 +200,13 @@ export const systemOneSchema = z.object({
     .default(systemOneDefaults.cortex),
   budgets: z
     .object({
-      maxJudgmentCallsPerCycle: systemOneBound.schema('budgets.maxJudgmentCallsPerCycle', { int: true }),
+      maxJudgmentCallsPerCycle: systemOneBound.schema('budgets.maxJudgmentCallsPerCycle', {
+        int: true,
+      }),
       maxConsensusPerCycle: systemOneBound.schema('budgets.maxConsensusPerCycle', { int: true }),
-      maxLatencyMsPerJudgment: systemOneBound.schema('budgets.maxLatencyMsPerJudgment', { int: true }),
+      maxLatencyMsPerJudgment: systemOneBound.schema('budgets.maxLatencyMsPerJudgment', {
+        int: true,
+      }),
       maxTokensPerCycle: systemOneBound.schema('budgets.maxTokensPerCycle', { int: true }),
       maxMemoryMbPerCycle: systemOneBound.schema('budgets.maxMemoryMbPerCycle', { int: true }),
     })

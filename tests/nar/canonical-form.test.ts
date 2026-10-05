@@ -106,10 +106,7 @@ describe('canonicalTerm', () => {
   });
 
   it('two spellings of one claim are one term', () => {
-    const nested = TermBuilder.compound('conjunction', [
-      TermBuilder.conjunction(a, b),
-      c,
-    ]);
+    const nested = TermBuilder.compound('conjunction', [TermBuilder.conjunction(a, b), c]);
     const flat = TermBuilder.conjunction(a, b, c);
     expect(termKey(nested)).toBe(termKey(flat));
 
@@ -155,8 +152,7 @@ describe('canonicalTerm', () => {
 });
 
 describe('canonicalTask', () => {
-  const claim = (term: Term, f: number, c = 0.9) =>
-    createTask(term, 'belief', Truth.create(f, c));
+  const claim = (term: Term, f: number, c = 0.9) => createTask(term, 'belief', Truth.create(f, c));
 
   it('(--x).f = 1 − f_x across the whole range, and the two spellings are one claim', () => {
     for (const f of [0, 0.1, 0.2, 0.5, 0.8, 1]) {

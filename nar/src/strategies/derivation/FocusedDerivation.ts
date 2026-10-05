@@ -19,7 +19,10 @@ export class FocusedDerivation extends DefaultDerivation {
   ): AsyncGenerator<Task> {
     // Scored once each, not once per comparison: `sharesSymbol` walks both term
     // trees. rankBy is stable, so equal scores keep the order they arrived in.
-    const ranked = rankBy(secondaries, (task) => task.budget.priority + this.sharedAtomScore(primary, task));
+    const ranked = rankBy(
+      secondaries,
+      (task) => task.budget.priority + this.sharedAtomScore(primary, task)
+    );
     yield* super.derive(primary, ranked, processor, ctx);
   }
 

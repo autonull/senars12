@@ -17,7 +17,23 @@ describe('escapeRegExp', () => {
   });
 
   it('escapes every metacharacter a quantifier could otherwise read', () => {
-    for (const char of ['.', '*', '+', '?', '^', '$', '{', '}', '(', ')', '|', '[', ']', '\\', '/']) {
+    for (const char of [
+      '.',
+      '*',
+      '+',
+      '?',
+      '^',
+      '$',
+      '{',
+      '}',
+      '(',
+      ')',
+      '|',
+      '[',
+      ']',
+      '\\',
+      '/',
+    ]) {
       expect(new RegExp(`^${escapeRegExp(char)}$`).test(char)).toBe(true);
     }
   });

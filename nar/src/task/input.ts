@@ -13,9 +13,7 @@ const DEFAULT_CONFIG: InputProcessorConfig = {
 };
 
 /** The marks the grammar recognises as sentence punctuation — one source. */
-const SENTENCE_MARKS = unique(Object.values(PUNCTUATION_BY_TASK_TYPE))
-  .map(escapeRegExp)
-  .join('');
+const SENTENCE_MARKS = unique(Object.values(PUNCTUATION_BY_TASK_TYPE)).map(escapeRegExp).join('');
 
 const SENTENCE_END = new RegExp(`^(.+?)([${SENTENCE_MARKS}])?\\s*$`);
 

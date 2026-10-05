@@ -20,9 +20,9 @@ afterEach(async () => {
 
 describe('Bench 41 — Assembly Integrity', () => {
   it('F1 — inconsistent specs throw BuilderError (tier-2 cortex / self without LM)', async () => {
-    await expect(
-      new NARBuilder().withSystemOne({ tier: 2 }).build()
-    ).rejects.toThrowError(BuilderError);
+    await expect(new NARBuilder().withSystemOne({ tier: 2 }).build()).rejects.toThrowError(
+      BuilderError
+    );
     await expect(
       new NARBuilder().withCapabilities({ self: { enabled: true } }).build()
     ).rejects.toThrowError(BuilderError);

@@ -98,7 +98,11 @@ async function runLeg(enabled: boolean): Promise<LegResult> {
   // OFF leg: the rule's generative LM path — the baseline System One replaces.
   const spendOf = () => {
     const s = Object.values(nar.getLMClient?.()?.getSpend() ?? {}).reduce(
-      (acc, v) => ({ calls: acc.calls + v.calls, tokensIn: acc.tokensIn + v.tokensIn, tokensOut: acc.tokensOut + v.tokensOut }),
+      (acc, v) => ({
+        calls: acc.calls + v.calls,
+        tokensIn: acc.tokensIn + v.tokensIn,
+        tokensOut: acc.tokensOut + v.tokensOut,
+      }),
       { calls: 0, tokensIn: 0, tokensOut: 0 }
     );
     return s;
@@ -172,7 +176,10 @@ const report = {
     offTokens: off.translationTokensIn + off.translationTokensOut,
     onLmCalls: on.translationLmCalls,
     onTokens: on.translationTokensIn + on.translationTokensOut,
-    tokenReduction: off.translationTokensIn + off.translationTokensOut - (on.translationTokensIn + on.translationTokensOut),
+    tokenReduction:
+      off.translationTokensIn +
+      off.translationTokensOut -
+      (on.translationTokensIn + on.translationTokensOut),
     onAcceptedTasks: on.translationAccepted,
     onMs: on.translationMs,
     offMs: off.translationMs,
@@ -200,7 +207,7 @@ const md = [
   '',
   '## Translation workload (NL → Narsese through `lm-narsese-translation`)',
   '',
-  'ON leg: §8 REPLACE via the System One adapter (cortex candidate synthesis + manifold selection). OFF leg: the rule\'s generative LM path — the baseline System One replaces.',
+  "ON leg: §8 REPLACE via the System One adapter (cortex candidate synthesis + manifold selection). OFF leg: the rule's generative LM path — the baseline System One replaces.",
   '',
   '| Metric | System One ON | OFF (LM-mediated) |',
   '|--------|--------------:|------------------:|',
@@ -210,7 +217,7 @@ const md = [
   `| Tasks admitted | ${on.translationAccepted} | ${off.translationAccepted} |`,
   `| Tokens / admitted task | ${(on.translationTokensIn + on.translationTokensOut) / Math.max(1, on.translationAccepted)} | ${(off.translationTokensIn + off.translationTokensOut) / Math.max(1, off.translationAccepted)} |`,
   '',
-  'Note: candidate synthesis costs more raw tokens per translation (3 candidates per call), but admits far more tasks (the generative baseline\'s outputs frequently fail Narsese parsing and drop to the symbolic fallback). Cost per *admitted* task is the comparable figure.',
+  "Note: candidate synthesis costs more raw tokens per translation (3 candidates per call), but admits far more tasks (the generative baseline's outputs frequently fail Narsese parsing and drop to the symbolic fallback). Cost per *admitted* task is the comparable figure.",
   '',
 ].join('\n');
 await writeFile(join(dir, `system-one-onoff${suffix}.md`), md);

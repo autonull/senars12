@@ -117,8 +117,7 @@ export const Stamp = {
    * the ancestor set: there is no parent pointer to walk, so a path had to be
    * reconstructed from a side index or quietly collapse to the stamp alone.
    */
-  lineage: (stamp: Stamp | undefined): string[] =>
-    stamp ? [...stamp.derivations, stamp.id] : [],
+  lineage: (stamp: Stamp | undefined): string[] => (stamp ? [...stamp.derivations, stamp.id] : []),
 
   getMaxDepth: (stamps: readonly Stamp[]): number => maxDepthOf(stamps),
 

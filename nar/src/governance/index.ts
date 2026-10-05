@@ -1,4 +1,10 @@
-export type { ProposalActuators, ProposalRoute, ValidationVerdict, SelfMetaGameEvidence, AdaptationRecord } from './pipeline.js';
+export type {
+  ProposalActuators,
+  ProposalRoute,
+  ValidationVerdict,
+  SelfMetaGameEvidence,
+  AdaptationRecord,
+} from './pipeline.js';
 export {
   GovernancePolicyEngine,
   PatchRiskClassifier,

@@ -94,7 +94,13 @@ describe('D3 follow-up: dataset compaction dedupes rows (inline vectors)', () =>
       });
       writeFileSync(
         datasetPath,
-        [row('a', 0.1, vector), row('a', 0.2), row('b', 0.3, vector), 'malformed', row('b', 0.4, vector)]
+        [
+          row('a', 0.1, vector),
+          row('a', 0.2),
+          row('b', 0.3, vector),
+          'malformed',
+          row('b', 0.4, vector),
+        ]
           .map((r) => (typeof r === 'string' ? r : JSON.stringify(r)))
           .join('\n') + '\n',
         'utf-8'

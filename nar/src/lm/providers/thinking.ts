@@ -7,8 +7,7 @@
 import { withBodyPatch } from './body-patch.js';
 
 /** Wraps `base` so every chat request carries thinking disabled. */
-export const withThinkingDisabled =
-  (base: typeof fetch = fetch): typeof fetch =>
+export const withThinkingDisabled = (base: typeof fetch = fetch): typeof fetch =>
   withBodyPatch((body) => {
     if (!body.messages || body.chat_template_kwargs) return false;
     body.chat_template_kwargs = { enable_thinking: false };

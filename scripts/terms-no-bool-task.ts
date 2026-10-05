@@ -19,7 +19,11 @@ const NARSESE_CASES = [
   { narsese: '(a-->NULL)', expectValid: false, desc: 'predicate is NULL' },
 
   // This should be VALID — the cascade reduces (b&TRUE) to b
-  { narsese: '(a-->(b&TRUE))', expectValid: true, desc: 'predicate reduces to b via conjunction-TRUE identity' },
+  {
+    narsese: '(a-->(b&TRUE))',
+    expectValid: true,
+    desc: 'predicate reduces to b via conjunction-TRUE identity',
+  },
 ];
 
 async function runGate(): Promise<void> {
@@ -39,10 +43,14 @@ async function runGate(): Promise<void> {
     const passed = validation.valid === expectValid;
 
     if (!passed) {
-      console.log(`FAIL  ${narsese.padEnd(25)} — expected ${expectValid ? 'VALID' : 'INVALID'}, got ${validation.valid ? 'VALID' : 'INVALID'} (${validation.valid ? '' : validation.reason}) — ${desc}`);
+      console.log(
+        `FAIL  ${narsese.padEnd(25)} — expected ${expectValid ? 'VALID' : 'INVALID'}, got ${validation.valid ? 'VALID' : 'INVALID'} (${validation.valid ? '' : validation.reason}) — ${desc}`
+      );
       allPassed = false;
     } else {
-      console.log(`PASS  ${narsese.padEnd(25)} — ${validation.valid ? 'VALID' : 'INVALID'} — ${desc}`);
+      console.log(
+        `PASS  ${narsese.padEnd(25)} — ${validation.valid ? 'VALID' : 'INVALID'} — ${desc}`
+      );
     }
   }
 
@@ -61,10 +69,14 @@ async function runGate(): Promise<void> {
     const passed = wasAdded === expectValid;
 
     if (!passed) {
-      console.log(`FAIL  ${narsese.padEnd(25)} — NAR ${wasAdded ? 'accepted' : 'rejected'}, expected ${expectValid ? 'accept' : 'reject'} — ${desc}`);
+      console.log(
+        `FAIL  ${narsese.padEnd(25)} — NAR ${wasAdded ? 'accepted' : 'rejected'}, expected ${expectValid ? 'accept' : 'reject'} — ${desc}`
+      );
       allPassed = false;
     } else {
-      console.log(`PASS  ${narsese.padEnd(25)} — NAR ${wasAdded ? 'accepted' : 'rejected'} — ${desc}`);
+      console.log(
+        `PASS  ${narsese.padEnd(25)} — NAR ${wasAdded ? 'accepted' : 'rejected'} — ${desc}`
+      );
     }
   }
 

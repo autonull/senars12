@@ -25,10 +25,10 @@ export interface ArcadeTickSpan {
 
 export function startArcadeTickSpan(arm: string, game: string, cycle: number): ArcadeTickSpan {
   const span = getTracer('senars.arcade').startSpan('arcade.tick', {
-      kind: SpanKind.INTERNAL,
-      attributes: { 'arcade.arm': arm, 'arcade.game': game, 'arcade.cycle': cycle },
-      startTime: Date.now(),
-    });
+    kind: SpanKind.INTERNAL,
+    attributes: { 'arcade.arm': arm, 'arcade.game': game, 'arcade.cycle': cycle },
+    startTime: Date.now(),
+  });
   return {
     finish({ action, latencyMs, reward, terminal, handover, decision }) {
       span.setAttribute('arcade.action', action ?? '');

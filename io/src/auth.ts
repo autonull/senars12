@@ -21,11 +21,7 @@ export class AuthManager {
     this.secrets.delete(connectionId);
   }
 
-  checkAuth(
-    connectionId: string,
-    senderId: string,
-    message: string
-  ): AuthDecision {
+  checkAuth(connectionId: string, senderId: string, message: string): AuthDecision {
     const secret = this.secrets.get(connectionId);
     if (!secret) return 'allow';
 

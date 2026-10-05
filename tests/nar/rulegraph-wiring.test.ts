@@ -53,7 +53,15 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
       setEventBus: vi.fn(),
       enable: vi.fn(),
       disable: vi.fn(),
-      getStats: vi.fn(() => ({ id: 'test-lm-rule', enabled: true, circuitState: 'closed', totalCalls: 0, successfulCalls: 0, failedCalls: 0, avgLatencyMs: 0 })),
+      getStats: vi.fn(() => ({
+        id: 'test-lm-rule',
+        enabled: true,
+        circuitState: 'closed',
+        totalCalls: 0,
+        successfulCalls: 0,
+        failedCalls: 0,
+        avgLatencyMs: 0,
+      })),
     } as unknown as LMRule;
   });
 
@@ -61,7 +69,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     const ruleGraph = registry.get<RuleGraph>('lm-rule', 'lm-graph');
     expect(ruleGraph).toBeInstanceOf(RuleGraph);
     expect(registry.has('lm-rule', 'lm-graph')).toBe(true);
-    
+
     const selector = registry.get<ModelRuleSelector>('lm-rule', 'lm-graph');
     expect(selector).toBe(ruleGraph);
     expect(selector.metadata.name).toBe('lm-graph');
@@ -70,7 +78,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
   test('lm-graph selector returns non-empty selection (fail-closed)', () => {
     const ruleGraph = registry.get<RuleGraph>('lm-rule', 'lm-graph');
     processor.registerModelRule(mockLMRule);
-    
+
     const rules = [mockLMRule];
     const context = {
       maxRules: 5,
@@ -78,7 +86,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
       rotationIndex: 0,
       premiseCount: 1 as const,
     };
-    
+
     const selected = ruleGraph.select(rules, context);
     expect(selected.length).toBeGreaterThan(0);
     expect(selected).toContain(mockLMRule);
@@ -86,21 +94,39 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
 
   test('lm-graph records performance and shifts selection distribution', async () => {
     const ruleGraph = registry.get<RuleGraph>('lm-rule', 'lm-graph');
-    
+
     const rule1: LMRule = {
       id: 'rule-1',
       name: 'Rule 1',
       condition: TermBuilder.atom('rule_1'), // NEW: condition term for RuleGraph matching
       priority: 1.0,
       sync: false,
-      apply: vi.fn(() => Promise.resolve([{ term: TermBuilder.atom('A'), truth: Truth.create(0.8, 0.9), stamp: makeInput('A').stamp, priority: 0.5, taskType: 'belief' }])),
+      apply: vi.fn(() =>
+        Promise.resolve([
+          {
+            term: TermBuilder.atom('A'),
+            truth: Truth.create(0.8, 0.9),
+            stamp: makeInput('A').stamp,
+            priority: 0.5,
+            taskType: 'belief',
+          },
+        ])
+      ),
       canApply: vi.fn(() => true),
       setEventBus: vi.fn(),
       enable: vi.fn(),
       disable: vi.fn(),
-      getStats: vi.fn(() => ({ id: 'rule-1', enabled: true, circuitState: 'closed', totalCalls: 0, successfulCalls: 0, failedCalls: 0, avgLatencyMs: 0 })),
+      getStats: vi.fn(() => ({
+        id: 'rule-1',
+        enabled: true,
+        circuitState: 'closed',
+        totalCalls: 0,
+        successfulCalls: 0,
+        failedCalls: 0,
+        avgLatencyMs: 0,
+      })),
     } as unknown as LMRule;
-    
+
     const rule2: LMRule = {
       id: 'rule-2',
       name: 'Rule 2',
@@ -112,7 +138,15 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
       setEventBus: vi.fn(),
       enable: vi.fn(),
       disable: vi.fn(),
-      getStats: vi.fn(() => ({ id: 'rule-2', enabled: true, circuitState: 'closed', totalCalls: 0, successfulCalls: 0, failedCalls: 0, avgLatencyMs: 0 })),
+      getStats: vi.fn(() => ({
+        id: 'rule-2',
+        enabled: true,
+        circuitState: 'closed',
+        totalCalls: 0,
+        successfulCalls: 0,
+        failedCalls: 0,
+        avgLatencyMs: 0,
+      })),
     } as unknown as LMRule;
 
     processor.registerModelRule(rule1);
@@ -139,7 +173,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     // Second selection - rule1 should be preferred due to higher success rate
     const secondSelection = ruleGraph.select(rules, context);
     expect(secondSelection.length).toBeGreaterThan(0);
-    
+
     // rule1 should be ranked higher (first in selection)
     const firstSelected = secondSelection[0];
     if (firstSelected) {
@@ -160,9 +194,10 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     // Check that co-activation is stored with real terms
     const coActivations = graph.getCoActivations(focusTerm, 10);
     expect(coActivations.length).toBeGreaterThan(0);
-    
-    const found = coActivations.find((e: { targetTerm: Term; weight: number }) =>
-      e.targetTerm.kind === 'atom' && e.targetTerm.symbol === 'rule_term'
+
+    const found = coActivations.find(
+      (e: { targetTerm: Term; weight: number }) =>
+        e.targetTerm.kind === 'atom' && e.targetTerm.symbol === 'rule_term'
     );
     expect(found).toBeDefined();
     expect(found!.weight).toBeGreaterThan(0);
@@ -187,7 +222,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     const { PREMISE_SOURCES } = await import('../../nar/src/strategies/premise/primitives.js');
     const task = { term: termA } as any;
     const concepts = PREMISE_SOURCES.graph(task, memory);
-    
+
     expect(concepts.length).toBeGreaterThan(0);
     expect(concepts.some((c: { term: Term }) => termsEqual(c.term, termB))).toBe(true);
   });
@@ -205,9 +240,11 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     graph.activate(termA, termB);
     graph.activate(termA, termB); // Second activation increases weight
 
-    const { PREMISE_SCORER_REGISTRY, resolveScorer } = await import('../../nar/src/strategies/premise/primitives.js');
+    const { PREMISE_SCORER_REGISTRY, resolveScorer } = await import(
+      '../../nar/src/strategies/premise/primitives.js'
+    );
     const scorer = resolveScorer(memory, 'edgeWeight');
-    
+
     const task = { term: termA } as any;
     const score = scorer?.(task, conceptB);
     expect(score).toBeGreaterThan(0);
@@ -237,7 +274,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
 
     const termA = TermBuilder.atom('A');
     const termB = TermBuilder.atom('B');
-    
+
     graph.activate(termA, termB);
     graph.activate(termA, termB);
     graph.activate(termA, termB);

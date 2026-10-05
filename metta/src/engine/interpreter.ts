@@ -16,7 +16,11 @@ export class MeTTaInterpreter {
     this.spaces.set(space.id, space);
   }
 
-  evaluate(program: MeTTaAtom, spaceId = 'default', overrides: Partial<MeTTaContext> = {}): Effect.Effect<MeTTaAtom, MeTTaError> {
+  evaluate(
+    program: MeTTaAtom,
+    spaceId = 'default',
+    overrides: Partial<MeTTaContext> = {}
+  ): Effect.Effect<MeTTaAtom, MeTTaError> {
     const space = this.spaces.get(spaceId);
     if (!space) {
       return Effect.fail(new MeTTaError(ErrorCode.SPACE_NOT_FOUND, `Space ${spaceId} not found`));
@@ -32,10 +36,14 @@ export class MeTTaInterpreter {
     }
 
     return Effect.fail(
-      new MeTTaError(ErrorCode.STEP_LIMIT, `Evaluation did not reach a normal form in ${maxSteps} steps`, {
-        maxSteps,
-        spaceId,
-      })
+      new MeTTaError(
+        ErrorCode.STEP_LIMIT,
+        `Evaluation did not reach a normal form in ${maxSteps} steps`,
+        {
+          maxSteps,
+          spaceId,
+        }
+      )
     );
   }
 

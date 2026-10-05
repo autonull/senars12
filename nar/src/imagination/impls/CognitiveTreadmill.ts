@@ -1,5 +1,5 @@
 import type { CognitiveEvent } from '@senars/core/schemas';
-import { 
+import {
   ambientRng,
   BoundedRing,
   clamp,
@@ -11,7 +11,7 @@ import {
   sleep,
   stdDev,
   stopwatch,
- } from '@senars/util';
+} from '@senars/util';
 import type { NAR } from '../../nar.js';
 import { Truth } from '../../terms/impls/Truth.js';
 import { termParser } from '../../terms/index.js';

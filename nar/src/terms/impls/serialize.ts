@@ -39,7 +39,9 @@ const serializeOperation = (op: Term | undefined, args: Term | undefined): strin
   if (!op || !args) return '';
   const body =
     args.kind === 'product'
-      ? getArgs(args).map((arg) => serialize(arg)).join(ARGUMENT_SEPARATOR)
+      ? getArgs(args)
+          .map((arg) => serialize(arg))
+          .join(ARGUMENT_SEPARATOR)
       : serialize(args);
   return `(${serialize(op)}${OPERATORS.operation.symbol}(${body}))`;
 };

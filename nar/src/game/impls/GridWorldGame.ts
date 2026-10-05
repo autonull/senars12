@@ -116,7 +116,11 @@ export class GridWorldGame implements Game<GridWorldState, GridAction> {
     const inBounds = next.row >= 0 && next.row < this.rows && next.col >= 0 && next.col < this.cols;
     if (inBounds && !this.walls.has(`${next.row},${next.col}`)) this.currentPos = next;
     this.terminal_ = this.isTerminal() || this.stepCount >= this.maxSteps;
-    return { reward: this.isTerminal() ? 1 : -0.01, terminal: this.terminal_, info: { stepCount: this.stepCount } };
+    return {
+      reward: this.isTerminal() ? 1 : -0.01,
+      terminal: this.terminal_,
+      info: { stepCount: this.stepCount },
+    };
   }
 
   reset(): void {
@@ -146,7 +150,10 @@ export class GridWorldGame implements Game<GridWorldState, GridAction> {
   }
 
   private distanceToGoal(): number {
-    return Math.abs(this.currentPos.row - this.goalPos.row) + Math.abs(this.currentPos.col - this.goalPos.col);
+    return (
+      Math.abs(this.currentPos.row - this.goalPos.row) +
+      Math.abs(this.currentPos.col - this.goalPos.col)
+    );
   }
 
   private getStateKey(): string {

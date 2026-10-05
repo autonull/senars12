@@ -10,8 +10,7 @@ import { createDefaultRegistry } from '../../nar/src/cognitive';
 import { Memory, TermBuilder, Truth } from '../../nar/src';
 import type { Term } from '../../nar/src/terms';
 import { createTask } from '../../nar/src/types/index.js';
-import {
-} from '../../nar/src/strategies/premise/selection-strategies.js';
+import {} from '../../nar/src/strategies/premise/selection-strategies.js';
 import { createStrategy } from '../../nar/src/reason/strategies/base.js';
 import { samplePremisesFromConfig } from '../../nar/src/strategies/premise/primitives.js';
 import type { Strategy } from '../../nar/src/strategies/types.js';
@@ -20,14 +19,17 @@ const taskFor = (term: Term) => createTask(term, 'belief', Truth.create(0.9, 0.9
 const atom = (symbol: string): Term => TermBuilder.atom(symbol);
 
 /** The premise slot, by name — the registry is the only way to get a strategy. */
-const premise = (name: string): Strategy =>
-  createDefaultRegistry().get<Strategy>('premise', name);
+const premise = (name: string): Strategy => createDefaultRegistry().get<Strategy>('premise', name);
 
 describe('premise strategy compositions apply their declared filters', () => {
   let memory: Memory;
 
   beforeEach(() => {
-    memory = new Memory({ maxConcepts: 200, activationDecayRate: 0.01, consolidationInterval: 1000 });
+    memory = new Memory({
+      maxConcepts: 200,
+      activationDecayRate: 0.01,
+      consolidationInterval: 1000,
+    });
   });
 
   const seedBelief = (term: Term, f = 0.9): void => {
@@ -63,19 +65,29 @@ describe('premise strategy compositions apply their declared filters', () => {
     seedBelief(inheritance('cat', 'animal'));
     seedBelief(inheritance('dog', 'pet'));
 
-    const selected = premise('analogical').selectSecondary(taskFor(inheritance('cat', 'animal')), memory);
+    const selected = premise('analogical').selectSecondary(
+      taskFor(inheritance('cat', 'animal')),
+      memory
+    );
     expect(selected.every((t) => t.term.kind === 'inheritance')).toBe(true);
-    expect(selected.some((t) => t.term.kind === 'inheritance' && t.term.args?.[1]?.toString() === 'pet')).toBe(false);
+    expect(
+      selected.some((t) => t.term.kind === 'inheritance' && t.term.args?.[1]?.toString() === 'pet')
+    ).toBe(false);
   });
 
   it('default-formation requires shared atoms', () => {
     seedBelief(TermBuilder.atom('cat'));
     seedBelief(TermBuilder.atom('unrelated'));
 
-    const selected = premise('default-formation').selectSecondary(taskFor(inheritance('cat', 'animal')), memory);
+    const selected = premise('default-formation').selectSecondary(
+      taskFor(inheritance('cat', 'animal')),
+      memory
+    );
     expect(selected.length).toBeGreaterThan(0);
     expect(selected.some((t) => t.term.kind === 'atom' && t.term.symbol === 'cat')).toBe(true);
-    expect(selected.some((t) => t.term.kind === 'atom' && t.term.symbol === 'unrelated')).toBe(false);
+    expect(selected.some((t) => t.term.kind === 'atom' && t.term.symbol === 'unrelated')).toBe(
+      false
+    );
   });
 
   it('bag and exhaustive share the sharedAtoms filter but differ in breadth', () => {
@@ -86,7 +98,10 @@ describe('premise strategy compositions apply their declared filters', () => {
     expect(bagged.length).toBeGreaterThan(0);
     expect(bagged.some((t) => t.term.kind === 'atom' && t.term.symbol === 'cat')).toBe(true);
 
-    const exhaustive = premise('exhaustive').selectSecondary(taskFor(inheritance('cat', 'animal')), memory);
+    const exhaustive = premise('exhaustive').selectSecondary(
+      taskFor(inheritance('cat', 'animal')),
+      memory
+    );
     expect(exhaustive.length).toBeGreaterThanOrEqual(bagged.length);
     expect(premise('exhaustive').sampleSize).toBe(100);
   });
@@ -169,7 +184,7 @@ describe('premise strategy compositions apply their declared filters', () => {
     seedBelief(TermBuilder.atom('feline'));
     seedBelief(TermBuilder.atom('dog'));
     memory.getLinkManager().addLink(atom('cat'), atom('feline'), { priority: 1.0 });
-    
+
     // Boost concept priority so it passes minScore
     const felineConcept = memory.getConcept(atom('feline'))!;
     felineConcept.writeAttention({ reason: 'assign', value: 0.9 });
@@ -190,7 +205,7 @@ describe('premise strategy compositions apply their declared filters', () => {
     if (embeddingIndex) {
       // Wait for embeddings to be indexed
       await new Promise((r) => setTimeout(r, 100));
-      
+
       const scored = samplePremisesFromConfig(memory, taskFor(atom('cat')), {
         source: 'concepts',
         scorer: { linear: { link: 0.5, embed: 0.5, pri: 0 } },

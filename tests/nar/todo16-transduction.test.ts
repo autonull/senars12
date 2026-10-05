@@ -1,6 +1,13 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { describe, expect, it } from 'vitest';
-import { createTaskWeight, createTask, DEFAULT_CONFIG, NAR, Truth, termParser } from '../../nar/src';
+import {
+  createTaskWeight,
+  createTask,
+  DEFAULT_CONFIG,
+  NAR,
+  Truth,
+  termParser,
+} from '../../nar/src';
 import type { Perception } from '../../nar/src/game/Game.js';
 import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';

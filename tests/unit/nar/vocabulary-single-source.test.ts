@@ -1,4 +1,9 @@
-import { DetectedIntentSchema, DETECTED_INTENTS, TASK_BAG_KINDS, TASK_TYPES } from '@senars/core/schemas';
+import {
+  DetectedIntentSchema,
+  DETECTED_INTENTS,
+  TASK_BAG_KINDS,
+  TASK_TYPES,
+} from '@senars/core/schemas';
 import { describe, expect, it } from 'vitest';
 import {
   asRubricId,
@@ -59,7 +64,8 @@ describe('decision manifest vocabulary', () => {
   });
 
   it('the axis schemas agree with the axis tuples', () => {
-    for (const axis of COGNITIVE_AXES) expect(cognitiveAxisSchema.safeParse(axis).success).toBe(true);
+    for (const axis of COGNITIVE_AXES)
+      expect(cognitiveAxisSchema.safeParse(axis).success).toBe(true);
     expect(cognitiveAxisSchema.safeParse(SYNTHESIS_AXIS).success).toBe(false);
   });
 });

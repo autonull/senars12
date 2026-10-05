@@ -1,7 +1,4 @@
-import {
-  counterfactual,
-  type CounterfactualHost,
-} from '../../reason/counterfactual.js';
+import { counterfactual, type CounterfactualHost } from '../../reason/counterfactual.js';
 import { atom } from '../../terms';
 
 export async function runCounterfactual(

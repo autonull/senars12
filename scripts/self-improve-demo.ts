@@ -19,7 +19,10 @@ import { createSeNARSRegistry } from '../nar/src/lm/index.js';
 import { createLMService } from '../nar/src/lm/lm-service.js';
 import { createLogger } from '@senars/util';
 import { META_REASONING_BELIEFS, registerMetaRules } from '../nar/src/rules/impls/meta-rules.js';
-import { initializeSelfConcept, SELF_CONCEPT_BELIEFS } from '../nar/src/tools/impls/self-concept.js';
+import {
+  initializeSelfConcept,
+  SELF_CONCEPT_BELIEFS,
+} from '../nar/src/tools/impls/self-concept.js';
 
 const logger = createLogger({ scope: 'self-improve-demo' });
 
@@ -93,7 +96,7 @@ async function main() {
     // Check statistics
     const stats = nar.getStatistics();
     logger.info(
-      `   Concepts: ${stats.totalConcepts}, Tasks: ${stats.totalTasks}, Memory pressure: ${pct(stats.memoryPressure , 1)}`
+      `   Concepts: ${stats.totalConcepts}, Tasks: ${stats.totalTasks}, Memory pressure: ${pct(stats.memoryPressure, 1)}`
     );
 
     // Small delay to observe
@@ -105,7 +108,7 @@ async function main() {
   const stats = nar.getStatistics();
   logger.info(`   Total concepts: ${stats.totalConcepts}`);
   logger.info(`   Total tasks: ${stats.totalTasks}`);
-  logger.info(`   Memory pressure: ${pct(stats.memoryPressure , 1)}`);
+  logger.info(`   Memory pressure: ${pct(stats.memoryPressure, 1)}`);
 
   const beliefs = nar.getBeliefs();
   logger.info(`   Beliefs: ${beliefs.length}`);

@@ -72,7 +72,11 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   private scopeOperations: Map<string, Set<string>> = new Map();
 
   protected override outcomeOf(output: unknown): GateOutcome {
-    return projectOutcome<ActionGateOutput>(output, (o) => o.authorized, (o) => o.vetoReason);
+    return projectOutcome<ActionGateOutput>(
+      output,
+      (o) => o.authorized,
+      (o) => o.vetoReason
+    );
   }
 
   constructor(config?: Partial<KernelActionGateConfig>) {
@@ -187,10 +191,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
     );
   }
 
-  private decideAuthorization(
-    input: ActionGateInput,
-    correlation: () => string
-  ): ActionGateOutput {
+  private decideAuthorization(input: ActionGateInput, correlation: () => string): ActionGateOutput {
     const scoped = KernelActionGate.parseScopedOperation(input.operation);
     if (scoped) return this.authorizeScoped(scoped.scopeId, scoped.action);
     if (!permitsExecution(this.autonomyMode)) {

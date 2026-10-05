@@ -14,7 +14,11 @@ import {
   type DecideResult,
   type Decider,
 } from '../lm/system-one/decide.js';
-import { createDispatcher, type DispatcherOptions, StubCortex } from '../lm/system-one/dispatcher.js';
+import {
+  createDispatcher,
+  type DispatcherOptions,
+  StubCortex,
+} from '../lm/system-one/dispatcher.js';
 import { JudgmentDataset } from '../lm/system-one/distill.js';
 import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';
 import { embeddingRuntime } from '../lm/embedding-runtime.js';
@@ -380,7 +384,9 @@ export class SystemOneRuntime {
       budget: this.s1Budget,
       dataset: this.dataset,
       maxCandidates:
-        options.maxCandidates ?? this.config.systemOne?.lmReflex?.maxCandidates ?? DEFAULT_SYNTHESIS_CANDIDATES,
+        options.maxCandidates ??
+        this.config.systemOne?.lmReflex?.maxCandidates ??
+        DEFAULT_SYNTHESIS_CANDIDATES,
       contrastive: this.getContrastive('default'),
     });
     gameFocus.bindReflex(lmReflex);

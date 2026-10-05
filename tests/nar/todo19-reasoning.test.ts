@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
-import { createReasoningGame, generateEvalTasks, ReasoningGame, type ReasoningGameOptions } from '../../nar/src/game/impls/ReasoningGame.js';
+import {
+  createReasoningGame,
+  generateEvalTasks,
+  ReasoningGame,
+  type ReasoningGameOptions,
+} from '../../nar/src/game/impls/ReasoningGame.js';
 import { ReasoningMetaGame } from '../../nar/src/game/impls/ReasoningMetaGame.js';
 import { REASONING_SPECS } from '../../nar/src/game/impls/ReasoningGame.js';
 import { DEFAULT_ACTIONS, DEFAULT_REWARDS } from '../../nar/src/game/index.js';
@@ -15,15 +20,20 @@ import type { ActionProposal, LearningEvent, Reflex } from '../../nar/src/reflex
  * Item 7 (schema induction persistence) lands with L4/SchemaStore in Phase C.
  */
 
-const createSpec = (overrides: Partial<ReasoningGameOptions> = {}): ReasoningGameOptions => ({
-  ...REASONING_SPECS['reasoning:conversation'],
-  sensors: [],
-  actions: [...DEFAULT_ACTIONS],
-  rewards: [...DEFAULT_REWARDS],
-  ...overrides,
-} as ReasoningGameOptions);
+const createSpec = (overrides: Partial<ReasoningGameOptions> = {}): ReasoningGameOptions =>
+  ({
+    ...REASONING_SPECS['reasoning:conversation'],
+    sensors: [],
+    actions: [...DEFAULT_ACTIONS],
+    rewards: [...DEFAULT_REWARDS],
+    ...overrides,
+  }) as ReasoningGameOptions;
 
-const playPolicy = (spec: ReasoningGameOptions, policy: (legal: string[]) => string, ticks: number) => {
+const playPolicy = (
+  spec: ReasoningGameOptions,
+  policy: (legal: string[]) => string,
+  ticks: number
+) => {
   const game = createReasoningGame(spec, 7);
   let total = 0;
   for (let t = 0; t < ticks; t++) {
@@ -103,7 +113,11 @@ describe('Bench 44 — ReasoningGame Falsification', () => {
     const runFocus = async (seeded: boolean): Promise<GameFocus> => {
       const game = createReasoningGame(createSpec(), 7);
       const focus = new GameFocus({
-        gateRegistry: createGateRegistry(), focusId: 'reasoning-nal', game, cognitive: true });
+        gateRegistry: createGateRegistry(),
+        focusId: 'reasoning-nal',
+        game,
+        cognitive: true,
+      });
       if (seeded) focus.seedRule('ask_lm', 'costly_op', { f: 0.1, c: 0.95 });
       focus.bindReflex(new FixedActionReflex('ask_lm'));
       for (let t = 0; t < 20; t++) await focus.step(10);
@@ -112,7 +126,9 @@ describe('Bench 44 — ReasoningGame Falsification', () => {
 
     const seeded = await runFocus(true);
     const panel = seeded.getPanelLog();
-    const firstVeto = panel.findIndex((p) => p.decision.vetoedBy !== null && p.decision.vetoedBy !== 'below-threshold');
+    const firstVeto = panel.findIndex(
+      (p) => p.decision.vetoedBy !== null && p.decision.vetoedBy !== 'below-threshold'
+    );
     expect(firstVeto).toBeGreaterThanOrEqual(0);
     for (const entry of panel.slice(firstVeto))
       expect(entry.decision.actionExecuted).not.toBe('ask_lm');
@@ -146,13 +162,25 @@ describe('Bench 44 — ReasoningGame Falsification', () => {
     };
     const game = createReasoningGame(createSpec(), 7);
     const focus = new GameFocus({
-      gateRegistry: createGateRegistry(), focusId: 'reasoning-fault', game, cognitive: true });
+      gateRegistry: createGateRegistry(),
+      focusId: 'reasoning-fault',
+      game,
+      cognitive: true,
+    });
     focus.setReflexPrefetchContext({
       manifold: faulted as never,
       embeddingCache: { write: async () => ({ digest: 'x' }) } as never,
-      budget: { maxCycles: 10, maxDepth: 5, maxMemoryOps: 10, maxLMCalls: 5, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } },
+      budget: {
+        maxCycles: 10,
+        maxDepth: 5,
+        maxMemoryOps: 10,
+        maxLMCalls: 5,
+        consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+      },
     });
-    focus.bindReflex(new ManifoldReflex(new EpsilonGreedyReflex('incumbent', { numArms: 4, epsilon: 0.3 })));
+    focus.bindReflex(
+      new ManifoldReflex(new EpsilonGreedyReflex('incumbent', { numArms: 4, epsilon: 0.3 }))
+    );
     // The faulted judgeBatch must not throw out of the tick loop…
     for (let t = 0; t < 15; t++) await expect(focus.step(10)).resolves.toBeDefined();
     // …and the episode still progressed on the incumbent reflex (fail-closed ≠ frozen).

@@ -23,8 +23,7 @@ const kinds = () => Object.keys(OPERATORS) as (keyof typeof OPERATORS)[];
 const termsOf = (kind: keyof typeof OPERATORS): Term[] => {
   const members = [TermBuilder.atom('a'), TermBuilder.atom('b'), TermBuilder.atom('c')];
   // Sequence is binary in SeNARS despite nary=true/arity=0 in OPERATORS
-  const isNary = (k: OperatorKey): boolean =>
-    k !== 'sequence' && OPERATORS[k].nary;
+  const isNary = (k: OperatorKey): boolean => k !== 'sequence' && OPERATORS[k].nary;
   const effectiveDeclared = (k: OperatorKey): number =>
     k === 'sequence' ? 2 : k === 'operation' ? 2 : k === 'negation' ? 1 : OPERATORS[k].arity;
   const declared = effectiveDeclared(kind);
@@ -33,7 +32,12 @@ const termsOf = (kind: keyof typeof OPERATORS): Term[] => {
   if (nary)
     for (const n of [2, 3]) {
       out.push(TermBuilder.compound(kind, members.slice(0, n)));
-      out.push(TermBuilder.compound(kind, members.slice(0, n - 1).map((m) => TermBuilder.compound(kind, [m, members[0]!]))));
+      out.push(
+        TermBuilder.compound(
+          kind,
+          members.slice(0, n - 1).map((m) => TermBuilder.compound(kind, [m, members[0]!]))
+        )
+      );
     }
   return out;
 };
@@ -47,7 +51,12 @@ describe('terms:canonical', () => {
     // A reducer whose `applies` is true at the fixed point makes the pipeline do a
     // second pass on every term on the hot path — the no-allocation claim.
     const term = TermBuilder.atom('a');
-    const forever: TermReducer = { id: 'forever', justification: 'test', applies: () => true, reduce: () => term };
+    const forever: TermReducer = {
+      id: 'forever',
+      justification: 'test',
+      applies: () => true,
+      reduce: () => term,
+    };
     expect(forever.applies(term)).toBe(true);
     expect(TERM_REDUCERS.some((r) => r.applies(term))).toBe(false);
   });
@@ -74,7 +83,7 @@ describe('terms:canonical', () => {
       predictive: [2],
       retrospective: [2],
       operation: [2],
-      sequence: [2],  // binary in SeNARS
+      sequence: [2], // binary in SeNARS
       // n-ary kinds
       conjunction: [2, 3],
       disjunction: [2, 3],
@@ -97,12 +106,9 @@ describe('terms:canonical', () => {
 
   it('a canonical term is one pass and no allocation, over generated terms', () => {
     fc.assert(
-      fc.property(
-        fc.constantFrom(...kinds().flatMap((kind) => termsOf(kind))),
-        (term) => {
-          expect(canonicalTerm(term)).toBe(term);
-        }
-      ),
+      fc.property(fc.constantFrom(...kinds().flatMap((kind) => termsOf(kind))), (term) => {
+        expect(canonicalTerm(term)).toBe(term);
+      }),
       { numRuns: 200 }
     );
   });

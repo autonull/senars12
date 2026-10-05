@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import {
-  createTraceGrader,
-} from '../../nar/src/lm/system-one/trace-grader.js';
+import { createTraceGrader } from '../../nar/src/lm/system-one/trace-grader.js';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
@@ -119,11 +117,16 @@ describe('E4 follow-up (b): egress verdict is the groundedness ground truth', ()
     const dataset = new JudgmentDataset(join(tmpdir(), 'test-trace-grading-2'));
     const grader = createTraceGrader({ manifold, embeddingCache: cache, dataset, source: 'test' });
 
-    await grader({ narration: 'rejected narration', toolCalls: [], egress: { grounded: false, score: 0.3 } });
+    await grader({
+      narration: 'rejected narration',
+      toolCalls: [],
+      egress: { grounded: false, score: 0.3 },
+    });
     await grader({ narration: 'accepted narration', toolCalls: [], egress: { grounded: true } });
     await grader({ narration: 'unverdicted narration', toolCalls: [] });
 
-    const rows = (dataset as unknown as { toJSONL(): string }).toJSONL()
+    const rows = (dataset as unknown as { toJSONL(): string })
+      .toJSONL()
       .trim()
       .split('\n')
       .map((l) => JSON.parse(l) as { rubric: string; observed?: number; label: string });

@@ -1,6 +1,6 @@
 import type { AIKRBudget } from '@senars/core/budget';
 import { emitDomainEvent } from '@senars/core/event-sink';
-import { 
+import {
   ambientRng,
   type BoundedContainer,
   clamp01,
@@ -11,7 +11,7 @@ import {
   type RandomSource,
   retain,
   sumBy,
- } from '@senars/util';
+} from '@senars/util';
 import { PRESSURE } from '../constants.js';
 import { FenwickTree } from './fenwick.js';
 import type { BagItem, InternalEntry } from './types.js';

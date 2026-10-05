@@ -29,10 +29,9 @@ describe('pickModel (objective-driven candidate scoring)', () => {
   });
 
   it('hard-filters candidates exceeding maxLatencyMs', () => {
-    const ranked = pickModel(
-      ['cloud:quality', 'builtin:quality', 'builtin:compact'],
-      { maxLatencyMs: 6_000 }
-    );
+    const ranked = pickModel(['cloud:quality', 'builtin:quality', 'builtin:compact'], {
+      maxLatencyMs: 6_000,
+    });
     const disqualified = ranked.filter((c) => !c.qualifies).map((c) => c.id);
     expect(disqualified).toEqual(['builtin:quality']);
   });
@@ -46,7 +45,9 @@ describe('pickModel (objective-driven candidate scoring)', () => {
   });
 
   it('down-ranks candidates with failed call stats', () => {
-    const stats: ModelReliability = { get: (id: string) => (id === 'cloud:quality' ? { successRate: 0 } as never : undefined) };
+    const stats: ModelReliability = {
+      get: (id: string) => (id === 'cloud:quality' ? ({ successRate: 0 } as never) : undefined),
+    };
     const [top] = pickModel(['cloud:quality', 'llamacpp:quality'], { quality: 'max' }, stats);
     if (!top) throw new Error('expected ranked candidates');
     expect(top.id).toBe('llamacpp:quality');

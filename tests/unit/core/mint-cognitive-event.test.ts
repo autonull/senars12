@@ -23,7 +23,11 @@ describe('mintCognitiveEvent', () => {
   });
 
   it('honours a supplied timestamp and correlation id', () => {
-    const event = mintCognitiveEvent('cycle', { ...cycleDraft(), timestamp: 1234, correlationId: 'given' });
+    const event = mintCognitiveEvent('cycle', {
+      ...cycleDraft(),
+      timestamp: 1234,
+      correlationId: 'given',
+    });
     expect(event.timestamp).toBe(1234);
     expect(event.correlationId).toBe('given');
   });

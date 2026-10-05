@@ -10,11 +10,14 @@ export const beliefDerivationAskScenario = createScenarioSpec({
     { type: 'run', cycles: 10 },
     { type: 'input', text: '(cat-->living)?', taskType: 'question' },
     { type: 'run', cycles: 10 },
-    { type: 'assert', check: (trace) => {
-      // Just verify the scenario runs without error
-      if (trace.cycleCount < 1) {
-        throw new Error('Expected at least 1 cycle');
-      }
-    }},
+    {
+      type: 'assert',
+      check: (trace) => {
+        // Just verify the scenario runs without error
+        if (trace.cycleCount < 1) {
+          throw new Error('Expected at least 1 cycle');
+        }
+      },
+    },
   ],
 });

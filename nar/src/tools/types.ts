@@ -1,9 +1,4 @@
-import type {
-  ToolCapabilities,
-  ToolContext,
-  ToolResult,
-  ToolSpec as Tool,
-} from '@senars/util';
+import type { ToolCapabilities, ToolContext, ToolResult, ToolSpec as Tool } from '@senars/util';
 
 /**
  * The tool contract is util's — one declaration of identity, argument schema,

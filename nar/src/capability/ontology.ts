@@ -27,7 +27,10 @@ const BUILTIN_KINDS = {
   metta: { label: 'MeTTa skill', risk: 'medium', cost: 500 },
   rule: { label: 'Reasoning rule', risk: 'low', cost: 50 },
   skill: { label: 'Cognitive skill', risk: 'medium', cost: 200 },
-} as const satisfies Record<BuiltinCapabilityKind, { label: string; risk: CapabilityRisk; cost: number }>;
+} as const satisfies Record<
+  BuiltinCapabilityKind,
+  { label: string; risk: CapabilityRisk; cost: number }
+>;
 
 export type BuiltinCapabilityKind = 'metta' | 'rule' | 'skill';
 

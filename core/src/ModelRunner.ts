@@ -240,7 +240,8 @@ export class ModelRunner {
         yield { kind: 'tool-result', call, result: a.content };
       }
 
-      if (signal?.aborted) yield { kind: 'finish', text: outcome.text, toolCalls: outcome.toolCalls };
+      if (signal?.aborted)
+        yield { kind: 'finish', text: outcome.text, toolCalls: outcome.toolCalls };
     } catch (e) {
       if (signal?.aborted) {
         yield { kind: 'finish', text: outcome.text, toolCalls: outcome.toolCalls };

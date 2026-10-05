@@ -37,8 +37,20 @@ const embedding = () => {
 };
 
 const sampleQueries: JudgmentQuery[] = [
-  { kind: 'classify', instruction: 'x', space: ['a', 'b', 'c'], axis: 'epistemic', criticality: 'standard' },
-  { kind: 'evaluate', instruction: 'y', rubric: 'risk', axis: 'teleological', criticality: 'standard' },
+  {
+    kind: 'classify',
+    instruction: 'x',
+    space: ['a', 'b', 'c'],
+    axis: 'epistemic',
+    criticality: 'standard',
+  },
+  {
+    kind: 'evaluate',
+    instruction: 'y',
+    rubric: 'risk',
+    axis: 'teleological',
+    criticality: 'standard',
+  },
 ];
 
 describe('Bench 25 — Declarative Registry Equivalence', () => {
@@ -68,7 +80,9 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
       if (spec.kind === 'classify') {
         expect(head.space).toEqual(spec.space);
         // Choice semantics: the head judges over the QUERY's declared space.
-        expect(result.distribution?.map((d) => d.option)).toEqual((query as Extract<JudgmentQuery, { kind: 'classify' }>).space);
+        expect(result.distribution?.map((d) => d.option)).toEqual(
+          (query as Extract<JudgmentQuery, { kind: 'classify' }>).space
+        );
       } else {
         expect(head.levels).toEqual(spec.levels);
         expect(result.distribution).toBeUndefined();
@@ -85,7 +99,14 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
   it('per-head config override reaches the generated head', async () => {
     const options: HeadFactoryOptions = {
       ...makeOptions(),
-      perHeadConfig: { risk: { modelDigest: 'd', calibrationVersion: 'vX' as never, abstainThreshold: 0.99, enabled: false } },
+      perHeadConfig: {
+        risk: {
+          modelDigest: 'd',
+          calibrationVersion: 'vX' as never,
+          abstainThreshold: 0.99,
+          enabled: false,
+        },
+      },
     };
     const head = createHeadById('risk', options);
     const result = await head.evaluate(embedding(), sampleQueries[0]!);
@@ -105,7 +126,9 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
   it('ingress queries match the 6-head ingress order (used by KernelPerceptionGate)', () => {
     const queries = ingressQueries();
     expect(queries).toHaveLength(6);
-    expect((queries[0] as unknown as { space: string[] }).space).toEqual(HEAD_SPECS.task_type.space);
+    expect((queries[0] as unknown as { space: string[] }).space).toEqual(
+      HEAD_SPECS.task_type.space
+    );
     expect((queries[2] as { rubric: string }).rubric).toBe('injection');
     expect((queries[2] as { criticality: string }).criticality).toBe('critical');
     expect(actionQueries()).toHaveLength(5);
@@ -134,12 +157,20 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
 
   it('selectQuery builds a teleological classify query from the candidate space', () => {
     const q = selectQuery(['c1', 'c2'], 'pick one');
-    expect(q).toMatchObject({ kind: 'classify', axis: 'teleological', space: ['c1', 'c2'], instruction: 'pick one' });
+    expect(q).toMatchObject({
+      kind: 'classify',
+      axis: 'teleological',
+      space: ['c1', 'c2'],
+      instruction: 'pick one',
+    });
   });
 
   it('G5 — no duplicate export names across the heads subpath and system-one index', async () => {
     const seen = new Map<string, string>();
-    for (const [nsName, ns] of [['heads', headsNs], ['system-one', systemOneNs]] as const) {
+    for (const [nsName, ns] of [
+      ['heads', headsNs],
+      ['system-one', systemOneNs],
+    ] as const) {
       for (const key of Object.keys(ns)) {
         const owner = seen.get(key);
         if (owner && owner !== nsName) continue;

@@ -1,4 +1,3 @@
-
 export interface SelfAnalyzerConfig {
   selfCorrectionEnabled?: boolean;
   patternDetectionEnabled?: boolean;

@@ -3,7 +3,11 @@ import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { type SelfToolsContext, shadowChange, writeAndValidate } from '../../../nar/src/tools/adapters/self/context.js';
+import {
+  type SelfToolsContext,
+  shadowChange,
+  writeAndValidate,
+} from '../../../nar/src/tools/adapters/self/context.js';
 import {
   ShadowWorktreeManager,
   type TestRunResult,
@@ -80,10 +84,7 @@ class ObservedShadowManager extends ShadowWorktreeManager {
 
 /** The gate as production gets it: core's service over an in-memory registry whose
  *  only resolver is the one this test installs. */
-const gate = (
-  answer: (id: string) => boolean | undefined,
-  asked?: string[]
-): ApprovalService => {
+const gate = (answer: (id: string) => boolean | undefined, asked?: string[]): ApprovalService => {
   const manager = new InMemoryApprovalManager({
     onRequest: (request) => {
       asked?.push(request.request);
@@ -126,7 +127,7 @@ describe('the shadow change pipeline', () => {
       contents: 'export const rule = 1;',
     });
 
-expect(outcome.success).toBe(true);
+    expect(outcome.success).toBe(true);
     expect(shadowManager.observed).toEqual([
       'create:wt-rule',
       `test:${pathOf('wt-rule')}`,
@@ -150,10 +151,7 @@ expect(outcome.success).toBe(true);
     });
 
     expect(outcome.success).toBe(true);
-    expect(shadowManager.observed).toEqual([
-      `test:${pathOf('given')}`,
-      `diff:${pathOf('given')}`,
-    ]);
+    expect(shadowManager.observed).toEqual([`test:${pathOf('given')}`, `diff:${pathOf('given')}`]);
     if (outcome.success) expect(outcome.worktreeId).toBe('given');
   });
 

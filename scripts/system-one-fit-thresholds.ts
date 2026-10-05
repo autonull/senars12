@@ -11,7 +11,10 @@
 import { parseArgs } from 'node:util';
 import { JudgmentDataset } from '../nar/src/lm/system-one/distill.js';
 import { digestRows, loadEvalSet, splitOod } from '../nar/src/lm/system-one/eval-set.js';
-import { fitCalibrationLock, writeCalibrationLock } from '../nar/src/lm/system-one/calibration-fit.js';
+import {
+  fitCalibrationLock,
+  writeCalibrationLock,
+} from '../nar/src/lm/system-one/calibration-fit.js';
 
 const { values } = parseArgs({
   options: {
@@ -25,7 +28,9 @@ const { values } = parseArgs({
 });
 
 if (!values.dataset || !values.out) {
-  console.error('Required: --dataset <jsonl> --out <lock.json> [--model-digest sha256:...] [--eval-set eval-set.json]');
+  console.error(
+    'Required: --dataset <jsonl> --out <lock.json> [--model-digest sha256:...] [--eval-set eval-set.json]'
+  );
   process.exit(1);
 }
 
@@ -38,7 +43,10 @@ let frozenSetOption: { digest: string; rows: typeof inDomain } | undefined;
 let oodSetOption: { digest: string; rows: typeof inDomain } | undefined;
 if (frozen) {
   const { inDomain, ood } = splitOod(frozen.rows);
-  frozenSetOption = { digest: inDomain.length > 0 ? digestRows(inDomain) : frozen.digest, rows: inDomain };
+  frozenSetOption = {
+    digest: inDomain.length > 0 ? digestRows(inDomain) : frozen.digest,
+    rows: inDomain,
+  };
   if (ood.length > 0) oodSetOption = { digest: digestRows(ood), rows: ood };
 }
 const { lock, perHead, improved } = fitCalibrationLock(dataset, {
@@ -50,9 +58,16 @@ const { lock, perHead, improved } = fitCalibrationLock(dataset, {
 if (values.modelDigest) lock.modelDigest = values.modelDigest as never;
 
 await writeCalibrationLock(lock, values.out);
-console.log(`Fitted ${perHead.size} head(s) from ${dataset.size} labels; holdout ECE improved: ${improved}`);
+console.log(
+  `Fitted ${perHead.size} head(s) from ${dataset.size} labels; holdout ECE improved: ${improved}`
+);
 for (const entry of lock.heads) {
-  console.log(`  ${entry.headId}: ece=${entry.ece.toFixed(4)} abstainThreshold=${entry.abstainThreshold}`);
+  console.log(
+    `  ${entry.headId}: ece=${entry.ece.toFixed(4)} abstainThreshold=${entry.abstainThreshold}`
+  );
 }
-if (lock.eval) console.log(`  eval: brier=${lock.eval.brier.toFixed(4)} ece=${lock.eval.ece.toFixed(4)} n=${lock.eval.count}`);
+if (lock.eval)
+  console.log(
+    `  eval: brier=${lock.eval.brier.toFixed(4)} ece=${lock.eval.ece.toFixed(4)} n=${lock.eval.count}`
+  );
 console.log(`Lock written to ${values.out}`);

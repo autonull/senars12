@@ -1,9 +1,5 @@
 import { getNested, keyedBy, setNested } from '@senars/util';
-import {
-  type BoundProjection,
-  cognitiveBound,
-  systemOneBound,
-} from '@senars/util/config';
+import { type BoundProjection, cognitiveBound, systemOneBound } from '@senars/util/config';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 
 export interface TunableKnob {
@@ -68,16 +64,58 @@ type ParamObj = Record<string, any>;
  * already admitted. *Which* parameters are tunable is a decision; the numbers are not.
  */
 const cognitiveKnobs: readonly KnobSpec[] = [
-  knob('cognitive', 'maxDerivationsPerStep', 'inference.maxDerivationsPerStep', cognitiveBound, 'inference.maxDerivationsPerStep'),
-  knob('cognitive', 'maxDerivationDepth', 'inference.maxDerivationDepth', cognitiveBound, 'inference.maxDerivationDepth'),
-  knob('cognitive', 'maxRulesPerCycle', 'lm.maxRulesPerCycle', cognitiveBound, 'lm.maxRulesPerCycle'),
+  knob(
+    'cognitive',
+    'maxDerivationsPerStep',
+    'inference.maxDerivationsPerStep',
+    cognitiveBound,
+    'inference.maxDerivationsPerStep'
+  ),
+  knob(
+    'cognitive',
+    'maxDerivationDepth',
+    'inference.maxDerivationDepth',
+    cognitiveBound,
+    'inference.maxDerivationDepth'
+  ),
+  knob(
+    'cognitive',
+    'maxRulesPerCycle',
+    'lm.maxRulesPerCycle',
+    cognitiveBound,
+    'lm.maxRulesPerCycle'
+  ),
   knob('cognitive', 'callTimeoutMs', 'lm.callTimeoutMs', cognitiveBound, 'lm.callTimeoutMs'),
   knob('cognitive', 'decayRate', 'priority.decayRate', cognitiveBound, 'priority.decayRate'),
-  knob('cognitive', 'cpuThrottleMs', 'inference.cpuThrottleMs', cognitiveBound, 'inference.cpuThrottleMs'),
+  knob(
+    'cognitive',
+    'cpuThrottleMs',
+    'inference.cpuThrottleMs',
+    cognitiveBound,
+    'inference.cpuThrottleMs'
+  ),
   knob('cognitive', 'maxLoops', 'modelRunner.maxLoops', cognitiveBound, 'modelRunner.maxLoops'),
-  knob('cognitive', 'activationDecayRate', 'memory.activationDecayRate', cognitiveBound, 'memory.activationDecayRate'),
-  knob('cognitive', 'rankingMaxAdmissions', 'inference.ranking.maxAdmissions', cognitiveBound, 'inference.rankingMaxAdmissions'),
-  knob('cognitive', 'rankingMinScore', 'inference.ranking.minScore', cognitiveBound, 'inference.rankingMinScore'),
+  knob(
+    'cognitive',
+    'activationDecayRate',
+    'memory.activationDecayRate',
+    cognitiveBound,
+    'memory.activationDecayRate'
+  ),
+  knob(
+    'cognitive',
+    'rankingMaxAdmissions',
+    'inference.ranking.maxAdmissions',
+    cognitiveBound,
+    'inference.rankingMaxAdmissions'
+  ),
+  knob(
+    'cognitive',
+    'rankingMinScore',
+    'inference.ranking.minScore',
+    cognitiveBound,
+    'inference.rankingMinScore'
+  ),
 ];
 
 /** Every tunable System One row, addressed as `category.key`. */

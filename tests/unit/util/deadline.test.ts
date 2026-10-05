@@ -68,15 +68,12 @@ describe('withDeadline', () => {
     // The distinction the signal exists for: a callee that ignores the deadline is
     // still bounded, and one that honours it stops costing anything.
     let aborted = false;
-    const outcome = await withDeadline(
-      (signal) => {
-        signal.addEventListener('abort', () => {
-          aborted = true;
-        });
-        return never<string>();
-      },
-      5
-    ).catch(() => 'deadline' as const);
+    const outcome = await withDeadline((signal) => {
+      signal.addEventListener('abort', () => {
+        aborted = true;
+      });
+      return never<string>();
+    }, 5).catch(() => 'deadline' as const);
     expect(outcome).toBe('deadline');
     expect(aborted).toBe(true);
   });

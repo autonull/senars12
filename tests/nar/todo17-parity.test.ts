@@ -8,17 +8,16 @@ import {
 } from '@senars/nar/lm/system-one/calibration-fit';
 import { JudgmentDataset } from '@senars/nar/lm/system-one/distill';
 import { EpsilonGreedyReflex } from '@senars/nar/reflex';
-import {
-  createGame2048,
-  createSnakeGame,
-  createTicTacToeGame,
-  SeededRNG,
-} from '@senars/nar/game';
+import { createGame2048, createSnakeGame, createTicTacToeGame, SeededRNG } from '@senars/nar/game';
 import { game2048HeuristicAction } from './rl/baselines/2048.js';
 import { snakeHeuristicAction } from './rl/baselines/snake.js';
 import { ticTacToeHeuristicAction } from './rl/baselines/tictactoe.js';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
-import type { JudgmentManifold, JudgmentQuery, ReasoningBudget } from '@senars/nar/lm/system-one/types';
+import type {
+  JudgmentManifold,
+  JudgmentQuery,
+  ReasoningBudget,
+} from '@senars/nar/lm/system-one/types';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -63,7 +62,10 @@ const randomPolicy: Policy = (_game, rng) => {
 };
 
 /** Counts judgeBatch invocations — the one-prefill structure probe. */
-const countingManifold = (inner: JudgmentManifold, counts: { calls: number }): JudgmentManifold => ({
+const countingManifold = (
+  inner: JudgmentManifold,
+  counts: { calls: number }
+): JudgmentManifold => ({
   ...inner,
   judgeBatch: async (ctx: never, queries: readonly JudgmentQuery[], b: ReasoningBudget) => {
     counts.calls++;
@@ -104,7 +106,9 @@ describe('TODO17 Bench 35 — SOTA parity table', () => {
     const cache = new EmbeddingCache({ maxSize: 1000, ttlMs: 60_000 });
     await cache.warmup(['state']);
     const manifold = createManifold(cache, { abstainThreshold: 0.05 });
-    const reflex = new ManifoldReflex(new EpsilonGreedyReflex('incumbent', { numArms: 4, epsilon: 0 }));
+    const reflex = new ManifoldReflex(
+      new EpsilonGreedyReflex('incumbent', { numArms: 4, epsilon: 0 })
+    );
     const actions = ['0', '1', '2', '3'];
     const latencies: number[] = [];
     for (let i = 0; i < 200; i++) {
@@ -123,9 +127,18 @@ describe('TODO17 Bench 35 — SOTA parity table', () => {
   it('(c) performance: demo arms ≥ random on every game (100 seeded episodes)', () => {
     const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
     const cases = [
-      { make: () => createSnakeGame({ seed: 9, maxSteps: MAX_STEPS }) as unknown as GameLike, heuristic: snakeHeuristicAction as unknown as Policy },
-      { make: () => createGame2048({ seed: 10 }) as unknown as GameLike, heuristic: game2048HeuristicAction as unknown as Policy },
-      { make: () => createTicTacToeGame({ seed: 11 }) as unknown as GameLike, heuristic: ticTacToeHeuristicAction as unknown as Policy },
+      {
+        make: () => createSnakeGame({ seed: 9, maxSteps: MAX_STEPS }) as unknown as GameLike,
+        heuristic: snakeHeuristicAction as unknown as Policy,
+      },
+      {
+        make: () => createGame2048({ seed: 10 }) as unknown as GameLike,
+        heuristic: game2048HeuristicAction as unknown as Policy,
+      },
+      {
+        make: () => createTicTacToeGame({ seed: 11 }) as unknown as GameLike,
+        heuristic: ticTacToeHeuristicAction as unknown as Policy,
+      },
     ];
     for (const { make, heuristic } of cases) {
       const heuristicReturns: number[] = [];
@@ -143,7 +156,9 @@ describe('TODO17 Bench 35 — SOTA parity table', () => {
     await cache.warmup(['state']);
     const counts = { calls: 0 };
     const manifold = countingManifold(createManifold(cache, { abstainThreshold: 0.05 }), counts);
-    const reflex = new ManifoldReflex(new EpsilonGreedyReflex('incumbent', { numArms: 4, epsilon: 0 }));
+    const reflex = new ManifoldReflex(
+      new EpsilonGreedyReflex('incumbent', { numArms: 4, epsilon: 0 })
+    );
     const actions = ['0', '1', '2', '3'];
     for (let i = 0; i < 25; i++) {
       const stateId = `d${i}`;

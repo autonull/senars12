@@ -8,10 +8,7 @@ import {
   createCodeExecTools,
   shellAllowlistFromEnv,
 } from '../../nar/src/tools/adapters/code-exec.js';
-import {
-  containsPath,
-  assertWasmPathContained,
-} from '../../nar/src/capability/wasi-sandbox.js';
+import { containsPath, assertWasmPathContained } from '../../nar/src/capability/wasi-sandbox.js';
 import {
   enforceLMOutputSize,
   LMOutputTooLargeError,
@@ -31,8 +28,7 @@ type ExecTool = { execute: (args: Record<string, unknown>) => Promise<Record<str
 const execTool = (
   deps: Parameters<typeof createCodeExecTools>[0],
   name: 'code_exec' | 'code_exec_wasi'
-): ExecTool =>
-  (createCodeExecTools(deps) as Record<string, ExecTool>)[name] as unknown as ExecTool;
+): ExecTool => (createCodeExecTools(deps) as Record<string, ExecTool>)[name] as unknown as ExecTool;
 
 describe('Bench 68 — S1: tool input validation', () => {
   it('every tool inputSchema is a strict zod object (no unknown-key pass-through)', () => {
@@ -123,10 +119,7 @@ describe('Bench 68 — S3: WASI sandbox', () => {
 
 describe('Bench 68 — S4: LM response sanitization', () => {
   it('strips toolChoice from local-model params (middleware present)', () => {
-    const source = readFileSync(
-      join(NAR_SRC, 'lm/providers/model-factory.ts'),
-      'utf-8'
-    );
+    const source = readFileSync(join(NAR_SRC, 'lm/providers/model-factory.ts'), 'utf-8');
     expect(source).toContain('toolChoice: undefined');
   });
 

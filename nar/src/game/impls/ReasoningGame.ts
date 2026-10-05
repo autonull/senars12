@@ -114,7 +114,9 @@ export class ReasoningGame implements Game<ReasoningState, string> {
   private initialState(): ReasoningState {
     return {
       taskIndex: 0,
-      task: this.tasks.length ? { ...this.tasks[0]!, ambiguityRemaining: this.tasks[0]!.ambiguity } : null,
+      task: this.tasks.length
+        ? { ...this.tasks[0]!, ambiguityRemaining: this.tasks[0]!.ambiguity }
+        : null,
       tokens: 0,
       settled: 0,
       vetoes: 0,
@@ -147,7 +149,12 @@ export class ReasoningGame implements Game<ReasoningState, string> {
       for (const [k, v] of Object.entries(reading.features))
         features[`${sensor.id}.${k}`] = v * reading.confidence;
     }
-    return { stateId: `${this.id}#t${s.cycle}`, features, confidence: 1, terminal: s.taskIndex >= this.tasks.length };
+    return {
+      stateId: `${this.id}#t${s.cycle}`,
+      features,
+      confidence: 1,
+      terminal: s.taskIndex >= this.tasks.length,
+    };
   }
 
   private outcomeFromState() {
@@ -192,7 +199,10 @@ export class ReasoningGame implements Game<ReasoningState, string> {
           this.internal.taskIndex++;
           this.internal.task =
             this.internal.taskIndex < this.tasks.length
-              ? { ...this.tasks[this.internal.taskIndex]!, ambiguityRemaining: this.tasks[this.internal.taskIndex]!.ambiguity }
+              ? {
+                  ...this.tasks[this.internal.taskIndex]!,
+                  ambiguityRemaining: this.tasks[this.internal.taskIndex]!.ambiguity,
+                }
               : null;
         }
         break;
@@ -203,7 +213,11 @@ export class ReasoningGame implements Game<ReasoningState, string> {
     const score = composeReward(this.spec.rewards, this.spec.rewardWeights, {
       outcome: this.outcomeFromState(),
     });
-    return { reward: score, terminal: this.internal.taskIndex >= this.tasks.length, info: { action } };
+    return {
+      reward: score,
+      terminal: this.internal.taskIndex >= this.tasks.length,
+      info: { action },
+    };
   }
 
   state(): ReasoningState {
@@ -212,7 +226,11 @@ export class ReasoningGame implements Game<ReasoningState, string> {
 }
 
 /** Deterministic eval suite (DQ4: spec data); ambiguity is seeded per task. */
-export const generateEvalTasks = (spec: ReasoningGameSpec, seed: number, count?: number): ReasoningTask[] => {
+export const generateEvalTasks = (
+  spec: ReasoningGameSpec,
+  seed: number,
+  count?: number
+): ReasoningTask[] => {
   const rng = new SeededRNG(seed);
   return Array.from({ length: count ?? spec.tasksPerEpisode }, (_, i) => ({
     id: `${spec.id}#task${i}`,
@@ -223,7 +241,8 @@ export const generateEvalTasks = (spec: ReasoningGameSpec, seed: number, count?:
 
 /** Assemble a spec: absent sensor/action/reward lists default to the library seeds. */
 export const createReasoningGame = (
-  spec: Partial<ReasoningGameOptions> & Pick<ReasoningGameSpec, 'id' | 'tier' | 'rewardWeights' | 'tasksPerEpisode' | 'askLMTokenCost'>,
+  spec: Partial<ReasoningGameOptions> &
+    Pick<ReasoningGameSpec, 'id' | 'tier' | 'rewardWeights' | 'tasksPerEpisode' | 'askLMTokenCost'>,
   seed: number,
   tasks?: ReasoningTask[]
 ): ReasoningGame => {

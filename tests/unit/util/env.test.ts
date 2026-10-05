@@ -159,7 +159,8 @@ describe('parseEnvValue', () => {
 
   it('accepts the same boolean spellings isTruthy/isFalsy do, in both directions', () => {
     for (const value of ['true', '1', 'yes', 'on', 'ON']) expect(parseEnvValue(value)).toBe(true);
-    for (const value of ['false', '0', 'no', 'off', 'Off']) expect(parseEnvValue(value)).toBe(false);
+    for (const value of ['false', '0', 'no', 'off', 'Off'])
+      expect(parseEnvValue(value)).toBe(false);
   });
 
   it('leaves a blank or non-finite value as a string, so an absent setting is not a real one', () => {

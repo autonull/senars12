@@ -93,8 +93,7 @@ export const report = (violations: readonly CoreLayerViolation[]): string =>
   [
     '  a cycle-path module imports the induction layer:',
     ...violations.map(
-      (v) =>
-        `  ${v.at} — ${v.dynamic ? `import('${v.specifier}')` : `imports '${v.specifier}'`}`
+      (v) => `  ${v.at} — ${v.dynamic ? `import('${v.specifier}')` : `imports '${v.specifier}'`}`
     ),
     '',
     '  The core declares what it needs: a `ModelRule` (nar/src/rules/types.ts), a',

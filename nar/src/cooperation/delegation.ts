@@ -53,7 +53,10 @@ export const handleDelegationMessage = async (
   raw: string,
   reply: (result: CognitiveTaskResult) => void
 ): Promise<void> => {
-  const msg = parseJsonOr<{ type?: string; delegation?: CognitiveTaskDelegation } | null>(raw, null);
+  const msg = parseJsonOr<{ type?: string; delegation?: CognitiveTaskDelegation } | null>(
+    raw,
+    null
+  );
   if (msg?.type !== 'cognitive-delegation' || !msg.delegation) return;
   try {
     reply(await peer.executeTask(msg.delegation));
@@ -71,7 +74,12 @@ export const handleDelegationMessage = async (
 
 // ─── Judgment delegation (TODO16 §10) ───────────────────────────────────────
 
-import type { EmbeddingPointer, JudgmentManifold, JudgmentProposition, ReasoningBudget } from '../lm/system-one/types.js';
+import type {
+  EmbeddingPointer,
+  JudgmentManifold,
+  JudgmentProposition,
+  ReasoningBudget,
+} from '../lm/system-one/types.js';
 
 export interface JudgmentDelegationResult {
   taskId: string;
@@ -124,7 +132,12 @@ export class JudgmentDelegationPeer implements DelegationPeer {
   /** Full round-trip used by tests and direct transport wiring. */
   async executeJudgment(delegation: CognitiveTaskDelegation): Promise<JudgmentDelegationResult> {
     if (delegation.taskType !== 'judgment' || !delegation.judgment) {
-      return { taskId: delegation.taskId, propositions: [], sourceQuality: 'PEER_AGENT', success: false };
+      return {
+        taskId: delegation.taskId,
+        propositions: [],
+        sourceQuality: 'PEER_AGENT',
+        success: false,
+      };
     }
     try {
       const pointer = this.#cache
@@ -135,7 +148,12 @@ export class JudgmentDelegationPeer implements DelegationPeer {
         delegation.judgment.queries,
         this.#budget
       );
-      return { taskId: delegation.taskId, propositions, sourceQuality: 'PEER_AGENT', success: true };
+      return {
+        taskId: delegation.taskId,
+        propositions,
+        sourceQuality: 'PEER_AGENT',
+        success: true,
+      };
     } catch (error) {
       return {
         taskId: delegation.taskId,

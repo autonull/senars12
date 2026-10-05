@@ -25,7 +25,7 @@ describe('M5: Reward → Policy Learning', () => {
     const pinnedTerm = '(pinned --> belief)';
     await nar.believe(`${pinnedTerm}. %0.8;0.9%`);
     const beliefs = nar.getBeliefs();
-    const pinnedBelief = beliefs.find(b => b.term.toString() === pinnedTerm);
+    const pinnedBelief = beliefs.find((b) => b.term.toString() === pinnedTerm);
     const originalTruth = pinnedBelief?.truth;
 
     // Record baseline strategy priority (policy observable)
@@ -50,7 +50,7 @@ describe('M5: Reward → Policy Learning', () => {
 
     // Verify epistemic firewall: pinned belief's truth unchanged by reward path
     const beliefsAfter = nar.getBeliefs();
-    const pinnedBeliefAfter = beliefsAfter.find(b => b.term.toString() === pinnedTerm);
+    const pinnedBeliefAfter = beliefsAfter.find((b) => b.term.toString() === pinnedTerm);
     expect(pinnedBeliefAfter?.truth).toEqual(originalTruth);
 
     await nar.dispose();

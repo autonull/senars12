@@ -18,7 +18,10 @@ const scriptedLM = createMockLMService({
 
 function makeEpisodicMemory(): { ep: EpisodicMemory; basePath: string } {
   const basePath = mkdtempSync(join(tmpdir(), 'episodic-'));
-  return { ep: new EpisodicMemory({ enabled: true, basePath, retentionDays: 1, maxEntriesPerFile: 100 }), basePath };
+  return {
+    ep: new EpisodicMemory({ enabled: true, basePath, retentionDays: 1, maxEntriesPerFile: 100 }),
+    basePath,
+  };
 }
 
 async function collectChat(

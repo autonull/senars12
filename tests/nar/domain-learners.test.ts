@@ -15,8 +15,13 @@ import {
 
 const focusBagWith = (id: string, weight: number): FocusBag => {
   const bag = new FocusBag({ capacity: 10 });
-  bag.add(new Focus({
-    gateRegistry: createGateRegistry(), id, weight }));
+  bag.add(
+    new Focus({
+      gateRegistry: createGateRegistry(),
+      id,
+      weight,
+    })
+  );
   return bag;
 };
 

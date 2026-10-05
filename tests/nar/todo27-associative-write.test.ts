@@ -27,9 +27,9 @@ describe('Bench 104 — the associative port is read-write', () => {
 
   it('associate then recall round-trips through the port', () => {
     const memories = registry();
-    expect(memories.associate(LINK_LAYER.TERM, atom('cat'), atom('animal'), { strength: 0.8 })).toBe(
-      true
-    );
+    expect(
+      memories.associate(LINK_LAYER.TERM, atom('cat'), atom('animal'), { strength: 0.8 })
+    ).toBe(true);
     const hits = memories.recall(LINK_LAYER.TERM, atom('cat'));
     expect(hits.map((hit) => hit.term.toString())).toEqual(['animal']);
     expect(hits[0]?.strength).toBeCloseTo(0.8);
@@ -55,7 +55,11 @@ describe('Bench 104 — the associative port is read-write', () => {
     const strategy = new TermLinkStrategy({ minStrength: 0, limit: 10 });
     const m = new Memory({ enableEmbeddingLayer: false });
     for (const term of [atom('cat'), atom('animal')]) {
-      m.addConcept(term).addTask('belief', { term, truth: Truth.create(0.9, 0.9), budget: createTaskWeight(0.9) });
+      m.addConcept(term).addTask('belief', {
+        term,
+        truth: Truth.create(0.9, 0.9),
+        budget: createTaskWeight(0.9),
+      });
     }
     const task = createBeliefTask(atom('cat'), Truth.create(0.9, 0.9), 0.9);
 
@@ -76,5 +80,4 @@ describe('Bench 104 — the associative port is read-write', () => {
     expect(source).not.toContain('storedEntries');
     expect(source).not.toContain('StoredEntry');
   });
-
 });

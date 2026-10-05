@@ -8,8 +8,13 @@ import {
 
 describe('readCognitiveParams — a run’s parameters outlive the process', () => {
   it('reads the tuner’s envelope, which is what `pnpm tune` writes', () => {
-    const params = { ...DEFAULT_COGNITIVE_PARAMETERS, inference: { ...DEFAULT_COGNITIVE_PARAMETERS.inference, maxDerivationsPerStep: 7 } };
-    const { params: read, errors } = readCognitiveParams(JSON.stringify({ cognitiveParams: params }));
+    const params = {
+      ...DEFAULT_COGNITIVE_PARAMETERS,
+      inference: { ...DEFAULT_COGNITIVE_PARAMETERS.inference, maxDerivationsPerStep: 7 },
+    };
+    const { params: read, errors } = readCognitiveParams(
+      JSON.stringify({ cognitiveParams: params })
+    );
 
     expect(errors).toEqual([]);
     expect(read.inference.maxDerivationsPerStep).toBe(7);
@@ -33,7 +38,9 @@ describe('readCognitiveParams — a run’s parameters outlive the process', () 
 
   it('rejects a value the live bounds would reject', () => {
     const { errors } = readCognitiveParams(
-      JSON.stringify({ priority: { initialPriority: PARAMETER_SPACE.priority.initialPriority.max + 1 } })
+      JSON.stringify({
+        priority: { initialPriority: PARAMETER_SPACE.priority.initialPriority.max + 1 },
+      })
     );
 
     expect(errors.some((e) => e.includes('initialPriority'))).toBe(true);

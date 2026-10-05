@@ -23,7 +23,12 @@
  *     negative bound disables the deadline the port exists to enforce.
  */
 
-import { DECISION_AXES, DECISION_CALL_SITES, DECISION_POSITIONS, DECISION_QUERIES } from '../../nar/src/decision/call-sites.js';
+import {
+  DECISION_AXES,
+  DECISION_CALL_SITES,
+  DECISION_POSITIONS,
+  DECISION_QUERIES,
+} from '../../nar/src/decision/call-sites.js';
 import { BUDGET_SCOPE_IDS } from '../../nar/src/kernel/budget-scopes.js';
 
 export interface ManifestViolation {
@@ -72,7 +77,10 @@ export const manifestViolations = (
     if (!(DECISION_AXES as readonly string[]).includes(site.axis))
       fail('vocabulary', `axis ${site.axis} is not one of ${DECISION_AXES.join(', ')}`);
     if (!(DECISION_POSITIONS as readonly string[]).includes(site.position))
-      fail('vocabulary', `position ${site.position} is not one of ${DECISION_POSITIONS.join(', ')}`);
+      fail(
+        'vocabulary',
+        `position ${site.position} is not one of ${DECISION_POSITIONS.join(', ')}`
+      );
 
     // 2 — `P` at a boundary, in data as well as in the type.
     if (site.query === 'synthesize' && site.position === 'cycle')

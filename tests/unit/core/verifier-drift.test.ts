@@ -68,9 +68,7 @@ const RULE_ID_ALIASES: Record<string, string> = {
 };
 
 const engineOp = (name: string): ((...args: Truth[]) => Truth) | null => {
-  const candidate = (Truth as unknown as Record<string, unknown>)[
-    RULE_ID_ALIASES[name] ?? name
-  ];
+  const candidate = (Truth as unknown as Record<string, unknown>)[RULE_ID_ALIASES[name] ?? name];
   return typeof candidate === 'function' ? (candidate as (...args: Truth[]) => Truth) : null;
 };
 

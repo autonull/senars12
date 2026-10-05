@@ -1,11 +1,6 @@
 import { clamp01, flooredRatio, mean, safeRatio, sumBy } from '@senars/util';
 
-import {
-  type CognitionContext,
-  failClosed,
-  type Sensor,
-  type SensorReading,
-} from './types.js';
+import { type CognitionContext, failClosed, type Sensor, type SensorReading } from './types.js';
 
 /** C2-S1: capacity pressure + utilization from memory statistics. */
 export class BagPressureSensor implements Sensor {

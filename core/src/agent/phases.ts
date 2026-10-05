@@ -199,8 +199,8 @@ const act = async (ctx: MacroContext): Promise<Array<{ command: string; result: 
         command: cmd.command,
       };
       const result = await host.motor.execute(cmd.command, toolArgs, {
-          chainId: stimulus.correlationId,
-        });
+        chainId: stimulus.correlationId,
+      });
       toolResults.push({ command: cmd.command, result });
       await host.log.append({
         engine: 'nar',

@@ -96,7 +96,9 @@ describe('Bench 87 — EpisodeConsolidator (AIKR pattern #1)', () => {
     nullLM.admit(episode('a1', 'dialogue', 'hello world', {}, 's1'));
     nullLM.admit(episode('a2', 'dialogue', 'hello again', {}, 's1'));
     const [nullOut] = await nullLM.consolidate();
-    expect(nullOut!.summary.content).toBe('consolidated 2 dialogue episodes: hello world | hello again');
+    expect(nullOut!.summary.content).toBe(
+      'consolidated 2 dialogue episodes: hello world | hello again'
+    );
 
     const throwingLM = new EpisodeConsolidator({
       summarizeWithLM: async () => {
@@ -111,7 +113,8 @@ describe('Bench 87 — EpisodeConsolidator (AIKR pattern #1)', () => {
 
   it('LM path is used when it produces text; empty/null falls back symbolically', async () => {
     const c = new EpisodeConsolidator({
-      summarizeWithLM: async (group) => (group.length > 1 ? `LM digest of ${group.length} turns` : ''),
+      summarizeWithLM: async (group) =>
+        group.length > 1 ? `LM digest of ${group.length} turns` : '',
     });
     c.admit(episode('l1', 'dialogue', 'a', {}, 's1'));
     c.admit(episode('l2', 'dialogue', 'b', {}, 's1'));

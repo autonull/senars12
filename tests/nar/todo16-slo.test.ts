@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { DeterministicManifold, Tier3SymbolicManifold } from '../../nar/src/lm/system-one/dispatcher.js';
+import {
+  DeterministicManifold,
+  Tier3SymbolicManifold,
+} from '../../nar/src/lm/system-one/dispatcher.js';
 import type { ReasoningBudget, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
 
 describe('System One — Per-Tier SLO Contract Tests (R9) @load-sensitive', () => {

@@ -15,7 +15,12 @@
  * that implements them.
  */
 
-import { DECISIONS, PROTOCOL_DOC, protocolViolations, scanProtocol } from './lib/proposal-protocol.js';
+import {
+  DECISIONS,
+  PROTOCOL_DOC,
+  protocolViolations,
+  scanProtocol,
+} from './lib/proposal-protocol.js';
 
 const subject = scanProtocol();
 const violations = protocolViolations(subject);

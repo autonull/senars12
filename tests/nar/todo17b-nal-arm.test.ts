@@ -32,7 +32,11 @@ const playTicks = async (game: Game, seeded: boolean, ticks = 20): Promise<GameF
   pinDeterministicRNG();
   try {
     const focus = new GameFocus({
-      gateRegistry: createGateRegistry(), focusId: 'nal-arm', game, cognitive: true });
+      gateRegistry: createGateRegistry(),
+      focusId: 'nal-arm',
+      game,
+      cognitive: true,
+    });
     if (seeded) focus.seedRule('0', 'wall_bump', { f: 0.1, c: 0.95 });
     focus.bindReflex(new FixedActionReflex('0'));
     for (let t = 0; t < ticks; t++) await focus.step(10);
@@ -49,7 +53,9 @@ const playTicks = async (game: Game, seeded: boolean, ticks = 20): Promise<GameF
  */
 const assertVetoed = (focus: GameFocus, trap: string): void => {
   const panel = focus.getPanelLog();
-  const firstVeto = panel.findIndex((p) => p.decision.vetoedBy !== null && p.decision.vetoedBy !== 'below-threshold');
+  const firstVeto = panel.findIndex(
+    (p) => p.decision.vetoedBy !== null && p.decision.vetoedBy !== 'below-threshold'
+  );
   expect(firstVeto).toBeGreaterThanOrEqual(0);
   for (const entry of panel) {
     if (entry.decision.source === 'nal') {
@@ -65,12 +71,18 @@ const assertVetoed = (focus: GameFocus, trap: string): void => {
 
 describe('TODO17b: NAL arcade arm falsification', () => {
   it('seeded trap rule ⇒ the trap is vetoed and never executed after the first veto', async () => {
-    const focus = await playTicks(createGridWorldGame({ id: 'nal-grid', grid: ['S..', '..G'], seed: 5 }), true);
+    const focus = await playTicks(
+      createGridWorldGame({ id: 'nal-grid', grid: ['S..', '..G'], seed: 5 }),
+      true
+    );
     assertVetoed(focus, '0');
   });
 
   it('no rules ⇒ zero vetoes (NAL cannot reduce return without faults)', async () => {
-    const focus = await playTicks(createGridWorldGame({ id: 'nal-clean', grid: ['S..', '..G'], seed: 5 }), false);
+    const focus = await playTicks(
+      createGridWorldGame({ id: 'nal-clean', grid: ['S..', '..G'], seed: 5 }),
+      false
+    );
     const stats = focus.getVetoStats();
     expect(stats.totalVetos).toBe(0);
     // the same trap action now executes (rule-free behavior unchanged)
@@ -82,7 +94,11 @@ describe('TODO17b: NAL arcade arm falsification', () => {
     pinDeterministicRNG();
     try {
       const focus = new GameFocus({
-        gateRegistry: createGateRegistry(), focusId: 'nal-bandit', game, cognitive: true });
+        gateRegistry: createGateRegistry(),
+        focusId: 'nal-bandit',
+        game,
+        cognitive: true,
+      });
       focus.seedRule('0', 'low_reward', { f: 0.1, c: 0.95 });
       focus.bindReflex(new FixedActionReflex('0'));
       for (let t = 0; t < 15; t++) await focus.step(10);
@@ -107,9 +123,10 @@ describe('TODO17b: NAL arcade arm falsification', () => {
     expect(mismatched.actionExecuted).toBe('1');
     expect(mismatched.vetoedBy).toBeNull();
     // matching bad-action derivation DOES veto (single proposal ⇒ tick yields)
-    const matched = negotiator.resolve([{ ...proposals[0]!, action: '0' }], [
-      { action: '0', truth: { f: 0.1, c: 0.95 }, source: 'rule' },
-    ]);
+    const matched = negotiator.resolve(
+      [{ ...proposals[0]!, action: '0' }],
+      [{ action: '0', truth: { f: 0.1, c: 0.95 }, source: 'rule' }]
+    );
     expect(matched.vetoedBy).toBe('nal-rule');
     expect(matched.actionExecuted).toBeNull();
 

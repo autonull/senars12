@@ -14,7 +14,12 @@ const E2E = 'tests/nar/e2e';
 const GATES: Record<string, readonly string[]> = {
   // M1 end-to-end composition, M3 the MeTTa tool leg, M6 live WS delegation,
   // M7 the committed hello-world so the getting-started docs cannot rot.
-  'e2e:pipeline': [`${E2E}/07-full-pipeline.test.ts`, `${E2E}/08-metta-tool.test.ts`, `${E2E}/13-delegation.test.ts`, 'examples/hello-world.ts'],
+  'e2e:pipeline': [
+    `${E2E}/07-full-pipeline.test.ts`,
+    `${E2E}/08-metta-tool.test.ts`,
+    `${E2E}/13-delegation.test.ts`,
+    'examples/hello-world.ts',
+  ],
   // M4: restart equivalence, at rest and at capacity/task pressure.
   'persistence:replay': [`${E2E}/09-restart-equivalence.test.ts`],
   // M8: every answer carries a recorder-verified, independently re-verifiable trace.

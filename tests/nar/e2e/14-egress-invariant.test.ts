@@ -53,10 +53,7 @@ const committed = async (nar: Awaited<ReturnType<typeof createNAR>>): Promise<st
     .map((t) => `${t.type}:${termKey(t.term)}`)
     .sort();
 
-const episode = async (
-  nar: Awaited<ReturnType<typeof createNAR>>,
-  cycles = 10
-): Promise<void> => {
+const episode = async (nar: Awaited<ReturnType<typeof createNAR>>, cycles = 10): Promise<void> => {
   await nar.initialize();
   for (const [term, f] of [
     ['(cat --> mammal).', 0.9],
@@ -90,10 +87,7 @@ describe('M2: Egress judging', () => {
   it('flag on — a high-conflict conclusion is vetoed and its question never resolves', async () => {
     const asked: string[] = [];
     const vetoAll = {
-      ask: async (request: {
-        kind?: string;
-        target?: string;
-      }): Promise<DecisionResult | null> => {
+      ask: async (request: { kind?: string; target?: string }): Promise<DecisionResult | null> => {
         if (isEgressAsk(request)) asked.push(request.target ?? '');
         // 1.0 is the top of the `conflict` legend: strong conflict.
         return evaluate(1.0);

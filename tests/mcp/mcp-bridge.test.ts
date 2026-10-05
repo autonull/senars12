@@ -227,7 +227,11 @@ describe('registerNARTools (agent-specific MCP surface)', () => {
         const path = args.path as string;
         const { withinWorkspace } = await import('@senars/core');
         if (!withinWorkspace(path)) {
-          return { success: false, content: null, error: `Path outside workspace rejected: ${path}` };
+          return {
+            success: false,
+            content: null,
+            error: `Path outside workspace rejected: ${path}`,
+          };
         }
         // In test, just return success for valid paths
         return { success: true, content: { path, content: 'test content' } };

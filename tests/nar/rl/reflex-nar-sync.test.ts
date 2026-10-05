@@ -22,7 +22,12 @@ describe('Reflex↔NAR Sync (2D)', () => {
     negotiator = new Negotiator({ nalVetoThreshold: 0.8, reflexThreshold: -1 });
   });
 
-  const createGridWorldState = (row: number, col: number): GridWorldState => ({ row, col, goalRow: 3, goalCol: 3 });
+  const createGridWorldState = (row: number, col: number): GridWorldState => ({
+    row,
+    col,
+    goalRow: 3,
+    goalCol: 3,
+  });
   const createPerception = (stateId: string): Perception => ({
     stateId,
     features: {},
@@ -157,7 +162,7 @@ describe('Reflex↔NAR Sync (2D)', () => {
       // Learn from outcome (simulate reward for chosen action)
       if (decision.actionExecuted) {
         reflex.learn({
-          perception: createPerception(`${i},${i+1}`),
+          perception: createPerception(`${i},${i + 1}`),
           previousPerception: createPerception('3,3'),
           actionProposed: decision.actionExecuted,
           actionExecuted: decision.actionExecuted,

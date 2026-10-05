@@ -8,7 +8,7 @@
  * - LM proposes, NARS validates, both adopt
  */
 
-import { 
+import {
   ambientRng,
   parseJsonObject,
   clamp01,
@@ -19,7 +19,7 @@ import {
   minBy,
   errMsg,
   sortBy,
- } from '@senars/util';
+} from '@senars/util';
 import type { BagItem } from '../bag/Bag.js';
 import type { MemoryReader } from '../memory/ports/index.js';
 import type { TextGenerator } from '../ports';

@@ -57,10 +57,17 @@ const FALSE_ATOM = createAtom('FALSE');
 const NULL_ATOM = createAtom('NULL');
 
 export const atomOf = (symbol: string): AtomicTerm =>
-  symbol === 'TRUE' ? TRUE_ATOM : symbol === 'FALSE' ? FALSE_ATOM : symbol === 'NULL' ? NULL_ATOM : createAtom(symbol);
+  symbol === 'TRUE'
+    ? TRUE_ATOM
+    : symbol === 'FALSE'
+      ? FALSE_ATOM
+      : symbol === 'NULL'
+        ? NULL_ATOM
+        : createAtom(symbol);
 
 export const isBoolAtom = (term: Term): boolean =>
-  term.kind === 'atom' && (term.symbol === 'TRUE' || term.symbol === 'FALSE' || term.symbol === 'NULL');
+  term.kind === 'atom' &&
+  (term.symbol === 'TRUE' || term.symbol === 'FALSE' || term.symbol === 'NULL');
 
 /** Module-scope collator: identical ordering to `localeCompare` without its per-call ICU setup. */
 const CANONICAL_COLLATOR = new Intl.Collator();

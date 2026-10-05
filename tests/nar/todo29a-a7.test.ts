@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BudgetSubject } from '../../scripts/lib/control-budgets.js';
-import { budgetViolations, sharedOperations, spentScopeIds } from '../../scripts/lib/control-budgets.js';
+import {
+  budgetViolations,
+  sharedOperations,
+  spentScopeIds,
+} from '../../scripts/lib/control-budgets.js';
 import { BUDGET_RESOURCES } from '@senars/core/budget';
 import {
   BUDGET_SCOPE_IDS,
@@ -17,7 +21,10 @@ import { ControlBudgets, type ControlBudgetOverrides } from '@senars/nar/kernel/
 import { createGateRegistry } from '@senars/nar/kernel/GateRegistry';
 import { termParser } from '@senars/nar/terms';
 import { Truth } from '@senars/nar/terms/impls/Truth';
-import { createDefaultReasoningBudget, KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate';
+import {
+  createDefaultReasoningBudget,
+  KernelBudgetGate,
+} from '@senars/nar/kernel/KernelBudgetGate';
 import { DEFAULT_CONFIG, Memory, RuleProcessor, TaskManager } from '@senars/nar';
 import { NARExecution } from '@senars/nar/nar-execution';
 import { createTestController, inferenceParams } from './fixtures/cognitive.js';
@@ -40,7 +47,12 @@ const derivationCount = async (overrides: ControlBudgetOverrides): Promise<numbe
     memory,
     taskManager: new TaskManager(memory, { gateRegistry: gates }),
     config: DEFAULT_CONFIG,
-    cognitiveController: createTestController(memory, inferenceParams(3), undefined, new RuleProcessor()),
+    cognitiveController: createTestController(
+      memory,
+      inferenceParams(3),
+      undefined,
+      new RuleProcessor()
+    ),
   });
   return execution.run(2);
 };
@@ -83,17 +95,26 @@ describe('the gate can fail', () => {
 
     expect(violations.map((v) => v.detail)).toEqual([
       expect.stringContaining("scope 'derivations' declares operation 'derivation'"),
-      expect.stringContaining("scope 'candidate-derivations' declares operation 'candidate-derivation'"),
-      expect.stringContaining("scope 'proposal-application' declares operation 'proposal-application'"),
+      expect.stringContaining(
+        "scope 'candidate-derivations' declares operation 'candidate-derivation'"
+      ),
+      expect.stringContaining(
+        "scope 'proposal-application' declares operation 'proposal-application'"
+      ),
       expect.stringContaining("scope 'control-work' declares operation 'control-work'"),
-      expect.stringContaining("scope 'decision-derivations' declares operation 'decision-derivation'"),
+      expect.stringContaining(
+        "scope 'decision-derivations' declares operation 'decision-derivation'"
+      ),
     ]);
   });
 
   it('names two scopes claiming one operation', () => {
     expect(sharedOperations(BUDGET_SCOPES, BUDGET_SCOPE_IDS)).toEqual([]);
     // The check is over the table, so a collision is expressed as data.
-    const colliding = { ...BUDGET_SCOPES, premises: { ...BUDGET_SCOPES.premises, operation: 'derivation' } };
+    const colliding = {
+      ...BUDGET_SCOPES,
+      premises: { ...BUDGET_SCOPES.premises, operation: 'derivation' },
+    };
     expect(sharedOperations(colliding, Object.keys(colliding))).toEqual(['derivation']);
   });
 
@@ -107,12 +128,14 @@ describe('A7 — every declared scope is one ReasoningBudget scope', () => {
   it('each carries an owner, a default, a configuration source and an overflow reason', () => {
     for (const scopeId of BUDGET_SCOPE_IDS) {
       const spec = scopeSpec(scopeId);
-      expect([spec.owner, spec.configSource, scopeTerminationReason(scopeId)].every(Boolean)).toBe(true);
+      expect([spec.owner, spec.configSource, scopeTerminationReason(scopeId)].every(Boolean)).toBe(
+        true
+      );
       expect(spec.defaultLimit).toBeGreaterThan(0);
     }
   });
 
-  it('the reason a scope raises is its dimension\'s, not a restated one', () => {
+  it("the reason a scope raises is its dimension's, not a restated one", () => {
     // The scope table declares which dimension it spends; the ceiling key and the
     // overflow reason are `core/budget`'s to say, so a row cannot claim a reason
     // that belongs to another dimension.
@@ -143,11 +166,11 @@ describe('A7 — every declared scope is one ReasoningBudget scope', () => {
     const budgets = new ControlBudgets(gate, { derivations: 2 });
     budgets.beginCycle();
 
-    expect([budgets.charge('derivations'), budgets.charge('derivations'), budgets.charge('derivations')]).toEqual([
-      true,
-      true,
-      false,
-    ]);
+    expect([
+      budgets.charge('derivations'),
+      budgets.charge('derivations'),
+      budgets.charge('derivations'),
+    ]).toEqual([true, true, false]);
     expect(gate.getEventLog().at(-1)?.payload.terminationReason).toBe('cycle-budget');
 
     budgets.beginCycle();
@@ -195,11 +218,11 @@ describe('A7 — the per-cycle reads are bounded control work', () => {
     const budgets = new ControlBudgets(new KernelBudgetGate(), { 'control-work': 2 });
     budgets.beginCycle();
 
-    expect([budgets.charge('control-work'), budgets.charge('control-work'), budgets.charge('control-work')]).toEqual([
-      true,
-      true,
-      false,
-    ]);
+    expect([
+      budgets.charge('control-work'),
+      budgets.charge('control-work'),
+      budgets.charge('control-work'),
+    ]).toEqual([true, true, false]);
   });
 });
 

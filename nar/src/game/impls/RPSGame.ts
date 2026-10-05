@@ -64,7 +64,7 @@ export class RPSGame implements Game<RPSState, number> {
   step(action: number): GameOutcome {
     if (this.terminal_) return { reward: 0, terminal: true, info: { reason: 'terminal' } };
     const opponent = this.opponentThrow();
-    const diff = ((action - opponent) % 3 + 3) % 3; // 1 = agent beats opponent, 2 = loses
+    const diff = (((action - opponent) % 3) + 3) % 3; // 1 = agent beats opponent, 2 = loses
     const reward = diff === 1 ? 1 : diff === 2 ? -1 : 0;
     this.round++;
     if (this.round >= this.rounds) this.terminal_ = true;

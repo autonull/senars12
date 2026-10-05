@@ -76,7 +76,9 @@ describe('TODO17 Bench 31 — Game determinism & baselines', () => {
           const legal = legalsOf(game);
           if (legal.length === 0 || isTerminal(game)) break;
           game.step(legal[rng.nextInt(legal.length)]! as never);
-          trace.push((game as { stateKey?: () => string }).stateKey?.() ?? JSON.stringify(game.state()));
+          trace.push(
+            (game as { stateKey?: () => string }).stateKey?.() ?? JSON.stringify(game.state())
+          );
         }
         return trace;
       };
@@ -217,7 +219,10 @@ describe('TODO17 W7 — Tetris placement cascade (judgeCascade consumer)', () =>
     const { manifold, cache } = countingManifold();
     const game = createTetrisGame({ seed: 9, width: 10, height: 10, pieceCap: 5 });
     const focus = new GameFocus({
-      gateRegistry: createGateRegistry(), focusId: 'tetris-cascade', game });
+      gateRegistry: createGateRegistry(),
+      focusId: 'tetris-cascade',
+      game,
+    });
     focus.bindReflex(new PlacementCascadeReflex(new EpsilonGreedyReflex('fb', { numArms: 10 })));
     focus.setReflexPrefetchContext({ manifold, embeddingCache: cache, budget });
     for (let t = 0; t < 30 && !game.state().terminal; t++) await focus.step(10);

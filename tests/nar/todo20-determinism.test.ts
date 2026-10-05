@@ -66,7 +66,10 @@ describe('Bench 63 — Determinism', () => {
   });
 
   it('Negotiator is RNG-free (veto resolution is a pure function)', () => {
-    const source = readFileSync(new URL('../../nar/src/reflex/Negotiator.ts', import.meta.url), 'utf-8');
+    const source = readFileSync(
+      new URL('../../nar/src/reflex/Negotiator.ts', import.meta.url),
+      'utf-8'
+    );
     expect(source.includes('Math.random')).toBe(false);
     // pure: same input ⇒ same output
     const proposals = [{ action: '0', value: 0.9, confidence: 0.9, source: 'reflex' }] as never[];

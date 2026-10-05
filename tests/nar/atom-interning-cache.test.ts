@@ -63,7 +63,10 @@ describe('atom interning cache', () => {
   });
 
   it('a compound built through the builder shares the interned atom', () => {
-    const term = assertDefined(TermBuilder.inheritance(atomOf('cat'), atomOf('mammal')), 'compound not reducible');
+    const term = assertDefined(
+      TermBuilder.inheritance(atomOf('cat'), atomOf('mammal')),
+      'compound not reducible'
+    );
     expect(term.args?.[0]).toBe(atomOf('cat'));
   });
 });

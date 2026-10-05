@@ -61,7 +61,10 @@ const episode = async (nar: NAR): Promise<string[]> => {
   for (let cycle = 0; cycle < 3; cycle++) {
     if ((await settling(nar.run(1), 5000)) === 'hung') return ['hung'];
   }
-  return nar.query.getBeliefs().map((belief) => belief.term.toString()).sort();
+  return nar.query
+    .getBeliefs()
+    .map((belief) => belief.term.toString())
+    .sort();
 };
 
 const MATRIX: readonly (readonly [string, Axis])[] = [
@@ -87,7 +90,7 @@ describe('A1 — all four S/J/P configurations are complete systems', () => {
    * and those are attributed to a producer and applied at a boundary. What must
    * never happen is S losing a derivation because a producer existed.
    */
-  it('a producer adds to the core\'s derivations and removes none of them', async () => {
+  it("a producer adds to the core's derivations and removes none of them", async () => {
     const [symbolic, withProposals] = await Promise.all([
       episode(await build({ J: false, P: false, hung: false })),
       episode(await build({ J: false, P: true, hung: false })),
@@ -168,10 +171,7 @@ describe('A11 — every decision call site is declared', () => {
     await decided.initialize();
     const plain = await build({ J: false, P: false, hung: false });
 
-    const [withPort, without] = await Promise.all([
-      episode(decided),
-      episode(plain),
-    ]);
+    const [withPort, without] = await Promise.all([episode(decided), episode(plain)]);
     expect(withPort).toEqual(without);
   });
 });

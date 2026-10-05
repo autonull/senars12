@@ -81,9 +81,7 @@ export interface WasmRunResult {
   stderr: string;
 }
 
-export async function createWasmModuleSandbox(
-  options: WasmModuleOptions
-): Promise<WasmRunResult> {
+export async function createWasmModuleSandbox(options: WasmModuleOptions): Promise<WasmRunResult> {
   await ensureWasiInit();
   const { allowedPaths = [], env = {}, args = ['wasm-sandbox'] } = options;
   assertWasmPathContained(options.wasmPath, allowedPaths);

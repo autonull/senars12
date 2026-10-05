@@ -349,4 +349,3 @@ export function persistDerivationRecords(
 ): { appended: number } {
   return { appended: appendJsonl(path, records) };
 }
-

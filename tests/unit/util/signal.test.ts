@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Signal } from '@senars/util';
 
-const collector = (log: string[], label: string) => (value: string) => log.push(`${label}:${value}`);
+const collector = (log: string[], label: string) => (value: string) =>
+  log.push(`${label}:${value}`);
 
 describe('Signal', () => {
   it('fans a value out to every listener', () => {
