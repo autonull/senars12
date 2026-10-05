@@ -1,5 +1,6 @@
 import { createLogger, deepEqual, deepFreeze, deepMerge, errMsg, keyedBy } from '@senars/util';
 import { cognitiveBound, cognitiveBounds } from '@senars/util/config';
+import { validateAgainstBounds } from '@senars/util/config/bounds';
 import { type BagSlotParams, bagSlotErrors } from '../bag/registration';
 import {
   type StrategyCatalog,
@@ -121,6 +122,8 @@ export interface PriorityConfig {
 
   /** Activation propagation strength */
   propagationStrength: number;
+
+  [key: string]: unknown;
 }
 
 export interface LMConfig {
@@ -152,6 +155,8 @@ export interface LMConfig {
 
   /** Rotation index for round-robin selection */
   rotationIndex?: number;
+
+  [key: string]: unknown;
 }
 
 export interface AttentionConfig {
@@ -175,6 +180,8 @@ export interface AttentionConfig {
 
   /** Number of propagation iterations */
   propagationIterations: number;
+
+  [key: string]: unknown;
 }
 
 export interface InferenceConfig {
@@ -207,11 +214,15 @@ export interface InferenceConfig {
     maxAdmissions: number;
     minScore: number;
   };
+
+  [key: string]: unknown;
 }
 
 export interface ModelRunnerConfig {
   /** Maximum reasoning loops per turn */
   maxLoops: number;
+
+  [key: string]: unknown;
 }
 
 /**
@@ -222,6 +233,8 @@ export interface ModelRunnerConfig {
 export interface MemoryParams {
   /** Activation decay rate per cycle */
   activationDecayRate: number;
+
+  [key: string]: unknown;
 }
 
 /** Build default parameters from the shared cognitive bounds. */
@@ -355,17 +368,13 @@ export function validateParameters(
 } {
   const errors: string[] = [];
 
-  if (params.priority) {
-    const p = params.priority;
-    const minInitial = cognitiveBound.at('priority.initialPriority', 'min');
-    const maxInitial = cognitiveBound.at('priority.initialPriority', 'max');
-    if (p.initialPriority < minInitial || p.initialPriority > maxInitial)
-      errors.push(`priority.initialPriority must be in [${minInitial}, ${maxInitial}]`);
-    const minBoost = cognitiveBound.at('priority.directMentionBoost', 'min');
-    const maxBoost = cognitiveBound.at('priority.directMentionBoost', 'max');
-    if (p.directMentionBoost < minBoost || p.directMentionBoost > maxBoost)
-      errors.push(`priority.directMentionBoost must be in [${minBoost}, ${maxBoost}]`);
-  }
+  // Validate all numeric bounds using the shared utility
+  if (params.priority) errors.push(...validateAgainstBounds(params.priority, cognitiveBound, 'priority'));
+  if (params.lm) errors.push(...validateAgainstBounds(params.lm, cognitiveBound, 'lm'));
+  if (params.attention) errors.push(...validateAgainstBounds(params.attention, cognitiveBound, 'attention'));
+  if (params.inference) errors.push(...validateAgainstBounds(params.inference, cognitiveBound, 'inference'));
+  if (params.modelRunner) errors.push(...validateAgainstBounds(params.modelRunner, cognitiveBound, 'modelRunner'));
+  if (params.memory) errors.push(...validateAgainstBounds(params.memory, cognitiveBound, 'memory'));
 
   if (params.lm?.selectionStrategy) {
     log.warn('selectionStrategy in LMConfig is deprecated. Use strategies.lmRule.type instead.');

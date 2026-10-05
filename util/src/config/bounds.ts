@@ -141,3 +141,37 @@ export const flatBounds = <const T extends FlatBoundTable>(table: T): FlatBoundP
 export const nestedBounds = <const T extends NestedBoundTable>(
   table: T
 ): BoundProjection<NestedBoundPath<T>> => project((path) => rowAt(table, path));
+
+/**
+ * Validate a config object against a bound table's rows.
+ * Returns an array of error messages (empty if valid).
+ *
+ * @param config - The config object to validate (may be nested matching the bound table structure)
+ * @param projection - The bound projection from flatBounds() or nestedBounds()
+ * @param prefix - Optional prefix for error messages (e.g., 'priority', 'inference')
+ */
+export function validateAgainstBounds(
+  config: { [key: string]: unknown } | undefined,
+  projection: BoundProjection<string>,
+  prefix = ''
+): string[] {
+  if (!config) return [];
+  const errors: string[] = [];
+  for (const [key, value] of Object.entries(config)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (typeof value === 'number') {
+      try {
+        const row = projection.row(path);
+        if (value < row.min || value > row.max) {
+          errors.push(`${path} must be in [${row.min}, ${row.max}], got ${value}`);
+        }
+      } catch {
+        // Path not in bounds table - skip validation for this key
+      }
+    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      // Recurse into nested objects
+      errors.push(...validateAgainstBounds(value as { [key: string]: unknown }, projection, path));
+    }
+  }
+  return errors;
+}

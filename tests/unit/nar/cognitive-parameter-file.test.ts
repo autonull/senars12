@@ -10,23 +10,23 @@ describe('readCognitiveParams — a run’s parameters outlive the process', () 
   it('reads the tuner’s envelope, which is what `pnpm tune` writes', () => {
     const params = {
       ...DEFAULT_COGNITIVE_PARAMETERS,
-      inference: { ...DEFAULT_COGNITIVE_PARAMETERS.inference, maxDerivationsPerStep: 7 },
+      inference: { ...DEFAULT_COGNITIVE_PARAMETERS.inference, maxDerivationsPerStep: 100 },
     };
     const { params: read, errors } = readCognitiveParams(
       JSON.stringify({ cognitiveParams: params })
     );
 
     expect(errors).toEqual([]);
-    expect(read.inference.maxDerivationsPerStep).toBe(7);
+    expect(read.inference.maxDerivationsPerStep).toBe(100);
   });
 
   it('reads a bare parameter object, which is what a person writes', () => {
     const { params, errors } = readCognitiveParams(
-      JSON.stringify({ inference: { maxDerivationsPerStep: 3 } })
+      JSON.stringify({ inference: { maxDerivationsPerStep: 100 } })
     );
 
     expect(errors).toEqual([]);
-    expect(params.inference.maxDerivationsPerStep).toBe(3);
+    expect(params.inference.maxDerivationsPerStep).toBe(100);
     // Everything unnamed keeps the default — a partial file is a patch, not a replacement.
     expect(params.priority).toEqual(DEFAULT_COGNITIVE_PARAMETERS.priority);
   });

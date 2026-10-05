@@ -296,28 +296,42 @@ export class RuleProcessor {
     });
   }
 
-  async *process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
-    // The flush reads the memory-wide half of a model rule's prompt once, at its own
-    // boundary, and hands it down: every premise pair in one flush is judged against
-    // the same store, and reading it per pair put a statistics sweep, a percentile
-    // sort and a pairwise conflict scan in front of each of them.
-    const context = this.modelRules.length > 0 ? this.rulePromptContext() : undefined;
-    for await (const [p1, p2] of premises) {
-      for (const { ruleResult } of this.applySyncRules(p1, p2)) {
+  /**
+   * Core synchronous rule application — shared by both sync and async paths.
+   * @param deduplicate Whether to keep only the highest-priority result per conclusion term.
+   */
+  private *applySyncRulesInternal(
+    p1: RuleInput,
+    p2: RuleInput,
+    deduplicate: boolean
+  ): Generator<RuleResult> {
+    this.seenBuffer.clear();
+    for (const { term, ruleResult } of this.applySyncRules(p1, p2)) {
+      if (deduplicate) {
+        const existing = this.seenBuffer.get(term);
+        if (!existing || ruleResult.priority > existing.priority) {
+          this.seenBuffer.set(term, ruleResult);
+        }
+      } else {
         yield ruleResult;
       }
+    }
+    if (deduplicate) {
+      yield* this.seenBuffer.values();
+    }
+  }
+
+  async *process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
+    const context = this.modelRules.length > 0 ? this.rulePromptContext() : undefined;
+    for await (const [p1, p2] of premises) {
+      yield* this.applySyncRulesInternal(p1, p2, false);
       yield* this.applyModelRules({ p1, p2 }, undefined, context);
       this.recorder.finish();
     }
   }
 
   processSync(p1: RuleInput, p2: RuleInput): RuleResult[] {
-    this.seenBuffer.clear();
-    for (const { term, ruleResult } of this.applySyncRules(p1, p2)) {
-      const existing = this.seenBuffer.get(term);
-      if (!existing || ruleResult.priority > existing.priority) this.seenBuffer.set(term, ruleResult);
-    }
-    this.resultBuffer = [...this.seenBuffer.values()];
+    this.resultBuffer = [...this.applySyncRulesInternal(p1, p2, true)];
     this.recorder.finish();
     return this.resultBuffer;
   }

@@ -126,18 +126,29 @@ export const createBudget = (limits: BudgetLimits): ReasoningBudget => ({
   consumed: zeroConsumed(),
 });
 
+/** Internal builder for BudgetSlice — shared by createBudgetSlice and sliceBudget. */
+function buildBudgetSlice(
+  id: string,
+  parentId: string | undefined,
+  limits: BudgetLimits,
+  wallclockDeadlineMs?: number,
+  abortSignal?: AbortSignal
+): BudgetSlice {
+  return {
+    id,
+    parentId,
+    ...createBudget(limits),
+    wallclockDeadlineMs,
+    abortSignal,
+  };
+}
+
 export function createBudgetSlice(
   options: BudgetSliceOptions,
   eventBus?: BudgetEventBus
 ): BudgetSlice {
-  const { id, parentId, ...limits } = options;
-  const slice: BudgetSlice = {
-    id,
-    parentId,
-    ...createBudget(limits),
-    wallclockDeadlineMs: options.wallclockDeadlineMs,
-    abortSignal: options.abortSignal,
-  };
+  const { id, parentId, wallclockDeadlineMs, abortSignal, ...limits } = options;
+  const slice = buildBudgetSlice(id, parentId, limits, wallclockDeadlineMs, abortSignal);
   announce('budget:slice:created', sliceAnnouncement(slice), eventBus);
   return slice;
 }
@@ -148,18 +159,19 @@ export function sliceBudget(
   allocation: Partial<ConsumedBudget>,
   eventBus?: BudgetEventBus
 ): BudgetSlice {
-  const slice: BudgetSlice = {
-    id: childId,
-    parentId: parent.id,
-    ...createBudget({
-      maxCycles: allocation.cycles ?? parent.maxCycles - parent.consumed.cycles,
-      maxDepth: allocation.depth ?? parent.maxDepth,
-      maxMemoryOps: allocation.memoryOps ?? parent.maxMemoryOps - parent.consumed.memoryOps,
-      maxLMCalls: allocation.llmCalls ?? parent.maxLMCalls - parent.consumed.llmCalls,
-    }),
-    wallclockDeadlineMs: parent.wallclockDeadlineMs,
-    abortSignal: parent.abortSignal,
+  const limits: BudgetLimits = {
+    maxCycles: allocation.cycles ?? parent.maxCycles - parent.consumed.cycles,
+    maxDepth: allocation.depth ?? parent.maxDepth,
+    maxMemoryOps: allocation.memoryOps ?? parent.maxMemoryOps - parent.consumed.memoryOps,
+    maxLMCalls: allocation.llmCalls ?? parent.maxLMCalls - parent.consumed.llmCalls,
   };
+  const slice = buildBudgetSlice(
+    childId,
+    parent.id,
+    limits,
+    parent.wallclockDeadlineMs,
+    parent.abortSignal
+  );
   announce('budget:slice:created', sliceAnnouncement(slice), eventBus);
   return slice;
 }

@@ -10,16 +10,16 @@ import type { Term } from '../types.js';
 
 export class TermSet extends TermCollection<Term> {
   add(term: Term): this {
-    this.slots.set(this.keyOfTerm(term), term);
+    this.setEntry(term, term);
     return this;
   }
 
   has(term: Term): boolean {
-    return this.slots.has(this.keyOfTerm(term));
+    return this.hasKey(term);
   }
 
   delete(term: Term): boolean {
-    return this.slots.delete(this.keyOfTerm(term));
+    return this.deleteEntry(term);
   }
 
   values(): IterableIterator<Term> {

@@ -324,6 +324,13 @@ export {
   trimCapped,
   unique,
 } from './utils/collections.js';
+
+/** @public Generic keyed collections with derived structural keys. */
+export {
+  KeyedCollection,
+  KeyedMap,
+  KeyedSet,
+} from './utils/keyed-collection.js';
 export { formatIssues, type SchemaIssue } from './utils/diagnostics.js';
 /** @public The registry every component records its teardown in. */
 export type { Teardown } from './utils/disposal.js';

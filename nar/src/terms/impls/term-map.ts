@@ -18,11 +18,11 @@ export interface TermMapEntry<V> {
 
 export class TermMap<V> extends TermCollection<TermMapEntry<V>> {
   get(term: Term): V | undefined {
-    return this.slots.get(this.keyOfTerm(term))?.value;
+    return this.getEntry(term)?.value;
   }
 
   set(term: Term, value: V): this {
-    const key = this.keyOfTerm(term);
+    const key = this.deriveKey(term);
     // `Map.set` on a present key keeps its position, so re-setting a value does
     // not reorder the collection the way deleting and re-adding it would.
     this.slots.set(key, { key: term, value });
@@ -30,11 +30,11 @@ export class TermMap<V> extends TermCollection<TermMapEntry<V>> {
   }
 
   has(term: Term): boolean {
-    return this.slots.has(this.keyOfTerm(term));
+    return this.hasKey(term);
   }
 
   delete(term: Term): boolean {
-    return this.slots.delete(this.keyOfTerm(term));
+    return this.deleteEntry(term);
   }
 
   getEntries(): TermMapEntry<V>[] {

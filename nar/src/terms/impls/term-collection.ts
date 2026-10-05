@@ -16,41 +16,10 @@
 
 import type { Term } from '../types.js';
 import { termKey } from './accessors.js';
+import { KeyedCollection } from '@senars/util';
 
-export abstract class TermCollection<T> {
-  protected readonly slots = new Map<string, T>();
-
-  get size(): number {
-    return this.slots.size;
-  }
-
-  clear(): void {
-    this.slots.clear();
-  }
-
-  protected keyOfTerm(term: Term): string {
-    return termKey(term);
-  }
-
-  /**
-   * Index-free iterator over the values with a projection. Same protocol as a
-   * generator method but without the suspend/resume machinery (~5x faster
-   * in microbenchmarks for hot iteration paths like values()/keys()).
-   */
-  protected iterProject<U>(project: (item: T) => U): IterableIterator<U> {
-    const values = this.slots.values();
-    let i = 0;
-    const it: IterableIterator<U> = {
-      next: (): IteratorResult<U> => {
-        const step = values.next();
-        return step.done
-          ? { value: undefined, done: true }
-          : { value: project(step.value), done: false };
-      },
-      [Symbol.iterator](): IterableIterator<U> {
-        return it;
-      },
-    };
-    return it;
+export abstract class TermCollection<T> extends KeyedCollection<Term, T, string> {
+  protected deriveKey(key: Term): string {
+    return termKey(key);
   }
 }
