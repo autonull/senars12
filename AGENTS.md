@@ -35,6 +35,6 @@
 - Code structure: Keep functions focused (single responsibility), limit function length, organize methods logically,
   prefer composition over inheritance, maintain consistent class structure
 
-- Use `pnpm`, not `npm`
+- Use `pnpm`/`pnpx`, not `npm`/`npx`
 
-- Don't use `pkill`, it hangs
+- `pkill`: do not use, it hangs
