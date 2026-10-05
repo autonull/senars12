@@ -1,20 +1,32 @@
-Choose one:
+Flavors:
 
-# ambitious:
+# ambitious
 Synthesize the ultimate ambitious design, delivering a complete, self-contained specification.
-- Comparisons with the original SeNARS design are *unnecessary*.
 
-# flexible:
+# flexible
 Synthesize the ultimate ambitious, flexible, scalable, comprehensive, customizable design - delivering a complete, self-contained specification.
-- Comparisons with the original SeNARS design are *unnecessary*.
 
-# universal:
+# universal
 Synthesize an ultimate design - delivering a complete, self-contained specification.
 - flexible, scalable, comprehensive, customizable - elegantly covering all known reasoner types, and beyond
-- comparisons with the original SeNARS design are *unnecessary*
+
+# meta
+Synthesize an ultimate design - delivering a complete, self-contained specification.
+- flexible, scalable, comprehensive, customizable - covering all known reasoner types, and beyond
+- metaprogrammatic, recursive, elegant, efficient
+
+# bio
+Synthesize an ultimate design - delivering a complete, self-contained specification.
+- cellular, evolving, growing/scalable, autopoietic
+
+# math
+Synthesize an ultimate design - delivering a complete, self-contained specification.
+- mathematical, algebraic, pure, elegant
 
 
 ----
+
+Note: Exclude comparisons with the original SeNARS design.
 
 # Design Objectives & Principles
 
