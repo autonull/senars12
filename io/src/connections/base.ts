@@ -1,5 +1,13 @@
 import { ConnectionError } from '@senars/core';
-import { errMsg, generateId, type Logger, withRetry as retry, Signal, toError } from '@senars/util';
+import {
+  errMsg,
+  generateId,
+  type Logger,
+  SerialLanes,
+  Signal,
+  toError,
+  withRetry as retry,
+} from '@senars/util';
 import type {
   Connection,
   ConnectionConfig,
@@ -20,7 +28,8 @@ export abstract class BaseConnection implements Connection {
   protected readonly config: ConnectionConfig;
   protected readonly emit: (event: string, data: unknown) => void;
   protected logger!: Logger;
-  private queues: Map<string, Promise<unknown>> = new Map();
+  /** One lane per message origin, so one slow handler cannot delay another's. */
+  private readonly lanes = new SerialLanes<string>();
 
   protected constructor(config: ConnectionConfig, _deps: ConnectionDeps) {
     this.config = config;
@@ -156,20 +165,14 @@ export abstract class BaseConnection implements Connection {
 
   protected handleMessage(message: IOMessage): void {
     this.messageCount++;
-    const origin = message.origin;
-    const prev = this.queues.get(origin) ?? Promise.resolve();
     // Message handlers are async and their rejections are counted (D10), so they
     // are driven here rather than through `Signal.emit`, which isolates and drops.
     const handlers = this.messageHandlers.receivers();
-    const next = prev.then(async () => {
-      this.accountHandlerResults(await Promise.allSettled(handlers.map((h) => h(message))));
-    });
-    this.queues.set(origin, next);
-    next
-      .catch((err) => this.logger.error(`Message handler error for ${this.id}`, err as Error))
-      .finally(() => {
-        if (this.queues.get(origin) === next) this.queues.delete(origin);
-      });
+    void this.lanes
+      .run(message.origin, async () => {
+        this.accountHandlerResults(await Promise.allSettled(handlers.map((h) => h(message))));
+      })
+      .catch((err) => this.logger.error(`Message handler error for ${this.id}`, err as Error));
   }
 
   protected handleError(error: ConnectionError): void {

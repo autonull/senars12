@@ -18,6 +18,13 @@ import { BUDGET_SCOPE_IDS, type BudgetScopeId, scopeBudget, scopeSpec } from './
 import type { KernelBudgetGate } from './KernelBudgetGate.js';
 
 export interface ControlBudgetPort {
+  /**
+   * Whether a real budget is behind this port. `false` only for
+   * {@link UNBUDGETED}: a caller that falls back to a configuration bound when
+   * no port was bound asks this rather than testing for `undefined`, which is
+   * why "unbudgeted" is a value and not an omission.
+   */
+  readonly budgeted: boolean;
   /** Spend `cost` units of `scopeId`; `false` when the scope cannot afford it. */
   charge(scopeId: BudgetScopeId, cost?: number): boolean;
   /** Re-open every declared scope from its declared ceilings. */
@@ -28,7 +35,28 @@ export interface ControlBudgetPort {
 
 export type ControlBudgetOverrides = Partial<Record<BudgetScopeId, number>>;
 
+/**
+ * The port a component holds when no budget wiring was bound — every declared
+ * bound affordable, no scope ever opened.
+ *
+ * "Unbudgeted" is a *state*, not the absence of one. It used to be spelled
+ * `budgets ? budgets.charge(scope) : true` at each of the four sites that can
+ * run without a port, so which of them were optional was decided per call rather
+ * than once at construction — and a site that forgot the guard would have thrown
+ * on `undefined` instead of charging nothing. Defaulting the field to this makes
+ * the third state reachable by construction and leaves one spelling of the
+ * question "may I do one more unit of work?".
+ */
+export const UNBUDGETED: ControlBudgetPort = {
+  budgeted: false,
+  charge: () => true,
+  beginCycle: () => {},
+  getSpendSummary: () => ({}),
+};
+
 export class ControlBudgets implements ControlBudgetPort {
+  readonly budgeted = true;
+
   constructor(
     private readonly gate: KernelBudgetGate,
     private readonly overrides: ControlBudgetOverrides = {}

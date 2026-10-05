@@ -3,10 +3,10 @@ import { SchemaInductor } from '@senars/nar/learning';
 import { InferenceController } from '../../nar/src/reason/inference-controller.js';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '../../nar/src/config/cognitive-parameters.js';
 import type { Task } from '../../nar/src/types/index.js';
-import { createTask } from '../../nar/src/types/index.js';
+import { createTask, createTaskWeight } from '../../nar/src/types/index.js';
 import { termParser, Truth } from '../../nar/src/terms/index.js';
 import { Memory } from '../../nar/src/memory/memory.js';
-import type { Concept } from '../../nar/src/memory/index.js';
+import { Concept } from '../../nar/src/memory/index.js';
 import type { DerivationContext } from '../../nar/src/strategies/index.js';
 
 /**
@@ -19,6 +19,14 @@ import type { DerivationContext } from '../../nar/src/strategies/index.js';
 const task = (narsese: string, f = 0.9, c = 0.9): Task =>
   createTask(termParser.parse(narsese), 'belief', Truth.create(f, c));
 
+/** A real resident concept, so the controller samples the concept it will actually get. */
+const conceptHolding = (narsese: string, f = 0.9, c = 0.9): Concept => {
+  const concept = new Concept(termParser.parse(narsese));
+  concept.writeAttention({ reason: 'assign', value: 0.5 });
+  concept.addTask('belief', { term: concept.term, budget: createTaskWeight(0.5), truth: Truth.create(f, c) });
+  return concept;
+};
+
 const controllerWith = (
   derivation: (primary: Task, secondaries: Task[]) => AsyncGenerator<Task>,
   onDerivation?: (chain: readonly Task[]) => void
@@ -27,14 +35,7 @@ const controllerWith = (
     { attentionModel: { prime: () => 0 } } as never,
     {} as never,
     {
-      sample: () =>
-        [
-          {
-            term: termParser.parse('<sparrow-->bird>'),
-            priority: 0.5,
-            beliefBag: { peek: () => ({ truth: Truth.create(0.9, 0.9) }) },
-          },
-        ] as unknown as Concept[],
+      sample: () => [conceptHolding('<sparrow-->bird>')],
     } as never,
     { selectSecondary: () => [] } as never,
     { derive: derivation } as never,

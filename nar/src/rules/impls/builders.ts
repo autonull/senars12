@@ -2,46 +2,28 @@
  * Rule result builders shared across NAL rule definitions.
  */
 import type { Term } from '../../terms';
-import { getPredicate, getSubject, TermBuilder, TermSet, termsEqual } from '../../terms';
-import type { RuleFn, RuleInput } from '../types.js';
-import { ID, sameSubject } from './extractors.js';
+import { binaryOf, getArgs, TermBuilder, type TermPair, TermSet, termsEqual, unaryOf } from '../../terms';
+import type { RuleFn } from '../types.js';
 import { buildBinaryInhRule, buildInhRule } from './rule-builder.js';
 
-export const buildDeduction = (left: Term, right: Term): Term | undefined => {
-  const s = getSubject(left),
-    p = getPredicate(right);
-  if (!s || !p) return undefined;
-  const result = TermBuilder.inheritance(s, p);
-  return result ?? undefined;
-};
-
-export const buildInduction = (left: Term, right: Term): Term | undefined => {
-  const p1 = getPredicate(left),
-    p2 = getPredicate(right);
-  if (!p1 || !p2) return undefined;
-  const result = TermBuilder.inheritance(p1, p2);
-  return result ?? undefined;
-};
-
-export const buildAbduction = (left: Term, right: Term): Term | undefined => {
-  const s1 = getSubject(left),
-    s2 = getSubject(right);
-  if (!s1 || !s2) return undefined;
-  const result = TermBuilder.inheritance(s1, s2);
-  return result ?? undefined;
-};
-
-export const buildHigherOrderRule =
+/**
+ * A rule over two implications, handed their four ends.
+ *
+ * One callback, not a validator and a builder: the higher-order rules differ
+ * only in *which* end pair has to match, so each of the three bodies below reads
+ * as the one equation it is.
+ */
+export const buildImplicationPairRule =
   (
-    linkValidator: (a1: Term, c1: Term, a2: Term, c2: Term) => boolean,
-    resultBuilder: (a1: Term, c1: Term, a2: Term, c2: Term) => Term | undefined
+    derive: (
+      left: TermPair,
+      right: TermPair
+    ) => Term | undefined
   ): RuleFn =>
   ([imp1, imp2]) => {
-    if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
-    const [a1, c1] = imp1.args,
-      [a2, c2] = imp2.args;
-    if (!a1 || !c1 || !a2 || !c2) return undefined;
-    return linkValidator(a1, c1, a2, c2) ? resultBuilder(a1, c1, a2, c2) : undefined;
+    const left = binaryOf('implication', imp1);
+    const right = binaryOf('implication', imp2);
+    return left && right ? derive(left, right) : undefined;
   };
 
 /**
@@ -56,8 +38,8 @@ export const buildHigherOrderRule =
 export const foldNary = (kind: Term['kind'], unique = false): RuleFn => {
   return ([t1, t2]: [Term, Term]): Term | undefined => {
     if (t1.kind !== kind || t2.kind !== kind) return undefined;
-    const a1 = t1.args!;
-    const a2 = t2.args!;
+    const a1 = getArgs(t1);
+    const a2 = getArgs(t2);
     let args: Term[];
     if (unique) {
       const seen = new TermSet();
@@ -81,34 +63,29 @@ export const foldNary = (kind: Term['kind'], unique = false): RuleFn => {
 };
 
 export const conversionRule = (wrap: (t: Term) => Term) =>
-  buildInhRule(ID, (inh) => {
-    const s = getSubject(inh),
-      p = getPredicate(inh);
-    return s && p ? TermBuilder.inheritance(wrap(s), wrap(p)) : undefined;
-  });
+  buildInhRule(([subject, predicate]) =>
+    TermBuilder.inheritance(wrap(subject), wrap(predicate))
+  );
 
 export const buildSequenceRule = (builder: (p1: Term, p2: Term) => Term) =>
-  buildBinaryInhRule(sameSubject, (inh1, inh2, inputs?: [RuleInput, RuleInput]) => {
-    // Check temporal ordering: p1 must occur before p2 for sequence
-    if (inputs) {
-      const [p1, p2] = inputs;
-      if (p1.occurrenceTime >= p2.occurrenceTime) return undefined;
-    }
-    const s = getSubject(inh1);
-    const p1 = getPredicate(inh1),
-      p2 = getPredicate(inh2);
-    return s && p1 && p2 ? TermBuilder.inheritance(s, builder(p1, p2)) : undefined;
+  buildBinaryInhRule(([s1, p1], [s2, p2], inputs) => {
+    if (inputs && inputs[0].occurrenceTime >= inputs[1].occurrenceTime) return undefined;
+    return termsEqual(s1, s2) ? TermBuilder.inheritance(s1, builder(p1, p2)) : undefined;
   });
 
+/**
+ * `S--P` against a one-argument set, converting the matched end and swapping it
+ * into the position the set occupies — `{P} ⊢ S--P` for `matchOn: 'predicate'`.
+ */
 export const deductionFromType =
   (typeKind: 'setExt' | 'setInt', matchOn: 'subject' | 'predicate') =>
   ([inh, term]: [Term, Term]): Term | undefined => {
-    if (inh.kind !== 'inheritance' || term.kind !== typeKind) return undefined;
-    const s = getSubject(inh),
-      p = getPredicate(inh);
-    const arg = term.args[0];
-    if (!s || !p || !arg) return undefined;
-    return termsEqual(matchOn === 'subject' ? s : p, arg)
-      ? TermBuilder.inheritance(matchOn === 'subject' ? arg : s, matchOn === 'subject' ? p : arg)
-      : undefined;
+    const ends = binaryOf('inheritance', inh);
+    if (!ends) return undefined;
+    const [subject, predicate] = ends;
+    const member = unaryOf(typeKind, term);
+    if (!member || !termsEqual(matchOn === 'subject' ? subject : predicate, member)) return undefined;
+    return matchOn === 'subject'
+      ? TermBuilder.inheritance(member, predicate)
+      : TermBuilder.inheritance(subject, member);
   };

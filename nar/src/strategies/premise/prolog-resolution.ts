@@ -41,8 +41,8 @@ function unifyTerms(t1: Term, t2: Term, subst: Substitution): Substitution | nul
 function findHornClauses(memory: MemoryView): Clause[] {
   const clauses: Clause[] = [];
   for (const concept of memory.listConcepts()) {
-    const belief = concept.beliefBag.peek();
-    if (!belief?.truth) continue;
+    const belief = concept.topBelief();
+    if (!belief) continue;
     const term = concept.term;
     if (term.kind === 'implication') {
       const [a0, a1] = getArgs(term);
@@ -75,8 +75,8 @@ function sldResolve(
     const finalTerm = applySubstitution(goal, state.substitution);
     const concept = memory.getConcept(finalTerm);
     if (concept) {
-      const belief = concept.beliefBag.peek();
-      if (belief?.truth) {
+      const belief = concept.topBelief();
+      if (belief) {
         results.push(createSecondaryTask(finalTerm, concept.priority, belief.truth, 'belief'));
       }
     }

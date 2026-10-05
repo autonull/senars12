@@ -4,7 +4,7 @@ import type { ResolvedBagSlot } from '../bag/registration.js';
 import type { Term, Truth } from '../terms';
 import { calculateSimilarity, Stamp, TermMap, TermSet, termKey } from '../terms';
 import { type IndependenceStatus, Truth as TruthOps } from '../terms/impls/Truth.js';
-import type { Budget, TaskType } from '../types';
+import { type Budget, createBeliefTask, type Task, type TaskType } from '../types';
 import { jaccard } from '../utils/similarity.js';
 
 export type { IndependenceStatus };
@@ -50,6 +50,9 @@ const INPUT_BOOST = 0.1;
  * carries any new evidence at all.
  */
 const TRUTH_IDENTITY_EPSILON = 1e-9;
+
+/** A belief that is known to carry a truth — what {@link Concept.topBelief} returns. */
+export type TopBelief = Omit<TaskData, 'truth'> & { readonly truth: Truth };
 
 export type RevisionCallback = (entry: {
   termKey: string;
@@ -145,6 +148,30 @@ export class Concept {
 
   get key(): Term {
     return this.term;
+  }
+
+  /**
+   * The strongest belief this concept holds, or `undefined` when it holds none.
+   *
+   * The one reader of `beliefBag.peek()`, because "what does this concept
+   * believe" is a question about the concept and not about its bag: twelve
+   * callers were each opening the bag, taking the top item and re-checking that
+   * it carried a truth — three vocabularies for the word "belief", one of them a
+   * structural type that let any object with a `peek` stand in for a concept.
+   *
+   * The narrowing is here, once, rather than as a non-null assertion at each of
+   * those callers: `truth` is what makes an item a belief, and a caller that had
+   * to re-test it was reading the wrong side of the bag.
+   */
+  topBelief(): TopBelief | undefined {
+    const top = this.beliefBag.peek();
+    return top?.truth ? (top as TopBelief) : undefined;
+  }
+
+  /** This concept's strongest belief as a premise task, or `null` when it holds none. */
+  beliefTask(): Task | null {
+    const belief = this.topBelief();
+    return belief ? createBeliefTask(this.term, belief.truth, this.priority, belief.stamp) : null;
   }
 
   get totalTasks(): number {

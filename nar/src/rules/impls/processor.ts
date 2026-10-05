@@ -15,7 +15,7 @@ import {
 } from '@senars/util';
 import { findConflicts } from '../../cognitive/impls/conflict-utils.js';
 import type { DriveManager } from '../../drives';
-import type { ControlBudgetPort } from '../../kernel/control-budgets.js';
+import { type ControlBudgetPort, UNBUDGETED } from '../../kernel/control-budgets.js';
 import { GATE_LOG_CAPACITY } from '../../kernel/event-ring.js';
 import type { MemoryReader } from '../../memory/ports/index.js';
 import type { RulePerformance } from '../../strategies/lm-graph/RuleGraph.js';
@@ -111,8 +111,8 @@ export class RuleProcessor {
     currentDepth: 0,
     maxDepth: META_AIKR_BOUNDS.maxMetaDerivationDepth,
   };
-  /** TODO29.a §5.7: the declared control budgets. Absent ⇒ meta derivations are unbudgeted. */
-  private budgets?: ControlBudgetPort;
+  /** TODO29.a §5.7: the declared control budgets. Unwired ⇒ meta derivations are unbudgeted. */
+  private budgets: ControlBudgetPort = UNBUDGETED;
 
   /**
    * `rules` builds a table of exactly those rules; omitting it loads the shipped
@@ -351,7 +351,7 @@ export class RuleProcessor {
 
     for (const rule of matched) {
       if (!rule.sync) continue;
-      if (this.budgets && !this.budgets.charge('candidate-derivations')) return;
+      if (!this.budgets.charge('candidate-derivations')) return;
       if (this.isMetaRule(rule)) {
         if (!metaActive) continue;
         if (!this.checkMetaBudget(this.metaDepth.currentDepth + 1)) continue;
@@ -410,7 +410,7 @@ export class RuleProcessor {
 
   /** Whether the step may afford another meta derivation, at this nesting depth. */
   private checkMetaBudget(depth: number): boolean {
-    return depth < this.metaDepth.maxDepth && (this.budgets?.charge('control-work') ?? true);
+    return depth < this.metaDepth.maxDepth && this.budgets.charge('control-work');
   }
 
   /** Record a meta-derivation's nesting depth. */

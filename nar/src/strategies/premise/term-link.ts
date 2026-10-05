@@ -62,13 +62,13 @@ export class LinkLayerStrategy implements Strategy {
       seen.add(hit.term);
 
       const concept = memory.getConcept(hit.term);
-      const belief = concept?.beliefBag.peek();
+      const belief = concept?.topBelief();
       if (!concept || !belief) continue;
 
       const secondary = createSecondaryTask(
         concept.term,
         hit.strength,
-        belief.truth ? { f: belief.truth.f, c: belief.truth.c } : undefined,
+        belief.truth,
         'belief'
       );
 

@@ -16,8 +16,8 @@ export function topBeliefTasks(memory: Memory, opts?: ContextBeliefOptions): Tas
   // `listConcepts().slice(0, limit)` capped the *source*, so a run of concepts
   // with no usable belief returned fewer tasks than asked for.
   return collectUpTo(memory.listConcepts(), limit, (c) => {
-    const belief = c.beliefBag.peek();
-    if (!belief?.truth || !belief.stamp) return undefined;
+    const belief = c.topBelief();
+    if (!belief?.stamp) return undefined;
     if (Truth.attention(belief.truth) < minConfidence) return undefined;
     return createTask(c.term, 'belief', belief.truth, lmTaskWeight('context'), {
       stamp: belief.stamp,

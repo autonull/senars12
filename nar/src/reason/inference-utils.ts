@@ -3,7 +3,7 @@ import { BoundedMap } from '@senars/util';
 import type { RuleInput, RuleResult } from '../rules';
 import { termKey } from '../terms';
 import type { Task } from '../types';
-import { createBeliefTask, createTaskWeight, createTask } from '../types';
+import { createTaskWeight, createTask } from '../types';
 
 const MAX_RECENT_CONCLUSIONS = 1000;
 
@@ -48,18 +48,3 @@ export const createDerivedTask = (result: RuleResult, taskType: Task['type'] = '
     stamp: result.stamp,
     derived: true,
   });
-
-interface BeliefBagLike {
-  peek?: () => { truth?: Task['truth']; stamp?: Task['stamp'] } | undefined;
-}
-
-/** A concept's strongest belief as a task, or `null` when it holds no truth. */
-export const createBeliefTaskFromConcept = (concept: {
-  term: Task['term'];
-  priority: number;
-  beliefBag?: BeliefBagLike;
-}): Task | null => {
-  const belief = concept.beliefBag?.peek?.();
-  if (!belief?.truth) return null;
-  return createBeliefTask(concept.term, belief.truth, concept.priority, belief.stamp);
-};

@@ -377,21 +377,56 @@ export async function readBodyBounded(res: Response, maxBytes: number): Promise<
   return readBytesBounded(body, maxBytes, () => void body.cancel());
 }
 
-export class SerialQueue {
-  #tail: Promise<unknown> = Promise.resolve();
+const SETTLED = (): void => undefined;
+const IDLE: Promise<unknown> = Promise.resolve();
 
-  /** Enqueue `work`. Resolves and rejects with it; later work is unaffected either way. */
-  run<T>(work: () => Promise<T>): Promise<T> {
-    const settled = this.#tail.then(work);
-    this.#tail = settled.then(
-      () => undefined,
-      () => undefined
-    );
+/**
+ * Serial execution, one lane per key.
+ *
+ * Two callers wanted this and each wrote their own: a single `#tail.then(...)`
+ * chain, and that same chain inside a `Map` keyed by peer-supplied origin. The
+ * second form had to delete its own entry when a lane drained, because the key
+ * space is whatever a remote peer says it is — the discipline belongs to the
+ * primitive, not to the one caller whose keys happen to come from a peer.
+ */
+export class SerialLanes<K> {
+  readonly #tails = new Map<K, Promise<unknown>>();
+
+  /** Enqueue `work` on `key`'s lane. Resolves and rejects with it; later work is unaffected either way. */
+  run<T>(key: K, work: () => Promise<T>): Promise<T> {
+    const settled = (this.#tails.get(key) ?? IDLE).then(work);
+    const tail = settled.then(SETTLED, SETTLED);
+    this.#tails.set(key, tail);
+    void tail.then(() => {
+      if (this.#tails.get(key) === tail) this.#tails.delete(key);
+    });
     return settled;
   }
 
-  /** Resolves when nothing is queued or in flight. */
+  /** Resolves when nothing is queued or in flight on any lane. */
+  async idle(): Promise<void> {
+    await Promise.all(this.#tails.values());
+  }
+
+  /**
+   * Lanes holding work, as of the last release — the size a caller bounds a key
+   * space against. A lane whose work has settled is dropped on the microtask
+   * after it settles, so read it after {@link idle} when the answer is a bound.
+   */
+  get laneCount(): number {
+    return this.#tails.size;
+  }
+}
+
+/** One serial chain — {@link SerialLanes} narrowed to the single lane a caller wants. */
+export class SerialQueue {
+  readonly #lanes = new SerialLanes<undefined>();
+
+  run<T>(work: () => Promise<T>): Promise<T> {
+    return this.#lanes.run(undefined, work);
+  }
+
   idle(): Promise<void> {
-    return this.#tail.then(() => undefined);
+    return this.#lanes.idle();
   }
 }

@@ -1,6 +1,5 @@
 import { createLogger } from '@senars/util';
 import type { MemoryView } from '../../memory/view.js';
-import { createBeliefTaskFromConcept } from '../../reason/inference-utils.js';
 import { createStrategy } from '../../reason/strategies/base';
 import type { Task } from '../../types';
 import type { ComponentMetadata, Strategy } from '../types.js';
@@ -104,7 +103,7 @@ export class DecompositionStrategy implements Strategy {
     return task.term.args
       .map((arg) => {
         const concept = memory.getConcept(arg);
-        return concept ? createBeliefTaskFromConcept(concept) : null;
+        return concept?.beliefTask() ?? null;
       })
       .filter((t): t is Task => t !== null);
   }

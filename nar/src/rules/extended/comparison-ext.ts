@@ -2,9 +2,7 @@
  * Comparison/extended NAL rules: shared comparison rules plus contraposition and
  * implication deduction (distinct from their NAL core counterparts).
  */
-import type { Term } from '../../terms';
-import { TermBuilder, termsEqual } from '../../terms';
-import { extractInh, sameInhPair } from '../impls/extractors.js';
+import { binaryOf, TermBuilder, termsEqual } from '../../terms';
 import { analogy, exemplification } from '../nal/comparison.js';
 import { buildBinaryInhRule } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
@@ -22,33 +20,32 @@ export { analogy, exemplification };
  * by `tests/nar/extended-rules.test.ts`, and removing the second derivation is
  * a change to what the engine concludes, not to how it is written.
  */
-const sameInhToSimilarity: RuleFn = buildBinaryInhRule(sameInhPair, (inh1, _inh2) => {
-  const { s, p } = extractInh(inh1);
-  if (!s || !p) return undefined;
-  return TermBuilder.similarity(s, p);
-});
+const sameInhToSimilarity: RuleFn = buildBinaryInhRule(([s1, p1], [s2, p2]) =>
+  termsEqual(s1, s2) && termsEqual(p1, p2) ? TermBuilder.similarity(s1, p1) : undefined
+);
 
 export const comparison: RuleFn = sameInhToSimilarity;
 
 export const sameness: RuleFn = sameInhToSimilarity;
 
-export const revisionWeak: RuleFn = buildBinaryInhRule(sameInhPair, (inh1, _inh2) => inh1);
-
-export const contrapositionRule: RuleFn = ([imp]: [Term, Term]): Term | undefined => {
-  if (imp.kind !== 'implication') return undefined;
-  const ante = imp.args[0],
-    cons = imp.args[1];
-  if (!ante || !cons) return undefined;
-  return TermBuilder.implication(TermBuilder.negation(cons), TermBuilder.negation(ante));
+export const revisionWeak: RuleFn = ([inh1, inh2]) => {
+  const left = binaryOf('inheritance', inh1);
+  const right = binaryOf('inheritance', inh2);
+  return left && right && termsEqual(left[0], right[0]) && termsEqual(left[1], right[1])
+    ? inh1
+    : undefined;
 };
 
-export const implicationDeduction: RuleFn = ([imp1, imp2]: [Term, Term]): Term | undefined => {
-  if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
-  const cons1 = imp1.args[1];
-  const ante2 = imp2.args[0];
-  if (!cons1 || !ante2 || !termsEqual(cons1, ante2)) return undefined;
-  const ante1 = imp1.args[0];
-  const cons2 = imp2.args[1];
-  if (!ante1 || !cons2) return undefined;
-  return TermBuilder.implication(ante1, cons2);
+export const contrapositionRule: RuleFn = ([imp]) => {
+  const pair = binaryOf('implication', imp);
+  return pair ? TermBuilder.implication(TermBuilder.negation(pair[1]), TermBuilder.negation(pair[0])) : undefined;
+};
+
+/** `A==>B, B==>C ⊢ A==>C` — chaining two implications at their shared endpoint. */
+export const implicationDeduction: RuleFn = ([imp1, imp2]) => {
+  const first = binaryOf('implication', imp1);
+  const second = binaryOf('implication', imp2);
+  return first && second && termsEqual(first[1], second[0])
+    ? TermBuilder.implication(first[0], second[1])
+    : undefined;
 };

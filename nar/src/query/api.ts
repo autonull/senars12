@@ -159,12 +159,12 @@ export class QueryAPI {
     const adjacent = neighbours.flatMap((concept) => this.evidenceFor(concept));
     const grounded = hasVariable(questionTerm)
       ? neighbours.find(
-          (concept) => concept.beliefBag.peek()?.truth && unify(questionTerm, concept.term)
+          (concept) => concept.topBelief() && unify(questionTerm, concept.term)
         )
       : undefined;
-    const belief = grounded?.beliefBag.peek();
+    const belief = grounded?.topBelief();
 
-    return belief?.truth
+    return belief
       ? {
           question: questionStr,
           answer: grounded?.term.toString(),
@@ -183,8 +183,8 @@ export class QueryAPI {
   }
 
   private tryAnswer(question: Term, concept: Concept): Answer | null {
-    const belief = concept.beliefBag.peek();
-    if (!belief?.truth) return null;
+    const belief = concept.topBelief();
+    if (!belief) return null;
     // Refuse on the pair, not on the product: an almost-certain negative
     // (`f≈0.45, c=1.0`) and a confident non-answer both scored low before, but
     // only one of them is an answer.
@@ -199,8 +199,8 @@ export class QueryAPI {
   }
 
   private evidenceFor(concept: Concept): Task[] {
-    const belief = concept.beliefBag.peek();
-    return belief?.truth ? [this.createTaskFromBelief(concept.term, belief, concept.priority)] : [];
+    const belief = concept.topBelief();
+    return belief ? [this.createTaskFromBelief(concept.term, belief, concept.priority)] : [];
   }
 
   private createTaskFromBelief(

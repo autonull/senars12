@@ -17,9 +17,8 @@
 
 import {
   atom,
-  getArgs,
+  binaryOf,
   isAtomic,
-  isCompound,
   type Term,
   TermBuilder,
   Truth,
@@ -57,26 +56,14 @@ export const META_RULES_NARSESE = [
   '((capability --> $c) & (template($c) --> $tmpl) & (^add_capability($c))! ==> (^scaffold($tmpl, $c))!)',
 ] as const;
 
-/** Check if term is an Inheritance (A --> B) */
-function isInheritance(term: Term): boolean {
-  return isCompound(term) && term.kind === 'inheritance';
-}
-
-/** Extract subject and predicate from Inheritance term */
-function getInheritanceParts(term: Term): { subject: Term; predicate: Term } | null {
-  if (!isInheritance(term)) return null;
-  const [subject, predicate] = getArgs(term);
-  if (!subject || !predicate) return null;
-  return { subject, predicate };
-}
-
-/** Extract variable binding from a premise like (drive_competence --> low) */
+/** The symbol bound by a premise like `(drive_competence --> low)`, if that is what it is. */
 function extractVariableBinding(term: Term, expectedPredicate: string): string | null {
-  const parts = getInheritanceParts(term);
+  const parts = binaryOf('inheritance', term);
   if (!parts) return null;
-  if (!isAtomic(parts.predicate) || parts.predicate.symbol !== expectedPredicate) return null;
-  if (!isAtomic(parts.subject)) return null;
-  return parts.subject.symbol;
+  const [subject, predicate] = parts;
+  if (!isAtomic(predicate) || predicate.symbol !== expectedPredicate) return null;
+  if (!isAtomic(subject)) return null;
+  return subject.symbol;
 }
 
 /** `tool(arg, ...)` — the shared operation-term encoding. */

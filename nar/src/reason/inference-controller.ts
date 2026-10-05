@@ -3,7 +3,7 @@
  */
 
 import { sleep } from '@senars/util';
-import type { ControlBudgetPort } from '../kernel/control-budgets.js';
+import { type ControlBudgetPort, UNBUDGETED } from '../kernel/control-budgets.js';
 import type { MemoryView } from '../memory/view.js';
 import type { RuleProcessor } from '../rules';
 import type {
@@ -13,11 +13,7 @@ import type {
   SamplingStrategy,
 } from '../strategies';
 import type { Task } from '../types';
-import {
-  createBeliefTaskFromConcept,
-  createCircularDetector,
-  exceedsDepthLimit,
-} from './inference-utils.js';
+import { createCircularDetector, exceedsDepthLimit } from './inference-utils.js';
 import type { Strategy } from '../strategies/types.js';
 import type { InferenceConfig as CognitiveInferenceConfig } from '../config/cognitive-parameters.js';
 
@@ -64,11 +60,11 @@ export class InferenceController {
     private derivationStrategy: DerivationStrategy,
     private readonly config: InferenceConfig,
     /**
-     * The declared control budgets (TODO29.a §5.7). Absent ⇒ the config bounds
-     * stand alone, which is what a bare controller in a unit test means; the
-     * cycle path always binds one.
+     * The declared control budgets (TODO29.a §5.7). Defaults to
+     * {@link UNBUDGETED}, so a bare controller in a unit test is unbudgeted
+     * rather than unguarded; the cycle path always binds a real one.
      */
-    private readonly budgets?: ControlBudgetPort
+    private readonly budgets: ControlBudgetPort = UNBUDGETED
   ) {}
 
   reconfigure(updates: {
@@ -141,13 +137,11 @@ export class InferenceController {
       });
       if (boost !== 0) concept.writeAttention({ reason: 'prime', amount: boost });
 
-      const task = createBeliefTaskFromConcept(concept);
+      const task = concept.beliefTask();
       if (!task) continue;
       // Secondary premise consideration is its own declared bound (§5.7): a
-      // population-sized scan is unbounded work in a step that is not. Absent
-      // a budget port the consideration is unbudgeted, as it always was.
-      const consider = this.budgets ? this.budgets.charge('premises') : true;
-      if (!consider) return;
+      // population-sized scan is unbounded work in a step that is not.
+      if (!this.budgets.charge('premises')) return;
       const secondaries = this.strategy.selectSecondary(task, this.memory);
 
       for await (const derived of this.derivationStrategy.derive(
@@ -177,8 +171,9 @@ export class InferenceController {
    * unit test) the config bound stands alone.
    */
   private derivationBudgetSpent(): boolean {
-    if (this.budgets) return !this.budgets.charge('derivations');
-    return this.derivationCount >= this.config.maxDerivationsPerStep;
+    return this.budgets.budgeted
+      ? !this.budgets.charge('derivations')
+      : this.derivationCount >= this.config.maxDerivationsPerStep;
   }
 
   private isCircular(task: Task): boolean {

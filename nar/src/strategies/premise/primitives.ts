@@ -151,7 +151,7 @@ function createFilterRegistry() {
       create:
         (): PremiseFilter =>
         (task: Task, concept: Concept): boolean => {
-          const belief = concept.beliefBag.peek();
+          const belief = concept.topBelief();
           if (!belief?.stamp) return true;
           const taskStamp = task.stamp;
           if (!taskStamp) return true;
@@ -195,7 +195,7 @@ function createFilterRegistry() {
       create:
         (threshold: number): PremiseFilter =>
         (task: Task, concept: Concept): boolean => {
-          const belief = concept.beliefBag.peek();
+          const belief = concept.topBelief();
           return (belief?.truth?.f ?? 0) > threshold;
         },
       isCurried: true as const,
@@ -395,8 +395,8 @@ export function samplePremisesFromConfig(
   scored.sort((a, b) => b.score - a.score);
 
   return collectUpTo(scored, merged.limit, ({ concept }) => {
-    const belief = concept.beliefBag.peek();
-    if (!belief?.truth || (merged.whereTruth && !merged.whereTruth(task, belief.truth))) {
+    const belief = concept.topBelief();
+    if (!belief || (merged.whereTruth && !merged.whereTruth(task, belief.truth))) {
       return undefined;
     }
     return createSecondaryTask(concept.term, concept.priority, belief.truth);

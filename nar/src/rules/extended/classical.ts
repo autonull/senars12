@@ -3,43 +3,45 @@
  */
 import type { Term } from '../../terms';
 import {
-  getPredicate,
-  getSubject,
-  TermBuilder,
-  termsEqual,
+  binaryOf,
   isDisjunction,
   isNegation,
+  TermBuilder,
+  termsEqual,
 } from '../../terms';
+import { buildInhRule } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
 
-export const modusPonens: RuleFn = ([imp, antecedent]: [Term, Term]): Term | undefined => {
-  if (imp.kind !== 'implication' || antecedent.kind !== 'atom') return undefined;
-  const [impAnte, impCons] = imp.args;
-  return impAnte && impCons && termsEqual(impAnte, antecedent) ? impCons : undefined;
+/** `A==>B, A ⊢ B` */
+export const modusPonens: RuleFn = ([imp, antecedent]) => {
+  const pair = binaryOf('implication', imp);
+  return pair && antecedent.kind === 'atom' && termsEqual(pair[0], antecedent) ? pair[1] : undefined;
 };
 
-export const modusTollens: RuleFn = ([imp, negConsequent]: [Term, Term]): Term | undefined => {
-  if (imp.kind !== 'implication' || negConsequent.kind !== 'negation') return undefined;
-  const impCons = imp.args[1];
-  const negArg = negConsequent.args[0];
-  if (!impCons || !negArg || !termsEqual(impCons, negArg)) return undefined;
-  const impAnte = imp.args[0];
-  return impAnte ? TermBuilder.negation(impAnte) : undefined;
+/** `A==>B, --B ⊢ --A` */
+export const modusTollens: RuleFn = ([imp, negConsequent]) => {
+  const pair = binaryOf('implication', imp);
+  if (!pair || !isNegation(negConsequent)) return undefined;
+  const consequent = negConsequent.args[0];
+  return consequent && termsEqual(pair[1], consequent) ? TermBuilder.negation(pair[0]) : undefined;
 };
 
-export const disjunctiveSyllogism: RuleFn = ([disj, negTerm]: [Term, Term]): Term | undefined => {
-  if (!isDisjunction(disj) || !isNegation(negTerm)) return undefined;
-  const [left, right] = disj.args;
-  const negArg = negTerm.args[0];
-  if (!left || !right || !negArg) return undefined;
-  if (termsEqual(left, negArg)) return right;
-  if (termsEqual(right, negArg)) return left;
-  return undefined;
+/** `A|B, --A ⊢ B` */
+export const disjunctiveSyllogism: RuleFn = ([disj, negTerm]) => {
+  const sides = isDisjunction(disj) ? disj.args : undefined;
+  if (!isNegation(negTerm) || sides?.length !== 2) return undefined;
+  const negated = negTerm.args[0];
+  const [left, right] = sides as [Term, Term];
+  return negated === undefined
+    ? undefined
+    : termsEqual(left, negated)
+      ? right
+      : termsEqual(right, negated)
+        ? left
+        : undefined;
 };
 
-export const conversion: RuleFn = ([inh]: [Term, Term]): Term | undefined => {
-  if (inh.kind !== 'inheritance') return undefined;
-  const s = getSubject(inh),
-    p = getPredicate(inh);
-  return s && p ? TermBuilder.inheritance(p, s) : undefined;
-};
+/** `S-->P ⊢ P-->S` — the only rule that inverts an inheritance's own arguments. */
+export const conversion: RuleFn = buildInhRule(([subject, predicate]) =>
+  TermBuilder.inheritance(predicate, subject)
+);

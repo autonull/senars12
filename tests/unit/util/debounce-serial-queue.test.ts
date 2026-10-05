@@ -1,4 +1,4 @@
-import { debounce, SerialQueue } from '@senars/util';
+import { debounce, SerialLanes, SerialQueue } from '@senars/util';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('debounce', () => {
@@ -154,5 +154,93 @@ describe('SerialQueue', () => {
     const [a, b] = await Promise.all([queue.run(async () => 1), queue.run(async () => 'two')]);
     expect(a).toBe(1);
     expect(b).toBe('two');
+  });
+});
+
+/**
+ * The keyed form. What matters is that a key is remembered only while its lane
+ * has work in it: the one production caller keys lanes by message origin, which
+ * is whatever a peer says it is, so a lane that outlived its work would be a
+ * container that grows with traffic and never shrinks.
+ */
+describe('SerialLanes', () => {
+  const settle = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+  it('serialises within a key and runs keys concurrently', async () => {
+    const lanes = new SerialLanes<string>();
+    const order: string[] = [];
+    const work = (label: string, ms: number) => async () => {
+      await settle(ms);
+      order.push(label);
+    };
+
+    // A slow first task on `a` and a fast one on `b`: were the lanes sharing a
+    // chain, `b1` could not land before `a1`. And `a2` is submitted after `a1`,
+    // so it may only land after it.
+    await Promise.all([
+      lanes.run('a', work('a1', 30)),
+      lanes.run('b', work('b1', 1)),
+      lanes.run('a', work('a2', 1)),
+    ]);
+
+    expect(order[0]).toBe('b1');
+    expect(order.slice(1)).toEqual(['a1', 'a2']);
+  });
+
+  it('holds a key only while its lane has work, so the key space cannot grow with traffic', async () => {
+    const lanes = new SerialLanes<string>();
+    for (let i = 0; i < 50; i++) await lanes.run(`origin-${i}`, async () => i);
+
+    await lanes.idle();
+    expect(lanes.laneCount).toBe(0);
+  });
+
+  it('holds one lane per key that has work in flight, and no more', async () => {
+    const lanes = new SerialLanes<string>();
+    const gates = Array.from({ length: 3 }, () => {
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return { gate, release };
+    });
+
+    const running = gates.map(({ gate }, i) => lanes.run(`origin-${i}`, async () => gate));
+    expect(lanes.laneCount).toBe(3);
+
+    for (const { release } of gates) release();
+    await Promise.all(running);
+    await lanes.idle();
+    expect(lanes.laneCount).toBe(0);
+  });
+
+  it('a failure settles one lane without stalling it or its neighbours', async () => {
+    const lanes = new SerialLanes<string>();
+    const failed = lanes.run('a', async () => {
+      throw new Error('boom');
+    });
+    const after = lanes.run('a', async () => 'still runs');
+    const neighbour = lanes.run('b', async () => 'independent');
+
+    await expect(failed).rejects.toThrow('boom');
+    await expect(after).resolves.toBe('still runs');
+    await expect(neighbour).resolves.toBe('independent');
+  });
+
+  it('idle resolves once every lane has drained', async () => {
+    const lanes = new SerialLanes<string>();
+    await expect(lanes.idle()).resolves.toBeUndefined();
+
+    const pending = Promise.all([lanes.run('a', async () => settle(15)), lanes.run('b', async () => settle(5))]);
+    let settled = false;
+    void lanes.idle().then(() => {
+      settled = true;
+    });
+    await settle(5);
+    expect(settled).toBe(false);
+
+    await pending;
+    await lanes.idle();
+    expect(settled).toBe(true);
   });
 });

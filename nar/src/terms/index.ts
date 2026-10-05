@@ -1,8 +1,9 @@
-export type { BareInheritance } from './impls/accessors.js';
+export type { BareInheritance, BinaryKind, TermPair, UnaryKind } from './impls/accessors.js';
 export {
   atomicSymbols,
   atomKey,
   bareInheritancePair,
+  binaryOf,
   containsSubterm,
   foldTerm,
   getAntecedent,
@@ -24,6 +25,7 @@ export {
   isSetInt,
   isSimilarity,
   mentionsSymbol,
+  rolePair,
   sameKind,
   sharesInheritanceEnd,
   sharesSymbol,
@@ -32,6 +34,7 @@ export {
   termDepth,
   termKey,
   termSize,
+  unaryOf,
   termsEqual,
   visitTerms,
   walkTerms,

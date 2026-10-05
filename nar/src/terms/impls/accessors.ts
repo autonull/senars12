@@ -1,6 +1,6 @@
 import { getOrInsert } from '@senars/util';
 import type { CompoundTerm, OperatorKey, Term } from '../types.js';
-import { isAtomic, isVariableSymbol } from '../types.js';
+import { isAtomic, isVariableSymbol, OPERATORS } from '../types.js';
 
 export const isType = <K extends OperatorKey>(k: K, t: Term): t is CompoundTerm<K> => t.kind === k;
 
@@ -29,21 +29,35 @@ export const isSetExt = createTypeGuard('setExt');
 export const isSetInt = createTypeGuard('setInt');
 export const isOperation = createTypeGuard('operation');
 
-const getRoleArg = (
-  term: Term,
-  index: 0 | 1,
-  k1: Term['kind'],
-  k2: Term['kind']
-): Term | undefined => (term.kind === k1 || term.kind === k2 ? getArgs(term)[index] : undefined);
+/**
+ * The kinds whose argument list is exactly a pair, derived from the operator
+ * table rather than listed here — a second list of binary kinds is a list that
+ * does not learn about a new operator.
+ */
+export type BinaryKind = {
+  [K in OperatorKey]: (typeof OPERATORS)[K]['arity'] extends 2 ? K : never;
+}[OperatorKey];
 
-export const getSubject = (term: Term): Term | undefined =>
-  getRoleArg(term, 0, 'inheritance', 'similarity');
-export const getPredicate = (term: Term): Term | undefined =>
-  getRoleArg(term, 1, 'inheritance', 'similarity');
-export const getAntecedent = (term: Term): Term | undefined =>
-  getRoleArg(term, 0, 'implication', 'equivalence');
-export const getConsequent = (term: Term): Term | undefined =>
-  getRoleArg(term, 1, 'implication', 'equivalence');
+/**
+ * A unary term's own argument, or `undefined` when `term` is not `kind`.
+ *
+ * The {@link binaryOf} counterpart, for the same reason: `isNegation(t)` says
+ * the kind and `t.args[0]` says the argument, and a rule that needs both wrote
+ * the first as a guard for the second. A negation built outside the factory can
+ * carry no argument at all, so the arity check is real.
+ */
+export const unaryOf = <K extends UnaryKind>(kind: K, term: Term): Term | undefined => {
+  if (term.kind !== kind) return undefined;
+  return term.args[0];
+};
+
+/** An unpacked binary term: argument zero, then argument one. */
+export type TermPair = readonly [Term, Term];
+
+/** The kinds whose argument list is exactly one, from the same operator table. */
+export type UnaryKind = {
+  [K in OperatorKey]: (typeof OPERATORS)[K]['arity'] extends 1 ? K : never;
+}[OperatorKey];
 
 const NO_ARGS: readonly Term[] = Object.freeze([]);
 
@@ -59,6 +73,62 @@ const NO_ARGS: readonly Term[] = Object.freeze([]);
  */
 export const getArgs = (term: Term): readonly Term[] =>
   term.kind === 'atom' ? NO_ARGS : (term.args ?? NO_ARGS);
+
+/**
+ * A binary term's own argument list as a pair, or `undefined` when `term` is not
+ * `kind` or does not carry both arguments.
+ *
+ * The kind guard, the arity check and the unpack, once. Reading a binary term
+ * positionally is otherwise three statements — `if (t.kind !== 'implication')`,
+ * `const [a, c] = t.args`, `if (!a || !c)` — and the third restates the first: a
+ * term that passed the kind guard still has to be *known* to hold two arguments,
+ * because `Term` admits an `args` of any length and only the factory enforces
+ * the operator's arity.
+ *
+ * Returns the list itself rather than a fresh object, so the per-premise-pair
+ * path allocates nothing. For an inheritance the pair reads `(subject,
+ * predicate)` and for an implication `(antecedent, consequent)`; the role
+ * accessors below name the same two slots one at a time.
+ */
+export const binaryOf = <K extends BinaryKind>(
+  kind: K,
+  term: Term
+): TermPair | undefined => {
+  if (term.kind !== kind) return undefined;
+  const args = term.args;
+  return args.length >= 2 ? (args as TermPair) : undefined;
+};
+
+const getRoleArg = (
+  term: Term,
+  index: 0 | 1,
+  k1: BinaryKind,
+  k2: BinaryKind
+): Term | undefined => (binaryOf(k1, term) ?? binaryOf(k2, term))?.[index];
+
+export const getSubject = (term: Term): Term | undefined =>
+  getRoleArg(term, 0, 'inheritance', 'similarity');
+export const getPredicate = (term: Term): Term | undefined =>
+  getRoleArg(term, 1, 'inheritance', 'similarity');
+export const getAntecedent = (term: Term): Term | undefined =>
+  getRoleArg(term, 0, 'implication', 'equivalence');
+export const getConsequent = (term: Term): Term | undefined =>
+  getRoleArg(term, 1, 'implication', 'equivalence');
+
+/**
+ * `term`'s subject and predicate together — the pair form of {@link getSubject}
+ * and {@link getPredicate}, over the two kinds that carry both roles.
+ *
+ * The pair, not the accessors, because a rule that matches on *both* roles used
+ * to read them one at a time and then check both were present, which is the same
+ * guard spelled twice. It is also the only reader that cannot guess wrong about
+ * kind: the dispatch cell for these rules is `inheritance`/`similarity`, so the
+ * same body serves `S--P, P<->Q` and `S--P, P--Q` without naming which kind the
+ * second premise was.
+ */
+export const rolePair = (term: Term): TermPair | undefined =>
+  binaryOf('inheritance', term) ?? binaryOf('similarity', term);
+
 export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
 
 /** Structural term equality. `undefined` is accepted so optional-arg probes need no guard. */

@@ -11,6 +11,7 @@ export {
 export {
   type ControlBudgetOverrides,
   type ControlBudgetPort,
+  UNBUDGETED,
   ControlBudgets,
 } from './control-budgets.js';
 export type { CognitiveStateSnapshot } from './EventLogPersistence.js';

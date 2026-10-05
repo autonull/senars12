@@ -2,29 +2,40 @@
  * Rule builder utilities for deduplicating NAL rule definitions
  */
 import type { Term } from '../../terms';
-import { isAtomic, walkTerms } from '../../terms';
-import type { RuleFn } from '../types.js';
+import { binaryOf, isAtomic, type TermPair, walkTerms } from '../../terms';
+import type { RuleFn, RuleInput } from '../types.js';
 
+/**
+ * A binary inheritance rule: one function over the two premises' subject and
+ * predicate.
+ *
+ * The kind guard and the arity check happen once, here, so a body states only
+ * what it concludes. They used to be the *other* callback: a `validate`
+ * predicate said whether the premises matched and a `transform` said what
+ * followed, so both callbacks received still-packed terms and every `transform`
+ * opened with the `if (!s || !p) return undefined` its own `validate` had
+ * already answered.
+ */
 export const buildBinaryInhRule =
   (
-    validate: (t1: Term, t2: Term) => boolean,
-    transform: (t1: Term, t2: Term) => Term | undefined
+    derive: (
+      left: TermPair,
+      right: TermPair,
+      inputs?: [RuleInput, RuleInput]
+    ) => Term | undefined
   ): RuleFn =>
-  ([t1, t2]) => {
-    if (t1.kind !== 'inheritance' || t2.kind !== 'inheritance') return undefined;
-    if (!validate(t1, t2)) return undefined;
-    return transform(t1, t2);
+  ([t1, t2], inputs) => {
+    const left = binaryOf('inheritance', t1);
+    const right = binaryOf('inheritance', t2);
+    return left && right ? derive(left, right, inputs) : undefined;
   };
 
+/** A unary inheritance rule, over the one premise's subject and predicate. */
 export const buildInhRule =
-  (
-    extract: (term: Term) => Term | undefined,
-    transform: (term: Term) => Term | undefined
-  ): RuleFn =>
+  (derive: (pair: TermPair) => Term | undefined): RuleFn =>
   ([term]) => {
-    if (term.kind !== 'inheritance') return undefined;
-    const extracted = extract(term);
-    return extracted ? transform(extracted) : undefined;
+    const pair = binaryOf('inheritance', term);
+    return pair ? derive(pair) : undefined;
   };
 
 /**

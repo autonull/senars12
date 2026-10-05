@@ -245,6 +245,7 @@ export {
   raceDeadline,
   readBodyBounded,
   readBytesBounded,
+  SerialLanes,
   SerialQueue,
   sleep,
   stopwatch,
