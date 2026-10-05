@@ -1,4 +1,4 @@
-import { BoundedMap, maxScore, pct, type TermTruth, unique } from '@senars/util';
+import { BoundedMap, maxScore, pct, takeFirst, type TermTruth, unique } from '@senars/util';
 import type { Concept } from '../memory';
 import type { MemoryReader } from '../memory/ports/index.js';
 import type { Term } from '../terms';
@@ -221,7 +221,7 @@ export class ReasoningTrace {
       return 'This is a base belief with no derived premises.';
     }
 
-    const premiseStrs = premises.slice(0, 3).map((p) => p.term.toString());
+    const premiseStrs = takeFirst(premises, 3).map((p) => p.term.toString());
     const confidenceStr = pct(confidence);
 
     return `Derived from ${premises.length} premise(s): ${premiseStrs.join(', ')}. Confidence: ${confidenceStr}.`;

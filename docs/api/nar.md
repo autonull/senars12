@@ -868,7 +868,7 @@ _Dynamic subpath (no single entry file)._
 
 - `createMockLanguageModel`
 
-- `buildCacheKey`
+- `buildCacheKey` — The key covers every field that can change a completion, in a fixed order.
 
 - `ResponseCache` — Prompt-hash-keyed semantic cache with 60s TTL. Cleared on failure so retries
 
@@ -911,32 +911,6 @@ _Dynamic subpath (no single entry file)._
 - `ruleDefs`
 
 - `getRuleDef`
-
-## `./lm/rule-templates/fallbacks`
-
-- `SymbolicFallback`
-
-- `templateTranslation` — "X is Y" → (X --> Y). Template parser standing in for constrained JSON translation.
-
-- `similarityFallback` — Structural match admitted as a NAL similarity belief.
-
-- `abductionFallback` — NAL abduction stand-in: question the missing connector.
-
-- `conjunctionDecomposition` — Template decomposition: split conjunction goals into subgoals.
-
-- `curiosityQuestionFallback` — NAL question generation: ask for the missing variable.
-
-- `causalFallback` — Causal stand-in: name the missing cause rather than inventing one.
-
-- `elaborationFallback` — Elaboration stand-in: ask for the property the elaboration would have supplied.
-
-- `clarificationFallback` — Clarification stand-in: the question whose answer unblocks the term.
-
-- `groundingFallback` — Grounding stand-in: only a variable-bearing term has anything to ground.
-
-- `noSymbolicEquivalent` — No symbolic equivalent: the rule degrades to producing nothing rather than guessing.
-
-- `symbolicFallbacks` — Universal rule matrix: one prompt + one symbolic fallback per rule.
 
 ## `./lm/shadow-validation`
 

@@ -24,7 +24,6 @@ export type RuleFallback = (
   secondary?: Term,
   context?: Record<string, unknown>
 ) => Task[] | null;
-
 export interface LMRuleDefinition {
   id: string;
   /** The rule's prompt, before the shared Narsese preamble. */

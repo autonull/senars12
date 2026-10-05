@@ -52,49 +52,43 @@ export type ParameterLedgerEntry = z.infer<typeof ParameterRecordSchema>;
 export const DEFAULT_LEDGER_PATH = cachePath('parameters');
 
 /**
+ * How many records the synchronous view keeps. A parameter table is read for its
+ * recent history — the CLI's `.parameters` shows the tail — so this is a window,
+ * and the unbounded array it replaces was an accumulator nothing could bound.
+ */
+const PARAMETER_LEDGER_WINDOW = 10_000;
+
+/**
  * ParameterLedger — now backed by the generic `Ledger<T>` primitive from `@senars/io`.
  * Maintains the exact same public API for existing consumers.
  * Sync query methods read from an in-memory cache (hot + explicitly loaded entries).
  */
 export class ParameterLedger {
   readonly #ledger: Ledger<ParameterLedgerEntry>;
-  readonly #syncCache: ParameterLedgerEntry[] = [];
 
   constructor(options: ParameterLedgerOptions = {}) {
     const basePath = options.path ? dirname(options.path) : DEFAULT_LEDGER_PATH;
-    this.#ledger = createLedger<ParameterLedgerEntry>(basePath, ParameterRecordSchema);
+    this.#ledger = createLedger<ParameterLedgerEntry>(basePath, ParameterRecordSchema, {
+      mirror: { maxSize: PARAMETER_LEDGER_WINDOW },
+    });
   }
 
   get size(): number {
-    return this.#syncCache.length;
+    return this.#ledger.records().length;
   }
 
   record(entry: ParameterRecord): void {
-    const fullEntry = { ...entry, at: entry.at ?? Date.now() } as ParameterLedgerEntry;
-    this.#ledger.append(fullEntry);
-    this.#syncCache.push(fullEntry);
+    this.#ledger.append(entry);
   }
 
   query(filter: { parameter?: string; writer?: string } = {}): readonly ParameterRecord[] {
-    return this.#syncCache.filter(
-      (r) =>
-        (!filter.parameter || r.parameter === filter.parameter) &&
-        (!filter.writer || r.writer === filter.writer)
-    );
-  }
-
-  /** Latest record per parameter (writer-agnostic). */
-  latest(): ReadonlyMap<string, ParameterRecord> {
-    const out = new Map<string, ParameterRecord>();
-    for (const r of this.#syncCache) out.set(r.parameter, r);
-    return out;
-  }
-
-  /** Load all persisted entries into the sync cache (for full-query parity). */
-  async loadAll(): Promise<void> {
-    const entries = await this.#ledger.query({});
-    this.#syncCache.length = 0;
-    this.#syncCache.push(...entries);
+    return this.#ledger
+      .records()
+      .filter(
+        (r) =>
+          (!filter.parameter || r.parameter === filter.parameter) &&
+          (!filter.writer || r.writer === filter.writer)
+      );
   }
 
   /** Async query with full disk scan (for new consumers). */

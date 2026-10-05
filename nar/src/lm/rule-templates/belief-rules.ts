@@ -8,7 +8,15 @@ import {
   isUnderconnected,
 } from '../rule-selectors/connectivity.js';
 import type { LMRuleDefinition } from './definition.js';
-import { symbolicFallbacks } from './fallbacks.js';
+import {
+  abductionFallback,
+  causalFallback,
+  elaborationFallback,
+  groundingFallback,
+  noSymbolicEquivalent,
+  similarityFallback,
+  templateTranslation,
+} from './fallbacks.js';
 import {
   AnalogySchema,
   BeliefRevisionSchema,
@@ -33,7 +41,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.9,
     schema: TranslationSchema,
-    fallback: symbolicFallbacks['lm-narsese-translation'],
+    fallback: templateTranslation,
     maxOutputTokens: 64,
   },
   {
@@ -47,7 +55,7 @@ export const beliefRules: LMRuleDefinition[] = [
     activationCondition: hasConflictingBeliefs,
     schema: BeliefRevisionSchema,
     constitutionAware: true,
-    fallback: symbolicFallbacks['lm-belief-revision'],
+    fallback: noSymbolicEquivalent,
     maxOutputTokens: 64,
   },
   {
@@ -63,24 +71,26 @@ export const beliefRules: LMRuleDefinition[] = [
     enableTools: true,
     constitutionAware: true,
     grammar: 'narsese-term',
-    fallback: symbolicFallbacks['lm-hypothesis-generation'],
+    fallback: abductionFallback,
     maxOutputTokens: 128,
   },
   {
     id: 'lm-explanation-generation',
-    prompt: 'Complete this sentence naturally, under 20 words: "I believe {{primaryTerm}} because {{premise1}} and {{premise2}}."',
+    prompt:
+      'Complete this sentence naturally, under 20 words: "I believe {{primaryTerm}} because {{premise1}} and {{premise2}}."',
     name: 'LMExplanationGenerationRule',
     description: 'Generates explanations for beliefs',
     priority: 0.7,
     taskType: 'belief',
     budget: 0.65,
     schema: ExplanationSchema,
-    fallback: symbolicFallbacks['lm-explanation-generation'],
+    fallback: noSymbolicEquivalent,
     maxOutputTokens: 128,
   },
   {
     id: 'lm-analogical-reasoning',
-    prompt: 'Concept A is "{{primaryTerm}}". Concept B is "{{premise1}}". Concept X is "{{secondaryTerm}}". Concept Y is "[MASK]". Fill the mask with exactly one word.',
+    prompt:
+      'Concept A is "{{primaryTerm}}". Concept B is "{{premise1}}". Concept X is "{{secondaryTerm}}". Concept Y is "[MASK]". Fill the mask with exactly one word.',
     name: 'LMAnalogicalReasoningRule',
     description: 'Performs analogical reasoning between concepts',
     priority: 0.8,
@@ -91,7 +101,7 @@ export const beliefRules: LMRuleDefinition[] = [
     enableTools: true,
     grammar: 'single-word',
     maxOutputTokens: 8,
-    fallback: symbolicFallbacks['lm-analogical-reasoning'],
+    fallback: similarityFallback,
   },
   {
     id: 'lm-meta-reasoning',
@@ -102,7 +112,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.65,
     schema: MetaReasoningSchema,
-    fallback: symbolicFallbacks['lm-meta-reasoning'],
+    fallback: noSymbolicEquivalent,
     maxOutputTokens: 64,
   },
   {
@@ -114,7 +124,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.6,
     schema: UncertaintySchema,
-    fallback: symbolicFallbacks['lm-uncertainty-calibration'],
+    fallback: noSymbolicEquivalent,
     maxOutputTokens: 64,
   },
   {
@@ -126,7 +136,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.65,
     schema: SchemaInductionSchema,
-    fallback: symbolicFallbacks['lm-schema-induction'],
+    fallback: noSymbolicEquivalent,
     maxOutputTokens: 256,
   },
   {
@@ -138,7 +148,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.7,
     schema: TemporalCausalSchema,
-    fallback: symbolicFallbacks['lm-temporal-causal'],
+    fallback: causalFallback,
     maxOutputTokens: 128,
   },
   {
@@ -151,7 +161,7 @@ export const beliefRules: LMRuleDefinition[] = [
     budget: 0.65,
     activationCondition: (p) => hasVariable(p),
     schema: VariableGroundingSchema,
-    fallback: symbolicFallbacks['lm-variable-grounding'],
+    fallback: groundingFallback,
     maxOutputTokens: 128,
   },
   {
@@ -164,7 +174,7 @@ export const beliefRules: LMRuleDefinition[] = [
     budget: 0.7,
     activationCondition: isUnderconnected,
     schema: ConceptElaborationSchema,
-    fallback: symbolicFallbacks['lm-concept-elaboration'],
+    fallback: elaborationFallback,
     maxOutputTokens: 256,
   },
 ];

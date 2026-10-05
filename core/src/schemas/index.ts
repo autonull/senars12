@@ -105,6 +105,7 @@ export type {
   PerceptionGateOutput,
   RewardGateInput,
   RewardGateOutput,
+  Verdict,
 } from './gate-io.js';
 export {
   ActionGateInputSchema,

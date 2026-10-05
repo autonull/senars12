@@ -1,10 +1,9 @@
+import type { Verdict } from '@senars/core/schemas';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
 import type { JudgmentProposition, ResourceCost } from './types.js';
 
-export interface JudgmentBudgetVerdict {
-  granted: boolean;
-  terminationReason?: string;
-}
+/** The one `Verdict`, carrying the budget gate's own refusal field name. */
+export type JudgmentBudgetVerdict = Verdict<'granted', 'terminationReason'>;
 
 /** Map a proposition's ResourceCost to the budget gate's LM-call accounting. */
 export function resourceCostToLmCalls(cost: ResourceCost): number {

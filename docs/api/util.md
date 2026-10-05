@@ -880,6 +880,10 @@
 
 - `CreateLedgerOptions` — Factory options for `createLedger`: {@link LedgerConfig} without the two fields
 
+- `LedgerInput` — A ledger entry as a producer supplies it, typed by the schema's *input* side.
+
+- `DEFAULT_MIRROR_SIZE` — The mirror's default ceiling — a window of history, not a second source of truth.
+
 - `Ledger` — Generic append-only ledger with JSONL backing, rotation, retention, and in-memory hot cache.
 
 - `createLedger` — Convenience factory for common ledger shapes.

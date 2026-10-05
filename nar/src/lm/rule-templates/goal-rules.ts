@@ -3,7 +3,7 @@
  */
 import type { LMRuleDefinition } from './definition.js';
 import { isComplexGoal } from '../rule-selectors/conditions.js';
-import { symbolicFallbacks } from './fallbacks.js';
+import { conjunctionDecomposition } from './fallbacks.js';
 import { GoalDecompositionSchema } from './schemas.js';
 
 export const goalRules: LMRuleDefinition[] = [
@@ -20,7 +20,7 @@ export const goalRules: LMRuleDefinition[] = [
     schema: GoalDecompositionSchema,
     enableTools: true,
     constitutionAware: true,
-    fallback: symbolicFallbacks['lm-goal-decomposition'],
+    fallback: conjunctionDecomposition,
     maxOutputTokens: 128,
   },
 ];

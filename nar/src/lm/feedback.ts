@@ -2,7 +2,6 @@ import {
   BoundedRing,
   clamp01,
   createLogger,
-  errMsg,
   formatTruth,
   type TermTruth,
   TermTruthSchema,
@@ -16,6 +15,7 @@ import { createTask, type Task } from '../types';
 import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { parseEnrichmentResponse } from './enrichment.js';
+import { attempt } from './service/errors.js';
 import type { LMService } from './lm-service.js';
 import { lmTaskWeight } from './task-weights.js';
 
@@ -132,13 +132,17 @@ export class BidirectionalFeedbackLoop {
    * transform on the way out was caught here and answered with a second LM call
    * through a different parser.
    */
-  private async structured<T>(prompt: string, schema: ZodSchema<T>, onFailure: string): Promise<T | null> {
-    try {
-      return await this.lmService.generateObject(prompt, schema, { task: 'structured' });
-    } catch (error) {
-      this.logger.warn(`${onFailure}: ${errMsg(error)}`);
-      return null;
-    }
+  private async structured<T>(
+    prompt: string,
+    schema: ZodSchema<T>,
+    onFailure: string
+  ): Promise<T | null> {
+    return attempt(
+      this.logger,
+      onFailure,
+      () => this.lmService.generateObject(prompt, schema, { task: 'structured' }),
+      null
+    );
   }
 
   /** The prose last resort: read a verdict out of a reply that ignored the schema. */
@@ -147,16 +151,13 @@ export class BidirectionalFeedbackLoop {
     hypothesis: Task,
     context: Task[]
   ): Promise<ValidationFeedback | null> {
-    try {
-      return this.parseLegacyValidation(
-        await this.lmService.generateText(prompt),
-        hypothesis,
-        context
-      );
-    } catch (error) {
-      this.logger.warn(`Failed to validate hypothesis (degraded): ${errMsg(error)}`);
-      return null;
-    }
+    const response = await attempt(
+      this.logger,
+      'Failed to validate hypothesis (degraded)',
+      () => this.lmService.generateText(prompt),
+      null
+    );
+    return response === null ? null : this.parseLegacyValidation(response, hypothesis, context);
   }
 
   async processHypothesis(hypothesis: Task): Promise<ValidationFeedback | null> {
@@ -313,23 +314,27 @@ Respond with JSON:
     }
 
     for (const derivation of derivations.slice(0, this.config.maxContextConcepts)) {
-      try {
-        const concept = this.memory.getConcept(derivation.term);
-        if (!concept) continue;
-        const connectionCount =
-          concept.beliefBag.size() + concept.questionBag.size() + concept.goalBag.size();
-        if (connectionCount >= 3) continue;
+      const concept = this.memory.getConcept(derivation.term);
+      if (!concept) continue;
+      const connectionCount =
+        concept.beliefBag.size() + concept.questionBag.size() + concept.goalBag.size();
+      if (connectionCount >= 3) continue;
 
-        const enrichmentPrompt = this.buildEnrichmentPrompt(derivation.term, derivations);
-        const response = await this.lmService.generateText(enrichmentPrompt, {
-          task: 'structured',
-        });
-        const bridgingHypotheses = parseEnrichmentResponse(response).hypotheses;
+      const enrichmentPrompt = this.buildEnrichmentPrompt(derivation.term, derivations);
+      const response = await attempt(
+        this.logger,
+        `Failed to enrich context for concept: ${derivation.term}`,
+        () => this.lmService.generateText(enrichmentPrompt, { task: 'structured' }),
+        null
+      );
+      if (response === null) continue;
 
-        await admitTasks(this.memory, bridgingHypotheses, 'llm', this.gates);
-      } catch (error) {
-        this.logger.warn(`Failed to enrich context for concept: ${errMsg(error)}`);
-      }
+      await admitTasks(
+        this.memory,
+        parseEnrichmentResponse(response).hypotheses,
+        'llm',
+        this.gates
+      );
     }
   }
 

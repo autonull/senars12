@@ -20,8 +20,7 @@ export const tuneKnobTool = (ctx: SelfToolsContext) => {
         return { success: false, error: 'RLFP learner or NAR not available' };
       }
 
-      const previous = (rlfpLearner.getTunableKnobs() as Record<string, { current: number }>)[knob]
-        ?.current;
+      const previous = rlfpLearner.getTunableKnobs()[knob]?.current;
       const set = (next: number) => rlfpLearner.applyTuningUpdate(knob, next);
 
       return applyAndValidate(

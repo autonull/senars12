@@ -1,13 +1,10 @@
-import type { LMTask } from '@senars/util';
+import type { LMGenerateOptions } from '@senars/util';
 import { toError } from '@senars/util';
 import type { ZodSchema } from 'zod';
 import { parseJsonOrThrow, toCachedJsonSchema } from '../json.js';
 import { temperatureLadder } from './errors.js';
 
-type GenerateText = (
-  prompt: string,
-  opts?: { task?: LMTask; signal?: AbortSignal; temperature?: number; model?: string }
-) => Promise<string>;
+type GenerateText = (prompt: string, opts?: LMGenerateOptions) => Promise<string>;
 
 /** JSON-mode structured generation over plain text: schema in the prompt,
  *  first JSON object extracted, validated against the zod schema. Extracted
@@ -16,7 +13,7 @@ export async function generateObjectViaText<T>(
   generateText: GenerateText,
   prompt: string,
   schema: ZodSchema<T>,
-  opts: { task?: LMTask; signal?: AbortSignal; temperature?: number; model?: string } | undefined,
+  opts: LMGenerateOptions | undefined,
   nativeError: unknown
 ): Promise<T> {
   const jsonSchema = toCachedJsonSchema(schema);

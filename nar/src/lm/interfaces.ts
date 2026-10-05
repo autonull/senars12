@@ -14,15 +14,10 @@ import type { getCircuitBreaker } from './providers.js';
  * LM layer does not care), and `getModel` accepts the per-call model override
  * this layer's routing chain supports.
  */
-export interface ILMService
-  extends Omit<LMService, 'generateObject' | 'getModel' | 'stream'> {
+export interface ILMService extends Omit<LMService, 'generateObject' | 'getModel' | 'stream'> {
   getModel(task: LMTask, modelOverride?: string): ReturnType<LMService['getModel']>;
 
-  generateObject<T>(
-    prompt: string,
-    schema: ZodSchema<T>,
-    opts?: { task?: LMTask; signal?: AbortSignal; temperature?: number; model?: string }
-  ): Promise<T>;
+  generateObject<T>(prompt: string, schema: ZodSchema<T>, opts?: LMGenerateOptions): Promise<T>;
 
   stream(prompt: string, opts?: { task?: LMTask; signal?: AbortSignal }): AsyncIterable<string>;
 

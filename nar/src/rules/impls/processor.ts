@@ -7,10 +7,11 @@ import {
   createCallTally,
   formatNarseseTruth,
   keyedBy,
-  type ModelRuleStats,
   pushCapped,
   stopwatch,
+  takeFirst,
   toError,
+  type ModelRuleStats,
 } from '@senars/util';
 import { findConflicts } from '../../cognitive/impls/conflict-utils.js';
 import type { DriveManager } from '../../drives';
@@ -189,7 +190,14 @@ export class RuleProcessor {
   ): void {
     pushCapped(
       this.executionLog,
-      { ruleId: rule.id, ruleName: rule.name, status, durationMs, tasksProduced, timestamp: Date.now() },
+      {
+        ruleId: rule.id,
+        ruleName: rule.name,
+        status,
+        durationMs,
+        tasksProduced,
+        timestamp: Date.now(),
+      },
       GATE_LOG_CAPACITY
     );
     if (status !== 'skipped' && status !== 'aborted') {
@@ -465,19 +473,16 @@ export class RuleProcessor {
     const relatedConcepts = this.memory?.getRelatedConcepts(p1.term, 5);
     if (relatedConcepts && relatedConcepts.length > 0) {
       ruleContext.relatedBeliefs = relatedConcepts.flatMap((c) =>
-        c
-          .getBeliefs()
-          .slice(0, 2)
-          .map((b) => {
-            const truth = formatNarseseTruth(b.truth);
-            return `${b.term.toString()}${truth}`;
-          })
+        takeFirst(c.getBeliefs(), 2).map((b) => {
+          const truth = formatNarseseTruth(b.truth);
+          return `${b.term.toString()}${truth}`;
+        })
       );
     }
 
     const goals = this.memory?.getGoals();
     if (goals && goals.length > 0) {
-      ruleContext.activeGoals = goals.slice(0, 5).map((g) => g.term.toString());
+      ruleContext.activeGoals = takeFirst(goals, 5).map((g) => g.term.toString());
     }
 
     const results = await Promise.all(
@@ -502,7 +507,12 @@ export class RuleProcessor {
           for (const r of result) {
             this.recorder.record(modelRule.id, p1, effectiveP2, r);
           }
-          this.#recordModelRuleExecution(modelRule, result.length > 0 ? 'fired' : 'timeout', elapsed(), result.length);
+          this.#recordModelRuleExecution(
+            modelRule,
+            result.length > 0 ? 'fired' : 'timeout',
+            elapsed(),
+            result.length
+          );
           return result;
         } catch (error) {
           this.handleRuleError(error, modelRule.id);

@@ -123,20 +123,34 @@ export const BudgetGateOutputSchema = z.object({
 export type GateName = 'perception' | 'action' | 'reward' | 'budget';
 
 /**
- * The one gate decision: a grant, and why not when refused.
+ * The decision shape: a grant, and why not when refused.
  *
- * Each gate's *output* keeps the grant and reason names of its own domain —
- * `admitted`/`rejectionReason`, `authorized`/`vetoReason`, `granted`/`terminationReason` —
- * because those are wire contracts and event payloads. This is the vocabulary
- * everything downstream of a gate reads: telemetry, the veto counters, and the
- * decision span. A gate declares its projection once, so a refusal can never be
- * reported under a different rule than the one its own output states.
+ * Four subsystems answer "permitted, and if not why" — the four kernel gates, the
+ * capability policy, the epistemic firewall, and the judgment resource gate — and
+ * each was a hand-written `{ flag: boolean; reason?: string }` record. The field
+ * *names* are wire contracts a consumer switches on, so they are parameters rather
+ * than one imposed spelling; the shape is not, and it is declared once here.
+ *
+ * The reason is deliberately optional rather than nullable: absent means granted,
+ * which is the same rule the gate telemetry reads it under.
  */
-export interface GateOutcome {
-  granted: boolean;
-  /** Refusal reason; undefined when granted. */
-  reason?: string;
-}
+export type Verdict<Granted extends string, Reason extends string = 'reason'> = {
+  [K in Granted]: boolean;
+} & {
+  /** Refusal reason; absent when granted. */
+  [K in Reason]?: string;
+};
+
+/**
+ * The one gate decision, in the kernel's vocabulary. Every gate's *output* keeps
+ * the grant and reason names of its own domain — `admitted`/`rejectionReason`,
+ * `authorized`/`vetoReason`, `granted`/`terminationReason` — because those are
+ * wire contracts and event payloads; this is the vocabulary everything downstream
+ * of a gate reads: telemetry, the veto counters, and the decision span. A gate
+ * declares its projection once, so a refusal can never be reported under a
+ * different rule than the one its own output states.
+ */
+export type GateOutcome = Verdict<'granted'>;
 
 export type PerceptionGateInput = z.infer<typeof PerceptionGateInputSchema>;
 export type PerceptionGateOutput = z.infer<typeof PerceptionGateOutputSchema>;

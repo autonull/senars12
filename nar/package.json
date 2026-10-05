@@ -100,10 +100,6 @@
       "types": "./src/lm/rule-templates/index.ts",
       "import": "./src/lm/rule-templates/index.ts"
     },
-    "./lm/rule-templates/fallbacks": {
-      "types": "./src/lm/rule-templates/fallbacks.ts",
-      "import": "./src/lm/rule-templates/fallbacks.ts"
-    },
     "./lm/shadow-validation": {
       "types": "./src/lm/shadow-validation.ts",
       "import": "./src/lm/shadow-validation.ts"

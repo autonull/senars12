@@ -1,16 +1,20 @@
 /**
  * Pure-NAL symbolic fallbacks for LM rules: zero LM dependency, safe on any model.
  * A fallback returning null skips the rule (no symbolic equivalent); [] degrades silently.
+ *
+ * These are named functions rather than rows in a table keyed by rule id. The
+ * table looked up `symbolicFallbacks[def.id]` from each definition, which meant a
+ * rule and its fallback agreed only by two identical string literals — rename one
+ * and the lookup answered `undefined`, which the type accepted as "no fallback".
+ * Binding the function in the definition makes that unrepresentable.
  */
 import { fromNarsese, getArgs, hasVariable, type Term, Truth } from '../../terms';
 import { createTask, type Task, type TaskType } from '../../types';
 import { lmTaskWeight } from '../task-weights.js';
+import type { RuleFallback } from './definition.js';
 
-export type SymbolicFallback = (
-  primary: Term,
-  secondary?: Term,
-  context?: Record<string, unknown>
-) => Task[] | null;
+/** A named fallback *is* the definition's fallback type; this alias names the role. */
+export type SymbolicFallback = RuleFallback;
 
 const task = (term: Term | string, type: TaskType, f = 0.5, c = 0.6): Task[] => {
   const parsed = typeof term === 'string' ? fromNarsese(term) : term;
@@ -66,29 +70,3 @@ export const groundingFallback: SymbolicFallback = (primary) =>
 
 /** No symbolic equivalent: the rule degrades to producing nothing rather than guessing. */
 export const noSymbolicEquivalent: SymbolicFallback = () => null;
-
-/**
- * Universal rule matrix: one prompt + one symbolic fallback per rule.
- * Rules without a safe symbolic equivalent return null (skip) on LM failure.
- */
-export const symbolicFallbacks: Record<string, SymbolicFallback> = {
-  'lm-narsese-translation': templateTranslation,
-  'lm-analogical-reasoning': similarityFallback,
-  'lm-hypothesis-generation': abductionFallback,
-  'lm-goal-decomposition': conjunctionDecomposition,
-  'lm-curiosity-question': curiosityQuestionFallback,
-  'lm-explanation-generation': noSymbolicEquivalent,
-  'lm-belief-revision': noSymbolicEquivalent,
-  'lm-schema-induction': noSymbolicEquivalent,
-  'lm-meta-reasoning': noSymbolicEquivalent,
-  'lm-uncertainty-calibration': noSymbolicEquivalent,
-  'lm-temporal-causal': causalFallback,
-  'lm-variable-grounding': groundingFallback,
-  'lm-concept-elaboration': elaborationFallback,
-  'lm-interactive-clarification': clarificationFallback,
-  'lm-v2-hypothesis': abductionFallback,
-  'lm-v2-explanation': noSymbolicEquivalent,
-  'lm-v2-analogy': similarityFallback,
-  'lm-v2-causal': causalFallback,
-  'lm-v2-schema': noSymbolicEquivalent,
-};

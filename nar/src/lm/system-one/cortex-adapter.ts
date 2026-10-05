@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { collectUpTo, splitLines } from '@senars/util';
+import { collectUpTo, splitLines, takeFirst } from '@senars/util';
 import type { LMService } from '../lm-service.js';
 import type {
   CognitiveContext,
@@ -86,9 +86,9 @@ export class LMServiceCortex implements GenerativeCortex {
     instruction: string,
     maxCandidates: number
   ): string {
-    const beliefs = context.topBeliefs.slice(0, 5).join('\n');
-    const goals = context.topGoals.slice(0, 3).join('\n');
-    const wm = context.workingMemory.slice(0, 3).join('\n');
+    const beliefs = takeFirst(context.topBeliefs, 5).join('\n');
+    const goals = takeFirst(context.topGoals, 3).join('\n');
+    const wm = takeFirst(context.workingMemory, 3).join('\n');
 
     return `Top Beliefs:
 ${beliefs || '(none)'}

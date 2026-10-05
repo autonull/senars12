@@ -73,89 +73,90 @@ export class IRCConnection extends BaseConnection {
   }
 
   override async connect(): Promise<void> {
-    if (this.state === 'connected') return;
-    this.setState('connecting');
+    await this.runConnect(
+      'IRC_CONNECT_ERROR',
+      () =>
+        new Promise<void>((resolve, reject) => {
+          const {
+            port,
+            username,
+            realname,
+            password,
+            channels,
+            tls,
+            sasl,
+            autoReconnectMaxRetries,
+            server,
+            nick,
+          } = this.ircConfig;
 
-    return new Promise((resolve, reject) => {
-      const {
-        port,
-        username,
-        realname,
-        password,
-        channels,
-        tls,
-        sasl,
-        autoReconnectMaxRetries,
-        server,
-        nick,
-      } = this.ircConfig;
+          this.client = new irc.Client(server, nick, {
+            port,
+            userName: username,
+            realName: realname,
+            password: password || undefined,
+            channels,
+            secure: tls,
+            selfSigned: false,
+            certExpired: false,
+            sasl,
+            floodProtection: false,
+            stripColors: true,
+            autoConnect: false,
+            autoRejoin: false,
+            retryCount: autoReconnectMaxRetries,
+            retryDelay: 2000,
+          });
 
-      this.client = new irc.Client(server, nick, {
-        port,
-        userName: username,
-        realName: realname,
-        password: password || undefined,
-        channels,
-        secure: tls,
-        selfSigned: false,
-        certExpired: false,
-        sasl,
-        floodProtection: false,
-        stripColors: true,
-        autoConnect: false,
-        autoRejoin: false,
-        retryCount: autoReconnectMaxRetries,
-        retryDelay: 2000,
-      });
+          const disarmDeadline = deadline(CONNECT_TIMEOUT_MS, () => {
+            reject(new Error('Connection timeout'));
+            this.dispose();
+          });
 
-      const disarmDeadline = deadline(CONNECT_TIMEOUT_MS, () => {
-        reject(new Error('Connection timeout'));
-        this.dispose();
-      });
+          this.client.on('registered', () => {
+            disarmDeadline();
+            this.connected = true;
+            this.scheduleJoin();
+            this.startQueueDrain();
+            this.logger.info(`IRC connected to ${server}`);
+            resolve();
+          });
 
-      this.client.on('registered', () => {
-        disarmDeadline();
-        this.connected = true;
-        this.scheduleJoin();
-        this.startQueueDrain();
-        this.logger.info(`IRC connected to ${server}`);
-        resolve();
-      });
-
-      this.client.on('error', (err) =>
-        this.handleError(this.createError(err.message, 'IRC_ERROR', true, err))
-      );
-      this.client.on('message', (from, to, text) =>
-        this.handleMessage(
-          this.createMessage(from, text, { channel: to.startsWith('#') ? to : undefined })
-        )
-      );
-      this.client.on('close', () => {
-        this.connected = false;
-        if (this.state === 'connected') {
-          this.setState('disconnected');
-          if (this.ircConfig.autoReconnect) this.scheduleReconnect();
-        }
-      });
-      this.client.on('reconnecting', (d) =>
-        this.logger.info(`Reconnecting... attempt ${d.attempt}`)
-      );
-      this.client.connect();
-    });
+          this.client.on('error', (err) =>
+            this.handleError(this.createError(err.message, 'IRC_ERROR', true, err))
+          );
+          this.client.on('message', (from, to, text) =>
+            this.handleMessage(
+              this.createMessage(from, text, { channel: to.startsWith('#') ? to : undefined })
+            )
+          );
+          this.client.on('close', () => {
+            this.connected = false;
+            if (this.state === 'connected') {
+              this.setState('disconnected');
+              if (this.ircConfig.autoReconnect) this.scheduleReconnect();
+            }
+          });
+          this.client.on('reconnecting', (d) =>
+            this.logger.info(`Reconnecting... attempt ${d.attempt}`)
+          );
+          this.client.connect();
+        })
+    );
   }
 
   override async disconnect(reason = 'Goodbye'): Promise<void> {
-    if (this.isDisconnected()) return;
-    this.setState('disconnecting');
     this.haltQueueDrain();
-
-    return new Promise((resolve) => {
-      if (!this.client) return resolve();
-      this.client.disconnect(reason, () => {
-        this.dispose();
-        resolve();
-      });
-    });
+    await this.runDisconnect(
+      () =>
+        new Promise<void>((resolve) => {
+          if (!this.client) return resolve();
+          this.client.disconnect(reason, () => {
+            this.dispose();
+            resolve();
+          });
+        })
+    );
   }
 
   async send(target: string, text: string): Promise<void> {

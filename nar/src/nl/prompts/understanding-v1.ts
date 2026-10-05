@@ -1,4 +1,4 @@
-import { serializeTruth, type TermTruth } from '@senars/util';
+import { serializeTruth, takeFirst, type TermTruth } from '@senars/util';
 import type { TranslationCacheEntry } from '../cache.js';
 
 const NARSESE_GRAMMAR = `Narsese syntax:
@@ -115,7 +115,7 @@ export function buildUnderstandingPrompt(
 
   if (opts.beliefs?.length) {
     parts.push('\nRelated beliefs in memory:');
-    for (const b of opts.beliefs.slice(0, 10)) {
+    for (const b of takeFirst(opts.beliefs, 10)) {
       parts.push(`  ${b}`);
     }
   }

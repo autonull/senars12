@@ -21,6 +21,7 @@ import { BoundedMap } from './bounded-map.js';
 import type { Clock } from './clock.js';
 import { systemClock } from './clock.js';
 import type { BoundedContainer } from './collections.js';
+import { getOrInsert } from './collections.js';
 
 /** The counters one attempt changes. Every field is derived on record. */
 export interface CallTally {
@@ -125,11 +126,7 @@ export class CallTallySeries<K, T extends CallTally = CallTally>
    * record without wanting another attempt counted.
    */
   getOrInsert(key: K): T {
-    const existing = this.#tallies.get(key);
-    if (existing !== undefined) return existing;
-    const created = this.#create(key);
-    this.#tallies.set(key, created);
-    return created;
+    return getOrInsert(this.#tallies, key, () => this.#create(key));
   }
 
   /** The live tally. Mutating it is the caller's; the series owns only the map. */

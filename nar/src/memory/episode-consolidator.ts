@@ -8,12 +8,13 @@
  */
 import type { Episode, EpisodeType } from '@senars/util';
 import {
-  type Clock,
   groupBy,
   selectByPriority,
   sha256Hex,
   sha256Prefixed,
   shortSha256Hex,
+  takeFirst,
+  type Clock,
 } from '@senars/util';
 import {
   AIKRProcessor,
@@ -225,8 +226,7 @@ export class EpisodeConsolidator extends AikrShell<
  * caller via `symbolicSummary` when the LM path yields nothing.
  */
 export const symbolicSummary = (group: readonly Episode[]): string => {
-  const heads = group
-    .slice(0, 3)
+  const heads = takeFirst(group, 3)
     .map((e) => e.content.slice(0, 48))
     .join(' | ');
   return `consolidated ${group.length} ${group[0]?.type ?? 'episode'} episodes: ${heads}${

@@ -1,4 +1,5 @@
 import path from 'node:path';
+import type { Verdict } from './schemas/gate-io.js';
 import { containsPath } from '@senars/util';
 
 export interface PolicyRule {
@@ -22,17 +23,11 @@ const DEFAULT_POLICY: PolicyRule = {
 };
 
 /**
- * What a policy check answers. One record for all three checks: they were three
- * inline `{ allowed, reason? }` literals plus a fourth on the capability sandbox's
- * port, and a fourth `{ granted, reason? }` answer sitting in `GateOutcome` for the
- * gates that guard the same capability from outside. The gates keep their own
- * names — those are wire contracts a consumer switches on — but the policy
- * surface is one shape.
+ * What a policy check answers. One record for all three checks, and the same
+ * `Verdict` the kernel gates, the epistemic firewall and the judgment resource
+ * gate answer in — each keeping the field names its own callers read.
  */
-export interface PolicyDecision {
-  allowed: boolean;
-  reason?: string;
-}
+export type PolicyDecision = Verdict<'allowed'>;
 
 export class PolicyEngine {
   #policy: PolicyRule;

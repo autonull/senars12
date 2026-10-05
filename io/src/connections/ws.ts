@@ -1,4 +1,4 @@
-import { createLogger, errMsg, makeId } from '@senars/util';
+import { createLogger, makeId } from '@senars/util';
 import { type WebSocket, WebSocketServer } from 'ws';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { startWSServer } from '../utils/http.js';
@@ -30,36 +30,25 @@ export class WSConnection extends BaseConnection {
   }
 
   override async connect(): Promise<void> {
-    if (this.state === 'connected') return;
-    this.setState('connecting');
-
-    try {
+    await this.runConnect('WS_SERVER_ERROR', async () => {
       this.server = await startWSServer(this.port, WebSocketServer);
       this.server.on('connection', (ws) => this.handleNewClient(ws));
-      this.setState('connected');
-      this.logger.info(`WebSocket server listening on port ${this.port}`);
-    } catch (err) {
-      this.handleError(this.createError(errMsg(err), 'WS_SERVER_ERROR', true, err as Error));
-      throw err;
-    }
+    });
+    this.logger.info(`WebSocket server listening on port ${this.port}`);
   }
 
   override async disconnect(reason?: string): Promise<void> {
-    if (this.isDisconnected()) return;
-    this.setState('disconnecting');
-
-    for (const client of this.clients.values()) {
-      cleanupWSClient(client, 1000, reason ?? 'Server closing');
-    }
-    this.clients.clear();
-
-    return new Promise((resolve) => {
-      this.server?.close(() => {
-        this.setState('disconnected');
-        this.logger.info(`WebSocket server on port ${this.port} closed`);
-        resolve();
-      });
-    });
+    await this.runDisconnect(
+      () =>
+        new Promise<void>((resolve) => {
+          for (const client of this.clients.values()) {
+            cleanupWSClient(client, 1000, reason ?? 'Server closing');
+          }
+          this.clients.clear();
+          this.server?.close(() => resolve());
+        })
+    );
+    this.logger.info(`WebSocket server on port ${this.port} closed`);
   }
 
   async send(target: string, text: string): Promise<void> {

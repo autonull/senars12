@@ -1,17 +1,10 @@
-import { type Clock, djb2, type LMTask, LruCache } from '@senars/util';
+import { type Clock, djb2, LruCache } from '@senars/util';
+import type { LMGenerateOptions } from '@senars/util';
 
 const CACHE_TTL_MS = 60_000;
 
-export function buildCacheKey(
-  prompt: string,
-  options?: {
-    task?: LMTask;
-    temperature?: number;
-    maxOutputTokens?: number;
-    grammar?: string;
-    model?: string;
-  }
-): string {
+/** The key covers every field that can change a completion, in a fixed order. */
+export function buildCacheKey(prompt: string, options?: LMGenerateOptions): string {
   const parts = [
     prompt,
     options?.task ?? 'fast',

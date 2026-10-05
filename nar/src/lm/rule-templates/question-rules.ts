@@ -3,13 +3,14 @@
  */
 import type { LMRuleDefinition } from './definition.js';
 import { hasHighCuriosity } from '../rule-selectors/confidence.js';
-import { symbolicFallbacks } from './fallbacks.js';
+import { clarificationFallback, curiosityQuestionFallback } from './fallbacks.js';
 import { QuestionGenerationSchema } from './schemas.js';
 
 export const questionRules: LMRuleDefinition[] = [
   {
     id: 'lm-curiosity-question',
-    prompt: 'Given "{{primaryTerm}}" and curiosity drive, what questions should be asked? Generate Narsese questions. Respond with JSON: {"questions": [{"narsese": "?term", "relevance": 0.8, "rationale": "..."}]}',
+    prompt:
+      'Given "{{primaryTerm}}" and curiosity drive, what questions should be asked? Generate Narsese questions. Respond with JSON: {"questions": [{"narsese": "?term", "relevance": 0.8, "rationale": "..."}]}',
     name: 'LMCuriosityQuestionRule',
     description: 'Generates questions driven by curiosity',
     priority: 0.7,
@@ -18,7 +19,7 @@ export const questionRules: LMRuleDefinition[] = [
     singlePremise: true,
     activationCondition: hasHighCuriosity,
     schema: QuestionGenerationSchema,
-    fallback: symbolicFallbacks['lm-curiosity-question'],
+    fallback: curiosityQuestionFallback,
     maxOutputTokens: 256,
   },
   {
@@ -29,7 +30,7 @@ export const questionRules: LMRuleDefinition[] = [
     priority: 0.7,
     taskType: 'question',
     budget: 0.65,
-    fallback: symbolicFallbacks['lm-interactive-clarification'],
+    fallback: clarificationFallback,
     maxOutputTokens: 64,
   },
 ];

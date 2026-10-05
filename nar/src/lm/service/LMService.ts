@@ -40,14 +40,8 @@ const PROVIDER_ALIASES: Readonly<Record<string, LMProviderName>> = Object.freeze
   webllm: 'webllm',
 });
 
-/** Per-call structured-generation options. */
-interface ObjectOptions {
-  task?: LMTask;
-  signal?: AbortSignal;
-  temperature?: number;
-  /** H2: explicit per-call model id (e.g. 'cloud:quality') — bypasses the routing chain. */
-  model?: string;
-}
+/** Per-call structured-generation options — the one generation option bag. */
+type ObjectOptions = LMGenerateOptions;
 
 /** Cached form of a structured result. */
 const jsonCodec = {

@@ -28,8 +28,20 @@ import { attemptLMCorrection, createSeNARSRegistry } from '@senars/nar/lm';
 import { traceAbstractor } from '@senars/nar/lm/context/trace-abstractor';
 import { createLMService, createMockLMService } from '@senars/nar/lm/lm-service';
 import { createRule } from '@senars/nar/lm/rule-builders';
-import { ruleDefs } from '@senars/nar/lm/rule-templates';
-import { symbolicFallbacks } from '@senars/nar/lm/rule-templates/fallbacks';
+import { getRuleDef, ruleDefs } from '@senars/nar/lm/rule-templates';
+
+/**
+ * A rule's symbolic fallback, by rule id.
+ *
+ * The fallback is a field of the rule's definition, so the definition is also the
+ * only place to read it from — there is no second table keyed by the same ids to
+ * fall out of step.
+ */
+const fallbackOf = (id: string) => {
+  const { fallback } = getRuleDef(id);
+  if (!fallback) throw new Error(`Rule ${id} declares no symbolic fallback`);
+  return fallback;
+};
 import { ShadowValidator } from '@senars/nar/lm/shadow-validation';
 import { NLUnderstandingService, TranslationCache } from '@senars/nar/nl';
 import { createLogger } from '@senars/util';
@@ -476,7 +488,7 @@ async function runScenario6(): Promise<boolean> {
   // 3. Symbolic fallback: NAL analogy → similarity belief
   const cat = termParser.parse('cat') as Term;
   const dog = termParser.parse('dog') as Term;
-  const fb = symbolicFallbacks['lm-analogical-reasoning'](cat, dog);
+  const fb = fallbackOf('lm-analogical-reasoning')(cat, dog);
   const symbolic = fb !== null && fb.length === 1 && fb[0]!.term.toString().includes('<->');
   logger.info(`  ${symbolic ? '✅' : '❌'} NAL fallback: ${fb?.[0]?.term}`);
 
@@ -518,7 +530,7 @@ async function runScenario7(): Promise<boolean> {
   ] as const;
 
   // Every planned rule has a fallback registered
-  const allCovered = fallbackIds.every((id) => typeof symbolicFallbacks[id] === 'function');
+  const allCovered = fallbackIds.every((id) => typeof getRuleDef(id).fallback === 'function');
   logger.info(
     `  ${allCovered ? '✅' : '❌'} All ${fallbackIds.length} rules have symbolic fallbacks`
   );
@@ -526,11 +538,11 @@ async function runScenario7(): Promise<boolean> {
   // Fallbacks produce valid NAL tasks with the LM dead
   const server = termParser.parse('server') as Term;
   const slow = termParser.parse('slow') as Term;
-  const translation = symbolicFallbacks['lm-narsese-translation'](
+  const translation = fallbackOf('lm-narsese-translation')(
     termParser.parse('"server is slow"') as Term
   );
-  const analogy = symbolicFallbacks['lm-analogical-reasoning'](server, slow);
-  const curiosity = symbolicFallbacks['lm-curiosity-question'](server);
+  const analogy = fallbackOf('lm-analogical-reasoning')(server, slow);
+  const curiosity = fallbackOf('lm-curiosity-question')(server);
 
   // Real NAR cycle with all-fallback tasks: reasoning continues, no crash
   const nar = createNAR({

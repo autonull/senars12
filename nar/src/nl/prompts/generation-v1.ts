@@ -1,4 +1,4 @@
-import { formatTruth } from '@senars/util';
+import { formatTruth, takeFirst } from '@senars/util';
 // Type-only, so the pair stays acyclic at runtime: `generation.ts` imports this
 // builder, and this borrows the belief/conflict shapes rather than spelling a
 // second copy that a widened field would leave behind.
@@ -34,7 +34,7 @@ export function buildGenerationPrompt(opts: {
 
   if (opts.beliefs.length > 0) {
     parts.push('\nDerived beliefs:');
-    for (const b of opts.beliefs.slice(0, 10)) {
+    for (const b of takeFirst(opts.beliefs, 10)) {
       const truth = b.truth ? ` ${formatTruth(b.truth)}` : '';
       parts.push(`  ${b.term}${truth}`);
     }

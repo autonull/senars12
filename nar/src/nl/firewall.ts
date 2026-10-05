@@ -1,4 +1,4 @@
-import type { TaskBagKind } from '@senars/core/schemas';
+import type { TaskBagKind, Verdict } from '@senars/core/schemas';
 import { clamp, formatTruth } from '@senars/util';
 import {
   atomicSymbols,
@@ -9,10 +9,8 @@ import {
 } from '../terms/index.js';
 import { normalizeNarsese, parseNarseseLenient } from './normalize.js';
 
-export interface FirewallVerdict {
-  allowed: boolean;
-  reason?: string;
-}
+/** The one `Verdict`, in the firewall's vocabulary. */
+export type FirewallVerdict = Verdict<'allowed'>;
 
 export interface FirewallOptions {
   maxLength?: number;

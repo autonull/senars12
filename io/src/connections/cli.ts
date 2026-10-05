@@ -47,70 +47,66 @@ export class CLIConnection extends BaseConnection {
   }
 
   override async connect(): Promise<void> {
-    this.setState('connecting');
+    await this.runConnect('CLI_CONNECT_ERROR', () => {
+      this.rl = createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        prompt: 'senars> ',
+        terminal: process.stdin.isTTY,
+        completer: (line: string): [string[], string] => {
+          const parts = splitWords(line);
+          const lastPart = line.endsWith(' ') ? '' : (parts.at(-1) ?? '');
+          const dotCmds = Array.from(this.commands.keys()).map((c) => `.${c}`);
+          const dotMatches = dotCmds.filter((cmd) => cmd.startsWith(lastPart));
+          const all = dotMatches.length ? dotMatches : [lastPart];
+          return [all, lastPart];
+        },
+      });
 
-    this.rl = createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      prompt: 'senars> ',
-      terminal: process.stdin.isTTY,
-      completer: (line: string): [string[], string] => {
-        const parts = splitWords(line);
-        const lastPart = line.endsWith(' ') ? '' : (parts.at(-1) ?? '');
-        const dotCmds = Array.from(this.commands.keys()).map((c) => `.${c}`);
-        const dotMatches = dotCmds.filter((cmd) => cmd.startsWith(lastPart));
-        const all = dotMatches.length ? dotMatches : [lastPart];
-        return [all, lastPart];
-      },
+      this.rl.on('line', async (line) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          this.rl?.prompt();
+          return;
+        }
+
+        if (trimmed.startsWith('.')) {
+          const rest = trimmed.slice(1);
+          this.cmdQueue.push(async () => {
+            await this.tryCommand(rest);
+            this.processQueue();
+          });
+          if (!this.cmdRunning) this.processQueue();
+          return;
+        }
+
+        this.handleMessage(this.createMessage('local-user', trimmed));
+      });
+
+      this.rl.on('close', () => {
+        this.setState('disconnected');
+      });
+
+      // Named so it can be taken back off the process: an anonymous handler here
+      // survived every disconnect and accumulated one per connect.
+      const onSigint = (): void => {
+        this.rl?.close();
+      };
+      process.on('SIGINT', onSigint);
+      this.disposal.add(() => {
+        process.off('SIGINT', onSigint);
+      });
     });
-
-    this.rl.on('line', async (line) => {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        this.rl?.prompt();
-        return;
-      }
-
-      if (trimmed.startsWith('.')) {
-        const rest = trimmed.slice(1);
-        this.cmdQueue.push(async () => {
-          await this.tryCommand(rest);
-          this.processQueue();
-        });
-        if (!this.cmdRunning) this.processQueue();
-        return;
-      }
-
-      this.handleMessage(this.createMessage('local-user', trimmed));
-    });
-
-    this.rl.on('close', () => {
-      this.setState('disconnected');
-    });
-
-    // Named so it can be taken back off the process: an anonymous handler here
-    // survived every disconnect and accumulated one per connect.
-    const onSigint = (): void => {
-      this.rl?.close();
-    };
-    process.on('SIGINT', onSigint);
-    this.disposal.add(() => {
-      process.off('SIGINT', onSigint);
-    });
-
-    this.setState('connected');
     this.logger.info(`CLI connection ${this.id} connected (${this.commands.size} commands)`);
   }
 
   override async disconnect(reason?: string): Promise<void> {
-    if (this.isDisconnected()) return;
-
-    this.setState('disconnecting');
-    this.rl?.close();
-    this.rl = null;
-    void this.disposal.disposeAll();
-    this.disposal = new DisposalRegistry();
-    this.setState('disconnected');
+    await this.runDisconnect(async () => {
+      this.rl?.close();
+      this.rl = null;
+      await this.disposal.disposeAll();
+      this.disposal = new DisposalRegistry();
+    });
     this.logger.info(`CLI connection ${this.id} disconnected: ${reason ?? 'normal'}`);
   }
 

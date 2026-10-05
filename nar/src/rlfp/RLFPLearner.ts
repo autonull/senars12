@@ -1,4 +1,12 @@
-import { cachePath, clamp, clampSigned, createLogger, ensureArray, errMsg, roundTo } from '@senars/util';
+import {
+  cachePath,
+  clamp,
+  clampSigned,
+  createLogger,
+  ensureArray,
+  errMsg,
+  roundTo,
+} from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters.js';
@@ -114,57 +122,28 @@ export class RLFPLearner {
     return this.policyOptimizer;
   }
 
-  getTunableKnobs() {
-    return {
-      maxDerivationsPerStep: {
-        current: this.currentParams.inference.maxDerivationsPerStep,
-        min: 10,
-        max: 500,
-        step: 10,
-      },
-      maxDerivationDepth: {
-        current: this.currentParams.inference.maxDerivationDepth,
-        min: 5,
-        max: 20,
-        step: 1,
-      },
-      maxRulesPerCycle: {
-        current: this.currentParams.lm.maxRulesPerCycle,
-        min: 1,
-        max: 13,
-        step: 1,
-      },
-      callTimeoutMs: {
-        current: this.currentParams.lm.callTimeoutMs,
-        min: 1000,
-        max: 30000,
-        step: 500,
-      },
-      decayRate: {
-        current: this.currentParams.priority.decayRate,
-        min: 0.001,
-        max: 0.1,
-        step: 0.001,
-      },
-      cpuThrottleMs: {
-        current: this.currentParams.inference.cpuThrottleMs,
-        min: 0,
-        max: 50,
-        step: 1,
-      },
-      maxLoops: {
-        current: this.currentParams.modelRunner.maxLoops,
-        min: 1,
-        max: 10,
-        step: 1,
-      },
-      activationDecayRate: {
-        current: this.currentParams.memory.activationDecayRate,
-        min: 0.001,
-        max: 0.1,
-        step: 0.001,
-      },
-    };
+  /**
+   * Every knob this learner will tune, with the range it may be tuned to.
+   *
+   * A projection of {@link createKnobSet} rather than a second copy of the ranges.
+   * The copy was written before `knobs.ts` derived its rows from the canonical
+   * `cognitiveBounds` table, and drifted from it on eight of eight rows — the
+   * tuner reported `maxDerivationsPerStep` as unreachable past 500 when the config
+   * schema admitted 10 000. It also listed seven of the ten, so two tunable knobs
+   * were invisible to the report that exists to show them.
+   */
+  getTunableKnobs(): Record<string, { current: number; min: number; max: number; step: number }> {
+    return Object.fromEntries(
+      Object.entries(this.knobs).map(([name, knob]) => [
+        name,
+        {
+          current: knob.get(),
+          min: knob.min,
+          max: knob.max,
+          step: knob.step,
+        },
+      ])
+    );
   }
 
   applyTuningUpdate(knob: string, newValue: number): void {

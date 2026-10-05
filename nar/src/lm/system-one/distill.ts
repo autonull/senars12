@@ -84,32 +84,27 @@ const DistillationLabelEntrySchema = BaseLedgerEntrySchema.extend({
 
 export type DistillationLabelEntry = z.infer<typeof DistillationLabelEntrySchema>;
 
+/** How many labels the synchronous view keeps for a calibration fit. */
+const JUDGMENT_DATASET_WINDOW = 50_000;
+
 /** Append-only, redaction-per-retention: hashes + labels + inline vectors, never raw text. */
 export class JudgmentDataset {
   readonly #ledger: Ledger<DistillationLabelEntry>;
-  readonly #basePath: string;
-  #labels: DistillationLabel[] = [];
   #vectors = new Map<string, Float32Array>();
 
   constructor(basePath: string, options: { rollover?: RolloverPolicy } = {}) {
-    this.#basePath = basePath;
     this.#ledger = createLedger<DistillationLabelEntry>(basePath, DistillationLabelEntrySchema, {
       rollover: options.rollover,
       hotRetentionMs: 5 * 60 * 1000,
+      mirror: { maxSize: JUDGMENT_DATASET_WINDOW },
     });
   }
 
   /** Record a label with optional inline vector (base64-encoded). */
   record(label: DistillationLabel, embedding?: Float32Array): void {
     const vectorB64 = embedding ? encodeVector(embedding) : label.vector;
-    const labelWithVector = vectorB64 ? { ...label, vector: vectorB64 } : label;
-    this.#labels.push(labelWithVector);
+    this.#ledger.append(vectorB64 ? { ...label, vector: vectorB64 } : label);
     if (embedding) this.#vectors.set(label.evidenceId, embedding);
-    const entry: DistillationLabelEntry = {
-      ...labelWithVector,
-      at: Date.now(),
-    };
-    this.#ledger.append(entry);
   }
 
   /** Record a raw state embedding keyed by evidenceId (inline vector storage). */
@@ -122,18 +117,18 @@ export class JudgmentDataset {
     return this.#vectors.get(evidenceId);
   }
 
-  /** Get all labels (synchronous, from in-memory index). */
+  /** Get all labels (synchronous, from the ledger's mirror). */
   all(): readonly DistillationLabel[] {
-    return this.#labels;
+    return this.#ledger.records();
   }
 
   get size(): number {
-    return this.#labels.length;
+    return this.#ledger.records().length;
   }
 
   /** Labels with their sidecar vectors inlined, as JSON-ready rows. */
-  rows(): (DistillationLabel | (DistillationLabel & { vector: string }))[] {
-    return this.#labels.map((l) => {
+  rows(): DistillationLabelEntry[] {
+    return this.#ledger.records().map((l) => {
       const vector = this.#vectors.get(l.evidenceId);
       return vector ? { ...l, vector: encodeVector(vector) } : l;
     });

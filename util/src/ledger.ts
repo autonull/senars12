@@ -10,7 +10,13 @@ import { z } from 'zod';
 import { BoundedMap } from './utils/bounded-map.js';
 import { errMsg } from './utils/error.js';
 import { utcDate } from './utils/format.js';
-import { appendJsonlRow, ensureDir, ensureDirSync, readJsonlAsync, writeJsonl } from './utils/fs.js';
+import {
+  appendJsonlRow,
+  ensureDir,
+  ensureDirSync,
+  readJsonlAsync,
+  writeJsonl,
+} from './utils/fs.js';
 
 /**
  * Ledger entry schema — all entries carry a timestamp and correlation context.
@@ -75,17 +81,32 @@ export interface LedgerQuery {
 /**
  * Ledger configuration.
  */
-export interface LedgerConfig<T extends BaseLedgerEntry> {
+export interface LedgerConfig<T extends BaseLedgerEntry, I = T> {
   /** Base directory for JSONL files. */
   basePath: string;
   /** Zod schema for entry validation (extends BaseLedgerEntrySchema). */
-  schema: z.ZodType<T>;
+  schema: z.ZodType<T, I>;
   /** Rotation/rollover policy (all fields optional, defaults applied). */
   rollover?: RolloverPolicy;
   /** In-memory retention window for hot queries (ms). Default: 5 minutes; `0` disables the hot cache. */
   hotRetentionMs?: number;
   /** Hard cap on hot-cache entries, so a burst inside one retention window cannot grow without bound. Default: 10 000. */
   hotCacheMaxSize?: number;
+  /**
+   * Retain every appended entry for synchronous reads, up to `maxSize`.
+   *
+   * The hot cache expires, and {@link Ledger.query} is async, so a caller that
+   * needs a synchronous view of what it has written — a parameter table read on
+   * the CLI's own thread, a calibration fit over the labels just recorded — had
+   * no way to get one. Five wrappers each answered it by keeping their own
+   * parallel array beside the ledger: unbounded, never trimmed, and holding the
+   * *pre-validation* row while the file held the validated one. The mirror is
+   * that view, owned here and bounded here.
+   *
+   * Opt-in because it costs an entry per append; omit it and the ledger writes
+   * to disk alone.
+   */
+  mirror?: { maxSize?: number };
   /** Optional pre-write hook (e.g., for sidecar updates like JudgmentDataset vectors). */
   onWrite?: (entry: T) => void | Promise<void>;
   /** Optional post-read hook for enriching entries (e.g., loading sidecar vectors). */
@@ -97,38 +118,66 @@ export interface LedgerConfig<T extends BaseLedgerEntry> {
  * it takes as its own parameters. They were a second field-for-field copy of the
  * optional half, with a doc line each to keep in step.
  */
-export type CreateLedgerOptions<T extends BaseLedgerEntry> = Omit<
-  LedgerConfig<T>,
+export type CreateLedgerOptions<T extends BaseLedgerEntry, I = T> = Omit<
+  LedgerConfig<T, I>,
   'basePath' | 'schema'
 >;
 
-/** Internal config with every default applied. */
-interface ResolvedLedgerConfig<T extends BaseLedgerEntry> {
+/**
+ * A ledger entry as a producer supplies it, typed by the schema's *input* side.
+ *
+ * `at` is stamped by the ledger, so a caller that has no timestamp to offer does
+ * not write the fallback itself. Four wrappers each open-coded
+ * `{ ...entry, at: entry.at ?? Date.now() }` and cast the result to the entry type,
+ * which is `append`'s own line restated.
+ *
+ * Derived from `I` rather than `T` so a field the schema *fills in* — a default,
+ * a coercion — is optional here. Typed from the output it would look required and
+ * push the very cast this type exists to delete back onto the caller.
+ */
+export type LedgerInput<T extends BaseLedgerEntry, I = T> = Omit<I, 'at'> & { at?: number };
+
+/**
+ * Internal config with every default applied.
+ */
+interface ResolvedLedgerConfig<T extends BaseLedgerEntry, I> {
   basePath: string;
-  schema: z.ZodType<T>;
+  schema: z.ZodType<T, I>;
   rollover: ResolvedRollover;
   hotRetentionMs: number;
   hotCacheMaxSize: number;
+  /** `0` = no mirror; a synchronous read then reports nothing. */
+  mirrorMaxSize: number;
   onWrite: (entry: T) => void | Promise<void>;
   onRead: (entry: T) => void | Promise<void>;
 }
 
+/** The mirror's default ceiling — a window of history, not a second source of truth. */
+export const DEFAULT_MIRROR_SIZE = 10_000;
+
 /**
  * Generic append-only ledger with JSONL backing, rotation, retention, and in-memory hot cache.
  */
-export class Ledger<T extends BaseLedgerEntry> {
-  readonly #config: ResolvedLedgerConfig<T>;
+export class Ledger<T extends BaseLedgerEntry, I = T> {
+  readonly #config: ResolvedLedgerConfig<T, I>;
   /** Append-ordered by construction: the key is the append sequence, so eviction drops the oldest. */
   readonly #hotCache: BoundedMap<number, T>;
+  /**
+   * Append-ordered synchronous window of what this ledger has written, holding the
+   * *validated* row. A `BoundedMap` keyed by the append sequence, so eviction
+   * drops the oldest and the ordering is the one the file has.
+   */
+  readonly #mirror: BoundedMap<number, T> | null;
   #hotSeq = 0;
   #currentFile: string | null = null;
   #currentDay: string | null = null;
   #rolloverIndex = 0;
   #currentEntries = 0;
 
-  constructor(config: LedgerConfig<T>) {
+  constructor(config: LedgerConfig<T, I>) {
     const rollover = config.rollover ?? {};
     const hotRetentionMs = config.hotRetentionMs ?? 5 * 60 * 1000;
+    const mirrorMaxSize = config.mirror?.maxSize ?? (config.mirror ? DEFAULT_MIRROR_SIZE : 0);
     this.#config = {
       basePath: config.basePath,
       schema: config.schema,
@@ -136,10 +185,12 @@ export class Ledger<T extends BaseLedgerEntry> {
         ...DEFAULT_ROLLOVER,
         ...rollover,
         pathTemplate:
-          rollover.pathTemplate ?? ((date, index) => (index === 0 ? `${date}.jsonl` : `${date}-${index}.jsonl`)),
+          rollover.pathTemplate ??
+          ((date, index) => (index === 0 ? `${date}.jsonl` : `${date}-${index}.jsonl`)),
       },
       hotRetentionMs,
       hotCacheMaxSize: Math.max(1, config.hotCacheMaxSize ?? 10_000),
+      mirrorMaxSize: Math.max(0, mirrorMaxSize),
       onWrite: config.onWrite ?? (() => {}),
       onRead: config.onRead ?? (() => {}),
     };
@@ -150,14 +201,56 @@ export class Ledger<T extends BaseLedgerEntry> {
       // a `ttlMs` of 0 would expire every entry on the next read.
       ttlMs: hotRetentionMs > 0 ? hotRetentionMs : Number.POSITIVE_INFINITY,
     });
+    this.#mirror =
+      mirrorMaxSize > 0
+        ? new BoundedMap<number, T>({
+            maxSize: mirrorMaxSize,
+            // The mirror is bounded by count alone. A TTL would make a synchronous
+            // read answer differently depending on when it was asked.
+            ttlMs: Number.POSITIVE_INFINITY,
+            // Recency refresh is the hot cache's business; the mirror is a window
+            // over append order, so eviction must not depend on who read last.
+            eviction: 'fifo',
+            touchOnRead: false,
+          })
+        : null;
   }
 
-  /** Append an entry to the ledger (validates via schema, writes to JSONL). */
-  append(entry: T): void {
-    const validated = this.#config.schema.parse({ ...entry, at: entry.at ?? Date.now() });
-    if (this.#config.hotRetentionMs > 0) this.#hotCache.set(this.#hotSeq++, validated);
+  /**
+   * Append an entry to the ledger (validates via schema, writes to JSONL), and
+   * return the validated row.
+   *
+   * The return value is the ledger's answer, not the caller's draft: `at` is
+   * stamped here, the schema's defaults and coercions are applied, and unknown
+   * keys are stripped. A caller that needs the row it wrote reads it here rather
+   * than reconstructing it, which is how a pre-validation row came to sit beside
+   * its validated twin.
+   */
+  append(input: LedgerInput<T, I>): T {
+    const validated = this.#config.schema.parse({ at: Date.now(), ...input });
+    const seq = this.#hotSeq++;
+    if (this.#config.hotRetentionMs > 0) this.#hotCache.set(seq, validated);
+    this.#mirror?.set(seq, validated);
     this.#writeToFile(validated);
     this.#config.onWrite(validated);
+    return validated;
+  }
+
+  /**
+   * What this ledger has written, synchronously and in append order.
+   *
+   * The synchronous counterpart to {@link query}, bounded by `mirror.maxSize`;
+   * empty unless the mirror was requested. Disk remains authoritative for
+   * history — this is the recent window a caller reads between awaits.
+   */
+  records(): readonly T[] {
+    return this.#mirror?.toArray() ?? [];
+  }
+
+  /** Replace the mirror with entries read back from disk, so a reload continues the window. */
+  loadMirror(entries: readonly T[]): void {
+    this.#mirror?.clear();
+    for (const entry of entries) this.#mirror?.set(this.#hotSeq++, entry);
   }
 
   /**
@@ -170,7 +263,8 @@ export class Ledger<T extends BaseLedgerEntry> {
     // deferred to the two cases that read it: a bounded query it can answer, and
     // the fallback when the ledger directory is unreadable.
     let hotMatches: T[] | undefined;
-    const cached = (): T[] => (hotMatches ??= this.#hotCache.toArray().filter((e) => this.#matchesFilter(e, filter)));
+    const cached = (): T[] =>
+      (hotMatches ??= this.#hotCache.toArray().filter((e) => this.#matchesFilter(e, filter)));
 
     if (filter.limit !== undefined) {
       const cacheMatches = cached();
@@ -244,9 +338,12 @@ export class Ledger<T extends BaseLedgerEntry> {
     const targetFile = join(this.#config.basePath, fileName);
     await writeJsonl(targetFile, [...byKey.values()]);
 
-    // Reset hot cache and file state
+    // Reset in-memory state to what the files now hold, so a compaction is
+    // observable through `query` and through the synchronous mirror alike.
     this.#hotCache.clear();
     for (const entry of byKey.values()) this.#hotCache.set(this.#hotSeq++, entry);
+    this.#mirror?.clear();
+    for (const entry of byKey.values()) this.#mirror?.set(this.#hotSeq++, entry);
     this.#currentFile = targetFile;
     this.#currentDay = date;
     this.#currentEntries = byKey.size;
@@ -270,14 +367,16 @@ export class Ledger<T extends BaseLedgerEntry> {
     return this.#hotCache.size();
   }
 
-  /** Release the hot cache. Every entry is already durable on disk. */
+  /** Release the in-memory views. Every entry is already durable on disk. */
   close(): void {
     this.#hotCache.clear();
+    this.#mirror?.clear();
   }
 
-  /** Clear all entries (hot cache and files). */
+  /** Clear all entries (in-memory views and files). */
   async clear(): Promise<void> {
     this.#hotCache.clear();
+    this.#mirror?.clear();
     // In rollover mode, we clear by removing all files in the basePath
     await fs.rm(this.#config.basePath, { recursive: true, force: true }).catch(() => {});
   }
@@ -376,10 +475,10 @@ export class Ledger<T extends BaseLedgerEntry> {
 /**
  * Convenience factory for common ledger shapes.
  */
-export function createLedger<T extends BaseLedgerEntry>(
+export function createLedger<T extends BaseLedgerEntry, I = T>(
   basePath: string,
-  schema: z.ZodType<T>,
+  schema: z.ZodType<T, I>,
   options: CreateLedgerOptions<T> = {}
-): Ledger<T> {
+): Ledger<T, I> {
   return new Ledger({ basePath, schema, ...options });
 }

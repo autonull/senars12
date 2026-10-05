@@ -39,30 +39,20 @@ export class HTTPConnection extends BaseConnection {
   }
 
   override async connect(): Promise<void> {
-    if (this.state === 'connected') return;
-    this.setState('connecting');
-
-    try {
+    await this.runConnect('HTTP_SERVER_ERROR', async () => {
       this.server = await startHttpServer(this.port, (req, res) => this.handleRequest(req, res));
-      this.setState('connected');
-      this.logger.info(`HTTP server listening on port ${this.port}`);
-    } catch (err) {
-      this.handleError(this.createError(errMsg(err), 'HTTP_SERVER_ERROR', true, err as Error));
-      throw err;
-    }
+    });
+    this.logger.info(`HTTP server listening on port ${this.port}`);
   }
 
   override async disconnect(): Promise<void> {
-    if (this.isDisconnected()) return;
-    this.setState('disconnecting');
-
-    return new Promise((resolve) => {
-      this.server?.close(() => {
-        this.setState('disconnected');
-        this.logger.info(`HTTP server on port ${this.port} closed`);
-        resolve();
-      });
-    });
+    await this.runDisconnect(
+      () =>
+        new Promise<void>((resolve) => {
+          this.server?.close(() => resolve());
+        })
+    );
+    this.logger.info(`HTTP server on port ${this.port} closed`);
   }
 
   async send(target: string, text: string): Promise<void> {

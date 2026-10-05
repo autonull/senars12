@@ -30,40 +30,36 @@ export class MCPConnection extends BaseConnection {
   }
 
   override async connect(): Promise<void> {
-    if (this.state === 'connected') return;
-    this.setState('connecting');
+    await this.runConnect('MCP_CONNECT_ERROR', async () => {
+      this.client = new Client({ name: 'senars-mcp-client', version: '1.0.0' });
 
-    this.client = new Client({ name: 'senars-mcp-client', version: '1.0.0' });
-
-    if (this.transport === 'stdio') {
-      const command = this.config.config.command as string;
-      const args = (this.config.config.args as string[]) ?? [];
-      if (!command) throw new Error('MCP stdio transport requires command in config');
-      await this.client.connect(new StdioClientTransport({ command, args }));
-    } else if (this.transport === 'in-memory') {
-      const pair = this.config.config.inMemoryPair as [unknown, unknown] | undefined;
-      if (!pair) throw new Error('MCP in-memory transport requires inMemoryPair in config');
-      await this.client.connect(pair[0] as never);
-    } else {
-      const url = this.config.config.url as string;
-      if (!url) throw new Error('MCP sse/http transport requires url in config');
-      await this.client.connect(
-        this.transport === 'http'
-          ? new StreamableHTTPClientTransport(new URL(url))
-          : new SSEClientTransport(new URL(url))
-      );
-    }
-
-    this.setState('connected');
+      if (this.transport === 'stdio') {
+        const command = this.config.config.command as string;
+        const args = (this.config.config.args as string[]) ?? [];
+        if (!command) throw new Error('MCP stdio transport requires command in config');
+        await this.client.connect(new StdioClientTransport({ command, args }));
+      } else if (this.transport === 'in-memory') {
+        const pair = this.config.config.inMemoryPair as [unknown, unknown] | undefined;
+        if (!pair) throw new Error('MCP in-memory transport requires inMemoryPair in config');
+        await this.client.connect(pair[0] as never);
+      } else {
+        const url = this.config.config.url as string;
+        if (!url) throw new Error('MCP sse/http transport requires url in config');
+        await this.client.connect(
+          this.transport === 'http'
+            ? new StreamableHTTPClientTransport(new URL(url))
+            : new SSEClientTransport(new URL(url))
+        );
+      }
+    });
     this.logger.info(`MCP connection ${this.id} connected via ${this.transport}`);
   }
 
   override async disconnect(reason?: string): Promise<void> {
-    if (this.isDisconnected()) return;
-    this.setState('disconnecting');
-    await this.client?.close().catch(() => undefined);
-    this.client = null;
-    this.setState('disconnected');
+    await this.runDisconnect(async () => {
+      await this.client?.close().catch(() => undefined);
+      this.client = null;
+    });
     this.logger.info(`MCP connection ${this.id} disconnected: ${reason ?? 'normal'}`);
   }
 

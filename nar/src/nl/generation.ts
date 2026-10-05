@@ -1,4 +1,11 @@
-import { ambientRng, type BeliefTruth, formatTruth, stableStringify, unique } from '@senars/util';
+import {
+  ambientRng,
+  formatTruth,
+  stableStringify,
+  takeFirst,
+  type BeliefTruth,
+  unique,
+} from '@senars/util';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';
 import { buildGenerationPrompt } from './prompts/generation-v1.js';
@@ -55,7 +62,7 @@ function findKnowledgeGaps(beliefs: BeliefInfo[]): string[] {
       gaps.push(`more evidence about ${b.term}`);
     }
   }
-  return unique(gaps).slice(0, 3);
+  return takeFirst(unique(gaps), 3);
 }
 
 export class NLGenerationService {
@@ -83,7 +90,7 @@ export class NLGenerationService {
 
     const derivation = input.derivation;
     const reasoningType = classifyReasoning(derivation);
-    const keyPremises = derivation?.newBeliefs.slice(0, 3).map((b) => b.term) ?? [];
+    const keyPremises = derivation ? takeFirst(derivation.newBeliefs, 3).map((b) => b.term) : [];
     const gaps = findKnowledgeGaps(input.beliefs);
 
     const prompt = buildGenerationPrompt({
@@ -141,7 +148,7 @@ export class NLGenerationService {
       suggestedFollowups: [],
       meta: {
         reasoningType: classifyReasoning(derivation),
-        keyPremises: derivation.newBeliefs.slice(0, 3).map((b) => b.term),
+        keyPremises: takeFirst(derivation.newBeliefs, 3).map((b) => b.term),
         gaps: findKnowledgeGaps(input.beliefs),
       },
     };

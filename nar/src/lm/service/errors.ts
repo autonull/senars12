@@ -64,6 +64,33 @@ export const withRetry = async <T>(
 export const RETRY_TEMPERATURE_STEP = 0.2;
 
 /**
+ * Run a call whose failure is expected, logging it and answering `onFailure`.
+ *
+ * The model is untrusted infrastructure: a provider goes away mid-cycle and the
+ * cycle still has to finish with something. Seven sites wrote that try/catch/warn
+ * and differ only in the message and the empty value — which is how the log line
+ * for a degraded cycle varies with which method happened to fail.
+ *
+ * The thunk must contain the call and nothing else. A throw from a local
+ * transform on the way out is a bug in the transform, not a provider failure,
+ * and answering it with a fallback silently hides that; one site here had been
+ * catching exactly that and reporting it as a model failure.
+ */
+export const attempt = async <T>(
+  logger: Pick<Console, 'warn'>,
+  what: string,
+  call: () => Promise<T>,
+  onFailure: T
+): Promise<T> => {
+  try {
+    return await call();
+  } catch (error) {
+    logger.warn(`${what}: ${errMsg(error)}`);
+    return onFailure;
+  }
+};
+
+/**
  * The temperatures a failed generation is retried at, hottest last.
  *
  * One ladder for the escalation path: `tryGenerateText` and the structured-output
@@ -73,4 +100,7 @@ export const RETRY_TEMPERATURE_STEP = 0.2;
  * hotter is a *different* axis from retrying later, which is why this sits
  * beside `withRetry` rather than inside it.
  */
-export const temperatureLadder = (base = 0): readonly number[] => [base, base + RETRY_TEMPERATURE_STEP];
+export const temperatureLadder = (base = 0): readonly number[] => [
+  base,
+  base + RETRY_TEMPERATURE_STEP,
+];

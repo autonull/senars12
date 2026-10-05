@@ -1,5 +1,5 @@
 import { ConnectionError } from '@senars/core';
-import { generateId, type Logger, withRetry as retry, Signal, toError } from '@senars/util';
+import { errMsg, generateId, type Logger, withRetry as retry, Signal, toError } from '@senars/util';
 import type {
   Connection,
   ConnectionConfig,
@@ -91,6 +91,49 @@ export abstract class BaseConnection implements Connection {
 
   protected isDisconnected(): boolean {
     return this._state === 'disconnected' || this._state === 'idle';
+  }
+
+  /**
+   * The connect state machine, once: the already-connected guard, the
+   * transition, the transport's own work, and the error funnel.
+   *
+   * Five transports each wrote this skeleton and they disagreed about it. Two
+   * reported a failed connect through `handleError`; MCP and CLI let the
+   * exception escape unmetered, so `errorCount` read zero for a connection that
+   * had failed. The CLI connection also skipped the guard, so a second
+   * `connect()` opened a second readline interface and registered a second
+   * SIGINT handler. A failed connect now settles on `disconnected` rather than
+   * leaving the connection parked in `connecting`.
+   */
+  protected async runConnect(code: string, open: () => Promise<void> | void): Promise<void> {
+    if (this.state === 'connected') return;
+    this.setState('connecting');
+    try {
+      await open();
+    } catch (err) {
+      this.setState('disconnected');
+      this.handleError(this.createError(errMsg(err), code, true, toError(err)));
+      throw err;
+    }
+    this.setState('connected');
+  }
+
+  /**
+   * The disconnect state machine, once: the guard, the transition, the
+   * transport's own teardown, and the terminal state.
+   *
+   * `setState('disconnected')` is in a `finally` so a teardown that throws still
+   * leaves the connection settled — the alternative is a resource that believes
+   * it is still open after failing to close.
+   */
+  protected async runDisconnect(close: () => Promise<void> | void): Promise<void> {
+    if (this.isDisconnected()) return;
+    this.setState('disconnecting');
+    try {
+      await close();
+    } finally {
+      this.setState('disconnected');
+    }
   }
 
   protected setState(value: ConnectionState): void {

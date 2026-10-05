@@ -39,7 +39,8 @@ const DECLARED: readonly { readonly file: string; readonly reason: string }[] = 
   },
   {
     file: 'core/src/verify-derivation.ts',
-    reason: 'the verifier recomputes independently on purpose; a shared epsilon would be a shared bug',
+    reason:
+      'the verifier recomputes independently on purpose; a shared epsilon would be a shared bug',
   },
   {
     file: 'util/src/utils/collections.ts',
@@ -47,11 +48,17 @@ const DECLARED: readonly { readonly file: string; readonly reason: string }[] = 
   },
   {
     file: 'ui/src/webllm.ts',
-    reason: 'two memos over one key — a resolved engine and an in-flight init — which getOrInsert models as one',
+    reason:
+      'two memos over one key — a resolved engine and an in-flight init — which getOrInsert models as one',
   },
   {
     file: 'nar/src/memory/associative.ts',
     reason: 'the memo write is guarded by a layer probe; inserting first would memoize a miss',
+  },
+  {
+    file: 'nar/src/terms/reduce.ts',
+    reason:
+      'a memo probe, not a lazy creation — the canonical form is computed, then memoized under two keys; getOrInsert would store the unreduced term first',
   },
   {
     file: 'nar/src/decision/types.ts',
@@ -69,7 +76,8 @@ const IDIOMS: readonly { readonly primitive: string; readonly pattern: RegExp }[
   // The four-line get-or-create, spelled across two consecutive lines.
   {
     primitive: 'getOrInsert',
-    pattern: /const (\w+) = (?:this\.)?[\w#.]+\.get\([^)]*\);\s*\n\s*if \(\1(?: !== undefined)?\) return \1;/g,
+    pattern:
+      /const (\w+) = (?:this\.)?[\w#.]+\.get\([^)]*\);\s*\n\s*if \(\1(?: !== undefined)?\) return \1;/g,
   },
 ];
 

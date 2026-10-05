@@ -30,14 +30,13 @@ export class DialogueTextStore {
   }
 
   async append(record: DialogueTextRecord): Promise<void> {
-    const fullEntry = { ...record, at: record.at ?? Date.now() } as DialogueTextLedgerEntry;
-    this.#ledger.append(fullEntry);
+    this.#ledger.append(record);
   }
 
   /** Upsert by turnId: appends a record, replacing any prior one for that turn. */
   async upsert(record: DialogueTextRecord): Promise<void> {
     // Append the new record (will be last for this turnId)
-    this.#ledger.append({ ...record, at: record.at ?? Date.now() } as DialogueTextLedgerEntry);
+    this.#ledger.append(record);
     // Compact by turnId: keeps the last entry per turnId (the one we just appended)
     await this.#ledger.compact((e) => e.turnId);
   }
@@ -57,7 +56,7 @@ export class DialogueTextStore {
 
   async get(turnId: string): Promise<DialogueTextRecord | undefined> {
     const entries = await this.#ledger.query({});
-    return entries.find((e) => e.turnId === turnId) as DialogueTextRecord | undefined;
+    return entries.find((e) => e.turnId === turnId);
   }
 
   async purge(): Promise<void> {

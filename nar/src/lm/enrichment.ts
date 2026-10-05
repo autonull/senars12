@@ -1,12 +1,4 @@
-import {
-  BoundedRing,
-  createLogger,
-  errMsg,
-  type Logger,
-  periodic,
-  sortBy,
-  sumBy,
-} from '@senars/util';
+import { BoundedRing, createLogger, type Logger, periodic, sortBy, sumBy } from '@senars/util';
 import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
@@ -14,6 +6,7 @@ import { Truth } from '../terms';
 import { createTask, type Task } from '../types';
 import { lmTaskWeight } from './task-weights.js';
 import { admitTasks } from './admit.js';
+import { attempt } from './service/errors.js';
 import { topBeliefTasks } from './context.js';
 import { LMResponseParser } from './LMRule.js';
 import type { LMService } from './lm-service.js';
@@ -159,18 +152,16 @@ export class ProactiveEnricher {
     );
 
     for (const conceptData of underconnectedConcepts.slice(0, this.config.maxConceptsPerCycle)) {
-      try {
-        const result = await this.enrichConcept(conceptData.term);
-        if (result.hypotheses.length > 0 || result.bridges.length > 0) {
-          cycleResults.push(result);
-          // D17: bounded results (drop-oldest).
-          this.results.push(result);
-        }
-      } catch (error) {
-        // expected: LM call may fail due to network/provider issues — skip this concept
-        this.logger.warn(
-          `Failed to enrich concept: ${conceptData.term.toString()} - ${errMsg(error)}`
-        );
+      const result = await attempt(
+        this.logger,
+        `Failed to enrich concept: ${conceptData.term.toString()}`,
+        () => this.enrichConcept(conceptData.term),
+        null
+      );
+      // D17: bounded results (drop-oldest).
+      if (result && (result.hypotheses.length > 0 || result.bridges.length > 0)) {
+        cycleResults.push(result);
+        this.results.push(result);
       }
     }
 
@@ -188,14 +179,12 @@ ${chainStr}
 
 Provide a clear, concise explanation of what was derived and why.`;
 
-    try {
-      const response = await this.lmService.generateText(prompt);
-      return response.trim();
-    } catch (error) {
-      // expected: LM call may fail due to network/provider issues
-      this.logger.warn(`Failed to generate explanation: ${errMsg(error)}`);
-      return '';
-    }
+    return attempt(
+      this.logger,
+      'Failed to generate explanation',
+      async () => (await this.lmService.generateText(prompt)).trim(),
+      ''
+    );
   }
 
   async answerQuestion(question: string, _context?: Task[]): Promise<string> {
@@ -213,14 +202,12 @@ Question: ${question}
 
 Answer the question based on the available knowledge. If the answer cannot be determined from the context, say "I don't have enough information to answer this."`;
 
-    try {
-      const response = await this.lmService.generateText(prompt);
-      return response.trim();
-    } catch (error) {
-      // expected: LM call may fail due to network/provider issues
-      this.logger.warn(`Failed to answer question: ${errMsg(error)}`);
-      return '';
-    }
+    return attempt(
+      this.logger,
+      'Failed to answer question',
+      async () => (await this.lmService.generateText(prompt)).trim(),
+      ''
+    );
   }
 
   getEnrichmentHistory(): EnrichmentResult[] {
@@ -271,16 +258,15 @@ Answer the question based on the available knowledge. If the answer cannot be de
     let hypotheses: Task[] = [];
     let bridges: Task[] = [];
 
-    try {
-      const response = await this.lmService.generateText(hypothesisPrompt);
-      const parsed = parseEnrichmentResponse(response);
+    const parsed = await attempt(
+      this.logger,
+      `Failed to generate hypotheses for term: ${term.toString()}`,
+      async () => parseEnrichmentResponse(await this.lmService.generateText(hypothesisPrompt)),
+      null
+    );
+    if (parsed) {
       hypotheses = parsed.hypotheses;
       bridges = parsed.bridges;
-    } catch (error) {
-      // expected: LM call may fail due to network/provider issues
-      this.logger.warn(
-        `Failed to generate hypotheses for term: ${term.toString()} - ${errMsg(error)}`
-      );
     }
 
     await admitTasks(this.memory, hypotheses, 'llm', this.gates);
