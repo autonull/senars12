@@ -99,26 +99,38 @@ export interface HeadResult {
   axis?: CognitiveAxis;
 }
 
-export type RubricId =
-  | 'ambiguity'
-  | 'relevance'
-  | 'groundedness'
-  | 'novelty'
-  | 'feasibility'
-  | 'conflict'
-  | 'injection'
-  | 'plausibility'
-  | 'assertion'
-  | 'task_type'
-  | 'illocution'
-  | 'tense'
-  | 'source_quality'
-  | 'tool_dispatch'
-  | 'risk'
-  | 'candidate_select'
-  | 'reflex_value'
-  | 'strategy'
-  | 'episodic_match';
+export const RUBRIC_IDS = [
+  'ambiguity',
+  'relevance',
+  'groundedness',
+  'novelty',
+  'feasibility',
+  'conflict',
+  'injection',
+  'plausibility',
+  'assertion',
+  'task_type',
+  'illocution',
+  'tense',
+  'source_quality',
+  'tool_dispatch',
+  'risk',
+  'candidate_select',
+  'reflex_value',
+  'strategy',
+  'episodic_match',
+] as const;
+
+export type RubricId = (typeof RUBRIC_IDS)[number];
+
+export const rubricIdSchema = z.enum(RUBRIC_IDS);
+
+/** The rubric a name denotes, when it is one of them. A `--head` flag and any other
+ *  free-text rubric reaches a caller as a string; the calls that used to cast it
+ *  with `as never` also accepted names no head has, and one of them shipped a
+ *  default list containing one. */
+export const asRubricId = (name: string): RubricId | undefined =>
+  (RUBRIC_IDS as readonly string[]).includes(name) ? (name as RubricId) : undefined;
 
 /** Whether a judgment is about what is true or what is wanted. Named once so the
  *  decision contract, the System One wire schema and the config schema cannot each

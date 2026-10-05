@@ -105,11 +105,20 @@ export const FormalizationCandidateSchema = z.object({
     .optional(),
 });
 
+/** What the translator decided an utterance was *for*. The rule-template generator
+ *  wrote its own copy of this four-member union, so an intent the batch admits was
+ *  one the generator could not declare — and the two were free to drift. */
+export const DETECTED_INTENTS = ['chat', 'command', 'reasoning', 'learning'] as const;
+
+export type DetectedIntent = (typeof DETECTED_INTENTS)[number];
+
+export const DetectedIntentSchema = z.enum(DETECTED_INTENTS);
+
 export const FormalizationBatchSchema = z.object({
   batchId: z.string().uuid(),
   sourceText: z.string(),
   candidates: z.array(FormalizationCandidateSchema),
-  detectedIntent: z.enum(['chat', 'command', 'reasoning', 'learning']).optional(),
+  detectedIntent: DetectedIntentSchema.optional(),
   globalAmbiguities: z.array(AmbiguityFlagSchema).optional(),
 });
 

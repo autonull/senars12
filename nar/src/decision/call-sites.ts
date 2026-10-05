@@ -20,9 +20,12 @@ import type { Witness } from '@senars/util';
 import type { BudgetScopeId } from '../kernel/budget-scopes.js';
 import {
   DECISION_ASK_TIMEOUT_MS,
+  DECISION_POSITIONS,
   type DecisionAxis,
   type DecisionPosition,
+  SYNTHESIS_AXIS,
 } from '../ports/decision.js';
+import { COGNITIVE_AXES } from './types.js';
 
 interface DecisionCallSiteBase extends Witness {
   /** Stable id, and the symbol a caller names in a violation message. */
@@ -53,7 +56,7 @@ export interface JudgmentCallSite extends DecisionCallSiteBase {
 /** A `P` call site — open generation, at a boundary, about neither axis. */
 export interface SynthesisCallSite extends DecisionCallSiteBase {
   readonly query: 'synthesize';
-  readonly axis: 'none';
+  readonly axis: typeof SYNTHESIS_AXIS;
   readonly position: 'boundary';
   readonly budget: BudgetScopeId;
 }
@@ -123,7 +126,9 @@ export const ADMISSION_ORDER_CALL_SITE = judgmentSite('authorize.admission-order
 /** The egress-veto site (TODO32 M2), same way. */
 export const EGRESS_VETO_CALL_SITE = judgmentSite('authorize.egress-veto');
 
-/** The declared vocabulary, so a gate reads one table rather than three literals. */
+/** The declared vocabulary, so a gate reads one table rather than three literals —
+ *  each spread from the type that owns it, so a fourth query kind or position
+ *  cannot be declared twice. */
 export const DECISION_QUERIES = ['classify', 'evaluate', 'synthesize'] as const;
-export const DECISION_AXES = ['epistemic', 'teleological', 'none'] as const;
-export const DECISION_POSITIONS = ['cycle', 'boundary'] as const;
+export const DECISION_AXES = [...COGNITIVE_AXES, SYNTHESIS_AXIS] as const;
+export { DECISION_POSITIONS };

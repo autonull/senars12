@@ -56,7 +56,7 @@ export const switchStrategyTool = (ctx: SelfToolsContext) => {
             strategyType,
             testResult,
             message: 'Strategy switched and validated',
-            worktreeId: existingId ?? id,
+            worktreeId: id,
           };
         }
       );

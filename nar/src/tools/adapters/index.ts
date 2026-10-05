@@ -8,8 +8,6 @@ export type { CoverageConceptDeps } from './coverage-concept.js';
 export { createCoverageConceptTools } from './coverage-concept.js';
 export type { FileSystemDeps } from './filesystem.js';
 export { createFileSystemTools } from './filesystem.js';
-export type { ApprovalManagerOptions, ApprovalRequest, ApprovalResult } from './human-approval.js';
-export { ApprovalManager, createHumanApprovalTool } from './human-approval.js';
 export type { RagQueryDeps } from './rag-query.js';
 export { createRagQueryTools } from './rag-query.js';
 export type {

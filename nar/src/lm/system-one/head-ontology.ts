@@ -11,7 +11,7 @@
  * `feasibility` twice and had never heard of `episodic_match`.
  */
 
-import { SourceQualitySchema } from '@senars/core/schemas';
+import { SourceQualitySchema, TASK_TYPES } from '@senars/core/schemas';
 import type {
   CognitiveAxis,
   CriticalityLevel,
@@ -36,7 +36,9 @@ export const HEAD_SPECS = {
     rubric: 'task_type',
     axis: 'epistemic',
     kind: 'classify',
-    space: ['belief', 'goal', 'question', 'command'],
+    // The task vocabulary itself, not a transcription of it: a fourth task kind
+    // reached the classifier as a type error instead of as one more option.
+    space: TASK_TYPES,
     instruction: 'Classify the task type',
     group: 'ingress',
   },
@@ -189,9 +191,12 @@ export const HEAD_SPECS = {
     instruction: 'Evaluate novelty',
     group: 'memory',
   },
-} as const satisfies Record<string, HeadSpec>;
+} as const satisfies Record<RubricId, HeadSpec>;
 
-export type HeadId = keyof typeof HEAD_SPECS;
+/** Every rubric has a head, by type: `Record<RubricId, …>` rather than
+ *  `Record<string, …>`. The vocabulary grew a member nobody implemented and nothing
+ *  failed — a rubric could be asked for, and no head existed to answer it. */
+export type HeadId = RubricId;
 export type HeadGroup = HeadSpec['group'];
 
 /** Every spec, in declaration order. */
@@ -234,12 +239,3 @@ export const evaluateQuery = (
   rubric: RubricId,
   instruction = `Evaluate ${rubric}`
 ): EvaluateQuery => ({ kind: 'evaluate', rubric, axis: 'epistemic', instruction });
-
-/**
- * The rubric a name denotes, when it is one of them. A `--head` flag and any other
- * free-text rubric reaches the judge as a string; the calls that used to cast it with
- * `as never` also accepted names no head has, and one of them shipped a default list
- * containing one.
- */
-export const asRubricId = (name: string): RubricId | undefined =>
-  (headRubrics() as readonly string[]).includes(name) ? (name as RubricId) : undefined;

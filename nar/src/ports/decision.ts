@@ -48,13 +48,22 @@ export type DecisionResult = JudgmentProposition | SynthesisProposition;
  * Where in the cycle a call site sits. `J` is bounded and inline; `P` is open
  * generation and belongs at a boundary. The two are **not** in a gate
  * relationship (§2.1) — this names where a call is allowed, not what it may veto.
+ *
+ * The tuple is the declaration, so the manifest's `DECISION_POSITIONS` can be the
+ * same list rather than a second literal to keep in step.
  */
-export type DecisionPosition = 'cycle' | 'boundary';
+export const DECISION_POSITIONS = ['cycle', 'boundary'] as const;
+
+export type DecisionPosition = (typeof DECISION_POSITIONS)[number];
 
 import type { CognitiveAxis } from '../decision/types.js';
 
-/** What a decision is about — the epistemic firewall's own axis, named once. */
-export type DecisionAxis = CognitiveAxis;
+/** What a decision is about — the epistemic firewall's own axis, named once. A
+ *  `synthesize` is about neither, which is the one axis outside the pair. */
+export type DecisionAxis = CognitiveAxis | typeof SYNTHESIS_AXIS;
+
+/** The axis a `P` (open generation) call declares: about neither belief nor goal. */
+export const SYNTHESIS_AXIS = 'none';
 
 /**
  * A cycle-scoped request. The budget is a *declared scope* (A7), not a number, so

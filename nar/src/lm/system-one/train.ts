@@ -1,12 +1,15 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import {
+  BoundedMap,
   clamp01,
   ensureDir,
   fillSeededUnitRange,
+  getOrInsert,
   groupBy,
   holdoutSplit,
   mulberry32,
+  parseOrThrow,
   pearson,
   readJsonlAsync,
   seededStringHash,
@@ -15,10 +18,12 @@ import {
   sigmoid,
   writeJsonFile,
 } from '@senars/util';
+import { z } from 'zod';
 
 export { pearson };
 
 import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
+import { cognitiveAxisSchema, rubricIdSchema } from '../../decision/types.js';
 import { decodeVector } from './distill.js';
 import { meanBrierOf } from './metrics.js';
 import type { CognitiveAxis, JudgmentHead, JudgmentQuery, RubricId } from './types.js';
@@ -26,8 +31,14 @@ import { composeModelDigest, DigestMismatchError, encoderDigest } from './wasi-r
 
 // ─── Feature construction ────────────────────────────────────────────────────
 
+/** Action-block seed. Distinct from the game block's so the two never collide. */
+const ACTION_FEATURE_SEED = 0x9e3779b9;
+
+/** Game-block seed distinct from the action seed so the two blocks never collide. */
+const GAME_FEATURE_SEED = 0x85ebca6b;
+
 /** Deterministic per-action feature block so one head can score (state, action) pairs. */
-export function actionFeatures(action: string, dim: number, seed = 0x9e3779b9): Float32Array {
+export function actionFeatures(action: string, dim: number, seed = ACTION_FEATURE_SEED): Float32Array {
   return fillSeededUnitRange(new Float32Array(dim), seededStringHash(action, seed ^ dim));
 }
 
@@ -113,6 +124,19 @@ export interface HeadMetrics {
 }
 
 /**
+ * Who a head is. Named once because three signatures restated it as
+ * `{ headId: string; rubric: string; axis: string }`, and *strings* let a trainer
+ * build a head for a rubric and an axis that no head has — the config.json it then
+ * wrote claimed a judgment head over neither a belief nor a goal, and loading it
+ * back required two `as` casts because the loader could not tell.
+ */
+export interface HeadIdentity {
+  headId: string;
+  rubric: RubricId;
+  axis: CognitiveAxis;
+}
+
+/**
  * What a head is, as opposed to where its numbers live. Identity, feature
  * geometry, encoder binding and training metrics are the same whether the head
  * is in memory or on disk; only the standardization stats and the parameters
@@ -122,10 +146,7 @@ export interface HeadMetrics {
  * field added to one head had to be remembered in three places to reach the
  * other.
  */
-export interface HeadGeometry {
-  headId: string;
-  rubric: string;
-  axis: string;
+export interface HeadGeometry extends HeadIdentity {
   kind: 'linear' | 'logistic';
   embeddingDim: number;
   actionFeatureDim: number;
@@ -201,12 +222,9 @@ function buildFeatures(
   return features;
 }
 
-/** Game-block seed distinct from the action seed so the two blocks never collide. */
-const GAME_FEATURE_SEED = 0x85ebca6b;
-
 export function trainHead(
   rows: readonly TrainingRow[],
-  meta: { headId: string; rubric: string; axis: string },
+  meta: HeadIdentity,
   options: TrainingOptions = {}
 ): TrainedHeadModel {
   const kind = options.kind ?? 'linear';
@@ -396,7 +414,7 @@ export interface SharedHeadBakeOffResult {
  */
 export function bakeOffSharedHead(
   rows: readonly TrainingRow[],
-  meta: { headId: string; rubric: string; axis: string },
+  meta: HeadIdentity,
   options: SharedHeadBakeOffOptions = {}
 ): SharedHeadBakeOffResult {
   if (rows.some((row) => !row.game)) throw new Error('Bake-off rows must carry a `game` tag');
@@ -464,6 +482,48 @@ export interface HeadArtifactConfig extends HeadGeometry {
   modelDigest: string;
 }
 
+/**
+ * The on-disk half of the head contract, validated at the edge it crosses.
+ *
+ * `config.json` was read with `JSON.parse(raw) as HeadArtifactConfig`, so a
+ * truncated write, a hand-edited field or a bundle from an older geometry produced
+ * a head that scored `NaN` on every candidate and never said so. This is the same
+ * treatment the rest of the kernel gives an untrusted payload, and it is also what
+ * lets the loader drop the two `as RubricId` / `as CognitiveAxis` casts: the schema
+ * is typed on the *same* vocabulary the geometry is, so a config naming a rubric
+ * that no head has cannot parse.
+ */
+const dim = (min: number) => z.number().int().min(min);
+
+const digest = z.string().min(1);
+
+/** `satisfies z.ZodType<HeadArtifactConfig>` makes the schema and the interface one
+ *  declaration: a field added to either without the other is a compile error, not a
+ *  config that parses one way and types the other. */
+export const HeadArtifactConfigSchema = z
+  .strictObject({
+    headId: z.string().min(1),
+    rubric: rubricIdSchema,
+    axis: cognitiveAxisSchema,
+    kind: z.enum(['linear', 'logistic']),
+    embeddingDim: dim(1),
+    actionFeatureDim: dim(0),
+    gameFeatureDim: dim(0),
+    encoder: z.object({ modelId: z.string().min(1), dimension: dim(1) }),
+    metrics: z.object({
+      samples: dim(0),
+      epochs: dim(0),
+      trainLoss: z.number(),
+      holdoutLoss: z.number(),
+      valueCorrelation: z.number().optional(),
+    }),
+    mean: z.array(z.number()),
+    std: z.array(z.number()),
+    encoderDigest: digest,
+    weightsDigest: digest,
+    modelDigest: digest,
+  }) satisfies z.ZodType<HeadArtifactConfig>;
+
 export function exportArtifacts(model: TrainedHeadModel): HeadArtifactBundle {
   const encoderId = encoderDigest(model.encoder.modelId, model.encoder.dimension);
   const modelDigest = composeModelDigest(encoderId, model.weightsDigest);
@@ -494,6 +554,15 @@ export async function writeHeadArtifacts(
 
 // ─── Sandboxed head (trained weights behind the digest-pinned runtime) ───────
 
+/** Feature blocks are a pure function of `(key, dim, seed)`, and a head scores one
+ *  candidate per action per call — so the same handful of actions was re-hashed and
+ *  re-filled on every score. Bounded through the shared container: a registry of
+ *  growing actions must not become an unbounded cache. */
+const featureCache = new BoundedMap<string, Float32Array>({ maxSize: 256, eviction: 'lru' });
+
+const cachedActionFeatures = (key: string, dim: number, seed: number): Float32Array =>
+  getOrInsert(featureCache, `${seed}:${dim}:${key}`, () => actionFeatures(key, dim, seed));
+
 export class TrainedLinearHead implements JudgmentHead {
   readonly rubric: RubricId;
   readonly axis: CognitiveAxis;
@@ -505,8 +574,8 @@ export class TrainedLinearHead implements JudgmentHead {
 
   constructor(config: HeadArtifactConfig, weightsBytes: Buffer, modelDigest: string) {
     this.#config = config;
-    this.rubric = config.rubric as RubricId;
-    this.axis = config.axis as CognitiveAxis;
+    this.rubric = config.rubric;
+    this.axis = config.axis;
     this.modelDigest = modelDigest;
     const floats = new Float32Array(
       weightsBytes.buffer.slice(
@@ -523,23 +592,24 @@ export class TrainedLinearHead implements JudgmentHead {
   }
 
   score(embedding: Float32Array, action: string, game?: string): number {
-    const { mean, std, gameFeatureDim } = this.#config;
+    const { mean, std, embeddingDim, actionFeatureDim, gameFeatureDim, kind } = this.#config;
     const weights = this.#weights;
     const actionBlock =
-      this.#config.actionFeatureDim > 0 ? actionFeatures(action, this.#config.embeddingDim) : null;
+      actionFeatureDim > 0 ? cachedActionFeatures(action, embeddingDim, ACTION_FEATURE_SEED) : null;
     const gameBlock =
-      gameFeatureDim > 0 && game ? actionFeatures(game, gameFeatureDim, GAME_FEATURE_SEED) : null;
+      gameFeatureDim > 0 && game
+        ? cachedActionFeatures(game, gameFeatureDim, GAME_FEATURE_SEED)
+        : null;
     let z = this.#bias;
-    for (let i = 0; i < this.#config.embeddingDim; i++) {
+    for (let i = 0; i < embeddingDim; i++) {
       const f = actionBlock ? embedding[i]! * actionBlock[i]! : embedding[i]!;
       z += (weights[i]! * (f - mean[i]!)) / std[i]!;
     }
     for (let i = 0; i < gameFeatureDim; i++) {
-      const j = this.#config.embeddingDim + i;
+      const j = embeddingDim + i;
       z += (weights[j]! * ((gameBlock?.[i] ?? 0) - mean[j]!)) / std[j]!;
     }
-    const clamped = this.#config.kind === 'logistic' ? sigmoid(z) : clamp01(z);
-    return clamped;
+    return kind === 'logistic' ? sigmoid(z) : clamp01(z);
   }
 
   async evaluate(embedding: Float32Array, query: JudgmentQuery) {
@@ -549,7 +619,7 @@ export class TrainedLinearHead implements JudgmentHead {
   }
 }
 
-/** Load a trained head bundle, verifying the weights hash against the pinned digest. */
+/** Load a trained head bundle, verifying the config, the weights hash and the pinned digest. */
 export async function loadHeadArtifacts(
   outDir: string,
   pinnedDigest?: string
@@ -559,7 +629,11 @@ export async function loadHeadArtifacts(
     fs.readFile(join(outDir, 'weights.bin')),
     fs.readFile(join(outDir, 'MODEL_DIGEST'), 'utf-8'),
   ]);
-  const config = JSON.parse(configRaw) as HeadArtifactConfig;
+  const config = parseOrThrow(
+    HeadArtifactConfigSchema,
+    'HeadArtifactConfig',
+    JSON.parse(configRaw)
+  );
   const modelDigest = digestFile.trim();
   const actual = sha256Prefixed(weightsBytes);
   if (actual !== config.weightsDigest) {

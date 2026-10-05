@@ -5,13 +5,13 @@ import { hasCopula, hasVariable, Stamp, Truth, termParser, unify, termKey } from
 import { byRelevance, type RelevanceOptions } from './relevance.js';
 import type { Task, TaskType, TermFilter, Timestamp } from '../types';
 import { createTaskWeight, createTask, createTimestamp } from '../types';
-import type { DerivationRecord } from '@senars/core/schemas';
+import { type DerivationRecord, TASK_BAG_KINDS } from '@senars/core/schemas';
 import { verifyRecord } from '@senars/core/verify-derivation';
 
 const logger = createLogger({ scope: 'QueryAPI' });
 
 /** The bags a concept carries, in the order a store walk reads them. */
-const TASK_KINDS = ['belief', 'goal', 'question'] as const satisfies readonly TaskType[];
+const TASK_KINDS = TASK_BAG_KINDS;
 
 /** The three bags a concept carries. `command` tasks live in the question bag's
  *  siblings rather than a fourth bag, so the kind set here is the bag set. */

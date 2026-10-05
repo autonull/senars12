@@ -1,6 +1,12 @@
 import { type CapabilityRisk, errMsg, makeId, withTimeout } from '@senars/util';
 import { envBool } from '@senars/util/config';
 
+/** A question put to whoever holds the gate, and the one way it is answered.
+ *  There is no rejection channel: a request nobody answered and a request that was
+ *  answered `false` are the same event to the caller, and both *resolve* — a
+ *  rejected `result` had no handler on the headless path, which under Node's
+ *  default is an unhandled rejection, i.e. a process exit from inside a gate that
+ *  was only trying to decline. */
 export interface ApprovalRequest {
   id: string;
   request: string;
@@ -8,7 +14,6 @@ export interface ApprovalRequest {
   createdAt: number;
   result: Promise<ApprovalResult>;
   resolve: (result: ApprovalResult) => void;
-  reject: (error: Error) => void;
 }
 
 export interface ApprovalResult {
@@ -19,9 +24,11 @@ export interface ApprovalResult {
 export interface ApprovalManager {
   createRequest(request: string, metadata?: Record<string, unknown>): ApprovalRequest;
 
+  /** Answer a pending request. `approved: false` is a refusal, and it resolves the
+   *  request's promise — the answer carries *why* in `reason`. The only channel:
+   *  whoever stops waiting answers too (see {@link ApprovalService}), so a request
+   *  cannot be left pending with nobody left to answer it. */
   resolveApproval(id: string, approved: boolean, reason?: string): boolean;
-
-  rejectApproval(id: string, error: string): boolean;
 
   getPending(): ApprovalRequest[];
 
@@ -45,7 +52,7 @@ export class InMemoryApprovalManager implements ApprovalManager {
 
   createRequest(request: string, metadata: Record<string, unknown> = {}): ApprovalRequest {
     const id = makeId();
-    const { promise: result, resolve, reject } = Promise.withResolvers<ApprovalResult>();
+    const { promise: result, resolve } = Promise.withResolvers<ApprovalResult>();
     const req: ApprovalRequest = {
       id,
       request,
@@ -53,7 +60,6 @@ export class InMemoryApprovalManager implements ApprovalManager {
       createdAt: Date.now(),
       result,
       resolve,
-      reject,
     };
     this.pending.set(id, req);
     this.opts.onRequest?.(req);
@@ -64,13 +70,6 @@ export class InMemoryApprovalManager implements ApprovalManager {
     const req = this.#take(id);
     if (!req) return false;
     req.resolve({ approved, reason });
-    return true;
-  }
-
-  rejectApproval(id: string, error: string): boolean {
-    const req = this.#take(id);
-    if (!req) return false;
-    req.reject(new Error(error));
     return true;
   }
 
@@ -108,9 +107,13 @@ export class ApprovalService {
       risk: params.risk,
     });
 
+    // Headless is not a rejection and not an error: the gate declines to ask, so
+    // it answers its own question and resolves the promise. Anything else left it
+    // rejected, on a path with no handler — an unhandled rejection, i.e. a crash.
     if (envBool('CI') || envBool('SENARS_HEADLESS')) {
-      this.approvalManager.rejectApproval(approvalRequest.id, 'Auto-rejected: headless mode');
-      return { approved: false, feedback: 'Auto-rejected in headless mode' };
+      const feedback = 'Auto-rejected: headless mode';
+      this.approvalManager.resolveApproval(approvalRequest.id, false, feedback);
+      return { approved: false, feedback };
     }
 
     try {
@@ -121,10 +124,12 @@ export class ApprovalService {
       );
       return { approved: result.approved, feedback: result.reason };
     } catch (err: unknown) {
-      return {
-        approved: false,
-        feedback: `Approval error: ${errMsg(err)}`,
-      };
+      // The caller has stopped waiting, so the request is answered here rather
+      // than left pending for a resolver who is not coming: `pending` grew by one
+      // entry per timeout, which on a long-lived service is an unbounded map.
+      const feedback = `Approval error: ${errMsg(err)}`;
+      this.approvalManager.resolveApproval(approvalRequest.id, false, feedback);
+      return { approved: false, feedback };
     }
   }
 }

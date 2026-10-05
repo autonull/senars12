@@ -34,16 +34,19 @@ describe('Bench 62: monolith split — M1 external-tools', () => {
       'createFileSystemTools',
       'createRagQueryTools',
       'createCoverageConceptTools',
-      'createHumanApprovalTool',
       'createTestGenTools',
       'createTestRunnerTools',
       'createScenarioGenTools',
       'createCodemodTools',
       'createSelfTools',
-      'ApprovalManager',
     ]) {
       expect(barrel, `barrel missing ${symbol}`).toContain(symbol);
     }
+    // The approval gate is core's, reached directly. The barrel used to alias
+    // `InMemoryApprovalManager` as `ApprovalManager` and to carry a tool that
+    // asked that registry without going through `ApprovalService` — a second
+    // path with no timeout and no headless answer, wired to nothing.
+    expect(barrel).not.toContain('human-approval');
   });
 });
 

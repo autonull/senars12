@@ -1,4 +1,5 @@
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
+import { ensureParentDir, parseJsonObject } from '@senars/util';
 import type { CodemodResult } from './codemod.js';
 import { runCodemod } from './codemod.js';
 import { runProcess } from './proc.js';
@@ -19,8 +20,9 @@ export interface TestRunResult {
 
 /** Shadow worktree manager for safe code modifications */
 export class ShadowWorktreeManager {
-  private workspaceRoot: string;
-  private activeWorktrees: Map<string, string> = new Map(); // id -> path
+  protected readonly workspaceRoot: string;
+  /** id -> path. The worktrees this manager owns and is allowed to land. */
+  readonly #activeWorktrees = new Map<string, string>();
 
   constructor(workspaceRoot: string) {
     this.workspaceRoot = workspaceRoot;
@@ -36,13 +38,13 @@ export class ShadowWorktreeManager {
       cwd: this.workspaceRoot,
     });
     if (code !== 0) throw new Error(`Failed to create worktree: ${code} ${stderr}`);
-    this.activeWorktrees.set(id, shadowDir);
+    this.#activeWorktrees.set(id, shadowDir);
     return shadowDir;
   }
 
   /** Get the path of an active worktree by id, or undefined if not found */
   getWorktreePath(id: string): string | undefined {
-    return this.activeWorktrees.get(id);
+    return this.#activeWorktrees.get(id);
   }
 
   /** Apply codemod in shadow worktree */
@@ -100,7 +102,7 @@ export class ShadowWorktreeManager {
 
   /** Merge shadow worktree to main (requires approval) */
   async mergeWorktree(id: string): Promise<boolean> {
-    const worktreePath = this.activeWorktrees.get(id);
+    const worktreePath = this.#activeWorktrees.get(id);
     if (!worktreePath) return false;
 
     const commit = await runProcess('git', ['commit', '-am', `Self-improvement: ${id}`], {
@@ -115,13 +117,13 @@ export class ShadowWorktreeManager {
 
   /** Clean up shadow worktree */
   async cleanupWorktree(id: string): Promise<void> {
-    const worktreePath = this.activeWorktrees.get(id);
+    const worktreePath = this.#activeWorktrees.get(id);
     if (!worktreePath) return;
 
     await runProcess('git', ['worktree', 'remove', '--force', worktreePath], {
       cwd: this.workspaceRoot,
     });
-    this.activeWorktrees.delete(id);
+    this.#activeWorktrees.delete(id);
   }
 
   /** Run a command in the worktree and return result */
@@ -133,5 +135,3 @@ export class ShadowWorktreeManager {
     return runProcess(command, args, { cwd: worktreePath });
   }
 }
-
-import { ensureParentDir, parseJsonObject } from '@senars/util';

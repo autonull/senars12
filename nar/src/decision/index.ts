@@ -21,6 +21,8 @@ export {
   isProvisionalStamp,
   type ProvisionalStamp,
 } from './provisional-stamp.js';
+export { asRubricId, COGNITIVE_AXES, cognitiveAxisSchema, RUBRIC_IDS, rubricIdSchema } from './types.js';
+export { SYNTHESIS_AXIS } from '../ports/decision.js';
 export type {
   BackendId,
   Calibration,

@@ -1,12 +1,9 @@
-import { writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { ensureParentDir } from '@senars/util';
-import { type SelfToolsContext, toToolResult, withShadowWorktree } from './context.js';
+import { type SelfToolsContext, writeAndValidate } from './context.js';
 
 export const registerToolTool = (ctx: SelfToolsContext) => {
-  const { deps, shadowManager } = ctx;
+  const { deps } = ctx;
   return tool({
     description:
       'Register a new tool in the ToolManager. Tool implementation is validated in shadow worktree. Supports worktree reuse.',
@@ -21,36 +18,23 @@ export const registerToolTool = (ctx: SelfToolsContext) => {
       if (!deps.nar || !deps.toolManager) {
         return { success: false, error: 'NAR or ToolManager not available' };
       }
-      const outcome = await withShadowWorktree(
-        ctx,
-        'tool',
-        existingId,
-        async ({ path, id, isNew }) => {
-          const toolFile = resolve(path, `tools/${toolName}.ts`);
-          await ensureParentDir(toolFile);
-          await writeFile(toolFile, toolCode, 'utf-8');
+      const outcome = await writeAndValidate(ctx, 'tool', existingId, {
+        file: `tools/${toolName}.ts`,
+        contents: toolCode,
+        validationError: 'Tool validation failed',
+      });
+      if (!outcome.success) return outcome;
 
-          const testResult = await shadowManager.runTestsInWorktree(path);
-          if (!testResult.success) {
-            return { success: false, error: 'Tool validation failed', testResult };
-          }
-
-          const diff = await shadowManager.getDiff(path);
-
-          // D6 honesty: shadow-validated code is not compiled or registered
-          // with the ToolManager — report validation, not registration.
-          return {
-            success: false,
-            error:
-              'not-supported: shadow-validated tool code was not registered (compilation step not implemented)',
-            toolName,
-            diff,
-            worktreeId: isNew ? id : existingId,
-          };
-        }
-      );
-
-      return toToolResult(outcome);
+      // D6 honesty: shadow-validated code is not compiled or registered
+      // with the ToolManager — report validation, not registration.
+      return {
+        success: false,
+        error:
+          'not-supported: shadow-validated tool code was not registered (compilation step not implemented)',
+        toolName,
+        diff: outcome.diff,
+        worktreeId: outcome.worktreeId,
+      };
     },
   });
 };

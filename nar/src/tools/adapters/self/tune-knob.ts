@@ -59,7 +59,7 @@ export const tuneKnobTool = (ctx: SelfToolsContext) => {
             reward,
             testResult,
             message: 'Knob tuned and validated',
-            worktreeId: existingId ?? id,
+            worktreeId: id,
           };
         }
       );

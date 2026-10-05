@@ -1,12 +1,9 @@
-import { writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { ensureParentDir } from '@senars/util';
-import { type SelfToolsContext, withShadowWorktree } from './context.js';
+import { type SelfToolsContext, writeAndValidate } from './context.js';
 
 export const registerRuleTool = (ctx: SelfToolsContext) => {
-  const { deps, shadowManager } = ctx;
+  const { deps } = ctx;
   return tool({
     description:
       'Register a new inference rule in the NAR rule processor. Takes a schema ID and promotes it to an active rule. Supports worktree reuse.',
@@ -27,37 +24,22 @@ export const registerRuleTool = (ctx: SelfToolsContext) => {
       // code, but nothing is registered into the RuleProcessor.
       const ruleId = `promoted_${schemaId}`;
 
-      // If ruleCode provided, eval it (in shadow context only)
+      // If ruleCode provided, validate it (in shadow context only)
       if (ruleCode) {
-        const outcome = await withShadowWorktree(
-          ctx,
-          'rule',
-          existingId,
-          async ({ path, id, isNew }) => {
-            const ruleFile = resolve(path, `rules/${ruleId}.ts`);
-            await ensureParentDir(ruleFile);
-            await writeFile(ruleFile, ruleCode, 'utf-8');
+        const outcome = await writeAndValidate(ctx, 'rule', existingId, {
+          file: `rules/${ruleId}.ts`,
+          contents: ruleCode,
+          validationError: 'Rule validation failed',
+        });
+        if (!outcome.success) return outcome;
 
-            // Run tests to validate
-            const testResult = await shadowManager.runTestsInWorktree(path);
-            if (!testResult.success) {
-              return { success: false, error: 'Rule validation failed', testResult };
-            }
-
-            const diff = await shadowManager.getDiff(path);
-
-            return {
-              success: true,
-              ruleId,
-              diff,
-              message: 'Rule registered and validated',
-              worktreeId: isNew ? id : existingId,
-            };
-          }
-        );
-
-        if (outcome.ok) return outcome.value;
-        return { success: false, error: outcome.error };
+        return {
+          success: true,
+          ruleId,
+          diff: outcome.diff,
+          message: 'Rule registered and validated',
+          worktreeId: outcome.worktreeId,
+        };
       }
 
       return {

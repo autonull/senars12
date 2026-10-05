@@ -1,3 +1,4 @@
+import type { ApprovalService } from '@senars/core';
 import { BoundedRing, type CapabilityRisk, errMsg } from '@senars/util';
 
 export type { CapabilityRisk };
@@ -13,13 +14,10 @@ export interface CapabilityPolicy {
   checkCommand(command: string): { allowed: boolean; reason?: string };
 }
 
-export interface CapabilityApproval {
-  requestApproval(request: {
-    action: string;
-    payload: string;
-    risk: CapabilityRisk;
-  }): Promise<{ approved: boolean; feedback?: string }>;
-}
+/** The approval gate this space asks. Derived from core's service rather than
+ *  transcribed, so the port and the thing that satisfies it cannot disagree about
+ *  what an approval is — the copy here had already fallen behind it. */
+export type CapabilityApproval = Pick<ApprovalService, 'requestApproval'>;
 
 export interface CapabilityResult {
   success: boolean;

@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { type SelfToolsContext, toToolResult, withShadowWorktree } from './context.js';
+import type { CodemodResult } from '../codemod.js';
+import { type SelfToolsContext, shadowChange } from './context.js';
 
 export const applyFixTool = (ctx: SelfToolsContext) => {
   const { deps, shadowManager } = ctx;
@@ -25,61 +26,40 @@ export const applyFixTool = (ctx: SelfToolsContext) => {
         return { success: false, error: `Unknown fix pattern: ${fixPattern}` };
       }
 
-      const outcome = await withShadowWorktree(
-        ctx,
-        'fix',
-        existingId,
-        async ({ path, id, isNew }) => {
-          // Apply the codemod
+      // A codemod rewrites whatever it matches, so the change is the codemod rather
+      // than a file to write — but it is proved, approved and landed by the same
+      // shadow boundary as the three tools that do name their file.
+      const outcome = await shadowChange<CodemodResult>(ctx, 'fix', existingId, {
+        validationError: 'Fix broke tests',
+        approval: `Apply fix: ${fixPattern} for test ${testName ?? 'unknown'}`,
+        merge: true,
+        apply: async ({ path }) => {
           const codemodResult = await shadowManager.applyCodemodInWorktree(
             path,
             mapping.pattern,
             mapping.replacement,
-            targetFiles || [],
+            targetFiles ?? [],
             mapping.lang
           );
+          return codemodResult.success && (codemodResult.matches ?? 0) > 0
+            ? { ok: true, value: codemodResult }
+            : { ok: false, error: 'No matches found for fix pattern' };
+        },
+      });
 
-          if (!codemodResult.success || codemodResult.matches === 0) {
-            return { success: false, error: 'No matches found for fix pattern', codemodResult };
-          }
+      if (!outcome.success) return outcome;
 
-          // Run tests to validate fix
-          const testResult = await shadowManager.runTestsInWorktree(path);
-          if (!testResult.success) {
-            return { success: false, error: 'Fix broke tests', testResult, codemodResult };
-          }
-
-          const diff = await shadowManager.getDiff(path);
-
-          // Request approval
-          if (deps.approvalManager) {
-            const req = deps.approvalManager.createRequest(
-              `Apply fix: ${fixPattern} for test ${testName ?? 'unknown'}`,
-              { diff, fixPattern, testName, codemodResult }
-            );
-            const approval = await req.result;
-            if (!approval.approved) {
-              return { success: false, error: 'Approval denied', reason: approval.reason };
-            }
-          }
-
-          await shadowManager.mergeWorktree(id);
-
-          // Stimulate competence drive
-          nar.getExecution?.()?.stimulateDrives?.('test_passed');
-
-          return {
-            success: true,
-            fixPattern,
-            diff,
-            testResult,
-            message: 'Fix applied and validated',
-            worktreeId: isNew ? id : existingId,
-          };
-        }
-      );
-
-      return toToolResult(outcome);
+      nar.getExecution?.()?.stimulateDrives?.('test_passed');
+      const { applied, testResult, diff, worktreeId } = outcome;
+      return {
+        success: true,
+        fixPattern,
+        diff,
+        testResult,
+        codemodResult: applied,
+        message: 'Fix applied and validated',
+        worktreeId,
+      };
     },
   });
 };

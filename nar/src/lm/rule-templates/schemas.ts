@@ -2,7 +2,7 @@
  * Zod schemas for LM rule definitions (REFACTOR.todo4 Phase B).
  * Moved from nl/schemas.ts to break the rule-builders → rule-templates → nl → nar cycle.
  */
-import { AmbiguityReportSchema } from '@senars/core/schemas';
+import { AmbiguityReportSchema, DetectedIntentSchema } from '@senars/core/schemas';
 import { z } from 'zod';
 
 export const NarseseBeliefSchema = z.object({
@@ -150,7 +150,7 @@ export const TaskBatchSchema = z.object({
     })
   ),
   meta: z.object({
-    detectedIntent: z.enum(['chat', 'command', 'reasoning', 'learning']),
+    detectedIntent: DetectedIntentSchema,
     ambiguities: z.array(AmbiguitySchema),
     coreferences: z.array(CoreferenceSchema),
     implicitContext: z.array(z.string()),

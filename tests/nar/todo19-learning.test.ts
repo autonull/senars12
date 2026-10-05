@@ -10,6 +10,7 @@ import { mcReturns, recordMcReturnLabels } from '../../nar/src/lm/system-one/mc-
 import {
   actionFeatures,
   bakeOffSharedHead,
+  type HeadIdentity,
   type TrainingRow,
 } from '../../nar/src/lm/system-one/train.js';
 import {
@@ -130,7 +131,7 @@ describe('Bench 45 — Learning Closure', () => {
         });
       }
     }
-    const meta = { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' };
+    const meta = { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' } satisfies HeadIdentity;
     const bakeOff = bakeOffSharedHead(rows, meta, { seed: 42, holdoutFraction: 0.25 });
     expect(Object.keys(bakeOff.scores).sort()).toEqual(['conversation', 'research', 'tool-use']);
     for (const [game, s] of Object.entries(bakeOff.scores)) {
@@ -184,15 +185,15 @@ describe('Bench 45 — Learning Closure', () => {
     expect(() =>
       bakeOffSharedHead([{ embedding: e, action: 'a', target: 0.5 }], {
         headId: 'r',
-        rubric: 'r',
-        axis: 'x',
+        rubric: 'reflex_value',
+        axis: 'teleological',
       })
     ).toThrow();
     const tagged = [
       { embedding: e, action: 'a', target: 0.5, game: 'g1' },
       { embedding: e, action: 'b', target: 0.4, game: 'g1' },
     ];
-    expect(() => bakeOffSharedHead(tagged, { headId: 'r', rubric: 'r', axis: 'x' })).toThrow(
+    expect(() => bakeOffSharedHead(tagged, { headId: 'r', rubric: 'reflex_value', axis: 'teleological' })).toThrow(
       /≥2 games/
     );
   });

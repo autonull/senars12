@@ -12,6 +12,7 @@
  */
 import { parseArgs } from 'node:util';
 import { join } from 'node:path';
+import { asRubricId, RUBRIC_IDS } from '../nar/src/decision/types.js';
 import { loadTrainingData, trainHead, writeHeadArtifacts } from '../nar/src/lm/system-one/train.js';
 
 const { values } = parseArgs({
@@ -32,6 +33,14 @@ if (!values.dataset || !values.sidecar || !values.out || !values.head) {
   process.exit(1);
 }
 
+// `--head` names a rubric, so a typo has to fail here rather than train a head the
+// judge can never route to. It used to pass the raw string straight through.
+const rubric = asRubricId(values.head);
+if (!rubric) {
+  console.error(`Unknown rubric '${values.head}'. Known: ${RUBRIC_IDS.join(', ')}`);
+  process.exit(1);
+}
+
 const rows = await loadTrainingData({
   datasetPath: values.dataset,
   sidecarPath: values.sidecar,
@@ -42,7 +51,7 @@ if (rows.length === 0) {
   process.exit(1);
 }
 
-const model = trainHead(rows, { headId: values.head, rubric: values.head, axis: 'teleological' }, {
+const model = trainHead(rows, { headId: values.head, rubric, axis: 'teleological' }, {
   kind: values.kind === 'logistic' ? 'logistic' : 'linear',
   epochs: Number(values.epochs),
 });

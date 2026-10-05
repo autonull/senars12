@@ -18,20 +18,12 @@ const createManager = (): ApprovalManager & {
         createdAt: Date.now(),
         result: result as Promise<never>,
         resolve: resolveFn as never,
-        reject: (() => {}) as never,
       };
     },
     resolveApproval(id, approved, reason) {
       const req = pending.get(id);
       if (!req) return false;
       req.resolve({ approved, reason });
-      pending.delete(id);
-      return true;
-    },
-    rejectApproval(id) {
-      const req = pending.get(id);
-      if (!req) return false;
-      req.resolve({ approved: false, reason: 'rejected' });
       pending.delete(id);
       return true;
     },
@@ -43,7 +35,6 @@ const createManager = (): ApprovalManager & {
         createdAt: 0,
         result: Promise.resolve({ approved: false }) as never,
         resolve: p.resolve as never,
-        reject: (() => {}) as never,
       }));
     },
     getPendingCount() {
@@ -105,5 +96,38 @@ describe('ApprovalService', () => {
       if (prev === undefined) delete process.env.SENARS_HEADLESS;
       else process.env.SENARS_HEADLESS = prev;
     }
+  });
+
+  it('answers its own question when headless, so the request settles', async () => {
+    // The gate's answer is the only thing the request's promise can settle with,
+    // and a refusal is a resolution rather than a rejection: a rejection here had
+    // no handler, which is a process exit rather than a declined landing.
+    process.env.SENARS_HEADLESS = '1';
+    try {
+      const manager = createManager();
+      const service = new ApprovalService({ approvalManager: manager });
+      await service.requestApproval({ action: 'apply_fix', payload: 'diff', risk: 'high' });
+
+      const [settled] = manager.getPending();
+      expect(settled).toBeUndefined();
+      expect(manager.getPendingCount()).toBe(0);
+    } finally {
+      delete process.env.SENARS_HEADLESS;
+    }
+  });
+
+  it('does not keep a request pending for a resolver who timed out', async () => {
+    const manager = createManager();
+    const service = new ApprovalService({ approvalManager: manager });
+
+    const result = await service.requestApproval({
+      action: 'apply_fix',
+      payload: 'diff',
+      risk: 'high',
+      timeoutMs: 1,
+    });
+
+    expect(result.approved).toBe(false);
+    expect(manager.getPendingCount()).toBe(0);
   });
 });
