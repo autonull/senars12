@@ -1,4 +1,5 @@
 import { getOrInsert } from '@senars/util';
+import { LINK } from '../../constants.js';
 import type { Term } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
 import { Layer } from './Layer.js';
@@ -13,10 +14,10 @@ export class LinkManager {
 
   constructor(config?: Partial<LinkManagerConfig>) {
     this.config = {
-      defaultCapacity: config?.defaultCapacity ?? 1000,
-      layers: config?.layers ?? { [DEFAULT_LAYER]: 1000 },
-      globalDecayRate: config?.globalDecayRate ?? 0.001,
-      forgetPolicy: config?.forgetPolicy ?? 'priority',
+      defaultCapacity: config?.defaultCapacity ?? LINK.DEFAULT_CAPACITY,
+      layers: config?.layers ?? { [DEFAULT_LAYER]: LINK.TERM_LAYER_CAPACITY },
+      globalDecayRate: config?.globalDecayRate ?? LINK.DECAY_RATE,
+      forgetPolicy: config?.forgetPolicy ?? LINK.FORGET_POLICY,
       rng: config?.rng,
     };
 

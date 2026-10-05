@@ -1,4 +1,4 @@
-import { errMsg, truncate as truncateText, type LMTask } from '@senars/util';
+import { errMsg, truncate as truncateText, type LMTask, type ToolCall } from '@senars/util';
 import {
   generateText,
   type LanguageModel,
@@ -9,12 +9,8 @@ import {
 } from 'ai';
 
 export type { LanguageModel, ModelMessage, ToolSet };
-
-export interface ToolCall {
-  toolName: string;
-  toolCallId: string;
-  args: Record<string, unknown>;
-}
+/** The one tool-call record: util owns it, the runner and the dispatcher both read it. */
+export type { ToolCall };
 
 export interface ToolError {
   toolCallId: string;

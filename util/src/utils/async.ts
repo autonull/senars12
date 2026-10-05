@@ -67,17 +67,15 @@ export const boundedDeadline = (
   error: () => Error = () => new TimeoutError(timeoutMs)
 ): Deadline => {
   const controller = new AbortController();
-  let expire!: (error: Error) => void;
-  const expired = new Promise<never>((_, reject) => {
-    expire = reject;
-  });
-  const timer = setTimeout(() => {
-    const failure = error();
-    controller.abort(failure);
-    expire(failure);
-  }, timeoutMs);
-  timer.unref?.();
-  return { signal: controller.signal, expired, dispose: () => clearTimeout(timer) };
+  const { promise: expired, reject: expire } = deferred<never>();
+  const dispose = disarmed(
+    setTimeout(() => {
+      const failure = error();
+      controller.abort(failure);
+      expire(failure);
+    }, timeoutMs)
+  );
+  return { signal: controller.signal, expired, dispose };
 };
 
 /**
@@ -122,13 +120,22 @@ export const withTimeout = <T>(
 ): Promise<T> => withDeadline(() => promise, timeoutMs, error);
 
 /**
+ * Clear a timer, idempotently — the shape every `stop` needs so a disposer that
+ * both `close` and an error path call needs no guard.
+ */
+const disposer =
+  (timer: ReturnType<typeof setTimeout>): (() => void) =>
+  () =>
+    clearTimeout(timer);
+
+/**
  * A timer that never holds the process open, handed back as an idempotent
- * disposer — the shared shape behind {@link periodic} and {@link deadline}, so
- * neither of them re-derives "unref it, and let `stop` be safe to call twice".
+ * disposer — the shared shape behind {@link periodic} and {@link boundedDeadline},
+ * so neither of them re-derives "unref it, and let `stop` be safe to call twice".
  */
 const disarmed = (timer: ReturnType<typeof setTimeout>): (() => void) => {
   timer.unref?.();
-  return () => clearTimeout(timer);
+  return disposer(timer);
 };
 
 /**
@@ -145,10 +152,7 @@ const disarmed = (timer: ReturnType<typeof setTimeout>): (() => void) => {
  * for, which took `pnpm cycle:no-provider` — a gate whose entire subject is
  * never-resolving providers — down with it.
  */
-const blocking =
-  (timer: ReturnType<typeof setTimeout>): (() => void) =>
-  () =>
-    clearTimeout(timer);
+const blocking = disposer;
 
 /**
  * Repeat `task` every `intervalMs` until the returned disposer is called.
@@ -209,10 +213,7 @@ export function raceDeadline<T>(
   work: Promise<T>,
   timeoutMs: number
 ): Promise<{ value: T; timedOut: false } | { value?: undefined; timedOut: true }> {
-  const { promise: armed, resolve: expire } = Promise.withResolvers<{
-    value?: undefined;
-    timedOut: true;
-  }>();
+  const { promise: armed, resolve: expire } = deferred<{ value?: undefined; timedOut: true }>();
   const dispose = blocking(setTimeout(() => expire({ timedOut: true }), timeoutMs));
   return Promise.race([work.then((value) => ({ value, timedOut: false as const })), armed]).finally(
     dispose

@@ -77,3 +77,30 @@ export class SenarsError extends Error {
     };
   }
 }
+
+/**
+ * The one subclass shape in the taxonomy: a `name`, an {@link ErrorCode}, and the
+ * `(message, context, cause)` arguments all of them accepted.
+ *
+ * Eight classes had that constructor written out in full, so a code added to the
+ * union above cost a file per code and every one of those files had to remember
+ * to thread `options` through — three of them did not, so an error raised through
+ * them silently dropped its cause. The taxonomy is now one declaration per code,
+ * and cause threading is not optional.
+ *
+ * Returns the constructor only; a caller that names the instance type pairs it
+ * with `export type X = InstanceType<typeof X>`.
+ */
+export const codedError = <N extends string, C extends ErrorCode>(name: N, code: C) => {
+  const CodedError = class extends SenarsError {
+    constructor(message: string, context?: Record<string, unknown>, options?: ErrorOptions) {
+      super(message, code, context, options);
+      this.name = name;
+    }
+  };
+  // The class expression can only be named once, so it shares a name with every
+  // other declaration from this factory. `constructor.name` is load-bearing — it
+  // is what a stack frame and a test assert against — so each code claims it.
+  Object.defineProperty(CodedError, 'name', { value: name });
+  return CodedError;
+};

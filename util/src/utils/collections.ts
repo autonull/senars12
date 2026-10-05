@@ -199,16 +199,7 @@ export function minBy<T>(
   initial?: T,
   initialScore = Number.POSITIVE_INFINITY
 ): T | undefined {
-  let best = initial;
-  let bestScore = initialScore;
-  for (const item of items) {
-    const value = score(item);
-    if (value < bestScore) {
-      best = item;
-      bestScore = value;
-    }
-  }
-  return best;
+  return extremumBy(items, score, LOWER, initial, initialScore).item;
 }
 
 export function maxBy<T>(
@@ -217,16 +208,7 @@ export function maxBy<T>(
   initial?: T,
   initialScore = Number.NEGATIVE_INFINITY
 ): T | undefined {
-  let best = initial;
-  let bestScore = initialScore;
-  for (const item of items) {
-    const value = score(item);
-    if (value > bestScore) {
-      best = item;
-      bestScore = value;
-    }
-  }
-  return best;
+  return extremumBy(items, score, HIGHER, initial, initialScore).item;
 }
 
 /**
@@ -241,12 +223,7 @@ export function maxBy<T>(
  * no observation reached).
  */
 export function maxScore<T>(items: Iterable<T>, score: (item: T) => number, floor = 0): number {
-  let max = floor;
-  for (const item of items) {
-    const value = score(item);
-    if (value > max) max = value;
-  }
-  return max;
+  return extremumBy(items, score, HIGHER, undefined, floor).score;
 }
 
 /**
@@ -257,12 +234,39 @@ export function maxScore<T>(items: Iterable<T>, score: (item: T) => number, floo
  * the only number that loses to every real one.
  */
 export function minScore<T>(items: Iterable<T>, score: (item: T) => number): number {
-  let min = Number.POSITIVE_INFINITY;
-  for (const item of items) {
-    const value = score(item);
-    if (value < min) min = value;
+  return extremumBy(items, score, LOWER, undefined, Number.POSITIVE_INFINITY).score;
+}
+
+const LOWER = (candidate: number, incumbent: number): boolean => candidate < incumbent;
+const HIGHER = (candidate: number, incumbent: number): boolean => candidate > incumbent;
+
+/**
+ * The one extremum scan: `better` says which of two scores wins and the seeds say
+ * where the scan starts. Returns the winner and its score so the four readers
+ * above differ only in the comparator they pass — they had each grown their own
+ * copy of the loop, and a fifth (a bounded map's victim pick) a fifth.
+ *
+ * The result is one record per call rather than per improvement: `minBy` runs
+ * inside per-premise selection, so a per-candidate allocation would have bought
+ * the deduplication with an allocation on the hottest scan in the tree.
+ */
+function extremumBy<T>(
+  items: Iterable<T>,
+  score: (item: T) => number,
+  better: (candidate: number, incumbent: number) => boolean,
+  initial: T | undefined,
+  initialScore: number
+): { item: T | undefined; score: number } {
+  let item = initial;
+  let best = initialScore;
+  for (const candidate of items) {
+    const value = score(candidate);
+    if (better(value, best)) {
+      item = candidate;
+      best = value;
+    }
   }
-  return min;
+  return { item, score: best };
 }
 
 /** Insert into a descending-sorted list in O(n) — no full re-sort, unlike
@@ -350,37 +354,7 @@ export function selectTopN<T>(
   score: (item: T) => number,
   where: (item: T) => boolean = () => true
 ): T[] {
-  if (n <= 0) return [];
-  const result: T[] = [];
-  const scores: number[] = [];
-  for (const item of items) {
-    if (!where(item)) continue;
-    const s = score(item);
-    if (result.length < n) {
-      result.push(item);
-      scores.push(s);
-      let i = result.length - 1;
-      while (i > 0 && scores[i - 1]! < s) {
-        result[i] = result[i - 1]!;
-        scores[i] = scores[i - 1]!;
-        i--;
-      }
-      result[i] = item;
-      scores[i] = s;
-    } else if (s > scores[n - 1]!) {
-      result[n - 1] = item;
-      scores[n - 1] = s;
-      let i = n - 1;
-      while (i > 0 && scores[i - 1]! < s) {
-        result[i] = result[i - 1]!;
-        scores[i] = scores[i - 1]!;
-        i--;
-      }
-      result[i] = item;
-      scores[i] = s;
-    }
-  }
-  return result;
+  return selectBest(items, n, score, HIGHER, where);
 }
 
 /**
@@ -394,23 +368,61 @@ export function selectByPriority<T extends { priority: number; id: string }>(
   budget: number,
   eligible: (item: T) => boolean = () => true
 ): T[] {
-  if (budget <= 0) return [];
-  const better = (a: T, b: T) =>
-    a.priority > b.priority || (a.priority === b.priority && a.id < b.id);
+  return selectBest(
+    items,
+    budget,
+    (item) => item,
+    (a, b) => a.priority > b.priority || (a.priority === b.priority && a.id < b.id),
+    eligible
+  );
+}
+
+/**
+ * The one bounded-buffer selection: keep the `n` best keys the scan has seen,
+ * held descending, in a buffer that never grows past `n`.
+ *
+ * `better` is a total order over keys rather than a numeric score, which is what
+ * let {@link selectByPriority} become this instead of a second implementation of
+ * the same buffer: priority-plus-id cannot be one number, so it had to hand-roll
+ * the insert-walk, the evict-worst slot and the final sort, and a fourth caller
+ * wanting the same bound would have written a third. `key` is separate from
+ * `better` so a numeric ranking still evaluates its score once per item rather
+ * than once per comparison.
+ *
+ * Nothing is materialized or sorted in full, which is the point: this runs over
+ * concept stores, Q-table rows and pending-task maps under an AIKR budget.
+ */
+function selectBest<T, K>(
+  items: Iterable<T>,
+  n: number,
+  key: (item: T) => K,
+  better: (candidate: K, incumbent: K) => boolean,
+  eligible: (item: T) => boolean
+): T[] {
+  if (n <= 0) return [];
   const kept: T[] = [];
-  let worst = 0;
+  const keys: K[] = [];
   for (const item of items) {
     if (!eligible(item)) continue;
-    if (kept.length === budget) {
-      if (!better(item, kept[worst]!)) continue;
-      kept[worst] = item;
+    const k = key(item);
+    if (kept.length === n) {
+      if (!better(k, keys[n - 1]!)) continue;
+      kept[n - 1] = item;
+      keys[n - 1] = k;
     } else {
       kept.push(item);
+      keys.push(k);
     }
-    worst = 0;
-    for (let i = 1; i < kept.length; i++) if (better(kept[i]!, kept[worst]!)) worst = i;
+    let i = kept.length - 1;
+    while (i > 0 && better(k, keys[i - 1]!)) {
+      kept[i] = kept[i - 1]!;
+      keys[i] = keys[i - 1]!;
+      i--;
+    }
+    kept[i] = item;
+    keys[i] = k;
   }
-  return kept.sort((a, b) => Number(better(b, a)) - Number(better(a, b)));
+  return kept;
 }
 
 /** The get/set surface a keyed store must expose to be lazily populated. */
@@ -478,9 +490,7 @@ export function mapToRecord<K extends PropertyKey, V, W = V>(
   map: ReadonlyMap<K, V>,
   project: (value: V, key: K) => W = (value) => value as unknown as W
 ): Record<K, W> {
-  const record = {} as Record<K, W>;
-  for (const [key, value] of map) record[key] = project(value, key);
-  return record;
+  return keyedBy(map, entryKey<K>, ([, value], key) => project(value, key));
 }
 
 /**
@@ -494,12 +504,17 @@ export function mapToRecord<K extends PropertyKey, V, W = V>(
 export function keyedBy<T, K extends PropertyKey, V = T>(
   items: Iterable<T>,
   key: (item: T) => K,
-  value: (item: T) => V = (item) => item as unknown as V
+  value: (item: T, key: K) => V = (item) => item as unknown as V
 ): Record<K, V> {
   const record = {} as Record<K, V>;
-  for (const item of items) record[key(item)] = value(item);
+  for (const item of items) {
+    const k = key(item);
+    record[k] = value(item, k);
+  }
   return record;
 }
+
+const entryKey = <K extends PropertyKey>([key]: readonly [K, unknown]): K => key;
 
 /**
  * Re-key a record's values while keeping its keys — the `Object.fromEntries(
@@ -510,9 +525,12 @@ export function mapValues<K extends PropertyKey, V, W>(
   record: Readonly<Record<K, V>>,
   project: (value: V, key: K) => W
 ): Record<K, W> {
-  const out = {} as Record<K, W>;
-  for (const key of Object.keys(record) as K[]) out[key] = project(record[key]!, key);
-  return out;
+  const keys = Object.keys(record) as K[];
+  return keyedBy(
+    keys,
+    (key) => key,
+    (key) => project(record[key]!, key)
+  );
 }
 
 /**
@@ -526,12 +544,8 @@ export function unique<T>(items: Iterable<T>): T[] {
 }
 
 /** {@link unique} across several collections — the union an index query needs. */
-export function flatUnique<T>(collections: Iterable<readonly T[]>): T[] {
-  return unique(collect(collections));
-}
-
-function* collect<T>(collections: Iterable<readonly T[]>): Generator<T> {
-  for (const collection of collections) yield* collection;
+export function flatUnique<T>(collections: readonly (readonly T[])[]): T[] {
+  return unique(collections.flat());
 }
 
 /**
@@ -640,14 +654,8 @@ export class BoundedRing<T> implements BoundedContainer<T> {
    * what it lost reads one return value.
    */
   push(item: T): T | undefined {
-    if (this.#items.length >= this.capacity) {
-      if (this.overflow === 'refuse') return item;
-      const displaced = this.#items.shift();
-      this.#items.push(item);
-      return displaced;
-    }
-    this.#items.push(item);
-    return undefined;
+    if (this.overflow === 'refuse' && this.#items.length >= this.capacity) return item;
+    return pushCapped(this.#items, item, this.capacity);
   }
 
   /**
@@ -680,7 +688,7 @@ export class BoundedRing<T> implements BoundedContainer<T> {
 
   /** The most recent `n` items, oldest first. */
   tail(n = this.capacity): T[] {
-    return this.#items.slice(-n);
+    return takeLast(this.#items, n);
   }
 
   toArray(): T[] {

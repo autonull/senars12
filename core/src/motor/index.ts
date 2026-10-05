@@ -10,7 +10,6 @@ export {
 } from './builtin-tools.js';
 export {
   type DispatchArtifact,
-  type DispatchCall,
   type DispatchContext,
   type DispatchError,
   dispatchToolCalls,

@@ -2,9 +2,17 @@ import { asBeliefTruth, type BeliefTruth, clamp01, makeId, maxScore } from '@sen
 import { type Bag, type BagOptions, createBag } from '../bag/index.js';
 import type { ResolvedBagSlot } from '../bag/registration.js';
 import type { Term, Truth } from '../terms';
-import { calculateSimilarity, Stamp, TermMap, TermSet, termKey } from '../terms';
-import { type IndependenceStatus, Truth as TruthOps } from '../terms/impls/Truth.js';
-import { type Budget, createBeliefTask, type Task, type TaskType } from '../types';
+import { calculateSimilarity, Stamp, TermMap, TermSet, termKey, Truth as TruthOps } from '../terms';
+import { type IndependenceStatus } from '../terms/impls/Truth.js';
+import {
+  type Budget,
+  createBeliefTask,
+  createTask,
+  createTaskWeight,
+  type Task,
+  type TaskType,
+  type Timestamp,
+} from '../types';
 import { jaccard } from '../utils/similarity.js';
 
 export type { IndependenceStatus };
@@ -90,6 +98,37 @@ export interface ConceptMergeResult {
   merged: Concept;
   discarded: Concept[];
 }
+
+/**
+ * A `Task` read back out of a bag entry — the read side of
+ * {@link Concept.addTask}, and the only place a `TaskData` becomes a `Task`.
+ *
+ * Three readers rebuilt the eight fields themselves, each re-deciding the three
+ * defaults a bag item does not carry: truth to `NEUTRAL`, budget to the
+ * concept's priority weight, and the occurrence to *now*. The last one was a
+ * clock read per task per concept on `getBeliefs()` and `getGoals()` — every
+ * cycle, over the whole store — because `item.occurrenceTime || Date.now()`
+ * evaluates the right side whether or not the left side answers. Leaving the
+ * field absent instead lets `createTask` charge the clock only for the entries
+ * that genuinely need a timestamp.
+ *
+ * Two of the three also spelled the fallback `||` where the third spelled it
+ * `??`, so an `occurrenceTime` of `0` meant "now" to one reader and "then" to
+ * another; and one of them restated {@link TaskData} as a local interface so it
+ * could cast away the types it was reading.
+ */
+export const taskFromBagItem = (item: TaskData, type: TaskType, conceptPriority: number): Task =>
+  createTask(
+    item.term,
+    type,
+    item.truth ?? TruthOps.NEUTRAL,
+    item.budget ?? createTaskWeight(conceptPriority),
+    {
+      stamp: item.stamp,
+      occurrenceTime: item.occurrenceTime as Timestamp | undefined,
+      derived: item.derived ?? false,
+    }
+  );
 
 export class Concept {
   readonly term: Term;
@@ -206,6 +245,23 @@ export class Concept {
 
   getQuestions(): TaskData[] {
     return this.questionBag.toArray();
+  }
+
+  /**
+   * The bag that holds `type`, or `undefined` for a task kind with no bag of its
+   * own (`command`). One place that answers it: the two readers that had to
+   * dispatch on the kind spelled it as a nested ternary, and the third — a
+   * store walk that dispatches on every kind of every concept — was a chain long
+   * enough to need its own comment.
+   */
+  bag(type: TaskType): Bag<TaskData> | undefined {
+    return type === 'belief'
+      ? this.beliefBag
+      : type === 'goal'
+        ? this.goalBag
+        : type === 'question'
+          ? this.questionBag
+          : undefined;
   }
 
   canMergeWith(other: Concept, threshold = 0.85): boolean {

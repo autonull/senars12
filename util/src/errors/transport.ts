@@ -1,15 +1,7 @@
-import { SenarsError } from './senars-error.js';
+import { codedError } from './senars-error.js';
 
-export class TransportError extends SenarsError {
-  constructor(message: string, context?: Record<string, unknown>, options?: ErrorOptions) {
-    super(message, 'TRANSPORT_ERROR', context, options);
-    this.name = 'TransportError';
-  }
-}
+export const TransportError = codedError('TransportError', 'TRANSPORT_ERROR');
+export type TransportError = InstanceType<typeof TransportError>;
 
-export class ConnectionError extends SenarsError {
-  constructor(message: string, context?: Record<string, unknown>, options?: ErrorOptions) {
-    super(message, 'CONNECTION_ERROR', context, options);
-    this.name = 'ConnectionError';
-  }
-}
+export const ConnectionError = codedError('ConnectionError', 'CONNECTION_ERROR');
+export type ConnectionError = InstanceType<typeof ConnectionError>;

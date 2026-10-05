@@ -6,7 +6,7 @@
 export type { CoActivationEdge, ConceptGraphOptions } from './ConceptGraph.js';
 export { ConceptGraph } from './ConceptGraph.js';
 export type { ConceptTaskType } from './concept.js';
-export { Concept } from './concept.js';
+export { Concept, taskFromBagItem } from './concept.js';
 export type { MemoryConfig, ResolvedMemoryConfig } from './config.js';
 export { Focus } from './focus.js';
 export type { ArchiveConfig, ForgettingPolicy } from './lifecycle/index.js';

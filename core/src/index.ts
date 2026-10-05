@@ -181,7 +181,6 @@ export {
 /** Standalone tool-call dispatcher (canonical; `@senars/nar/agent` re-exports). @public */
 export {
   type DispatchArtifact,
-  type DispatchCall,
   type DispatchContext,
   type DispatchError,
   dispatchToolCalls,

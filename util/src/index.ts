@@ -184,6 +184,7 @@ export { HistoryEntrySchema, MESSAGE_ROLES, MessageRoleSchema } from './types/me
 /** @public Tool contracts. */
 export type {
   ToolBudget,
+  ToolCall,
   ToolCapabilities,
   ToolContext,
   ToolDescriptor,

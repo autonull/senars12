@@ -2,6 +2,42 @@ import { silentLogger } from '@senars/util';
 import type { ConnectionManager } from '../connection-manager.js';
 import type { CommandDefinition } from './registry.js';
 
+const NO_MANAGER = 'Connection manager not configured';
+
+/** The command context's manager, or the one complaint every command makes. */
+const managerOf = (ctx: { manager?: unknown }): ConnectionManager | undefined =>
+  ctx.manager as ConnectionManager | undefined;
+
+/**
+ * A `/verb <id>` command over one existing connection.
+ *
+ * `/disconnect`, `/enable`, `/disable` and `/reconnect` were four field-for-field
+ * copies — the manager lookup, the missing argument checked twice (once on the
+ * count and once on the value, guarding the same `args[0]`), and a sentence that
+ * differed only in its past-tense word. So the pair that decides *whether* the
+ * verb runs was written eight times and the part that decides *what* it does was
+ * written once.
+ */
+const byId = (
+  name: string,
+  description: string,
+  done: string,
+  act: (manager: ConnectionManager, id: string) => Promise<unknown>
+): CommandDefinition => ({
+  name,
+  aliases: [`.${name.slice(1)}`],
+  description,
+  usage: `${name} <id>`,
+  execute: async (args, ctx) => {
+    const manager = managerOf(ctx);
+    if (!manager) return NO_MANAGER;
+    const id = args[0];
+    if (!id) return `Usage: ${name} <id>`;
+    await act(manager, id);
+    return `Connection ${id} ${done}`;
+  },
+});
+
 export const connectionCommands: CommandDefinition[] = [
   {
     name: '/connections',
@@ -9,8 +45,8 @@ export const connectionCommands: CommandDefinition[] = [
     description: 'Show all connections',
     usage: '/connections',
     execute: async (_args, ctx) => {
-      const m = ctx.manager as ConnectionManager | undefined;
-      if (!m) return 'Connection manager not configured';
+      const m = managerOf(ctx);
+      if (!m) return NO_MANAGER;
       const connections = m.getConnections();
       if (connections.size === 0) return 'No active connections';
       return Array.from(
@@ -26,8 +62,8 @@ export const connectionCommands: CommandDefinition[] = [
     usage: '/connect <id> <type> [config...]',
     execute: async (args, ctx) => {
       if (args.length < 2) return 'Usage: /connect <id> <type> [config...]';
-      const m = ctx.manager as ConnectionManager | undefined;
-      if (!m) return 'Connection manager not configured';
+      const m = managerOf(ctx);
+      if (!m) return NO_MANAGER;
       const [id, type, ...configParts] = args;
       if (!id || !type) return 'Usage: /connect <id> <type> [config...]';
       const config = Object.fromEntries(
@@ -40,64 +76,12 @@ export const connectionCommands: CommandDefinition[] = [
       return `Connection ${id} (${type}) created and connected`;
     },
   },
-  {
-    name: '/disconnect',
-    aliases: ['.disconnect'],
-    description: 'Disconnect and remove a connection',
-    usage: '/disconnect <id>',
-    execute: async (args, ctx) => {
-      if (args.length < 1) return 'Usage: /disconnect <id>';
-      const m = ctx.manager as ConnectionManager | undefined;
-      if (!m) return 'Connection manager not configured';
-      const id = args[0];
-      if (!id) return 'Usage: /disconnect <id>';
-      await m.removeConnection(id);
-      return `Connection ${id} removed`;
-    },
-  },
-  {
-    name: '/enable',
-    aliases: ['.enable'],
-    description: 'Resume a disabled connection',
-    usage: '/enable <id>',
-    execute: async (args, ctx) => {
-      if (args.length < 1) return 'Usage: /enable <id>';
-      const m = ctx.manager as ConnectionManager | undefined;
-      if (!m) return 'Connection manager not configured';
-      const id = args[0];
-      if (!id) return 'Usage: /enable <id>';
-      await m.enableConnection(id);
-      return `Connection ${id} enabled`;
-    },
-  },
-  {
-    name: '/disable',
-    aliases: ['.disable'],
-    description: 'Suspend a connection',
-    usage: '/disable <id>',
-    execute: async (args, ctx) => {
-      if (args.length < 1) return 'Usage: /disable <id>';
-      const m = ctx.manager as ConnectionManager | undefined;
-      if (!m) return 'Connection manager not configured';
-      const id = args[0];
-      if (!id) return 'Usage: /disable <id>';
-      await m.disableConnection(id);
-      return `Connection ${id} disabled`;
-    },
-  },
-  {
-    name: '/reconnect',
-    aliases: ['.reconnect'],
-    description: 'Force reconnect a connection',
-    usage: '/reconnect <id>',
-    execute: async (args, ctx) => {
-      if (args.length < 1) return 'Usage: /reconnect <id>';
-      const m = ctx.manager as ConnectionManager | undefined;
-      if (!m) return 'Connection manager not configured';
-      const id = args[0];
-      if (!id) return 'Usage: /reconnect <id>';
-      await m.reconnectConnection(id);
-      return `Connection ${id} reconnected`;
-    },
-  },
+  byId('/disconnect', 'Disconnect and remove a connection', 'removed', (m, id) =>
+    m.removeConnection(id)
+  ),
+  byId('/enable', 'Resume a disabled connection', 'enabled', (m, id) => m.enableConnection(id)),
+  byId('/disable', 'Suspend a connection', 'disabled', (m, id) => m.disableConnection(id)),
+  byId('/reconnect', 'Force reconnect a connection', 'reconnected', (m, id) =>
+    m.reconnectConnection(id)
+  ),
 ];

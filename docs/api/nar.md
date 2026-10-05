@@ -524,6 +524,8 @@ _Dynamic subpath (no single entry file)._
 
 - `tuneAction`
 
+- `perceptionKey` — The text a perception is embedded under — the features when a game reports
+
 - `ArithmeticGame` — Arithmetic quiz: answer `a+b` or `a−b` by picking among shuffled candidates
 
 - `createArithmeticGame`
@@ -948,6 +950,8 @@ _Dynamic subpath (no single entry file)._
 
 - `Concept`
 
+- `taskFromBagItem` — A `Task` read back out of a bag entry — the read side of
+
 - `Focus` — The concepts attention is currently spent on, bounded by priority.
 
 - `Archive`
@@ -1242,6 +1246,8 @@ _Dynamic subpath (no single entry file)._
 
 - `bareInheritancePair` — The first bare inheritance pair mentioned anywhere in the term — `(bird --> animal)`
 
+- `binaryOf` — A binary term's own argument list as a pair, or `undefined` when `term` is not
+
 - `containsSubterm`
 
 - `foldTerm` — Depth-first pre-order fold in visit order.
@@ -1272,9 +1278,19 @@ _Dynamic subpath (no single entry file)._
 
 - `isOperation`
 
+- `isPredictive`
+
+- `isSequence`
+
+- `isSetExt`
+
+- `isSetInt`
+
 - `isSimilarity`
 
 - `mentionsSymbol`
+
+- `rolePair` — `term`'s subject and predicate together — the pair form of {@link getSubject}
 
 - `sameKind`
 
@@ -1282,11 +1298,17 @@ _Dynamic subpath (no single entry file)._
 
 - `sharesSymbol`
 
+- `hasNegatedPair` — Whether `term`'s arguments contain both `a` and `--a`.
+
+- `hasRepeatedArgs` — Whether any two of `term`'s arguments are the same term.
+
 - `termDepth` — Deepest nesting below the root; a bare atom has depth 0.
 
 - `termKey` — Canonical structural key for a term — the single identity used for maps, memoization, and link ids.
 
 - `termSize` — Node count including the root.
+
+- `unaryOf` — A unary term's own argument, or `undefined` when `term` is not `kind`.
 
 - `termsEqual` — Structural term equality. `undefined` is accepted so optional-arg probes need no guard.
 
@@ -1427,6 +1449,8 @@ _Re-export barrel._
 - `type ControlBudgetOverrides`
 
 - `type ControlBudgetPort`
+
+- `UNBUDGETED` — The port a component holds when no budget wiring was bound — every declared
 
 - `ControlBudgets`
 

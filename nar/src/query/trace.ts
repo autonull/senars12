@@ -1,9 +1,9 @@
-import { BoundedMap, maxScore, pct, takeFirst, type TermTruth, unique } from '@senars/util';
-import type { Concept } from '../memory';
+import { BoundedMap, maxScore, pct, takeFirst, unique } from '@senars/util';
+import { type Concept, taskFromBagItem } from '../memory';
 import type { MemoryReader } from '../memory/ports/index.js';
 import type { Term } from '../terms';
 import { Stamp, Truth } from '../terms';
-import type { Budget, Task } from '../types';
+import type { Task } from '../types';
 
 export interface DerivationNode {
   task: Task;
@@ -31,14 +31,6 @@ export interface ExplainResult {
   rules: string[];
   confidence: number;
   why: string;
-}
-
-interface BeliefEntry {
-  truth?: TermTruth;
-  budget?: Budget;
-  stamp?: Stamp;
-  occurrenceTime?: number;
-  derived?: boolean;
 }
 
 /**
@@ -74,19 +66,8 @@ export class ReasoningTrace {
     if (concept) {
       concepts.push(term.toString());
 
-      if (concept.beliefBag) {
-        for (const belief of concept.beliefBag.toArray()) {
-          const entry = belief as BeliefEntry;
-          history.push({
-            term: concept.term,
-            type: 'belief',
-            truth: entry.truth,
-            budget: entry.budget,
-            stamp: entry.stamp,
-            occurrenceTime: entry.occurrenceTime || Date.now(),
-            derived: entry.derived || false,
-          } as Task);
-        }
+      for (const belief of concept.beliefBag.toArray()) {
+        history.push(taskFromBagItem(belief, 'belief', concept.priority));
       }
 
       const relatedConcepts = this.memory.getRelatedConcepts(term);

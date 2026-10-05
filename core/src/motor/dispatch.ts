@@ -1,9 +1,4 @@
-import { errMsg } from '@senars/util';
-export interface DispatchCall {
-  toolName: string;
-  toolCallId: string;
-  args: Record<string, unknown>;
-}
+import { errMsg, type ToolCall } from '@senars/util';
 
 export interface DispatchContext {
   tools: Record<string, { execute: (args: Record<string, unknown>) => Promise<unknown> }>;
@@ -20,7 +15,7 @@ export interface DispatchError {
 }
 
 export async function dispatchToolCalls(
-  calls: DispatchCall[],
+  calls: ToolCall[],
   ctx: DispatchContext
 ): Promise<{ artifacts: DispatchArtifact[]; errors: DispatchError[] }> {
   const artifacts: DispatchArtifact[] = [];

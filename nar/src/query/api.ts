@@ -1,10 +1,10 @@
 import { createLogger, takeFirst, type TermTruth } from '@senars/util';
-import type { Concept } from '../memory';
+import { type Concept, taskFromBagItem } from '../memory';
 import type { Term } from '../terms';
 import { hasCopula, hasVariable, Stamp, Truth, termParser, unify, termKey } from '../terms';
 import { byRelevance, type RelevanceOptions } from './relevance.js';
-import type { Task, TaskType, TermFilter, Timestamp } from '../types';
-import { createTaskWeight, createTask, createTimestamp } from '../types';
+import type { Task, TaskType, TermFilter } from '../types';
+import { createTask, createTaskWeight, createTimestamp } from '../types';
 import { type DerivationRecord, TASK_BAG_KINDS } from '@senars/core/schemas';
 import { verifyRecord } from '@senars/core/verify-derivation';
 
@@ -121,11 +121,10 @@ export class QueryAPI {
     const questions: Task[] = [];
 
     for (const concept of concepts) {
-      if (concept.beliefBag.size() > 0) {
-        const beliefTasks = this.extractTasks(concept, 'belief');
-        beliefs.push(...this.applyFilters(beliefTasks, filter));
+      if (concept.topBelief()) {
+        beliefs.push(...this.applyFilters(this.extractTasks(concept, 'belief'), filter));
       }
-      if (concept.questionBag && concept.questionBag.size() > 0) {
+      if (concept.questionBag.size() > 0) {
         questions.push(...this.extractTasks(concept, 'question'));
       }
     }
@@ -158,9 +157,7 @@ export class QueryAPI {
     const neighbours = this.memory.findSimilarConcepts(questionTerm, 5);
     const adjacent = neighbours.flatMap((concept) => this.evidenceFor(concept));
     const grounded = hasVariable(questionTerm)
-      ? neighbours.find(
-          (concept) => concept.topBelief() && unify(questionTerm, concept.term)
-        )
+      ? neighbours.find((concept) => concept.topBelief() && unify(questionTerm, concept.term))
       : undefined;
     const belief = grounded?.topBelief();
 
@@ -235,29 +232,10 @@ export class QueryAPI {
   }
 
   private extractTasks(concept: Concept, type: TaskType): Task[] {
-    const bag =
-      type === 'belief'
-        ? concept.beliefBag
-        : type === 'goal'
-          ? concept.goalBag
-          : type === 'question'
-            ? concept.questionBag
-            : null;
+    const bag = concept.bag(type);
     if (!bag) return [];
 
-    return bag.toArray().map((item) =>
-      createTask(
-        concept.term,
-        type,
-        item.truth ?? Truth.NEUTRAL,
-        item.budget ?? createTaskWeight(concept.priority),
-        {
-          stamp: item.stamp,
-          occurrenceTime: (item.occurrenceTime || Date.now()) as Timestamp,
-          derived: item.derived ?? false,
-        }
-      )
-    );
+    return bag.toArray().map((item) => taskFromBagItem(item, type, concept.priority));
   }
 
   private applyFilters(tasks: Task[], filter?: TermFilter): Task[] {

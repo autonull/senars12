@@ -20,7 +20,6 @@ import type { BoundedMapOptions } from './bounded-map.js';
 import { BoundedMap } from './bounded-map.js';
 import type { Clock } from './clock.js';
 import { systemClock } from './clock.js';
-import type { BoundedContainer } from './collections.js';
 import { getOrInsert } from './collections.js';
 
 /** The counters one attempt changes. Every field is derived on record. */
@@ -83,35 +82,20 @@ export interface CallTallySeriesOptions<K = unknown, T extends CallTally = CallT
  * of one-shot keys cannot grow the map past its capacity. A site that wants its
  * history to age out rather than be evicted passes `ttlMs`; one that wants the
  * coldest key gone first passes `eviction`.
+ *
+ * A {@link BoundedMap} rather than one that holds one: the read surface — `get`,
+ * `has`, `keys`, `values`, `entries`, iteration, `size`, `pressure`, `clear` — is
+ * the map's, and re-declaring it here meant twelve members that could answer a
+ * question the map had already changed the answer to.
  */
-export class CallTallySeries<K, T extends CallTally = CallTally>
-  implements Iterable<[K, T]>, BoundedContainer<T>
-{
-  readonly #tallies: BoundedMap<K, T>;
+export class CallTallySeries<K, T extends CallTally = CallTally> extends BoundedMap<K, T> {
   readonly #now: Clock;
   readonly #create: (key: K) => T;
 
   constructor(options: CallTallySeriesOptions<K, T>) {
+    super(options);
     this.#now = options.now ?? systemClock;
     this.#create = options.create;
-    this.#tallies = new BoundedMap<K, T>(options);
-  }
-
-  get capacity(): number {
-    return this.#tallies.maxSize;
-  }
-
-  size(): number {
-    return this.#tallies.size();
-  }
-
-  /** Occupancy in `0..1` — the AIKR pressure signal the bounded containers report. */
-  pressure(): number {
-    return this.#tallies.pressure();
-  }
-
-  clear(): void {
-    this.#tallies.clear();
   }
 
   /** Fold one attempt into `key`'s tally, minting it on first sight. */
@@ -126,37 +110,12 @@ export class CallTallySeries<K, T extends CallTally = CallTally>
    * record without wanting another attempt counted.
    */
   getOrInsert(key: K): T {
-    return getOrInsert(this.#tallies, key, () => this.#create(key));
-  }
-
-  /** The live tally. Mutating it is the caller's; the series owns only the map. */
-  get(key: K): T | undefined {
-    return this.#tallies.get(key);
-  }
-
-  has(key: K): boolean {
-    return this.#tallies.has(key);
+    return getOrInsert(this, key, () => this.#create(key));
   }
 
   /** Forget one key, or all of them. */
   reset(key?: K): void {
     if (key === undefined) this.clear();
-    else this.#tallies.delete(key);
-  }
-
-  *keys(): Generator<K> {
-    yield* this.#tallies.keys();
-  }
-
-  *values(): IterableIterator<T> {
-    yield* this.#tallies.values();
-  }
-
-  *entries(): Generator<[K, T]> {
-    yield* this.#tallies.entries();
-  }
-
-  [Symbol.iterator](): Generator<[K, T]> {
-    return this.entries();
+    else this.delete(key);
   }
 }

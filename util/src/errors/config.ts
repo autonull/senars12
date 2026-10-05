@@ -1,8 +1,4 @@
-import { SenarsError } from './senars-error.js';
+import { codedError } from './senars-error.js';
 
-export class ConfigError extends SenarsError {
-  constructor(message: string, context?: Record<string, unknown>, options?: ErrorOptions) {
-    super(message, 'CONFIG_ERROR', context, options);
-    this.name = 'ConfigError';
-  }
-}
+export const ConfigError = codedError('ConfigError', 'CONFIG_ERROR');
+export type ConfigError = InstanceType<typeof ConfigError>;

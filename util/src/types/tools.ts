@@ -75,6 +75,20 @@ export interface ToolSpec {
   execute(args: Record<string, unknown>, context?: ToolContext): Promise<ToolResult> | ToolResult;
 }
 
+/**
+ * One requested invocation: which tool, which turn asked for it, and with what.
+ *
+ * The model runner and `core`'s dispatcher each declared it — the same three
+ * fields under two names — so the record that crosses the model boundary had two
+ * shapes and the dispatcher had to be handed one of them. It belongs beside
+ * {@link ToolSpec} because a call is only meaningful against a spec.
+ */
+export interface ToolCall {
+  toolName: string;
+  toolCallId: string;
+  args: Record<string, unknown>;
+}
+
 /** What a registry reports about a tool without handing back its body. */
 export type ToolDescriptor = Pick<ToolSpec, 'name' | 'description' | 'capabilities' | 'tags'> & {
   version?: string;

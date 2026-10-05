@@ -29,9 +29,10 @@ import type { ProposalReplayState } from '../proposal/replay.js';
 import { isProposalStream, replayProposalStream } from '../proposal/replay.js';
 import type { AttentionModel } from '../strategies/types.js';
 import { rehydrateTask } from '../task/record.js';
+import type { Term } from '../terms/index.js';
 import { Stamp, Truth, termParser, termsEqual } from '../terms/index.js';
 import type { Budget, Timestamp } from '../types/index.js';
-import { createTaskWeight } from '../types/index.js';
+import { NEUTRAL_BUDGET } from '../types/index.js';
 import {
   loadGateEvents,
   replayCognitiveState,
@@ -139,6 +140,34 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
       : undefined,
   });
   const errors: string[] = [];
+
+  /**
+   * Apply one replayed item and report whether it took. A term that will not
+   * parse and a write that throws are both a *skipped item*, not a failed replay,
+   * which is why the answer is a boolean rather than a throw — the caller counts
+   * "not applied" for the same reason either way, and reports only the throw.
+   *
+   * Three loops each opened with this same `try`/`catch` around a `parse` and a
+   * get-or-create, and the only parts that differed were the label they reported
+   * and the counter they incremented.
+   */
+  const replayed = (label: string, source: string, apply: () => boolean): boolean => {
+    try {
+      return apply();
+    } catch (e) {
+      errors.push(`${label} failed: ${source} - ${errMsg(e)}`);
+      return false;
+    }
+  };
+
+  /** Parse a replayed term and find-or-create its concept. `addConcept` is
+   *  already the get-or-create, so the `getConcept(term) ?? addConcept(term)` each
+   *  of those loops opened with was a synonym that read as two steps. */
+  const conceptOf = (narsese: string): [Term, Concept] => {
+    const term = termParser.parse(narsese);
+    return [term, memory.addConcept(term)];
+  };
+
   let appliedTasks = 0;
   let appliedRevisions = 0;
   let appliedDerivations = 0;
@@ -176,60 +205,74 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
 
   for (const event of gateEvents) {
     if (event.type === 'belief.revised') {
-      try {
-        const term = termParser.parse(event.payload.term);
-        const concept = memory.getConcept(term) ?? memory.addConcept(term);
-        const beliefs = concept.getBeliefs();
-        const matching = beliefs.find((b) => termsEqual(b.term, term));
-        if (matching) {
-          const updatedTruth = Truth.fromUnknown(event.payload.newTruth);
+      if (
+        replayed('Revision', event.payload.term, () => {
+          const [term, concept] = conceptOf(event.payload.term);
+          const matching = concept.getBeliefs().find((b) => termsEqual(b.term, term));
+          if (!matching) return false;
+          // Remove first: `addTask` merges a revision, and a replay must install
+          // the recorded truth rather than re-derive one from it.
           concept.beliefBag.remove(matching);
-          concept.addTask('belief', { ...matching, truth: updatedTruth, timestamp: Date.now() });
-          appliedRevisions++;
-        } else {
-          skipped++;
-        }
-      } catch (e) {
+          concept.addTask('belief', {
+            ...matching,
+            truth: Truth.fromUnknown(event.payload.newTruth),
+            timestamp: Date.now(),
+          });
+          return true;
+        })
+      ) {
+        appliedRevisions++;
+      } else {
         skipped++;
-        errors.push(`Revision failed: ${event.payload.term} - ${errMsg(e)}`);
       }
     } else if (event.type === 'concept.activated') {
-      try {
-        const term = termParser.parse(event.payload.term);
-        const concept = memory.getConcept(term) ?? memory.addConcept(term);
-        concept.writeAttention({ reason: 'assign', value: event.payload.priority });
+      if (
+        replayed('Activation', event.payload.term, () => {
+          conceptOf(event.payload.term)[1].writeAttention({
+            reason: 'assign',
+            value: event.payload.priority,
+          });
+          return true;
+        })
+      ) {
         appliedActivations++;
-      } catch (e) {
+      } else {
         skipped++;
-        errors.push(`Activation failed: ${event.payload.term} - ${errMsg(e)}`);
       }
     }
   }
 
   for (const record of derivationRecords) {
     for (const step of record.steps) {
-      try {
-        const term = termParser.parse(step.conclusion);
-        const concept = memory.getConcept(term) ?? memory.addConcept(term);
-        const existing = concept.getBeliefs().find((b) => termsEqual(b.term, term));
-        if (!existing) {
+      if (
+        replayed('Derivation step', step.conclusion, () => {
+          const [term, concept] = conceptOf(step.conclusion);
+          const existing = concept.getBeliefs().find((b) => termsEqual(b.term, term));
           const truth = Truth.fromUnknown(step.truth);
-          const budget = createTaskWeight(0.5);
-          const parent = Stamp.createInput();
-          const parents =
-            step.evidenceLineage.length > 0 ? step.evidenceLineage.map(makeDerivedStamp) : [parent];
-          const stamp = Stamp.derive(parents, 'DERIVED') ?? Stamp.createInput();
-          concept.addTask('belief', { term, truth, budget, stamp, derived: true });
-          appliedDerivations++;
-        } else if (step.independence !== 'unknown') {
-          const updatedTruth = Truth.fromUnknown(step.truth);
+          if (!existing) {
+            const parent = Stamp.createInput();
+            const parents =
+              step.evidenceLineage.length > 0
+                ? step.evidenceLineage.map(makeDerivedStamp)
+                : [parent];
+            concept.addTask('belief', {
+              term,
+              truth,
+              budget: NEUTRAL_BUDGET,
+              stamp: Stamp.derive(parents, 'DERIVED') ?? parent,
+              derived: true,
+            });
+            return true;
+          }
+          if (step.independence === 'unknown') return false;
           concept.beliefBag.remove(existing);
-          concept.addTask('belief', { ...existing, truth: updatedTruth, timestamp: Date.now() });
-          appliedDerivations++;
-        }
-      } catch (e) {
+          concept.addTask('belief', { ...existing, truth, timestamp: Date.now() });
+          return true;
+        })
+      ) {
+        appliedDerivations++;
+      } else {
         skipped++;
-        errors.push(`Derivation step failed: ${step.conclusion} - ${errMsg(e)}`);
       }
     }
   }

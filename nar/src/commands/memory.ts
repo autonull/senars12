@@ -67,8 +67,8 @@ export const memoryCommands: CommandDefinition[] = [
       if (!filename) return 'Usage: /save <filename>';
       const concepts = nar.listConcepts().map((c: any) => ({
         term: c.term.toString(),
-        beliefs: c.beliefBag?.toArray?.() || [],
-        goals: c.goalBag?.toArray?.() || [],
+        beliefs: c.getBeliefs(),
+        goals: c.getGoals(),
       }));
       const data = {
         concepts,

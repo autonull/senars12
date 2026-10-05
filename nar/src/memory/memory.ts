@@ -31,6 +31,7 @@ import {
   Concept,
   type ConceptMergeResult,
   type ConceptTaskType,
+  taskFromBagItem,
   type TaskData,
 } from './concept.js';
 import { DEFAULT_MEMORY_CONFIG, type MemoryConfig, type ResolvedMemoryConfig } from './config.js';
@@ -105,12 +106,12 @@ export class Memory implements MemoryPorts {
     });
     this.forgetting = new Forgetting(this.config.forgettingPolicy);
     this.linkManager = new LinkManager({
-      defaultCapacity: config.linkCapacity ?? LINK.DEFAULT_CAPACITY,
+      defaultCapacity: this.config.linkCapacity,
       // One term-keyed layer; semantic similarity lives in the EmbeddingLayer
       // below, so a second term layer would only ever be an empty duplicate.
-      layers: { term: config.termLinkCapacity ?? LINK.TERM_LAYER_CAPACITY },
-      forgetPolicy: config.linkForgetPolicy ?? LINK.FORGET_POLICY,
-      globalDecayRate: config.linkDecayRate ?? LINK.DECAY_RATE,
+      layers: { term: this.config.termLinkCapacity },
+      forgetPolicy: this.config.linkForgetPolicy,
+      globalDecayRate: this.config.linkDecayRate,
       rng: this.config.bag.rng,
     });
 
@@ -120,7 +121,7 @@ export class Memory implements MemoryPorts {
     // Register EmbeddingLayer for semantic similarity (optional)
     if (config.enableEmbeddingLayer) {
       const embeddingLayer = new EmbeddingLayer({
-        capacity: config.semanticLinkCapacity ?? LINK.SEMANTIC_LAYER_CAPACITY,
+        capacity: this.config.semanticLinkCapacity,
         similarityThreshold: LINK.SEMANTIC_MIN_SIMILARITY,
         maxLinksPerConcept: 20,
         generator: config.embeddingGenerator ?? new MockEmbeddingGenerator(),
@@ -235,15 +236,7 @@ export class Memory implements MemoryPorts {
     // and `all()` allocates a generator per bag to walk an array it already holds.
     for (const concept of this.concepts.values()) {
       concept.goalBag.forEach((g) => {
-        goals.push({
-          term: g.term,
-          type: 'goal',
-          truth: g.truth ?? Truth.NEUTRAL,
-          budget: g.budget,
-          stamp: g.stamp,
-          occurrenceTime: (g.occurrenceTime ?? Date.now()) as Task['occurrenceTime'],
-          derived: g.derived ?? false,
-        });
+        goals.push(taskFromBagItem(g, 'goal', concept.priority));
       });
     }
     return goals;
@@ -314,7 +307,7 @@ export class Memory implements MemoryPorts {
     budget: Budget = NEUTRAL_BUDGET,
     stamp?: Stamp
   ): boolean {
-    const concept = this.getConcept(term) ?? this.addConcept(term);
+    const concept = this.addConcept(term);
     const createdStamp = stamp ?? Stamp.createInput();
     return concept.addTask(type, { term, truth, budget, stamp: createdStamp });
   }

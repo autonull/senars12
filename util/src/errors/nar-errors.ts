@@ -1,22 +1,10 @@
-import { SenarsError } from './senars-error.js';
+import { codedError } from './senars-error.js';
 
-export class ValidationError extends SenarsError {
-  constructor(message: string, context?: Record<string, unknown>) {
-    super(message, 'VALIDATION_ERROR', context);
-    this.name = 'ValidationError';
-  }
-}
+export const ValidationError = codedError('ValidationError', 'VALIDATION_ERROR');
+export type ValidationError = InstanceType<typeof ValidationError>;
 
-export class ConfigurationError extends SenarsError {
-  constructor(message: string, context?: Record<string, unknown>) {
-    super(message, 'CONFIGURATION_ERROR', context);
-    this.name = 'ConfigurationError';
-  }
-}
+export const ConfigurationError = codedError('ConfigurationError', 'CONFIGURATION_ERROR');
+export type ConfigurationError = InstanceType<typeof ConfigurationError>;
 
-export class OperationError extends SenarsError {
-  constructor(message: string, context?: Record<string, unknown>) {
-    super(message, 'OPERATION_ERROR', context);
-    this.name = 'OperationError';
-  }
-}
+export const OperationError = codedError('OperationError', 'OPERATION_ERROR');
+export type OperationError = InstanceType<typeof OperationError>;

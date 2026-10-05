@@ -128,8 +128,6 @@
 
 - `type DispatchArtifact`
 
-- `type DispatchCall`
-
 - `type DispatchContext`
 
 - `type DispatchError`
@@ -440,8 +438,6 @@ _Re-export barrel._
 
 - `type DispatchArtifact`
 
-- `type DispatchCall`
-
 - `type DispatchContext`
 
 - `type DispatchError`
@@ -660,11 +656,19 @@ _Re-export barrel._
 
 - `BUDGET_SCOPE_IDS` — The five declared budget scopes (TODO29.a §5.7).
 
+- `BUDGET_TYPES` — Each consumed key's event-level name, declared beside the schema that defines
+
+- `BudgetTypeSchema`
+
+- `ConsumedBudgetSchema`
+
 - `ReasoningBudgetSchema`
 
 - `TerminationReasonSchema`
 
 - `validateReasoningBudget`
+
+- `zeroConsumed` — A zeroed consumption record.
 
 - `BUILTIN_RULE_ARTIFACT_VERSION` — The shipped built-in table's own version, independent of the schema shape.
 
@@ -700,6 +704,8 @@ _Re-export barrel._
 
 - `taskTypeForPunctuation` — Task kind named by its Narsese sentence mark; `null` when it is not one.
 
+- `confidenceCeiling` — The confidence a claim from `quality` may carry: the table, lowered by the
+
 - `SOURCE_QUALITY_CONFIDENCE` — Confidence ceiling by source quality — single source of truth.
 
 - `SourceQualitySchema` — Where a claim came from. Provenance is what bounds its confidence.
@@ -714,6 +720,8 @@ _Dynamic subpath (no single entry file)._
 
 - `ConsumedBudget` — Budget slice consumed resources.
 
+- `snapshotBudget` — A budget copied, consumption included.
+
 - `BudgetLimits` — The four AIKR dimensions a budget is limited in — its whole ceiling.
 
 - `AIKRBudget` — The remaining-cycles view the bag and the tick pipeline both consume.
@@ -726,8 +734,6 @@ _Dynamic subpath (no single entry file)._
 
 - `BudgetSliceOptions`
 
-- `zeroConsumed` — A zeroed consumption record. Every fresh budget and every reopened scope starts
-
 - `createBudget` — The one budget constructor. Every ceiling in the system — the gate's default,
 
 - `createBudgetSlice`
@@ -737,8 +743,6 @@ _Dynamic subpath (no single entry file)._
 - `BUDGET_RESOURCES` — The four AIKR dimensions, each with its consumed key, total key, and exhaustion reason.
 
 - `BudgetResource`
-
-- `BUDGET_TYPES` — Each dimension's event-level name, derived from the resource table rather than
 
 - `ALL_RESOURCES`
 
@@ -783,6 +787,10 @@ _Dynamic subpath (no single entry file)._
 - `isExhausted`
 
 - `pressure` — Worst per-dimension pressure — the slice's overall load.
+
+- `BUDGET_TYPES` — Each consumed key's event-level name, declared beside the schema that defines
+
+- `BudgetTypeSchema`
 
 ## `./event-sink`
 

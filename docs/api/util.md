@@ -116,13 +116,29 @@
 
 - `CapabilityRiskSchema`
 
+- `BANDS` — Bands, most permissive first. `abstain` is below `block` rather than beside it,
+
+- `COGNITIVE_AXES` — Whether a judgment is about what is true or what is wanted.
+
 - `ENGINE_ORIGINS` — Every origin a cognitive event may claim. One list, so the zod boundary in
+
+- `JUDGMENT_SHAPES` — The query shapes a judgment can take, as `JudgmentQuery` declares them.
+
+- `BandDecisionSchema`
+
+- `CognitiveAxisSchema`
+
+- `JudgmentShapeSchema`
+
+- `bandOrdinal` — How restrictive a band is; abstaining is always the most restrictive.
 
 - `egressVerdict` — Narrow a gate's answer to the one shape every consumer downstream expects.
 
 - `toolError` — A failed outcome; anything thrown is stringified at this boundary.
 
 - `toolOk` — A successful outcome.
+
+- `EPISODE_TYPES` — The episode vocabulary — one declaration, so the type and the Zod enum cannot drift.
 
 - `CIRCUIT_STATES` — The three states a provider circuit can be in, and the one list they are
 
@@ -182,6 +198,8 @@
 
 - `debounce`
 
+- `deferred`
+
 - `monotonicNow` — Monotonic millisecond clock: sub-millisecond resolution, and immune to wall-clock
 
 - `periodic` — Repeat `task` every `intervalMs` until the returned disposer is called.
@@ -190,13 +208,19 @@
 
 - `readBodyBounded` — A response body read as text, truncated at `maxBytes`. Read it with this
 
-- `SerialQueue`
+- `readBytesBounded` — A byte stream read as text, truncated at `maxBytes` and marked when cut.
+
+- `SerialLanes` — Serial execution, one lane per key.
+
+- `SerialQueue` — One serial chain — {@link SerialLanes} narrowed to the single lane a caller wants.
 
 - `sleep`
 
 - `stopwatch` — Elapsed milliseconds since the call — the one stopwatch, so every subsystem
 
 - `TimeoutError` — Raised by {@link withTimeout} unless a domain error is supplied.
+
+- `TRUNCATION_MARKER` — Appended to a body {@link readBytesBounded} cut short, so a prefix reads as a cut body.
 
 - `withDeadline` — Await `work` under a deadline: the callee receives a signal that aborts when
 
@@ -280,6 +304,8 @@
 
 - `removeLastBy` — {@link removeBy} scanning backwards, for a stack discipline: the most recent
 
+- `lastByKey` — The last row per key, in first-appearance order. The dedupe half of every
+
 - `selectByPriority` — Greedy budget selection over `{ priority, id }` items: highest priority
 
 - `selectTopN` — Top `n` items from an iterable ranked by `score`, descending. Single-pass with
@@ -303,6 +329,8 @@
 - `type SchemaIssue`
 
 - `DisposalRegistry` — Every undo a component owes, in one list — teardown is a single `disposeAll()`.
+
+- `degrade` — Run a call whose failure is expected, report it, and answer `onFailure`.
 
 - `errMsg` — The one coercion pair for values that reach an `Error` boundary from anywhere.
 
@@ -345,6 +373,8 @@
 - `ensureParentDirSync` — `mkdir -p` for a file's parent directory.
 
 - `iterateJsonl`
+
+- `jsonlPayload` — The on-disk shape of every JSONL append: one row per line, trailing newline.
 
 - `parseJsonOr` — Parse JSON text, yielding `fallback` on any syntax error.
 
@@ -618,25 +648,39 @@
 
 ## `./config`
 
+- `type BoundProp`
+
+- `type BoundProjection`
+
 - `type BoundRange`
+
+- `type BoundRow`
+
+- `type BoundSchemaOptions`
 
 - `type BoundSpec`
 
-- `boundRange` — One row projected to its `{min,max,default}` triple.
+- `type BoundTable`
 
-- `boundSpec` — One row projected to the `{min,max,step}` triple a tuner needs — {@link boundRange}
+- `type FlatBoundProjection`
+
+- `type FlatBoundTable`
+
+- `flatBounds` — Projections for a table addressed by one segment.
+
+- `type NestedBoundPath`
+
+- `type NestedBoundTable`
+
+- `nestedBounds` — Projections for a table addressed by `category.key`.
 
 - `type CognitiveBoundCategory`
 
-- `type CognitiveBoundKey`
+- `cognitiveBound` — The one reader of {@link cognitiveBounds}, addressed as `category.key`.
 
 - `type CognitiveBounds`
 
 - `cognitiveBounds`
-
-- `getAllCognitiveBounds`
-
-- `getCognitiveBound`
 
 - `type DialogueConfig`
 
@@ -684,27 +728,27 @@
 
 - `lmSettingsShape` — Canonical field shape for LM settings — shared by @senars/nar/lm (LMSettings),
 
-- `type BoundProp`
-
-- `getBound`
-
 - `type NarCoreBoundKey`
 
 - `type NarCoreBounds`
 
 - `narCoreBounds`
 
-- `narCoreDefaultedNumber` — The same row as a zod number carrying its default.
+- `narCoreDefaultedNumber` — The same row carrying its default — what a config-file field wants.
 
 - `narCoreDefaults` — Every bound's default, keyed by knob — the projection the engine's `DEFAULT_CONFIG`
 
 - `narCoreDefaultsSchema` — The whole table as one zod object, defaults attached — so the schema is the bounds
 
-- `narCoreNumber` — A zod number constrained by a `narCoreBounds` row — the schema never restates a limit.
+- `narCoreNumber` — A bound row's limits, never restated: `narCoreNumber('maxDerivationDepth')`.
 
 - `CACHE_DIR` — Root of the runtime cache/checkpoint tree (state snapshots, ledgers, datasets).
 
 - `cachePath` — Absolute path to a file or directory inside the cache tree.
+
+- `signedUnitInterval` — `-1..1` — a reward or a signed score.
+
+- `unitInterval` — `0..1` — a probability, a rate, a priority, a threshold that cannot be negative.
 
 - `CRITICALITY_LEVELS` — How much a judgment is trusted to decide on its own. Declared once because it was
 
@@ -712,13 +756,15 @@
 
 - `type CriticalityLevel`
 
-- `systemOneBoundSpec` — One row projected to its `{min,max,step}` triple — the search space a tuner
+- `systemOneBound` — The one reader of {@link systemOneBounds}, addressed as `category.key`.
 
 - `type SystemOneBoundCategory`
 
 - `type SystemOneBoundKey`
 
-- `systemOneBounds`
+- `systemOneBounds` — Min/max/default/step for the System One knobs a tuner may move.
+
+- `type SystemOneBounds`
 
 - `type SystemOneConfig`
 
@@ -801,6 +847,24 @@
 - `ENGINE_ORIGINS` — Every origin a cognitive event may claim. One list, so the zod boundary in
 
 - `EngineOrigin`
+
+- `BANDS` — Bands, most permissive first. `abstain` is below `block` rather than beside it,
+
+- `BandDecision`
+
+- `BandDecisionSchema`
+
+- `bandOrdinal` — How restrictive a band is; abstaining is always the most restrictive.
+
+- `COGNITIVE_AXES` — Whether a judgment is about what is true or what is wanted.
+
+- `CognitiveAxis`
+
+- `CognitiveAxisSchema`
+
+- `JUDGMENT_SHAPES` — The query shapes a judgment can take, as `JudgmentQuery` declares them.
+
+- `JudgmentShapeSchema`
 
 - `CognitiveStimulus`
 

@@ -13,8 +13,9 @@
 
 import type { Clock } from './clock.js';
 import { systemClock } from './clock.js';
+import { type BoundedContainer, minBy } from './collections.js';
 import { occupancy } from './numeric.js';
-import { BoundedContainer } from './collections.js';
+import { nextInt } from './random.js';
 
 interface Entry<V> {
   value: V;
@@ -194,10 +195,9 @@ export class BoundedMap<K, V> implements BoundedContainer<V> {
   /** Drop every expired entry. Returns how many were removed. */
   purgeExpired(): number {
     if (this.#neverExpires) return 0;
-    const now = this.#now();
     let removed = 0;
     for (const [key, entry] of this.#entries) {
-      if (entry.expiresAt <= now && this.evict(key)) removed++;
+      if (this.#expired(entry) && this.evict(key)) removed++;
     }
     return removed;
   }
@@ -231,21 +231,13 @@ export class BoundedMap<K, V> implements BoundedContainer<V> {
       return this.#entries.keys().next().value as K | undefined;
     }
     if (this.#order === 'random') return this.#randomKey();
-    let victim: K | undefined;
-    let lowest = Number.POSITIVE_INFINITY;
-    for (const [key, entry] of this.#entries) {
-      const score = this.#order.by(entry.value);
-      if (score < lowest) {
-        lowest = score;
-        victim = key;
-      }
-    }
-    return victim;
+    const { by } = this.#order as { by: (value: V) => number };
+    return minBy(this.#entries, ([, entry]) => by(entry.value))?.[0];
   }
 
   /** Uniform pick over the live keys, counted rather than copied. */
   #randomKey(): K | undefined {
-    const target = Math.floor(this.#rng() * this.#entries.size);
+    const target = nextInt(this.#rng, this.#entries.size);
     let seen = 0;
     for (const key of this.#entries.keys()) {
       if (seen++ === target) return key;

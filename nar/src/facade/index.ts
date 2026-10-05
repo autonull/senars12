@@ -7,7 +7,7 @@
  */
 
 import { proposalRisk, type SelfImprovementProposal } from '@senars/core/schemas/governance';
-import { createLogger, errMsg, makeId, toolError, toolOk, truncate } from '@senars/util';
+import { createLogger, degrade, errMsg, makeId, toolError, toolOk, truncate } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { createBootstrapTasks } from '../drives';
 import type { LMService, SeNARSRegistry } from '../lm';
@@ -177,7 +177,12 @@ export const consolidateLearning = async (
   const inductor = nar.getSchemaInductor();
   if (inductor) {
     inductor.decayChains();
-    const results = await inductor.induceIfPressured(options).catch(() => []);
+    const results = await degrade(
+      logger,
+      'schema induction',
+      () => inductor.induceIfPressured(options),
+      () => []
+    );
     // Phase E: submit schema promotions to GovernanceResolver
     if (results.length > 0) {
       const resolver = nar.getGovernanceResolver();
@@ -202,20 +207,40 @@ export const consolidateLearning = async (
   const contrastive = nar.getSystemOneContrastive();
   if (contrastive) {
     contrastive.decay();
-    await contrastive.maintainIfPressured(options).catch(() => {});
+    await degrade(
+      logger,
+      'contrastive maintenance',
+      () => contrastive.maintainIfPressured(options),
+      () => undefined
+    );
   }
   const consolidator = nar.getEpisodeConsolidator();
   if (consolidator) {
     consolidator.decay();
-    await consolidator.consolidateIfPressured(options).catch(() => {});
+    await degrade(
+      logger,
+      'episode consolidation',
+      () => consolidator.consolidateIfPressured(options),
+      () => undefined
+    );
   }
   const mining = nar.getMiningBag();
   if (mining) {
     mining.decay();
-    const drained = await mining.drainIfPressured(options).catch(() => []);
+    const drained = await degrade(
+      logger,
+      'bag mining',
+      () => mining.drainIfPressured(options),
+      () => []
+    );
     const cache = nar.getSystemOneEmbeddingCache();
     if (drained.length > 0 && contrastive && cache) {
-      await seedContrastiveMemory(drained, contrastive, cache).catch(() => {});
+      await degrade(
+        logger,
+        'contrastive seeding',
+        () => seedContrastiveMemory(drained, contrastive, cache),
+        () => undefined
+      );
     }
   }
   // Phase E: feed ProofMettaProposer from derivation recorder

@@ -4,6 +4,7 @@
  */
 
 import type { ResolvedBagSlot } from '../bag/registration.js';
+import { LINK } from '../constants.js';
 import type { EmbeddingGenerator } from './embedding.js';
 import type { LinkForgetPolicy } from './links/types.js';
 import type { ForgettingPolicy } from './lifecycle';
@@ -59,10 +60,10 @@ export const DEFAULT_MEMORY_CONFIG: ResolvedMemoryConfig = {
   enableEmbeddingLayer: true,
   forgettingPolicy: 'fifo',
   enablePressureDetection: true,
-  linkCapacity: 1000,
-  termLinkCapacity: 1000,
-  semanticLinkCapacity: 500,
-  linkForgetPolicy: 'priority',
-  linkDecayRate: 0.001,
+  linkCapacity: LINK.DEFAULT_CAPACITY,
+  termLinkCapacity: LINK.TERM_LAYER_CAPACITY,
+  semanticLinkCapacity: LINK.SEMANTIC_LAYER_CAPACITY,
+  linkForgetPolicy: LINK.FORGET_POLICY,
+  linkDecayRate: LINK.DECAY_RATE,
   bag: {},
 };
