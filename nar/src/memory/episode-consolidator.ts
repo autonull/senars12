@@ -9,6 +9,7 @@
 import type { Episode, EpisodeType } from '@senars/util';
 import {
   groupBy,
+  rankBy,
   selectByPriority,
   sha256Hex,
   sha256Prefixed,
@@ -191,16 +192,12 @@ export class EpisodeConsolidator extends AikrShell<
       if (signal?.aborted) break;
       // Total order: `timestamp` alone ties for every episode admitted within the same
       // millisecond, letting clock granularity leak into the summary content. Tiebreak on id.
-      const merged = bucket
-        .slice()
-        .sort(
-          (a, b) =>
-            a.episode.timestamp - b.episode.timestamp ||
-            (a.episode.id ?? a.id).localeCompare(b.episode.id ?? b.id)
-        )
-        .slice(0, this.#maxMerged);
+      const merged = rankBy(bucket, (c) => c.episode.timestamp, {
+        tiebreak: (a, b) => (a.episode.id ?? a.id).localeCompare(b.episode.id ?? b.id),
+        limit: this.#maxMerged,
+      });
       const ids = merged.map((c) => c.episode.id ?? c.id);
-      const causes = [...ids].sort();
+      const causes = ids.toSorted();
       const summary: Episode = {
         timestamp: this.#clock(),
         type: 'belief_added',

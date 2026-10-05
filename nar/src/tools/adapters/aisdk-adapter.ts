@@ -1,10 +1,10 @@
-import { errMsg, serializeTruth, type TruthLike, takeLast } from '@senars/util';
+import { errMsg, serializeTruth, type TruthLike, takeFirst, takeLast } from '@senars/util';
+import { unitInterval } from '@senars/util/config';
 import { evaluateExpression } from '@senars/util/utils/eval';
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { Term } from '../../terms';
 import { mentionsSymbol } from '../../terms';
-import { unitInterval } from '@senars/util/config';
 
 export interface NARSToolDeps {
   workingMemory: { size(): number };
@@ -192,7 +192,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
         }
 
         return {
-          beliefs: beliefs.slice(0, limit),
+          beliefs: takeFirst(beliefs, limit),
           total: beliefs.length,
           limit,
         };
@@ -205,7 +205,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
         limit: z.number().optional().default(10),
       }),
       execute: async ({ limit = 10 }) => {
-        const questions = nar.getQuestions().slice(0, limit);
+        const questions = takeFirst(nar.getQuestions(), limit);
         return { questions, count: questions.length };
       },
     }),
@@ -218,7 +218,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
       execute: async ({ limit = 20 }) => {
         const report = nar.attentionReport();
         return {
-          concepts: report.concepts.slice(0, limit),
+          concepts: takeFirst(report.concepts, limit),
           total: report.total,
         };
       },
@@ -230,7 +230,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
         limit: z.number().min(1).max(100).optional().default(10),
       }),
       execute: async ({ limit = 10 }) => {
-        const goals = (nar.getGoals() as unknown[]).slice(0, limit);
+        const goals = takeFirst(nar.getGoals() as unknown[], limit);
         return { goals, count: goals.length };
       },
     }),

@@ -722,6 +722,8 @@ _Dynamic subpath (no single entry file)._
 
 - `snapshotBudget` — A budget copied, consumption included.
 
+- `freshBudget` — The same ceilings over unspent consumption — the counters at zero and no
+
 - `BudgetLimits` — The four AIKR dimensions a budget is limited in — its whole ceiling.
 
 - `AIKRBudget` — The remaining-cycles view the bag and the tick pipeline both consume.

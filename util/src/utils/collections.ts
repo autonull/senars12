@@ -487,6 +487,42 @@ export function getOrInsert<K, V>(
 }
 
 /**
+ * {@link getOrInsert} plus the write-back: read the record under `key`, mint it
+ * with `zero` on first use, let `apply` add to it, store it, and hand it back.
+ *
+ * The running tally that eight subsystems keep — LM spend per provider, per-tier
+ * dispatch latency, per-action episode reward, per-key preference score, source
+ * reputation, per-concept staleness. Each wrote the same four lines:
+ * `get(key) ?? { …zeros }`, mutate two or three counters, `set(key, entry)`. The
+ * `??` is the whole risk and it is invisible at a glance: without it a site
+ * throws on first contact, with it the branch is one duplicated decision per
+ * subsystem and a fifth subsystem writes it wrong.
+ *
+ * Mutating the record in place rather than storing a rebuilt copy is what makes
+ * this an accumulator and not a `map`: the hot callers run once per dispatched
+ * query, per inference task and per distilled row, so this allocates nothing per
+ * event. It is also why {@link apply} returns nothing — the entry the caller
+ * gets back *is* the stored one, so a site that needs the running total after
+ * adding to it (a spend compared against its cap) reads it without a third
+ * lookup. `A` is constrained to an object for the same reason: a primitive would
+ * make every `apply` a silent no-op, which is the one failure this function must
+ * not have. A site that wants a fresh record per event rather than a tally uses
+ * `map` instead.
+ */
+export function accumulate<K, A extends object>(
+  store: KeyedStore<K, A>,
+  key: K,
+  zero: () => A,
+  apply: (entry: A) => void
+): A {
+  const existing = store.get(key);
+  const entry = existing ?? zero();
+  apply(entry);
+  store.set(key, entry);
+  return entry;
+}
+
+/**
  * Bucket `items` by a derived key, preserving encounter order within each
  * bucket. The lazy-bucket-plus-`getOrInsert` pair is the shape every
  * group-by-key site was hand-writing; expressed once, the call site is a single
@@ -514,16 +550,21 @@ export function buckets<T, K>(items: Iterable<T>, key: (item: T) => K): T[][] {
 }
 
 /**
- * A map as a plain object, optionally projecting each value. A map's keys are
- * already unique and already the identity, so unlike {@link keyedBy} there is no
- * collision question — this is only ever the `Object.fromEntries(map)` copy,
+ * Entry pairs as a plain object, optionally projecting each value. A map's keys
+ * are already unique and already the identity, so unlike {@link keyedBy} there
+ * is no collision question — this is only ever the `Object.fromEntries` copy,
  * which exists to hand a keyed container to an API that speaks `Record`.
+ *
+ * Takes entries rather than a `Map` because a `Map` *is* an iterable of entries
+ * and half the callers never had one: a query string, a freshly-mapped pair
+ * list, a `URLSearchParams`. Naming the map type would have made each of them
+ * re-spell the `Object.fromEntries` this replaces.
  */
 export function mapToRecord<K extends PropertyKey, V, W = V>(
-  map: ReadonlyMap<K, V>,
+  source: Iterable<readonly [K, V]>,
   project: (value: V, key: K) => W = (value) => value as unknown as W
 ): Record<K, W> {
-  return keyedBy(map, entryKey<K>, ([, value], key) => project(value, key));
+  return keyedBy(source, entryKey<K>, ([, value], key) => project(value, key));
 }
 
 /**
@@ -547,7 +588,13 @@ export function keyedBy<T, K extends PropertyKey, V = T>(
   return record;
 }
 
-const entryKey = <K>([key]: readonly [K, unknown]): K => key;
+/**
+ * The key of a `[key, value]` pair — the derivation a Map's own entries need
+ * when they are handed to {@link keyedBy} or {@link indexBy} rather than to a
+ * plain-object projection. Exported because "index this map by its own keys" is
+ * the common case and the destructure was being restated at each one.
+ */
+export const entryKey = <K>([key]: readonly [K, unknown]): K => key;
 
 /**
  * {@link keyedBy}'s `Map` twin — `new Map(items.map(i => [i.key, i]))`, which
@@ -607,6 +654,32 @@ export function unique<T>(items: Iterable<T>): T[] {
   return [...new Set(items)];
 }
 
+/**
+ * First item per derived key — {@link unique} for a collection whose duplicates
+ * are not value-equal but *key*-equal.
+ *
+ * A term canonicaliser asking "have I seen this shape", a lineage union asking
+ * "have I seen this derivation id", a context assembler asking "have I already
+ * reported this concept". Each is a `Set` guard inside a `filter`, so the filter
+ * predicate carried a side effect and the dedupe could not be composed: a caller
+ * that wanted to filter *and* dedupe wrote the guard by hand, and one that wanted
+ * only to dedupe wrote a different guard by hand.
+ *
+ * `key` is evaluated once per item, so a structural key over a term tree is paid
+ * once rather than once per comparison the way an equality predicate would be.
+ */
+export function uniqueBy<T, K>(items: Iterable<T>, key: (item: T) => K): T[] {
+  const seen = new Set<K>();
+  const kept: T[] = [];
+  for (const item of items) {
+    const k = key(item);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    kept.push(item);
+  }
+  return kept;
+}
+
 /** {@link unique} across several collections — the union an index query needs. */
 export function flatUnique<T>(collections: readonly (readonly T[])[]): T[] {
   return unique(collections.flat());
@@ -642,8 +715,11 @@ function removeByFrom<T>(
   return index < 0 ? undefined : items.splice(index, 1)[0];
 }
 
-/** Accumulate a per-key count; returns the new total. */
-export function incrementCount<K>(map: Map<K, number>, key: K, delta = 1): number {
+/** Accumulate a per-key count; returns the new total. Takes a {@link KeyedStore}
+ *  so a bounded cache can count as well as a `Map` — the aging counters behind
+ *  AIKR sampling live in an `LruCache`, and a `Map`-only signature left that site
+ *  re-deriving the `?? 0` it already had. */
+export function incrementCount<K>(map: KeyedStore<K, number>, key: K, delta = 1): number {
   const next = (map.get(key) ?? 0) + delta;
   map.set(key, next);
   return next;

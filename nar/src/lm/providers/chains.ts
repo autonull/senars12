@@ -1,4 +1,4 @@
-import type { LMTask } from '@senars/util';
+import { type LMTask, unique } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import type { LMSettings } from '../env-config.js';
 import { cloudApiKey } from '../env-config.js';
@@ -93,16 +93,12 @@ export function getModelChain(
     const ordered = [...c].sort(
       (a, b) => Number(rt.demotions.has(a)) - Number(rt.demotions.has(b))
     );
-    const seen = new Set<string>();
-    const chain: string[] = [];
-    for (const id of [...ordered, 'builtin:compact', 'builtin:mock']) {
-      if (offlineOnly && !id.startsWith('builtin:')) continue;
-      if (maxLatencyMs !== undefined && latencyClassOf(id) === 'slow') continue;
-      if (seen.has(id)) continue;
-      seen.add(id);
-      chain.push(id);
-    }
-    return chain as SeNARSModelId[];
+    const candidates = [...ordered, 'builtin:compact', 'builtin:mock'].filter(
+      (id) =>
+        !(offlineOnly && !id.startsWith('builtin:')) &&
+        !(maxLatencyMs !== undefined && latencyClassOf(id) === 'slow')
+    );
+    return unique(candidates) as SeNARSModelId[];
   }
   // AI SDK may suffix provider names (e.g. 'llamacpp.chat') — normalize to the base key.
   const base = (provider.split('.')[0] ?? provider) as LMProviderName;

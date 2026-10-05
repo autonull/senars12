@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { NAR } from '@senars/nar';
-import type { ToolSchema, ToolSchemaProperty, Tool, ToolResult } from '@senars/nar/tools';
+import type { Tool, ToolResult, ToolSchema, ToolSchemaProperty } from '@senars/nar/tools';
+import { entryKey, keyedBy } from '@senars/util';
 import { type ZodTypeAny, z } from 'zod';
 import { createMCPResponse, stringifyMCP } from './mcp-response.js';
 
@@ -17,10 +18,11 @@ const zodFromProperty = (p: ToolSchemaProperty): ZodTypeAny => {
       base = z.array(p.items ? zodFromProperty(p.items) : z.unknown());
       break;
     case 'object': {
-      const inner = Object.fromEntries(
-        Object.entries(p.properties ?? {}).map(([k, v]) => [k, zodFromProperty(v)])
+      base = z.object(
+        keyedBy(Object.entries(p.properties ?? {}), entryKey<string>, ([, prop]) =>
+          zodFromProperty(prop)
+        )
       );
-      base = z.object(inner);
       break;
     }
     default:
@@ -33,7 +35,7 @@ const zodFromProperty = (p: ToolSchemaProperty): ZodTypeAny => {
 };
 
 export const zodFromSchema = (schema: ToolSchema): Record<string, ZodTypeAny> =>
-  Object.fromEntries(Object.entries(schema.properties).map(([k, v]) => [k, zodFromProperty(v)]));
+  keyedBy(Object.entries(schema.properties), entryKey<string>, ([, prop]) => zodFromProperty(prop));
 
 export const toolAnnotations = (tool: Tool) => ({
   readOnlyHint: tool.capabilities?.readOnly ?? false,

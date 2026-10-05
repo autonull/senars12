@@ -1,3 +1,4 @@
+import { keyedBy } from '@senars/util';
 import {
   createParameterTable,
   type ParameterScope,
@@ -52,8 +53,10 @@ export class ReasoningMetaGame {
   }
 
   getRewardWeights(): Record<string, number> {
-    return Object.fromEntries(
-      [...this.table.list(this.scope)].map(([k, v]) => [k.replace('reward.', ''), v])
+    return keyedBy(
+      this.table.list(this.scope),
+      ([key]) => key.replace('reward.', ''),
+      ([, w]) => w
     );
   }
 

@@ -1,7 +1,8 @@
+import { uniqueBy } from '@senars/util';
 import type { AssociativeRegistry, RecallHit } from '../../memory/associative.js';
 import { LINK_LAYER } from '../../memory/links/types.js';
 import type { MemoryView } from '../../memory/view.js';
-import { getPredicate, getSubject, type Term, TermSet } from '../../terms';
+import { getPredicate, getSubject, type Term, termKey } from '../../terms';
 import type { Task } from '../../types';
 import { createSecondaryTask } from '../../types';
 import type { Strategy } from '../types.js';
@@ -55,12 +56,8 @@ export class LinkLayerStrategy implements Strategy {
 
   private toTasks(hits: RecallHit[], memory: MemoryView): Task[] {
     const results: Task[] = [];
-    const seen = new TermSet();
 
-    for (const hit of hits) {
-      if (seen.has(hit.term)) continue;
-      seen.add(hit.term);
-
+    for (const hit of uniqueBy(hits, ({ term }) => termKey(term))) {
       const concept = memory.getConcept(hit.term);
       const belief = concept?.topBelief();
       if (!concept || !belief) continue;

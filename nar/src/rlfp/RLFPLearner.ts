@@ -4,7 +4,9 @@ import {
   clampSigned,
   createLogger,
   ensureArray,
+  entryKey,
   errMsg,
+  keyedBy,
   roundTo,
 } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
@@ -133,17 +135,12 @@ export class RLFPLearner {
    * were invisible to the report that exists to show them.
    */
   getTunableKnobs(): Record<string, { current: number; min: number; max: number; step: number }> {
-    return Object.fromEntries(
-      Object.entries(this.knobs).map(([name, knob]) => [
-        name,
-        {
-          current: knob.get(),
-          min: knob.min,
-          max: knob.max,
-          step: knob.step,
-        },
-      ])
-    );
+    return keyedBy(Object.entries(this.knobs), entryKey<string>, ([, knob]) => ({
+      current: knob.get(),
+      min: knob.min,
+      max: knob.max,
+      step: knob.step,
+    }));
   }
 
   applyTuningUpdate(knob: string, newValue: number): void {

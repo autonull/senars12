@@ -16,10 +16,6 @@
       "types": "./src/config/index.ts",
       "import": "./src/config/index.ts"
     },
-    "./config/bounds": {
-      "types": "./src/config/bounds.ts",
-      "import": "./src/config/bounds.ts"
-    },
     "./errors": {
       "types": "./src/errors/index.ts",
       "import": "./src/errors/index.ts"
@@ -55,10 +51,6 @@
     "./utils/eval": {
       "types": "./src/utils/eval.ts",
       "import": "./src/utils/eval.ts"
-    },
-    "./utils/keyed-collection": {
-      "types": "./src/utils/keyed-collection.ts",
-      "import": "./src/utils/keyed-collection.ts"
     },
     "./ledger": {
       "types": "./src/ledger.ts",

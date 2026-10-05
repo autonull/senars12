@@ -1,4 +1,4 @@
-import { periodic, type RandomSource, SeededRNG, weightedPick } from '@senars/util';
+import { perPart, periodic, type RandomSource, SeededRNG, weightedPick } from '@senars/util';
 import type { MetaGame } from '../game/impls/MetaGame.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
 import type { FocusStepReport } from './Focus.js';
@@ -102,7 +102,7 @@ export class FocusScheduler {
   start(): void {
     if (this.running) return;
     this.running = true;
-    const period = Math.max(1, Math.floor(1000 / this.hz));
+    const period = perPart(1000, this.hz);
     this.stopInterval = periodic(() => {
       void this.tick();
     }, period);

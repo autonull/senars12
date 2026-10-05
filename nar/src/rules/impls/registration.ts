@@ -16,6 +16,7 @@
  * absent: a future extended `analogy` that *differs* would be a distinct body
  * instead of a silent shadow of the NAL one.
  */
+import { keyedBy } from '@senars/util';
 import { type Term, Truth } from '../../terms';
 import { NALExtendedRules } from '../extended/index.js';
 import { NALRules } from '../nal/index.js';
@@ -29,11 +30,16 @@ const _rule = (
 ): RuleDef => ({ id, description, ...config });
 
 /** Namespaced so the three colliding names stay distinct bodies. */
+const namespaced = (prefix: string, table: Record<string, RuleFn>): Record<string, RuleFn> =>
+  keyedBy(
+    Object.entries(table),
+    ([name]) => `${prefix}:${name}`,
+    ([, fn]) => fn
+  );
+
 export const RULE_BODIES: Readonly<Record<string, RuleFn>> = {
-  ...Object.fromEntries(Object.entries(NALRules).map(([name, fn]) => [`nal:${name}`, fn])),
-  ...Object.fromEntries(
-    Object.entries(NALExtendedRules).map(([name, fn]) => [`nal.extended:${name}`, fn])
-  ),
+  ...namespaced('nal', NALRules),
+  ...namespaced('nal.extended', NALExtendedRules),
 };
 
 const declarationOf = (rule: RuleDef) => ({

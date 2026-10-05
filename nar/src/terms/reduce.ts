@@ -1,7 +1,8 @@
-import type { OperatorKey, Term } from './types.js';
-import { COMMUTATIVE_OPS, NARY_OPS } from './operators.js';
+import { uniqueBy } from '@senars/util';
 import { getArgs, hasNegatedPair, hasRepeatedArgs, termKey } from './impls/accessors.js';
-import { compoundOf, isBoolAtom, atomOf } from './impls/intern.js';
+import { atomOf, compoundOf, isBoolAtom } from './impls/intern.js';
+import { COMMUTATIVE_OPS, NARY_OPS } from './operators.js';
+import type { OperatorKey, Term } from './types.js';
 
 /**
  * One NAL rewrite, declared and enumerable (TODO29.a §5.12).
@@ -52,15 +53,7 @@ const kindOf = (term: Term): OperatorKey => term.kind as OperatorKey;
  * `termsEqual`, which is a recursive tree walk and made deduplication quadratic
  * in the arity of every compound the cycle built.
  */
-const distinct = (args: readonly Term[]): Term[] => {
-  const seen = new Set<string>();
-  return args.filter((arg) => {
-    const key = termKey(arg);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-};
+const distinct = (args: readonly Term[]): Term[] => uniqueBy(args, termKey);
 
 /** `a & --a = FALSE` — contradiction in conjunction. */
 const conjunctionContradiction: TermReducer = {

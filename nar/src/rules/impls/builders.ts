@@ -1,8 +1,18 @@
 /**
  * Rule result builders shared across NAL rule definitions.
  */
+import { uniqueBy } from '@senars/util';
 import type { Term } from '../../terms';
-import { binaryOf, getArgs, TermBuilder, type TermPair, TermSet, termsEqual, unaryOf } from '../../terms';
+import {
+  binaryOf,
+  getArgs,
+  TermBuilder,
+  type TermPair,
+  TermSet,
+  termKey,
+  termsEqual,
+  unaryOf,
+} from '../../terms';
 import type { RuleFn } from '../types.js';
 import { buildBinaryInhRule, buildInhRule } from './rule-builder.js';
 
@@ -14,12 +24,7 @@ import { buildBinaryInhRule, buildInhRule } from './rule-builder.js';
  * as the one equation it is.
  */
 export const buildImplicationPairRule =
-  (
-    derive: (
-      left: TermPair,
-      right: TermPair
-    ) => Term | undefined
-  ): RuleFn =>
+  (derive: (left: TermPair, right: TermPair) => Term | undefined): RuleFn =>
   ([imp1, imp2]) => {
     const left = binaryOf('implication', imp1);
     const right = binaryOf('implication', imp2);
@@ -42,13 +47,7 @@ export const foldNary = (kind: Term['kind'], unique = false): RuleFn => {
     const a2 = getArgs(t2);
     let args: Term[];
     if (unique) {
-      const seen = new TermSet();
-      args = [];
-      for (const arg of [...a1, ...a2]) {
-        if (seen.has(arg)) continue;
-        seen.add(arg);
-        args.push(arg);
-      }
+      args = uniqueBy([...a1, ...a2], termKey);
     } else {
       const rhs = new TermSet();
       for (const arg of a2) rhs.add(arg);
@@ -63,9 +62,7 @@ export const foldNary = (kind: Term['kind'], unique = false): RuleFn => {
 };
 
 export const conversionRule = (wrap: (t: Term) => Term) =>
-  buildInhRule(([subject, predicate]) =>
-    TermBuilder.inheritance(wrap(subject), wrap(predicate))
-  );
+  buildInhRule(([subject, predicate]) => TermBuilder.inheritance(wrap(subject), wrap(predicate)));
 
 export const buildSequenceRule = (builder: (p1: Term, p2: Term) => Term) =>
   buildBinaryInhRule(([s1, p1], [s2, p2], inputs) => {
@@ -84,7 +81,8 @@ export const deductionFromType =
     if (!ends) return undefined;
     const [subject, predicate] = ends;
     const member = unaryOf(typeKind, term);
-    if (!member || !termsEqual(matchOn === 'subject' ? subject : predicate, member)) return undefined;
+    if (!member || !termsEqual(matchOn === 'subject' ? subject : predicate, member))
+      return undefined;
     return matchOn === 'subject'
       ? TermBuilder.inheritance(member, predicate)
       : TermBuilder.inheritance(subject, member);

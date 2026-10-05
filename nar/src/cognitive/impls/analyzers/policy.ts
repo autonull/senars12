@@ -48,10 +48,9 @@ export const createPolicyManager = (recencyEpisodes: number): PolicyManager => {
     recomputePolicy(ruleStats: readonly ModelRuleStats[] | null = null): AgentPolicy {
       const routeCounts = new Map<string, number>();
       for (const r of recentRoutes) incrementCount(routeCounts, r);
-      const totalRoutes = Math.max(1, recentRoutes.length);
       const routingWeights: Record<string, number> = {};
       for (const [kind, count] of routeCounts)
-        routingWeights[kind] = Math.max(0.1, count / totalRoutes);
+        routingWeights[kind] = Math.max(0.1, flooredRatio(count, recentRoutes.length));
       for (const k of ['narsese-belief', 'narsese-question', 'command', 'nl', 'reason']) {
         if (!(k in routingWeights)) routingWeights[k] = 0.1;
       }

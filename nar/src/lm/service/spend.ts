@@ -1,4 +1,4 @@
-import { envPositive, type LMTask, mapToRecord } from '@senars/util';
+import { accumulate, envPositive, type LMTask, mapToRecord } from '@senars/util';
 import { recordLmSpend } from '../../metrics/index.js';
 import { getModelCapability } from '../providers.js';
 import { LMUnavailableError, withHint } from './errors.js';
@@ -34,14 +34,19 @@ export class SpendLedger {
     tokensIn: number,
     tokensOut: number
   ): void {
-    const entry = this.spend.get(provider) ?? { tokensIn: 0, tokensOut: 0, calls: 0, costMilli: 0 };
-    entry.tokensIn += tokensIn;
-    entry.tokensOut += tokensOut;
-    entry.calls += 1;
     const cap = getModelCapability(modelId ?? '')?.costPerMTok ?? 0;
     const costMilli = ((tokensIn + tokensOut) / 1_000_000) * cap * 1000;
-    entry.costMilli += costMilli;
-    this.spend.set(provider, entry);
+    const entry = accumulate(
+      this.spend,
+      provider,
+      () => ({ tokensIn: 0, tokensOut: 0, calls: 0, costMilli: 0 }),
+      (running) => {
+        running.tokensIn += tokensIn;
+        running.tokensOut += tokensOut;
+        running.calls += 1;
+        running.costMilli += costMilli;
+      }
+    );
     recordLmSpend(provider, tokensIn + tokensOut, costMilli);
 
     const capUsd = spendCapUsd();

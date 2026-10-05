@@ -19,7 +19,7 @@ import { type Focus } from './focus.js';
 import type { RandomSource } from '../types/primitives.js';
 import type { Term } from '../terms/index.js';
 import type { Task } from '../types/index.js';
-import type { LinkPort } from './ports/index.js';
+import type { LinkPort } from './ports/memory-ports.js';
 
 /** Semantic similarity between two terms — the embedding layer's read surface. */
 export interface SemanticSimilarity {

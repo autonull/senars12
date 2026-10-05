@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import {
+  accumulate,
   BoundedMap,
   clamp01,
   ensureDir,
@@ -88,13 +89,24 @@ export async function loadTrainingData(options: LoadTrainingDataOptions): Promis
     const target = label.observed ?? label.score;
     if (target === undefined || !Number.isFinite(target) || !label.vector) continue;
     const key = `${label.evidenceId}`;
-    const existing = grouped.get(key);
-    if (existing && options.averageDuplicates !== false) {
-      existing.sum += target;
-      existing.count++;
-    } else if (!existing) {
-      grouped.set(key, { sum: target, count: 1, action: label.label, vector: label.vector });
+    if (options.averageDuplicates === false) {
+      getOrInsert(grouped, key, () => ({
+        sum: target,
+        count: 1,
+        action: label.label,
+        vector: label.vector,
+      }));
+      continue;
     }
+    accumulate(
+      grouped,
+      key,
+      () => ({ sum: 0, count: 0, action: label.label, vector: label.vector }),
+      (running) => {
+        running.sum += target;
+        running.count += 1;
+      }
+    );
   }
 
   const trainingRows: TrainingRow[] = [];

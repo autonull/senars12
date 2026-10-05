@@ -1,6 +1,8 @@
 import {
+  accumulate,
   BoundedRing,
   buckets,
+  getOrInsert,
   groupBy,
   insertByScoreDesc,
   keyedBy,
@@ -8,12 +10,123 @@ import {
   mapValues,
   maxBy,
   minBy,
+  rankBy,
   removeBy,
   sortBy,
-  rankBy,
+  sumBy,
+  uniqueBy,
 } from '@senars/util';
-import { sumBy } from '@senars/util';
 import { describe, expect, it } from 'vitest';
+
+describe('accumulate', () => {
+  it('mints the record once and adds to it thereafter', () => {
+    const totals = new Map<string, { calls: number; tokens: number }>();
+    const zero = () => ({ calls: 0, tokens: 0 });
+
+    accumulate(totals, 'a', zero, (e) => {
+      e.calls++;
+      e.tokens += 5;
+    });
+    accumulate(totals, 'a', zero, (e) => {
+      e.calls++;
+      e.tokens += 7;
+    });
+
+    expect(totals.get('a')).toEqual({ calls: 2, tokens: 12 });
+  });
+
+  it('returns the stored record, so the running total needs no third lookup', () => {
+    const running = new Map<string, { total: number }>();
+    accumulate(
+      running,
+      'a',
+      () => ({ total: 0 }),
+      (e) => {
+        e.total += 10;
+      }
+    );
+    const after = accumulate(
+      running,
+      'a',
+      () => ({ total: 0 }),
+      (e) => {
+        e.total += 10;
+      }
+    );
+    expect(after).toEqual({ total: 20 });
+    expect(after).toBe(running.get('a'));
+  });
+
+  it('keeps keys independent', () => {
+    const totals = new Map<string, { n: number }>();
+    accumulate(
+      totals,
+      'a',
+      () => ({ n: 0 }),
+      (e) => {
+        e.n++;
+      }
+    );
+    accumulate(
+      totals,
+      'b',
+      () => ({ n: 0 }),
+      (e) => {
+        e.n += 100;
+      }
+    );
+    expect([...totals]).toEqual([
+      ['a', { n: 1 }],
+      ['b', { n: 100 }],
+    ]);
+  });
+
+  it('accumulates over the same store getOrInsert populates', () => {
+    const store = new Map<string, { n: number }>();
+    getOrInsert(store, 'a', () => ({ n: 0 }));
+    accumulate(
+      store,
+      'a',
+      () => ({ n: 0 }),
+      (e) => {
+        e.n++;
+      }
+    );
+    expect(store.get('a')).toEqual({ n: 1 });
+  });
+});
+
+describe('uniqueBy', () => {
+  it('keeps the first item per key, in encounter order', () => {
+    expect(
+      uniqueBy(
+        [
+          { id: 'a', v: 1 },
+          { id: 'b', v: 2 },
+          { id: 'a', v: 3 },
+        ],
+        (r) => r.id
+      )
+    ).toEqual([
+      { id: 'a', v: 1 },
+      { id: 'b', v: 2 },
+    ]);
+  });
+
+  it('evaluates the key once per item', () => {
+    let calls = 0;
+    uniqueBy([1, 2, 3, 4], (n) => {
+      calls++;
+      return n % 2;
+    });
+    expect(calls).toBe(4);
+  });
+
+  it('is empty-preserving and dedupes nothing it should not', () => {
+    expect(uniqueBy([], String)).toEqual([]);
+    expect(uniqueBy([3, 1, 2], (n) => n)).toEqual([3, 1, 2]);
+  });
+});
 
 describe('removeBy', () => {
   const items = () => ['a', 'b', 'c'];

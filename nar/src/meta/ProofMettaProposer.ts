@@ -8,7 +8,15 @@
  */
 
 import type { DerivationRecord, DerivationStep } from '@senars/core/schemas/derivation-records';
-import { BoundedMap, BoundedRing, incrementCount, mean, pushCapped, rankBy } from '@senars/util';
+import {
+  BoundedMap,
+  BoundedRing,
+  getOrInsert,
+  incrementCount,
+  mean,
+  pushCapped,
+  rankBy,
+} from '@senars/util';
 import { agreeByExactAlgebra } from '../reflex/algebra-vote.js';
 import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';
@@ -129,19 +137,15 @@ export class ProofMettaProposer implements IProposer {
       if (!generalized) continue;
 
       const patternKey = this.serializePattern(generalized);
-      const existing = this.patternCounts.get(patternKey);
-      if (existing) {
-        existing.count++;
-        existing.confidence = Math.max(existing.confidence, step.truth.confidence);
-        pushCapped(existing.examples, this.exampleOf(step), MAX_PATTERNS_PER_EXAMPLE);
-      } else {
-        this.patternCounts.set(patternKey, {
-          count: 1,
-          confidence: step.truth.confidence,
-          examples: [this.exampleOf(step)],
-          pattern: generalized,
-        });
-      }
+      const info = getOrInsert(this.patternCounts, patternKey, () => ({
+        count: 0,
+        confidence: step.truth.confidence,
+        examples: [],
+        pattern: generalized,
+      }));
+      info.count++;
+      info.confidence = Math.max(info.confidence, step.truth.confidence);
+      pushCapped(info.examples, this.exampleOf(step), MAX_PATTERNS_PER_EXAMPLE);
     }
 
     // Convert frequent patterns to MeTTa rules

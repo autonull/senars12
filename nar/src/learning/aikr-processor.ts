@@ -8,6 +8,7 @@
  */
 import {
   ambientRng,
+  incrementCount,
   LruCache,
   type RandomSource,
   selectTopN,
@@ -118,8 +119,10 @@ export class FairnessSampling<T extends BagItem> implements BagSamplingStrategy<
       rng
     );
     const pickedIds = new Set(picked.map(({ id }) => id));
-    for (const { id } of items)
-      this.#sinceSampled.set(id, pickedIds.has(id) ? 0 : (this.#sinceSampled.get(id) ?? 0) + 1);
+    for (const { id } of items) {
+      if (pickedIds.has(id)) this.#sinceSampled.set(id, 0);
+      else incrementCount(this.#sinceSampled, id);
+    }
     return picked;
   }
 

@@ -1,4 +1,4 @@
-import { safeRatio, sumBy } from '@senars/util';
+import { mapToRecord, safeRatio, sumBy } from '@senars/util';
 import type { Focus } from './Focus.js';
 
 /** Compute the total weight across all foci. */
@@ -35,7 +35,7 @@ export const rebalanceFocusWeights = (
 
 /** Serialize focus weights for persistence. */
 export const serializeFocusWeights = (foci: Iterable<Focus>): Record<string, number> =>
-  Object.fromEntries(focusWeightEntries(foci));
+  mapToRecord(focusWeightEntries(foci));
 
 /** Deserialize focus weights from persistence. */
 export const deserializeFocusWeights = (

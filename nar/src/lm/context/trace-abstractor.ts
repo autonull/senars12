@@ -1,4 +1,5 @@
 import type { DerivationRecord } from '@senars/core/schemas/derivation-records';
+import { getOrInsert } from '@senars/util';
 import { atom, fromNarsese, getArgs, type Term } from '../../terms/index.js';
 
 export interface CriticalPathStep {
@@ -48,11 +49,11 @@ export class TraceAbstractor {
   #abstract(term: Term, atomIndex: Map<string, string>): Term {
     if (term.kind === 'atom') {
       if (term.isVariable) return term;
-      let v = atomIndex.get(term.symbol);
-      if (!v) {
-        v = `?${VARIABLE_ALPHABET[atomIndex.size % VARIABLE_ALPHABET.length]}`;
-        atomIndex.set(term.symbol, v);
-      }
+      const v = getOrInsert(
+        atomIndex,
+        term.symbol,
+        () => `?${VARIABLE_ALPHABET[atomIndex.size % VARIABLE_ALPHABET.length]}`
+      );
       return atom(v);
     }
     return {

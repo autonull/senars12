@@ -4,6 +4,7 @@ import {
   generateId,
   mapToRecord,
   safeRatio,
+  shareCount,
   sigmoid,
   softmax,
   sumBy,
@@ -330,8 +331,8 @@ export class ContrastiveMemory {
   #rubricState(rubric: string): RubricState {
     let state = this.#rubrics.get(rubric);
     if (!state) {
-      const posCap = Math.max(1, Math.round(this.#maxPerRubric * this.#positiveShare));
-      const negCap = Math.max(1, this.#maxPerRubric - posCap);
+      const posCap = shareCount(this.#maxPerRubric, this.#positiveShare, 1, Math.round);
+      const negCap = shareCount(this.#maxPerRubric - posCap, 1, 1);
       const pos = createBag<ExemplarItem>({ capacity: posCap });
       const neg = createBag<ExemplarItem>({ capacity: negCap });
       const pending = createBag<ExemplarItem>({ capacity: 64 });

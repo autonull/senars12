@@ -12,7 +12,15 @@ import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/nar/rules';
 import { operationNameOf } from '@senars/nar/terms';
 import { initializeSelfConcept } from '@senars/nar/tools';
-import { bar, createLogger, divider, formatNarseseTruth, mean, pct } from '@senars/util';
+import {
+  bar,
+  createLogger,
+  divider,
+  formatNarseseTruth,
+  mean,
+  pct,
+  selectTopN,
+} from '@senars/util';
 import { runEntrypoint } from './lib/fatal-error.js';
 import { mettaPort } from './lib/metta.js';
 
@@ -190,14 +198,16 @@ async function main() {
   // Top beliefs by priority
   console.log('\n🏆 TOP 5 BELIEFS (by priority)');
   console.log(divider());
-  const topBeliefs = beliefs
-    .map((b) => ({ belief: b, concept: nar.getConcept(b.term) }))
-    .filter(
-      (bc): bc is { belief: (typeof beliefs)[0]; concept: NonNullable<typeof bc.concept> } =>
-        bc.concept !== undefined
-    )
-    .sort((a, b) => b.concept.priority - a.concept.priority)
-    .slice(0, 5);
+  const topBeliefs = selectTopN(
+    beliefs
+      .map((b) => ({ belief: b, concept: nar.getConcept(b.term) }))
+      .filter(
+        (bc): bc is { belief: (typeof beliefs)[0]; concept: NonNullable<typeof bc.concept> } =>
+          bc.concept !== undefined
+      ),
+    5,
+    (bc) => bc.concept.priority
+  );
   for (const bc of topBeliefs) {
     const { belief, concept } = bc;
     const truth = belief.truth ? formatNarseseTruth(belief.truth) : '';

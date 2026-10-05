@@ -17,6 +17,7 @@ export {
   type NestedBoundPath,
   type NestedBoundTable,
   nestedBounds,
+  validateAgainstBounds,
 } from './bounds.js';
 export {
   type CognitiveBoundCategory,

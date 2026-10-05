@@ -1,6 +1,6 @@
 import type { Agent, PromptBuilder } from '@senars/core';
 import type { MettaPort } from '@senars/core/metta-port';
-import { errMsg } from '@senars/util';
+import { entryKey, errMsg, keyedBy } from '@senars/util';
 import type { SystemOneConfig } from '@senars/util/config';
 import { CognitiveRegistry } from '../cognitive/impls/CognitiveRegistry.js';
 import {
@@ -103,9 +103,11 @@ export class NARBuilder {
     const b = new NARBuilder();
     if (spec.tier > 0)
       b.withSystemOne({ tier: spec.tier, params: { enabled: true, ...spec.systemOneParams } });
-    const caps = Object.fromEntries(
-      Object.entries(spec.capabilities ?? {}).map(([name, enabled]) => [name, { enabled }])
-    ) as CapabilitySurface;
+    const caps: CapabilitySurface = keyedBy(
+      Object.entries(spec.capabilities ?? {}),
+      entryKey,
+      ([, enabled]) => ({ enabled })
+    );
     if (Object.keys(caps).length > 0) b.withCapabilities(caps);
     if (spec.deviceHead) b.withDeviceHead(spec.deviceHead);
     return b;

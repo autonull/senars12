@@ -8,6 +8,7 @@
  * is behind `hasDomainEventSink` rather than allocating on every `consume`.
  */
 
+import { keyedBy } from '@senars/util';
 import type { BudgetEventMap, BudgetLimits, ConsumedBudget } from './budget.js';
 import { type DomainEventPayload, emitDomainEvent, hasDomainEventSink } from './event-sink.js';
 
@@ -31,7 +32,11 @@ const OTEL_KEYS: Record<string, string> = {
 };
 
 const renameKeys = (payload: Record<string, unknown>): DomainEventPayload =>
-  Object.fromEntries(Object.entries(payload).map(([key, value]) => [OTEL_KEYS[key] ?? key, value]));
+  keyedBy(
+    Object.entries(payload),
+    ([key]) => OTEL_KEYS[key] ?? key,
+    ([, value]) => value
+  );
 
 const toTraceConsumed = (consumed: ConsumedBudget): DomainEventPayload => ({
   cycles: consumed.cycles,

@@ -3,7 +3,7 @@
  * Hard budget inheritance: spawn enforces Σ(child) ≤ parent.remaining; join returns unconsumed budget.
  */
 
-import { BoundedRing, makeId, toError } from '@senars/util';
+import { BoundedRing, makeId, perPart, toError } from '@senars/util';
 import {
   type BudgetAllocation,
   type BudgetSlice,
@@ -100,10 +100,10 @@ export class CognitiveThread {
   spawn(childId: string, allocation?: BudgetAllocation): SpawnResult {
     const shares = this.children.size + 2;
     const childAllocation = resolveAllocation(this.budget, allocation, (remaining) => ({
-      cycles: Math.floor(remaining.cycles / shares),
+      cycles: perPart(remaining.cycles, shares, 0),
       depth: remaining.depth,
-      memoryOps: Math.floor(remaining.memoryOps / shares),
-      llmCalls: Math.floor(remaining.llmCalls / shares),
+      memoryOps: perPart(remaining.memoryOps, shares, 0),
+      llmCalls: perPart(remaining.llmCalls, shares, 0),
     }));
     chargeAllocation(this.budget, childAllocation);
 

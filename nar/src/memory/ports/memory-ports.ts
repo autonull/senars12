@@ -1,13 +1,15 @@
 /**
- * Memory statistics, indexing, links, and attention ports — the analytical and
- * cross-cutting surfaces over the concept store.
+ * Memory statistics, indexing, links, and clock ports — the analytical and
+ * cross-cutting surfaces over the concept store, and the only ones that name
+ * nothing but memory's own types. `AttentionOwner` sits next door in
+ * `attention-ports.ts` because it is the one contract here that names the
+ * strategy layer.
  */
 
 import type { Term } from '../../terms/index.js';
 import type { Concept } from '../concept.js';
 import type { Layer } from '../links/Layer.js';
 import type { LinkEntry, LinkType } from '../links/types.js';
-import type { AttentionModel } from '../../strategies/types.js';
 import type { RandomSource } from '../../types/primitives.js';
 import type { Focus } from '../focus.js';
 import type { AssociativeRegistry } from '../associative.js';
@@ -89,17 +91,4 @@ export interface LinkPort {
  */
 export interface MemoryClock {
   consolidate(opts?: { cycleCount?: number }): void;
-}
-
-/** The attention slot's owner surface.
- *
- * Declared here rather than left as two methods on `Memory` because a
- * reconfigure installs the model a parameter graph resolved, and the consumer
- * that does the installing (`CognitiveController`) should depend on the ability
- * rather than on the facade. A4 replaces the body with the attention owner's
- * `commit(now)`; the contract does not move (TODO29.a §5.4).
- */
-export interface AttentionOwner {
-  readonly attentionModel: AttentionModel;
-  setAttentionModel(model: AttentionModel): void;
 }

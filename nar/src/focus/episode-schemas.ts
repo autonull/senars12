@@ -1,4 +1,4 @@
-import { maxBy, minBy, safeRatio } from '@senars/util';
+import { accumulate, maxBy, minBy, safeRatio } from '@senars/util';
 /**
  * G2 — episode-level schema induction. After each episode the (action,
  * reward) history is aggregated; the worst and best action patterns are
@@ -29,10 +29,15 @@ export function induceEpisodeSchemas(
   const minSamples = options.minSamples ?? 2;
   const stats = new Map<string, { count: number; total: number }>();
   for (const { action, reward } of history) {
-    const s = stats.get(action) ?? { count: 0, total: 0 };
-    s.count++;
-    s.total += reward;
-    stats.set(action, s);
+    accumulate(
+      stats,
+      action,
+      () => ({ count: 0, total: 0 }),
+      (s) => {
+        s.count++;
+        s.total += reward;
+      }
+    );
   }
   const entries = [...stats.entries()]
     .map(([action, s]) => ({ action, count: s.count, meanReward: safeRatio(s.total, s.count) }))

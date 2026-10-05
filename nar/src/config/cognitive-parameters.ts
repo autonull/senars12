@@ -1,6 +1,5 @@
 import { createLogger, deepEqual, deepFreeze, deepMerge, errMsg, keyedBy } from '@senars/util';
-import { cognitiveBound, cognitiveBounds } from '@senars/util/config';
-import { validateAgainstBounds } from '@senars/util/config/bounds';
+import { cognitiveBound, cognitiveBounds, validateAgainstBounds } from '@senars/util/config';
 import { type BagSlotParams, bagSlotErrors } from '../bag/registration';
 import {
   type StrategyCatalog,

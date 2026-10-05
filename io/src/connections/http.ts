@@ -8,6 +8,7 @@ import {
   errMsg,
   type HealthReport,
   makeId,
+  mapToRecord,
 } from '@senars/util';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { ApiKeyManager, parseHttpBody, setCORSHeaders, startHttpServer } from '../utils/http.js';
@@ -122,7 +123,7 @@ export class HTTPConnection extends BaseConnection {
       {
         method,
         path: url.pathname,
-        query: Object.fromEntries(url.searchParams),
+        query: mapToRecord(url.searchParams),
         channel: 'http',
         origin: `http:direct:${requestId}`,
       }

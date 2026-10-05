@@ -1,5 +1,5 @@
 import { threadId } from 'node:worker_threads';
-import { maxScore } from '@senars/util';
+import { maxScore, unique } from '@senars/util';
 import { DEPTH_MAX, type Timestamp } from '../../types/primitives.js';
 
 /** Deepest derivation lineage across a stamp set; 0 for an empty set. */
@@ -95,15 +95,9 @@ export const Stamp = {
 
     // Ordered union of each parent's lineage plus its own id; duplicates —
     // repeated parents and shared ancestors — collapse in one pass.
-    const seen = new Set<string>();
-    const derivations: string[] = [];
-    for (const parent of parentStamps) {
-      for (const id of [...parent.derivations, parent.id]) {
-        if (seen.has(id)) continue;
-        seen.add(id);
-        derivations.push(id);
-      }
-    }
+    const derivations = unique(
+      parentStamps.flatMap((parent) => [...parent.derivations, parent.id])
+    );
 
     return mint(nextStampId(), source, derivations);
   },

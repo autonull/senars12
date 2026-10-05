@@ -1,15 +1,16 @@
 import { join } from 'node:path';
 import {
+  type BeliefTruth,
   cachePath,
+  type Episode,
   mean,
   parseJsonOr,
+  type ReadOnlyLookup,
   sha256Hex,
   sha256Prefixed,
   shortSha256Hex,
   sortBy,
-  type BeliefTruth,
-  type Episode,
-  type ReadOnlyLookup,
+  takeFirst,
 } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
@@ -245,7 +246,7 @@ export async function loadRetrospectives(
   const entries = await ledger.query({ limit: n });
   const out: Retrospective[] = [];
   // Take the newest n entries (first n since query returns newest first)
-  for (const entry of entries.slice(0, n)) {
+  for (const entry of takeFirst(entries, n)) {
     const r = entry as unknown as Retrospective;
     const expected = digestPin(r.provenance.turnIds, r.reactionDistribution);
     if (r.digest !== expected) throw new DigestMismatchError(expected, `corrupt: ${r.sessionId}`);

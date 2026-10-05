@@ -8,7 +8,7 @@ import { existsSync, promises as fs, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
 import { BoundedMap } from './utils/bounded-map.js';
-import { collectUpTo, lastByKey } from './utils/collections.js';
+import { collectUpTo, lastByKey, takeFirst } from './utils/collections.js';
 import { errMsg } from './utils/error.js';
 import { utcDate } from './utils/format.js';
 import {
@@ -320,7 +320,7 @@ export class Ledger<T extends BaseLedgerEntry, I = T> {
     }
 
     const diskMatches = await this.#scanDisk(filter);
-    if (diskMatches === null) return cached().slice(0, cap);
+    if (diskMatches === null) return takeFirst(cached(), cap);
     return diskMatches;
   }
 

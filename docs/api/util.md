@@ -118,21 +118,21 @@
 
 - `BANDS` — Bands, most permissive first. `abstain` is below `block` rather than beside it,
 
-- `COGNITIVE_AXES` — Whether a judgment is about what is true or what is wanted.
-
-- `ENGINE_ORIGINS` — Every origin a cognitive event may claim. One list, so the zod boundary in
-
-- `JUDGMENT_SHAPES` — The query shapes a judgment can take, as `JudgmentQuery` declares them.
-
 - `BandDecisionSchema`
-
-- `CognitiveAxisSchema`
-
-- `JudgmentShapeSchema`
 
 - `bandOrdinal` — How restrictive a band is; abstaining is always the most restrictive.
 
+- `COGNITIVE_AXES` — Whether a judgment is about what is true or what is wanted.
+
+- `CognitiveAxisSchema`
+
+- `ENGINE_ORIGINS` — Every origin a cognitive event may claim. One list, so the zod boundary in
+
 - `egressVerdict` — Narrow a gate's answer to the one shape every consumer downstream expects.
+
+- `JUDGMENT_SHAPES` — The query shapes a judgment can take, as `JudgmentQuery` declares them.
+
+- `JudgmentShapeSchema`
 
 - `toolError` — A failed outcome; anything thrown is stringified at this boundary.
 
@@ -200,6 +200,8 @@
 
 - `deferred`
 
+- `drain` — Run an async generator to completion and return its `return` value, discarding
+
 - `monotonicNow` — Monotonic millisecond clock: sub-millisecond resolution, and immune to wall-clock
 
 - `periodic` — Repeat `task` every `intervalMs` until the returned disposer is called.
@@ -252,6 +254,8 @@
 
 - `systemClock` — The production default. A zero-cost `Date.now` wrapper rather than a reference
 
+- `accumulate` — {@link getOrInsert} plus the write-back: read the record under `key`, mint it
+
 - `addToSet` — Add to a per-key set, creating the set on first use.
 
 - `BoundedRing` — Bounded FIFO — the single AIKR ring behind every bounded log (revision history,
@@ -264,13 +268,19 @@
 
 - `edgeKey` — The one edge identity between two term keys.
 
+- `entryKey` — The key of a `[key, value]` pair — the derivation a Map's own entries need
+
 - `flatUnique` — {@link unique} across several collections — the union an index query needs.
 
 - `getOrInsert` — Lazily-created map entry — the single get-or-create primitive for nested maps.
 
 - `groupBy` — Bucket `items` by a derived key, preserving encounter order within each
 
-- `incrementCount` — Accumulate a per-key count; returns the new total.
+- `incrementCount` — Accumulate a per-key count; returns the new total. Takes a {@link KeyedStore}
+
+- `indexBy` — {@link keyedBy}'s `Map` twin — `new Map(items.map(i => [i.key, i]))`, which
+
+- `indexMap` — {@link mapToRecord}'s `Map` twin — the `new Map([...map].map(...))` copy that
 
 - `insertByScoreDesc` — Insert into a descending-sorted list in O(n) — no full re-sort, unlike
 
@@ -280,7 +290,9 @@
 
 - `keyedBy` — Index `items` by a derived key into a plain object — the record a lookup
 
-- `mapToRecord` — A map as a plain object, optionally projecting each value. A map's keys are
+- `lastByKey` — The last row per key, in first-appearance order. The dedupe half of every
+
+- `mapToRecord` — Entry pairs as a plain object, optionally projecting each value. A map's keys
 
 - `mapValues` — Re-key a record's values while keeping its keys — the `Object.fromEntries(
 
@@ -291,6 +303,8 @@
 - `minBy` — Extremum pick over an iterable. `initial`/`initialScore` seed the running
 
 - `minScore` — Lowest `score` over `items`, {@link maxScore} read the other way — and unlike
+
+- `perPart` — {@link shareCount} read backwards — how many items one of `parts` equal shares
 
 - `pushCapped` — Drop-oldest push for plain arrays. One `shift()` per overflow — no `splice`
 
@@ -304,11 +318,11 @@
 
 - `removeLastBy` — {@link removeBy} scanning backwards, for a stack discipline: the most recent
 
-- `lastByKey` — The last row per key, in first-appearance order. The dedupe half of every
-
 - `selectByPriority` — Greedy budget selection over `{ priority, id }` items: highest priority
 
 - `selectTopN` — Top `n` items from an iterable ranked by `score`, descending. Single-pass with
+
+- `shareCount` — How many items a share of a pool comes to — the arithmetic behind every
 
 - `shareOf` — The first `fraction` of `items`, at least `count` and never all of them.
 
@@ -323,6 +337,8 @@
 - `trimCapped` — Keep the newest `capacity` entries of a plain array, dropping from the front.
 
 - `unique` — Value-level dedup, first occurrence wins. For "the set of concepts this event
+
+- `uniqueBy` — First item per derived key — {@link unique} for a collection whose duplicates
 
 - `formatIssues` — The monorepo's one rendering of a schema failure. Four validators used to
 
@@ -442,6 +458,12 @@
 
 - `stableStringify` — Deterministic JSON with object keys emitted in sorted order — the single
 
+- `KeyedCollection`
+
+- `KeyedMap`
+
+- `KeyedSet`
+
 - `LruCache`
 
 - `anneal` — A rate annealing toward a floor: `clamp(value · survival, floor, ceiling)` —
@@ -556,6 +578,8 @@
 
 - `weightedSampleBy` — Weighted sampling over pre-computed weights — the O(n) draw behind `weightedSample`.
 
+- `SlidingWindowRateLimiter`
+
 - `attempt` — Run a sync fallible fn, capturing thrown errors into a Result.
 
 - `attemptAsync` — Run an async fallible fn, capturing rejections into a Result.
@@ -579,8 +603,6 @@
 - `ok`
 
 - `unwrapOrThrow`
-
-- `SlidingWindowRateLimiter`
 
 - `withRetry` — Retry `fn` with exponential backoff; rethrows the last failure.
 
@@ -673,6 +695,8 @@
 - `type NestedBoundTable`
 
 - `nestedBounds` — Projections for a table addressed by `category.key`.
+
+- `validateAgainstBounds` — Validate a config object against a bound table's rows.
 
 - `type CognitiveBoundCategory`
 

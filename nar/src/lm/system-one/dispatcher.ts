@@ -1,5 +1,15 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { clamp01, indexBy, maxBy, monotonicNow, rankBy, retain, safeRatio, stopwatch } from '@senars/util';
+import {
+  accumulate,
+  clamp01,
+  indexBy,
+  maxBy,
+  monotonicNow,
+  rankBy,
+  retain,
+  safeRatio,
+  stopwatch,
+} from '@senars/util';
 import { DECISION_DERIVATIONS_SCOPE } from '../../kernel/budget-scopes.js';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
 import { Stamp } from '../../terms/impls/Stamp.js';
@@ -194,11 +204,16 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
 
   /** Phase 5: per-level latency accounting (L0 deterministic / L1 manifold heads). */
   #recordLatency(tier: 0 | 1, elapsed: () => number, judgments: number): void {
-    const stats = this.#tierLatency.get(tier) ?? { calls: 0, totalMs: 0, judgments: 0 };
-    stats.calls++;
-    stats.totalMs += elapsed();
-    stats.judgments += judgments;
-    this.#tierLatency.set(tier, stats);
+    accumulate(
+      this.#tierLatency,
+      tier,
+      () => ({ calls: 0, totalMs: 0, judgments: 0 }),
+      (running) => {
+        running.calls++;
+        running.totalMs += elapsed();
+        running.judgments += judgments;
+      }
+    );
   }
 
   latencyStats(): Record<
@@ -343,7 +358,11 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
       ranking = selectUsable ? (select as ClassifyProposition).distribution : undefined;
     }
 
-    const pByOption = indexBy(ranking ?? [], (d) => d.option, (d) => d.p);
+    const pByOption = indexBy(
+      ranking ?? [],
+      (d) => d.option,
+      (d) => d.p
+    );
     const authority = selectUsable ? seedTruth(select as ClassifyProposition).c : 0;
     const ranked = rankBy(
       candidates.map((candidate) => ({

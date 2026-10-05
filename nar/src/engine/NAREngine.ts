@@ -7,7 +7,7 @@ import type {
 } from '@senars/core/engine';
 import { BaseEngine } from '@senars/core/engine/base';
 import type { CognitiveEvent } from '@senars/core/schemas';
-import { asBeliefTruth, createLogger, DisposalRegistry, errMsg } from '@senars/util';
+import { asBeliefTruth, createLogger, DisposalRegistry, errMsg, takeLast } from '@senars/util';
 import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge.js';
 import { filterByTerm } from '../memory/term-filter.js';
 import { NAR } from '../nar.js';
@@ -51,7 +51,7 @@ export class NAREngine extends BaseEngine {
         await this.#nar.question(clean, correlationId);
         await this.#nar.run(5, undefined, correlationId);
         const beliefs = this.#nar.getBeliefs();
-        return beliefs.slice(-5).map((b) => ({
+        return takeLast(beliefs, 5).map((b) => ({
           term: b.term.toString(),
           truth: asBeliefTruth(b.truth),
           timestamp,
@@ -67,7 +67,7 @@ export class NAREngine extends BaseEngine {
       await this.#nar.believe(clean, undefined, correlationId);
       await this.#nar.run(3, undefined, correlationId);
       const beliefs = this.#nar.getBeliefs();
-      const derivations = beliefs.slice(-3).map((b) => ({
+      const derivations = takeLast(beliefs, 3).map((b) => ({
         term: b.term.toString(),
         truth: asBeliefTruth(b.truth),
         timestamp,

@@ -4,7 +4,15 @@
  * contrastive layer. A thin facade — all inference logic lives in the
  * manifold heads, contrastive memory, and policy utilities it composes.
  */
-import { bandOrdinal, chunk, rankBy, renormalize, retain, sha256Hex } from '@senars/util';
+import {
+  bandOrdinal,
+  chunk,
+  mapToRecord,
+  rankBy,
+  renormalize,
+  retain,
+  sha256Hex,
+} from '@senars/util';
 import type { AbstainReason, CognitiveAxis } from '../../decision/types.js';
 import { isSafetyFloor } from './algebra.js';
 import { type ContrastiveMemory, candidateProximity, rubricOf } from './contrastive.js';
@@ -297,7 +305,7 @@ export function createDecider(deps: DecideDeps): Decider {
       candidates,
       request.verificationFloor ?? 0
     );
-    const penalties = Object.fromEntries(proximity);
+    const penalties = mapToRecord(proximity);
     const vetoes = [...belowFloor];
 
     const base =

@@ -12,8 +12,10 @@
  * A table now contributes only its numbers. A row has one shape, is addressed by one path
  * (`key`, or `category.key`), and every projection of it is named here.
  */
-import { clamp } from '../utils/numeric.js';
+
 import { z } from 'zod';
+import { keyedBy } from '../utils/collections.js';
+import { clamp } from '../utils/numeric.js';
 
 /** One knob's admissible numbers: the range, the landing value, and the scan quantum. */
 export interface BoundRow {
@@ -129,7 +131,7 @@ export const flatBounds = <const T extends FlatBoundTable>(table: T): FlatBoundP
   const projection = project(resolve);
   const paths = Object.keys(table) as (keyof T & string)[];
   const byKey = <V>(value: (path: keyof T & string) => V): Record<string, V> =>
-    Object.fromEntries(paths.map((path) => [path, value(path)]));
+    keyedBy(paths, (path) => path, value);
   return {
     ...projection,
     defaults: byKey((path) => resolve(path).default),

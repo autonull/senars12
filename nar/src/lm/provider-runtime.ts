@@ -9,7 +9,7 @@
 import { join } from 'node:path';
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import type { LMTask } from '@senars/util';
-import { ensureDirSync, indexBy, periodic, utcDate } from '@senars/util';
+import { ensureDirSync, getOrInsert, indexBy, periodic, utcDate } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
@@ -231,14 +231,12 @@ export class ProviderRuntime {
 
   #circuit(provider: LMProviderName, settings?: LMSettings): CircuitBreaker {
     const cfg = this.getEffectiveCircuitConfig(provider, settings);
-    let breaker = this.circuitBreakers.get(provider);
-    if (!breaker) {
-      breaker = new CircuitBreaker(cfg);
-      breaker.onTransition = (state, reason) => this.#transition(provider, state, reason);
-      this.circuitBreakers.set(provider, breaker);
-    } else {
-      breaker.configure(cfg);
-    }
+    const breaker = getOrInsert(this.circuitBreakers, provider, () => {
+      const made = new CircuitBreaker(cfg);
+      made.onTransition = (state, reason) => this.#transition(provider, state, reason);
+      return made;
+    });
+    breaker.configure(cfg);
     return breaker;
   }
 

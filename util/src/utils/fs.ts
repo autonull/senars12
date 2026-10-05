@@ -7,6 +7,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { collectUpTo } from './collections.js';
 
 export interface JsonlLoadResult<T> {
   rows: T[];
@@ -209,13 +210,14 @@ const collectJsonl = <T>(
   parse: (value: unknown) => T | null,
   limit: number
 ): JsonlLoadResult<T> => {
-  const rows: T[] = [];
   let invalid = 0;
-  for (const row of walkJsonl(content, parse)) {
-    if (row === null || row === FAIL) invalid++;
-    else rows.push(row);
-    if (rows.length >= limit) break;
-  }
+  const rows = collectUpTo(walkJsonl(content, parse), limit, (row) => {
+    if (row === null || row === FAIL) {
+      invalid++;
+      return undefined;
+    }
+    return row;
+  });
   return { rows, invalid };
 };
 

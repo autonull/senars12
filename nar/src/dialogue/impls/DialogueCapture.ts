@@ -1,5 +1,5 @@
 import type { Episode, EpisodeType, EpisodicMemory } from '@senars/util';
-import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+import { collectUpTo, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
 import type { DialogueConfig } from '@senars/util/config';
 import type { ContrastiveMemory } from '../../lm/system-one/contrastive.js';
 import type { JudgmentDataset } from '../../lm/system-one/distill.js';
@@ -244,16 +244,17 @@ export class DialogueCapture {
     if (this.#deps.formalize && correctionText?.trim()) {
       try {
         const candidates = await this.#deps.formalize(correctionText);
-        for (const c of candidates) {
-          if (!c.narsese?.trim() || c.confidence < LESSON_CONFIDENCE_FLOOR) continue;
-          if (this.#lessons.length >= MAX_LESSONS) break;
-          this.#lessons.push({
-            term: c.narsese,
-            truth: { frequency: 1, confidence: c.confidence },
-            source: 'reaction',
-            provenance: { turnIds: [turnId] },
-          });
-        }
+        const lessons = collectUpTo(candidates, MAX_LESSONS - this.#lessons.length, (c) =>
+          c.narsese?.trim() && c.confidence >= LESSON_CONFIDENCE_FLOOR
+            ? {
+                term: c.narsese,
+                truth: { frequency: 1, confidence: c.confidence },
+                source: 'reaction' as const,
+                provenance: { turnIds: [turnId] },
+              }
+            : undefined
+        );
+        this.#lessons.push(...lessons);
       } catch {
         // formalization is optional — embedding-level path still runs
       }

@@ -3,7 +3,7 @@ import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { NAR } from '@senars/nar';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
 import { cloudApiKey, getRoutingStatus } from '@senars/nar/lm';
-import { LM_TASKS, sumBy } from '@senars/util';
+import { keyedBy, LM_TASKS, sumBy } from '@senars/util';
 import type { JobManager } from './job-manager.js';
 import {
   formatBeliefsForMCP,
@@ -80,10 +80,10 @@ const rlfpState = (nar: NAR) => {
   const optimizer = rlfp.policyOptimizerPublic;
   return {
     enabled: true,
-    policy: Object.fromEntries(
-      optimizer
-        ?.getAllStrategies?.()
-        .map((s: string) => [s, optimizer.getStrategyStats(s)?.priority ?? 1]) ?? []
+    policy: keyedBy(
+      optimizer?.getAllStrategies?.() ?? [],
+      (strategy) => strategy,
+      (strategy) => ({ priority: optimizer.getStrategyStats(strategy)?.priority ?? 1 })
     ),
     explorationRate: optimizer?.getConfig?.().explorationRate ?? 0.1,
     totalRewards: rlfp.trajectoryCount ?? 0,

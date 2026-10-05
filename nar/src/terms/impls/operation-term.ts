@@ -13,6 +13,7 @@
  * now a parse error and a term's `kind` is the recogniser.
  */
 
+import { mapToRecord } from '@senars/util';
 import { isAtomic, isCompound, type Term } from '../types.js';
 import { getArgs, termsEqual } from './accessors.js';
 import { TermBuilder } from './factory.js';
@@ -100,5 +101,5 @@ const argEntriesOf = (args: Term | undefined): [string, unknown][] => {
 export const readOperationTerm = (term: Term): OperationCall | undefined => {
   const name = operationNameOf(term);
   if (name === undefined) return undefined;
-  return { name, args: Object.fromEntries(argEntriesOf(getArgs(term)[1])) };
+  return { name, args: mapToRecord(argEntriesOf(getArgs(term)[1])) };
 };

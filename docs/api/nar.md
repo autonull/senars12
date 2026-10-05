@@ -216,8 +216,6 @@
 
 - `map`
 
-- `NARError`
-
 - `OperationError`
 
 - `ok`
@@ -538,6 +536,8 @@ _Dynamic subpath (no single entry file)._
 
 - `createCatchGame`
 
+- `ConversationGame`
+
 - `createGame2048`
 
 - `Game2048`
@@ -555,6 +555,8 @@ _Dynamic subpath (no single entry file)._
 - `REASONING_SPECS` — Domain presets (R1): per-domain spec data.
 
 - `ReasoningGame`
+
+- `ReasoningMetaGame` — R3: the per-game MetaGame (TODO18 §1e) — reward-weight/difficulty tuning for
 
 - `createRPSGame`
 
@@ -1192,7 +1194,7 @@ _Re-export barrel._
 
 - `NAL_EXTENDED_RULES`
 
-- `RULE_BODIES` — Namespaced so the three colliding names stay distinct bodies.
+- `RULE_BODIES`
 
 - `createRulePattern`
 

@@ -5,13 +5,15 @@ import {
   safeRatio,
   selectTopN,
   shareCount,
+  takeFirst,
   takeLast,
   tokenizeWords,
+  uniqueBy,
 } from '@senars/util';
 
 import { estimateTokens } from '../lm/context/context-budget.js';
 import type { NAR } from '../nar.js';
-import { TermSet } from '../terms';
+import { termKey } from '../terms';
 import type { TranslationCache, TranslationCacheEntry } from './cache.js';
 import type { NLContext } from './understanding.js';
 
@@ -129,23 +131,17 @@ export class ContextAssembler {
     const beliefs = nar.getBeliefs();
 
     // Quality filter: confidence > 0.5, frequency > 0.1
-    // Deduplicate by term
-    const seen = new TermSet();
-    const filtered = beliefs.filter((b) => {
-      if (!b.truth) return false;
-      if (b.truth.c <= 0.5) return false;
-      if (b.truth.f <= 0.1) return false;
-      if (seen.has(b.term)) return false;
-      seen.add(b.term);
-      return true;
-    });
+    const filtered = uniqueBy(
+      beliefs.filter((b) => b.truth !== undefined && b.truth.c > 0.5 && b.truth.f > 0.1),
+      (b) => termKey(b.term)
+    );
 
     return takeLast(filtered, max).map((b) => `${b.term.toString()}${formatNarseseTruth(b.truth)}`);
   }
 
   private extractActiveGoals(nar: NAR, max: number): string[] {
     const goals = nar.getGoals();
-    return goals.slice(0, max).map((g) => g.term.toString());
+    return takeFirst(goals, max).map((g) => g.term.toString());
   }
 
   private extractMemoryHealth(nar: NAR): { pressure: number; totalConcepts: number } {

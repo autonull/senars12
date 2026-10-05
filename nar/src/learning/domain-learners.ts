@@ -1,5 +1,5 @@
 import type { RewardDomain } from '@senars/core/schemas/governance';
-import { type CapabilityRisk, clamp, clamp01, clampSigned } from '@senars/util';
+import { accumulate, type CapabilityRisk, clamp, clamp01, clampSigned } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { SelfRewardGate } from '../kernel/KernelRewardGate.js';
@@ -76,8 +76,16 @@ export class PreferenceRanker extends DomainLearner {
   learn(event: DomainLearningEvent): void {
     this.guard(event);
     if (!event.key) return;
-    const prev = this.scores.get(event.key) ?? { total: 0, n: 0 };
-    this.scores.set(event.key, { total: prev.total + event.reward, n: prev.n + 1 });
+    const prev = { total: 0, n: 0 };
+    accumulate(
+      this.scores,
+      event.key,
+      () => prev,
+      (running) => {
+        running.total += event.reward;
+        running.n += 1;
+      }
+    );
   }
 
   rank(): string[] {

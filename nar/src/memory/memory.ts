@@ -3,6 +3,7 @@ import {
   BoundedRing,
   getOrInsert,
   nextInt,
+  perPart,
   rankBy,
   type RandomSource,
   selectTopN,
@@ -373,7 +374,7 @@ export class Memory implements MemoryPorts {
     // The interval that actually elapsed, not a literal 1: `decay` takes the
     // cycles it is to deduct over, and consolidation on an interval of 10 is a
     // ten-cycle decay.
-    const cyclesElapsed = Math.max(1, Math.floor(this.cyclesSinceConsolidation / interval));
+    const cyclesElapsed = perPart(this.cyclesSinceConsolidation, interval);
     this.cyclesSinceConsolidation = 0;
 
     this.attentionModel.tick(this, opts?.cycleCount ?? cyclesElapsed);

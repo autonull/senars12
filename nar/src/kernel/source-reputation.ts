@@ -8,7 +8,7 @@
  * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive from `@senars/io`.
  */
 
-import { cachePath, clamp01, flooredRatio, indexMap, LruCache } from '@senars/util';
+import { accumulate, cachePath, clamp01, flooredRatio, indexMap, LruCache } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 
@@ -38,6 +38,8 @@ const ReputationDeltaSchema = BaseLedgerEntrySchema.extend({
 
 export type ReputationDeltaEntry = z.infer<typeof ReputationDeltaSchema>;
 
+const zeroReputation = (): ReputationEntry => ({ confirmed: 0, contradicted: 0 });
+
 export const DEFAULT_REPUTATION_PATH = cachePath('parameters', 'source-reputation');
 export const DEFAULT_REPUTATION_CAPACITY = 10_000;
 
@@ -65,10 +67,9 @@ export class SourceReputation {
       .query({})
       .then((entries) => {
         for (const r of entries) {
-          const entry = this.#entries.get(r.key) ?? { confirmed: 0, contradicted: 0 };
-          this.#entries.set(r.key, {
-            confirmed: entry.confirmed + (r.delta.confirmed ?? 0),
-            contradicted: entry.contradicted + (r.delta.contradicted ?? 0),
+          accumulate(this.#entries, r.key, zeroReputation, (entry) => {
+            entry.confirmed += r.delta.confirmed ?? 0;
+            entry.contradicted += r.delta.contradicted ?? 0;
           });
         }
       })
@@ -76,8 +77,9 @@ export class SourceReputation {
   }
 
   record(key: string, outcome: 'confirmed' | 'contradicted'): void {
-    const entry = this.#entries.get(key) ?? { confirmed: 0, contradicted: 0 };
-    this.#entries.set(key, { ...entry, [outcome]: entry[outcome] + 1 });
+    accumulate(this.#entries, key, zeroReputation, (entry) => {
+      entry[outcome]++;
+    });
 
     const delta =
       outcome === 'confirmed'

@@ -103,9 +103,9 @@ export type {
   SkillDefinition,
 } from './types/agent.js';
 export { HEALTH_STATUSES } from './types/agent.js';
+export type { CapabilityRisk } from './types/capability.js';
 /** @public The shared capability risk vocabulary. */
 export { CAPABILITY_RISKS, CapabilityRiskSchema } from './types/capability.js';
-export type { CapabilityRisk } from './types/capability.js';
 export type {
   BandDecision,
   ChatOptions,
@@ -121,14 +121,14 @@ export type {
  *  cannot admit an origin, a band, an axis or a query shape the types do not carry. */
 export {
   BANDS,
-  COGNITIVE_AXES,
-  ENGINE_ORIGINS,
-  JUDGMENT_SHAPES,
   BandDecisionSchema,
-  CognitiveAxisSchema,
-  JudgmentShapeSchema,
   bandOrdinal,
+  COGNITIVE_AXES,
+  CognitiveAxisSchema,
+  ENGINE_ORIGINS,
   egressVerdict,
+  JUDGMENT_SHAPES,
+  JudgmentShapeSchema,
 } from './types/cognitive.js';
 /** @public Engine contract and identifiers. */
 export type { Engine, EngineId } from './types/engine.js';
@@ -283,12 +283,14 @@ export type { BoundedContainer, OverflowPolicy, ReadOnlyLookup } from './utils/c
 // Collections
 /** @public Bounded FIFO ring buffer; evicting or refusing at capacity. */
 export {
+  accumulate,
   addToSet,
   BoundedRing,
   buckets,
   chunk,
   collectUpTo,
   edgeKey,
+  entryKey,
   flatUnique,
   getOrInsert,
   groupBy,
@@ -299,6 +301,7 @@ export {
   joinKey,
   KEY_SEPARATOR,
   keyedBy,
+  lastByKey,
   mapToRecord,
   mapValues,
   maxBy,
@@ -312,7 +315,6 @@ export {
   removeBy,
   removeFromSet,
   removeLastBy,
-  lastByKey,
   selectByPriority,
   selectTopN,
   shareCount,
@@ -323,14 +325,8 @@ export {
   takeLast,
   trimCapped,
   unique,
+  uniqueBy,
 } from './utils/collections.js';
-
-/** @public Generic keyed collections with derived structural keys. */
-export {
-  KeyedCollection,
-  KeyedMap,
-  KeyedSet,
-} from './utils/keyed-collection.js';
 export { formatIssues, type SchemaIssue } from './utils/diagnostics.js';
 /** @public The registry every component records its teardown in. */
 export type { Teardown } from './utils/disposal.js';
@@ -400,6 +396,12 @@ export {
 } from './utils/id.js';
 /** @public Deterministic JSON with sorted object keys — the one serializer behind every cache key and content digest. */
 export { extractJsonObject, parseJsonObject, stableStringify } from './utils/json.js';
+/** @public Generic keyed collections with derived structural keys. */
+export {
+  KeyedCollection,
+  KeyedMap,
+  KeyedSet,
+} from './utils/keyed-collection.js';
 export type { LruCacheOptions } from './utils/lru-cache.js';
 /** @public Bounded recency-ordered cache with optional TTL. */
 export { LruCache } from './utils/lru-cache.js';
@@ -460,6 +462,9 @@ export {
   weightedSample,
   weightedSampleBy,
 } from './utils/random.js';
+export type { RateLimiterOptions } from './utils/rate-limit.js';
+/** @public Keyed sliding-window rate limiter for transports and guards. */
+export { SlidingWindowRateLimiter } from './utils/rate-limit.js';
 export type { Err, Ok, Result } from './utils/result.js';
 /** @public The fallible-result union, and the folds over it. */
 export {
@@ -476,9 +481,6 @@ export {
   ok,
   unwrapOrThrow,
 } from './utils/result.js';
-export type { RateLimiterOptions } from './utils/rate-limit.js';
-/** @public Keyed sliding-window rate limiter for transports and guards. */
-export { SlidingWindowRateLimiter } from './utils/rate-limit.js';
 export type { RetryOptions } from './utils/retry.js';
 // Caching
 export { withRetry } from './utils/retry.js';

@@ -1,8 +1,8 @@
 import type { Episode, EpisodeType } from '@senars/util';
-import { parseJsonOr } from '@senars/util';
+import { parseJsonOr, takeFirst } from '@senars/util';
 import type { TextGenerator } from '../ports';
-import type { EpisodicMemory } from './EpisodicMemory.js';
 import { cosineUnit, l2Normalize } from '../utils/similarity.js';
+import type { EpisodicMemory } from './EpisodicMemory.js';
 import type { EmbeddingGenerator } from './embedding.js';
 
 export interface ConsolidationOptions {
@@ -43,7 +43,7 @@ const extractRelevance = (reply: string, count: number): number[] => {
   const match = /\[[\s\S]*\]/.exec(reply);
   if (!match) return [];
   const parsed = parseJsonOr<unknown[]>(match[0], []);
-  return parsed.slice(0, count).map((v) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : 0));
+  return takeFirst(parsed, count).map((v) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : 0));
 };
 
 /**
