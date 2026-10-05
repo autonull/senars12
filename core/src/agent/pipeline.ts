@@ -1,6 +1,5 @@
 import type { CognitiveEvent } from '../schemas/index.js';
 import {
-  dispatch,
   type EgressVerdict,
   type EpisodicMemory,
   type GroundednessGate,
@@ -95,14 +94,6 @@ export interface MacroContext {
 
 export type MacroPhase = Middleware<MacroContext>;
 
-/** Onion dispatch — delegated to shared primitive in `@senars/util`. */
-export const dispatchMacro = async (
-  phases: readonly MacroPhase[],
-  ctx: MacroContext
-): Promise<void> => {
-  await dispatch(phases, ctx);
-};
-
 export const createMacroContext = (
   host: CycleHost,
   stimulus: CognitiveStimulus,
@@ -127,30 +118,35 @@ export interface ExchangeCapture {
   }): Promise<unknown>;
 }
 
-export const createCapturePhase =
-  (capture: ExchangeCapture): MacroPhase =>
+/**
+ * A phase whose own work is best-effort: whatever it does may fail without
+ * disrupting the cycle, so the failure is swallowed and the chain continues.
+ * Capture (I5) and reflection are both that, and the try/catch-next pair is the
+ * only thing they share — the work itself is not a parameter of the rule, it is
+ * the whole of each stage.
+ */
+const bestEffort =
+  (work: (ctx: MacroContext) => Promise<unknown>): MacroPhase =>
   async (ctx, next) => {
     try {
-      await capture.onExchange({
-        correlationId: ctx.stimulus.correlationId,
-        utterance: ctx.stimulus.text,
-        response: ctx.state.narrativeText || ctx.host.getLastResponse(),
-        at: ctx.stimulus.timestamp,
-      });
+      await work(ctx);
     } catch {
-      /* capture is best-effort (I5) — never disrupts the cycle */
+      /* best-effort — never disrupts the cycle */
     }
     await next();
   };
 
+export const createCapturePhase = (capture: ExchangeCapture): MacroPhase =>
+  bestEffort((ctx) =>
+    capture.onExchange({
+      correlationId: ctx.stimulus.correlationId,
+      utterance: ctx.stimulus.text,
+      response: ctx.state.narrativeText || ctx.host.getLastResponse(),
+      at: ctx.stimulus.timestamp,
+    })
+  );
+
 /** Opt-in phase: metacognitive reflection over the completed cycle. */
-export const createReflectPhase =
-  (reflect: (host: CycleHost, stimulus: CognitiveStimulus) => Promise<unknown>): MacroPhase =>
-  async (ctx, next) => {
-    try {
-      await reflect(ctx.host, ctx.stimulus);
-    } catch {
-      /* reflection is best-effort — never disrupts the cycle */
-    }
-    await next();
-  };
+export const createReflectPhase = (
+  reflect: (host: CycleHost, stimulus: CognitiveStimulus) => Promise<unknown>
+): MacroPhase => bestEffort((ctx) => reflect(ctx.host, ctx.stimulus));

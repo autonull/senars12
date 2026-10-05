@@ -89,6 +89,38 @@ function makeMessage(text: string, origin = 'test:direct:alice', sender = 'alice
 const fakeNar = {} as NAR;
 const noopRespond = async (_text: string): Promise<void> => undefined;
 
+describe('MessageRouter', () => {
+  const context = () => ({ connection: makeConn(), nar: fakeNar, respond: noopRespond });
+
+  it('runs stages in registration order', async () => {
+    const router = new MessageRouter();
+    const order: string[] = [];
+    router.use(async (_msg, _ctx, next) => {
+      order.push('first:before');
+      await next();
+      order.push('first:after');
+    });
+    router.use(async (_msg, _ctx, next) => {
+      order.push('second');
+      await next();
+    });
+    await router.route(makeMessage('hi'), context());
+    expect(order).toEqual(['first:before', 'second', 'first:after']);
+  });
+
+  it('rejects a stage that advances the chain twice', async () => {
+    const router = new MessageRouter();
+    router.use(async (_msg, _ctx, next) => {
+      await next();
+      await next();
+    });
+    router.use(async () => undefined);
+    await expect(router.route(makeMessage('hi'), context())).rejects.toThrow(
+      /next\(\) called multiple times/
+    );
+  });
+});
+
 describe('originExtractor', () => {
   it('sets sessionKey from message.origin', async () => {
     const router = new MessageRouter();

@@ -91,7 +91,7 @@ export {
 } from './memory/in-memory-session-manager.js';
 export type { Middleware } from './middleware.js';
 /** @public Unified middleware primitive (REFACTOR.todo4 Phase A). */
-export { dispatch, passthrough } from './middleware.js';
+export { dispatch } from './middleware.js';
 /** @public Agent-facing option and capability types. */
 export type {
   AgentOptions,

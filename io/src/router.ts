@@ -1,3 +1,4 @@
+import { dispatch, type Middleware } from '@senars/util';
 import type { ConnectionManager } from './connection-manager.js';
 import type { Connection, IOMessage } from './types.js';
 
@@ -16,6 +17,12 @@ export type MessageMiddleware = (
   next: () => Promise<void>
 ) => Promise<void>;
 
+/** The one dispatch context: the pair every stage receives and the chain threads. */
+export interface MessageDispatch {
+  readonly message: IOMessage;
+  readonly context: MessageContext;
+}
+
 /**
  * `MessageContext` is declared `readonly` for consumer safety but is a
  * long-lived per-message scratchpad: middleware attaches `session` and
@@ -28,24 +35,23 @@ export const ctxAsRecord = (ctx: MessageContext): Record<string, unknown> =>
 export const resolveSessionKey = (msg: IOMessage): string => msg.origin;
 
 export class MessageRouter {
-  private middleware: MessageMiddleware[] = [];
+  /**
+   * Bound once per `use`, not once per message: the router used to carry its own
+   * onion loop, and that loop had none of the guarantees `dispatch` makes — a
+   * stage that called `next()` twice silently re-entered the chain instead of
+   * failing, and `use` during dispatch could shift the indices under the walk.
+   * The loop is `dispatch`; only the three-argument public shape of a stage is
+   * ours, so the pair is packed into a context here.
+   */
+  private readonly chain: Middleware<MessageDispatch>[] = [];
 
   use(middleware: MessageMiddleware): void {
-    this.middleware.push(middleware);
+    this.chain.push((dispatchCtx, next) =>
+      middleware(dispatchCtx.message, dispatchCtx.context, next)
+    );
   }
 
-  async route(message: IOMessage, context: MessageContext): Promise<void> {
-    let index = 0;
-
-    const next = async (): Promise<void> => {
-      if (index < this.middleware.length) {
-        const handler = this.middleware[index++];
-        if (handler) {
-          await handler(message, context, next);
-        }
-      }
-    };
-
-    await next();
+  route(message: IOMessage, context: MessageContext): Promise<void> {
+    return dispatch(this.chain, { message, context });
   }
 }

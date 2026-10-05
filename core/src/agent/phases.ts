@@ -8,6 +8,7 @@
 import { mintCognitiveEvent } from '../schemas/index.js';
 import {
   createLogger,
+  dispatch,
   egressVerdict,
   errMsg,
   type LMTask,
@@ -20,7 +21,6 @@ import { RECALL_WINDOW } from '../memory/types.js';
 import {
   type CycleHost,
   createMacroContext,
-  dispatchMacro,
   type MacroContext,
   type MacroPhase,
   motorTools,
@@ -364,7 +364,7 @@ export async function* runCycleStream(
   const ctx = createMacroContext(host, stimulus, opts);
   const running = (async () => {
     try {
-      await dispatchMacro(opts?.pipeline ?? host.macroPipeline ?? DEFAULT_MACRO_PIPELINE, ctx);
+      await dispatch(opts?.pipeline ?? host.macroPipeline ?? DEFAULT_MACRO_PIPELINE, ctx);
     } finally {
       ctx.stream.close();
     }

@@ -1,7 +1,8 @@
 /**
  * Unified middleware primitive (REFACTOR.todo4 Phase A).
- * Replaces the duplicate dispatch loop in `core/src/agent/pipeline.ts`.
- * `MacroPhase` uses this signature and dispatch logic.
+ * The one onion dispatcher in the system: the agent's `MacroPhase` chain and
+ * the transport's `MessageMiddleware` chain both run through it, so both get the
+ * same double-`next()` guard instead of one of them having a permissive copy.
  */
 
 export type Middleware<C> = (ctx: C, next: () => Promise<void>) => Promise<void>;
@@ -19,14 +20,3 @@ export async function dispatch<C>(chain: readonly Middleware<C>[], ctx: C): Prom
   };
   await next(0);
 }
-
-/**
- * Creates a passthrough middleware that emits an event and calls next.
- * Useful for simple logging/telemetry stages.
- */
-export const passthrough =
-  <C>(stage: string, emit: (ctx: C, stage: string) => void): Middleware<C> =>
-  async (ctx, next) => {
-    emit(ctx, stage);
-    await next();
-  };
