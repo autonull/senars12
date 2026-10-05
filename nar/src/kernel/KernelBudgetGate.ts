@@ -1,4 +1,5 @@
 import {
+  ALL_RESOURCES,
   BUDGET_TYPES,
   type BudgetLimits,
   type BudgetResource,
@@ -6,12 +7,15 @@ import {
   budgetLimit,
   budgetRefusal,
   budgetRemaining,
+  budgetPressure,
   chargeBudget,
   createBudget,
   freshBudget,
   isCapacityExhausted,
   snapshotBudget,
   zeroConsumed,
+  type BudgetEventBus,
+  type BudgetEventMap,
 } from '@senars/core/budget';
 import type {
   BudgetExhaustedEvent,
@@ -30,6 +34,7 @@ import { KernelGate, projectOutcome } from './gate-base.js';
 export interface KernelBudgetGateConfig {
   defaultBudget: ReasoningBudget;
   costTable: Record<string, number>;
+  eventBus?: BudgetEventBus;
 }
 
 /** What an operation spends: which budget dimension, and its default cost. The dimension,
@@ -84,8 +89,10 @@ export const createDefaultReasoningBudget = (): ReasoningBudget => createBudget(
 
 export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   private budget: ReasoningBudget;
+  private readonly budgetId: string;
   private scopes = new Map<string, ReasoningBudget>();
   private costTable: Record<string, number>;
+  private readonly eventBus?: BudgetEventBus;
 
   protected override outcomeOf(output: unknown): GateOutcome {
     return projectOutcome<BudgetGateOutput>(
@@ -98,24 +105,91 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   constructor(config?: Partial<KernelBudgetGateConfig>) {
     super();
     this.costTable = { ...DEFAULT_COST_TABLE, ...config?.costTable };
+    this.eventBus = config?.eventBus;
+    this.budgetId = (config?.defaultBudget as ReasoningBudget & { id?: string })?.id ?? 'root';
     this.budget = this.adopt(config?.defaultBudget ?? createDefaultReasoningBudget());
+    // Ensure the main budget has an id for event emission
+    if (!('id' in this.budget)) {
+      Object.defineProperty(this.budget, 'id', { value: this.budgetId, writable: false, enumerable: true });
+    }
+  }
+
+  /** Emit a budget slice created event. */
+  private emitSliceCreated(sliceId: string, parentId: string | undefined, limits: BudgetLimits): void {
+    this.eventBus?.emit('budget:slice:created', {
+      sliceId,
+      parentId,
+      maxCycles: limits.maxCycles,
+      maxDepth: limits.maxDepth ?? 0,
+      maxMemoryOps: limits.maxMemoryOps ?? 0,
+      maxLMCalls: limits.maxLMCalls ?? 0,
+    });
+  }
+
+  /** Emit a budget slice consumed event. */
+  private emitSliceConsumed(
+    sliceId: string,
+    resource: BudgetResource,
+    amount: number,
+    budget: ReasoningBudget
+  ): void {
+    this.eventBus?.emit('budget:slice:consumed', {
+      sliceId,
+      resource,
+      amount,
+      consumed: budget.consumed[resource],
+      total: budgetLimit(budget, resource),
+      pressure: budgetPressure(budget, resource),
+    });
+  }
+
+  /** Emit a budget slice exhausted event. */
+  private emitSliceExhausted(sliceId: string, reason: TerminationReason, budget: ReasoningBudget): void {
+    this.eventBus?.emit('budget:slice:exhausted', {
+      sliceId,
+      reason,
+      consumed: { ...budget.consumed },
+      total: {
+        maxCycles: budget.maxCycles,
+        maxDepth: budget.maxDepth,
+        maxMemoryOps: budget.maxMemoryOps,
+        maxLMCalls: budget.maxLMCalls,
+      },
+    });
+  }
+
+  /** Emit a budget slice merged event. */
+  private emitSliceMerged(parentId: string, childId: string, childBudget: ReasoningBudget): void {
+    this.eventBus?.emit('budget:slice:merged', {
+      parentId,
+      childId,
+      consumed: { ...childBudget.consumed },
+    });
   }
 
   /** Validate at the boundary where a budget enters the gate, never on the per-operation read path. */
   private adopt(budget: ReasoningBudget): ReasoningBudget {
     validateReasoningBudget(budget);
+    // Ensure budget has an id for event emission
+    if (!('id' in budget)) {
+      Object.defineProperty(budget, 'id', { value: this.budgetId, writable: false, enumerable: true });
+    }
     return budget;
   }
 
-  private resolveBudget(input: BudgetGateInput): ReasoningBudget {
-    if (input.budget) return this.adopt(input.budget);
-    if (!input.scopeId) return this.budget;
+private resolveBudget(input: BudgetGateInput): { budget: ReasoningBudget; sliceId: string } {
+    if (input.budget) return { budget: this.adopt(input.budget), sliceId: 'inline' };
+    if (!input.scopeId) return { budget: this.budget, sliceId: this.budgetId };
     let scoped = this.scopes.get(input.scopeId);
     if (!scoped) {
       scoped = freshBudget(this.budget);
+      // Ensure the fresh budget has an id for event emission
+      if (!('id' in scoped)) {
+        Object.defineProperty(scoped, 'id', { value: input.scopeId, writable: false, enumerable: true });
+      }
       this.scopes.set(input.scopeId, scoped);
     }
-    return scoped;
+    return { budget: scoped, sliceId: input.scopeId };
   }
 
   /** Consumed LM-call units for a named scope (B7 flow-level accounting observability). */
@@ -139,7 +213,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
     const estimatedCost = input.estimatedCost ?? this.costTable[operation] ?? 1;
     const resource = spec?.resource;
 
-    const budget = this.resolveBudget(input);
+    const { budget, sliceId } = this.resolveBudget(input);
     const granted = resource ? budgetAffords(budget, resource, estimatedCost) : true;
     budget.terminationReason = undefined;
 
@@ -149,6 +223,8 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
       // reads `terminationReason` per scope, and an event nobody joins reports 'none'
       // for a scope that just refused a charge (TODO33 §5.P3.10).
       budget.terminationReason = terminationReason;
+      this.emitSliceExhausted(sliceId, terminationReason, budget);
+
       const event = mintCognitiveEvent('budget.exhausted', {
         engine: 'kernel',
         correlationId: correlation(),
@@ -168,7 +244,10 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
       };
     }
 
-    if (resource) chargeBudget(budget, resource, estimatedCost);
+    if (resource) {
+      chargeBudget(budget, resource, estimatedCost);
+      this.emitSliceConsumed(sliceId, resource, estimatedCost, budget);
+    }
 
     return { granted: true, updatedBudget: budget };
   }
@@ -187,7 +266,12 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   }
 
   createScope(scopeId: string, budget?: ReasoningBudget): void {
-    this.scopes.set(scopeId, budget ? this.adopt(budget) : freshBudget(this.budget));
+    const scopeBudget = budget ? this.adopt(budget) : freshBudget(this.budget);
+    if (!('id' in scopeBudget)) {
+      Object.defineProperty(scopeBudget, 'id', { value: scopeId, writable: false, enumerable: true });
+    }
+    this.scopes.set(scopeId, scopeBudget);
+    this.emitSliceCreated(scopeId, this.budgetId, scopeBudget);
   }
 
   /**
