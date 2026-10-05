@@ -1,8 +1,8 @@
+import type { ModelRuleStats } from '../../../lm';
 /**
  * Reasoning pattern analysis - extracted from SelfAnalyzerService
  */
 import { takeLast } from '@senars/util';
-import type { MetricsCollector } from '../../../metrics';
 import type { SelfHost } from '../../../self/host.js';
 import type { InferenceChain, PatternAnalysis, ReasoningStep } from '../../types.js';
 import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
@@ -18,15 +18,15 @@ import { analyzeTermPatterns } from './term-patterns.js';
 export const analyzeReasoningPatterns = async (
   nar: SelfHost | null,
   monitor: MetacognitiveMonitor,
-  metrics: MetricsCollector | null
+  ruleStats: readonly ModelRuleStats[] | null = null
 ): Promise<PatternAnalysis> => {
   if (!nar) return EMPTY_PATTERN;
   const concepts = nar.listConcepts();
   return {
     frequentPatterns: analyzeTermPatterns(concepts),
     inefficientChains: detectInefficientChains(monitor),
-    successfulStrategies: identifySuccessfulStrategies(metrics),
-    performancePatterns: analyzePerformancePatterns(metrics),
+    successfulStrategies: identifySuccessfulStrategies(ruleStats),
+    performancePatterns: analyzePerformancePatterns(ruleStats),
     resourceUsage: analyzeResourceUsage(concepts),
     taskProcessingPatterns: analyzeTaskPatterns(nar),
   };

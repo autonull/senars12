@@ -7,7 +7,6 @@ import {
 } from '../../config/cognitive-parameters';
 import type { ControlBudgetPort } from '../../kernel/control-budgets.js';
 import type { MemoryPorts } from '../../memory/ports/index.js';
-import type { MetricsCollector } from '../../metrics';
 import type { Strategy } from '../../reason';
 import { InferenceController } from '../../reason/inference-controller';
 import type { RLFPLearner } from '../../rlfp';
@@ -33,7 +32,6 @@ export class CognitiveController {
     private readonly registry: CognitiveRegistry,
     private readonly memory: MemoryPorts,
     private readonly processor: RuleProcessor,
-    private readonly metrics: MetricsCollector,
     private readonly rlfp: RLFPLearner | undefined,
     params: CognitiveParameters,
     adaptInterval = 50,
@@ -205,11 +203,8 @@ export class CognitiveController {
   }
 
   #wireRuleGraphCallbacks(ruleGraph: RuleGraph): void {
+    ruleGraph.usePerformance(this.processor.rulePerformance);
     this.onAdapt(() => {
-      const log = this.processor.getModelRuleExecutionLog();
-      for (const entry of log) {
-        ruleGraph.recordPerformance(entry.ruleName, entry.status === 'fired', entry.durationMs);
-      }
       this.processor.clearModelRuleExecutionLog();
       ruleGraph.tick();
     });

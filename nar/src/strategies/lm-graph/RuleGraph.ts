@@ -1,4 +1,4 @@
-import { CallTallySeries, clamp01, createCallTally, flooredRatio, selectTopN } from '@senars/util';
+import { type CallTally, clamp01, flooredRatio, selectTopN } from '@senars/util';
 
 /**
  * Selection weights: how often a rule worked dominates, how fast it answered
@@ -10,8 +10,16 @@ const SELECTION_WEIGHTS = { successRate: 0.6, latency: 0.2, edge: 0.5 } as const
 /** Latency that earns no credit. Above this a rule is neither rewarded nor punished. */
 const LATENCY_CREDIT_MS = 100;
 
-/** Rules tracked for selection scoring — a bounded series, not an open-ended map. */
-const MAX_TRACKED_RULES = 512;
+/**
+ * The read side of a per-rule performance series: *how often did this rule work,
+ * and how fast?*
+ *
+ * Named here and imported by the rule processor, which owns the series, so that
+ * "the graph scores from performance" and "the processor records performance" are
+ * the same statement seen from two ends rather than two independently-typed
+ * shapes that happen to agree.
+ */
+export type RulePerformance = { get(ruleId: string): CallTally | undefined };
 
 /**
  * RuleGraph — composite LM-rule strategy using ConceptGraph co-activation edges.
@@ -31,8 +39,6 @@ export interface RuleGraphOptions {
   maxEdgesPerNode?: number;
   decayRate?: number;
   fallbackWeight?: number;
-  /** Rules kept for selection scoring; the coldest are evicted first. */
-  maxTrackedRules?: number;
 }
 
 export class RuleGraph implements ModelRuleSelector {
@@ -46,14 +52,15 @@ export class RuleGraph implements ModelRuleSelector {
   readonly graph: ConceptGraph;
   private readonly fallbackWeight: number;
   /**
-   * Per-rule success and latency, as a bounded series.
+   * The rule processor's performance series, bound by the controller.
    *
-   * An unbounded `Map` keyed by rule id, holding a hand-rolled EWMA the util
-   * package already ships as `CallTally` — so rule ids nobody could enumerate
-   * grew a map that never shed an entry, and this tally was the one of five the
-   * shape existed to replace that had not been converted.
+   * This graph used to keep its own tally and have the controller refill it from
+   * the execution log after every adaptation — a second record of a fact the
+   * processor already had, rebuilt on a drain that only runs on that one path, so
+   * a rule selected outside it scored against nothing. Absent until bound, the
+   * graph scores on co-activation edges alone.
    */
-  private readonly rulePerformance: CallTallySeries<string>;
+  #rulePerformance: RulePerformance | undefined;
 
   constructor(options: RuleGraphOptions = {}) {
     this.graph = new ConceptGraph({
@@ -62,15 +69,11 @@ export class RuleGraph implements ModelRuleSelector {
       decayRate: options.decayRate ?? 0.002,
     });
     this.fallbackWeight = options.fallbackWeight ?? 0.3;
-    this.rulePerformance = new CallTallySeries<string>({
-      maxSize: options.maxTrackedRules ?? MAX_TRACKED_RULES,
-      create: createCallTally,
-    });
   }
 
-  /** Register a rule's performance for reward-based edge weighting. */
-  recordPerformance(ruleId: string, success: boolean, latencyMs: number): void {
-    this.rulePerformance.record(ruleId, success, latencyMs);
+  /** Score selection against the rule processor's performance series. */
+  usePerformance(performance: RulePerformance): void {
+    this.#rulePerformance = performance;
   }
 
   /** Select LM rules for a context using co-activation graph. */
@@ -86,7 +89,7 @@ export class RuleGraph implements ModelRuleSelector {
 
     const scoredRules = rules.map((rule) => {
       let score = 0;
-      const perf = this.rulePerformance.get(rule.id);
+      const perf = this.#rulePerformance?.get(rule.id);
       if (perf) {
         score += perf.successRate * SELECTION_WEIGHTS.successRate;
         score +=

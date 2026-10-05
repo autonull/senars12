@@ -30,7 +30,6 @@ const controller = (r: CognitiveRegistry, params = DEFAULT_COGNITIVE_PARAMETERS)
     r,
     new Memory({ enableEmbeddingLayer: false }),
     new RuleProcessor(),
-    new MetricsCollector(),
     undefined,
     structuredClone(params)
   );

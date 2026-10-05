@@ -115,14 +115,21 @@ export class CallTallySeries<K, T extends CallTally = CallTally>
 
   /** Fold one attempt into `key`'s tally, minting it on first sight. */
   record(key: K, success: boolean, durationMs: number): T {
-    const tally = recordCall(
-      this.#tallies.get(key) ?? this.#create(key),
-      success,
-      durationMs,
-      this.#now()
-    );
-    this.#tallies.set(key, tally);
-    return tally;
+    return recordCall(this.getOrInsert(key), success, durationMs, this.#now());
+  }
+
+  /**
+   * The live tally, minted on first sight — the series' answer to util's
+   * `getOrInsert`, for a caller folding in facts {@link record} does not model.
+   * The LM accounting keeps token spend beside the call counters, so it needs the
+   * record without wanting another attempt counted.
+   */
+  getOrInsert(key: K): T {
+    const existing = this.#tallies.get(key);
+    if (existing !== undefined) return existing;
+    const created = this.#create(key);
+    this.#tallies.set(key, created);
+    return created;
   }
 
   /** The live tally. Mutating it is the caller's; the series owns only the map. */

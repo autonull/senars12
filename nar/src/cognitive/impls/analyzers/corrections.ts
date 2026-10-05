@@ -3,7 +3,6 @@
  */
 
 import { safeRatio } from '@senars/util';
-import type { MetricsCollector } from '../../../metrics';
 import type { SelfHost } from '../../../self/host.js';
 import type { CorrectionResult, IdentifiedIssues } from '../../types.js';
 import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
@@ -13,7 +12,6 @@ import { detectInefficientChains } from './reasoning-patterns.js';
 export const identifyIssues = async (
   nar: SelfHost | null,
   monitor: MetacognitiveMonitor,
-  metrics: MetricsCollector | null
 ): Promise<IdentifiedIssues> => {
   const issues: IdentifiedIssues = {
     contradictions: [],

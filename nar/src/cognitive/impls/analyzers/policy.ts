@@ -1,5 +1,5 @@
+import type { ModelRuleStats } from '../../../lm';
 import { flooredRatio, incrementCount, pushCapped } from '@senars/util';
-import type { MetricsCollector } from '../../../metrics';
 /**
  * Policy management - extracted from SelfAnalyzerService
  */
@@ -11,7 +11,7 @@ export interface PolicyManager {
 
   recordTool(name: string): void;
 
-  recomputePolicy(metrics: MetricsCollector | null): AgentPolicy;
+  recomputePolicy(ruleStats?: readonly ModelRuleStats[] | null): AgentPolicy;
 
   getPolicy(): AgentPolicy;
 
@@ -45,7 +45,7 @@ export const createPolicyManager = (recencyEpisodes: number): PolicyManager => {
       pushCapped(recentTools, name, recencyEpisodes);
     },
 
-    recomputePolicy(metrics: MetricsCollector | null): AgentPolicy {
+    recomputePolicy(ruleStats: readonly ModelRuleStats[] | null = null): AgentPolicy {
       const routeCounts = new Map<string, number>();
       for (const r of recentRoutes) incrementCount(routeCounts, r);
       const totalRoutes = Math.max(1, recentRoutes.length);
@@ -62,7 +62,7 @@ export const createPolicyManager = (recencyEpisodes: number): PolicyManager => {
       for (const [name, count] of toolCounts)
         toolSelectionBias[name] = Math.max(0.1, flooredRatio(count, recentTools.length));
 
-      const avgDuration = averageRuleDuration(metrics);
+      const avgDuration = averageRuleDuration(ruleStats);
       const budget = avgDuration > 50 ? 1024 : 2048;
 
       policy = {

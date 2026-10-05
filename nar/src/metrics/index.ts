@@ -1,21 +1,4 @@
-import {
-  type CallTally,
-  CallTallySeries,
-  createCallTally,
-  perSecond,
-  systemClock,
-} from '@senars/util';
-
-/**
- * Per-rule execution tallies.
- *
- * Rule ids arrive from the loaded rule set, which is bounded by the rule table —
- * but a rule set deserialized off disk is still data, so the series carries its
- * own capacity rather than trusting the loader.
- */
-export interface RuleStats extends CallTally {
-  id: string;
-}
+import { perSecond, systemClock } from '@senars/util';
 
 /** What the kernel counts about itself. Every field is bumped in place. */
 export interface SystemStats {
@@ -30,11 +13,8 @@ export interface SystemStats {
 }
 
 export interface MetricsSummary {
-  rules: RuleStats[];
   system: SystemStats;
 }
-
-const MAX_TRACKED_RULES = 4096;
 
 const freshSystem = (): Omit<SystemStats, 'uptime' | 'derivationsPerSecond'> => ({
   totalDerivations: 0,
@@ -43,17 +23,20 @@ const freshSystem = (): Omit<SystemStats, 'uptime' | 'derivationsPerSecond'> => 
   warnings: 0,
 });
 
+/**
+ * What the kernel counts about itself — the counters it bumps as it runs.
+ *
+ * Per-rule performance is deliberately *not* here. It used to be, as a series
+ * nothing wrote: the only writer was a facade method with no production caller,
+ * while the rule processor already tallied the same fact for the selector that
+ * scores with it. A second tally of a known fact is a store that can disagree,
+ * and this one disagreed by being empty — eight analyzers and a report read
+ * "no rules have run" from it while rules ran. The processor owns that record;
+ * ask `RuleProcessor.getModelRuleStats()`.
+ */
 export class MetricsCollector {
-  readonly #rules = new CallTallySeries<string, RuleStats>({
-    maxSize: MAX_TRACKED_RULES,
-    create: (id) => ({ ...createCallTally(), id }),
-  });
   readonly #startedAt = systemClock();
   #system = freshSystem();
-
-  recordRuleExecution(ruleId: string, success: boolean, duration: number): void {
-    this.#rules.record(ruleId, success, duration);
-  }
 
   recordDerivations(count = 1): void {
     this.#system.totalDerivations += count;
@@ -71,13 +54,6 @@ export class MetricsCollector {
     this.#system.warnings++;
   }
 
-  getRuleStats(ruleId: string): RuleStats | null;
-  getRuleStats(): RuleStats[];
-  getRuleStats(ruleId?: string): RuleStats | RuleStats[] | null {
-    if (ruleId !== undefined) return this.#rules.get(ruleId) ?? null;
-    return [...this.#rules.values()];
-  }
-
   getSystemStats(): SystemStats {
     const uptime = systemClock() - this.#startedAt;
     return {
@@ -88,11 +64,10 @@ export class MetricsCollector {
   }
 
   getSummary(): MetricsSummary {
-    return { rules: this.getRuleStats(), system: this.getSystemStats() };
+    return { system: this.getSystemStats() };
   }
 
   reset(): void {
-    this.#rules.clear();
     this.#system = freshSystem();
   }
 }

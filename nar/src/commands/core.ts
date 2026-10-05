@@ -35,12 +35,9 @@ export const coreCommands: CommandDefinition[] = [
       const stats = nar.getStatistics();
       let result = `Concepts: ${stats.totalConcepts}, Tasks: ${stats.totalTasks}`;
       if (args[0] === 'detail') {
-        const metrics = nar.getMetrics();
-        if (metrics) {
-          const ruleExecs = sumBy(metrics.rules, (r) => r.totalCalls);
-          const derivs = metrics.system?.totalDerivations ?? 0;
-          result += `\nRule Executions: ${ruleExecs}, Derivations: ${derivs}`;
-        }
+        const rules = nar.getProcessor().getModelRuleStats();
+        const derivs = nar.getMetrics().system.totalDerivations;
+        result += `\nRule Executions: ${sumBy(rules, (r) => r.stats.totalCalls)}, Derivations: ${derivs}`;
       }
       return result;
     },

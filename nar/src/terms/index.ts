@@ -40,6 +40,7 @@ export type { ParserResult, ParseTaskResult, TaskTypeName } from './impls/parser
 export {
   deserializeTerm,
   fromNarsese,
+  parseTaskTolerant,
   ParseError,
   PUNCTUATION_BY_TASK_TYPE,
   TermParser,

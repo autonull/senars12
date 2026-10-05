@@ -66,7 +66,7 @@ export {
   setBuiltinProgressCallback,
 } from './providers/model-factory.js';
 export { fetchBounded, probeModelsEndpoint } from './providers/probe.js';
-export type { CandidateScore } from './providers/routing.js';
+export type { CandidateScore, ModelReliability } from './providers/routing.js';
 export {
   demoteModel,
   disableRoutingTelemetry,

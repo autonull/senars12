@@ -4,6 +4,7 @@
 import { createRequire } from 'node:module';
 import {
   TASK_PUNCTUATION as PUNCTUATION_BY_TASK_TYPE,
+  TOLERANT_PUNCTUATIONS,
   type TaskPunctuation,
   type TaskType,
   taskTypeForPunctuation,
@@ -183,3 +184,27 @@ export const deserializeTerm = (s: string): Term | null => {
  * @public
  */
 export const fromNarsese = (s: string): Term | null => deserializeTerm(s);
+
+/**
+ * Parse `text` as a task under any punctuation the grammar admits, or `null` if
+ * none parses.
+ *
+ * A term is not a claim and a claim is punctuated, so a bare `(a --> b)` is
+ * neither until it is given its sentence mark — and which mark was intended is
+ * not recoverable from the text. Rather than make every ingress guess, the
+ * grammar's own set is tried in order and the first that parses wins.
+ *
+ * This lives beside the parser rather than at any ingress because two ingresses
+ * needed it and neither could reach the other: the perception gate admits a task
+ * it must parse, and the NL router must answer the same question before it
+ * decides an utterance is Narsese at all. Two copies of this loop is how they
+ * came to disagree.
+ * @public
+ */
+export const parseTaskTolerant = (text: string): ParseTaskResult | null => {
+  for (const punctuation of TOLERANT_PUNCTUATIONS) {
+    const parsed = termParser.parseTask(`${text}${punctuation}`);
+    if (parsed) return parsed;
+  }
+  return null;
+};

@@ -1,5 +1,5 @@
 import { createLogger, errMsg } from '@senars/util';
-import type { MetricsCollector } from '../../metrics';
+import type { ModelRuleStats } from '../../lm';
 import type { SelfHost } from '../../self/host.js';
 import { SelfOptimizer } from '../../self/SelfOptimizer';
 import type {
@@ -32,7 +32,7 @@ const log = createLogger({ scope: 'self-analyzer' });
 export class SelfAnalyzerService {
   private readonly nar: SelfHost | null;
   private readonly monitor: MetacognitiveMonitor;
-  private readonly metrics: MetricsCollector | null;
+  private readonly ruleStats: readonly ModelRuleStats[] | null;
   private readonly optimizer: SelfOptimizer;
   private readonly config: Required<SelfAnalyzerConfig>;
   private readonly policyManager: ReturnType<typeof createPolicyManager>;
@@ -40,13 +40,13 @@ export class SelfAnalyzerService {
   constructor(
     nar: SelfHost | null,
     monitor: MetacognitiveMonitor,
-    metrics: MetricsCollector | null,
+    ruleStats: readonly ModelRuleStats[] | null,
     config: SelfAnalyzerConfig = {}
   ) {
     this.nar = nar;
     this.monitor = monitor;
-    this.metrics = metrics;
-    this.optimizer = new SelfOptimizer(nar, metrics);
+    this.ruleStats = ruleStats;
+    this.optimizer = new SelfOptimizer(nar);
     this.config = {
       selfCorrectionEnabled: config.selfCorrectionEnabled ?? true,
       patternDetectionEnabled: config.patternDetectionEnabled ?? true,
@@ -110,7 +110,7 @@ export class SelfAnalyzerService {
     return {
       metaCognition: this.monitor.getMonitorState(),
       performance: this.analyzePerformancePatterns(),
-      resourceUsage: getResourceAnalysis(this.nar, this.metrics),
+      resourceUsage: getResourceAnalysis(this.nar),
       patterns: await this.analyzeReasoningPatterns(),
     };
   }
@@ -141,7 +141,7 @@ export class SelfAnalyzerService {
   }
 
   recomputePolicy(): AgentPolicy {
-    return this.policyManager.recomputePolicy(this.metrics);
+    return this.policyManager.recomputePolicy(this.ruleStats);
   }
 
   getPolicy(): AgentPolicy {
@@ -161,15 +161,15 @@ export class SelfAnalyzerService {
   }
 
   private async analyzeReasoningPatterns(): Promise<PatternAnalysis> {
-    return analyzeReasoningPatterns(this.nar, this.monitor, this.metrics);
+    return analyzeReasoningPatterns(this.nar, this.monitor, this.ruleStats);
   }
 
   private analyzePerformancePatterns(): PerformancePatterns {
-    return analyzePerformancePatterns(this.metrics);
+    return analyzePerformancePatterns(this.ruleStats);
   }
 
   private async identifyIssues(): Promise<IdentifiedIssues> {
-    return identifyIssues(this.nar, this.monitor, this.metrics);
+    return identifyIssues(this.nar, this.monitor);
   }
 
   private async applyCorrections(issues: IdentifiedIssues): Promise<CorrectionResult> {

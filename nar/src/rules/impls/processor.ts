@@ -3,6 +3,8 @@
  */
 
 import {
+  CallTallySeries,
+  createCallTally,
   formatNarseseTruth,
   keyedBy,
   type ModelRuleStats,
@@ -15,6 +17,7 @@ import type { DriveManager } from '../../drives';
 import type { ControlBudgetPort } from '../../kernel/control-budgets.js';
 import { GATE_LOG_CAPACITY } from '../../kernel/event-ring.js';
 import type { MemoryReader } from '../../memory/ports/index.js';
+import type { RulePerformance } from '../../strategies/lm-graph/RuleGraph.js';
 import type { ModelRuleSelector } from '../../strategies/types.js';
 import type { StampType, Term } from '../../terms';
 import { Truth, type Truth as TruthType, termDepth, termKey } from '../../terms';
@@ -35,7 +38,11 @@ import { RuleIndex } from './RuleIndex.js';
 import { DerivationRecorder } from './recorder.js';
 import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
 
+/** Rules whose performance is tallied — a bounded series, not an open-ended map. */
+const MAX_TRACKED_RULES = 512;
+
 interface ModelRuleExecutionEntry {
+  ruleId: string;
   ruleName: string;
   status: 'fired' | 'skipped' | 'timeout' | 'aborted';
   durationMs: number;
@@ -78,6 +85,22 @@ export class RuleProcessor {
   private maxModelRulesPerStep = 13;
   private modelRuleRotationIndex = 0;
   private executionLog: ModelRuleExecutionEntry[] = [];
+  /**
+   * How each model rule has fared, and the one place that is recorded.
+   *
+   * The processor already knows this at the only moment it can be known — the
+   * execution itself — and three consumers wanted it: the rule-graph selector
+   * weighted its choices by success rate and latency, the metrics collector kept
+   * a parallel series, and each rebuilt it from the execution log after the fact.
+   * Two of the three were reconstructions of the same fact, and one of them was
+   * reconstructed by nobody, so the graph's scoring silently read an empty series
+   * while the collector's reported an equally empty one. One owner, keyed by rule
+   * id, recorded once per attempt; the readers project.
+   */
+  readonly #rulePerformance = new CallTallySeries<string>({
+    maxSize: MAX_TRACKED_RULES,
+    create: createCallTally,
+  });
   // Reusable buffers to avoid allocations in hot paths
   private readonly seenBuffer = new Map<string, RuleResult>();
 
@@ -145,6 +168,33 @@ export class RuleProcessor {
 
   getModelRuleExecutionLog(): ModelRuleExecutionEntry[] {
     return [...this.executionLog];
+  }
+
+  /** Per-rule success and latency — the read side the selectors score from. */
+  get rulePerformance(): RulePerformance {
+    return this.#rulePerformance;
+  }
+
+  /**
+   * One model-rule attempt, recorded once: appended to the ring the self-analysis
+   * chain drains, and folded into the tally the selectors read. The two were
+   * separate statements at every call site, so a branch that appended without
+   * folding (or the reverse) was one forgotten argument away.
+   */
+  #recordModelRuleExecution(
+    rule: { id: string; name: string },
+    status: ModelRuleExecutionEntry['status'],
+    durationMs: number,
+    tasksProduced: number
+  ): void {
+    pushCapped(
+      this.executionLog,
+      { ruleId: rule.id, ruleName: rule.name, status, durationMs, tasksProduced, timestamp: Date.now() },
+      GATE_LOG_CAPACITY
+    );
+    if (status !== 'skipped' && status !== 'aborted') {
+      this.#rulePerformance.record(rule.id, status === 'fired', durationMs);
+    }
   }
 
   getModelRule(id: string): ModelRule | undefined {
@@ -452,31 +502,11 @@ export class RuleProcessor {
           for (const r of result) {
             this.recorder.record(modelRule.id, p1, effectiveP2, r);
           }
-          pushCapped(
-            this.executionLog,
-            {
-              ruleName: modelRule.name,
-              status: result.length > 0 ? 'fired' : 'timeout',
-              durationMs: elapsed(),
-              tasksProduced: result.length,
-              timestamp: Date.now(),
-            },
-            GATE_LOG_CAPACITY
-          );
+          this.#recordModelRuleExecution(modelRule, result.length > 0 ? 'fired' : 'timeout', elapsed(), result.length);
           return result;
         } catch (error) {
           this.handleRuleError(error, modelRule.id);
-          pushCapped(
-            this.executionLog,
-            {
-              ruleName: modelRule.name,
-              status: 'timeout',
-              durationMs: elapsed(),
-              tasksProduced: 0,
-              timestamp: Date.now(),
-            },
-            GATE_LOG_CAPACITY
-          );
+          this.#recordModelRuleExecution(modelRule, 'timeout', elapsed(), 0);
           return [];
         }
       })

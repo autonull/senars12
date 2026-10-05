@@ -4,7 +4,7 @@
  * fail-closed semantics live in one place.
  */
 
-import { withDeadline } from '@senars/util';
+import { boundedFetch } from '@senars/util';
 
 export interface ProbeOptions {
   readonly timeoutMs?: number;
@@ -18,9 +18,7 @@ export async function fetchBounded(
   url: string,
   { timeoutMs = DEFAULT_TIMEOUT_MS, headers }: ProbeOptions = {}
 ): Promise<Response | null> {
-  return withDeadline((signal) => fetch(url, { signal, ...(headers && { headers }) }), timeoutMs).catch(
-    () => null
-  );
+  return boundedFetch(url, headers && { headers }, { timeoutMs }).catch(() => null);
 }
 
 /** True when the endpoint answers `2xx` within the deadline. */

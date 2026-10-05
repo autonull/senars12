@@ -1,5 +1,5 @@
 import type { TaskBagKind } from '@senars/core/schemas';
-import { clamp } from '@senars/util';
+import { clamp, formatTruth } from '@senars/util';
 import {
   atomicSymbols,
   operationNameOf,
@@ -110,7 +110,7 @@ export class SymbolicFirewall {
 
   checkTruth(f: number, c: number): FirewallVerdict {
     return c > this.absoluteConfidence || f < 0 || f > 1 || c < 0 || c > 1
-      ? { allowed: false, reason: `truth {f=${f}, c=${c}} violates sanity bounds` }
+      ? { allowed: false, reason: `truth ${formatTruth({ f, c })} violates sanity bounds` }
       : { allowed: true };
   }
 

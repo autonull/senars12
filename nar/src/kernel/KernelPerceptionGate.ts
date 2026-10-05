@@ -26,7 +26,7 @@ import {
 import { normalizeNarsese } from '../nl/normalize.js';
 import { recordGateDecision } from '../telemetry/index.js';
 import type { TaskTypeName, Term } from '../terms';
-import { termParser } from '../terms';
+import { parseTaskTolerant, termParser } from '../terms';
 import { recordPolicyViolation } from './event-ring.js';
 import { KernelGate, projectOutcome } from './gate-base.js';
 import type { IngressJudge, IngressVerdict } from './ingress.js';
@@ -269,14 +269,6 @@ export class KernelPerceptionGate extends KernelGate {
     return 'user';
   }
 
-  private parseTaskTolerant(text: string): ReturnType<typeof termParser.parseTask> {
-    for (const punctuation of TOLERANT_PUNCTUATIONS) {
-      const parsed = termParser.parseTask(`${text}${punctuation}`);
-      if (parsed) return parsed;
-    }
-    return null;
-  }
-
   /**
    * One parse, both answers. A string observation was parsed by `parseTask` up to
    * four times per admission — once to reach the term and again to reach the task
@@ -285,13 +277,13 @@ export class KernelPerceptionGate extends KernelGate {
    */
   private parseObservation(observation: unknown): { term: Term | null; taskType: TaskTypeName } {
     if (typeof observation === 'string') {
-      const parsed = this.parseTaskTolerant(observation);
+      const parsed = parseTaskTolerant(observation);
       return { term: parsed?.term ?? null, taskType: parsed?.taskType ?? 'belief' };
     }
     if (observation && typeof observation === 'object') {
       const term =
         'term' in observation && typeof (observation as { term: string }).term === 'string'
-          ? (this.parseTaskTolerant((observation as { term: string }).term)?.term ?? null)
+          ? (parseTaskTolerant((observation as { term: string }).term)?.term ?? null)
           : 'kind' in observation
             ? (observation as Term)
             : null;

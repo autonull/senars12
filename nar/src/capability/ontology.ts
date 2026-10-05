@@ -11,6 +11,26 @@ import { type CapabilityDef, CapabilitySpace } from './space.js';
 
 export type CapabilityType = 'tool' | 'rule' | 'metta' | 'skill';
 
+/**
+ * Everything about registering a builtin capability that is not the caller's
+ * business: the id prefix, the label its description is built from, the risk a
+ * builtin of that kind carries, and its default cost.
+ *
+ * A MeTTa skill, a reasoning rule and a cognitive skill were three methods of
+ * nineteen near-identical lines each — the same entry, the same provenance
+ * record, the same digest domain, differing only in these four values. The four
+ * values are what a kind *is*, so they are stated once and registration reads
+ * them; adding a kind is one row. `tool` has no row because a tool arrives with
+ * its own schema and is registered by {@link CapabilityOntology.registerTool}.
+ */
+const BUILTIN_KINDS = {
+  metta: { label: 'MeTTa skill', risk: 'medium', cost: 500 },
+  rule: { label: 'Reasoning rule', risk: 'low', cost: 50 },
+  skill: { label: 'Cognitive skill', risk: 'medium', cost: 200 },
+} as const satisfies Record<BuiltinCapabilityKind, { label: string; risk: CapabilityRisk; cost: number }>;
+
+export type BuiltinCapabilityKind = 'metta' | 'rule' | 'skill';
+
 export interface CapabilitySchema {
   readonly input: Record<string, { type: string; required?: boolean; description?: string }>;
   readonly output: { type: string; description?: string };
@@ -143,91 +163,31 @@ export class CapabilityOntology {
     });
   }
 
-  /** Register a MeTTa skill as a capability. */
-  registerMettaSkill(
+  /** Register a builtin of `kind`, prefixed and digested by the kind's own domain. */
+  registerBuiltin(
+    kind: BuiltinCapabilityKind,
     id: string,
     name: string,
     schema: CapabilitySchema,
     execute: (args: Record<string, unknown>) => unknown | Promise<unknown>,
-    costEstimate = 500,
+    costEstimate?: number,
     prerequisites: string[] = [],
     provenanceOverrides?: Partial<Provenance>
   ): void {
+    const { label, risk, cost } = BUILTIN_KINDS[kind];
     this.register({
-      id: `metta:${id}`,
-      type: 'metta',
+      id: `${kind}:${id}`,
+      type: kind,
       name,
-      description: `MeTTa skill: ${name}`,
+      description: `${label}: ${name}`,
       schema,
-      costEstimate,
+      costEstimate: costEstimate ?? cost,
       prerequisites,
-      risk: 'medium',
+      risk,
       version: '1.0.0',
       provenance: {
         source: 'builtin',
-        digest: this.computeDigest(id, 'metta'),
-        proofRef: undefined,
-        derivationChain: provenanceOverrides?.derivationChain,
-        parentId: provenanceOverrides?.parentId,
-      },
-      execute,
-    });
-  }
-
-  /** Register a reasoning rule as a capability. */
-  registerRule(
-    id: string,
-    name: string,
-    schema: CapabilitySchema,
-    execute: (args: Record<string, unknown>) => unknown | Promise<unknown>,
-    costEstimate = 50,
-    prerequisites: string[] = [],
-    provenanceOverrides?: Partial<Provenance>
-  ): void {
-    this.register({
-      id: `rule:${id}`,
-      type: 'rule',
-      name,
-      description: `Reasoning rule: ${name}`,
-      schema,
-      costEstimate,
-      prerequisites,
-      risk: 'low',
-      version: '1.0.0',
-      provenance: {
-        source: 'builtin',
-        digest: this.computeDigest(id, 'rule'),
-        proofRef: undefined,
-        derivationChain: provenanceOverrides?.derivationChain,
-        parentId: provenanceOverrides?.parentId,
-      },
-      execute,
-    });
-  }
-
-  /** Register a cognitive skill as a capability. */
-  registerSkill(
-    id: string,
-    name: string,
-    schema: CapabilitySchema,
-    execute: (args: Record<string, unknown>) => unknown | Promise<unknown>,
-    costEstimate = 200,
-    prerequisites: string[] = [],
-    provenanceOverrides?: Partial<Provenance>
-  ): void {
-    this.register({
-      id: `skill:${id}`,
-      type: 'skill',
-      name,
-      description: `Cognitive skill: ${name}`,
-      schema,
-      costEstimate,
-      prerequisites,
-      risk: 'medium',
-      version: '1.0.0',
-      provenance: {
-        source: 'builtin',
-        digest: this.computeDigest(id, 'skill'),
+        digest: this.computeDigest(id, kind),
         proofRef: undefined,
         derivationChain: provenanceOverrides?.derivationChain,
         parentId: provenanceOverrides?.parentId,

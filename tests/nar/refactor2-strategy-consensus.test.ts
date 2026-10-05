@@ -225,7 +225,6 @@ describe('Bench 90 — controller wiring', () => {
       registry,
       nar.memory,
       new RuleProcessor(),
-      (nar as unknown as { metrics?: MetricsCollector }).metrics ?? new MetricsCollector(),
       undefined,
       structuredClone(DEFAULT_COGNITIVE_PARAMETERS),
       50

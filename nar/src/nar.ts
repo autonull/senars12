@@ -200,7 +200,6 @@ export class NAR extends BaseComponent {
       registry,
       this.memory,
       this.processor,
-      metrics,
       this.rlfp,
       cognitiveParams,
       config.adaptationInterval,
@@ -828,10 +827,6 @@ export class NAR extends BaseComponent {
 
   explain(conclusion: Task) {
     return this.traceAPI.explain(conclusion);
-  }
-
-  recordRuleExecution(ruleId: string, success: boolean, duration: number) {
-    this._metricsCollector.recordRuleExecution(ruleId, success, duration);
   }
 
   recordDerivations(count?: number) {

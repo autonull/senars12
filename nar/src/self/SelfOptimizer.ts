@@ -1,5 +1,4 @@
 import { trimCapped } from '@senars/util';
-import type { MetricsCollector } from '../metrics';
 import type { SelfHost } from '../self/host.js';
 
 export interface Optimization {
@@ -30,8 +29,6 @@ export interface Optimizations {
 const OPTIMIZATION_HISTORY_CAPACITY = 100;
 
 export class SelfOptimizer {
-  private readonly nar: SelfHost | null;
-  private readonly metrics: MetricsCollector | null;
   private optimizationHistory: Optimizations = {
     rulePriorities: [],
     strategyAdjustments: [],
@@ -39,10 +36,7 @@ export class SelfOptimizer {
     performanceImprovements: [],
   };
 
-  constructor(nar: SelfHost | null, metrics: MetricsCollector | null) {
-    this.nar = nar;
-    this.metrics = metrics;
-  }
+  constructor(private readonly nar: SelfHost | null) {}
 
   identifyOptimizations(
     conceptCount: number,
@@ -103,14 +97,14 @@ export class SelfOptimizer {
   async applyPerformanceOptimizations(): Promise<void> {
     if (!this.nar) return;
 
-    const metrics = this.metrics?.getSummary();
+    const metrics = this.nar?.getMetrics().system;
     if (!metrics) return;
 
     const config = this.nar.getConfig();
     const memoryUsage = process.memoryUsage?.().heapUsed ?? 0;
     const conceptCount = this.nar.listConcepts().length;
 
-    if (metrics.system.derivationsPerSecond < 10 && config.maxDerivationsPerStep > 50) {
+    if (metrics.derivationsPerSecond < 10 && config.maxDerivationsPerStep > 50) {
       this.nar.setConfig({
         ...config,
         maxDerivationsPerStep: Math.max(50, config.maxDerivationsPerStep - 10),

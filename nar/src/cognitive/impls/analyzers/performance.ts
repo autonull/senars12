@@ -3,25 +3,19 @@
  */
 import { mean, rankBy, safeRatio } from '@senars/util';
 
-import type { MetricsCollector } from '../../../metrics';
+import type { ModelRuleStats } from '../../../lm';
 import type { SelfHost } from '../../../self/host.js';
 import type { PerformancePatterns } from '../../types.js';
 import { getMemory } from './constants.js';
 
-/** Mean per-rule duration, or 0 when the collector reports no rules. An
- *  unmeasured mean is not a fast mean: every caller thresholds on it, so 0 is
- *  the honest answer for "nothing to average". */
-export const averageRuleDuration = (
-  metrics: Pick<MetricsCollector, 'getRuleStats'> | null | undefined
-): number => {
-  const ruleStats = metrics?.getRuleStats();
-  return Array.isArray(ruleStats) ? mean(ruleStats, (r) => r.averageDuration) : 0;
-};
+/** Mean per-rule duration, or 0 when no rule has run. An unmeasured mean is not
+ *  a fast mean: every caller thresholds on it, so 0 is the honest answer for
+ *  "nothing to average". */
+export const averageRuleDuration = (rules: readonly ModelRuleStats[] | null): number =>
+  mean(rules ?? [], (r) => r.stats.averageDuration);
 
-export const analyzePerformancePatterns = (
-  metrics: MetricsCollector | null
-): PerformancePatterns => {
-  const avgDuration = averageRuleDuration(metrics);
+export const analyzePerformancePatterns = (rules: readonly ModelRuleStats[] | null): PerformancePatterns => {
+  const avgDuration = averageRuleDuration(rules);
 
   let memoryUsage = 0;
   try {
@@ -38,12 +32,11 @@ export const analyzePerformancePatterns = (
   };
 };
 
-export const identifySuccessfulStrategies = (metrics: MetricsCollector | null): string[] => {
-  const ruleStats = metrics?.getRuleStats();
-  if (!ruleStats?.length) return [];
+export const identifySuccessfulStrategies = (rules: readonly ModelRuleStats[] | null): string[] => {
+  if (!rules?.length) return [];
 
-  return rankBy(ruleStats, (r) => r.successRate, {
-    where: (r) => r.successfulCalls > 0,
+  return rankBy(rules, (r) => r.stats.successRate, {
+    where: (r) => r.stats.successfulCalls > 0,
     limit: 5,
   }).map((r) => r.id);
 };

@@ -9,14 +9,14 @@
 
 import { trace } from '@opentelemetry/api';
 import {
+  CallTallySeries,
   createLMStats,
   incrementCount,
   type LMExecutionStats,
   type LMTask,
   recordLMCall,
   stopwatch,
-} from '@senars/util';
-import type { LMProviderName, LMSettings } from '../env-config.js';
+} from '@senars/util';import type { LMProviderName, LMSettings } from '../env-config.js';
 import type { GrammarName } from '../grammars/index.js';
 import { loadGrammar } from '../grammars/index.js';
 import type { ProviderRuntime } from '../provider-runtime.js';
@@ -25,6 +25,9 @@ import { getLmProvider, getModelChain } from '../providers.js';
 import { ResponseCache } from './cache.js';
 import { isTransportError, LMUnavailableError, withHint, withRetry } from './errors.js';
 import { type ProviderSpend, SpendLedger } from './spend.js';
+
+/** How many models keep a reliability signal; a peer cannot list its way past it. */
+const MAX_TRACKED_MODELS = 256;
 
 const NAMED_GRAMMARS: ReadonlySet<string> = new Set<string>(['narsese-term', 'single-word']);
 
@@ -82,8 +85,19 @@ export class CallAccounting {
   readonly #cache = new ResponseCache();
   readonly #ledger = new SpendLedger();
   readonly #stats: LMExecutionStats = createLMStats();
-  /** Per-model-id stats feeding stats-aware chain reordering. */
-  readonly perModel: Record<string, LMExecutionStats> = {};
+  /**
+   * Per-model-id stats feeding stats-aware chain reordering.
+   *
+   * Bounded because the key set is not ours: a model id arrives from a remote
+   * endpoint's advertised catalogue or an alias table, so an unbounded map grew
+   * with whatever the peer was willing to list. Eviction costs only the oldest
+   * model's reliability signal, which routing then reads as "no history" — the
+   * answer it already gave an unmeasured model.
+   */
+  readonly perModel = new CallTallySeries<string, LMExecutionStats>({
+    maxSize: MAX_TRACKED_MODELS,
+    create: createLMStats,
+  });
   /** Consecutive transport failures per resolved model id → demotion. */
   readonly #failures = new Map<string, number>();
 
@@ -195,8 +209,7 @@ export class CallAccounting {
     this.runtime.recordProviderCall(gate.provider ?? getLmProvider(), success, gate.settings);
     const id = this.runtime.lastDecision?.modelId;
     if (!id) return;
-    if (!this.perModel[id]) this.perModel[id] = createLMStats();
-    recordLMCall(this.perModel[id], success, durationMs, tokens);
+    recordLMCall(this.perModel.getOrInsert(id), success, durationMs, tokens);
   }
 
   #clearFailures(): void {

@@ -11,7 +11,7 @@
  * are handled here rather than re-implemented per tool.
  */
 
-import { collectUpTo, errMsg, splitLines, withDeadline } from '@senars/util';
+import { boundedFetch, collectUpTo, errMsg, readBodyBounded, splitLines } from '@senars/util';
 import { envFirst } from '@senars/util/config';
 
 const FETCH_TIMEOUT_MS = 15_000;
@@ -19,6 +19,12 @@ const FETCH_TIMEOUT_MS = 15_000;
 const MAX_BODY_BYTES = 512 * 1024;
 /** Cap on the text handed back from a fetched page. */
 const MAX_FETCH_CHARS = MAX_BODY_BYTES / 2;
+
+/** This module's request policy over the shared bounded-request primitive. */
+const fetchBounded = (url: string | URL, init?: RequestInit): Promise<Response> =>
+  boundedFetch(url, init, { timeoutMs: FETCH_TIMEOUT_MS });
+
+const readBody = (res: Response): Promise<string> => readBodyBounded(res, MAX_BODY_BYTES);
 
 export interface WebSearchResult {
   title: string;
@@ -33,47 +39,6 @@ export interface SearchProvider {
   configured: () => boolean;
   search: (query: string, maxResults: number) => Promise<WebSearchResult[]>;
 }
-
-/**
- * One bounded HTTP request. The deadline both aborts the request and stops the
- * caller waiting, and its timer is released on every exit path — which a bare
- * `AbortSignal.timeout` in a spread could not be, so each provider call left one
- * timer armed until the process exited.
- */
-const boundedFetch = (
-  url: string | URL,
-  init: RequestInit,
-  timeoutMs = FETCH_TIMEOUT_MS
-): Promise<Response> => withDeadline((signal) => fetch(url, { ...init, signal }), timeoutMs);
-
-/**
- * Buffered response text, truncated at {@link MAX_BODY_BYTES}. The cap applies
- * to the no-streaming path too, so it cannot be bypassed by a runtime that
- * does not expose a body reader.
- */
-const readBody = async (res: Response): Promise<string> => {
-  const reader = res.body?.getReader();
-  if (!reader) {
-    const text = await res.text();
-    return Buffer.byteLength(text, 'utf8') > MAX_BODY_BYTES ? text.slice(0, MAX_FETCH_CHARS) : text;
-  }
-  const decoder = new TextDecoder();
-  let text = '';
-  let bytes = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    const chunk = value as Uint8Array;
-    bytes += chunk.byteLength;
-    text += decoder.decode(chunk, { stream: true });
-    if (bytes > MAX_BODY_BYTES) {
-      void reader.cancel();
-      text += '\n[truncated]';
-      break;
-    }
-  }
-  return text + decoder.decode();
-};
 
 const decodeEntities = (s: string): string =>
   s
@@ -101,7 +66,7 @@ export const tavilySearch = async (
   apiKey: string,
   maxResults = 5
 ): Promise<WebSearchResult[]> => {
-  const res = await boundedFetch('https://api.tavily.com/search', {
+  const res = await fetchBounded('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({ query, max_results: maxResults, search_depth: 'basic' }),
@@ -123,7 +88,7 @@ export const braveSearch = async (
   const url = new URL('https://api.search.brave.com/res/v1/web/search');
   url.searchParams.set('q', query);
   url.searchParams.set('count', String(maxResults));
-  const res = await boundedFetch(url.toString(), {
+  const res = await fetchBounded(url.toString(), {
     headers: { accept: 'application/json', 'x-subscription-token': apiKey },
   });
   if (!res.ok) throw new Error(`brave ${res.status}`);
@@ -144,7 +109,7 @@ export const duckDuckGoSearch = async (
   query: string,
   maxResults = 5
 ): Promise<WebSearchResult[]> => {
-  const res = await boundedFetch(
+  const res = await fetchBounded(
     `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`,
     { headers: { 'user-agent': 'Mozilla/5.0 (SeNARS web-fetch; +https://github.com/senars)' } }
   );
@@ -232,7 +197,7 @@ export const webFetch = async (
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error(`web-fetch refuses non-http protocol: ${parsed.protocol}`);
   }
-  const res = await boundedFetch(parsed, {
+  const res = await fetchBounded(parsed, {
     headers: { accept: 'text/html,text/plain,application/json;q=0.9,*/*;q=0.5' },
     redirect: 'follow',
   });

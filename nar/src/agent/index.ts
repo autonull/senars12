@@ -17,6 +17,7 @@ import {
   errMsg,
   makeId,
   parseJsonOr,
+  serializeTruth,
   silentLogger,
 } from '@senars/util';
 import { NAREngine } from '../engine/NAREngine.js';
@@ -435,7 +436,7 @@ const answerNarsese = async (
   await narEngine.nar.run(5, undefined, correlationId);
   const answer = await narEngine.nar.ask(text);
   const narsTruth = answer?.answer
-    ? `NARS: ${answer.answer} ${answer.truth ? `f=${answer.truth.f.toFixed(2)};c=${answer.truth.c.toFixed(2)}` : ''}`
+    ? `NARS: ${answer.answer} ${answer.truth ? serializeTruth(answer.truth, 2) : ''}`
     : 'No answer yet';
   const judgment = await judgeOnManifold(narEngine, text);
   return `${narsTruth}${judgment ? `\nManifold: ${judgment}` : ''}`;

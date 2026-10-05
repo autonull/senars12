@@ -56,9 +56,10 @@ export const TaskPunctuationSchema = z.enum(TASK_PUNCTUATIONS);
 /**
  * The order a string observation is re-parsed in when it arrived with no sentence mark:
  * bare, then the three statement marks. `;` is absent, so an unmarked observation is
- * never read as a command — the caller writes the mark it means. Both readers of this
- * order (`KernelPerceptionGate`, `parseNarseseTask`) named it rather than reading it
- * from here, which is how the two lists came to be restatements of each other.
+ * never read as a command — the caller writes the mark it means. The term layer's
+ * `parseTaskTolerant` is its one reader: the perception gate admits what it parses and the
+ * NL router asks the same question before claiming an utterance is Narsese, and both
+ * answers came from this list rather than from a restatement of it.
  */
 export const TOLERANT_PUNCTUATIONS = ['', '.', '?', '!'] as const satisfies readonly (
   | ''

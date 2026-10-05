@@ -325,7 +325,7 @@ describe('E3 — CapabilityOntology provenance and registration', () => {
 
   it('stamps every entry with provenance', () => {
     const ontology = createCapabilityOntology();
-    ontology.registerMettaSkill('s1', 'skill', schema, () => 1);
+    ontology.registerBuiltin('metta', 's1', 'skill', schema, () => 1);
 
     const entry = ontology.get('metta:s1');
     expect(entry?.provenance.source).toBe('builtin');
@@ -336,8 +336,8 @@ describe('E3 — CapabilityOntology provenance and registration', () => {
 
   it('gives distinct capabilities distinct digests', () => {
     const ontology = createCapabilityOntology();
-    ontology.registerMettaSkill('a', 'a', schema, () => 1);
-    ontology.registerMettaSkill('b', 'b', schema, () => 1);
+    ontology.registerBuiltin('metta', 'a', 'a', schema, () => 1);
+    ontology.registerBuiltin('metta', 'b', 'b', schema, () => 1);
     expect(ontology.get('metta:a')?.provenance.digest).not.toBe(
       ontology.get('metta:b')?.provenance.digest
     );
@@ -345,22 +345,22 @@ describe('E3 — CapabilityOntology provenance and registration', () => {
 
   it('refuses a duplicate capability id', () => {
     const ontology = createCapabilityOntology();
-    ontology.registerRule('r1', 'rule', schema, () => 1);
-    expect(() => ontology.registerRule('r1', 'rule', schema, () => 1)).toThrow(
+    ontology.registerBuiltin('rule', 'r1', 'rule', schema, () => 1);
+    expect(() => ontology.registerBuiltin('rule', 'r1', 'rule', schema, () => 1)).toThrow(
       /already registered/
     );
   });
 
   it('refuses a capability whose prerequisite is missing', () => {
     const ontology = createCapabilityOntology();
-    expect(() => ontology.registerRule('r2', 'rule', schema, () => 1, 50, ['nope'])).toThrow(
+    expect(() => ontology.registerBuiltin('rule', 'r2', 'rule', schema, () => 1, 50, ['nope'])).toThrow(
       /Prerequisite/
     );
   });
 
   it('projects registered capabilities into the CapabilitySpace', () => {
     const ontology = createCapabilityOntology();
-    ontology.registerMettaSkill('s1', 'skill', schema, () => 1);
+    ontology.registerBuiltin('metta', 's1', 'skill', schema, () => 1);
     expect(ontology.getSpace().names()).toContain('metta:s1');
   });
 });

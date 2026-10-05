@@ -208,6 +208,7 @@ export {
   TermTruthSchema,
   toConfidence,
   toFrequency,
+  toTermTruth,
   WEIGHT_AT_CERTAINTY,
   weakenConfidence,
   weightToConfidence,
@@ -223,11 +224,13 @@ export { assertDefined, invariant } from './utils/assert.js';
 export type { Deadline, Debounced } from './utils/async.js';
 export {
   boundedDeadline,
+  boundedFetch,
   deadline,
   debounce,
   monotonicNow,
   periodic,
   raceDeadline,
+  readBodyBounded,
   SerialQueue,
   sleep,
   stopwatch,

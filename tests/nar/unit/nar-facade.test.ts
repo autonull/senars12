@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'vitest';
 import { createTask, createTaskWeight, Memory, TermBuilder, Truth } from '../../../nar/src';
-import type { RuleStats } from '../../../nar/src/metrics';
 import { MetricsCollector } from '../../../nar/src/metrics';
 import { QueryAPI, ReasoningTrace } from '../../../nar/src/query';
 import type { Tool } from '../../../nar/src/tools';
@@ -131,25 +130,6 @@ describe('NAR Query and Metrics', () => {
 
       expect(summary).toBeDefined();
       expect(summary.system).toBeDefined();
-      expect(summary.rules).toBeDefined();
-    });
-
-    test('records rule execution', () => {
-      metrics.recordRuleExecution('test-rule', true, 10);
-
-      const stats = metrics.getRuleStats('test-rule') as RuleStats | null;
-      expect(stats).toBeDefined();
-      expect(stats!.totalCalls).toBe(1);
-      expect(stats!.successfulCalls).toBe(1);
-      expect(stats!.averageDuration).toBe(10);
-      expect(stats!.successRate).toBe(1);
-    });
-
-    test('records failed execution', () => {
-      metrics.recordRuleExecution('fail-rule', false, 5);
-
-      const stats = metrics.getRuleStats('fail-rule') as RuleStats | null;
-      expect(stats!.failedCalls).toBe(1);
     });
 
     test('increments derivation count', () => {

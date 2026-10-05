@@ -1,3 +1,4 @@
+import { CallTallySeries, createCallTally } from '@senars/util';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Memory, TermBuilder, Truth } from '../../nar/src';
 import { createTimestamp } from '../../nar/src/types';
@@ -130,14 +131,10 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     const firstSelection = ruleGraph.select(rules, context);
     expect(firstSelection.length).toBeGreaterThan(0);
 
-    // Record success for rule1 multiple times
-    for (let i = 0; i < 5; i++) {
-      ruleGraph.recordPerformance('rule-1', true, 10);
-    }
-    // Record failure for rule2
-    for (let i = 0; i < 3; i++) {
-      ruleGraph.recordPerformance('rule-2', false, 50);
-    }
+    const performance = new CallTallySeries<string>({ maxSize: 8, create: createCallTally });
+    ruleGraph.usePerformance(performance);
+    for (let i = 0; i < 5; i++) performance.record('rule-1', true, 10);
+    for (let i = 0; i < 3; i++) performance.record('rule-2', false, 50);
 
     // Second selection - rule1 should be preferred due to higher success rate
     const secondSelection = ruleGraph.select(rules, context);

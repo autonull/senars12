@@ -28,7 +28,6 @@ export const createTestController = (
     createDefaultRegistry(),
     memory,
     processor,
-    new MetricsCollector(),
     rlfp,
     params
   );

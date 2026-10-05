@@ -105,7 +105,6 @@ describe('Bench 101 — resolution, memoization, telemetry', () => {
   it('a singleton keeps the state it accumulated across resolutions', () => {
     const r = registry();
     const graph = r.get<RuleGraph>('lm-rule', 'lm-graph');
-    graph.recordPerformance('rule-a', true, 1);
     graph.learnFromDerivation(atom('cat'), atom('animal'));
     const again = r.get<RuleGraph>('lm-rule', 'lm-graph');
     expect(again).toBe(graph);

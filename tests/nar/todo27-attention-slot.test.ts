@@ -31,7 +31,6 @@ const controller = (registry: CognitiveRegistry, memory: Memory) =>
     registry,
     memory,
     new RuleProcessor(),
-    new MetricsCollector(),
     undefined,
     structuredClone(DEFAULT_COGNITIVE_PARAMETERS)
   );

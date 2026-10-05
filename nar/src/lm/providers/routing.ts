@@ -80,11 +80,24 @@ export interface CandidateScore {
   breakdown: { quality: number; cost: number; latency: number; successRate: number };
 }
 
+/**
+ * Per-model reliability, as a lookup rather than a whole record.
+ *
+ * The only thing routing reads is one model's success rate, so the port is the
+ * question it asks. It is deliberately not `Record<string, LMExecutionStats>`:
+ * that shape says the caller holds every model's stats forever, which is what
+ * made the accounting side's per-model map an unbounded accumulator — one whose
+ * key set comes from a remote endpoint's advertised catalogue.
+ */
+export interface ModelReliability {
+  get(modelId: string): LMExecutionStats | undefined;
+}
+
 /** Ranks candidate model ids against an objective; hard constraints (offlineOnly, maxLatencyMs) filter first. */
 export function pickModel(
   candidates: readonly string[],
   objective: RoutingObjective = {},
-  stats?: Record<string, LMExecutionStats>
+  stats?: ModelReliability
 ): CandidateScore[] {
   const w = OBJECTIVE_WEIGHTS[objective.quality ?? 'balanced'];
   return candidates
@@ -93,7 +106,7 @@ export function pickModel(
       const q = qualityTier(cap);
       const cost = cap ? clamp01(cap.costPerMTok / 3) : 0;
       const lat = cap ? LATENCY_PENALTY[cap.latencyClass] : 0.5;
-      const successRate = stats?.[id]?.successRate ?? 1;
+      const successRate = stats?.get(id)?.successRate ?? 1;
       const qualifies =
         !(objective.offlineOnly && !id.startsWith('builtin:')) &&
         !(
@@ -116,7 +129,7 @@ export function pickModel(
 export const pickBestModel = (
   candidates: readonly string[],
   objective?: RoutingObjective,
-  stats?: Record<string, LMExecutionStats>
+  stats?: ModelReliability
 ): string | undefined => pickModel(candidates, objective, stats).find((c) => c.qualifies)?.id;
 
 // ---- R7: self-upgrading offline ladder ----

@@ -1,4 +1,4 @@
-import type { LMExecutionStats, LMTask } from '@senars/util';
+import type { LMTask } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import type { LMSettings } from '../env-config.js';
 import { cloudApiKey } from '../env-config.js';
@@ -9,7 +9,7 @@ import {
 } from '../provider-runtime.js';
 import { latencyClassOf } from './capabilities.js';
 import type { SeNARSModelId, SeNARSRegistry } from './model-factory.js';
-import { pickModel } from './routing.js';
+import { type ModelReliability, pickModel } from './routing.js';
 import { getLMSettings, getLmProvider } from './settings.js';
 
 /**
@@ -113,7 +113,7 @@ export function getModelForTask(
   registry: SeNARSRegistry,
   task: LMTask,
   settings?: LMSettings,
-  stats?: Record<string, LMExecutionStats>,
+  stats?: ModelReliability,
   /** H2/X16: explicit per-call model id (e.g. 'cloud:quality') — bypasses the chain. */
   modelOverride?: string,
   rt: ProviderRuntime = getProviderRuntime()

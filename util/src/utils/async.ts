@@ -265,6 +265,67 @@ export const debounce = <Args extends unknown[]>(
  * Enqueue never rejects and never throws — the returned promise is `work`'s own,
  * so one caller's failure is that caller's failure and the queue keeps draining.
  */
+/**
+ * An outbound HTTP request bounded in both time and bytes.
+ *
+ * The deadline both aborts the request and stops the caller waiting, and its
+ * timer is released on every exit path — which a bare `AbortSignal.timeout` in a
+ * spread could not be, so each call site otherwise left one timer armed until
+ * the process exited.
+ *
+ * Three callers had each wrapped `fetch` in {@link withDeadline} and nothing
+ * else: the web-search providers, the LM endpoint probes and the remote
+ * judgment manifold. What they disagreed about was not the request but the
+ * policy around it — the deadline, and whether failure is a `null` or a throw —
+ * so the policy is a parameter here and the deadline is one implementation.
+ * `timeoutMs` is required because a request with no deadline is the bug this
+ * exists to prevent; `fetchImpl` exists because a client under test must not
+ * reach the network.
+ */
+export async function boundedFetch(
+  url: string | URL,
+  init?: RequestInit,
+  { timeoutMs, fetchImpl = fetch }: { timeoutMs: number; fetchImpl?: typeof fetch } = {
+    timeoutMs: 0,
+  }
+): Promise<Response> {
+  return withDeadline((signal) => fetchImpl(url, { ...init, signal }), timeoutMs);
+}
+
+/**
+ * A response body read as text, truncated at `maxBytes`. Read it with this
+ * rather than `res.text()` wherever the peer is not trusted to be small: a
+ * search result or a model reply is an untrusted input, and an unbounded body is
+ * a memory cliff on the one path the caller believed was bounded.
+ *
+ * The cap applies to the no-streaming path too, so it cannot be bypassed by a
+ * runtime that does not expose a body reader. A runtime that decodes the whole
+ * body first is bounded by characters instead, at half the byte budget, which is
+ * the widest a UTF-8 character can be — a truncation that reports fewer bytes
+ * than it holds, never more.
+ */
+export async function readBodyBounded(res: Response, maxBytes: number): Promise<string> {
+  const reader = res.body?.getReader();
+  if (!reader) {
+    const text = await res.text();
+    return Buffer.byteLength(text, 'utf8') > maxBytes ? text.slice(0, maxBytes / 2) : text;
+  }
+  const decoder = new TextDecoder();
+  let text = '';
+  let bytes = 0;
+  for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
+    const value = chunk.value as Uint8Array;
+    bytes += value.byteLength;
+    text += decoder.decode(value, { stream: true });
+    if (bytes > maxBytes) {
+      void reader.cancel();
+      text += '\n[truncated]';
+      break;
+    }
+  }
+  return text + decoder.decode();
+}
+
 export class SerialQueue {
   #tail: Promise<unknown> = Promise.resolve();
 

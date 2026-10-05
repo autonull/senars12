@@ -14,9 +14,8 @@
  * ingress and the router agree on what parses.
  */
 
-import { TOLERANT_PUNCTUATIONS } from '@senars/core/schemas';
 import { isNarsese } from '@senars/util';
-import { termParser } from '../terms';
+import { parseTaskTolerant } from '../terms';
 
 export type NarseseIntent =
   | { readonly kind: 'question'; readonly text: string }
@@ -26,20 +25,14 @@ export type NarseseIntent =
 /** `"statement. :|:"` / `"statement. :!:"` carry a tense marker the term parser rejects. */
 const TENSE_MARKER = /\.\s*:(?:!|\|):\s*$/;
 
-/** Parse `text` under any punctuations the perception gate tries, or `null` if none parses. */
-export const parseNarseseTask = (text: string): ReturnType<typeof termParser.parseTask> => {
-  for (const punctuation of TOLERANT_PUNCTUATIONS) {
-    const parsed = termParser.parseTask(`${text}${punctuation}`);
-    if (parsed) return parsed;
-  }
-  return null;
-};
+/** @deprecated Use `parseTaskTolerant` from `@senars/nar/terms`. */
+export const parseNarseseTask = parseTaskTolerant;
 
 /** The intent of `input`, or `null` when it is prose — or unparseable Narsese — and belongs to the LM path. */
 export const dispatchNarseseIntent = (input: string): NarseseIntent | null => {
   if (!isNarsese(input)) return null;
   const text = input.trim().replace(TENSE_MARKER, '.').trim();
-  if (!parseNarseseTask(text)) return null;
+  if (!parseTaskTolerant(text)) return null;
   if (text.endsWith('?') || text.endsWith('？')) return { kind: 'question', text };
   if (text.endsWith('!')) return { kind: 'goal', text };
   return { kind: 'belief', text };

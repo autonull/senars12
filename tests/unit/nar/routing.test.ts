@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import {
   demoteModel,
   getModelChain,
+  type ModelReliability,
   pickBestModel,
   pickModel,
   resetDemotions,
@@ -45,9 +46,7 @@ describe('pickModel (objective-driven candidate scoring)', () => {
   });
 
   it('down-ranks candidates with failed call stats', () => {
-    const stats = {
-      'cloud:quality': { successRate: 0 } as never,
-    };
+    const stats: ModelReliability = { get: (id: string) => (id === 'cloud:quality' ? { successRate: 0 } as never : undefined) };
     const [top] = pickModel(['cloud:quality', 'llamacpp:quality'], { quality: 'max' }, stats);
     if (!top) throw new Error('expected ranked candidates');
     expect(top.id).toBe('llamacpp:quality');
