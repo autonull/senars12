@@ -12,6 +12,7 @@
  */
 
 import { createCapturePhase, DEFAULT_MACRO_PIPELINE } from '@senars/core/agent/phases';
+import { createBudget } from '@senars/core/budget';
 import {
   AuthManager,
   bindAgentToConnection,
@@ -278,13 +279,12 @@ async function main(): Promise<void> {
                   queries: [
                     evaluateQuery('groundedness', 'Evaluate groundedness of the dialogue turn'),
                   ],
-                  budget: {
+                  budget: createBudget({
                     maxCycles: 10,
                     maxDepth: 2,
                     maxMemoryOps: 100,
                     maxLMCalls: 0,
-                    consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
-                  },
+                  }),
                 })
               : null,
             understanding?.understandCandidates(input.utterance).catch(() => null) ?? null,

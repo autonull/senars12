@@ -16,33 +16,33 @@ export interface TermMapEntry<V> {
   value: V;
 }
 
-export class TermMap<V> extends TermCollection<{ key: Term; value: V }> {
+export class TermMap<V> extends TermCollection<TermMapEntry<V>> {
+  protected override keyOf(item: TermMapEntry<V>): string {
+    return this.keyOfTerm(item.key);
+  }
+
   get(term: Term): V | undefined {
-    const idx = this.getIndex(term);
-    return idx >= 0 ? this.storage[idx]?.value : undefined;
+    return this.slots.get(this.keyOfTerm(term))?.value;
   }
 
   set(term: Term, value: V): this {
-    const existingIndex = this.getIndex(term);
-    if (existingIndex >= 0) {
-      this.storage[existingIndex]!.value = value;
-      return this;
-    }
-    this.storage.push({ key: term, value });
-    this.setRef(term, this.storage.length - 1);
+    const key = this.keyOfTerm(term);
+    // `Map.set` on a present key keeps its position, so re-setting a value does
+    // not reorder the collection the way deleting and re-adding it would.
+    this.slots.set(key, { key: term, value });
     return this;
   }
 
   has(term: Term): boolean {
-    return this.getIndex(term) >= 0;
+    return this.slots.has(this.keyOfTerm(term));
   }
 
   delete(term: Term): boolean {
-    return this.deleteItem(term);
+    return this.slots.delete(this.keyOfTerm(term));
   }
 
   getEntries(): TermMapEntry<V>[] {
-    return this.storage;
+    return [...this.slots.values()];
   }
 
   items(): IterableIterator<[Term, V]> {
@@ -62,7 +62,7 @@ export class TermMap<V> extends TermCollection<{ key: Term; value: V }> {
   }
 
   forEach(callbackfn: (value: V, key: Term, map: TermMap<V>) => void): void {
-    for (const entry of this.storage) {
+    for (const entry of this.slots.values()) {
       callbackfn(entry.value, entry.key, this);
     }
   }

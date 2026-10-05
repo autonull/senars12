@@ -305,7 +305,7 @@ export { formatIssues, type SchemaIssue } from './utils/diagnostics.js';
 /** @public The registry every component records its teardown in. */
 export type { Teardown } from './utils/disposal.js';
 export { DisposalRegistry } from './utils/disposal.js';
-export { errMsg, toError } from './utils/error.js';
+export { degrade, errMsg, toError } from './utils/error.js';
 /** @public Percent, divider, and progress-bar formatting for reports and CLI output. */
 export {
   bar,

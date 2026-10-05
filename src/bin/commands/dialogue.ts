@@ -3,7 +3,7 @@
 import { OutcomeLinker } from '@senars/nar/config';
 import { episodeQualitySurface } from '@senars/nar/query';
 import { errMsg, finiteOr, makeId, takeLast, unique } from '@senars/util';
-import { cmd } from '../../cli/commands.js';
+import { attempted, cmd } from '../../cli/commands.js';
 import { tokenize } from './args.js';
 import { type BotRuntime, systemOneOf } from './context.js';
 
@@ -86,16 +86,14 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
     if (!kind || !REACTION_SET.has(kind)) return `Usage: ${REACTION_USAGE}`;
     const correction = kind === 'correct' ? rest.join(' ') : undefined;
     if (kind === 'correct' && !correction) return 'Usage: .react correct <correction text>';
-    try {
+    return attempted('react ', async () => {
       await rt.dialogue.bindReaction(turn.turnId, kind as never, correction);
       // Reactions are verification signals for the user channel: trust-not-truth.
       rt.wired.nar
         .getSourceReputation?.()
         ?.record('user', isCorrection(kind) ? 'contradicted' : 'confirmed');
       return `Reaction ${kind} bound to ${turn.turnId}${kind === 'correct' ? ' (embedded + labeled, text discarded)' : ''}`;
-    } catch (e) {
-      return `react failed: ${errMsg(e)}`;
-    }
+    });
   }),
   cmd('turns', 'Show captured dialogue turns: [session-id] [n]', async (args = '') => {
     const [sid, nRaw] = tokenize(args);

@@ -9,21 +9,21 @@ import { TermCollection } from './term-collection.js';
 import type { Term } from '../types.js';
 
 export class TermSet extends TermCollection<Term> {
+  protected override keyOf(item: Term): string {
+    return this.keyOfTerm(item);
+  }
+
   add(term: Term): this {
-    const idx = this.getIndex(term);
-    if (idx < 0) {
-      this.storage.push(term);
-      this.setRef(term, this.storage.length - 1);
-    }
+    this.slots.set(this.keyOfTerm(term), term);
     return this;
   }
 
   has(term: Term): boolean {
-    return this.getIndex(term) >= 0;
+    return this.slots.has(this.keyOfTerm(term));
   }
 
   delete(term: Term): boolean {
-    return this.deleteItem(term);
+    return this.slots.delete(this.keyOfTerm(term));
   }
 
   values(): IterableIterator<Term> {
@@ -39,12 +39,12 @@ export class TermSet extends TermCollection<Term> {
   }
 
   forEach(callbackfn: (value: Term, key: Term, set: TermSet) => void): void {
-    for (const term of this.storage) {
+    for (const term of this.slots.values()) {
       callbackfn(term, term, this);
     }
   }
 
   toArray(): Term[] {
-    return [...this.storage];
+    return [...this.slots.values()];
   }
 }

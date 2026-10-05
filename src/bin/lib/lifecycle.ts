@@ -18,10 +18,7 @@ import {
 } from '@senars/nar/lm';
 import { createEmbeddingGenerator } from '@senars/nar/memory/embedding';
 import { EpisodicMemory } from '@senars/nar/memory/episodic';
-import {
-  type PromotionResult,
-  consolidateEpisodes,
-} from '@senars/nar/memory/retrieval-verified';
+import { type PromotionResult, consolidateEpisodes } from '@senars/nar/memory/retrieval-verified';
 import { cachePath, createLogger, envStr, setupGracefulShutdown } from '@senars/util';
 import { type AppConfig, loadConfig } from '../../config/index.js';
 import { readEpisodicConfig } from './env-config.js';

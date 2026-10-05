@@ -2,7 +2,7 @@ import { asBeliefTruth, type BeliefTruth, clamp01, makeId, maxScore } from '@sen
 import { type Bag, type BagOptions, createBag } from '../bag/index.js';
 import type { ResolvedBagSlot } from '../bag/registration.js';
 import type { Term, Truth } from '../terms';
-import { calculateSimilarity, Stamp, TermMap, TermSet, termKey, termsEqual } from '../terms';
+import { calculateSimilarity, Stamp, TermMap, TermSet, termKey } from '../terms';
 import { type IndependenceStatus, Truth as TruthOps } from '../terms/impls/Truth.js';
 import type { Budget, TaskType } from '../types';
 import { jaccard } from '../utils/similarity.js';
@@ -274,8 +274,16 @@ export class Concept {
     return added;
   }
 
+  /**
+   * The belief about `term`, if this concept holds one.
+   *
+   * Keyed rather than walked: `termKey` is memoised per interned term, so this
+   * is a string compare per belief instead of a recursive descent — and it runs
+   * on every belief admission, for every input and every derived task.
+   */
   private findMatchingBelief(term: Term): TaskData | undefined {
-    return this.beliefBag.find((item) => termsEqual(item.term, term));
+    const key = termKey(term);
+    return this.beliefBag.find((item) => termKey(item.term) === key);
   }
 
   private calculateTaskOverlap(other: Concept): number {

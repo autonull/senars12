@@ -1,8 +1,8 @@
 /** Host-surface commands that shell out or own a long-lived handle (`.webui`, `.arcade`, `.multiagent`). */
 
 import { execFile } from 'node:child_process';
-import { errMsg, finiteOr } from '@senars/util';
-import { cmd } from '../../cli/commands.js';
+import { finiteOr } from '@senars/util';
+import { attempted, cmd } from '../../cli/commands.js';
 import { tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
 
@@ -34,7 +34,8 @@ export const runtimeCommandsFor = (rt: BotRuntime) => [
       { timeout: ARCADE_TIMEOUT_MS, maxBuffer: ARCADE_MAX_BUFFER },
       (_e, stdout, stderr) =>
         resolve(
-          ((stdout || '') + (stderr || '')).slice(-ARCADE_OUTPUT_TAIL) || 'arcade produced no output'
+          ((stdout || '') + (stderr || '')).slice(-ARCADE_OUTPUT_TAIL) ||
+            'arcade produced no output'
         )
     );
     return promise;
@@ -44,7 +45,7 @@ export const runtimeCommandsFor = (rt: BotRuntime) => [
     if (verb === 'on' || verb === 'off') {
       return 'MeTTa is a builtin ActionGate tool (always available); NAR+MeTTa are unified by design — nothing to toggle';
     }
-    try {
+    return attempted('multiagent status unavailable', async () => {
       const tools = (
         rt.wired.agent as unknown as { tools?: { has?(n: string): boolean; list?(): string[] } }
       ).tools;
@@ -54,8 +55,6 @@ export const runtimeCommandsFor = (rt: BotRuntime) => [
         ? `tools: ${names.slice(0, 20).join(', ')}`
         : 'chat: Narsese routes to NAR, NL routes to LM';
       return `metta tool: ${present ? 'available' : 'unknown'}\n${suffix}`;
-    } catch (e) {
-      return `multiagent status unavailable: ${errMsg(e)}`;
-    }
+    });
   }),
 ];

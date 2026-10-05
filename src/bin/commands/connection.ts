@@ -1,7 +1,7 @@
 /** Connection lifecycle (`.connect`/`.disconnect`/`.connections`) and per-connection auth secrets. */
 
-import { errMsg, finiteOr } from '@senars/util';
-import { cmd } from '../../cli/commands.js';
+import { finiteOr } from '@senars/util';
+import { attempted, cmd } from '../../cli/commands.js';
 import { flagsOf, tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
 
@@ -24,7 +24,7 @@ export const connectionCommandsFor = (rt: BotRuntime) => [
   cmd('connect', 'Start a connection: irc|ws|http|mcp', async (args = '') => {
     const { positional, str, has } = flagsOf(args);
     const [kind, ...rest] = positional;
-    try {
+    return attempted('connect ', async () => {
       if (kind?.toLowerCase() === 'irc') {
         const [server = 'irc.libera.chat', port = '6697', nick = 'senars-bot', chans = '#senars'] =
           rest;
@@ -87,15 +87,13 @@ export const connectionCommandsFor = (rt: BotRuntime) => [
         });
       }
       return 'Usage: .connect irc|ws|http|mcp [...]';
-    } catch (e) {
-      return `connect failed: ${errMsg(e)}`;
-    }
+    });
   }),
   cmd('disconnect', 'Disconnect and remove a connection', async (args = '') => {
     const [raw] = tokenize(args);
     if (!raw) return 'Usage: .disconnect <connection-id|irc|ws|http|mcp>';
     const key = raw.toLowerCase();
-    try {
+    return attempted('disconnect ', async () => {
       const id =
         rt.cm.getConnection(raw)?.id ??
         [...rt.cm.getConnections()].find(
@@ -104,9 +102,7 @@ export const connectionCommandsFor = (rt: BotRuntime) => [
       if (!id) return `Unknown connection: ${key}`;
       await rt.cm.removeConnection(id);
       return `Disconnected ${id}`;
-    } catch (e) {
-      return `disconnect failed: ${errMsg(e)}`;
-    }
+    });
   }),
   cmd('connections', 'List connections or show one in detail', (args = '') => {
     const [id] = tokenize(args);

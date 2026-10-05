@@ -1,8 +1,8 @@
 /** Health, telemetry and micro-benchmark commands (`.doctor`, `.health`, `.spend`, `.benchmarks`, …). */
 
 import { resolveLMSettings } from '@senars/nar/lm';
-import { clamp, errMsg, finiteOr, perSecond, stopwatch } from '@senars/util';
-import { cmd } from '../../cli/commands.js';
+import { clamp, finiteOr, perSecond, stopwatch } from '@senars/util';
+import { attempted, cmd } from '../../cli/commands.js';
 import { configValidity, credentialSummary, embeddedProbe } from '../lib/doctor-checks.js';
 import { flagsOf } from './args.js';
 import type { BotRuntime } from './context.js';
@@ -30,13 +30,11 @@ export const diagnosticCommandsFor = (rt: BotRuntime) => [
     return `lm=${s.provider} systemOne=${rt.wired.nar.isSystemOneEnabled?.() ? 'on' : 'off'} manifold=${rt.wired.nar.getSystemOneManifold?.() ? 'up' : '—'} connections=${rt.cm.getConnections().size}`;
   }),
   cmd('routing-log', 'Routing telemetry status', async () => {
-    try {
+    return attempted('routing-log unavailable', async () => {
       const { getRoutingLogStatus } = await import('@senars/nar/lm/providers.js');
       const st = getRoutingLogStatus();
       return `enabled=${st.enabled} buffered=${st.bufferSize} log=${st.logPath}`;
-    } catch (e) {
-      return `routing-log unavailable: ${errMsg(e)}`;
-    }
+    });
   }),
   cmd('spend', 'LM spend counters', () => {
     const spend = rt.wired.nar.getLMClient?.()?.getSpend?.() as
@@ -49,12 +47,10 @@ export const diagnosticCommandsFor = (rt: BotRuntime) => [
       : 'No LM spend recorded';
   }),
   cmd('gates', 'Kernel gate states', () => {
-    try {
+    return attempted('gates unavailable', async () => {
       const gates = (rt.wired.nar as unknown as { gates?: object }).gates;
       return Object.keys(gates ?? {}).join(', ') || 'gates: n/a';
-    } catch (e) {
-      return `gates unavailable: ${errMsg(e)}`;
-    }
+    });
   }),
   cmd('benchmarks', 'Micro-benchmark: time NAR inference cycles', async (args = '') => {
     const cycles = clamp(finiteOr(args.trim(), 20), 1, 200);

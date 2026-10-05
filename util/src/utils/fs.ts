@@ -13,6 +13,17 @@ export interface JsonlLoadResult<T> {
   invalid: number;
 }
 
+/**
+ * Accepted rows a reader stops at. `Infinity` reads the file whole.
+ *
+ * A cap has to reach the *walk*, not the caller. Every reader here collects into
+ * an array first and the caller slices afterwards, so `readJsonl(path, parse)`
+ * with a caller who wants five rows parsed and retained ten thousand — and the
+ * log files are capped at ten thousand rows each. Applied inside the walk the
+ * same query parses five.
+ */
+export const ALL_ROWS = Number.POSITIVE_INFINITY;
+
 /** `mkdir -p`, returning the directory. */
 export function ensureDirSync(dir: string): string {
   mkdirSync(dir, { recursive: true });
@@ -143,10 +154,7 @@ export async function writeJsonl(path: string, rows: readonly unknown[]): Promis
   await writeFile(path, jsonlPayload(rows), 'utf8');
 }
 
-export async function appendJsonlAsync(
-  path: string,
-  rows: readonly unknown[]
-): Promise<number> {
+export async function appendJsonlAsync(path: string, rows: readonly unknown[]): Promise<number> {
   return rows.length === 0 ? 0 : writeRowsAsync(path, jsonlPayload(rows), rows.length);
 }
 
@@ -163,13 +171,24 @@ const parseLine = <T>(
   }
 };
 
-/** The single line-walk behind every JSONL reader: blank lines are skipped, unparseable ones counted. */
+/**
+ * The single line-walk behind every JSONL reader: blank lines are skipped, unparseable ones counted.
+ *
+ * Lines are cut with `indexOf` rather than `split('\n')` so the walk allocates
+ * nothing beyond the row it is yielding — which is what lets {@link ALL_ROWS}'s
+ * cap, or a caller stopping early, cost what it read instead of what the file
+ * holds.
+ */
 function* walkJsonl<T>(
   content: string,
   parse: (value: unknown) => T | null
 ): Generator<T | null | typeof FAIL> {
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
+  for (let start = 0; start <= content.length; ) {
+    const end = content.indexOf('\n', start);
+    const trimmed = content.slice(start, end < 0 ? content.length : end).trim();
+    // `+ 1` past the length on the last segment, so an unterminated final line
+    // advances the cursor instead of re-cutting it forever.
+    start = end < 0 ? content.length + 1 : end + 1;
     if (trimmed) yield parseLine(trimmed, parse);
   }
 }
@@ -187,13 +206,15 @@ const readContent = async (path: string): Promise<string> => {
 /** The one accumulate step behind every JSONL reader: rows kept in order, the rest counted. */
 const collectJsonl = <T>(
   content: string,
-  parse: (value: unknown) => T | null
+  parse: (value: unknown) => T | null,
+  limit: number
 ): JsonlLoadResult<T> => {
   const rows: T[] = [];
   let invalid = 0;
   for (const row of walkJsonl(content, parse)) {
     if (row === null || row === FAIL) invalid++;
     else rows.push(row);
+    if (rows.length >= limit) break;
   }
   return { rows, invalid };
 };
@@ -204,10 +225,12 @@ const collectJsonl = <T>(
  */
 export function readJsonl<T>(
   path: string,
-  parse: (value: unknown) => T | null
+  parse: (value: unknown) => T | null,
+  limit: number = ALL_ROWS
 ): JsonlLoadResult<T> {
+  if (limit <= 0) return { rows: [], invalid: 0 };
   if (!existsSync(path)) return { rows: [], invalid: 0 };
-  return collectJsonl(readFileSync(path, 'utf8'), parse);
+  return collectJsonl(readFileSync(path, 'utf8'), parse, limit);
 }
 
 /**
@@ -221,19 +244,26 @@ export function readJsonl<T>(
  */
 export function readJsonlWith<T>(
   path: string,
-  schema: { safeParse: (value: unknown) => { success: true; data: T } | { success: false } }
+  schema: { safeParse: (value: unknown) => { success: true; data: T } | { success: false } },
+  limit: number = ALL_ROWS
 ): JsonlLoadResult<T> {
-  return readJsonl(path, (value) => {
-    const parsed = schema.safeParse(value);
-    return parsed.success ? parsed.data : null;
-  });
+  return readJsonl(
+    path,
+    (value) => {
+      const parsed = schema.safeParse(value);
+      return parsed.success ? parsed.data : null;
+    },
+    limit
+  );
 }
 
 export async function readJsonlAsync<T>(
   path: string,
-  parse: (value: unknown) => T | null
+  parse: (value: unknown) => T | null,
+  limit: number = ALL_ROWS
 ): Promise<JsonlLoadResult<T>> {
-  return collectJsonl(await readContent(path), parse);
+  if (limit <= 0) return { rows: [], invalid: 0 };
+  return collectJsonl(await readContent(path), parse, limit);
 }
 
 /** Stream a JSONL file row by row, yielding `undefined` for unreadable lines. */

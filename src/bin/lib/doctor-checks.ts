@@ -11,6 +11,7 @@
 import { probeEmbeddedLlama } from '@senars/nar/lm';
 import { envSet, errMsg } from '@senars/util';
 import { loadConfig } from '../../config/index.js';
+import { attempted } from '../../cli/commands.js';
 
 /** Every credential any provider may need. One list, so a key cannot be checked in
  *  one entry point and ignored in the other. */
@@ -39,12 +40,10 @@ export const credentialSummary = (): string =>
 /** The embedded llama probe as a status line; `n/a` when it is not the provider. */
 export const embeddedProbe = async (provider: string): Promise<string> => {
   if (provider !== 'llamacpp-embedded') return 'n/a';
-  try {
+  return attempted('probe', async () => {
     const probe = await probeEmbeddedLlama();
     return `${probe.available ? 'ok' : 'FAIL'}: ${probe.detail}`;
-  } catch (e) {
-    return `probe failed: ${errMsg(e)}`;
-  }
+  });
 };
 
 /** Whether the app config loads, as one boolean plus the reason when it does not. */

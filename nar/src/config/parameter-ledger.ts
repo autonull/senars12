@@ -74,7 +74,7 @@ export class ParameterLedger {
   }
 
   get size(): number {
-    return this.#ledger.records().length;
+    return this.#ledger.size;
   }
 
   record(entry: ParameterRecord): void {

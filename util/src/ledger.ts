@@ -8,9 +8,11 @@ import { existsSync, promises as fs, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
 import { BoundedMap } from './utils/bounded-map.js';
+import { collectUpTo } from './utils/collections.js';
 import { errMsg } from './utils/error.js';
 import { utcDate } from './utils/format.js';
 import {
+  ALL_ROWS,
   appendJsonlRow,
   ensureDir,
   ensureDirSync,
@@ -105,8 +107,14 @@ export interface LedgerConfig<T extends BaseLedgerEntry, I = T> {
    *
    * Opt-in because it costs an entry per append; omit it and the ledger writes
    * to disk alone.
+   *
+   * `onEvict` fires when the window drops a row, which is how a caller releases
+   * whatever it kept *beside* the ledger for that row — a decoded embedding, a
+   * pooled buffer. A side structure with its own lifetime drifts from the window
+   * that was supposed to bound it, which is how an unbounded index survived next
+   * to a bounded ledger.
    */
-  mirror?: { maxSize?: number };
+  mirror?: { maxSize?: number; onEvict?: (entry: T) => void };
   /** Optional pre-write hook (e.g., for sidecar updates like JudgmentDataset vectors). */
   onWrite?: (entry: T) => void | Promise<void>;
   /** Optional post-read hook for enriching entries (e.g., loading sidecar vectors). */
@@ -212,6 +220,7 @@ export class Ledger<T extends BaseLedgerEntry, I = T> {
             // over append order, so eviction must not depend on who read last.
             eviction: 'fifo',
             touchOnRead: false,
+            onEvict: config.mirror?.onEvict,
           })
         : null;
   }
@@ -247,6 +256,40 @@ export class Ledger<T extends BaseLedgerEntry, I = T> {
     return this.#mirror?.toArray() ?? [];
   }
 
+  /**
+   * Records appended after `seq`, and the sequence to ask from next time.
+   *
+   * The mirror is keyed by the append sequence for exactly this: a caller
+   * mirroring this ledger somewhere else — an auto-flushed export file — needs
+   * "what is new", and the two ways to get it without a sequence are to re-send
+   * the whole window (so an every-thirty-seconds flush rewrites fifty thousand
+   * rows) and to diff the entries by content.
+   *
+   * `seq` starts at `0`. Keys ascend, so a cursor older than the window's floor
+   * returns the whole window: the rows evicted before it are the ones a bounded
+   * mirror drops, and re-sending the rest is closer than silently sending none.
+   */
+  recordsSince(seq: number): { entries: readonly T[]; seq: number } {
+    const cursor = this.#hotSeq;
+    if (!this.#mirror) return { entries: [], seq: cursor };
+    const entries: T[] = [];
+    for (const [key, entry] of this.#mirror.entries()) {
+      if (key >= seq) entries.push(entry);
+    }
+    return { entries, seq: cursor };
+  }
+
+  /**
+   * How many records the mirror holds.
+   *
+   * Not `records().length`: two callers ask this for a count on paths that run
+   * per judgment and per command, and materializing a fifty-thousand-entry
+   * window to throw it away is the query they were avoiding.
+   */
+  get size(): number {
+    return this.#mirror?.size() ?? 0;
+  }
+
   /** Replace the mirror with entries read back from disk, so a reload continues the window. */
   loadMirror(entries: readonly T[]): void {
     this.#mirror?.clear();
@@ -261,18 +304,23 @@ export class Ledger<T extends BaseLedgerEntry, I = T> {
   async query(filter: LedgerQuery = {}): Promise<T[]> {
     // Materializing the hot cache costs a full copy and a filter pass, so it is
     // deferred to the two cases that read it: a bounded query it can answer, and
-    // the fallback when the ledger directory is unreadable.
+    // the fallback when the ledger directory is unreadable. Both stop at the
+    // limit — a bounded query over a full cache walked all ten thousand rows and
+    // allocated every one of them to keep five.
+    const cap = filter.limit ?? ALL_ROWS;
     let hotMatches: T[] | undefined;
     const cached = (): T[] =>
-      (hotMatches ??= this.#hotCache.toArray().filter((e) => this.#matchesFilter(e, filter)));
+      (hotMatches ??= collectUpTo(this.#hotCache.values(), cap, (e) =>
+        this.#matchesFilter(e, filter) ? e : undefined
+      ));
 
     if (filter.limit !== undefined) {
       const cacheMatches = cached();
-      if (cacheMatches.length >= filter.limit) return cacheMatches.slice(0, filter.limit);
+      if (cacheMatches.length >= filter.limit) return cacheMatches;
     }
 
     const diskMatches = await this.#scanDisk(filter);
-    if (diskMatches === null) return cached().slice(0, filter.limit);
+    if (diskMatches === null) return cached().slice(0, cap);
     return diskMatches;
   }
 
@@ -280,10 +328,15 @@ export class Ledger<T extends BaseLedgerEntry, I = T> {
    * Append-order scan of the rollover files (oldest first, `limit` takes the
    * oldest rows). `null` means the ledger directory is unreadable — the caller
    * falls back to the hot cache.
+   *
+   * The filter and the cap both reach the file walk, so a bounded query parses
+   * rows until it is full rather than validating every row of every file to keep
+   * the first few. That is why the callback rejects a non-match instead of the
+   * loop below skipping one: a reject is how the walk is told to stop asking.
    */
   async #scanDisk(filter: LedgerQuery): Promise<T[] | null> {
     const { limit } = filter;
-    const cap = limit ?? Number.POSITIVE_INFINITY;
+    const cap = limit ?? ALL_ROWS;
     const matches: T[] = [];
     let files: string[];
     try {
@@ -295,15 +348,17 @@ export class Ledger<T extends BaseLedgerEntry, I = T> {
     const { schema, onRead } = this.#config;
     for (const file of files.filter((f) => f.endsWith('.jsonl')).sort()) {
       if (matches.length >= cap) break;
-      const { rows } = await readJsonlAsync(join(this.#config.basePath, file), (value) => {
-        const parsed = schema.safeParse(value);
-        return parsed.success ? parsed.data : null;
-      });
+      const { rows } = await readJsonlAsync(
+        join(this.#config.basePath, file),
+        (value) => {
+          const parsed = schema.safeParse(value);
+          return parsed.success && this.#matchesFilter(parsed.data, filter) ? parsed.data : null;
+        },
+        cap - matches.length
+      );
       for (const entry of rows) {
-        if (!this.#matchesFilter(entry, filter)) continue;
         await onRead(entry);
         matches.push(entry);
-        if (matches.length >= cap) break;
       }
     }
     return matches;

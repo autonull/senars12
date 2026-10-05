@@ -1,4 +1,5 @@
 import {
+  degrade,
   BoundedRing,
   clamp01,
   createLogger,
@@ -15,7 +16,7 @@ import { createTask, type Task } from '../types';
 import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { parseEnrichmentResponse } from './enrichment.js';
-import { attempt } from './service/errors.js';
+
 import type { LMService } from './lm-service.js';
 import { lmTaskWeight } from './task-weights.js';
 
@@ -137,11 +138,11 @@ export class BidirectionalFeedbackLoop {
     schema: ZodSchema<T>,
     onFailure: string
   ): Promise<T | null> {
-    return attempt(
+    return degrade(
       this.logger,
       onFailure,
       () => this.lmService.generateObject(prompt, schema, { task: 'structured' }),
-      null
+      () => null
     );
   }
 
@@ -151,11 +152,11 @@ export class BidirectionalFeedbackLoop {
     hypothesis: Task,
     context: Task[]
   ): Promise<ValidationFeedback | null> {
-    const response = await attempt(
+    const response = await degrade(
       this.logger,
       'Failed to validate hypothesis (degraded)',
       () => this.lmService.generateText(prompt),
-      null
+      () => null
     );
     return response === null ? null : this.parseLegacyValidation(response, hypothesis, context);
   }
@@ -321,11 +322,11 @@ Respond with JSON:
       if (connectionCount >= 3) continue;
 
       const enrichmentPrompt = this.buildEnrichmentPrompt(derivation.term, derivations);
-      const response = await attempt(
+      const response = await degrade(
         this.logger,
         `Failed to enrich context for concept: ${derivation.term}`,
         () => this.lmService.generateText(enrichmentPrompt, { task: 'structured' }),
-        null
+        () => null
       );
       if (response === null) continue;
 

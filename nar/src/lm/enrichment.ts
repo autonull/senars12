@@ -1,4 +1,12 @@
-import { BoundedRing, createLogger, type Logger, periodic, sortBy, sumBy } from '@senars/util';
+import {
+  degrade,
+  BoundedRing,
+  createLogger,
+  type Logger,
+  periodic,
+  sortBy,
+  sumBy,
+} from '@senars/util';
 import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
@@ -6,7 +14,7 @@ import { Truth } from '../terms';
 import { createTask, type Task } from '../types';
 import { lmTaskWeight } from './task-weights.js';
 import { admitTasks } from './admit.js';
-import { attempt } from './service/errors.js';
+
 import { topBeliefTasks } from './context.js';
 import { LMResponseParser } from './LMRule.js';
 import type { LMService } from './lm-service.js';
@@ -152,11 +160,11 @@ export class ProactiveEnricher {
     );
 
     for (const conceptData of underconnectedConcepts.slice(0, this.config.maxConceptsPerCycle)) {
-      const result = await attempt(
+      const result = await degrade(
         this.logger,
         `Failed to enrich concept: ${conceptData.term.toString()}`,
         () => this.enrichConcept(conceptData.term),
-        null
+        () => null
       );
       // D17: bounded results (drop-oldest).
       if (result && (result.hypotheses.length > 0 || result.bridges.length > 0)) {
@@ -179,11 +187,11 @@ ${chainStr}
 
 Provide a clear, concise explanation of what was derived and why.`;
 
-    return attempt(
+    return degrade(
       this.logger,
       'Failed to generate explanation',
       async () => (await this.lmService.generateText(prompt)).trim(),
-      ''
+      () => ''
     );
   }
 
@@ -202,11 +210,11 @@ Question: ${question}
 
 Answer the question based on the available knowledge. If the answer cannot be determined from the context, say "I don't have enough information to answer this."`;
 
-    return attempt(
+    return degrade(
       this.logger,
       'Failed to answer question',
       async () => (await this.lmService.generateText(prompt)).trim(),
-      ''
+      () => ''
     );
   }
 
@@ -258,11 +266,11 @@ Answer the question based on the available knowledge. If the answer cannot be de
     let hypotheses: Task[] = [];
     let bridges: Task[] = [];
 
-    const parsed = await attempt(
+    const parsed = await degrade(
       this.logger,
       `Failed to generate hypotheses for term: ${term.toString()}`,
       async () => parseEnrichmentResponse(await this.lmService.generateText(hypothesisPrompt)),
-      null
+      () => null
     );
     if (parsed) {
       hypotheses = parsed.hypotheses;

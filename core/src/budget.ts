@@ -16,11 +16,28 @@
 import { clamp, maxScore, occupancy } from '@senars/util';
 import { announceBudgetTrace } from './budget-otel.js';
 import type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason } from './schemas/index.js';
+import { zeroConsumed } from './schemas/index.js';
 
 export type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason };
 
 /** Budget slice consumed resources. */
 export type ConsumedBudget = ReasoningBudget['consumed'];
+
+export { zeroConsumed };
+
+/**
+ * A budget copied, consumption included.
+ *
+ * Three readers — a thread's snapshot, the gate's getter, a caller stashing the
+ * budget for later — needed a value they could hold while the original kept
+ * being charged, and each hand-rolled `{ ...budget, consumed: { ...consumed } }`.
+ * The inner copy is the load-bearing half: without it the snapshot's counter
+ * moves as the live budget is charged, so it is a snapshot of nothing.
+ */
+export const snapshotBudget = <T extends ReasoningBudget>(budget: T): T => ({
+  ...budget,
+  consumed: { ...budget.consumed },
+});
 
 /** The four AIKR dimensions a budget is limited in — its whole ceiling. */
 export type BudgetLimits = Pick<
@@ -83,17 +100,6 @@ export type BudgetSliceOptions = BudgetLimits & {
   wallclockDeadlineMs?: number;
   abortSignal?: AbortSignal;
 };
-
-/**
- * A zeroed consumption record. Every fresh budget and every reopened scope starts
- * from this one, so the four keys are named here rather than in three literals.
- */
-export const zeroConsumed = (): ConsumedBudget => ({
-  cycles: 0,
-  depth: 0,
-  memoryOps: 0,
-  llmCalls: 0,
-});
 
 /**
  * The one budget constructor. Every ceiling in the system — the gate's default,

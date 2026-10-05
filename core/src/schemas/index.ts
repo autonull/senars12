@@ -169,12 +169,19 @@ export {
   RuleProposalSchema,
   validateProposal,
 } from './proposal.js';
-export type { BudgetScopeId, ReasoningBudget, TerminationReason } from './reasoning-budget.js';
+export type {
+  BudgetScopeId,
+  ConsumedBudget,
+  ReasoningBudget,
+  TerminationReason,
+} from './reasoning-budget.js';
 export {
   BUDGET_SCOPE_IDS,
+  ConsumedBudgetSchema,
   ReasoningBudgetSchema,
   TerminationReasonSchema,
   validateReasoningBudget,
+  zeroConsumed,
 } from './reasoning-budget.js';
 export type {
   RuleArtifactEntry,

@@ -10,15 +10,8 @@ import {
   specToQuery,
 } from '@senars/nar/lm/system-one';
 import { rubricOf } from '@senars/nar/lm/system-one/contrastive.js';
-import {
-  envStrOr,
-  errMsg,
-  finiteOr,
-  formatBytes,
-  incrementCount,
-  writeJsonFile,
-} from '@senars/util';
-import { cmd } from '../../cli/commands.js';
+import { envStrOr, finiteOr, formatBytes, incrementCount, writeJsonFile } from '@senars/util';
+import { attempted, cmd } from '../../cli/commands.js';
 import { type ReflexView, reflexesOf } from '../../cli/conversation-game.js';
 import {
   formatSystemOneCortex,
@@ -126,20 +119,21 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
                 return `Eval set frozen: ${set.rows.length} rows (conversation-captured excluded) → ${EVAL_SET_PATH}\ndigest=${set.digest}\nbrier=${m.brier.toFixed(4)} ece=${m.ece.toFixed(4)}`;
               }
               if (action === 'show') {
-                try {
-                  const set = await loadEvalSet(EVAL_SET_PATH);
-                  const lines = [
-                    `Eval set: ${set.rows.length} rows, digest=${set.digest}`,
-                    `frozen at ${new Date(set.createdAt).toISOString()}`,
-                    ...Object.entries(headMetrics(set.rows)).map(
-                      ([head, m]) =>
-                        `  ${head}: n=${m.count} brier=${m.brier.toFixed(4)} ece=${m.ece.toFixed(4)}`
-                    ),
-                  ];
-                  return lines.join('\n');
-                } catch (e) {
-                  return `eval-set load failed (run .systemone eval-set create): ${errMsg(e)}`;
-                }
+                return attempted(
+                  'eval-set load failed (run .systemone eval-set create)',
+                  async () => {
+                    const set = await loadEvalSet(EVAL_SET_PATH);
+                    const lines = [
+                      `Eval set: ${set.rows.length} rows, digest=${set.digest}`,
+                      `frozen at ${new Date(set.createdAt).toISOString()}`,
+                      ...Object.entries(headMetrics(set.rows)).map(
+                        ([head, m]) =>
+                          `  ${head}: n=${m.count} brier=${m.brier.toFixed(4)} ece=${m.ece.toFixed(4)}`
+                      ),
+                    ];
+                    return lines.join('\n');
+                  }
+                );
               }
               return 'Usage: .systemone eval-set create|show|regenerate (regenerate is explicit + logged)';
             },
@@ -167,10 +161,8 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
         if (named && !rubric) return `Unknown head: ${named}`;
         const queries = rubric
           ? [evaluateQuery(rubric)]
-          : (['groundedness', 'plausibility', 'assertion'] as const).map((id) =>
-              evaluateQuery(id)
-            );
-        try {
+          : (['groundedness', 'plausibility', 'assertion'] as const).map((id) => evaluateQuery(id));
+        return attempted('judge', async () => {
           const result = await decider.decide({
             context: proposition,
             queries,
@@ -194,9 +186,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
             );
           }
           return lines.join('\n');
-        } catch (e) {
-          return `judge failed: ${errMsg(e)}`;
-        }
+        });
       }
     ),
     cmd(
@@ -214,7 +204,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
         );
         const unknown = rubrics.filter((id) => id === undefined).map((_, i) => named[i]);
         if (unknown.length > 0) return `Unknown head(s): ${unknown.join(', ')}`;
-        try {
+        return attempted('decide', async () => {
           const result = await decider.decide({
             context: input,
             queries: rubrics.map((rubric) => evaluateQuery(rubric!)),
@@ -232,9 +222,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
             `  provenance: model=${p.modelDigest ?? '—'} calibration=${p.calibrationDigest ?? '—'} input=${p.inputDigest.slice(0, 12)} at=${new Date(p.timestamp).toISOString()}`
           );
           return `Decision for: "${input}"\n${lines.join('\n')}`;
-        } catch (e) {
-          return `decide failed: ${errMsg(e)}`;
-        }
+        });
       }
     ),
     cmd(
@@ -257,12 +245,8 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
           specToQuery(HEAD_SPECS.injection),
           specToQuery(HEAD_SPECS.ambiguity),
         ];
-        try {
-          const results = await dispatcher.judge(
-            await embeddingCache.write(task),
-            queries,
-            budget
-          );
+        return attempted('route', async () => {
+          const results = await dispatcher.judge(await embeddingCache.write(task), queries, budget);
           const lines = ['Routing decision for:', `  "${task}"`, ''];
           for (const [i, r] of results.entries()) {
             const q = queries[i];
@@ -295,9 +279,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
             `Path: ${results.some((r) => r.tier === 1) ? 'tier1 (manifold)' : 'tier0 (deterministic)'}`
           );
           return lines.join('\n');
-        } catch (e) {
-          return `route failed: ${errMsg(e)}`;
-        }
+        });
       }
     ),
     cmd(
@@ -349,11 +331,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
     cmd('manifold', 'Manifold health', async () => {
       const m = nar.getSystemOneManifold?.() as { health?: () => unknown } | undefined;
       if (!m) return 'Manifold: not constructed (System One disabled)';
-      try {
-        return JSON.stringify(m.health?.() ?? {}, null, 2);
-      } catch (e) {
-        return `manifold error: ${errMsg(e)}`;
-      }
+      return attempted('manifold health', () => JSON.stringify(m.health?.() ?? {}, null, 2));
     }),
     cmd('calibrate', 'Calibration lock status: .calibrate [refresh|refit]', async (args = '') => {
       const {
@@ -375,7 +353,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
       }
       if (verb === 'refit') {
         if (!nar.isSystemOneEnabled?.()) return 'System One: disabled';
-        try {
+        return attempted('refit', async () => {
           const { JudgmentDataset } = await import('@senars/nar/lm/system-one/distill.js');
           const { digestRows, loadEvalSet, splitOod } = await import(
             '@senars/nar/lm/system-one/eval-set.js'
@@ -398,9 +376,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
           const { lock, perHead, improved } = fitCalibrationLock(dataset, options as never);
           await writeCalibrationLock(lock, CALIBRATION_LOCK_PATH);
           return `Calibration lock refit: ${perHead.size} head(s), holdout ECE improved=${improved}, frozen-set metrics=${lock.eval ? 'embedded' : 'absent (run .systemone eval-set create)'}\nRestart required to apply the lock to the manifold.`;
-        } catch (e) {
-          return `refit failed: ${errMsg(e)}`;
-        }
+        });
       }
       if (!existsSync(CALIBRATION_LOCK_PATH)) {
         return 'No calibration lock (heads unfitted — pass-through mode)';

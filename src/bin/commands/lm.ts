@@ -7,8 +7,8 @@ import {
   resolveLMConfig,
   resolveLMSettings,
 } from '@senars/nar/lm';
-import { errMsg, LM_TASKS, removeBy } from '@senars/util';
-import { cmd } from '../../cli/commands.js';
+import { LM_TASKS, removeBy } from '@senars/util';
+import { attempted, cmd } from '../../cli/commands.js';
 import type { BotConfig } from '../../config/index.js';
 import { tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
@@ -84,46 +84,40 @@ export const lmCommandsFor = (rt: BotRuntime) => {
       return `Disabled ${id} (restart bot to deregister; persist with .config-save)`;
     }),
     cmd('routing', 'Show routing matrix', async () => {
-      try {
+      return attempted('routing unavailable', async () => {
         const { getModelChain } = await import('@senars/nar/lm/providers.js');
         const cfg = resolveLMConfig(appConfig.lm as never);
         return LM_TASKS.map((t) => `  ${t}: ${getModelChain(cfg.provider, t).join(' → ')}`).join(
           '\n'
         );
-      } catch (e) {
-        return `routing unavailable: ${errMsg(e)}`;
-      }
+      });
     }),
     cmd('routing-set', 'Set routing candidates live: <model-id...>', async (args = '') => {
       const candidates = tokenize(args);
       if (!candidates.length) return 'Usage: .routing-set <model-id...>';
-      try {
+      return attempted('routing-set', async () => {
         const { getRouting, setRouting } = await import('@senars/nar/lm/providers.js');
         setRouting({ ...(getRouting() ?? {}), candidates });
         if (appConfig.routing) {
           (appConfig.routing as Record<string, unknown>).candidates = candidates;
         }
         return `candidates=${candidates.join(',')} (persist with .config-save)`;
-      } catch (e) {
-        return `routing-set failed: ${errMsg(e)}`;
-      }
+      });
     }),
     cmd('routing-offline', 'Set offline failsafe ladder: <model-id...>', async (args = '') => {
       const offlineLadder = tokenize(args);
       if (!offlineLadder.length) return 'Usage: .routing-offline <model-id...>';
-      try {
+      return attempted('routing-offline', async () => {
         const { getRouting, setRouting } = await import('@senars/nar/lm/providers.js');
         setRouting({ ...(getRouting() ?? {}), offlineLadder });
         if (appConfig.routing) {
           (appConfig.routing as Record<string, unknown>).offlineLadder = offlineLadder;
         }
         return `offline ladder=${offlineLadder.join(' → ')} (persist with .config-save)`;
-      } catch (e) {
-        return `routing-offline failed: ${errMsg(e)}`;
-      }
+      });
     }),
     cmd('circuit-breakers', 'Show circuit breaker states', async () => {
-      try {
+      return attempted('circuit info unavailable', async () => {
         const { getCircuitBreaker, getEffectiveCircuitConfig } = await import(
           '@senars/nar/lm/providers.js'
         );
@@ -137,14 +131,12 @@ export const lmCommandsFor = (rt: BotRuntime) => {
             return `  ${p}: n/a`;
           }
         }).join('\n');
-      } catch (e) {
-        return `circuit info unavailable: ${errMsg(e)}`;
-      }
+      });
     }),
     cmd('circuit-reset', 'Reset circuit breaker(s): <provider>|all', async (args = '') => {
       const name = args.trim().toLowerCase();
       if (!name) return 'Usage: .circuit-reset <provider>|all';
-      try {
+      return attempted('circuit-reset', async () => {
         const { getCircuitBreaker, resetCircuitBreakers } = await import(
           '@senars/nar/lm/providers.js'
         );
@@ -156,9 +148,7 @@ export const lmCommandsFor = (rt: BotRuntime) => {
         if (typeof b.reset !== 'function') return `No resettable breaker: ${name}`;
         b.reset();
         return `Circuit breaker reset: ${name}`;
-      } catch (e) {
-        return `circuit-reset failed: ${errMsg(e)}`;
-      }
+      });
     }),
   ];
 };

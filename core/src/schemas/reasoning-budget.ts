@@ -33,6 +33,29 @@ export const TerminationReasonSchema = z.enum([
   'completed',
 ]);
 
+export const ConsumedBudgetSchema = z.object({
+  cycles: z.number().int().nonnegative().default(0),
+  depth: z.number().int().nonnegative().default(0),
+  memoryOps: z.number().int().nonnegative().default(0),
+  llmCalls: z.number().int().nonnegative().default(0),
+});
+
+/**
+ * A zeroed consumption record.
+ *
+ * Declared here, beside the schema that is the type's definition, because the
+ * schema's own default is one of the four places that needs it — and a default
+ * that restates the record is a second place for a key to be missing. It was
+ * `core/budget`'s export before, and the budget's arithmetic still reads it from
+ * there.
+ */
+export const zeroConsumed = (): ConsumedBudget => ({
+  cycles: 0,
+  depth: 0,
+  memoryOps: 0,
+  llmCalls: 0,
+});
+
 export const ReasoningBudgetSchema = z.object({
   maxCycles: z.number().int().positive(),
   maxDepth: z.number().int().positive(),
@@ -41,17 +64,11 @@ export const ReasoningBudgetSchema = z.object({
   wallclockDeadlineMs: z.number().int().positive().optional(),
   abortSignal: z.unknown().optional(), // AbortSignal - cannot serialize, validated at runtime
   terminationReason: TerminationReasonSchema.optional(),
-  consumed: z
-    .object({
-      cycles: z.number().int().nonnegative().default(0),
-      depth: z.number().int().nonnegative().default(0),
-      memoryOps: z.number().int().nonnegative().default(0),
-      llmCalls: z.number().int().nonnegative().default(0),
-    })
-    .default(() => ({ cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 })),
+  consumed: ConsumedBudgetSchema.default(zeroConsumed),
 });
 
 export type ReasoningBudget = z.infer<typeof ReasoningBudgetSchema>;
+export type ConsumedBudget = z.infer<typeof ConsumedBudgetSchema>;
 export type TerminationReason = z.infer<typeof TerminationReasonSchema>;
 
 export const validateReasoningBudget = (budget: unknown): ReasoningBudget =>

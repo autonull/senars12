@@ -207,7 +207,11 @@ const main = async (): Promise<void> => {
         failures: v.failures,
       })),
       offlineTier: output.offlineTier,
-      credentials: keyedBy(creds, (c) => c.key, (c) => c.present),
+      credentials: keyedBy(
+        creds,
+        (c) => c.key,
+        (c) => c.present
+      ),
     };
   }
 

@@ -3,7 +3,7 @@ import { QUIT_SENTINEL } from '@senars/io/connections/cli';
 import type { NAR } from '@senars/nar';
 import type { BinAgentApi as Agent } from '@senars/nar/agent';
 import type { LMTask } from '@senars/util';
-import { type LMExecutionStats, splitWords, truncate } from '@senars/util';
+import { degrade, errMsg, type LMExecutionStats, splitWords, truncate } from '@senars/util';
 import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
 import {
   formatAgentStatus,
@@ -19,6 +19,25 @@ export const cmd = (
   description: string,
   execute: (args?: string) => string | Promise<string>
 ): CLICommand => ({ name, description, execute });
+
+/**
+ * A command whose failure is a line of output rather than a crash.
+ *
+ * The REPL reports on exactly one channel — the string a command returns — so a
+ * command that throws has nowhere to report but the transport's error path, and
+ * twenty-one handlers each answered with their own
+ * `try { … } catch (e) { return \`x failed: ${errMsg(e)}\` }`. The failure line
+ * therefore varied with which handler spelled it, including handlers that
+ * wrapped a whole command body and so reported a local transform's bug as a
+ * transport failure.
+ *
+ * `degrade` is the same funnel as the LM subsystem's, with the error text as the
+ * answer instead of an empty value — so this is not a second primitive but the
+ * first one at a different terminal. The process log keeps the `warn`, which is
+ * where a failure belongs when the REPL is attached to someone else's channel.
+ */
+export const attempted = (what: string, run: () => string | Promise<string>): Promise<string> =>
+  degrade(console, `${what} failed`, run, (error) => `${what} failed: ${errMsg(error)}`);
 
 export interface LMHandle {
   readonly provider?: string;

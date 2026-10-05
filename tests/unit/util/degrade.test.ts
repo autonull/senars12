@@ -1,33 +1,39 @@
 /**
- * `attempt` — the one place a call whose failure is expected is caught, logged
- * and answered.
+ * `degrade` — the one funnel for a call whose failure is expected: caught,
+ * reported, and answered.
  *
- * Falsifies the two rules the seven call sites now depend on: the message names
- * the operation, and the failure value is returned rather than thrown — while a
- * success still passes through untouched.
+ * Falsifies the rules every call site now depends on — the message names the
+ * operation, the failure answer is returned rather than thrown, and a success
+ * passes through untouched — plus the reason the answer is a function: a CLI
+ * command's failure answer *is* the error text.
  */
 
-import { attempt } from '@senars/nar/lm/service/errors.js';
+import { degrade } from '@senars/util';
 import { describe, expect, it, vi } from 'vitest';
 
 const logger = () => ({ warn: vi.fn() });
 
-describe('attempt', () => {
+describe('degrade', () => {
   it('returns the resolved value and warns nothing', async () => {
     const log = logger();
 
-    const result = await attempt(log, 'reading', async () => 42, 0);
+    const result = await degrade(
+      log,
+      'reading',
+      async () => 42,
+      () => 0
+    );
 
     expect(result).toBe(42);
     expect(log.warn).not.toHaveBeenCalled();
   });
 
   it('awaits a promise-returning call', async () => {
-    const result = await attempt(
+    const result = await degrade(
       logger(),
       'reading',
       () => Promise.resolve('done'),
-      'fallback'
+      () => 'fallback'
     );
 
     expect(result).toBe('done');
@@ -36,13 +42,13 @@ describe('attempt', () => {
   it('answers the failure value and names the operation', async () => {
     const log = logger();
 
-    const result = await attempt(
+    const result = await degrade(
       log,
       'enriching concept: <x>',
       async () => {
         throw new Error('provider gone');
       },
-      null
+      () => null
     );
 
     expect(result).toBeNull();
@@ -52,29 +58,44 @@ describe('attempt', () => {
   it('answers the failure value for a non-Error throw', async () => {
     const log = logger();
 
-    const result = await attempt(
+    const result = await degrade(
       log,
       'probing',
       async () => {
         throw 'a bare string';
       },
-      -1
+      () => -1
     );
 
     expect(result).toBe(-1);
     expect(log.warn).toHaveBeenCalledWith('probing: a bare string');
   });
 
+  it('hands the error to the failure answer, so the answer can be the message', async () => {
+    const log = logger();
+
+    const result = await degrade(
+      log,
+      'routing',
+      async () => {
+        throw new Error('no provider');
+      },
+      (error) => `routing failed: ${(error as Error).message}`
+    );
+
+    expect(result).toBe('routing failed: no provider');
+  });
+
   it('answers `null` when null is the declared failure value', async () => {
     const log = logger();
 
-    const result = await attempt(
+    const result = await degrade(
       log,
       'parsing',
       async () => {
         throw new Error('malformed');
       },
-      null
+      () => null
     );
 
     expect(result).toBeNull();

@@ -1,4 +1,4 @@
-import type { SourceQuality } from '@senars/core/schemas';
+import type { ReasoningBudget, SourceQuality } from '@senars/core/schemas';
 import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas';
 import type { IngressJudge, IngressJudgmentRequest, IngressVerdict } from '../../kernel/ingress.js';
 import { providerKey } from '../../kernel/reputation-keys.js';
@@ -20,13 +20,15 @@ const AMBIGUITY_ROUTER = new ConfidenceRouter({ act: 0.6, review: 0.6, block: 0 
 export interface SystemOneIngressJudgeConfig {
   manifold: JudgmentManifold;
   embeddingCache: EmbeddingCache;
-  budget: {
-    maxCycles: number;
-    maxDepth: number;
-    maxMemoryOps: number;
-    maxLMCalls: number;
-    consumed: { cycles: number; depth: number; memoryOps: number; llmCalls: number };
-  };
+  /**
+   * The judgment pass's own budget.
+   *
+   * `ReasoningBudget`, not a re-spelling of it: a structural copy here accepts
+   * any four numbers and any four counters under those names, so a caller could
+   * hand this judge a budget that is not one — and the kernel's accounting,
+   * which is the whole point of the type, would never see it.
+   */
+  budget: ReasoningBudget;
   ambiguityBands?: ConfidenceBands;
   /** Phase E (REFACTOR.todo1): lazy source-reputation lookup (trust-not-truth ceiling). */
   reputation?: () => { effectiveCeiling(base: number, key: string): number } | undefined;

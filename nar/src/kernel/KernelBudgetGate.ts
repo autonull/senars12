@@ -9,6 +9,7 @@ import {
   chargeBudget,
   createBudget,
   isCapacityExhausted,
+  snapshotBudget,
   zeroConsumed,
 } from '@senars/core/budget';
 import type {
@@ -90,7 +91,11 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   private costTable: Record<string, number>;
 
   protected override outcomeOf(output: unknown): GateOutcome {
-    return projectOutcome<BudgetGateOutput>(output, (o) => o.granted, (o) => o.terminationReason);
+    return projectOutcome<BudgetGateOutput>(
+      output,
+      (o) => o.granted,
+      (o) => o.terminationReason
+    );
   }
 
   constructor(config?: Partial<KernelBudgetGateConfig>) {
@@ -178,7 +183,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   }
 
   getBudget(): Readonly<ReasoningBudget> {
-    return { ...this.budget, consumed: { ...this.budget.consumed } };
+    return snapshotBudget(this.budget);
   }
 
   setBudget(budget: ReasoningBudget): void {

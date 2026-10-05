@@ -1,68 +1,59 @@
 /**
  * Base class for Term-keyed collections with structural equality.
  *
- * Lookups go through `termKey`, the canonical structural identity, so
- * non-frozen (non-canonical) terms cost O(1) instead of a deep-equality scan
- * over the whole collection.
+ * One `Map` keyed by `termKey` — the canonical structural identity — holds both
+ * membership and iteration order. It was a parallel array plus a
+ * `Map<string, index>` side index, which meant a delete had to shift every
+ * index above the hole: O(live keys) each, so the consolidation pass that
+ * removes a fifth of the concept store was quadratic in the store it was
+ * bounding. `Map` already iterates in insertion order, so the array was a
+ * hand-rolled copy of what the structure gives away, and the index was a
+ * second thing to keep in step.
+ *
+ * Non-frozen (non-canonical) terms therefore cost O(1) to look up rather than a
+ * deep-equality scan over the whole collection.
  */
 
-import { termKey } from './accessors.js';
 import type { Term } from '../types.js';
+import { termKey } from './accessors.js';
 
 export abstract class TermCollection<T> {
-  protected storage: T[] = [];
-  private keyIndex = new Map<string, number>();
+  protected readonly slots = new Map<string, T>();
 
   get size(): number {
-    return this.storage.length;
+    return this.slots.size;
   }
 
   clear(): void {
-    this.storage = [];
-    this.keyIndex.clear();
+    this.slots.clear();
   }
 
-  protected getIndex(term: Term): number {
-    return this.keyIndex.get(termKey(term)) ?? -1;
-  }
+  /** The canonical key an item is stored under. */
+  protected abstract keyOf(item: T): string;
 
-  protected setRef(term: Term, index: number): void {
-    this.keyIndex.set(termKey(term), index);
+  protected keyOfTerm(term: Term): string {
+    return termKey(term);
   }
 
   /**
-   * Index-based iterator over storage with a projection. Same protocol as a
+   * Index-free iterator over the values with a projection. Same protocol as a
    * generator method but without the suspend/resume machinery (~5x faster
    * in microbenchmarks for hot iteration paths like values()/keys()).
    */
   protected iterProject<U>(project: (item: T) => U): IterableIterator<U> {
-    const storage = this.storage;
+    const values = this.slots.values();
     let i = 0;
     const it: IterableIterator<U> = {
       next: (): IteratorResult<U> => {
-        if (i >= storage.length) return { value: undefined, done: true };
-        return { value: project(storage[i++]!), done: false };
+        const step = values.next();
+        return step.done
+          ? { value: undefined, done: true }
+          : { value: project(step.value), done: false };
       },
       [Symbol.iterator](): IterableIterator<U> {
         return it;
       },
     };
     return it;
-  }
-
-  protected clearRef(term: Term): void {
-    this.keyIndex.delete(termKey(term));
-  }
-
-  protected deleteItem(term: Term): boolean {
-    const index = this.getIndex(term);
-    if (index < 0) return false;
-    this.clearRef(term);
-    this.storage.splice(index, 1);
-    // shift cached key indices above the removed slot without a full rebuild
-    for (const [key, idx] of this.keyIndex) {
-      if (idx > index) this.keyIndex.set(key, idx - 1);
-    }
-    return true;
   }
 }

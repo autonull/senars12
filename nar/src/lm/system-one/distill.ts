@@ -87,16 +87,40 @@ export type DistillationLabelEntry = z.infer<typeof DistillationLabelEntrySchema
 /** How many labels the synchronous view keeps for a calibration fit. */
 const JUDGMENT_DATASET_WINDOW = 50_000;
 
+/** A label with its sidecar vector encoded into the row, if one is held. */
+const withInlineVector =
+  (vectors: ReadonlyMap<string, Float32Array>) =>
+  (label: DistillationLabelEntry): DistillationLabelEntry => {
+    const vector = vectors.get(label.evidenceId);
+    return vector ? { ...label, vector: encodeVector(vector) } : label;
+  };
+
 /** Append-only, redaction-per-retention: hashes + labels + inline vectors, never raw text. */
 export class JudgmentDataset {
   readonly #ledger: Ledger<DistillationLabelEntry>;
-  #vectors = new Map<string, Float32Array>();
+  /**
+   * Decoded sidecar vectors, one per label.
+   *
+   * Bounded by the ledger's mirror, not by a second window: the mirror's
+   * `onEvict` drops the vector for a row the window has shed. Ten writers reach
+   * `record` — per tool call from the trace grader, per tick from the reflex
+   * label source — and a 384-d `Float32Array` is ~1.5 KB, so a plain map was
+   * fifteen megabytes that never came back.
+   */
+  readonly #vectors = new Map<string, Float32Array>();
+  /** Mirror sequence already handed to an export file; see {@link flush}. */
+  #exportedSeq = 0;
 
   constructor(basePath: string, options: { rollover?: RolloverPolicy } = {}) {
     this.#ledger = createLedger<DistillationLabelEntry>(basePath, DistillationLabelEntrySchema, {
       rollover: options.rollover,
       hotRetentionMs: 5 * 60 * 1000,
-      mirror: { maxSize: JUDGMENT_DATASET_WINDOW },
+      mirror: {
+        maxSize: JUDGMENT_DATASET_WINDOW,
+        onEvict: (row) => {
+          this.#vectors.delete(row.evidenceId);
+        },
+      },
     });
   }
 
@@ -105,11 +129,6 @@ export class JudgmentDataset {
     const vectorB64 = embedding ? encodeVector(embedding) : label.vector;
     this.#ledger.append(vectorB64 ? { ...label, vector: vectorB64 } : label);
     if (embedding) this.#vectors.set(label.evidenceId, embedding);
-  }
-
-  /** Record a raw state embedding keyed by evidenceId (inline vector storage). */
-  recordVector(evidenceId: string, embedding: Float32Array): void {
-    this.#vectors.set(evidenceId, embedding);
   }
 
   /** Get the vector for a given evidenceId (synchronous, from in-memory index). */
@@ -123,15 +142,12 @@ export class JudgmentDataset {
   }
 
   get size(): number {
-    return this.#ledger.records().length;
+    return this.#ledger.size;
   }
 
   /** Labels with their sidecar vectors inlined, as JSON-ready rows. */
   rows(): DistillationLabelEntry[] {
-    return this.#ledger.records().map((l) => {
-      const vector = this.#vectors.get(l.evidenceId);
-      return vector ? { ...l, vector: encodeVector(vector) } : l;
-    });
+    return this.#ledger.records().map(withInlineVector(this.#vectors));
   }
 
   toJSONL(): string {
@@ -140,9 +156,20 @@ export class JudgmentDataset {
       .join('\n');
   }
 
-  /** Append the dataset to a JSONL file (creates directory if needed). */
+  /**
+   * Append the labels recorded since the last flush to a JSONL file.
+   *
+   * Incremental because the caller is a timer: the export mirrors the dataset,
+   * and re-appending the whole window every interval wrote the same rows over
+   * and over while serializing fifty thousand of them each time. A `load()`
+   * -then-`flush()` pair resets the cursor, so a round trip still exports every
+   * label exactly once.
+   */
   async flush(path: string): Promise<void> {
-    await appendJsonlAsync(path, this.rows());
+    const { entries, seq } = this.#ledger.recordsSince(this.#exportedSeq);
+    if (entries.length === 0) return;
+    await appendJsonlAsync(path, entries.map(withInlineVector(this.#vectors)));
+    this.#exportedSeq = seq;
   }
 
   /** Load a JSONL file and replace the current dataset. */

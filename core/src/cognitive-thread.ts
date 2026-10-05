@@ -16,6 +16,7 @@ import {
   remainingCycles,
   resolveAllocation,
   sliceBudget,
+  snapshotBudget,
 } from './budget.js';
 import { emitDomainEvent } from './event-sink.js';
 
@@ -230,7 +231,7 @@ export class CognitiveThread {
 
   /** Get budget consumption snapshot. */
   getBudgetSnapshot(): BudgetSlice {
-    return { ...this.budget, consumed: { ...this.budget.consumed } };
+    return { ...snapshotBudget(this.budget), id: this.budget.id, parentId: this.budget.parentId };
   }
 
   /** Get unconsumed budget without joining. */

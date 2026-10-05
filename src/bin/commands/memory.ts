@@ -1,7 +1,7 @@
 /** Episodic + concept memory commands (`.consolidate`, `.memory-*`, `.recall`). */
 
 import { errMsg, finiteOr, incrementCount, readJsonlAsync, writeJsonl } from '@senars/util';
-import { cmd } from '../../cli/commands.js';
+import { attempted, cmd } from '../../cli/commands.js';
 import { flagsOf, tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
 
@@ -14,16 +14,14 @@ interface EpisodeRow {
 export const memoryCommandsFor = (rt: BotRuntime) => [
   cmd('consolidate', 'Run memory consolidation', async (args = '') => {
     const [limit, relevance, dedupe] = tokenize(args).map(Number);
-    try {
+    return attempted('consolidate ', async () => {
       const r = await rt.wired.consolidateMemory({
         ...(Number.isFinite(limit) ? { limit } : {}),
         ...(Number.isFinite(relevance) ? { relevanceThreshold: relevance } : {}),
         ...(Number.isFinite(dedupe) ? { dedupeThreshold: dedupe } : {}),
       });
       return `Consolidated: promoted=${r.promoted.length} deduped=${r.deduped ?? 0} scanned=${r.considered ?? 0}`;
-    } catch (e) {
-      return `consolidate failed: ${errMsg(e)}`;
-    }
+    });
   }),
   cmd('memory-stats', 'Episodic memory stats', async () => {
     const eps = await rt.wired.episodicMemory.getEpisodes({ limit: 100000 });
@@ -45,7 +43,7 @@ export const memoryCommandsFor = (rt: BotRuntime) => [
   cmd('memory-import', 'Import episodes from JSONL', async (args = '') => {
     const path = args.trim();
     if (!path) return 'Usage: .memory-import <path>';
-    try {
+    return attempted('import ', async () => {
       const { rows } = await readJsonlAsync<EpisodeRow>(path, (value) => value as EpisodeRow);
       let n = 0;
       for (const e of rows) {
@@ -59,9 +57,7 @@ export const memoryCommandsFor = (rt: BotRuntime) => [
         }
       }
       return `Imported ${n}/${rows.length} episodes`;
-    } catch (e) {
-      return `import failed: ${errMsg(e)}`;
-    }
+    });
   }),
   cmd('recall', 'Cross-memory recall: <term> [n]', async (args = '') => {
     const [term, nRaw] = tokenize(args);
