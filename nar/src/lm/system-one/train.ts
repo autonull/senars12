@@ -104,7 +104,25 @@ export interface TrainingOptions {
   seed?: number;
 }
 
-export interface TrainedHeadModel {
+export interface HeadMetrics {
+  samples: number;
+  epochs: number;
+  trainLoss: number;
+  holdoutLoss: number;
+  valueCorrelation?: number;
+}
+
+/**
+ * What a head is, as opposed to where its numbers live. Identity, feature
+ * geometry, encoder binding and training metrics are the same whether the head
+ * is in memory or on disk; only the standardization stats and the parameters
+ * themselves change representation — typed arrays in memory, a JSON config plus
+ * a weight blob on disk. That split was not declared anywhere: both shapes were
+ * written out in full and `exportArtifacts` copied eleven fields by hand, so a
+ * field added to one head had to be remembered in three places to reach the
+ * other.
+ */
+export interface HeadGeometry {
   headId: string;
   rubric: string;
   axis: string;
@@ -112,21 +130,32 @@ export interface TrainedHeadModel {
   embeddingDim: number;
   actionFeatureDim: number;
   gameFeatureDim: number;
+  encoder: { modelId: string; dimension: number };
+  metrics: HeadMetrics;
+}
+
+export interface TrainedHeadModel extends HeadGeometry {
   weights: Float32Array;
   bias: number;
   /** Standardization stats (features are z-scored before the linear pass). */
   mean: Float32Array;
   std: Float32Array;
-  encoder: { modelId: string; dimension: number };
   weightsDigest: string;
-  metrics: {
-    samples: number;
-    epochs: number;
-    trainLoss: number;
-    holdoutLoss: number;
-    valueCorrelation?: number;
-  };
 }
+
+/** The geometry of a trained head, read by name. Annotated `HeadGeometry`, so a
+ *  field the two shapes do not share fails here rather than going unexported. */
+const geometryOf = (model: TrainedHeadModel): HeadGeometry => ({
+  headId: model.headId,
+  rubric: model.rubric,
+  axis: model.axis,
+  kind: model.kind,
+  embeddingDim: model.embeddingDim,
+  actionFeatureDim: model.actionFeatureDim,
+  gameFeatureDim: model.gameFeatureDim,
+  encoder: model.encoder,
+  metrics: model.metrics,
+});
 
 /** Gaussian elimination with partial pivoting (A square, nonsingular). */
 export function solveLinearSystem(A: number[][], b: number[]): number[] {
@@ -408,13 +437,16 @@ export function bakeOffSharedHead(
   return { shared, perGame, scores, verdict: sharedWinsAll ? 'shared' : 'per-game' };
 }
 
-function digestWeights(weights: Float32Array, bias: number): string {
+/** Parameters as bytes: the vector, then the bias as a trailing f32 — the one
+ *  layout the weight blob, the WASM module and the digest all agree on. */
+function weightsBytes(weights: Float32Array, bias: number): Buffer {
   const biasBuf = Buffer.alloc(4);
   biasBuf.writeFloatLE(bias);
-  return sha256Prefixed(
-    Buffer.concat([Buffer.from(weights.buffer, weights.byteOffset, weights.byteLength), biasBuf])
-  );
+  return Buffer.concat([Buffer.from(weights.buffer, weights.byteOffset, weights.byteLength), biasBuf]);
 }
+
+const digestWeights = (weights: Float32Array, bias: number): string =>
+  sha256Prefixed(weightsBytes(weights, bias));
 
 // ─── Artifacts (docs/system-one-distillation-runner.md contract) ─────────────
 
@@ -424,51 +456,26 @@ export interface HeadArtifactBundle {
   modelDigest: string;
 }
 
-export interface HeadArtifactConfig {
-  headId: string;
-  rubric: string;
-  axis: string;
-  kind: 'linear' | 'logistic';
-  embeddingDim: number;
-  actionFeatureDim: number;
-  gameFeatureDim: number;
+export interface HeadArtifactConfig extends HeadGeometry {
   mean: number[];
   std: number[];
-  encoder: { modelId: string; dimension: number };
   encoderDigest: string;
   weightsDigest: string;
   modelDigest: string;
-  metrics: TrainedHeadModel['metrics'];
 }
 
 export function exportArtifacts(model: TrainedHeadModel): HeadArtifactBundle {
-  const encDigest = encoderDigest(model.encoder.modelId, model.encoder.dimension);
-  const modelDigest = composeModelDigest(encDigest, model.weightsDigest);
-  const weightsBytes = Buffer.concat([
-    Buffer.from(model.weights.buffer, model.weights.byteOffset, model.weights.byteLength),
-    (() => {
-      const b = Buffer.alloc(4);
-      b.writeFloatLE(model.bias);
-      return b;
-    })(),
-  ]);
+  const encoderId = encoderDigest(model.encoder.modelId, model.encoder.dimension);
+  const modelDigest = composeModelDigest(encoderId, model.weightsDigest);
   const config: HeadArtifactConfig = {
-    headId: model.headId,
-    rubric: model.rubric,
-    axis: model.axis,
-    kind: model.kind,
-    embeddingDim: model.embeddingDim,
-    actionFeatureDim: model.actionFeatureDim,
-    gameFeatureDim: model.gameFeatureDim,
+    ...geometryOf(model),
     mean: [...model.mean],
     std: [...model.std],
-    encoder: model.encoder,
-    encoderDigest: encDigest,
+    encoderDigest: encoderId,
     weightsDigest: model.weightsDigest,
     modelDigest,
-    metrics: model.metrics,
   };
-  return { config, weightsBytes, modelDigest };
+  return { config, weightsBytes: weightsBytes(model.weights, model.bias), modelDigest };
 }
 
 export async function writeHeadArtifacts(
