@@ -19,6 +19,6 @@ export class GoalBiasedSampling implements SamplingStrategy {
   };
 
   sample(memory: MemoryView, count: number): Concept[] {
-    return rankedSample(memory.listConcepts(), count, goalBiasScore(memory.getGoals()));
+    return rankedSample(memory.conceptValues(), count, goalBiasScore(memory.getGoals()));
   }
 }

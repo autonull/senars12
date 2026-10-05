@@ -201,6 +201,19 @@ export const deferred = <T>(): Deferred<T> => {
 };
 
 /**
+ * Run an async generator to completion and return its `return` value, discarding
+ * the yields. The reason a cycle *streams* its phases is that a caller may want
+ * to observe them; the reason a caller may not want to is that every phase is
+ * written as a `yield`, so "run it" was two hand-written drain loops that a
+ * caller could get subtly wrong.
+ */
+export async function drain<T, R>(iter: AsyncGenerator<T, R>): Promise<R> {
+  let next = await iter.next();
+  while (!next.done) next = await iter.next();
+  return next.value;
+}
+
+/**
  * Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
  * leaving `work` running. The interruptible-execution primitive — pair with
  * `AbortSignal` when the loser must stop.

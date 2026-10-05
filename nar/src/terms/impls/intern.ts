@@ -1,4 +1,4 @@
-import { getOrInsert, LruCache } from '@senars/util';
+import { BoundedMap, getOrInsert } from '@senars/util';
 import { COMMUTATIVE_OPS, NARY_OPS, OPERATORS } from '../operators.js';
 import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.js';
 import { VARIABLE_SYMBOL } from '../types.js';
@@ -8,7 +8,10 @@ import { INVALID_ATOM_CHARS_REGEX } from './valid-atom.js';
 
 const TERM_CACHE_MAX_SIZE = 10000;
 
-const termCache = new LruCache<string, Term>(TERM_CACHE_MAX_SIZE);
+// FIFO, not LRU: a term is immutable and interned, so a hit's recency carries
+// no information the key does not already, and LRU's read costs a delete+set on
+// the hottest read in the engine — every atom and every compound construction.
+const termCache = new BoundedMap<string, Term>({ maxSize: TERM_CACHE_MAX_SIZE, eviction: 'fifo' });
 
 const cache = <T extends Term>(term: T, key: string): T => {
   termCache.set(key, term);

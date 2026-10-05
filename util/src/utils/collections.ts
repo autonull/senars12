@@ -93,6 +93,39 @@ export const collectUpTo = <T, R = T>(
 };
 
 /**
+ * How many items a share of a pool comes to — the arithmetic behind every
+ * bounded slice, sampling window and holdout split, which each re-derived as
+ * `max(1, floor(len * fraction))` (or `ceil`) and left the two roundings to
+ * disagree across the tree.
+ *
+ * `floor` is what separates a *share* from *nothing*: a site that must always
+ * make progress passes `1` (the default), and a site that must be faithful to a
+ * zero share passes `0`.
+ */
+export const shareCount = (
+  population: number,
+  fraction: number,
+  floor = 1,
+  round: (value: number) => number = Math.floor
+): number => Math.max(floor, round(population * fraction));
+
+/**
+ * {@link shareCount} read backwards — how many items one of `parts` equal shares
+ * of `whole` comes to, which is what stratifying a population into bands is.
+ *
+ * It has to stay a division rather than `shareCount(whole, 1 / parts)`: a
+ * non-terminating reciprocal loses the quotient by one at every exact multiple
+ * (`98 * (1/49)` is `1.999…`), which is a sampling window silently admitting half
+ * of what it was sized for.
+ */
+export const perPart = (
+  whole: number,
+  parts: number,
+  floor = 1,
+  round: (value: number) => number = Math.floor
+): number => Math.max(floor, round(whole / parts));
+
+/**
  * The first `fraction` of `items`, at least `count` and never all of them.
  *
  * Pressure relief always wants a *share* of a pool, and every site computed it as
@@ -111,7 +144,7 @@ export const shareOf = <T>(
   count: number = 0,
   population: number = items.length
 ): T[] => {
-  const target = Math.min(items.length, Math.max(count, Math.ceil(population * fraction)));
+  const target = Math.min(items.length, shareCount(population, fraction, count, Math.ceil));
   return items.slice(0, Math.max(0, target));
 };
 
@@ -514,7 +547,38 @@ export function keyedBy<T, K extends PropertyKey, V = T>(
   return record;
 }
 
-const entryKey = <K extends PropertyKey>([key]: readonly [K, unknown]): K => key;
+const entryKey = <K>([key]: readonly [K, unknown]): K => key;
+
+/**
+ * {@link keyedBy}'s `Map` twin — `new Map(items.map(i => [i.key, i]))`, which
+ * eleven sites spelled out because `keyedBy` answered with a `Record` and a
+ * lookup table does not have to be an object. Same derived key, same optional
+ * projection, and the keys may be any `K` rather than a `PropertyKey`.
+ */
+export function indexBy<T, K, V = T>(
+  items: Iterable<T>,
+  key: (item: T) => K,
+  value: (item: T, key: K) => V = (item) => item as unknown as V
+): Map<K, V> {
+  const index = new Map<K, V>();
+  for (const item of items) {
+    const k = key(item);
+    index.set(k, value(item, k));
+  }
+  return index;
+}
+
+/**
+ * {@link mapToRecord}'s `Map` twin — the `new Map([...map].map(...))` copy that
+ * projects each value *with its own key*, which is the half of the idiom a
+ * derived key cannot express.
+ */
+export function indexMap<K, V, W = V>(
+  map: ReadOnlyLookup<K, V>,
+  project: (value: V, key: K) => W = (value) => value as unknown as W
+): Map<K, W> {
+  return indexBy(map, entryKey<K>, ([, value], key) => project(value, key));
+}
 
 /**
  * Re-key a record's values while keeping its keys — the `Object.fromEntries(

@@ -1,4 +1,11 @@
-import { type CallTally, clamp01, flooredRatio, selectTopN } from '@senars/util';
+import {
+  type CallTally,
+  clamp01,
+  flooredRatio,
+  incrementCount,
+  selectTopN,
+  shareCount,
+} from '@senars/util';
 
 /**
  * Selection weights: how often a rule worked dominates, how fast it answered
@@ -27,10 +34,10 @@ export type RulePerformance = { get(ruleId: string): CallTally | undefined };
  * Fallback edges guarantee non-regression when LM rules fail.
  */
 
-import { type CoActivationEdge, ConceptGraph } from '../../memory/ConceptGraph.js';
+import { ConceptGraph } from '../../memory/ConceptGraph.js';
 
 import type { ModelRule } from '../../rules/types.js';
-import { termsEqual } from '../../terms';
+import { termKey } from '../../terms';
 import type { Term } from '../../terms/index.js';
 import type { ComponentMetadata, ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
 
@@ -87,8 +94,20 @@ export class RuleGraph implements ModelRuleSelector {
     const coActivations = this.graph.getCoActivations(focusTerm, 20);
     if (coActivations.length === 0) return this.fallbackSelect(rules);
 
+    // Edge weight per matched target, folded once for the whole selection. The
+    // per-(rule, edge) `termsEqual` this replaced was a recursive descent on both
+    // sides of the pair, and the edges do not move while the rules are scored.
+    const edgeScoreByTarget = new Map<string, number>();
+    for (const edge of coActivations) {
+      incrementCount(
+        edgeScoreByTarget,
+        termKey(edge.targetTerm),
+        edge.weight * this.fallbackWeight * SELECTION_WEIGHTS.edge
+      );
+    }
+
     const scoredRules = rules.map((rule) => {
-      let score = 0;
+      let score = edgeScoreByTarget.get(termKey(rule.condition)) ?? 0;
       const perf = this.#rulePerformance?.get(rule.id);
       if (perf) {
         score += perf.successRate * SELECTION_WEIGHTS.successRate;
@@ -96,19 +115,12 @@ export class RuleGraph implements ModelRuleSelector {
           clamp01(flooredRatio(LATENCY_CREDIT_MS, perf.averageDuration)) *
           SELECTION_WEIGHTS.latency;
       }
-      for (const edge of coActivations) {
-        if (this.ruleMatchesEdge(rule, edge)) {
-          score += edge.weight * this.fallbackWeight * SELECTION_WEIGHTS.edge;
-        }
-      }
       return { rule, score };
     });
 
-    const selected = selectTopN(
-      scoredRules,
-      Math.max(1, Math.floor(rules.length * 0.5)),
-      (s) => s.score
-    ).map((s) => s.rule);
+    const selected = selectTopN(scoredRules, shareCount(rules.length, 0.5), (s) => s.score).map(
+      (s) => s.rule
+    );
 
     // Activate focus term and selected rule condition terms for future co-activation learning
     this.graph.activate(focusTerm);
@@ -121,7 +133,7 @@ export class RuleGraph implements ModelRuleSelector {
 
   private fallbackSelect(rules: ModelRule[]): ModelRule[] {
     // Return top-N rules by registration order (no priority field on LM rules)
-    const limit = Math.max(1, Math.floor(rules.length * 0.3));
+    const limit = shareCount(rules.length, 0.3);
     return rules.slice(0, limit);
   }
 
@@ -131,10 +143,6 @@ export class RuleGraph implements ModelRuleSelector {
     const firstRule = rules[0];
     if (!firstRule) return null;
     return firstRule.condition;
-  }
-
-  private ruleMatchesEdge(rule: ModelRule, edge: CoActivationEdge): boolean {
-    return termsEqual(rule.condition, edge.targetTerm);
   }
 
   /** Update graph with new co-activation from successful derivation. */

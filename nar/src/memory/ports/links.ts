@@ -14,7 +14,7 @@ import type { LinkEntry, LinkType } from '../links/types.js';
 export interface LinkPort {
   getLinks(
     sourceTerm: Term,
-    options?: { layer?: string; type?: LinkType; minPriority?: number }
+    options?: { layer?: string; type?: LinkType; minPriority?: number; maxResults?: number }
   ): LinkEntry[];
   getLinkPriority(sourceTerm: Term, targetTerm: Term, layerName?: string): number;
   addLink(

@@ -5,7 +5,7 @@
  * calibrator.
  */
 
-import { getOrInsert } from '@senars/util';
+import { getOrInsert, indexBy } from '@senars/util';
 import { createIsotonicCalibrator } from './calibration.js';
 import { dominantDistribution, legendFrom, uniformDistribution } from './distribution.js';
 import {
@@ -101,7 +101,7 @@ export function createHeadsForGroup(
   group: HeadGroup,
   options: HeadFactoryOptions
 ): Map<RubricId, JudgmentHead> {
-  return new Map(headSpecsInGroup(group).map((spec) => [spec.rubric, createHead(spec, options)]));
+  return indexBy(headSpecsInGroup(group), (spec) => spec.rubric, (spec) => createHead(spec, options));
 }
 
 export function createHeadById(id: HeadId, options: HeadFactoryOptions) {
@@ -110,7 +110,7 @@ export function createHeadById(id: HeadId, options: HeadFactoryOptions) {
 
 /** Every head in one map, in ontology order — what the manifold judges with. */
 export function createAllHeads(options: HeadFactoryOptions): Map<RubricId, JudgmentHead> {
-  return new Map(ALL_HEAD_SPECS.map((spec) => [spec.rubric, createHead(spec, options)]));
+  return indexBy(ALL_HEAD_SPECS, (spec) => spec.rubric, (spec) => createHead(spec, options));
 }
 
 export function groupQueries(group: HeadGroup): JudgmentQuery[] {

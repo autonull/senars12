@@ -7,6 +7,6 @@ export class DiverseSampling implements SamplingStrategy {
   readonly metadata = { name: 'diverse', description: 'Stratified sample across priority bands' };
 
   sample(memory: MemoryView, count: number): Concept[] {
-    return stratifiedSample(memory.listConcepts(), count, (c) => c.priority);
+    return stratifiedSample(memory.conceptValues(), count, (c) => c.priority);
   }
 }

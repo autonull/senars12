@@ -9,6 +9,8 @@
  * or reach up to `nar` for it.
  */
 
+import { shareCount } from './collections.js';
+
 /** Injectable randomness — a seeded stream, an LCG, or `Math.random`. */
 export type RandomSource = () => number;
 
@@ -160,7 +162,7 @@ export const holdoutSplit = <T>(
   rng: RandomSource
 ): { holdout: T[]; train: T[] } => {
   const shuffled = shuffleInPlace([...items], rng);
-  const cut = Math.min(shuffled.length, Math.max(1, Math.floor(shuffled.length * fraction)));
+  const cut = Math.min(shuffled.length, shareCount(shuffled.length, fraction));
   return { holdout: shuffled.slice(0, cut), train: shuffled.slice(cut) };
 };
 

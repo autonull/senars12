@@ -9,7 +9,7 @@
 import { join } from 'node:path';
 import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import type { LMTask } from '@senars/util';
-import { ensureDirSync, periodic, utcDate } from '@senars/util';
+import { ensureDirSync, indexBy, periodic, utcDate } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import type { LanguageModel } from 'ai';
 import { z } from 'zod';
@@ -247,7 +247,7 @@ export class ProviderRuntime {
   }
 
   getAllCircuitBreakers(): Map<LMProviderName, ProviderHealth> {
-    return new Map([...this.circuitBreakers.keys()].map((p) => [p, this.breaker(p)]));
+    return indexBy(this.circuitBreakers.keys(), (p) => p, (p) => this.breaker(p));
   }
 
   /** Close all breakers and clear failure counts (test/bench isolation between independent scenarios). */

@@ -11,7 +11,7 @@
  * strategies→lm→nar SCC.
  */
 
-import { ensureArray, formatIssues, sha256Hex, stableStringify } from '@senars/util';
+import { ensureArray, formatIssues, indexBy, sha256Hex, stableStringify } from '@senars/util';
 import { z, type ZodError } from 'zod';
 import { describeStrategyExpression, type StrategyExpression } from '../reason/strategy-algebra.js';
 import type { RandomSource } from '../types/primitives.js';
@@ -179,7 +179,7 @@ export const strategySpecErrors = (
   config: StrategyConfig | undefined,
   registrations: readonly StrategyRegistration[]
 ): string[] => {
-  const byName = new Map(registrations.map((r) => [r.name, r]));
+  const byName = indexBy(registrations, (r) => r.name);
   const known = [...byName.keys()].sort();
   const errors: string[] = [];
 

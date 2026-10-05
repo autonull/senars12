@@ -39,6 +39,21 @@ export const snapshotBudget = <T extends ReasoningBudget>(budget: T): T => ({
   consumed: { ...budget.consumed },
 });
 
+/**
+ * The same ceilings over unspent consumption — the counters at zero and no
+ * termination reason, which is what "a fresh spend account for these limits"
+ * means. The gate's per-scope cache and the scope table both wanted exactly
+ * that and each spelled it out, so neither was obliged to remember the *reason*
+ * half: a scope could inherit the base's reason and fail closed on a budget it
+ * had never spent. `ceiling` overrides the one limit a scope spends in.
+ */
+export const freshBudget = <T extends ReasoningBudget>(budget: T, ceiling?: Partial<T>): T => ({
+  ...budget,
+  ...ceiling,
+  consumed: zeroConsumed(),
+  terminationReason: undefined,
+});
+
 /** The four AIKR dimensions a budget is limited in — its whole ceiling. */
 export type BudgetLimits = Pick<
   ReasoningBudget,

@@ -1,4 +1,4 @@
-import { selectTopN, sortBy } from '@senars/util';
+import { perPart, selectTopN, sortBy } from '@senars/util';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { SamplingStrategy } from '../types.js';
@@ -29,8 +29,8 @@ export const stratifiedSample = (
 ): Concept[] => {
   if (count <= 0) return [];
   const sorted = sortBy(concepts, score);
-  const perBand = Math.max(1, Math.ceil(count / bands));
-  const bandSize = Math.max(1, Math.floor(sorted.length / bands));
+  const perBand = perPart(count, bands, 1, Math.ceil);
+  const bandSize = perPart(sorted.length, bands);
   const result: Concept[] = [];
   for (let b = 0; b < bands; b++)
     result.push(...sorted.slice(b * bandSize, b * bandSize + bandSize).slice(0, perBand));

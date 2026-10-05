@@ -13,7 +13,7 @@ import {
   toError,
   type ModelRuleStats,
 } from '@senars/util';
-import { findConflicts } from '../../cognitive/impls/conflict-utils.js';
+import { countContradictions } from '../../cognitive/impls/conflict-utils.js';
 import type { DriveManager } from '../../drives';
 import { type ControlBudgetPort, UNBUDGETED } from '../../kernel/control-budgets.js';
 import { GATE_LOG_CAPACITY } from '../../kernel/event-ring.js';
@@ -21,7 +21,7 @@ import type { MemoryReader } from '../../memory/ports/index.js';
 import type { RulePerformance } from '../../strategies/lm-graph/RuleGraph.js';
 import type { ModelRuleSelector } from '../../strategies/types.js';
 import type { StampType, Term } from '../../terms';
-import { Truth, type Truth as TruthType, termDepth, termKey } from '../../terms';
+import { TermMap, Truth, type Truth as TruthType, termDepth, termKey } from '../../terms';
 import type { NarEventBus, Task } from '../../types';
 import type {
   InferenceTable,
@@ -103,7 +103,7 @@ export class RuleProcessor {
     create: createCallTally,
   });
   // Reusable buffers to avoid allocations in hot paths
-  private readonly seenBuffer = new Map<string, RuleResult>();
+  private readonly seenBuffer = new TermMap<RuleResult>();
 
   private modelRuleWorkSink: ModelRuleWorkSink | null = null;
   private limitConclusionGrowth = false;
@@ -252,7 +252,7 @@ export class RuleProcessor {
     return {
       totalConcepts: stats?.totalConcepts ?? 0,
       memoryPressure: stats?.memoryPressure ?? 0,
-      conflictCount: beliefs ? findConflicts(beliefs).length : 0,
+      conflictCount: beliefs ? countContradictions(beliefs) : 0,
       driveState: driveManager
         ? keyedBy(
             driveManager.getAllStates(),
@@ -313,13 +313,11 @@ export class RuleProcessor {
 
   processSync(p1: RuleInput, p2: RuleInput): RuleResult[] {
     this.seenBuffer.clear();
-    for (const { conclusion, ruleResult } of this.applySyncRules(p1, p2)) {
-      const existing = this.seenBuffer.get(conclusion);
-      if (!existing || ruleResult.priority > existing.priority) {
-        this.seenBuffer.set(conclusion, ruleResult);
-      }
+    for (const { term, ruleResult } of this.applySyncRules(p1, p2)) {
+      const existing = this.seenBuffer.get(term);
+      if (!existing || ruleResult.priority > existing.priority) this.seenBuffer.set(term, ruleResult);
     }
-    this.resultBuffer = Array.from(this.seenBuffer.values());
+    this.resultBuffer = [...this.seenBuffer.values()];
     this.recorder.finish();
     return this.resultBuffer;
   }
@@ -332,7 +330,7 @@ export class RuleProcessor {
   private *applySyncRules(
     p1: RuleInput,
     p2: RuleInput
-  ): Generator<{ conclusion: string; ruleResult: RuleResult }> {
+  ): Generator<{ term: Term; ruleResult: RuleResult }> {
     // The record names the first premise in its text form; the recorder is opt-in,
     // so the serialization is paid only when something will read it.
     // Premise identity for the whole rule sweep, resolved once: `termKey` is the
@@ -347,7 +345,11 @@ export class RuleProcessor {
     const matched = this.table.candidates(p1.term.kind, p2.term.kind);
     const metaActive = this.metaActive(matched);
     // Premise depth is a property of the pair, not of the rule concluding over it.
-    const premiseDepth = Math.max(termDepth(p1.term), termDepth(p2.term));
+    // Behind the flag: `termDepth` is a tree descent that is not memoised, and
+    // the growth limit is off by default, so the walk decided nothing.
+    const premiseDepth = this.limitConclusionGrowth
+      ? Math.max(termDepth(p1.term), termDepth(p2.term))
+      : 0;
 
     for (const rule of matched) {
       if (!rule.sync) continue;
@@ -360,7 +362,7 @@ export class RuleProcessor {
       try {
         const result = rule.apply([p1.term, p2.term], [p1, p2]);
         if (!result) continue;
-        if (!validateRuleOutput(result, [p1.term, p2.term])) {
+        if (!validateRuleOutput(result)) {
           this.eventBus?.emit('rule:output-rejected', { ruleId: rule.id, term: result.toString() });
           continue;
         }
@@ -389,7 +391,7 @@ export class RuleProcessor {
           lmCalls: 0,
           lmTokens: 0,
         });
-        yield { conclusion, ruleResult };
+        yield { term: result as Term, ruleResult };
       } catch (error) {
         this.handleRuleError(error, rule.id);
       }

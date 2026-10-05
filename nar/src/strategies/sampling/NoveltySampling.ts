@@ -10,6 +10,6 @@ export class NoveltySampling implements SamplingStrategy {
   };
 
   sample(memory: MemoryView, count: number): Concept[] {
-    return rankedSample(memory.listConcepts(), count, (c) => -(c.lastAccessedAt ?? 0));
+    return rankedSample(memory.conceptValues(), count, (c) => -(c.lastAccessedAt ?? 0));
   }
 }

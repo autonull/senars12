@@ -4,6 +4,7 @@ import {
   overlapCount,
   safeRatio,
   selectTopN,
+  shareCount,
   takeLast,
   tokenizeWords,
 } from '@senars/util';
@@ -89,29 +90,14 @@ export class ContextAssembler {
 
     // Prune proportionally
     const ratio = safeRatio(availableBudget, currentTokens);
+    const prune = <T>(items: T[] = []): T[] => items.slice(0, shareCount(items.length, ratio));
     return {
-      beliefs: this.pruneArray(
-        context.beliefs ?? [],
-        Math.max(1, Math.floor((context.beliefs ?? []).length * ratio))
-      ),
-      recentDerivations: this.pruneArray(
-        context.recentDerivations ?? [],
-        Math.max(1, Math.floor((context.recentDerivations ?? []).length * ratio))
-      ),
+      beliefs: prune(context.beliefs),
+      recentDerivations: prune(context.recentDerivations),
       memoryHealth: context.memoryHealth,
-      activeGoals: this.pruneArray(
-        context.activeGoals ?? [],
-        Math.max(1, Math.floor((context.activeGoals ?? []).length * ratio))
-      ),
-      recentExamples: this.pruneArray(
-        context.recentExamples ?? [],
-        Math.max(1, Math.floor((context.recentExamples ?? []).length * ratio))
-      ),
+      activeGoals: prune(context.activeGoals),
+      recentExamples: prune(context.recentExamples),
     };
-  }
-
-  private pruneArray<T>(arr: T[], maxLen: number): T[] {
-    return arr.slice(0, maxLen);
   }
 
   private extractRelatedBeliefs(nar: NAR, input: string, max: number): string[] {

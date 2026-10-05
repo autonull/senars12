@@ -63,13 +63,16 @@ export class LinkManager {
 
   getLinks(
     sourceTerm: Term,
-    options?: { layer?: string; type?: LinkType; minPriority?: number }
+    options?: { layer?: string; type?: LinkType; minPriority?: number; maxResults?: number }
   ): LinkEntry[] {
     return (
       this.layers
         .get(options?.layer ?? DEFAULT_LAYER)
-        ?.getLinksByTerm(sourceTerm, { type: options?.type, minPriority: options?.minPriority }) ??
-      []
+        ?.getLinksByTerm(sourceTerm, {
+          type: options?.type,
+          minPriority: options?.minPriority,
+          maxResults: options?.maxResults,
+        }) ?? []
     );
   }
 

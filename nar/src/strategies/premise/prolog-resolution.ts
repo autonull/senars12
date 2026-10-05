@@ -26,7 +26,6 @@ interface ResolutionState {
   goals: Term[];
   substitution: Substitution;
   depth: number;
-  derivation: Clause[];
 }
 
 /**
@@ -40,7 +39,7 @@ function unifyTerms(t1: Term, t2: Term, subst: Substitution): Substitution | nul
 
 function findHornClauses(memory: MemoryView): Clause[] {
   const clauses: Clause[] = [];
-  for (const concept of memory.listConcepts()) {
+  for (const concept of memory.conceptValues()) {
     const belief = concept.topBelief();
     if (!belief) continue;
     const term = concept.term;
@@ -100,7 +99,6 @@ function sldResolve(
         goals: newGoals,
         substitution: headSubst,
         depth: state.depth + 1,
-        derivation: [...state.derivation, clause],
       },
       results,
       memory
@@ -130,7 +128,6 @@ export class PrologResolutionStrategy implements Strategy {
       goals: [task.term],
       substitution: new Map(),
       depth: 0,
-      derivation: [],
     };
 
     sldResolve(task.term, clauses, this.config, initialState, results, memory);

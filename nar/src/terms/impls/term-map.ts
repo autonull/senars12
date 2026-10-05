@@ -17,10 +17,6 @@ export interface TermMapEntry<V> {
 }
 
 export class TermMap<V> extends TermCollection<TermMapEntry<V>> {
-  protected override keyOf(item: TermMapEntry<V>): string {
-    return this.keyOfTerm(item.key);
-  }
-
   get(term: Term): V | undefined {
     return this.slots.get(this.keyOfTerm(term))?.value;
   }

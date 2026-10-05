@@ -255,8 +255,7 @@ export class Memory implements MemoryPorts {
     if (!concept) return [];
 
     const results = this.linkManager
-      .getLinks(term)
-      .slice(0, limit)
+      .getLinks(term, { maxResults: limit })
       .map((link) => this.concepts.get(link.targetTerm))
       .filter((c): c is Concept => !!c);
 

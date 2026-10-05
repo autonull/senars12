@@ -17,11 +17,14 @@ export class GoalRelevanceAttention extends SimpleAttention {
   }
 
   private goalOverlap(concept: Concept, memory: MemoryView): number {
-    const termStr = concept.term.toString().toLowerCase();
-    const goals = memory.getFocus().getActiveGoals();
+    // `prime` runs once per sampled concept per cycle, so anything recomputed per
+    // goal inside this scan is recomputed `concepts x goals` times.
+    const goals = memory
+      .getFocus()
+      .getActiveGoals()
+      .map((goal) => goal.term.toString().toLowerCase());
     if (goals.length === 0) return 0;
-    return maxScore(goals, (goal) =>
-      wordOverlap(termStr, goal.term.toString().toLowerCase(), TERM_SEPARATORS)
-    );
+    const termStr = concept.term.toString().toLowerCase();
+    return maxScore(goals, (goal) => wordOverlap(termStr, goal, TERM_SEPARATORS));
   }
 }

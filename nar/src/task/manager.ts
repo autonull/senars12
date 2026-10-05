@@ -209,5 +209,6 @@ export class TaskManager {
     wrapper.completedAt = Date.now();
     this.pending.delete(taskId);
     this.failed.set(taskId, wrapper);
+    this.disarm(taskId);
   }
 }

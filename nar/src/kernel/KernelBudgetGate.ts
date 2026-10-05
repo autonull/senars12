@@ -8,6 +8,7 @@ import {
   budgetRemaining,
   chargeBudget,
   createBudget,
+  freshBudget,
   isCapacityExhausted,
   snapshotBudget,
   zeroConsumed,
@@ -106,16 +107,12 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
     return budget;
   }
 
-  private freshCounters(): ReasoningBudget {
-    return { ...this.budget, consumed: zeroConsumed(), terminationReason: undefined };
-  }
-
   private resolveBudget(input: BudgetGateInput): ReasoningBudget {
     if (input.budget) return this.adopt(input.budget);
     if (!input.scopeId) return this.budget;
     let scoped = this.scopes.get(input.scopeId);
     if (!scoped) {
-      scoped = this.freshCounters();
+      scoped = freshBudget(this.budget);
       this.scopes.set(input.scopeId, scoped);
     }
     return scoped;
@@ -190,7 +187,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   }
 
   createScope(scopeId: string, budget?: ReasoningBudget): void {
-    this.scopes.set(scopeId, budget ? this.adopt(budget) : this.freshCounters());
+    this.scopes.set(scopeId, budget ? this.adopt(budget) : freshBudget(this.budget));
   }
 
   /**

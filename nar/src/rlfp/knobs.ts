@@ -1,4 +1,4 @@
-import { getNested, keyedBy, setNested } from '@senars/util';
+import { getNested, indexBy, keyedBy, setNested } from '@senars/util';
 import { type BoundProjection, cognitiveBound, systemOneBound } from '@senars/util/config';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 
@@ -136,7 +136,7 @@ const systemOneKnobs: readonly KnobSpec[] = SYSTEM_ONE_KNOBS.map((boundPath) =>
 
 export const KNOB_SPECS: readonly KnobSpec[] = [...cognitiveKnobs, ...systemOneKnobs];
 
-const specByName = new Map(KNOB_SPECS.map((s) => [s.name, s]));
+const specByName = indexBy(KNOB_SPECS, (s) => s.name);
 
 export function findKnobSpec(name: string): KnobSpec | undefined {
   return specByName.get(name);

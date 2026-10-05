@@ -1,4 +1,4 @@
-import { errMsg, truncate as truncateText, type LMTask, type ToolCall } from '@senars/util';
+import { drain, errMsg, truncate as truncateText, type LMTask, type ToolCall } from '@senars/util';
 import {
   generateText,
   type LanguageModel,
@@ -252,10 +252,7 @@ export class ModelRunner {
   }
 
   async runToCompletion(composed: ComposedRequest, signal?: AbortSignal): Promise<ModelRunResult> {
-    const iter = this.run(composed, signal);
-    let next = await iter.next();
-    while (!next.done) next = await iter.next();
-    return next.value;
+    return drain(this.run(composed, signal));
   }
 
   private toMessages(composed: ComposedRequest): ModelMessage[] {

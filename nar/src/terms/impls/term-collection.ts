@@ -28,9 +28,6 @@ export abstract class TermCollection<T> {
     this.slots.clear();
   }
 
-  /** The canonical key an item is stored under. */
-  protected abstract keyOf(item: T): string;
-
   protected keyOfTerm(term: Term): string {
     return termKey(term);
   }

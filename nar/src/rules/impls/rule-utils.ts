@@ -18,7 +18,7 @@ export const deriveStamp = (p1: RuleInput, p2: RuleInput): StampType => {
 
 export const NEUTRAL_FN = (): TruthType => Truth.NEUTRAL;
 
-export const validateRuleOutput = (term: Term, _premises: [Term, Term]): boolean => {
+export const validateRuleOutput = (term: Term): boolean => {
   if (isTautology(term)) return false;
   const args = getArgs(term);
   if (args.length > 0) {

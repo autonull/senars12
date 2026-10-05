@@ -8,7 +8,7 @@
  * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive from `@senars/io`.
  */
 
-import { cachePath, clamp01, flooredRatio, LruCache } from '@senars/util';
+import { cachePath, clamp01, flooredRatio, indexMap, LruCache } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 
@@ -107,12 +107,7 @@ export class SourceReputation {
 
   /** Reputation table for `.status` / retrospective audits. */
   table(): ReadonlyMap<string, ReputationEntry & { multiplier: number }> {
-    return new Map(
-      [...this.#entries.keys()].map((key) => [
-        key,
-        { ...this.#entries.peek(key)!, multiplier: this.multiplier(key) },
-      ])
-    );
+    return indexMap(this.#entries, (entry, key) => ({ ...entry, multiplier: this.multiplier(key) }));
   }
 
   get size(): number {

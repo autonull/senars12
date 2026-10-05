@@ -1,4 +1,4 @@
-import { groupBy, selectTopN } from '@senars/util';
+import { groupBy, perPart, selectTopN } from '@senars/util';
 import type { ModelRule } from '../../rules/types.js';
 import type { ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
 
@@ -7,7 +7,7 @@ export class DiverseSelector implements ModelRuleSelector {
 
   select(rules: ModelRule[], ctx: ModelRuleSelectionContext): ModelRule[] {
     const byCat = groupBy(rules, (r) => r.category ?? 'general');
-    const perCat = Math.max(1, Math.floor(ctx.maxRules / byCat.size));
+    const perCat = perPart(ctx.maxRules, byCat.size);
     return selectTopN(
       [...byCat.values()].flatMap((cat) => selectTopN(cat, perCat, (rule) => rule.priority)),
       ctx.maxRules,

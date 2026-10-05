@@ -1,4 +1,4 @@
-import { BoundedRing, createLogger, errMsg, keyedBy, mean, rankBy, roundTo } from '@senars/util';
+import { BoundedRing, createLogger, errMsg, indexBy, keyedBy, mean, rankBy, roundTo } from '@senars/util';
 import { envBool } from '@senars/util/config';
 import type { CognitiveController } from './cognitive';
 import { ADMISSION_ORDER_CALL_SITE, EGRESS_VETO_CALL_SITE } from './decision/call-sites.js';
@@ -69,7 +69,7 @@ const META_GOALS: readonly { driveId: string; threshold: number; term: Term }[] 
   term: termParser.parse(goal.narsese),
 }));
 
-const META_GOAL_BY_DRIVE_ID = new Map(META_GOALS.map((g) => [g.driveId, g]));
+const META_GOAL_BY_DRIVE_ID = indexBy(META_GOALS, (g) => g.driveId);
 
 export interface NARExecutionOptions {
   memory: MemoryPorts;
@@ -489,7 +489,7 @@ export class NARExecution {
     // Restricted to the terms the decision was shown and the symbolic ranking
     // already admitted, so an invented option cannot widen the set — only the
     // order of the set that was on offer.
-    const weight = new Map(answer.distribution.map(({ option, p }) => [option, p]));
+    const weight = indexBy(answer.distribution, ({ option }) => option, ({ p }) => p);
     return rankBy(ranked, (task) => weight.get(task.term.toString()) ?? 0);
   }
 

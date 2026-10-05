@@ -101,9 +101,10 @@ const truthOps = {
     steps: number,
     independence: IndependenceStatus = 'unknown'
   ): Truth => {
-    let result = op(t1, t2);
-    if (independence === 'unknown') return result;
-    for (let i = 1; i < steps; i++) result = Truth.revision(result, op(t1, t2));
+    const contribution = op(t1, t2);
+    if (independence === 'unknown') return contribution;
+    let result = contribution;
+    for (let i = 1; i < steps; i++) result = Truth.revision(result, contribution);
     return result;
   },
 } as const;

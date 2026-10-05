@@ -1,4 +1,4 @@
-import { selectTopN, type TermTruth } from '@senars/util';
+import { rankBy, type TermTruth } from '@senars/util';
 
 export interface RankableDerivation {
   term: { toString(): string };
@@ -23,17 +23,13 @@ export function rankDerivations<T extends RankableDerivation>(
   results: T[],
   opts: RankingOptions = {}
 ): T[] {
-  const maxAdmissions = opts.maxAdmissions ?? DEFAULT_MAX_ADMISSIONS;
-  const minScore = opts.minScore ?? DEFAULT_MIN_SCORE;
-  return selectTopN(
-    results
-      .map((task) => {
-        const s = task.term.toString();
-        const score = task.truth ? scoreDerivation(s, task.truth.f, task.truth.c) : -1;
-        return { task, score };
-      })
-      .filter(({ score }) => score >= minScore),
-    maxAdmissions,
-    ({ score }) => score
-  ).map(({ task }) => task);
+  return rankBy(
+    results,
+    (task) =>
+      task.truth ? scoreDerivation(task.term.toString(), task.truth.f, task.truth.c) : -1,
+    {
+      where: (_task, score) => score >= (opts.minScore ?? DEFAULT_MIN_SCORE),
+      limit: opts.maxAdmissions ?? DEFAULT_MAX_ADMISSIONS,
+    }
+  );
 }

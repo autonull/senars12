@@ -1,4 +1,4 @@
-import { incrementCount, safeRatio } from '@senars/util';
+import { incrementCount, safeRatio, shareCount } from '@senars/util';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 
 export interface TrajectoryFeatures {
@@ -47,7 +47,7 @@ export function findCommonFeatures(trajectories: TrajectoryStep[][]): Map<string
     }
   }
 
-  const threshold = Math.max(1, Math.ceil(trajectories.length * 0.6));
+  const threshold = shareCount(trajectories.length, 0.6, 1, Math.ceil);
   const commonFeatures = new Map<string, number>();
 
   for (const [feature, count] of featureCounts.entries()) {

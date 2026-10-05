@@ -52,7 +52,7 @@ import {
   RULE_TABLE_SCHEMA_VERSION,
   validateRuleTable,
 } from '@senars/core/schemas';
-import { maxScore, pushCapped } from '@senars/util';
+import { indexBy, maxScore, pushCapped } from '@senars/util';
 
 import { type Term, Truth } from '../../terms';
 import type { InferenceTable, RegisteredRule, RuleFn, TruthFn } from '../types.js';
@@ -369,8 +369,8 @@ export class RuleTableStore {
 }
 
 export const diffArtifacts = (from: RuleTableArtifact, to: RuleTableArtifact): RuleTableDiff => {
-  const before = new Map(from.entries.map((entry) => [entry.ruleId, entry]));
-  const after = new Map(to.entries.map((entry) => [entry.ruleId, entry]));
+  const before = indexBy(from.entries, (entry) => entry.ruleId);
+  const after = indexBy(to.entries, (entry) => entry.ruleId);
   const added = to.entries.filter((e) => !before.has(e.ruleId)).map((e) => e.ruleId);
   const removed = from.entries.filter((e) => !after.has(e.ruleId)).map((e) => e.ruleId);
   const superseded = from.entries

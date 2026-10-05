@@ -9,10 +9,6 @@ import { TermCollection } from './term-collection.js';
 import type { Term } from '../types.js';
 
 export class TermSet extends TermCollection<Term> {
-  protected override keyOf(item: Term): string {
-    return this.keyOfTerm(item);
-  }
-
   add(term: Term): this {
     this.slots.set(this.keyOfTerm(term), term);
     return this;

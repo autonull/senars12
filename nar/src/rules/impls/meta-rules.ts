@@ -76,9 +76,11 @@ const buildOperationTerm = (toolName: string, argTerms: Term[]): Term =>
 /** Debug logging for meta-rules */
 const META_DEBUG = false;
 
-function metaLog(msg: string, data?: unknown): void {
+/** Lazy payload: the terms are stringified inside the guard, not to be dropped. */
+function metaLog(msg: string, data: () => unknown): void {
   if (META_DEBUG) {
-    console.log(`[META] ${msg}`, data ? JSON.stringify(data, null, 2) : '');
+    const payload = data();
+    console.log(`[META] ${msg}`, payload ? JSON.stringify(payload, null, 2) : '');
   }
 }
 
@@ -99,9 +101,9 @@ const metaRule = (id: string, body: MetaRuleBody): RegisteredRule => ({
   apply: (premises) => {
     const [p1, p2] = premises;
     const bound = body(p1, p2);
-    metaLog(`${id} check`, { p1: p1?.toString(), p2: p2?.toString(), bound });
+    metaLog(`${id} check`, () => ({ p1: p1?.toString(), p2: p2?.toString(), bound }));
     if (!bound) return undefined;
-    metaLog(`${id} FIRED`, { result: bound.toString() });
+    metaLog(`${id} FIRED`, () => ({ result: bound.toString() }));
     return bound;
   },
   sync: true,
@@ -112,6 +114,12 @@ const metaRule = (id: string, body: MetaRuleBody): RegisteredRule => ({
 
 /** The part of a meta-rule that differs: read two premises, emit a task or nothing. */
 type MetaRuleBody = (left: Term, right: Term) => Term | undefined;
+
+const FIX_PATTERNS: Record<string, string> = {
+  null_pointer_error: 'fix_pattern:null_check',
+  type_mismatch_error: 'fix_pattern:type_annotation',
+  out_of_bounds_error: 'fix_pattern:boundary_check',
+};
 
 /** Build registered meta-rules with proper patterns */
 export function buildMetaRules(): RegisteredRule[] {
@@ -136,14 +144,7 @@ export function buildMetaRules(): RegisteredRule[] {
     metaRule('meta-test-repair', (p1, p2) => {
       const errorPattern = extractVariableBinding(p2, 'error_pattern');
       if (!extractVariableBinding(p1, 'test_failed') || !errorPattern) return undefined;
-      const fixPatterns: Record<string, string> = {
-        null_pointer_error: 'fix_pattern:null_check',
-        type_mismatch_error: 'fix_pattern:type_annotation',
-        out_of_bounds_error: 'fix_pattern:boundary_check',
-      };
-      return buildOperationTerm('apply_fix', [
-        atom(fixPatterns[errorPattern] ?? 'fix_pattern:generic'),
-      ]);
+      return buildOperationTerm('apply_fix', [atom(FIX_PATTERNS[errorPattern] ?? 'fix_pattern:generic')]);
     }),
 
     // Schema promotion: (schema --> $s) & (confidence($s) > 0.9) & (frequency($s) > 10) ==> (^promote_rule($s))!

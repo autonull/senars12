@@ -1,34 +1,29 @@
 import { getOrInsert } from '@senars/util';
-import type { Term } from '../../terms';
 import { TermMap } from '../../terms';
 import type { Task } from '../../types';
-import { DEFAULT_DIVERGENCE_GAP } from '../../utils/divergence.js';
+import { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '../../utils/divergence.js';
 
 export { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '../../utils/divergence.js';
 
-export interface ConflictPair {
-  a: Term;
-  b: Term;
-}
+/**
+ * How many subjects contradict themselves.
+ *
+ * The scan is per subject, not per pair: `hasDivergence` already answers the
+ * subject question and stops at the first divergent pair, so the pair list this
+ * replaced was built only to have its length read — one object per conflicting
+ * pair, per cycle, thrown away. Buckets by term first, because beliefs about
+ * different subjects are not comparable at all.
+ */
+export const countContradictions = (beliefs: readonly Task[], gap = DEFAULT_DIVERGENCE_GAP): number => {
+  const frequenciesByTerm = new TermMap<number[]>();
+  for (const belief of beliefs) {
+    if (!belief.truth) continue;
+    getOrInsert(frequenciesByTerm, belief.term, () => []).push(belief.truth.f);
+  }
 
-export const findConflicts = (beliefs: Task[], gap = DEFAULT_DIVERGENCE_GAP): ConflictPair[] => {
-  const byTerm = new TermMap<Array<{ term: Term; f: number }>>();
-  for (const b of beliefs) {
-    if (!b.truth) continue;
-    getOrInsert(byTerm, b.term, () => []).push({ term: b.term, f: b.truth.f });
+  let contradictions = 0;
+  for (const frequencies of frequenciesByTerm.values()) {
+    if (hasDivergence(frequencies, gap)) contradictions++;
   }
-  const conflicts: ConflictPair[] = [];
-  for (const truths of byTerm.values()) {
-    for (let i = 0; i < truths.length; i++) {
-      for (let j = i + 1; j < truths.length; j++) {
-        if (Math.abs(truths[i]!.f - truths[j]!.f) > gap) {
-          conflicts.push({ a: truths[i]!.term, b: truths[j]!.term });
-        }
-      }
-    }
-  }
-  return conflicts;
+  return contradictions;
 };
-
-export const countContradictions = (beliefs: Task[], gap = DEFAULT_DIVERGENCE_GAP): number =>
-  findConflicts(beliefs, gap).length;

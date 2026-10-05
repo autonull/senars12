@@ -9,6 +9,7 @@ import { mintCognitiveEvent } from '../schemas/index.js';
 import {
   createLogger,
   dispatch,
+  drain,
   egressVerdict,
   errMsg,
   type LMTask,
@@ -345,10 +346,7 @@ export const runCycle = async (
   stimulus: CognitiveStimulus,
   phases: readonly MacroPhase[] = host.macroPipeline ?? DEFAULT_MACRO_PIPELINE
 ): Promise<string> => {
-  const stream = runCycleStream(host, stimulus, { pipeline: phases });
-  let next = await stream.next();
-  while (!next.done) next = await stream.next();
-  return next.value;
+  return drain(runCycleStream(host, stimulus, { pipeline: phases }));
 };
 
 export async function* runCycleStream(

@@ -27,7 +27,7 @@ import {
   BUDGET_RESOURCES,
   type BudgetLimits,
   type BudgetResource,
-  zeroConsumed,
+  freshBudget,
 } from '@senars/core/budget';
 import type { BudgetOperation, BudgetScopeId, ReasoningBudget } from '@senars/core/schemas';
 import { BUDGET_SCOPE_IDS } from '@senars/core/schemas';
@@ -136,9 +136,5 @@ export const scopeBudget = (
   scopeId: BudgetScopeId,
   base: ReasoningBudget,
   overrides: Partial<Record<BudgetScopeId, number>> = {}
-): ReasoningBudget => ({
-  ...base,
-  [scopeLimitKey(scopeId)]: scopeLimit(scopeId, overrides),
-  consumed: zeroConsumed(),
-  terminationReason: undefined,
-});
+): ReasoningBudget =>
+  freshBudget(base, { [scopeLimitKey(scopeId)]: scopeLimit(scopeId, overrides) });

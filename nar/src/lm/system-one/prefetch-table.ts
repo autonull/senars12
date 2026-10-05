@@ -4,6 +4,7 @@
  * incumbent reflex covering whatever the table did not score.
  */
 
+import { indexBy } from '@senars/util';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, Reflex } from '../../reflex/Reflex.js';
 
@@ -60,7 +61,7 @@ export function proposeFromTable<Row>({
     rows.size < legalActions.length
       ? (fallback.propose(state, legalActions) as ActionProposal[])
       : [];
-  const byAction = new Map(fallbackProposals.map((p) => [String(p.action), p]));
+  const byAction = indexBy(fallbackProposals, (p) => String(p.action));
 
   const proposals: ActionProposal[] = [];
   for (const legal of legalActions) {
