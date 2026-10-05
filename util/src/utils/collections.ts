@@ -576,14 +576,26 @@ export function removeFromSet<K, T>(map: KeyedSetStore<K, T>, key: K, value: T):
 }
 
 /**
- * Drop-oldest bounded buffer — the single AIKR ring behind every bounded log
- * (revision history, decision logs, execution history, reward history). O(1)
- * amortized: one `shift()` per push.
+ * What a bounded ring does when it is full: evict the oldest entry, or refuse the
+ * newcomer. A parameter rather than a second class, because the two are the same
+ * FIFO with one different answer at capacity — and having two classes meant the
+ * refuse-shaped one had no occupancy signal and no iteration, so it was invisible
+ * to everything that reports pressure.
+ */
+export type OverflowPolicy = 'drop-oldest' | 'refuse';
+
+/**
+ * Bounded FIFO — the single AIKR ring behind every bounded log (revision history,
+ * decision logs, execution history, reward history) and every bounded queue (thread
+ * mailboxes). O(1) amortized: one `shift()` per push.
  */
 export class BoundedRing<T> implements BoundedContainer<T> {
   readonly #items: T[] = [];
 
-  constructor(readonly capacity: number) {
+  constructor(
+    readonly capacity: number,
+    readonly overflow: OverflowPolicy = 'drop-oldest'
+  ) {
     if (capacity < 1) throw new RangeError(`BoundedRing capacity must be ≥1, got ${capacity}`);
   }
 
@@ -595,9 +607,32 @@ export class BoundedRing<T> implements BoundedContainer<T> {
     return occupancy(this.size(), this.capacity);
   }
 
-  /** Append, dropping the oldest item past capacity. Returns what was displaced. */
+  /**
+   * Append. Returns whichever item did *not* stay: the displaced oldest under
+   * `drop-oldest`, the rejected newcomer under `refuse`, `undefined` when there was
+   * room. One rule for both policies, so a caller that wants to re-queue or count
+   * what it lost reads one return value.
+   */
   push(item: T): T | undefined {
-    return pushCapped(this.#items, item, this.capacity);
+    if (this.#items.length >= this.capacity) {
+      if (this.overflow === 'refuse') return item;
+      const displaced = this.#items.shift();
+      this.#items.push(item);
+      return displaced;
+    }
+    this.#items.push(item);
+    return undefined;
+  }
+
+  /**
+   * Append only if there is room, reporting whether the item was admitted. `false`
+   * means the ring is full and refuses; under `drop-oldest` an item is always
+   * admitted, because that policy pays for admission with an eviction.
+   */
+  tryPush(item: T): boolean {
+    if (this.overflow === 'refuse' && this.#items.length >= this.capacity) return false;
+    this.push(item);
+    return true;
   }
 
   /** Remove and return the oldest item — the dequeue half of {@link push}. */

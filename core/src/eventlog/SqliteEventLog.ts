@@ -75,10 +75,12 @@ export class SqliteEventLog extends AbstractEventLog {
       params.push(start, end);
     }
     const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
-    // Limit keeps the most recent events (matching InMemoryEventLog semantics).
+    // Clamped so a non-positive cap reads as "no rows", which is what
+    // `InMemoryEventLog.query` does with the same input; sqlite would otherwise
+    // read a negative LIMIT as no limit at all.
     const order =
       query.limit !== undefined
-        ? ` ORDER BY id DESC LIMIT ${Math.floor(query.limit)}`
+        ? ` ORDER BY id DESC LIMIT ${Math.max(0, Math.floor(query.limit))}`
         : ' ORDER BY id';
     // The `WHERE` shape varies with the filter, so this one is compiled per query
     // rather than cached — the shapes are caller-chosen, not a fixed statement.

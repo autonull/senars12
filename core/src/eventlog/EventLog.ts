@@ -4,11 +4,19 @@ export type { CognitiveEvent } from '../schemas/cognitive-events.js';
 
 import type { CognitiveEvent } from '../schemas/cognitive-events.js';
 
-/** Phase D (REFACTOR.todo1): indexed event-log query. All fields optional. */
+/**
+ * Filtered read of the log. All fields optional, and the *unfiltered* read is
+ * `getRange('', '')` — this exists so a caller that bounds its read can say so,
+ * and so an implementation with an index can filter and limit in the store
+ * rather than materializing the log and discarding most of it.
+ */
 export interface EventLogQuery {
   correlationId?: string;
+  /** Type allowlist. Empty or absent means *every* type, so `[]` is not "nothing". */
   types?: string[];
+  /** Inclusive `[from, to]` on `timestamp`; absent means unbounded. */
   timeRange?: [number, number];
+  /** Keep the most recent `limit` matching events, still returned in id order. */
   limit?: number;
 }
 
@@ -21,10 +29,17 @@ export interface EventLog {
     types?: string[];
   }): AsyncIterable<CognitiveEvent>;
 
-  /** Optional indexed query — implementations without an index may omit it. */
-  query?(query: EventLogQuery): Promise<CognitiveEvent[]>;
+  /**
+   * Filtered read. Required rather than optional because both implementations
+   * index for it and the one caller that needed it — episodic recall — was
+   * re-deriving the filter here against a whole-log `getRange`.
+   */
+  query(query: EventLogQuery): Promise<CognitiveEvent[]>;
 
   getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]>;
+
+  /** Release the log: stop subscribers, then the store (sqlite holds a handle). */
+  close(): Promise<void>;
 
   getSnapshot<T>(projectionName: string, version: number): Promise<T | null>;
 

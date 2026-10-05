@@ -4,6 +4,7 @@
  * step sequence exactly; narration streams through the phase chain via
  * `MacroContext.stream`.
  */
+
 import { mintCognitiveEvent } from '../schemas/index.js';
 import {
   createLogger,
@@ -15,6 +16,7 @@ import {
 
 import type { ChatStreamEvent } from '../chat.js';
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
+import { RECALL_WINDOW } from '../memory/types.js';
 import {
   type CycleHost,
   createMacroContext,
@@ -63,7 +65,7 @@ const recall = async (
     causationId: '',
   });
 
-  const working = host.memory.recent(50);
+  const working = host.memory.recent(RECALL_WINDOW);
   const episodic = await host.memory.queryEpisodic();
   const semantic = await host.memory.querySemantic(stimulus.text);
   const context: Context = { working, episodic, semantic };

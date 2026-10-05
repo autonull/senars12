@@ -1,7 +1,7 @@
 import { sortableIdSource } from '@senars/util';
 import { PushQueue } from '@senars/util/events';
 import { validateCognitiveEvent } from '../schemas/cognitive-events.js';
-import type { CognitiveEvent, EventLog } from './EventLog.js';
+import type { CognitiveEvent, EventLog, EventLogQuery } from './EventLog.js';
 import { EventLogError } from './EventLog.js';
 
 export interface EventLogLimits {
@@ -72,6 +72,8 @@ export abstract class AbstractEventLog implements EventLog {
   }
 
   abstract getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]>;
+
+  abstract query(query: EventLogQuery): Promise<CognitiveEvent[]>;
 
   async append(event: Omit<CognitiveEvent, 'id' | 'timestamp'>): Promise<CognitiveEvent> {
     if (this.#closed) {

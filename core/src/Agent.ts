@@ -23,7 +23,7 @@ import type { CognitiveStimulus, Derivation, Engine } from './engine/Engine.js';
 import type { EventLog } from './eventlog/EventLog.js';
 import { InMemoryEventLog } from './eventlog/InMemoryEventLog.js';
 import { MemoryService } from './memory/MemoryService.js';
-import type { PersistableSessionManager } from './memory/types.js';
+import { type PersistableSessionManager, RECALL_WINDOW } from './memory/types.js';
 import { registerBuiltinTools } from './motor/builtin-tools.js';
 import { ToolRegistry } from './motor/ToolRegistry.js';
 import { PolicyEngine } from './PolicyEngine.js';
@@ -268,7 +268,7 @@ export class Agent {
 
   getRecentDerivations(): Derivation[] {
     return this.memory
-      .recent(50)
+      .recent(RECALL_WINDOW)
       .filter((e) => e.type === 'derivation')
       .map((e) => e.payload as Derivation);
   }

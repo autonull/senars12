@@ -290,3 +290,52 @@ describe('BoundedRing iteration', () => {
     expect(groupBy(ring, (r) => r.n % 2).get(1)).toEqual([{ n: 1 }, { n: 3 }]);
   });
 });
+
+describe('BoundedRing overflow policy', () => {
+  it('drops the oldest past capacity, and says which one it dropped', () => {
+    const ring = new BoundedRing<number>(2);
+    expect(ring.push(1)).toBeUndefined();
+    expect(ring.push(2)).toBeUndefined();
+    expect(ring.push(3)).toBe(1);
+    expect([...ring]).toEqual([2, 3]);
+  });
+
+  it('refuses the newcomer past capacity, and hands back the refused item', () => {
+    const ring = new BoundedRing<number>(2, 'refuse');
+    expect(ring.push(1)).toBeUndefined();
+    expect(ring.push(2)).toBeUndefined();
+    // The item that did *not* stay is the one offered, not the oldest — which is
+    // what makes a refused send recoverable instead of a silently lost request.
+    expect(ring.push(3)).toBe(3);
+    expect([...ring]).toEqual([1, 2]);
+  });
+
+  it('tryPush admits under eviction and refuses under the refusing policy', () => {
+    const evicting = new BoundedRing<number>(1);
+    expect(evicting.tryPush(1)).toBe(true);
+    // Always admitted: the eviction policy pays with a neighbour, not the caller.
+    expect(evicting.tryPush(2)).toBe(true);
+    expect([...evicting]).toEqual([2]);
+
+    const refusing = new BoundedRing<number>(1, 'refuse');
+    expect(refusing.tryPush(1)).toBe(true);
+    expect(refusing.tryPush(2)).toBe(false);
+    expect([...refusing]).toEqual([1]);
+  });
+
+  it('reports occupancy either way, so a refusing queue is not invisible', () => {
+    const ring = new BoundedRing<number>(2, 'refuse');
+    expect(ring.pressure()).toBe(0);
+    ring.tryPush(1);
+    expect(ring.pressure()).toBe(0.5);
+    ring.tryPush(2);
+    expect(ring.pressure()).toBe(1);
+    expect(ring.tryPush(3)).toBe(false);
+    expect(ring.pressure()).toBe(1);
+  });
+
+  it('rejects a capacity below one under either policy', () => {
+    expect(() => new BoundedRing<number>(0)).toThrow(RangeError);
+    expect(() => new BoundedRing<number>(0, 'refuse')).toThrow(RangeError);
+  });
+});

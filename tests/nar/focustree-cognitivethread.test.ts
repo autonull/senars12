@@ -352,10 +352,10 @@ describe('CognitiveThread mailbox budget-gated backpressure (D3)', () => {
     const thread = createCognitiveThread('worker', rootBudget, { mailboxCapacity: 1 });
 
     expect(thread.mailbox.capacity).toBe(1);
-    expect(thread.mailbox.isEmpty()).toBe(true);
+    expect(thread.mailbox.size()).toBe(0);
 
     thread.send({ type: 'task', payload: 'test' });
-    expect(thread.mailbox.isFull()).toBe(true);
+    expect(thread.mailbox.pressure()).toBe(1);
     expect(thread.mailbox.size()).toBe(1);
   });
 });

@@ -3,7 +3,7 @@
  * Hard budget inheritance: spawn enforces Σ(child) ≤ parent.remaining; join returns unconsumed budget.
  */
 
-import { makeId, toError } from '@senars/util';
+import { BoundedRing, makeId, toError } from '@senars/util';
 import {
   type BudgetAllocation,
   type BudgetSlice,
@@ -63,46 +63,18 @@ export interface JoinResult {
   unconsumedBudget: BudgetAllocation;
 }
 
-export interface ThreadMailbox {
-  readonly messages: ThreadMessage[];
-  readonly capacity: number;
-  enqueue(message: ThreadMessage): boolean;
-  dequeue(): ThreadMessage | undefined;
-  peek(): ThreadMessage | undefined;
-  size(): number;
-  isFull(): boolean;
-  isEmpty(): boolean;
-}
+/**
+ * A bounded FIFO of messages. A mailbox is a bounded ring that *refuses* rather
+ * than evicts — a dropped message is a silently lost request, where a refused one
+ * is a backpressure signal the sender is told about — so the policy is the only
+ * thing that differs and the ring is the whole implementation. That it satisfies
+ * `BoundedContainer` is the point: the mailbox now reports `pressure()` like every
+ * other bounded structure instead of being the one a capacity report skips.
+ */
+export type ThreadMailbox = BoundedRing<ThreadMessage>;
 
-function createMailbox(capacity: number): ThreadMailbox {
-  const messages: ThreadMessage[] = [];
-  return {
-    get messages() {
-      return messages;
-    },
-    capacity,
-    enqueue(message: ThreadMessage): boolean {
-      if (messages.length >= capacity) return false;
-      messages.push(message);
-      return true;
-    },
-    dequeue(): ThreadMessage | undefined {
-      return messages.shift();
-    },
-    peek(): ThreadMessage | undefined {
-      return messages[0];
-    },
-    size(): number {
-      return messages.length;
-    },
-    isFull(): boolean {
-      return messages.length >= capacity;
-    },
-    isEmpty(): boolean {
-      return messages.length === 0;
-    },
-  };
-}
+/** A mailbox that refuses at capacity rather than evicting. */
+const createMailbox = (capacity: number): ThreadMailbox => new BoundedRing(capacity, 'refuse');
 
 export class CognitiveThread {
   readonly id: string;
@@ -174,7 +146,7 @@ export class CognitiveThread {
       return false;
     }
 
-    const enqueued = this.mailbox.enqueue({
+    const enqueued = this.mailbox.tryPush({
       ...message,
       id: makeId(),
       timestamp: Date.now(),
@@ -185,7 +157,7 @@ export class CognitiveThread {
 
   /** Receive a message from the mailbox. */
   receive(): ThreadMessage | undefined {
-    return this.mailbox.dequeue();
+    return this.mailbox.shift();
   }
 
   /** Execute the thread's work function. */

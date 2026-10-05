@@ -7,3 +7,4 @@ export {
   JsonlSessionManager,
 } from './SessionManager.js';
 export type { Episode, MemoryEntry, MemoryQuery, PersistableSessionManager } from './types.js';
+export { RECALL_WINDOW, WORKING_MEMORY_CAPACITY } from './types.js';

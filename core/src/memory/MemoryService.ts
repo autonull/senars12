@@ -1,31 +1,44 @@
-import { generateId, pushCapped, takeLast } from '@senars/util';
+import { BoundedRing, generateId, takeLast } from '@senars/util';
 import type { Engine } from '../engine/Engine.js';
 import type { EventLog } from '../eventlog/EventLog.js';
 import type { SkillFeedback, ToolRegistry } from '../motor/ToolRegistry.js';
 import type { MemoryEntry, MemoryQuery } from './types.js';
+import { RECALL_WINDOW, WORKING_MEMORY_CAPACITY } from './types.js';
 
 export class MemoryService {
-  #working: MemoryEntry[] = [];
-  #maxWorking = 1000;
+  /**
+   * The working tier is a bounded ring, like every other bounded structure in the
+   * kernel, so it reports `pressure()` and evicts by the same rule rather than by
+   * a bare `pushCapped` against a private `#maxWorking`.
+   */
+  #working = new BoundedRing<MemoryEntry>(WORKING_MEMORY_CAPACITY);
   #log?: EventLog;
   #engines?: Map<string, Engine>;
   #motor?: ToolRegistry;
   #tiers = new Map<string, unknown>();
 
   get size(): number {
-    return this.#working.length;
+    return this.#working.size();
   }
 
   get all(): readonly MemoryEntry[] {
-    return this.#working;
+    return this.#working.toArray();
+  }
+
+  /** Occupancy of the working tier, `0..1` — the AIKR pressure signal. */
+  pressure(): number {
+    return this.#working.pressure();
   }
 
   get connectedEngines(): Map<string, Engine> | undefined {
     return this.#engines;
   }
 
+  /** Resize the working tier, keeping the most recent entries that still fit. */
   setMaxWorking(max: number): void {
-    this.#maxWorking = max;
+    const kept = this.#working.tail(max);
+    this.#working = new BoundedRing<MemoryEntry>(Math.max(1, max));
+    for (const entry of kept) this.#working.push(entry);
   }
 
   /** Connect the EventLog for Tier 1 (episodic) queries */
@@ -49,22 +62,26 @@ export class MemoryService {
       id: generateId('mem'),
       timestamp: Date.now(),
     };
-    pushCapped(this.#working, full, this.#maxWorking);
+    this.#working.push(full);
   }
 
   recent(limit: number, type?: string): MemoryEntry[] {
-    const entries = type ? this.#working.filter((e) => e.type === type) : this.#working;
-    return takeLast(entries, limit);
+    return type
+      ? takeLast(
+          this.#working.filter((e) => e.type === type),
+          limit
+        )
+      : this.#working.tail(limit);
   }
 
   query(q: MemoryQuery): MemoryEntry[] {
-    let result = this.#working;
-    if (q.type) result = result.filter((e) => e.type === q.type);
-    const from = q.from;
-    if (from !== undefined) result = result.filter((e) => e.timestamp >= from);
-    const to = q.to;
-    if (to !== undefined) result = result.filter((e) => e.timestamp <= to);
-    return takeLast(result, q.limit ?? result.length);
+    const { type, from, to, limit } = q;
+    const inRange = (e: MemoryEntry): boolean =>
+      (!type || e.type === type) &&
+      (from === undefined || e.timestamp >= from) &&
+      (to === undefined || e.timestamp <= to);
+    const matched = this.#working.filter(inRange);
+    return takeLast(matched, limit ?? matched.length);
   }
 
   queryTimeRange(from: number, to: number): MemoryEntry[] {
@@ -75,25 +92,34 @@ export class MemoryService {
     return this.#working.filter((e) => Math.abs(e.timestamp - ts) <= windowMs);
   }
 
-  /** Tier 1: Episodic memory via EventLog replay */
-  async queryEpisodic(from?: number, to?: number, types?: string[]): Promise<MemoryEntry[]> {
+  /** Tier 1: Episodic memory via the log's own filtered read. */
+  async queryEpisodic(
+    from?: number,
+    to?: number,
+    types?: string[],
+    limit = RECALL_WINDOW
+  ): Promise<MemoryEntry[]> {
     if (!this.#log) return [];
     try {
-      const events = await this.#log.getRange('', '');
-      return events
-        .filter((e) => {
-          if (types && types.length > 0 && !types.includes(e.type)) return false;
-          if (from !== undefined && e.timestamp < from) return false;
-          if (to !== undefined && e.timestamp > to) return false;
-          return true;
-        })
-        .map((e) => ({
-          id: e.id ?? `event-${e.timestamp}`,
-          type: e.type,
-          payload: e.payload,
-          timestamp: e.timestamp,
-          correlationId: e.correlationId,
-        }));
+      // `timestamp` is a positive integer (see `CognitiveEventBaseSchema`), so the
+      // open ends of a half-given range are 0 and `MAX_SAFE_INTEGER` — a range
+      // the store can filter on, rather than a predicate that drops back to a
+      // full-log read in JavaScript.
+      const events = await this.#log.query({
+        types,
+        timeRange:
+          from === undefined && to === undefined
+            ? undefined
+            : [from ?? 0, to ?? Number.MAX_SAFE_INTEGER],
+        limit,
+      });
+      return events.map((e) => ({
+        id: e.id ?? `event-${e.timestamp}`,
+        type: e.type,
+        payload: e.payload,
+        timestamp: e.timestamp,
+        correlationId: e.correlationId,
+      }));
     } catch {
       return [];
     }
@@ -155,6 +181,6 @@ export class MemoryService {
   }
 
   clear(): void {
-    this.#working = [];
+    this.#working.clear();
   }
 }

@@ -1,4 +1,4 @@
-import { getOrInsert, takeLast } from '@senars/util';
+import { getOrInsert } from '@senars/util';
 import { AbstractEventLog } from './AbstractEventLog.js';
 import type { CognitiveEvent, EventLogConfig, EventLogQuery } from './EventLog.js';
 
@@ -28,16 +28,29 @@ export class InMemoryEventLog extends AbstractEventLog {
   }
 
   async query(query: EventLogQuery): Promise<CognitiveEvent[]> {
-    const matches = this.#events.filter((e) => {
-      if (query.correlationId && e.correlationId !== query.correlationId) return false;
-      if (query.types && !query.types.includes(e.type)) return false;
-      if (query.timeRange) {
-        const [start, end] = query.timeRange;
-        if (e.timestamp < start || e.timestamp > end) return false;
-      }
-      return true;
-    });
-    return query.limit === undefined ? matches : takeLast(matches, query.limit);
+    const types = query.types?.length ? new Set(query.types) : undefined;
+    const { correlationId, timeRange, limit } = query;
+    const { events } = this;
+
+    // `limit` keeps the most recent matches, so the scan runs backwards and stops
+    // as soon as the cap is covered: it allocates at most `limit` entries and
+    // reads no older event than it has to. Forward-with-early-exit would return
+    // the oldest `limit` matches, and forward-without it would materialize every
+    // match in the log before `takeLast` threw most of them away.
+    const matches: CognitiveEvent[] = [];
+    for (
+      let i = events.length - 1;
+      i >= 0 && (limit === undefined || matches.length < limit);
+      i--
+    ) {
+      const e = events[i]!;
+      if (correlationId && e.correlationId !== correlationId) continue;
+      if (types && !types.has(e.type)) continue;
+      if (timeRange && (e.timestamp < timeRange[0] || e.timestamp > timeRange[1])) continue;
+      matches.push(e);
+    }
+
+    return matches.reverse();
   }
 
   async getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]> {
