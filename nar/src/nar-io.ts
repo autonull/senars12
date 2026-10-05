@@ -1,10 +1,9 @@
 import { promises as fs } from 'node:fs';
 import type {
-  PerceptionGateInput,
-  PerceptionGateOutput,
-  RewardGateInput,
   RewardGateOutput,
   SourceQuality,
+  StimulusSource,
+  TaskAdmittedEvent,
 } from '@senars/core/schemas';
 import { clamp, clampSigned, makeId, writeJsonFile } from '@senars/util';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
@@ -27,6 +26,9 @@ import type { Truth as TruthType } from './terms/impls/Truth.js';
 import type { TaskType } from './types';
 import { createTaskWeight, type EventBus } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
+
+/** The admitted task the gate hands back — what every caller stores. */
+type TaskAdmittedPayload = TaskAdmittedEvent['payload'];
 
 interface SerializedNARState {
   concepts: Array<{ term: string; priority: number; sourceQuality?: SourceQuality }>;
@@ -112,44 +114,38 @@ export class NARIO {
     truth?: TruthType,
     correlationId: string = makeId()
   ): Promise<void> {
-    const gate = this.perceptionGate;
     const systemOneEnabled = this.config.systemOne?.enabled ?? false;
 
     // When System One is enabled, pass raw observation to gate before parsing
     if (systemOneEnabled && typeof input === 'string') {
-      const result: PerceptionGateOutput = await gate.admit({
+      const task = await this.gateAdmit({
         sourceId: 'nar-io',
         source: 'user',
-        rawObservation: input,
+        observation: input,
         sensorConfidence: 1.0,
         sourceQuality: 'GENERAL',
         correlationId,
+        refusedAs: 'input',
       });
-
-      if (!result.admitted || !result.task) {
-        this.warn(result.rejectionReason ?? 'Perception gate rejected input', input);
-        return;
-      }
-
-      // Adopt gate's calibrated truth and taskType
-      const calibratedTruth = Truth.fromUnknown(
-        result.task.truth ?? (result.task.taskType === 'belief' ? Truth.TRUE : undefined)
-      );
-      const calibratedType = result.task.taskType as TaskType;
+      if (!task) return;
 
       // Parse the term for memory storage
-      const parsedTerm = termParser.parse(result.task.term);
+      const parsedTerm = termParser.parse(task.term);
       if (!parsedTerm) {
-        this.warn('Failed to parse admitted term', result.task.term);
+        this.warn('Failed to parse admitted term', task.term);
         return;
       }
 
       this.commitAdmitted({
         term: parsedTerm,
-        label: result.task.term,
-        type: calibratedType,
-        truth: calibratedTruth,
+        label: task.term,
         prime: true,
+        // A belief the gate admitted without a truth is an assertion; a goal with
+        // no truth is not one, so the fallback follows the kind the gate chose.
+        ...this.calibrated(task, {
+          truth: task.taskType === 'belief' ? Truth.TRUE : undefined,
+          type,
+        }),
       });
       return;
     }
@@ -222,25 +218,21 @@ export class NARIO {
     }
 
     for (const concept of data.concepts) {
-      if (concept.term) {
-        const term = termParser.parse(concept.term);
-        if (!term) continue;
+      if (!concept.term) continue;
+      const term = termParser.parse(concept.term);
+      if (!term) continue;
 
-        const result: PerceptionGateOutput = await this.perceptionGate.admit({
-          sourceId: 'import',
-          rawObservation: concept.term,
-          sensorConfidence: 0.9,
-          sourceQuality: concept.sourceQuality ?? 'GENERAL',
-          correlationId: makeId(),
-        });
+      const admitted = await this.gateAdmit({
+        sourceId: 'import',
+        observation: concept.term,
+        sensorConfidence: 0.9,
+        sourceQuality: concept.sourceQuality ?? 'GENERAL',
+        correlationId: makeId(),
+        refusedAs: 'import',
+      });
+      if (!admitted) continue;
 
-        if (!result.admitted) {
-          this.warn(result.rejectionReason ?? 'Perception gate rejected import', concept.term);
-          continue;
-        }
-
-        this.memory.addConcept(term);
-      }
+      this.memory.addConcept(term);
     }
   }
 
@@ -265,62 +257,79 @@ export class NARIO {
     }
   }
 
+  /**
+   * The one gate round-trip: ask the perception gate for a verdict, and on refusal
+   * report why. Four call sites each spelled this out — the System One input path,
+   * import, and both `addTask` branches — and they differed only in source id,
+   * sensor confidence and the wording of the refusal. A change to the admission
+   * protocol therefore had four chances to reach three of them, and one had
+   * already drifted: the legacy `addTask` branch minted a fresh `correlationId`
+   * instead of the one it was handed, severing the trace from the admission it was
+   * meant to identify.
+   *
+   * Returns the admitted payload, or `null` if the gate refused.
+   */
+  private async gateAdmit(request: {
+    sourceId: string;
+    /** Omitted where the gate's `mapSource` heuristic is the right answer. */
+    source?: StimulusSource;
+    observation: string;
+    sensorConfidence: number;
+    sourceQuality: SourceQuality;
+    correlationId: string;
+    refusedAs: string;
+  }): Promise<TaskAdmittedPayload | null> {
+    const { refusedAs, observation, ...input } = request;
+    const result = await this.perceptionGate.admit({
+      ...input,
+      rawObservation: observation,
+    });
+    if (!result.admitted || !result.task) {
+      this.warn(result.rejectionReason ?? `Perception gate rejected ${refusedAs}`, observation);
+      return null;
+    }
+    return result.task;
+  }
+
+  /**
+   * Whom the stored truth and task kind come from. System One judges the claim
+   * before it is stored, so its verdict wins; with System One off the gate still
+   * filters but its calibration is advisory and the caller's own values stand.
+   * That was a conditional in each of the two `addTask` branches, and they read
+   * the same — one just happened to sit on either side of the `return`.
+   */
+  private calibrated(
+    task: TaskAdmittedPayload,
+    fallback: { truth?: TruthType; type: TaskType }
+  ): { truth: TruthType; type: TaskType } {
+    if (!this.config.systemOne?.enabled) {
+      return { truth: fallback.truth ?? Truth.NEUTRAL, type: fallback.type };
+    }
+    return {
+      truth: Truth.fromUnknown(task.truth ?? fallback.truth),
+      type: task.taskType as TaskType,
+    };
+  }
+
   private async addTask(
     term: Term,
     type: TaskType,
     truth: TruthType = Truth.NEUTRAL,
     correlationId: string = makeId()
   ): Promise<void> {
-    const gate = this.perceptionGate;
-    const systemOneEnabled = this.config.systemOne?.enabled ?? false;
-
-    // When System One is enabled, use the gate's admit method which returns calibrated truth/taskType
-    if (systemOneEnabled) {
-      const result: PerceptionGateOutput = await gate.admit({
-        sourceId: 'nar-io',
-        source: 'derivation',
-        rawObservation: term.toString(),
-        sensorConfidence: truth.c ?? 0.5,
-        sourceQuality: 'GENERAL',
-        correlationId,
-      });
-
-      if (!result.admitted || !result.task) {
-        this.warn(result.rejectionReason ?? 'Perception gate rejected task', term.toString());
-        return;
-      }
-
-      // Adopt gate's calibrated truth and taskType
-      const calibratedTruth = Truth.fromUnknown(result.task.truth ?? truth);
-      const calibratedType = result.task.taskType as TaskType;
-
-      this.commitAdmitted({
-        term,
-        label: term.toString(),
-        type: calibratedType,
-        truth: calibratedTruth,
-        prime: true,
-      });
-      return;
-    }
-
-    // Legacy path (System One disabled) — the gate still filters, but its calibrated
-    // truth and task type are advisory here, so the caller's own values are committed.
-    const result: PerceptionGateOutput = await this.perceptionGate.admit({
+    const label = term.toString();
+    const task = await this.gateAdmit({
       sourceId: 'nar-io',
       source: 'derivation',
-      rawObservation: term.toString(),
-      sensorConfidence: truth.c,
+      observation: label,
+      sensorConfidence: truth.c ?? 0.5,
       sourceQuality: 'GENERAL',
-      correlationId: makeId(),
+      correlationId,
+      refusedAs: 'task',
     });
+    if (!task) return;
 
-    if (!result.admitted || !result.task) {
-      this.warn(result.rejectionReason ?? 'Perception gate rejected task', term.toString());
-      return;
-    }
-
-    this.commitAdmitted({ term, label: term.toString(), type, truth, prime: true });
+    this.commitAdmitted({ term, label, prime: true, ...this.calibrated(task, { truth, type }) });
   }
 
   private primeAttention(term: Term): void {
