@@ -1,3 +1,4 @@
+import { HistoryEntrySchema } from '@senars/util';
 import { z } from 'zod';
 
 /**
@@ -42,11 +43,22 @@ export const BudgetSchema = z.object({
 
 export type Budget = Readonly<z.infer<typeof BudgetSchema>>;
 
-/** One turn of conversation history, as persisted by session ledgers. */
-export const HistoryEntrySchema = z.object({
-  role: z.enum(['user', 'agent', 'system']),
-  content: z.string(),
-  timestamp: z.number(),
-});
+export type { HistoryEntry } from '@senars/util';
+/**
+ * One turn of conversation history. Owned by `@senars/util`, which is where the
+ * session ledger's `ConversationSession` declares it; re-exported here so the
+ * schema layer stays the one place a kernel contract's shape is reached for.
+ */
+export { HistoryEntrySchema };
 
-export type HistoryEntry = z.infer<typeof HistoryEntrySchema>;
+/**
+ * Whether a derivation's premises are independent of the conclusion they support.
+ * The admitted event records the check the kernel ran; the derivation record
+ * records what the rule asserted. Same question, and the answer's vocabulary was
+ * written out in both — so the two could disagree about what `unknown` means.
+ */
+export const INDEPENDENCE = ['independent', 'dependent', 'unknown'] as const;
+
+export const IndependenceSchema = z.enum(INDEPENDENCE);
+
+export type Independence = (typeof INDEPENDENCE)[number];

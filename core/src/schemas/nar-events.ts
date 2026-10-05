@@ -7,6 +7,7 @@
  * discriminated union in `cognitive-events.ts` alongside the kernel's.
  */
 
+import { HEALTH_STATUSES } from '@senars/util';
 import { z } from 'zod';
 import { CognitiveEventBaseSchema } from './event-base.js';
 import { TruthValueSchema } from './truth.js';
@@ -143,7 +144,13 @@ export const CycleEventSchema = NarBase.extend({
 
 export const HealthEventSchema = NarBase.extend({
   type: z.literal('health'),
-  payload: z.object({ status: z.string(), cycleCount: z.number(), errorRate: z.number() }),
+  payload: z.object({
+    status: z.enum(HEALTH_STATUSES),
+    cycleCount: z.number(),
+    errorRate: z.number(),
+    /** Per-engine fault counts behind `errorRate`, as `Agent.health()` reports them. */
+    byEngine: z.record(z.string(), z.number()).optional(),
+  }),
 });
 
 export const ConflictDetectedEventSchema = NarBase.extend({

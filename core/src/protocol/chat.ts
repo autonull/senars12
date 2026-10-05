@@ -1,13 +1,14 @@
 /**
  * Chat protocol schemas
  */
+import { MessageRoleSchema } from '@senars/util';
 import { z } from 'zod';
 import { TaskPunctuationSchema } from '../schemas/task.js';
 import { TruthValueSchema } from '../schemas/truth.js';
 
 export const ChatMessage = z.object({
   id: z.string(),
-  role: z.enum(['user', 'agent', 'system']),
+  role: MessageRoleSchema,
   content: z.string(),
   html: z.string().optional(),
   timestamp: z.number(),

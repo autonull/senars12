@@ -97,10 +97,12 @@ export type {
   AgentOptions,
   AuthDecision,
   BridgeOptions,
+  HealthLevel,
   HealthStatus,
   ParsedCommand,
   SkillDefinition,
 } from './types/agent.js';
+export { HEALTH_STATUSES } from './types/agent.js';
 /** @public The shared capability risk vocabulary. */
 export { CAPABILITY_RISKS, CapabilityRiskSchema } from './types/capability.js';
 export type { CapabilityRisk } from './types/capability.js';
@@ -160,7 +162,13 @@ export type {
 } from './types/llm.js';
 export { CIRCUIT_STATES, createLMStats, LM_TASKS, recordLMCall } from './types/llm.js';
 /** @public Session/memory manager contracts. */
-export type { ConversationSession, SessionManager } from './types/memory.js';
+export type {
+  ConversationSession,
+  HistoryEntry,
+  MessageRole,
+  SessionManager,
+} from './types/memory.js';
+export { HistoryEntrySchema, MESSAGE_ROLES, MessageRoleSchema } from './types/memory.js';
 /** @public Tool contracts. */
 export type {
   ToolBudget,
@@ -249,10 +257,10 @@ export { parseFlags } from './utils/cli.js';
 /** @public The one injectable time source; every bounded container and cache takes one. */
 export type { Clock } from './utils/clock.js';
 export { fixedClock, systemClock } from './utils/clock.js';
-export type { BoundedContainer, ReadOnlyLookup } from './utils/collections.js';
+export type { BoundedContainer, OverflowPolicy, ReadOnlyLookup } from './utils/collections.js';
 
 // Collections
-/** @public Drop-oldest bounded ring buffer. */
+/** @public Bounded FIFO ring buffer; evicting or refusing at capacity. */
 export {
   addToSet,
   BoundedRing,

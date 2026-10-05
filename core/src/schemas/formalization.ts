@@ -4,7 +4,7 @@
  * authoritative parse; the kernel validates each candidate.
  */
 
-import { parseOrThrow } from '@senars/util';
+import { type CapabilityRisk, parseOrThrow } from '@senars/util';
 import { z } from 'zod';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
@@ -25,7 +25,18 @@ export const AMBIGUITY_TYPES = [
 
 export type AmbiguityType = (typeof AMBIGUITY_TYPES)[number];
 
-export const AMBIGUITY_SEVERITIES = ['low', 'medium', 'high'] as const;
+/**
+ * The severity ladder an ambiguity is costed on. Deliberately a different
+ * domain from `CAPABILITY_RISKS` and only *spelled* the same — how much a parse
+ * pays for an ambiguity is not how much an act may proceed unattended — so the
+ * ladder is declared here and ratcheted against that one rather than aliased to
+ * it. If the tiers ever need to diverge, this is the line to break.
+ */
+export const AMBIGUITY_SEVERITIES = [
+  'low',
+  'medium',
+  'high',
+] as const satisfies readonly CapabilityRisk[];
 
 export type AmbiguitySeverity = (typeof AMBIGUITY_SEVERITIES)[number];
 

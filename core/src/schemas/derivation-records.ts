@@ -5,6 +5,7 @@
 
 import { parseOrThrow } from '@senars/util';
 import { z } from 'zod';
+import { IndependenceSchema } from './common.js';
 import { TruthValueSchema } from './truth.js';
 
 export const DerivationStepSchema = z.object({
@@ -35,7 +36,7 @@ export const DerivationStepSchema = z.object({
   substitution: z.record(z.string(), z.string()).optional(), // Variable bindings
   premiseTruths: z.array(TruthValueSchema).optional(), // Truth of each premise, in order — enables standalone truth-algebra verification
   evidenceLineage: z.array(z.string().uuid()), // Parent derivation IDs
-  independence: z.enum(['independent', 'dependent', 'unknown']),
+  independence: IndependenceSchema,
 });
 
 export const DerivationRecordSchema = z.object({

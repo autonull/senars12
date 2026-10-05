@@ -4,7 +4,7 @@
  * only place the four input/output pairs sit beside one another.
  */
 import { z } from 'zod';
-import { TaskAdmittedEventSchema } from './cognitive-events.js';
+import { StimulusSourceSchema, TaskAdmittedEventSchema } from './cognitive-events.js';
 import { RewardDomainSchema } from './governance.js';
 import {
   BUDGET_SCOPE_IDS,
@@ -15,8 +15,13 @@ import { SourceQualitySchema } from './truth.js';
 
 export const PerceptionGateInputSchema = z.object({
   sourceId: z.string(),
-  /** A4a/X29: explicit provenance; falls back to sourceId heuristics when omitted. */
-  source: z.enum(['user', 'llm', 'derivation', 'reflex', 'sensor']).optional(),
+  /**
+   * A4a/X29: explicit provenance; falls back to sourceId heuristics when omitted.
+   * Read off the admitted payload's own enum rather than spelled again — the gate
+   * passes this through unchanged, so a provenance the gate can accept but the
+   * event cannot record is not expressible.
+   */
+  source: StimulusSourceSchema.optional(),
   rawObservation: z.unknown(),
   sensorConfidence: z.number().min(0).max(1),
   sourceQuality: SourceQualitySchema,

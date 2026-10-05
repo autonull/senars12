@@ -6,9 +6,9 @@
 
 import { generateId, parseOrThrow } from '@senars/util';
 import { z } from 'zod';
-import { BudgetSchema } from './common.js';
+import { BudgetSchema, IndependenceSchema } from './common.js';
 import { CognitiveEventBaseSchema } from './event-base.js';
-import { AutonomyModeSchema, PatchProposalSchema } from './governance.js';
+import { AutonomyAuthoritySchema, AutonomyModeSchema, PatchProposalSchema } from './governance.js';
 import { NarEventSchemas } from './nar-events.js';
 import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal.js';
 import { TerminationReasonSchema } from './reasoning-budget.js';
@@ -17,6 +17,18 @@ import { TruthValueSchema } from './truth.js';
 
 export { CognitiveEventBaseSchema, EngineOriginSchema } from './event-base.js';
 
+/**
+ * Where an admitted claim came from. Named rather than inlined because the
+ * gate's input declares the same provenance and hands it straight through — a
+ * spelling the gate accepts but the event cannot record would otherwise be
+ * expressible, and `mapSource`'s fallbacks are written against these five.
+ */
+export const STIMULUS_SOURCES = ['user', 'llm', 'derivation', 'reflex', 'sensor'] as const;
+
+export const StimulusSourceSchema = z.enum(STIMULUS_SOURCES);
+
+export type StimulusSource = (typeof STIMULUS_SOURCES)[number];
+
 export const TaskAdmittedEventSchema = CognitiveEventBaseSchema.extend({
   type: z.literal('task.admitted'),
   payload: z.object({
@@ -24,7 +36,7 @@ export const TaskAdmittedEventSchema = CognitiveEventBaseSchema.extend({
     term: z.string(),
     taskType: TaskTypeSchema,
     truth: TruthValueSchema.optional(),
-    source: z.enum(['user', 'llm', 'derivation', 'reflex', 'sensor']),
+    source: StimulusSourceSchema,
     budget: BudgetSchema,
   }),
 });
@@ -38,7 +50,7 @@ export const DerivationAcceptedEventSchema = CognitiveEventBaseSchema.extend({
     conclusion: z.string(),
     truth: TruthValueSchema,
     evidenceLineage: z.array(z.string().uuid()),
-    independenceCheck: z.enum(['independent', 'dependent', 'unknown']),
+    independenceCheck: IndependenceSchema,
   }),
 });
 
@@ -97,7 +109,7 @@ export const AutonomyModeChangedEventSchema = CognitiveEventBaseSchema.extend({
   payload: z.object({
     previousMode: AutonomyModeSchema,
     newMode: AutonomyModeSchema,
-    authorizedBy: z.enum(['system', 'human', 'external-governance']),
+    authorizedBy: AutonomyAuthoritySchema,
   }),
 });
 

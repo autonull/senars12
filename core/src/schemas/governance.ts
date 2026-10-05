@@ -21,9 +21,16 @@ export type AutonomyMode = z.infer<typeof AutonomyModeSchema>;
 /**
  * Who may move the autonomy mode. The action gate's port spelled this union out
  * inline and the gate spelled it out again, so a fourth authority — an external
- * approver, say — had to be added in both places to be accepted in both.
+ * approver, say — had to be added in both places to be accepted in both. The
+ * table *is* the union: the zod form is what the durable event validates
+ * against, and the type is read off it, so an authority cannot be admitted by
+ * one and rejected by the other.
  */
-export type AutonomyAuthority = 'system' | 'human' | 'external-governance';
+export const AUTONOMITY_AUTHORITIES = ['system', 'human', 'external-governance'] as const;
+
+export const AutonomyAuthoritySchema = z.enum(AUTONOMITY_AUTHORITIES);
+
+export type AutonomyAuthority = (typeof AUTONOMITY_AUTHORITIES)[number];
 
 /**
  * The modes that may not execute. Four readers asked this of the enum by hand —

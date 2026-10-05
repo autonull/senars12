@@ -23,6 +23,7 @@ export type {
   PolicyViolationEvent,
   SelfModProposalEvent,
   ShadowValidationDropEvent,
+  StimulusSource,
   TaskAdmittedEvent,
 } from './cognitive-events.js';
 export {
@@ -40,13 +41,23 @@ export {
   PolicyViolationEventSchema,
   SelfModProposalEventSchema,
   ShadowValidationDropEventSchema,
+  STIMULUS_SOURCES,
+  StimulusSourceSchema,
   TaskAdmittedEventSchema,
   validateCognitiveEvent,
 } from './cognitive-events.js';
-export type { Budget, HistoryEntry, RulePattern, RulePatternSide } from './common.js';
+export type {
+  Budget,
+  HistoryEntry,
+  Independence,
+  RulePattern,
+  RulePatternSide,
+} from './common.js';
 export {
   BudgetSchema,
   HistoryEntrySchema,
+  INDEPENDENCE,
+  IndependenceSchema,
   RulePatternSchema,
   RulePatternSideSchema,
 } from './common.js';
@@ -117,6 +128,8 @@ export type {
   SelfImprovementProposal,
 } from './governance.js';
 export {
+  AUTONOMITY_AUTHORITIES,
+  AutonomyAuthoritySchema,
   AutonomyModeSchema,
   GameDomainSchema,
   GovernanceDecisionSchema,
