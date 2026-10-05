@@ -44,11 +44,14 @@ const MAX_PASSES = 4;
  */
 export const canonicalTask = (task: Task): Task => {
   let current = task;
+  // A loop over `TASK_REDUCERS`, not `reduce` over it: this runs on every task and every
+  // secondary premise, and the closure plus accumulator plumbing were two allocations per
+  // call for a table with one row. The "nothing rewrote it" early exit is unchanged.
   for (let pass = 0; pass < MAX_PASSES; pass++) {
-    const next = TASK_REDUCERS.reduce(
-      (acc, reducer) => (reducer.applies(acc) ? reducer.reduce(acc) : acc),
-      current
-    );
+    let next = current;
+    for (const reducer of TASK_REDUCERS) {
+      if (reducer.applies(next)) next = reducer.reduce(next);
+    }
     if (next === current) return current;
     current = { ...next, term: canonicalTerm(next.term) };
   }

@@ -182,12 +182,15 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
       'action',
       input.operation,
       input,
-      (inp, correlationId) => this.decideAuthorization(inp, correlationId),
+      (inp, correlation) => this.decideAuthorization(inp, correlation),
       (inp) => inp.correlationId
     );
   }
 
-  private decideAuthorization(input: ActionGateInput, correlationId: string): ActionGateOutput {
+  private decideAuthorization(
+    input: ActionGateInput,
+    correlation: () => string
+  ): ActionGateOutput {
     const scoped = KernelActionGate.parseScopedOperation(input.operation);
     if (scoped) return this.authorizeScoped(scoped.scopeId, scoped.action);
     if (!permitsExecution(this.autonomyMode)) {
@@ -195,7 +198,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
         policyId: 'autonomy-mode',
         violationType: 'unauthorized-tool',
         detail: `Action not permitted in ${this.autonomyMode} mode`,
-        correlationId: this.correlationOf(correlationId),
+        correlationId: correlation(),
       });
       return {
         authorized: false,
@@ -212,7 +215,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
         policyId: 'nal-veto',
         violationType: 'unauthorized-tool',
         detail: `NAL derivation ${input.nalDerivationId} vetoes action: ${derivation.conclusion}`,
-        correlationId: this.correlationOf(input.correlationId),
+        correlationId: correlation(),
       });
       return {
         authorized: false,
@@ -225,7 +228,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
         policyId: 'allowed-operations',
         violationType: 'unauthorized-tool',
         detail: `Operation '${input.operation}' not in allowed operations list`,
-        correlationId: this.correlationOf(input.correlationId),
+        correlationId: correlation(),
       });
       return {
         authorized: false,

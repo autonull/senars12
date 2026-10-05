@@ -43,9 +43,9 @@ export class Focus {
 
   addToFocus(concept: Concept): void {
     if (this.concepts.size >= this.config.maxConcepts && !this.concepts.has(concept.term)) {
-      const lowest = minBy(this.concepts, ([, entry]) => entry.priority);
-      if (!lowest || lowest[1].priority >= concept.priority) return;
-      this.concepts.delete(lowest[0]);
+      const lowest = minBy(this.concepts.getEntries(), (entry) => entry.value.priority);
+      if (!lowest || lowest.value.priority >= concept.priority) return;
+      this.concepts.delete(lowest.key);
     }
     this.concepts.set(concept.term, concept);
   }

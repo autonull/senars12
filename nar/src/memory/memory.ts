@@ -236,8 +236,10 @@ export class Memory implements MemoryPorts {
    */
   getGoals(): Task[] {
     const goals: Task[] = [];
+    // `forEach` rather than `all()`: this walks every resident concept once per cycle,
+    // and `all()` allocates a generator per bag to walk an array it already holds.
     for (const concept of this.concepts.values()) {
-      for (const g of concept.goalBag.all()) {
+      concept.goalBag.forEach((g) => {
         goals.push({
           term: g.term,
           type: 'goal',
@@ -247,7 +249,7 @@ export class Memory implements MemoryPorts {
           occurrenceTime: (g.occurrenceTime ?? Date.now()) as Task['occurrenceTime'],
           derived: g.derived ?? false,
         });
-      }
+      });
     }
     return goals;
   }
@@ -372,7 +374,12 @@ export class Memory implements MemoryPorts {
    */
   sampleWindow(windowSize: number, rng: RandomSource): Concept[] {
     if (windowSize <= 0) return [];
-    const sorted = sortBy(this.residentEntries(), (entry) => -entry.value.priority);
+    // `toSorted` by the same key: `sortBy` wraps every entry in a `{item, key}` pair and
+    // calls the key once per element *and* per comparison, so ranking cost C wrapper
+    // objects and ~C log C closure calls per window.
+    const sorted = this.residentEntries().toSorted(
+      (a, b) => b.value.priority - a.value.priority
+    );
     const start = sorted.length > windowSize ? nextInt(rng, sorted.length - windowSize + 1) : 0;
     return sorted.slice(start, start + windowSize).map((entry) => entry.value);
   }

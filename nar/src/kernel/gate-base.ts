@@ -38,10 +38,6 @@ export abstract class KernelGate<TEvent extends CognitiveEvent = CognitiveEvent>
    */
   protected abstract outcomeOf(output: unknown): GateOutcome;
 
-  protected correlationOf(correlationId?: string): string {
-    return correlationId ?? makeId();
-  }
-
   /** Validate then append to the gate's bounded log — every gate event goes through one funnel. */
   protected emitEvent(event: CognitiveEvent): void {
     validateCognitiveEvent(event);
@@ -49,20 +45,25 @@ export abstract class KernelGate<TEvent extends CognitiveEvent = CognitiveEvent>
   }
 
   /**
-   * Unified decision funnel: generates correlationId, invokes the decision
+   * Unified decision funnel: supplies a correlation id, invokes the decision
    * function, meters it as one outcome, and returns the gate's own output
    * unchanged. Subclasses implement `decide` with their specific logic.
+   *
+   * `decide` is handed `correlation` as a thunk, not a string, because most gates only
+   * need an id on the refusal branch and a budget charge is one candidate rule. The
+   * thunk memoizes, so a decision that asks and the span that records it share one id.
    */
   protected decideAndRecord<TInput, TOutput>(
     gateName: GateName,
     operation: string,
     input: TInput,
-    decide: (input: TInput, correlationId: string) => TOutput,
+    decide: (input: TInput, correlation: () => string) => TOutput,
     getCorrelationId: (input: TInput) => string | undefined
   ): TOutput {
-    const correlationId = this.correlationOf(getCorrelationId(input));
-    const output = decide(input, correlationId);
-    recordGateDecision(gateName, operation, this.outcomeOf(output), correlationId);
+    let correlationId = getCorrelationId(input);
+    const correlation = (): string => (correlationId ??= makeId());
+    const output = decide(input, correlation);
+    recordGateDecision(gateName, operation, this.outcomeOf(output), correlation);
     return output;
   }
 

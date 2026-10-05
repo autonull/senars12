@@ -130,12 +130,12 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
       'budget',
       input.operation,
       input,
-      (inp, correlationId) => this.decideBudget(inp, correlationId),
+      (inp, correlation) => this.decideBudget(inp, correlation),
       (inp) => inp.correlationId
     );
   }
 
-  private decideBudget(input: BudgetGateInput, correlationId: string): BudgetGateOutput {
+  private decideBudget(input: BudgetGateInput, correlation: () => string): BudgetGateOutput {
     const operation = input.operation;
     const spec = specOf(operation);
     const estimatedCost = input.estimatedCost ?? this.costTable[operation] ?? 1;
@@ -153,7 +153,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
       budget.terminationReason = terminationReason;
       const event = mintCognitiveEvent('budget.exhausted', {
         engine: 'kernel',
-        correlationId,
+        correlationId: correlation(),
         payload: {
           budgetType: spec.budgetType,
           remaining: budgetRemaining(budget, resource),

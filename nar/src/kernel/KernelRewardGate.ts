@@ -63,19 +63,19 @@ export class KernelRewardGate extends KernelGate<PolicyViolationEvent> {
       'reward',
       input.targetType,
       input,
-      (inp, correlationId) => this.decideReward(inp, correlationId),
+      (inp, correlation) => this.decideReward(inp, correlation),
       (inp) => inp.correlationId
     );
   }
 
-  private decideReward(input: RewardGateInput, correlationId: string): RewardGateOutput {
+  private decideReward(input: RewardGateInput, correlation: () => string): RewardGateOutput {
     const domain: RewardDomain = input.domain ?? 'external-reflex';
 
     if (!this.allowedTargets.has(input.targetType)) {
       const violation = new EpistemicFirewallViolation(
         input.targetType,
         input.targetId,
-        correlationId,
+        correlation(),
         this.allowedTargets
       );
 
@@ -83,7 +83,7 @@ export class KernelRewardGate extends KernelGate<PolicyViolationEvent> {
         policyId: 'epistemic-firewall',
         violationType: 'epistemic-firewall',
         detail: violation.message,
-        correlationId,
+        correlationId: violation.correlationId,
       });
 
       return {

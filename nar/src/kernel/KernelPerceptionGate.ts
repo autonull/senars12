@@ -12,6 +12,7 @@ import type {
 import {
   mintCognitiveEvent,
   SOURCE_QUALITY_CONFIDENCE,
+  TASK_PUNCTUATION,
   TOLERANT_PUNCTUATIONS,
 } from '@senars/core/schemas';
 import {
@@ -136,14 +137,14 @@ export class KernelPerceptionGate extends KernelGate {
       'perception',
       'admit',
       input,
-      async (inp, correlationId) => this.decideAdmission(inp, correlationId),
+      async (inp, correlation) => this.decideAdmission(inp, correlation),
       (inp) => inp.correlationId
     );
   }
 
   private async decideAdmission(
     input: PerceptionGateInput,
-    correlationId: string
+    correlation: () => string
   ): Promise<PerceptionGateOutput> {
     const sourceQuality = input.sourceQuality;
     // Phase E: reputation multiplier lowers the trust ceiling for sources with
@@ -173,7 +174,7 @@ export class KernelPerceptionGate extends KernelGate {
       const judged = await this.admitViaJudge(
         input,
         term,
-        correlationId,
+        correlation(),
         sourceQuality,
         confidence,
         taskType
@@ -187,7 +188,7 @@ export class KernelPerceptionGate extends KernelGate {
       truth: taskType === 'belief' ? { frequency: 1.0, confidence } : undefined,
       source: input.source ?? this.mapSource(input.sourceId),
       confidence,
-      correlationId,
+      correlationId: correlation(),
     });
   }
 
@@ -317,8 +318,8 @@ export class KernelPerceptionGate extends KernelGate {
       'perception',
       'admitTask',
       { term, taskType, truth, source, correlationId },
-      ({ term, taskType, truth, source, correlationId }) =>
-        this.decideTaskAdmission(term, taskType, truth, source, correlationId),
+      ({ term, taskType, truth, source }, admitCorrelation) =>
+        this.decideTaskAdmission(term, taskType, truth, source, admitCorrelation),
       ({ correlationId }) => correlationId
     );
   }
@@ -326,9 +327,9 @@ export class KernelPerceptionGate extends KernelGate {
   private decideTaskAdmission(
     term: Term,
     taskType: TaskTypeName,
-    truth?: TruthLike,
-    source = 'derivation',
-    correlationId?: string
+    truth: TruthLike | undefined,
+    source: string,
+    correlation: () => string
   ): PerceptionGateOutput {
     const normalized = asBeliefTruth(truth);
     return this.emitAdmitted({
@@ -337,7 +338,7 @@ export class KernelPerceptionGate extends KernelGate {
       truth: normalized,
       source: this.mapSource(source),
       confidence: normalized?.confidence ?? 0.5,
-      correlationId: this.correlationOf(correlationId),
+      correlationId: correlation(),
     });
   }
 
@@ -388,15 +389,10 @@ export class KernelPerceptionGate extends KernelGate {
   } {
     const admitted: TaskAdmittedEvent['payload'][] = [];
     const rejected: { candidateId: string; reason: string }[] = [];
+    const correlation = (): string => batch.batchId;
     for (const candidate of batch.candidates) {
       const narsese = normalizeNarsese(candidate.narsese);
-      const parsed = termParser.parseTask(
-        candidate.taskType === 'belief'
-          ? `${narsese}.`
-          : candidate.taskType === 'goal'
-            ? `${narsese}!`
-            : `${narsese}?`
-      );
+      const parsed = termParser.parseTask(`${narsese}${TASK_PUNCTUATION[candidate.taskType]}`);
       if (!parsed) {
         rejected.push({ candidateId: candidate.candidateId, reason: 'Unparseable Narsese' });
         continue;
@@ -410,7 +406,8 @@ export class KernelPerceptionGate extends KernelGate {
         candidate.truth
           ? { frequency: candidate.truth.frequency, confidence }
           : { frequency: 1.0, confidence },
-        'llm'
+        'llm',
+        correlation
       );
       if (out.admitted && out.task) admitted.push(out.task);
       else
