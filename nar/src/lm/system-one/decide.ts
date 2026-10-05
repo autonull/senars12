@@ -4,13 +4,12 @@
  * contrastive layer. A thin facade — all inference logic lives in the
  * manifold heads, contrastive memory, and policy utilities it composes.
  */
-import { chunk, rankBy, renormalize, retain, sha256Hex } from '@senars/util';
+import { bandOrdinal, chunk, rankBy, renormalize, retain, sha256Hex } from '@senars/util';
 import type { AbstainReason, CognitiveAxis } from '../../decision/types.js';
 import { isSafetyFloor } from './algebra.js';
 import { type ContrastiveMemory, candidateProximity, rubricOf } from './contrastive.js';
 import {
   type BandDecision,
-  bandOrdinal,
   type CompositeScore,
   type ConfidenceBands,
   ConfidenceRouter,

@@ -4,7 +4,13 @@
  * gates. Every variant below is admitted by exactly one gate.
  */
 
-import { generateId, parseOrThrow } from '@senars/util';
+import {
+  BandDecisionSchema,
+  CognitiveAxisSchema,
+  JudgmentShapeSchema,
+  generateId,
+  parseOrThrow,
+} from '@senars/util';
 import { z } from 'zod';
 import { BudgetSchema, IndependenceSchema } from './common.js';
 import { CognitiveEventBaseSchema } from './event-base.js';
@@ -122,8 +128,8 @@ export const JudgmentResolvedEventSchema = CognitiveEventBaseSchema.extend({
   type: z.literal('judgment.resolved'),
   payload: z.object({
     queryId: z.string(),
-    shape: z.enum(['classify', 'evaluate']),
-    axis: z.enum(['epistemic', 'teleological']),
+    shape: JudgmentShapeSchema,
+    axis: CognitiveAxisSchema,
     backendId: z.string(),
     tier: z.number().int().min(0).max(3),
     latencyMs: z.number().int().nonnegative(),
@@ -137,7 +143,7 @@ export const JudgmentResolvedEventSchema = CognitiveEventBaseSchema.extend({
     modelDigest: z.string().optional(),
     calibrationDigest: z.string().optional(),
     inputDigest: z.string().optional(),
-    decisionBand: z.enum(['act', 'review', 'block', 'abstain']).optional(),
+    decisionBand: BandDecisionSchema.optional(),
     cost: z.object({
       tokensIn: z.number().int().nonnegative(),
       tokensOut: z.number().int().nonnegative(),

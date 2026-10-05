@@ -4,7 +4,7 @@
  * `compositeScore` (normalized weighted aggregation), `judgeCascade`
  * (two-stage dependency). Code owns composition — weights are declared, never learned.
  */
-import { assertDefined, renormalize, sumBy } from '@senars/util';
+import { assertDefined, BANDS, renormalize, sumBy } from '@senars/util';
 import { HEAD_SPECS } from './head-ontology.js';
 import type {
   BandDecision,
@@ -33,19 +33,28 @@ export function truthProbabilityOf(p: EvaluateProposition): number | undefined {
   return p.abstained ? undefined : p.score;
 }
 
-/** The decision layer owns the band vocabulary; the router that reads it re-exports. */
+/**
+ * The decision layer owns the band vocabulary; the router that reads it re-exports.
+ * A stricter router can only restrict: `isRestrictive` is the whole test, analytically
+ * over the thresholds, so the 101-sample search that used to check it had no callers
+ * left once the ladder became one declaration.
+ */
 export type { BandDecision };
 
-const BAND_ORDER = { act: 2, review: 1, block: 0 } as const;
+/**
+ * The graded rungs, most permissive first: every band but `abstain`, read off `BANDS`
+ * in ordinal order rather than written out a fourth time. `abstain` has no threshold
+ * because it is the answer when the head declined, not a score that routes to it.
+ */
+const RUNGS = (Object.entries(BANDS) as [BandDecision, number][])
+  .filter((entry): entry is [Rung, number] => entry[0] !== 'abstain')
+  .toSorted((a, b) => b[1] - a[1])
+  .map(([band]) => band);
 
-export interface ConfidenceBands {
-  /** p ≥ act ⇒ act */
-  readonly act: number;
-  /** review ≤ p < act ⇒ review */
-  readonly review: number;
-  /** p < review ⇒ block */
-  readonly block: number;
-}
+type Rung = Exclude<BandDecision, 'abstain'>;
+
+/** One threshold per rung: `p >= rung` routes to `rung`, first match wins, else `block`. */
+export type ConfidenceBands = Record<Rung, number>;
 
 /** The routing bands a router gets when nothing else says: `act` is the top rung, so
  *  it is also the threshold at which a decision is no longer in doubt — which is why
@@ -53,29 +62,13 @@ export interface ConfidenceBands {
  *  it rather than restating a number. */
 export const DEFAULT_CONFIDENCE_BANDS: ConfidenceBands = { act: 0.8, review: 0.5, block: 0 };
 
-/** Monotone band routing: p ≥ act → act; p ≥ review → review; else block. */
-export function routeConfidence(
-  p: number,
-  bands: ConfidenceBands
-): Exclude<BandDecision, 'abstain'> {
-  if (p >= bands.act) return 'act';
-  if (p >= bands.review) return 'review';
-  return 'block';
-}
+/** Monotone band routing: the first rung whose threshold `p` clears, else `block`. */
+export const routeConfidence = (p: number, bands: ConfidenceBands): Rung =>
+  RUNGS.find((rung) => p >= bands[rung]) ?? 'block';
 
-/** True iff `candidate` can only restrict relative to `incumbent` (§6.3 monotonicity). */
-export function isRestrictive(candidate: ConfidenceBands, incumbent: ConfidenceBands): boolean {
-  return (
-    candidate.act >= incumbent.act &&
-    candidate.review >= incumbent.review &&
-    candidate.block >= incumbent.block
-  );
-}
-
-/** Ordinal position of a band; `abstain` sorts below `block` so abstain is always most restrictive. */
-export function bandOrdinal(d: BandDecision): number {
-  return d === 'abstain' ? -1 : BAND_ORDER[d];
-}
+/** True iff `candidate` can only restrict relative to `incumbent` (monotonicity). */
+export const isRestrictive = (candidate: ConfidenceBands, incumbent: ConfidenceBands): boolean =>
+  RUNGS.every((rung) => candidate[rung] >= incumbent[rung]);
 
 /**
  * Confidence-gated routing (Jev pattern): maps calibrated confidence to
@@ -100,15 +93,6 @@ export class ConfidenceRouter {
     if (typeof input === 'number') return routeConfidence(input, this.bands);
     if (input.abstained) return 'abstain';
     return routeConfidence(input.top?.p ?? input.score ?? 0, this.bands);
-  }
-
-  /** A stricter router never produces a higher band than a looser one at any p. */
-  static monotoneOver(a: ConfidenceRouter, b: ConfidenceRouter, samples = 101): boolean {
-    for (let i = 0; i < samples; i++) {
-      const p = i / (samples - 1);
-      if (bandOrdinal(a.route(p)) > bandOrdinal(b.route(p))) return false;
-    }
-    return true;
   }
 }
 

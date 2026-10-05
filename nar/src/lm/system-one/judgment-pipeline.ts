@@ -26,7 +26,6 @@ export interface PipelineStage {
 }
 
 export interface BandConfig {
-  readonly name: string;
   readonly threshold: number;
   readonly action: BandDecision;
 }
@@ -99,10 +98,10 @@ export const DEFAULT_PIPELINE_STAGES: readonly PipelineStage[] = [
  *  thresholds; below `review` this pipeline abstains rather than blocking, which is
  *  its own policy and the reason it keeps a rung of its own. */
 export const DEFAULT_PIPELINE_BANDS: readonly BandConfig[] = [
-  { name: 'act', threshold: DEFAULT_CONFIDENCE_BANDS.act, action: 'act' },
-  { name: 'review', threshold: DEFAULT_CONFIDENCE_BANDS.review, action: 'review' },
-  { name: 'block', threshold: 0.3, action: 'block' },
-  { name: 'abstain', threshold: 0, action: 'abstain' },
+  { threshold: DEFAULT_CONFIDENCE_BANDS.act, action: 'act' },
+  { threshold: DEFAULT_CONFIDENCE_BANDS.review, action: 'review' },
+  { threshold: 0.3, action: 'block' },
+  { threshold: 0, action: 'abstain' },
 ] as const;
 
 export class JudgmentPipeline {

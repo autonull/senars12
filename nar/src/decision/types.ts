@@ -13,6 +13,7 @@
 
 import { type BudgetLimits, createBudget } from '@senars/core/budget';
 import type { ReasoningBudget, SourceQuality } from '@senars/core/schemas';
+import type { BandDecision, CognitiveAxis } from '@senars/util';
 import type { CriticalityLevel } from '@senars/util/config';
 import { z } from 'zod';
 import type { ProvisionalStamp } from './provisional-stamp.js';
@@ -81,10 +82,8 @@ export type AbstainReason =
   | 'verification-veto'
   | 'no-candidates';
 
-/** The router's band for a score, ordered so a band can be compared by restrictiveness. */
-export const BAND_DECISIONS = ['act', 'review', 'block', 'abstain'] as const;
-
-export type BandDecision = (typeof BAND_DECISIONS)[number];
+export { BANDS, COGNITIVE_AXES, CognitiveAxisSchema as cognitiveAxisSchema, bandOrdinal } from '@senars/util';
+export type { BandDecision, CognitiveAxis };
 
 export interface HeadResult {
   /** Which rubric judged; absent when the caller already knows. */
@@ -135,11 +134,6 @@ export const asRubricId = (name: string): RubricId | undefined =>
 /** Whether a judgment is about what is true or what is wanted. Named once so the
  *  decision contract, the System One wire schema and the config schema cannot each
  *  enumerate the pair on their own. */
-export const COGNITIVE_AXES = ['epistemic', 'teleological'] as const;
-
-export type CognitiveAxis = (typeof COGNITIVE_AXES)[number];
-
-export const cognitiveAxisSchema = z.enum(COGNITIVE_AXES);
 
 export interface ClassifyQuery {
   kind: 'classify';

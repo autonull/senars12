@@ -24,11 +24,8 @@ import type {
   ReasoningBudget,
 } from './types.js';
 
-/** The router's four bands, under the name the verification stage reports them by. */
-type VerifyDecision = BandDecision;
-
 export interface VerifyResult {
-  decision: VerifyDecision;
+  decision: BandDecision;
   /** Stage-1 plausibility (P(true)); undefined on abstain. */
   p: number | undefined;
   /** Stage-2 verification proposition — present only when the router escalated. */
@@ -77,7 +74,7 @@ export async function verifyCascade(
     budget
   );
   const prop = result.stage1 as EvaluateProposition;
-  const decision: VerifyDecision = prop.abstained ? 'abstain' : routeConfidence(prop.score, bands);
+  const decision: BandDecision = prop.abstained ? 'abstain' : routeConfidence(prop.score, bands);
   return {
     decision,
     p: prop.abstained ? undefined : prop.score,

@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { BeliefTruth } from './truth.js';
 /**
  * Every origin a cognitive event may claim. One list, so the zod boundary in
@@ -8,6 +9,37 @@ import type { BeliefTruth } from './truth.js';
 export const ENGINE_ORIGINS = ['nar', 'kernel', 'proposer'] as const;
 
 export type EngineOrigin = (typeof ENGINE_ORIGINS)[number];
+
+/**
+ * Bands, most permissive first. `abstain` is below `block` rather than beside it,
+ * so the ordinal alone makes abstaining the most restrictive answer.
+ */
+export const BANDS = { act: 2, review: 1, block: 0, abstain: -1 } as const;
+
+export type BandDecision = keyof typeof BANDS;
+
+export const BandDecisionSchema = z.enum(Object.keys(BANDS) as [BandDecision, ...BandDecision[]]);
+
+/** How restrictive a band is; abstaining is always the most restrictive. */
+export const bandOrdinal = (band: BandDecision): number => BANDS[band];
+
+/** Whether a judgment is about what is true or what is wanted. */
+export const COGNITIVE_AXES = ['epistemic', 'teleological'] as const;
+
+export type CognitiveAxis = (typeof COGNITIVE_AXES)[number];
+
+export const CognitiveAxisSchema = z.enum(COGNITIVE_AXES);
+
+/**
+ * The query shapes a judgment can take, as `JudgmentQuery` declares them.
+ *
+ * `synthesize` was missing from the event's own enum while being a declared query
+ * kind, so recording a resolved synthesis — `shape: proposition.kind` passes
+ * whatever the proposition says — was an append that threw.
+ */
+export const JUDGMENT_SHAPES = ['classify', 'evaluate', 'synthesize'] as const;
+
+export const JudgmentShapeSchema = z.enum(JUDGMENT_SHAPES);
 
 export interface CognitiveStimulus {
   text: string;

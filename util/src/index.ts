@@ -107,7 +107,9 @@ export { HEALTH_STATUSES } from './types/agent.js';
 export { CAPABILITY_RISKS, CapabilityRiskSchema } from './types/capability.js';
 export type { CapabilityRisk } from './types/capability.js';
 export type {
+  BandDecision,
   ChatOptions,
+  CognitiveAxis,
   CognitiveStimulus,
   Context,
   Derivation,
@@ -115,10 +117,19 @@ export type {
   EngineOrigin,
   GroundednessGate,
 } from './types/cognitive.js';
-/** @public The one list of event origins; `EngineOrigin` is derived from it. */
-export { ENGINE_ORIGINS } from './types/cognitive.js';
-/** @public Narrows an egress gate's `boolean | EgressVerdict` answer to the verdict. */
-export { egressVerdict } from './types/cognitive.js';
+/** @public The vocabularies a cognitive event carries, so the zod boundary in `core`
+ *  cannot admit an origin, a band, an axis or a query shape the types do not carry. */
+export {
+  BANDS,
+  COGNITIVE_AXES,
+  ENGINE_ORIGINS,
+  JUDGMENT_SHAPES,
+  BandDecisionSchema,
+  CognitiveAxisSchema,
+  JudgmentShapeSchema,
+  bandOrdinal,
+  egressVerdict,
+} from './types/cognitive.js';
 /** @public Engine contract and identifiers. */
 export type { Engine, EngineId } from './types/engine.js';
 /** @public The one tool outcome shape and its two constructors. */

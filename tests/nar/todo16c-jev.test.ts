@@ -1,4 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import { bandOrdinal } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
@@ -104,8 +105,10 @@ describe('Jev Patterns (Bench 23)', () => {
     const strict = new ConfidenceRouter({ act: 0.9, review: 0.6, block: 0.1 });
     expect(isRestrictive(strict.bands, loose.bands)).toBe(true);
     expect(isRestrictive(loose.bands, strict.bands)).toBe(false);
-    expect(ConfidenceRouter.monotoneOver(strict, loose)).toBe(true);
-    expect(ConfidenceRouter.monotoneOver(loose, strict)).toBe(false);
+    for (let i = 0; i <= 100; i++) {
+      const p = i / 100;
+      expect(bandOrdinal(strict.route(p))).toBeLessThanOrEqual(bandOrdinal(loose.route(p)));
+    }
   });
 
   it('compositeScore respects declared weights and normalizes over non-abstained entries', () => {

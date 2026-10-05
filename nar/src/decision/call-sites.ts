@@ -16,7 +16,7 @@
  * eight call sites.
  */
 
-import type { Witness } from '@senars/util';
+import { JUDGMENT_SHAPES, type Witness } from '@senars/util';
 import type { BudgetScopeId } from '../kernel/budget-scopes.js';
 import {
   DECISION_ASK_TIMEOUT_MS,
@@ -129,6 +129,6 @@ export const EGRESS_VETO_CALL_SITE = judgmentSite('authorize.egress-veto');
 /** The declared vocabulary, so a gate reads one table rather than three literals —
  *  each spread from the type that owns it, so a fourth query kind or position
  *  cannot be declared twice. */
-export const DECISION_QUERIES = ['classify', 'evaluate', 'synthesize'] as const;
+export const DECISION_QUERIES = JUDGMENT_SHAPES;
 export const DECISION_AXES = [...COGNITIVE_AXES, SYNTHESIS_AXIS] as const;
 export { DECISION_POSITIONS };
