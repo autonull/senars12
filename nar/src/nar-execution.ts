@@ -22,7 +22,7 @@ import {
 import type { ReasoningAboutReasoning } from './self';
 import type { TaskManager } from './task';
 import { classifyTask, type TaskSignal } from './task';
-import { getTermArgs, isCompound, operationNameOf, type Term, TermSet, termParser } from './terms';
+import { isCompound, operationNameOf, type Term, TermSet, termParser } from './terms';
 import { Truth } from './terms/impls/Truth.js';
 import { type PhaseTimerSummary, summarizeRegions } from './trace';
 import type { Task } from './types';

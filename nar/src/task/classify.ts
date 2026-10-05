@@ -1,6 +1,6 @@
 import type { Task } from '../types';
 import type { Term } from '../terms';
-import { isAtomic, isCompound, getTermArgs, getPredicate, getSubject, getConsequent, operationNameOf } from '../terms';
+import { getArgs, getConsequent, getPredicate, getSubject, isAtomic, isCompound, operationNameOf } from '../terms';
 
 /** Typed semantic signals emitted by task classification. */
 export type TaskSignal =
@@ -48,7 +48,7 @@ export function classifyTask(term: Term): TaskSignal[] {
   }
 
   if (isCompound(term)) {
-    const args = getTermArgs(term);
+    const args = getArgs(term);
     const predicate = getPredicate(term);
 
     // Check for contradiction in inheritance statements

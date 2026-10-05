@@ -13,4 +13,4 @@ export {
   validate,
 } from './serialization.js';
 export type { ConceptStats } from './statistics.js';
-export { calculateConceptStats, tallyConcepts } from './statistics.js';
+export { calculateConceptStats, storePressure, tallyConcepts } from './statistics.js';

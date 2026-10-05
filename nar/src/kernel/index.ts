@@ -45,7 +45,7 @@ export {
   persistDerivationRecords,
   type ReplayResult,
   type ReplaySnapshotFile,
-  type ReplaySnapshotStats,
+  type ReplayTally,
   replayIntoMemory,
   serializeReplayResult,
   verifyReplayStateHash,

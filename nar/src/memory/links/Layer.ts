@@ -1,13 +1,12 @@
 import type { EvictionOrder } from '@senars/util';
 import { addToSet, BoundedMap, collectUpTo, occupancy, removeFromSet, retain } from '@senars/util';
+import { LINK } from '../../constants.js';
 import { type Term, termKey } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
 import type { LinkEntry, LinkForgetPolicy, LinkInput, LinkQuery, LinkType } from './types.js';
 
 const DEFAULT_TYPE: LinkType = 'term-link';
 const DEFAULT_PRIORITY = 0.5;
-/** Below this a decayed link is noise rather than a weak association. */
-const DECAY_FLOOR = 0.01;
 
 /** Canonical link identity — the same `termKey` scheme used for concepts and bags. */
 export const linkId = (source: Term, target: Term, type: LinkType = DEFAULT_TYPE): string =>
@@ -18,7 +17,7 @@ export const linkId = (source: Term, target: Term, type: LinkType = DEFAULT_TYPE
  * ties by creation order; `lru`/`fifo` differ only in whether a read refreshes
  * recency; `random` spreads eviction across the layer.
  */
-const evictionOrder = (policy: LinkForgetPolicy): EvictionOrder<LinkEntry> =>
+const linkEvictionOrder = (policy: LinkForgetPolicy): EvictionOrder<LinkEntry> =>
   policy === 'priority'
     ? { by: (entry) => entry.priority }
     : policy === 'fifo'
@@ -37,7 +36,6 @@ const evictionOrder = (policy: LinkForgetPolicy): EvictionOrder<LinkEntry> =>
  */
 export class Layer {
   private readonly links: BoundedMap<string, LinkEntry>;
-  private readonly byType = new Map<LinkType, Set<string>>();
   private readonly byTerm = new Map<string, Set<string>>();
 
   constructor(
@@ -48,7 +46,7 @@ export class Layer {
   ) {
     this.links = new BoundedMap({
       maxSize: capacity,
-      eviction: evictionOrder(forgetPolicy),
+      eviction: linkEvictionOrder(forgetPolicy),
       onEvict: (entry) => this.forget(entry),
       rng,
     });
@@ -80,7 +78,6 @@ export class Layer {
     };
 
     this.links.set(id, entry);
-    addToSet(this.byType, type, id);
     const sourceKey = termKey(sourceTerm);
     const targetKey = termKey(targetTerm);
     addToSet(this.byTerm, sourceKey, id);
@@ -103,6 +100,16 @@ export class Layer {
     return ids ? this.collect(ids, query) : [];
   }
 
+  /**
+   * Drop every link this layer holds for `term`.
+   *
+   * The one removal seam a layer extends: `LinkManager` fans this out over all
+   * layers, so a subclass that keeps state keyed by term — `EmbeddingLayer` and
+   * its vectors — overrides this rather than being reached around. It used to
+   * resolve the default layer only, so a term removed from the concept store
+   * kept its semantic edges and its embedding alive, and only the embedding
+   * layer's own bound could ever release them.
+   */
   removeAllLinksForTerm(term: Term): void {
     const ids = this.byTerm.get(termKey(term));
     if (!ids) return;
@@ -116,7 +123,7 @@ export class Layer {
     const doomed: string[] = [];
     for (const [id, entry] of this.links.entries()) {
       entry.priority = retain(entry.priority, decayRate);
-      if (entry.priority < DECAY_FLOOR) doomed.push(id);
+      if (entry.priority < LINK.MIN_PRIORITY) doomed.push(id);
     }
     for (const id of doomed) {
       const entry = this.links.peek(id);
@@ -151,7 +158,6 @@ export class Layer {
 
   /** Drop every index reference to a link. */
   private forget(entry: LinkEntry): void {
-    removeFromSet(this.byType, entry.type, entry.id);
     removeFromSet(this.byTerm, termKey(entry.sourceTerm), entry.id);
     removeFromSet(this.byTerm, termKey(entry.targetTerm), entry.id);
   }

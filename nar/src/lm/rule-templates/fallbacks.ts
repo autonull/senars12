@@ -2,7 +2,7 @@
  * Pure-NAL symbolic fallbacks for LM rules: zero LM dependency, safe on any model.
  * A fallback returning null skips the rule (no symbolic equivalent); [] degrades silently.
  */
-import { fromNarsese, hasVariable, type Term, Truth } from '../../terms';
+import { fromNarsese, getArgs, hasVariable, type Term, Truth } from '../../terms';
 import { createTask, type Task, type TaskType } from '../../types';
 import { lmTaskWeight } from '../task-weights.js';
 
@@ -36,7 +36,7 @@ export const abductionFallback: SymbolicFallback = (primary) =>
 /** Template decomposition: split conjunction goals into subgoals. */
 export const conjunctionDecomposition: SymbolicFallback = (primary) => {
   if (primary.kind === 'conjunction' || primary.kind === 'sequence') {
-    return primary.args.flatMap((arg) => task(arg, 'goal', 0.9, 0.6));
+    return getArgs(primary).flatMap((arg) => task(arg, 'goal', 0.9, 0.6));
   }
   return null;
 };

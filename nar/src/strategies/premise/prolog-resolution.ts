@@ -6,7 +6,7 @@
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { Term } from '../../terms';
-import { applySubstitution, getTermArgs, unify, type Substitution } from '../../terms';
+import { applySubstitution, getArgs, unify, type Substitution } from '../../terms';
 import type { Task, TaskType } from '../../types';
 import { createSecondaryTask } from '../../types';
 import type { ComponentMetadata, Strategy } from '../types';
@@ -45,21 +45,13 @@ function findHornClauses(memory: MemoryView): Clause[] {
     if (!belief?.truth) continue;
     const term = concept.term;
     if (term.kind === 'implication') {
-      const args = getTermArgs(term);
-      if (args && args.length === 2) {
-        const a0 = args[0];
-        const a1 = args[1];
-        if (a0 && a1) clauses.push({ head: a1, body: [a0] });
-      }
+      const [a0, a1] = getArgs(term);
+      if (a0 && a1) clauses.push({ head: a1, body: [a0] });
     } else if (term.kind === 'equivalence') {
-      const args = getTermArgs(term);
-      if (args && args.length === 2) {
-        const a0 = args[0];
-        const a1 = args[1];
-        if (a0 && a1) {
-          clauses.push({ head: a0, body: [a1] });
-          clauses.push({ head: a1, body: [a0] });
-        }
+      const [a0, a1] = getArgs(term);
+      if (a0 && a1) {
+        clauses.push({ head: a0, body: [a1] });
+        clauses.push({ head: a1, body: [a0] });
       }
     } else {
       clauses.push({ head: term, body: [] });

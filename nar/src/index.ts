@@ -119,8 +119,6 @@ export {
   getConsequent,
   getPredicate,
   getSubject,
-  getTermArg,
-  getTermArgs,
   hasVariable,
   isAtomic,
   isCompound,

@@ -66,7 +66,18 @@ export interface FullReplayOptions {
   idRange?: { from?: string; to?: string };
 }
 
-export interface ReplayResult {
+/** What a replay applied, and what it could not. The one tally of both. */
+export interface ReplayTally {
+  appliedTasks: number;
+  appliedRevisions: number;
+  appliedDerivations: number;
+  appliedActivations: number;
+  appliedProposals: number;
+  skipped: number;
+  errors: string[];
+}
+
+export interface ReplayResult extends ReplayTally {
   /** The reconstructed store, as a port: replay reads it, it does not own it. */
   memory: MemoryPorts;
   gateSnapshot: ReturnType<typeof replayCognitiveState>;
@@ -76,13 +87,6 @@ export interface ReplayResult {
    * recorded" from "there was nothing to reduce".
    */
   proposalState?: ProposalReplayState;
-  appliedTasks: number;
-  appliedRevisions: number;
-  appliedDerivations: number;
-  appliedActivations: number;
-  appliedProposals: number;
-  skipped: number;
-  errors: string[];
 }
 
 function taskTypeFromEvent(type: TaskAdmittedEvent['payload']['taskType']): ConceptTaskType {
@@ -290,16 +294,6 @@ export function verifyReplayStateHash(
   return { valid: actual === expectedHash, actual };
 }
 
-export interface ReplaySnapshotStats {
-  appliedTasks: number;
-  appliedRevisions: number;
-  appliedDerivations: number;
-  appliedActivations: number;
-  appliedProposals: number;
-  skipped: number;
-  errors: string[];
-}
-
 export interface ReplaySnapshotFile {
   version: number;
   timestamp: number;
@@ -307,7 +301,7 @@ export interface ReplaySnapshotFile {
   gateSnapshot: ReplayResult['gateSnapshot'];
   proposalState?: ProposalReplayState;
   memory: unknown;
-  stats: ReplaySnapshotStats;
+  stats: ReplayTally;
 }
 
 export async function serializeReplayResult(

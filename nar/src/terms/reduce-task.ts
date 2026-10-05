@@ -1,5 +1,6 @@
 import type { Task } from '../types/core.js';
 import { canonicalTerm } from './reduce.js';
+import { getArgs } from './impls/accessors.js';
 import { Truth } from './impls/Truth.js';
 
 /**
@@ -25,10 +26,10 @@ export interface TaskReducer {
  */
 const negationIntoTruth: TaskReducer = {
   id: 'negation-into-truth',
-  applies: (task) => task.term.kind === 'negation' && task.term.args?.[0]?.kind !== 'negation',
+  applies: (task) => task.term.kind === 'negation' && getArgs(task.term)[0]?.kind !== 'negation',
   reduce: (task) => ({
     ...task,
-    term: task.term.args![0]!,
+    term: getArgs(task.term)[0]!,
     truth: Truth.negation(task.truth),
   }),
 };

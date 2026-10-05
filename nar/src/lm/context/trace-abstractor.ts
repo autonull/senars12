@@ -1,5 +1,5 @@
 import type { DerivationRecord } from '@senars/core/schemas/derivation-records';
-import { atom, fromNarsese, type Term } from '../../terms/index.js';
+import { atom, fromNarsese, getArgs, type Term } from '../../terms/index.js';
 
 export interface CriticalPathStep {
   readonly ruleId: string;
@@ -57,7 +57,7 @@ export class TraceAbstractor {
     }
     return {
       ...term,
-      args: term.args.map((a) => this.#abstract(a, atomIndex)),
+      args: getArgs(term).map((a) => this.#abstract(a, atomIndex)),
       _serialized: undefined,
     } as Term;
   }

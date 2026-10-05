@@ -1,7 +1,7 @@
 import { shareOf, sortBy } from '@senars/util';
 import { PRESSURE } from '../../constants.js';
 import type { Concept } from '../concept.js';
-import type { ConceptWriter, StatisticsView, SymbolIndex } from '../ports/index.js';
+import type { ConceptWriter, StatisticsView } from '../ports/index.js';
 
 /**
  * Share of the idle population shed per cycle, by how far past the rung
@@ -99,7 +99,7 @@ export const evictionOrder = (a: Concept, b: Concept): number =>
  *    `exhausted` rather than returning zeroes.
  */
 export const evictUnderPressure = (
-  memory: StatisticsView & SymbolIndex & ConceptWriter
+  memory: Pick<StatisticsView, 'capacityPressure'> & ConceptWriter
 ): EvictionReport => {
   const pressure = memory.capacityPressure();
   const population = memory.listConcepts();
@@ -136,11 +136,9 @@ export const evictUnderPressure = (
 
   // What stage 1 left, by age × value. Archived concepts are already out of the
   // store, so they are not candidates; the ones the archive refused to take are.
-  const remainder = [
-    ...population.filter(
-      (concept) => !archivedSet.has(concept) && memory.getConcept(concept.term) !== undefined
-    ),
-  ].sort(evictionOrder);
+  const remainder = population
+    .filter((concept) => !archivedSet.has(concept) && memory.getConcept(concept.term) !== undefined)
+    .sort(evictionOrder);
 
   const victims = shareOf(remainder, Math.min(FORGET_SHARE, pressure - PRESSURE.ARCHIVE));
   const forgotten = victims.filter((concept) => memory.removeConcept(concept.term)).length;

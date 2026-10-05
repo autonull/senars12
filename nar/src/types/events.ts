@@ -75,6 +75,21 @@ export interface ContradictionEvent {
   at: number;
 }
 
+/**
+ * What a tool call reported back. `tool:result` and `tool:error` were the same
+ * record with a different name — the outcome lives in `result` either way — so
+ * they are one payload rather than two spellings of one that could drift.
+ */
+interface ToolOutcome {
+  type: string;
+  name: string;
+  args?: any;
+  result?: any;
+  timestamp: number;
+  duration: number;
+  context?: any;
+}
+
 export interface NAREventMap extends EventMap, BudgetEventMap {
   contradiction: ContradictionEvent;
   'rule:applied': {
@@ -141,24 +156,8 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
   'tool:stop': { name: string; state: string };
   'tool:dispose': { name: string; state: string };
   'tool:call': { type: string; name: string; args: unknown; timestamp: number; context?: unknown };
-  'tool:result': {
-    type: string;
-    name: string;
-    args?: any;
-    result?: any;
-    timestamp: number;
-    duration: number;
-    context?: any;
-  };
-  'tool:error': {
-    type: string;
-    name: string;
-    args?: any;
-    result?: any;
-    timestamp: number;
-    duration: number;
-    context?: any;
-  };
+  'tool:result': ToolOutcome;
+  'tool:error': ToolOutcome;
   // Conversation events
   'conversation:message-added': { message: any; count: number };
   'conversation:artifact-added': { artifact: any; count: number };

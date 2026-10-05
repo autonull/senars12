@@ -1,5 +1,6 @@
 import { NARY_OPS, OPERATORS } from '../operators.js';
 import type { OperatorKey, Term } from '../types.js';
+import { getArgs } from './accessors.js';
 
 const NARY_OPS_SET: ReadonlySet<string> = NARY_OPS;
 const BINARY_OPS = new Set(
@@ -38,7 +39,7 @@ const serializeOperation = (op: Term | undefined, args: Term | undefined): strin
   if (!op || !args) return '';
   const body =
     args.kind === 'product'
-      ? (args.args ?? []).map((arg: Term) => serialize(arg)).join(ARGUMENT_SEPARATOR)
+      ? getArgs(args).map((arg) => serialize(arg)).join(ARGUMENT_SEPARATOR)
       : serialize(args);
   return `(${serialize(op)}${OPERATORS.operation.symbol}(${body}))`;
 };
@@ -72,53 +73,58 @@ const EMPTY_COMPOUND: Partial<Record<OperatorKey, string>> = {
   retrospective: 'TRUE',
 };
 
+/**
+ * Hoisted out of {@link serialize}: it was declared inside it, so the recursion
+ * allocated a fresh closure at every term it descended into, and it reads nothing
+ * but `serialize` and a separator.
+ */
+const serializeArgs = (args: readonly Term[], sep = ARGUMENT_SEPARATOR): string =>
+  args.map(serialize).join(sep);
+
 const serialize = (term: Term): string => {
   if (term.kind === 'atom') return term.symbol;
 
-  const serializeArgs = (args: readonly Term[]): string =>
-    args.map((a: Term) => serialize(a)).join(ARGUMENT_SEPARATOR);
-
   if (NARY_OPS_SET.has(term.kind)) {
-    const args = term.args ?? ([] as readonly Term[]);
+    const args = getArgs(term);
     if (args.length === 0) return EMPTY_COMPOUND[term.kind as OperatorKey] ?? '';
     if (args.length === 1) {
       // Product with 1 arg is a real term, not a fold: (a) not a
-      if (term.kind === 'product') return `(${serialize(args[0] as Term)})`;
+      if (term.kind === 'product') return `(${serialize(args[0]!)})`;
       // Disjunction and conjunction fold 1-arg to the arg
-      return serialize(args[0] as Term);
+      return serialize(args[0]!);
     }
     const sep = NARY_SEPARATORS[term.kind as OperatorKey] ?? ARGUMENT_SEPARATOR;
     // `product`'s copula is the comma itself, so `(a,b,c)` already *is* its
     // prefix form and there is no second spelling to choose between.
     if (args.length > PREFIX_ARITY_THRESHOLD && term.kind !== 'product') {
       const symbol = OPERATORS[term.kind as OperatorKey]?.symbol ?? sep;
-      return `(${symbol}${ARGUMENT_SEPARATOR}${args.map((a: Term) => serialize(a)).join(ARGUMENT_SEPARATOR)})`;
+      return `(${symbol}${ARGUMENT_SEPARATOR}${serializeArgs(args)})`;
     }
-    return `(${args.map((a: Term) => serialize(a)).join(sep)})`;
+    return `(${serializeArgs(args, sep)})`;
   }
 
   if (term.kind === 'operation') {
-    const [op, args] = term.args ?? ([] as readonly Term[]);
+    const [op, args] = getArgs(term);
     return serializeOperation(op, args);
   }
 
   if (BINARY_OPS.has(term.kind)) {
-    const [a, b] = term.args ?? ([] as readonly Term[]);
+    const [a, b] = getArgs(term);
     const op = OPERATORS[term.kind as OperatorKey]?.symbol ?? '';
-    return a && b ? `(${serialize(a as Term)}${op}${serialize(b as Term)})` : '';
+    return a && b ? `(${serialize(a)}${op}${serialize(b)})` : '';
   }
 
   if (UNARY_OPS.has(term.kind)) {
-    const args = term.args ?? ([] as readonly Term[]);
+    const args = getArgs(term);
     const [prefix, suffix] = WRAPPERS[term.kind] ?? ['', ''];
     if (args.length === 0) return `${prefix}${suffix}`;
     return args.length === 1
-      ? `${prefix}${serialize(args[0] as Term)}${suffix}`
+      ? `${prefix}${serialize(args[0]!)}${suffix}`
       : `${prefix}${serializeArgs(args)}${suffix}`;
   }
 
-  const t = term as { args?: readonly Term[] };
-  return t.args ? `(${serializeArgs(t.args)})` : '';
+  const args = getArgs(term);
+  return args.length > 0 ? `(${serializeArgs(args)})` : '';
 };
 
 export const serializeTerm = serialize;

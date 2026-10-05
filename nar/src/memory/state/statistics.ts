@@ -1,5 +1,6 @@
-import { percentiles } from '@senars/util';
+import { occupancy, percentiles } from '@senars/util';
 import type { Concept } from '../concept.js';
+import type { StoreBounds, StorePressure } from '../ports/statistics-view.js';
 
 export interface ConceptStats {
   totalConcepts: number;
@@ -8,6 +9,30 @@ export interface ConceptStats {
   mediumPriority: number;
   highPriority: number;
 }
+
+/**
+ * Occupancy per bound, and the pressure as their maximum.
+ *
+ * This arithmetic was written out twice in `memory.ts` — once in
+ * `pressureBreakdown`, once inside `getStatistics` — so the health report, the
+ * eviction policy and the statistics block could each be reading a different
+ * number for the same store. `capacityPressure`, `getStatistics` and
+ * `computeHealth` are the three readers that must agree, so they agree here.
+ *
+ * `max` rather than a weighted sum, because a weighted sum makes the reading move
+ * when one bound is raised and the other is not, so "is the store under pressure"
+ * would depend on how the two capacities were chosen (TODO29.a §5.8). A concept
+ * count is the wrong denominator on its own too: a thousand concepts holding one
+ * belief each and a thousand holding fifty each read identically.
+ */
+export const storePressure = (
+  totals: Pick<ConceptStats, 'totalConcepts' | 'totalTasks'>,
+  bounds: StoreBounds
+): StorePressure => {
+  const concepts = occupancy(totals.totalConcepts, bounds.maxConcepts);
+  const tasks = occupancy(totals.totalTasks, bounds.maxTasks);
+  return { concepts, tasks, capacity: Math.max(concepts, tasks) };
+};
 
 /**
  * Totals only. The tercile split below costs a sort, so a caller that discards
@@ -26,6 +51,11 @@ export const tallyConcepts = (
   return { totalConcepts, totalTasks };
 };
 
+/**
+ * Totals and the priority distribution from one sweep. Both come out of a single
+ * walk, which is what lets `getStatistics` read the counts {@link storePressure}
+ * needs rather than sweeping the store again to re-derive them.
+ */
 export const calculateConceptStats = (concepts: Iterable<Concept>): ConceptStats => {
   const priorities: number[] = [];
   let totalTasks = 0;

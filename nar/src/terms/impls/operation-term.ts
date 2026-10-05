@@ -14,7 +14,7 @@
  */
 
 import { isAtomic, isCompound, type Term } from '../types.js';
-import { termsEqual } from './accessors.js';
+import { getArgs, termsEqual } from './accessors.js';
 import { TermBuilder } from './factory.js';
 import { isValidAtomSymbol, toAtomSymbol } from './valid-atom.js';
 
@@ -57,7 +57,7 @@ export const operationTerm = (name: string, args: Readonly<Record<string, unknow
 /** The operation a term names, or `undefined` when it names none. */
 export const operationNameOf = (term: Term): string | undefined => {
   if (!isCompound(term) || term.kind !== 'operation') return undefined;
-  const name = term.args?.[0];
+  const name = getArgs(term)[0];
   return name && isAtomic(name) ? name.symbol : undefined;
 };
 
@@ -77,12 +77,12 @@ const atomValue = (symbol: string): unknown => {
 };
 
 const termValue = (term: Term): unknown =>
-  isAtomic(term) ? atomValue(term.symbol) : (term.args?.map(termValue) ?? term.toString());
+  isAtomic(term) ? atomValue(term.symbol) : getArgs(term).map(termValue);
 
 /** `{key --> value}` decodes as `{key: value}`; anything else is a positional argument. */
 const argEntry = (term: Term, index: number): [string, unknown] => {
   if (isCompound(term) && term.kind === 'inheritance') {
-    const [value, key] = term.args ?? [];
+    const [value, key] = getArgs(term);
     if (key && value && isAtomic(key)) return [key.symbol, termValue(value)];
   }
   return [`arg${index}`, termValue(term)];
@@ -91,7 +91,7 @@ const argEntry = (term: Term, index: number): [string, unknown] => {
 const argEntriesOf = (args: Term | undefined): [string, unknown][] => {
   if (!args || termsEqual(args, NO_ARGS)) return [];
   if (isCompound(args) && args.kind === 'product') {
-    return (args.args ?? []).map(argEntry);
+    return getArgs(args).map(argEntry);
   }
   return [argEntry(args, 0)];
 };
@@ -100,5 +100,5 @@ const argEntriesOf = (args: Term | undefined): [string, unknown][] => {
 export const readOperationTerm = (term: Term): OperationCall | undefined => {
   const name = operationNameOf(term);
   if (name === undefined) return undefined;
-  return { name, args: Object.fromEntries(argEntriesOf(term.args?.[1])) };
+  return { name, args: Object.fromEntries(argEntriesOf(getArgs(term)[1])) };
 };

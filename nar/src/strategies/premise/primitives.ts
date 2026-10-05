@@ -5,7 +5,7 @@ import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';
 import { LINK_LAYER } from '../../memory/links/types.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { Term } from '../../terms';
-import { Stamp, sharesSymbol, TermMap, termsEqual } from '../../terms';
+import { getArgs, sharesSymbol, Stamp, TermMap, termsEqual } from '../../terms';
 import type { Task } from '../../types';
 import { ConfigurationError, createSecondaryTask } from '../../types';
 
@@ -59,7 +59,7 @@ export const PREMISE_SOURCES = {
   links: (task: Task, memory: MemoryView, n = 20): Concept[] =>
     conceptsFrom(memory, LINK_LAYER.TERM, task.term, n),
   taskArgs: (task: Task, memory: MemoryView): Concept[] => {
-    const args = task.term.kind === 'conjunction' ? task.term.args : [];
+    const args = task.term.kind === 'conjunction' ? getArgs(task.term) : [];
     return args.map((arg) => memory.getConcept(arg)).filter((c): c is Concept => !!c);
   },
   graph: (task: Task, memory: MemoryView, n = 20): Concept[] =>
@@ -171,8 +171,8 @@ function createFilterRegistry() {
         (): PremiseFilter =>
         (task: Task, concept: Concept): boolean => {
           if (task.term.kind !== 'inheritance' || concept.term.kind !== 'inheritance') return true;
-          const [taskSub, taskPred] = task.term.args ?? [];
-          const [conceptSub, conceptPred] = concept.term.args ?? [];
+          const [taskSub, taskPred] = getArgs(task.term);
+          const [conceptSub, conceptPred] = getArgs(concept.term);
           return (
             (taskSub !== undefined &&
               conceptSub !== undefined &&

@@ -1,5 +1,5 @@
 import { isAtomic, type Term } from '../types.js';
-import { walkTerms } from './accessors.js';
+import { getArgs, walkTerms } from './accessors.js';
 
 export const getTermComplexity = (
   term: Term
@@ -21,7 +21,7 @@ export const getTermComplexity = (
       return;
     }
     operatorCount++;
-    breadth = Math.max(breadth, t.args?.length ?? 0);
+    breadth = Math.max(breadth, getArgs(t).length);
   });
 
   return { depth, breadth, operatorCount, variableCount };

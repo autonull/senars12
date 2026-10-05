@@ -3,7 +3,6 @@ import {
   BoundedRing,
   getOrInsert,
   nextInt,
-  occupancy,
   rankBy,
   type RandomSource,
   selectTopN,
@@ -45,11 +44,11 @@ import { LINK_LAYER } from './links/types.js';
 import { MemoryIndex } from './memory-index.js';
 import type { MemoryPorts } from './ports/index.js';
 import type { LinkPort } from './ports/links.js';
-import type { MemoryStatistics } from './ports/statistics-view.js';
+import type { MemoryStatistics, StorePressure } from './ports/statistics-view.js';
 import type { EvictionReport } from './pressure';
 import { evictUnderPressure } from './pressure';
 import { selectSimilar } from './similarity.js';
-import { calculateConceptStats, tallyConcepts } from './state';
+import { calculateConceptStats, storePressure, tallyConcepts } from './state';
 import { filterByTerm } from './term-filter.js';
 
 /** Stateless, so one instance serves every memory that was not given a model. */
@@ -83,7 +82,6 @@ export class Memory implements MemoryPorts {
   private readonly revisionLog = new BoundedRing<RevisionEntry>(Memory.REVISION_LOG_CAP);
   private lastRevisionTs = 0;
   private cyclesSinceConsolidation = 0;
-  private lastTimestamp = Date.now();
   /** The last eviction pass's report, including whether it could free anything. */
   private lastEviction: EvictionReport | undefined;
 
@@ -98,9 +96,6 @@ export class Memory implements MemoryPorts {
     this.index = new MemoryIndex({
       enableAtomicIndex: this.config.enableIndexing,
       enableTemporalIndex: this.config.enableIndexing,
-      enableActivationIndex: true,
-      enableInverseIndex: this.config.enableIndexing,
-      enableSimilarityIndex: this.config.enableIndexing,
     });
     this.focus = new Focus({
       maxConcepts: this.config.focusMaxConcepts,
@@ -126,7 +121,7 @@ export class Memory implements MemoryPorts {
     if (config.enableEmbeddingLayer) {
       const embeddingLayer = new EmbeddingLayer({
         capacity: config.semanticLinkCapacity ?? LINK.SEMANTIC_LAYER_CAPACITY,
-        similarityThreshold: 0.6,
+        similarityThreshold: LINK.SEMANTIC_MIN_SIMILARITY,
         maxLinksPerConcept: 20,
         generator: config.embeddingGenerator ?? new MockEmbeddingGenerator(),
       });
@@ -301,7 +296,7 @@ export class Memory implements MemoryPorts {
   private adoptConcept(concept: Concept): Concept {
     this.concepts.set(concept.term, concept);
 
-    if (this.config.enableIndexing) this.index.index(concept, this.lastTimestamp);
+    if (this.config.enableIndexing) this.index.index(concept);
 
     const embeddingIndex = this.getEmbeddingIndex();
     embeddingIndex?.indexConcept(concept.term).catch(() => {
@@ -470,28 +465,18 @@ export class Memory implements MemoryPorts {
   }
 
   /**
-   * Pressure in `0..1`, and the **maximum of the store's own bounds** rather than
-   * the concept count alone (TODO29.a §5.8). A concept count is the wrong
-   * denominator: a thousand concepts holding one belief each and a thousand
-   * holding fifty each read identically, and only one of them is in trouble —
-   * which is the shape of finding 4, a signal disagreeing with the policy that
-   * reads it.
-   *
-   * `max` rather than a weighted sum, because a weighted sum makes the reading
-   * move when one bound is raised and the other is not, so "is the store under
-   * pressure" would depend on how the two capacities were chosen. The maximum is
-   * monotone in each bound, which is the property §5.8's acceptance asks for.
+   * Pressure in `0..1`, the maximum of the store's own bounds rather than the
+   * concept count alone (TODO29.a §5.8). {@link storePressure} owns the
+   * derivation, so the eviction policy, the health report and the statistics
+   * block cannot each read a different number for the same store.
    */
   capacityPressure(): number {
     return this.pressureBreakdown().capacity;
   }
 
   /** The two bounds behind {@link capacityPressure}, so a report names both. */
-  pressureBreakdown(): { concepts: number; tasks: number; capacity: number } {
-    const { totalConcepts, totalTasks } = this.totals();
-    const concepts = occupancy(totalConcepts, this.config.maxConcepts);
-    const tasks = occupancy(totalTasks, this.config.maxTasks);
-    return { concepts, tasks, capacity: Math.max(concepts, tasks) };
+  pressureBreakdown(): StorePressure {
+    return storePressure(this.totals(), this.config);
   }
 
   /** Totals without the tercile pass; what persistence serializes. */
@@ -503,9 +488,7 @@ export class Memory implements MemoryPorts {
     const stats = calculateConceptStats(this.concepts.values());
     // One tally, not two: the bounds read the counts the pass above already
     // made rather than sweeping the store a second time to re-derive them.
-    const concepts = occupancy(stats.totalConcepts, this.config.maxConcepts);
-    const tasks = occupancy(stats.totalTasks, this.config.maxTasks);
-    const pressure = Math.max(concepts, tasks);
+    const { concepts, tasks, capacity: pressure } = storePressure(stats, this.config);
     const result: MemoryStatistics = {
       totalConcepts: stats.totalConcepts,
       totalTasks: stats.totalTasks,
@@ -576,12 +559,16 @@ export class Memory implements MemoryPorts {
     return primary.mergeWith(others);
   }
 
+  /**
+   * The `limit` concepts most similar to `term`, ranked by `selectSimilar`.
+   *
+   * The candidate set is the whole store, as it has always been: the similarity
+   * clusters this used to read were one cluster per distinct term, so
+   * "searching the index" was walking every concept and scoring it. Nothing here
+   * can narrow the search, so nothing here pretends to.
+   */
   findSimilarConcepts(term: Term, limit = 10): Concept[] {
-    // Without an index the store itself is the only candidate set.
-    const candidates = this.config.enableIndexing
-      ? this.index.indexedConcepts()
-      : this.concepts.values();
-    return selectSimilar(candidates, term, limit);
+    return selectSimilar(this.concepts.values(), term, limit);
   }
 
   private recordRevision(entry: RevisionEntry): void {

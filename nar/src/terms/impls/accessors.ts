@@ -25,7 +25,7 @@ const getRoleArg = (
   index: 0 | 1,
   k1: Term['kind'],
   k2: Term['kind']
-): Term | undefined => (term.kind === k1 || term.kind === k2 ? term.args?.[index] : undefined);
+): Term | undefined => (term.kind === k1 || term.kind === k2 ? getArgs(term)[index] : undefined);
 
 export const getSubject = (term: Term): Term | undefined =>
   getRoleArg(term, 0, 'inheritance', 'similarity');
@@ -38,8 +38,18 @@ export const getConsequent = (term: Term): Term | undefined =>
 
 const NO_ARGS: readonly Term[] = Object.freeze([]);
 
+/**
+ * A term's arguments, for a term that is not known to be a compound.
+ *
+ * The one place `kind === 'atom' ? … : term.args` is spelled. It was spelled three
+ * ways — as `getTermArgs`, as `getArgs`, as `reduce.ts`'s `argsOf` — plus a dozen
+ * inline copies, and the three disagreed about what an atom has: `undefined`,
+ * the empty list, or a *fresh* empty list allocated per call, which every
+ * reducer asking an atom for its arguments paid for. An atom has no arguments,
+ * so the empty list is the whole answer, and a frozen singleton says so.
+ */
 export const getArgs = (term: Term): readonly Term[] =>
-  term.kind === 'atom' ? NO_ARGS : (term.args ?? []);
+  term.kind === 'atom' ? NO_ARGS : (term.args ?? NO_ARGS);
 export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
 
 /** Structural term equality. `undefined` is accepted so optional-arg probes need no guard. */
@@ -48,8 +58,8 @@ export const termsEqual = (a: Term | undefined, b: Term | undefined): boolean =>
   if (!a || !b) return false;
   if (a.kind !== b.kind) return false;
   if (a.kind === 'atom') return a.symbol === b.symbol;
-  const aArgs = a.args ?? [];
-  const bArgs = b.args ?? [];
+  const aArgs = getArgs(a);
+  const bArgs = getArgs(b);
   if (aArgs.length !== bArgs.length) return false;
   for (let i = 0; i < aArgs.length; i++) {
     if (!termsEqual(aArgs[i], bArgs[i])) return false;
@@ -222,7 +232,7 @@ export const bareInheritancePair = (term: Term): BareInheritance | null => {
   let found: BareInheritance | null = null;
   walkTerms(term, (t) => {
     if (found || t.kind !== 'inheritance') return;
-    const [subject, predicate] = t.args ?? [];
+    const [subject, predicate] = getArgs(t);
     if (subject?.kind === 'atom' && predicate?.kind === 'atom') {
       found = { subject: subject.symbol, predicate: predicate.symbol };
     }

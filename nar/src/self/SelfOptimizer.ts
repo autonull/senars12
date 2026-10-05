@@ -102,7 +102,10 @@ export class SelfOptimizer {
 
     const config = this.nar.getConfig();
     const memoryUsage = process.memoryUsage?.().heapUsed ?? 0;
-    const conceptCount = this.nar.listConcepts().length;
+    // The population, once: `listConcepts` materializes the whole store, and this
+    // pass wanted the count and then the array.
+    const concepts = this.nar.listConcepts();
+    const conceptCount = concepts.length;
 
     if (metrics.derivationsPerSecond < 10 && config.maxDerivationsPerStep > 50) {
       this.nar.setConfig({
@@ -115,7 +118,6 @@ export class SelfOptimizer {
       this.nar.memory?.consolidate?.();
     }
 
-    const concepts = this.nar.listConcepts();
     const lowPriorityConcepts = concepts.filter((c) => c.priority < 0.2);
     if (lowPriorityConcepts.length > concepts.length * 0.5) {
       this.nar.memory?.consolidate?.();

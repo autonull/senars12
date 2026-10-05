@@ -73,8 +73,13 @@ export class LinkManager {
     return this.layerFor(DEFAULT_LAYER).removeLink(sourceTerm, targetTerm, type);
   }
 
+  /**
+   * Every layer, because {@link applyDecay} already is: a decay pass reaches all
+   * of them and a removal reached one, so a term could outlive its decay and stay
+   * resident in a layer nothing else was going to ask about.
+   */
   removeAllLinksForTerm(term: Term): void {
-    this.layerFor(DEFAULT_LAYER).removeAllLinksForTerm(term);
+    for (const layer of this.layers.values()) layer.removeAllLinksForTerm(term);
   }
 
   getLinkPriority(sourceTerm: Term, targetTerm: Term, layerName = DEFAULT_LAYER): number {

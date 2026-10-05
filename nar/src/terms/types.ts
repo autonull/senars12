@@ -52,7 +52,3 @@ export const VARIABLE_SYMBOL = /^[?$#*%]/;
 export const isVariableSymbol = (symbol: string): boolean => VARIABLE_SYMBOL.test(symbol);
 export const isAtomic = (term: Term): term is AtomicTerm => term.kind === 'atom';
 export const isCompound = (term: Term): term is CompoundTerm => term.kind !== 'atom';
-export const getTermArgs = (term: Term): readonly Term[] | undefined =>
-  term.kind === 'atom' ? undefined : term.args;
-export const getTermArg = (term: Term, index: number): Term | undefined =>
-  term.kind === 'atom' ? undefined : term.args?.[index];

@@ -89,14 +89,19 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
     this.placementCap = config.placementCap ?? 64;
     this.pieceCap = config.pieceCap ?? 100;
     this.rng = new SeededRNG(config.seed ?? 1);
-    this.state_ = {
+    this.state_ = this.freshState();
+    this.spawn();
+  }
+
+  /** What a new game and a reset game both start from. */
+  private freshState(): TetrisState {
+    return {
       grid: this.emptyGrid(),
       piece: null,
       piecesPlaced: 0,
       linesCleared: 0,
       terminal: false,
     };
-    this.spawn();
   }
 
   private emptyGrid(): number[][] {
@@ -105,13 +110,7 @@ export class TetrisGame implements Game<TetrisState, TetrisPlacement> {
 
   reset(): void {
     this.bag.length = 0;
-    this.state_ = {
-      grid: this.emptyGrid(),
-      piece: null,
-      piecesPlaced: 0,
-      linesCleared: 0,
-      terminal: false,
-    };
+    this.state_ = this.freshState();
     this.spawn();
   }
 

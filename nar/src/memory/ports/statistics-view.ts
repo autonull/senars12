@@ -9,12 +9,27 @@
 import type { Term } from '../../terms/index.js';
 import type { Concept } from '../concept.js';
 
+/** The two bounds a store's occupancy is measured against. */
+export interface StoreBounds {
+  maxConcepts: number;
+  maxTasks: number;
+}
+
+export interface StorePressure {
+  /** Occupancy of the concept count. */
+  concepts: number;
+  /** Occupancy of the task count. */
+  tasks: number;
+  /** The reported pressure: the maximum of the two bounds. */
+  capacity: number;
+}
+
 export interface MemoryStatistics {
   totalConcepts: number;
   totalTasks: number;
   focusedConcepts: number;
   archivedConcepts: number;
-  indexStats?: { atomic: number; temporal: number; activation: number };
+  indexStats?: { atomic: number; temporal: number };
   archiveStats?: { size: number; capacity: number; utilization: number };
   memoryPressure: number;
   utilization: number;
@@ -30,7 +45,7 @@ export interface StatisticsView {
    * The bounds behind {@link capacityPressure}, so a report can name which one
    * is binding rather than reporting one number with two causes (TODO29.a §5.8).
    */
-  pressureBreakdown(): { concepts: number; tasks: number; capacity: number };
+  pressureBreakdown(): StorePressure;
   /** Totals without the tercile pass; what persistence serializes. */
   totals(): { totalConcepts: number; totalTasks: number };
   getStatistics(): MemoryStatistics;

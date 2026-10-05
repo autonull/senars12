@@ -97,8 +97,9 @@ export class EmbeddingLayer extends Layer {
     return cosineNormalized(normalize(embeddingA), embeddingB);
   }
 
-  async removeConcept(term: Term): Promise<void> {
+  /** The vectors are keyed by term, so they leave with the links derived from them. */
+  override removeAllLinksForTerm(term: Term): void {
     this.termEmbeddings.delete(termKey(term));
-    this.removeAllLinksForTerm(term);
+    super.removeAllLinksForTerm(term);
   }
 }

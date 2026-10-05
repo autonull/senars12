@@ -1,5 +1,6 @@
 import type { StampType, Term } from '../../terms';
 import {
+  getArgs,
   getPredicate,
   getSubject,
   isOperation,
@@ -19,8 +20,9 @@ export const NEUTRAL_FN = (): TruthType => Truth.NEUTRAL;
 
 export const validateRuleOutput = (term: Term, _premises: [Term, Term]): boolean => {
   if (isTautology(term)) return false;
-  if (term.args && term.args.length > 0) {
-    const argCount = term.args.length;
+  const args = getArgs(term);
+  if (args.length > 0) {
+    const argCount = args.length;
     if (
       (term.kind === 'inheritance' ||
         term.kind === 'similarity' ||

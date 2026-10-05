@@ -17,7 +17,7 @@
 
 import {
   atom,
-  getTermArgs,
+  getArgs,
   isAtomic,
   isCompound,
   type Term,
@@ -65,10 +65,7 @@ function isInheritance(term: Term): boolean {
 /** Extract subject and predicate from Inheritance term */
 function getInheritanceParts(term: Term): { subject: Term; predicate: Term } | null {
   if (!isInheritance(term)) return null;
-  const args = getTermArgs(term);
-  if (!args || args.length !== 2) return null;
-  const subject = args[0];
-  const predicate = args[1];
+  const [subject, predicate] = getArgs(term);
   if (!subject || !predicate) return null;
   return { subject, predicate };
 }
@@ -98,152 +95,84 @@ function metaLog(msg: string, data?: unknown): void {
   }
 }
 
+/**
+ * A meta-rule's fixed half.
+ *
+ * All five meta-rules spelled the same tail — the same premise shape, the same
+ * sub-0.1 priority that keeps self-reasoning below world beliefs, the same
+ * moderate-confidence truth, the same synchronous shape, the same `goal` task type
+ * — so a rule that drifted from it would drift in the rule table and in a
+ * reviewer's head at once and nothing would say so. The id is also the label both
+ * of a rule's log lines carry, so it is bound once here instead of being written
+ * three times per rule and free to disagree with the entry it names.
+ */
+const metaRule = (id: string, body: MetaRuleBody): RegisteredRule => ({
+  id,
+  pattern: { left: { op: 'inheritance' }, right: { op: 'inheritance' } },
+  apply: (premises) => {
+    const [p1, p2] = premises;
+    const bound = body(p1, p2);
+    metaLog(`${id} check`, { p1: p1?.toString(), p2: p2?.toString(), bound });
+    if (!bound) return undefined;
+    metaLog(`${id} FIRED`, { result: bound.toString() });
+    return bound;
+  },
+  sync: true,
+  priority: META_AIKR_BOUNDS.metaRulePriority,
+  truthFn: () => META_RULE_TRUTH,
+  taskType: 'goal',
+});
+
+/** The part of a meta-rule that differs: read two premises, emit a task or nothing. */
+type MetaRuleBody = (left: Term, right: Term) => Term | undefined;
+
 /** Build registered meta-rules with proper patterns */
 export function buildMetaRules(): RegisteredRule[] {
-  const rules: RegisteredRule[] = [
+  return [
     // Strategy selection: (drive:competence --> low) & (situation --> requires_strategy) & (strategy --> $s) ==> (^select_strategy($s))!
-    {
-      id: 'meta-strategy-selection',
-      pattern: { left: { op: 'inheritance' }, right: { op: 'inheritance' } },
-      apply: (premises) => {
-        const [p1, p2] = premises;
-        const driveLow = extractVariableBinding(p1, 'low');
-        const situationRequires = extractVariableBinding(p2, 'requires_strategy');
-        metaLog('meta-strategy-selection check', {
-          p1: p1?.toString(),
-          p2: p2?.toString(),
-          driveLow,
-          situationRequires,
-        });
-        if (driveLow && situationRequires) {
-          const result = buildOperationTerm('switch_strategy', [
-            atom('focused'),
-            atom('derivation'),
-          ]);
-          metaLog('meta-strategy-selection FIRED', { result: result.toString() });
-          return result;
-        }
-        return undefined;
-      },
-      sync: true,
-      priority: META_AIKR_BOUNDS.metaRulePriority,
-      truthFn: () => META_RULE_TRUTH,
-      taskType: 'goal',
-    },
-    // Knob tuning: (rlfp:reward --> below_threshold) & (knob --> $k) ==> (^apply_tuning($k, $v))!
-    {
-      id: 'meta-knob-tuning',
-      pattern: { left: { op: 'inheritance' }, right: { op: 'inheritance' } },
-      apply: (premises) => {
-        const [p1, p2] = premises;
-        const rewardLow = extractVariableBinding(p1, 'below_threshold');
-        const knobName = extractVariableBinding(p2, 'knob');
-        metaLog('meta-knob-tuning check', {
-          p1: p1?.toString(),
-          p2: p2?.toString(),
-          rewardLow,
-          knobName,
-        });
-        if (rewardLow && knobName) {
-          const result = buildOperationTerm('tune_knob', [atom(knobName), atom('auto')]);
-          metaLog('meta-knob-tuning FIRED', { result: result.toString() });
-          return result;
-        }
-        return undefined;
-      },
-      sync: true,
-      priority: META_AIKR_BOUNDS.metaRulePriority,
-      truthFn: () => META_RULE_TRUTH,
-      taskType: 'goal',
-    },
-    // Test repair: (test_failed --> $t) & (error_pattern --> $e) & (fix_pattern($e) --> $fix) ==> (^apply_fix($fix))!
-    {
-      id: 'meta-test-repair',
-      pattern: { left: { op: 'inheritance' }, right: { op: 'inheritance' } },
-      apply: (premises) => {
-        const [p1, p2] = premises;
-        const testFailed = extractVariableBinding(p1, 'test_failed');
-        const errorPattern = extractVariableBinding(p2, 'error_pattern');
-        metaLog('meta-test-repair check', {
-          p1: p1?.toString(),
-          p2: p2?.toString(),
-          testFailed,
-          errorPattern,
-        });
-        if (testFailed && errorPattern) {
-          const fixPatternMap: Record<string, string> = {
-            null_pointer_error: 'fix_pattern:null_check',
-            type_mismatch_error: 'fix_pattern:type_annotation',
-            out_of_bounds_error: 'fix_pattern:boundary_check',
-          };
-          const fixPattern = fixPatternMap[errorPattern] || 'fix_pattern:generic';
-          const result = buildOperationTerm('apply_fix', [atom(fixPattern)]);
-          metaLog('meta-test-repair FIRED', { result: result.toString() });
-          return result;
-        }
-        return undefined;
-      },
-      sync: true,
-      priority: META_AIKR_BOUNDS.metaRulePriority,
-      truthFn: () => META_RULE_TRUTH,
-      taskType: 'goal',
-    },
-    // Schema promotion: (schema --> $s) & (confidence($s) > 0.9) & (frequency($s) > 10) ==> (^promote_rule($s))!
-    {
-      id: 'meta-schema-promotion',
-      pattern: { left: { op: 'inheritance' }, right: { op: 'inheritance' } },
-      apply: (premises) => {
-        const [p1, p2] = premises;
-        const schemaName = extractVariableBinding(p1, 'schema');
-        metaLog('meta-schema-promotion check', {
-          p1: p1?.toString(),
-          p2: p2?.toString(),
-          schemaName,
-        });
-        if (schemaName) {
-          const result = buildOperationTerm('register_rule', [atom(schemaName)]);
-          metaLog('meta-schema-promotion FIRED', { result: result.toString() });
-          return result;
-        }
-        return undefined;
-      },
-      sync: true,
-      priority: META_AIKR_BOUNDS.metaRulePriority,
-      truthFn: () => META_RULE_TRUTH,
-      taskType: 'goal',
-    },
-    // Capability scaffolding: (capability --> $c) & (template($c) --> $tmpl) ==> (^scaffold($tmpl, $c))!
-    {
-      id: 'meta-capability-scaffold',
-      pattern: { left: { op: 'inheritance' }, right: { op: 'inheritance' } },
-      apply: (premises) => {
-        const [p1, p2] = premises;
-        const capabilityName = extractVariableBinding(p1, 'capability');
-        const templateName = extractVariableBinding(p2, 'template');
-        metaLog('meta-capability-scaffold check', {
-          p1: p1?.toString(),
-          p2: p2?.toString(),
-          capabilityName,
-          templateName,
-        });
-        if (capabilityName && templateName) {
-          const result = buildOperationTerm('scaffold_capability', [
-            atom(templateName),
-            atom(capabilityName),
-          ]);
-          metaLog('meta-capability-scaffold FIRED', { result: result.toString() });
-          return result;
-        }
-        return undefined;
-      },
-      sync: true,
-      priority: META_AIKR_BOUNDS.metaRulePriority,
-      truthFn: () => META_RULE_TRUTH,
-      taskType: 'goal',
-    },
-  ];
+    metaRule('meta-strategy-selection', (p1, p2) => {
+      const driveLow = extractVariableBinding(p1, 'low');
+      const situationRequires = extractVariableBinding(p2, 'requires_strategy');
+      if (!driveLow || !situationRequires) return undefined;
+      return buildOperationTerm('switch_strategy', [atom('focused'), atom('derivation')]);
+    }),
 
-  return rules;
+    // Knob tuning: (rlfp:reward --> below_threshold) & (knob --> $k) ==> (^apply_tuning($k, $v))!
+    metaRule('meta-knob-tuning', (p1, p2) => {
+      const rewardLow = extractVariableBinding(p1, 'below_threshold');
+      const knobName = extractVariableBinding(p2, 'knob');
+      if (!rewardLow || !knobName) return undefined;
+      return buildOperationTerm('tune_knob', [atom(knobName), atom('auto')]);
+    }),
+
+    // Test repair: (test_failed --> $t) & (error_pattern --> $e) & (fix_pattern($e) --> $fix) ==> (^apply_fix($fix))!
+    metaRule('meta-test-repair', (p1, p2) => {
+      const errorPattern = extractVariableBinding(p2, 'error_pattern');
+      if (!extractVariableBinding(p1, 'test_failed') || !errorPattern) return undefined;
+      const fixPatterns: Record<string, string> = {
+        null_pointer_error: 'fix_pattern:null_check',
+        type_mismatch_error: 'fix_pattern:type_annotation',
+        out_of_bounds_error: 'fix_pattern:boundary_check',
+      };
+      return buildOperationTerm('apply_fix', [
+        atom(fixPatterns[errorPattern] ?? 'fix_pattern:generic'),
+      ]);
+    }),
+
+    // Schema promotion: (schema --> $s) & (confidence($s) > 0.9) & (frequency($s) > 10) ==> (^promote_rule($s))!
+    metaRule('meta-schema-promotion', (p1) => {
+      const schemaName = extractVariableBinding(p1, 'schema');
+      return schemaName ? buildOperationTerm('register_rule', [atom(schemaName)]) : undefined;
+    }),
+
+    // Capability scaffolding: (capability --> $c) & (template($c) --> $tmpl) ==> (^scaffold($tmpl, $c))!
+    metaRule('meta-capability-scaffold', (p1, p2) => {
+      const capabilityName = extractVariableBinding(p1, 'capability');
+      const templateName = extractVariableBinding(p2, 'template');
+      if (!capabilityName || !templateName) return undefined;
+      return buildOperationTerm('scaffold_capability', [atom(templateName), atom(capabilityName)]);
+    }),
+  ];
 }
 
 /**

@@ -1,140 +1,82 @@
-import {
-  addToSet,
-  getOrInsert,
-  insertByScoreDesc,
-  removeBy,
-  removeFromSet,
-  unique,
-} from '@senars/util';
+import { addToSet, removeFromSet, unique } from '@senars/util';
 
-import type { Term } from '../terms';
-import { atomKey, TermMap, termKey } from '../terms';
+import { atomKey, termKey } from '../terms';
 import type { Concept } from './concept.js';
-import { selectSimilar } from './similarity.js';
-
-const getOrInsertCluster = (map: TermMap<SimilarityCluster>, term: Term, seed: Concept) =>
-  getOrInsert(map, term, (): SimilarityCluster => ({ term, concepts: [], representative: seed }));
-
-const getOrInsertInverse = (map: TermMap<InverseIndexEntry>, term: Term) =>
-  getOrInsert(
-    map,
-    term,
-    (): InverseIndexEntry => ({
-      term,
-      concepts: new Set<Concept>(),
-      subtermIndices: new TermMap<Set<Concept>>(),
-    })
-  );
 
 /** Every family defaults on; a caller opts out of the ones it does not maintain. */
 export interface MemoryIndexConfig {
+  /** Concepts whose whole term is that atom, keyed by `atomKey`. */
   enableAtomicIndex?: boolean;
+  /** Concepts bucketed by the second they were admitted. */
   enableTemporalIndex?: boolean;
-  enableActivationIndex?: boolean;
-  enableInverseIndex?: boolean;
-  enableSimilarityIndex?: boolean;
 }
 
 const DEFAULT_INDEX_CONFIG: Required<MemoryIndexConfig> = Object.freeze({
   enableAtomicIndex: true,
   enableTemporalIndex: true,
-  enableActivationIndex: true,
-  enableInverseIndex: true,
-  enableSimilarityIndex: true,
 });
 
-export interface IndexEntry {
-  concept: Concept;
-  timestamp: number;
-  activation: number;
-}
-
-export interface InverseIndexEntry {
-  term: Term;
-  concepts: Set<Concept>;
-  subtermIndices: TermMap<Set<Concept>>;
-}
-
-export interface SimilarityCluster {
-  term: Term;
-  concepts: Concept[];
-  representative: Concept;
-}
-
-/** The exact index keys one concept was written under, so removal touches only
- *  those buckets instead of scanning every index family. */
-interface ConceptFootprint {
-  atomicKey?: string;
-  temporalKey?: number;
-  inverseEntry?: InverseIndexEntry;
-  subterms: Term[];
-  clusters: SimilarityCluster[];
-}
-
+/**
+ * Two lookup families over the concept store, and nothing else.
+ *
+ * This held five. Three of them — an activation snapshot, a recursive subterm
+ * index and a similarity cluster map — were maintained on every admission and
+ * torn down on every removal, and **no production caller ever read any of them**:
+ * the activation value was a copy of `concept.priority` taken once at admission,
+ * so it went stale the moment anything touched the concept; and the cluster map
+ * held one cluster per distinct term, which made `indexedConcepts()` yield the
+ * entire store — a full walk wearing an index's name, plus a sorted insert and a
+ * footprint object per admission to keep it in step. Similarity retrieval reads
+ * the store now, which is what it was doing behind the index anyway.
+ *
+ * So what remains are the two families whose reads reach a port
+ * (`queryBySymbol`, `queryByTimeRange`), and each doc comment says what it can
+ * actually find. An index that cannot narrow a search is a cost with no ceiling.
+ */
 export class MemoryIndex {
   private readonly atomicIndex: Map<string, Set<Concept>>;
   private readonly temporalIndex: Map<number, Set<Concept>>;
-  private activationIndex: Map<Concept, number>;
-  private inverseIndex: TermMap<InverseIndexEntry>;
-  private readonly similarityIndex: TermMap<SimilarityCluster>;
+  /**
+   * Only the bucket a concept was filed in, because unlike the atomic key it is
+   * not derivable from the term — it came from an admission timestamp nothing
+   * else records. One number per concept, where the five families needed an
+   * object holding a key, an entry reference and two arrays.
+   */
+  private readonly temporalKeys = new Map<Concept, number>();
   private config: Required<MemoryIndexConfig>;
-  private readonly footprints = new Map<Concept, ConceptFootprint>();
   private readonly temporalResolution = 1000;
 
   constructor(config: MemoryIndexConfig = {}) {
     this.config = { ...DEFAULT_INDEX_CONFIG, ...config };
     this.atomicIndex = new Map();
     this.temporalIndex = new Map();
-    this.activationIndex = new Map();
-    this.inverseIndex = new TermMap();
-    this.similarityIndex = new TermMap();
   }
 
-  get stats(): {
-    atomic: number;
-    temporal: number;
-    activation: number;
-    inverse: number;
-    similarity: number;
-  } {
+  get stats(): { atomic: number; temporal: number } {
     return {
       atomic: this.atomicIndex.size,
       temporal: this.temporalIndex.size,
-      activation: this.activationIndex.size,
-      inverse: this.inverseIndex.size,
-      similarity: this.similarityIndex.size,
     };
   }
 
   index(concept: Concept, timestamp: number = Date.now()): void {
-    if (this.footprints.has(concept)) return;
-    const footprint: ConceptFootprint = { subterms: [], clusters: [] };
-    this.footprints.set(concept, footprint);
-
     if (this.config.enableAtomicIndex) {
-      footprint.atomicKey = termKey(concept.term);
-      addToSet(this.atomicIndex, footprint.atomicKey, concept);
+      addToSet(this.atomicIndex, termKey(concept.term), concept);
     }
-
     if (this.config.enableTemporalIndex) {
-      footprint.temporalKey = Math.floor(timestamp / this.temporalResolution);
-      addToSet(this.temporalIndex, footprint.temporalKey, concept);
-    }
-
-    if (this.config.enableActivationIndex) {
-      this.activationIndex.set(concept, concept.priority);
-    }
-
-    if (this.config.enableInverseIndex) {
-      this.indexByInverse(concept, footprint);
-    }
-
-    if (this.config.enableSimilarityIndex) {
-      this.indexBySimilarity(concept, footprint);
+      const key = Math.floor(timestamp / this.temporalResolution);
+      addToSet(this.temporalIndex, key, concept);
+      this.temporalKeys.set(concept, key);
     }
   }
 
-  /** Every term, atoms included, indexes under its canonical `termKey`; this names the atom entry. */
+  /**
+   * Concepts whose *whole* term is `symbol`.
+   *
+   * A compound term keys as `kind:a,b`, so it is filed here under a key no caller
+   * can spell — a compound is findable by its parts, not by a symbol it merely
+   * mentions.
+   */
   getByAtomic(symbol: string): Concept[] {
     const set = this.atomicIndex.get(atomKey(symbol));
     return set ? Array.from(set) : [];
@@ -158,102 +100,21 @@ export class MemoryIndex {
     return unique(results);
   }
 
-  getByInverse(term: Term): Concept[] {
-    const entry = this.inverseIndex.get(term);
-    if (!entry) return [];
-    return Array.from(entry.concepts);
-  }
-
-  getBySubterm(term: Term): Concept[] {
-    const entry = this.inverseIndex.get(term);
-    if (!entry) return [];
-    return unique([...entry.concepts, ...(entry.subtermIndices.get(term) ?? [])]);
-  }
-
-  /** Every concept the similarity families hold, as one candidate stream. */
-  *indexedConcepts(): Generator<Concept> {
-    for (const cluster of this.similarityIndex.values()) yield* cluster.concepts;
-  }
-
-  findSimilarConcepts(term: Term, limit = 10): Concept[] {
-    return this.config.enableSimilarityIndex
-      ? selectSimilar(this.indexedConcepts(), term, limit)
-      : [];
-  }
-
-  getActivation(concept: Concept): number {
-    return this.activationIndex.get(concept) ?? 0;
-  }
-
-  updateActivation(concept: Concept, activation: number): void {
-    this.activationIndex.set(concept, activation);
-  }
-
+  /** Both keys are cheap reads — `termKey` is memoized on the term — so removal never scans. */
   remove(concept: Concept): void {
-    const footprint = this.footprints.get(concept);
-    this.footprints.delete(concept);
-    if (!footprint) return;
-
-    if (footprint.atomicKey !== undefined) {
-      removeFromSet(this.atomicIndex, footprint.atomicKey, concept);
+    if (this.config.enableAtomicIndex) {
+      removeFromSet(this.atomicIndex, termKey(concept.term), concept);
     }
-    if (footprint.temporalKey !== undefined) {
-      removeFromSet(this.temporalIndex, footprint.temporalKey, concept);
-    }
-    this.activationIndex.delete(concept);
-
-    const entry = footprint.inverseEntry;
-    if (entry) {
-      entry.concepts.delete(concept);
-      for (const subterm of footprint.subterms) {
-        removeFromSet(entry.subtermIndices, subterm, concept);
-      }
-      if (entry.concepts.size === 0) this.inverseIndex.delete(entry.term);
-    }
-
-    for (const cluster of footprint.clusters) {
-      removeBy(cluster.concepts, (member) => member === concept);
-      if (cluster.concepts.length === 0) this.similarityIndex.delete(cluster.term);
+    const temporalKey = this.temporalKeys.get(concept);
+    if (temporalKey !== undefined) {
+      this.temporalKeys.delete(concept);
+      removeFromSet(this.temporalIndex, temporalKey, concept);
     }
   }
 
   clear(): void {
-    this.footprints.clear();
     this.atomicIndex.clear();
     this.temporalIndex.clear();
-    this.activationIndex.clear();
-    this.inverseIndex.clear();
-    this.similarityIndex.clear();
-  }
-
-  private indexByInverse(concept: Concept, footprint: ConceptFootprint): void {
-    const term = concept.term;
-    const entry = getOrInsertInverse(this.inverseIndex, term);
-    footprint.inverseEntry = entry;
-    entry.concepts.add(concept);
-    this.indexSubterms([term], concept, entry, footprint);
-  }
-
-  private indexSubterms(
-    terms: readonly Term[],
-    concept: Concept,
-    entry: InverseIndexEntry,
-    footprint: ConceptFootprint
-  ): void {
-    for (const term of terms) {
-      addToSet(entry.subtermIndices, term, concept);
-      footprint.subterms.push(term);
-      if (term.kind !== 'atom' && term.args?.length) {
-        this.indexSubterms(term.args, concept, entry, footprint);
-      }
-    }
-  }
-
-  private indexBySimilarity(concept: Concept, footprint: ConceptFootprint): void {
-    const term = concept.term;
-    const cluster = getOrInsertCluster(this.similarityIndex, term, concept);
-    footprint.clusters.push(cluster);
-    insertByScoreDesc(cluster.concepts, concept, (c) => c.priority);
-    if (cluster.representative.priority < concept.priority) cluster.representative = concept;
+    this.temporalKeys.clear();
   }
 }

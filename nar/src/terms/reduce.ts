@@ -1,5 +1,5 @@
 import type { OperatorKey, Term } from './types.js';
-import { termKey } from './impls/accessors.js';
+import { getArgs, termKey } from './impls/accessors.js';
 import { compoundOf, isBoolAtom, atomOf } from './impls/intern.js';
 
 /**
@@ -35,8 +35,6 @@ export interface TermReducer {
 const FLATTENED = new Set<string>(['conjunction', 'disjunction', 'parallel', 'product']);
 const DEDUPED = new Set<string>(['conjunction', 'disjunction', 'parallel']);
 
-const argsOf = (term: Term): readonly Term[] => (term.kind === 'atom' ? [] : term.args);
-
 /** `Term` is a union over two interfaces rather than a discriminated one, so narrowing `term.kind` does not narrow the term. */
 const kindOf = (term: Term): OperatorKey => term.kind as OperatorKey;
 
@@ -71,11 +69,11 @@ const hasRepeatedArg = (args: readonly Term[]): boolean =>
  */
 const containsNegatedPair = (term: Term, kind: 'conjunction' | 'disjunction'): boolean => {
   if (term.kind !== kind) return false;
-  const args = argsOf(term);
+  const args = getArgs(term);
   const keys = new Set(args.map(termKey));
   return args.some((arg) => {
     if (arg.kind !== 'negation') return false;
-    const operand = argsOf(arg)[0];
+    const operand = getArgs(arg)[0];
     return operand !== undefined && keys.has(termKey(operand));
   });
 };
@@ -99,26 +97,26 @@ const disjunctionTautology: TermReducer = {
 const flattenNested: TermReducer = {
   id: 'flatten-nested',
   justification: 'Nested conjunction/disjunction/parallel/product is structurally identical to flat form (associativity); Op.java DISJ/CONJ/PROD n-ary definitions',
-  applies: (term) => FLATTENED.has(term.kind) && argsOf(term).some((arg) => arg.kind === term.kind),
+  applies: (term) => FLATTENED.has(term.kind) && getArgs(term).some((arg) => arg.kind === term.kind),
   reduce: (term) =>
     compoundOf(
       kindOf(term),
-      argsOf(term).flatMap((arg) => (arg.kind === term.kind ? argsOf(arg) : [arg]))
+      getArgs(term).flatMap((arg) => (arg.kind === term.kind ? getArgs(arg) : [arg]))
     ),
 };
 
 const dedupeArgs: TermReducer = {
   id: 'dedupe-args',
   justification: 'Duplicate arguments in commutative n-ary kinds do not change the claim (idempotence); Op.java CONJ/DISJ/PAR semantics',
-  applies: (term) => DEDUPED.has(term.kind) && hasRepeatedArg(argsOf(term)),
-  reduce: (term) => compoundOf(kindOf(term), distinct(argsOf(term))),
+  applies: (term) => DEDUPED.has(term.kind) && hasRepeatedArg(getArgs(term)),
+  reduce: (term) => compoundOf(kindOf(term), distinct(getArgs(term))),
 };
 
 const doubleNegation: TermReducer = {
   id: 'double-negation',
   justification: '--(--x) ≡ x (double negation elimination); NAL negation semantics, symmetric with negate-true/negate-false',
-  applies: (term) => term.kind === 'negation' && argsOf(term)[0]?.kind === 'negation',
-  reduce: (term) => argsOf(argsOf(term)[0] as Term)[0] as Term,
+  applies: (term) => term.kind === 'negation' && getArgs(term)[0]?.kind === 'negation',
+  reduce: (term) => getArgs(getArgs(term)[0] as Term)[0] as Term,
 };
 
 /** `--TRUE = FALSE` — symmetric with double-negation. */
@@ -126,7 +124,7 @@ const negateTrue: TermReducer = {
   id: 'negate-true',
   justification: '--TRUE = FALSE (negation of truth constant); Op.java Bool atom semantics, NOT operator on TRUE',
   applies: (term) =>
-    term.kind === 'negation' && argsOf(term)[0]?.kind === 'atom' && argsOf(term)[0]!.symbol === 'TRUE',
+    term.kind === 'negation' && getArgs(term)[0]?.kind === 'atom' && getArgs(term)[0]!.symbol === 'TRUE',
   reduce: (term) => atomOf('FALSE'),
 };
 
@@ -135,7 +133,7 @@ const negateFalse: TermReducer = {
   id: 'negate-false',
   justification: '--FALSE = TRUE (negation of false constant); Op.java Bool atom semantics, NOT operator on FALSE',
   applies: (term) =>
-    term.kind === 'negation' && argsOf(term)[0]?.kind === 'atom' && argsOf(term)[0]!.symbol === 'FALSE',
+    term.kind === 'negation' && getArgs(term)[0]?.kind === 'atom' && getArgs(term)[0]!.symbol === 'FALSE',
   reduce: (term) => atomOf('TRUE'),
 };
 
@@ -145,11 +143,11 @@ const conjunctionTrue: TermReducer = {
   justification: 'a & TRUE = a (TRUE is conjunction identity); Op.java CONJ Args.GTETwo with TRUE absorption',
   applies: (term) =>
     term.kind === 'conjunction' &&
-    argsOf(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'TRUE'),
+    getArgs(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'TRUE'),
   reduce: (term) =>
     compoundOf(
       'conjunction',
-      argsOf(term).filter((arg) => !(isBoolAtom(arg) && arg.symbol === 'TRUE'))
+      getArgs(term).filter((arg) => !(isBoolAtom(arg) && arg.symbol === 'TRUE'))
     ),
 };
 
@@ -159,7 +157,7 @@ const conjunctionFalse: TermReducer = {
   justification: 'a & FALSE = FALSE (FALSE absorbs conjunction); Op.java CONJ Args.GTETwo with FALSE absorption',
   applies: (term) =>
     term.kind === 'conjunction' &&
-    argsOf(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'FALSE'),
+    getArgs(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'FALSE'),
   reduce: () => atomOf('FALSE'),
 };
 
@@ -169,7 +167,7 @@ const disjunctionTrue: TermReducer = {
   justification: 'a | TRUE = TRUE (TRUE absorbs disjunction); Op.java DISJ case 0->True with TRUE absorption',
   applies: (term) =>
     term.kind === 'disjunction' &&
-    argsOf(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'TRUE'),
+    getArgs(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'TRUE'),
   reduce: () => atomOf('TRUE'),
 };
 
@@ -179,11 +177,11 @@ const disjunctionFalse: TermReducer = {
   justification: 'a | FALSE = a (FALSE is disjunction identity); Op.java DISJ case 1->x[0] with FALSE absorption',
   applies: (term) =>
     term.kind === 'disjunction' &&
-    argsOf(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'FALSE'),
+    getArgs(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'FALSE'),
   reduce: (term) =>
     compoundOf(
       'disjunction',
-      argsOf(term).filter((arg) => !(isBoolAtom(arg) && arg.symbol === 'FALSE'))
+      getArgs(term).filter((arg) => !(isBoolAtom(arg) && arg.symbol === 'FALSE'))
     ),
 };
 

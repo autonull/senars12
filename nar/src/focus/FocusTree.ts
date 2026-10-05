@@ -79,19 +79,7 @@ export class FocusTree {
     this.metaGame = options.metaGame;
     this.maxDepth = options.maxDepth ?? 3;
 
-    const rootFocus = options.rootFocus;
-    const rootBudget = options.rootBudget;
-
-    const root: FocusTreeNode = {
-      id: rootFocus.id,
-      focus: this.createFocus(rootFocus),
-      parent: null,
-      children: [],
-      budget: rootBudget,
-      weight: rootFocus.weight ?? 1.0,
-    };
-    this.roots.push(root);
-    this.nodeMap.set(root.id, root);
+    this.addRoot(options.rootFocus, options.rootBudget);
   }
 
   /** Add an independent root focus with its own budget slice. */

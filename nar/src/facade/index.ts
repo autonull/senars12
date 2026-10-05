@@ -19,7 +19,7 @@ import type { ProofMettaProposer } from '../meta/index.js';
 import type { NAR } from '../nar.js';
 import type { Answer } from '../query/api';
 import { selectVerifiedDerivation } from '../query/derivation.js';
-import { containsSubterm, getSubject, type Term, Truth, termParser, termsEqual } from '../terms';
+import { containsSubterm, getArgs, getSubject, type Term, Truth, termParser, termsEqual } from '../terms';
 import type { Tool } from '../tools';
 import { discoverTools } from '../tools';
 import { createSelfTools } from '../tools/adapters/self-tools.js';
@@ -52,8 +52,8 @@ export const injectBootstrapGoals = async (nar: NAR): Promise<void> => {
 
 export const contradicts = (a: Term, b: Term): boolean => {
   if (termsEqual(a, b)) return true;
-  const [aArg] = a.kind === 'negation' ? a.args : [];
-  const [bArg] = b.kind === 'negation' ? b.args : [];
+  const [aArg] = a.kind === 'negation' ? getArgs(a) : [];
+  const [bArg] = b.kind === 'negation' ? getArgs(b) : [];
   return (!!aArg && termsEqual(aArg, b)) || (!!bArg && termsEqual(bArg, a));
 };
 

@@ -2,13 +2,12 @@ import type { Concept as ConceptType } from '@senars/nar/memory/concept.js';
 import { TermBuilder, Truth } from '../../../nar/src';
 import { Concept, MemoryIndex } from '../../../nar/src/memory';
 
-function createTestConcept(symbol: string, priority = 0.5): ConceptType {
+function createTestConcept(symbol: string): ConceptType {
   const concept = new Concept(TermBuilder.atom(symbol));
-  (concept as any)._priority = priority;
   concept.addTask('belief', {
     term: TermBuilder.atom(symbol),
     truth: Truth.TRUE,
-    budget: { priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+    budget: { priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
   });
   return concept;
 }
@@ -17,200 +16,112 @@ describe('MemoryIndex', () => {
   let index: MemoryIndex;
 
   beforeEach(() => {
-    index = new MemoryIndex({
-      enableAtomicIndex: true,
-      enableTemporalIndex: true,
-      enableActivationIndex: true,
-      enableInverseIndex: true,
-      enableSimilarityIndex: true,
-    });
-  });
-
-  describe('index and retrieval', () => {
-    test('indexes atomic symbols', () => {
-      const concept = createTestConcept('A');
-      index.index(concept);
-
-      const results = index.getByAtomic('A');
-      expect(results).toHaveLength(1);
-      expect(results[0]!.term.toString()).toBe('A');
-    });
-
-    test('indexes by temporal range', () => {
-      const concept = createTestConcept('T');
-      const timestamp = Date.now();
-      index.index(concept, timestamp);
-
-      const results = index.getByTemporal([timestamp - 1000, timestamp + 1000]);
-      expect(results.length).toBeGreaterThan(0);
-    });
-
-    test('indexes by inverse term', () => {
-      const concept = createTestConcept('TestConcept');
-      index.index(concept);
-
-      const results = index.getByInverse(concept.term);
-      expect(results).toBeDefined();
-    });
-
-    test('indexes similar concepts', () => {
-      const concept = createTestConcept('Similar');
-      index.index(concept);
-
-      const results = index.findSimilarConcepts(TermBuilder.atom('Similar'), 5);
-      expect(results.length).toBeGreaterThan(0);
-    });
+    index = new MemoryIndex({ enableAtomicIndex: true, enableTemporalIndex: true });
   });
 
   describe('getByAtomic', () => {
     test('returns empty array for unknown symbol', () => {
-      const results = index.getByAtomic('Unknown');
-      expect(results).toEqual([]);
+      expect(index.getByAtomic('Unknown')).toEqual([]);
     });
 
-    test('returns multiple concepts for same symbol', () => {
+    test('returns multiple concepts for the same symbol', () => {
       const c1 = createTestConcept('Multi');
       const c2 = createTestConcept('Multi');
       index.index(c1);
       index.index(c2);
 
-      const results = index.getByAtomic('Multi');
-      expect(results.length).toBe(2);
+      expect(index.getByAtomic('Multi')).toHaveLength(2);
+    });
+
+    test('a compound term is not findable by a symbol it mentions', () => {
+      const compound = TermBuilder.inheritance(
+        TermBuilder.atom('A'),
+        TermBuilder.atom('B')
+      )!;
+      index.index(new Concept(compound));
+
+      expect(index.getByAtomic('A')).toEqual([]);
+      expect(index.getByAtomic('B')).toEqual([]);
     });
   });
 
   describe('getByTemporal', () => {
-    test('returns empty for time range with no concepts', () => {
-      const oldTimestamp = Date.now() - 1000000;
-      const results = index.getByTemporal([oldTimestamp, oldTimestamp + 1000]);
-      expect(results).toEqual([]);
+    test('returns empty for a time range with no concepts', () => {
+      const old = Date.now() - 1_000_000;
+      expect(index.getByTemporal([old, old + 1000])).toEqual([]);
     });
 
-    test('returns concepts within time range', () => {
+    test('returns concepts admitted inside the range', () => {
       const concept = createTestConcept('Timed');
       const timestamp = Date.now();
       index.index(concept, timestamp);
 
-      const results = index.getByTemporal([timestamp - 100, timestamp + 100]);
-      expect(results.length).toBeGreaterThan(0);
+      expect(index.getByTemporal([timestamp - 100, timestamp + 100])).toContain(concept);
+    });
+
+    test('buckets by the admission second, not the query', () => {
+      const concept = createTestConcept('Second');
+      index.index(concept, 1_700_000_000_000);
+
+      expect(index.getByTemporal([1_700_000_000_000, 1_700_000_000_999])).toContain(concept);
+      expect(index.getByTemporal([1_700_000_001_000, 1_700_000_001_999])).toEqual([]);
     });
   });
 
-  describe('findSimilarConcepts', () => {
-    test('returns similar concepts by term hash', () => {
-      const concept = createTestConcept('Findable', 0.7);
+  describe('index', () => {
+    test('does not maintain a family it was not configured for', () => {
+      const unindexed = new MemoryIndex({ enableAtomicIndex: false, enableTemporalIndex: false });
+      const concept = createTestConcept('Off');
+
+      unindexed.index(concept, 1_700_000_000_000);
+
+      expect(unindexed.stats).toEqual({ atomic: 0, temporal: 0 });
+      expect(unindexed.getByAtomic('Off')).toEqual([]);
+    });
+
+    test('re-indexing the same concept does not duplicate it', () => {
+      const concept = createTestConcept('Twice');
+      index.index(concept);
       index.index(concept);
 
-      const results = index.findSimilarConcepts(TermBuilder.atom('Findable'), 10);
-      expect(results).toBeDefined();
-    });
-
-    test('ranks by similarity and excludes zero-similarity concepts', () => {
-      const ranking = new MemoryIndex({
-        enableAtomicIndex: true,
-        enableTemporalIndex: true,
-        enableActivationIndex: true,
-        enableInverseIndex: true,
-        enableSimilarityIndex: true,
-      });
-      const mammal = TermBuilder.inheritance(TermBuilder.atom('cat'), TermBuilder.atom('animal'))!;
-      ranking.index(createTestConcept('unrelated'));
-      ranking.index(createTestConcept('cat'));
-      ranking.index(new Concept(mammal));
-
-      const ranked = ranking.findSimilarConcepts(mammal);
-      expect(ranked.map((c) => c.term.toString())).toEqual(['(cat-->animal)', 'cat']);
-      expect(ranking.findSimilarConcepts(TermBuilder.atom('missing'))).toEqual([]);
-    });
-
-    test('returns empty when similarity index disabled', () => {
-      const disabledIndex = new MemoryIndex({
-        enableAtomicIndex: true,
-        enableTemporalIndex: true,
-        enableActivationIndex: true,
-        enableInverseIndex: true,
-        enableSimilarityIndex: false,
-      });
-      const concept = createTestConcept('Test');
-      disabledIndex.index(concept);
-
-      const results = disabledIndex.findSimilarConcepts(TermBuilder.atom('Test'));
-      expect(results).toEqual([]);
-    });
-
-    test('searches all clusters when exact hash not found', () => {
-      const concept = createTestConcept('SearchTest', 0.8);
-      index.index(concept);
-
-      const results = index.findSimilarConcepts(TermBuilder.atom('SearchTest'), 5);
-      expect(results.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('activation tracking', () => {
-    test('gets activation for concept', () => {
-      const concept = new Concept(TermBuilder.atom('Active'));
-      concept.addTask('belief', {
-        term: TermBuilder.atom('Active'),
-        truth: Truth.TRUE,
-        budget: { priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
-      });
-      index.index(concept);
-
-      const activation = index.getActivation(concept);
-      expect(activation).toBeGreaterThan(0);
-    });
-
-    test('updates activation', () => {
-      const concept = createTestConcept('Update', 0.5);
-      index.index(concept);
-
-      index.updateActivation(concept, 0.8);
-      expect(index.getActivation(concept)).toBe(0.8);
-    });
-
-    test('returns 0 for unindexed concept', () => {
-      const concept = createTestConcept('NotIndexed');
-      expect(index.getActivation(concept)).toBe(0);
+      expect(index.getByAtomic('Twice')).toEqual([concept]);
     });
   });
 
   describe('remove', () => {
-    test('removes concept from all indexes', () => {
+    test('releases both keys', () => {
       const concept = createTestConcept('RemoveMe');
-      index.index(concept);
+      const timestamp = Date.now();
+      index.index(concept, timestamp);
       index.remove(concept);
 
       expect(index.getByAtomic('RemoveMe')).toEqual([]);
+      expect(index.getByTemporal([timestamp - 100, timestamp + 100])).toEqual([]);
     });
 
-    test('leaves sibling concepts in a shared similarity cluster', () => {
-      const kept = createTestConcept('Shared', 0.5);
-      const dropped = createTestConcept('Shared', 0.5);
-      const other = createTestConcept('Other', 0.5);
-      index.index(kept);
-      index.index(dropped);
-      index.index(other);
+    test('leaves a sibling sharing the same keys', () => {
+      const kept = createTestConcept('Shared');
+      const dropped = createTestConcept('Shared');
+      const timestamp = Date.now();
+      index.index(kept, timestamp);
+      index.index(dropped, timestamp);
 
       index.remove(dropped);
 
-      const results = index.findSimilarConcepts(TermBuilder.atom('Shared'));
-      expect(results).toContain(kept);
-      expect(results).not.toContain(dropped);
       expect(index.getByAtomic('Shared')).toEqual([kept]);
+      expect(index.getByTemporal([timestamp - 100, timestamp + 100])).toEqual([kept]);
     });
 
-    test('is idempotent and safe for unindexed concepts', () => {
-      const concept = createTestConcept('Twice');
-      index.index(concept);
-      index.index(concept);
-      expect(index.getByAtomic('Twice')).toEqual([concept]);
+    test('is idempotent and safe for a concept never indexed', () => {
+      const concept = createTestConcept('Unindexed');
+      expect(() => index.remove(concept)).not.toThrow();
 
+      index.index(concept);
       index.remove(concept);
       expect(() => index.remove(concept)).not.toThrow();
     });
 
-    test('releases index buckets once their last concept is gone', () => {
+    test('releases a bucket once its last concept is gone', () => {
       const a = createTestConcept('A');
       const b = createTestConcept('B');
       index.index(a);
@@ -219,82 +130,18 @@ describe('MemoryIndex', () => {
 
       index.remove(a);
       index.remove(b);
-      expect(index.stats).toEqual({
-        atomic: 0,
-        temporal: 0,
-        activation: 0,
-        inverse: 0,
-        similarity: 0,
-      });
-    });
-
-    test('removes from similarity index', () => {
-      const concept = createTestConcept('SimRemove');
-      index.index(concept);
-      index.remove(concept);
-
-      const results = index.findSimilarConcepts(TermBuilder.atom('SimRemove'));
-      const stillPresent = results.some((c) => c === concept);
-      expect(stillPresent).toBe(false);
+      expect(index.stats.atomic).toBe(0);
     });
   });
 
   describe('clear', () => {
-    test('clears all indexes', () => {
-      index.index(createTestConcept('A'));
-      index.index(createTestConcept('B'));
+    test('clears both families', () => {
+      index.index(createTestConcept('A'), 1_700_000_000_000);
+      index.index(createTestConcept('B'), 1_700_000_000_000);
       index.clear();
 
-      expect(index.getByAtomic('A')).toEqual([]);
-      expect(index.getByAtomic('B')).toEqual([]);
-    });
-  });
-
-  describe('stats', () => {
-    test('reports index sizes', () => {
-      index.index(createTestConcept('Stats1'));
-      index.index(createTestConcept('Stats2'));
-
-      const stats = index.stats;
-      expect(stats.atomic).toBeGreaterThan(0);
-      expect(stats.temporal).toBeGreaterThan(0);
-      expect(stats.activation).toBeGreaterThan(0);
-    });
-  });
-
-  describe('indexByInverse', () => {
-    test('indexes compound terms with subterms', () => {
-      const compound = TermBuilder.inheritance(TermBuilder.atom('A'), TermBuilder.atom('B'))!;
-      const concept = new Concept(compound);
-      concept.addTask('belief', {
-        term: compound,
-        truth: Truth.TRUE,
-        budget: { priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
-      });
-      index.index(concept);
-
-      const results = index.getBySubterm(compound);
-      expect(results).toBeDefined();
-    });
-  });
-
-  describe('cluster similarity', () => {
-    test('finds the exact-term concept first', () => {
-      const cat = createTestConcept('Cat');
-      const dog = createTestConcept('Dog');
-      index.index(cat);
-      index.index(dog);
-
-      const results = index.findSimilarConcepts(cat.term);
-      expect(results[0]?.term.toString()).toBe('Cat');
-    });
-
-    test('returns nothing for disjoint symbols', () => {
-      const x = createTestConcept('X');
-      index.index(x);
-      index.index(createTestConcept('Y'));
-
-      expect(index.findSimilarConcepts(TermBuilder.atom('Z'))).toEqual([]);
+      expect(index.stats).toEqual({ atomic: 0, temporal: 0 });
+      expect(index.getByTemporal([1_699_999_000_000, 1_700_001_000_000])).toEqual([]);
     });
   });
 });
