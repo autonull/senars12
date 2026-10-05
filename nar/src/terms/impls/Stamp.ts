@@ -66,32 +66,23 @@ export interface Stamp {
   readonly derivations: readonly string[];
 }
 
-export const Stamp = {
-  createInput(): Stamp {
-    return Object.freeze({
-      id: nextStampId(),
-      creationTime: nowMicroseconds(),
-      source: 'INPUT' as const,
-      derivations: [],
-    });
-  },
+/**
+ * The one construction of a stamp. Three factories used to open the same frozen
+ * record with only `id`, `source` and `derivations` varying, which is exactly
+ * the set of things a stamp *is* — so a fourth field added to the interface had
+ * three places to be remembered in. Callers name the differences; the record has
+ * one shape and one creation time per stamp.
+ */
+const mint = (id: string, source: Source, derivations: readonly string[] = []): Stamp =>
+  Object.freeze({ id, creationTime: nowMicroseconds(), source, derivations });
 
-  createInputWithId(id: string): Stamp {
-    return Object.freeze({
-      id,
-      creationTime: nowMicroseconds(),
-      source: 'INPUT' as const,
-      derivations: [],
-    });
+export const Stamp = {
+  createInput(id?: string): Stamp {
+    return mint(id ?? nextStampId(), 'INPUT');
   },
 
   createWithSource(source: Source): Stamp {
-    return Object.freeze({
-      id: nextStampId(),
-      creationTime: nowMicroseconds(),
-      source,
-      derivations: [],
-    });
+    return mint(nextStampId(), source);
   },
 
   derive(parentStamps: readonly Stamp[], source: Source = 'DERIVED'): Stamp | undefined {
@@ -114,12 +105,7 @@ export const Stamp = {
       }
     }
 
-    return Object.freeze({
-      id: nextStampId(),
-      creationTime: nowMicroseconds(),
-      source,
-      derivations,
-    });
+    return mint(nextStampId(), source, derivations);
   },
 
   getDepth: (stamp: Stamp): number => stamp.derivations.length,

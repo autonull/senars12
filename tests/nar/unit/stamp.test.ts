@@ -15,6 +15,26 @@ describe('Stamp', () => {
       const stamp = Stamp.createInput();
       expect(Object.isFrozen(stamp)).toBe(true);
     });
+
+    test('adopts a supplied id instead of minting one', () => {
+      const stamp = Stamp.createInput('restored:42');
+      expect(stamp.id).toBe('restored:42');
+      expect(stamp.source).toBe('INPUT');
+      expect(stamp.derivations).toHaveLength(0);
+    });
+
+    test('mints a distinct id when given none', () => {
+      expect(Stamp.createInput().id).not.toBe(Stamp.createInput().id);
+    });
+  });
+
+  describe('createWithSource', () => {
+    test('names the source and starts a lineage', () => {
+      const stamp = Stamp.createWithSource('LM');
+      expect(stamp.source).toBe('LM');
+      expect(stamp.derivations).toHaveLength(0);
+      expect(Stamp.getDepth(stamp)).toBe(0);
+    });
   });
 
   describe('derive', () => {
