@@ -1,3 +1,6 @@
+import path from 'node:path';
+import { containsPath } from '@senars/util';
+
 export interface PolicyRule {
   readonly allowCommands?: readonly string[];
   readonly denyCommands?: readonly string[];
@@ -18,6 +21,19 @@ const DEFAULT_POLICY: PolicyRule = {
   sandboxDir: './sandbox',
 };
 
+/**
+ * What a policy check answers. One record for all three checks: they were three
+ * inline `{ allowed, reason? }` literals plus a fourth on the capability sandbox's
+ * port, and a fourth `{ granted, reason? }` answer sitting in `GateOutcome` for the
+ * gates that guard the same capability from outside. The gates keep their own
+ * names — those are wire contracts a consumer switches on — but the policy
+ * surface is one shape.
+ */
+export interface PolicyDecision {
+  allowed: boolean;
+  reason?: string;
+}
+
 export class PolicyEngine {
   #policy: PolicyRule;
 
@@ -25,7 +41,7 @@ export class PolicyEngine {
     this.#policy = { ...DEFAULT_POLICY, ...policy };
   }
 
-  checkCommand(command: string): { allowed: boolean; reason?: string } {
+  checkCommand(command: string): PolicyDecision {
     if (this.#policy.denyCommands?.includes(command)) {
       return { allowed: false, reason: `Command "${command}" is denied by policy` };
     }
@@ -37,9 +53,14 @@ export class PolicyEngine {
     return { allowed: true };
   }
 
-  checkFileAccess(filepath: string): { allowed: boolean; reason?: string } {
+  checkFileAccess(filepath: string): PolicyDecision {
     const sandbox = this.#policy.sandboxDir;
-    if (sandbox && !filepath.startsWith(sandbox)) {
+    // Both sides resolved, then handed to the one containment predicate the motor
+    // workspace and the fs tool use. This was a raw `startsWith`, which is what
+    // made `./sandbox-evil` and `./sandbox/../../etc/passwd` both read as inside
+    // `./sandbox` — and resolving first is what closes the `..` escape, since
+    // `containsPath` answers about literal prefixes, not about where a path lands.
+    if (sandbox && !containsPath(path.resolve(sandbox), path.resolve(filepath))) {
       return { allowed: false, reason: `File "${filepath}" is outside sandbox "${sandbox}"` };
     }
     if (this.#policy.denyFiles?.some((d) => filepath.includes(d))) {
@@ -48,7 +69,7 @@ export class PolicyEngine {
     return { allowed: true };
   }
 
-  checkShell(): { allowed: boolean; reason?: string } {
+  checkShell(): PolicyDecision {
     if (!this.#policy.allowShell) {
       return { allowed: false, reason: 'Shell execution is disabled by policy' };
     }
