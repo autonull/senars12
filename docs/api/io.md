@@ -54,7 +54,7 @@
 
 - `ApiKeyManager`
 
-- `parseHttpBody`
+- `parseHttpBody` — A request body as text, truncated at `maxBytes` and marked when cut.
 
 - `setCORSHeaders`
 
@@ -94,7 +94,7 @@
 
 - `ServerStartupOptions`
 
-- `parseHttpBody`
+- `parseHttpBody` — A request body as text, truncated at `maxBytes` and marked when cut.
 
 - `setCORSHeaders`
 

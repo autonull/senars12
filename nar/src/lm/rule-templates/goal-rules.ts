@@ -1,7 +1,7 @@
 /**
  * Goal-oriented LM rule definitions.
  */
-import type { LMRuleDefinition } from '../rule-builders.js';
+import type { LMRuleDefinition } from './definition.js';
 import { isComplexGoal } from '../rule-selectors/conditions.js';
 import { symbolicFallbacks } from './fallbacks.js';
 import { GoalDecompositionSchema } from './schemas.js';

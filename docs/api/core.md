@@ -38,13 +38,9 @@
 
 - `toError`
 
-- `AgentOptionsValidationError`
-
 - `agentOptionsSchema`
 
 - `contextOptsSchema`
-
-- `validateAgentOptions`
 
 - `Agent`
 
@@ -113,6 +109,8 @@
 - `InMemorySessionManager`
 
 - `JsonlSessionManager` — Bounded in-memory sessions with a JSONL ledger snapshot on close.
+
+- `type JsonlSessionManagerConfig`
 
 - `registerAgentTools`
 
@@ -256,8 +254,6 @@
 
 - `ChatUserMsg`
 
-- `TruthValue` — The shared `0..1` truth pair, under this protocol's name.
-
 - `ConfigField`
 
 - `ConfigSchemaMsg`
@@ -374,8 +370,6 @@ _Dynamic subpath (no single entry file)._
 
 - `MacroPhase`
 
-- `dispatchMacro` — Onion dispatch — delegated to shared primitive in `@senars/util`.
-
 - `createMacroContext`
 
 - `motorTools`
@@ -423,6 +417,10 @@ _Re-export barrel._
 - `InMemorySessionManager`
 
 - `JsonlSessionManager` — Bounded in-memory sessions with a JSONL ledger snapshot on close.
+
+- `RECALL_WINDOW` — How much recent context an utterance is given. One window for both tiers it is
+
+- `WORKING_MEMORY_CAPACITY` — Hard ceiling on the working tier; the oldest entry is evicted past it.
 
 ## `./motor`
 
@@ -530,9 +528,25 @@ _Re-export barrel._
 
 - `ShadowValidationDropEventSchema`
 
+- `STIMULUS_SOURCES` — Where an admitted claim came from. Named rather than inlined because the
+
+- `StimulusSourceSchema`
+
 - `TaskAdmittedEventSchema`
 
 - `validateCognitiveEvent`
+
+- `BudgetSchema` — The task budget — the five numbers that cross every boundary. The zod form
+
+- `HistoryEntrySchema`
+
+- `INDEPENDENCE` — Whether a derivation's premises are independent of the conclusion they support.
+
+- `IndependenceSchema`
+
+- `RulePatternSchema` — A rule pattern as data: both kinds are required, because a wildcard
+
+- `RulePatternSideSchema` — One side of a rule pattern: the term kind the dispatch cell keys on.
 
 - `DerivationRecordSchema`
 
@@ -546,7 +560,21 @@ _Re-export barrel._
 
 - `PROPOSER_ORIGIN` — The one origin permitted to append proposal events.
 
-- `AmbiguityFlagSchema`
+- `AMBIGUITY_SEVERITIES` — The severity ladder an ambiguity is costed on. Deliberately a different
+
+- `AMBIGUITY_SEVERITY` — How much an ambiguity of each kind should cost the parse that carries it.
+
+- `AMBIGUITY_TYPES` — What can be ambiguous about a parse. The LM's ambiguity schema and the kernel's
+
+- `AmbiguityFlagSchema` — The flag as the kernel weighs it — the report plus the severity its kind carries.
+
+- `AmbiguityReportSchema` — The flag as a proposer reports it: *what* is ambiguous, not how much it costs.
+
+- `ambiguitySeverityOf` — The severity an ambiguity of this kind carries.
+
+- `DETECTED_INTENTS` — What the translator decided an utterance was *for*. The rule-template generator
+
+- `DetectedIntentSchema`
 
 - `FormalizationBatchSchema`
 
@@ -578,11 +606,13 @@ _Re-export barrel._
 
 - `RewardGateOutputSchema`
 
+- `AUTONOMITY_AUTHORITIES` — Who may move the autonomy mode. The action gate's port spelled this union out
+
+- `AutonomyAuthoritySchema`
+
 - `AutonomyModeSchema`
 
 - `GameDomainSchema`
-
-- `PROPOSAL_RISK` — What kind of change each proposal kind makes, and therefore what governance it
 
 - `GovernanceDecisionSchema`
 
@@ -590,27 +620,25 @@ _Re-export barrel._
 
 - `PatchProposalSchema`
 
+- `PROPOSAL_RISK` — What kind of change each proposal kind makes, and therefore what governance it
+
 - `permitsExecution`
 
 - `proposalRisk` — The tier a proposal of this kind carries.
 
 - `RewardDomainSchema`
 
+- `RISK_LEVELS`
+
 - `RiskAssessmentSchema`
 
 - `RiskLevelSchema`
 
+- `riskLevelOf` — The caps spelling of a risk tier — the only conversion between the two vocabularies.
+
 - `SelfImprovementProposalSchema`
 
 - `NarEventSchemas`
-
-- `BudgetSchema` — The task budget — the five numbers that cross every boundary. The zod form
-
-- `HistoryEntrySchema` — One turn of conversation history, as persisted by session ledgers.
-
-- `RulePatternSchema` — A rule pattern as data: both kinds are required, because a wildcard
-
-- `RulePatternSideSchema` — One side of a rule pattern: the term kind the dispatch cell keys on.
 
 - `ContentProposalSchema` — A formalized claim about a term. It is **not** a truth value to be written: it
 
@@ -653,6 +681,24 @@ _Re-export barrel._
 - `RuleTableSchema` — A whole table at a revision: the unit that is loaded, recorded and restored.
 
 - `validateRuleTable`
+
+- `TASK_BAG_KINDS` — The kinds a concept's bags can hold. `command` is admitted and rendered but never
+
+- `TASK_PUNCTUATION` — The sentence mark a task of each kind is written with — the one place the grammar's
+
+- `TASK_PUNCTUATIONS` — The marks, deduplicated from the table above rather than restated.
+
+- `TASK_TYPES` — Every kind of task the kernel admits. Order is the bag order, not a ranking.
+
+- `TaskBagKindSchema`
+
+- `TaskPunctuationSchema`
+
+- `TaskTypeSchema`
+
+- `TOLERANT_PUNCTUATIONS` — The order a string observation is re-parsed in when it arrived with no sentence mark:
+
+- `taskTypeForPunctuation` — Task kind named by its Narsese sentence mark; `null` when it is not one.
 
 - `SOURCE_QUALITY_CONFIDENCE` — Confidence ceiling by source quality — single source of truth.
 
@@ -782,7 +828,7 @@ _Dynamic subpath (no single entry file)._
 
 - `JoinResult`
 
-- `ThreadMailbox`
+- `ThreadMailbox` — A bounded FIFO of messages. A mailbox is a bounded ring that *refuses* rather
 
 - `CognitiveThread`
 

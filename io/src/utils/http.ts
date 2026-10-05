@@ -2,6 +2,12 @@ import http, { type IncomingMessage } from 'node:http';
 import { deadline, type Logger } from '@senars/util';
 import type { WebSocketServer } from 'ws';
 
+/**
+ * Default cap on an inbound request body. A handler that trusted the peer to be
+ * small was already a cliff; a ceiling is what makes it a bound.
+ */
+const MAX_REQUEST_BYTES = 1_048_576;
+
 export interface ServerStartupOptions {
   port: number;
   timeout?: number;
@@ -10,13 +16,32 @@ export interface ServerStartupOptions {
   onError?: (err: Error) => void;
 }
 
-export const parseHttpBody = (req: IncomingMessage): Promise<string> =>
+/**
+ * A request body as text, truncated at `maxBytes` and marked when cut.
+ *
+ * A request body arrives from an untrusted peer, and concatenating chunks
+ * without a ceiling is the same memory cliff `readBodyBounded` refuses on the
+ * outbound side: the handler that believed it was reading a small payload is
+ * holding whatever was sent. Past the cap the stream is destroyed and a
+ * `[truncated]` marker is appended, so the caller can tell a short body from a
+ * cut one instead of parsing a silent prefix.
+ */
+export const parseHttpBody = (req: IncomingMessage, maxBytes = MAX_REQUEST_BYTES): Promise<string> =>
   new Promise((resolve) => {
+    const decoder = new TextDecoder();
     let body = '';
-    req.on('data', (chunk) => {
-      body += chunk;
+    let bytes = 0;
+    req.on('data', (chunk: Buffer) => {
+      if (bytes > maxBytes) return;
+      bytes += chunk.byteLength;
+      body += decoder.decode(chunk, { stream: true });
+      if (bytes > maxBytes) {
+        req.destroy();
+        resolve(`${body}\n[truncated]`);
+      }
     });
-    req.on('end', () => resolve(body));
+    req.on('end', () => resolve(body + decoder.decode()));
+    req.on('error', () => resolve(body + decoder.decode()));
   });
 
 export const setCORSHeaders = (res: http.ServerResponse): void => {

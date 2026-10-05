@@ -8,7 +8,6 @@ import type {
 } from '@senars/core/schemas';
 import { proposalRisk, SelfImprovementProposalSchema } from '@senars/core/schemas';
 import { makeId } from '@senars/util';
-import { recordPolicyViolation } from './event-ring.js';
 import { KernelGate, projectOutcome } from './gate-base.js';
 
 /** The targets a reward signal may mutate — trust and scheduling, never a belief's
@@ -79,7 +78,7 @@ export class KernelRewardGate extends KernelGate<PolicyViolationEvent> {
         this.allowedTargets
       );
 
-      recordPolicyViolation(this.eventLog, {
+      this.recordPolicyViolation({
         policyId: 'epistemic-firewall',
         violationType: 'epistemic-firewall',
         detail: violation.message,

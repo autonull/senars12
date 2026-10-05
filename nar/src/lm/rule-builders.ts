@@ -1,41 +1,24 @@
 /**
  * Shared builders for LM rules: prompt constants, response parsing, and the
  * `createRule` / `createCustomRule` factories used by the LMRuleFactory.
+ *
+ * A builder takes a definition; it never looks one up. The registry owns that
+ * search (`rule-templates/index.ts`), and a builder that imported it to search
+ * its own definitions is what made every template import this module.
  */
-import { assertDefined } from '@senars/util';
 import type { Term } from '../terms';
 import { Truth } from '../terms';
 import type { Task, TaskType } from '../types';
 import { createTask, createTaskWeight } from '../types';
 import { LMResponseParser, LMRule } from './LMRule.js';
 import type { LMRuleConfig, LMService } from './lm-service.js';
-import { ruleDefs } from './rule-templates/index.js';
+import type {
+  LMRuleDefinition,
+  RuleActivation,
+  RuleFallback,
+} from './rule-templates/definition.js';
 
-export interface LMRuleDefinition {
-  id: string;
-  /** The rule's prompt, before the shared Narsese preamble. */
-  prompt: string;
-  name: string;
-  description: string;
-  priority: number;
-  singlePremise?: boolean;
-  taskType?: TaskType;
-  budget?: number;
-  multiline?: boolean;
-  activationCondition?: (
-    primary: Term,
-    secondary?: Term,
-    context?: Record<string, unknown>
-  ) => boolean;
-  schema?: import('zod').ZodSchema;
-  enableTools?: boolean;
-  constitutionAware?: boolean;
-  /** GBNF grammar name (constrained decoding) or inline grammar text. */
-  grammar?: string;
-  maxOutputTokens?: number;
-  /** Pure-NAL symbolic fallback, invoked on LM failure (escalation → null). */
-  fallback?: (primary: Term, secondary?: Term, context?: Record<string, unknown>) => Task[] | null;
-}
+export type { LMRuleDefinition } from './rule-templates/definition.js';
 
 export interface LMRuleFactoryConfig {
   id?: string;
@@ -47,13 +30,9 @@ export interface LMRuleFactoryConfig {
   budget?: number;
   multiline?: boolean;
   singlePremise?: boolean;
-  activationCondition?: (
-    primary: Term,
-    secondary?: Term,
-    context?: Record<string, unknown>
-  ) => boolean;
+  activationCondition?: RuleActivation;
   /** Pure-NAL symbolic body. Optional on a custom rule, which then declares "none". */
-  fallback?: (primary: Term, secondary?: Term, context?: Record<string, unknown>) => Task[] | null;
+  fallback?: RuleFallback;
 }
 
 const NARSESE_INSTRUCTIONS = `
@@ -102,14 +81,8 @@ const createTaskGen = (type: TaskType, budget: number) => (_r: unknown, _p: unkn
   return [responseToTask(response, type, budget)];
 };
 
-type TermCondition = (
-  primary: Term,
-  secondary?: Term,
-  context?: Record<string, unknown>
-) => boolean;
-
 const asUnknownCondition = (
-  fn: TermCondition | undefined
+  fn: RuleActivation | undefined
 ):
   | ((primary: unknown, secondary?: unknown, context?: Record<string, unknown>) => boolean)
   | undefined =>
@@ -142,8 +115,8 @@ const createRule = (
   lm: LMService | null,
   def: LMRuleDefinition,
   config: Omit<Partial<LMRuleConfig>, 'activationCondition' | 'fallback'> & {
-    activationCondition?: TermCondition;
-    fallback?: LMRuleDefinition['fallback'] | LMRuleConfig['fallback'];
+    activationCondition?: RuleActivation;
+    fallback?: RuleFallback | LMRuleConfig['fallback'];
   } = {}
 ): LMRule => {
   const taskType = def.taskType ?? 'belief';
@@ -169,18 +142,4 @@ const createRule = (
   });
 };
 
-const getRuleDef = (id: string): LMRuleDefinition => {
-  return assertDefined(
-    ruleDefs.find((d) => d.id === id),
-    `Rule definition '${id}' not found`
-  );
-};
-
-export {
-  createCustomRule,
-  createRule,
-  createTaskGen,
-  getRuleDef,
-  NARSESE_INSTRUCTIONS,
-  parseResponse,
-};
+export { createCustomRule, createRule, createTaskGen, NARSESE_INSTRUCTIONS, parseResponse };

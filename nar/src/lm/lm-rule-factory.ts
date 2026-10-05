@@ -7,10 +7,11 @@ import type { Task } from '../types';
 import type { LMRule } from './LMRule.js';
 import type { LMService } from './lm-service.js';
 import type { LMRuleFactoryConfig } from './rule-builders.js';
-import { createCustomRule, createRule, getRuleDef } from './rule-builders.js';
-import { ruleDefs } from './rule-templates/index.js';
+import { createCustomRule, createRule } from './rule-builders.js';
+import { getRuleDef, ruleDefs } from './rule-templates/index.js';
 
-export type { LMRuleDefinition, LMRuleFactoryConfig } from './rule-builders.js';
+export type { LMRuleDefinition } from './rule-templates/definition.js';
+export type { LMRuleFactoryConfig } from './rule-builders.js';
 export { LMRules } from './rule-selectors/factory.js';
 
 export class LMRuleFactory {

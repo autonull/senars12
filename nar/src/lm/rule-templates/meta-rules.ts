@@ -1,7 +1,7 @@
 /**
  * V2 preset LM rule definitions (merged from rule-factory-v2.ts).
  */
-import type { LMRuleDefinition } from '../rule-builders.js';
+import type { LMRuleDefinition } from './definition.js';
 import { symbolicFallbacks } from './fallbacks.js';
 import {
   AnalogySchema,

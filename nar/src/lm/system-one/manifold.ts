@@ -27,7 +27,7 @@ import {
   type CalibrationLock,
 } from './calibration-fit.js';
 import { type ContrastiveMemory, rubricOf } from './contrastive.js';
-import { shannonEntropy as entropy, legendFrom, topOption } from './distribution.js';
+import { composeProposition } from './distribution.js';
 import { createAllHeads, type PerHeadConfig } from './heads/index.js';
 import type {
   BackendId,
@@ -44,6 +44,7 @@ import type {
   JudgmentQuery,
   ManifoldHealth,
   ModelDigest,
+  QueryId,
   ResourceCost,
   RubricId,
 } from './types.js';
@@ -66,37 +67,6 @@ export interface ManifoldConfig {
   calibrationLock?: CalibrationLock;
   /** CLM contrastive exemplar memory: zero-shot cosine fallback when heads are unfitted. */
   contrastive?: ContrastiveMemory;
-}
-
-function makeProposition(
-  query: JudgmentQuery,
-  result: HeadResult,
-  base: Omit<JudgmentProposition, 'kind' | 'axis' | 'distribution' | 'top' | 'entropy' | 'score'>
-): JudgmentProposition {
-  if (query.kind === 'classify') {
-    const dist =
-      result.distribution ??
-      query.space.map((opt, i) => ({
-        option: opt,
-        p: i === 0 ? 1.0 : 0.0,
-      }));
-    return {
-      ...base,
-      kind: 'classify',
-      axis: query.axis,
-      distribution: dist,
-      top: topOption(dist)!,
-      entropy: entropy(dist),
-    };
-  } else {
-    return {
-      ...base,
-      kind: 'evaluate',
-      axis: query.axis,
-      score: result.score,
-      legend: result.legend ?? legendFrom(result.score, query.levels),
-    };
-  }
 }
 
 export class SystemOneManifold implements JudgmentManifold {
@@ -187,29 +157,31 @@ export class SystemOneManifold implements JudgmentManifold {
 
       const latencyMs = Math.ceil(elapsedQuery());
 
-      const base: Omit<
-        JudgmentProposition,
-        'kind' | 'axis' | 'distribution' | 'top' | 'entropy' | 'score'
-      > = {
-        queryId: makeId() as any,
-        backendId: this.#config.backendId,
-        modelDigest: this.#config.modelDigest,
-        calibration: {
-          version: this.#config.calibrationVersion,
-          ece: batchECE,
-          fitted:
-            head?.fitted === true ||
-            (this.#calibrators.get(query.kind === 'classify' ? 'classify' : query.rubric)?.fitted ??
-              false),
+      const proposition = composeProposition(
+        query,
+        {
+          queryId: makeId() as QueryId,
+          backendId: this.#config.backendId,
+          modelDigest: this.#config.modelDigest,
+          calibration: {
+            version: this.#config.calibrationVersion,
+            ece: batchECE,
+            fitted:
+              head?.fitted === true ||
+              (this.#calibrators.get(query.kind === 'classify' ? 'classify' : query.rubric)
+                ?.fitted ??
+                false),
+          },
+          latencyMs,
+          cost: this.estimateCost(query, latencyMs),
+          tier: 1,
+          abstained: headResult.abstained,
+          abstainReason: headResult.abstainReason,
         },
-        latencyMs,
-        cost: this.estimateCost(query, latencyMs),
-        tier: 1,
-        abstained: headResult.abstained,
-        abstainReason: headResult.abstainReason,
-      };
-
-      const proposition = makeProposition(query, headResult, base);
+        query.kind === 'classify'
+          ? { kind: 'classify', distribution: headResult.distribution }
+          : { kind: 'evaluate', score: headResult.score, legend: headResult.legend }
+      );
       results.push(proposition);
 
       // Emit telemetry via callback (kernel events + metrics)

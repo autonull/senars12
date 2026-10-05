@@ -27,7 +27,6 @@ import { normalizeNarsese } from '../nl/normalize.js';
 import { recordGateDecision } from '../telemetry/index.js';
 import type { TaskTypeName, Term } from '../terms';
 import { parseTaskTolerant, termParser } from '../terms';
-import { recordPolicyViolation } from './event-ring.js';
 import { KernelGate, projectOutcome } from './gate-base.js';
 import type { IngressJudge, IngressVerdict } from './ingress.js';
 import { domainKey } from './reputation-keys.js';
@@ -99,7 +98,7 @@ export class KernelPerceptionGate extends KernelGate {
       this.judge = this.config.systemOne.judge;
       // Judgment-resolved telemetry flows into the gate's event log via the judge.
       this.judge.setEventSink?.((event) => {
-        this.#pushEvent(event as CognitiveEvent);
+        this.emitEvent(event as CognitiveEvent);
       });
     }
   }
@@ -110,7 +109,7 @@ export class KernelPerceptionGate extends KernelGate {
     detail: string,
     kind: 'error' | 'timeout'
   ): PerceptionGateOutput {
-    recordPolicyViolation(this.eventLog, {
+    this.recordPolicyViolation({
       policyId: 'systemone-ingress',
       violationType: 'epistemic-firewall',
       detail: `systemone_ingress_${kind}: ${detail}`,
@@ -123,13 +122,9 @@ export class KernelPerceptionGate extends KernelGate {
     };
   }
 
-  #pushEvent(event: CognitiveEvent): void {
-    this.eventLog.push(event);
-  }
-
   /** Emit a shadow validation drop event to the gate's event log. */
   emitShadowValidationDrop(event: ShadowValidationDropEvent): void {
-    this.#pushEvent(event as CognitiveEvent);
+    this.emitEvent(event as CognitiveEvent);
   }
 
   async admit(input: PerceptionGateInput): Promise<PerceptionGateOutput> {

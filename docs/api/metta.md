@@ -22,10 +22,6 @@
 
 - `hashAtom`
 
-- `type InternOptions`
-
-- `SymbolInterner` — Bounded, recency-ordered name → symbol intern table (cold names age out).
-
 - `clearOps`
 
 - `defineOp`

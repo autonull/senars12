@@ -1,4 +1,4 @@
-import { LruCache, safeRatio } from '@senars/util';
+import { LruCache } from '@senars/util';
 import { TransformersEmbeddingGenerator } from '../../memory/embedding.js';
 import { embeddingRuntime } from '../embedding-runtime.js';
 import type { EmbeddingCache as EmbeddingCacheApi, EmbeddingPointer } from './types.js';
@@ -34,12 +34,11 @@ export interface EmbeddingCacheConfig {
 }
 
 interface CacheEntry {
+  /** The LRU key this entry is filed under — the handle a pointer read touches. */
   key: string;
   pointer: EmbeddingPointer;
   slot: number;
   buffer: Float32Array;
-  timestamp: number;
-  accessCount: number;
 }
 
 /** P2 (TODO20): observability for cache effectiveness. */
@@ -57,7 +56,14 @@ export class EmbeddingCache {
   #cache: LruCache<string, CacheEntry>;
   #pointerIndex = new Map<EmbeddingPointer, CacheEntry>();
   #pointerCounter = 0;
-  #metrics = { hits: 0, misses: 0, writes: 0, evictions: 0 };
+  /**
+   * The two counts only this wrapper sees. Hits and misses are `LruCache`'s to
+   * keep — a second tally here could disagree with the cache about the same
+   * reads — so `metrics()` reads those from it and owns only what it alone does:
+   * a write, and the release of a pooled buffer.
+   */
+  #writes = 0;
+  #evictions = 0;
   readonly #metricsSink?: NonNullable<EmbeddingCacheConfig['metricsSink']>;
 
   constructor(config: Partial<EmbeddingCacheConfig> = {}) {
@@ -79,7 +85,7 @@ export class EmbeddingCache {
   #forgetEntry(entry: CacheEntry): void {
     releaseBuffer(entry.slot);
     this.#pointerIndex.delete(entry.pointer);
-    this.#metrics.evictions++;
+    this.#evictions++;
     this.#emit('eviction');
   }
 
@@ -90,12 +96,9 @@ export class EmbeddingCache {
   async write(text: string): Promise<EmbeddingPointer> {
     const existing = this.#cache.get(text);
     if (existing) {
-      this.#metrics.hits++;
       this.#emit('hit');
-      this.#access(existing);
       return existing.pointer;
     }
-    this.#metrics.misses++;
     this.#emit('miss');
 
     const embedding = await this.#generator.generate(text);
@@ -108,10 +111,8 @@ export class EmbeddingCache {
     buffer.set(embedding);
 
     const pointer = ++this.#pointerCounter as EmbeddingPointer;
-    const now = Date.now();
-    this.#metrics.writes++;
-
-    this.#insert(text, { key: text, pointer, slot, buffer, timestamp: now, accessCount: 1 });
+    this.#writes++;
+    this.#insert(text, { key: text, pointer, slot, buffer });
 
     return pointer;
   }
@@ -121,9 +122,9 @@ export class EmbeddingCache {
     buffer.set(embedding.slice(0, buffer.length));
     const pointer = ++this.#pointerCounter as EmbeddingPointer;
 
-    this.#metrics.writes++;
+    this.#writes++;
     const key = `\0raw:${pointer}`;
-    this.#insert(key, { key, pointer, slot, buffer, timestamp: Date.now(), accessCount: 1 });
+    this.#insert(key, { key, pointer, slot, buffer });
 
     return pointer;
   }
@@ -131,10 +132,10 @@ export class EmbeddingCache {
   read(pointer: EmbeddingPointer): Float32Array | undefined {
     const entry = this.#pointerIndex.get(pointer);
     if (!entry) return undefined;
-    entry.accessCount++;
-    entry.timestamp = Date.now();
-    this.#cache.get(entry.key);
-    return entry.buffer;
+    // `touch`, not `get`: a pointer read is a recency bump, not a lookup, and
+    // touching is what evicts an expired entry — whose buffer is already back
+    // on the free list, so handing it to this reader would alias a later write.
+    return this.#cache.touch(entry.key) ? entry.buffer : undefined;
   }
 
   has(text: string): boolean {
@@ -148,7 +149,8 @@ export class EmbeddingCache {
   clear(): void {
     this.#cache.clear();
     this.#pointerIndex.clear();
-    this.#metrics = { hits: 0, misses: 0, writes: 0, evictions: 0 };
+    this.#writes = 0;
+    this.#evictions = 0;
   }
 
   async warmup(texts: string[]): Promise<void> {
@@ -160,19 +162,20 @@ export class EmbeddingCache {
     this.#pointerIndex.set(entry.pointer, entry);
   }
 
-  #access(entry: CacheEntry): void {
-    entry.accessCount++;
-    entry.timestamp = Date.now();
-  }
-
   /** P2 (TODO20): cache effectiveness metrics. */
   metrics(): EmbeddingCacheMetrics {
-    return { ...this.#metrics, size: this.#cache.size() };
+    return {
+      hits: this.#cache.hits,
+      misses: this.#cache.misses,
+      writes: this.#writes,
+      evictions: this.#evictions,
+      size: this.#cache.size(),
+    };
   }
 
   /** Fraction of write() calls served from cache (0 when nothing was written yet). */
   hitRate(): number {
-    return safeRatio(this.#metrics.hits, this.#metrics.hits + this.#metrics.misses);
+    return this.#cache.hitRate;
   }
 
   get generator(): TransformersEmbeddingGenerator | NonNullable<EmbeddingCacheConfig['generator']> {

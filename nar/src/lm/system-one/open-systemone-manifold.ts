@@ -1,15 +1,17 @@
 import { roundTo } from '@senars/util';
 
-import { shannonEntropy, topOption } from './distribution.js';
+import { composeProposition } from './distribution.js';
 import { createRemoteManifold } from './remote-manifold.js';
 import { type OpenRequest, type OpenResponse, openResponseSchema } from './systemone-wire.js';
 import type {
   BackendId,
+  CalibrationVersion,
   EmbeddingCache,
   JudgmentManifold,
   JudgmentProposition,
   JudgmentQuery,
   ModelDigest,
+  QueryId,
 } from './types.js';
 import { NO_COST } from './types.js';
 
@@ -56,32 +58,30 @@ const buildProposition = (
   query: JudgmentQuery,
   answer: OpenResponse['answers'][number],
   model: string
-): JudgmentProposition => {
-  const base = {
-    queryId: answer.id as unknown as import('./types.js').QueryId,
-    backendId: OPEN_REPLICA_BACKEND,
-    modelDigest: `open:${model}` as ModelDigest,
-    calibration: { version: `open-replica:${model}`, ece: -1 },
-    latencyMs: 0,
-    cost: NO_COST,
-    tier: 1 as const,
-    abstained: answer.abstained,
-  };
-  if (query.kind === 'classify') {
-    const distribution =
-      answer.distribution ?? (answer.choice ? [{ option: answer.choice, p: 1 }] : []);
-    return {
-      ...base,
-      kind: 'classify',
-      axis: query.axis,
-      distribution,
-      top: topOption(distribution),
-      entropy: shannonEntropy(distribution),
-    } as unknown as JudgmentProposition;
-  }
-  const score = answer.score ?? (answer.boolean === undefined ? 0 : answer.boolean ? 1 : 0);
-  return { ...base, kind: 'evaluate', axis: query.axis, score } as unknown as JudgmentProposition;
-};
+): JudgmentProposition =>
+  composeProposition(
+    query,
+    {
+      queryId: answer.id as QueryId,
+      backendId: OPEN_REPLICA_BACKEND,
+      modelDigest: `open:${model}` as ModelDigest,
+      calibration: { version: `open-replica:${model}` as CalibrationVersion, ece: -1 },
+      latencyMs: 0,
+      cost: NO_COST,
+      tier: 1,
+      abstained: answer.abstained,
+    },
+    query.kind === 'classify'
+      ? {
+          kind: 'classify',
+          distribution:
+            answer.distribution ?? (answer.choice ? [{ option: answer.choice, p: 1 }] : []),
+        }
+      : {
+          kind: 'evaluate',
+          score: answer.score ?? (answer.boolean === undefined ? 0 : answer.boolean ? 1 : 0),
+        }
+  );
 
 export function createOpenSystemOneManifold(config: OpenSystemOneManifoldConfig): JudgmentManifold {
   return createRemoteManifold({

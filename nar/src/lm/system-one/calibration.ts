@@ -1,5 +1,6 @@
-import { lerp, maxScore, safeRatio, sortBy, sumBy, trimCapped } from '@senars/util';
+import { BoundedMap, lerp, maxScore, safeRatio, sortBy, trimCapped } from '@senars/util';
 import { headRubrics } from './head-ontology.js';
+import { weightedAbsoluteError } from './metrics.js';
 import type { CalibrationVersion, RubricId } from './types.js';
 
 /** Fitted points retained per calibrator; older points stop steering the fit. */
@@ -23,7 +24,15 @@ export interface IsotonicCalibrator {
 }
 
 export interface RollingECEConfig {
+  /** Window width in minutes; a sample older than this is out. */
   windowSize: number;
+  /**
+   * Hard cap on retained samples. The width alone bounds the window in time but
+   * not in count: a run recording every batch could put thousands of samples
+   * inside one window, and the reading would then be dominated by whichever
+   * samples fitted. The cap is the AIKR answer — bound both axes.
+   */
+  maxSamples: number;
   minSamples: number;
   driftThreshold: number;
 }
@@ -150,16 +159,13 @@ export function createIsotonicCalibrator(
     },
 
     getECE(): number {
-      if (cachedECE !== null) return cachedECE;
-      if (points.length === 0) return 0;
-      let ece = 0;
-      let totalWeight = 0;
-      for (const p of points) {
-        const calibrated = this.calibrate(p.predicted);
-        ece += Math.abs(calibrated - p.observed) * p.weight;
-        totalWeight += p.weight;
+      if (cachedECE === null) {
+        cachedECE = weightedAbsoluteError(
+          points,
+          (p) => this.calibrate(p.predicted) - p.observed,
+          (p) => p.weight
+        );
       }
-      cachedECE = safeRatio(ece, totalWeight);
       return cachedECE;
     },
 
@@ -177,36 +183,48 @@ export function createIsotonicCalibrator(
   };
 }
 
+interface ECESample {
+  ece: number;
+  sampleCount: number;
+}
+
+/**
+ * The sample-weighted ECE over a bounded trailing window — drift detection's
+ * input. The window is the shared {@link BoundedMap}: one container bounds every
+ * cache and ledger hot path in the repository, and a private array plus a
+ * hand-rolled prune pass is what it replaces. Expiry is lazy, so a read costs
+ * one pass and allocates nothing.
+ */
 export class RollingECEMonitor {
   #config: RollingECEConfig;
-  #samples: { ece: number; timestamp: number; sampleCount: number }[] = [];
+  /** Append-ordered by construction: the key is the record sequence, so the oldest sample leaves first. */
+  readonly #samples: BoundedMap<number, ECESample>;
+  #seq = 0;
 
   constructor(config: Partial<RollingECEConfig> = {}) {
     this.#config = {
       windowSize: config.windowSize ?? 100,
+      maxSamples: config.maxSamples ?? 1000,
       minSamples: config.minSamples ?? 10,
       driftThreshold: config.driftThreshold ?? 0.15,
     };
+    this.#samples = new BoundedMap({
+      maxSize: this.#config.maxSamples,
+      ttlMs: this.#config.windowSize * 60_000,
+    });
   }
 
   record(ece: number, sampleCount: number): void {
-    const now = Date.now();
-    this.#samples.push({ ece, timestamp: now, sampleCount });
-    this.#prune(now);
+    this.#samples.set(this.#seq++, { ece, sampleCount });
   }
 
   getRollingECE(): number {
-    this.#prune(Date.now());
-    if (this.#samples.length === 0) return 0;
-    return safeRatio(
-      sumBy(this.#samples, (s) => (s.ece ?? 0) * (s.sampleCount ?? 0)),
-      sumBy(this.#samples, (s) => s.sampleCount ?? 0)
-    );
+    const { weighted, weight } = this.#aggregate();
+    return safeRatio(weighted, weight);
   }
 
   getSampleCount(): number {
-    this.#prune(Date.now());
-    return sumBy(this.#samples, (s) => s.sampleCount ?? 0);
+    return this.#aggregate().weight;
   }
 
   isDriftDetected(): boolean {
@@ -217,19 +235,18 @@ export class RollingECEMonitor {
   }
 
   reset(): void {
-    this.#samples.length = 0;
+    this.#samples.clear();
   }
 
-  #prune(now: number): void {
-    const cutoff = now - this.#config.windowSize * 60_000;
-    // Compacted in place: a read prunes, and a read happens once per query, so
-    // reallocating and refiltering the whole window to answer "is anything stale"
-    // was a copy of a hundred samples per question asked.
-    let kept = 0;
-    for (const sample of this.#samples) {
-      if (sample.timestamp > cutoff) this.#samples[kept++] = sample;
+  /** One pass for both readings: a read happens once per batch, twice over. */
+  #aggregate(): { weighted: number; weight: number } {
+    let weighted = 0;
+    let weight = 0;
+    for (const { ece, sampleCount } of this.#samples.values()) {
+      weighted += (ece ?? 0) * (sampleCount ?? 0);
+      weight += sampleCount ?? 0;
     }
-    this.#samples.length = kept;
+    return { weighted, weight };
   }
 }
 

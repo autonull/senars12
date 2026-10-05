@@ -1,8 +1,8 @@
-import type { CognitiveEvent } from '@senars/core/schemas/cognitive-events';
+import type { CognitiveEvent, PolicyViolationEvent } from '@senars/core/schemas/cognitive-events';
 import type { GateName, GateOutcome } from '@senars/core/schemas/gate-io';
-import { validateCognitiveEvent } from '@senars/core/schemas';
+import { mintCognitiveEvent, validateCognitiveEvent } from '@senars/core/schemas';
 import { makeId } from '@senars/util';
-import { gateLog } from './event-ring.js';
+import { gateLog, type PolicyViolationInput } from './event-ring.js';
 import { recordGateDecision } from '../telemetry/index.js';
 
 /**
@@ -42,6 +42,27 @@ export abstract class KernelGate<TEvent extends CognitiveEvent = CognitiveEvent>
   protected emitEvent(event: CognitiveEvent): void {
     validateCognitiveEvent(event);
     this.eventLog.push(event as TEvent);
+  }
+
+  /**
+   * Mint and record a `policy.violation`. On the base rather than beside the
+   * ring so a gate states *that* it violated a policy and this class owns how
+   * the event is built and validated — the three gates that denied a request
+   * each spelled those two steps themselves.
+   */
+  protected recordPolicyViolation(input: PolicyViolationInput): PolicyViolationEvent {
+    const event = mintCognitiveEvent('policy.violation', {
+      engine: 'kernel',
+      correlationId: input.correlationId,
+      payload: {
+        policyId: input.policyId,
+        violationType: input.violationType,
+        detail: input.detail,
+        severity: input.severity ?? 'block',
+      },
+    });
+    this.emitEvent(event);
+    return event;
   }
 
   /**

@@ -14,8 +14,6 @@
 
 - `QUIT_SENTINEL` — The one value a command returns to mean "the transport should close".
 
-- `AgentOptionsValidationError`
-
 - `agentOptionsSchema`
 
 - `CACHE_DIR` — Root of the runtime cache/checkpoint tree (state snapshots, ledgers, datasets).
@@ -53,8 +51,6 @@
 - `SchemaValidationError`
 
 - `SENARS_ENV_MAP`
-
-- `validateAgentOptions`
 
 - `ConfigError`
 
@@ -114,7 +110,7 @@
 
 - `dispatch` — Onion-style dispatch for a middleware chain.
 
-- `passthrough` — Creates a passthrough middleware that emits an event and calls next.
+- `HEALTH_STATUSES` — How the engine is doing. The vocabulary lives here because the durable
 
 - `CAPABILITY_RISKS`
 
@@ -132,7 +128,15 @@
 
 - `createLMStats`
 
+- `LM_TASKS` — The LM tiers, and the one list they are enumerated from — every column of the
+
 - `recordLMCall` — Fold one LM attempt into `stats` — the `recordCall` counters plus the tokens it spent.
+
+- `HistoryEntrySchema`
+
+- `MESSAGE_ROLES` — Who spoke a turn. The chat wire schema, the session ledger's persistence
+
+- `MessageRoleSchema`
 
 - `asBeliefTruth` — Belief-shaped truth from either truth representation; absent truth stays absent.
 
@@ -158,6 +162,8 @@
 
 - `toFrequency`
 
+- `toTermTruth` — The two projections between the system's two truth spellings, and the only
+
 - `WEIGHT_AT_CERTAINTY` — Weight a confidence of exactly 1 would carry, which is unbounded. Revision
 
 - `weakenConfidence` — A confidence reduced toward zero by `factor` and re-clamped — the NAL
@@ -170,6 +176,8 @@
 
 - `boundedDeadline`
 
+- `boundedFetch` — An outbound HTTP request bounded in both time and bytes.
+
 - `deadline` — Run `onExpire` once after `timeoutMs`, unless the returned disposer runs first
 
 - `debounce`
@@ -180,7 +188,9 @@
 
 - `raceDeadline` — Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
 
-- `SerialQueue` — Run work one at a time, in submission order — the mutual exclusion primitive
+- `readBodyBounded` — A response body read as text, truncated at `maxBytes`. Read it with this
+
+- `SerialQueue`
 
 - `sleep`
 
@@ -220,7 +230,7 @@
 
 - `addToSet` — Add to a per-key set, creating the set on first use.
 
-- `BoundedRing` — Drop-oldest bounded buffer — the single AIKR ring behind every bounded log
+- `BoundedRing` — Bounded FIFO — the single AIKR ring behind every bounded log (revision history,
 
 - `buckets` — {@link groupBy} without the keys — for the caller that buckets each group but
 
@@ -482,6 +492,8 @@
 
 - `extractLastUserMessage` — Extract the concatenated text of the last user message in an AI-SDK prompt.
 
+- `ambientRng` — The source a component falls back to when its caller names none.
+
 - `choice` — Random element; throws on empty input.
 
 - `createLCG` — Numerical-Recipes LCG — a second algorithm, not a second PRNG *policy*. It is
@@ -514,8 +526,6 @@
 
 - `weightedSampleBy` — Weighted sampling over pre-computed weights — the O(n) draw behind `weightedSample`.
 
-- `SlidingWindowRateLimiter`
-
 - `attempt` — Run a sync fallible fn, capturing thrown errors into a Result.
 
 - `attemptAsync` — Run an async fallible fn, capturing rejections into a Result.
@@ -539,6 +549,8 @@
 - `ok`
 
 - `unwrapOrThrow`
+
+- `SlidingWindowRateLimiter`
 
 - `withRetry` — Retry `fn` with exponential backoff; rethrows the last failure.
 
@@ -694,13 +706,25 @@
 
 - `cachePath` — Absolute path to a file or directory inside the cache tree.
 
+- `CRITICALITY_LEVELS` — How much a judgment is trusted to decide on its own. Declared once because it was
+
+- `criticalitySchema`
+
+- `type CriticalityLevel`
+
+- `systemOneBoundSpec` — One row projected to its `{min,max,step}` triple — the search space a tuner
+
+- `type SystemOneBoundCategory`
+
+- `type SystemOneBoundKey`
+
+- `systemOneBounds`
+
 - `type SystemOneConfig`
 
 - `systemOneDefaults`
 
 - `systemOneSchema`
-
-- `AgentOptionsValidationError`
 
 - `agentOptionsSchema`
 
@@ -711,8 +735,6 @@
 - `SchemaValidationError`
 
 - `type ValidatedAgentOptions`
-
-- `validateAgentOptions`
 
 ## `./errors`
 
@@ -797,6 +819,16 @@
 - `ChatStreamEvent`
 
 ## `./types/memory`
+
+- `MESSAGE_ROLES` — Who spoke a turn. The chat wire schema, the session ledger's persistence
+
+- `MessageRoleSchema`
+
+- `MessageRole`
+
+- `HistoryEntry`
+
+- `HistoryEntrySchema`
 
 - `ConversationSession`
 

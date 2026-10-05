@@ -1,6 +1,6 @@
 import { makeId } from '@senars/util';
 import { validateBatchQueries } from './algebra.js';
-import { dominantDistribution } from './distribution.js';
+import { composeProposition, dominantDistribution } from './distribution.js';
 import type {
   BackendId,
   CalibrationVersion,
@@ -25,7 +25,6 @@ interface ConstantManifoldConfig {
   topP: number;
   ece: number;
   latencyMs: number;
-  entropy: number;
 }
 
 /** One constant-table manifold covers the tier-0 deterministic and tier-3 symbolic stubs (G3/X5). */
@@ -66,35 +65,23 @@ export class ConstantManifold implements JudgmentManifold {
   }
 
   #judge(query: JudgmentQuery): JudgmentProposition {
-    const { backendId, modelDigest, calibrationVersion, topP, ece, latencyMs, entropy, tier } =
-      this.#config;
-    const base: Omit<
-      JudgmentProposition,
-      'kind' | 'axis' | 'distribution' | 'top' | 'entropy' | 'score'
-    > = {
-      queryId: makeId() as QueryId,
-      backendId,
-      modelDigest,
-      calibration: { version: calibrationVersion, ece },
-      latencyMs,
-      cost: { ...NO_COST, computeMs: latencyMs },
-      tier,
-      abstained: false,
-    };
-
-    if (query.kind === 'classify') {
-      const space = query.space;
-      const dist = dominantDistribution(space, topP, 0);
-      return {
-        ...base,
-        kind: 'classify',
-        axis: query.axis,
-        distribution: dist,
-        top: { option: space[0] ?? 'unknown', p: topP },
-        entropy,
-      };
-    }
-    return { ...base, kind: 'evaluate', axis: query.axis, score: 0.5 };
+    const { backendId, modelDigest, calibrationVersion, topP, ece, latencyMs, tier } = this.#config;
+    return composeProposition(
+      query,
+      {
+        queryId: makeId() as QueryId,
+        backendId,
+        modelDigest,
+        calibration: { version: calibrationVersion, ece },
+        latencyMs,
+        cost: { ...NO_COST, computeMs: latencyMs },
+        tier,
+        abstained: false,
+      },
+      query.kind === 'classify'
+        ? { kind: 'classify', distribution: dominantDistribution(query.space, topP, 0) }
+        : { kind: 'evaluate', score: 0.5 }
+    );
   }
 }
 
@@ -106,7 +93,6 @@ const DETERMINISTIC_CONFIG: ConstantManifoldConfig = {
   topP: 1.0,
   ece: 0.0,
   latencyMs: 0,
-  entropy: 0.0,
 };
 
 const SYMBOLIC_CONFIG: ConstantManifoldConfig = {
@@ -117,7 +103,6 @@ const SYMBOLIC_CONFIG: ConstantManifoldConfig = {
   topP: 0.8,
   ece: 0.05,
   latencyMs: 1,
-  entropy: 0.5,
 };
 
 export class DeterministicManifold extends ConstantManifold {

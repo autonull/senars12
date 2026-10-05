@@ -2,16 +2,42 @@
  * Calibration metrics — the single Brier/ECE implementation, kept in a leaf
  * module so scorers (distill, train, eval) can share it without import cycles.
  */
-import { mean } from '@senars/util';
+import { mean, safeRatio } from '@senars/util';
+
+/**
+ * Weighted mean absolute error, in one pass: the ECE arithmetic. {@link identityECE}
+ * is this at uniform weight over raw scores, and a fitted calibrator's own
+ * reading is this at its point weights over calibrated scores — two loops that
+ * differ only in which number they read, which is how a fit can report that it
+ * beat the baseline it was measured against without having been measured
+ * against it.
+ */
+export function weightedAbsoluteError<T>(
+  rows: readonly T[],
+  error: (row: T) => number,
+  weight: (row: T) => number
+): number {
+  if (rows.length === 0) return 0;
+  let total = 0;
+  let weightSum = 0;
+  for (const row of rows) {
+    const w = weight(row);
+    total += Math.abs(error(row)) * w;
+    weightSum += w;
+  }
+  return safeRatio(total, weightSum);
+}
 
 /**
  * Identity (unfitted) calibrator ECE — the honest baseline the fit must beat.
- * Unweighted per-row MAE, matching {@link IsotonicCalibrator.getECE} at uniform
- * weight; it measures the raw score, not the calibrated curve.
+ * Unweighted per-row MAE over the raw score, not the calibrated curve.
  */
 export function identityECE(data: readonly { predicted: number; observed: number }[]): number {
-  if (data.length === 0) return 0;
-  return mean(data, (d) => Math.abs(d.predicted - d.observed));
+  return weightedAbsoluteError(
+    data,
+    (d) => d.predicted - d.observed,
+    () => 1
+  );
 }
 
 /**

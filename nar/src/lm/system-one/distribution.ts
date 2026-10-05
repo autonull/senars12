@@ -1,5 +1,10 @@
 import { flooredRatio, maxBy, normalizeToSum } from '@senars/util';
-import type { ScoreDistribution } from '../../decision/types.js';
+import type {
+  JudgmentProposition,
+  JudgmentQuery,
+  PropositionBase,
+  ScoreDistribution,
+} from '../../decision/types.js';
 import type { ScoreLegend } from './types.js';
 
 /** Shannon entropy in bits (log2). */
@@ -41,4 +46,49 @@ export const legendFrom = (
   const n = levels.length;
   const weights = levels.map((_, i) => Math.max(0, 1 - Math.abs(score - i / (n - 1)) * (n - 1)));
   return { levels, weights: normalizeToSum(weights, (w) => w, weights) };
+};
+
+/**
+ * What a backend decided. The derived half of a proposition — `top`, `entropy`,
+ * `legend` — is arithmetic over this, not a backend's to state: three backends
+ * each spelled the split themselves and a classify proposition could arrive with
+ * a `top` that was not the option its own distribution put the mass on.
+ */
+export type PropositionVerdict =
+  | { kind: 'classify'; distribution?: readonly ScoreDistribution[] }
+  | { kind: 'evaluate'; score: number; legend?: ScoreLegend };
+
+/**
+ * The one place a proposition takes its kind. A backend states the verdict; the
+ * composition here owns the `kind`/`axis` pair and everything that follows from
+ * the verdict, so a backend cannot answer a classify query with an evaluate
+ * payload and still typecheck.
+ */
+export const composeProposition = (
+  query: JudgmentQuery,
+  base: PropositionBase,
+  verdict: PropositionVerdict
+): JudgmentProposition => {
+  if (verdict.kind === 'classify') {
+    const distribution =
+      verdict.distribution ??
+      dominantDistribution(query.kind === 'classify' ? query.space : [], 1, 0);
+    return {
+      ...base,
+      kind: 'classify',
+      axis: query.axis,
+      distribution,
+      top: topOption(distribution)!,
+      entropy: shannonEntropy(distribution),
+    };
+  }
+  return {
+    ...base,
+    kind: 'evaluate',
+    axis: query.axis,
+    score: verdict.score,
+    legend:
+      verdict.legend ??
+      legendFrom(verdict.score, query.kind === 'evaluate' ? query.levels : undefined),
+  };
 };

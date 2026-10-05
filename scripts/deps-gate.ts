@@ -30,7 +30,7 @@ import { circularChains } from './lib/dpdm.js';
   *     semver) before the barrel import can be narrowed.
   *
   * `--transform` (TODO7 D3) removed edge 1; contract/impl splits removed 2 and 3/4. */
-const BASELINE = 3;
+const BASELINE = 1;
 
 try {
   const chains = circularChains();

@@ -46,7 +46,6 @@ for (const def of ruleDefs) {
     activationCondition: () => true,
   });
   rule.setEventBus(bus);
-  rule.setSystemEventBus(bus);
   await rule.apply(inheritance(atom('cat'), atom('animal')), inheritance(atom('cat'), atom('animal')));
   subjects.push({ id: def.id, hasFallback: rule.hasSymbolicFallback, fallbackRuns: events.length });
 }

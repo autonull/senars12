@@ -8,23 +8,15 @@
 
 - `ActionGateError`
 
-- `BoundaryValidationError` — E1: boundary validation with Zod issues attached.
-
-- `BudgetExceeded` — E1: reasoning budget exhausted for a scope/operation.
-
 - `BudgetGateError`
 
 - `BuilderError` — E1: assembly-time failure, typed by the builder step that failed.
-
-- `DigestMismatch` — E1: artifact digest verification failed.
 
 - `GateError` — E1: per-gate denial, typed by gate and operation.
 
 - `PerceptionGateError`
 
 - `RewardGateError`
-
-- `SchemaInductionError` — E1: schema induction phase failure with its cause attached.
 
 - `SenarsError`
 
@@ -126,17 +118,13 @@
 
 - `getAntecedent`
 
-- `getArgs`
+- `getArgs` — A term's arguments, for a term that is not known to be a compound.
 
 - `getConsequent`
 
 - `getPredicate`
 
 - `getSubject`
-
-- `getTermArg`
-
-- `getTermArgs`
 
 - `hasVariable` — Whether any atom anywhere in the term is a variable — structural, not a spelling test.
 
@@ -360,8 +348,6 @@ _Dynamic subpath (no single entry file)._
 
 - `SpreadingActivation`
 
-- `TopNSampling`
-
 - `CognitiveController`
 
 - `runCounterfactual`
@@ -420,7 +406,7 @@ _Dynamic subpath (no single entry file)._
 
 - `ModelRunnerConfig`
 
-- `MemoryConfig`
+- `MemoryParams` — The tunable half of memory. Named `...Params`, not `MemoryConfig`, because
 
 - `buildDefaults` — Build default parameters from the shared cognitive bounds.
 
@@ -646,8 +632,6 @@ _Dynamic subpath (no single entry file)._
 
 - `VetoHandoverRateSensor` — C2-S4: veto + handover telemetry.
 
-- `clamp01`
-
 - `failClosed`
 
 ## `./health`
@@ -757,6 +741,8 @@ _Dynamic subpath (no single entry file)._
 - `type InCycleBehaviour`
 
 - `type InCycleDisposition`
+
+- `isGpuBackend` — Whether a native capability probe named a backend this runtime implements.
 
 - `LMResponseParser`
 
@@ -918,13 +904,13 @@ _Dynamic subpath (no single entry file)._
 
 ## `./lm/rule-builders`
 
-- `LMRuleDefinition`
-
 - `LMRuleFactoryConfig`
 
 ## `./lm/rule-templates`
 
 - `ruleDefs`
+
+- `getRuleDef`
 
 ## `./lm/rule-templates/fallbacks`
 
@@ -996,11 +982,11 @@ _Dynamic subpath (no single entry file)._
 
 - `Memory`
 
-- `MemoryIndex`
+- `MemoryIndex` — Two lookup families over the concept store, and nothing else.
 
 - `evictUnderPressure` — The archive/forget policy — the only place concepts leave the live store
 
-- `calculateConceptStats`
+- `calculateConceptStats` — Totals and the priority distribution from one sweep. Both come out of a single
 
 - `decodeMemoryState` — Inverse of encodeMemoryState; accepts legacy bare SerializedMemory files.
 
@@ -1116,7 +1102,7 @@ _Dynamic subpath (no single entry file)._
 
 - `VariableGroundingSchema`
 
-- `detectAmbiguityFlags`
+- `detectAmbiguityFlags` — One flag per pattern the input matches, its severity read from the kernel's
 
 - `locateSpan`
 
@@ -1133,6 +1119,8 @@ _Dynamic subpath (no single entry file)._
 - `getTracer` — The tracer this module traces through.
 
 - `withSpan` — O1 helper: run `fn` inside an active span; attributes settable via the handle.
+
+- `tracingEnabled` — Whether anything will collect a span. A high-frequency caller checks this *before*
 
 - `decisionSpan` — O1/O4 helper: fire-and-forget span for high-frequency decisions (gate verdicts).
 
@@ -1250,13 +1238,11 @@ _Dynamic subpath (no single entry file)._
 
 ## `./metrics`
 
-- `RuleStats` — Per-rule execution tallies.
-
 - `SystemStats` — What the kernel counts about itself. Every field is bumped in place.
 
 - `MetricsSummary`
 
-- `MetricsCollector`
+- `MetricsCollector` — What the kernel counts about itself — the counters it bumps as it runs.
 
 - `handleMetricsRequest` — Answer `/metrics` (`text`) or `/metrics.json`, or return `false` for any other
 
@@ -1288,7 +1274,7 @@ _Dynamic subpath (no single entry file)._
 
 - `getAntecedent`
 
-- `getArgs`
+- `getArgs` — A term's arguments, for a term that is not known to be a compound.
 
 - `getConsequent`
 
@@ -1364,13 +1350,15 @@ _Dynamic subpath (no single entry file)._
 
 - `fromNarsese` — Canonical Narsese string → Term API. Delegates to {@link deserializeTerm}.
 
+- `parseTaskTolerant` — Parse `text` as a task under any punctuation the grammar admits, or `null` if
+
 - `ParseError`
 
-- `PUNCTUATION_BY_TASK_TYPE` — Narsese sentence punctuation per task type — the mapping `narsese.peggy`
+- `PUNCTUATION_BY_TASK_TYPE`
 
 - `TermParser`
 
-- `taskTypeForPunctuation` — Task type named by Narsese sentence punctuation; `null` when it is not one.
+- `taskTypeForPunctuation`
 
 - `termParser`
 
@@ -1420,9 +1408,9 @@ _Dynamic subpath (no single entry file)._
 
 - `validateTaskTerm`
 
-- `getTermArg`
+- `COPULA_SYMBOLS` — The infix binary operators — a statement's copulas, longest symbol first so a
 
-- `getTermArgs`
+- `hasCopula` — Whether `text` contains any copula — the one "is this a statement?" test.
 
 - `isAtomic`
 
@@ -1437,10 +1425,6 @@ _Dynamic subpath (no single entry file)._
 _Re-export barrel._
 
 ## `./tools/schemas`
-
-- `ToolSpecSchema`
-
-- `ToolSpec`
 
 - `ConnectionConfigSchema` — The zod twin, pinned to the transport type so a widened field is a compile error here.
 
@@ -1514,7 +1498,7 @@ _Re-export barrel._
 
 - `type ReplaySnapshotFile`
 
-- `type ReplaySnapshotStats`
+- `type ReplayTally`
 
 - `replayIntoMemory`
 

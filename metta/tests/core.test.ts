@@ -1,33 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ErrorCode, MeTTaError } from '../src/core/errors.js';
 import { equalAtoms, hashAtom } from '../src/core/hash.js';
-import { SymbolInterner } from '../src/core/intern.js';
 import { InMemorySpace } from '../src/core/space.js';
 import { expr, num, str, sym } from '../src/types/ast.js';
-
-describe('SymbolInterner', () => {
-  it('interns symbols', () => {
-    using interner = new SymbolInterner();
-    const s1 = interner.intern('hello');
-    const s2 = interner.intern('hello');
-    expect(s1).toBe(s2);
-  });
-
-  it('returns existing symbol', () => {
-    using interner = new SymbolInterner();
-    const s1 = interner.intern('hello');
-    expect(interner.get('hello')).toBe(s1);
-    expect(interner.has('hello')).toBe(true);
-  });
-
-  it('evicts least-recently-used names past capacity', () => {
-    using interner = new SymbolInterner({ maxSize: 1 });
-    interner.intern('a');
-    interner.intern('b');
-    expect(interner.has('a')).toBe(false);
-    expect(interner.has('b')).toBe(true);
-  });
-});
 
 describe('InMemorySpace', () => {
   it('adds and queries atoms', () => {

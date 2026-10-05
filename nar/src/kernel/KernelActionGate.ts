@@ -15,7 +15,7 @@ import {
 } from '@senars/core/schemas';
 import { addToSet, BoundedMap, makeId, pushCapped } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
-import { GATE_LOG_CAPACITY, recordPolicyViolation } from './event-ring.js';
+import { GATE_LOG_CAPACITY } from './event-ring.js';
 import { KernelGate, projectOutcome } from './gate-base.js';
 
 const MODE_ORDER = AutonomyModeSchema.options;
@@ -194,7 +194,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
     const scoped = KernelActionGate.parseScopedOperation(input.operation);
     if (scoped) return this.authorizeScoped(scoped.scopeId, scoped.action);
     if (!permitsExecution(this.autonomyMode)) {
-      recordPolicyViolation(this.eventLog, {
+      this.recordPolicyViolation({
         policyId: 'autonomy-mode',
         violationType: 'unauthorized-tool',
         detail: `Action not permitted in ${this.autonomyMode} mode`,
@@ -211,7 +211,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
       ? this.nalDerivations.get(input.nalDerivationId)
       : undefined;
     if (derivation?.veto) {
-      recordPolicyViolation(this.eventLog, {
+      this.recordPolicyViolation({
         policyId: 'nal-veto',
         violationType: 'unauthorized-tool',
         detail: `NAL derivation ${input.nalDerivationId} vetoes action: ${derivation.conclusion}`,
@@ -224,7 +224,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
     }
 
     if (!this.allowedOperations.has(input.operation)) {
-      recordPolicyViolation(this.eventLog, {
+      this.recordPolicyViolation({
         policyId: 'allowed-operations',
         violationType: 'unauthorized-tool',
         detail: `Operation '${input.operation}' not in allowed operations list`,
