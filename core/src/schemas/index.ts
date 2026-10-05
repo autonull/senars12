@@ -171,12 +171,15 @@ export {
 } from './proposal.js';
 export type {
   BudgetScopeId,
+  BudgetType,
   ConsumedBudget,
   ReasoningBudget,
   TerminationReason,
 } from './reasoning-budget.js';
 export {
   BUDGET_SCOPE_IDS,
+  BUDGET_TYPES,
+  BudgetTypeSchema,
   ConsumedBudgetSchema,
   ReasoningBudgetSchema,
   TerminationReasonSchema,

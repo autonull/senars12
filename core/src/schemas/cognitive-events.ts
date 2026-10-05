@@ -11,7 +11,7 @@ import { CognitiveEventBaseSchema } from './event-base.js';
 import { AutonomyAuthoritySchema, AutonomyModeSchema, PatchProposalSchema } from './governance.js';
 import { NarEventSchemas } from './nar-events.js';
 import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal.js';
-import { TerminationReasonSchema } from './reasoning-budget.js';
+import { BudgetTypeSchema, TerminationReasonSchema } from './reasoning-budget.js';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
 
@@ -81,7 +81,7 @@ export const ConceptActivatedEventSchema = CognitiveEventBaseSchema.extend({
 export const BudgetExhaustedEventSchema = CognitiveEventBaseSchema.extend({
   type: z.literal('budget.exhausted'),
   payload: z.object({
-    budgetType: z.enum(['cycles', 'depth', 'memory', 'llm', 'wallclock']),
+    budgetType: BudgetTypeSchema,
     remaining: z.number(),
     limit: z.number(),
     terminationReason: TerminationReasonSchema,

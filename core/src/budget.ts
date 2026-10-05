@@ -175,17 +175,15 @@ export const BUDGET_RESOURCES = {
 export type BudgetResource = keyof typeof BUDGET_RESOURCES;
 
 /**
- * Each dimension's event-level name, derived from the resource table rather than
- * spelled beside it. Two vocabularies describe one dimension — the `consumed` key
- * (`memoryOps`) and the schema's `budgetType` (`memory`) — and a gate that picks
- * one by hand can report `memory` for a charge against `cycles`.
+ * Each dimension's event-level name, re-exported from the schema that owns it —
+ * it was declared here beside `BUDGET_RESOURCES`, which made two vocabularies for
+ * one dimension: this key (`memoryOps`) and the schema's `budgetType` (`memory`),
+ * with a `satisfies` that could only check one direction. A gate picking one by
+ * hand could report `memory` for a charge against `cycles`. The table and its
+ * zod enum now sit in `schemas/reasoning-budget`, where the consumed keys they
+ * name are declared.
  */
-export const BUDGET_TYPES = {
-  cycles: 'cycles',
-  depth: 'depth',
-  memoryOps: 'memory',
-  llmCalls: 'llm',
-} as const satisfies Record<BudgetResource, BudgetExhaustedEvent['payload']['budgetType']>;
+export { BUDGET_TYPES, BudgetTypeSchema } from './schemas/index.js';
 
 export const ALL_RESOURCES = Object.keys(BUDGET_RESOURCES) as BudgetResource[];
 

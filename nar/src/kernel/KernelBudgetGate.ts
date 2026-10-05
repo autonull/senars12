@@ -31,13 +31,13 @@ export interface KernelBudgetGateConfig {
   costTable: Record<string, number>;
 }
 
-/** What an operation spends: which budget dimension, the event's own name for that
- *  dimension, and its default cost. The dimension, its ceiling key and its exhaustion
- *  reason all come from `core/budget`'s one table, so the gate cannot charge a
- *  dimension the engine does not; only the event's name and the price are its own. */
+/** What an operation spends: which budget dimension, and its default cost. The dimension,
+ *  its ceiling key and its exhaustion reason all come from `core/budget`'s one table, so
+ *  the gate cannot charge a dimension the engine does not; only the price is its own.
+ *  The event's name for the dimension is not a field at all — it is read off the
+ *  dimension, so a row cannot claim to spend one thing and report another. */
 interface OperationSpec {
   readonly resource: BudgetResource;
-  readonly budgetType: BudgetExhaustedEvent['payload']['budgetType'];
   readonly cost: number;
 }
 
@@ -51,17 +51,13 @@ const OPERATION_SPECS: Record<string, OperationSpec> = {
   ...keyedBy(
     Object.values(BUDGET_SCOPES),
     (scope) => scope.operation,
-    (scope) => ({
-      resource: scope.consumedKey,
-      budgetType: BUDGET_TYPES[scope.consumedKey],
-      cost: 1,
-    })
+    (scope) => ({ resource: scope.consumedKey, cost: 1 })
   ),
-  'nal-step': { resource: 'cycles', budgetType: 'cycles', cost: 1 },
-  'lm-call': { resource: 'llmCalls', budgetType: 'llm', cost: 10 },
-  'memory-op': { resource: 'memoryOps', budgetType: 'memory', cost: 1 },
-  'derivation-depth': { resource: 'depth', budgetType: 'depth', cost: 1 },
-  'systemone-judgment': { resource: 'llmCalls', budgetType: 'llm', cost: 5 },
+  'nal-step': { resource: 'cycles', cost: 1 },
+  'lm-call': { resource: 'llmCalls', cost: 10 },
+  'memory-op': { resource: 'memoryOps', cost: 1 },
+  'derivation-depth': { resource: 'depth', cost: 1 },
+  'systemone-judgment': { resource: 'llmCalls', cost: 5 },
 };
 
 /** The price of every operation, read off the table that says what each one spends. */
@@ -160,19 +156,17 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
         engine: 'kernel',
         correlationId: correlation(),
         payload: {
-          budgetType: spec.budgetType,
+          budgetType: BUDGET_TYPES[resource],
           remaining: budgetRemaining(budget, resource),
           limit: budgetLimit(budget, resource),
-          terminationReason:
-            terminationReason as BudgetExhaustedEvent['payload']['terminationReason'],
+          terminationReason,
         },
       });
       this.emitEvent(event);
 
       return {
         granted: false,
-        terminationReason:
-          terminationReason as BudgetExhaustedEvent['payload']['terminationReason'],
+        terminationReason,
         updatedBudget: budget,
       };
     }
