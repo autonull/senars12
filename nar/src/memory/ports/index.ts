@@ -1,6 +1,8 @@
 /**
- * The memory ports — one module per responsibility, so a consumer depends on the
- * one it needs and `Memory` stays the composition of them (TODO29.a §5.5).
+ * The memory ports — consolidated into three modules by responsibility:
+ * - concept-ports: ConceptReader, ConceptWriter (concept-level storage)
+ * - task-ports: TaskAdmission, BeliefTable, GoalEnumeration (per-concept task bags + goals)
+ * - memory-ports: StatisticsView, SymbolIndex, LinkPort, MemoryClock, AttentionOwner (analytics)
  *
  * Every contract here is **structural**: nothing mentions the `Memory` facade or
  * any other implementation, so a store, a table or a statistics view can be
@@ -9,22 +11,33 @@
  * which is what keeps `strategies/ → memory/` one-way and acyclic.
  */
 
+export type {
+  ConceptReader,
+  ConceptWriter,
+} from './concept-ports.js';
+
+export type {
+  TaskAdmission,
+  BeliefTable,
+  GoalEnumeration,
+} from './task-ports.js';
+
+export type {
+  StoreBounds,
+  StorePressure,
+  MemoryStatistics,
+  StatisticsView,
+  SymbolIndex,
+  LinkPort,
+  MemoryClock,
+  AttentionOwner,
+} from './memory-ports.js';
+
+import type { ConceptReader, ConceptWriter } from './concept-ports.js';
+import type { TaskAdmission, BeliefTable, GoalEnumeration } from './task-ports.js';
+import type { StatisticsView, SymbolIndex, LinkPort, MemoryClock, AttentionOwner } from './memory-ports.js';
 import type { ConceptGraph } from '../ConceptGraph.js';
 import type { MemoryView } from '../view.js';
-import type { AttentionOwner } from './attention-owner.js';
-
-import type { ConceptReader, ConceptWriter } from './concept-store.js';
-import type { GoalEnumeration } from './goal-enumeration.js';
-import type { LinkPort } from './links.js';
-import type { MemoryStatistics, StatisticsView, SymbolIndex } from './statistics-view.js';
-import type { BeliefTable, TaskAdmission } from './task-table.js';
-
-export type { AttentionOwner } from './attention-owner.js';
-export type { ConceptReader, ConceptWriter } from './concept-store.js';
-export type { GoalEnumeration } from './goal-enumeration.js';
-export type { LinkPort } from './links.js';
-export type { MemoryStatistics, StatisticsView, SymbolIndex } from './statistics-view.js';
-export type { BeliefTable, TaskAdmission } from './task-table.js';
 
 /**
  * What a consumer reads. One owner per quantity: concepts here, task admission
@@ -42,15 +55,6 @@ export interface MemoryReader
 }
 
 export interface MemoryWriter extends ConceptWriter, TaskAdmission {}
-
-/**
- * The consolidation tick. Its own port because it is the only place the decay
- * clock advances (TODO29.a §4 row 1), and A4 replaces its body with the
- * attention owner's `commit(now)` without touching a caller.
- */
-export interface MemoryClock {
-  consolidate(opts?: { cycleCount?: number }): void;
-}
 
 /** Everything the reasoning cycle is allowed to reach on memory. */
 export interface MemoryPorts

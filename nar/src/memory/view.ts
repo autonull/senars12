@@ -17,16 +17,33 @@ import type { AssociativeRegistry } from './associative.js';
 import type { Concept } from './concept.js';
 import { type Focus } from './focus.js';
 import type { RandomSource } from '../types/primitives.js';
-import type { ConceptReader } from './ports/concept-store.js';
-import type { GoalEnumeration } from './ports/goal-enumeration.js';
-import type { LinkPort } from './ports/links.js';
+import type { Term } from '../terms/index.js';
+import type { Task } from '../types/index.js';
+import type { LinkPort } from './ports/index.js';
 
 /** Semantic similarity between two terms — the embedding layer's read surface. */
 export interface SemanticSimilarity {
   similarity(a: Concept['term'], b: Concept['term']): number;
 }
 
-export interface MemoryView extends ConceptReader, GoalEnumeration, Pick<ConceptReader, 'size'> {
+/**
+ * The read-only memory surface for the strategy layer.
+ *
+ * Declares the methods the strategy layer needs directly, rather than extending
+ * the port interfaces, to avoid diamond inheritance when {@link MemoryPorts}
+ * composes {@link MemoryView} and {@link MemoryReader} (which itself extends
+ * {@link ConceptReader} and {@link GoalEnumeration}).
+ */
+export interface MemoryView {
+  // ConceptReader methods needed by strategies
+  listConcepts(): Concept[];
+  conceptValues(): IterableIterator<Concept>;
+  getConcept(term: Term): Concept | undefined;
+  readonly size: number;
+
+  // GoalEnumeration methods needed by strategies
+  getGoals(): Task[];
+
   getFocus(): Focus;
   /** The link surface, as a port: recall and strength, not the manager's storage. */
   links(): LinkPort;

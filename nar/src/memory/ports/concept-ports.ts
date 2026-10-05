@@ -1,10 +1,9 @@
 /**
- * Concept storage — the read half every reasoning consumer needs.
+ * Concept storage ports — the read/write surface for concept-level operations.
  *
- * A port rather than `Memory`, because the plan's clause is "storage details do
- * not leak into reasoning code" and `Memory` is nine responsibilities wearing
- * one name. `Memory` implements this by delegation; the implementation is a
- * `TermMap`, and nothing outside `nar/src/memory/` learns that.
+ * Split from task ports because recalling a concept and admitting a task are
+ * different authorities: a consumer that only recalls must not hold the surface
+ * that writes (TODO29.a §1.1's "one owner", narrowed to the task).
  */
 
 import type { Term } from '../../terms/index.js';

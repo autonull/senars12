@@ -16,7 +16,7 @@ import { decodeState, encodeState } from '../../state/codec.js';
 import { rehydrateTask, type TaskRecord } from '../../task/record.js';
 import { serializeStamp, type Term, termParser } from '../../terms';
 import type { Concept, TaskData } from '../concept.js';
-import type { ConceptWriter } from '../ports/concept-store.js';
+import type { ConceptWriter } from '../ports/index.js';
 
 const logger = createLogger({ scope: 'Memory.State' });
 

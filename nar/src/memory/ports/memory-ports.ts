@@ -1,13 +1,16 @@
 /**
- * The statistics view — a read port over what the store counts.
- *
- * `MemoryStatistics` lives here rather than in `memory.ts` so a consumer can
- * depend on the shape without depending on the facade that computes it
- * (TODO29.a §5.5).
+ * Memory statistics, indexing, links, and attention ports — the analytical and
+ * cross-cutting surfaces over the concept store.
  */
 
 import type { Term } from '../../terms/index.js';
 import type { Concept } from '../concept.js';
+import type { Layer } from '../links/Layer.js';
+import type { LinkEntry, LinkType } from '../links/types.js';
+import type { AttentionModel } from '../../strategies/types.js';
+import type { RandomSource } from '../../types/primitives.js';
+import type { Focus } from '../focus.js';
+import type { AssociativeRegistry } from '../associative.js';
 
 /** The two bounds a store's occupancy is measured against. */
 export interface StoreBounds {
@@ -60,4 +63,43 @@ export interface SymbolIndex {
   findSimilarConcepts(term: Term, limit?: number): Concept[];
   /** Link- or similarity-reachable concepts; never empty while `term` is known. */
   getRelatedConcepts(term: Term, limit?: number): Concept[];
+}
+
+export interface LinkPort {
+  getLinks(
+    sourceTerm: Term,
+    options?: { layer?: string; type?: LinkType; minPriority?: number; maxResults?: number }
+  ): LinkEntry[];
+  getLinkPriority(sourceTerm: Term, targetTerm: Term, layerName?: string): number;
+  addLink(
+    sourceTerm: Term,
+    targetTerm: Term,
+    options?: { layer?: string; type?: LinkType; priority?: number }
+  ): LinkEntry | null;
+  removeByTerm(sourceTerm: Term, targetTerm: Term, type?: LinkType): boolean;
+  removeAllLinksForTerm(term: Term): void;
+  getLayer(name: string): Layer | undefined;
+  setLayer(name: string, layer: Layer): void;
+  applyDecay(decayRate?: number): void;
+}
+
+/** The consolidation tick. Its own port because it is the only place the decay
+ *  clock advances (TODO29.a §4 row 1), and A4 replaces its body with the
+ *  attention owner's `commit(now)` without touching a caller.
+ */
+export interface MemoryClock {
+  consolidate(opts?: { cycleCount?: number }): void;
+}
+
+/** The attention slot's owner surface.
+ *
+ * Declared here rather than left as two methods on `Memory` because a
+ * reconfigure installs the model a parameter graph resolved, and the consumer
+ * that does the installing (`CognitiveController`) should depend on the ability
+ * rather than on the facade. A4 replaces the body with the attention owner's
+ * `commit(now)`; the contract does not move (TODO29.a §5.4).
+ */
+export interface AttentionOwner {
+  readonly attentionModel: AttentionModel;
+  setAttentionModel(model: AttentionModel): void;
 }
