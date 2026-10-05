@@ -1,5 +1,6 @@
 import { BoundedRing, createLogger, errMsg, indexBy, keyedBy, mean, rankBy, roundTo } from '@senars/util';
 import { envBool } from '@senars/util/config';
+import type { EventBus as NarEventBus } from '@senars/util/events';
 import type { CognitiveController } from './cognitive';
 import { ADMISSION_ORDER_CALL_SITE, EGRESS_VETO_CALL_SITE } from './decision/call-sites.js';
 import type { DriveManager } from './drives';
@@ -27,7 +28,6 @@ import { Truth } from './terms/impls/Truth.js';
 import { type PhaseTimerSummary, summarizeRegions } from './trace';
 import type { Task } from './types';
 import { createTask } from './types';
-import type { EventBus as NarEventBus } from './types/events.js';
 
 /** Cognitive state summary for observability */
 export interface CognitiveStateSummary {

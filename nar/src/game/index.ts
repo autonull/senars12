@@ -11,14 +11,16 @@ export {
   SPAWN_SUBGOAL,
   tuneAction,
 } from './actions.js';
-export { perceptionKey } from './Game.js';
 export type { Game, GameOutcome, MetaGame, Perception, SelfMetaGame } from './Game.js';
+export { perceptionKey } from './Game.js';
 export type { ArithmeticGameConfig, ArithmeticState } from './impls/ArithmeticGame.js';
 export { ArithmeticGame, createArithmeticGame } from './impls/ArithmeticGame.js';
 export type { BanditDriftConfig, BanditGameConfig } from './impls/BanditGame.js';
 export { BanditGame, createBanditGame } from './impls/BanditGame.js';
 export type { CatchGameConfig, CatchState } from './impls/CatchGame.js';
 export { CatchGame, createCatchGame } from './impls/CatchGame.js';
+export type { ConversationAction, ConversationState } from './impls/ConversationGame.js';
+export { ConversationGame } from './impls/ConversationGame.js';
 export type { Game2048Config, Game2048State, Move2048 } from './impls/Game2048.js';
 export { createGame2048, Game2048 } from './impls/Game2048.js';
 export type { GridAction, GridWorldConfig, GridWorldState } from './impls/GridWorldGame.js';
@@ -32,6 +34,7 @@ export type {
 } from './impls/ReasoningGame.js';
 // ReasoningGame exports (from former cognition/)
 export { createReasoningGame, REASONING_SPECS, ReasoningGame } from './impls/ReasoningGame.js';
+export { ReasoningMetaGame } from './impls/ReasoningMetaGame.js';
 export type { RPSGameConfig, RPSState } from './impls/RPSGame.js';
 export { createRPSGame, RPSGame } from './impls/RPSGame.js';
 export type { KnobConfig, SelfMetaGameConfig } from './impls/SelfMetaGame.js';

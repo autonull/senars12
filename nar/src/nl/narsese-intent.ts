@@ -25,9 +25,6 @@ export type NarseseIntent =
 /** `"statement. :|:"` / `"statement. :!:"` carry a tense marker the term parser rejects. */
 const TENSE_MARKER = /\.\s*:(?:!|\|):\s*$/;
 
-/** @deprecated Use `parseTaskTolerant` from `@senars/nar/terms`. */
-export const parseNarseseTask = parseTaskTolerant;
-
 /** The intent of `input`, or `null` when it is prose — or unparseable Narsese — and belongs to the LM path. */
 export const dispatchNarseseIntent = (input: string): NarseseIntent | null => {
   if (!isNarsese(input)) return null;

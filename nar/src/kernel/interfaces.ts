@@ -90,5 +90,5 @@ export interface IDriveManager {
   getAllStates(): import('../drives/types').DriveState[];
   getMaxIntensity(): number;
   getUrgency(): number;
-  setSystemEventBus(bus: import('../types/events').EventBus): void;
+  setSystemEventBus(bus: import('@senars/util/events').EventBus): void;
 }

@@ -210,13 +210,7 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
 
 export type { EventReceiver, EventUnsubscribe } from '@senars/util/events';
 
-/**
- * @deprecated Will be removed in next major version.
- * Use `import { EventBus } from '@senars/util'` instead.
- */
 import { EventBus } from '@senars/util/events';
-
-export { EventBus };
 
 /** NAR's event bus, keyed on {@link NAREventMap} (X4: typed bus). */
 export class NarEventBus extends EventBus<NAREventMap> {}

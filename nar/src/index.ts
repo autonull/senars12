@@ -180,7 +180,6 @@ export {
   isErr,
   isOk,
   map,
-  NARError,
   OperationError,
   ok,
   ToolError,

@@ -1,7 +1,7 @@
 import { createLogger } from '@senars/util';
 import { describe, expect, it } from 'vitest';
 import { BaseComponent } from '@senars/core';
-import { EventBus } from '../../../nar/src/types';
+import { EventBus } from '@senars/util/events';
 
 class TestComponent extends BaseComponent {
   public initializeCount = 0;

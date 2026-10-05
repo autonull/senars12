@@ -144,14 +144,9 @@ export const createSecondaryTask = (
     derived: false,
   });
 
-// Error types for better error handling — the taxonomy lives in `@senars/util`;
-// these aliases are the legacy spelling the `types` barrel and its importers use.
-/** @deprecated since 0.6.0 — use `SenarsError` from `@senars/util/errors`. */
-export { SenarsError as NARError } from '@senars/util';
-/** @deprecated since 0.6.0 — use `ValidationError` from `@senars/util/errors`. */
-/** @deprecated since 0.6.0 — use `ConfigurationError` from `@senars/util/errors`. */
-/** @deprecated since 0.6.0 — use `OperationError` from `@senars/util/errors`. */
-/** @deprecated since 0.6.0 — use `ToolError` from `@senars/util/errors`. */
+// The error taxonomy is declared in `@senars/util` — a leaf package with zero
+// workspace dependencies, so both core and nar can depend on it. These are
+// re-exports, not aliases: the identity is the same class either way.
 export {
   ConfigurationError,
   OperationError,

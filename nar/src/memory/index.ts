@@ -15,12 +15,7 @@ export { Memory } from './memory.js';
 export { MemoryIndex } from './memory-index.js';
 export type * from './ports/index.js';
 export { evictUnderPressure } from './pressure/index.js';
-export type {
-  ConceptStats,
-  SerializedConcept,
-  SerializedMemory,
-  SerializedTask,
-} from './state/index.js';
+export type { ConceptStats, SerializedConcept, SerializedMemory } from './state/index.js';
 export {
   calculateConceptStats,
   decodeMemoryState,

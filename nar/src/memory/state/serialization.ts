@@ -40,11 +40,6 @@ export interface SerializedConcept {
 
 export const MEMORY_VERSION = 1;
 
-/**
- * @deprecated since 0.7.0 — the task record has one shape everywhere; use `TaskRecord`.
- */
-export type { TaskRecord as SerializedTask } from '../../task/record.js';
-
 const MEMORY_STATE_KIND = 'memory.state';
 
 /** Schema-pinned, versioned persistence format for the memory dump (StateCodec, TODO20 X7). */

@@ -23,6 +23,10 @@
     "./shared": {
       "types": "./src/shared/index.ts",
       "import": "./src/shared/index.ts"
+    },
+    "./webllm": {
+      "types": "./src/webllm.ts",
+      "import": "./src/webllm.ts"
     }
   },
   "scripts": {

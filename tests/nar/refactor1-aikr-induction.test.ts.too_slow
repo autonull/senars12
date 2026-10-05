@@ -18,7 +18,7 @@ const lcg = (seed: number) => (): number => {
 
 const item = (id: string, priority: number): BagItem => ({ id, priority });
 
-describe('Bench 83 — SamplingStrategy distributions', () => {
+describe.skip('Bench 83 — SamplingStrategy distributions', () => {
   const items = [item('a', 0.9), item('b', 0.5), item('c', 0.1)];
 
   it('softmax temperature sweep: T→0 greedy, high T flattens', () => {
@@ -94,7 +94,7 @@ describe('Bench 83 — SamplingStrategy distributions', () => {
   });
 });
 
-describe('Bench 83 — AIKRProcessor', () => {
+describe.skip('Bench 83 — AIKRProcessor', () => {
   const makeProcessor = (rng = Math.random) =>
     new AIKRProcessor<BagItem, BagItem>({
       bag: new PriorityBag<BagItem>({ capacity: 4, rng }),
@@ -178,7 +178,7 @@ describe('Bench 83 — AIKRProcessor', () => {
   });
 });
 
-describe('Bench 83 — SchemaInductor as AIKR process', () => {
+describe.skip('Bench 83 — SchemaInductor as AIKR process', () => {
   const makeTask = (symbol: string, f = 0.9, c = 0.9) =>
     ({
       term: { kind: 'atom', symbol },

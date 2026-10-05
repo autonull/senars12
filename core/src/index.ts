@@ -1,24 +1,6 @@
 /** Primary agent runtime. @public */
 
-/**
- * @deprecated Use `import type { AgentOptions, HealthStatus, SkillDefinition, ParsedCommand, BridgeOptions } from '@senars/util'`
- */
-/**
- * @deprecated Will be removed in next major version.
- * Use `import type { ConversationSession, SessionManager } from '@senars/util'` instead.
- */
-/**
- * @deprecated Use `import type { Engine, EngineId, CognitiveStimulus, Context, Derivation, ToolResult } from '@senars/util'`
- */
-/**
- * @deprecated Use `import type { ComponentState, ComponentContext, EventBus } from '@senars/util'`
- */
-/**
- * @deprecated Use `import type { EngineOrigin } from '@senars/util'` and `CognitiveEvent`, `isNarEvent`, `isEventType` from `@senars/core/schemas`
- */
-/**
- * @deprecated Use `import type { Connection, ConnectionState, ConnectionFactory, ConnectionConfig, ConnectionDeps, TransportDeps, IOMessage, MessageClassification } from '@senars/util'`
- */
+/** Leaf type contracts re-exported from `@senars/util` for consumers of the `@senars/core` root. @public */
 export type {
   AgentOptions,
   BridgeOptions,
@@ -50,7 +32,6 @@ export type {
   TransportDeps,
 } from '@senars/util';
 /** Leaf primitives re-exported from @senars/util for consumers of the @senars/core root. @public */
-/** Structured logger. @public */
 export {
   clamp,
   clamp01,

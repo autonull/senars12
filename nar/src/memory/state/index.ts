@@ -1,8 +1,4 @@
-export type {
-  SerializedConcept,
-  SerializedMemory,
-  SerializedTask,
-} from './serialization.js';
+export type { SerializedConcept, SerializedMemory } from './serialization.js';
 export {
   decodeMemoryState,
   deserialize,

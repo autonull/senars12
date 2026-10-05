@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { errMsg, writeJsonFile } from '@senars/util';
-import { type EventBus, OperationError } from '../types';
+import type { EventBus } from '@senars/util/events';
+import { OperationError } from '../types';
 
 export interface TrajectoryStep {
   timestamp: number;

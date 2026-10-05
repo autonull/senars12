@@ -8,9 +8,9 @@ import {
   retain,
   type TermTruth,
 } from '@senars/util';
+import type { EventBus as InternalEventBus } from '@senars/util/events';
 import type { IDriveManager } from '../../kernel/interfaces.js';
 import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
-import type { EventBus as InternalEventBus } from '../../types/events.js';
 import type { DriveSpec, DriveState } from '../types.js';
 import { BUILTIN_DRIVES } from './builtin.js';
 

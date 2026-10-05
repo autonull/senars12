@@ -2,8 +2,8 @@
  * EventBus Tests
  */
 
+import { EventBus } from '@senars/util/events';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { EventBus } from '../../../nar/src/types';
 import type { NAREventMap } from '../../../nar/src/types/events.js';
 
 describe('EventBus', () => {

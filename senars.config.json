@@ -44,8 +44,7 @@
     ]
   },
   "memory": {
-    "maxConcepts": 100,
-    "derivationDepth": 5
+    "maxConcepts": 100
   },
   "inference": {
     "maxDerivationDepth": 10,

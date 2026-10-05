@@ -56,3 +56,6 @@ clean.sh
 
 # Scratch probes
 .tmp-probe/
+
+# Shadow worktrees (self-improvement path)
+.shadow/

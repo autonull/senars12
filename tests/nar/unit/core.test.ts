@@ -8,9 +8,9 @@ import {
   err,
   isErr,
   isOk,
-  NARError,
   ok,
   OperationError,
+  SenarsError,
   Truth,
   unwrapOrThrow,
   ValidationError,
@@ -168,7 +168,7 @@ describe('Result types', () => {
 describe('Error types', () => {
   describe.each`
     ErrorClass            | message         | code
-    ${NARError}           | ${'msg'}        | ${'CODE'}
+    ${SenarsError}        | ${'msg'}        | ${'CODE'}
     ${ValidationError}    | ${'invalid'}    | ${'VALIDATION_ERROR'}
     ${ConfigurationError} | ${'bad config'} | ${'CONFIGURATION_ERROR'}
     ${OperationError}     | ${'failed'}     | ${'OPERATION_ERROR'}
@@ -182,17 +182,17 @@ describe('Error types', () => {
     });
   });
 
-  test('NARError accepts optional context', () => {
+  test('SenarsError accepts optional context', () => {
     const context = { key: 'val' };
-    const err = new NARError('test', 'VALIDATION_ERROR', context);
+    const err = new SenarsError('test', 'VALIDATION_ERROR', context);
     expect(err.context).toEqual(context);
   });
 
-  test('NARError supports custom error codes', () => {
+  test('SenarsError supports custom error codes', () => {
     const customCodes = ['CUSTOM_CODE', 'ANOTHER_CODE', 'TEST_123'];
 
     customCodes.forEach((code) => {
-      const err = new NARError('test', code as ErrorCode);
+      const err = new SenarsError('test', code as ErrorCode);
       expect(err.code).toBe(code);
     });
   });

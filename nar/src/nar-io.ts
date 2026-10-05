@@ -6,6 +6,7 @@ import type {
   TaskAdmittedEvent,
 } from '@senars/core/schemas';
 import { clamp, clampSigned, makeId, writeJsonFile } from '@senars/util';
+import type { EventBus } from '@senars/util/events';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
 import type { NARConfig } from './facade/config.js';
 import type { GateRegistry, IPerceptionGate, IRewardGate } from './kernel';
@@ -24,8 +25,7 @@ import {
 } from './terms';
 import type { Truth as TruthType } from './terms/impls/Truth.js';
 import type { TaskType } from './types';
-import { createTaskWeight, type EventBus } from './types';
-import type { EventBus as NarEventBus } from './types/events.js';
+import { createTaskWeight } from './types';
 
 /** The admitted task the gate hands back — what every caller stores. */
 type TaskAdmittedPayload = TaskAdmittedEvent['payload'];
@@ -38,7 +38,7 @@ interface SerializedNARState {
 
 export class NARIO {
   private _eventBus: EventBus | null = null;
-  private _systemEventBus: NarEventBus | null = null;
+  private _systemEventBus: EventBus | null = null;
   private cognitiveParams?: CognitiveParameters;
   private perceptionGate: IPerceptionGate;
   private rewardGate: IRewardGate;
@@ -67,7 +67,7 @@ export class NARIO {
     this._eventBus = eventBus;
   }
 
-  setSystemEventBus(bus: NarEventBus): void {
+  setSystemEventBus(bus: EventBus): void {
     this._systemEventBus = bus;
   }
 
