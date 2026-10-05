@@ -41,6 +41,12 @@ Devise a model specifying the design space of possible reasoners, including this
 ----
 
 ```
+Create a short "menu" of design objectives/principles that we can choose from to guide a synthesis process towards an ultimate implementable hybrid/synergistic specification.
+```
+
+----
+
+```
 You are a Principal Software Architect and Formal Methods Expert specializing in cognitive architectures. 
 
 We are redesigning "SeNARS", a bounded, neuro-symbolic AI reasoner. Over several sessions, we generated distinct models of its design space.
