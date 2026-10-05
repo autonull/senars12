@@ -2,6 +2,7 @@
  * Chat protocol schemas
  */
 import { z } from 'zod';
+import { TaskPunctuationSchema } from '../schemas/task.js';
 import { TruthValueSchema } from '../schemas/truth.js';
 
 export const ChatMessage = z.object({
@@ -12,7 +13,7 @@ export const ChatMessage = z.object({
   timestamp: z.number(),
   term: z.string().optional(),
   truth: TruthValueSchema.optional(),
-  punctuation: z.enum(['.', '!', '?']).optional(),
+  punctuation: TaskPunctuationSchema.optional(),
   parentId: z.string().nullable(),
   threadRootId: z.string(),
   supports: z.array(z.string()),

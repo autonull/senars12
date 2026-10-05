@@ -6,7 +6,7 @@ import type {
   RiskAssessment,
   SelfImprovementProposal,
 } from '@senars/core/schemas';
-import { permitsExecution } from '@senars/core/schemas';
+import { permitsExecution, riskLevelOf } from '@senars/core/schemas';
 import { makeId } from '@senars/util';
 import type { FocusStepReport } from '../focus/Focus.js';
 import type { SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
@@ -171,8 +171,7 @@ export class GovernanceResolver {
       baseCommit: '',
       patchDiff: '',
       ciResults: { test: true, typecheck: true, lint: true, durationMs: 0 },
-      riskSelfAssessment:
-        proposal.riskTier === 'high' ? 'HIGH' : proposal.riskTier === 'medium' ? 'MEDIUM' : 'LOW',
+      riskSelfAssessment: riskLevelOf(proposal.riskTier),
       affectedComponents: ['cognitive-params'],
       affectedFiles: [],
       linesAdded: 0,

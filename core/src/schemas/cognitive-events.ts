@@ -12,6 +12,7 @@ import { AutonomyModeSchema, PatchProposalSchema } from './governance.js';
 import { NarEventSchemas } from './nar-events.js';
 import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal.js';
 import { TerminationReasonSchema } from './reasoning-budget.js';
+import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
 
 export { CognitiveEventBaseSchema, EngineOriginSchema } from './event-base.js';
@@ -21,7 +22,7 @@ export const TaskAdmittedEventSchema = CognitiveEventBaseSchema.extend({
   payload: z.object({
     taskId: z.string().uuid(),
     term: z.string(),
-    taskType: z.enum(['belief', 'goal', 'question', 'command']),
+    taskType: TaskTypeSchema,
     truth: TruthValueSchema.optional(),
     source: z.enum(['user', 'llm', 'derivation', 'reflex', 'sensor']),
     budget: BudgetSchema,

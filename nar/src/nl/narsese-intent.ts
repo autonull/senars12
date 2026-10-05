@@ -14,6 +14,7 @@
  * ingress and the router agree on what parses.
  */
 
+import { TOLERANT_PUNCTUATIONS } from '@senars/core/schemas';
 import { isNarsese } from '@senars/util';
 import { termParser } from '../terms';
 
@@ -25,12 +26,9 @@ export type NarseseIntent =
 /** `"statement. :|:"` / `"statement. :!:"` carry a tense marker the term parser rejects. */
 const TENSE_MARKER = /\.\s*:(?:!|\|):\s*$/;
 
-/** The same four punctuations the perception gate tries, in the same order. */
-const PUNCTUATIONS = ['', '.', '?', '!'] as const;
-
-/** Parse `text` under any of the four punctuations, or `null` if none parses. */
+/** Parse `text` under any punctuations the perception gate tries, or `null` if none parses. */
 export const parseNarseseTask = (text: string): ReturnType<typeof termParser.parseTask> => {
-  for (const punctuation of PUNCTUATIONS) {
+  for (const punctuation of TOLERANT_PUNCTUATIONS) {
     const parsed = termParser.parseTask(`${text}${punctuation}`);
     if (parsed) return parsed;
   }

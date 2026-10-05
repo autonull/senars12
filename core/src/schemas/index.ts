@@ -3,9 +3,10 @@
  * kernel's validation layer at untrusted boundaries.
  *
  * One vocabulary per module, layered so that a module only depends on the ones
- * below it: `truth` (the epistemic pair and the source-quality ceiling) →
- * `reasoning-budget` → `governance` → `cognitive-events` → `gate-io`, with
- * `derivation-records` and `formalization` hanging off `truth` alone. A caller
+ * below it: `task` (the kind of claim and its sentence mark) and `truth` (the
+ * epistemic pair and the source-quality ceiling) → `reasoning-budget` →
+ * `governance` → `cognitive-events` → `gate-io`, with `derivation-records` and
+ * `formalization` hanging off `truth` alone. A caller
  * that needs one contract imports that module rather than this barrel, and a
  * module that grows a field cannot silently widen a sibling's.
  */
@@ -104,12 +105,14 @@ export {
   AutonomyModeSchema,
   GameDomainSchema,
   PROPOSAL_RISK,
+  RISK_LEVELS,
   GovernanceDecisionSchema,
   GovernanceEventSchema,
   PatchProposalSchema,
   permitsExecution,
   proposalRisk,
   RewardDomainSchema,
+  riskLevelOf,
   RiskAssessmentSchema,
   RiskLevelSchema,
   SelfImprovementProposalSchema,
@@ -162,5 +165,17 @@ export {
   RuleTableSchema,
   validateRuleTable,
 } from './rule-table.js';
+export type { TaskBagKind, TaskPunctuation, TaskType } from './task.js';
+export {
+  TASK_BAG_KINDS,
+  TASK_PUNCTUATION,
+  TASK_PUNCTUATIONS,
+  TASK_TYPES,
+  TOLERANT_PUNCTUATIONS,
+  TaskBagKindSchema,
+  TaskPunctuationSchema,
+  taskTypeForPunctuation,
+  TaskTypeSchema,
+} from './task.js';
 export type { SourceQuality, TruthValue } from './truth.js';
 export { SOURCE_QUALITY_CONFIDENCE, SourceQualitySchema, TruthValueSchema } from './truth.js';

@@ -18,7 +18,6 @@ export type { ConfigCapability, ConfigEvent, ConfigSchema, ConfigView } from './
 /** @public Agent options schema and validator. */
 /** @public Standardized SENARS_* env → config path mapping. */
 export {
-  AgentOptionsValidationError,
   agentOptionsSchema,
   CACHE_DIR,
   cachePath,
@@ -38,7 +37,6 @@ export {
   readEnvOverrides,
   SchemaValidationError,
   SENARS_ENV_MAP,
-  validateAgentOptions,
 } from './config/index.js';
 // Errors
 /** @public Discriminated error code union. */
@@ -420,9 +418,6 @@ export {
   weightedSample,
   weightedSampleBy,
 } from './utils/random.js';
-export type { RateLimiterOptions } from './utils/rate-limit.js';
-/** @public Keyed sliding-window rate limiter for transports and guards. */
-export { SlidingWindowRateLimiter } from './utils/rate-limit.js';
 export type { Err, Ok, Result } from './utils/result.js';
 /** @public The fallible-result union, and the folds over it. */
 export {
@@ -439,6 +434,9 @@ export {
   ok,
   unwrapOrThrow,
 } from './utils/result.js';
+export type { RateLimiterOptions } from './utils/rate-limit.js';
+/** @public Keyed sliding-window rate limiter for transports and guards. */
+export { SlidingWindowRateLimiter } from './utils/rate-limit.js';
 export type { RetryOptions } from './utils/retry.js';
 // Caching
 export { withRetry } from './utils/retry.js';

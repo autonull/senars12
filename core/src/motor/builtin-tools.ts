@@ -2,7 +2,15 @@ import { exec } from 'node:child_process';
 import { access, appendFile, readFile, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import type { EpisodicMemory } from '@senars/util';
-import { envStr, errMsg, type ToolSchema, toolError, toolOk } from '@senars/util';
+import {
+  CAPABILITY_RISKS,
+  CapabilityRiskSchema,
+  envStr,
+  errMsg,
+  type ToolSchema,
+  toolError,
+  toolOk,
+} from '@senars/util';
 import { z } from 'zod';
 import type { ApprovalService } from '../ApprovalService.js';
 import type { ToolResult } from '../engine/Engine.js';
@@ -70,7 +78,7 @@ function createRequestApprovalTool(approvalService: ApprovalService): ToolSpec {
   const schema = z.object({
     actionDescription: z.string().describe('Description of the action requiring approval'),
     diffOrPayload: z.string().describe('The diff, payload, or details of the action'),
-    riskLevel: z.enum(['low', 'medium', 'high']).describe('Risk level of the action'),
+    riskLevel: CapabilityRiskSchema.describe('Risk level of the action'),
     timeoutMs: z.number().optional().default(60000).describe('Timeout in milliseconds'),
   });
 
@@ -83,7 +91,7 @@ function createRequestApprovalTool(approvalService: ApprovalService): ToolSpec {
       properties: {
         actionDescription: { type: 'string' },
         diffOrPayload: { type: 'string' },
-        riskLevel: { type: 'string', enum: ['low', 'medium', 'high'] },
+        riskLevel: { type: 'string', enum: [...CAPABILITY_RISKS] },
         timeoutMs: { type: 'number', default: 60000 },
       },
       required: ['actionDescription', 'diffOrPayload', 'riskLevel'],

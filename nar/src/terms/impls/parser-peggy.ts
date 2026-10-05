@@ -2,8 +2,13 @@
 // This replaces the hand-written recursive descent parser
 
 import { createRequire } from 'node:module';
+import {
+  TASK_PUNCTUATION as PUNCTUATION_BY_TASK_TYPE,
+  type TaskPunctuation,
+  type TaskType,
+  taskTypeForPunctuation,
+} from '@senars/core/schemas';
 import { type BeliefTruth, createLogger, errMsg, stripTruthSuffix } from '@senars/util';
-import type { TaskType } from '../../types/core.js';
 import type { Term } from '../types.js';
 import { TermFactory } from './factory.js';
 import { Truth } from './Truth.js';
@@ -22,32 +27,15 @@ export interface ParserResult {
 
 export type TaskTypeName = TaskType;
 
-/**
- * Narsese sentence punctuation per task type — the mapping `narsese.peggy`
- * already encodes, in one table. `'@'` is the grammar's QUEST mark and is
- * deliberately absent: it is not a task type, so a task rendered here parses
- * back through {@link TermParser.parseTask} as the same type it was written as.
- */
-export const PUNCTUATION_BY_TASK_TYPE: Readonly<Record<TaskTypeName, string>> = Object.freeze({
-  belief: '.',
-  goal: '!',
-  question: '?',
-  command: ';',
-});
-
-const TASK_TYPE_BY_PUNCTUATION: ReadonlyMap<string, TaskTypeName> = new Map(
-  Object.entries(PUNCTUATION_BY_TASK_TYPE).map(([type, mark]) => [mark, type as TaskTypeName])
-);
-
-/** Task type named by Narsese sentence punctuation; `null` when it is not one. */
-export const taskTypeForPunctuation = (punctuation: string): TaskTypeName | null =>
-  TASK_TYPE_BY_PUNCTUATION.get(punctuation) ?? null;
+/** The sentence mark each task kind is written with — the kernel's table, re-exported
+ *  here because the grammar, not the wire, is where a Narsese task is punctuated. */
+export { PUNCTUATION_BY_TASK_TYPE, taskTypeForPunctuation };
 
 export interface ParseTaskResult {
   term: Term;
   taskType: TaskTypeName;
   truth?: Truth;
-  punctuation: '.' | '?' | '!' | ';';
+  punctuation: TaskPunctuation;
 }
 
 export interface ParserPosition {

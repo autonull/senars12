@@ -2,6 +2,7 @@
  * Graph node schemas (engine-specific)
  */
 import { z } from 'zod';
+import { TaskPunctuationSchema } from '../schemas/task.js';
 import { TruthValueSchema } from '../schemas/truth.js';
 
 /** Optional UI lens attributes attached to any graph node. */
@@ -37,7 +38,7 @@ export const NarConceptNode = z.object({
   ...cognitionShape,
   ...lensShape,
   html: z.string().optional(),
-  punctuation: z.enum(['.', '!', '?']).optional(),
+  punctuation: TaskPunctuationSchema.optional(),
 });
 
 export const MettaAtomNode = z.object({

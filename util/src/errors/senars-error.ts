@@ -1,5 +1,11 @@
 import { errMsg } from '../utils/error.js';
 
+/**
+ * The codes a `SenarsError` can carry. Every member is thrown somewhere: a code here
+ * that nothing raises is a claim the taxonomy cannot keep, so the four that named
+ * intentions the error surface never took (`PLUGIN_LOAD_ERROR`, `TRUTH_ERROR`,
+ * `METTA_ERROR`, `SCHEMA_INDUCTION`) went when their classes did.
+ */
 export type ErrorCode =
   | 'TOOL_ERROR'
   | 'ENGINE_ERROR'
@@ -9,13 +15,10 @@ export type ErrorCode =
   | 'CONNECTION_ERROR'
   | 'VALIDATION_ERROR'
   | 'OPERATION_ERROR'
-  | 'PLUGIN_LOAD_ERROR'
-  | 'TRUTH_ERROR'
   | 'LOOP_DETECTED'
   | 'TIMEOUT'
   | 'PARSE_ERROR'
   | 'EVENT_LOG_ERROR'
-  | 'METTA_ERROR'
   | 'CONFIGURATION_ERROR'
   | 'LM_UNAVAILABLE'
   | 'SANDBOX_TIMEOUT'
@@ -24,7 +27,6 @@ export type ErrorCode =
   | 'GATE_DENIED'
   | 'BUDGET_EXCEEDED'
   | 'DIGEST_MISMATCH'
-  | 'SCHEMA_INDUCTION'
   | 'LM_OUTPUT_TOO_LARGE'
   | 'FULL'
   | 'UNAVAILABLE'

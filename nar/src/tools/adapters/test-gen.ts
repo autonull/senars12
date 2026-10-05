@@ -11,12 +11,6 @@ export interface TestGenDeps {
   workspaceRoot?: string;
 }
 
-const toolSpecArbitrary = fc.record({
-  name: fc.string({ minLength: 1, maxLength: 50 }),
-  description: fc.string({ minLength: 1, maxLength: 200 }),
-  inputSchema: fc.dictionary(fc.string(), fc.jsonValue()),
-});
-
 const connectionConfigArbitrary = fc.record({
   id: fc.string({ minLength: 1, maxLength: 50 }),
   enabled: fc.boolean(),
@@ -64,7 +58,6 @@ const agentOptionsArbitrary = fc.record({
 });
 
 const arbitraries: Record<string, fc.Arbitrary<unknown>> = {
-  ToolSpec: toolSpecArbitrary,
   ConnectionConfig: connectionConfigArbitrary,
   AgentOptions: agentOptionsArbitrary,
 };
@@ -125,7 +118,7 @@ export function createTestGenTools(deps: TestGenDeps = {}) {
         'Generate property-based tests from Zod schemas using fast-check. Creates test files in tests/generated/.',
       inputSchema: z.strictObject({
         schemaName: z
-          .enum(['ToolSpec', 'ConnectionConfig', 'AgentOptions'])
+          .enum(['ConnectionConfig', 'AgentOptions'])
           .describe('Name of the schema to generate tests for'),
         sampleCount: z
           .number()

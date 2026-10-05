@@ -59,13 +59,31 @@ export interface ScoreDistribution {
 
 export const scoreDistributionSchema = z.object({ option: z.string(), p: z.number() });
 
-/** Why a head declined to answer. Named once so a router that invents a reason declares it here. */
+/**
+ * Why a head declined to answer. Named once so a router that invents a reason
+ * declares it here.
+ *
+ * The union used to name five reasons while the router that decides abstention
+ * wrote three more of its own inline — `all-heads-abstained`,
+ * `verification-veto` and `no-candidates` — so the majority of the reasons the
+ * system actually abstains for were absent from the type meant to hold them, and
+ * the two directions of the disjunction (a head abstaining vs. the whole router
+ * finding nothing to route to) could not be told apart. All eight are here.
+ */
 export type AbstainReason =
   | 'low-confidence'
   | 'out-of-domain'
   | 'timeout'
   | 'breaker-open'
-  | 'cascade-threshold';
+  | 'cascade-threshold'
+  | 'all-heads-abstained'
+  | 'verification-veto'
+  | 'no-candidates';
+
+/** The router's band for a score, ordered so a band can be compared by restrictiveness. */
+export const BAND_DECISIONS = ['act', 'review', 'block', 'abstain'] as const;
+
+export type BandDecision = (typeof BAND_DECISIONS)[number];
 
 export interface HeadResult {
   /** Which rubric judged; absent when the caller already knows. */
@@ -76,7 +94,7 @@ export interface HeadResult {
   abstained: boolean;
   abstainReason?: AbstainReason;
   /** The router's band for `score`, once a router has run. */
-  decisionBand?: string;
+  decisionBand?: BandDecision;
   axis?: CognitiveAxis;
 }
 

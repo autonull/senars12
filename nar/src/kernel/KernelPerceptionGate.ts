@@ -9,7 +9,11 @@ import type {
   SourceQuality,
   TaskAdmittedEvent,
 } from '@senars/core/schemas';
-import { mintCognitiveEvent, SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas';
+import {
+  mintCognitiveEvent,
+  SOURCE_QUALITY_CONFIDENCE,
+  TOLERANT_PUNCTUATIONS,
+} from '@senars/core/schemas';
 import {
   asBeliefTruth,
   errMsg,
@@ -56,7 +60,11 @@ export class KernelPerceptionGate extends KernelGate {
   private driveManager: { stimulate(driveId: string, amount: number): void } | null = null;
 
   protected override outcomeOf(output: unknown): GateOutcome {
-    return projectOutcome<PerceptionGateOutput>(output, (o) => o.admitted, (o) => o.rejectionReason);
+    return projectOutcome<PerceptionGateOutput>(
+      output,
+      (o) => o.admitted,
+      (o) => o.rejectionReason
+    );
   }
 
   /** Wire the DriveManager so ambiguity-driven curiosity stimulation works. */
@@ -261,12 +269,11 @@ export class KernelPerceptionGate extends KernelGate {
   }
 
   private parseTaskTolerant(text: string): ReturnType<typeof termParser.parseTask> {
-    return (
-      termParser.parseTask(text) ??
-      termParser.parseTask(`${text}.`) ??
-      termParser.parseTask(`${text}?`) ??
-      termParser.parseTask(`${text}!`)
-    );
+    for (const punctuation of TOLERANT_PUNCTUATIONS) {
+      const parsed = termParser.parseTask(`${text}${punctuation}`);
+      if (parsed) return parsed;
+    }
+    return null;
   }
 
   /**
@@ -283,7 +290,7 @@ export class KernelPerceptionGate extends KernelGate {
     if (observation && typeof observation === 'object') {
       const term =
         'term' in observation && typeof (observation as { term: string }).term === 'string'
-          ? this.parseTaskTolerant((observation as { term: string }).term)?.term ?? null
+          ? (this.parseTaskTolerant((observation as { term: string }).term)?.term ?? null)
           : 'kind' in observation
             ? (observation as Term)
             : null;
@@ -310,7 +317,8 @@ export class KernelPerceptionGate extends KernelGate {
       'perception',
       'admitTask',
       { term, taskType, truth, source, correlationId },
-      ({ term, taskType, truth, source, correlationId }) => this.decideTaskAdmission(term, taskType, truth, source, correlationId),
+      ({ term, taskType, truth, source, correlationId }) =>
+        this.decideTaskAdmission(term, taskType, truth, source, correlationId),
       ({ correlationId }) => correlationId
     );
   }

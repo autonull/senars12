@@ -1,8 +1,9 @@
+import type { TaskType } from '@senars/core/schemas';
 import type { ModelRuleStats } from '@senars/util';
-import type { NarEventBus, Task } from '../types';
 import type { StampType, Term, Truth } from '../terms';
+import type { NarEventBus, Task } from '../types';
 
-import { type Timestamp } from '../types/primitives.js';
+import type { Timestamp } from '../types/primitives.js';
 
 export interface RuleInput {
   term: Term;
@@ -16,7 +17,7 @@ export interface RuleResult {
   truth: Truth;
   stamp: StampType;
   priority: number;
-  taskType?: 'belief' | 'goal' | 'question' | 'command';
+  taskType?: TaskType;
 }
 
 /**
@@ -115,10 +116,7 @@ export interface InferenceTable {
  * A rule function that can optionally receive RuleInputs for temporal reasoning.
  * The second parameter is provided by the processor when available (for temporal rules).
  */
-export type RuleFn = (
-  premises: [Term, Term],
-  inputs?: [RuleInput, RuleInput]
-) => Term | undefined;
+export type RuleFn = (premises: [Term, Term], inputs?: [RuleInput, RuleInput]) => Term | undefined;
 
 export interface RegisteredRule {
   id: string;
@@ -135,7 +133,7 @@ export interface RegisteredRule {
    * record instead of being resolved by matching the rule id.
    */
   truthFnName?: string;
-  taskType?: 'belief' | 'goal' | 'question' | 'command';
+  taskType?: TaskType;
 }
 
 /**
@@ -153,10 +151,7 @@ export interface RuleDef {
   readonly priority: number;
 }
 
-export const createRulePattern = (
-  leftOp: Term['kind'],
-  rightOp: Term['kind']
-): RulePattern => ({
+export const createRulePattern = (leftOp: Term['kind'], rightOp: Term['kind']): RulePattern => ({
   left: { op: leftOp },
   right: { op: rightOp },
 });

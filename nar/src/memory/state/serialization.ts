@@ -9,6 +9,7 @@
  * so the format is versioned (version 1) but has a single reader/writer.
  */
 
+import type { TaskBagKind } from '@senars/core/schemas';
 import { createLogger } from '@senars/util';
 import type { Bag } from '../../bag/Bag.js';
 import { decodeState, encodeState } from '../../state/codec.js';
@@ -60,7 +61,7 @@ export const decodeMemoryState = (text: string): SerializedMemory =>
  * naming the local union `TaskTypeName` said otherwise, shadowing the four-kind
  * `TaskTypeName` from the parser with a three-kind subset of it.
  */
-type PersistedBagKind = 'belief' | 'goal' | 'question';
+type PersistedBagKind = TaskBagKind;
 
 export function serialize(memory: ConceptWriter): SerializedMemory {
   const concepts: SerializedConcept[] = [];

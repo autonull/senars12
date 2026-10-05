@@ -1,4 +1,4 @@
-import { SHA256_PINNED, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+import { SenarsError, SHA256_PINNED, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
 
 import { createWasiSandbox } from '../../capability/wasi-sandbox.js';
 import type {
@@ -11,10 +11,22 @@ import type {
   ReasoningBudget,
 } from './types.js';
 
-/** Hash-pin mismatch fails closed — no fallback, no demotion ladder (§10). */
-export class DigestMismatchError extends Error {
+/**
+ * Hash-pin mismatch fails closed — no fallback, no demotion ladder (§10).
+ *
+ * A `SenarsError` so the refusal is reported with a code: this extended plain
+ * `Error`, so a digest-pin failure — the one failure in the system that must never
+ * be downgraded to a retry or a demotion — reached the MCP and transport error paths
+ * with `code: undefined`, indistinguishable there from a bug. `nar`'s error surface
+ * declared a `DIGEST_MISMATCH` class for exactly this that nothing threw.
+ */
+export class DigestMismatchError extends SenarsError {
   constructor(expected: string, actual: string) {
-    super(`ModelDigest mismatch: pinned '${expected}' but loaded '${actual}'. Failing closed.`);
+    super(
+      `ModelDigest mismatch: pinned '${expected}' but loaded '${actual}'. Failing closed.`,
+      'DIGEST_MISMATCH',
+      { expected, actual }
+    );
     this.name = 'DigestMismatchError';
   }
 }

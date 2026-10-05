@@ -18,6 +18,7 @@ import { z } from 'zod';
 import { RulePatternSchema } from './common.js';
 import { CognitiveEventBaseSchema, PROPOSER_ORIGIN } from './event-base.js';
 import { RuleDeclarationSchema } from './rule-table.js';
+import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
 
 /**
@@ -64,7 +65,7 @@ const EnvelopeSchema = z.object({
 export const ContentProposalSchema = EnvelopeSchema.extend({
   kind: z.literal('content'),
   payload: z.object({
-    taskType: z.enum(['belief', 'goal', 'question', 'command']),
+    taskType: TaskTypeSchema,
     term: z.string().min(1),
     truth: TruthValueSchema.optional(),
   }),

@@ -67,11 +67,3 @@ export const parseOrThrow = <S extends z.ZodType>(
   if (!result.success) throw new ErrorType(label, result.error.issues);
   return result.data;
 };
-
-/** @deprecated since 0.2.0 — use `SchemaValidationError`. */
-export class AgentOptionsValidationError extends SchemaValidationError {
-  override name = 'AgentOptionsValidationError';
-}
-
-export const validateAgentOptions = (opts: unknown): ValidatedAgentOptions =>
-  parseOrThrow(agentOptionsSchema, 'AgentOptions', opts, AgentOptionsValidationError);

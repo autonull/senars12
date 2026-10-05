@@ -2,6 +2,7 @@
  * Graph node data (UI flat view) + lens
  */
 import { z } from 'zod';
+import { TaskPunctuationSchema } from '../schemas/task.js';
 import { cognitionShape, lensShape } from './graph-nodes.js';
 
 export const GraphNodeDataView = z.object({
@@ -17,7 +18,7 @@ export const GraphNodeDataView = z.object({
   nodeType: z.enum(['nar:concept', 'metta:atom', 'metta:skill']),
   capabilities: z.array(z.string()).optional(),
   html: z.string().optional(),
-  punctuation: z.enum(['.', '!', '?']).optional(),
+  punctuation: TaskPunctuationSchema.optional(),
   space: z.string().optional(),
   durationMs: z.number().optional(),
   args: z.array(z.string()).optional(),

@@ -6,6 +6,7 @@
 
 import { parseOrThrow } from '@senars/util';
 import { z } from 'zod';
+import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
 
 export const AmbiguityFlagSchema = z.object({
@@ -34,7 +35,7 @@ export const SourceSpanSchema = z.object({
 export const FormalizationCandidateSchema = z.object({
   candidateId: z.string().uuid(),
   narsese: z.string(),
-  taskType: z.enum(['belief', 'goal', 'question']),
+  taskType: TaskTypeSchema,
   truth: TruthValueSchema.optional(),
   confidence: z.number().min(0).max(1), // LLM's confidence in this parse
   sourceSpans: z.array(SourceSpanSchema),

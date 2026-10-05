@@ -25,12 +25,9 @@ export type Hash = number;
 export type TermSymbol = string;
 
 // Budget and priority system — one shape, validated by the schema that admits it
-import type { Budget } from '@senars/core/schemas';
+import type { Budget, TaskType } from '@senars/core/schemas';
 
-export type { Budget };
-
-// Task types
-export type TaskType = 'belief' | 'goal' | 'question' | 'command';
+export type { Budget, TaskType };
 
 // Core Task interface
 export interface Task {
@@ -174,7 +171,7 @@ export interface TermFilter {
   limit?: number;
   truthRange?: [number, number];
   recency?: number;
-  type?: 'belief' | 'goal' | 'question' | 'command';
+  type?: TaskType;
 }
 
 export interface TruthFilter {

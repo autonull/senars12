@@ -21,6 +21,7 @@
 import { parseOrThrow } from '@senars/util';
 import { z } from 'zod';
 import { RulePatternSchema } from './common.js';
+import { TaskTypeSchema } from './task.js';
 
 /**
  * The wire version of the rule-table artifact. A table recorded against one
@@ -65,7 +66,7 @@ export const RuleDeclarationSchema = z.object({
   /** The name the body resolves under, e.g. `deduction` in `NALRules`. */
   body: z.string().min(1),
   priority: z.number(),
-  taskType: z.enum(['belief', 'goal', 'question', 'command']).optional(),
+  taskType: TaskTypeSchema.optional(),
 });
 
 export type RuleDeclaration = z.infer<typeof RuleDeclarationSchema>;

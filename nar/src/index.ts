@@ -16,15 +16,11 @@ export { runCounterfactual } from './cognitive/index.js';
 /** E1 error taxonomy — nar/public error surface. @public */
 export {
   ActionGateError,
-  BoundaryValidationError,
-  BudgetExceeded,
   BudgetGateError,
   BuilderError,
-  DigestMismatch,
   GateError,
   PerceptionGateError,
   RewardGateError,
-  SchemaInductionError,
   SenarsError,
 } from './errors/index.js';
 // Imagination Engine (Cognitive Treadmill)

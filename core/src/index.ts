@@ -74,10 +74,8 @@ export {
 /** Validated agent options. @public */
 export type { ValidatedAgentOptions } from '@senars/util/config';
 export {
-  AgentOptionsValidationError,
   agentOptionsSchema,
   contextOptsSchema,
-  validateAgentOptions,
 } from '@senars/util/config';
 export { Agent } from './Agent.js';
 /** Cognitive-event → UI-delta projection bridge. @public */

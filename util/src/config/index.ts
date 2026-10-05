@@ -64,11 +64,9 @@ export type {
   ConfigView,
 } from './types.js';
 export {
-  AgentOptionsValidationError,
   agentOptionsSchema,
   contextOptsSchema,
   parseOrThrow,
   SchemaValidationError,
   type ValidatedAgentOptions,
-  validateAgentOptions,
 } from './validation.js';

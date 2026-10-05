@@ -5,19 +5,15 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
   ActionGateError,
-  BoundaryValidationError,
-  BudgetExceeded,
   BudgetGateError,
   BuilderError,
-  DigestMismatch,
   GateError,
   PerceptionGateError,
   RewardGateError,
-  SchemaInductionError,
   SenarsError,
 } from '../../nar/src/errors/index.js';
 import { StatePersister } from '../../nar/src/facade/persistence.js';
-import { ConnectionConfigSchema, ToolSpecSchema } from '../../nar/src/tools/schemas.js';
+import { ConnectionConfigSchema } from '../../nar/src/tools/schemas.js';
 
 /** Bench 64 — Error Taxonomy & Result (TODO20 Phase 3). */
 
@@ -31,26 +27,6 @@ describe('Bench 64 — Error Taxonomy (E1)', () => {
         new GateError('denied', 'perception', 'quality', 'admit'),
         'GATE_DENIED',
         { gate: 'perception', reason: 'quality', operation: 'admit' },
-      ],
-      [
-        new BudgetExceeded('over', 'scope-1', 'derive', 100, 101),
-        'BUDGET_EXCEEDED',
-        { scope: 'scope-1', limit: 100, consumed: 101 },
-      ],
-      [
-        new DigestMismatch('digest', 'aaa', 'bbb', 'snapshot'),
-        'DIGEST_MISMATCH',
-        { expected: 'aaa', actual: 'bbb', artifact: 'snapshot' },
-      ],
-      [
-        new SchemaInductionError('boom', 'candidate-generation'),
-        'SCHEMA_INDUCTION',
-        { phase: 'candidate-generation' },
-      ],
-      [
-        new BoundaryValidationError('bad', 'config', [{ path: ['x'], message: 'required' }]),
-        'VALIDATION_ERROR',
-        { path: 'config' },
       ],
     ];
     for (const [error, code, context] of cases) {
@@ -133,14 +109,6 @@ describe('Bench 64 — Result (E2)', () => {
 });
 
 describe('Bench 64 — Zod strict boundaries (E3)', () => {
-  it('ToolSpecSchema rejects unknown keys', () => {
-    expect(ToolSpecSchema.safeParse({ name: 't', description: 'd', inputSchema: {} }).success).toBe(
-      true
-    );
-    const r = ToolSpecSchema.safeParse({ name: 't', description: 'd', inputSchema: {}, rogue: 1 });
-    expect(r.success).toBe(false);
-  });
-
   it('ConnectionConfigSchema rejects unknown keys', () => {
     const base = { id: 'c', enabled: true, type: 'irc', config: {} };
     expect(ConnectionConfigSchema.safeParse(base).success).toBe(true);

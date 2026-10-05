@@ -1,3 +1,4 @@
+import type { TaskBagKind } from '@senars/core/schemas';
 import { clamp } from '@senars/util';
 import {
   atomicSymbols,
@@ -69,7 +70,7 @@ export class SymbolicFirewall {
     this.blocked = [...BLOCKED_PATTERNS, ...(opts.extraBlockedPatterns ?? [])];
   }
 
-  check(narsese: string, kind: 'belief' | 'goal' | 'question' = 'belief'): FirewallVerdict {
+  check(narsese: string, kind: TaskBagKind = 'belief'): FirewallVerdict {
     const cleaned = normalizeNarsese(narsese.replace(/^`+|`+$/g, ''));
     if (!cleaned) return { allowed: false, reason: 'empty statement' };
     if (cleaned.length > this.maxLength)

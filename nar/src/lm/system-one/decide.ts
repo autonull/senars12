@@ -5,7 +5,7 @@
  * manifold heads, contrastive memory, and policy utilities it composes.
  */
 import { chunk, rankBy, renormalize, retain, sha256Hex } from '@senars/util';
-import type { CognitiveAxis } from '../../decision/types.js';
+import type { AbstainReason, CognitiveAxis } from '../../decision/types.js';
 import { isSafetyFloor } from './algebra.js';
 import { type ContrastiveMemory, candidateProximity, rubricOf } from './contrastive.js';
 import {
@@ -64,7 +64,7 @@ export interface DecideResult {
   /** Most restrictive band across heads (monotone-restrict-only). */
   band: BandDecision;
   abstained: boolean;
-  abstainReason?: 'all-heads-abstained' | 'out-of-domain';
+  abstainReason?: AbstainReason;
   provenance: JudgmentProvenance;
 }
 
@@ -379,7 +379,7 @@ export interface ChooseResult {
   /** Distribution sorted by adjusted score descending (the selection order). */
   ranked: readonly ScoreDistribution[];
   abstained: boolean;
-  abstainReason?: 'low-confidence' | 'verification-veto' | 'no-candidates';
+  abstainReason?: AbstainReason;
   contrastive: { penalties: Record<string, number>; vetoes: readonly string[] };
   provenance: JudgmentProvenance;
 }

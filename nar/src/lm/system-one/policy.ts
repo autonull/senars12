@@ -7,6 +7,7 @@
 import { assertDefined, renormalize, sumBy } from '@senars/util';
 import { HEAD_SPECS } from './head-ontology.js';
 import type {
+  BandDecision,
   EmbeddingPointer,
   EvaluateProposition,
   EvaluateQuery,
@@ -32,7 +33,8 @@ export function truthProbabilityOf(p: EvaluateProposition): number | undefined {
   return p.abstained ? undefined : p.score;
 }
 
-export type BandDecision = 'act' | 'review' | 'block' | 'abstain';
+/** The decision layer owns the band vocabulary; the router that reads it re-exports. */
+export type { BandDecision };
 
 const BAND_ORDER = { act: 2, review: 1, block: 0 } as const;
 

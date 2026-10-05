@@ -9,6 +9,7 @@
  * and all three projections so the vocabulary has a single home.
  */
 
+import type { TaskBagKind } from '@senars/core/schemas';
 import { type Clock, clamp01, systemClock, type TermTruth } from '@senars/util';
 import type { BagItem } from '../bag/Bag.js';
 import type { GameOutcome, Perception } from '../game/Game.js';
@@ -20,7 +21,7 @@ import type { Budget } from '../types/index.js';
 
 export interface FocusTask extends BagItem {
   term: Term;
-  type: 'belief' | 'goal' | 'question';
+  type: TaskBagKind;
   truth: TermTruth;
   budget: Budget;
   stamp: string;

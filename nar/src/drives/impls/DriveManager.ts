@@ -1,3 +1,4 @@
+import type { TaskBagKind } from '@senars/core/schemas';
 import {
   clamp01,
   formatNarseseTruth,
@@ -14,7 +15,7 @@ import type { DriveSpec, DriveState } from '../types.js';
 import { BUILTIN_DRIVES } from './builtin.js';
 
 export interface INarInput {
-  input(input: string, type: 'belief' | 'goal' | 'question', truth?: TruthType): Promise<void>;
+  input(input: string, type: TaskBagKind, truth?: TruthType): Promise<void>;
 }
 
 export class DriveManager implements IDriveManager {
