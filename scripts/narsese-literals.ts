@@ -53,7 +53,6 @@ const EXCLUDE_FILES = new Set([
   'scripts/control-budgets.ts',
   'scripts/fundamentals-bench.ts',
   'scripts/fuzz-narsese.ts',
-  'scripts/generate-rule-matrix.ts',
   'scripts/lib/attention-surface.ts',
   'scripts/lib/dispatch-table.ts',
   'scripts/lib/proposal-protocol.ts',
