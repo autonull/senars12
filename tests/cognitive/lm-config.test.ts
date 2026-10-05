@@ -24,6 +24,7 @@ const ENV_KEYS = [
   'LM_API_KEY',
   'ANTHROPIC_API_KEY',
   'OPENAI_API_KEY',
+  'LM_LLAMACPP_GPU',
 ];
 
 const clearLMEnv = () => {
@@ -82,6 +83,23 @@ describe('LM settings resolution', () => {
 
   it('rejects unknown providers with a specific error', () => {
     expect(() => resolveLMSettings({ provider: 'nope' })).toThrow(/Invalid LM provider/);
+  });
+
+  it('reads the GPU backend as a setting, and ignores a value it cannot implement', () => {
+    for (const [text, expected] of [
+      ['cuda', 'cuda'],
+      ['metal', 'metal'],
+      ['vulkan', 'vulkan'],
+      ['auto', 'auto'],
+      ['false', false],
+    ] as const) {
+      process.env.LM_LLAMACPP_GPU = text;
+      expect(resolveLMSettings().llamacppGpu).toBe(expected);
+    }
+    process.env.LM_LLAMACPP_GPU = 'cuad';
+    expect(resolveLMSettings().llamacppGpu).toBeUndefined();
+    delete process.env.LM_LLAMACPP_GPU;
+    expect(resolveLMSettings().llamacppGpu).toBeUndefined();
   });
 
   it('configureLM installs settings used by getLmProvider', () => {

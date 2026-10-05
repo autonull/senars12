@@ -2,6 +2,7 @@
 
 import {
   formatLMConfig,
+  isGpuBackend,
   LM_PROVIDER_NAMES,
   resolveLMConfig,
   resolveLMSettings,
@@ -12,15 +13,12 @@ import type { BotConfig } from '../../config/index.js';
 import { tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
 
-/** Accelerator types the embedded llama.cpp build can actually use. */
-const GPU_TYPES = new Set(['cuda', 'metal', 'vulkan']);
-
 /** Supported GPU types, or `cpu`/`unknown` when the native probe is unavailable. */
 export const gpuSummary = async (): Promise<string> => {
   try {
     const { getLlamaGpuTypes } = await import('node-llama-cpp');
     const types = (await getLlamaGpuTypes('supported')) as string[];
-    const avail = types.filter((t) => GPU_TYPES.has(t));
+    const avail = types.filter(isGpuBackend);
     return avail.length ? avail.join(',') : 'cpu';
   } catch {
     return 'unknown';

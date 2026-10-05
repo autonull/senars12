@@ -40,6 +40,7 @@ export {
   type InCycleDisposition,
 } from './in-cycle-inventory.js';
 export type { ILMService } from './interfaces.js';
+export { isGpuBackend } from './runtime/llama-runtime.js';
 export type {
   LMContext,
   LMRuleConfigV2,

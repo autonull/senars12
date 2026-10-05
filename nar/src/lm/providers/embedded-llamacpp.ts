@@ -32,6 +32,7 @@ import {
   getChatWrapper,
   getContext,
   getLlamaInstance,
+  isGpuBackend,
   isLoaded,
 } from '../runtime/llama-runtime.js';
 import { grammarScope } from './llamacpp.js';
@@ -302,7 +303,7 @@ export async function probeEmbeddedLlama(): Promise<{ available: boolean; detail
     const gpuTypes = await getLlamaGpuTypes('supported');
     const llama: Llama = await getLlama({ gpu: 'auto' });
     await llama.dispose();
-    const available = gpuTypes.filter((t) => t === 'cuda' || t === 'metal' || t === 'vulkan');
+    const available = gpuTypes.filter(isGpuBackend);
     return {
       available: true,
       detail: `Model found, GPU backends: ${available.length ? available.join(', ') : 'CPU only'}`,

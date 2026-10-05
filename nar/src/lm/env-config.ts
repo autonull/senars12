@@ -1,5 +1,9 @@
 import { existsSync } from 'node:fs';
 import { envFirst, envNumOr, envSet, envStr, isTruthy } from '@senars/util/config';
+import { gpuSettingFrom, type GpuSetting } from './runtime/llama-runtime.js';
+import type { CircuitBreakerSettings } from '../utils/circuit-breaker.js';
+
+export type { CircuitState } from '../utils/circuit-breaker.js';
 
 export const LM_PROVIDER_NAMES = [
   'transformers',
@@ -20,10 +24,6 @@ export type ResolvedProvider = LMProviderName;
  * Canonical LM settings — the single source of truth for all LM configuration.
  * Precedence: environment variables > file config (senars.config.json) > defaults.
  */
-import type { CircuitBreakerSettings } from '../utils/circuit-breaker.js';
-
-export type { CircuitState } from '../utils/circuit-breaker.js';
-
 export interface LMSettings {
   provider: LMProviderName;
   /** Quality/frontier model id (per-provider default when omitted). */
@@ -41,7 +41,7 @@ export interface LMSettings {
   /** Embedded llama.cpp: path to GGUF model file. */
   llamacppModelPath?: string;
   /** Embedded llama.cpp: GPU backend (auto | cuda | metal | vulkan | false). */
-  llamacppGpu?: 'auto' | 'cuda' | 'metal' | 'vulkan' | false;
+  llamacppGpu?: GpuSetting;
   /** Embedded llama.cpp: GPU layers to offload (number | 'max'). */
   llamacppGpuLayers?: number | 'max';
   /** Embedded llama.cpp: context window size. */
@@ -197,9 +197,7 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
       (aliasedOllama ? (envFirst('OLLAMA_MODEL') ?? 'llama3.2') : undefined),
     llamacppHost: envFirst('LM_LLAMACPP_HOST') ?? file?.llamacppHost,
     llamacppModelPath: envFirst('LM_LLAMACPP_MODEL') ?? file?.llamacppModelPath,
-    llamacppGpu:
-      (envFirst('LM_LLAMACPP_GPU') as 'auto' | 'cuda' | 'metal' | 'vulkan' | false) ??
-      file?.llamacppGpu,
+    llamacppGpu: gpuSettingFrom(envFirst('LM_LLAMACPP_GPU')) ?? file?.llamacppGpu,
     llamacppGpuLayers: envNumOr('LM_LLAMACPP_GPU_LAYERS') ?? file?.llamacppGpuLayers,
     llamacppContextSize: envNumOr('LM_LLAMACPP_CTX') ?? file?.llamacppContextSize,
     llamacppBatchSize: envNumOr('LM_LLAMACPP_BATCH') ?? file?.llamacppBatchSize,

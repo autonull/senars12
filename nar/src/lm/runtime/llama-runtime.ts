@@ -13,9 +13,37 @@ let contextP: Promise<LlamaContext> | undefined;
 let wrapper: ChatWrapper | undefined;
 let currentConfig: EmbeddedLlamaConfig | undefined;
 
+/** GPU backends the embedded llama.cpp build can be asked for. */
+export const GPU_BACKENDS = ['cuda', 'metal', 'vulkan'] as const;
+
+export type GpuBackend = (typeof GPU_BACKENDS)[number];
+
+/** What the GPU setting may say: a named backend, `auto`, or `false` for CPU. */
+export type GpuSetting = 'auto' | GpuBackend | false;
+
+const GPU_SETTINGS: ReadonlySet<string> = new Set(['auto', ...GPU_BACKENDS]);
+
+/** Whether a native capability probe named a backend this runtime implements. */
+export const isGpuBackend = (value: unknown): value is GpuBackend =>
+  typeof value === 'string' && (GPU_BACKENDS as readonly string[]).includes(value);
+
+/**
+ * The setting from its environment text, or `undefined` when it is unset or says
+ * something the runtime does not implement. The union was written out four times
+ * and the env read cast into it, which also cast the text `false` to the CPU
+ * request it means — `LM_LLAMACPP_GPU=false` reached the loader as a string, and
+ * `LM_LLAMACPP_GPU=cuad` was accepted as a request for a backend that does not
+ * exist. An unrecognised value now falls through to the file or the default like
+ * any other absent one.
+ */
+export const gpuSettingFrom = (value: string | undefined): GpuSetting | undefined => {
+  if (value === 'false') return false;
+  return value !== undefined && GPU_SETTINGS.has(value) ? (value as GpuSetting) : undefined;
+};
+
 export interface EmbeddedLlamaConfig {
   modelPath: string;
-  gpu?: 'auto' | 'cuda' | 'metal' | 'vulkan' | false;
+  gpu?: GpuSetting;
   gpuLayers?: number | 'max';
   contextSize?: number;
   batchSize?: number;
