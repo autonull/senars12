@@ -248,6 +248,7 @@ export class RuleProcessor {
     const stats = this.memory?.getStatistics();
     const beliefs = this.host?.getBeliefs();
     const driveManager = this.host?.getDriveManager();
+    const goals = this.memory?.getGoals();
     return {
       totalConcepts: stats?.totalConcepts ?? 0,
       memoryPressure: stats?.memoryPressure ?? 0,
@@ -259,6 +260,7 @@ export class RuleProcessor {
             (ds) => ds.currentIntensity
           )
         : {},
+      activeGoals: goals ? takeFirst(goals, 5).map((g) => g.term.toString()) : [],
     };
   }
 
@@ -448,7 +450,7 @@ export class RuleProcessor {
     this.modelRuleRotationIndex = (this.modelRuleRotationIndex + 1) % this.modelRules.length;
     if (selected.length === 0) return;
 
-    const { totalConcepts, memoryPressure, conflictCount, driveState } =
+    const { totalConcepts, memoryPressure, conflictCount, driveState, activeGoals } =
       opts?.context ?? this.rulePromptContext();
 
     const ruleContext: Record<string, unknown> = {
@@ -480,10 +482,7 @@ export class RuleProcessor {
       );
     }
 
-    const goals = this.memory?.getGoals();
-    if (goals && goals.length > 0) {
-      ruleContext.activeGoals = takeFirst(goals, 5).map((g) => g.term.toString());
-    }
+    if (activeGoals.length > 0) ruleContext.activeGoals = activeGoals;
 
     const results = await Promise.all(
       selected.map(async (modelRule) => {

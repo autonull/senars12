@@ -1,5 +1,6 @@
 import type { OperatorKey, Term } from './types.js';
-import { getArgs, termKey } from './impls/accessors.js';
+import { COMMUTATIVE_OPS, NARY_OPS } from './operators.js';
+import { getArgs, hasNegatedPair, hasRepeatedArgs, termKey } from './impls/accessors.js';
 import { compoundOf, isBoolAtom, atomOf } from './impls/intern.js';
 
 /**
@@ -26,25 +27,30 @@ export interface TermReducer {
 }
 
 /**
- * Nesting is meaningless for exactly these four kinds, and `product` is
+ * Nesting is meaningless for exactly the n-ary kinds, and `product` is
  * associative but **not** commutative (`(*,a,b) ≠ (*,b,a)`) — so it flattens and
  * is never sorted, and only a commutative n-ary kind may drop a repeat. Never
  * implication, equivalence, the two set kinds or `sequence`: there, nesting and
  * order *are* the claim.
+ *
+ * Both sets are read off the operator table rather than written out. Flattening
+ * *is* n-ary-ness and dropping a repeat additionally requires commutativity, so
+ * the declaration is the whole rule — an operator declared `nary` picks up
+ * associativity automatically, and this list can no longer fall behind the table
+ * it is derived from.
  */
-const FLATTENED = new Set<string>(['conjunction', 'disjunction', 'parallel', 'product']);
-const DEDUPED = new Set<string>(['conjunction', 'disjunction', 'parallel']);
+const FLATTENED: ReadonlySet<OperatorKey> = NARY_OPS;
+const DEDUPED: ReadonlySet<OperatorKey> = new Set(
+  [...NARY_OPS].filter((kind) => COMMUTATIVE_OPS.has(kind))
+);
 
 /** `Term` is a union over two interfaces rather than a discriminated one, so narrowing `term.kind` does not narrow the term. */
 const kindOf = (term: Term): OperatorKey => term.kind as OperatorKey;
 
 /**
  * Structural equality by `termKey` membership rather than by pairwise
- * `termsEqual`. The dedupe predicate ran inside `applies`, so it ran on every
- * canonical term too — `compoundOf` does not dedupe — and `termsEqual` is a
- * recursive tree walk, making argument deduplication quadratic in the arity of
- * every compound the reasoning cycle ever builds. `termKey` is memoised per
- * term and its equality *is* structural equality, so one `Set` settles the pair.
+ * `termsEqual`, which is a recursive tree walk and made deduplication quadratic
+ * in the arity of every compound the cycle built.
  */
 const distinct = (args: readonly Term[]): Term[] => {
   const seen = new Set<string>();
@@ -56,33 +62,11 @@ const distinct = (args: readonly Term[]): Term[] => {
   });
 };
 
-/** Whether any two arguments of `args` are the same term. */
-const hasRepeatedArg = (args: readonly Term[]): boolean =>
-  args.length !== new Set(args.map(termKey)).size;
-
-/**
- * Whether a `conjunction` or `disjunction` of `kind` contains both `a` and `--a`.
- *
- * One predicate for both self-contradiction laws: the two rewrites differ only in
- * the constant they reduce to, so the pair test is stated once and each reducer
- * declares its own result.
- */
-const containsNegatedPair = (term: Term, kind: 'conjunction' | 'disjunction'): boolean => {
-  if (term.kind !== kind) return false;
-  const args = getArgs(term);
-  const keys = new Set(args.map(termKey));
-  return args.some((arg) => {
-    if (arg.kind !== 'negation') return false;
-    const operand = getArgs(arg)[0];
-    return operand !== undefined && keys.has(termKey(operand));
-  });
-};
-
 /** `a & --a = FALSE` — contradiction in conjunction. */
 const conjunctionContradiction: TermReducer = {
   id: 'conjunction-contradiction',
   justification: 'a & --a = FALSE (self-contradiction in conjunction); NAL negation semantics',
-  applies: (term) => containsNegatedPair(term, 'conjunction'),
+  applies: (term) => term.kind === 'conjunction' && hasNegatedPair(term),
   reduce: () => atomOf('FALSE'),
 };
 
@@ -90,14 +74,14 @@ const conjunctionContradiction: TermReducer = {
 const disjunctionTautology: TermReducer = {
   id: 'disjunction-tautology',
   justification: 'a | --a = TRUE (tautology in disjunction); NAL negation semantics',
-  applies: (term) => containsNegatedPair(term, 'disjunction'),
+  applies: (term) => term.kind === 'disjunction' && hasNegatedPair(term),
   reduce: () => atomOf('TRUE'),
 };
 
 const flattenNested: TermReducer = {
   id: 'flatten-nested',
   justification: 'Nested conjunction/disjunction/parallel/product is structurally identical to flat form (associativity); Op.java DISJ/CONJ/PROD n-ary definitions',
-  applies: (term) => FLATTENED.has(term.kind) && getArgs(term).some((arg) => arg.kind === term.kind),
+  applies: (term) => FLATTENED.has(kindOf(term)) && getArgs(term).some((arg) => arg.kind === term.kind),
   reduce: (term) =>
     compoundOf(
       kindOf(term),
@@ -108,7 +92,7 @@ const flattenNested: TermReducer = {
 const dedupeArgs: TermReducer = {
   id: 'dedupe-args',
   justification: 'Duplicate arguments in commutative n-ary kinds do not change the claim (idempotence); Op.java CONJ/DISJ/PAR semantics',
-  applies: (term) => DEDUPED.has(term.kind) && hasRepeatedArg(getArgs(term)),
+  applies: (term) => DEDUPED.has(kindOf(term)) && hasRepeatedArgs(term),
   reduce: (term) => compoundOf(kindOf(term), distinct(getArgs(term))),
 };
 

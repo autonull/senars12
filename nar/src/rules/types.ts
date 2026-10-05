@@ -58,14 +58,21 @@ export interface ModelRuleWork {
 
 /**
  * The memory-wide half of a model rule's prompt: concept count, memory pressure,
- * conflict count, drive intensity. Identical for every task in one pump, so the
- * flush reads it once and passes it down. Prompt hints, never load-bearing.
+ * conflict count, drive intensity, the active goals. Identical for every task in
+ * one pump, so the flush reads it once and passes it down. Prompt hints, never
+ * load-bearing.
+ *
+ * The goals are here because getting them walks every resident concept and
+ * allocates a task per goal — which was happening in front of every premise
+ * pair, describing a store that had not changed between them.
  */
 export interface RulePromptContext {
   totalConcepts: number;
   memoryPressure: number;
   conflictCount: number;
   driveState: Record<string, number>;
+  /** The first few active goals, by term — a hint, so a fixed window suffices. */
+  activeGoals: string[];
 }
 
 /**

@@ -42,29 +42,25 @@ export const getVars = (term: Term): Term[] => {
   return vars;
 };
 
-const termGuard =
-  <K extends Term['kind']>(kind: K) =>
-  (
-    term: Term
-  ): term is Extract<
-    Term,
-    {
-      kind: K;
-    }
-  > =>
-    term.kind === kind;
-
-export const inh = termGuard('inheritance');
-export const imp = termGuard('implication');
-export const conj = termGuard('conjunction');
-export const disj = termGuard('disjunction');
-export const neg = termGuard('negation');
-export const sim = termGuard('similarity');
-export const seq = termGuard('sequence');
-export const pred = termGuard('predictive');
-export const op = termGuard('operation');
-export const setExt = termGuard('setExt');
-export const setInt = termGuard('setInt');
+/**
+ * The NAL rules' short names for the per-kind guards — renamed re-exports, not a
+ * second table. These eleven were built by a local `termGuard` narrowing with
+ * `Extract<Term, {kind: K}>`; the rules read the short names in a rule pattern,
+ * so the spelling stays and the guard is the terms package's.
+ */
+export {
+  isConjunction as conj,
+  isDisjunction as disj,
+  isImplication as imp,
+  isInheritance as inh,
+  isNegation as neg,
+  isOperation as op,
+  isPredictive as pred,
+  isSequence as seq,
+  isSetExt as setExt,
+  isSetInt as setInt,
+  isSimilarity as sim,
+} from '../../terms';
 
 export const builders = {
   unary:
