@@ -204,7 +204,7 @@ describe('Training Round-Trip (Bench 24)', () => {
     const path = join(tmp, 'auto.jsonl');
     const stop = dataset.startAutoFlush(path, 20);
     await new Promise((r) => setTimeout(r, 80));
-    stop();
+    await stop();
     const loaded = await JudgmentDataset.load(path);
     expect(loaded.size).toBeGreaterThanOrEqual(2); // append-only flush may tick multiple times
     expect(loaded.all().some((l) => l.source === 'human-clarification')).toBe(true);

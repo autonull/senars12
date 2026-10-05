@@ -10,6 +10,7 @@ import type {
   TaskAdmittedEvent,
 } from '@senars/core/schemas';
 import {
+  confidenceCeiling,
   mintCognitiveEvent,
   SOURCE_QUALITY_CONFIDENCE,
   TASK_PUNCTUATION,
@@ -17,6 +18,7 @@ import {
 } from '@senars/core/schemas';
 import {
   asBeliefTruth,
+  clamp01,
   errMsg,
   makeId,
   TimeoutError,
@@ -142,18 +144,15 @@ export class KernelPerceptionGate extends KernelGate {
     correlation: () => string
   ): Promise<PerceptionGateOutput> {
     const sourceQuality = input.sourceQuality;
-    // Phase E: reputation multiplier lowers the trust ceiling for sources with
+    // Phase E: the reputation multiplier lowers the trust ceiling for sources with
     // a contradiction-dominated track record; default (no record) is neutral.
     // Phase E (REFACTOR.todo2): URL-bearing source ids key by `domain:<host>`;
     // plain ids keep their exact id (legacy fallback, R6).
-    const reputationKey = domainKey(input.sourceId) ?? input.sourceId;
-    const reputationCeiling = this.config.reputation
-      ? this.config.reputation.effectiveCeiling(
-          this.sourceQualityToConfidence(sourceQuality),
-          reputationKey
-        )
-      : this.sourceQualityToConfidence(sourceQuality);
-    const confidence = reputationCeiling * input.sensorConfidence;
+    const confidence = confidenceCeiling(sourceQuality, {
+      reputation: this.config.reputation,
+      sourceKey: domainKey(input.sourceId) ?? input.sourceId,
+      scaledBy: input.sensorConfidence,
+    });
 
     const observation = this.parseObservation(input.rawObservation);
     if (!observation.term) {
@@ -248,10 +247,6 @@ export class KernelPerceptionGate extends KernelGate {
       confidence: verdict.confidence,
       correlationId,
     });
-  }
-
-  private sourceQualityToConfidence(quality: SourceQuality): number {
-    return SOURCE_QUALITY_CONFIDENCE[quality] ?? 0.5;
   }
 
   private mapSource(sourceId: string): TaskAdmittedEvent['payload']['source'] {
@@ -384,9 +379,10 @@ export class KernelPerceptionGate extends KernelGate {
         rejected.push({ candidateId: candidate.candidateId, reason: 'Unparseable Narsese' });
         continue;
       }
-      const confidence =
+      const confidence = clamp01(
         (candidate.truth?.confidence ?? candidate.confidence) *
-        this.sourceQualityToConfidence(sourceQuality);
+          SOURCE_QUALITY_CONFIDENCE[sourceQuality]
+      );
       const out = this.decideTaskAdmission(
         parsed.term,
         candidate.taskType,

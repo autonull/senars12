@@ -1,6 +1,6 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import { ambientRng, maxBy, nextInt, QTable, ucb } from '@senars/util';
-import type { Game, GameOutcome } from '../../game/Game.js';
+import { type Game, type GameOutcome, perceptionKey } from '../../game/Game.js';
 import type { Decider } from './decide.js';
 import type { JudgmentDataset } from './distill.js';
 import { recordReflexOutcome } from './reflex-label-source.js';
@@ -95,7 +95,7 @@ export class ManifoldRLAgent {
   }> {
     const observation = game.observe();
     const stateId = observation.stateId;
-    const stateDigest = JSON.stringify(observation.features ?? stateId);
+    const stateDigest = perceptionKey(observation);
     const pointer = await this.#cache.write(stateDigest);
 
     const legalActions = game.legalActions(game.state());

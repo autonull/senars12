@@ -11,6 +11,7 @@ export {
   SPAWN_SUBGOAL,
   tuneAction,
 } from './actions.js';
+export { perceptionKey } from './Game.js';
 export type { Game, GameOutcome, MetaGame, Perception, SelfMetaGame } from './Game.js';
 export type { ArithmeticGameConfig, ArithmeticState } from './impls/ArithmeticGame.js';
 export { ArithmeticGame, createArithmeticGame } from './impls/ArithmeticGame.js';

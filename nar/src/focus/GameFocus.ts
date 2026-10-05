@@ -18,7 +18,7 @@ import {
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 import { PriorityBag } from '../bag/Bag.js';
-import type { Game, GameOutcome, Perception } from '../game/Game.js';
+import { type Game, type GameOutcome, perceptionKey, type Perception } from '../game/Game.js';
 import type { GateRegistry } from '../kernel/index.js';
 import type { ConfidenceRouter } from '../lm/system-one/policy.js';
 import type { EmbeddingCache, EmbeddingPointer, JudgmentManifold } from '../lm/system-one/types.js';
@@ -323,7 +323,7 @@ export class GameFocus {
     // pointer every time.
     let embedded: Promise<EmbeddingPointer> | undefined;
     const embed = (): Promise<EmbeddingPointer> =>
-      (embedded ??= embeddingCache.write(JSON.stringify(observation.features ?? observation.stateId)));
+      (embedded ??= embeddingCache.write(perceptionKey(observation)));
     for (const reflex of this.focus.reflexes) {
       const p = reflex as { prefetch?: unknown };
       if (typeof p.prefetch === 'function') {
@@ -336,14 +336,7 @@ export class GameFocus {
             budget: ReasoningBudget,
             observation?: Perception
           ) => Promise<void>
-        )(
-          observation.stateId,
-          await embed(),
-          legalActions,
-          manifold,
-          budget,
-          observation
-        );
+        )(observation.stateId, await embed(), legalActions, manifold, budget, observation);
         this.prefetchCalls++;
       }
     }

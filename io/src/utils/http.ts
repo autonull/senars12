@@ -1,5 +1,5 @@
 import http, { type IncomingMessage } from 'node:http';
-import { deadline, type Logger } from '@senars/util';
+import { deadline, type Logger, readBytesBounded } from '@senars/util';
 import type { WebSocketServer } from 'ws';
 
 /**
@@ -26,23 +26,10 @@ export interface ServerStartupOptions {
  * `[truncated]` marker is appended, so the caller can tell a short body from a
  * cut one instead of parsing a silent prefix.
  */
-export const parseHttpBody = (req: IncomingMessage, maxBytes = MAX_REQUEST_BYTES): Promise<string> =>
-  new Promise((resolve) => {
-    const decoder = new TextDecoder();
-    let body = '';
-    let bytes = 0;
-    req.on('data', (chunk: Buffer) => {
-      if (bytes > maxBytes) return;
-      bytes += chunk.byteLength;
-      body += decoder.decode(chunk, { stream: true });
-      if (bytes > maxBytes) {
-        req.destroy();
-        resolve(`${body}\n[truncated]`);
-      }
-    });
-    req.on('end', () => resolve(body + decoder.decode()));
-    req.on('error', () => resolve(body + decoder.decode()));
-  });
+export const parseHttpBody = (
+  req: IncomingMessage,
+  maxBytes = MAX_REQUEST_BYTES
+): Promise<string> => readBytesBounded(req, maxBytes, () => req.destroy());
 
 export const setCORSHeaders = (res: http.ServerResponse): void => {
   res.setHeader('Access-Control-Allow-Origin', '*');

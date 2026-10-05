@@ -216,13 +216,13 @@ export class IRCConnection extends BaseConnection {
       (this.ircConfig.floodProtectionDelay ?? 2000) * (this.ircConfig.channels.length + 1);
     const joinWarmup = 5000;
     this.readyAt = Date.now() + channelDelay + joinWarmup;
-    setTimeout(() => {
+    deadline(channelDelay, () => {
       this.setState('connected');
       for (const c of this.ircConfig.channels) this.client?.join(c);
       if (this.ircConfig.greeting) {
         for (const c of this.ircConfig.channels) void this.send(c, this.ircConfig.greeting);
       }
-    }, channelDelay);
+    });
   }
 
   private scheduleReconnect(): void {

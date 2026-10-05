@@ -8,6 +8,7 @@ import type {
 import {
   type Clock,
   cachePath,
+  EPISODE_TYPES,
   flatUnique,
   getOrInsert,
   rankBy,
@@ -48,16 +49,7 @@ const DEFAULT_CONFIG = {
  * Exported for test reuse and external ledger construction.
  */
 export const EpisodeSchema = BaseLedgerEntrySchema.extend({
-  type: z.enum([
-    'input',
-    'response',
-    'belief_added',
-    'question',
-    'tool_call',
-    'error',
-    'dialogue',
-    'reaction',
-  ]),
+  type: z.enum(EPISODE_TYPES),
   content: z.string(),
   metadata: z.record(z.string(), z.unknown()),
   id: z.string().optional(),

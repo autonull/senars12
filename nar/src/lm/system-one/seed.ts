@@ -1,5 +1,5 @@
-import type { SourceQuality } from '@senars/core/schemas';
-import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas';
+import type { CeilingReputation, SourceQuality } from '@senars/core/schemas';
+import { confidenceCeiling } from '@senars/core/schemas';
 import { Truth } from '../../terms/impls/Truth.js';
 import type { Desire } from './desire.js';
 import type { JudgmentProposition } from './types.js';
@@ -16,14 +16,16 @@ export function calibrateAuthority(rollingEce: number): number {
 export function seedTruth(
   p: JudgmentProposition,
   sourceQuality: SourceQuality = 'LLM_PRIOR',
-  reputation?: { effectiveCeiling(base: number, key: string): number },
+  reputation?: CeilingReputation,
   sourceKey?: string
 ): Truth {
-  const base = SOURCE_QUALITY_CONFIDENCE[sourceQuality];
-  const ceiling = reputation && sourceKey ? reputation.effectiveCeiling(base, sourceKey) : base;
-  const authority = calibrateAuthority(p.calibration.ece);
+  const ceiling = confidenceCeiling(sourceQuality, {
+    reputation,
+    sourceKey,
+    atMost: calibrateAuthority(p.calibration.ece),
+  });
   const f = p.kind === 'evaluate' ? p.score : p.top.p;
-  return Truth.normalize(f, Math.min(authority, ceiling));
+  return Truth.normalize(f, ceiling);
 }
 
 /** Teleological: identical math, goal-side storage target. Callers MUST inject as type 'goal'. */

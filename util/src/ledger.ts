@@ -8,7 +8,7 @@ import { existsSync, promises as fs, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
 import { BoundedMap } from './utils/bounded-map.js';
-import { collectUpTo } from './utils/collections.js';
+import { collectUpTo, lastByKey } from './utils/collections.js';
 import { errMsg } from './utils/error.js';
 import { utcDate } from './utils/format.js';
 import {
@@ -375,14 +375,7 @@ export class Ledger<T extends BaseLedgerEntry, I = T> {
   /** Compact the ledger: dedupe by a key selector, rewrite files. */
   async compact(keySelector: (entry: T) => string): Promise<{ kept: number; dropped: number }> {
     const all = await this.query({});
-    const byKey = new Map<string, T>();
-    let dropped = 0;
-
-    for (const entry of all) {
-      const key = keySelector(entry);
-      if (byKey.has(key)) dropped++;
-      byKey.set(key, entry);
-    }
+    const byKey = lastByKey(all, keySelector);
 
     // Rollover mode: rewrite all files
     await fs.rm(this.#config.basePath, { recursive: true, force: true }).catch(() => {});
@@ -404,7 +397,7 @@ export class Ledger<T extends BaseLedgerEntry, I = T> {
     this.#currentEntries = byKey.size;
     this.#rolloverIndex = 0;
 
-    return { kept: byKey.size, dropped };
+    return { kept: byKey.size, dropped: all.length - byKey.size };
   }
 
   /** Get the current file path. */

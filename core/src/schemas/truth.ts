@@ -7,7 +7,7 @@
  * others needs to be checked against.
  */
 
-import { BeliefTruthSchema } from '@senars/util';
+import { BeliefTruthSchema, clamp01 } from '@senars/util';
 import { z } from 'zod';
 
 /**
@@ -46,3 +46,49 @@ export const SOURCE_QUALITY_CONFIDENCE: Readonly<Record<SourceQuality, number>> 
   PEER_AGENT: 0.6,
   SELF_METTA: 0.7,
 } as const;
+
+/**
+ * A source's track record, as the one thing it is allowed to do to a ceiling:
+ * lower it. Trust-not-truth — nothing here writes a Truth value, so the shape is
+ * one method rather than a multiplier, and a consumer cannot reach past the
+ * ceiling to a truth it disagrees with.
+ */
+export interface CeilingReputation {
+  effectiveCeiling(base: number, key: string): number;
+}
+
+/**
+ * The knobs that lower {@link SOURCE_QUALITY_CONFIDENCE}. Optional throughout: an
+ * absent track record is a neutral one, so a caller with no reputation wired
+ * reads the same function rather than a fallback branch.
+ */
+export interface CeilingLimits {
+  reputation?: CeilingReputation;
+  /** The key that track record is filed under. Without one there is no record to apply. */
+  sourceKey?: string;
+  /** A second ceiling — calibration authority, a quality grade. The lower of the two wins. */
+  atMost?: number;
+  /** A reliability that *scales* rather than caps — sensor confidence. */
+  scaledBy?: number;
+}
+
+/**
+ * The confidence a claim from `quality` may carry: the table, lowered by the
+ * source's track record, then by whatever else bounds the caller, clamped once.
+ *
+ * The four consumers of this arithmetic each used to spell out the first two
+ * steps, and two of them forgot the clamp — so a well-reported sensor could seed
+ * a confidence above 1 through a path the third one could not take. `atMost` and
+ * `scaledBy` are separate fields because they are separate claims: authority is
+ * a limit and sensor confidence is a reliability, and collapsing them would make
+ * one of the two silently the other.
+ */
+export const confidenceCeiling = (quality: SourceQuality, limits: CeilingLimits = {}): number => {
+  const base = SOURCE_QUALITY_CONFIDENCE[quality];
+  const rated =
+    limits.reputation && limits.sourceKey
+      ? limits.reputation.effectiveCeiling(base, limits.sourceKey)
+      : base;
+  const bounded = limits.atMost === undefined ? rated : Math.min(limits.atMost, rated);
+  return clamp01(limits.scaledBy === undefined ? bounded : bounded * limits.scaledBy);
+};

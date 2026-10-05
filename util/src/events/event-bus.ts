@@ -1,4 +1,5 @@
 import { defaultLogger, type Logger } from '../logger.js';
+import { getOrInsert } from '../utils/collections.js';
 import { ListenerBag } from './listener-bag.js';
 
 export type EventReceiver<T> = (params: T) => void;
@@ -21,12 +22,7 @@ export class EventBus<T extends Record<string, unknown> = Record<string, unknown
   }
 
   #bag(name: string): ListenerBag<unknown> {
-    let bag = this.bags.get(name);
-    if (!bag) {
-      bag = new ListenerBag(this.logger);
-      this.bags.set(name, bag);
-    }
-    return bag;
+    return getOrInsert(this.bags, name, () => new ListenerBag(this.logger));
   }
 
   off<K extends keyof T>(eventName: K & string, fn: EventReceiver<T[K]>): void {

@@ -13,7 +13,7 @@
 import { emitDomainEvent } from '@senars/core/event-sink';
 
 import { ConfigurationError } from '../../types';
-import { ambientRng, keyedBy } from '@senars/util';
+import { ambientRng, getOrInsert, keyedBy } from '@senars/util';
 import type { RandomSource } from '../../types/primitives.js';
 import { recordStrategyMemoSize } from '../../metrics/prometheus.js';
 import {
@@ -159,7 +159,9 @@ export class CognitiveRegistry implements StrategyRegistry {
    */
   resolve<T>(type: StrategyType, spec: StrategySpec, config?: StrategyConfig): T {
     if (typeof spec === 'string') {
-      return config === undefined ? this.get<T>(type, spec) : this.#configured<T>(type, spec, config);
+      return config === undefined
+        ? this.get<T>(type, spec)
+        : this.#configured<T>(type, spec, config);
     }
     return this.#composed<T>(type, spec, config);
   }
@@ -200,7 +202,12 @@ export class CognitiveRegistry implements StrategyRegistry {
   }
 
   /** Validate a slot without building anything — the boundary check (§2.4). */
-  validate(type: StrategyType, spec: StrategySpec, config?: StrategyConfig, slot: string = type): void {
+  validate(
+    type: StrategyType,
+    spec: StrategySpec,
+    config?: StrategyConfig,
+    slot: string = type
+  ): void {
     const errors = strategySpecErrors(slot, type, spec, config, this.list(type));
     if (errors.length) throw new ConfigurationError(errors.join('; '), { type, errors });
   }
@@ -248,28 +255,23 @@ export class CognitiveRegistry implements StrategyRegistry {
     const { schema } = registration!;
     const parsed = schema!.parse(config);
     const digest = configDigest(name, parsed);
-    const cache = this.configured[type];
-    const existing = cache.get(digest);
-    if (existing) return existing as T;
-
-    const impl = this.#build(registration!, parsed);
-    cache.set(digest, impl);
-    this.#emit(type, name, 1, digest);
-    return impl as T;
+    return getOrInsert(
+      this.configured[type],
+      digest,
+      () => this.#build(registration!, parsed),
+      () => this.#emit(type, name, 1, digest)
+    ) as T;
   }
 
   #composed<T>(type: StrategyType, spec: CompositeSpec, config?: StrategyConfig): T {
     this.validate(type, spec, config);
     const label = composedName(spec);
-    const cache = this.composed[type];
-    const existing = cache.get(label);
-    if (existing) return existing as T;
-
-    const impl = composeSpec<StrategyImpl>(type, spec, (name) => this.get(type, name));
-    const resolved = impl as T;
-    cache.set(label, impl);
-    this.#emit(type, label, 2, undefined);
-    return resolved;
+    return getOrInsert(
+      this.composed[type],
+      label,
+      () => composeSpec<StrategyImpl>(type, spec, (name) => this.get(type, name)),
+      () => this.#emit(type, label, 2, undefined)
+    ) as T;
   }
 
   /**
@@ -282,10 +284,11 @@ export class CognitiveRegistry implements StrategyRegistry {
   #emit(type: StrategyType, name: string, tier: ResolutionTier, digest?: string): void {
     const memoSize = this.memoizedSize(type);
     recordStrategyMemoSize(type, memoSize);
-    emitDomainEvent(
-      'strategy.selection',
-      'strategy',
-      { type, name, config_digest: digest, context: { tier, memoSize } }
-    );
+    emitDomainEvent('strategy.selection', 'strategy', {
+      type,
+      name,
+      config_digest: digest,
+      context: { tier, memoSize },
+    });
   }
 }

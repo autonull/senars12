@@ -18,7 +18,7 @@ import { parseJsonObject } from '../json.js';
 import type { LMExecutionStats, LMRuleConfig, LMService, ModelRuleStats } from '../lm-service.js';
 import { lmTaskWeight } from '../task-weights.js';
 import { LMResponseParser } from './response-parser.js';
-import type { LMContext, ValidationResult } from './types.js';
+import { interpolateTemplate, type LMContext, type ValidationResult } from './types.js';
 import type { LMRuleConfigV2 } from './types-v2.js';
 
 /**
@@ -504,11 +504,13 @@ export class LMRule {
     lmContext?: LMContext
   ): string {
     const beliefs = lmContext?.relatedBeliefs ?? [];
-    return template
-      .replaceAll('{{primaryTerm}}', primary.toString())
-      .replaceAll('{{secondaryTerm}}', secondary?.toString() ?? '')
-      .replaceAll('{{premise1}}', beliefs[0] ?? '')
-      .replaceAll('{{premise2}}', beliefs[1] ?? '');
+    return interpolateTemplate(template, {
+      taskTerm: lmContext?.taskTerm,
+      primaryTerm: primary.toString(),
+      secondaryTerm: secondary?.toString(),
+      premise1: beliefs[0],
+      premise2: beliefs[1],
+    });
   }
 
   /** Pure-NAL symbolic fallback on LM failure; null → skip, [] → silent degrade. */

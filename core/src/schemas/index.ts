@@ -217,5 +217,10 @@ export {
   TOLERANT_PUNCTUATIONS,
   taskTypeForPunctuation,
 } from './task.js';
-export type { SourceQuality, TruthValue } from './truth.js';
-export { SOURCE_QUALITY_CONFIDENCE, SourceQualitySchema, TruthValueSchema } from './truth.js';
+export type { CeilingLimits, CeilingReputation, SourceQuality, TruthValue } from './truth.js';
+export {
+  confidenceCeiling,
+  SOURCE_QUALITY_CONFIDENCE,
+  SourceQualitySchema,
+  TruthValueSchema,
+} from './truth.js';

@@ -5,6 +5,7 @@
 
 import type { ResolvedBagSlot } from '../bag/registration.js';
 import type { EmbeddingGenerator } from './embedding.js';
+import type { LinkForgetPolicy } from './links/types.js';
 import type { ForgettingPolicy } from './lifecycle';
 
 export interface MemoryConfig {
@@ -39,7 +40,7 @@ export interface MemoryConfig {
   linkCapacity?: number;
   termLinkCapacity?: number;
   semanticLinkCapacity?: number;
-  linkForgetPolicy?: 'priority' | 'lru' | 'fifo' | 'random';
+  linkForgetPolicy?: LinkForgetPolicy;
   linkDecayRate?: number;
   bag?: ResolvedBagSlot;
 }

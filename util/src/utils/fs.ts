@@ -70,7 +70,7 @@ export const parseJsonOr = <T>(text: string, fallback: T): T => {
 const jsonDocument = (value: unknown): string => JSON.stringify(value, null, 2);
 
 /** The on-disk shape of every JSONL append: one row per line, trailing newline. */
-const jsonlPayload = (rows: readonly unknown[]): string => {
+export const jsonlPayload = (rows: readonly unknown[]): string => {
   let payload = '';
   for (const row of rows) payload += `${JSON.stringify(row)}\n`;
   return payload;

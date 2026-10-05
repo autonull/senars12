@@ -1,5 +1,5 @@
-import type { ReasoningBudget, SourceQuality } from '@senars/core/schemas';
-import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas';
+import type { CeilingReputation, ReasoningBudget, SourceQuality } from '@senars/core/schemas';
+import { confidenceCeiling } from '@senars/core/schemas';
 import type { IngressJudge, IngressJudgmentRequest, IngressVerdict } from '../../kernel/ingress.js';
 import { providerKey } from '../../kernel/reputation-keys.js';
 import type { TaskTypeName } from '../../terms';
@@ -31,7 +31,7 @@ export interface SystemOneIngressJudgeConfig {
   budget: ReasoningBudget;
   ambiguityBands?: ConfidenceBands;
   /** Phase E (REFACTOR.todo1): lazy source-reputation lookup (trust-not-truth ceiling). */
-  reputation?: () => { effectiveCeiling(base: number, key: string): number } | undefined;
+  reputation?: () => CeilingReputation | undefined;
   /** Reputation key for this judge's admissions (default 'system-one'). */
   sourceKey?: string;
   /**
@@ -52,9 +52,7 @@ export class SystemOneIngressJudge implements IngressJudge {
   private readonly embeddingCache: EmbeddingCache;
   private readonly budget: SystemOneIngressJudgeConfig['budget'];
   private readonly ambiguityRouter: ConfidenceRouter;
-  private readonly reputation?: () =>
-    | { effectiveCeiling(base: number, key: string): number }
-    | undefined;
+  private readonly reputation?: () => CeilingReputation | undefined;
   private readonly sourceKey?: string;
   private readonly provider?: () => string | undefined;
   private emitJudgmentResolved: ReturnType<typeof createTelemetryEmitter>;
@@ -142,8 +140,7 @@ export class SystemOneIngressJudge implements IngressJudge {
       const mapped = mapSourceQuality(sourceQualityResult.top.option);
       if (mapped) admissionSourceQuality = mapped;
     }
-    const admissionConfidence =
-      SOURCE_QUALITY_CONFIDENCE[admissionSourceQuality] ?? request.baseConfidence;
+    const admissionConfidence = confidenceCeiling(admissionSourceQuality);
 
     // Admission truth computed via seedTruth using the task_type proposition (as the primary epistemic judgment)
     const seedProposition =

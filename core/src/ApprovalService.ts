@@ -1,4 +1,4 @@
-import { type CapabilityRisk, errMsg, makeId, withTimeout } from '@senars/util';
+import { type CapabilityRisk, deferred, errMsg, makeId, withTimeout } from '@senars/util';
 import { envBool } from '@senars/util/config';
 
 /** A question put to whoever holds the gate, and the one way it is answered.
@@ -52,7 +52,7 @@ export class InMemoryApprovalManager implements ApprovalManager {
 
   createRequest(request: string, metadata: Record<string, unknown> = {}): ApprovalRequest {
     const id = makeId();
-    const { promise: result, resolve } = Promise.withResolvers<ApprovalResult>();
+    const { promise: result, resolve } = deferred<ApprovalResult>();
     const req: ApprovalRequest = {
       id,
       request,

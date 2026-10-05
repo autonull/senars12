@@ -4,6 +4,7 @@ import {
   BoundedMap,
   createLogger,
   deadline,
+  deferred,
   errMsg,
   type HealthReport,
   makeId,
@@ -127,7 +128,7 @@ export class HTTPConnection extends BaseConnection {
       }
     );
 
-    const { promise: responsePromise, resolve: respond } = Promise.withResolvers<string>();
+    const { promise: responsePromise, resolve: respond } = deferred<string>();
     this.pendingRequests.set(requestId, respond);
 
     this.handleMessage(ioMessage);

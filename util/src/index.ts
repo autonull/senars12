@@ -142,6 +142,7 @@ export type {
   EpisodicMemory,
   EpisodicMemoryConfig,
 } from './types/episodic-memory.js';
+export { EPISODE_TYPES } from './types/episodic-memory.js';
 /** @public Typed event emitter contract. */
 export type { EventHandler, TypedEventEmitter } from './types/events.js';
 /** @public Health-report types (O3, TODO20). */
@@ -232,20 +233,23 @@ export { assertDefined, invariant } from './utils/assert.js';
  * deadlines, argv, bounded buffers, scalar arithmetic, object graphs, digests,
  * text measurement, schema-failure rendering, and error coercion.
  */
-export type { Deadline, Debounced } from './utils/async.js';
+export type { Deadline, Debounced, Deferred } from './utils/async.js';
 export {
   boundedDeadline,
   boundedFetch,
   deadline,
   debounce,
+  deferred,
   monotonicNow,
   periodic,
   raceDeadline,
   readBodyBounded,
+  readBytesBounded,
   SerialQueue,
   sleep,
   stopwatch,
   TimeoutError,
+  TRUNCATION_MARKER,
   withDeadline,
   withTimeout,
 } from './utils/async.js';
@@ -302,6 +306,7 @@ export {
   removeBy,
   removeFromSet,
   removeLastBy,
+  lastByKey,
   selectByPriority,
   selectTopN,
   shareOf,
@@ -342,6 +347,7 @@ export {
   ensureParentDir,
   ensureParentDirSync,
   iterateJsonl,
+  jsonlPayload,
   parseJsonOr,
   readJsonFile,
   readJsonFileSync,

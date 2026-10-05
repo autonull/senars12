@@ -16,6 +16,9 @@ export class TimeoutError extends Error {
 
 export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
+/** Appended to a body {@link readBytesBounded} cut short, so a prefix reads as a cut body. */
+export const TRUNCATION_MARKER = '[truncated]';
+
 /**
  * Monotonic millisecond clock: sub-millisecond resolution, and immune to wall-clock
  * adjustment, so an NTP step can never shorten a measured span. `Date.now()` — the
@@ -142,7 +145,10 @@ const disarmed = (timer: ReturnType<typeof setTimeout>): (() => void) => {
  * for, which took `pnpm cycle:no-provider` — a gate whose entire subject is
  * never-resolving providers — down with it.
  */
-const blocking = (timer: ReturnType<typeof setTimeout>): (() => void) => () => clearTimeout(timer);
+const blocking =
+  (timer: ReturnType<typeof setTimeout>): (() => void) =>
+  () =>
+    clearTimeout(timer);
 
 /**
  * Repeat `task` every `intervalMs` until the returned disposer is called.
@@ -174,6 +180,23 @@ export const deadline = (timeoutMs: number, onExpire: () => void): (() => void) 
   disarmed(setTimeout(onExpire, timeoutMs));
 
 /**
+ * A promise a caller settles from outside its executor.
+ *
+ * The request-response paths (`core`'s approvals, `io`'s HTTP) each kept their own
+ * answer-shaped wrapper around `Promise.withResolvers`; this is that wrapper once.
+ */
+export interface Deferred<T> {
+  readonly promise: Promise<T>;
+  resolve(value: T): void;
+  reject(reason: unknown): void;
+}
+
+export const deferred = <T>(): Deferred<T> => {
+  const { promise, resolve, reject } = Promise.withResolvers<T>();
+  return { promise, resolve, reject };
+};
+
+/**
  * Cooperative deadline: resolves `{ timedOut: true }` when `timeoutMs` elapses,
  * leaving `work` running. The interruptible-execution primitive — pair with
  * `AbortSignal` when the loser must stop.
@@ -186,13 +209,14 @@ export function raceDeadline<T>(
   work: Promise<T>,
   timeoutMs: number
 ): Promise<{ value: T; timedOut: false } | { value?: undefined; timedOut: true }> {
-  const { promise: armed, resolve: expire } =
-    Promise.withResolvers<{ value?: undefined; timedOut: true }>();
+  const { promise: armed, resolve: expire } = Promise.withResolvers<{
+    value?: undefined;
+    timedOut: true;
+  }>();
   const dispose = blocking(setTimeout(() => expire({ timedOut: true }), timeoutMs));
-  return Promise.race([
-    work.then((value) => ({ value, timedOut: false as const })),
-    armed,
-  ]).finally(dispose);
+  return Promise.race([work.then((value) => ({ value, timedOut: false as const })), armed]).finally(
+    dispose
+  );
 }
 
 /**
@@ -293,6 +317,46 @@ export async function boundedFetch(
 }
 
 /**
+ * A byte stream read as text, truncated at `maxBytes` and marked when cut.
+ *
+ * The one cap, so a peer cannot choose how much of this process's heap exists.
+ * Both directions were reading their own copy of it — outbound over a
+ * `Response` body, inbound over a Node request — and a change to the cap, the
+ * marker or the streaming decoder landed in one of them.
+ *
+ * `onTruncated` releases the source, because the two sources are released
+ * differently (`Response.body.cancel()` against `req.destroy()`) and a read that
+ * stopped mid-stream has to actually stop.
+ *
+ * A stream that throws mid-read resolves to whatever arrived rather than
+ * rejecting: a peer that drops mid-body gave us a short body, and the caller's
+ * options are the same as for one — parse it, or fail to parse it. Rejecting
+ * would discard those bytes and turn a truncated input into an absent one.
+ */
+export async function readBytesBounded(
+  chunks: AsyncIterable<Uint8Array>,
+  maxBytes: number,
+  onTruncated?: () => void
+): Promise<string> {
+  const decoder = new TextDecoder();
+  let text = '';
+  let bytes = 0;
+  try {
+    for await (const chunk of chunks) {
+      bytes += chunk.byteLength;
+      text += decoder.decode(chunk, { stream: true });
+      if (bytes > maxBytes) {
+        onTruncated?.();
+        return `${text}\n${TRUNCATION_MARKER}`;
+      }
+    }
+  } catch {
+    return text + decoder.decode();
+  }
+  return text + decoder.decode();
+}
+
+/**
  * A response body read as text, truncated at `maxBytes`. Read it with this
  * rather than `res.text()` wherever the peer is not trusted to be small: a
  * search result or a model reply is an untrusted input, and an unbounded body is
@@ -305,25 +369,12 @@ export async function boundedFetch(
  * than it holds, never more.
  */
 export async function readBodyBounded(res: Response, maxBytes: number): Promise<string> {
-  const reader = res.body?.getReader();
-  if (!reader) {
+  if (!res.body) {
     const text = await res.text();
     return Buffer.byteLength(text, 'utf8') > maxBytes ? text.slice(0, maxBytes / 2) : text;
   }
-  const decoder = new TextDecoder();
-  let text = '';
-  let bytes = 0;
-  for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
-    const value = chunk.value as Uint8Array;
-    bytes += value.byteLength;
-    text += decoder.decode(value, { stream: true });
-    if (bytes > maxBytes) {
-      void reader.cancel();
-      text += '\n[truncated]';
-      break;
-    }
-  }
-  return text + decoder.decode();
+  const body = res.body;
+  return readBytesBounded(body, maxBytes, () => void body.cancel());
 }
 
 export class SerialQueue {

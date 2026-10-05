@@ -49,6 +49,19 @@ export const splitKey = (key: string, parts: number): string[] => {
 };
 
 /**
+ * The last row per key, in first-appearance order. The dedupe half of every
+ * append-only compaction: a later row is a *correction* of the earlier one, so
+ * the earlier is the one that goes — which both compactions were asserting while
+ * writing the map by hand, one of them also counting the rows it displaced and
+ * the other deriving that count a different way.
+ */
+export const lastByKey = <T>(rows: Iterable<T>, keyOf: (row: T) => string): Map<string, T> => {
+  const byKey = new Map<string, T>();
+  for (const row of rows) byKey.set(keyOf(row), row);
+  return byKey;
+};
+
+/**
  * The first `limit` items `accept` admits, and nothing past them.
  *
  * The AIKR read primitive: a scan over an unbounded source that must not become
@@ -406,12 +419,25 @@ export interface KeyedStore<K, V> {
   set(key: K, value: V): unknown;
 }
 
-/** Lazily-created map entry — the single get-or-create primitive for nested maps. */
-export function getOrInsert<K, V>(map: KeyedStore<K, V>, key: K, factory: () => V): V {
+/**
+ * Lazily-created map entry — the single get-or-create primitive for nested maps.
+ *
+ * `onInsert` fires only when this call is the one that created the entry, which
+ * is the fact a memoizing caller needs and could not get: hand-writing the
+ * `get`-then-`set` was the only way to distinguish a hit from a miss, so every
+ * site that had to tell them apart carried its own copy of the branch.
+ */
+export function getOrInsert<K, V>(
+  map: KeyedStore<K, V>,
+  key: K,
+  factory: () => V,
+  onInsert?: () => void
+): V {
   const existing = map.get(key);
   if (existing !== undefined) return existing;
   const created = factory();
   map.set(key, created);
+  onInsert?.();
   return created;
 }
 

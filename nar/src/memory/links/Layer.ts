@@ -17,14 +17,15 @@ export const linkId = (source: Term, target: Term, type: LinkType = DEFAULT_TYPE
  * ties by creation order; `lru`/`fifo` differ only in whether a read refreshes
  * recency; `random` spreads eviction across the layer.
  */
+const LINK_EVICTION_ORDER: Record<LinkForgetPolicy, EvictionOrder<LinkEntry>> = {
+  priority: { by: (entry) => entry.priority },
+  fifo: 'fifo',
+  lru: 'lru',
+  random: 'random',
+};
+
 const linkEvictionOrder = (policy: LinkForgetPolicy): EvictionOrder<LinkEntry> =>
-  policy === 'priority'
-    ? { by: (entry) => entry.priority }
-    : policy === 'fifo'
-      ? 'fifo'
-      : policy === 'random'
-        ? 'random'
-        : 'lru';
+  LINK_EVICTION_ORDER[policy];
 
 /**
  * A bounded, term-keyed link store.

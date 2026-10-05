@@ -4,6 +4,8 @@ import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
 import {
   appendJsonlAsync,
   iterateJsonl,
+  jsonlPayload,
+  lastByKey,
   makeId,
   periodic,
   SHA256_PINNED,
@@ -150,10 +152,13 @@ export class JudgmentDataset {
     return this.#ledger.records().map(withInlineVector(this.#vectors));
   }
 
+  /**
+   * Rows as newline-joined JSON — one payload a caller can hand to `JSON.parse`,
+   * so the on-disk trailing newline that {@link jsonlPayload} appends is dropped
+   * here. Flushing keeps it; serialization does not.
+   */
   toJSONL(): string {
-    return this.rows()
-      .map((l) => JSON.stringify(l))
-      .join('\n');
+    return jsonlPayload(this.rows()).replace(/\n$/, '');
   }
 
   /**
@@ -188,23 +193,36 @@ export class JudgmentDataset {
    * Returns `{kept, dropped}`.
    */
   static async compact(datasetPath: string): Promise<{ kept: number; dropped: number }> {
-    const byId = new Map<string, DistillationLabel>();
-    let dropped = 0;
+    const rows: DistillationLabel[] = [];
+    let read = 0;
     for await (const label of iterateJsonl(datasetPath, (v) => v as DistillationLabel)) {
-      if (!label || byId.has(label.evidenceId)) dropped++;
-      if (label) byId.set(label.evidenceId, label);
+      read++;
+      if (label) rows.push(label);
     }
+    const byId = lastByKey(rows, (label) => label.evidenceId);
     await writeJsonl(datasetPath, [...byId.values()]);
-    return { kept: byId.size, dropped };
+    return { kept: byId.size, dropped: read - byId.size };
   }
 
-  /** Periodic append of recorded labels to `path` (auto-flush). Returns a stop function. */
-  startAutoFlush(path: string, intervalMs = 30_000): () => void {
-    return periodic(() => {
-      void this.flush(path).catch(() => {
+  /**
+   * Periodic append of recorded labels to `path` (auto-flush).
+   *
+   * The returned stop cancels the timer *and* resolves once the flush it already
+   * started has landed. Cancelling the timer alone left that write in flight, so
+   * a caller that stopped and immediately read the file back — the round trip
+   * `load()`-then-`flush()` exists to support — raced it.
+   */
+  startAutoFlush(path: string, intervalMs = 30_000): () => Promise<void> {
+    let inFlight: Promise<void> = Promise.resolve();
+    const stopTimer = periodic(() => {
+      inFlight = this.flush(path).catch(() => {
         // Auto-flush is best-effort; the next tick retries.
       });
     }, intervalMs);
+    return async () => {
+      stopTimer();
+      await inFlight;
+    };
   }
 
   /** Close the ledger (stop timers, flush). */

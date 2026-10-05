@@ -13,6 +13,7 @@ import {
   sha256Hex,
   sha256Prefixed,
   shortSha256Hex,
+  softFalloff,
   takeFirst,
   type Clock,
 } from '@senars/util';
@@ -67,6 +68,27 @@ export const episodeSalience = (episode: Episode): number => {
     : SALIENCE[episode.type];
 };
 
+/** Recency score in (0, 1]: `softFalloff` of the age in hours. */
+export const episodeRecency = (timestamp: number, now: number): number =>
+  softFalloff((now - timestamp) / 3_600_000);
+
+/**
+ * The one ranking prior every episodic surface scores by: salience × causal
+ * reinforcement, with recency on top once the caller has a clock to read it
+ * against.
+ *
+ * The two halves were separate products at two call sites, and one of them
+ * carried a comment saying it matched the other — so agreement was asserted
+ * rather than shared, and a change to either factor reached only one of the
+ * surfaces. Admission passes no `now` because a just-arrived episode has no
+ * history to be stale against; retrieval does, because that is the question
+ * being asked.
+ */
+export const episodePriority = (episode: Episode, now?: number): number => {
+  const intrinsic = episodeSalience(episode) * (1 + causalConnections(episode));
+  return now === undefined ? intrinsic : episodeRecency(episode.timestamp, now) * intrinsic;
+};
+
 export interface EpisodeConsolidatorOptions extends AikrBagOptions {
   /** Max episodes merged per summary (default 6). */
   maxMerged?: number;
@@ -115,7 +137,7 @@ export class EpisodeConsolidator extends AikrShell<
       view: (candidate) => candidate.id,
       admit: (episode) => ({
         id: episode.id ?? `${episode.timestamp}:${episode.content.slice(0, 32)}`,
-        priority: episodeSalience(episode) * (1 + causalConnections(episode)),
+        priority: episodePriority(episode),
         episode,
       }),
       processor: new AIKRProcessor<EpisodeCandidate, ConsolidationResult>({

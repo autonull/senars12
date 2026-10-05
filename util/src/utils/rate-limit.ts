@@ -10,7 +10,7 @@
  */
 
 import { type Clock, systemClock } from './clock.js';
-import { BoundedRing } from './collections.js';
+import { BoundedRing, getOrInsert } from './collections.js';
 import { LruCache } from './lru-cache.js';
 
 export interface RateLimiterOptions {
@@ -41,12 +41,11 @@ export class SlidingWindowRateLimiter {
 
   /** Record an arrival under `key` and report whether it fits the allowance. */
   tryAcquire(key = '', now = this.#now()): boolean {
-    let window = this.#windows.get(key);
-    if (!window) {
-      window = new BoundedRing<number>(this.#limit);
-      this.#windows.set(key, window);
-    }
-    const displaced = window.push(now);
+    const displaced = getOrInsert(
+      this.#windows,
+      key,
+      () => new BoundedRing<number>(this.#limit)
+    ).push(now);
     return displaced === undefined || displaced <= now - this.#windowMs;
   }
 

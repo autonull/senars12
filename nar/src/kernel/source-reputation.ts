@@ -102,8 +102,6 @@ export class SourceReputation {
 
   /** `effectiveCeiling = baseQuality × multiplier` (clamped to [0, 1]). */
   effectiveCeiling(baseQuality: number, key: string): number {
-    const entry = this.#entries.peek(key);
-    if (!entry) return clamp01(baseQuality);
     return clamp01(baseQuality * this.multiplier(key));
   }
 

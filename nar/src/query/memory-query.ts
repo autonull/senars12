@@ -7,9 +7,9 @@
  * nothing (C2').
  */
 
-import { type Clock, type Episode, rankBy, softFalloff, sortBy, systemClock } from '@senars/util';
+import { type Clock, type Episode, rankBy, sortBy, systemClock } from '@senars/util';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
-import { causalConnections, episodeSalience } from '../memory/episode-consolidator.js';
+import { episodePriority } from '../memory/episode-consolidator.js';
 import type { Concept, Memory } from '../memory/index.js';
 import { cosine } from '../utils/similarity.js';
 
@@ -47,10 +47,6 @@ export interface MemoryQueryOptions {
 
 const DEFAULT_LIMIT = 20;
 const DEFAULT_WEIGHTS = { concept: 1, episodic: 1, semantic: 1 } as const;
-
-/** Recency score ∈ (0, 1]: `softFalloff` of the age in hours. */
-const recency = (timestamp: number, now: number): number =>
-  softFalloff((now - timestamp) / 3_600_000);
 
 /**
  * Outcome surface from episodic quality signals (Phase C): groundedness
@@ -140,12 +136,8 @@ export class MemoryQuery {
         limit: conceptBudget,
       });
       for (const episode of episodes) {
-        // Phase B (REFACTOR.todo3): unified ranking prior — recency × salience
-        // × (1 + causal connections), matching EpisodeConsolidator.admit.
-        const recencyScore =
-          recency(episode.timestamp, now) *
-          episodeSalience(episode) *
-          (1 + causalConnections(episode));
+        // Phase B (REFACTOR.todo3): the one ranking prior, read with a clock.
+        const recencyScore = episodePriority(episode, now);
         if (filter.minPriority !== undefined && recencyScore < filter.minPriority) continue;
         const semantic = anchor ? await this.#similarity(anchor, episode.content) : undefined;
         if (semantic !== undefined && semantic < threshold) continue;
@@ -159,15 +151,11 @@ export class MemoryQuery {
       }
     }
 
-    return rankBy(
-      results,
-      (r) => r.score,
-      {
-        tiebreak: (a, b) =>
-          this.#tiebreak(a) - this.#tiebreak(b) || this.#label(a).localeCompare(this.#label(b)),
-        limit,
-      }
-    );
+    return rankBy(results, (r) => r.score, {
+      tiebreak: (a, b) =>
+        this.#tiebreak(a) - this.#tiebreak(b) || this.#label(a).localeCompare(this.#label(b)),
+      limit,
+    });
   }
 
   async #conceptsFor(filter: MemoryQueryFilter, budget: number): Promise<Concept[]> {
