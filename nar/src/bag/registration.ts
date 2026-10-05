@@ -2,6 +2,7 @@ import { formatIssues } from '@senars/util';
 import { z } from 'zod';
 import { ConfigurationError } from '../types';
 import type { RandomSource } from '../types/primitives.js';
+import { unitInterval } from '@senars/util/config';
 
 /**
  * The `strategies.bag` slot's contract (TODO27 §11.4 — the last slot without one).
@@ -16,8 +17,8 @@ import type { RandomSource } from '../types/primitives.js';
 
 const bagConfig = z
   .object({
-    decayRate: z.number().min(0).max(1).optional(),
-    forgetRate: z.number().min(0).max(1).optional(),
+    decayRate: unitInterval.optional(),
+    forgetRate: unitInterval.optional(),
   })
   .strict();
 

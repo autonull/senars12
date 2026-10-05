@@ -8,6 +8,7 @@ import { type CapabilityRisk, parseOrThrow } from '@senars/util';
 import { z } from 'zod';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
+import { unitInterval } from '@senars/util/config';
 
 /** What can be ambiguous about a parse. The LM's ambiguity schema and the kernel's
  *  flag schema named four of these eight, so four kinds of real ambiguity were
@@ -71,7 +72,7 @@ export const AmbiguityReportSchema = z.object({
   type: z.enum(AMBIGUITY_TYPES),
   description: z.string(),
   options: z.array(z.string()),
-  confidence: z.number().min(0).max(1),
+  confidence: unitInterval,
 });
 
 export type AmbiguityReport = z.infer<typeof AmbiguityReportSchema>;
@@ -92,7 +93,7 @@ export const FormalizationCandidateSchema = z.object({
   narsese: z.string(),
   taskType: TaskTypeSchema,
   truth: TruthValueSchema.optional(),
-  confidence: z.number().min(0).max(1), // LLM's confidence in this parse
+  confidence: unitInterval, // LLM's confidence in this parse
   sourceSpans: z.array(SourceSpanSchema),
   ambiguityFlags: z.array(AmbiguityFlagSchema),
   metadata: z

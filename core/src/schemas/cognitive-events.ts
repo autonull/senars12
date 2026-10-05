@@ -20,6 +20,7 @@ import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './prop
 import { BudgetTypeSchema, TerminationReasonSchema } from './reasoning-budget.js';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
+import { unitInterval } from '@senars/util/config';
 
 export { CognitiveEventBaseSchema, EngineOriginSchema } from './event-base.js';
 
@@ -158,7 +159,7 @@ export const EgressGateRejectedEventSchema = CognitiveEventBaseSchema.extend({
   type: z.literal('egress.gate.rejected'),
   payload: z.object({
     gate: z.enum(['groundedness', 'risk']),
-    score: z.number().min(0).max(1).optional(),
+    score: unitInterval.optional(),
     detail: z.string().optional(),
   }),
 });

@@ -64,6 +64,7 @@ import {
 import { CompositeSampling } from '../../strategies/sampling/CompositeSampling.js';
 import { defineScoredSampling } from '../../strategies/sampling/scored.js';
 import type { Strategy, StrategyType } from '../../strategies/types.js';
+import { unitInterval } from '@senars/util/config';
 
 /**
  * A `seed` in the config pins a strategy's own stream; absent one it draws from
@@ -74,7 +75,7 @@ const strategyRng = (seed: number | undefined, ambient: () => number): (() => nu
   rngFrom(seed, ambient);
 
 const LINK_CONFIG = configSchema({
-  minStrength: z.number().min(0).max(1).default(0.3),
+  minStrength: unitInterval.default(0.3),
   limit: z.number().int().min(1).default(20),
 });
 
@@ -365,7 +366,7 @@ export const DEFAULT_REGISTRATIONS: StrategySlot = [
       configurable({
         name,
         description,
-        schema: configSchema({ boost: z.number().min(0).max(1).default(0.3) }),
+        schema: configSchema({ boost: unitInterval.default(0.3) }),
         factory: (config) => ATTENTION_MODELS[name](config.boost as number),
       }),
     ]

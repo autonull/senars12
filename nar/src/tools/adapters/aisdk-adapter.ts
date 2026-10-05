@@ -4,6 +4,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import type { Term } from '../../terms';
 import { mentionsSymbol } from '../../terms';
+import { unitInterval } from '@senars/util/config';
 
 export interface NARSToolDeps {
   workingMemory: { size(): number };
@@ -65,8 +66,8 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
         statement: z.string().describe('Narsese statement, e.g., "(cat --> animal)."'),
         truth: z
           .object({
-            frequency: z.number().min(0).max(1).optional(),
-            confidence: z.number().min(0).max(1).optional(),
+            frequency: unitInterval.optional(),
+            confidence: unitInterval.optional(),
           })
           .optional(),
       }),

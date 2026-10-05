@@ -4,7 +4,7 @@
  * (src/config/schema.ts), and UI slider configs.
  * Avoids drift between validation limits, config defaults, and UI control ranges.
  */
-import type { BoundProp } from './nar-core-bounds.js';
+import { nestedBounds } from './bounds.js';
 
 export const cognitiveBounds = {
   priority: {
@@ -53,56 +53,13 @@ export type CognitiveBounds = typeof cognitiveBounds;
 
 export type CognitiveBoundCategory = keyof CognitiveBounds;
 
-export type CognitiveBoundKey<C extends CognitiveBoundCategory> = keyof CognitiveBounds[C];
-
-export function getCognitiveBound(category: string, key: string, prop: BoundProp): number {
-  const cat = cognitiveBounds[category as keyof CognitiveBounds];
-  if (!cat) throw new Error(`Unknown cognitive bound category: ${category}`);
-  const bound = cat[key as keyof typeof cat];
-  if (!bound) throw new Error(`Unknown cognitive bound key: ${key} in category ${category}`);
-  return bound[prop] as number;
-}
-
-export function getAllCognitiveBounds(): CognitiveBounds {
-  return cognitiveBounds;
-}
-
-/** A bound row as a plain `{min,max,default}` triple. */
-export type BoundRange = { readonly min: number; readonly max: number; readonly default: number };
-
 /**
- * One row projected to its `{min,max,default}` triple.
+ * The one reader of {@link cognitiveBounds}, addressed as `category.key`.
  *
- * Consumers that restate a table by calling `getCognitiveBound` three times per
- * row are a copy of the table that no ratchet can see. Naming the row instead
- * keeps the number in `cognitiveBounds` and makes the shape a convention of the
- * table's owner rather than of each reader. `step` is deliberately absent: it
- * quantizes writes, it does not describe the search space.
+ * Three projectors lived on this table before — `getCognitiveBound(category, key, prop)`
+ * plus a `boundRange` and a `boundSpec` — and each restated the row's own shape as its
+ * return type, so a caller could not tell a triple built by one from a triple built by
+ * another. Addressing a row by its path instead makes an unknown knob a compile error
+ * rather than a runtime throw on a table that is `as const`.
  */
-export function boundRange<C extends CognitiveBoundCategory, K extends CognitiveBoundKey<C>>(
-  category: C,
-  key: K
-): BoundRange {
-  const row = cognitiveBounds[category][key] as BoundRange;
-  return { min: row.min, max: row.max, default: row.default };
-}
-
-/** A bound row as a plain `{min,max,step}` triple — the search space a tuner scans. */
-export type BoundSpec = { readonly min: number; readonly max: number; readonly step: number };
-
-/**
- * One row projected to the `{min,max,step}` triple a tuner needs — {@link boundRange}
- * for the surface that quantizes writes instead of picking one.
- *
- * The tuner had hand-copied these nine numbers per row and nine of ten had drifted:
- * `maxDerivationsPerStep` capped tuning at 500 where the config schema admits 10000,
- * so the tuner could not reach values the engine already accepted. Naming the row is
- * what makes the drift a test failure instead of a surprise.
- */
-export function boundSpec<C extends CognitiveBoundCategory, K extends CognitiveBoundKey<C>>(
-  category: C,
-  key: K
-): BoundSpec {
-  const row = cognitiveBounds[category][key] as BoundSpec;
-  return { min: row.min, max: row.max, step: row.step };
-}
+export const cognitiveBound = nestedBounds(cognitiveBounds);

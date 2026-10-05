@@ -20,6 +20,7 @@ import { CognitiveEventBaseSchema, PROPOSER_ORIGIN } from './event-base.js';
 import { RuleDeclarationSchema } from './rule-table.js';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
+import { unitInterval } from '@senars/util/config';
 
 /**
  * The wire version of the proposal contract. A run recorded against one version
@@ -83,7 +84,7 @@ export const RuleProposalSchema = EnvelopeSchema.extend({
     pattern: RulePatternSchema,
     /** The named truth function the rule dispatches through. */
     truthFn: z.string().min(1),
-    priority: z.number().min(0).max(1),
+    priority: unitInterval,
     /** The NAL rule body implementation name (e.g., 'nal.deduction'). Optional in wire format; validated at the boundary. */
     body: z.string().optional(),
     /** Pure-NAL symbolic fallback name for LM failure escalation (e.g., 'lm-narsese-translation'). Optional in wire format; validated at the boundary. */

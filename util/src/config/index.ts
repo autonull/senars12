@@ -4,16 +4,25 @@
  */
 
 export {
+  type BoundProp,
+  type BoundProjection,
   type BoundRange,
+  type BoundRow,
+  type BoundSchemaOptions,
   type BoundSpec,
-  boundRange,
-  boundSpec,
+  type BoundTable,
+  type FlatBoundProjection,
+  type FlatBoundTable,
+  flatBounds,
+  type NestedBoundPath,
+  type NestedBoundTable,
+  nestedBounds,
+} from './bounds.js';
+export {
   type CognitiveBoundCategory,
-  type CognitiveBoundKey,
+  cognitiveBound,
   type CognitiveBounds,
   cognitiveBounds,
-  getAllCognitiveBounds,
-  getCognitiveBound,
 } from './cognitive-bounds.js';
 export { type DialogueConfig, dialogueDefaults, dialogueSchema } from './dialogue.js';
 export {
@@ -37,8 +46,6 @@ export {
 } from './env.js';
 export { type LMSettingsShape, lmSettingsSchema, lmSettingsShape } from './lm-schema.js';
 export {
-  type BoundProp,
-  getBound,
   type NarCoreBoundKey,
   type NarCoreBounds,
   narCoreBounds,
@@ -48,14 +55,16 @@ export {
   narCoreNumber,
 } from './nar-core-bounds.js';
 export { CACHE_DIR, cachePath } from './paths.js';
+export { signedUnitInterval, unitInterval } from './scalars.js';
 export {
   CRITICALITY_LEVELS,
   criticalitySchema,
   type CriticalityLevel,
-  systemOneBoundSpec,
+  systemOneBound,
   type SystemOneBoundCategory,
   type SystemOneBoundKey,
   systemOneBounds,
+  type SystemOneBounds,
   type SystemOneConfig,
   systemOneDefaults,
   systemOneSchema,

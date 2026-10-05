@@ -3,6 +3,7 @@
  */
 import { z } from 'zod';
 import { TruthValueSchema } from '../schemas/truth.js';
+import { unitInterval } from '@senars/util/config';
 
 export const ObjectSetMsg = z.object({
   type: z.literal('object.set'),
@@ -11,8 +12,8 @@ export const ObjectSetMsg = z.object({
   patch: z.object({
     truth: TruthValueSchema.optional(),
     type: z.string().optional(),
-    priority: z.number().min(0).max(1).optional(),
-    confidence: z.number().min(0).max(1).optional(),
+    priority: unitInterval.optional(),
+    confidence: unitInterval.optional(),
   }),
 });
 
@@ -21,7 +22,7 @@ export const NodeSetMsg = z.object({
   id: z.string(),
   patch: z.object({
     truth: TruthValueSchema.optional(),
-    priority: z.number().min(0).max(1).optional(),
-    confidence: z.number().min(0).max(1).optional(),
+    priority: unitInterval.optional(),
+    confidence: unitInterval.optional(),
   }),
 });

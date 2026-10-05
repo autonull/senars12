@@ -9,6 +9,7 @@
  * or filter widens the schema automatically.
  */
 
+import { unitInterval } from '@senars/util/config';
 import { z } from 'zod';
 import {
   PREMISE_FILTER_REGISTRY,
@@ -34,16 +35,16 @@ const enumOf = <T extends string>(values: readonly T[]) => z.enum(values as [T, 
 
 const linearWeights = z
   .object({
-    link: z.number().min(0).max(1),
-    embed: z.number().min(0).max(1),
-    pri: z.number().min(0).max(1),
+    link: unitInterval,
+    embed: unitInterval,
+    pri: unitInterval,
   })
   .strict();
 
 /** A curried filter takes a parameter, or the bare name uses its declared default. */
 const filterSpec = z.union([
   enumOf(PREMISE_FILTER_NAMES),
-  z.object({ highConfidence: z.number().min(0).max(1) }).strict(),
+  z.object({ highConfidence: unitInterval }).strict(),
 ]);
 
 const scorer = z.union([enumOf(PREMISE_SCORER_NAMES), z.object({ linear: linearWeights }).strict()]);
@@ -72,5 +73,5 @@ export const premiseSampleShape = (
   source: enumOf(PREMISE_SOURCE_NAMES).default(spec.source ?? PREMISE_SAMPLE_FALLBACK.source),
   scorer: scorer.default(spec.scorer ?? PREMISE_SAMPLE_FALLBACK.scorer),
   filters: z.array(filterSpec).default(spec.filters ?? PREMISE_SAMPLE_FALLBACK.filters),
-  minScore: z.number().min(0).max(1).default(spec.minScore ?? PREMISE_SAMPLE_FALLBACK.minScore),
+  minScore: unitInterval.default(spec.minScore ?? PREMISE_SAMPLE_FALLBACK.minScore),
   skipSameTerm: z.boolean().default(spec.skipSameTerm ?? PREMISE_SAMPLE_FALLBACK.skipSameTerm),});

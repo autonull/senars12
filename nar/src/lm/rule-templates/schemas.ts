@@ -4,13 +4,14 @@
  */
 import { AmbiguityReportSchema, DetectedIntentSchema } from '@senars/core/schemas';
 import { z } from 'zod';
+import { unitInterval } from '@senars/util/config';
 
 export const NarseseBeliefSchema = z.object({
   narsese: z.string().describe('A single valid Narsese statement, e.g. (bird --> animal).'),
   truth: z
     .object({
-      f: z.number().min(0).max(1).describe('Frequency'),
-      c: z.number().min(0).max(1).describe('Confidence'),
+      f: unitInterval.describe('Frequency'),
+      c: unitInterval.describe('Confidence'),
     })
     .optional(),
 });
@@ -25,7 +26,7 @@ export const TranslationSchema = z.object({
 export const ExplanationSchema = z.object({
   explanation: z.string(),
   relatedConcepts: z.array(z.string()).optional(),
-  confidence: z.number().min(0).max(1).optional(),
+  confidence: unitInterval.optional(),
 });
 
 export const GoalDecompositionSchema = z.object({
@@ -36,7 +37,7 @@ export const HypothesisSchema = z.object({
   hypotheses: z.array(
     z.object({
       narsese: z.string(),
-      confidence: z.number().min(0).max(1),
+      confidence: unitInterval,
     })
   ),
 });
@@ -57,7 +58,7 @@ export const MetaReasoningSchema = z.object({
 });
 
 export const UncertaintySchema = z.object({
-  recommendedConfidence: z.number().min(0).max(1),
+  recommendedConfidence: unitInterval,
 });
 
 export const SchemaInductionSchema = z.object({
@@ -88,8 +89,8 @@ export const BeliefRevisionSchema = z.object({
   revised: z.object({
     narsese: z.string().describe('Revised Narsese statement'),
     truth: z.object({
-      f: z.number().min(0).max(1).describe('Revised frequency'),
-      c: z.number().min(0).max(1).describe('Revised confidence'),
+      f: unitInterval.describe('Revised frequency'),
+      c: unitInterval.describe('Revised confidence'),
     }),
   }),
   reason: z.string().describe('Explanation for the revision'),
@@ -99,7 +100,7 @@ export const QuestionGenerationSchema = z.object({
   questions: z.array(
     z.object({
       narsese: z.string().describe('Narsese question ending in ?'),
-      relevance: z.number().min(0).max(1).describe('How relevant to current context'),
+      relevance: unitInterval.describe('How relevant to current context'),
       rationale: z.string().describe('Why this question is worth asking'),
     })
   ),
@@ -118,7 +119,7 @@ export const AmbiguitySchema = AmbiguityReportSchema;
 export const CoreferenceSchema = z.object({
   pronoun: z.string(),
   antecedent: z.string(),
-  confidence: z.number().min(0).max(1),
+  confidence: unitInterval,
 });
 
 export const TaskBatchSchema = z.object({
@@ -127,8 +128,8 @@ export const TaskBatchSchema = z.object({
       narsese: z.string().describe('A single valid Narsese statement'),
       truth: z
         .object({
-          f: z.number().min(0).max(1).describe('Frequency'),
-          c: z.number().min(0).max(1).describe('Confidence'),
+          f: unitInterval.describe('Frequency'),
+          c: unitInterval.describe('Confidence'),
         })
         .optional(),
       source: z.enum(['user', 'inferred']).describe('Source of the belief'),
@@ -145,7 +146,7 @@ export const TaskBatchSchema = z.object({
   goals: z.array(
     z.object({
       narsese: z.string().describe('Narsese goal string ending in !'),
-      priority: z.number().min(0).max(1).optional(),
+      priority: unitInterval.optional(),
       sourceText: z.string().optional().describe('Verbatim input substring this item came from'),
     })
   ),
@@ -163,7 +164,7 @@ export const TaskBatchSchema = z.object({
 
 export const GenerationOutputSchema = z.object({
   response: z.string().describe('Natural language response'),
-  confidence: z.number().min(0).max(1).describe('Confidence in the response'),
+  confidence: unitInterval.describe('Confidence in the response'),
   suggestedFollowups: z.array(z.string()).describe('Suggested follow-up questions'),
   meta: z.object({
     reasoningType: z.string().describe('Type of reasoning used'),

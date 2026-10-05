@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { clamp, clamp01, softSquash } from '../utils/numeric.js';
+import { unitInterval } from '../config/scalars.js';
 
 export type Frequency = number & { readonly __brand: unique symbol };
 export type Confidence = number & { readonly __brand: unique symbol };
@@ -68,8 +69,8 @@ export type TermTruth = { f: number; c: number };
  * bound the belief side has always declared.
  */
 export const TermTruthSchema = z.object({
-  f: z.number().min(0).max(1),
-  c: z.number().min(0).max(1),
+  f: unitInterval,
+  c: unitInterval,
 });
 
 /** Either truth shape in the system: a `Truth` value (f/c) or a belief's truth (frequency/confidence). */
@@ -83,8 +84,8 @@ export type TruthLike = TermTruth | BeliefTruth;
  * bound.
  */
 export const BeliefTruthSchema = z.object({
-  frequency: z.number().min(0).max(1),
-  confidence: z.number().min(0).max(1),
+  frequency: unitInterval,
+  confidence: unitInterval,
 });
 
 /**

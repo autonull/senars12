@@ -1,5 +1,6 @@
 import { HistoryEntrySchema } from '@senars/util';
 import { z } from 'zod';
+import { unitInterval } from '@senars/util/config';
 
 /**
  * Shared structural fragments — the shapes two or more kernel contracts
@@ -34,9 +35,9 @@ export type RulePattern = z.infer<typeof RulePatternSchema>;
  * cannot name different fields.
  */
 export const BudgetSchema = z.object({
-  priority: z.number().min(0).max(1),
-  durability: z.number().min(0).max(1),
-  quality: z.number().min(0).max(1),
+  priority: unitInterval,
+  durability: unitInterval,
+  quality: unitInterval,
   cycles: z.number().int().nonnegative(),
   depth: z.number().int().nonnegative(),
 });

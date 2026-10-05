@@ -3,18 +3,9 @@
  * Owned here (single definition); root src/config/schema.ts and @senars/nar re-export.
  */
 import { z } from 'zod';
+import { nestedBounds } from './bounds.js';
+import { unitInterval } from './scalars.js';
 
-/**
- * Min/max/default/step for the System One knobs a tuner may move.
- *
- * The System One counterpart to `cognitiveBounds`, and the reason the tuner can
- * reach every value the config admits: the numbers lived in three places, and
- * only two of them were the table. `rlfp/knobs.ts` bounded these eight rows by
- * hand while `systemOneSchema` below declared five of them unbounded — so the
- * schema admitted `maxTokensPerCycle: 1e12` and the tuner could not have
- * proposed it, and `provisional.cInitial` was capped at 1 by one and 0.5 by the
- * other.
- */
 /** How much a judgment is trusted to decide on its own. Declared once because it was
  *  written out six times — as a type in the decision layer, four times as an inline
  *  `z.enum` in the System One HTTP contract, and once as `criticalityFloor`'s options in
@@ -25,6 +16,16 @@ export type CriticalityLevel = (typeof CRITICALITY_LEVELS)[number];
 
 export const criticalitySchema = z.enum(CRITICALITY_LEVELS);
 
+/**
+ * Min/max/default/step for the System One knobs a tuner may move.
+ *
+ * The System One counterpart to `cognitiveBounds`, and the reason the tuner can reach every
+ * value the config admits: the numbers lived in three places, and only two of them were the
+ * table. `rlfp/knobs.ts` bounded these eight rows by hand while `systemOneSchema` below
+ * declared five of them unbounded — so the schema admitted `maxTokensPerCycle: 1e12` and the
+ * tuner could not have proposed it, and `provisional.cInitial` was capped at 1 by one and
+ * 0.5 by the other.
+ */
 export const systemOneBounds = {
   budgets: {
     maxJudgmentCallsPerCycle: { min: 1, max: 32, default: 8, step: 1 },
@@ -40,62 +41,19 @@ export const systemOneBounds = {
   },
 } as const;
 
-export type SystemOneBoundCategory = keyof typeof systemOneBounds;
-export type SystemOneBoundKey<C extends SystemOneBoundCategory> = keyof (typeof systemOneBounds)[C];
-
-interface BoundRow {
-  readonly min: number;
-  readonly max: number;
-  readonly default: number;
-  readonly step: number;
-}
-
-const row = <C extends SystemOneBoundCategory, K extends SystemOneBoundKey<C>>(
-  category: C,
-  key: K
-): BoundRow => systemOneBounds[category][key] as BoundRow;
+export type SystemOneBounds = typeof systemOneBounds;
+export type SystemOneBoundCategory = keyof SystemOneBounds;
+export type SystemOneBoundKey<C extends SystemOneBoundCategory> = keyof SystemOneBounds[C];
 
 /**
- * One row projected to its `{min,max,step}` triple — the search space a tuner
- * scans. Mirrors `boundSpec` for `cognitiveBounds`.
+ * The one reader of {@link systemOneBounds}, addressed as `category.key`.
+ *
+ * This table shipped its own `BoundRow` — a fourth declaration of a shape two other bound
+ * tables already declared — plus a private `bound(category, key, prop)` and a pair of
+ * builders that restated the same `.min().max().default()` chain. The row has one shape and
+ * one set of projections now; this table contributes only its numbers.
  */
-export function systemOneBoundSpec<
-  C extends SystemOneBoundCategory,
-  K extends SystemOneBoundKey<C>,
->(category: C, key: K): { readonly min: number; readonly max: number; readonly step: number } {
-  const bounds = row(category, key);
-  return { min: bounds.min, max: bounds.max, step: bounds.step };
-}
-
-/** One bound, so the schema and the defaults quote the same number. */
-const bound = <C extends SystemOneBoundCategory, K extends SystemOneBoundKey<C>>(
-  category: C,
-  key: K,
-  prop: 'min' | 'max' | 'default'
-): number => row(category, key)[prop];
-
-/** A positive integer inside the row's range, defaulting to the row's own. */
-const boundedInt = <C extends SystemOneBoundCategory, K extends SystemOneBoundKey<C>>(
-  category: C,
-  key: K
-) =>
-  z
-    .number()
-    .int()
-    .min(bound(category, key, 'min'))
-    .max(bound(category, key, 'max'))
-    .default(bound(category, key, 'default'));
-
-/** A real inside the row's range, defaulting to the row's own. */
-const boundedNumber = <C extends SystemOneBoundCategory, K extends SystemOneBoundKey<C>>(
-  category: C,
-  key: K
-) =>
-  z
-    .number()
-    .min(bound(category, key, 'min'))
-    .max(bound(category, key, 'max'))
-    .default(bound(category, key, 'default'));
+export const systemOneBound = nestedBounds(systemOneBounds);
 
 export const systemOneDefaults = {
   enabled: false,
@@ -118,16 +76,16 @@ export const systemOneDefaults = {
   },
   cortex: { provider: 'off' as const, model: undefined as string | undefined },
   budgets: {
-    maxJudgmentCallsPerCycle: bound('budgets', 'maxJudgmentCallsPerCycle', 'default'),
-    maxConsensusPerCycle: bound('budgets', 'maxConsensusPerCycle', 'default'),
-    maxLatencyMsPerJudgment: bound('budgets', 'maxLatencyMsPerJudgment', 'default'),
-    maxTokensPerCycle: bound('budgets', 'maxTokensPerCycle', 'default'),
-    maxMemoryMbPerCycle: bound('budgets', 'maxMemoryMbPerCycle', 'default'),
+    maxJudgmentCallsPerCycle: systemOneBound.at('budgets.maxJudgmentCallsPerCycle', 'default'),
+    maxConsensusPerCycle: systemOneBound.at('budgets.maxConsensusPerCycle', 'default'),
+    maxLatencyMsPerJudgment: systemOneBound.at('budgets.maxLatencyMsPerJudgment', 'default'),
+    maxTokensPerCycle: systemOneBound.at('budgets.maxTokensPerCycle', 'default'),
+    maxMemoryMbPerCycle: systemOneBound.at('budgets.maxMemoryMbPerCycle', 'default'),
   },
   provisional: {
-    cInitial: bound('provisional', 'cInitial', 'default'),
-    decayRate: bound('provisional', 'decayRate', 'default'),
-    maxTtlMs: bound('provisional', 'maxTtlMs', 'default'),
+    cInitial: systemOneBound.at('provisional.cInitial', 'default'),
+    decayRate: systemOneBound.at('provisional.decayRate', 'default'),
+    maxTtlMs: systemOneBound.at('provisional.maxTtlMs', 'default'),
   },
   distillation: {
     datasetPath: './data/systemone-distillation.jsonl',
@@ -204,7 +162,7 @@ export const systemOneSchema = z.object({
           z.object({
             modelDigest: z.string(),
             calibrationVersion: z.string(),
-            abstainThreshold: z.number().min(0).max(1),
+            abstainThreshold: unitInterval,
             enabled: z.boolean(),
           })
         )
@@ -215,11 +173,7 @@ export const systemOneSchema = z.object({
             systemOneDefaults.manifold.consensus.criticalityFloor
           ),
           fanout: z.number().int().positive().default(systemOneDefaults.manifold.consensus.fanout),
-          minAgreement: z
-            .number()
-            .min(0)
-            .max(1)
-            .default(systemOneDefaults.manifold.consensus.minAgreement),
+          minAgreement: unitInterval.default(systemOneDefaults.manifold.consensus.minAgreement),
         })
         .default(systemOneDefaults.manifold.consensus),
     })
@@ -246,29 +200,25 @@ export const systemOneSchema = z.object({
     .default(systemOneDefaults.cortex),
   budgets: z
     .object({
-      maxJudgmentCallsPerCycle: boundedInt('budgets', 'maxJudgmentCallsPerCycle'),
-      maxConsensusPerCycle: boundedInt('budgets', 'maxConsensusPerCycle'),
-      maxLatencyMsPerJudgment: boundedInt('budgets', 'maxLatencyMsPerJudgment'),
-      maxTokensPerCycle: boundedInt('budgets', 'maxTokensPerCycle'),
-      maxMemoryMbPerCycle: boundedInt('budgets', 'maxMemoryMbPerCycle'),
+      maxJudgmentCallsPerCycle: systemOneBound.schema('budgets.maxJudgmentCallsPerCycle', { int: true }),
+      maxConsensusPerCycle: systemOneBound.schema('budgets.maxConsensusPerCycle', { int: true }),
+      maxLatencyMsPerJudgment: systemOneBound.schema('budgets.maxLatencyMsPerJudgment', { int: true }),
+      maxTokensPerCycle: systemOneBound.schema('budgets.maxTokensPerCycle', { int: true }),
+      maxMemoryMbPerCycle: systemOneBound.schema('budgets.maxMemoryMbPerCycle', { int: true }),
     })
     .default(systemOneDefaults.budgets),
   provisional: z
     .object({
-      cInitial: boundedNumber('provisional', 'cInitial'),
-      decayRate: boundedNumber('provisional', 'decayRate'),
-      maxTtlMs: boundedInt('provisional', 'maxTtlMs'),
+      cInitial: systemOneBound.schema('provisional.cInitial'),
+      decayRate: systemOneBound.schema('provisional.decayRate'),
+      maxTtlMs: systemOneBound.schema('provisional.maxTtlMs', { int: true }),
     })
     .default(systemOneDefaults.provisional),
   distillation: z
     .object({
       datasetPath: z.string().default(systemOneDefaults.distillation.datasetPath),
-      bakeOffSamplingRate: z
-        .number()
-        .min(0)
-        .max(1)
-        .default(systemOneDefaults.distillation.bakeOffSamplingRate),
-      driftEceBound: z.number().min(0).max(1).default(systemOneDefaults.distillation.driftEceBound),
+      bakeOffSamplingRate: unitInterval.default(systemOneDefaults.distillation.bakeOffSamplingRate),
+      driftEceBound: unitInterval.default(systemOneDefaults.distillation.driftEceBound),
       /** E4c: opt-in periodic append of dataset rows — default config no longer writes dataset files silently. */
       autoFlush: z.boolean().optional(),
       /** E4a: JSONL path persisting per-cycle trajectories for implicit preference pairing. */
@@ -278,10 +228,10 @@ export const systemOneSchema = z.object({
   rl: z
     .object({
       policy: z.enum(['eps-greedy', 'ucb']).default(systemOneDefaults.rl.policy),
-      epsilon: z.number().min(0).max(1).default(systemOneDefaults.rl.epsilon),
+      epsilon: unitInterval.default(systemOneDefaults.rl.epsilon),
       ucbC: z.number().min(0).default(systemOneDefaults.rl.ucbC),
       feasibilityMask: z.boolean().default(systemOneDefaults.rl.feasibilityMask),
-      riskFloor: z.number().min(0).max(1).default(systemOneDefaults.rl.riskFloor),
+      riskFloor: unitInterval.default(systemOneDefaults.rl.riskFloor),
       labelOutcomes: z.boolean().default(systemOneDefaults.rl.labelOutcomes),
     })
     .default(systemOneDefaults.rl),
@@ -294,11 +244,7 @@ export const systemOneSchema = z.object({
         .int()
         .positive()
         .default(systemOneDefaults.egressJudging.maxCandidates),
-      vetoThreshold: z
-        .number()
-        .min(0)
-        .max(1)
-        .default(systemOneDefaults.egressJudging.vetoThreshold),
+      vetoThreshold: unitInterval.default(systemOneDefaults.egressJudging.vetoThreshold),
     })
     .default(systemOneDefaults.egressJudging),
   lmReflex: z
@@ -312,11 +258,7 @@ export const systemOneSchema = z.object({
       reviewAction: z
         .enum(['escalate-baseline', 'abstain', 'act'])
         .default(systemOneDefaults.handover.reviewAction),
-      minBaselineConfidence: z
-        .number()
-        .min(0)
-        .max(1)
-        .default(systemOneDefaults.handover.minBaselineConfidence),
+      minBaselineConfidence: unitInterval.default(systemOneDefaults.handover.minBaselineConfidence),
     })
     .default(systemOneDefaults.handover),
 });

@@ -12,6 +12,7 @@ import {
   TerminationReasonSchema,
 } from './reasoning-budget.js';
 import { SourceQualitySchema } from './truth.js';
+import { unitInterval, signedUnitInterval } from '@senars/util/config';
 
 export const PerceptionGateInputSchema = z.object({
   sourceId: z.string(),
@@ -23,7 +24,7 @@ export const PerceptionGateInputSchema = z.object({
    */
   source: StimulusSourceSchema.optional(),
   rawObservation: z.unknown(),
-  sensorConfidence: z.number().min(0).max(1),
+  sensorConfidence: unitInterval,
   sourceQuality: SourceQualitySchema,
   correlationId: z.string().optional(),
 });
@@ -52,7 +53,7 @@ export const ActionGateOutputSchema = z.object({
 
 export const RewardGateInputSchema = z.object({
   eventId: z.string().uuid(),
-  rewardSignal: z.number().min(-1).max(1),
+  rewardSignal: signedUnitInterval,
   rewardType: z.enum([
     'extrinsic',
     'intrinsic',

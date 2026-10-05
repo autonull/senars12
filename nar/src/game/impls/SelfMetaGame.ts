@@ -1,5 +1,5 @@
 import { assertDefined, clamp01, makeId } from '@senars/util';
-import { type BoundRange, boundRange } from '@senars/util/config';
+import { type BoundRange, cognitiveBound } from '@senars/util/config';
 import type { ParameterLedger } from '../../config/parameter-ledger.js';
 import {
   createParameterTable,
@@ -81,12 +81,12 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
     // TODO19 F5: knobs are ParameterTable entries (system scope, self-owned);
     // the actuator closures replace the former `applyKnob` switch-case.
     const defaultKnobs: KnobConfig[] = [
-      boundKnob('maxDerivationsPerStep', boundRange('inference', 'maxDerivationsPerStep')),
+      boundKnob('maxDerivationsPerStep', cognitiveBound.range('inference.maxDerivationsPerStep')),
       { name: 'taskDecayRate', min: 0.001, max: 0.1, defaultValue: 0.01 },
       { name: 'conceptDecayRate', min: 0.0001, max: 0.05, defaultValue: 0.005 },
       { name: 'focusDecayRate', min: 0.0001, max: 0.05, defaultValue: 0.005 },
-      boundKnob('rankingMaxAdmissions', boundRange('inference', 'rankingMaxAdmissions')),
-      boundKnob('rankingMinScore', boundRange('inference', 'rankingMinScore')),
+      boundKnob('rankingMaxAdmissions', cognitiveBound.range('inference.rankingMaxAdmissions')),
+      boundKnob('rankingMinScore', cognitiveBound.range('inference.rankingMinScore')),
     ];
     const actuatorFor = (name: string): ParameterSpec['actuate'] => {
       switch (name) {
