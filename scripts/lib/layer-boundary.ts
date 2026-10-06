@@ -18,11 +18,12 @@
  * read the same array.
  */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { CYCLE_PATH_PREFIXES } from '../../nar/src/lm/in-cycle-inventory.js';
 import { importEdges } from './imports.js';
 import { ROOT } from './root.js';
+import { lineAt, sourceFiles } from './source-scan.js';
 
 const NAR_SRC = join(ROOT, 'nar/src');
 const LAYER_PREFIX = `${NAR_SRC}/lm/`;
@@ -49,12 +50,6 @@ export const resolveInNar = (from: string, specifier: string): string | null => 
   return target === null ? null : target.replace(/\.js$/, '');
 };
 
-export const sourceFiles = (dir: string): string[] =>
-  readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    return statSync(path).isDirectory() ? sourceFiles(path) : path.endsWith('.ts') ? [path] : [];
-  });
-
 export interface CoreLayerViolation {
   /** Repo-relative, `file:line`. */
   readonly at: string;
@@ -76,20 +71,18 @@ export const coreLayerViolations = (from: string, source: string): CoreLayerViol
     ];
   });
 
-export const lineAt = (source: string, offset: number): number =>
-  source.slice(0, offset).split('\n').length;
-
 /** Every cycle-path source file, so a rule over them is written once. */
 export const scanCoreLayerSourceFiles = (): string[] =>
-  sourceFiles(NAR_SRC).filter((file) => isCyclePath(file));
+  sourceFiles(NAR_SRC).filter(isCyclePath);
 
 /** Every violation on the tree, cycle path only. */
 export const scanCoreLayer = (): CoreLayerViolation[] =>
-  sourceFiles(NAR_SRC)
-    .filter((file) => isCyclePath(file))
-    .flatMap((file) => coreLayerViolations(file, readFileSync(file, 'utf-8')));
+  scanCoreLayerSourceFiles().flatMap((file) =>
+    coreLayerViolations(file, readFileSync(file, 'utf-8'))
+  );
 
-export const report = (violations: readonly CoreLayerViolation[]): string =>
+/** The paragraph a failed core-layer scan prints under its findings. */
+export const coreLayerRemedy = (violations: readonly CoreLayerViolation[]): string =>
   [
     '  a cycle-path module imports the induction layer:',
     ...violations.map(

@@ -113,7 +113,7 @@ export function createTestRunnerTools(deps: TestRunnerDeps = {}) {
             ? result.coverage.lines.pct / 100 - 0.5 // baseline 50%
             : 0;
           reward = deps.rlfpLearner.calculateReward({
-            testPassRate: safeRatio(result.passed, result.total),
+            passRate: safeRatio(result.passed, result.total),
             avgTestDuration: result.tests.length > 0 ? mean(result.tests, (v) => v.duration) : 0,
             coverageDelta,
             memoryOverage: 0,

@@ -27,10 +27,11 @@
 import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { importEdges } from './lib/imports.js';
-import { report, scanCoreLayer } from './lib/layer-boundary.js';
+import { coreLayerRemedy, scanCoreLayer } from './lib/layer-boundary.js';
 import { readPackageJson } from './lib/pkg.js';
 import { ROOT } from './lib/root.js';
 import { lineAt, sourceFiles } from './lib/source-scan.js';
+import { report } from './lib/verdicts.js';
 
 /** Bottom of the stack first. A package may import anything at or below itself. */
 const LAYERS = ['util', 'core', 'io', 'nar', 'metta'] as const;
@@ -92,16 +93,16 @@ for (const pkg of LAYERS) {
 // runs on its own, reported here so one gate owns the whole layering.
 const coreLayer = scanCoreLayer();
 
-if (violations.length > 0 || coreLayer.length > 0) {
-  console.error('deps:direction FAILED — a package import breaks the declared layering:');
-  for (const violation of violations) console.error(violation);
-  if (coreLayer.length > 0) console.error(`\n${report(coreLayer)}`);
-  console.error(
-    `\n${LAYERS.join(' < ')}. Fix the import, or — if the seam is genuinely not ready — record\n` +
-      'the edge in ALLOWED_UPWARD with the reason it cannot be broken yet.'
-  );
-  process.exit(1);
-}
+report(
+  'deps:direction',
+  [...violations, ...coreLayer.map((v) => `${v.at} — ${v.specifier}`)],
+  {
+    remedy:
+      `${LAYERS.join(' < ')}. Fix the import, or — if the seam is genuinely not ready — record\n` +
+      'the edge in ALLOWED_UPWARD with the reason it cannot be broken yet.' +
+      (coreLayer.length > 0 ? `\n\n${coreLayerRemedy(coreLayer)}` : ''),
+  }
+);
 
 const ledger = Object.entries(ALLOWED_UPWARD);
 console.log(

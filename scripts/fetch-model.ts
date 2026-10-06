@@ -49,7 +49,7 @@ const fetchModel = async (uri: string, force: boolean, dryRun: boolean): Promise
       if (totalSize > 0) {
         const share = pct(downloadedSize / totalSize);
         process.stdout.write(
-          `\r   Downloading: ${share}%  (${(downloadedSize / 1e9).toFixed(2)}/${(totalSize / 1e9).toFixed(2)} GB)`
+          `\r   Downloading: ${share}  (${(downloadedSize / 1e9).toFixed(2)}/${(totalSize / 1e9).toFixed(2)} GB)`
         );
       }
     },

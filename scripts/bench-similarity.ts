@@ -2,20 +2,7 @@
 /** §5.3 first cut: which index answers similarity recall, and where admission turns quadratic.
  *  Run once with `pnpm exec tsx scripts/bench-similarity.ts`. Numbers go to TODO30 §9. */
 import { Memory, TermBuilder } from '../nar/src/index.js';
-
-const bench = (label: string, reps: number, fn: () => void): number => {
-  fn();
-  const ts: number[] = [];
-  for (let i = 0; i < reps; i++) {
-    const t0 = performance.now();
-    fn();
-    ts.push(performance.now() - t0);
-  }
-  ts.sort((a, b) => a - b);
-  const median = ts[Math.floor(ts.length / 2)]!;
-  console.log(`${label}: median ${median.toFixed(2)}ms over ${reps} reps`);
-  return median;
-};
+import { bench } from './lib/bench.js';
 
 const fill = (mem: Memory, n: number): void => {
   for (let i = 0; i < n; i++) mem.addConcept(TermBuilder.atom(`c${i}`));

@@ -27,7 +27,7 @@
 import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { lineAt, sourceFiles } from './lib/layer-boundary.js';
+import { lineAt, sourceFiles } from './lib/source-scan.js';
 import { ROOT } from './lib/root.js';
 
 const SOURCE_ROOTS = ['src', 'core/src', 'nar/src', 'io/src', 'metta/src', 'util/src', 'ui/src'];

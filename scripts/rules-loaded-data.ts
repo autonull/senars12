@@ -28,6 +28,7 @@ import {
   tableArtifact,
 } from '../nar/src/rules/impls/rule-table.js';
 import { loadedDataViolations, scanSubject } from './lib/rule-table.js';
+import { report } from './lib/verdicts.js';
 
 const failures: string[] = [];
 
@@ -146,16 +147,12 @@ if (forward.added.length !== 1 || backward.removed.length !== 1) {
   failures.push('two revisions are not diffable in both directions');
 }
 
-if (failures.length > 0) {
-  console.error('rules:loaded-data FAILED — the rule set is not loaded data:');
-  for (const failure of failures) console.error(`  ${failure}`);
-  console.error(
-    '\n  Register through the `InferenceTable` a `RuleTableStore` owns (TODO29.a §5.10).\n' +
-      '  A rule is a declaration plus a named body, admitted at a boundary, versioned\n' +
-      '  and revertable. An empty table is a runnable state.'
-  );
-  process.exit(1);
-}
+report('rules:loaded-data', failures, {
+  remedy:
+    'Register through the `InferenceTable` a `RuleTableStore` owns (TODO29.a §5.10).\n' +
+    '  A rule is a declaration plus a named body, admitted at a boundary, versioned\n' +
+    '  and revertable. An empty table is a runnable state.',
+});
 
 console.log(
   `rules:loaded-data ok — ${BUILTIN_DECLARATIONS.length} declarations load at r0, ` +

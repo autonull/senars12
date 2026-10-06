@@ -36,6 +36,7 @@ import {
 import { replayCognitiveState } from '../nar/src/kernel/EventLogPersistence.js';
 import { moduleClosure, specifiersOf } from './lib/module-closure.js';
 import { fromRoot } from './lib/root.js';
+import { report } from './lib/verdicts.js';
 
 const FIXTURE = fromRoot('tests/fixtures/proposal-stream.jsonl');
 
@@ -61,9 +62,9 @@ const load = (): CognitiveEvent[] =>
       return parsed.data;
     });
 
-const violations: string[] = [];
+const failures: string[] = [];
 const fail = (rule: string, detail: string): void => {
-  violations.push(`${rule}\n    ${detail}`);
+  failures.push(`[${rule}]\n  ${detail}`);
 };
 
 const events = load();
@@ -165,13 +166,7 @@ for (const rejection of first.rejections) {
 }
 console.log(
   `  two reductions byte-identical: ${canonical(first) === canonical(second)}\n` +
-    `  replay closure reaches no provider: ${!violations.some((v) => v.startsWith('replay:no-provider'))}`
+    `  replay closure reaches no provider: ${!failures.some((f) => f.startsWith('[replay:no-provider'))}`
 );
 
-if (violations.length > 0) {
-  console.error(`\nreplay:proposal — ${violations.length} violation(s)\n`);
-  for (const violation of violations) console.error(`  ${violation}`);
-  process.exit(1);
-}
-
-console.log('\nreplay:proposal — clean');
+report('replay:proposal', failures, { clean: 'clean' });

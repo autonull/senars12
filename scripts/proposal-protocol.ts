@@ -21,6 +21,7 @@ import {
   protocolViolations,
   scanProtocol,
 } from './lib/proposal-protocol.js';
+import { report } from './lib/verdicts.js';
 
 const subject = scanProtocol();
 const violations = protocolViolations(subject);
@@ -35,12 +36,7 @@ console.log(
 );
 console.log(`rejection reasons: ${subject.reasons.join(', ')}`);
 
-if (violations.length > 0) {
-  console.error(`\nproposal:protocol — ${violations.length} violation(s)\n`);
-  for (const violation of violations) {
-    console.error(`  ${violation.rule}\n    ${violation.detail}`);
-  }
-  process.exit(1);
-}
-
-console.log('\nproposal:protocol — clean');
+report('proposal:protocol', violations, {
+  lines: ({ rule, detail }) => [`[${rule}]`, `  ${detail}`],
+  clean: 'clean',
+});

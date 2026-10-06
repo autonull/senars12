@@ -542,6 +542,8 @@
 
 - `setNested` — Dotted-path write, creating missing intermediate objects.
 
+- `thaw` — A mutable copy of a frozen object graph — the inverse of `deepFreeze`, and what
+
 - `extractLastUserMessage` — Extract the concatenated text of the last user message in an AI-SDK prompt.
 
 - `ambientRng` — The source a component falls back to when its caller names none.

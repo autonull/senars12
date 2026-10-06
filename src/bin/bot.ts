@@ -44,6 +44,7 @@ import {
   makeId,
   parseFlags,
   setupGracefulShutdown,
+  thaw,
   unique,
 } from '@senars/util';
 import { envBool } from '@senars/util/config';
@@ -426,7 +427,7 @@ async function main(): Promise<void> {
   }
 
   // loadConfig() returns a deeply frozen object — clone for runtime mutation.
-  const appConfig = structuredClone(wired.appConfig);
+  const appConfig = thaw(wired.appConfig);
   const registry = createRemoteRegistry(auth);
   const secretIds = new Set<string>();
   const bindTo = (conn: Connection): void => {

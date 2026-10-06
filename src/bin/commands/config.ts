@@ -1,6 +1,6 @@
 /** Application config read/write commands (`.config-*`). Mutates `rt.appConfig` in place. */
 
-import { envStrOr, writeJsonFile } from '@senars/util';
+import { envStrOr, thaw, writeJsonFile } from '@senars/util';
 import { cmd } from '../../cli/commands.js';
 import { coerce, flagsOf, setPath, tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
@@ -53,7 +53,7 @@ export const configCommandsFor = (rt: BotRuntime) => [
       return 'Destructive. Re-run as .config-reset --yes to confirm';
     }
     const { DEFAULT_APP_CONFIG } = await import('../../config/index.js');
-    rt.appConfig = structuredClone(DEFAULT_APP_CONFIG);
+    rt.appConfig = thaw(DEFAULT_APP_CONFIG);
     return 'Config reset to defaults (persist with .config-save; restart bot to apply)';
   }),
 ];

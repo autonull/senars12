@@ -30,12 +30,10 @@ import {
   DECISION_QUERIES,
 } from '../../nar/src/decision/call-sites.js';
 import { BUDGET_SCOPE_IDS } from '../../nar/src/kernel/budget-scopes.js';
+import { collector, type Verdict } from './verdicts.js';
 
-export interface ManifestViolation {
-  readonly id: string;
-  readonly rule: string;
-  readonly detail: string;
-}
+/** A manifest finding, addressed by the call-site id it is about. */
+export type ManifestViolation = Verdict;
 
 /**
  * The shape the gate *checks*, which is deliberately looser than
@@ -61,16 +59,10 @@ export interface UntrustedCallSite {
 export const manifestViolations = (
   sites: readonly UntrustedCallSite[] = DECISION_CALL_SITES
 ): ManifestViolation[] => {
-  const violations: ManifestViolation[] = [];
-  const seen = new Set<string>();
+  const found = collector();
 
   for (const site of sites) {
-    const fail = (rule: string, detail: string): void => {
-      violations.push({ id: site.id, rule, detail });
-    };
-
-    if (seen.has(site.id)) fail('unique-id', `${site.id} is declared twice`);
-    seen.add(site.id);
+    const fail = found.for(site.id);
 
     if (!(DECISION_QUERIES as readonly string[]).includes(site.query))
       fail('vocabulary', `query ${site.query} is not one of ${DECISION_QUERIES.join(', ')}`);
@@ -103,5 +95,5 @@ export const manifestViolations = (
       fail('ask-timeout', `timeoutMs ${site.timeoutMs} disables the ask deadline`);
   }
 
-  return violations;
+  return found.verdicts;
 };

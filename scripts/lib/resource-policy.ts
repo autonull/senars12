@@ -29,14 +29,11 @@ import { readFileSync } from 'node:fs';
 import { RESOURCE_CONTRACTS, type CapacitySource } from '../../nar/src/resources/contracts.js';
 import { ACCUMULATOR_LEDGER } from './accumulator-ledger.js';
 import { maskNonCode } from './imports.js';
-import { sourceFiles } from './layer-boundary.js';
+import { sourceFiles } from './source-scan.js';
 import { fromRoot } from './root.js';
+import { collector, type Verdict } from './verdicts.js';
 
-export interface ResourceViolation {
-  readonly id: string;
-  readonly rule: string;
-  readonly detail: string;
-}
+export type ResourceViolation = Verdict;
 
 const exists = (module: string): boolean => {
   try {
@@ -92,15 +89,10 @@ export const mentionsInPackage = (symbol: string): number => {
 };
 
 export const resourceViolations = async (): Promise<ResourceViolation[]> => {
-  const violations: ResourceViolation[] = [];
-  const seen = new Set<string>();
+  const found = collector();
 
   for (const contract of RESOURCE_CONTRACTS) {
-    const fail = (rule: string, detail: string): void =>
-      violations.push({ id: contract.id, rule, detail });
-
-    if (seen.has(contract.id)) fail('unique-id', `${contract.id} is declared twice`);
-    seen.add(contract.id);
+    const fail = found.for(contract.id);
 
     // 3 — the declaration is complete.
     if (!contract.holds.trim()) fail('declared', 'no record of what the resource holds');
@@ -156,12 +148,12 @@ export const resourceViolations = async (): Promise<ResourceViolation[]> => {
       (contract) => contract.owner === site.file || contract.capacity.module === site.file
     );
     if (!covered)
-      violations.push({
-        id: site.file,
-        rule: 'ledger-covered',
-        detail: 'on TODO28’s accumulator ledger but claimed by no resource contract',
-      });
+      found.fail(
+        site.file,
+        'ledger-covered',
+        'on TODO28’s accumulator ledger but claimed by no resource contract'
+      );
   }
 
-  return violations;
+  return found.verdicts;
 };

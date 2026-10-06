@@ -20,6 +20,7 @@ import {
   surfaceViolations,
   writeSites,
 } from './lib/attention-surface.js';
+import { report } from './lib/verdicts.js';
 
 const subject = scanSubject();
 const sites = writeSites(subject);
@@ -31,12 +32,7 @@ console.log(
 for (const site of sites) console.log(`  ${site.reason.padEnd(10)} ${site.at}`);
 console.log(`\nreasons declared: ${ATTENTION_REASONS.join(', ')}`);
 
-if (violations.length > 0) {
-  console.error(`\nattention:write-surface — ${violations.length} violation(s)\n`);
-  for (const violation of violations) {
-    console.error(`  ${violation.rule}\n    at ${violation.at}\n    ${violation.detail}`);
-  }
-  process.exit(1);
-}
-
-console.log('\nattention:write-surface — clean');
+report('attention:write-surface', violations, {
+  lines: ({ at, rule, detail }) => [`[${rule}] at ${at}`, `  ${detail}`],
+  clean: 'clean',
+});

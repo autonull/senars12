@@ -2,6 +2,7 @@
 /** §5.2 first cut: which structure maintains topK order, and at what N it matters.
  *  Run once with `pnpm exec tsx scripts/bench-topk.ts`. Numbers go to TODO30 §9. */
 import { insertByScoreDesc, selectTopN, rankBy } from '../util/src/utils/collections.js';
+import { bench } from './lib/bench.js';
 
 type Scored = { id: string; priority: number };
 const make = (n: number): Scored[] =>
@@ -9,20 +10,6 @@ const make = (n: number): Scored[] =>
     id: `c${i}`,
     priority: ((i * 2654435761) % 1000) / 1000,
   }));
-
-const bench = (label: string, reps: number, fn: () => void): number => {
-  fn();
-  const ts: number[] = [];
-  for (let i = 0; i < reps; i++) {
-    const t0 = performance.now();
-    fn();
-    ts.push(performance.now() - t0);
-  }
-  ts.sort((a, b) => a - b);
-  const median = ts[Math.floor(ts.length / 2)]!;
-  console.log(`${label}: median ${median.toFixed(2)}ms over ${reps} reps`);
-  return median;
-};
 
 for (const n of [1000, 10000, 100000]) {
   const items = make(n);

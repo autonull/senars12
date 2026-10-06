@@ -11,15 +11,11 @@
  * It is a *scan*, not a build: the point is that a well-meaning import cannot
  * cross, and the compiler cannot see a module that was never meant to be there.
  */
-import { report, scanCoreLayer } from './lib/layer-boundary.js';
+import { coreLayerRemedy, scanCoreLayer } from './lib/layer-boundary.js';
+import { report } from './lib/verdicts.js';
 
 const violations = scanCoreLayer();
-
-if (violations.length > 0) {
-  console.error('core:no-lm FAILED');
-  console.error(report(violations));
-  process.exit(1);
-}
+report('core:no-lm', violations, { remedy: coreLayerRemedy(violations) });
 
 console.log(
   'core:no-lm ok — no cycle-path module imports nar/src/lm; the core names a ModelRule, ' +

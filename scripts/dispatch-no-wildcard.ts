@@ -10,17 +10,17 @@
  */
 import { loadBuiltinTable } from '../nar/src/rules/impls/builtin-table.js';
 import { bucketCensus, kindViolations } from './lib/dispatch-table.js';
+import { report } from './lib/verdicts.js';
 
 const table = loadBuiltinTable();
 const rules = table.entries();
 const violations = kindViolations(rules);
 
-if (violations.length > 0) {
-  console.error('dispatch:no-wildcard FAILED — a rule sits under an undeclared kind:');
-  for (const v of violations) console.error(`  ${v.ruleId} — ${v.reason}: ${v.detail}`);
-  console.error('\n  A rule declares both kinds or it does not register (TODO29.a §5.6).');
-  process.exit(1);
-}
+report('dispatch:no-wildcard', violations, {
+  lines: ({ ruleId, reason, detail }) => [`${ruleId} — ${reason}: ${detail}`],
+  remedy:
+    'A rule declares both kinds or it does not register (TODO29.a §5.6).',
+});
 
 const census = bucketCensus(rules);
 const [hottest, hotCount] = [...census][0] ?? ['(none)', 0];

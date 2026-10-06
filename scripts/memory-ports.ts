@@ -27,13 +27,9 @@ import { join } from 'node:path';
 
 import { CYCLE_PATH_PREFIXES } from '../nar/src/lm/in-cycle-inventory.js';
 import { importEdges } from './lib/imports.js';
-import {
-  isCyclePath,
-  lineAt,
-  resolveInNar,
-  scanCoreLayerSourceFiles,
-} from './lib/layer-boundary.js';
+import { isCyclePath, resolveInNar, scanCoreLayerSourceFiles } from './lib/layer-boundary.js';
 import { ROOT } from './lib/root.js';
+import { lineAt } from './lib/source-scan.js';
 
 const FACADE = join(ROOT, 'nar/src/memory/memory.ts');
 /** The barrel reaches the facade by re-export, so naming it is naming the facade. */

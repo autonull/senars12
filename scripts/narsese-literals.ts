@@ -42,8 +42,9 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 import { roundTrip } from './lib/narsese-literals.js';
+import { ROOT } from './lib/root.js';
+import { lineAt } from './lib/source-scan.js';
 
-const ROOT = process.cwd();
 const TARGET_DIRS = ['nar/src', 'src', 'scripts', 'examples'];
 const EXTENSIONS = ['.ts', '.tsx', '.mts', '.js', '.mjs'];
 
@@ -175,7 +176,7 @@ async function main() {
       for (const { literal, quote, index } of legacyLiterals) {
         legacyFound++;
         const relPath = relative(ROOT, file);
-        legacyFailures.push(`${relPath}:${index} — legacy syntax '${literal}'`);
+        legacyFailures.push(`${relPath}:${lineAt(content, index)} — legacy syntax '${literal}'`);
       }
 
       // Check round-trip for canonical syntax
@@ -185,7 +186,9 @@ async function main() {
         const verdict = roundTrip(literal);
         if (verdict.failure) {
           failedLiterals++;
-          failures.push(`${relative(ROOT, file)}:${index} — ${verdict.failure}`);
+          failures.push(
+            `${relative(ROOT, file)}:${lineAt(content, index)} — ${verdict.failure}`
+          );
         }
       }
     }

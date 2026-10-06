@@ -6,6 +6,7 @@ import {
   ensureArray,
   entryKey,
   errMsg,
+  flooredRatio,
   keyedBy,
   roundTo,
 } from '@senars/util';
@@ -69,6 +70,37 @@ export interface RLFPLearnerConfig {
   /** Seeded randomness for the reward model and the policy optimizer (TODO28 §7.3). */
   rng?: RandomSource;
 }
+
+/** The metrics the extrinsic reward is a function of. */
+export interface TaskRewardMetrics {
+  /** Did the work pass, as a rate in `0..1`. */
+  readonly passRate: number;
+  readonly avgTestDuration: number;
+  /** The previous duration, when there is one to improve on. */
+  readonly baselineDuration?: number;
+  readonly coverageDelta: number;
+  readonly memoryOverage: number;
+  readonly cpuThrottleTime: number;
+}
+
+/**
+ * The extrinsic half of the reward, once.
+ *
+ * `0.5·passRate + 0.3·clamp(baseline/current, 0, 2)/2 + 0.2·coverageDelta`, less
+ * the AIKR penalties. Two methods spelled this out and had already drifted: the
+ * task path defaulted `avgTestDuration` to 1 where the metrics path did not, so
+ * the same run scored differently depending on which entry point produced it —
+ * and a reward function whose value depends on its caller cannot be tuned.
+ *
+ * The speed score is floored rather than guarded so a sub-100ms run cannot divide
+ * by ~zero and award an unbounded speed bonus.
+ */
+const extrinsicReward = (m: TaskRewardMetrics): number => {
+  const speedScore = flooredRatio(m.baselineDuration ?? m.avgTestDuration, m.avgTestDuration, 0.1);
+  const reward =
+    0.5 * m.passRate + 0.3 * (clamp(speedScore, 0, 2) / 2) + 0.2 * m.coverageDelta;
+  return Math.max(0, reward - (0.5 * m.memoryOverage + 0.1 * m.cpuThrottleTime));
+};
 
 export class RLFPLearner {
   readonly optimizeInterval: number;
@@ -162,19 +194,8 @@ export class RLFPLearner {
     }
   }
 
-  calculateReward(m: {
-    testPassRate: number;
-    avgTestDuration: number;
-    coverageDelta: number;
-    memoryOverage: number;
-    cpuThrottleTime: number;
-    baselineDuration?: number;
-  }): number {
-    const speedScore = (m.baselineDuration ?? m.avgTestDuration) / Math.max(m.avgTestDuration, 0.1);
-    const clampedSpeedScore = clamp(speedScore, 0, 2);
-    const reward = 0.5 * m.testPassRate + 0.3 * (clampedSpeedScore / 2) + 0.2 * m.coverageDelta;
-    const aikrPenalty = 0.5 * m.memoryOverage + 0.1 * m.cpuThrottleTime;
-    return Math.max(0, reward - aikrPenalty);
+  calculateReward(m: TaskRewardMetrics): number {
+    return extrinsicReward(m);
   }
 
   /**
@@ -187,15 +208,15 @@ export class RLFPLearner {
   calculateRewardFromTask(outcome: TaskOutcome): number {
     const m = outcome.metrics;
 
-    // Extrinsic rewards (existing)
-    const passRate = m.passRate ?? (outcome.success ? 1 : 0);
-    const speedScore =
-      (m.baselineDuration ?? m.avgTestDuration ?? 1) / Math.max(m.avgTestDuration ?? 1, 0.1);
-    const clampedSpeedScore = clamp(speedScore, 0, 2);
-    const rewardExtrinsic =
-      0.5 * passRate + 0.3 * (clampedSpeedScore / 2) + 0.2 * (m.coverageDelta ?? 0);
-    const aikrPenalty = 0.5 * (m.memoryOverage ?? 0) + 0.1 * (m.cpuThrottleTime ?? 0);
-    const extrinsic = Math.max(0, rewardExtrinsic - aikrPenalty);
+    // Extrinsic rewards — the same weighted sum `calculateReward` computes.
+    const extrinsic = extrinsicReward({
+      passRate: m.passRate ?? (outcome.success ? 1 : 0),
+      avgTestDuration: m.avgTestDuration ?? 1,
+      baselineDuration: m.baselineDuration,
+      coverageDelta: m.coverageDelta ?? 0,
+      memoryOverage: m.memoryOverage ?? 0,
+      cpuThrottleTime: m.cpuThrottleTime ?? 0,
+    });
 
     // Intrinsic rewards (new)
     const derivationDepthReduction = m.derivationDepthReduction ?? 0; // schema promotion → fewer steps

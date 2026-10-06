@@ -440,7 +440,7 @@ export {
   ucb1,
   variance,
 } from './utils/numeric.js';
-export { deepEqual, deepFreeze, deepMerge, getNested, setNested } from './utils/object.js';
+export { deepEqual, deepFreeze, deepMerge, getNested, setNested, thaw } from './utils/object.js';
 export { extractLastUserMessage } from './utils/prompt.js';
 /** @public The seeded PRNG, weighted sampling, and the deterministic split primitive. */
 export {

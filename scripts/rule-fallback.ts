@@ -18,6 +18,7 @@ import { ruleDefs } from '../nar/src/lm/rule-templates/index.js';
 import { LMRules } from '../nar/src/lm/rule-selectors/factory.js';
 import { TermBuilder } from '../nar/src/terms/index.js';
 import type { NAREventMap, NarEventBus } from '../nar/src/types/index.js';
+import { report } from './lib/verdicts.js';
 
 const { atom, inheritance } = TermBuilder;
 
@@ -65,13 +66,9 @@ for (const subject of subjects) {
 }
 console.log();
 
-if (failures.length > 0) {
-  for (const failure of failures)
-    console.error(
-      `rule:has-fallback FAILED — ${failure.kind} ${failure.ruleId}: ${failure.detail}`
-    );
-  process.exit(1);
-}
+report('rule:has-fallback', failures, {
+  lines: ({ kind, ruleId, detail }) => [`${kind} — ${ruleId}`, `  ${detail}`],
+});
 
 console.log(
   'rule:has-fallback ok — every model-backed rule derives symbolically when the model does not.\n'

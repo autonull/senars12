@@ -34,6 +34,7 @@ import {
 } from './lib/control-budgets.js';
 import { ROOT } from './lib/root.js';
 import { productionSources } from './lib/source-scan.js';
+import { report } from './lib/verdicts.js';
 
 /** The production trees a declared bound's spend may live in. */
 const SCAN_ROOTS = ['nar/src', 'src'] as const;
@@ -89,10 +90,7 @@ for (const scopeId of BUDGET_SCOPE_IDS) {
 console.log(`\nspend sites: ${[...sites].map(([scope, n]) => `${scope} ×${n}`).join(' · ')}`);
 console.log(`spent: ${spentScopeIds(spends).join(', ') || '—'}`);
 
-if (violations.length > 0) {
-  console.error(`\ncontrol-budgets — ${violations.length} violation(s)\n`);
-  for (const violation of violations) console.error(`  ${violation.rule}\n    ${violation.detail}`);
-  process.exit(1);
-}
-
-console.log('\ncontrol-budgets — clean');
+report('control-budgets', violations, {
+  lines: ({ at, rule, detail }) => [`[${rule}] at ${at}`, `  ${detail}`],
+  clean: 'clean',
+});

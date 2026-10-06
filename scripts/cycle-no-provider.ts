@@ -34,6 +34,7 @@ import { LMRule } from '../nar/src/lm/rule/LMRule.js';
 import { StreamReasoner } from '../nar/src/stream/reasoner.js';
 import { TermBuilder, type Truth } from '../nar/src/terms/index.js';
 import { checkSeams, type SeamProbe } from './lib/provider-dependency.js';
+import { report } from './lib/verdicts.js';
 
 /** A promise that never settles. The absence of a timeout is the thing under test. */
 const NEVER = <T>(): Promise<T> => new Promise<T>(() => {});
@@ -128,11 +129,9 @@ for (const seam of PROVIDER_SEAMS) {
 console.log();
 
 const failures = checkSeams(PROVIDER_SEAMS, probes);
-if (failures.length > 0) {
-  for (const failure of failures) console.error(`cycle:no-provider FAILED — ${failure.kind}`);
-  for (const failure of failures) console.error(`  ${failure.seam}: ${failure.detail}`);
-  process.exit(1);
-}
+report('cycle:no-provider', failures, {
+  lines: ({ kind, seam, detail }) => [`${kind} — ${seam}`, `  ${detail}`],
+});
 
 console.log(
   `cycle:no-provider ok — ${probes.length} seams reached, every declaration truthful.\n` +

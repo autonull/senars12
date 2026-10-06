@@ -71,6 +71,37 @@ export const deepFreeze = <T>(value: T): T => {
   return value;
 };
 
+/**
+ * A mutable copy of a frozen object graph — the inverse of `deepFreeze`, and what
+ * a caller that needs to *own* a configuration actually wants.
+ *
+ * `structuredClone` also produces an unfrozen copy, but it is a *serialising*
+ * clone: it drops every `undefined` property, rejects functions and symbols, and
+ * throws outright on anything it cannot encode. A frozen default that round-trips
+ * through it is not the value it started as — it is the same shape with holes in
+ * it, a difference no caller asked for and none would notice.
+ *
+ * **Copyable means "a bag of named values", not merely "an object".** A `Date`, a
+ * `Map`, a class instance holds its state somewhere other than its own enumerable
+ * properties, so copying those properties produces an empty shell — a `Date` that
+ * is now `{}`, which reads as a valid value until someone calls a method on it.
+ * Those are shared instead: sharing costs nothing when they are immutable, and a
+ * half-copied object is not a cheaper way to be wrong.
+ */
+export const thaw = <T>(value: T): T => {
+  if (Array.isArray(value)) return value.map(thaw) as T;
+  if (!isCopyable(value)) return value;
+  const copy: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value)) copy[key] = thaw(child);
+  return copy as T;
+};
+
+const isCopyable = (value: unknown): value is Record<string, unknown> => {
+  if (!isPlainObject(value)) return false;
+  const proto: unknown = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+};
+
 /** The defined keys of a plain object — the members a digest would have kept. */
 const definedKeys = (value: Record<string, unknown>): string[] =>
   Object.keys(value).filter((key) => value[key] !== undefined);

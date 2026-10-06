@@ -4,44 +4,21 @@ import type { LMExecutionStats } from '@senars/util';
 import { cachePath, clamp01, envStr } from '@senars/util';
 import type { LMSettings } from '../env-config.js';
 import {
-  getProviderRuntime,
+  delegate,
   type ProviderRuntime,
   type QualityObjective,
-  type RoutingDecision,
   type RoutingObjective,
-  type RoutingPolicy,
-  type RoutingTelemetryEntry,
+  readField,
 } from '../provider-runtime.js';
 import { MODEL_CAPABILITIES, type ModelCapability } from './capabilities.js';
 
-export const setRouting = (
-  policy: RoutingPolicy | null,
-  rt: ProviderRuntime = getProviderRuntime()
-): void => {
-  rt.setRouting(policy);
-};
-
-export const getRouting = (rt: ProviderRuntime = getProviderRuntime()): RoutingPolicy | null =>
-  rt.getRouting();
-
-export const demoteModel = (
-  id: string,
-  reason: string,
-  rt: ProviderRuntime = getProviderRuntime()
-): void => {
-  rt.demoteModel(id, reason);
-};
-export const getDemotions = (rt: ProviderRuntime = getProviderRuntime()) => rt.demotions;
-export const resetDemotions = (rt: ProviderRuntime = getProviderRuntime()): void => {
-  rt.resetDemotions();
-};
-
-export const getLastRoutingDecision = (
-  rt: ProviderRuntime = getProviderRuntime()
-): RoutingDecision | undefined => rt.lastDecision;
-
-export const getRoutingStatus = (rt: ProviderRuntime = getProviderRuntime()) =>
-  rt.getRoutingStatus();
+export const setRouting = delegate('setRouting');
+export const getRouting = delegate('getRouting');
+export const demoteModel = delegate('demoteModel');
+export const resetDemotions = delegate('resetDemotions');
+export const getRoutingStatus = delegate('getRoutingStatus');
+export const getDemotions = readField('demotions');
+export const getLastRoutingDecision = readField('lastDecision');
 
 const OBJECTIVE_WEIGHTS: Record<
   QualityObjective,
@@ -148,35 +125,18 @@ export const resolveOfflineModel = (
 /** LM_LOCAL_MODEL wins, else the largest cached offline-ladder rung, else undefined (config default). */
 export const resolveOfflineTier = (
   settings?: LMSettings,
-  rt: ProviderRuntime = getProviderRuntime()
+  rt?: ProviderRuntime
 ): string | undefined => {
   const envModel = envStr('LM_LOCAL_MODEL');
   if (envModel) return envModel;
-  const ladder = rt.routing?.offlineLadder;
+  const ladder = getRouting(rt)?.offlineLadder;
   if (!ladder?.length) return undefined;
   return resolveOfflineModel(ladder, settings?.cacheDir ?? OFFLINE_CACHE_DIR_DEFAULT);
 };
 
 // ---- Routing telemetry (1B) — state on `ProviderRuntime`; delegates below ----
 
-export function enableRoutingTelemetry(
-  options?: { logDir?: string; flushIntervalMs?: number },
-  rt: ProviderRuntime = getProviderRuntime()
-): void {
-  rt.enableRoutingTelemetry(options);
-}
-
-export function disableRoutingTelemetry(rt: ProviderRuntime = getProviderRuntime()): void {
-  rt.disableRoutingTelemetry();
-}
-
-export function logRoutingDecision(
-  entry: RoutingTelemetryEntry,
-  rt: ProviderRuntime = getProviderRuntime()
-): void {
-  rt.logRoutingDecision(entry);
-}
-
-export function getRoutingLogStatus(rt: ProviderRuntime = getProviderRuntime()) {
-  return rt.getRoutingLogStatus();
-}
+export const enableRoutingTelemetry = delegate('enableRoutingTelemetry');
+export const disableRoutingTelemetry = delegate('disableRoutingTelemetry');
+export const logRoutingDecision = delegate('logRoutingDecision');
+export const getRoutingLogStatus = delegate('getRoutingLogStatus');

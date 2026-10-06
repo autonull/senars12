@@ -2,9 +2,9 @@ import { periodic } from '@senars/util';
 import { recordLmProbe } from '../../metrics/index.js';
 import { cloudApiKey, LM_PROVIDER_NAMES, type LMSettings } from '../env-config.js';
 import {
+  delegate,
   getProviderRuntime,
   type LMProviderName,
-  type ProviderHealth,
   type ProviderRuntime,
 } from '../provider-runtime.js';
 import { hasCloudCredentials } from './chains.js';
@@ -14,11 +14,7 @@ import { probeModelsEndpoint } from './probe.js';
 import { getLMSettings, getLmProvider } from './settings.js';
 
 /** Probe an OpenAI-compatible endpoint (/models); auth header sent only when a key is available. */
-export async function probeOpenAICompatible(
-  settings?: LMSettings,
-  rt: ProviderRuntime = getProviderRuntime()
-): Promise<boolean> {
-  void rt;
+export async function probeOpenAICompatible(settings?: LMSettings): Promise<boolean> {
   const s = settings ?? getLMSettings();
   return probeModelsEndpoint(
     s.baseUrl ?? 'http://localhost:11434/v1',
@@ -62,45 +58,17 @@ export async function resolveActiveProvider(): Promise<LMProviderName> {
 // Breaker state lives on `ProviderRuntime`; the module functions delegate to
 // the process-wide default instance (pass an explicit runtime to scope state).
 
-export function getCircuitBreaker(
-  provider: LMProviderName,
-  rt: ProviderRuntime = getProviderRuntime()
-): ProviderHealth {
-  return rt.getCircuitBreaker(provider);
-}
-
-export function getAllCircuitBreakers(rt: ProviderRuntime = getProviderRuntime()) {
-  return rt.getAllCircuitBreakers();
-}
+export const getCircuitBreaker = delegate('getCircuitBreaker');
+export const getAllCircuitBreakers = delegate('getAllCircuitBreakers');
 
 /** Close all breakers and clear failure counts (test/bench isolation between independent scenarios). */
-export function resetCircuitBreakers(rt: ProviderRuntime = getProviderRuntime()): void {
-  rt.resetCircuitBreakers();
-}
+export const resetCircuitBreakers = delegate('resetCircuitBreakers');
 
 /** Effective circuit breaker config for a provider (settings > provider defaults > global defaults). */
-export const getEffectiveCircuitConfig = (
-  provider: LMProviderName,
-  settings?: LMSettings,
-  rt: ProviderRuntime = getProviderRuntime()
-) => rt.getEffectiveCircuitConfig(provider, settings);
+export const getEffectiveCircuitConfig = delegate('getEffectiveCircuitConfig');
 
-export function recordProviderCall(
-  provider: LMProviderName,
-  success: boolean,
-  settings?: LMSettings,
-  rt: ProviderRuntime = getProviderRuntime()
-): void {
-  rt.recordProviderCall(provider, success, settings);
-}
-
-export function canUseProvider(
-  provider: LMProviderName,
-  settings?: LMSettings,
-  rt: ProviderRuntime = getProviderRuntime()
-): boolean {
-  return rt.canUseProvider(provider, settings);
-}
+export const recordProviderCall = delegate('recordProviderCall');
+export const canUseProvider = delegate('canUseProvider');
 
 export async function probeCloudProvider(settings?: LMSettings): Promise<boolean> {
   const s = settings ?? getLMSettings();

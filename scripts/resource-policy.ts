@@ -14,6 +14,7 @@
 
 import { RESOURCE_CONTRACTS } from '../nar/src/resources/contracts.js';
 import { resourceViolations } from './lib/resource-policy.js';
+import { report, verdictLines } from './lib/verdicts.js';
 
 const contracts = RESOURCE_CONTRACTS;
 
@@ -37,11 +38,7 @@ for (const contract of contracts) {
 
 const violations = await resourceViolations();
 
-if (violations.length > 0) {
-  console.error(`resource:policy — ${violations.length} violation(s)\n`);
-  for (const { id, rule, detail } of violations) console.error(`  [${rule}] ${id}\n    ${detail}`);
-  process.exit(1);
-}
+report('resource:policy', violations, { lines: verdictLines });
 
 const signaled = contracts.filter((c) => c.pressureSignal !== null).length;
 console.log(

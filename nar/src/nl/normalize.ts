@@ -1,9 +1,9 @@
-import { getOrInsert, LruCache, splitWords } from '@senars/util';
+import { escapeRegExp, getOrInsert, LruCache, splitWords } from '@senars/util';
 import type { Term } from '../terms';
 import { COPULA_SYMBOLS, isValidAtomSymbol, termParser, toAtomSymbol } from '../terms';
 
 /** Built once from the operator table; every symbol here is regex-significant. */
-const escaped = COPULA_SYMBOLS.map((symbol) => symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+const escaped = COPULA_SYMBOLS.map(escapeRegExp);
 const COPULA = new RegExp(`(?:${escaped.join('|')})`);
 const BARE_COPULA = new RegExp(`\\)\\s*(?:${escaped.join('|')})\\s*\\(`);
 const BINARY_OPS = COPULA_SYMBOLS;

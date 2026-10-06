@@ -346,3 +346,43 @@ let defaultRuntime: ProviderRuntime | undefined;
 
 /** Process-wide default instance backing the module-level provider API. */
 export const getProviderRuntime = (): ProviderRuntime => (defaultRuntime ??= new ProviderRuntime());
+
+/** The {@link ProviderRuntime} keys that are callable — what {@link delegate} covers. */
+export type RuntimeMethod = {
+  [K in keyof ProviderRuntime]-?: ProviderRuntime[K] extends (...args: never[]) => unknown
+    ? K
+    : never;
+}[keyof ProviderRuntime];
+
+/**
+ * A runtime method as a module-level function: the method's own arguments, then
+ * an optional runtime. Twenty-nine call sites were the same three lines —
+ * `(args, rt = getProviderRuntime()) => rt.method(args)` — which means the
+ * ambient/scoped choice was re-derived per function and a signature that drifted
+ * from the method it forwards to still compiled. Here the two cannot differ,
+ * because the type is the method's.
+ */
+export type Delegated<K extends RuntimeMethod> = (
+  ...args: [...Parameters<ProviderRuntime[K]>, ProviderRuntime?]
+) => ReturnType<ProviderRuntime[K]>;
+
+/** A runtime field as a module-level read. */
+export type DelegatedRead<K extends keyof ProviderRuntime> = (
+  rt?: ProviderRuntime
+) => ProviderRuntime[K];
+
+const resolve = (args: unknown[]): ProviderRuntime =>
+  args.at(-1) instanceof ProviderRuntime
+    ? (args.pop() as ProviderRuntime)
+    : getProviderRuntime();
+
+/** Bind one `ProviderRuntime` method to the module-level provider API. */
+export const delegate = <K extends RuntimeMethod>(key: K): Delegated<K> =>
+  ((...args: unknown[]) => {
+    const rt = resolve(args);
+    return (rt[key] as (...a: unknown[]) => unknown).apply(rt, args);
+  }) as Delegated<K>;
+
+/** Bind one `ProviderRuntime` field to the module-level provider API. */
+export const readField = <K extends keyof ProviderRuntime>(key: K): DelegatedRead<K> =>
+  (rt) => (rt ?? getProviderRuntime())[key];

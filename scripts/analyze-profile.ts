@@ -51,7 +51,7 @@ const sorted = Array.from(sampleCounts.entries())
 console.log('\nTop 50 functions by exclusive sample count:');
 for (const [nodeId, count] of sorted) {
   const share = pct(count / samples.length);
-  console.log(`  ${share}% (${count}) ${getFunctionName(nodeId)}`);
+  console.log(`  ${share} (${count}) ${getFunctionName(nodeId)}`);
 }
 
 // Also calculate inclusive (walk up the tree)
@@ -85,7 +85,7 @@ const sortedInclusive = Array.from(inclusiveCounts.entries())
 console.log('\nTop 50 functions by inclusive sample count:');
 for (const [nodeId, count] of sortedInclusive) {
   const share = pct(count / samples.length);
-  console.log(`  ${share}% (${count}) ${getFunctionName(nodeId)}`);
+  console.log(`  ${share} (${count}) ${getFunctionName(nodeId)}`);
 }
 
 console.log(`\nTotal samples: ${samples.length}`);

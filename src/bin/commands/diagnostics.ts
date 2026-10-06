@@ -70,7 +70,7 @@ export const diagnosticCommandsFor = (rt: BotRuntime) => [
       best = Math.max(
         best,
         rlfp.calculateReward({
-          testPassRate: 0.8,
+          passRate: 0.8,
           avgTestDuration: 90,
           coverageDelta: 0.01,
           memoryOverage: 0.05,

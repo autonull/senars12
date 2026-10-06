@@ -21,6 +21,7 @@
 import { createNAR } from '../nar/src/nar-presets.js';
 import { byRelevance, relevanceScore, RELEVANCE_CONTAINMENT } from '../nar/src/query/index.js';
 import { termParser, Truth, type Term } from '../nar/src/terms/index.js';
+import { report } from './lib/verdicts.js';
 
 const FOCUS = '(kitty-->mortal)';
 
@@ -96,10 +97,4 @@ if (control.memory.listConcepts().length !== ranked.memory.listConcepts().length
 await control.dispose();
 await ranked.dispose();
 
-if (failures.length > 0) {
-  console.error(`\nrelevance:measured — ${failures.length} violation(s)\n`);
-  for (const failure of failures) console.error(`  ${failure}`);
-  process.exit(1);
-}
-
-console.log('\nrelevance:measured — clean');
+report('relevance:measured', failures, { clean: 'clean' });

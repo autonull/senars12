@@ -792,7 +792,7 @@ _Dynamic subpath (no single entry file)._
 
 - `probeModelsEndpoint` — Probe an OpenAI-compatible `/models` endpoint; auth sent only when a key is available.
 
-- `configureLM`
+- `configureLM` — Install file/config-derived settings (env still wins at read time).
 
 - `createSeNARSRegistry`
 
@@ -874,7 +874,7 @@ _Dynamic subpath (no single entry file)._
 
 - `buildCacheKey` — The key covers every field that can change a completion, in a fixed order.
 
-- `ResponseCache` — Prompt-hash-keyed semantic cache with 60s TTL. Cleared on failure so retries
+- `ResponseCache` — Prompt-hash-keyed semantic cache with a 60s TTL, cleared on failure so a retry
 
 - `LMUnavailableError` — Typed error for provider/transport failures (offline fallbacks, re-probing).
 

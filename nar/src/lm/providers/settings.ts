@@ -1,19 +1,10 @@
 import type { LMSettings, LMSettingsInput } from '../env-config.js';
-import {
-  getProviderRuntime,
-  type LMProviderName,
-  type ProviderRuntime,
-} from '../provider-runtime.js';
+import { delegate, type LMProviderName } from '../provider-runtime.js';
 
-export const configureLM = (
-  settings: LMSettingsInput,
-  rt: ProviderRuntime = getProviderRuntime()
-): void => {
-  rt.configureLM(settings);
-};
+/** Install file/config-derived settings (env still wins at read time). */
+export const configureLM = delegate('configureLM');
 
 /** Active settings, lazily resolved from env (+ anything installed via configureLM). */
-export const getLMSettings = (rt: ProviderRuntime = getProviderRuntime()): LMSettings =>
-  rt.getLMSettings();
+export const getLMSettings = delegate('getLMSettings');
 
 export const getLmProvider = (): LMProviderName => getLMSettings().provider;

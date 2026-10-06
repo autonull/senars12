@@ -80,7 +80,7 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
           timeoutMs: 500,
         },
       ])
-    ).toContainEqual({ id: 'bad', rule: 'synthesis-at-boundary', detail: expect.any(String) });
+    ).toContainEqual({ at: 'bad', rule: 'synthesis-at-boundary', detail: expect.any(String) });
   });
 
   it('refuses a judgment query that declines to say Belief or Goal', () => {
@@ -98,7 +98,7 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
           timeoutMs: 500,
         },
       ])
-    ).toContainEqual({ id: 'bad', rule: 'judgment-axis', detail: expect.any(String) });
+    ).toContainEqual({ at: 'bad', rule: 'judgment-axis', detail: expect.any(String) });
   });
 
   it('refuses a site whose timeout disables the ask deadline', () => {
@@ -116,7 +116,7 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
           timeoutMs: 0,
         },
       ])
-    ).toContainEqual({ id: 'bad', rule: 'ask-timeout', detail: expect.any(String) });
+    ).toContainEqual({ at: 'bad', rule: 'ask-timeout', detail: expect.any(String) });
   });
 
   it('every declared site carries a positive ask timeout of its own', () => {
@@ -139,7 +139,7 @@ describe('TODO29.a A11 — the manifest is a claim about the tree', () => {
           timeoutMs: 500,
         },
       ])
-    ).toContainEqual({ id: 'bad', rule: 'budget-scope', detail: expect.any(String) });
+    ).toContainEqual({ at: 'bad', rule: 'budget-scope', detail: expect.any(String) });
   });
 });
 

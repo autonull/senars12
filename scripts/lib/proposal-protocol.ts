@@ -16,6 +16,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { ROOT } from './root.js';
+import type { Verdict } from './verdicts.js';
 
 export const PROTOCOL_DOC = 'docs/proposal-protocol.md';
 
@@ -91,10 +92,7 @@ export const scanProtocol = (): ProtocolSubject => {
 const fieldsOf = (source: string): readonly string[] =>
   [...source.matchAll(/^ {4}(\w+):/gm)].map(([, field]) => field ?? '').filter(Boolean);
 
-export interface ProtocolViolation {
-  rule: string;
-  detail: string;
-}
+export type ProtocolViolation = Pick<Verdict, 'rule' | 'detail'>;
 
 export const protocolViolations = (subject: ProtocolSubject): ProtocolViolation[] => {
   const rules: Array<[string, () => boolean, string]> = [

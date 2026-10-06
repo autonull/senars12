@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { ApprovalService } from '@senars/core';
-import type { CapabilityRisk } from '@senars/util';
+import type { CapabilityRisk, Result } from '@senars/util';
 import { ensureParentDir, errMsg } from '@senars/util';
 import type { CognitiveController } from '../../../cognitive/impls/CognitiveController.js';
 import type { NAR } from '../../../nar.js';
@@ -35,7 +35,13 @@ export interface ShadowSession {
   readonly id: string;
 }
 
-export type ShadowOutcome<T> = { ok: true; value: T } | { ok: false; error: string };
+/**
+ * What a shadow change reports: the value it produced, or why there is none. One
+ * shape for both the worktree acquisition and the change itself, so a caller
+ * reads the arm and the tool never has to decide which of two look-alike unions
+ * it is holding.
+ */
+export type ShadowOutcome<T> = Result<T, string>;
 
 /**
  * Acquire a shadow worktree, run `body` against it, and always clean up a
@@ -111,23 +117,21 @@ export async function applyAndValidate<T extends { success: boolean }>(
   );
 }
 
-/** Whether the change happened at all. A codemod that rewrote nothing is not a
- *  change that failed validation; it is a change that never happened, and it
- *  never reaches the test suite. */
-export type ShadowApplied<T> = { ok: true; value: T } | { ok: false; error: string };
-
 /** The risk a landing carries: self-written code reaching the working tree.
- *  `high` is the tier that "waits for a human" (\u00a7CapabilityRisk). */
+ *  `high` is the tier that "waits for a human" (§CapabilityRisk). */
 const LANDING_RISK = 'high' satisfies CapabilityRisk;
 
 /**
  * A change to prove in a shadow worktree, and the policy for landing it.
  *
- * `apply` reports what it produced, because what it produced is what the tool
- * reports: a codemod's match count is the evidence the change did anything.
+ * `apply` reports a `ShadowOutcome`: what it produced, because what it produced
+ * is what the tool reports. A codemod's match count is the evidence the
+ * change did anything, and `ok: false` is the evidence it did not — which is not
+ * the same claim as a validation failure, so it is its own arm rather than a
+ * thrown error the caller has to distinguish.
  */
 export interface ShadowChange<T = void> {
-  readonly apply: (session: ShadowSession) => Promise<ShadowApplied<T>>;
+  readonly apply: (session: ShadowSession) => Promise<ShadowOutcome<T>>;
   /** Reported when the worktree's own tests reject the change. */
   readonly validationError: string;
   /**

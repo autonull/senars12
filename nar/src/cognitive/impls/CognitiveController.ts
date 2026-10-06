@@ -1,4 +1,4 @@
-import { removeBy } from '@senars/util';
+import { removeBy, thaw } from '@senars/util';
 import {
   type CognitiveParameters,
   STRATEGY_SLOTS,
@@ -39,7 +39,7 @@ export class CognitiveController {
   ) {
     this.budgets = budgets ?? UNBUDGETED;
     // Own the parameter graph: callers may pass frozen defaults (TODO20 C3).
-    this.currentParams = structuredClone(params);
+    this.currentParams = thaw(params);
     this.adaptInterval = adaptInterval;
     this.validateSlots(params);
     this.inferenceController = this.buildInferenceController(params);
@@ -67,7 +67,7 @@ export class CognitiveController {
    */
   reconfigure(params: CognitiveParameters): void {
     this.validateSlots(params);
-    this.currentParams = structuredClone(params);
+    this.currentParams = thaw(params);
     this.buildInferenceController(this.currentParams);
   }
 
@@ -219,11 +219,11 @@ export class CognitiveController {
   }
 
   private adaptWithRLFP(): CognitiveParameters {
-    // P4 (TODO20): clone only the strategies subtree — the only part adaptation
-    // mutates — instead of structuredClone-ing the full parameter graph.
+    // P4 (TODO20): copy only the strategies subtree — the only part adaptation
+    // mutates — instead of copying the full parameter graph.
     const adapted = {
       ...this.currentParams,
-      strategies: structuredClone(this.currentParams.strategies),
+      strategies: thaw(this.currentParams.strategies),
     };
     if (this.rlfp && this.rlfp.preferences.length > 0) {
       adapted.strategies.lmRule.type = 'priority';

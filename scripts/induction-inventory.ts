@@ -38,6 +38,7 @@ import {
 } from './lib/induction-inventory.js';
 import { ROOT } from './lib/root.js';
 import { sourceFiles } from './lib/source-scan.js';
+import { report } from './lib/verdicts.js';
 
 const NAR_SRC = join(ROOT, 'nar/src');
 const LAYER_DIR = join(NAR_SRC, 'lm');
@@ -110,10 +111,8 @@ console.log(
     "assembly or agent-side, and is A2's subject.\n"
 );
 
-if (failures.length > 0) {
-  for (const failure of failures) console.error(`induction:inventory FAILED — ${failure.kind}`);
-  for (const failure of failures) console.error(`  ${failure.subject}: ${failure.detail}`);
-  process.exit(1);
-}
+report('induction:inventory', failures, {
+  lines: ({ kind, subject, detail }) => [`${kind} — ${subject}`, `  ${detail}`],
+});
 
 console.log('induction:inventory ok');

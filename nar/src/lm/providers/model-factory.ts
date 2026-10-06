@@ -16,7 +16,7 @@ import {
   type LMSettings,
 } from '../env-config.js';
 
-import { getProviderRuntime, type ProviderRuntime } from '../provider-runtime.js';
+import { delegate } from '../provider-runtime.js';
 import { createEmbeddedLlamaCppLanguageModel } from './embedded-llamacpp.js';
 import { createLlamaCppFetch, LLAMACPP_HOST_DEFAULT } from './llamacpp.js';
 import { createMockModel } from './mock-model.js';
@@ -60,14 +60,8 @@ export const localModel = (
 
 export const mockModel = (): LanguageModel => createMockLanguageModel() as unknown as LanguageModel;
 
-export const setBuiltinProgressCallback = (
-  cb: ModelDownloadProgressCallback | undefined,
-  rt: ProviderRuntime = getProviderRuntime()
-): void => {
-  rt.setBuiltinProgressCallback(cb);
-};
-export const getBuiltinProgressCallback = (rt: ProviderRuntime = getProviderRuntime()) =>
-  rt.getBuiltinProgressCallback();
+export const setBuiltinProgressCallback = delegate('setBuiltinProgressCallback');
+export const getBuiltinProgressCallback = delegate('getBuiltinProgressCallback');
 
 export function createSeNARSRegistry(settings?: LMSettings) {
   const s = settings ?? getLMSettings();

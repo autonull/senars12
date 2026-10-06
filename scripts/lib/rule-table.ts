@@ -14,6 +14,7 @@
  */
 import { escapeRegExp } from '@senars/util';
 import { importEdges, maskNonCode } from './imports.js';
+import type { Verdict } from './verdicts.js';
 import { lineAt, scanSubject } from './source-scan.js';
 
 export { lineAt };
@@ -22,11 +23,7 @@ const SCAN_ROOTS = ['nar/src', 'src'] as const;
 
 export { scanSubject };
 
-export interface LoadedDataViolation {
-  readonly at: string;
-  readonly rule: string;
-  readonly detail: string;
-}
+export type LoadedDataViolation = Verdict;
 
 /** The modules allowed to call the old global by name — it is deleted, so this is empty. */
 export const RETIRED_GLOBALS = ['RuleRegistry'] as const;

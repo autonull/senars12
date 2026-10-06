@@ -14,6 +14,7 @@
  */
 
 import { BUDGET_SCOPE_IDS, BUDGET_SCOPES } from '../../nar/src/kernel/budget-scopes.js';
+import type { Verdict } from './verdicts.js';
 
 export interface BudgetSpend {
   /** Repo-relative `file:line`. */
@@ -28,11 +29,7 @@ export interface BudgetSubject {
   readonly declaredOperations: readonly string[];
 }
 
-export type BudgetViolation = {
-  readonly rule: string;
-  readonly at: string;
-  readonly detail: string;
-};
+export type BudgetViolation = Verdict;
 
 /** The scope ids actually spent, in declaration order. */
 export const spentScopeIds = (spends: readonly BudgetSpend[]): string[] =>

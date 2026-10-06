@@ -3,7 +3,7 @@ import { PolicyOptimizer } from './PolicyOptimizer.js';
 import { PreferenceCollector } from './PreferenceCollector.js';
 import { ReasoningTrajectoryLogger, type TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import { RewardModel } from './RewardModel.js';
-import type { TaskOutcome } from './RLFPLearner.js';
+import type { TaskOutcome, TaskRewardMetrics } from './RLFPLearner.js';
 import { RLFPLearner } from './RLFPLearner.js';
 import {
   type CycleGrades,
@@ -16,6 +16,7 @@ export type {
   CycleGrades,
   CycleTrajectory,
   TaskOutcome,
+  TaskRewardMetrics,
   TrajectoryPair,
   TrajectoryStep,
   TunableKnob,

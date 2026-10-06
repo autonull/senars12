@@ -33,7 +33,15 @@ import {
   resolveOfflineTier,
   setRouting,
 } from '@senars/nar/lm';
-import { createLogger, errMsg, keyedBy, LM_TASKS, mapValues, parseFlags } from '@senars/util';
+import {
+  createLogger,
+  errMsg,
+  type HealthReport,
+  keyedBy,
+  LM_TASKS,
+  mapValues,
+  parseFlags,
+} from '@senars/util';
 import { loadConfig } from '../../config/index.js';
 import { credentialReport } from './doctor-checks.js';
 
@@ -113,7 +121,7 @@ interface DoctorOutput {
   };
   routingLog?: { enabled: boolean; bufferSize: number; logPath: string };
   benchmarks?: unknown[];
-  deep?: { ready: boolean; checks: Record<string, { ok: boolean; detail: string }> };
+  deep?: HealthReport;
 }
 
 const main = async (): Promise<void> => {

@@ -1,4 +1,5 @@
 import { lineAt, scanSubject as readSubject } from './source-scan.js';
+import type { Verdict } from './verdicts.js';
 
 /** The production trees the surface is declared over. */
 const SCAN_ROOTS = ['nar/src', 'src'] as const;
@@ -65,11 +66,7 @@ const PRIORITY_ASSIGNMENT = /\.priority\s*(=[^=]|\+=|-=|\*=|\/=)/;
 /** `concept.writeAttention({ reason: … })` — the sanctioned shape. */
 const WRITE_ATTENTION = /writeAttention\(\{\s*reason:\s*'([a-z-]+)'/g;
 
-export interface SurfaceViolation {
-  readonly rule: string;
-  readonly at: string;
-  readonly detail: string;
-}
+export type SurfaceViolation = Verdict;
 
 /** Every `writeAttention` call in the tree, paired with the reason it names. */
 export const writeSites = ({ files }: SurfaceSubject): WriteSite[] =>

@@ -26,8 +26,9 @@
 import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { lineAt, sourceFiles } from './lib/layer-boundary.js';
+import { maskNonCode } from './lib/imports.js';
 import { ROOT } from './lib/root.js';
+import { lineAt, sourceFiles } from './lib/source-scan.js';
 
 const SOURCE_ROOTS = ['src', 'core/src', 'nar/src', 'io/src', 'metta/src', 'util/src', 'ui/src'];
 
@@ -83,19 +84,6 @@ const IDIOMS: readonly { readonly primitive: string; readonly pattern: RegExp }[
 
 const declared = new Set(DECLARED.map((site) => join(ROOT, site.file)));
 
-/**
- * Blank out the prose, keeping every offset and newline.
- *
- * A mention in prose documents the primitive; it does not re-implement it. Masking
- * rather than skipping whole lines keeps the byte offsets of the code identical to
- * the source, so a match reports the line the author actually wrote.
- */
-const maskComments = (source: string): string =>
-  source
-    .split('\n')
-    .map((line) => (/^\s*(\/\*|\*|\/\/)/.test(line) ? ' '.repeat(line.length) : line))
-    .join('\n');
-
 interface Violation {
   readonly at: string;
   readonly primitive: string;
@@ -108,7 +96,7 @@ for (const root of SOURCE_ROOTS) {
   for (const file of sourceFiles(join(ROOT, root))) {
     if (!file.endsWith('.ts') || declared.has(file)) continue;
     const source = readFileSync(file, 'utf-8');
-    const code = maskComments(source);
+    const code = maskNonCode(source);
     for (const { primitive, pattern } of IDIOMS) {
       for (const match of code.matchAll(pattern)) {
         const offset = match.index ?? 0;

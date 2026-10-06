@@ -9,8 +9,8 @@ import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
 import type { CognitiveParameters } from '@senars/nar/config/cognitive-parameters';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters';
-import { createKnobSet, RLFPLearner } from '@senars/nar/rlfp';
-import { formatDuration, parseFlags, pct, section, sleep } from '@senars/util';
+import { createKnobSet, RLFPLearner, type TaskRewardMetrics } from '@senars/nar/rlfp';
+import { formatDuration, parseFlags, pct, section, sleep, thaw } from '@senars/util';
 import { runEntrypoint } from './fatal-error.js';
 
 interface TuneOptions {
@@ -20,13 +20,8 @@ interface TuneOptions {
   threshold?: number;
 }
 
-interface Metrics {
-  testPassRate: number;
-  avgTestDuration: number;
-  coverageDelta: number;
-  memoryOverage: number;
-  cpuThrottleTime: number;
-  baselineDuration: number;
+/** What one tune round measured: the reward's inputs, plus the reward. */
+interface Metrics extends TaskRewardMetrics {
   reward: number;
 }
 
@@ -89,7 +84,7 @@ function collectMetrics(
   const cpuThrottleTime = Math.random() * 10;
 
   const reward = rlfp.calculateReward({
-    testPassRate: testResults.passRate,
+    passRate: testResults.passRate,
     avgTestDuration: testResults.avgDuration,
     coverageDelta: testResults.coverage - prevCoverage,
     memoryOverage,
@@ -98,7 +93,7 @@ function collectMetrics(
   });
 
   return {
-    testPassRate: testResults.passRate,
+    passRate: testResults.passRate,
     avgTestDuration: testResults.avgDuration,
     coverageDelta: testResults.coverage - prevCoverage,
     memoryOverage,
@@ -110,9 +105,13 @@ function collectMetrics(
 
 function printMetrics(label: string, metrics: Metrics, params: CognitiveParameters): void {
   console.log(section(label, 60));
-  console.log(`  Test Pass Rate:     ${pct(metrics.testPassRate)}`);
+  console.log(`  Test Pass Rate:     ${pct(metrics.passRate)}`);
   console.log(`  Avg Test Duration:  ${formatDuration(metrics.avgTestDuration)}`);
-  console.log(`  Baseline Duration:  ${formatDuration(metrics.baselineDuration)}`);
+  console.log(
+    `  Baseline Duration:  ${
+      metrics.baselineDuration === undefined ? 'none yet' : formatDuration(metrics.baselineDuration)
+    }`
+  );
   console.log(`  Coverage Delta:     ${pct(metrics.coverageDelta)}`);
   console.log(`  Memory Overage:     ${pct(metrics.memoryOverage)}`);
   console.log(`  CPU Throttle:       ${formatDuration(metrics.cpuThrottleTime)}`);
@@ -159,7 +158,7 @@ async function main(): Promise<void> {
   console.log(`Running ${options.iterations} iterations...\n`);
 
   const rlfp = new RLFPLearner({
-    currentParams: structuredClone(DEFAULT_COGNITIVE_PARAMETERS),
+    currentParams: thaw(DEFAULT_COGNITIVE_PARAMETERS),
   });
 
   let prevCoverage = 0.5;
@@ -171,7 +170,7 @@ async function main(): Promise<void> {
   const initialMetrics = collectMetrics(rlfp, prevCoverage, options.baselineDuration);
   printMetrics('📊 INITIAL METRICS', initialMetrics, rlfp.currentParams);
   initialReward = initialMetrics.reward;
-  prevCoverage = initialMetrics.testPassRate;
+  prevCoverage = initialMetrics.passRate;
 
   for (let i = 1; i <= options.iterations; i++) {
     console.log(`\n🔄 Iteration ${i}/${options.iterations}`);
@@ -186,7 +185,7 @@ async function main(): Promise<void> {
     // Track best
     if (metrics.reward > bestReward) {
       bestReward = metrics.reward;
-      bestParams = structuredClone(rlfp.currentParams);
+      bestParams = thaw(rlfp.currentParams);
       const improvement = ((bestReward - initialReward) / Math.abs(initialReward)) * 100;
       console.log(
         `  🏆 NEW BEST REWARD: ${bestReward.toFixed(4)} (${pct(improvement / 100)} improvement)`
@@ -199,7 +198,7 @@ async function main(): Promise<void> {
       }
     }
 
-    prevCoverage = metrics.testPassRate;
+    prevCoverage = metrics.passRate;
   }
 
   console.log(section('🏁 TUNING COMPLETE', 60));
