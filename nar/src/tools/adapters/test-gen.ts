@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { ensureDir, errMsg } from '@senars/util';
+import { intBetween } from '@senars/util/config';
 import { tool } from 'ai';
 import * as fc from 'fast-check';
 import { z } from 'zod';
@@ -120,11 +121,7 @@ export function createTestGenTools(deps: TestGenDeps = {}) {
         schemaName: z
           .enum(['ConnectionConfig', 'AgentOptions'])
           .describe('Name of the schema to generate tests for'),
-        sampleCount: z
-          .number()
-          .int()
-          .min(1)
-          .max(100)
+        sampleCount: intBetween(1, 100)
           .optional()
           .default(10)
           .describe('Number of test samples to generate'),

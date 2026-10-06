@@ -8,6 +8,7 @@
  */
 
 import { parseOrThrow } from '@senars/util';
+import { nonNegativeInt, positiveInt } from '@senars/util/config';
 import { z } from 'zod';
 
 /** The five declared budget scopes (TODO29.a §5.7). */
@@ -34,10 +35,10 @@ export const TerminationReasonSchema = z.enum([
 ]);
 
 export const ConsumedBudgetSchema = z.object({
-  cycles: z.number().int().nonnegative().default(0),
-  depth: z.number().int().nonnegative().default(0),
-  memoryOps: z.number().int().nonnegative().default(0),
-  llmCalls: z.number().int().nonnegative().default(0),
+  cycles: nonNegativeInt.default(0),
+  depth: nonNegativeInt.default(0),
+  memoryOps: nonNegativeInt.default(0),
+  llmCalls: nonNegativeInt.default(0),
 });
 
 /**
@@ -76,11 +77,11 @@ export const zeroConsumed = (): ConsumedBudget => ({
 });
 
 export const ReasoningBudgetSchema = z.object({
-  maxCycles: z.number().int().positive(),
-  maxDepth: z.number().int().positive(),
-  maxMemoryOps: z.number().int().positive(),
-  maxLMCalls: z.number().int().nonnegative(),
-  wallclockDeadlineMs: z.number().int().positive().optional(),
+  maxCycles: positiveInt,
+  maxDepth: positiveInt,
+  maxMemoryOps: positiveInt,
+  maxLMCalls: nonNegativeInt,
+  wallclockDeadlineMs: positiveInt.optional(),
   abortSignal: z.unknown().optional(), // AbortSignal - cannot serialize, validated at runtime
   terminationReason: TerminationReasonSchema.optional(),
   consumed: ConsumedBudgetSchema.default(zeroConsumed),

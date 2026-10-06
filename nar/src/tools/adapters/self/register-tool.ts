@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { type SelfToolsContext, writeAndValidate } from './context.js';
+import { type SelfToolsContext, unavailable, writeAndValidate } from './context.js';
 
 export const registerToolTool = (ctx: SelfToolsContext) => {
   const { deps } = ctx;
@@ -15,9 +15,7 @@ export const registerToolTool = (ctx: SelfToolsContext) => {
       worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
     }),
     execute: async ({ toolName, toolCode, schema, description, worktreeId: existingId }) => {
-      if (!deps.nar || !deps.toolManager) {
-        return { success: false, error: 'NAR or ToolManager not available' };
-      }
+      if (!deps.nar || !deps.toolManager) return unavailable('NAR', 'ToolManager');
       const outcome = await writeAndValidate(ctx, 'tool', existingId, {
         file: `tools/${toolName}.ts`,
         contents: toolCode,

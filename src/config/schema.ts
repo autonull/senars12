@@ -3,11 +3,14 @@ import { LM_TASKS } from '@senars/util';
 import {
   dialogueDefaults,
   dialogueSchema,
+  intBetween,
   lmSettingsSchema,
   narCoreBounds,
   narCoreDefaults,
   narCoreDefaultsSchema,
   narCoreNumber,
+  nonEmpty,
+  positiveInt,
   type SystemOneConfig,
   systemOneDefaults,
   systemOneSchema,
@@ -132,7 +135,7 @@ export const backendsSchema = z
       .object({
         enabled: z.boolean().default(true),
         /** NAR inference cycles per engine step (`NARConfig.cyclesPerStep`). */
-        cyclesPerStep: z.number().int().positive().optional(),
+        cyclesPerStep: positiveInt.optional(),
       })
       .default({ enabled: true }),
   })
@@ -158,7 +161,7 @@ const ircDefaults = {
 
 export const ircSchema = z.object({
   server: z.string().default(ircDefaults.server),
-  port: z.number().int().positive().default(ircDefaults.port),
+  port: positiveInt.default(ircDefaults.port),
   useTLS: z.boolean().default(ircDefaults.useTLS),
   nick: z.string().default(ircDefaults.nick),
   channels: z.array(z.string()).default([]),
@@ -175,7 +178,7 @@ export const connectionsSchema = z.object({
       /** Env var holding the API key (overrides `apiKey`). */
       apiKeyEnv: z.string().optional(),
       /** Per-key request cap per minute on the SSE/HTTP transports. */
-      rateLimitPerMinute: z.number().int().positive().default(30),
+      rateLimitPerMinute: positiveInt.default(30),
     })
     .optional(),
 });
@@ -195,10 +198,10 @@ export const agentSectionSchema = z
   .object({
     name: z.string().optional(),
     persona: z.string().optional(),
-    maxLoops: z.number().int().min(0).max(50).default(agentDefaults.maxLoops),
-    reasoningIntervalMs: z.number().int().positive().default(agentDefaults.reasoningIntervalMs),
-    sessionHistoryLimit: z.number().int().positive().default(agentDefaults.sessionHistoryLimit),
-    rateLimitPerMinute: z.number().int().positive().default(agentDefaults.rateLimitPerMinute),
+    maxLoops: intBetween(0, 50).default(agentDefaults.maxLoops),
+    reasoningIntervalMs: positiveInt.default(agentDefaults.reasoningIntervalMs),
+    sessionHistoryLimit: positiveInt.default(agentDefaults.sessionHistoryLimit),
+    rateLimitPerMinute: positiveInt.default(agentDefaults.rateLimitPerMinute),
     enableNlTranslation: z.boolean().default(agentDefaults.enableNlTranslation),
     enableNarseseHumanization: z.boolean().default(agentDefaults.enableNarseseHumanization),
     systemInstructions: z.string().max(16_000).optional(),
@@ -220,17 +223,17 @@ export const botConfigSchema = z.object({
   skills: z
     .array(
       z.object({
-        id: z.string().min(1),
+        id: nonEmpty,
         description: z.string().optional(),
-        instructions: z.string().min(1),
+        instructions: nonEmpty,
         enabled: z.boolean().default(true),
       })
     )
     .default([]),
   conversation: z
     .object({
-      maxHistory: z.number().int().positive().default(conversationDefaults.maxHistory),
-      summaryThreshold: z.number().int().positive().default(conversationDefaults.summaryThreshold),
+      maxHistory: positiveInt.default(conversationDefaults.maxHistory),
+      summaryThreshold: positiveInt.default(conversationDefaults.summaryThreshold),
     })
     .default(conversationDefaults),
   lmRules: z
@@ -258,7 +261,7 @@ const appConfigBase = z.object({
         .object({
           enabled: z.boolean().default(senarsCapabilityDefaults.enabled),
           memoryFile: z.string().optional(),
-          maxConcepts: z.number().int().positive().optional(),
+          maxConcepts: positiveInt.optional(),
         })
         .default({ ...senarsCapabilityDefaults }),
     })

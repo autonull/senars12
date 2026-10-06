@@ -19,6 +19,7 @@
  */
 
 import { parseOrThrow } from '@senars/util';
+import { nonEmpty, nonNegativeInt, positiveInt } from '@senars/util/config';
 import { z } from 'zod';
 import { RulePatternSchema } from './common.js';
 import { TaskTypeSchema } from './task.js';
@@ -42,12 +43,12 @@ export const RuleProvenanceSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('proposal'),
     /** The proposal that produced it — the same id as the committed event. */
-    proposalId: z.string().min(1),
+    proposalId: nonEmpty,
     /** The producer that proposed it, for the operator-facing audit surface. */
-    producer: z.string().min(1).optional(),
+    producer: nonEmpty.optional(),
   }),
   /** Deserialised from a persisted artifact rather than built in. */
-  z.object({ kind: z.literal('import'), source: z.string().min(1) }),
+  z.object({ kind: z.literal('import'), source: nonEmpty }),
 ]);
 
 export type RuleProvenance = z.infer<typeof RuleProvenanceSchema>;
@@ -58,13 +59,13 @@ export type RuleProvenance = z.infer<typeof RuleProvenanceSchema>;
  * does not declare its kinds does not register.
  */
 export const RuleDeclarationSchema = z.object({
-  ruleId: z.string().min(1),
+  ruleId: nonEmpty,
   description: z.string(),
   ...RulePatternSchema.shape,
   /** The name of the truth function the rule dispatches through, e.g. `deduction`. */
-  truthFn: z.string().min(1),
+  truthFn: nonEmpty,
   /** The name the body resolves under, e.g. `deduction` in `NALRules`. */
-  body: z.string().min(1),
+  body: nonEmpty,
   priority: z.number(),
   taskType: TaskTypeSchema.optional(),
 });
@@ -80,13 +81,13 @@ export type RuleDeclaration = z.infer<typeof RuleDeclarationSchema>;
  */
 export const RuleArtifactEntrySchema = RuleDeclarationSchema.extend({
   /** The artifact version this entry was declared under. */
-  artifactVersion: z.string().min(1),
+  artifactVersion: nonEmpty,
   /** The table revision this entry became part of. Monotonic. */
-  ruleSetRevision: z.number().int().nonnegative(),
+  ruleSetRevision: nonNegativeInt,
   /** The base revision the admission was judged against; `null` for a builtin. */
-  parentRevision: z.number().int().nonnegative().nullable(),
+  parentRevision: nonNegativeInt.nullable(),
   /** The declaration's own schema version, so one entry can be migrated alone. */
-  ruleSchemaVersion: z.number().int().positive(),
+  ruleSchemaVersion: positiveInt,
   provenance: RuleProvenanceSchema,
   /** The `proposal.admitted` event, when there was one. The log and the table cannot disagree. */
   eventId: z.string().optional(),
@@ -96,10 +97,10 @@ export type RuleArtifactEntry = z.infer<typeof RuleArtifactEntrySchema>;
 
 /** A whole table at a revision: the unit that is loaded, recorded and restored. */
 export const RuleTableSchema = z.object({
-  schemaVersion: z.number().int().positive(),
-  artifactVersion: z.string().min(1),
+  schemaVersion: positiveInt,
+  artifactVersion: nonEmpty,
   /** The revision this artifact states. Not inferred from the entries. */
-  revision: z.number().int().nonnegative(),
+  revision: nonNegativeInt,
   entries: z.array(RuleArtifactEntrySchema),
 });
 

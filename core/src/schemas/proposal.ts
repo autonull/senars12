@@ -14,13 +14,13 @@
  */
 
 import { parseOrThrow } from '@senars/util';
+import { nonEmpty, nonNegativeInt, positiveInt, unitInterval } from '@senars/util/config';
 import { z } from 'zod';
 import { RulePatternSchema } from './common.js';
 import { CognitiveEventBaseSchema, PROPOSER_ORIGIN } from './event-base.js';
 import { RuleDeclarationSchema } from './rule-table.js';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
-import { unitInterval } from '@senars/util/config';
 
 /**
  * The wire version of the proposal contract. A run recorded against one version
@@ -39,17 +39,17 @@ export const PROPOSAL_SCHEMA_VERSION = 2;
 export const PROPOSAL_KINDS = ['content', 'rule'] as const;
 
 const EnvelopeSchema = z.object({
-  proposalId: z.string().min(1),
-  schemaVersion: z.number().int().positive(),
+  proposalId: nonEmpty,
+  schemaVersion: positiveInt,
   /**
    * The committed revision the proposer observed. A proposal whose base is
    * behind the revision at the boundary is **stale** and is rejected — applying
    * it would resolve a conflict the proposer could not have seen (§3.3).
    */
-  baseRevision: z.number().int().nonnegative(),
+  baseRevision: nonNegativeInt,
   /** Cycles between proposals: the trigger is a work budget, never a wall clock. */
-  cyclesPerProposal: z.number().int().positive(),
-  issuedAtCycle: z.number().int().nonnegative(),
+  cyclesPerProposal: positiveInt,
+  issuedAtCycle: nonNegativeInt,
   /**
    * Terms this proposal read. On the envelope because both kinds read them and
    * the applicability rule checks them identically — hoisting it also leaves the
@@ -67,7 +67,7 @@ export const ContentProposalSchema = EnvelopeSchema.extend({
   kind: z.literal('content'),
   payload: z.object({
     taskType: TaskTypeSchema,
-    term: z.string().min(1),
+    term: nonEmpty,
     truth: TruthValueSchema.optional(),
   }),
 });
@@ -79,11 +79,11 @@ export const ContentProposalSchema = EnvelopeSchema.extend({
  */
 export const RuleProposalSchema = EnvelopeSchema.extend({
   payload: z.object({
-    ruleId: z.string().min(1),
-    name: z.string().min(1),
+    ruleId: nonEmpty,
+    name: nonEmpty,
     pattern: RulePatternSchema,
     /** The named truth function the rule dispatches through. */
-    truthFn: z.string().min(1),
+    truthFn: nonEmpty,
     priority: unitInterval,
     /** The NAL rule body implementation name (e.g., 'nal.deduction'). Optional in wire format; validated at the boundary. */
     body: z.string().optional(),
@@ -123,7 +123,7 @@ export const ProposalRejectedEventSchema = CognitiveEventBaseSchema.extend({
     reason: z.enum(PROPOSAL_REJECTIONS),
     detail: z.string(),
     /** The revision at the boundary the proposal was judged against. */
-    observedRevision: z.number().int().nonnegative(),
+    observedRevision: nonNegativeInt,
   }),
 });
 
@@ -133,10 +133,10 @@ export const ProposalAdmittedEventSchema = CognitiveEventBaseSchema.extend({
   payload: z.object({
     proposalId: z.string(),
     kind: z.enum(PROPOSAL_KINDS),
-    schemaVersion: z.number().int().positive(),
-    baseRevision: z.number().int().nonnegative(),
+    schemaVersion: positiveInt,
+    baseRevision: nonNegativeInt,
     /** The revision this admission produced. The event is the source of truth for it. */
-    resultingRevision: z.number().int().positive(),
+    resultingRevision: positiveInt,
     /**
      * A rule admission carries the declaration it admitted, so the table can be
      * reconstructed from the log alone (TODO29.a §5.10). Absent for a content

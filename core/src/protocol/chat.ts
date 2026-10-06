@@ -2,6 +2,7 @@
  * Chat protocol schemas
  */
 import { MessageRoleSchema } from '@senars/util';
+import { nonEmpty } from '@senars/util/config';
 import { z } from 'zod';
 import { TaskPunctuationSchema } from '../schemas/task.js';
 import { TruthValueSchema } from '../schemas/truth.js';
@@ -25,7 +26,7 @@ export type ChatMessage = z.infer<typeof ChatMessage>;
 
 export const ChatUserMsg = z.object({
   type: z.literal('chat.user'),
-  content: z.string().min(1).max(10000),
+  content: nonEmpty.max(10000),
 });
 export const ChatAgentStream = z.object({
   type: z.literal('chat.agent.stream'),

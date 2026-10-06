@@ -1,5 +1,5 @@
 import { errMsg, serializeTruth, type TruthLike, takeFirst, takeLast } from '@senars/util';
-import { unitInterval } from '@senars/util/config';
+import { intBetween, unitInterval } from '@senars/util/config';
 import { evaluateExpression } from '@senars/util/utils/eval';
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -138,7 +138,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
       description: 'Ask a question to NARS and attempt to derive an answer',
       inputSchema: z.strictObject({
         question: z.string().describe('Narsese question, e.g., "(cat --> ?)"'),
-        steps: z.number().min(1).max(100).optional().default(10),
+        steps: intBetween(1, 100).optional().default(10),
       }),
       execute: async ({ question, steps = 10 }) => {
         await nar.input(question);
@@ -155,7 +155,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
     nar_reason: tool({
       description: 'Run NARS reasoning engine for N steps to derive new beliefs',
       inputSchema: z.strictObject({
-        steps: z.number().min(1).max(100).describe('Number of reasoning steps (1-100)'),
+        steps: intBetween(1, 100).describe('Number of reasoning steps (1-100)'),
       }),
       execute: async ({ steps }) => {
         const derived = await nar.run(steps);
@@ -170,7 +170,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
     nar_get_beliefs: tool({
       description: 'Get current beliefs from NARS memory',
       inputSchema: z.strictObject({
-        limit: z.number().min(1).max(100).optional().default(20),
+        limit: intBetween(1, 100).optional().default(20),
         filter: z
           .object({
             minConfidence: z.number().optional(),
@@ -227,7 +227,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
     nar_get_goals: tool({
       description: 'Get current goals from NARS memory',
       inputSchema: z.strictObject({
-        limit: z.number().min(1).max(100).optional().default(10),
+        limit: intBetween(1, 100).optional().default(10),
       }),
       execute: async ({ limit = 10 }) => {
         const goals = takeFirst(nar.getGoals() as unknown[], limit);

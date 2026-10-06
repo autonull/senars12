@@ -37,7 +37,7 @@ import { ACCUMULATOR_LEDGER } from './accumulator-ledger.js';
 import { circularChainsAsync } from './dpdm.js';
 import { readExports } from './pkg.js';
 import { ROOT } from './root.js';
-import { ALL_SOURCE_ROOTS, productionSources } from './source-scan.js';
+import { productionSources, WORKSPACE_SOURCE_ROOTS } from './source-scan.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -76,7 +76,7 @@ export interface Verdict {
 
 const PACKAGES = ['nar', 'util', 'core', 'io', 'metta'];
 
-const SOURCE_ROOTS = ALL_SOURCE_ROOTS;
+const SOURCE_ROOTS = WORKSPACE_SOURCE_ROOTS;
 
 export const readBudget = (path: string): BudgetConfig =>
   JSON.parse(readFileSync(path, 'utf-8')) as BudgetConfig;

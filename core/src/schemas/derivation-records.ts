@@ -4,12 +4,13 @@
  */
 
 import { parseOrThrow } from '@senars/util';
+import { nonNegativeInt, timestamp, uuid } from '@senars/util/config';
 import { z } from 'zod';
 import { IndependenceSchema } from './common.js';
 import { TruthValueSchema } from './truth.js';
 
 export const DerivationStepSchema = z.object({
-  stepId: z.string().uuid(),
+  stepId: uuid,
   ruleId: z.string(),
   ruleCategory: z.enum([
     'core',
@@ -35,19 +36,19 @@ export const DerivationStepSchema = z.object({
   truthFn: z.string().optional(),
   substitution: z.record(z.string(), z.string()).optional(), // Variable bindings
   premiseTruths: z.array(TruthValueSchema).optional(), // Truth of each premise, in order — enables standalone truth-algebra verification
-  evidenceLineage: z.array(z.string().uuid()), // Parent derivation IDs
+  evidenceLineage: z.array(uuid), // Parent derivation IDs
   independence: IndependenceSchema,
 });
 
 export const DerivationRecordSchema = z.object({
-  derivationId: z.string().uuid(),
-  taskId: z.string().uuid(),
+  derivationId: uuid,
+  taskId: uuid,
   goalTerm: z.string(),
   steps: z.array(DerivationStepSchema),
   finalTruth: TruthValueSchema,
-  totalCycles: z.number().int().nonnegative(),
-  maxDepthReached: z.number().int().nonnegative(),
-  timestamp: z.number().int().positive(),
+  totalCycles: nonNegativeInt,
+  maxDepthReached: nonNegativeInt,
+  timestamp: timestamp,
   engine: z.literal('nar'),
 });
 

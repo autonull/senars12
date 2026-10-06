@@ -28,6 +28,7 @@ const ATTENTION_MODELS = {
 } as const satisfies Record<string, (boost: number) => AttentionModel>;
 
 import { rngFrom } from '@senars/util';
+import { nonNegativeInt, positiveInt, unitInterval } from '@senars/util/config';
 import {
   AllSelector,
   AnytimeDerivation,
@@ -64,7 +65,6 @@ import {
 import { CompositeSampling } from '../../strategies/sampling/CompositeSampling.js';
 import { defineScoredSampling } from '../../strategies/sampling/scored.js';
 import type { Strategy, StrategyType } from '../../strategies/types.js';
-import { unitInterval } from '@senars/util/config';
 
 /**
  * A `seed` in the config pins a strategy's own stream; absent one it draws from
@@ -76,7 +76,7 @@ const strategyRng = (seed: number | undefined, ambient: () => number): (() => nu
 
 const LINK_CONFIG = configSchema({
   minStrength: unitInterval.default(0.3),
-  limit: z.number().int().min(1).default(20),
+  limit: positiveInt.default(20),
 });
 
 type LinkCtor = new (config?: { minStrength?: number; limit?: number }) => Strategy;
@@ -128,7 +128,7 @@ const SAMPLED_CONFIG = configSchema({
   seed: z.number().optional(),
 });
 
-const ROTATION_CONFIG = configSchema({ offset: z.number().int().min(0).default(0) });
+const ROTATION_CONFIG = configSchema({ offset: nonNegativeInt.default(0) });
 
 /**
  * The one built-in that composes *other registered strategies by name*. Its
@@ -213,7 +213,7 @@ export const DEFAULT_REGISTRATIONS: StrategySlot = [
       name: 'windowed-roulette',
       description: 'Roulette over a sliding window of recent concepts',
       schema: configSchema({
-        windowSize: z.number().int().min(1).default(10),
+        windowSize: positiveInt.default(10),
         seed: z.number().optional(),
       }),
       factory: (config, { rng }) =>
@@ -255,8 +255,8 @@ export const DEFAULT_REGISTRATIONS: StrategySlot = [
       name: 'prolog-resolution',
       description: 'SLD resolution with unification, Horn clause backward chaining, occurs-check',
       schema: configSchema({
-        maxDepth: z.number().int().min(1).default(10),
-        maxResults: z.number().int().min(1).default(5),
+        maxDepth: positiveInt.default(10),
+        maxResults: positiveInt.default(5),
         occursCheck: z.boolean().default(true),
       }),
       factory: (config) =>

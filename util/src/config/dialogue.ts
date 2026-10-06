@@ -5,6 +5,7 @@
  * byte-identically to pre-flywheel behavior (I5).
  */
 import { z } from 'zod';
+import { positiveInt } from './boundary.js';
 
 export const dialogueDefaults = {
   enabled: false,
@@ -26,7 +27,7 @@ export const dialogueSchema = z.object({
   /** Capture every turn vs. grade-sampled + reacted turns only. */
   captureAll: z.boolean().default(dialogueDefaults.captureAll),
   /** Bounded per AIKR. */
-  maxTurnsPerSession: z.number().int().positive().default(dialogueDefaults.maxTurnsPerSession),
+  maxTurnsPerSession: positiveInt.default(dialogueDefaults.maxTurnsPerSession),
   autoRetrospect: z.boolean().default(dialogueDefaults.autoRetrospect),
   /** I6 relaxation: persist raw exchange text in a dedicated sidecar. Labels and
    *  retrospectives stay hash-only regardless. */

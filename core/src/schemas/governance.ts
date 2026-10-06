@@ -7,6 +7,7 @@
  * of a decision, and a patch is something a decision can be about.
  */
 import { type CapabilityRisk, CapabilityRiskSchema } from '@senars/util';
+import { nonNegativeInt, positiveInt, timestamp, uuid } from '@senars/util/config';
 import { z } from 'zod';
 
 export const AutonomyModeSchema = z.enum([
@@ -82,7 +83,7 @@ export const RewardDomainSchema = z.enum([
 export type RewardDomain = z.infer<typeof RewardDomainSchema>;
 
 export const PatchProposalSchema = z.object({
-  proposalId: z.string().uuid(),
+  proposalId: uuid,
   patchRef: z.string(),
   baseCommit: z.string(),
   patchDiff: z.string(),
@@ -90,7 +91,7 @@ export const PatchProposalSchema = z.object({
     test: z.boolean(),
     typecheck: z.boolean(),
     lint: z.boolean(),
-    durationMs: z.number().int().positive(),
+    durationMs: positiveInt,
   }),
   riskSelfAssessment: RiskLevelSchema,
   affectedComponents: z.array(
@@ -108,18 +109,18 @@ export const PatchProposalSchema = z.object({
     ])
   ),
   affectedFiles: z.array(z.string()),
-  linesAdded: z.number().int().nonnegative(),
-  linesRemoved: z.number().int().nonnegative(),
+  linesAdded: nonNegativeInt,
+  linesRemoved: nonNegativeInt,
   coverageDelta: z.number().optional(),
   rationale: z.string(),
-  timestamp: z.number().int().positive(),
+  timestamp: timestamp,
   agentSignature: z.string(),
   correlationId: z.string().optional(),
 });
 export type PatchProposal = z.infer<typeof PatchProposalSchema>;
 
 export const SelfImprovementProposalSchema = z.object({
-  proposalId: z.string().uuid(),
+  proposalId: uuid,
   kind: z.enum([
     'knob-tune',
     'focus-weight',
@@ -164,7 +165,7 @@ export const proposalRisk = (
 
 export const RiskAssessmentSchema = z.object({
   risk: RiskLevelSchema,
-  score: z.number().int().nonnegative(),
+  score: nonNegativeInt,
   factors: z.array(
     z.object({
       factor: z.string(),
@@ -179,17 +180,17 @@ export type RiskAssessment = z.infer<typeof RiskAssessmentSchema>;
 export const GovernanceDecisionSchema = z.object({
   action: z.enum(['AUTO_MERGE', 'CREATE_PR', 'REQUIRE_HUMAN_REVIEW', 'REJECT']),
   reason: z.string(),
-  reviewers: z.number().int().nonnegative().optional(),
+  reviewers: nonNegativeInt.optional(),
 });
 export type GovernanceDecision = z.infer<typeof GovernanceDecisionSchema>;
 
 export const GovernanceEventSchema = z.object({
-  eventId: z.string().uuid(),
-  proposalId: z.string().uuid(),
+  eventId: uuid,
+  proposalId: uuid,
   decision: z.enum(['AUTO_MERGED', 'PR_CREATED', 'HUMAN_REVIEW_REQUIRED', 'REJECTED']),
   riskLevel: RiskLevelSchema,
   autonomyMode: AutonomyModeSchema,
-  decidedAt: z.number().int().positive(),
+  decidedAt: timestamp,
   decidedBy: z.enum(['governance-runner', 'human-reviewer', 'security-team']),
 });
 export type GovernanceEvent = z.infer<typeof GovernanceEventSchema>;

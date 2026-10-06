@@ -1,4 +1,3 @@
-export { ConfigError } from './config.js';
 export { EngineError } from './engine.js';
 export { ConfigurationError, OperationError, ValidationError } from './nar-errors.js';
 export { PolicyViolation } from './policy.js';

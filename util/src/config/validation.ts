@@ -4,6 +4,7 @@
  */
 import { z } from 'zod';
 import { formatIssues } from '../utils/diagnostics.js';
+import { intBetween, nonEmpty, nonNegativeInt, positiveInt } from './boundary.js';
 import { cachePath } from './paths.js';
 
 export const contextOptsSchema = z
@@ -13,8 +14,8 @@ export const contextOptsSchema = z
     goals: z.union([z.boolean(), z.array(z.string())]).optional(),
     questions: z.union([z.boolean(), z.array(z.string())]).optional(),
     concepts: z.union([z.boolean(), z.array(z.string())]).optional(),
-    maxItems: z.number().int().positive().optional(),
-    recency: z.number().int().min(0).optional(),
+    maxItems: positiveInt.optional(),
+    recency: nonNegativeInt.optional(),
   })
   .strict()
   .partial();
@@ -24,9 +25,9 @@ export const agentOptionsSchema = z
     nar: z.unknown().optional(),
     lmService: z.unknown().optional(),
     episodicMemory: z.unknown().optional(),
-    systemInstructions: z.string().min(1).max(16_000).optional(),
+    systemInstructions: nonEmpty.max(16_000).optional(),
     context: contextOptsSchema.optional(),
-    maxLoops: z.number().int().min(0).max(50).default(5),
+    maxLoops: intBetween(0, 50).default(5),
     logger: z.unknown().optional(),
     persistKnowledge: z.boolean().default(false),
     knowledgePath: z.string().default(cachePath('agent-knowledge.json')),
@@ -34,9 +35,9 @@ export const agentOptionsSchema = z
     externalTools: z.any().optional(),
     approvalManager: z.any().optional(),
     autonomyEngine: z.any().optional(),
-    reasoningIntervalMs: z.number().int().min(0).optional(),
-    sessionHistoryLimit: z.number().int().min(0).optional(),
-    rateLimitPerMinute: z.number().int().min(0).optional(),
+    reasoningIntervalMs: nonNegativeInt.optional(),
+    sessionHistoryLimit: nonNegativeInt.optional(),
+    rateLimitPerMinute: nonNegativeInt.optional(),
     enableNlTranslation: z.boolean().optional(),
     enableNarseseHumanization: z.boolean().optional(),
   })

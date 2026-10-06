@@ -7,10 +7,11 @@
 import {
   BandDecisionSchema,
   CognitiveAxisSchema,
-  JudgmentShapeSchema,
   generateId,
+  JudgmentShapeSchema,
   parseOrThrow,
 } from '@senars/util';
+import { intBetween, nonNegativeInt, unitInterval, uuid } from '@senars/util/config';
 import { z } from 'zod';
 import { BudgetSchema, IndependenceSchema } from './common.js';
 import { CognitiveEventBaseSchema } from './event-base.js';
@@ -20,7 +21,6 @@ import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './prop
 import { BudgetTypeSchema, TerminationReasonSchema } from './reasoning-budget.js';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
-import { unitInterval } from '@senars/util/config';
 
 export { CognitiveEventBaseSchema, EngineOriginSchema } from './event-base.js';
 
@@ -39,7 +39,7 @@ export type StimulusSource = (typeof STIMULUS_SOURCES)[number];
 export const TaskAdmittedEventSchema = CognitiveEventBaseSchema.extend({
   type: z.literal('task.admitted'),
   payload: z.object({
-    taskId: z.string().uuid(),
+    taskId: uuid,
     term: z.string(),
     taskType: TaskTypeSchema,
     truth: TruthValueSchema.optional(),
@@ -51,12 +51,12 @@ export const TaskAdmittedEventSchema = CognitiveEventBaseSchema.extend({
 export const DerivationAcceptedEventSchema = CognitiveEventBaseSchema.extend({
   type: z.literal('derivation.accepted'),
   payload: z.object({
-    derivationId: z.string().uuid(),
+    derivationId: uuid,
     ruleId: z.string(),
     premises: z.array(z.string()),
     conclusion: z.string(),
     truth: TruthValueSchema,
-    evidenceLineage: z.array(z.string().uuid()),
+    evidenceLineage: z.array(uuid),
     independenceCheck: IndependenceSchema,
   }),
 });
@@ -68,7 +68,7 @@ export const BeliefRevisedEventSchema = CognitiveEventBaseSchema.extend({
     oldTruth: TruthValueSchema,
     newTruth: TruthValueSchema,
     /** Absent on the nar family's revision events: the engine records the rule, not the log. */
-    evidenceLineage: z.array(z.string().uuid()).optional(),
+    evidenceLineage: z.array(uuid).optional(),
     revisionRule: z.string().optional(),
   }),
 });
@@ -132,8 +132,8 @@ export const JudgmentResolvedEventSchema = CognitiveEventBaseSchema.extend({
     shape: JudgmentShapeSchema,
     axis: CognitiveAxisSchema,
     backendId: z.string(),
-    tier: z.number().int().min(0).max(3),
-    latencyMs: z.number().int().nonnegative(),
+    tier: intBetween(0, 3),
+    latencyMs: nonNegativeInt,
     entropy: z.number().optional(),
     abstained: z.boolean(),
     stampType: z.enum(['standard', 'provisional']),
@@ -146,9 +146,9 @@ export const JudgmentResolvedEventSchema = CognitiveEventBaseSchema.extend({
     inputDigest: z.string().optional(),
     decisionBand: BandDecisionSchema.optional(),
     cost: z.object({
-      tokensIn: z.number().int().nonnegative(),
-      tokensOut: z.number().int().nonnegative(),
-      computeMs: z.number().int().nonnegative(),
+      tokensIn: nonNegativeInt,
+      tokensOut: nonNegativeInt,
+      computeMs: nonNegativeInt,
       memoryMb: z.number().nonnegative(),
     }),
   }),

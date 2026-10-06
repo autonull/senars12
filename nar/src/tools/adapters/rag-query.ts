@@ -1,4 +1,5 @@
 import { errMsg, selectTopN } from '@senars/util';
+import { intBetween } from '@senars/util/config';
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
@@ -23,7 +24,7 @@ export function createRagQueryTools(deps: RagQueryDeps) {
         'Semantic search over episodic memory. Embeds the query and returns the most relevant past episodes by meaning, not just keywords.',
       inputSchema: z.strictObject({
         query: z.string().describe('The search query for semantic matching'),
-        limit: z.number().min(1).max(20).optional().default(topK).describe('Number of results'),
+        limit: intBetween(1, 20).optional().default(topK).describe('Number of results'),
         typeFilter: z
           .enum(['input', 'response', 'belief_added', 'question', 'tool_call', 'error'])
           .optional()

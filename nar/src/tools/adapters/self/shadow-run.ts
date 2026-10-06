@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { runProcess } from '../proc.js';
 import { SCENARIO_PROFILES } from '../scenario-profiles.js';
 import { parseVitestJson } from '../vitest-json.js';
-import { type SelfToolsContext, toToolResult, withShadowWorktree } from './context.js';
+import { type SelfToolsContext, toToolResult, unavailable, withShadowWorktree } from './context.js';
 
 export const runTestsShadowTool = (ctx: SelfToolsContext) =>
   tool({
@@ -42,9 +42,7 @@ export const runScenarioShadowTool = ({ deps }: SelfToolsContext) =>
       worktreeId: z.string().optional().describe('Existing worktree ID to use'),
     }),
     execute: async ({ seed, profile }) => {
-      if (!deps.nar) {
-        return { success: false, error: 'NAR not available' };
-      }
+      if (!deps.nar) return unavailable('NAR');
       // D6 honesty: seeded/profiled scenario execution is not implemented —
       // no simulated success with ignored seed/profile.
       return {

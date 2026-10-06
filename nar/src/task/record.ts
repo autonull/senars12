@@ -8,7 +8,7 @@
  * came through, and a parse failure was caught (or not) once per caller.
  */
 
-import { finiteOr } from '@senars/util';
+import { finiteOr, type TermTruth } from '@senars/util';
 import {
   deserializeStamp,
   PUNCTUATION_BY_TASK_TYPE,
@@ -23,8 +23,8 @@ import {
 } from '../terms/index.js';
 import type { TaskOverrides } from '../types/core.js';
 import {
-  createTaskWeight,
   createTask,
+  createTaskWeight,
   NEUTRAL_BUDGET,
   type Task,
   type TaskType,
@@ -46,7 +46,7 @@ export const taskTypeFromPunctuation = (punctuation: string, fallback: TaskType)
 export interface TaskRecord {
   readonly term: string;
   readonly type?: TaskType;
-  readonly truth?: { readonly f: number; readonly c: number };
+  readonly truth?: TermTruth;
   /** Budget priority, not a whole budget — durability and quality are policy, not state. */
   readonly budget?: number;
   readonly stamp?: SerializedStamp | Stamp;

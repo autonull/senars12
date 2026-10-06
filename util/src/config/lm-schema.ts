@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { positiveInt } from './boundary.js';
 /**
  * Canonical field shape for LM settings — shared by @senars/nar/lm (LMSettings),
  * src/config (senars.config.json `lm` block), and tooling/config UIs.
@@ -22,9 +23,9 @@ export const lmSettingsShape = {
     .record(
       z.string(),
       z.object({
-        failureThreshold: z.number().int().positive().optional(),
-        resetTimeoutMs: z.number().int().positive().optional(),
-        successThreshold: z.number().int().positive().optional(),
+        failureThreshold: positiveInt.optional(),
+        resetTimeoutMs: positiveInt.optional(),
+        successThreshold: positiveInt.optional(),
       })
     )
     .optional(),

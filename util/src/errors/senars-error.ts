@@ -9,7 +9,6 @@ import { errMsg } from '../utils/error.js';
 export type ErrorCode =
   | 'TOOL_ERROR'
   | 'ENGINE_ERROR'
-  | 'CONFIG_ERROR'
   | 'TRANSPORT_ERROR'
   | 'POLICY_VIOLATION'
   | 'CONNECTION_ERROR'

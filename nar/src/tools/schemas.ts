@@ -1,13 +1,13 @@
 import type { ConnectionConfig } from '@senars/util';
-import { agentOptionsSchema } from '@senars/util/config';
+import { agentOptionsSchema, nonEmpty } from '@senars/util/config';
 import { z } from 'zod';
 
 /** The zod twin, pinned to the transport type so a widened field is a compile error here. */
 export const ConnectionConfigSchema: z.ZodType<ConnectionConfig> = z
   .object({
-    id: z.string().min(1).describe('Connection ID'),
+    id: nonEmpty.describe('Connection ID'),
     enabled: z.boolean().describe('Whether the connection is enabled'),
-    type: z.string().min(1).describe('Connection type (cli, irc, ws, http, mcp)'),
+    type: nonEmpty.describe('Connection type (cli, irc, ws, http, mcp)'),
     config: z.record(z.string(), z.unknown()).describe('Type-specific configuration'),
     authSecret: z.string().optional().describe('Optional auth secret'),
   })

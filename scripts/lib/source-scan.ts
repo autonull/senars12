@@ -16,8 +16,14 @@ import { join } from 'node:path';
 
 import { ROOT } from './root.js';
 
-/** The production trees a whole-repository rule is declared over. */
-export const ALL_SOURCE_ROOTS = [
+/**
+ * The workspace trees the complexity ratchet measures. `ui/src` is absent on
+ * purpose: it arrived after `productionLOC` was baselined at 72,663, and adding it
+ * would have silently moved a ratchet by 13%. The grammars read
+ * {@link ALL_SOURCE_ROOTS} instead — a grammar that quietly skipped the web UI
+ * would be a grammar about three quarters of the production code.
+ */
+export const WORKSPACE_SOURCE_ROOTS = [
   'util/src',
   'core/src',
   'io/src',
@@ -25,6 +31,9 @@ export const ALL_SOURCE_ROOTS = [
   'metta/src',
   'src',
 ] as const;
+
+/** Every production tree, workspace and UI alike. */
+export const ALL_SOURCE_ROOTS = [...WORKSPACE_SOURCE_ROOTS, 'ui/src'] as const;
 
 /** Decides whether a directory entry is a source file worth scanning. */
 export type SourceFilter = (name: string) => boolean;

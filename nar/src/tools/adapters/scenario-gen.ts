@@ -24,6 +24,8 @@ export type {
   ScenarioSuccessCriteria,
 } from './scenario-execute.js';
 
+import { intBetween } from '@senars/util/config';
+
 export function createScenarioGenTools(deps: ScenarioGenDeps = {}) {
   const _workspaceRoot = deps.workspaceRoot || process.cwd();
 
@@ -40,11 +42,7 @@ export function createScenarioGenTools(deps: ScenarioGenDeps = {}) {
           .optional()
           .default('auto')
           .describe('Scenario profile/template to use'),
-        count: z
-          .number()
-          .int()
-          .min(1)
-          .max(20)
+        count: intBetween(1, 20)
           .optional()
           .default(1)
           .describe('Number of scenarios to generate and run'),

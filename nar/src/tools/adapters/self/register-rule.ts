@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { type SelfToolsContext, writeAndValidate } from './context.js';
+import { type SelfToolsContext, unavailable, writeAndValidate } from './context.js';
 
 export const registerRuleTool = (ctx: SelfToolsContext) => {
   const { deps } = ctx;
@@ -16,9 +16,7 @@ export const registerRuleTool = (ctx: SelfToolsContext) => {
       worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
     }),
     execute: async ({ schemaId, ruleCode, worktreeId: existingId }) => {
-      if (!deps.nar || !deps.ruleProcessor) {
-        return { success: false, error: 'NAR or RuleProcessor not available' };
-      }
+      if (!deps.nar || !deps.ruleProcessor) return unavailable('NAR', 'RuleProcessor');
       // D6 honesty: schema-to-rule compilation is not implemented — no
       // simulated success. Shadow validation still runs for the provided
       // code, but nothing is registered into the RuleProcessor.

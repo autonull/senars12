@@ -3,6 +3,8 @@
  * and BudgetGate. Each gate admits exactly one event variant, so this is the
  * only place the four input/output pairs sit beside one another.
  */
+
+import { positiveInt, signedUnitInterval, unitInterval, uuid } from '@senars/util/config';
 import { z } from 'zod';
 import { StimulusSourceSchema, TaskAdmittedEventSchema } from './cognitive-events.js';
 import { RewardDomainSchema } from './governance.js';
@@ -12,7 +14,6 @@ import {
   TerminationReasonSchema,
 } from './reasoning-budget.js';
 import { SourceQualitySchema } from './truth.js';
-import { unitInterval, signedUnitInterval } from '@senars/util/config';
 
 export const PerceptionGateInputSchema = z.object({
   sourceId: z.string(),
@@ -36,23 +37,23 @@ export const PerceptionGateOutputSchema = z.object({
 });
 
 export const ActionGateInputSchema = z.object({
-  proposalId: z.string().uuid(),
+  proposalId: uuid,
   operation: z.string(),
   args: z.record(z.string(), z.unknown()),
   proposerReflexId: z.string().optional(),
-  nalDerivationId: z.string().uuid().optional(),
+  nalDerivationId: uuid.optional(),
   correlationId: z.string().optional(),
 });
 
 export const ActionGateOutputSchema = z.object({
   authorized: z.boolean(),
-  toolCallId: z.string().uuid().optional(),
+  toolCallId: uuid.optional(),
   vetoReason: z.string().optional(), // If NAL derivation vetoes
   requiredApprovals: z.array(z.string()).optional(),
 });
 
 export const RewardGateInputSchema = z.object({
-  eventId: z.string().uuid(),
+  eventId: uuid,
   rewardSignal: signedUnitInterval,
   rewardType: z.enum([
     'extrinsic',
@@ -105,7 +106,7 @@ export const BUDGET_OPERATIONS: readonly BudgetOperation[] = BudgetOperationSche
 export const BudgetGateInputSchema = z.object({
   budget: ReasoningBudgetSchema.optional(),
   operation: BudgetOperationSchema,
-  estimatedCost: z.number().int().positive().optional(),
+  estimatedCost: positiveInt.optional(),
   scopeId: z.union([z.enum(BUDGET_SCOPE_IDS), z.string()]).optional(),
   correlationId: z.string().optional(),
 });

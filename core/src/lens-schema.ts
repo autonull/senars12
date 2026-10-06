@@ -1,3 +1,4 @@
+import { nonEmpty } from '@senars/util/config';
 import { z } from 'zod';
 
 /** JSON-serializable form of a Modulation AST node. Defined manually to avoid circular type inference. */
@@ -29,8 +30,8 @@ export const ModulationSchema: z.ZodType<ModulationSpec> = z.lazy(() =>
 
 /** Zod schema for a full Lens definition. */
 export const LensSpecSchema = z.object({
-  id: z.string().min(1),
-  label: z.string().min(1),
+  id: nonEmpty,
+  label: nonEmpty,
   description: z.string(),
   modulation: ModulationSchema,
   requires: z.array(z.string()).optional(),

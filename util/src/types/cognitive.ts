@@ -56,7 +56,7 @@ export interface Context {
 
 export interface Derivation {
   term: string;
-  truth?: { frequency: number; confidence: number };
+  truth?: BeliefTruth;
   timestamp: number;
 }
 

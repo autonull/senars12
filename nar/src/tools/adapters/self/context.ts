@@ -76,6 +76,19 @@ export async function withShadowWorktree<T>(
   }
 }
 
+/**
+ * The refusal every self tool answers with when a dependency it needs was not wired.
+ *
+ * Seven tools each wrote their own `{ success: false, error: '<name> not available' }`,
+ * and the sentences had already drifted apart — `'RLFP learner or NAR not available'`
+ * against `'NAR or RuleProcessor not available'` — so a caller could not match on which
+ * dependency was missing, only on which tool it called.
+ */
+export const unavailable = (...names: string[]): { success: false; error: string } => ({
+  success: false,
+  error: `${names.join(' or ')} not available`,
+});
+
 /** Flatten a shadow outcome into the tool-result shape every self tool returns. */
 export function toToolResult<T extends { success: boolean }>(
   outcome: ShadowOutcome<T>

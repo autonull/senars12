@@ -1,5 +1,4 @@
 import {
-  ConfigError,
   ConfigurationError,
   ConnectionError,
   EngineError,
@@ -43,7 +42,6 @@ describe('error subclasses', () => {
   > = [
     [ToolError, 'TOOL_ERROR', 'ToolError'],
     [EngineError, 'ENGINE_ERROR', 'EngineError'],
-    [ConfigError, 'CONFIG_ERROR', 'ConfigError'],
     [TransportErrorProbe, 'TRANSPORT_ERROR', 'TransportError'],
     [ConnectionError, 'CONNECTION_ERROR', 'ConnectionError'],
     [ValidationError, 'VALIDATION_ERROR', 'ValidationError'],
@@ -81,7 +79,6 @@ describe('error-code union', () => {
     const codes: ErrorCode[] = [
       new ToolError('x').code,
       new EngineError('x').code,
-      new ConfigError('x').code,
       new TransportError('x').code,
       new ConnectionError('x').code,
       new ValidationError('x').code,

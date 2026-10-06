@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { STRATEGY_SLOTS, STRATEGY_SLOTS_BY_KEY } from '../../../config/cognitive-parameters.js';
-import { type SelfToolsContext, applyAndValidate } from './context.js';
+import { applyAndValidate, type SelfToolsContext, unavailable } from './context.js';
 
 /** Slot keys are the config's own names, so the error names what the user wrote. */
 const STRATEGY_TYPES = Object.keys(STRATEGY_SLOTS_BY_KEY) as [
@@ -24,9 +24,7 @@ export const switchStrategyTool = (ctx: SelfToolsContext) => {
     }),
     execute: async ({ strategy, strategyType, worktreeId: existingId }) => {
       const { cognitiveController: controller, nar } = deps;
-      if (!controller || !nar) {
-        return { success: false, error: 'CognitiveController or NAR not available' };
-      }
+      if (!controller || !nar) return unavailable('CognitiveController', 'NAR');
 
       const slotType = STRATEGY_SLOTS_BY_KEY[strategyType];
       const registry = controller.getRegistry();

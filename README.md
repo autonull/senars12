@@ -196,6 +196,27 @@ By encoding NAL semantics at the type level:
 
 This eliminates entire classes of bugs at compile time and guarantees structural correctness by construction; AIKR bounds the remaining, resource-level dimension at runtime.
 
+**One vocabulary of values a boundary admits.** A Zod schema here is a boundary — a gate
+IO, a persisted record, a config read off disk, a tool argument from a model — and every
+schema is assembled from fragments declared once in `util/src/config/boundary.ts`:
+
+| Fragment | Admits |
+|---|---|
+| `nonEmpty` | a string with content — a rule id, an artifact version, a lens label |
+| `uuid` | a minted identifier; `makeId` mints them and a seeded run mints UUID-shaped counters |
+| `nonNegativeInt` / `positiveInt` | a count, and whether zero is one of its values |
+| `timestamp` | wall-clock milliseconds — a position on a clock, not a quantity |
+| `intBetween(lo, hi)` / `intAtLeast(lo)` | a bound the caller chose |
+| `unitInterval` / `signedUnitInterval` | a probability or a rate; a signed score |
+
+Those fragments were spelled inline 143 times, and every spelling was correct — which was
+the problem. A rule id that admitted the empty string on one edge and refused it on the
+next was not a bug anyone could find locally; it was a boundary whose strictness was a
+property of which file happened to declare the field. And a fragment spelled inline cannot
+be widened once, because there is no once. `pnpm schema:grammar` is the third member of the
+grammar family (`env:grammar`, `primitives:grammar`) and fails on the inline spelling, with
+a `DECLARED` ledger for the sites that must spell a bound themselves.
+
 ### The Core and the Induction Layer
 
 The reasoning cycle — `cognitive/`, `kernel/`, `learning/`, `memory/`, `reason/`, `rules/`, `stream/`, `strategies/`, `terms/`, `nar-execution.ts` — **does not import `nar/src/lm/`**. Not as a convention and not as a lint rule: `pnpm core:no-lm` fails on a relative, workspace-subpath, static, dynamic, value or type import, and the prefix list it reads is the same `CYCLE_PATH_PREFIXES` the induction census prints.

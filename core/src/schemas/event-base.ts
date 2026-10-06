@@ -9,13 +9,14 @@
  */
 
 import { ENGINE_ORIGINS } from '@senars/util';
+import { timestamp } from '@senars/util/config';
 import { z } from 'zod';
 
 export const EngineOriginSchema = z.enum(ENGINE_ORIGINS);
 
 export const CognitiveEventBaseSchema = z.object({
   engine: EngineOriginSchema,
-  timestamp: z.number().int().positive(),
+  timestamp: timestamp,
   correlationId: z.string(),
   causationId: z.string().optional(),
   /**

@@ -4,8 +4,19 @@
  */
 
 export {
-  type BoundProp,
+  intAtLeast,
+  intBetween,
+  nonEmpty,
+  nonNegativeInt,
+  positiveInt,
+  signedUnitInterval,
+  timestamp,
+  unitInterval,
+  uuid,
+} from './boundary.js';
+export {
   type BoundProjection,
+  type BoundProp,
   type BoundRange,
   type BoundRow,
   type BoundSchemaOptions,
@@ -19,13 +30,13 @@ export {
   nestedBounds,
   validateAgainstBounds,
 } from './bounds.js';
-export { withDefaults } from './defaults.js';
 export {
   type CognitiveBoundCategory,
-  cognitiveBound,
   type CognitiveBounds,
+  cognitiveBound,
   cognitiveBounds,
 } from './cognitive-bounds.js';
+export { withDefaults } from './defaults.js';
 export { type DialogueConfig, dialogueDefaults, dialogueSchema } from './dialogue.js';
 export {
   type EnvKey,
@@ -57,17 +68,16 @@ export {
   narCoreNumber,
 } from './nar-core-bounds.js';
 export { CACHE_DIR, cachePath } from './paths.js';
-export { signedUnitInterval, unitInterval } from './scalars.js';
 export {
   CRITICALITY_LEVELS,
-  criticalitySchema,
   type CriticalityLevel,
-  systemOneBound,
+  criticalitySchema,
   type SystemOneBoundCategory,
   type SystemOneBoundKey,
-  systemOneBounds,
   type SystemOneBounds,
   type SystemOneConfig,
+  systemOneBound,
+  systemOneBounds,
   systemOneDefaults,
   systemOneSchema,
 } from './system-one.js';

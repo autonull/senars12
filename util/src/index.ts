@@ -43,7 +43,6 @@ export {
 export type { ErrorCode } from './errors/index.js';
 /** @public Unified error hierarchy for all SeNARS packages. */
 export {
-  ConfigError,
   ConfigurationError,
   ConnectionError,
   EngineError,
@@ -117,8 +116,8 @@ export type {
   EgressVerdict,
   EngineOrigin,
   GroundednessGate,
-  TraceGrader,
   TracedToolCall,
+  TraceGrader,
 } from './types/cognitive.js';
 /** @public The vocabularies a cognitive event carries, so the zod boundary in `core`
  *  cannot admit an origin, a band, an axis or a query shape the types do not carry. */

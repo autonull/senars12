@@ -3,8 +3,8 @@
  * Owned here (single definition); root src/config/schema.ts and @senars/nar re-export.
  */
 import { z } from 'zod';
+import { positiveInt, unitInterval } from './boundary.js';
 import { nestedBounds } from './bounds.js';
-import { unitInterval } from './scalars.js';
 
 /** How much a judgment is trusted to decide on its own. Declared once because it was
  *  written out six times — as a type in the decision layer, four times as an inline
@@ -133,27 +133,19 @@ export const systemOneDefaults = {
 
 export const systemOneSchema = z.object({
   enabled: z.boolean().default(systemOneDefaults.enabled),
-  judgeTimeoutMs: z.number().int().positive().default(systemOneDefaults.judgeTimeoutMs),
+  judgeTimeoutMs: positiveInt.default(systemOneDefaults.judgeTimeoutMs),
   manifold: z
     .object({
       provider: z
         .enum(['off', 'wasi', 'webgpu', 'http', 'peer', 'open-systemone'])
         .default(systemOneDefaults.manifold.provider),
       endpoint: z.string().optional(),
-      timeoutMs: z.number().int().positive().optional(),
-      embeddingCacheSizeMB: z
-        .number()
-        .int()
-        .positive()
-        .default(systemOneDefaults.manifold.embeddingCacheSizeMB),
+      timeoutMs: positiveInt.optional(),
+      embeddingCacheSizeMB: positiveInt.default(systemOneDefaults.manifold.embeddingCacheSizeMB),
       encoder: z
         .object({
           modelId: z.string().default(systemOneDefaults.manifold.encoder.modelId),
-          dimension: z
-            .number()
-            .int()
-            .positive()
-            .default(systemOneDefaults.manifold.encoder.dimension),
+          dimension: positiveInt.default(systemOneDefaults.manifold.encoder.dimension),
         })
         .default(systemOneDefaults.manifold.encoder),
       heads: z
@@ -172,7 +164,7 @@ export const systemOneSchema = z.object({
           criticalityFloor: criticalitySchema.default(
             systemOneDefaults.manifold.consensus.criticalityFloor
           ),
-          fanout: z.number().int().positive().default(systemOneDefaults.manifold.consensus.fanout),
+          fanout: positiveInt.default(systemOneDefaults.manifold.consensus.fanout),
           minAgreement: unitInterval.default(systemOneDefaults.manifold.consensus.minAgreement),
         })
         .default(systemOneDefaults.manifold.consensus),
@@ -243,18 +235,14 @@ export const systemOneSchema = z.object({
     .object({
       enabled: z.boolean().default(systemOneDefaults.egressJudging.enabled),
       rubric: z.literal('conflict').default(systemOneDefaults.egressJudging.rubric),
-      maxCandidates: z
-        .number()
-        .int()
-        .positive()
-        .default(systemOneDefaults.egressJudging.maxCandidates),
+      maxCandidates: positiveInt.default(systemOneDefaults.egressJudging.maxCandidates),
       vetoThreshold: unitInterval.default(systemOneDefaults.egressJudging.vetoThreshold),
     })
     .default(systemOneDefaults.egressJudging),
   lmReflex: z
     .object({
       grammarActions: z.boolean().default(systemOneDefaults.lmReflex.grammarActions),
-      maxCandidates: z.number().int().positive().default(systemOneDefaults.lmReflex.maxCandidates),
+      maxCandidates: positiveInt.default(systemOneDefaults.lmReflex.maxCandidates),
     })
     .default(systemOneDefaults.lmReflex),
   handover: z

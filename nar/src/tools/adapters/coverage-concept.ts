@@ -1,3 +1,4 @@
+import { intBetween } from '@senars/util/config';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { parseCoverageFiles } from './vitest-json.js';
@@ -21,10 +22,7 @@ export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
         'Run tests with coverage and inject low-coverage files as high-priority concepts into NAR memory. Files with coverage < threshold get priority = 1 - coverage.',
       inputSchema: z.strictObject({
         testPath: z.string().optional().describe('Specific test file or directory to run'),
-        threshold: z
-          .number()
-          .min(0)
-          .max(100)
+        threshold: intBetween(0, 100)
           .optional()
           .default(threshold)
           .describe('Coverage threshold (files below get concepts)'),

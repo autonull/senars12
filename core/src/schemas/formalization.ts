@@ -5,10 +5,10 @@
  */
 
 import { type CapabilityRisk, parseOrThrow } from '@senars/util';
+import { nonNegativeInt, unitInterval, uuid } from '@senars/util/config';
 import { z } from 'zod';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
-import { unitInterval } from '@senars/util/config';
 
 /** What can be ambiguous about a parse. The LM's ambiguity schema and the kernel's
  *  flag schema named four of these eight, so four kinds of real ambiguity were
@@ -83,13 +83,13 @@ export const AmbiguityFlagSchema = AmbiguityReportSchema.extend({
 });
 
 export const SourceSpanSchema = z.object({
-  start: z.number().int().nonnegative(),
-  end: z.number().int().nonnegative(),
+  start: nonNegativeInt,
+  end: nonNegativeInt,
   text: z.string(),
 });
 
 export const FormalizationCandidateSchema = z.object({
-  candidateId: z.string().uuid(),
+  candidateId: uuid,
   narsese: z.string(),
   taskType: TaskTypeSchema,
   truth: TruthValueSchema.optional(),
@@ -99,9 +99,9 @@ export const FormalizationCandidateSchema = z.object({
   metadata: z
     .object({
       model: z.string().optional(),
-      promptTokens: z.number().int().nonnegative().optional(),
-      completionTokens: z.number().int().nonnegative().optional(),
-      latencyMs: z.number().int().nonnegative().optional(),
+      promptTokens: nonNegativeInt.optional(),
+      completionTokens: nonNegativeInt.optional(),
+      latencyMs: nonNegativeInt.optional(),
     })
     .optional(),
 });
@@ -116,7 +116,7 @@ export type DetectedIntent = (typeof DETECTED_INTENTS)[number];
 export const DetectedIntentSchema = z.enum(DETECTED_INTENTS);
 
 export const FormalizationBatchSchema = z.object({
-  batchId: z.string().uuid(),
+  batchId: uuid,
   sourceText: z.string(),
   candidates: z.array(FormalizationCandidateSchema),
   detectedIntent: DetectedIntentSchema.optional(),

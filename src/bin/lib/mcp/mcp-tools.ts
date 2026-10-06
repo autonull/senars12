@@ -6,6 +6,7 @@ import { Truth } from '@senars/nar';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
 import { resetDemotions } from '@senars/nar/lm';
 import { takeLast } from '@senars/util';
+import { positiveInt } from '@senars/util/config';
 import { evaluateExpression } from '@senars/util/utils/eval';
 import { z } from 'zod';
 import type { JobManager } from './job-manager.js';
@@ -405,7 +406,7 @@ export function registerNARTools(
         'Start a fire-and-forget background job. Kinds: nar-cycles (run NAR inference steps), belief (add a belief), question (queue a question)',
       inputSchema: {
         kind: z.enum(['nar-cycles', 'belief', 'question']),
-        steps: z.number().int().positive().max(10_000).optional(),
+        steps: positiveInt.max(10_000).optional(),
         content: z.string().optional(),
       },
       outputSchema: { jobId: z.string() },

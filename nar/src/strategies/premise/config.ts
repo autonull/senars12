@@ -9,16 +9,16 @@
  * or filter widens the schema automatically.
  */
 
-import { unitInterval } from '@senars/util/config';
+import { positiveInt, unitInterval } from '@senars/util/config';
 import { z } from 'zod';
 import {
-  PREMISE_FILTER_REGISTRY,
-  PREMISE_SCORER_REGISTRY,
-  PREMISE_SAMPLE_FALLBACK,
-  PREMISE_SOURCES,
   type FilterName,
   type FilterSpec,
   type LinearWeights,
+  PREMISE_FILTER_REGISTRY,
+  PREMISE_SAMPLE_FALLBACK,
+  PREMISE_SCORER_REGISTRY,
+  PREMISE_SOURCES,
   type ScorerName,
   type SourceName,
 } from './primitives.js';
@@ -71,8 +71,8 @@ export type PremiseOverrides = PremiseSampleSpec & { sampleSize: number; limit: 
 export const premiseSampleShape = (
   spec: PremiseSampleSpec & { sampleSize: number; limit: number }
 ): z.ZodRawShape => ({
-  sampleSize: z.number().int().min(1).default(spec.sampleSize),
-  limit: z.number().int().min(1).default(spec.limit),
+  sampleSize: positiveInt.default(spec.sampleSize),
+  limit: positiveInt.default(spec.limit),
   source: enumOf(PREMISE_SOURCE_NAMES).default(spec.source ?? PREMISE_SAMPLE_FALLBACK.source),
   scorer: scorer.default(spec.scorer ?? PREMISE_SAMPLE_FALLBACK.scorer),
   filters: z.array(filterSpec).default(spec.filters ?? PREMISE_SAMPLE_FALLBACK.filters),

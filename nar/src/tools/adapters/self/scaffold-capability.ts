@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { type SelfToolsContext, writeAndValidate } from './context.js';
+import { type SelfToolsContext, unavailable, writeAndValidate } from './context.js';
 
 /** Template implementations a scaffolded capability can be generated from. */
 const scaffoldTemplates = (
@@ -55,9 +55,7 @@ export const scaffoldCapabilityTool = (ctx: SelfToolsContext) => {
       worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
     }),
     execute: async ({ capabilityId, templateId, parameters = {}, worktreeId: existingId }) => {
-      if (!deps.nar) {
-        return { success: false, error: 'NAR not available' };
-      }
+      if (!deps.nar) return unavailable('NAR');
 
       const templates = scaffoldTemplates(capabilityId, parameters);
       const outcome = await writeAndValidate(ctx, 'scaffold', existingId, {

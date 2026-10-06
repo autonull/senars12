@@ -28,9 +28,7 @@ import { join, relative } from 'node:path';
 
 import { maskNonCode } from './lib/imports.js';
 import { ROOT } from './lib/root.js';
-import { lineAt, sourceFiles } from './lib/source-scan.js';
-
-const SOURCE_ROOTS = ['src', 'core/src', 'nar/src', 'io/src', 'metta/src', 'util/src', 'ui/src'];
+import { ALL_SOURCE_ROOTS, lineAt, productionSources } from './lib/source-scan.js';
 
 /** The sites that may spell the arithmetic themselves, each with the reason. */
 const DECLARED: readonly { readonly file: string; readonly reason: string }[] = [
@@ -92,20 +90,17 @@ interface Violation {
 
 const violations: Violation[] = [];
 
-for (const root of SOURCE_ROOTS) {
-  for (const file of sourceFiles(join(ROOT, root))) {
-    if (!file.endsWith('.ts') || declared.has(file)) continue;
-    const source = readFileSync(file, 'utf-8');
-    const code = maskNonCode(source);
-    for (const { primitive, pattern } of IDIOMS) {
-      for (const match of code.matchAll(pattern)) {
-        const offset = match.index ?? 0;
-        violations.push({
-          at: `${relative(ROOT, file)}:${lineAt(source, offset)}`,
-          primitive,
-          text: match[0].replaceAll('\n', ' ⏎ ').trim(),
-        });
-      }
+for (const file of productionSources(ALL_SOURCE_ROOTS)) {
+  if (declared.has(file)) continue;
+  const source = readFileSync(file, 'utf-8');
+  const code = maskNonCode(source);
+  for (const { primitive, pattern } of IDIOMS) {
+    for (const match of code.matchAll(pattern)) {
+      violations.push({
+        at: `${relative(ROOT, file)}:${lineAt(source, match.index ?? 0)}`,
+        primitive,
+        text: match[0].replaceAll('\n', ' ⏎ ').trim(),
+      });
     }
   }
 }

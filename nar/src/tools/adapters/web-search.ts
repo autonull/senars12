@@ -1,4 +1,5 @@
-import { searchWeb, type SearchProvider, type WebSearchOutcome } from '@senars/core/motor';
+import { type SearchProvider, searchWeb, type WebSearchOutcome } from '@senars/core/motor';
+import { intBetween } from '@senars/util/config';
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -23,7 +24,7 @@ export function createWebSearchTools(deps: WebSearchDeps = {}) {
       description: 'Search the web for current information. Returns snippets and URLs.',
       inputSchema: z.strictObject({
         query: z.string().describe('The search query'),
-        count: z.number().min(1).max(20).optional().default(5).describe('Number of results (1-20)'),
+        count: intBetween(1, 20).optional().default(5).describe('Number of results (1-20)'),
       }),
       execute: async ({ query, count }): Promise<WebSearchOutcome> =>
         searchWeb(query, Math.min(count, maxResults), deps.providers),

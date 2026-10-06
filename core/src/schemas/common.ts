@@ -1,6 +1,6 @@
 import { HistoryEntrySchema } from '@senars/util';
+import { nonEmpty, nonNegativeInt, unitInterval } from '@senars/util/config';
 import { z } from 'zod';
-import { unitInterval } from '@senars/util/config';
 
 /**
  * Shared structural fragments — the shapes two or more kernel contracts
@@ -12,7 +12,7 @@ import { unitInterval } from '@senars/util/config';
  */
 
 /** One side of a rule pattern: the term kind the dispatch cell keys on. */
-export const RulePatternSideSchema = z.object({ op: z.string().min(1) });
+export const RulePatternSideSchema = z.object({ op: nonEmpty });
 
 export type RulePatternSide = z.infer<typeof RulePatternSideSchema>;
 
@@ -38,8 +38,8 @@ export const BudgetSchema = z.object({
   priority: unitInterval,
   durability: unitInterval,
   quality: unitInterval,
-  cycles: z.number().int().nonnegative(),
-  depth: z.number().int().nonnegative(),
+  cycles: nonNegativeInt,
+  depth: nonNegativeInt,
 });
 
 export type Budget = Readonly<z.infer<typeof BudgetSchema>>;

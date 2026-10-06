@@ -27,10 +27,8 @@
 import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-import { lineAt, sourceFiles } from './lib/source-scan.js';
 import { ROOT } from './lib/root.js';
-
-const SOURCE_ROOTS = ['src', 'core/src', 'nar/src', 'io/src', 'metta/src', 'util/src', 'ui/src'];
+import { ALL_SOURCE_ROOTS, lineAt, productionSources } from './lib/source-scan.js';
 
 /**
  * Sites allowed to touch `process.env` itself, each with the reason. Three
@@ -60,10 +58,7 @@ export interface RawEnvRead {
   readonly text: string;
 }
 
-const sources = (): string[] =>
-  SOURCE_ROOTS.flatMap((root) => sourceFiles(join(ROOT, root))).filter((file) =>
-    file.endsWith('.ts')
-  );
+const sources = (): string[] => productionSources(ALL_SOURCE_ROOTS);
 
 const reads = (source: string, file: string): RawEnvRead[] => {
   const lines = source.split('\n');

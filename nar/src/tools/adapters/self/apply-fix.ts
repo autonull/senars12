@@ -1,7 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { CodemodResult } from '../codemod.js';
-import { type SelfToolsContext, shadowChange } from './context.js';
+import { type SelfToolsContext, shadowChange, unavailable } from './context.js';
 
 export const applyFixTool = (ctx: SelfToolsContext) => {
   const { deps, shadowManager } = ctx;
@@ -16,9 +16,7 @@ export const applyFixTool = (ctx: SelfToolsContext) => {
     }),
     execute: async ({ fixPattern, targetFiles, testName, worktreeId: existingId }) => {
       const { nar } = deps;
-      if (!nar) {
-        return { success: false, error: 'NAR not available' };
-      }
+      if (!nar) return unavailable('NAR');
 
       const { getFixPatternMapping } = await import('../../impls/self-concept.js');
       const mapping = getFixPatternMapping(fixPattern);

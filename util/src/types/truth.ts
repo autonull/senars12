@@ -1,6 +1,6 @@
 import { z } from 'zod';
+import { unitInterval } from '../config/boundary.js';
 import { clamp, clamp01, softSquash } from '../utils/numeric.js';
-import { unitInterval } from '../config/scalars.js';
 
 export type Frequency = number & { readonly __brand: unique symbol };
 export type Confidence = number & { readonly __brand: unique symbol };

@@ -23,8 +23,9 @@ import { z } from 'zod';
 
 export { pearson };
 
-import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
+import { nonEmpty, nonNegativeInt, positiveInt } from '@senars/util/config';
 import { cognitiveAxisSchema, rubricIdSchema } from '../../decision/types.js';
+import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL_ID } from '../../memory/embedding.js';
 import { decodeVector } from './distill.js';
 import { meanBrierOf } from './metrics.js';
 import type { CognitiveAxis, JudgmentHead, JudgmentQuery, RubricId } from './types.js';
@@ -512,34 +513,30 @@ export interface HeadArtifactConfig extends HeadGeometry {
  * is typed on the *same* vocabulary the geometry is, so a config naming a rubric
  * that no head has cannot parse.
  */
-const dim = (min: number) => z.number().int().min(min);
-
-const digest = z.string().min(1);
-
 /** `satisfies z.ZodType<HeadArtifactConfig>` makes the schema and the interface one
  *  declaration: a field added to either without the other is a compile error, not a
  *  config that parses one way and types the other. */
 export const HeadArtifactConfigSchema = z.strictObject({
-  headId: z.string().min(1),
+  headId: nonEmpty,
   rubric: rubricIdSchema,
   axis: cognitiveAxisSchema,
   kind: z.enum(['linear', 'logistic']),
-  embeddingDim: dim(1),
-  actionFeatureDim: dim(0),
-  gameFeatureDim: dim(0),
-  encoder: z.object({ modelId: z.string().min(1), dimension: dim(1) }),
+  embeddingDim: positiveInt,
+  actionFeatureDim: nonNegativeInt,
+  gameFeatureDim: nonNegativeInt,
+  encoder: z.object({ modelId: nonEmpty, dimension: positiveInt }),
   metrics: z.object({
-    samples: dim(0),
-    epochs: dim(0),
+    samples: nonNegativeInt,
+    epochs: nonNegativeInt,
     trainLoss: z.number(),
     holdoutLoss: z.number(),
     valueCorrelation: z.number().optional(),
   }),
   mean: z.array(z.number()),
   std: z.array(z.number()),
-  encoderDigest: digest,
-  weightsDigest: digest,
-  modelDigest: digest,
+  encoderDigest: nonEmpty,
+  weightsDigest: nonEmpty,
+  modelDigest: nonEmpty,
 }) satisfies z.ZodType<HeadArtifactConfig>;
 
 export function exportArtifacts(model: TrainedHeadModel): HeadArtifactBundle {

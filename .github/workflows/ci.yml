@@ -20,9 +20,10 @@ jobs:
       - run: pnpm typecheck:bin
       - run: pnpm typecheck:packages
       - run: pnpm lint
-      # One grammar for the environment, one for the arithmetic.
+      # One grammar for the environment, one for the arithmetic, one for the boundary.
       - run: pnpm env:grammar
       - run: pnpm primitives:grammar
+      - run: pnpm schema:grammar
       - run: pnpm deps:gate
       # TODO28 §4.2: deps:gate counts cycles and cannot see an inversion.
       - run: pnpm deps:direction

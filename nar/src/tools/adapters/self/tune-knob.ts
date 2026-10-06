@@ -1,7 +1,7 @@
 import { safeRatio } from '@senars/util';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { applyAndValidate, type SelfToolsContext } from './context.js';
+import { applyAndValidate, type SelfToolsContext, unavailable } from './context.js';
 
 export const tuneKnobTool = (ctx: SelfToolsContext) => {
   const { deps } = ctx;
@@ -16,9 +16,7 @@ export const tuneKnobTool = (ctx: SelfToolsContext) => {
     }),
     execute: async ({ knob, value, worktreeId: existingId }) => {
       const { rlfpLearner, nar } = deps;
-      if (!rlfpLearner || !nar) {
-        return { success: false, error: 'RLFP learner or NAR not available' };
-      }
+      if (!rlfpLearner || !nar) return unavailable('RLFP learner', 'NAR');
 
       const previous = rlfpLearner.getTunableKnobs()[knob]?.current;
       const set = (next: number) => rlfpLearner.applyTuningUpdate(knob, next);

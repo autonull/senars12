@@ -31,10 +31,12 @@ export const GATES: readonly Gate[] = [
   script('typecheck:bin'),
   script('typecheck:packages'),
   script('lint'),
-  // One grammar for the environment and one for the arithmetic: a boolean is a
-  // boolean and a rate is `flooredRatio` everywhere, so neither is re-derived.
+  // One grammar for the environment, one for the arithmetic and one for the
+  // boundary: a boolean is a boolean, a rate is `flooredRatio`, and a rule id is
+  // `nonEmpty` everywhere, so none of the three is re-derived.
   script('env:grammar'),
   script('primitives:grammar'),
+  script('schema:grammar'),
   script('deps:gate'),
   script('deps:direction'),
   // TODO29.a A2: the cycle path names a ModelRule, a TextGenerator and an

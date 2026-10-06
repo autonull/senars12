@@ -52,8 +52,6 @@
 
 - `SENARS_ENV_MAP`
 
-- `ConfigError`
-
 - `ConfigurationError`
 
 - `ConnectionError`
@@ -670,9 +668,27 @@
 
 ## `./config`
 
-- `type BoundProp`
+- `intAtLeast` — A count with a floor and no ceiling — a depth, a sample size, an embedding's width.
+
+- `intBetween` — A bounded count — how many steps to run, how many results to return, how many heads
+
+- `nonEmpty` — A string with content — a rule id, a rule name, an artifact version, a term, a lens
+
+- `nonNegativeInt` — A count that cannot be negative: lines removed, cycles elapsed, memory ops spent.
+
+- `positiveInt` — A count that cannot be zero: a cycle limit, a port, a candidate budget.
+
+- `signedUnitInterval` — `-1..1` — a reward or a signed score.
+
+- `timestamp` — Wall-clock milliseconds. The same integer domain as {@link positiveInt} and named
+
+- `unitInterval` — `0..1` — a probability, a rate, a priority, a threshold that cannot be negative.
+
+- `uuid` — A minted identifier — a task, a derivation, a proposal, a correlation.
 
 - `type BoundProjection`
+
+- `type BoundProp`
 
 - `type BoundRange`
 
@@ -698,15 +714,15 @@
 
 - `validateAgainstBounds` — Validate a config object against a bound table's rows.
 
-- `withDefaults` — A declared configuration record with its caller's values overlaid.
-
 - `type CognitiveBoundCategory`
-
-- `cognitiveBound` — The one reader of {@link cognitiveBounds}, addressed as `category.key`.
 
 - `type CognitiveBounds`
 
+- `cognitiveBound` — The one reader of {@link cognitiveBounds}, addressed as `category.key`.
+
 - `cognitiveBounds`
+
+- `withDefaults` — A declared configuration record with its caller's values overlaid.
 
 - `type DialogueConfig`
 
@@ -772,27 +788,23 @@
 
 - `cachePath` — Absolute path to a file or directory inside the cache tree.
 
-- `signedUnitInterval` — `-1..1` — a reward or a signed score.
-
-- `unitInterval` — `0..1` — a probability, a rate, a priority, a threshold that cannot be negative.
-
 - `CRITICALITY_LEVELS` — How much a judgment is trusted to decide on its own. Declared once because it was
-
-- `criticalitySchema`
 
 - `type CriticalityLevel`
 
-- `systemOneBound` — The one reader of {@link systemOneBounds}, addressed as `category.key`.
+- `criticalitySchema`
 
 - `type SystemOneBoundCategory`
 
 - `type SystemOneBoundKey`
 
-- `systemOneBounds` — Min/max/default/step for the System One knobs a tuner may move.
-
 - `type SystemOneBounds`
 
 - `type SystemOneConfig`
+
+- `systemOneBound` — The one reader of {@link systemOneBounds}, addressed as `category.key`.
+
+- `systemOneBounds` — Min/max/default/step for the System One knobs a tuner may move.
 
 - `systemOneDefaults`
 
@@ -809,8 +821,6 @@
 - `type ValidatedAgentOptions`
 
 ## `./errors`
-
-- `ConfigError`
 
 - `EngineError`
 
