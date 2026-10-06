@@ -7,8 +7,7 @@
  * deliberately free of any sibling schema.
  */
 
-import { parseOrThrow } from '@senars/util';
-import { nonNegativeInt, positiveInt } from '@senars/util/config';
+import { nonNegativeInt, positiveInt, validatorFor } from '@senars/util/config';
 import { z } from 'zod';
 
 /** The five declared budget scopes (TODO29.a §5.7). */
@@ -92,5 +91,4 @@ export type ConsumedBudget = z.infer<typeof ConsumedBudgetSchema>;
 export type TerminationReason = z.infer<typeof TerminationReasonSchema>;
 export type BudgetType = z.infer<typeof BudgetTypeSchema>;
 
-export const validateReasoningBudget = (budget: unknown): ReasoningBudget =>
-  parseOrThrow(ReasoningBudgetSchema, 'ReasoningBudget', budget);
+export const validateReasoningBudget = validatorFor(ReasoningBudgetSchema, 'ReasoningBudget');

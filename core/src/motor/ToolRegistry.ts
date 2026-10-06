@@ -3,31 +3,26 @@ import {
   type ToolCapabilities,
   type ToolContext,
   type ToolFn,
+  type ToolResult,
   type ToolSpec,
   toolError,
-  type ToolResult,
   toSkillFeedback,
 } from '@senars/util';
 import type { SkillFeedback, ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 
 /**
- * The feedback shape is util's: the observer that produces it and the mapping
- * onto it already live there, and this file was carrying a second, field-for-
- * field identical declaration of it. Two copies of a five-field record that a
- * tool result crosses on every call is two places to forget a field.
+ * The tool contract and the feedback record are util's. The contract was declared
+ * here *and* in nar's tools module with the same five fields and two different
+ * `execute` signatures — one taking `(correlationId, signal)`, the other a
+ * `ToolContext` — so crossing the delegation seam cost a hand-written mapping in
+ * both directions plus two casts over `parameters`; a call now carries its
+ * provenance and cancellation in the context, so the two registries speak one
+ * type and the adapter adapts a call. The feedback record had a second,
+ * field-for-field identical declaration here, and a five-field record a tool
+ * result crosses on every call is two places to forget a field.
  */
-export type { SkillFeedback };
-
-/**
- * The tool contract is util's too. It was declared here *and* in nar's tools
- * module with the same five fields and two different `execute` signatures — one
- * taking `(correlationId, signal)`, the other a `ToolContext` — so crossing the
- * delegation seam cost a hand-written mapping in both directions plus two casts
- * over `parameters`. A call now carries its provenance and cancellation in the
- * context, so the two registries speak one type and the adapter adapts a call.
- */
-export type { ToolCapabilities, ToolContext, ToolFn, ToolSpec };
+export type { SkillFeedback, ToolCapabilities, ToolContext, ToolFn, ToolSpec };
 
 /** Delegate interface for the unified tool registry (nar's ToolManager). */
 export interface ToolRegistryDelegate {
@@ -42,10 +37,11 @@ export interface ToolRegistryDelegate {
   clear(): void;
 }
 
-export class ToolRegistry {
+export class ToolRegistry implements ToolRegistryDelegate {
   #tools = new Map<string, ToolSpec>();
   #feedbackObserver: ToolFeedbackObserver;
   #delegate?: ToolRegistryDelegate;
+  #local?: ToolRegistryDelegate;
 
   constructor(feedbackObserver?: ToolFeedbackObserver, delegate?: ToolRegistryDelegate) {
     this.#feedbackObserver = feedbackObserver ?? new DefaultToolFeedbackObserver();
@@ -64,25 +60,33 @@ export class ToolRegistry {
   }
 
   private target(): ToolRegistryDelegate {
-    return (
-      this.#delegate ?? {
-        register: (spec) => void this.#tools.set(spec.name, spec),
-        unregister: (name) => void this.#tools.delete(name),
-        get: (name) => this.#tools.get(name),
-        list: () => [...this.#tools.values()],
-        execute: (name, args, context) => this.executeLocal(name, args, context),
-        getFeedback: (name) => {
-          const fb = this.#feedbackObserver.getFeedback(name);
-          return fb ? toSkillFeedback(fb) : undefined;
-        },
-        getAllFeedback: () => this.#feedbackObserver.getAllFeedback().map(toSkillFeedback),
-        getRecentResults: (limit) => this.#feedbackObserver.getFeedbackString(limit),
-        clear: () => {
-          this.#tools.clear();
-          this.#feedbackObserver.resetFeedback();
-        },
-      }
-    );
+    return this.#delegate ?? this.#localDelegate();
+  }
+
+  /**
+   * This registry as its own delegate, built once. `target()` used to rebuild the
+   * whole nine-method object — nine closures over `this` — on every call, and
+   * `target()` sits on the per-tool-invocation path.
+   */
+  #localDelegate(): ToolRegistryDelegate {
+    this.#local ??= {
+      register: (spec) => void this.#tools.set(spec.name, spec),
+      unregister: (name) => void this.#tools.delete(name),
+      get: (name) => this.#tools.get(name),
+      list: () => [...this.#tools.values()],
+      execute: (name, args, context) => this.executeLocal(name, args, context),
+      getFeedback: (name) => {
+        const fb = this.#feedbackObserver.getFeedback(name);
+        return fb ? toSkillFeedback(fb) : undefined;
+      },
+      getAllFeedback: () => this.#feedbackObserver.getAllFeedback().map(toSkillFeedback),
+      getRecentResults: (limit) => this.#feedbackObserver.getFeedbackString(limit),
+      clear: () => {
+        this.#tools.clear();
+        this.#feedbackObserver.resetFeedback();
+      },
+    };
+    return this.#local;
   }
 
   register(spec: ToolSpec): void {

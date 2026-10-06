@@ -5,26 +5,18 @@ import { unique } from '@senars/util';
 import { z } from 'zod';
 import { LENS_FIELDS, type LensFieldDescriptor } from '../constants.js';
 import { LensSpecSchema } from '../lens-schema.js';
+import { msg } from './envelope.js';
 
 type LensFieldType = LensFieldDescriptor['type'];
 
 /** The wire lens is the lens: one declaration, guards and modulation check included. */
 const LensDef = LensSpecSchema;
 
-export const LensListMsg = z.object({
-  type: z.literal('lens.list'),
-  lenses: z.array(LensDef),
-});
+export const LensListMsg = msg('lens.list', { lenses: z.array(LensDef) });
 
-export const LensDefineMsg = z.object({
-  type: z.literal('lens.define'),
-  lens: LensDef,
-});
+export const LensDefineMsg = msg('lens.define', { lens: LensDef });
 
-export const LensDefinedMsg = z.object({
-  type: z.literal('lens.defined'),
-  lens: LensDef,
-});
+export const LensDefinedMsg = msg('lens.defined', { lens: LensDef });
 
 /**
  * The wire field shape, with its type vocabulary read off the descriptor table
@@ -40,7 +32,4 @@ const LensFieldSchema = z.object({
   type: z.enum(LENS_FIELD_TYPES as [LensFieldType, ...LensFieldType[]]),
 });
 
-export const LensFieldsMsg = z.object({
-  type: z.literal('lens.fields'),
-  fields: z.array(LensFieldSchema),
-});
+export const LensFieldsMsg = msg('lens.fields', { fields: z.array(LensFieldSchema) });

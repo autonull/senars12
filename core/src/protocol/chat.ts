@@ -6,6 +6,7 @@ import { nonEmpty } from '@senars/util/config';
 import { z } from 'zod';
 import { TaskPunctuationSchema } from '../schemas/task.js';
 import { TruthValueSchema } from '../schemas/truth.js';
+import { msg } from './envelope.js';
 
 export const ChatMessage = z.object({
   id: z.string(),
@@ -24,24 +25,12 @@ export const ChatMessage = z.object({
 });
 export type ChatMessage = z.infer<typeof ChatMessage>;
 
-export const ChatUserMsg = z.object({
-  type: z.literal('chat.user'),
-  content: nonEmpty.max(10000),
-});
-export const ChatAgentStream = z.object({
-  type: z.literal('chat.agent.stream'),
-  delta: z.string(),
-});
-export const ChatAgentComplete = z.object({
-  type: z.literal('chat.agent.complete'),
+export const ChatUserMsg = msg('chat.user', { content: nonEmpty.max(10000) });
+export const ChatAgentStream = msg('chat.agent.stream', { delta: z.string() });
+export const ChatAgentComplete = msg('chat.agent.complete', {
   content: z.string(),
   html: z.string().optional(),
   messageId: z.string(),
 });
-export const LMStatusRequest = z.object({
-  type: z.literal('lm.status.request'),
-});
-export const LMStatusMsg = z.object({
-  type: z.literal('lm.status'),
-  data: z.record(z.string(), z.unknown()),
-});
+export const LMStatusRequest = msg('lm.status.request', {});
+export const LMStatusMsg = msg('lm.status', { data: z.record(z.string(), z.unknown()) });

@@ -5,6 +5,7 @@ import type { Game } from '../game/Game.js';
 import type { GateRegistry } from '../kernel/index.js';
 import type { NALDerivation } from '../reflex/Negotiator.js';
 import type { LearningEvent, Reflex } from '../reflex/Reflex.js';
+import { FOCUS_DEFAULTS } from '../constants.js';
 import type { Term } from '../terms/index.js';
 import {
   getAntecedent,
@@ -73,13 +74,13 @@ export class Focus implements BagItem {
     this.clock = options.clock ?? systemClock;
 
     this.tasks = createBag<FocusTask>({
-      capacity: options.taskCapacity ?? 1000,
+      capacity: options.taskCapacity ?? FOCUS_DEFAULTS.taskCapacity,
       decayRate: options.taskDecayRate ?? 0.01,
       rng: options.rng,
     });
 
     this.memory = createBag<FocusConcept>({
-      capacity: options.conceptCapacity ?? 500,
+      capacity: options.conceptCapacity ?? FOCUS_DEFAULTS.conceptCapacity,
       decayRate: options.conceptDecayRate ?? 0.005,
       rng: options.rng,
     });

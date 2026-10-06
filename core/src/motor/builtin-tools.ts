@@ -7,12 +7,14 @@ import {
   CapabilityRiskSchema,
   envStr,
   errMsg,
-  type ToolSchema,
+  objectSpec,
+  toolAttempt,
   toolError,
   toolOk,
 } from '@senars/util';
 import { z } from 'zod';
 import type { ApprovalService } from '../ApprovalService.js';
+import { APPROVAL_TIMEOUT_MS, SHELL_TIMEOUT_MS } from '../constants.js';
 import type { ToolResult } from '../engine/Engine.js';
 import type { ToolSpec } from './ToolRegistry.js';
 import {
@@ -27,10 +29,7 @@ import { withinWorkspace } from './workspace.js';
 
 export type CmdArgSet = Record<string, unknown>;
 
-const ARGS_SCHEMA: ToolSchema = {
-  type: 'object',
-  properties: { args: { type: 'array', items: { type: 'string' } } },
-};
+const ARGS_SCHEMA = objectSpec({ args: { type: 'array', items: { type: 'string' } } });
 
 const cmdArgs = (args: CmdArgSet): string[] => (args.args as string[]) ?? [];
 const argAt = (args: CmdArgSet, index: number): string | undefined => cmdArgs(args)[index];
@@ -67,11 +66,11 @@ async function keyedProvider(
 ): Promise<ToolResult> {
   const query = parseJsonArg(rawQuery);
   if (!apiKey) return toolOk({ query, results: [], note: `${via.toUpperCase()}_API_KEY not set` });
-  try {
-    return toolOk({ query, via, results: await run(query, apiKey) });
-  } catch (e) {
-    return toolError(`${via}_search failed: ${errMsg(e)}`);
-  }
+  return toolAttempt(
+    `${via}_search failed`,
+    () => run(query, apiKey),
+    (results) => ({ query, via, results })
+  );
 }
 
 function createRequestApprovalTool(approvalService: ApprovalService): ToolSpec {
@@ -79,23 +78,28 @@ function createRequestApprovalTool(approvalService: ApprovalService): ToolSpec {
     actionDescription: z.string().describe('Description of the action requiring approval'),
     diffOrPayload: z.string().describe('The diff, payload, or details of the action'),
     riskLevel: CapabilityRiskSchema.describe('Risk level of the action'),
-    timeoutMs: z.number().optional().default(60000).describe('Timeout in milliseconds'),
+    timeoutMs: z
+      .number()
+      .optional()
+      .default(APPROVAL_TIMEOUT_MS)
+      .describe('Timeout in milliseconds'),
   });
 
   return {
     name: 'request_approval',
     description:
       'Requests human approval for critical actions (code write, config change, destructive command). Blocks until approved/rejected.',
-    parameters: {
-      type: 'object',
-      properties: {
+    parameters: objectSpec(
+      {
         actionDescription: { type: 'string' },
         diffOrPayload: { type: 'string' },
         riskLevel: { type: 'string', enum: [...CAPABILITY_RISKS] },
-        timeoutMs: { type: 'number', default: 60000 },
+        timeoutMs: { type: 'number', default: APPROVAL_TIMEOUT_MS },
       },
-      required: ['actionDescription', 'diffOrPayload', 'riskLevel'],
-    },
+      'actionDescription',
+      'diffOrPayload',
+      'riskLevel'
+    ),
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       try {
         const parsed = schema.parse(args);
@@ -143,13 +147,14 @@ const persistFile = async (
   if (sandbox) return sandbox;
   const verb = tool === 'write_file' ? 'write' : 'append to';
   const key = tool === 'write_file' ? 'written' : 'appended';
-  try {
-    if (tool === 'write_file') await writeFile(target, content, 'utf-8');
-    else await appendFile(target, content, 'utf-8');
-    return toolOk({ filename: target, [key]: content.length });
-  } catch (e) {
-    return toolError(`Cannot ${verb} file: ${errMsg(e)}`);
-  }
+  return toolAttempt(
+    `Cannot ${verb} file`,
+    async () => {
+      if (tool === 'write_file') await writeFile(target, content, 'utf-8');
+      else await appendFile(target, content, 'utf-8');
+    },
+    () => ({ filename: target, [key]: content.length })
+  );
 };
 
 const requireEpisodic = (deps: BuiltinDeps): ToolResult | null =>
@@ -186,13 +191,11 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     if (!filename) return missing('read_file', 'a filename');
     const sandbox = within(filename);
     if (sandbox) return sandbox;
-    try {
+    return toolAttempt('Cannot read file', async () => {
       await access(filename);
       const content = await readFile(filename, 'utf-8');
-      return toolOk({ filename, size: content.length, content });
-    } catch (e) {
-      return toolError(`Cannot read file: ${errMsg(e)}`);
-    }
+      return { filename, size: content.length, content };
+    });
   }),
   defineCmd('write_file', 'Write content to a file', (args) => {
     const filename = argAt(args, 0);
@@ -219,7 +222,10 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
     const cmd = textAt(args, 0);
     if (!cmd) return missing('shell', 'a command');
     try {
-      const { stdout } = await runShell(cmd, { encoding: 'utf-8', timeout: 30000 });
+      const { stdout } = await runShell(cmd, {
+        encoding: 'utf-8',
+        timeout: SHELL_TIMEOUT_MS,
+      });
       return toolOk({ command: cmd, exitCode: 0, stdout: stdout.trimEnd() });
     } catch (e: unknown) {
       const err = e as Error & { stdout?: string; stderr?: string; killed?: boolean };
@@ -276,11 +282,7 @@ export const createBuiltinTools = (deps: BuiltinDeps = {}): ToolSpec[] => [
   defineCmd('web_fetch', 'Fetch a web page read-only and return its text content', async (args) => {
     const url = textAt(args, 0);
     if (!url) return missing('web_fetch', 'a URL');
-    try {
-      return toolOk(await webFetch(url));
-    } catch (e) {
-      return toolError(e);
-    }
+    return toolAttempt('Cannot fetch URL', () => webFetch(url));
   }),
 ];
 

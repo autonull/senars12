@@ -11,6 +11,8 @@
  * is a boundary the gate would have to carve an exception for (TODO29.a §5.2).
  */
 
+import { attempt, match } from './result.js';
+
 const OPEN = '{'.charCodeAt(0);
 const CLOSE = '}'.charCodeAt(0);
 const QUOTE = '"'.charCodeAt(0);
@@ -77,4 +79,16 @@ export function stableStringify(value: unknown, sortArrays = false): string {
     .filter(([, v]) => v !== undefined)
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v, sortArrays)}`).join(',')}}`;
+}
+
+/**
+ * A cache key for any value, including one `stableStringify` cannot digest — a
+ * cyclic graph, a function, a value with a throwing getter. The two memo sites
+ * that needed this each wrote the same `try { stableStringify } catch { nonce }`
+ * pair, so a memo silently lost its hit rate on exactly the inputs that were
+ * hardest to debug.
+ */
+export function stableKeyOf(value: unknown, fallback: () => string, sortArrays = false): string {
+  const digest = attempt(() => stableStringify(value, sortArrays));
+  return digest.ok ? digest.value : fallback();
 }

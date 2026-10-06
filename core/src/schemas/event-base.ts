@@ -29,3 +29,11 @@ export const CognitiveEventBaseSchema = z.object({
 
 /** The one origin permitted to append proposal events. */
 export const PROPOSER_ORIGIN = 'proposer' as const;
+
+/**
+ * The origin the reasoning engine appends under, named beside `PROPOSER_ORIGIN`
+ * because it is the same thing: the `'nar'` literal was written by hand at seven
+ * sites, so `engine` — the discriminant that makes "the seam proposes, the kernel
+ * admits" checkable — was the one field of an event with no declared name.
+ */
+export const NAR_ORIGIN = 'nar' as const;

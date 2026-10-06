@@ -10,7 +10,7 @@
  * reintroduce exactly the context bleed this class exists to prevent.
  */
 
-import { LruCache } from '@senars/util';
+import { getOrInsert, LruCache } from '@senars/util';
 
 export interface ThreadScopeState {
   contrastiveMemory?: object;
@@ -27,13 +27,7 @@ export class ThreadScope {
    * Returns the same object for the same correlationId, ensuring isolation.
    */
   get(correlationId: string): ThreadScopeState {
-    return this.#scopes.get(correlationId) ?? this.#create(correlationId);
-  }
-
-  #create(correlationId: string): ThreadScopeState {
-    const scope: ThreadScopeState = {};
-    this.#scopes.set(correlationId, scope);
-    return scope;
+    return getOrInsert(this.#scopes, correlationId, (): ThreadScopeState => ({}));
   }
 
   /**

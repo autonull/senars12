@@ -3,14 +3,11 @@
  */
 import { z } from 'zod';
 import { TruthValueSchema } from '../schemas/truth.js';
+import { msg } from './envelope.js';
 
-export const NodeHistoryRequestMsg = z.object({
-  type: z.literal('node.history.request'),
-  term: z.string(),
-});
+export const NodeHistoryRequestMsg = msg('node.history.request', { term: z.string() });
 
-export const NodeHistoryMsg = z.object({
-  type: z.literal('node.history'),
+export const NodeHistoryMsg = msg('node.history', {
   term: z.string(),
   history: z.array(
     z.object({

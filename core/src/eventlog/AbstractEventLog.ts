@@ -2,7 +2,12 @@ import { sortableIdSource } from '@senars/util';
 import { PushQueue } from '@senars/util/events';
 import { validateCognitiveEvent } from '../schemas/cognitive-events.js';
 import type { CognitiveEvent, EventLog, EventLogQuery } from './EventLog.js';
-import { EventLogError } from './EventLog.js';
+import {
+  EventLogError,
+  type SubscriptionFilter,
+  subscriptionAdmits,
+  typeSetOf,
+} from './EventLog.js';
 
 export interface EventLogLimits {
   maxEvents: number;
@@ -94,13 +99,11 @@ export abstract class AbstractEventLog implements EventLog {
     fromId?: string;
     types?: string[];
   }): AsyncIterable<CognitiveEvent> {
-    const typesSet = options?.types ? new Set(options.types) : undefined;
-
     const queue = new PushQueue<CognitiveEvent>();
     const subscription: Subscription = {
       filter: options?.filter,
       fromId: options?.fromId,
-      types: typesSet,
+      types: typeSetOf(options?.types),
       queue,
     };
     queue.onClose = () => this.#subscribers.delete(subscription);
@@ -110,9 +113,7 @@ export abstract class AbstractEventLog implements EventLog {
     if (options?.fromId) {
       this.getRange(options.fromId).then((events) => {
         for (const event of events) {
-          if (typesSet && !typesSet.has(event.type)) continue;
-          if (options.filter && !options.filter(event)) continue;
-          subscription.queue.push(event);
+          if (subscriptionAdmits(subscription, event)) subscription.queue.push(event);
         }
       });
     }
@@ -129,11 +130,10 @@ export abstract class AbstractEventLog implements EventLog {
       if (sub.queue.closed) continue;
       try {
         if (sub.fromId && sub.fromId >= (event.id ?? '')) continue;
-        if (sub.types && !sub.types.has(event.type)) continue;
-        if (sub.filter && !sub.filter(event)) continue;
+        if (!subscriptionAdmits(sub, event)) continue;
         sub.queue.push(event);
       } catch {
-        // ignore handler errors
+        // one subscriber must not stop the fan-out
       }
     }
   }
@@ -141,9 +141,7 @@ export abstract class AbstractEventLog implements EventLog {
   protected abstract doAppend(event: CognitiveEvent, payloadJson: string): Promise<void>;
 }
 
-interface Subscription {
-  filter?: (event: CognitiveEvent) => boolean;
+interface Subscription extends SubscriptionFilter {
   fromId?: string;
-  types?: Set<string>;
   queue: PushQueue<CognitiveEvent>;
 }

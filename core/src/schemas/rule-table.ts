@@ -18,8 +18,7 @@
  * reason rather than admitted as a rule that derives nothing.
  */
 
-import { parseOrThrow } from '@senars/util';
-import { nonEmpty, nonNegativeInt, positiveInt } from '@senars/util/config';
+import { nonEmpty, nonNegativeInt, positiveInt, validatorFor } from '@senars/util/config';
 import { z } from 'zod';
 import { RulePatternSchema } from './common.js';
 import { TaskTypeSchema } from './task.js';
@@ -117,8 +116,7 @@ export interface RuleTableDiff {
   readonly unchanged: number;
 }
 
-export const validateRuleTable = (input: unknown): RuleTable =>
-  parseOrThrow(RuleTableSchema, 'RuleTable', input);
+export const validateRuleTable = validatorFor(RuleTableSchema, 'RuleTable');
 
 /** Why a table could not be loaded. Each is a loud failure, never a coercion. */
 export const RULE_TABLE_REJECTIONS = [

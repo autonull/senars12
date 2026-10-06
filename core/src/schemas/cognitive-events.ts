@@ -9,9 +9,8 @@ import {
   CognitiveAxisSchema,
   generateId,
   JudgmentShapeSchema,
-  parseOrThrow,
 } from '@senars/util';
-import { intBetween, nonNegativeInt, unitInterval, uuid } from '@senars/util/config';
+import { intBetween, nonNegativeInt, unitInterval, uuid, validatorFor } from '@senars/util/config';
 import { z } from 'zod';
 import { BudgetSchema, IndependenceSchema } from './common.js';
 import { CognitiveEventBaseSchema } from './event-base.js';
@@ -254,8 +253,7 @@ export const mintCognitiveEvent = <T extends CognitiveEvent['type']>(
     correlationId: draft.correlationId ?? generateId('corr'),
   }) as CognitiveEventOf<T>;
 
-export const validateCognitiveEvent = (event: unknown): CognitiveEvent =>
-  parseOrThrow(CognitiveEventSchema, 'CognitiveEvent', event);
+export const validateCognitiveEvent = validatorFor(CognitiveEventSchema, 'CognitiveEvent');
 
 export const isNarEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { engine: 'nar' }> =>
   e.engine === 'nar';

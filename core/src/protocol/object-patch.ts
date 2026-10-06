@@ -1,12 +1,13 @@
 /**
  * Object/node patch schemas
  */
+
+import { unitInterval } from '@senars/util/config';
 import { z } from 'zod';
 import { TruthValueSchema } from '../schemas/truth.js';
-import { unitInterval } from '@senars/util/config';
+import { msg } from './envelope.js';
 
-export const ObjectSetMsg = z.object({
-  type: z.literal('object.set'),
+export const ObjectSetMsg = msg('object.set', {
   kind: z.enum(['node', 'edge']),
   id: z.string(),
   patch: z.object({
@@ -17,8 +18,7 @@ export const ObjectSetMsg = z.object({
   }),
 });
 
-export const NodeSetMsg = z.object({
-  type: z.literal('node.set'),
+export const NodeSetMsg = msg('node.set', {
   id: z.string(),
   patch: z.object({
     truth: TruthValueSchema.optional(),

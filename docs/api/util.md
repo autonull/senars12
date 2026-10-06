@@ -132,6 +132,8 @@
 
 - `JudgmentShapeSchema`
 
+- `toolAttempt` — A tool body wrapped in its own failure contract. Every tool hand-wrote
+
 - `toolError` — A failed outcome; anything thrown is stringified at this boundary.
 
 - `toolOk` — A successful outcome.
@@ -151,6 +153,8 @@
 - `MESSAGE_ROLES` — Who spoke a turn. The chat wire schema, the session ledger's persistence
 
 - `MessageRoleSchema`
+
+- `objectSpec` — An argument schema from its properties, with the required names as trailing
 
 - `asBeliefTruth` — Belief-shaped truth from either truth representation; absent truth stays absent.
 
@@ -263,6 +267,8 @@
 - `chunk` — Fixed-size slices for batched work — the one chunking primitive.
 
 - `collectUpTo` — The first `limit` items `accept` admits, and nothing past them.
+
+- `containerStats` — {@link ContainerStats} from one size reading and one capacity.
 
 - `edgeKey` — The one edge identity between two term keys.
 
@@ -454,6 +460,8 @@
 
 - `parseJsonObject` — Parse the first JSON object in `text`; null when absent or malformed.
 
+- `stableKeyOf` — A cache key for any value, including one `stableStringify` cannot digest — a
+
 - `stableStringify` — Deterministic JSON with object keys emitted in sorted order — the single
 
 - `KeyedCollection`
@@ -613,6 +621,10 @@
 - `createCallTally` — The zeroed counters — the state before the first recorded attempt.
 
 - `recordCall` — Fold one attempt into `tally`, in place, and hand it back for chaining.
+
+- `appendTextDelta` — One event's contribution to a chat answer. Five sites summed `text-delta` events
+
+- `collectText` — Drain a stream into its text, forwarding every event to {@link onEvent} — a
 
 - `escapeRegExp` — Escape every regexp metacharacter in `text`, so untrusted text becomes a
 
@@ -819,6 +831,8 @@
 - `SchemaValidationError`
 
 - `type ValidatedAgentOptions`
+
+- `validatorFor` — A named parse-or-throw for one schema. Every boundary that validates a payload
 
 ## `./errors`
 

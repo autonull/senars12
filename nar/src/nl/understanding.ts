@@ -10,7 +10,7 @@ import {
   errMsg,
   makeId,
   pct,
-  stableStringify,
+  stableKeyOf,
   type TermTruth,
   withDeadline,
 } from '@senars/util';
@@ -64,12 +64,7 @@ export class NLUnderstandingService {
   async understand(input: string, ctx?: NLContext, maxRetries = 2): Promise<TaskBatch | null> {
     const cached = this.cache?.get(input);
     if (cached && typeof cached !== 'string') return this.sanitize(this.fromCached(cached));
-    let ctxKey = '';
-    try {
-      ctxKey = stableStringify(ctx ?? null);
-    } catch {
-      ctxKey = '';
-    }
+    const ctxKey = stableKeyOf(ctx ?? null, () => '');
     const result = await this.flight.run(`${maxRetries}::${input}::${ctxKey}`, () =>
       this.understandInner(input, ctx, maxRetries)
     );

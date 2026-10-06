@@ -1,21 +1,21 @@
 import {
   ALL_RESOURCES,
   BUDGET_TYPES,
+  type BudgetEventBus,
+  type BudgetEventMap,
   type BudgetLimits,
   type BudgetResource,
   budgetAffords,
   budgetLimit,
+  budgetPressure,
   budgetRefusal,
   budgetRemaining,
-  budgetPressure,
   chargeBudget,
   createBudget,
   freshBudget,
   isCapacityExhausted,
   snapshotBudget,
   zeroConsumed,
-  type BudgetEventBus,
-  type BudgetEventMap,
 } from '@senars/core/budget';
 import type {
   BudgetExhaustedEvent,
@@ -28,7 +28,7 @@ import type {
 } from '@senars/core/schemas';
 import { mintCognitiveEvent, validateReasoningBudget } from '@senars/core/schemas';
 import { keyedBy, mapValues } from '@senars/util';
-import { BUDGET_SCOPES } from './budget-scopes.js';
+import { BUDGET_SCOPES, withBudgetId } from './budget-scopes.js';
 import { KernelGate, projectOutcome } from './gate-base.js';
 
 export interface KernelBudgetGateConfig {
@@ -108,14 +108,14 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
     this.eventBus = config?.eventBus;
     this.budgetId = (config?.defaultBudget as ReasoningBudget & { id?: string })?.id ?? 'root';
     this.budget = this.adopt(config?.defaultBudget ?? createDefaultReasoningBudget());
-    // Ensure the main budget has an id for event emission
-    if (!('id' in this.budget)) {
-      Object.defineProperty(this.budget, 'id', { value: this.budgetId, writable: false, enumerable: true });
-    }
   }
 
   /** Emit a budget slice created event. */
-  private emitSliceCreated(sliceId: string, parentId: string | undefined, limits: BudgetLimits): void {
+  private emitSliceCreated(
+    sliceId: string,
+    parentId: string | undefined,
+    limits: BudgetLimits
+  ): void {
     this.eventBus?.emit('budget:slice:created', {
       sliceId,
       parentId,
@@ -144,7 +144,11 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   }
 
   /** Emit a budget slice exhausted event. */
-  private emitSliceExhausted(sliceId: string, reason: TerminationReason, budget: ReasoningBudget): void {
+  private emitSliceExhausted(
+    sliceId: string,
+    reason: TerminationReason,
+    budget: ReasoningBudget
+  ): void {
     this.eventBus?.emit('budget:slice:exhausted', {
       sliceId,
       reason,
@@ -170,25 +174,15 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
   /** Validate at the boundary where a budget enters the gate, never on the per-operation read path. */
   private adopt(budget: ReasoningBudget): ReasoningBudget {
     validateReasoningBudget(budget);
-    // Ensure budget has an id for event emission
-    if (!('id' in budget)) {
-      Object.defineProperty(budget, 'id', { value: this.budgetId, writable: false, enumerable: true });
-    }
-    return budget;
+    return withBudgetId(budget, this.budgetId);
   }
 
-private resolveBudget(input: BudgetGateInput): { budget: ReasoningBudget; sliceId: string } {
+  private resolveBudget(input: BudgetGateInput): { budget: ReasoningBudget; sliceId: string } {
     if (input.budget) return { budget: this.adopt(input.budget), sliceId: 'inline' };
     if (!input.scopeId) return { budget: this.budget, sliceId: this.budgetId };
-    let scoped = this.scopes.get(input.scopeId);
-    if (!scoped) {
-      scoped = freshBudget(this.budget);
-      // Ensure the fresh budget has an id for event emission
-      if (!('id' in scoped)) {
-        Object.defineProperty(scoped, 'id', { value: input.scopeId, writable: false, enumerable: true });
-      }
-      this.scopes.set(input.scopeId, scoped);
-    }
+    const scoped =
+      this.scopes.get(input.scopeId) ?? withBudgetId(freshBudget(this.budget), input.scopeId);
+    this.scopes.set(input.scopeId, scoped);
     return { budget: scoped, sliceId: input.scopeId };
   }
 
@@ -266,10 +260,10 @@ private resolveBudget(input: BudgetGateInput): { budget: ReasoningBudget; sliceI
   }
 
   createScope(scopeId: string, budget?: ReasoningBudget): void {
-    const scopeBudget = budget ? this.adopt(budget) : freshBudget(this.budget);
-    if (!('id' in scopeBudget)) {
-      Object.defineProperty(scopeBudget, 'id', { value: scopeId, writable: false, enumerable: true });
-    }
+    const scopeBudget = withBudgetId(
+      budget ? this.adopt(budget) : freshBudget(this.budget),
+      scopeId
+    );
     this.scopes.set(scopeId, scopeBudget);
     this.emitSliceCreated(scopeId, this.budgetId, scopeBudget);
   }

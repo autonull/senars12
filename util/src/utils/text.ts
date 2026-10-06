@@ -5,6 +5,34 @@
  */
 import { safeRatio } from './numeric.js';
 
+/** The one event shape that carries chat text; a stream is otherwise passed through. */
+export type TextDeltaCarrier = { readonly kind: string; readonly text?: string };
+
+/**
+ * One event's contribution to a chat answer. Five sites summed `text-delta` events
+ * by hand and two of them omitted the empty-text guard, so a delta with no text
+ * appended the literal `"undefined"` to a model answer.
+ */
+export const appendTextDelta = (text: string, event: TextDeltaCarrier): string =>
+  event.kind === 'text-delta' && event.text ? text + event.text : text;
+
+/**
+ * Drain a stream into its text, forwarding every event to {@link onEvent} — a
+ * consumer that both relays the stream and wants the answer reads one pass. A
+ * consumer that relays through `yield` accumulates with {@link appendTextDelta}.
+ */
+export const collectText = async <T extends TextDeltaCarrier>(
+  stream: AsyncIterable<T>,
+  onEvent?: (event: T) => void
+): Promise<string> => {
+  let text = '';
+  for await (const event of stream) {
+    text = appendTextDelta(text, event);
+    onEvent?.(event);
+  }
+  return text;
+};
+
 /** Cut to `maxLength`, marking what the cut hid — the shortest of the three. */
 export const truncate = (text: string, maxLength = 60): string =>
   text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;

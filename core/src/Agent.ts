@@ -1,4 +1,5 @@
 import {
+  appendTextDelta,
   type EpisodicMemory,
   type EventUnsubscribe,
   generateId,
@@ -31,6 +32,7 @@ import { registerBuiltinTools } from './motor/builtin-tools.js';
 import { ToolRegistry } from './motor/ToolRegistry.js';
 import { PolicyEngine } from './PolicyEngine.js';
 import type { AgentCapabilities } from './protocol/index.js';
+import { NAR_ORIGIN } from './schemas/event-base.js';
 import { type CognitiveEvent, mintCognitiveEvent } from './schemas/index.js';
 import type { Connection } from './Transport.js';
 
@@ -75,6 +77,7 @@ export class Agent {
   #engineErrorCount = 0;
   #lastCycleTime = 0;
   #lastResponse = '';
+  #host?: CycleHost;
 
   constructor(opts: AgentOptions = {}) {
     this.id = opts.id ?? generateId('agent');
@@ -124,7 +127,7 @@ export class Agent {
   submit(input: string, correlationId: string): void {
     this.#emitCognitive(
       mintCognitiveEvent('input.user', {
-        engine: 'nar',
+        engine: NAR_ORIGIN,
         correlationId,
         payload: { text: input, source: 'transport' },
       })
@@ -237,8 +240,8 @@ export class Agent {
 
     let finalText = '';
     for await (const evt of runCycleStream(this.#cycleHost(), stimulus, opts)) {
-      if (evt.kind === 'text-delta' && evt.text) finalText += evt.text;
       yield evt;
+      finalText = appendTextDelta(finalText, evt);
     }
     if (!finalText) {
       finalText = `[agent] ${input}`;
@@ -255,8 +258,17 @@ export class Agent {
       .map((e) => e.payload as Derivation);
   }
 
+  /**
+   * The cycle's view of this agent, built once.
+   *
+   * Every field is `readonly` or read through a closure over `this`, so the record
+   * stays correct for the agent's lifetime — and it was previously rebuilt as a
+   * twenty-field object with five fresh closures on *every* cycle and every chat
+   * turn, two of which are the hottest entry points in the package. The one field
+   * a caller can replace afterwards is `macroPipeline`, so that setter drops it.
+   */
   #cycleHost(): CycleHost {
-    return {
+    this.#host ??= {
       log: this.log,
       memory: this.memory,
       engines: this.engines,
@@ -279,6 +291,7 @@ export class Agent {
         this.#lastResponse = v;
       },
     };
+    return this.#host;
   }
 
   #emitCognitive(event: CognitiveEvent): void {
@@ -288,5 +301,6 @@ export class Agent {
   /** Phase A (REFACTOR.todo1): install a custom macro pipeline (e.g. dialogue Capture phase). */
   setMacroPipeline(phases: MacroPhase[]): void {
     this.#macroPipeline = phases;
+    this.#host = undefined;
   }
 }

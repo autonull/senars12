@@ -68,3 +68,14 @@ export const parseOrThrow = <S extends z.ZodType>(
   if (!result.success) throw new ErrorType(label, result.error.issues);
   return result.data;
 };
+
+/**
+ * A named parse-or-throw for one schema. Every boundary that validates a payload
+ * published it as a one-line function over {@link parseOrThrow}, and the label —
+ * the only part of the failure a reader acts on — was a second hand-written string
+ * that could name something other than the schema it was bound to.
+ */
+export const validatorFor =
+  <S extends z.ZodType>(schema: S, label: string) =>
+  (input: unknown): z.output<S> =>
+    parseOrThrow(schema, label, input);

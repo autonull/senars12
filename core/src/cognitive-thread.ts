@@ -74,6 +74,9 @@ export interface JoinResult {
  */
 export type ThreadMailbox = BoundedRing<ThreadMessage>;
 
+/** A child thread's mailbox is smaller than a root's: it serves one subtask. */
+const DEFAULT_MAILBOX_CAPACITY = 50;
+
 /** A mailbox that refuses at capacity rather than evicting. */
 const createMailbox = (capacity: number): ThreadMailbox => new BoundedRing(capacity, 'refuse');
 
@@ -93,7 +96,7 @@ export class CognitiveThread {
     this.id = options.id;
     this.parentId = options.parentBudget.id;
     this.budget = sliceBudget(options.parentBudget, options.id, options.budgetAllocation ?? {});
-    this.mailbox = createMailbox(options.mailboxCapacity ?? 100);
+    this.mailbox = createMailbox(options.mailboxCapacity ?? DEFAULT_MAILBOX_CAPACITY);
   }
 
   /** Spawn a child thread with hard budget inheritance: Σ(child) ≤ parent.remaining. */
@@ -111,7 +114,7 @@ export class CognitiveThread {
       id: childId,
       parentBudget: this.budget,
       budgetAllocation: childAllocation,
-      mailboxCapacity: 50,
+      mailboxCapacity: DEFAULT_MAILBOX_CAPACITY,
     });
     this.children.add(child.id);
 
@@ -178,14 +181,13 @@ export class CognitiveThread {
     }
   }
 
-  /** Wait for thread completion (join) and return unconsumed budget. */
+  /** Wait for thread completion (join) and return unconsumed budget.
+   *
+   * There is no wait: `run()` is awaited by its caller, so by the time a thread is
+   * joined its outcome is already recorded. The shape stays because a genuinely
+   * parallel thread pool is the only thing that would need it.
+   */
   async join(): Promise<JoinResult> {
-    // In single-threaded mode, the thread runs synchronously
-    // This is a no-op for the current thread, but provides the API for future parallel execution
-    if (this.status === 'running') {
-      // In true parallel implementation, this would wait on a promise
-      // For now, we assume run() was already awaited
-    }
     if (this.error) throw this.error;
 
     return { result: this.result, unconsumedBudget: remainingAll(this.budget) };
@@ -204,8 +206,9 @@ export class CognitiveThread {
     return !isExhausted(this.budget) && this.status === 'running';
   }
 
-  /** Consume budget for an operation. */
-  consume(cycles = 1, depth = 0, memoryOps = 0, llmCalls = 0): boolean {
+  /** Consume budget for an operation. Depth, memory ops and LM calls are charged by
+   *  their own gates against the slice's own counters, not here. */
+  consume(cycles = 1): boolean {
     return consumeCycles(this.budget, cycles);
   }
 
@@ -251,10 +254,14 @@ export class ThreadPool {
     this.maxThreads = maxThreads;
   }
 
+  /** One admission test, so the two spawn paths cannot disagree on reuse or capacity. */
+  #admits(id: string): boolean {
+    return !this.threads.has(id) && this.threads.size < this.maxThreads;
+  }
+
   /** Spawn a new thread. */
   spawn(id: string, options?: Partial<CognitiveThreadOptions>): CognitiveThread | null {
-    if (this.threads.size >= this.maxThreads) return null;
-    if (this.threads.has(id)) return null;
+    if (!this.#admits(id)) return null;
 
     const thread = new CognitiveThread({
       id,
@@ -267,8 +274,7 @@ export class ThreadPool {
 
   /** Spawn a new thread with hard budget inheritance. Returns SpawnResult. */
   spawnWithBudget(id: string, allocation?: BudgetAllocation): SpawnResult | null {
-    if (this.threads.size >= this.maxThreads) return null;
-    if (this.threads.has(id)) return null;
+    if (!this.#admits(id)) return null;
 
     const childAllocation = resolveAllocation(
       this.rootBudget,
@@ -281,7 +287,7 @@ export class ThreadPool {
       id,
       parentBudget: this.rootBudget,
       budgetAllocation: childAllocation,
-      mailboxCapacity: 50,
+      mailboxCapacity: DEFAULT_MAILBOX_CAPACITY,
     });
     this.threads.set(id, thread);
 

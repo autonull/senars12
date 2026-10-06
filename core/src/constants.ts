@@ -93,3 +93,17 @@ export const LENS_FIELDS: LensFieldDescriptor[] = [
   { key: 'edgeType', label: 'Edge Type', type: 'string' },
   { key: 'weight', label: 'Edge Weight', type: 'number' },
 ];
+
+/**
+ * The deadlines the motor and the gates charge against.
+ *
+ * Five sites wrote these ceilings as literals, and the two values each had more
+ * than one copy: the approval wait appeared once in the zod schema, once in the
+ * JSON Schema beside it, and once at the call that applies it; the shell deadline
+ * appeared in the executor and again in the `tool.request` payload that reported
+ * it. Lengthening one copy left the others charging a different ceiling on the
+ * same call.
+ */
+export const APPROVAL_TIMEOUT_MS = 60_000;
+export const SHELL_TIMEOUT_MS = 30_000;
+export const WEB_FETCH_TIMEOUT_MS = 15_000;

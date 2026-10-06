@@ -93,4 +93,5 @@ export {
   parseOrThrow,
   SchemaValidationError,
   type ValidatedAgentOptions,
+  validatorFor,
 } from './validation.js';

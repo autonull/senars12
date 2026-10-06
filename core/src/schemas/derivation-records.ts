@@ -3,8 +3,7 @@
  * dependency-free derivation proof. Used by the standalone Derivation Verifier.
  */
 
-import { parseOrThrow } from '@senars/util';
-import { nonNegativeInt, timestamp, uuid } from '@senars/util/config';
+import { nonNegativeInt, timestamp, uuid, validatorFor } from '@senars/util/config';
 import { z } from 'zod';
 import { IndependenceSchema } from './common.js';
 import { TruthValueSchema } from './truth.js';
@@ -55,5 +54,4 @@ export const DerivationRecordSchema = z.object({
 export type DerivationRecord = z.infer<typeof DerivationRecordSchema>;
 export type DerivationStep = z.infer<typeof DerivationStepSchema>;
 
-export const validateDerivationRecord = (record: unknown): DerivationRecord =>
-  parseOrThrow(DerivationRecordSchema, 'DerivationRecord', record);
+export const validateDerivationRecord = validatorFor(DerivationRecordSchema, 'DerivationRecord');

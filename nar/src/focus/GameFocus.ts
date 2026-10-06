@@ -18,6 +18,7 @@ import {
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 import { PriorityBag } from '../bag/Bag.js';
+import { FOCUS_DEFAULTS } from '../constants.js';
 import { type Game, type GameOutcome, perceptionKey, type Perception } from '../game/Game.js';
 import type { GateRegistry } from '../kernel/index.js';
 import type { ConfidenceRouter } from '../lm/system-one/policy.js';
@@ -165,8 +166,8 @@ export class GameFocus {
 
     this.focus = new Focus({
       id: options.focusId,
-      taskCapacity: options.focusOptions?.taskCapacity ?? 1000,
-      conceptCapacity: options.focusOptions?.conceptCapacity ?? 500,
+      taskCapacity: options.focusOptions?.taskCapacity ?? FOCUS_DEFAULTS.taskCapacity,
+      conceptCapacity: options.focusOptions?.conceptCapacity ?? FOCUS_DEFAULTS.conceptCapacity,
       weight: options.focusOptions?.weight ?? 1.0,
       gateRegistry: this.gates,
       clock: this.clock,

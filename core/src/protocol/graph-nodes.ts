@@ -4,6 +4,7 @@
 import { z } from 'zod';
 import { TaskPunctuationSchema } from '../schemas/task.js';
 import { TruthValueSchema } from '../schemas/truth.js';
+import { variant } from './envelope.js';
 
 /** Optional UI lens attributes attached to any graph node. */
 export const LensData = z.object({ score: z.number(), color: z.string(), size: z.number() });
@@ -28,38 +29,32 @@ export const cognitionShape = {
   goalRelevance: z.number().optional(),
 };
 
-export const NarConceptNode = z.object({
-  nodeType: z.literal('nar:concept'),
-  id: z.string().optional(),
-  label: z.string().optional(),
+/** Identity and chrome every graph node carries, whatever its `nodeType`. */
+const nodeBase = { id: z.string().optional(), label: z.string().optional(), ...lensShape };
+
+export const NarConceptNode = variant('nodeType', 'nar:concept', {
+  ...nodeBase,
   term: z.string(),
   priority: z.number(),
   confidence: z.number(),
   ...cognitionShape,
-  ...lensShape,
   html: z.string().optional(),
   punctuation: TaskPunctuationSchema.optional(),
 });
 
-export const MettaAtomNode = z.object({
-  nodeType: z.literal('metta:atom'),
-  id: z.string().optional(),
-  label: z.string().optional(),
+export const MettaAtomNode = variant('nodeType', 'metta:atom', {
+  ...nodeBase,
   atom: z.string(),
   type: z.string().optional(),
   space: z.string(),
-  ...lensShape,
 });
 
-export const MettaSkillNode = z.object({
-  nodeType: z.literal('metta:skill'),
-  id: z.string().optional(),
-  label: z.string().optional(),
+export const MettaSkillNode = variant('nodeType', 'metta:skill', {
+  ...nodeBase,
   skill: z.string(),
   args: z.array(z.string()),
   result: z.string(),
   durationMs: z.number(),
-  ...lensShape,
 });
 
 export const GraphNodeDataStrict = z.discriminatedUnion('nodeType', [

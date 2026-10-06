@@ -3,14 +3,11 @@
  */
 import { z } from 'zod';
 import { ConfigField } from './config.js';
+import { msg } from './envelope.js';
 import { Lens } from './graph-view.js';
 
-export const SyncRequest = z.object({
-  type: z.literal('sync.request'),
-  lastSeqId: z.number().nullable(),
-});
-export const StateSnapshot = z.object({
-  type: z.literal('state.snapshot'),
+export const SyncRequest = msg('sync.request', { lastSeqId: z.number().nullable() });
+export const StateSnapshot = msg('state.snapshot', {
   seqId: z.number(),
   data: z.object({
     graph: z.object({ nodes: z.array(z.any()), edges: z.array(z.any()) }),
@@ -19,12 +16,7 @@ export const StateSnapshot = z.object({
   }),
 });
 
-export const ViewportSet = z.object({
-  type: z.literal('viewport.set'),
-  x: z.number(),
-  y: z.number(),
-  zoom: z.number(),
-});
+export const ViewportSet = msg('viewport.set', { x: z.number(), y: z.number(), zoom: z.number() });
 
 export const CognitiveMetrics = z.object({
   activeConcepts: z.number(),
@@ -35,8 +27,7 @@ export const CognitiveMetrics = z.object({
   goalUrgencyDistribution: z.record(z.string(), z.number()).optional(),
 });
 
-export const TelemetryMsg = z.object({
-  type: z.literal('telemetry'),
+export const TelemetryMsg = msg('telemetry', {
   metrics: z.object({
     reasoning_hz: z.number(),
     tokens_per_sec: z.number(),
@@ -46,5 +37,5 @@ export const TelemetryMsg = z.object({
   cognitive: CognitiveMetrics.optional(),
 });
 
-export const LensSet = z.object({ type: z.literal('lens.set'), lens: Lens });
-export const FocusSet = z.object({ type: z.literal('focus.set'), term: z.string() });
+export const LensSet = msg('lens.set', { lens: Lens });
+export const FocusSet = msg('focus.set', { term: z.string() });

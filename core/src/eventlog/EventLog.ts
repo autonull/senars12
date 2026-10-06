@@ -61,3 +61,27 @@ export interface EventLogConfig {
   maxEvents?: number;
   maxEventSize?: number;
 }
+
+/**
+ * A type allowlist as a membership test, or `undefined` for *every* type. The two
+ * implementations and the subscription replay each built their own `Set`, and the
+ * subscription's `types: []` matched nothing while a query's `types: []` matched
+ * everything — the same argument, two answers, from one contract that documents
+ * "empty or absent means every type".
+ */
+export const typeSetOf = (types?: readonly string[]): ReadonlySet<string> | undefined =>
+  types?.length ? new Set(types) : undefined;
+
+/** What a subscription filters on — the allowlist and the caller's own predicate. */
+export interface SubscriptionFilter {
+  types?: ReadonlySet<string>;
+  filter?: (event: CognitiveEvent) => boolean;
+}
+
+/**
+ * Whether a subscription admits an event: the allowlist first, then the caller's
+ * own predicate. Written once because the replay path and the live-notify path
+ * were two copies that had already drifted — replay ignored `fromId`.
+ */
+export const subscriptionAdmits = ({ types, filter }: SubscriptionFilter, event: CognitiveEvent) =>
+  (types === undefined || types.has(event.type)) && (filter === undefined || filter(event));

@@ -100,81 +100,70 @@ const doubleNegation: TermReducer = {
   reduce: (term) => getArgs(getArgs(term)[0] as Term)[0] as Term,
 };
 
-/** `--TRUE = FALSE` — symmetric with double-negation. */
-const negateTrue: TermReducer = {
-  id: 'negate-true',
-  justification:
-    '--TRUE = FALSE (negation of truth constant); Op.java Bool atom semantics, NOT operator on TRUE',
-  applies: (term) =>
-    term.kind === 'negation' &&
-    getArgs(term)[0]?.kind === 'atom' &&
-    getArgs(term)[0]!.symbol === 'TRUE',
-  reduce: (term) => atomOf('FALSE'),
-};
+type BoolSymbol = 'TRUE' | 'FALSE';
+const other = (symbol: BoolSymbol): BoolSymbol => (symbol === 'TRUE' ? 'FALSE' : 'TRUE');
 
-/** `--FALSE = TRUE` */
-const negateFalse: TermReducer = {
-  id: 'negate-false',
-  justification:
-    '--FALSE = TRUE (negation of false constant); Op.java Bool atom semantics, NOT operator on FALSE',
+/**
+ * `--TRUE = FALSE` and its complement, declared once. The two reducers were
+ * character-identical apart from the constant, and the constant is the whole law.
+ */
+const negateBool = (symbol: BoolSymbol): TermReducer => ({
+  id: `negate-${symbol.toLowerCase()}`,
+  justification: `--${symbol} = ${other(symbol)} (negation of ${symbol.toLowerCase()} constant); Op.java Bool atom semantics, NOT operator on ${symbol}`,
   applies: (term) =>
     term.kind === 'negation' &&
     getArgs(term)[0]?.kind === 'atom' &&
-    getArgs(term)[0]!.symbol === 'FALSE',
-  reduce: (term) => atomOf('TRUE'),
-};
+    getArgs(term)[0]!.symbol === symbol,
+  reduce: () => atomOf(other(symbol)),
+});
+
+/**
+ * `a & TRUE = a`, `a & FALSE = FALSE`, `a | TRUE = TRUE`, `a | FALSE = a`.
+ *
+ * One Boolean law for every n-ary operator and both constants. `symbol` is the
+ * constant the term carries; `absorbing` decides the result — an absorber replaces
+ * the whole term with itself, an identity is dropped and the rest of the term
+ * survives. The four were four copies of one guard and one two-shaped `reduce`,
+ * with conjunction's and disjunction's polarities written out by hand and nothing
+ * holding them in step.
+ */
+const boolAbsorb = (
+  id: string,
+  kind: OperatorKey,
+  symbol: BoolSymbol,
+  absorbing: boolean,
+  law: string
+): TermReducer => ({
+  id,
+  justification:
+    `a ${law} ${symbol} = ${absorbing ? symbol : 'a'} ` +
+    `(${symbol} ${absorbing ? `absorbs ${law}` : `is the identity for ${law}`}); ` +
+    `Op.java ${kind.toUpperCase()} with ${symbol} ${absorbing ? 'absorption' : 'identity'}`,
+  applies: (term) =>
+    term.kind === kind && getArgs(term).some((arg) => isBoolAtom(arg) && arg.symbol === symbol),
+  reduce: (term) =>
+    absorbing
+      ? atomOf(symbol)
+      : compoundOf(
+          kind,
+          getArgs(term).filter((arg) => !(isBoolAtom(arg) && arg.symbol === symbol))
+        ),
+});
+
+const negateTrue = negateBool('TRUE');
+const negateFalse = negateBool('FALSE');
 
 /** `a & TRUE = a` — TRUE is the identity for conjunction. */
-const conjunctionTrue: TermReducer = {
-  id: 'conjunction-true',
-  justification:
-    'a & TRUE = a (TRUE is conjunction identity); Op.java CONJ Args.GTETwo with TRUE absorption',
-  applies: (term) =>
-    term.kind === 'conjunction' &&
-    getArgs(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'TRUE'),
-  reduce: (term) =>
-    compoundOf(
-      'conjunction',
-      getArgs(term).filter((arg) => !(isBoolAtom(arg) && arg.symbol === 'TRUE'))
-    ),
-};
+const conjunctionTrue = boolAbsorb('conjunction-true', 'conjunction', 'TRUE', false, '&');
 
 /** `a & FALSE = FALSE` — FALSE absorbs conjunction. */
-const conjunctionFalse: TermReducer = {
-  id: 'conjunction-false',
-  justification:
-    'a & FALSE = FALSE (FALSE absorbs conjunction); Op.java CONJ Args.GTETwo with FALSE absorption',
-  applies: (term) =>
-    term.kind === 'conjunction' &&
-    getArgs(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'FALSE'),
-  reduce: () => atomOf('FALSE'),
-};
+const conjunctionFalse = boolAbsorb('conjunction-false', 'conjunction', 'FALSE', true, '&');
 
 /** `a | TRUE = TRUE` — TRUE absorbs disjunction. */
-const disjunctionTrue: TermReducer = {
-  id: 'disjunction-true',
-  justification:
-    'a | TRUE = TRUE (TRUE absorbs disjunction); Op.java DISJ case 0->True with TRUE absorption',
-  applies: (term) =>
-    term.kind === 'disjunction' &&
-    getArgs(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'TRUE'),
-  reduce: () => atomOf('TRUE'),
-};
+const disjunctionTrue = boolAbsorb('disjunction-true', 'disjunction', 'TRUE', true, '|');
 
 /** `a | FALSE = a` — FALSE is the identity for disjunction. */
-const disjunctionFalse: TermReducer = {
-  id: 'disjunction-false',
-  justification:
-    'a | FALSE = a (FALSE is disjunction identity); Op.java DISJ case 1->x[0] with FALSE absorption',
-  applies: (term) =>
-    term.kind === 'disjunction' &&
-    getArgs(term).some((arg) => isBoolAtom(arg) && arg.symbol === 'FALSE'),
-  reduce: (term) =>
-    compoundOf(
-      'disjunction',
-      getArgs(term).filter((arg) => !(isBoolAtom(arg) && arg.symbol === 'FALSE'))
-    ),
-};
+const disjunctionFalse = boolAbsorb('disjunction-false', 'disjunction', 'FALSE', false, '|');
 
 export const TERM_REDUCERS: readonly TermReducer[] = Object.freeze([
   flattenNested,

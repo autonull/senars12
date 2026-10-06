@@ -93,9 +93,7 @@ export class SystemOneRuntime {
    */
   getContrastive(correlationId: string): ContrastiveMemory {
     const scope = threadScope.get(correlationId);
-    if (!scope.contrastiveMemory) {
-      scope.contrastiveMemory = new ContrastiveMemory();
-    }
+    scope.contrastiveMemory ??= new ContrastiveMemory();
     return scope.contrastiveMemory as ContrastiveMemory;
   }
 

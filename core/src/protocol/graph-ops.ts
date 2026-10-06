@@ -2,29 +2,26 @@
  * Graph operations (delta) + cognitive delta
  */
 import { z } from 'zod';
+import { msg, variant } from './envelope.js';
 import { GraphNodeDataView, Lens } from './graph-view.js';
 
+const ENDPOINTS = { source: z.string(), target: z.string() };
+const NODE = { id: z.string(), data: GraphNodeDataView };
+
 export const GraphOp = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('add_node'), id: z.string(), data: GraphNodeDataView }),
-  z.object({
-    action: z.literal('update_node'),
-    id: z.string(),
-    data: GraphNodeDataView,
-  }),
-  z.object({ action: z.literal('remove_node'), id: z.string() }),
-  z.object({
-    action: z.literal('add_edge'),
-    source: z.string(),
-    target: z.string(),
+  variant('action', 'add_node', NODE),
+  variant('action', 'update_node', NODE),
+  variant('action', 'remove_node', { id: z.string() }),
+  variant('action', 'add_edge', {
+    ...ENDPOINTS,
     data: z.object({ weight: z.number(), type: z.string(), directed: z.boolean() }).optional(),
   }),
-  z.object({ action: z.literal('remove_edge'), source: z.string(), target: z.string() }),
+  variant('action', 'remove_edge', ENDPOINTS),
 ]);
 export type GraphOp = z.infer<typeof GraphOp>;
 export type GraphOpType = z.infer<typeof GraphOp>;
 
-export const CognitiveDelta = z.object({
-  type: z.literal('cognitive.delta'),
+export const CognitiveDelta = msg('cognitive.delta', {
   seqId: z.number(),
   lens: Lens,
   ops: z.array(GraphOp),

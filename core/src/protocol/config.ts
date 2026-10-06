@@ -2,6 +2,7 @@
  * Configuration message schemas
  */
 import { z } from 'zod';
+import { msg } from './envelope.js';
 
 export const ConfigField = z.object({
   type: z.enum(['slider', 'dropdown', 'text', 'toggle']),
@@ -21,12 +22,7 @@ export const ConfigField = z.object({
     })
     .optional(),
 });
-export const ConfigSchemaMsg = z.object({
-  type: z.literal('config.schema'),
+export const ConfigSchemaMsg = msg('config.schema', {
   data: z.record(z.string(), ConfigField),
 });
-export const ConfigSetMsg = z.object({
-  type: z.literal('config.set'),
-  key: z.string(),
-  value: z.any(),
-});
+export const ConfigSetMsg = msg('config.set', { key: z.string(), value: z.any() });

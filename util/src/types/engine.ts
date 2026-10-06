@@ -1,4 +1,5 @@
 import { errMsg } from '../utils/error.js';
+import { attemptAsync, match } from '../utils/result.js';
 import type { CognitiveStimulus, Context, Derivation } from './cognitive.js';
 
 export type { CognitiveStimulus, Context, Derivation } from './cognitive.js';
@@ -33,6 +34,25 @@ export const toolError = (error: unknown, extra?: Partial<ToolResult>): ToolResu
   error: errMsg(error),
   ...extra,
 });
+
+/**
+ * A tool body wrapped in its own failure contract. Every tool hand-wrote
+ * `try { toolOk(await run()) } catch { toolError(\`${label}: ${errMsg(e)}\`) }`, and the
+ * four labels in production code differed only in wording — two of them dropped
+ * the label and reported a bare message. `label` is the parameter those four sites
+ * were missing.
+ */
+export const toolAttempt = async <T>(
+  label: string,
+  run: () => T | Promise<T>,
+  content: (value: T) => unknown = (value) => value
+): Promise<ToolResult> => {
+  const outcome = await attemptAsync(async () => content(await run()));
+  return match(outcome, {
+    onOk: toolOk,
+    onErr: (e: Error) => toolError(`${label}: ${errMsg(e)}`),
+  });
+};
 
 export interface Engine {
   readonly id: EngineId;

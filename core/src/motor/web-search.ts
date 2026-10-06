@@ -13,8 +13,8 @@
 
 import { boundedFetch, collectUpTo, errMsg, readBodyBounded, splitLines } from '@senars/util';
 import { envFirst } from '@senars/util/config';
+import { WEB_FETCH_TIMEOUT_MS } from '../constants.js';
 
-const FETCH_TIMEOUT_MS = 15_000;
 /** Hard cap on a buffered response body. */
 const MAX_BODY_BYTES = 512 * 1024;
 /** Cap on the text handed back from a fetched page. */
@@ -22,7 +22,7 @@ const MAX_FETCH_CHARS = MAX_BODY_BYTES / 2;
 
 /** This module's request policy over the shared bounded-request primitive. */
 const fetchBounded = (url: string | URL, init?: RequestInit): Promise<Response> =>
-  boundedFetch(url, init, { timeoutMs: FETCH_TIMEOUT_MS });
+  boundedFetch(url, init, { timeoutMs: WEB_FETCH_TIMEOUT_MS });
 
 const readBody = (res: Response): Promise<string> => readBodyBounded(res, MAX_BODY_BYTES);
 

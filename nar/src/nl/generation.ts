@@ -1,7 +1,7 @@
 import {
   ambientRng,
   formatTruth,
-  stableStringify,
+  stableKeyOf,
   takeFirst,
   type BeliefTruth,
   unique,
@@ -74,13 +74,10 @@ export class NLGenerationService {
   }
 
   async generate(input: GenerationInput): Promise<GenerationOutput> {
-    let key = '';
-    try {
-      key = stableStringify(input);
-    } catch {
-      key = `${Date.now()}:${ambientRng()}`;
-    }
-    return this.flight.run(key, () => this.generateInner(input));
+    return this.flight.run(
+      stableKeyOf(input, () => `${Date.now()}:${ambientRng()}`),
+      () => this.generateInner(input)
+    );
   }
 
   private async generateInner(input: GenerationInput): Promise<GenerationOutput> {

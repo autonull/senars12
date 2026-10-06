@@ -1,4 +1,4 @@
-import { estimateTokens, formatTruth } from '@senars/util';
+import { appendTextDelta, collectText, estimateTokens, formatTruth } from '@senars/util';
 import type { ChatStreamEvent } from '../chat.js';
 import type { CognitiveStimulus, Context, Derivation } from '../engine/Engine.js';
 import type {
@@ -48,9 +48,8 @@ export class LLMCortex {
     const composed = this.#compose(req);
     let text = '';
     for await (const ev of this.#runner.run(composed, signal)) {
-      const chatEv = this.#toChatEvent(ev);
-      yield chatEv;
-      if (ev.kind === 'text-delta') text += ev.text;
+      yield this.#toChatEvent(ev);
+      text = appendTextDelta(text, ev);
     }
     const finalText = text || this.#fallbackResponse(req);
     if (!text) yield { kind: 'text-delta', text: finalText };
@@ -58,18 +57,10 @@ export class LLMCortex {
   }
 
   async synthesize(req: CortexSynthesizeRequest): Promise<CortexSynthesizeResponse> {
-    const composed = this.#compose(req);
-
-    const stream = this.#runner.run(composed);
-
-    let text = '';
     const events: ChatStreamEvent[] = [];
-
-    for await (const ev of stream) {
-      events.push(this.#toChatEvent(ev));
-      if (ev.kind === 'text-delta') text += ev.text;
-    }
-
+    const text = await collectText(this.#runner.run(this.#compose(req)), (ev) =>
+      events.push(this.#toChatEvent(ev))
+    );
     return { text: text || this.#fallbackResponse(req), events };
   }
 

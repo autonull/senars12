@@ -1,5 +1,13 @@
-import type { EvictionOrder } from '@senars/util';
-import { addToSet, BoundedMap, collectUpTo, occupancy, removeFromSet, retain } from '@senars/util';
+import type { ContainerStats, EvictionOrder } from '@senars/util';
+import {
+  addToSet,
+  BoundedMap,
+  collectUpTo,
+  containerStats,
+  occupancy,
+  removeFromSet,
+  retain,
+} from '@senars/util';
 import { LINK } from '../../constants.js';
 import { type Term, termKey } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
@@ -132,12 +140,8 @@ export class Layer {
     }
   }
 
-  getStats(): { size: number; capacity: number; utilization: number } {
-    return {
-      size: this.links.size(),
-      capacity: this.capacity,
-      utilization: occupancy(this.links.size(), this.capacity),
-    };
+  getStats(): ContainerStats {
+    return containerStats(this.links.size(), this.capacity);
   }
 
   /** Occupancy in `0..1` — the AIKR pressure signal; a zero-capacity layer is under full pressure. */

@@ -13,8 +13,13 @@
  * policy for both is the mistake this shape forecloses.
  */
 
-import { parseOrThrow } from '@senars/util';
-import { nonEmpty, nonNegativeInt, positiveInt, unitInterval } from '@senars/util/config';
+import {
+  nonEmpty,
+  nonNegativeInt,
+  positiveInt,
+  unitInterval,
+  validatorFor,
+} from '@senars/util/config';
 import { z } from 'zod';
 import { RulePatternSchema } from './common.js';
 import { CognitiveEventBaseSchema, PROPOSER_ORIGIN } from './event-base.js';
@@ -152,5 +157,4 @@ export const ProposalAdmittedEventSchema = CognitiveEventBaseSchema.extend({
 export type ProposalRejectedEvent = z.infer<typeof ProposalRejectedEventSchema>;
 export type ProposalAdmittedEvent = z.infer<typeof ProposalAdmittedEventSchema>;
 
-export const validateProposal = (input: unknown): Proposal =>
-  parseOrThrow(ProposalSchema, 'Proposal', input);
+export const validateProposal = validatorFor(ProposalSchema, 'Proposal');

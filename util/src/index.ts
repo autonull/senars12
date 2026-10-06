@@ -135,7 +135,7 @@ export {
 /** @public Engine contract and identifiers. */
 export type { Engine, EngineId } from './types/engine.js';
 /** @public The one tool outcome shape and its two constructors. */
-export { toolError, toolOk } from './types/engine.js';
+export { toolAttempt, toolError, toolOk } from './types/engine.js';
 /** @public Episodic memory contracts. */
 export type {
   Episode,
@@ -194,6 +194,8 @@ export type {
   ToolSchemaProperty,
   ToolSpec,
 } from './types/tools.js';
+export { objectSpec } from './types/tools.js';
+
 /** @public Transport/connection contracts shared by io and core. */
 export type {
   Connection,
@@ -278,7 +280,12 @@ export { parseFlags } from './utils/cli.js';
 /** @public The one injectable time source; every bounded container and cache takes one. */
 export type { Clock } from './utils/clock.js';
 export { fixedClock, systemClock } from './utils/clock.js';
-export type { BoundedContainer, OverflowPolicy, ReadOnlyLookup } from './utils/collections.js';
+export type {
+  BoundedContainer,
+  ContainerStats,
+  OverflowPolicy,
+  ReadOnlyLookup,
+} from './utils/collections.js';
 
 // Collections
 /** @public Bounded FIFO ring buffer; evicting or refusing at capacity. */
@@ -289,6 +296,7 @@ export {
   buckets,
   chunk,
   collectUpTo,
+  containerStats,
   edgeKey,
   entryKey,
   flatUnique,
@@ -395,7 +403,7 @@ export {
   sortableIdSource,
 } from './utils/id.js';
 /** @public Deterministic JSON with sorted object keys — the one serializer behind every cache key and content digest. */
-export { extractJsonObject, parseJsonObject, stableStringify } from './utils/json.js';
+export { extractJsonObject, parseJsonObject, stableKeyOf, stableStringify } from './utils/json.js';
 /** @public Keyed storage by derived identity, and the named registry over it. */
 export type { KeyedRegistryOptions } from './utils/keyed-collection.js';
 export {
@@ -491,6 +499,8 @@ export { weightedMean } from './utils/stats.js';
 export type { CallTally, CallTallySeriesOptions } from './utils/tally.js';
 export { CallTallySeries, createCallTally, recordCall } from './utils/tally.js';
 export {
+  appendTextDelta,
+  collectText,
   escapeRegExp,
   extractTerm,
   isNarsese,

@@ -138,3 +138,20 @@ export const scopeBudget = (
   overrides: Partial<Record<BudgetScopeId, number>> = {}
 ): ReasoningBudget =>
   freshBudget(base, { [scopeLimitKey(scopeId)]: scopeLimit(scopeId, overrides) });
+
+/**
+ * A budget stamped with the slice identity every budget event is keyed by.
+ *
+ * `KernelBudgetGate` wrote that stamp with `Object.defineProperty` at four
+ * places, each behind its own `if (!('id' in budget))` check — so whether a scope
+ * reached the tracer with an id depended on which of the four entry points created
+ * it, and the stamp was invisible to the type system because `ReasoningBudget`
+ * does not declare `id`.
+ */
+export const withBudgetId = <T extends ReasoningBudget>(
+  budget: T,
+  id: string
+): T & { id: string } =>
+  ('id' in budget
+    ? budget
+    : Object.defineProperty(budget, 'id', { value: id, enumerable: true })) as T & { id: string };

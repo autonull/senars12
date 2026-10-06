@@ -5,13 +5,22 @@
  * `MacroContext.stream`.
  */
 
-import { mintCognitiveEvent } from '../schemas/index.js';
-import { createLogger, dispatch, drain, egressVerdict, type LMTask, toolError } from '@senars/util';
-
+import {
+  collectText,
+  createLogger,
+  dispatch,
+  drain,
+  egressVerdict,
+  type LMTask,
+  toolError,
+} from '@senars/util';
 import type { ChatStreamEvent } from '../chat.js';
+import { SHELL_TIMEOUT_MS } from '../constants.js';
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
 import { sweepEngines } from '../engine/sweep.js';
 import { RECALL_WINDOW } from '../memory/types.js';
+import { NAR_ORIGIN } from '../schemas/event-base.js';
+import { mintCognitiveEvent } from '../schemas/index.js';
 import {
   type CycleHost,
   createMacroContext,
@@ -30,34 +39,35 @@ const EMPTY_CONTEXT: Context = { working: [], episodic: [], semantic: [] };
 const reportEgressRejection = (host: CycleHost, correlationId: string, score?: number): void => {
   host.emit(
     mintCognitiveEvent('egress.gate.rejected', {
-      engine: 'nar',
+      engine: NAR_ORIGIN,
       correlationId,
       payload: { gate: 'groundedness', score },
     })
   );
 };
 
+/**
+ * The one `input.user` draft, stamped once. The emitted stream and the durable
+ * append built it separately: the append bypassed the schema union, gave
+ * `causationId` an empty string where the mint omits it, and recorded the
+ * stimulus's own source where the mint recorded the literal `'cycle'` — so the
+ * same turn appeared twice under two provenances.
+ */
+const inputUser = (stimulus: CognitiveStimulus) => ({
+  engine: NAR_ORIGIN,
+  correlationId: stimulus.correlationId,
+  payload: { text: stimulus.text, source: stimulus.source },
+});
+
 const perceive = (host: CycleHost, stimulus: CognitiveStimulus): void => {
-  host.emit(
-    mintCognitiveEvent('input.user', {
-      engine: 'nar',
-      correlationId: stimulus.correlationId,
-      payload: { text: stimulus.text, source: 'cycle' },
-    })
-  );
+  host.emit(mintCognitiveEvent('input.user', inputUser(stimulus)));
 };
 
 const recall = async (
   host: CycleHost,
   stimulus: CognitiveStimulus
 ): Promise<{ cid: { id?: string }; context: Context }> => {
-  const cid = await host.log.append({
-    engine: 'nar',
-    type: 'input.user',
-    payload: { text: stimulus.text, source: stimulus.source },
-    correlationId: stimulus.correlationId,
-    causationId: '',
-  });
+  const cid = await host.log.append({ ...inputUser(stimulus), type: 'input.user' });
 
   const working = host.memory.recent(RECALL_WINDOW);
   const episodic = await host.memory.queryEpisodic();
@@ -124,10 +134,7 @@ const narrateStreaming = async (ctx: MacroContext): Promise<void> => {
             });
             yield { kind: 'text-delta', text: res.text } as ChatStreamEvent;
           })();
-    for await (const evt of s) {
-      stream.push(evt);
-      if (evt.kind === 'text-delta' && evt.text) state.narrativeText += evt.text;
-    }
+    state.narrativeText += await collectText(s, (evt) => stream.push(evt));
     if (!state.narrativeText) state.narrativeText = host.getLastResponse();
     else if (host.groundednessGate) {
       const verdict = egressVerdict(
@@ -202,9 +209,13 @@ const act = async (ctx: MacroContext): Promise<Array<{ command: string; result: 
       });
       toolResults.push({ command: cmd.command, result });
       await host.log.append({
-        engine: 'nar',
+        engine: NAR_ORIGIN,
         type: 'tool.request',
-        payload: { toolName: cmd.command, args: { args: cmd.args }, timeoutMs: 30000 },
+        payload: {
+          toolName: cmd.command,
+          args: { args: cmd.args },
+          timeoutMs: SHELL_TIMEOUT_MS,
+        },
         correlationId: stimulus.correlationId,
         causationId: state.cid?.id ?? '',
       });
@@ -261,7 +272,7 @@ const announce = (ctx: MacroContext): void => {
   for (const d of state.derivations) {
     host.emit(
       mintCognitiveEvent('derivation.made', {
-        engine: 'nar',
+        engine: NAR_ORIGIN,
         correlationId: stimulus.correlationId,
         payload: { rule: '', premises: [], conclusion: d.term },
       })
@@ -270,7 +281,7 @@ const announce = (ctx: MacroContext): void => {
   for (const tr of state.toolResults) {
     host.emit(
       mintCognitiveEvent('skill.executed', {
-        engine: 'nar',
+        engine: NAR_ORIGIN,
         correlationId: stimulus.correlationId,
         payload: {
           skill: tr.command,

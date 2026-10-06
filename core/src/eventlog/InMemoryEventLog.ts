@@ -1,6 +1,7 @@
 import { getOrInsert } from '@senars/util';
 import { AbstractEventLog } from './AbstractEventLog.js';
 import type { CognitiveEvent, EventLogConfig, EventLogQuery } from './EventLog.js';
+import { typeSetOf } from './EventLog.js';
 
 export class InMemoryEventLog extends AbstractEventLog {
   #events: CognitiveEvent[] = [];
@@ -28,7 +29,7 @@ export class InMemoryEventLog extends AbstractEventLog {
   }
 
   async query(query: EventLogQuery): Promise<CognitiveEvent[]> {
-    const types = query.types?.length ? new Set(query.types) : undefined;
+    const types = typeSetOf(query.types);
     const { correlationId, timeRange, limit } = query;
     const { events } = this;
 

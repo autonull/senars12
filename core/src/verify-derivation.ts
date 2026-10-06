@@ -285,14 +285,16 @@ export function verifyRecord(
   } else {
     const { steps, finalTruth, taskId, totalCycles } = parsed.data;
     const toVerify = options.maxSteps ? steps.slice(0, options.maxSteps) : steps;
+    // One set, handed over live: `verifyStep` reads it and cannot write it (it is
+    // typed `ReadonlySet`), and the copy this loop used to take made verification
+    // of an n-step record cost O(n^2) and n intermediate sets.
     const seen = new Set<string>();
+    const stepOptions = { epsilon, strict: options.strict ?? false };
 
     for (const step of toVerify) {
       if (seen.has(step.stepId))
         fail('unique-step-id', `Duplicate stepId ${step.stepId}`, step.stepId);
-      stepResults.push(
-        verifyStep(step, new Set(seen), taskId, { epsilon, strict: options.strict ?? false }, state)
-      );
+      stepResults.push(verifyStep(step, seen, taskId, stepOptions, state));
       seen.add(step.stepId);
     }
     for (const result of stepResults) findings.push(...result.findings);

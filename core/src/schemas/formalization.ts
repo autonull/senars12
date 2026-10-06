@@ -4,8 +4,8 @@
  * authoritative parse; the kernel validates each candidate.
  */
 
-import { type CapabilityRisk, parseOrThrow } from '@senars/util';
-import { nonNegativeInt, unitInterval, uuid } from '@senars/util/config';
+import type { CapabilityRisk } from '@senars/util';
+import { nonNegativeInt, unitInterval, uuid, validatorFor } from '@senars/util/config';
 import { z } from 'zod';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
@@ -128,8 +128,12 @@ export type AmbiguityFlag = z.infer<typeof AmbiguityFlagSchema>;
 export type SourceSpan = z.infer<typeof SourceSpanSchema>;
 export type FormalizationBatch = z.infer<typeof FormalizationBatchSchema>;
 
-export const validateFormalizationCandidate = (candidate: unknown): FormalizationCandidate =>
-  parseOrThrow(FormalizationCandidateSchema, 'FormalizationCandidate', candidate);
+export const validateFormalizationCandidate = validatorFor(
+  FormalizationCandidateSchema,
+  'FormalizationCandidate'
+);
 
-export const validateFormalizationBatch = (batch: unknown): FormalizationBatch =>
-  parseOrThrow(FormalizationBatchSchema, 'FormalizationBatch', batch);
+export const validateFormalizationBatch = validatorFor(
+  FormalizationBatchSchema,
+  'FormalizationBatch'
+);

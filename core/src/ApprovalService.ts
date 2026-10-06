@@ -1,5 +1,7 @@
 import { type CapabilityRisk, deferred, errMsg, makeId, withTimeout } from '@senars/util';
 import { envBool } from '@senars/util/config';
+import { APPROVAL_TIMEOUT_MS } from './constants.js';
+import type { Verdict } from './schemas/gate-io.js';
 
 /** A question put to whoever holds the gate, and the one way it is answered.
  *  There is no rejection channel: a request nobody answered and a request that was
@@ -16,10 +18,9 @@ export interface ApprovalRequest {
   resolve: (result: ApprovalResult) => void;
 }
 
-export interface ApprovalResult {
-  approved: boolean;
-  reason?: string;
-}
+/** An answer as the registry records it: the grant, and why not when refused. The
+ *  gate reads the same verdict in its own vocabulary, `Verdict<'approved', 'feedback'>`. */
+export type ApprovalResult = Verdict<'approved'>;
 
 export interface ApprovalManager {
   createRequest(request: string, metadata?: Record<string, unknown>): ApprovalRequest;
@@ -100,7 +101,7 @@ export class ApprovalService {
     payload: string;
     risk: CapabilityRisk;
     timeoutMs?: number;
-  }): Promise<{ approved: boolean; feedback?: string }> {
+  }): Promise<Verdict<'approved', 'feedback'>> {
     const request = `${params.action}\n\nPayload: ${params.payload}\nRisk: ${params.risk}`;
     const approvalRequest = this.approvalManager.createRequest(request, {
       action: params.action,
@@ -119,7 +120,7 @@ export class ApprovalService {
     try {
       const result = await withTimeout(
         approvalRequest.result,
-        params.timeoutMs ?? 60000,
+        params.timeoutMs ?? APPROVAL_TIMEOUT_MS,
         () => new Error('Approval timeout')
       );
       return { approved: result.approved, feedback: result.reason };

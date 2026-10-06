@@ -718,13 +718,9 @@ _Dynamic subpath (no single entry file)._
 
 ## `./budget`
 
-- `ConsumedBudget` — Budget slice consumed resources.
-
 - `snapshotBudget` — A budget copied, consumption included.
 
 - `freshBudget` — The same ceilings over unspent consumption — the counters at zero and no
-
-- `BudgetLimits` — The four AIKR dimensions a budget is limited in — its whole ceiling.
 
 - `AIKRBudget` — The remaining-cycles view the bag and the tick pipeline both consume.
 
@@ -741,12 +737,6 @@ _Dynamic subpath (no single entry file)._
 - `createBudgetSlice`
 
 - `sliceBudget`
-
-- `BUDGET_RESOURCES` — The four AIKR dimensions, each with its consumed key, total key, and exhaustion reason.
-
-- `BudgetResource`
-
-- `ALL_RESOURCES`
 
 - `budgetLimitsOf` — The four dimensions with their ceilings in one snapshot — the shape every
 

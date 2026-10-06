@@ -11,17 +11,22 @@
  * Owns the budget event vocabulary as well as the accounting, so the otel
  * emitters in `nar` are reachable through the domain-event sink rather than
  * imported downward. The trace-vocabulary half of that announcement lives in
- * `budget-otel.ts`; this module is the accounting and the typed bus.
+ * `budget-otel.ts`, and the four dimensions both count in live in
+ * `budget-resources.ts`; this module is the accounting and the typed bus.
  */
 import { clamp, type EventBus, maxScore, occupancy } from '@senars/util';
 import { announceBudgetTrace } from './budget-otel.js';
+import {
+  ALL_RESOURCES,
+  BUDGET_RESOURCES,
+  type BudgetLimits,
+  type BudgetResource,
+  type ConsumedBudget,
+} from './budget-resources.js';
 import type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason } from './schemas/index.js';
 import { zeroConsumed } from './schemas/index.js';
 
 export type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason };
-
-/** Budget slice consumed resources. */
-export type ConsumedBudget = ReasoningBudget['consumed'];
 
 export { zeroConsumed };
 
@@ -53,12 +58,6 @@ export const freshBudget = <T extends ReasoningBudget>(budget: T, ceiling?: Part
   consumed: zeroConsumed(),
   terminationReason: undefined,
 });
-
-/** The four AIKR dimensions a budget is limited in — its whole ceiling. */
-export type BudgetLimits = Pick<
-  ReasoningBudget,
-  'maxCycles' | 'maxDepth' | 'maxMemoryOps' | 'maxLMCalls'
->;
 
 /** The remaining-cycles view the bag and the tick pipeline both consume. */
 export interface AIKRBudget {
@@ -190,20 +189,7 @@ function announce<K extends keyof BudgetEventMap>(
   announceBudgetTrace(event, payload);
 }
 
-/** The four AIKR dimensions, each with its consumed key, total key, and exhaustion reason.
- *  Exported because the operation→dimension table has one home: a second copy is how
- *  a gate ends up charging `cycles` where the engine charges `llmCalls`. */
-export const BUDGET_RESOURCES = {
-  cycles: { total: 'maxCycles', reason: 'cycle-budget' },
-  depth: { total: 'maxDepth', reason: 'depth-budget' },
-  memoryOps: { total: 'maxMemoryOps', reason: 'memory-budget' },
-  llmCalls: { total: 'maxLMCalls', reason: 'llm-budget' },
-} as const satisfies Record<
-  keyof ConsumedBudget,
-  { total: keyof BudgetLimits; reason: TerminationReason }
->;
-
-export type BudgetResource = keyof typeof BUDGET_RESOURCES;
+export * from './budget-resources.js';
 
 /**
  * Each dimension's event-level name, re-exported from the schema that owns it —
@@ -215,8 +201,6 @@ export type BudgetResource = keyof typeof BUDGET_RESOURCES;
  * name are declared.
  */
 export { BUDGET_TYPES, BudgetTypeSchema } from './schemas/index.js';
-
-export const ALL_RESOURCES = Object.keys(BUDGET_RESOURCES) as BudgetResource[];
 
 /**
  * The four dimensions with their ceilings in one snapshot — the shape every

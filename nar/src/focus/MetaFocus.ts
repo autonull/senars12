@@ -1,7 +1,9 @@
 import { PriorityBag } from '../bag/Bag.js';
+import { META_FOCUS_DEFAULTS } from '../constants.js';
 import type { SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
 import { atom } from '../terms';
 import { Focus, type FocusOptions, type FocusStepReport } from './Focus.js';
+import { focusTask } from './task.js';
 
 export interface MetaFocusOptions extends FocusOptions {
   selfMetaGame: SelfMetaGameImpl;
@@ -14,8 +16,8 @@ export class MetaFocus extends Focus {
   constructor(options: MetaFocusOptions) {
     super({
       id: options.id,
-      taskCapacity: options.taskCapacity ?? 500,
-      conceptCapacity: options.conceptCapacity ?? 200,
+      taskCapacity: options.taskCapacity ?? META_FOCUS_DEFAULTS.taskCapacity,
+      conceptCapacity: options.conceptCapacity ?? META_FOCUS_DEFAULTS.conceptCapacity,
       weight: options.weight ?? 0.1,
       taskDecayRate: options.taskDecayRate ?? 0.005,
       conceptDecayRate: options.conceptDecayRate ?? 0.002,
@@ -30,16 +32,17 @@ export class MetaFocus extends Focus {
 
     for (const [focusId, focusReport] of this.selfMetaGame['focusReports']) {
       if (focusReport) {
-        this.tasks.add({
-          id: `meta-report-${focusId}-${this.metaCycle}`,
-          priority: 0.5,
-          term: atom(`focus_report_${focusId}_${focusReport.derivations}`),
-          type: 'belief',
-          truth: { f: 0.8, c: 0.7 },
-          budget: { priority: 0.5, durability: 0.5, quality: 0.5, cycles: 0, depth: 0 },
-          stamp: `meta-${this.metaCycle}`,
-          derived: false,
-        });
+        this.tasks.add(
+          focusTask({
+            id: `meta-report-${focusId}-${this.metaCycle}`,
+            priority: 0.5,
+            term: atom(`focus_report_${focusId}_${focusReport.derivations}`),
+            type: 'belief',
+            f: 0.8,
+            c: 0.7,
+            stamp: `meta-${this.metaCycle}`,
+          })
+        );
       }
     }
 

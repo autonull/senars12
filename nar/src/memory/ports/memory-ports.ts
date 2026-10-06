@@ -6,6 +6,7 @@
  * strategy layer.
  */
 
+import type { ContainerStats } from '@senars/util';
 import type { Term } from '../../terms/index.js';
 import type { Concept } from '../concept.js';
 import type { Layer } from '../links/Layer.js';
@@ -35,7 +36,7 @@ export interface MemoryStatistics {
   focusedConcepts: number;
   archivedConcepts: number;
   indexStats?: { atomic: number; temporal: number };
-  archiveStats?: { size: number; capacity: number; utilization: number };
+  archiveStats?: ContainerStats;
   memoryPressure: number;
   utilization: number;
   /** Which bound `memoryPressure` came from. Both are 0..1. */
