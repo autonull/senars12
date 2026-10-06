@@ -11,9 +11,16 @@ export interface ActionProposal {
   provenance?: JudgmentProvenance;
 }
 
-/** The one reflex ranking order: highest `value × confidence` first. */
+/**
+ * The one reflex salience: `value × confidence` — the product the quorum
+ * accumulates, the focus projects onto priority, and {@link byExpectedValue}
+ * ranks by. Spelled inline at six sites, any of which could disagree.
+ */
+export const expectedValue = ({ value, confidence }: ActionProposal): number => value * confidence;
+
+/** The one reflex ranking order: highest {@link expectedValue} first. */
 export const byExpectedValue = (a: ActionProposal, b: ActionProposal): number =>
-  b.value * b.confidence - a.value * a.confidence;
+  expectedValue(b) - expectedValue(a);
 
 export interface LearningEvent {
   perception: Perception;

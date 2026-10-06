@@ -123,11 +123,17 @@ const countAppendOnlyPersistenceSites = (): number => {
   );
 };
 
+/**
+ * Modules running on the AIKR pipeline, counted by the pressure gate each one
+ * names rather than by the constructor it spells. The old grep for
+ * `new AIKRProcessor` reported three processes as uncovered the moment they
+ * stopped re-deriving a constructor `AikrShell` already wires for them — the
+ * coverage was intact and the measurement was not.
+ */
 const countAIKRProcessorCoverage = (): number =>
-  countLines(
-    productionSources(['nar/src']).map((file) => readFileSync(file, 'utf-8')),
-    /new AIKRProcessor/
-  );
+  productionSources(['nar/src']).filter((file) =>
+    /\bpressureThreshold\b/.test(readFileSync(file, 'utf-8'))
+  ).length;
 
 /**
  * Ledger entries whose container is not capacity-bounded. The audited set is

@@ -1,19 +1,23 @@
-import { type Clock, djb2, LruCache } from '@senars/util';
 import type { LMGenerateOptions } from '@senars/util';
+import { type Clock, LruCache, sha256HexParts, systemClock } from '@senars/util';
 
 const CACHE_TTL_MS = 60_000;
 
-/** The key covers every field that can change a completion, in a fixed order. */
+/**
+ * The key covers every field that can change a completion, in a fixed order.
+ * The parts are length-prefixed rather than delimiter-joined: a GBNF `grammar`
+ * is full of `|`, so a joined key cannot tell a grammar from a prompt that
+ * straddled the same delimiter.
+ */
 export function buildCacheKey(prompt: string, options?: LMGenerateOptions): string {
-  const parts = [
+  return sha256HexParts([
     prompt,
     options?.task ?? 'fast',
-    options?.temperature ?? 0,
-    options?.maxOutputTokens ?? 0,
+    String(options?.temperature ?? 0),
+    String(options?.maxOutputTokens ?? 0),
     options?.grammar ?? '',
     options?.model ?? '',
-  ];
-  return djb2(parts.join('|')).toString(36);
+  ]);
 }
 
 /**
@@ -36,7 +40,7 @@ export class ResponseCache {
 
   constructor(opts: { ttlMs?: number; now?: Clock } = {}) {
     this.#ttlMs = opts.ttlMs ?? CACHE_TTL_MS;
-    this.#now = opts.now ?? Date.now;
+    this.#now = opts.now ?? systemClock;
     this.#sweptAt = this.#now();
     this.#cache = new LruCache<string, string>({ ttlMs: this.#ttlMs, now: this.#now });
   }

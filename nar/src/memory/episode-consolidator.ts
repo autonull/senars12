@@ -8,6 +8,7 @@
  */
 import type { Episode, EpisodeType } from '@senars/util';
 import {
+  type Clock,
   groupBy,
   rankBy,
   selectByPriority,
@@ -15,17 +16,14 @@ import {
   sha256Prefixed,
   shortSha256Hex,
   softFalloff,
+  systemClock,
   takeFirst,
-  type Clock,
 } from '@senars/util';
-import {
-  AIKRProcessor,
-  type AikrBagOptions,
-  AikrShell,
-  createAikrBag,
-  type ProcessOptions,
-} from '../learning/aikr-processor.js';
+import { type AikrBagOptions, AikrShell, type ProcessOptions } from '../learning/aikr-processor.js';
 import type { RandomSource } from '../types/primitives.js';
+
+/** Episodes examined per consolidation pass — a merge needs a group, so batches run wide. */
+const EPISODE_CONSOLIDATION_BUDGET = 8;
 
 /** Bag item: an episode awaiting consolidation. */
 export interface EpisodeCandidate {
@@ -126,44 +124,34 @@ export class EpisodeConsolidator extends AikrShell<
   readonly #clock: () => number;
 
   constructor(options: EpisodeConsolidatorOptions = {}) {
-    const bag = createAikrBag<EpisodeCandidate>({
+    super({
       capacity: options.capacity ?? 256,
       forgetRate: options.forgetRate,
       rng: options.rng,
       clock: options.clock,
-    });
-    super({
-      bag,
-      budget: options.budget ?? 8,
+      pressureThreshold: options.pressureThreshold,
+      budget: options.budget ?? EPISODE_CONSOLIDATION_BUDGET,
       view: (candidate) => candidate.id,
       admit: (episode) => ({
         id: episode.id ?? `${episode.timestamp}:${episode.content.slice(0, 32)}`,
         priority: episodePriority(episode),
         episode,
       }),
-      processor: new AIKRProcessor<EpisodeCandidate, ConsolidationResult>({
-        bag,
-        pressureThreshold: options.pressureThreshold ?? 0.7,
-        rng: options.rng,
-        samplingStrategy: {
-          name: 'groupable-priority',
-          select: (items, budget) => {
-            const byKey = groupable(items);
-            const groupableItems: EpisodeCandidate[] = [];
-            for (const bucket of byKey.values()) {
-              if (bucket.length < 2) continue;
-              groupableItems.push(...bucket);
-            }
-            return selectByPriority(groupableItems, budget);
-          },
-        },
-        process: (items, signal) => this.#consolidate(items, signal),
-      }),
+      samplingStrategy: 'groupable-priority',
+      select: (items, budget) => {
+        const groupableItems: EpisodeCandidate[] = [];
+        for (const bucket of groupable(items).values()) {
+          if (bucket.length < 2) continue;
+          groupableItems.push(...bucket);
+        }
+        return selectByPriority(groupableItems, budget);
+      },
+      process: (items, signal) => this.#consolidate(items, signal),
     });
     this.#maxMerged = options.maxMerged ?? 6;
     this.#emit = options.emit;
     this.#summarizeWithLM = options.summarizeWithLM;
-    this.#clock = options.clock ?? Date.now;
+    this.#clock = options.clock ?? systemClock;
   }
 
   /** Stages 3–5 — sample groupable episodes, merge, emit summaries. */

@@ -1,3 +1,5 @@
+import { filterFolded } from '@senars/util';
+
 /** Episodes matching a free-text query, newest first; empty without episodic memory. */
 export const recallEpisodes = async (
   config: {
@@ -8,6 +10,5 @@ export const recallEpisodes = async (
 ): Promise<{ content: string }[]> => {
   if (!config.episodicMemory) return [];
   const episodes = await config.episodicMemory.getEpisodes({ limit });
-  const needle = query?.toLowerCase();
-  return needle ? episodes.filter((e) => e.content.toLowerCase().includes(needle)) : episodes;
+  return query ? filterFolded(episodes, query, (e) => e.content) : episodes;
 };

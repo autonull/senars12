@@ -1,8 +1,16 @@
 import { BaseComponent } from '@senars/core';
 import type { CognitiveEvent, DerivationRecord } from '@senars/core/schemas';
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { ambientRng, type BeliefTruth, type Episode } from '@senars/util';
-import { BoundedRing, createLogger, errMsg, installIdSource, selectTopN } from '@senars/util';
+import {
+  ambientRng,
+  type BeliefTruth,
+  BoundedRing,
+  createLogger,
+  type Episode,
+  errMsg,
+  installIdSource,
+  selectTopN,
+} from '@senars/util';
 import { resolveBagSlot } from './bag/registration.js';
 import { CognitiveController, createDefaultRegistry } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
@@ -230,7 +238,11 @@ export class NAR extends BaseComponent {
     this.io.setEventBus(eventBus);
     this.io.setCognitiveParams(cognitiveParams);
     this.io.setRLFP(this.rlfp);
-    this.systemEventBus = new NarEventBus();
+    // One bus for the whole NAR. `eventBus` was the injection point and the
+    // system bus a second instance, so an injected bus reached three subsystems
+    // and no getter — and a bridge subscribing to both received every event
+    // twice. Task and system events are distinct names on one fan-out.
+    this.systemEventBus = eventBus;
     this.io.setSystemEventBus(this.systemEventBus);
     this.emitJudgmentResolved = createTelemetryEmitter(
       createNarTelemetrySinks(this.systemEventBus)

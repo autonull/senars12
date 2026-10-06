@@ -8,13 +8,7 @@
  */
 import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
 import { retain, selectByPriority } from '@senars/util';
-import {
-  AIKRProcessor,
-  type AikrBagOptions,
-  AikrShell,
-  createAikrBag,
-  type ProcessOptions,
-} from '../learning/aikr-processor.js';
+import { type AikrBagOptions, AikrShell, type ProcessOptions } from '../learning/aikr-processor.js';
 import type { RandomSource } from '../types/primitives.js';
 
 export interface ProposalCandidate {
@@ -55,6 +49,12 @@ export const proposalScope = (proposal: SelfImprovementProposal): string => {
   return `${proposal.kind}:${target}`;
 };
 
+/**
+ * Proposals drain below the shared AIKR default: governance review is cheap,
+ * and a backlog of unexamined proposals is its own cost.
+ */
+const PROPOSAL_PRESSURE_THRESHOLD = 0.4;
+
 export interface ProposalBagOptions extends AikrBagOptions {
   /** Optional drive-alignment multiplier (default neutral 1). */
   alignmentOf?: (proposal: SelfImprovementProposal) => number;
@@ -69,29 +69,20 @@ export class ProposalBag {
   readonly #alignmentOf: (proposal: SelfImprovementProposal) => number;
 
   constructor(options: ProposalBagOptions = {}) {
-    const bag = createAikrBag<ProposalCandidate>({
-      capacity: options.capacity ?? 64,
-      forgetRate: options.forgetRate,
-      rng: options.rng,
-    });
     this.#shell = new AikrShell<
       ProposalCandidate,
       SelfImprovementProposal,
       SelfImprovementProposal
     >({
-      bag,
-      budget: options.budget ?? 4,
+      capacity: options.capacity ?? 64,
+      forgetRate: options.forgetRate,
+      rng: options.rng,
+      pressureThreshold: options.pressureThreshold ?? PROPOSAL_PRESSURE_THRESHOLD,
+      budget: options.budget,
       view: (candidate) => candidate.proposal,
-      processor: new AIKRProcessor<ProposalCandidate, SelfImprovementProposal>({
-        bag,
-        pressureThreshold: options.pressureThreshold ?? 0.4,
-        rng: options.rng,
-        samplingStrategy: {
-          name: 'greedy-priority',
-          select: (items, budget) => selectByPriority(items, budget),
-        },
-        process: (picked) => picked.map((c) => c.proposal),
-      }),
+      samplingStrategy: 'greedy-priority',
+      select: (items, budget) => selectByPriority(items, budget),
+      process: (picked) => picked.map((c) => c.proposal),
     });
     this.#alignmentOf = options.alignmentOf ?? (() => 1);
   }

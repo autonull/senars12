@@ -1,4 +1,4 @@
-import { addToSet, removeFromSet, unique } from '@senars/util';
+import { addToSet, removeFromSet, systemClock, unique } from '@senars/util';
 
 import { atomKey, termKey } from '../terms';
 import type { Concept } from './concept.js';
@@ -59,7 +59,7 @@ export class MemoryIndex {
     };
   }
 
-  index(concept: Concept, timestamp: number = Date.now()): void {
+  index(concept: Concept, timestamp: number = systemClock()): void {
     if (this.config.enableAtomicIndex) {
       addToSet(this.atomicIndex, termKey(concept.term), concept);
     }

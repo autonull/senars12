@@ -5,7 +5,7 @@ import type { NAR } from '@senars/nar';
 import { Truth } from '@senars/nar';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
 import { resetDemotions } from '@senars/nar/lm';
-import { takeLast } from '@senars/util';
+import { filterFolded, takeLast } from '@senars/util';
 import { positiveInt } from '@senars/util/config';
 import { evaluateExpression } from '@senars/util/utils/eval';
 import { z } from 'zod';
@@ -112,9 +112,7 @@ export function registerNARTools(
     },
     async ({ query }) => {
       const beliefs = nar.getBeliefs();
-      const results = beliefs.filter((b) =>
-        b.term.toString().toLowerCase().includes(query.toLowerCase())
-      );
+      const results = filterFolded(beliefs, query, (b) => b.term.toString());
       const structuredResults = formatBeliefsForMCP(results);
       return createMCPResponse(stringifyMCP(structuredResults), { results: structuredResults });
     }

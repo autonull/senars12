@@ -6,7 +6,7 @@
 
 import { getOrInsert, incrementCount, LruCache } from '@senars/util';
 import type { NALDerivation, NegotiationDecision } from './negotiation-types.js';
-import type { ActionProposal } from './Reflex.js';
+import { type ActionProposal, expectedValue } from './Reflex.js';
 
 export interface ArbitrationStrategy {
   decide(
@@ -26,7 +26,7 @@ const none = (arbitration: NegotiationDecision['arbitration']): NegotiationDecis
 
 const bestOf = (proposals: readonly ActionProposal[]): ActionProposal | null =>
   proposals.reduce<ActionProposal | null>(
-    (best, p) => (!best || p.value * p.confidence > best.value * best.confidence ? p : best),
+    (best, p) => (!best || expectedValue(p) > expectedValue(best) ? p : best),
     null
   );
 
@@ -54,7 +54,7 @@ export class NalVetoArbitration implements ArbitrationStrategy {
     if (reflexProposals.length === 0) return none('nal-veto');
 
     const bestReflex = bestOf(reflexProposals)!;
-    if (bestReflex.value * bestReflex.confidence < this.#reflexThreshold) {
+    if (expectedValue(bestReflex) < this.#reflexThreshold) {
       return { ...none('nal-veto'), vetoedBy: 'below-threshold' };
     }
 
@@ -131,7 +131,7 @@ export class WeightedQuorum implements ArbitrationStrategy {
 
     const quorum = new Map<string, number>();
     for (const p of reflexProposals) {
-      incrementCount(quorum, p.action, p.value * p.confidence);
+      incrementCount(quorum, p.action, expectedValue(p));
     }
     for (const d of nalDerivations) {
       if (!quorum.has(d.action)) continue;
@@ -149,8 +149,7 @@ export class WeightedQuorum implements ArbitrationStrategy {
       .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0];
     if (!winner) return none('weighted-quorum');
     const best = bestOf(reflexProposals.filter((p) => p.action === winner[0]));
-    if (!best || best.value * best.confidence < this.#reflexThreshold)
-      return none('weighted-quorum');
+    if (!best || expectedValue(best) < this.#reflexThreshold) return none('weighted-quorum');
     return {
       action: winner[0],
       actionExecuted: winner[0],

@@ -20,6 +20,14 @@ import {
 import type { Bag, BagItem, BagOptions } from '../bag/Bag.js';
 import { createBag } from '../bag/index.js';
 
+/**
+ * One answer for the AIKR pressure gate. A process that declares a different
+ * threshold is making a deliberate, named choice — not quietly restating this.
+ */
+export const DEFAULT_PRESSURE_THRESHOLD = 0.7;
+/** Items examined per pass when a caller names no budget. */
+export const DEFAULT_AIKR_BUDGET = 4;
+
 export interface BagSamplingStrategy<T extends BagItem> {
   readonly name: string;
   /** Select up to `budget` items; never mutates the source array. */
@@ -30,11 +38,14 @@ export interface BagSamplingStrategy<T extends BagItem> {
 export interface AikrBagOptions {
   /** Bag capacity (AIKR bound). */
   capacity?: number;
-  /** Pressure threshold below which processing is inert (default 0.7). */
+  /**
+   * Pressure threshold below which processing is inert
+   * (default {@link DEFAULT_PRESSURE_THRESHOLD}).
+   */
   pressureThreshold?: number;
   /** Priority floor below which decayed items are forgotten (bag forgetRate). */
   forgetRate?: number;
-  /** Default items examined per pass (default 4). */
+  /** Default items examined per pass (default {@link DEFAULT_AIKR_BUDGET}). */
   budget?: number;
   /** Injected randomness for sampling (default `ambientRng`). */
   rng?: RandomSource;
@@ -164,7 +175,10 @@ export interface AIKRProcessorOptions<TIn extends BagItem, TOut = unknown> {
   bag: Bag<TIn>;
   /** Sampling strategy for the process stage (default softmax T=1.0). */
   samplingStrategy?: BagSamplingStrategy<TIn>;
-  /** Pressure threshold below which `processIfPressured` is inert (default 0.7). */
+  /**
+   * Pressure threshold below which `processIfPressured` is inert
+   * (default {@link DEFAULT_PRESSURE_THRESHOLD}).
+   */
   pressureThreshold?: number;
   rng?: RandomSource;
   /** The actual work over sampled items; may be async and abortable. */
@@ -186,7 +200,7 @@ export class AIKRProcessor<TIn extends BagItem, TOut> {
   constructor(options: AIKRProcessorOptions<TIn, TOut>) {
     this.#bag = options.bag;
     this.#strategy = options.samplingStrategy ?? new BagPrioritySampling();
-    this.#threshold = options.pressureThreshold ?? 0.7;
+    this.#threshold = options.pressureThreshold ?? DEFAULT_PRESSURE_THRESHOLD;
     this.#rng = options.rng ?? ambientRng;
     this.#process = options.process;
   }
@@ -203,7 +217,7 @@ export class AIKRProcessor<TIn extends BagItem, TOut> {
 
   /** Stages 3–5 — trigger, sample, process, emit. */
   async process(options: ProcessOptions = {}): Promise<TOut[]> {
-    const budget = options.budget ?? 4;
+    const budget = options.budget ?? DEFAULT_AIKR_BUDGET;
     const items: TIn[] = [];
     for (const item of this.#bag.all()) items.push(item);
     const sampled = this.#strategy.select(items, budget, this.#rng);
@@ -234,15 +248,22 @@ export class AIKRProcessor<TIn extends BagItem, TOut> {
   }
 }
 
-export interface AikrShellOptions<TIn extends BagItem, TOut, TView, TAdmit> {
-  bag: Bag<TIn>;
-  processor: AIKRProcessor<TIn, TOut>;
-  /** Default items examined per pass when a call passes no budget. */
-  budget: number;
+/** Everything a self-maintaining cognitive process contributes to its AIKR shell. */
+export interface AikrShellOptions<TIn extends BagItem, TOut, TView, TAdmit = TIn>
+  extends AikrBagOptions,
+    Pick<BagOptions, 'clock' | 'id'> {
+  /** Bag capacity (AIKR bound) — the one bound a process must choose for itself. */
+  capacity: number;
   /** Project a bagged candidate onto the domain value `peek` reports. */
   view: (item: TIn) => TView;
   /** Public admit input → bagged candidate; defaults to the identity. */
   admit?: (value: TAdmit) => TIn;
+  /** Name the sampling strategy reports under. */
+  samplingStrategy: string;
+  /** Select up to `budget` accumulated candidates; never mutates the source array. */
+  select: (items: TIn[], budget: number, rng: RandomSource) => TIn[];
+  /** The actual work over sampled items; may be async and abortable. */
+  process: (items: TIn[], signal?: AbortSignal) => Promise<TOut[]> | TOut[];
 }
 
 /**
@@ -251,6 +272,10 @@ export interface AikrShellOptions<TIn extends BagItem, TOut, TView, TAdmit> {
  * pressure, size, peek. Each process owns different *names* for these
  * (`drain`/`consolidate`/`induceNow`), so the shared body lives here and the
  * process keeps only its public spelling.
+ *
+ * The constructor is the one construction path for a bounded cognitive process:
+ * bag, processor and shell are wired from a single spec, so no site re-derives
+ * the wiring or restates the AIKR defaults.
  *
  * `TAdmit` is the type callers hand to {@link AikrShell.admit}, which is
  * usually a domain value (`Episode`, `MinedNegative`) the process wraps into a
@@ -264,11 +289,18 @@ export class AikrShell<TIn extends BagItem, TOut, TView = TOut, TAdmit = TIn> {
   readonly #admit: (value: TAdmit) => TIn;
 
   constructor(options: AikrShellOptions<TIn, TOut, TView, TAdmit>) {
-    this.bag = options.bag;
-    this.processor = options.processor;
-    this.#budget = options.budget;
+    const bag = createAikrBag<TIn>(options);
+    this.bag = bag;
+    this.#budget = options.budget ?? DEFAULT_AIKR_BUDGET;
     this.#view = options.view;
     this.#admit = options.admit ?? ((value) => value as unknown as TIn);
+    this.processor = new AIKRProcessor<TIn, TOut>({
+      bag,
+      pressureThreshold: options.pressureThreshold,
+      rng: options.rng,
+      samplingStrategy: { name: options.samplingStrategy, select: options.select },
+      process: options.process,
+    });
   }
 
   /** Stage 1 — admit (bag enforces capacity + priority eviction). */

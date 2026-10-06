@@ -13,7 +13,7 @@ import type { TaskBagKind } from '@senars/core/schemas';
 import { type Clock, clamp01, systemClock, type TermTruth } from '@senars/util';
 import type { BagItem } from '../bag/Bag.js';
 import type { GameOutcome, Perception } from '../game/Game.js';
-import type { ActionProposal } from '../reflex/Reflex.js';
+import { type ActionProposal, expectedValue } from '../reflex/Reflex.js';
 import type { Term } from '../terms';
 import { operationTerm, TermBuilder, toAtomSymbol } from '../terms';
 import { createTaskWeight } from '../types/core.js';
@@ -173,7 +173,7 @@ export const outcomeTasks = (outcome: GameOutcome, clock: Clock = systemClock): 
   return tasks;
 };
 
-/** Reflex proposals as executable goals, ranked by the caller but weighted as `value × confidence`. */
+/** Reflex proposals as executable goals, weighted by {@link expectedValue}. */
 export const proposalTasks = (
   proposals: readonly ActionProposal[],
   clock: Clock = systemClock
@@ -184,7 +184,7 @@ export const proposalTasks = (
       id: id('goal', proposal.action),
       term: actionTerm(proposal.action, proposal.args ?? {}),
       type: 'goal',
-      priority: proposal.value * proposal.confidence,
+      priority: expectedValue(proposal),
       f: proposal.value,
       c: proposal.confidence,
       stamp: stamp(proposal.source),

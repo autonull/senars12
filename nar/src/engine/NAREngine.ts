@@ -124,7 +124,6 @@ export class NAREngine extends BaseEngine {
     const unwire = new DisposalRegistry();
     this.#unwire = unwire;
     const eventBus = this.#nar.getEventBus();
-    const systemEventBus = this.#nar.getSystemEventBus();
     const emitter = this.#emitCognitive;
 
     for (const eventKey of MAPPED_NAR_EVENTS) {
@@ -133,11 +132,7 @@ export class NAREngine extends BaseEngine {
         if (cognitive && emitter) emitter(cognitive);
       };
       eventBus.on(eventKey as string, handler);
-      systemEventBus.on(eventKey as string, handler);
-      unwire.add(() => {
-        eventBus.off(eventKey as string, handler);
-        systemEventBus.off(eventKey as string, handler);
-      });
+      unwire.add(() => eventBus.off(eventKey as string, handler));
     }
   }
 

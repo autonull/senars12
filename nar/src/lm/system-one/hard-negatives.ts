@@ -10,12 +10,7 @@ import {
   shortSha256Hex,
   unique,
 } from '@senars/util';
-import {
-  AIKRProcessor,
-  type AikrBagOptions,
-  AikrShell,
-  createAikrBag,
-} from '../../learning/aikr-processor.js';
+import { type AikrBagOptions, AikrShell } from '../../learning/aikr-processor.js';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import type { Task } from '../../types';
 import { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '../../utils/divergence.js';
@@ -128,6 +123,9 @@ export interface MiningBagOptions extends AikrBagOptions {
   marginFloor?: number;
 }
 
+/** Candidates examined per mining pass. */
+const MINING_BUDGET = 8;
+
 export class MiningBag extends AikrShell<
   HardNegativeCandidate,
   MinedNegative,
@@ -136,14 +134,12 @@ export class MiningBag extends AikrShell<
 > {
   constructor(options: MiningBagOptions = {}) {
     const marginFloor = options.marginFloor ?? 0;
-    const bag = createAikrBag<HardNegativeCandidate>({
+    super({
       capacity: options.capacity ?? 128,
       forgetRate: options.forgetRate,
       rng: options.rng,
-    });
-    super({
-      bag,
-      budget: options.budget ?? 8,
+      budget: options.budget ?? MINING_BUDGET,
+      pressureThreshold: options.pressureThreshold,
       view: (candidate) => candidate.negative,
       // priority = margin × recency(1, decays) × rubric relevance
       admit: (negative) => ({
@@ -151,17 +147,9 @@ export class MiningBag extends AikrShell<
         priority: (negative.margin ?? 0.5) * (RUBRIC_RELEVANCE[negative.rubric] ?? 0.5),
         negative,
       }),
-      processor: new AIKRProcessor<HardNegativeCandidate, MinedNegative>({
-        bag,
-        pressureThreshold: options.pressureThreshold ?? 0.5,
-        rng: options.rng,
-        samplingStrategy: {
-          name: 'greedy-priority',
-          select: (items, selectBudget) =>
-            greedyCandidateSelection(items, selectBudget, marginFloor),
-        },
-        process: (picked) => picked.map((c) => c.negative),
-      }),
+      samplingStrategy: 'greedy-priority',
+      select: (items, selectBudget) => greedyCandidateSelection(items, selectBudget, marginFloor),
+      process: (picked) => picked.map((c) => c.negative),
     });
   }
 }

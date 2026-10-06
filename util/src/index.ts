@@ -272,7 +272,6 @@ export {
 } from './utils/bandit.js';
 /** @public Bounded map with pluggable eviction order and optional TTL. */
 export type { BoundedMapOptions, EvictionOrder } from './utils/bounded-map.js';
-export type { EvictByScore } from './utils/collections.js';
 export { BoundedMap } from './utils/bounded-map.js';
 export type { Flags } from './utils/cli.js';
 export { parseFlags } from './utils/cli.js';
@@ -282,6 +281,7 @@ export { fixedClock, systemClock } from './utils/clock.js';
 export type {
   BoundedContainer,
   ContainerStats,
+  EvictByScore,
   OverflowPolicy,
   ReadOnlyLookup,
 } from './utils/collections.js';
@@ -314,7 +314,6 @@ export {
   maxBy,
   maxScore,
   minBy,
-  victimBy,
   minScore,
   perPart,
   pushCapped,
@@ -334,6 +333,7 @@ export {
   trimCapped,
   unique,
   uniqueBy,
+  victimBy,
 } from './utils/collections.js';
 export { formatIssues, type SchemaIssue } from './utils/diagnostics.js';
 /** @public The registry every component records its teardown in. */
@@ -501,8 +501,11 @@ export { CallTallySeries, createCallTally, recordCall } from './utils/tally.js';
 export {
   appendTextDelta,
   collectText,
+  containsFolded,
   escapeRegExp,
   extractTerm,
+  filterFolded,
+  foldNeedle,
   isNarsese,
   limitList,
   NARSESE_ATOM_CHARS,

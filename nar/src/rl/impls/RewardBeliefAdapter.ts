@@ -1,8 +1,8 @@
 import { BoundedRing, clamp01 } from '@senars/util';
-import { type Term, Truth, TermBuilder } from '../../index.js';
+import { type Term, TermBuilder, Truth } from '../../index.js';
 import type { NAR } from '../../nar.js';
 import type { RandomSource } from '../../types/primitives.js';
-import { QBeliefStore } from './QBeliefStore.js';
+import { decodeQExpectation, QBeliefStore } from './QBeliefStore.js';
 import { rewardBeliefTerm, rewardLevel } from './reward-term.js';
 
 /**
@@ -119,7 +119,7 @@ export class RewardBeliefAdapter {
       tdTarget = reward;
     } else {
       const nextValue = this.qStore.getValue(nextState, nextAction);
-      const nextQ = nextValue ? nextValue.f : 0;
+      const nextQ = nextValue ? decodeQExpectation(nextValue) : 0;
       tdTarget = reward + this.config.gamma * nextQ;
     }
 

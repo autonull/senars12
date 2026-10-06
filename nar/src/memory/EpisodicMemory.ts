@@ -8,8 +8,10 @@ import type {
 import {
   type Clock,
   cachePath,
+  containsFolded,
   EPISODE_TYPES,
   flatUnique,
+  foldNeedle,
   getOrInsert,
   rankBy,
   sortableIdSource,
@@ -186,11 +188,9 @@ export class EpisodicMemory implements UtilEpisodicMemory {
 
   async search(query: string, limit = 10): Promise<Episode[]> {
     const episodes = await this.getEpisodes({ limit });
-    const lowerQuery = query.toLowerCase();
+    const lower = foldNeedle(query);
     return episodes.filter(
-      (e) =>
-        e.content.toLowerCase().includes(lowerQuery) ||
-        JSON.stringify(e.metadata).toLowerCase().includes(lowerQuery)
+      (e) => containsFolded(e.content, lower) || containsFolded(JSON.stringify(e.metadata), lower)
     );
   }
 

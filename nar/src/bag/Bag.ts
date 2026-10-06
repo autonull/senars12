@@ -3,8 +3,8 @@ import { emitDomainEvent } from '@senars/core/event-sink';
 import {
   ambientRng,
   type BoundedContainer,
-  clamp01,
   type Clock,
+  clamp01,
   makeId,
   minBy,
   nextInt,
@@ -12,6 +12,7 @@ import {
   type RandomSource,
   retain,
   sumBy,
+  systemClock,
 } from '@senars/util';
 import { PRESSURE } from '../constants.js';
 import { FenwickTree } from './fenwick.js';
@@ -106,7 +107,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T>, BoundedContainer<
     this.decayRate = options.decayRate ?? 0.01;
     this.forgetRate = options.forgetRate ?? 0.001;
     this.rng = options.rng ?? ambientRng;
-    this.clock = options.clock ?? Date.now;
+    this.clock = options.clock ?? systemClock;
     // Identity, not a sample: drawn from the *id* seam so that constructing a
     // bag cannot shift the seeded stream that sampling and eviction replay from.
     this.id = options.id ?? makeId();

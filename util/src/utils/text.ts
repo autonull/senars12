@@ -160,3 +160,27 @@ export function isNarsese(text: string): boolean {
   }
   return false;
 }
+
+/**
+ * Case-insensitive substring test. Term matching, episodic recall and the MCP
+ * belief search each spelled `x.toLowerCase().includes(y.toLowerCase())`, which
+ * folded the needle once per element of a scan; fold it once with
+ * {@link foldNeedle} and test with this.
+ */
+export const containsFolded = (haystack: string, lowerNeedle: string): boolean =>
+  haystack.toLowerCase().includes(lowerNeedle);
+
+/** The case-folded needle {@link containsFolded} expects. */
+export const foldNeedle = (needle: string): string => needle.toLowerCase();
+
+/** Elements of `items` whose text contains `needle`, folded once. */
+export const filterFolded = <T>(
+  items: Iterable<T>,
+  needle: string,
+  textOf: (item: T) => string
+): T[] => {
+  const lower = foldNeedle(needle);
+  const kept: T[] = [];
+  for (const item of items) if (containsFolded(textOf(item), lower)) kept.push(item);
+  return kept;
+};

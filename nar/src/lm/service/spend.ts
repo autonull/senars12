@@ -50,10 +50,11 @@ export class SpendLedger {
     recordLmSpend(provider, tokensIn + tokensOut, costMilli);
 
     const capUsd = spendCapUsd();
-    if (capUsd !== undefined && entry.costMilli / 1000 > capUsd) {
+    const spentUsd = entry.costMilli / 1000;
+    if (capUsd !== undefined && spentUsd > capUsd) {
       throw new LMUnavailableError(
         withHint(
-          `Spend cap reached for provider '${provider}': $${(entry.costMilli / 1000).toFixed(4)} >= LM_MAX_SPEND_USD=$${capUsd}. ` +
+          `Spend cap reached for provider '${provider}': $${spentUsd.toFixed(4)} >= LM_MAX_SPEND_USD=$${capUsd}. ` +
             `Raise LM_MAX_SPEND_USD, switch to a local provider (LM_PROVIDER=mock|transformers), or set LM_OFFLINE=1.`,
           provider
         ),
