@@ -23,6 +23,21 @@ Synthesize an ultimate design - delivering a complete, self-contained specificat
 Synthesize an ultimate design - delivering a complete, self-contained specification.
 - mathematical, algebraic, pure, elegant
 
+# thermodynamic
+Synthesize an ultimate design - delivering a complete, self-contained specification.
+- thermodynamic, free-energy
+
+# category
+Synthesize an ultimate design - delivering a complete, self-contained specification.
+- category theory, coalgebraic
+
+# topological
+Synthesize an ultimate design - delivering a complete, self-contained specification.
+- topological, geometric
+
+# cybernetic
+Synthesize an ultimate design - delivering a complete, self-contained specification.
+- cybernetic, control theory
 
 ----
 
