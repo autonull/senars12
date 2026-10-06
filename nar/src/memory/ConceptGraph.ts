@@ -3,7 +3,7 @@
  * Provides O(k) lookup where k = term depth, with fallback edges for non-regression.
  */
 
-import { BoundedMap, collectUpTo, retain, selectTopN } from '@senars/util';
+import { BoundedMap, type Clock, collectUpTo, retain, selectTopN, systemClock } from '@senars/util';
 import type { Term } from '../terms/index.js';
 import { atom, getArgs, termKey } from '../terms/index.js';
 
@@ -22,11 +22,29 @@ export interface CoActivationEdge {
   lastUpdated: number;
 }
 
+export const one = (): number => 1;
+
 export interface ConceptGraphOptions {
   maxNodes?: number;
   maxEdgesPerNode?: number;
   decayRate?: number;
   minEdgeWeight?: number;
+  /** Injected clock for `lastActivated`/`lastUpdated` (default `systemClock`). */
+  clock?: Clock;
+}
+
+/**
+ * Every node in the trie below `root`, root included, in pre-order.
+ *
+ * The one traversal. Counting nodes, counting edges, decaying the graph and
+ * serialising it each walked the same trie with its own recursion — four
+ * traversals of one shape, and the count that `deserialize` restores into
+ * `nodeCount`/`edgeCount` was the fifth. A fold over this is the walk each of
+ * them wanted.
+ */
+function* walkTrie(node: ConceptNode): Generator<ConceptNode> {
+  yield node;
+  for (const child of node.children.values()) yield* walkTrie(child);
 }
 
 export class ConceptGraph {
@@ -35,10 +53,12 @@ export class ConceptGraph {
   private readonly maxEdgesPerNode: number;
   private readonly decayRate: number;
   private readonly minEdgeWeight: number;
+  private readonly now: Clock;
   private nodeCount = 1; // root
   private edgeCount = 0;
 
   constructor(options: ConceptGraphOptions = {}) {
+    this.now = options.clock ?? systemClock;
     this.maxNodes = options.maxNodes ?? 10000;
     this.maxEdgesPerNode = options.maxEdgesPerNode ?? 50;
     this.decayRate = options.decayRate ?? 0.001;
@@ -52,7 +72,7 @@ export class ConceptGraph {
       children: new Map(),
       coActivations: this.createEdgeBag(),
       activationCount: 0,
-      lastActivated: Date.now(),
+      lastActivated: this.now(),
     };
   }
 
@@ -92,7 +112,7 @@ export class ConceptGraph {
     if (!node) return;
 
     node.activationCount++;
-    node.lastActivated = Date.now();
+    node.lastActivated = this.now();
 
     if (coActiveWith) {
       const coActiveKey = termKey(coActiveWith);
@@ -103,14 +123,14 @@ export class ConceptGraph {
           targetTerm: coActiveWith,
           weight: 1,
           evidenceCount: 1,
-          lastUpdated: Date.now(),
+          lastUpdated: this.now(),
         };
         node.coActivations.set(coActiveKey, edge);
         this.edgeCount++;
       } else {
         edge.weight += 1;
         edge.evidenceCount++;
-        edge.lastUpdated = Date.now();
+        edge.lastUpdated = this.now();
       }
     }
   }
@@ -138,7 +158,7 @@ export class ConceptGraph {
 
   /** Decay all edge weights and prune weak edges. */
   decay(): void {
-    for (const node of this.allNodes()) {
+    for (const node of walkTrie(this.root)) {
       for (const [key, edge] of node.coActivations) {
         edge.weight = retain(edge.weight, this.decayRate);
         if (edge.weight < this.minEdgeWeight) {
@@ -146,20 +166,6 @@ export class ConceptGraph {
           this.edgeCount--;
         }
       }
-    }
-  }
-
-  private *allNodes(): Generator<ConceptNode> {
-    yield this.root;
-    for (const child of this.root.children.values()) {
-      yield* this.traverseNode(child);
-    }
-  }
-
-  private *traverseNode(node: ConceptNode): Generator<ConceptNode> {
-    yield node;
-    for (const child of node.children.values()) {
-      yield* this.traverseNode(child);
     }
   }
 
@@ -200,17 +206,18 @@ export class ConceptGraph {
     };
   }
 
-  /** Deserialize from persistence. */
-  static deserialize(data: SerializedConceptGraph): ConceptGraph {
+  /** Deserialize from persistence. An injected clock must be re-supplied by the caller. */
+  static deserialize(data: SerializedConceptGraph, options: { clock?: Clock } = {}): ConceptGraph {
     const graph = new ConceptGraph({
       maxNodes: data.maxNodes,
       maxEdgesPerNode: data.maxEdgesPerNode,
       decayRate: data.decayRate,
       minEdgeWeight: data.minEdgeWeight,
+      clock: options.clock,
     });
     graph.root = graph.deserializeNode(data.nodes);
-    graph.nodeCount = graph.countNodes(graph.root);
-    graph.edgeCount = graph.countEdges(graph.root);
+    graph.nodeCount = graph.count(graph.root, one);
+    graph.edgeCount = graph.count(graph.root, (n) => n.coActivations.size());
     return graph;
   }
 
@@ -231,20 +238,10 @@ export class ConceptGraph {
     return result;
   }
 
-  private countNodes(node: ConceptNode): number {
-    let count = 1;
-    for (const child of node.children.values()) {
-      count += this.countNodes(child);
-    }
-    return count;
-  }
-
-  private countEdges(node: ConceptNode): number {
-    let count = node.coActivations.size();
-    for (const child of node.children.values()) {
-      count += this.countEdges(child);
-    }
-    return count;
+  private count(node: ConceptNode, weight: (node: ConceptNode) => number): number {
+    let total = 0;
+    for (const current of walkTrie(node)) total += weight(current);
+    return total;
   }
 }
 

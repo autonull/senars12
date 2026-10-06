@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import type { CommandDefinition } from '@senars/util';
 import { limitList, writeJsonFile } from '@senars/util';
 import { filterByTerm } from '../memory/term-filter.js';
-import { NAR_UNCONFIGURED, narOf } from './utils.js';
+import { narOf, requiring } from './utils.js';
 
 const CONCEPT_PREVIEW_LIMIT = 20;
 
@@ -26,22 +26,18 @@ export const memoryCommands: CommandDefinition[] = [
     aliases: ['.list'],
     description: 'List all concepts',
     usage: '/list',
-    execute: async (_args, ctx) => {
-      const nar = narOf(ctx);
-      if (!nar) return NAR_UNCONFIGURED;
+    execute: requiring('NAR', narOf, async (nar) => {
       const concepts = nar.listConcepts();
       if (concepts.length === 0) return 'Memory is empty';
       return renderConcepts(concepts);
-    },
+    }),
   },
   {
     name: '/concepts',
     aliases: ['.concepts'],
     description: 'List concepts with optional filter',
     usage: '/concepts [filter]',
-    execute: async (args, ctx) => {
-      const nar = narOf(ctx);
-      if (!nar) return NAR_UNCONFIGURED;
+    execute: requiring('NAR', narOf, async (nar, args) => {
       const filter = args.join(' ');
       const concepts = nar.listConcepts();
       if (concepts.length === 0) return 'Memory is empty';
@@ -53,16 +49,14 @@ export const memoryCommands: CommandDefinition[] = [
       }
 
       return renderConcepts(filtered);
-    },
+    }),
   },
   {
     name: '/save',
     aliases: ['.save'],
     description: 'Save memory to file',
     usage: '/save <filename>',
-    execute: async (args, ctx) => {
-      const nar = narOf(ctx);
-      if (!nar) return NAR_UNCONFIGURED;
+    execute: requiring('NAR', narOf, async (nar, args) => {
       const filename = args[0];
       if (!filename) return 'Usage: /save <filename>';
       const concepts = nar.listConcepts().map((c: any) => ({
@@ -77,16 +71,14 @@ export const memoryCommands: CommandDefinition[] = [
       };
       await writeJsonFile(filename, data);
       return `Saved ${concepts.length} concept(s) to ${filename}`;
-    },
+    }),
   },
   {
     name: '/load',
     aliases: ['.load'],
     description: 'Load beliefs from file',
     usage: '/load <filename>',
-    execute: async (args, ctx) => {
-      const nar = narOf(ctx);
-      if (!nar) return NAR_UNCONFIGURED;
+    execute: requiring('NAR', narOf, async (nar, args) => {
       const filename = args[0];
       if (!filename) return 'Usage: /load <filename>';
       try {
@@ -103,6 +95,6 @@ export const memoryCommands: CommandDefinition[] = [
       } catch (error) {
         return `Failed to load: ${error}`;
       }
-    },
+    }),
   },
 ];

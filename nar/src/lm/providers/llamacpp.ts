@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { envStrOr, errMsg } from '@senars/util';
 import { withBodyPatch } from './body-patch.js';
-import { probeReachable } from './probe.js';
+import { endpointPath, probeJson, probeReachable } from './probe.js';
 import { withThinkingDisabled } from './thinking.js';
 
 /** Default llama.cpp server (llama-server) address. */
@@ -34,11 +34,12 @@ let resolvedModel: Promise<string> | undefined;
 const resolveModelId = (origin: string): Promise<string> => {
   if (resolvedModel) return resolvedModel;
   const attempt = (async () => {
-    const res = await fetch(`${origin}/v1/models`);
-    if (!res.ok) throw new Error(`model probe failed: HTTP ${res.status}`);
-    const json = (await res.json()) as { data?: Array<{ id?: string }> };
-    const id = json.data?.[0]?.id;
-    if (!id) throw new Error('model probe failed: empty model list');
+    // The one probe in the LM layer that used raw `fetch`: no timeout, so a
+    // hung llama-server held the model resolution open forever and the request
+    // that triggered it with it. `probeJson` is bounded and fails closed.
+    const json = await probeJson<{ data?: Array<{ id?: string }> }>(endpointPath(origin, 'v1/models'));
+    const id = json?.data?.[0]?.id;
+    if (!id) throw new Error('model probe failed: empty or unreachable model list');
     return id;
   })();
   // Memoize only successes: a probe before llama-server readiness must not

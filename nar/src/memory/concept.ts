@@ -1,4 +1,12 @@
-import { asBeliefTruth, type BeliefTruth, clamp01, makeId, maxScore } from '@senars/util';
+import {
+  asBeliefTruth,
+  type BeliefTruth,
+  clamp01,
+  type Clock,
+  makeId,
+  maxScore,
+  systemClock,
+} from '@senars/util';
 import { type Bag, type BagOptions, createBag } from '../bag/index.js';
 import type { ResolvedBagSlot } from '../bag/registration.js';
 import type { Term, Truth } from '../terms';
@@ -139,6 +147,18 @@ export class Concept {
   lastAccessedAt: number;
   private readonly onRevision?: RevisionCallback;
 
+  /**
+   * The store's own clock, taken from the bag slot it was built with.
+   *
+   * A concept stamped itself with `Date.now()` directly, so its `createdAt` and
+   * `lastAccessedAt` were the only two retention facts the pressure/forgetting
+   * policies read that no test could pin — `consolidation.evictionOrder` ranks on
+   * `lastAccessedAt` and documents itself as "a difference between two stamps
+   * from the same store's own clock", which was a claim the clock did not honour.
+   * The bag slot already carries a `Clock`, so nothing new is threaded.
+   */
+  private readonly now: Clock;
+
   constructor(term: Term, config: ConceptConfig = {}) {
     this.term = term;
     const baseOptions: BagOptions = {
@@ -148,8 +168,9 @@ export class Concept {
     this.beliefBag = createBag<TaskData>({ ...baseOptions, capacity: config.maxBeliefs ?? 100 });
     this.goalBag = createBag<TaskData>({ ...baseOptions, capacity: config.maxGoals ?? 50 });
     this.questionBag = createBag<TaskData>({ ...baseOptions, capacity: config.maxQuestions ?? 20 });
-    this.createdAt = Date.now();
-    this.lastAccessedAt = Date.now();
+    this.now = config.bag?.clock ?? systemClock;
+    this.createdAt = this.now();
+    this.lastAccessedAt = this.createdAt;
     this.onRevision = config.onRevision;
   }
 
@@ -221,7 +242,10 @@ export class Concept {
     type: ConceptTaskType,
     data: Omit<TaskData, 'id' | 'priority' | 'stamp'> & { readonly stamp?: Stamp }
   ): boolean {
-    const stamped = { ...data, stamp: data.stamp ?? Stamp.createInput() };
+    // Only copied when the caller arrived unstamped. `Memory.addTask` always
+    // stamps, so the common admission was spreading seven fields into an object
+    // that is itself spread again into the bag item and never retained.
+    const stamped = data.stamp !== undefined ? data : { ...data, stamp: Stamp.createInput() };
     if (type === 'belief') return this.addBeliefWithRevision(stamped as TaskData);
 
     const bag = type === 'goal' ? this.goalBag : this.questionBag;
@@ -293,7 +317,7 @@ export class Concept {
   }
 
   private recordAccess(): void {
-    this.lastAccessedAt = Date.now();
+    this.lastAccessedAt = this.now();
     this.writeAttention({ reason: 'input' });
   }
 
@@ -322,7 +346,7 @@ export class Concept {
         id: existing.id,
         priority: data.budget?.priority ?? existing.priority,
         truth: revisedTruth,
-        timestamp: Date.now(),
+        timestamp: this.now(),
       } as TaskData;
       const added = this.beliefBag.add(item);
       if (added && this.onRevision && existing.stamp) {
@@ -330,7 +354,7 @@ export class Concept {
           termKey: termKey(this.term),
           truth: asBeliefTruth(revisedTruth),
           stampId: existing.stamp.id,
-          timestamp: Date.now(),
+          timestamp: this.now(),
           source: 'revision',
         });
       }
@@ -349,7 +373,7 @@ export class Concept {
         termKey: termKey(this.term),
         truth: asBeliefTruth(data.truth),
         stampId: data.stamp.id,
-        timestamp: Date.now(),
+        timestamp: this.now(),
         source: 'input',
       });
     }

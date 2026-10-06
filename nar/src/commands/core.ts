@@ -1,5 +1,5 @@
 import { type CommandDefinition, QUIT_SENTINEL, sumBy } from '@senars/util';
-import { NAR_UNCONFIGURED, narOf } from './utils.js';
+import { narOf, requiring } from './utils.js';
 
 export const coreCommands: CommandDefinition[] = [
   {
@@ -16,22 +16,18 @@ export const coreCommands: CommandDefinition[] = [
     aliases: ['.run'],
     description: 'Run inference steps',
     usage: '/run [n]',
-    execute: async (args, ctx) => {
-      const nar = narOf(ctx);
-      if (!nar) return NAR_UNCONFIGURED;
+    execute: requiring('NAR', narOf, async (nar, args) => {
       const steps = args[0] ? Number.parseInt(args[0], 10) : 5;
       const derived = await nar.run(steps);
       return `Ran ${steps} step(s), derived ${derived} belief(s)`;
-    },
+    }),
   },
   {
     name: '/stats',
     aliases: ['.stats'],
     description: 'Show system statistics',
     usage: '/stats [detail]',
-    execute: async (args, ctx) => {
-      const nar = narOf(ctx);
-      if (!nar) return NAR_UNCONFIGURED;
+    execute: requiring('NAR', narOf, async (nar, args) => {
       const stats = nar.getStatistics();
       let result = `Concepts: ${stats.totalConcepts}, Tasks: ${stats.totalTasks}`;
       if (args[0] === 'detail') {
@@ -40,19 +36,17 @@ export const coreCommands: CommandDefinition[] = [
         result += `\nRule Executions: ${sumBy(rules, (r) => r.stats.totalCalls)}, Derivations: ${derivs}`;
       }
       return result;
-    },
+    }),
   },
   {
     name: '/clear',
     aliases: ['.clear'],
     description: 'Clear all memory',
     usage: '/clear',
-    execute: async (_args, ctx) => {
-      const nar = narOf(ctx);
-      if (!nar) return NAR_UNCONFIGURED;
+    execute: requiring('NAR', narOf, async (nar) => {
       nar.clearMemory();
       return 'Memory cleared';
-    },
+    }),
   },
   {
     name: '/quit',

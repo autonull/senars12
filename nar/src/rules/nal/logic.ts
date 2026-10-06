@@ -2,7 +2,7 @@
  * Logic NAL rules: contrapositive, intersection, union, decomposition.
  */
 import { binaryOf, TermBuilder, termsEqual } from '../../terms';
-import { foldNary } from '../impls/builders.js';
+import { foldNary } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
 
 /** `A==>B, --B ⊢ --A==>B` — the first premise supplies the negated subject. */

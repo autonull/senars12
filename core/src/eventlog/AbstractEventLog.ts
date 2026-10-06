@@ -19,6 +19,11 @@ const DEFAULT_LIMITS: EventLogLimits = { maxEvents: 100_000, maxEventSize: 1024 
 export abstract class AbstractEventLog implements EventLog {
   #subscribers = new Set<Subscription>();
   #closed = false;
+
+  /** The one closed-log refusal. `append` and every `doAppend` reach it through here. */
+  protected assertOpen(): void {
+    if (this.#closed) throw new EventLogError('UNAVAILABLE', 'Event log is closed');
+  }
   readonly #ids = sortableIdSource();
   protected readonly limits: EventLogLimits;
 
@@ -36,9 +41,7 @@ export abstract class AbstractEventLog implements EventLog {
    * what a size limit can actually be exceeded by.
    */
   protected assertAppendable(payloadJson: string, isFull: boolean): void {
-    if (this.#closed) {
-      throw new EventLogError('UNAVAILABLE', 'Event log is closed');
-    }
+    this.assertOpen();
 
     const eventSize = payloadJson.length;
     if (eventSize > this.limits.maxEventSize) {
@@ -81,9 +84,7 @@ export abstract class AbstractEventLog implements EventLog {
   abstract query(query: EventLogQuery): Promise<CognitiveEvent[]>;
 
   async append(event: Omit<CognitiveEvent, 'id' | 'timestamp'>): Promise<CognitiveEvent> {
-    if (this.#closed) {
-      throw new EventLogError('UNAVAILABLE', 'Event log is closed');
-    }
+    this.assertOpen();
     const full = validateCognitiveEvent({
       ...event,
       id: this.generateId(),

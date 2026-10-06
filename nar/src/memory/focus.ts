@@ -1,4 +1,3 @@
-import { minBy } from '@senars/util';
 import { type Term, TermMap } from '../terms';
 import type { Task } from '../types';
 import type { Concept } from './concept.js';
@@ -43,9 +42,15 @@ export class Focus {
 
   addToFocus(concept: Concept): void {
     if (this.concepts.size >= this.config.maxConcepts && !this.concepts.has(concept.term)) {
-      const lowest = minBy(this.concepts.getEntries(), (entry) => entry.value.priority);
-      if (!lowest || lowest.value.priority >= concept.priority) return;
-      this.concepts.delete(lowest.key);
+      // Scanned, not materialised: past the cap every admission was allocating a
+      // `maxConcepts`-sized entry array to read one minimum from. Ties keep the
+      // first, as `minBy` did.
+      let lowest: Concept | undefined;
+      for (const candidate of this.concepts.values()) {
+        if (lowest === undefined || candidate.priority < lowest.priority) lowest = candidate;
+      }
+      if (!lowest || lowest.priority >= concept.priority) return;
+      this.concepts.delete(lowest.term);
     }
     this.concepts.set(concept.term, concept);
   }

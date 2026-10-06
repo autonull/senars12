@@ -365,6 +365,12 @@ export class RuleProcessor {
       ? Math.max(termDepth(p1.term), termDepth(p2.term))
       : 0;
 
+    // The premises are a property of the pair, not of the rule concluding over
+    // it. Built here because every entry sweeps up to 21 rules in the hottest
+    // dispatch cell and each was allocating its own copy of the same two arrays.
+    const premises: [Term, Term] = [p1.term, p2.term];
+    const inputs: [RuleInput, RuleInput] = [p1, p2];
+
     for (const rule of matched) {
       if (!rule.sync) continue;
       if (!this.budgets.charge('candidate-derivations')) return;
@@ -374,7 +380,7 @@ export class RuleProcessor {
       }
 
       try {
-        const result = rule.apply([p1.term, p2.term], [p1, p2]);
+        const result = rule.apply(premises, inputs);
         if (!result) continue;
         if (!validateRuleOutput(result)) {
           this.eventBus?.emit('rule:output-rejected', { ruleId: rule.id, term: result.toString() });

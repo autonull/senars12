@@ -754,6 +754,14 @@ _Dynamic subpath (no single entry file)._
 
 - `BudgetAllocation` — A partial budget request across the four AIKR dimensions.
 
+- `sliceCreatedPayload` — The four `budget:slice:*` payloads, built once.
+
+- `sliceConsumedPayload`
+
+- `sliceExhaustedPayload`
+
+- `sliceMergedPayload`
+
 - `consumeCycles`
 
 - `consumeDepth`

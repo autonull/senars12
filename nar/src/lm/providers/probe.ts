@@ -13,6 +13,17 @@ export interface ProbeOptions {
 
 const DEFAULT_TIMEOUT_MS = 1500;
 
+/**
+ * A base URL and an endpoint path, joined exactly once.
+ *
+ * Four call sites joined these by hand and disagreed on how: `replace(/\/?$/,
+ * '')` twice and `replace(/\/$/, '')` twice, so whether a trailing slash was
+ * tolerated depended on which module the caller lived in. A base given as
+ * `http://host/v1/` and one given as `http://host/v1` must reach the same URL.
+ */
+export const endpointPath = (base: string, path: string): string =>
+  `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+
 /** `GET url` bounded by `timeoutMs`; returns `null` on any transport failure. */
 export async function fetchBounded(
   url: string,
@@ -54,7 +65,7 @@ export const probeModelsEndpoint = async (
   key: string | undefined,
   timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<boolean> =>
-  probeReachable(`${baseUrl.replace(/\/?$/, '')}/models`, {
+  probeReachable(endpointPath(baseUrl, 'models'), {
     timeoutMs,
     headers: probeAuthHeaders(provider, key),
   });

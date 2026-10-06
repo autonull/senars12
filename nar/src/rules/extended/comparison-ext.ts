@@ -4,7 +4,7 @@
  */
 import { binaryOf, TermBuilder, termsEqual } from '../../terms';
 import { analogy, exemplification } from '../nal/comparison.js';
-import { buildBinaryInhRule } from '../impls/rule-builder.js';
+import { buildBinaryInhRule, buildImplicationPairRule } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
 
 export { analogy, exemplification };
@@ -42,10 +42,6 @@ export const contrapositionRule: RuleFn = ([imp]) => {
 };
 
 /** `A==>B, B==>C ⊢ A==>C` — chaining two implications at their shared endpoint. */
-export const implicationDeduction: RuleFn = ([imp1, imp2]) => {
-  const first = binaryOf('implication', imp1);
-  const second = binaryOf('implication', imp2);
-  return first && second && termsEqual(first[1], second[0])
-    ? TermBuilder.implication(first[0], second[1])
-    : undefined;
-};
+export const implicationDeduction: RuleFn = buildImplicationPairRule(([a1, c1], [a2, c2]) =>
+  termsEqual(c1, a2) ? TermBuilder.implication(a1, c2) : undefined
+);

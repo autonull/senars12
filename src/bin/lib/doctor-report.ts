@@ -16,7 +16,7 @@ import { createBotNAR } from '@senars/nar';
 import { runHealthChecks } from '@senars/nar/health';
 import {
   cloudApiKey,
-  fetchBounded,
+  endpointPath,
   getCircuitBreaker,
   getEffectiveCircuitConfig,
   getModelChain,
@@ -26,6 +26,7 @@ import {
   type LMProviderName,
   type LMTask,
   probeEmbeddedLlama,
+  probeJson,
   probeLlamaCpp,
   probeModelsEndpoint,
   resolveLMConfig,
@@ -43,6 +44,7 @@ import {
   parseFlags,
 } from '@senars/util';
 import { loadConfig } from '../../config/index.js';
+import { jsonMode } from '../commands/args.js';
 import { credentialReport } from './doctor-checks.js';
 
 const logger = createLogger({ scope: 'doctor' });
@@ -66,15 +68,16 @@ const probeProviderReachable = async (): Promise<boolean> => {
 };
 
 const probeOllama = async (host: string): Promise<string> => {
-  const res = await fetchBounded(`${host.replace(/\/$/, '')}/api/tags`, { timeoutMs: 3000 });
-  if (!res) return 'unreachable (is ollama running?)';
-  if (!res.ok) return `unreachable (${res.status})`;
-  const data = (await res.json().catch(() => null)) as { models?: Array<{ name?: string }> } | null;
-  return `online, models: ${data?.models?.map((m) => m.name).join(', ') || 'none'}`;
+  const data = await probeJson<{ models?: Array<{ name?: string }> }>(
+    endpointPath(host, 'api/tags'),
+    { timeoutMs: 3000 }
+  );
+  if (!data) return 'unreachable (is ollama running?)';
+  return `online, models: ${data.models?.map((m) => m.name).join(', ') || 'none'}`;
 };
 
 const flags = parseFlags();
-const jsonOutput = flags.has('--json');
+const jsonOutput = jsonMode();
 const showDegradation = flags.has('--degradation');
 const showRoutingLog = flags.has('--routing-log');
 const showBenchmarks = flags.has('--benchmarks');

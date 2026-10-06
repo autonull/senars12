@@ -14,6 +14,10 @@ import {
   createBudget,
   freshBudget,
   isCapacityExhausted,
+  sliceConsumedPayload,
+  sliceCreatedPayload,
+  sliceExhaustedPayload,
+  sliceMergedPayload,
   snapshotBudget,
   zeroConsumed,
 } from '@senars/core/budget';
@@ -116,14 +120,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
     parentId: string | undefined,
     limits: BudgetLimits
   ): void {
-    this.eventBus?.emit('budget:slice:created', {
-      sliceId,
-      parentId,
-      maxCycles: limits.maxCycles,
-      maxDepth: limits.maxDepth ?? 0,
-      maxMemoryOps: limits.maxMemoryOps ?? 0,
-      maxLMCalls: limits.maxLMCalls ?? 0,
-    });
+    this.eventBus?.emit('budget:slice:created', sliceCreatedPayload(sliceId, parentId, limits));
   }
 
   /** Emit a budget slice consumed event. */
@@ -133,14 +130,7 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
     amount: number,
     budget: ReasoningBudget
   ): void {
-    this.eventBus?.emit('budget:slice:consumed', {
-      sliceId,
-      resource,
-      amount,
-      consumed: budget.consumed[resource],
-      total: budgetLimit(budget, resource),
-      pressure: budgetPressure(budget, resource),
-    });
+    this.eventBus?.emit('budget:slice:consumed', sliceConsumedPayload(sliceId, resource, amount, budget));
   }
 
   /** Emit a budget slice exhausted event. */
@@ -149,26 +139,12 @@ export class KernelBudgetGate extends KernelGate<BudgetExhaustedEvent> {
     reason: TerminationReason,
     budget: ReasoningBudget
   ): void {
-    this.eventBus?.emit('budget:slice:exhausted', {
-      sliceId,
-      reason,
-      consumed: { ...budget.consumed },
-      total: {
-        maxCycles: budget.maxCycles,
-        maxDepth: budget.maxDepth,
-        maxMemoryOps: budget.maxMemoryOps,
-        maxLMCalls: budget.maxLMCalls,
-      },
-    });
+    this.eventBus?.emit('budget:slice:exhausted', sliceExhaustedPayload(sliceId, reason, budget));
   }
 
   /** Emit a budget slice merged event. */
   private emitSliceMerged(parentId: string, childId: string, childBudget: ReasoningBudget): void {
-    this.eventBus?.emit('budget:slice:merged', {
-      parentId,
-      childId,
-      consumed: { ...childBudget.consumed },
-    });
+    this.eventBus?.emit('budget:slice:merged', sliceMergedPayload(parentId, childId, childBudget));
   }
 
   /** Validate at the boundary where a budget enters the gate, never on the per-operation read path. */

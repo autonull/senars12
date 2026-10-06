@@ -13,7 +13,7 @@
 
 import type { Clock } from './clock.js';
 import { systemClock } from './clock.js';
-import { type BoundedContainer, minBy } from './collections.js';
+import { type BoundedContainer, type EvictByScore, minBy } from './collections.js';
 import { occupancy } from './numeric.js';
 import { nextInt } from './random.js';
 
@@ -30,7 +30,7 @@ interface Entry<V> {
  * breaks ties by insertion order (creation order, which is finer-grained than
  * any millisecond stamp).
  */
-export type EvictionOrder<V> = 'lru' | 'fifo' | 'random' | { readonly by: (value: V) => number };
+export type EvictionOrder<V> = 'lru' | 'fifo' | 'random' | EvictByScore<V>;
 
 export interface BoundedMapOptions<K = unknown, V = unknown> {
   /** Hard capacity; the victim chosen by `eviction` is dropped past it. */
@@ -231,7 +231,7 @@ export class BoundedMap<K, V> implements BoundedContainer<V> {
       return this.#entries.keys().next().value as K | undefined;
     }
     if (this.#order === 'random') return this.#randomKey();
-    const { by } = this.#order as { by: (value: V) => number };
+    const { by } = this.#order as EvictByScore<V>;
     return minBy(this.#entries, ([, entry]) => by(entry.value))?.[0];
   }
 

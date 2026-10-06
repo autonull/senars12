@@ -3,16 +3,14 @@
  */
 import type { Term } from '../../terms';
 import { binaryOf, TermBuilder, termsEqual, unaryOf } from '../../terms';
+import { buildPairRule } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
 
 /** `S--P1, S--P2 ⊢ S--(P1 & P2)` */
-export const conjunctionIntro: RuleFn = ([i1, i2]) => {
-  const left = binaryOf('inheritance', i1);
-  const right = binaryOf('inheritance', i2);
-  return left && right && termsEqual(left[0], right[0])
-    ? TermBuilder.inheritance(left[0], TermBuilder.conjunction(left[1], right[1]))
-    : undefined;
-};
+export const conjunctionIntro: RuleFn = buildPairRule(
+  ['inheritance', 'inheritance'],
+  ([s, p], [s2, p2]) => (termsEqual(s, s2) ? TermBuilder.inheritance(s, TermBuilder.conjunction(p, p2)) : undefined)
+);
 
 export const disjunctionIntro: RuleFn = ([a1, a2]) =>
   a1.kind === 'atom' && a2.kind === 'atom' ? TermBuilder.disjunction(a1, a2) : undefined;
@@ -30,15 +28,15 @@ export const implicationElim: RuleFn = ([imp, atm]) => {
 };
 
 /** `A==>B, A==>B ⊢ A<=>B` under either argument order. */
-export const equivalenceIntro: RuleFn = ([imp1, imp2]) => {
-  const left = binaryOf('implication', imp1);
-  const right = binaryOf('implication', imp2);
-  if (!left || !right) return undefined;
-  const same =
-    (termsEqual(left[0], right[0]) && termsEqual(left[1], right[1])) ||
-    (termsEqual(left[0], right[1]) && termsEqual(left[1], right[0]));
-  return same ? TermBuilder.equivalence(left[0], left[1]) : undefined;
-};
+export const equivalenceIntro: RuleFn = buildPairRule(
+  ['implication', 'implication'],
+  ([a1, c1], right) => {
+    const same =
+      (termsEqual(a1, right[0]) && termsEqual(c1, right[1])) ||
+      (termsEqual(a1, right[1]) && termsEqual(c1, right[0]));
+    return same ? TermBuilder.equivalence(a1, c1) : undefined;
+  }
+);
 
 /** `A<=>B, A ⊢ B` and its symmetric arm. */
 export const equivalenceElim: RuleFn = ([eq, atm]) => {
@@ -49,13 +47,10 @@ export const equivalenceElim: RuleFn = ([eq, atm]) => {
 };
 
 /** `A==>A. A==>(--A.) ⊢ --A` — an implication whose ends contradict. */
-export const negationIntro: RuleFn = ([imp1, imp2]) => {
-  const left = binaryOf('implication', imp1);
-  const right = binaryOf('implication', imp2);
-  return left && right && termsEqual(left[0], right[0]) && isTrueFalse(left[1], right[1])
-    ? TermBuilder.negation(left[0])
-    : undefined;
-};
+export const negationIntro: RuleFn = buildPairRule(
+  ['implication', 'implication'],
+  ([a, c1], [, c2]) => (termsEqual(a, c2) && isTrueFalse(c1, c2) ? TermBuilder.negation(a) : undefined)
+);
 
 /** `--A, --A ⊢ FALSE` */
 export const negationElim: RuleFn = ([n1, n2]) => {

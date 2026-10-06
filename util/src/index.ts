@@ -272,6 +272,7 @@ export {
 } from './utils/bandit.js';
 /** @public Bounded map with pluggable eviction order and optional TTL. */
 export type { BoundedMapOptions, EvictionOrder } from './utils/bounded-map.js';
+export type { EvictByScore } from './utils/collections.js';
 export { BoundedMap } from './utils/bounded-map.js';
 export type { Flags } from './utils/cli.js';
 export { parseFlags } from './utils/cli.js';
@@ -313,6 +314,7 @@ export {
   maxBy,
   maxScore,
   minBy,
+  victimBy,
   minScore,
   perPart,
   pushCapped,

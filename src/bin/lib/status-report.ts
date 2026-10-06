@@ -11,7 +11,14 @@
  */
 
 import { existsSync, statSync } from 'node:fs';
-import { type BudgetSlice, isExhausted, pressure, remainingAll } from '@senars/core/budget';
+import {
+  ALL_RESOURCES,
+  BUDGET_RESOURCES,
+  type BudgetSlice,
+  isExhausted,
+  pressure,
+  remainingAll,
+} from '@senars/core/budget';
 import { createLMService } from '@senars/nar';
 import { NARBuilder } from '@senars/nar/agent/builder';
 import {
@@ -21,6 +28,7 @@ import {
 } from '@senars/nar/lm/system-one';
 import { createLogger, errMsg, formatBytes, parseFlags, pct } from '@senars/util';
 import { loadConfig } from '../../config/index.js';
+import { renderReport } from '../commands/args.js';
 import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';
 import { mettaPort } from './metta.js';
 
@@ -124,12 +132,14 @@ const collect = async (): Promise<StatusReport> => {
   return report;
 };
 
-const DIMENSIONS = [
-  ['cycles', 'maxCycles'],
-  ['depth', 'maxDepth'],
-  ['memoryOps', 'maxMemoryOps'],
-  ['llmCalls', 'maxLMCalls'],
-] as const;
+/**
+ * The four AIKR dimensions, each with the ceiling key that bounds it.
+ *
+ * Read off `BUDGET_RESOURCES` rather than written out: this was a fourth
+ * hand-written copy of the dimension table, so a dimension renamed in
+ * `core/budget` would have printed as `undefined` here rather than failing.
+ */
+const DIMENSIONS = ALL_RESOURCES.map((resource) => [resource, BUDGET_RESOURCES[resource].total] as const);
 
 /** The root slice's per-dimension spend, worst dimension, and terminal state. */
 const renderBudgetSlice = (slice: BudgetSlice): string => {
@@ -144,48 +154,37 @@ const renderBudgetSlice = (slice: BudgetSlice): string => {
   return ['Budget slice:', ...rows].join('\n');
 };
 
-const renderText = (r: StatusReport): void => {
-  console.log(
-    `System One: ${r.systemOne.enabled ? 'enabled' : 'disabled'} (${r.systemOne.provenance})`
-  );
+const renderText = (r: StatusReport): string => {
+  const lines = [`System One: ${r.systemOne.enabled ? 'enabled' : 'disabled'} (${r.systemOne.provenance})`];
   if (r.manifold) {
-    console.log(`Manifold (${r.manifold.provider}):`, JSON.stringify(r.manifold.health));
-    console.log('Heads:');
+    lines.push(`Manifold (${r.manifold.provider}): ${JSON.stringify(r.manifold.health)}`, 'Heads:');
     for (const h of r.heads)
-      console.log(
+      lines.push(
         `  ${h.headId.padEnd(24)} ${h.kind.padEnd(8)} ece=${h.ece?.toFixed(4) ?? '—'} abstain=${h.abstainThreshold?.toFixed(2) ?? '—'}`
       );
   } else {
-    console.log('Manifold: not constructed (System One disabled)');
+    lines.push('Manifold: not constructed (System One disabled)');
   }
   const providers = Object.entries(r.spend);
   if (providers.length > 0) {
-    console.log('Spend:');
+    lines.push('Spend:');
     for (const [provider, s] of providers)
-      console.log(
+      lines.push(
         `  ${provider}: ${s.calls} calls, ${s.tokensIn}/${s.tokensOut} tokens, ${s.costMilli} milli-USD`
       );
   }
-  console.log(
-    `Dataset: ${r.artifacts.datasetPath} (${r.artifacts.datasetExists ? formatBytes(r.artifacts.datasetBytes) : 'absent'})`
-  );
-  console.log(
-    `Calibration lock: ${r.artifacts.lockPath} (${r.artifacts.lockExists ? formatBytes(r.artifacts.lockBytes) : 'absent'})`
-  );
-  console.log(
+  lines.push(
+    `Dataset: ${r.artifacts.datasetPath} (${r.artifacts.datasetExists ? formatBytes(r.artifacts.datasetBytes) : 'absent'})`,
+    `Calibration lock: ${r.artifacts.lockPath} (${r.artifacts.lockExists ? formatBytes(r.artifacts.lockBytes) : 'absent'})`,
     `Governance: ${r.governance.attachedGames} attached game(s), awaiting validation: ${r.governance.awaitingValidation}, awaiting approval: ${r.governance.awaitingApproval}`
   );
-
-  if (r.budget) console.log(`\n${renderBudgetSlice(r.budget.slice)}`);
+  if (r.budget) lines.push('', renderBudgetSlice(r.budget.slice));
+  return lines.join('\n');
 };
 
 export const runStatus = async (): Promise<StatusReport> => {
   const report = await collect();
-  if (parseFlags().has('--json') || !process.stdout.isTTY) {
-    console.log(JSON.stringify(report, null, 2));
-  } else {
-    renderText(report);
-  }
+  console.log(renderReport(report, renderText));
   return report;
 };
 

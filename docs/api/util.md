@@ -306,6 +306,8 @@
 
 - `minBy` — Extremum pick over an iterable. `initial`/`initialScore` seed the running
 
+- `victimBy` — The entry `order` drops out of `live`, or `undefined` when there is nothing to
+
 - `minScore` — Lowest `score` over `items`, {@link maxScore} read the other way — and unlike
 
 - `perPart` — {@link shareCount} read backwards — how many items one of `parts` equal shares

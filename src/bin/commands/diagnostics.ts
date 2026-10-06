@@ -4,7 +4,7 @@ import { resolveLMSettings } from '@senars/nar/lm';
 import { clamp, finiteOr, perSecond, stopwatch } from '@senars/util';
 import { attempted, cmd } from '../../cli/commands.js';
 import { configValidity, credentialSummary, embeddedProbe } from '../lib/doctor-checks.js';
-import { flagsOf } from './args.js';
+import { jsonMode } from './args.js';
 import type { BotRuntime } from './context.js';
 
 export const diagnosticCommandsFor = (rt: BotRuntime) => [
@@ -16,7 +16,7 @@ export const diagnosticCommandsFor = (rt: BotRuntime) => [
     const creds = credentialSummary();
     const embedded = await embeddedProbe(s.provider);
     const { valid: configValid } = await configValidity();
-    if (flagsOf(args).has('--json')) {
+    if (jsonMode(args)) {
       return JSON.stringify(
         { provider: s.provider, model: s.model ?? 'default', embedded, configValid, creds },
         null,

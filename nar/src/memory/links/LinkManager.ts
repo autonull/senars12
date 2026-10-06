@@ -18,6 +18,7 @@ export class LinkManager {
       layers: config?.layers ?? { [DEFAULT_LAYER]: LINK.TERM_LAYER_CAPACITY },
       globalDecayRate: config?.globalDecayRate ?? LINK.DECAY_RATE,
       forgetPolicy: config?.forgetPolicy ?? LINK.FORGET_POLICY,
+      clock: config?.clock,
       rng: config?.rng,
     };
 
@@ -39,7 +40,8 @@ export class LinkManager {
     return getOrInsert(
       this.layers,
       name,
-      () => new Layer(name, capacity, this.config.forgetPolicy, this.config.rng)
+      () =>
+        new Layer(name, capacity, this.config.forgetPolicy, this.config.rng, this.config.clock)
     );
   }
 

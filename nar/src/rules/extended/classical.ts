@@ -2,21 +2,17 @@
  * Classical extended NAL rules: modus ponens, modus tollens, disjunctive syllogism, conversion.
  */
 import type { Term } from '../../terms';
-import {
-  binaryOf,
-  isDisjunction,
-  isNegation,
-  TermBuilder,
-  termsEqual,
-} from '../../terms';
+import { binaryOf, isDisjunction, isNegation, TermBuilder, termsEqual } from '../../terms';
+import { implicationElim } from '../nal/propositional.js';
 import { buildInhRule } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
 
-/** `A==>B, A ⊢ B` */
-export const modusPonens: RuleFn = ([imp, antecedent]) => {
-  const pair = binaryOf('implication', imp);
-  return pair && antecedent.kind === 'atom' && termsEqual(pair[0], antecedent) ? pair[1] : undefined;
-};
+/**
+ * `A==>B, A ⊢ B` — NAL's `implicationElim`, under the name classical logic
+ * knows it by. One body, two rule ids, the way `comparison-ext.ts` already
+ * re-exports the NAL `analogy`.
+ */
+export const modusPonens: RuleFn = implicationElim;
 
 /** `A==>B, --B ⊢ --A` */
 export const modusTollens: RuleFn = ([imp, negConsequent]) => {

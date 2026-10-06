@@ -1,3 +1,4 @@
+import type { Clock } from '@senars/util';
 import type { Term } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
 
@@ -52,4 +53,6 @@ export interface LinkManagerConfig {
   forgetPolicy: LinkForgetPolicy;
   /** Injected randomness for the random-forget policy (default `ambientRng`). */
   rng?: RandomSource;
+  /** Injected clock for link recency (default `systemClock`). */
+  clock?: Clock;
 }

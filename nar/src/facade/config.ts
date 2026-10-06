@@ -1,6 +1,6 @@
 import type { MettaPort } from '@senars/core/metta-port';
 import type { AutonomyMode, ReasoningBudget } from '@senars/core/schemas';
-import type { IdSource } from '@senars/util';
+import type { Clock, IdSource } from '@senars/util';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { CognitiveRegistry } from '../cognitive';
@@ -71,6 +71,14 @@ export interface NARConfig extends CoreConfig {
   systemOne?: Partial<SystemOneConfig>;
   /** TODO20 §5s: injectable RNG — one knob for deterministic replay (threads to focus bags). */
   rng?: RandomSource;
+  /**
+   * Injectable clock — the time counterpart to `rng`, and one knob for the same
+   * reason. Concepts, bags, link layers and the graph stamp `createdAt`,
+   * `lastAccessedAt` and `lastUpdated`; before this those reads were `Date.now()`
+   * and the forgetting/pressure policies that rank on them were untestable by
+   * construction. Absent ⇒ `systemClock`, so the live path is unchanged.
+   */
+  clock?: Clock;
   /**
    * Id minting for the process this NAR owns. Absent ⇒ `crypto.randomUUID`.
    * Installed for the NAR's lifetime and restored on `dispose`, so a seeded

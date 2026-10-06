@@ -167,7 +167,7 @@ export class NAR extends BaseComponent {
     // memory starts on the null model and is given the resolved one there.
     this.memory = new Memory({
       ...this.config,
-      bag: resolveBagSlot(cognitiveParams.strategies.bag, config.rng),
+      bag: resolveBagSlot(cognitiveParams.strategies.bag, config.rng, config.clock),
       embeddingGenerator: config.embeddingGenerator ?? createEmbeddingGenerator(embeddingRuntime),
     });
     this.ruleTable = loadBuiltinTable();

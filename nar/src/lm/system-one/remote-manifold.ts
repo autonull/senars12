@@ -1,4 +1,5 @@
 import { boundedFetch } from '@senars/util';
+import { endpointPath } from '../providers/probe.js';
 import type {
   BackendId,
   ConsensusResult,
@@ -45,7 +46,7 @@ export function createRemoteManifold({
   buildRequest,
   parseResponse,
 }: RemoteManifoldOptions): JudgmentManifold {
-  const url = `${endpoint.replace(/\/$/, '')}/v1/systemone`;
+  const url = endpointPath(endpoint, 'v1/systemone');
   const health: ManifoldHealth = {
     backendId,
     ready: true,

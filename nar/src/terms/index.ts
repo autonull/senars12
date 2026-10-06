@@ -1,6 +1,7 @@
 export type { BareInheritance, BinaryKind, TermPair, UnaryKind } from './impls/accessors.js';
 export {
   atomicSymbols,
+  atomicTerms,
   atomKey,
   bareInheritancePair,
   binaryOf,

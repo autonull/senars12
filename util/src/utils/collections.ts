@@ -260,6 +260,29 @@ export function maxBy<T>(
 }
 
 /**
+ * The scoring half of an eviction order: *the live entry with the lowest score loses*.
+ *
+ * Split from the whole {@link EvictionOrder} because the two halves are not
+ * equally portable. `lru` and `fifo` are not scores a container computes — they
+ * are a reading of the container's own insertion order, which a `Map` has and a
+ * priority-sorted array does not. This half every container can implement, so it
+ * is the half the bag, the forgetting policy and the link layers share.
+ *
+ * Declared here rather than in `bounded-map` because the shared primitive is
+ * {@link minBy}, and a policy type next to the map that first spelled it is a
+ * type the other containers cannot name without importing the container.
+ */
+export type EvictByScore<V> = { readonly by: (value: V) => number };
+
+/**
+ * The entry `order` drops out of `live`, or `undefined` when there is nothing to
+ * drop. Ties go to the earlier entry, so the caller gets a victim that is stable
+ * across runs rather than one that depends on iteration order.
+ */
+export const victimBy = <V>(live: Iterable<V>, order: EvictByScore<V>): V | undefined =>
+  minBy(live, order.by);
+
+/**
  * Highest `score` over `items`, floored at 0. Single pass over the iterable
  * with no intermediate array and no second evaluation of `score` — `maxBy`
  * returns the winning item instead, which forces callers that only want the
@@ -758,7 +781,12 @@ export interface KeyedSetStore<K, T> extends KeyedStore<K, Set<T>> {
  * lazy-bucket-plus-add that this exists to be.
  */
 export function addToSet<K, T>(map: KeyedStore<K, Set<T>>, key: K, value: T): void {
-  getOrInsert(map, key, () => new Set<T>()).add(value);
+  let bucket = map.get(key);
+  if (bucket === undefined) {
+    bucket = new Set<T>();
+    map.set(key, bucket);
+  }
+  bucket.add(value);
 }
 
 /** Remove from a per-key set, dropping the key once its set empties — otherwise an

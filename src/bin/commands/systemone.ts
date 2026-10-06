@@ -24,6 +24,7 @@ import {
   coerce,
   dispatchSub,
   flagsOf,
+  onOff,
   positiveArg,
   ratioArg,
   type SubHandler,
@@ -399,16 +400,12 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
       return dispatchSub(
         args,
         {
-          status: () =>
-            `Groundedness gate: ${ground.enabled ? 'on' : 'off'} threshold=${ground.threshold}`,
-          on: () => {
-            ground.enabled = true;
-            return 'Groundedness gate enabled';
-          },
-          off: () => {
-            ground.enabled = false;
-            return 'Groundedness gate disabled';
-          },
+          ...onOff(
+            () => ground.enabled,
+            (v) => { ground.enabled = v; },
+            (on) => `Groundedness gate: ${on ? 'on' : 'off'} threshold=${ground.threshold}`,
+            'Groundedness gate'
+          ),
           threshold: ([raw]) => {
             if (!raw) return 'Usage: .ground threshold <0-1>';
             const parsed = ratioArg(raw, 'Threshold');
@@ -426,16 +423,12 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
       return dispatchSub(
         args,
         {
-          status: () =>
-            `Trace grader: ${trace.enabled ? 'on' : 'off'} sampleRate=${trace.sampleRate} grader=${trace.grader ? 'available' : 'unavailable'}`,
-          on: () => {
-            trace.enabled = true;
-            return 'Trace grader enabled';
-          },
-          off: () => {
-            trace.enabled = false;
-            return 'Trace grader disabled';
-          },
+          ...onOff(
+            () => trace.enabled,
+            (v) => { trace.enabled = v; },
+            (on) => `Trace grader: ${on ? 'on' : 'off'} sampleRate=${trace.sampleRate} grader=${trace.grader ? 'available' : 'unavailable'}`,
+            'Trace grader'
+          ),
           sample: ([raw]) => {
             if (!raw) return 'Usage: .trace sample <0-1>';
             const parsed = ratioArg(raw, 'Sample rate');
@@ -525,15 +518,12 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
         return dispatchSub(
           args,
           {
-            status: () => `Auto-routing: ${routing.auto ? 'on' : 'off'} policy=${routing.policy}`,
-            on: () => {
-              routing.auto = true;
-              return 'Auto-routing enabled';
-            },
-            off: () => {
-              routing.auto = false;
-              return 'Auto-routing disabled';
-            },
+            ...onOff(
+              () => routing.auto,
+              (v) => { routing.auto = v; },
+              (on) => `Auto-routing: ${on ? 'on' : 'off'} policy=${routing.policy}`,
+              'Auto-routing'
+            ),
             policy: ([raw]) => {
               if (!raw) return 'Usage: .routing-auto policy <conservative|balanced|aggressive>';
               if (!(POLICIES as readonly string[]).includes(raw)) {

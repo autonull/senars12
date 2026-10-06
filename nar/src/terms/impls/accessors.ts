@@ -212,6 +212,7 @@ export const termSize = (term: Term): number => {
 interface TermFacts {
   key?: string;
   symbols?: ReadonlySet<string>;
+  atoms?: readonly AtomicTerm[];
   subterms?: ReadonlySet<string>;
   /** `null` once computed and found absent — distinct from "not yet looked at". */
   pair?: BareInheritance | null;
@@ -224,18 +225,34 @@ type FactValue = TermFacts[keyof TermFacts];
 
 const factsCache = new WeakMap<Term, TermFacts>();
 
-const factsOf = (term: Term): TermFacts => getOrInsert(factsCache, term, () => ({}));
+/** Hoisted so `factsOf` allocates nothing on a hit: `getOrInsert` takes its
+ *  factory as an argument, and a factory written at the call site is built on
+ *  every call even when it is never invoked. */
+const emptyFacts = (): TermFacts => ({});
+
+const factsOf = (term: Term): TermFacts => getOrInsert(factsCache, term, emptyFacts);
 
 /**
  * Read a lazily-derived fact, deriving it on the first ask and keeping it for
  * every later reader of the same (interned) term. `undefined` is the one value
  * that means "not derived yet", so a derived `null` or `false` still caches.
+ *
+ * `derive` takes the term rather than closing over it, because these are all
+ * *memo reads* — `termKey` alone is called for every map lookup, set membership
+ * and link id in the engine — and a closure passed as an argument is built
+ * before the cache check runs. Three allocations per read, on the hit path, to
+ * throw them away: the memo's own overhead tax, on the hottest accessor there
+ * is. Naming each derivation once at module scope costs the hit path nothing.
  */
-const memoFact = <V extends FactValue>(term: Term, slot: keyof TermFacts, derive: () => V): V => {
+const memoFact = <V extends FactValue>(
+  term: Term,
+  slot: keyof TermFacts,
+  derive: (term: Term) => V
+): V => {
   const facts = factsOf(term);
   const cached = facts[slot];
   if (cached !== undefined) return cached as V;
-  const value = derive();
+  const value = derive(term);
   (facts as Record<string, FactValue>)[slot] = value;
   return value;
 };
@@ -244,20 +261,44 @@ const memoFact = <V extends FactValue>(term: Term, slot: keyof TermFacts, derive
 export const atomKey = (symbol: string): string => `atom:${symbol}`;
 
 /** Canonical structural key for a term — the single identity used for maps, memoization, and link ids. */
-export const termKey = (term: Term): string =>
-  memoFact(term, 'key', () =>
-    isAtomic(term) ? atomKey(term.symbol) : `${term.kind}:${getArgs(term).map(termKey).join(',')}`
-  );
+/** Prefixing every atom makes the derivation injective, where joining bare
+ *  `toString()` forms let any symbol containing `,` alias a different arity. */
+const deriveKey = (term: Term): string =>
+  isAtomic(term) ? atomKey(term.symbol) : `${term.kind}:${getArgs(term).map(termKey).join(',')}`;
+
+/** Canonical structural key for a term — the single identity used for maps, memoization, and link ids. */
+export const termKey = (term: Term): string => memoFact(term, 'key', deriveKey);
 
 /** Every atomic symbol mentioned anywhere in the term. */
-export const atomicSymbols = (term: Term): ReadonlySet<string> =>
-  memoFact(term, 'symbols', () => {
-    const symbols = new Set<string>();
-    walkTerms(term, (t) => {
-      if (isAtomic(t)) symbols.add(t.symbol);
-    });
-    return symbols;
+const deriveSymbols = (term: Term): ReadonlySet<string> => {
+  const symbols = new Set<string>();
+  walkTerms(term, (t) => {
+    if (isAtomic(t)) symbols.add(t.symbol);
   });
+  return symbols;
+};
+
+export const atomicSymbols = (term: Term): ReadonlySet<string> =>
+  memoFact(term, 'symbols', deriveSymbols);
+
+/**
+ * Every atom in the term's subtree, in pre-order and with repeats — the
+ * {@link atomicSymbols} walk keeping the terms rather than their symbols.
+ *
+ * The graph extractors need the terms (they serialize each one into an edge), so
+ * they each ran the walk privately and re-serialized the same atoms inside an
+ * O(n²) pairing loop. Memoised on the same facts as the symbol set, so a term
+ * that has been asked for its symbols already has this.
+ */
+const deriveAtoms = (term: Term): readonly AtomicTerm[] => {
+  const atoms: AtomicTerm[] = [];
+  walkTerms(term, (t) => {
+    if (isAtomic(t)) atoms.push(t);
+  });
+  return atoms;
+};
+
+export const atomicTerms = (term: Term): readonly AtomicTerm[] => memoFact(term, 'atoms', deriveAtoms);
 
 /**
  * `termKey` of every node in the term's subtree, the root included.
@@ -265,14 +306,15 @@ export const atomicSymbols = (term: Term): ReadonlySet<string> =>
  * on kind, arity and every argument recursively — so membership here is exactly
  * "this term occurs somewhere in the other".
  */
-const subtermKeys = (term: Term): ReadonlySet<string> =>
-  memoFact(term, 'subterms', () => {
-    const keys = new Set<string>();
-    walkTerms(term, (t) => {
-      keys.add(termKey(t));
-    });
-    return keys;
+const deriveSubterms = (term: Term): ReadonlySet<string> => {
+  const keys = new Set<string>();
+  walkTerms(term, (t) => {
+    keys.add(termKey(t));
   });
+  return keys;
+};
+
+const subtermKeys = (term: Term): ReadonlySet<string> => memoFact(term, 'subterms', deriveSubterms);
 
 export const containsSubterm = (term: Term, target: Term): boolean =>
   subtermKeys(term).has(termKey(target));
@@ -296,11 +338,13 @@ export const mentionsSymbol = (term: Term, symbol: string): boolean =>
  * `termKey` is already memoised, so deriving the answer costs one `Set` per term
  * rather than one per visit.
  */
+const deriveRepeatedArgs = (term: Term): boolean => {
+  const args = getArgs(term);
+  return args.length !== new Set(args.map(termKey)).size;
+};
+
 export const hasRepeatedArgs = (term: Term): boolean =>
-  memoFact(term, 'repeatedArgs', () => {
-    const args = getArgs(term);
-    return args.length !== new Set(args.map(termKey)).size;
-  });
+  memoFact(term, 'repeatedArgs', deriveRepeatedArgs);
 
 /**
  * Whether `term`'s arguments contain both `a` and `--a`.
@@ -309,26 +353,29 @@ export const hasRepeatedArgs = (term: Term): boolean =>
  * the constant they reduce to, so the predicate is asked once here and each law
  * declares its own result.
  */
-export const hasNegatedPair = (term: Term): boolean =>
-  memoFact(term, 'negatedPair', () => {
-    const args = getArgs(term);
-    const keys = new Set(args.map(termKey));
-    return args.some((arg) => {
-      if (arg.kind !== 'negation') return false;
-      const operand = getArgs(arg)[0];
-      return operand !== undefined && keys.has(termKey(operand));
-    });
+const deriveNegatedPair = (term: Term): boolean => {
+  const args = getArgs(term);
+  const keys = new Set(args.map(termKey));
+  return args.some((arg) => {
+    if (arg.kind !== 'negation') return false;
+    const operand = getArgs(arg)[0];
+    return operand !== undefined && keys.has(termKey(operand));
   });
+};
+
+export const hasNegatedPair = (term: Term): boolean =>
+  memoFact(term, 'negatedPair', deriveNegatedPair);
 
 /** Whether any atom anywhere in the term is a variable — structural, not a spelling test. */
-export const hasVariable = (term: Term): boolean =>
-  memoFact(term, 'variable', () => {
-    let found = false;
-    walkTerms(term, (t) => {
-      if (!found && isAtomic(t) && isVariableSymbol(t.symbol)) found = true;
-    });
-    return found;
+const deriveVariable = (term: Term): boolean => {
+  let found = false;
+  walkTerms(term, (t) => {
+    if (!found && isAtomic(t) && isVariableSymbol(t.symbol)) found = true;
   });
+  return found;
+};
+
+export const hasVariable = (term: Term): boolean => memoFact(term, 'variable', deriveVariable);
 
 /** The two symbols of a bare `a --> b` pair. */
 export interface BareInheritance {
@@ -347,18 +394,20 @@ export interface BareInheritance {
  * once per term and shared by every reader; `null` is cached too, so the
  * majority of concepts that mention no pair cost one `WeakMap` read.
  */
-export const bareInheritancePair = (term: Term): BareInheritance | null =>
-  memoFact(term, 'pair', () => {
-    let found: BareInheritance | null = null;
-    walkTerms(term, (t) => {
-      if (found || t.kind !== 'inheritance') return;
-      const [subject, predicate] = getArgs(t);
-      if (subject?.kind === 'atom' && predicate?.kind === 'atom') {
-        found = { subject: subject.symbol, predicate: predicate.symbol };
-      }
-    });
-    return found;
+const deriveBarePair = (term: Term): BareInheritance | null => {
+  let found: BareInheritance | null = null;
+  walkTerms(term, (t) => {
+    if (found || t.kind !== 'inheritance') return;
+    const [subject, predicate] = getArgs(t);
+    if (subject?.kind === 'atom' && predicate?.kind === 'atom') {
+      found = { subject: subject.symbol, predicate: predicate.symbol };
+    }
   });
+  return found;
+};
+
+export const bareInheritancePair = (term: Term): BareInheritance | null =>
+  memoFact(term, 'pair', deriveBarePair);
 
 /** True when the two terms mention a bare inheritance pair sharing an end. */
 export const sharesInheritanceEnd = (a: Term, b: Term): boolean => {

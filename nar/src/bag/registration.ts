@@ -1,4 +1,4 @@
-import { formatIssues } from '@senars/util';
+import { type Clock, formatIssues } from '@senars/util';
 import { z } from 'zod';
 import { ConfigurationError } from '../types';
 import type { RandomSource } from '../types/primitives.js';
@@ -35,6 +35,13 @@ export interface ResolvedBagSlot {
    * (TODO27 §16) — a slot is the only thing a memory is configured by.
    */
   rng?: RandomSource;
+  /**
+   * The memory's clock. `Bag` already took one for `createdAt`/`lastAccessedAt`;
+   * a concept stamps its own the same way and reads it through this slot, so one
+   * injected clock pins every retention fact the store holds rather than the
+   * three the bags happened to own.
+   */
+  clock?: Clock;
 }
 
 /** Every error a `strategies.bag` slot can carry, phrased for `validateParameters`. */
@@ -47,10 +54,11 @@ export const bagSlotErrors = (slot: Partial<BagSlotParams> | undefined): string[
 /** The single read path for the slot: validated decay/forget knobs plus the memory's stream. */
 export const resolveBagSlot = (
   slot: Partial<BagSlotParams> | undefined,
-  rng?: RandomSource
+  rng?: RandomSource,
+  clock?: Clock
 ): ResolvedBagSlot => {
   const errors = bagSlotErrors(slot);
   if (errors.length) throw new ConfigurationError(errors.join('; '));
   const parsed = slot?.config === undefined ? undefined : bagConfig.parse(slot.config);
-  return { decayRate: parsed?.decayRate, forgetRate: parsed?.forgetRate, rng };
+  return { decayRate: parsed?.decayRate, forgetRate: parsed?.forgetRate, rng, clock };
 };

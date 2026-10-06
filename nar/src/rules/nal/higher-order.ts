@@ -1,5 +1,5 @@
 import { TermBuilder, termsEqual } from '../../terms';
-import { buildImplicationPairRule } from '../impls/builders.js';
+import { buildImplicationPairRule } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
 
 /** `A==>B, B==>C ⊢ A==>C` */

@@ -1,5 +1,5 @@
 import { TermBuilder } from '../../terms';
-import { conversionRule } from '../impls/builders.js';
+import { conversionRule } from '../impls/rule-builder.js';
 import type { RuleFn } from '../types.js';
 
 export const instanceConversion: RuleFn = conversionRule(TermBuilder.setExt);

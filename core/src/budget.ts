@@ -256,12 +256,63 @@ export const chargeBudget = (
 /** A partial budget request across the four AIKR dimensions. */
 export type BudgetAllocation = Partial<ConsumedBudget>;
 
-/** Both slice constructors announce a new slice through this one payload builder. */
-const sliceAnnouncement = (slice: BudgetSlice): BudgetEventMap['budget:slice:created'] => ({
-  sliceId: slice.id,
-  parentId: slice.parentId,
-  ...budgetLimitsOf(slice),
+/**
+ * The four `budget:slice:*` payloads, built once.
+ *
+ * Exported because the budget gate emits the same four events about a plain
+ * `ReasoningBudget` rather than a `BudgetSlice`, and had re-spelled all four —
+ * including `budgetLimitsOf`'s four-key projection, written out twice more. A
+ * payload the gate and the slice both hand-roll is a payload whose `total` can
+ * disagree with the dimension table, and nothing downstream would report it.
+ */
+export const sliceCreatedPayload = (
+  sliceId: string,
+  parentId: string | undefined,
+  limits: BudgetLimits
+): BudgetEventMap['budget:slice:created'] => ({
+  sliceId,
+  parentId,
+  ...limits,
 });
+
+export const sliceConsumedPayload = (
+  sliceId: string,
+  resource: BudgetResource,
+  amount: number,
+  budget: ReasoningBudget
+): BudgetEventMap['budget:slice:consumed'] => ({
+  sliceId,
+  resource,
+  amount,
+  consumed: budget.consumed[resource],
+  total: budgetLimit(budget, resource),
+  pressure: budgetPressure(budget, resource),
+});
+
+export const sliceExhaustedPayload = (
+  sliceId: string,
+  reason: TerminationReason,
+  budget: ReasoningBudget
+): BudgetEventMap['budget:slice:exhausted'] => ({
+  sliceId,
+  reason,
+  consumed: { ...budget.consumed },
+  total: budgetLimitsOf(budget),
+});
+
+export const sliceMergedPayload = (
+  parentId: string,
+  childId: string,
+  child: ReasoningBudget
+): BudgetEventMap['budget:slice:merged'] => ({
+  parentId,
+  childId,
+  consumed: { ...child.consumed },
+});
+
+/** Both slice constructors announce a new slice through this one payload builder. */
+const sliceAnnouncement = (slice: BudgetSlice): BudgetEventMap['budget:slice:created'] =>
+  sliceCreatedPayload(slice.id, slice.parentId, slice);
 
 /**
  * Charge `amount` to one budget dimension, or terminate the slice when the
@@ -276,28 +327,16 @@ function consume(
   eventBus?: BudgetEventBus
 ): boolean {
   if (!budgetAffords(budget, resource, amount)) {
-    const reason = budgetRefusal(budget, resource);
-    budget.terminationReason = reason;
-    const snapshot = {
-      sliceId: budget.id,
-      reason,
-      consumed: { ...budget.consumed },
-      total: budgetLimitsOf(budget),
-    };
-    announce('budget:slice:exhausted', snapshot, eventBus);
+    budget.terminationReason = budgetRefusal(budget, resource);
+    announce(
+      'budget:slice:exhausted',
+      sliceExhaustedPayload(budget.id, budget.terminationReason, budget),
+      eventBus
+    );
     return false;
   }
   chargeBudget(budget, resource, amount);
-  const consumed = budget.consumed[resource];
-  const payload = {
-    sliceId: budget.id,
-    resource,
-    amount,
-    consumed,
-    total: budgetLimit(budget, resource),
-    pressure: budgetPressure(budget, resource),
-  };
-  announce('budget:slice:consumed', payload, eventBus);
+  announce('budget:slice:consumed', sliceConsumedPayload(budget.id, resource, amount, budget), eventBus);
   return true;
 }
 
@@ -403,7 +442,7 @@ export function mergeConsumption(
   }
   announce(
     'budget:slice:merged',
-    { parentId: parent.id, childId: child.id, consumed: { ...child.consumed } },
+    sliceMergedPayload(parent.id, child.id, child),
     eventBus
   );
 }

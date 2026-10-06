@@ -112,6 +112,7 @@ export class Memory implements MemoryPorts {
       forgetPolicy: this.config.linkForgetPolicy,
       globalDecayRate: this.config.linkDecayRate,
       rng: this.config.bag.rng,
+      clock: this.config.bag.clock,
     });
 
     // Every layer the manager owns is recallable by name; no second registry.
@@ -344,9 +345,11 @@ export class Memory implements MemoryPorts {
    * (TODO29.a §4 row 3, §5.4).
    */
   topConcepts(n: number): Concept[] {
-    return selectTopN(this.residentEntries(), n, (entry) => entry.value.priority).map(
-      (entry) => entry.value
-    );
+    // Over `values()` rather than `residentEntries()`: this is the default premise
+    // source, called once per sampled concept per cycle, and the entry array is
+    // only ever scanned — never indexed or kept. A sweep that walks the result
+    // more than once still wants `residentEntries()`.
+    return selectTopN(this.concepts.values(), n, (concept) => concept.priority);
   }
 
   /**

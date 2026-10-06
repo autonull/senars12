@@ -37,6 +37,60 @@ export const coerce = (raw: string): unknown =>
 export type SubHandler = (rest: string[]) => string | Promise<string>;
 
 /**
+ * The `status`/`on`/`off` triple every boolean CLI switch writes.
+ *
+ * Three hand-written copies in `systemone.ts` — the groundedness gate, the trace
+ * grader and auto-routing — each spelling the same assignment and the same
+ * `on`/`off` wording, so a fourth switch would be a fourth copy by default. The
+ * switch itself becomes the only thing a reader has to look at.
+ *
+ * Read and write rather than an object and a key: the three switches live in
+ * three different config objects and none of them owns a plain `enabled` field
+ * with a shared type, so a key would need the cast that this avoids.
+ */
+export const onOff = (
+  read: () => boolean,
+  write: (value: boolean) => void,
+  status: (on: boolean) => string,
+  label: string
+): Record<string, SubHandler> => ({
+  status: () => status(read()),
+  on: () => {
+    write(true);
+    return `${label} enabled`;
+  },
+  off: () => {
+    write(false);
+    return `${label} disabled`;
+  },
+});
+
+/**
+ * Whether the caller wants a report in its machine form: `--json`, or a pipe.
+ *
+ * A pipe is the implicit request — `pnpm status > report.json` should not need a
+ * flag — but only `runStatus` read `isTTY`. Three reports asked about the flag
+ * alone and one about `parseFlags().has('--json') || !process.stdout.isTTY`, so
+ * redirecting the same command produced different bytes depending on which
+ * entry point answered, and a piped `doctor` printed prose into a `.json` file.
+ */
+export const jsonMode = (args?: string): boolean =>
+  flagsOf(args).has('--json') || !process.stdout.isTTY;
+
+/**
+ * A report as JSON, or as the text its renderer produces.
+ *
+ * The two lines four reports each wrote at their emit point. Returns rather than
+ * logs, so a caller that must log (`doctor`) and one that must return
+ * (`status`, surfaced through the bot) read the same way.
+ */
+export const renderReport = <T>(
+  value: T,
+  render: (value: T) => string,
+  args?: string
+): string => (jsonMode(args) ? JSON.stringify(value, null, 2) : render(value));
+
+/**
  * Table-driven subcommand dispatch: a bare invocation resolves to the first
  * `defaults` verb, unknown verbs fall through to `usage`. Handlers receive the
  * tokens after the verb.

@@ -78,7 +78,7 @@ export {
   probeLlamaCpp,
   runWithGrammar,
 } from './providers/llamacpp.js';
-export { fetchBounded, probeModelsEndpoint } from './providers/probe.js';
+export { endpointPath, fetchBounded, probeJson, probeModelsEndpoint } from './providers/probe.js';
 export type {
   CandidateScore,
   ModelReliability,

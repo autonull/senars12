@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs';
 import { envFirst, envNumOr, envSet, envStr, isTruthy } from '@senars/util/config';
-import { gpuSettingFrom, type GpuSetting } from './runtime/llama-runtime.js';
 import type { CircuitBreakerSettings } from '../utils/circuit-breaker.js';
+import { endpointPath } from './providers/probe.js';
+import { type GpuSetting, gpuSettingFrom } from './runtime/llama-runtime.js';
 
 export type { CircuitState } from '../utils/circuit-breaker.js';
 
@@ -188,7 +189,10 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
       envFirst('LM_BASE_URL') ??
       file?.baseUrl ??
       (aliasedOllama
-        ? `${(envFirst('OLLAMA_HOST') ?? file?.ollamaHost ?? 'http://localhost:11434').replace(/\/?$/, '')}/v1`
+        ? endpointPath(
+            envFirst('OLLAMA_HOST') ?? file?.ollamaHost ?? 'http://localhost:11434',
+            'v1'
+          )
         : undefined),
     ollamaHost: envFirst('OLLAMA_HOST') ?? file?.ollamaHost,
     model:

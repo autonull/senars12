@@ -79,6 +79,21 @@ const canonicalOrder = (a: Term, b: Term): number =>
   CANONICAL_COLLATOR.compare(canonicalKeyOf(a), canonicalKeyOf(b));
 
 /**
+ * `termKey` of the compound `(kind, args)`, without building the compound.
+ *
+ * Character-identical to `termKey({ kind, args })` — for a non-atom the key is
+ * `` `${kind}:${getArgs(args).map(termKey).join(',')}` `` and `getArgs` of a
+ * shape with a real `args` array is that array — so the intern cache is keyed
+ * exactly as before. It exists because the alternative built the shape, memoised
+ * a `WeakMap` entry and a fresh `{}` against it, and then *could never hit that
+ * memo*: `compoundOf` is every derived conclusion of every fired rule, and the
+ * common case is an intern hit. Keying on `(kind, args)` skips the object, the
+ * memo machinery and the dead `WeakMap` write on that path entirely.
+ */
+const compoundKey = (kind: OperatorKey, args: readonly Term[]): string =>
+  `${kind}:${args.map(termKey).join(',')}`;
+
+/**
  * The interning constructor, deliberately **raw**: it sorts, collapses and keys,
  * and it does not canonicalise. Canonicalisation lives one level up in
  * `factory.ts`, so a reducer can rebuild its own output here without re-entering
@@ -120,14 +135,10 @@ export const compoundOf = (kind: OperatorKey, args: Term[]): Term => {
 
   const sorted = COMMUTATIVE_OPS.has(kind) ? valid.toSorted(canonicalOrder) : valid;
 
-  // `termKey` is the canonical structural key — prefixing every atom makes the
-  // derivation injective, where joining bare `toString()` forms let any symbol
-  // containing `,` alias a different arity.
-  const shape = { kind, args: sorted } as CompoundTerm;
-  const key = termKey(shape);
+  const key = compoundKey(kind, sorted);
   return getOrInsert(termCache, key, () => {
     // Compute serialized form once during creation (cache key is NOT the full serialized form)
-    const serialized = serializeTerm(shape);
+    const serialized = serializeTerm({ kind, args: sorted } as CompoundTerm);
 
     return Object.freeze({
       kind,

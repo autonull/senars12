@@ -675,14 +675,13 @@ export class NARExecution {
       const goal = META_GOAL_BY_DRIVE_ID.get(state.spec.id);
       if (!goal) continue;
 
-      const termStr = goal.term.toString();
       if (state.currentIntensity >= goal.threshold || activeTerms.has(goal.term)) continue;
 
       this.taskManager.addTask(createTask(goal.term, 'goal', Truth.NEUTRAL));
       logger.debug('Injected meta-goal from drive', {
         drive: state.spec.id,
         intensity: state.currentIntensity,
-        goal: termStr,
+        goal: goal.term.toString(),
       });
     }
   }

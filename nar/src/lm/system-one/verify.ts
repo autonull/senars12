@@ -4,6 +4,7 @@
  * self-consistency `consensus` — no new machinery.
  */
 
+import { budgetRemaining } from '@senars/core/budget';
 import { clamp, sha256Hex } from '@senars/util';
 import { type JudgmentProvenance, stageProvenance } from './decide.js';
 import { HEAD_SPECS } from './head-ontology.js';
@@ -99,7 +100,7 @@ export interface ConsensusJudge {
 
 /** Fan-out never exceeds the LM-call budget remaining; k≥1 always degrades to a single judgment. */
 export const fanoutWithinBudget = (k: number, budget: ReasoningBudget, charged = 0): number =>
-  clamp(budget.maxLMCalls - (budget.consumed?.llmCalls ?? 0) - charged, 1, k);
+  clamp(budgetRemaining(budget, 'llmCalls') - charged, 1, k);
 
 /** Consensus fan-out as a budget knob: the requested k is clamped to remaining budget. */
 export async function consensusFanout(

@@ -6,6 +6,7 @@ import {
   clamp01,
   type Clock,
   makeId,
+  minBy,
   nextInt,
   occupancy,
   type RandomSource,
@@ -325,11 +326,10 @@ export class PriorityBag<T extends BagItem> implements Bag<T>, BoundedContainer<
         this.version++;
         break;
       case 'LRU': {
-        let lruIdx = 0;
-        for (let i = 1; i < store.length; i++) {
-          if (store[i]!.lastAccessedAt < store[lruIdx]!.lastAccessedAt) lruIdx = i;
-        }
-        this.dropAt(lruIdx);
+        // Recency is the one order the priority sort does not already answer, so
+        // it is the one order `minBy` is for.
+        const lru = minBy(store.entries(), ([, entry]) => entry.lastAccessedAt);
+        if (lru) this.dropAt(lru[0]);
         break;
       }
       case 'Random':

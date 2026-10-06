@@ -106,11 +106,11 @@
 
 - `atom`
 
-- `atomicSymbols` — Every atomic symbol mentioned anywhere in the term.
+- `atomicSymbols`
 
 - `atomKey` — An atom's key without building the term — the read side of `termKey` for callers holding a symbol.
 
-- `bareInheritancePair` — The first bare inheritance pair mentioned anywhere in the term — `(bird --> animal)`
+- `bareInheritancePair`
 
 - `containsSubterm`
 
@@ -126,7 +126,7 @@
 
 - `getSubject`
 
-- `hasVariable` — Whether any atom anywhere in the term is a variable — structural, not a spelling test.
+- `hasVariable`
 
 - `isAtomic`
 
@@ -372,9 +372,9 @@ _Dynamic subpath (no single entry file)._
 
 - `selfCommands`
 
-- `NAR_UNCONFIGURED`
-
 - `narOf` — Typed view of the NAR handle carried on the command context.
+
+- `requiring` — A command that cannot run without a subsystem, bound to its absence.
 
 ## `./config`
 
@@ -788,7 +788,11 @@ _Dynamic subpath (no single entry file)._
 
 - `runWithGrammar`
 
+- `endpointPath` — A base URL and an endpoint path, joined exactly once.
+
 - `fetchBounded` — `GET url` bounded by `timeoutMs`; returns `null` on any transport failure.
+
+- `probeJson` — Parsed JSON body, or `null` when unreachable or malformed.
 
 - `probeModelsEndpoint` — Probe an OpenAI-compatible `/models` endpoint; auth sent only when a key is available.
 
@@ -1242,11 +1246,13 @@ _Dynamic subpath (no single entry file)._
 
 ## `./terms`
 
-- `atomicSymbols` — Every atomic symbol mentioned anywhere in the term.
+- `atomicSymbols`
+
+- `atomicTerms`
 
 - `atomKey` — An atom's key without building the term — the read side of `termKey` for callers holding a symbol.
 
-- `bareInheritancePair` — The first bare inheritance pair mentioned anywhere in the term — `(bird --> animal)`
+- `bareInheritancePair`
 
 - `binaryOf` — A binary term's own argument list as a pair, or `undefined` when `term` is not
 
@@ -1264,7 +1270,7 @@ _Dynamic subpath (no single entry file)._
 
 - `getSubject`
 
-- `hasVariable` — Whether any atom anywhere in the term is a variable — structural, not a spelling test.
+- `hasVariable`
 
 - `isConjunction`
 
@@ -1300,9 +1306,9 @@ _Dynamic subpath (no single entry file)._
 
 - `sharesSymbol`
 
-- `hasNegatedPair` — Whether `term`'s arguments contain both `a` and `--a`.
+- `hasNegatedPair`
 
-- `hasRepeatedArgs` — Whether any two of `term`'s arguments are the same term.
+- `hasRepeatedArgs`
 
 - `termDepth` — Deepest nesting below the root; a bare atom has depth 0.
 

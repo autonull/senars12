@@ -1,3 +1,4 @@
+import type { Clock } from '@senars/util';
 import {
   type CallTally,
   clamp01,
@@ -46,6 +47,8 @@ export interface RuleGraphOptions {
   maxEdgesPerNode?: number;
   decayRate?: number;
   fallbackWeight?: number;
+  /** Injected clock for co-activation stamps (default `systemClock`). */
+  clock?: Clock;
 }
 
 export class RuleGraph implements ModelRuleSelector {
@@ -74,6 +77,7 @@ export class RuleGraph implements ModelRuleSelector {
       maxNodes: options.maxNodes ?? 5000,
       maxEdgesPerNode: options.maxEdgesPerNode ?? 30,
       decayRate: options.decayRate ?? 0.002,
+      clock: options.clock,
     });
     this.fallbackWeight = options.fallbackWeight ?? 0.3;
   }

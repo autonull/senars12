@@ -54,6 +54,21 @@ export interface KernelActionGateConfig {
 const DEFAULT_AUTONOMY_MODE: AutonomyMode = 'observe-only';
 const DEFAULT_ALLOWED_OPS = new Set<string>();
 
+/** The approval a refusal always asks for — one value, so no refusal can omit it. */
+const HUMAN_APPROVAL = ['human-approval'];
+
+/**
+ * A refusal, with its reason. Five sites in this gate each wrote the same
+ * three-field literal, and one of them — the NAL veto — forgot
+ * `requiredApprovals`, so a vetoed action named no approval and the caller had
+ * to infer one. The literal and the omission go together.
+ */
+const veto = (vetoReason: string): ActionGateOutput => ({
+  authorized: false,
+  vetoReason,
+  requiredApprovals: HUMAN_APPROVAL,
+});
+
 export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
   private autonomyLog: AutonomyModeChangedEvent[] = [];
   private autonomyMode: AutonomyMode;
@@ -156,24 +171,11 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
 
   private authorizeScoped(scopeId: string, action: string): ActionGateOutput {
     const mode = this.scopeModes.get(scopeId);
-    if (mode === undefined)
-      return {
-        authorized: false,
-        vetoReason: `Unknown scope ${scopeId}`,
-        requiredApprovals: ['human-approval'],
-      };
+    if (mode === undefined) return veto(`Unknown scope ${scopeId}`);
     if (!permitsExecution(mode))
-      return {
-        authorized: false,
-        vetoReason: `Autonomy mode ${mode} does not permit execution (scope ${scopeId})`,
-        requiredApprovals: ['human-approval'],
-      };
+      return veto(`Autonomy mode ${mode} does not permit execution (scope ${scopeId})`);
     if (!this.scopeOperations.get(scopeId)?.has(action))
-      return {
-        authorized: false,
-        vetoReason: `Operation '${action}' not permitted in scope ${scopeId}`,
-        requiredApprovals: ['human-approval'],
-      };
+      return veto(`Operation '${action}' not permitted in scope ${scopeId}`);
     return { authorized: true, toolCallId: makeId() };
   }
 
@@ -201,11 +203,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
         detail: `Action not permitted in ${this.autonomyMode} mode`,
         correlationId: correlation(),
       });
-      return {
-        authorized: false,
-        vetoReason: `Autonomy mode ${this.autonomyMode} does not permit tool execution`,
-        requiredApprovals: ['human-approval'],
-      };
+      return veto(`Autonomy mode ${this.autonomyMode} does not permit tool execution`);
     }
 
     const derivation = input.nalDerivationId
@@ -218,10 +216,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
         detail: `NAL derivation ${input.nalDerivationId} vetoes action: ${derivation.conclusion}`,
         correlationId: correlation(),
       });
-      return {
-        authorized: false,
-        vetoReason: `NAL veto: ${derivation.conclusion}`,
-      };
+      return veto(`NAL veto: ${derivation.conclusion}`);
     }
 
     if (!this.allowedOperations.has(input.operation)) {
@@ -231,11 +226,7 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
         detail: `Operation '${input.operation}' not in allowed operations list`,
         correlationId: correlation(),
       });
-      return {
-        authorized: false,
-        vetoReason: `Operation '${input.operation}' not permitted`,
-        requiredApprovals: ['human-approval'],
-      };
+      return veto(`Operation '${input.operation}' not permitted`);
     }
 
     const toolCallId = makeId();

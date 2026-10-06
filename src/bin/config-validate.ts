@@ -11,6 +11,7 @@
 
 import { resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
 import { errMsg, parseFlags } from '@senars/util';
+import { jsonMode } from './commands/args.js';
 import { appConfigSchema, loadConfig } from '../config/index.js';
 import { runEntrypoint } from './lib/fatal-error.js';
 
@@ -21,7 +22,7 @@ interface ValidateOptions {
 
 function parseArgs(): ValidateOptions {
   const { has, str } = parseFlags();
-  return { configPath: str('--config', '').trim() || undefined, jsonOutput: has('--json') };
+  return { configPath: str('--config', '').trim() || undefined, jsonOutput: jsonMode() };
 }
 
 interface ValidationResult {

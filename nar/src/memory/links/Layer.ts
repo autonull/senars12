@@ -2,11 +2,13 @@ import type { ContainerStats, EvictionOrder } from '@senars/util';
 import {
   addToSet,
   BoundedMap,
+  type Clock,
   collectUpTo,
   containerStats,
   occupancy,
   removeFromSet,
   retain,
+  systemClock,
 } from '@senars/util';
 import { LINK } from '../../constants.js';
 import { type Term, termKey } from '../../terms';
@@ -47,18 +49,29 @@ export class Layer {
   private readonly links: BoundedMap<string, LinkEntry>;
   private readonly byTerm = new Map<string, Set<string>>();
 
+  private readonly now: Clock;
+
   constructor(
     readonly name: string,
     readonly capacity: number,
     forgetPolicy: LinkForgetPolicy = 'priority',
-    rng?: RandomSource
+    rng?: RandomSource,
+    clock?: Clock
   ) {
+    this.now = clock ?? systemClock;
     this.links = new BoundedMap({
       maxSize: capacity,
       eviction: linkEvictionOrder(forgetPolicy),
       onEvict: (entry) => this.forget(entry),
       rng,
+      now: this.now,
     });
+  }
+
+  /** Stamp a link as read. Both recency writers went through the wall clock directly,
+   *  so the layer's own LRU order was untestable while its map's order was pinned. */
+  private touch(entry: LinkEntry): void {
+    entry.lastAccessedAt = this.now();
   }
 
   addLink(input: LinkInput): LinkEntry | null {
@@ -69,12 +82,12 @@ export class Layer {
 
     if (existing) {
       existing.priority = priority;
-      existing.lastAccessedAt = Date.now();
+      this.touch(existing);
       if (input.data) existing.data = input.data;
       return existing;
     }
 
-    const now = Date.now();
+    const now = this.now();
     const entry: LinkEntry = {
       id,
       sourceTerm,
@@ -156,7 +169,7 @@ export class Layer {
       if (!entry || (type && entry.type !== type) || entry.priority < minPriority) {
         return undefined;
       }
-      entry.lastAccessedAt = Date.now();
+      this.touch(entry);
       return entry;
     });
   }
