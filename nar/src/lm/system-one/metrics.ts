@@ -67,11 +67,13 @@ export const meanBrier = (data: readonly { predicted: number; observed: number }
  * `tolerance`. Lives here — beside the Brier implementation, in the leaf module
  * — so both the throwing gate (eval-set) and the bake-off report (distill) agree.
  */
+export type RegressionVerdict = { regressed: false } | { regressed: true; reason: string };
+
 export const frozenRegression = (
   baselineBrier: number,
   candidateBrier: number,
   tolerance: number
-): { regressed: boolean; reason?: string } =>
+): RegressionVerdict =>
   candidateBrier > baselineBrier + tolerance
     ? {
         regressed: true,

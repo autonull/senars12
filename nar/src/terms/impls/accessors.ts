@@ -1,6 +1,6 @@
-import { getOrInsert } from '@senars/util';
-import type { CompoundTerm, OperatorKey, Term } from '../types.js';
-import { isAtomic, isVariableSymbol, OPERATORS } from '../types.js';
+import { type EqualityDialect, getOrInsert, structuralEqual } from '@senars/util';
+import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.js';
+import { isAtomic, isVariableSymbol, type OPERATORS } from '../types.js';
 
 export const isType = <K extends OperatorKey>(k: K, t: Term): t is CompoundTerm<K> => t.kind === k;
 
@@ -90,21 +90,14 @@ export const getArgs = (term: Term): readonly Term[] =>
  * predicate)` and for an implication `(antecedent, consequent)`; the role
  * accessors below name the same two slots one at a time.
  */
-export const binaryOf = <K extends BinaryKind>(
-  kind: K,
-  term: Term
-): TermPair | undefined => {
+export const binaryOf = <K extends BinaryKind>(kind: K, term: Term): TermPair | undefined => {
   if (term.kind !== kind) return undefined;
   const args = term.args;
   return args.length >= 2 ? (args as TermPair) : undefined;
 };
 
-const getRoleArg = (
-  term: Term,
-  index: 0 | 1,
-  k1: BinaryKind,
-  k2: BinaryKind
-): Term | undefined => (binaryOf(k1, term) ?? binaryOf(k2, term))?.[index];
+const getRoleArg = (term: Term, index: 0 | 1, k1: BinaryKind, k2: BinaryKind): Term | undefined =>
+  (binaryOf(k1, term) ?? binaryOf(k2, term))?.[index];
 
 export const getSubject = (term: Term): Term | undefined =>
   getRoleArg(term, 0, 'inheritance', 'similarity');
@@ -131,20 +124,30 @@ export const rolePair = (term: Term): TermPair | undefined =>
 
 export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
 
-/** Structural term equality. `undefined` is accepted so optional-arg probes need no guard. */
-export const termsEqual = (a: Term | undefined, b: Term | undefined): boolean => {
-  if (a === b) return true;
-  if (!a || !b) return false;
-  if (a.kind !== b.kind) return false;
-  if (a.kind === 'atom') return a.symbol === b.symbol;
-  const aArgs = getArgs(a);
-  const bArgs = getArgs(b);
-  if (aArgs.length !== bArgs.length) return false;
-  for (let i = 0; i < aArgs.length; i++) {
-    if (!termsEqual(aArgs[i], bArgs[i])) return false;
-  }
-  return true;
+/**
+ * Equality of a term's own payload. A compound's head *is* its kind, and a kind
+ * has no spelling of its own, so this answers atoms and defers everything else to
+ * the descent that {@link structuralEqual} runs through the arguments.
+ */
+const sameTerm = (a: Term, b: Term): boolean =>
+  isAtomic(a) ? a.symbol === (b as AtomicTerm).symbol : true;
+
+/** How a structural comparison reads a Narsese term. */
+export const TERM_EQUALITY: EqualityDialect<Term> = {
+  variableName: (t) => (isAtomic(t) && isVariableSymbol(t.symbol) ? t.symbol : null),
+  sameHead: sameKind,
+  equal: sameTerm,
+  children: getArgs,
 };
+
+/**
+ * Structural term equality. `undefined` is accepted so optional-arg probes need no guard.
+ *
+ * Terms are interned, so this is usually the identity test one line up; the walk
+ * exists for the terms that were built outside the factory.
+ */
+export const termsEqual = (a: Term | undefined, b: Term | undefined): boolean =>
+  a === undefined || b === undefined ? a === b : structuralEqual(TERM_EQUALITY, a, b);
 
 export type TermWalkOrder = 'pre-order' | 'post-order';
 

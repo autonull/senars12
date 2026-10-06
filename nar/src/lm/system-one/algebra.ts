@@ -1,12 +1,14 @@
+import { SenarsError } from '@senars/util/errors';
 import type { JudgmentProposition, JudgmentQuery, SynthesisQuery } from './types.js';
 
-export class AlgebraPurityError extends Error {
-  public readonly queryKind: string;
-
-  constructor(message: string, queryKind: string) {
-    super(message);
+export class AlgebraPurityError extends SenarsError {
+  constructor(
+    message: string,
+    readonly queryKind: string,
+    options?: ErrorOptions
+  ) {
+    super(message, 'CROSS_DOMAIN', { queryKind }, options);
     this.name = 'AlgebraPurityError';
-    this.queryKind = queryKind;
   }
 }
 

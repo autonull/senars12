@@ -7,6 +7,7 @@
 
 import { promises as fs } from 'node:fs';
 import { groupBy, mapToRecord, sha256Prefixed, writeJsonFile } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
 import { identityECE, meanBrier } from './calibration-fit.js';
 import type { JudgmentDataset } from './distill.js';
 import { frozenRegression } from './metrics.js';
@@ -42,9 +43,14 @@ export interface EvalMetrics {
   count: number;
 }
 
-export class EvalRegressionError extends Error {
-  constructor(baseline: number, candidate: number, tolerance: number) {
-    super(frozenRegression(baseline, candidate, tolerance).reason);
+export class EvalRegressionError extends SenarsError {
+  constructor(
+    reason: string,
+    readonly baseline: number,
+    readonly candidate: number,
+    readonly tolerance: number
+  ) {
+    super(reason, 'VALIDATION_ERROR', { baseline, candidate, tolerance });
     this.name = 'EvalRegressionError';
   }
 }
@@ -134,7 +140,8 @@ export function assertFrozenNonRegression(
   candidate: EvalMetrics,
   tolerance = 0.02
 ): void {
-  if (frozenRegression(baseline.brier, candidate.brier, tolerance).regressed) {
-    throw new EvalRegressionError(baseline.brier, candidate.brier, tolerance);
+  const verdict = frozenRegression(baseline.brier, candidate.brier, tolerance);
+  if (verdict.regressed) {
+    throw new EvalRegressionError(verdict.reason, baseline.brier, candidate.brier, tolerance);
   }
 }

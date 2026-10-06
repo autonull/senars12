@@ -4,12 +4,13 @@
  * are the same kind of number.
  */
 
+import { SenarsError } from '../errors/senars-error.js';
 import { type Clock, systemClock } from './clock.js';
 
 /** Raised by {@link withTimeout} unless a domain error is supplied. */
-export class TimeoutError extends Error {
+export class TimeoutError extends SenarsError {
   constructor(readonly timeoutMs: number) {
-    super(`Operation timed out after ${timeoutMs}ms`);
+    super(`Operation timed out after ${timeoutMs}ms`, 'TIMEOUT', { timeoutMs });
     this.name = 'TimeoutError';
   }
 }

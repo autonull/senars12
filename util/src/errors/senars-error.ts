@@ -3,13 +3,17 @@ import { errMsg } from '../utils/error.js';
 /**
  * The codes a `SenarsError` can carry. Every member is thrown somewhere: a code here
  * that nothing raises is a claim the taxonomy cannot keep, so the four that named
- * intentions the error surface never took (`PLUGIN_LOAD_ERROR`, `TRUTH_ERROR`,
- * `METTA_ERROR`, `SCHEMA_INDUCTION`) went when their classes did.
+ * intentions the error surface never took (`TRUTH_ERROR`, `SCHEMA_INDUCTION`) went
+ * when their classes did. `PLUGIN_LOAD_ERROR` and `METTA_ERROR` came back when
+ * their classes joined: a code that is not in this union is a class the kernel
+ * cannot dispatch on. `MeTTaError` refines its code into a `MeTTaReason`, so the
+ * shared code names the subsystem and the reason names the failure.
  */
 export type ErrorCode =
   | 'TOOL_ERROR'
   | 'ENGINE_ERROR'
   | 'TRANSPORT_ERROR'
+  | 'PLUGIN_LOAD_ERROR'
   | 'POLICY_VIOLATION'
   | 'CONNECTION_ERROR'
   | 'VALIDATION_ERROR'
@@ -20,6 +24,7 @@ export type ErrorCode =
   | 'EVENT_LOG_ERROR'
   | 'CONFIGURATION_ERROR'
   | 'LM_UNAVAILABLE'
+  | 'METTA_ERROR'
   | 'SANDBOX_TIMEOUT'
   | 'CROSS_DOMAIN'
   | 'BUILDER_ERROR'

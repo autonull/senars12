@@ -1,4 +1,4 @@
-import { ErrorCode, MeTTaError } from '../core/errors.js';
+import { MeTTaError, MeTTaReason } from '../core/errors.js';
 import type { MeTTaAtom } from '../types/ast.js';
 import { num, sym, varr } from '../types/ast.js';
 
@@ -31,7 +31,7 @@ function tokenize(input: string): string[] {
 
 function parseTokens(tokens: string[], pos: { i: number } = { i: 0 }): MeTTaAtom {
   const token = tokens[pos.i];
-  if (!token) throw new MeTTaError(ErrorCode.UNEXPECTED_TOKEN, 'Unexpected end of input');
+  if (!token) throw new MeTTaError(MeTTaReason.UNEXPECTED_TOKEN, 'Unexpected end of input');
   if (token === '(') {
     pos.i++;
     const items: MeTTaAtom[] = [];
@@ -39,7 +39,7 @@ function parseTokens(tokens: string[], pos: { i: number } = { i: 0 }): MeTTaAtom
       items.push(parseTokens(tokens, pos));
     }
     if (tokens[pos.i] !== ')')
-      throw new MeTTaError(ErrorCode.UNMATCHED_PAREN, 'Unmatched opening paren');
+      throw new MeTTaError(MeTTaReason.UNMATCHED_PAREN, 'Unmatched opening paren');
     pos.i++;
     if (items.length === 0) {
       return sym('Nil');
@@ -57,6 +57,6 @@ function parseTokens(tokens: string[], pos: { i: number } = { i: 0 }): MeTTaAtom
 
 export function parseMeTTa(input: string): MeTTaAtom {
   const tokens = tokenize(input);
-  if (tokens.length === 0) throw new MeTTaError(ErrorCode.UNEXPECTED_TOKEN, 'Empty input');
+  if (tokens.length === 0) throw new MeTTaError(MeTTaReason.UNEXPECTED_TOKEN, 'Empty input');
   return parseTokens(tokens);
 }

@@ -1,4 +1,17 @@
-export enum ErrorCode {
+/**
+ * MeTTa's failure vocabulary: one reason beside the shared `SenarsError` code.
+ *
+ * This used to be a second `ErrorCode`, declared member-for-member against the
+ * one in `@senars/util/errors`, so `ErrorCode` named two different unions inside
+ * one tree and neither could be read without knowing which import you held. The
+ * split that actually means something is *subsystem* against *reason*: the code
+ * says the MeTTa runtime refused, and the reason says what it refused about — a
+ * token, an arity, a step limit. The runtime raises the reasons; the shared
+ * taxonomy carries the class.
+ */
+import { SenarsError } from '@senars/util/errors';
+
+export enum MeTTaReason {
   UNEXPECTED_TOKEN = 'UNEXPECTED_TOKEN',
   UNTERMINATED_STRING = 'UNTERMINATED_STRING',
   INVALID_ESCAPE = 'INVALID_ESCAPE',
@@ -22,26 +35,26 @@ export enum ErrorCode {
   SMT_UNSAT = 'SMT_UNSAT',
 }
 
-export class MeTTaError extends Error {
+export class MeTTaError extends SenarsError {
   constructor(
-    readonly code: ErrorCode,
+    readonly reason: MeTTaReason,
     message: string,
-    readonly context?: Record<string, unknown>,
-    readonly underlyingError?: Error
+    context?: Record<string, unknown>,
+    options?: ErrorOptions
   ) {
-    super(`[${code}] ${message}`);
+    super(`[${reason}] ${message}`, 'METTA_ERROR', context, options);
     this.name = 'MeTTaError';
   }
 
   static parse(msg: string, ctx?: Record<string, unknown>): MeTTaError {
-    return new MeTTaError(ErrorCode.UNEXPECTED_TOKEN, msg, ctx);
+    return new MeTTaError(MeTTaReason.UNEXPECTED_TOKEN, msg, ctx);
   }
 
   static type(msg: string, ctx?: Record<string, unknown>): MeTTaError {
-    return new MeTTaError(ErrorCode.TYPE_MISMATCH, msg, ctx);
+    return new MeTTaError(MeTTaReason.TYPE_MISMATCH, msg, ctx);
   }
 
   static runtime(msg: string, ctx?: Record<string, unknown>): MeTTaError {
-    return new MeTTaError(ErrorCode.UNBOUND_VARIABLE, msg, ctx);
+    return new MeTTaError(MeTTaReason.UNBOUND_VARIABLE, msg, ctx);
   }
 }

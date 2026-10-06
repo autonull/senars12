@@ -3,6 +3,7 @@
  * @public
  */
 import { z } from 'zod';
+import { SenarsError } from '../errors/senars-error.js';
 import { formatIssues } from '../utils/diagnostics.js';
 import { intBetween, nonEmpty, nonNegativeInt, positiveInt } from './boundary.js';
 import { cachePath } from './paths.js';
@@ -46,14 +47,13 @@ export const agentOptionsSchema = z
 export type ValidatedAgentOptions = z.infer<typeof agentOptionsSchema>;
 
 /** @public Structured Zod failure — one shape for every untrusted-boundary parse. */
-export class SchemaValidationError extends Error {
-  override name: string = 'SchemaValidationError';
-
+export class SchemaValidationError extends SenarsError {
   constructor(
     readonly label: string,
     readonly issues: z.core.$ZodIssue[]
   ) {
-    super(`Invalid ${label}: ${formatIssues(issues)}`);
+    super(`Invalid ${label}: ${formatIssues(issues)}`, 'VALIDATION_ERROR', { label, issues });
+    this.name = 'SchemaValidationError';
   }
 }
 

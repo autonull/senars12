@@ -53,6 +53,7 @@ import {
   validateRuleTable,
 } from '@senars/core/schemas';
 import { indexBy, maxScore, pushCapped } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
 
 import { type Term, Truth } from '../../terms';
 import type { InferenceTable, RegisteredRule, RuleFn, TruthFn } from '../types.js';
@@ -390,11 +391,13 @@ export const diffArtifacts = (from: RuleTableArtifact, to: RuleTableArtifact): R
 };
 
 /** A table that could not be loaded. Every fault is enumerable, never swallowed. */
-export class RuleTableError extends Error {
+export class RuleTableError extends SenarsError {
   constructor(readonly faults: readonly RuleLoadFault[]) {
     super(
       `rule table rejected (${faults.length}): ` +
-        faults.map((f) => `${f.ruleId}: ${f.reason} — ${f.detail}`).join('; ')
+        faults.map((f) => `${f.ruleId}: ${f.reason} — ${f.detail}`).join('; '),
+      'CONFIGURATION_ERROR',
+      { faults }
     );
     this.name = 'RuleTableError';
   }

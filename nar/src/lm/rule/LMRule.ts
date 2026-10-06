@@ -7,6 +7,7 @@ import {
   type TermTruth,
   withTimeout,
 } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
 import type { ZodSchema } from 'zod';
 import type { Term } from '../../terms';
 import { Truth } from '../../terms';
@@ -34,12 +35,21 @@ import type { LMRuleConfigV2 } from './types-v2.js';
  * timeout from a refusal: both fall back to the symbolic body, and only one of
  * them is worth retrying later.
  */
-export class LmCallTimeout extends Error {
+export class LmCallTimeout extends SenarsError {
   constructor(
     readonly ruleId: string,
-    readonly timeoutMs: number
+    readonly timeoutMs: number,
+    options?: ErrorOptions
   ) {
-    super(`LM rule ${ruleId} exceeded its ${timeoutMs}ms call deadline`);
+    super(
+      `LM rule ${ruleId} exceeded its ${timeoutMs}ms call deadline`,
+      'TIMEOUT',
+      {
+        ruleId,
+        timeoutMs,
+      },
+      options
+    );
     this.name = 'LmCallTimeout';
   }
 }

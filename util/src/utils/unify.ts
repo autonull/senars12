@@ -31,7 +31,12 @@ export interface UnifierDialect<T> {
   variableName: (node: T) => string | null;
   /** Canonical structural key — the single identity for memoization. */
   key: (node: T) => string;
-  /** Structural equality of two non-variable nodes. */
+  /**
+   * Equality of two nodes' *own* payload — the operator of an expression, the
+   * `op` of a grounded atom, the `symbol` of an atom. Never recursive: the
+   * children are the walk's business. A deep `equal` here is not a faster path,
+   * it is the subtree walked twice, once to answer and once to descend.
+   */
   equal: (a: T, b: T) => boolean;
   /** True when both nodes share a head, so their children can be paired. */
   sameHead: (a: T, b: T) => boolean;
@@ -40,6 +45,23 @@ export interface UnifierDialect<T> {
   /** Copy of `node` with `kids` as its children. */
   rebuild: (node: T, kids: readonly T[]) => T;
 }
+
+/**
+ * The subset of a dialect a structural comparison needs: how to read a node, and
+ * nothing else. A comparison never rebuilds and never keys, so it should not have
+ * to be handed the two operations it never calls.
+ */
+export type EqualityDialect<T> = Pick<
+  UnifierDialect<T>,
+  'variableName' | 'equal' | 'sameHead' | 'children'
+>;
+
+/** How {@link structuralEqual} treats a variable. */
+export type VariablePolicy =
+  /** A variable equals a variable of the same name and nothing else. */
+  | 'strict'
+  /** A variable in `a` — the pattern — matches any `b`; a variable in `b` matches none. */
+  | 'wildcard';
 
 export interface UnifyOptions {
   /** Reject bindings that would make a term cyclic. Default true. */
@@ -54,6 +76,43 @@ export type Substitution<T> = ReadonlyMap<string, T>;
 
 /** Depth cap for the occurs check and variable dereferencing. */
 const MAX_DEPTH = 64;
+
+/**
+ * Structural equality over a term AST — the same walk {@link Unifier} descends,
+ * with the variable question answered up front instead of by binding.
+ *
+ * The MeTTa and Narsese engines each hand-wrote this descent over their own node
+ * kind, and the two MeTTa copies disagreed about variables alone: a space query
+ * read `(?x)` as a wildcard, the unifier read it as a named node, so "are these
+ * two atoms the same atom" had two answers that happened to live one file apart.
+ * The dialect *is* the whole difference between node types, and a variable is a
+ * policy rather than a node kind, so both live here — one walk, one place to say
+ * what a variable is worth.
+ *
+ * {@link Unifier}'s own equality test is this same question with the variables
+ * already ruled out, which is why it can reach for the dialect's shallow `equal`
+ * alone: a childless node is decided by its payload and a childful one by its
+ * children.
+ */
+export function structuralEqual<T>(
+  ast: EqualityDialect<T>,
+  a: T,
+  b: T,
+  variables: VariablePolicy = 'strict'
+): boolean {
+  if (a === b) return true;
+  const name = ast.variableName(a);
+  if (name !== null) return variables === 'wildcard' || name === ast.variableName(b);
+  if (ast.variableName(b) !== null) return false;
+  if (!ast.sameHead(a, b) || !ast.equal(a, b)) return false;
+  const left = ast.children(a);
+  const right = ast.children(b);
+  if (left.length !== right.length) return false;
+  for (let i = 0; i < left.length; i++) {
+    if (!structuralEqual(ast, left[i]!, right[i]!, variables)) return false;
+  }
+  return true;
+}
 
 const DEFAULTS = { occursCheck: true, memoize: true, memoCapacity: 1000 } as const;
 
@@ -218,14 +277,14 @@ export class Unifier<T> {
     if (name !== null) return this.#bind(name, right, work, added, occurs);
     if (other !== null) return this.#bind(other, left, work, added, occurs);
     if (!ast.sameHead(left, right)) return false;
-    if (ast.equal(left, right)) return true;
 
     const leftKids = ast.children(left);
     const rightKids = ast.children(right);
     // Check arity *before* descending, so a mismatch never half-writes `work`.
     if (leftKids.length !== rightKids.length) return false;
-    // Childless nodes are decided by `equal` alone; the loop cannot reject them.
-    if (leftKids.length === 0) return false;
+    // A node with no children has nothing left to disagree about: its payload is
+    // the whole of it. A node with children disagrees or agrees through them.
+    if (leftKids.length === 0) return ast.equal(left, right);
     for (let i = 0; i < leftKids.length; i++) {
       if (!this.#descend(leftKids[i]!, rightKids[i]!, work, added, occurs, depth + 1)) return false;
     }

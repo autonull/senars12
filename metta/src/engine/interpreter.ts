@@ -1,9 +1,9 @@
 import { Effect } from 'effect';
-import { ErrorCode, MeTTaError } from '../core/errors.js';
+import { MeTTaError, MeTTaReason } from '../core/errors.js';
 import { getOp } from '../core/ops.js';
+import type { MeTTaContext } from '../runtime/context.js';
 import type { ExpressionAtom, MeTTaAtom } from '../types/ast.js';
 import type { MeTTaSpace } from '../types/space.js';
-import type { MeTTaContext } from '../runtime/context.js';
 
 export const DEFAULT_MAX_STEPS = 10000;
 
@@ -23,7 +23,7 @@ export class MeTTaInterpreter {
   ): Effect.Effect<MeTTaAtom, MeTTaError> {
     const space = this.spaces.get(spaceId);
     if (!space) {
-      return Effect.fail(new MeTTaError(ErrorCode.SPACE_NOT_FOUND, `Space ${spaceId} not found`));
+      return Effect.fail(new MeTTaError(MeTTaReason.SPACE_NOT_FOUND, `Space ${spaceId} not found`));
     }
 
     const maxSteps = overrides.maxSteps ?? this.context.maxSteps ?? DEFAULT_MAX_STEPS;
@@ -37,7 +37,7 @@ export class MeTTaInterpreter {
 
     return Effect.fail(
       new MeTTaError(
-        ErrorCode.STEP_LIMIT,
+        MeTTaReason.STEP_LIMIT,
         `Evaluation did not reach a normal form in ${maxSteps} steps`,
         {
           maxSteps,

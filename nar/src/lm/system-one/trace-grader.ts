@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { type AgentTrace, clamp, sha256Hex } from '@senars/util';
+import { type AgentTrace, clamp, sha256HexParts } from '@senars/util';
 import type { ContrastiveMemory } from './contrastive.js';
 import type { DistillationLabel, JudgmentDataset } from './distill.js';
 import { HEAD_SPECS, specToQuery } from './head-ontology.js';
@@ -49,7 +49,7 @@ const RISK_LEVELS: readonly string[] = HEAD_SPECS.risk.space ?? [];
 
 const DEFAULT_BUDGET: ReasoningBudget = createSystemOneBudget();
 
-const evidenceId = (kind: string, text: string): string => sha256Hex(`trace::${kind}::${text}`);
+const evidenceId = (kind: string, text: string): string => sha256HexParts(['trace', kind, text]);
 
 const labelBand = (score: number, levels: readonly string[]): string => {
   if (!levels.length) return score.toFixed(2);

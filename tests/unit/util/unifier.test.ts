@@ -1,5 +1,10 @@
-import { Unifier, type UnifierDialect } from '../../../util/src/utils/unify.js';
 import { describe, expect, it } from 'vitest';
+import {
+  type EqualityDialect,
+  structuralEqual,
+  Unifier,
+  type UnifierDialect,
+} from '../../../util/src/utils/unify.js';
 
 type T = { v?: string; tag: string; kids: T[] };
 
@@ -10,12 +15,16 @@ const plain = (tag: string): T => ({ tag, kids: [] });
 const DIALECT_KEY = (t: T): string =>
   t.v ? `v:${t.v}` : t.kids.length === 0 ? t.tag : `${t.tag}(${t.kids.map(DIALECT_KEY).join(',')})`;
 
-const DIALECT: UnifierDialect<T> = {
+const READING: EqualityDialect<T> = {
   variableName: (t) => t.v ?? null,
-  key: DIALECT_KEY,
-  equal: (a, b) => DIALECT_KEY(a) === DIALECT_KEY(b),
+  equal: (a, b) => a.tag === b.tag,
   sameHead: (a, b) => a.tag === b.tag,
   children: (t) => t.kids,
+};
+
+const DIALECT: UnifierDialect<T> = {
+  ...READING,
+  key: DIALECT_KEY,
   rebuild: (t, kids) => ({ ...t, kids: [...kids] }),
 };
 
@@ -113,5 +122,59 @@ describe('generic unifier', () => {
     expect(
       unifier.variables(node('f', varNode('x'), node('g', varNode('y'), varNode('x'))))
     ).toEqual(['x', 'y']);
+  });
+
+  it('decides a childless node by its payload alone', () => {
+    expect(unifier.unify(plain('a'), plain('a'))).not.toBeNull();
+    expect(unifier.unify(plain('a'), plain('b'))).toBeNull();
+    expect(unifier.unify(node('f', plain('a')), node('f', plain('b')))).toBeNull();
+  });
+});
+
+describe('structuralEqual', () => {
+  it('agrees with itself on identity, shape and payload', () => {
+    expect(structuralEqual(READING, plain('a'), plain('a'))).toBe(true);
+    expect(structuralEqual(READING, plain('a'), plain('b'))).toBe(false);
+    expect(structuralEqual(READING, node('f', plain('a')), node('g', plain('a')))).toBe(false);
+    expect(structuralEqual(READING, node('f', plain('a')), node('f', plain('b')))).toBe(false);
+    expect(structuralEqual(READING, node('f', plain('a')), node('f', plain('a'), plain('b')))).toBe(
+      false
+    );
+  });
+
+  it('reads a variable as a named node under the strict policy', () => {
+    expect(structuralEqual(READING, varNode('x'), varNode('x'))).toBe(true);
+    expect(structuralEqual(READING, varNode('x'), varNode('y'))).toBe(false);
+    expect(structuralEqual(READING, varNode('x'), plain('x'))).toBe(false);
+    expect(structuralEqual(READING, plain('x'), varNode('x'))).toBe(false);
+  });
+
+  it('reads a variable in the pattern as a wildcard, and nowhere else', () => {
+    const pattern = node('f', varNode('x'), varNode('y'));
+    expect(structuralEqual(READING, pattern, node('f', plain('a'), plain('b')), 'wildcard')).toBe(
+      true
+    );
+    expect(structuralEqual(READING, pattern, node('f', plain('a'), varNode('z')), 'wildcard')).toBe(
+      true
+    );
+    expect(
+      structuralEqual(READING, pattern, node('f', varNode('z'), varNode('w')), 'wildcard')
+    ).toBe(true);
+    expect(structuralEqual(READING, pattern, node('f', plain('a')), 'wildcard')).toBe(false);
+    expect(structuralEqual(READING, node('f', plain('a')), pattern, 'wildcard')).toBe(false);
+  });
+
+  it('answers the same way the unifier does once the variables are gone', () => {
+    const cases: [T, T][] = [
+      [node('f', plain('a'), plain('b')), node('f', plain('a'), plain('b'))],
+      [node('f', plain('a')), node('f', plain('b'))],
+      [node('f', plain('a')), node('g', plain('a'))],
+      [plain('a'), plain('a')],
+      [plain('a'), plain('b')],
+    ];
+    for (const [a, b] of cases) {
+      const equal = structuralEqual(READING, a, b);
+      expect(equal, `${DIALECT_KEY(a)} vs ${DIALECT_KEY(b)}`).toBe(unifier.unify(a, b) !== null);
+    }
   });
 });

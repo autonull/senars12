@@ -1,19 +1,19 @@
 import { Unifier, type UnifierDialect, type UnifierSubstitution } from '@senars/util';
 import type { Term } from '../types.js';
-import { isVariableSymbol } from '../types.js';
-import { getArgs, sameKind, termKey, termsEqual } from './accessors.js';
+import { TERM_EQUALITY, termKey } from './accessors.js';
 import { TermBuilder } from './factory.js';
 
 /** The unifier's own substitution type — util's, bound to the term dialect. */
 export type Substitution = UnifierSubstitution<Term>;
 
-/** How the generic unifier reads a Narsese term. */
+/**
+ * How the generic unifier reads a Narsese term. Reading a term and comparing two
+ * are the same question, so the dialect is `TERM_EQUALITY` plus the two
+ * operations only unification performs: keying a term, and rebuilding one.
+ */
 const DIALECT: UnifierDialect<Term> = {
-  variableName: (t) => (t.kind === 'atom' && isVariableSymbol(t.symbol) ? t.symbol : null),
+  ...TERM_EQUALITY,
   key: termKey,
-  equal: termsEqual,
-  sameHead: sameKind,
-  children: getArgs,
   rebuild: (node, kids) => TermBuilder.compound(node.kind as never, [...kids]),
 };
 

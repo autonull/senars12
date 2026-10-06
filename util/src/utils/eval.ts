@@ -3,12 +3,17 @@
  * Supports +, -, *, /, %, unary ±, parentheses, and decimal literals. No identifiers,
  * no property access, no calls: the grammar is closed, so no input can escape it.
  */
-export class ExpressionError extends Error {
+
+import { SenarsError } from '../errors/senars-error.js';
+
+/** The only way {@link evaluateExpression} fails: input the closed grammar cannot read. */
+export class ExpressionError extends SenarsError {
   constructor(
     message: string,
     readonly position: number
   ) {
-    super(message);
+    super(message, 'VALIDATION_ERROR', { position });
+    this.name = 'ExpressionError';
   }
 }
 

@@ -81,12 +81,6 @@ export {
   systemOneDefaults,
   systemOneSchema,
 } from './system-one.js';
-export type {
-  ConfigCapability,
-  ConfigEvent,
-  ConfigSchema,
-  ConfigView,
-} from './types.js';
 export {
   agentOptionsSchema,
   contextOptsSchema,

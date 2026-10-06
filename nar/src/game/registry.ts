@@ -1,15 +1,16 @@
 import { KeyedRegistry } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
 import type { Game } from './Game.js';
 import { createArithmeticGame } from './impls/ArithmeticGame.js';
 import { createBanditGame } from './impls/BanditGame.js';
 import { createCatchGame } from './impls/CatchGame.js';
 import { createGame2048 } from './impls/Game2048.js';
 import { createGridWorldGame } from './impls/GridWorldGame.js';
+import { createReasoningGame, REASONING_SPECS } from './impls/ReasoningGame.js';
 import { createRPSGame } from './impls/RPSGame.js';
 import { createSnakeGame } from './impls/SnakeGame.js';
 import { createTetrisGame } from './impls/TetrisGame.js';
 import { createTicTacToeGame } from './impls/TicTacToe.js';
-import { createReasoningGame, REASONING_SPECS } from './impls/ReasoningGame.js';
 
 /** A named `Game` factory in the playable-games collection. */
 export interface GameSpec {
@@ -24,9 +25,12 @@ export interface GameSpec {
 }
 
 /** Thrown for an unknown game name; callers fail loudly, never silently skip. */
-export class UnknownGameError extends Error {
+export class UnknownGameError extends SenarsError {
   constructor(name: string, available: readonly string[]) {
-    super(`unknown game '${name}' (available: ${available.join(', ')})`);
+    super(`unknown game '${name}' (available: ${available.join(', ')})`, 'VALIDATION_ERROR', {
+      name,
+      available,
+    });
     this.name = 'UnknownGameError';
   }
 }

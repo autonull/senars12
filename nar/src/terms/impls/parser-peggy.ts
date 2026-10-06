@@ -4,12 +4,13 @@
 import { createRequire } from 'node:module';
 import {
   TASK_PUNCTUATION as PUNCTUATION_BY_TASK_TYPE,
-  TOLERANT_PUNCTUATIONS,
   type TaskPunctuation,
   type TaskType,
+  TOLERANT_PUNCTUATIONS,
   taskTypeForPunctuation,
 } from '@senars/core/schemas';
 import { type BeliefTruth, createLogger, errMsg, stripTruthSuffix } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
 import type { Term } from '../types.js';
 import { TermFactory } from './factory.js';
 import { Truth } from './Truth.js';
@@ -45,13 +46,22 @@ export interface ParserPosition {
   offset: number;
 }
 
-export class ParseError extends Error {
+export class ParseError extends SenarsError {
   constructor(
     message: string,
     public position: ParserPosition,
-    public token?: unknown
+    public token?: unknown,
+    options?: ErrorOptions
   ) {
-    super(`${message} at line ${position.line}, column ${position.column}`);
+    super(
+      `${message} at line ${position.line}, column ${position.column}`,
+      'PARSE_ERROR',
+      {
+        ...position,
+        token,
+      },
+      options
+    );
     this.name = 'ParseError';
   }
 }

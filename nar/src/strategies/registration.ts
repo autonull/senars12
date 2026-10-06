@@ -11,8 +11,8 @@
  * strategies→lm→nar SCC.
  */
 
-import { ensureArray, formatIssues, indexBy, sha256Hex, stableStringify } from '@senars/util';
-import { z, type ZodError } from 'zod';
+import { ensureArray, formatIssues, indexBy, sha256HexParts, stableStringify } from '@senars/util';
+import { type ZodError, z } from 'zod';
 import { describeStrategyExpression, type StrategyExpression } from '../reason/strategy-algebra.js';
 import type { RandomSource } from '../types/primitives.js';
 import type { StrategyImpl, StrategyType } from './types.js';
@@ -148,9 +148,9 @@ export const singleton = (
 /** Recursively key-sorted JSON, so `{a,b}` and `{b,a}` are one configuration. */
 export const canonicalJson = (value: unknown): string => stableStringify(value, true);
 
-/** `sha256(name || canonicalJson(config))` — the memo key and the telemetry attribute. */
+/** The digest of a name and its canonical config — the memo key and the telemetry attribute. */
 export const configDigest = (name: string, config: StrategyConfig): string =>
-  sha256Hex(`${name}\u0000${canonicalJson(config)}`);
+  sha256HexParts([name, canonicalJson(config)]);
 
 export const isStrategyExpression = (
   spec: StrategySpec | CompositeSpec

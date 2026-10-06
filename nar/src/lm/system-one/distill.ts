@@ -9,7 +9,7 @@ import {
   makeId,
   periodic,
   SHA256_PINNED,
-  sha256Hex,
+  sha256HexParts,
   writeJsonl,
 } from '@senars/util';
 import {
@@ -26,9 +26,8 @@ import { seedTruth } from './seed.js';
 import type { JudgmentProposition } from './types.js';
 
 /** Input-anchored evidence identity: same utterance ⇒ same evidence, regardless of re-judging. */
-export function computeEvidenceId(utteranceId: string, sourceSpan: string): string {
-  return sha256Hex(`${utteranceId}::${sourceSpan}`);
-}
+export const computeEvidenceId = (utteranceId: string, sourceSpan: string): string =>
+  sha256HexParts([utteranceId, sourceSpan]);
 
 /**
  * Promotion of a provisional hypothesis by a later judgment pass.
@@ -303,16 +302,16 @@ export function runBakeOff(
     const baselineBrier = brierOf('incumbent');
     const candidateBrier = brierOf('candidate');
     const tolerance = frozen.tolerance ?? parityTolerance;
-    const { regressed, reason } = frozenRegression(baselineBrier, candidateBrier, tolerance);
-    frozenReport = { baselineBrier, candidateBrier, nonRegression: !regressed };
-    if (regressed) {
+    const verdict = frozenRegression(baselineBrier, candidateBrier, tolerance);
+    frozenReport = { baselineBrier, candidateBrier, nonRegression: !verdict.regressed };
+    if (verdict.regressed) {
       return {
         incumbentAccuracy,
         candidateAccuracy,
         parityGap,
         withinParity,
         accepted: false,
-        reason: reason as string,
+        reason: verdict.reason,
         frozen: frozenReport,
       };
     }

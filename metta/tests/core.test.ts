@@ -1,8 +1,9 @@
+import { SenarsError } from '@senars/util/errors';
 import { describe, expect, it } from 'vitest';
-import { ErrorCode, MeTTaError } from '../src/core/errors.js';
-import { equalAtoms, hashAtom } from '../src/core/hash.js';
+import { MeTTaError, MeTTaReason } from '../src/core/errors.js';
+import { equalAtoms, hashAtom, matchesAtom } from '../src/core/hash.js';
 import { InMemorySpace } from '../src/core/space.js';
-import { expr, num, str, sym } from '../src/types/ast.js';
+import { AtomKind, expr, num, str, sym, varr } from '../src/types/ast.js';
 
 describe('InMemorySpace', () => {
   it('adds and queries atoms', () => {
@@ -67,31 +68,68 @@ describe('Hash', () => {
   });
 });
 
+describe('the one structural walk, under both variable policies', () => {
+  it('reads a variable as a named node under equality', () => {
+    expect(equalAtoms(varr('?x'), varr('?x'))).toBe(true);
+    expect(equalAtoms(varr('?x'), varr('?y'))).toBe(false);
+    expect(equalAtoms(varr('?x'), sym('?x'))).toBe(false);
+  });
+
+  it('reads a variable as a wildcard under matching', () => {
+    expect(matchesAtom(sym('hello'), varr('?x'))).toBe(true);
+    expect(matchesAtom(expr(sym('+'), num(1)), expr(sym('+'), varr('?n')))).toBe(true);
+    expect(matchesAtom(varr('?x'), varr('?y'))).toBe(true);
+  });
+
+  it('does not let a wildcard widen into a different shape', () => {
+    expect(matchesAtom(expr(sym('+'), num(1), num(2)), expr(sym('+'), varr('?n')))).toBe(false);
+    expect(matchesAtom(sym('hello'), num(1))).toBe(false);
+    expect(matchesAtom(sym('hello'), expr(sym('+'), varr('?n')))).toBe(false);
+  });
+
+  it('does not let a wildcard stand in for the operator', () => {
+    expect(matchesAtom(expr(sym('*'), num(1)), expr(sym('+'), varr('?n')))).toBe(false);
+  });
+
+  it('separates the grounded operator from its arguments', () => {
+    const sum = { kind: AtomKind.Grounded, op: '+', args: [num(1)] } as const;
+    const product = { kind: AtomKind.Grounded, op: '*', args: [num(1)] } as const;
+    expect(equalAtoms(sum, { ...product, args: [num(1)] })).toBe(false);
+    expect(matchesAtom(sum, { ...product, args: [varr('?n')] })).toBe(false);
+    expect(matchesAtom(sum, { kind: AtomKind.Grounded, op: '+', args: [varr('?n')] })).toBe(true);
+  });
+});
+
 describe('MeTTaError', () => {
-  it('creates error with code and message', () => {
-    const error = new MeTTaError(ErrorCode.UNEXPECTED_TOKEN, 'test error');
-    expect(error.code).toBe(ErrorCode.UNEXPECTED_TOKEN);
+  it('carries the shared code and its own reason', () => {
+    const error = new MeTTaError(MeTTaReason.UNEXPECTED_TOKEN, 'test error');
+    expect(error).toBeInstanceOf(SenarsError);
+    expect(error.code).toBe('METTA_ERROR');
+    expect(error.reason).toBe(MeTTaReason.UNEXPECTED_TOKEN);
     expect(error.message).toContain('test error');
+    expect(error.toJSON()).toMatchObject({ code: 'METTA_ERROR', name: 'MeTTaError' });
   });
 
   it('creates parse error', () => {
     const error = MeTTaError.parse('unexpected token', { line: 5 });
-    expect(error.code).toBe(ErrorCode.UNEXPECTED_TOKEN);
+    expect(error.reason).toBe(MeTTaReason.UNEXPECTED_TOKEN);
     expect(error.message).toContain('unexpected token');
   });
 
   it('creates type error', () => {
     const error = MeTTaError.type('mismatch', { expected: 'number' });
-    expect(error.code).toBe(ErrorCode.TYPE_MISMATCH);
+    expect(error.reason).toBe(MeTTaReason.TYPE_MISMATCH);
   });
 
   it('creates runtime error', () => {
     const error = MeTTaError.runtime('unbound variable', { var: '$x' });
-    expect(error.code).toBe(ErrorCode.UNBOUND_VARIABLE);
+    expect(error.reason).toBe(MeTTaReason.UNBOUND_VARIABLE);
   });
 
-  it('includes context in error', () => {
-    const error = new MeTTaError(ErrorCode.DIVISION_BY_ZERO, 'error', { divisor: 0 });
+  it('includes context and threads the cause', () => {
+    const cause = new Error('divide by zero');
+    const error = new MeTTaError(MeTTaReason.DIVISION_BY_ZERO, 'error', { divisor: 0 }, { cause });
     expect(error.context).toEqual({ divisor: 0 });
+    expect(error.cause).toBe(cause);
   });
 });

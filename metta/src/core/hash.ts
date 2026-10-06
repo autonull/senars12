@@ -1,4 +1,15 @@
-import { fnv1a, fnv1aCombine } from '@senars/util';
+/**
+ * Structural identity of a MeTTa atom: the hash that buckets it, the key that
+ * names it, and the one descent that says two of them are the same.
+ *
+ * The three engines that walk an atom — the unifier, a space query and the `=`
+ * builtin — each used to carry its own `switch (kind)`. The differences between
+ * them were the variable policy and nothing else, so the descent is one function
+ * over the dialect below and the variable policy is its one parameter. A kind
+ * added to {@link AtomKind} is read in one place, not three.
+ */
+
+import { type EqualityDialect, fnv1a, fnv1aCombine, structuralEqual } from '@senars/util';
 import type {
   ExpressionAtom,
   GroundedAtom,
@@ -8,6 +19,17 @@ import type {
   SymbolAtom,
   VariableAtom,
 } from '../types/ast.js';
+import { AtomKind, isVariable } from '../types/ast.js';
+
+/** An atom with no children is every kind but `Expression` and `Grounded`. */
+const NO_CHILDREN: readonly MeTTaAtom[] = Object.freeze([]);
+
+const atomChildren = (atom: MeTTaAtom): readonly MeTTaAtom[] =>
+  atom.kind === AtomKind.Expression
+    ? [atom.operator, ...atom.args]
+    : atom.kind === AtomKind.Grounded
+      ? atom.args
+      : NO_CHILDREN;
 
 export function hashAtom(atom: MeTTaAtom): number {
   switch (atom.kind) {
@@ -47,38 +69,53 @@ export function hashAtom(atom: MeTTaAtom): number {
  */
 export const atomKey = (atom: MeTTaAtom): string => `${atom.kind}#${hashAtom(atom)}`;
 
-export function equalAtoms(a: MeTTaAtom, b: MeTTaAtom): boolean {
-  if (a.kind !== b.kind) return false;
+/**
+ * Equality of an atom's own payload. A compound's head is its first child, so
+ * {@link structuralEqual} descends through the operator and answers that one.
+ */
+const sameAtom = (a: MeTTaAtom, b: MeTTaAtom): boolean => {
   switch (a.kind) {
-    case 0:
-      return (a as SymbolAtom).value === (b as SymbolAtom).value;
-    case 1:
-      return (a as VariableAtom).name === (b as VariableAtom).name;
-    case 2:
-      return (a as NumberAtom).value === (b as NumberAtom).value;
-    case 3:
-      return (a as StringAtom).value === (b as StringAtom).value;
-    case 4: {
-      const ae = a as ExpressionAtom;
-      const be = b as ExpressionAtom;
-      if (!equalAtoms(ae.operator, be.operator)) return false;
-      if (ae.args.length !== be.args.length) return false;
-      for (let i = 0; i < ae.args.length; i++) {
-        if (!equalAtoms(ae.args[i] as MeTTaAtom, be.args[i] as MeTTaAtom)) return false;
-      }
+    case AtomKind.Symbol:
+      return a.value === (b as SymbolAtom).value;
+    case AtomKind.Number:
+      return a.value === (b as NumberAtom).value;
+    case AtomKind.String:
+      return a.value === (b as StringAtom).value;
+    case AtomKind.Grounded:
+      return a.op === (b as GroundedAtom).op;
+    case AtomKind.Expression:
       return true;
-    }
-    case 5: {
-      const ag = a as GroundedAtom;
-      const bg = b as GroundedAtom;
-      if (ag.op !== bg.op) return false;
-      if (ag.args.length !== bg.args.length) return false;
-      for (let i = 0; i < ag.args.length; i++) {
-        if (!equalAtoms(ag.args[i] as MeTTaAtom, bg.args[i] as MeTTaAtom)) return false;
-      }
-      return true;
-    }
     default:
+      // A variable is answered by `structuralEqual` before it gets here, so this
+      // is only an unrecognised kind — and an unrecognised kind matches nothing.
       return false;
   }
+};
+
+/** How a structural comparison reads a MeTTa atom. */
+export const ATOM_EQUALITY: EqualityDialect<MeTTaAtom> = {
+  variableName: (a) => (isVariable(a) ? a.name : null),
+  sameHead: (a, b) => a.kind === b.kind,
+  equal: sameAtom,
+  children: atomChildren,
+};
+
+/**
+ * Structural equality: a variable is a named node and equals only itself.
+ *
+ * The whole answer for the unifier and the `=` builtin, and the shared descent
+ * they now spell once between them.
+ */
+export function equalAtoms(a: MeTTaAtom, b: MeTTaAtom): boolean {
+  return structuralEqual(ATOM_EQUALITY, a, b);
 }
+
+/**
+ * Structural match of `atom` against `pattern`: a variable anywhere in the
+ * pattern matches anything in its slot.
+ *
+ * **Fails closed** — an unrecognised atom kind never matches, so a malformed atom
+ * cannot widen a query's result set.
+ */
+export const matchesAtom = (atom: MeTTaAtom, pattern: MeTTaAtom): boolean =>
+  structuralEqual(ATOM_EQUALITY, pattern, atom, 'wildcard');

@@ -31,6 +31,7 @@
 import type { CognitiveEvent, ProposalRejection, RuleDeclaration } from '@senars/core/schemas';
 import { PROPOSAL_SCHEMA_VERSION } from '@senars/core/schemas';
 import { unique } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
 
 /** One admission, as the log states it. */
 export interface ReplayedAdmission {
@@ -64,12 +65,13 @@ export interface ProposalReplayState {
 }
 
 /** A recorded stream this build cannot reduce. Never coerced. */
-export class ProposalReplayError extends Error {
+export class ProposalReplayError extends SenarsError {
   constructor(
     readonly detail: string,
-    readonly events: readonly CognitiveEvent[]
+    readonly events: readonly CognitiveEvent[],
+    options?: ErrorOptions
   ) {
-    super(`proposal replay refused: ${detail}`);
+    super(`proposal replay refused: ${detail}`, 'INVALID_EVENT', { detail }, options);
     this.name = 'ProposalReplayError';
   }
 }

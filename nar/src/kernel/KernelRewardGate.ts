@@ -8,6 +8,7 @@ import type {
 } from '@senars/core/schemas';
 import { proposalRisk, SelfImprovementProposalSchema } from '@senars/core/schemas';
 import { makeId } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
 import { KernelGate, projectOutcome } from './gate-base.js';
 
 /** The targets a reward signal may mutate — trust and scheduling, never a belief's
@@ -15,24 +16,21 @@ import { KernelGate, projectOutcome } from './gate-base.js';
  *  gate cannot report targets it no longer allows. */
 const DEFAULT_ALLOWED_TARGETS = new Set(['attention-priority', 'policy-weights']);
 
-export class EpistemicFirewallViolation extends Error {
-  public readonly targetType: string;
-  public readonly targetId: string;
-  public readonly correlationId: string;
-
+export class EpistemicFirewallViolation extends SenarsError {
   constructor(
-    targetType: string,
-    targetId: string,
-    correlationId: string,
-    allowedTargets: Iterable<string> = DEFAULT_ALLOWED_TARGETS
+    public readonly targetType: string,
+    public readonly targetId: string,
+    public readonly correlationId: string,
+    allowedTargets: Iterable<string> = DEFAULT_ALLOWED_TARGETS,
+    options?: ErrorOptions
   ) {
     super(
-      `Epistemic firewall violation: Reward signal cannot mutate ${targetType} (target: ${targetId}). Allowed targets: ${[...allowedTargets].join(', ')}`
+      `Epistemic firewall violation: Reward signal cannot mutate ${targetType} (target: ${targetId}). Allowed targets: ${[...allowedTargets].join(', ')}`,
+      'CROSS_DOMAIN',
+      { targetType, targetId, correlationId, allowedTargets: [...allowedTargets] },
+      options
     );
     this.name = 'EpistemicFirewallViolation';
-    this.targetType = targetType;
-    this.targetId = targetId;
-    this.correlationId = correlationId;
   }
 }
 

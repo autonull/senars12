@@ -51,10 +51,20 @@ const SHA256_ALGORITHM = 'sha256';
 export const sha256Hex = (data: DigestInput): string =>
   createHash(SHA256_ALGORITHM).update(data).digest('hex');
 
-/** Streaming SHA-256 hex digest over an ordered list of parts (no intermediate concat). */
+/**
+ * Streaming SHA-256 hex digest over an ordered list of parts.
+ *
+ * Each part is length-prefixed rather than concatenated, so `['ab', 'c']` and
+ * `['a', 'bc']` are two different inputs. A digest of a tuple that can be spelled
+ * two ways is not an identity — which is why every caller wanting a tuple digest
+ * first had to pick a separator, and why three of them picked three.
+ */
 export const sha256HexParts = (parts: readonly DigestInput[]): string => {
   const hash = createHash(SHA256_ALGORITHM);
-  for (const part of parts) hash.update(part);
+  for (const part of parts) {
+    hash.update(`${typeof part === 'string' ? Buffer.byteLength(part) : part.length}:`);
+    hash.update(part);
+  }
   return hash.digest('hex');
 };
 

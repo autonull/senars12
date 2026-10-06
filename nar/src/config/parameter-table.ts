@@ -9,6 +9,7 @@
  */
 
 import { clamp, joinKey, splitKey } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
 
 import type { ParameterLedger, ParameterRecord } from './parameter-ledger.js';
 
@@ -26,15 +27,15 @@ export interface ParameterSpec {
   actuate?: (value: number) => void;
 }
 
-export class ParameterScopeError extends Error {
-  readonly scope: ParameterScope;
-  readonly parameter: string;
-
-  constructor(message: string, scope: ParameterScope, name: string) {
-    super(message);
+export class ParameterScopeError extends SenarsError {
+  constructor(
+    message: string,
+    readonly scope: ParameterScope,
+    readonly parameter: string,
+    options?: ErrorOptions
+  ) {
+    super(message, 'VALIDATION_ERROR', { scope, parameter }, options);
     this.name = 'ParameterScopeError';
-    this.scope = scope;
-    this.parameter = name;
   }
 }
 

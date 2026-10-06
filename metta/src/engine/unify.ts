@@ -1,26 +1,20 @@
 import { Unifier, type UnifierDialect } from '@senars/util';
-import type { ExpressionAtom, GroundedAtom, MeTTaAtom } from '../types/ast.js';
-import { AtomKind, isVariable } from '../types/ast.js';
-import { atomKey, equalAtoms } from '../core/hash.js';
+import { ATOM_EQUALITY, atomKey } from '../core/hash.js';
+import type { GroundedAtom, MeTTaAtom } from '../types/ast.js';
+import { AtomKind } from '../types/ast.js';
 
 export type Substitution = Map<string, MeTTaAtom>;
 
 /**
- * How the generic unifier reads a MeTTa atom. `Expression` exposes its
- * operator as the first child so operator and argument unification share one
- * descent; `Grounded` keeps its string op in `rebuild` and exposes args only.
+ * The reading half of a MeTTa atom is `ATOM_EQUALITY`'s, so the only thing added
+ * here is the two operations a comparison never performs: hashing it, and
+ * rebuilding it. `Expression` exposes its operator as the first child so operator
+ * and argument unification share one descent; `Grounded` keeps its string op in
+ * `rebuild` and exposes args only.
  */
 const DIALECT: UnifierDialect<MeTTaAtom> = {
-  variableName: (a) => (isVariable(a) ? a.name : null),
+  ...ATOM_EQUALITY,
   key: atomKey,
-  equal: equalAtoms,
-  sameHead: (a, b) => a.kind === b.kind,
-  children: (a) =>
-    a.kind === AtomKind.Expression
-      ? [(a as ExpressionAtom).operator, ...(a as ExpressionAtom).args]
-      : a.kind === AtomKind.Grounded
-        ? (a as GroundedAtom).args
-        : [],
   rebuild: (a, kids) =>
     a.kind === AtomKind.Expression
       ? { kind: AtomKind.Expression, operator: kids[0] as MeTTaAtom, args: kids.slice(1) }

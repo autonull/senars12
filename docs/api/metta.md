@@ -12,13 +12,13 @@
 
 - `presets`
 
-- `ErrorCode`
-
 - `MeTTaError`
+
+- `MeTTaReason`
 
 - `atomKey` — String form of {@link hashAtom}, for the map and set keys that need one. Two
 
-- `equalAtoms`
+- `equalAtoms` — Structural equality: a variable is a named node and equals only itself.
 
 - `hashAtom`
 

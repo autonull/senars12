@@ -14,8 +14,6 @@ export {
 } from './commands/types.js';
 // Config
 /** @public Shared configuration types, validation, and env mapping. */
-export type { ConfigCapability, ConfigEvent, ConfigSchema, ConfigView } from './config/index.js';
-/** @public Agent options schema and validator. */
 /** @public Standardized SENARS_* env → config path mapping. */
 export {
   agentOptionsSchema,
@@ -517,11 +515,13 @@ export {
 } from './utils/text.js';
 /** @public Structural unification over an arbitrary term AST (Narsese, MeTTa). */
 export type {
+  EqualityDialect,
   Substitution as UnifierSubstitution,
   UnifierDialect,
   UnifyOptions,
+  VariablePolicy,
 } from './utils/unify.js';
-export { Unifier } from './utils/unify.js';
+export { structuralEqual, Unifier } from './utils/unify.js';
 /** @public Source-anchored call-site declarations for the seam ledgers. */
 export {
   formatWitness,

@@ -1,22 +1,30 @@
-import type { CognitiveEvent } from './schemas/index.js';
 import { errMsg } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
 import type { Agent } from './Agent.js';
 import type { Engine, EngineId } from './engine/Engine.js';
 import type { LensSpec } from './lens-schema.js';
 import type { ToolSpec } from './motor/ToolRegistry.js';
 import type { SenarsPlugin, TransportFactory } from './Plugin.js';
+import type { CognitiveEvent } from './schemas/index.js';
 
 /** Minimal surface of a connection manager that accepts plugin transports. */
 export interface TransportRegistry {
   registerFactory(factory: TransportFactory): void;
 }
 
-export class PluginLoadError extends Error {
+export class PluginLoadError extends SenarsError {
   constructor(
     public readonly pluginId: string,
     cause: unknown
   ) {
-    super(`Failed to load plugin "${pluginId}": ${errMsg(cause)}`);
+    super(
+      `Failed to load plugin "${pluginId}": ${errMsg(cause)}`,
+      'PLUGIN_LOAD_ERROR',
+      {
+        pluginId,
+      },
+      { cause: cause instanceof Error ? cause : undefined }
+    );
     this.name = 'PluginLoadError';
   }
 }

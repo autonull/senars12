@@ -1,6 +1,6 @@
 import { removeBy } from '@senars/util';
-import { matches } from './pattern-match.js';
 import type { MeTTaAtom } from '../types/ast.js';
+import { matchesAtom } from './hash.js';
 
 export interface Space extends Disposable {
   readonly id: string;
@@ -51,9 +51,7 @@ export abstract class ArraySpace implements Space {
 
   *query(pattern: MeTTaAtom): Generator<MeTTaAtom> {
     for (const atom of this._atoms) {
-      if (matches(atom, pattern)) {
-        yield atom;
-      }
+      if (matchesAtom(atom, pattern)) yield atom;
     }
   }
 }

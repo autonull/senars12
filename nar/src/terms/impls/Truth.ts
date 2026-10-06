@@ -14,6 +14,7 @@ import {
   weakenConfidence,
   weightToConfidence,
 } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
 
 export interface Truth {
   readonly f: Frequency;
@@ -29,9 +30,9 @@ const CONTRADICT_DECAY = 0.9;
 /** Confidence added by either outcome — how much a human or LM verdict is worth. */
 const OUTCOME_GAIN = 0.1;
 
-class TruthError extends Error {
+class TruthError extends SenarsError {
   constructor(msg: string) {
-    super(msg);
+    super(msg, 'VALIDATION_ERROR');
     this.name = 'TruthError';
   }
 }

@@ -14,7 +14,6 @@ import {
   pearson,
   readJsonlAsync,
   seededStringHash,
-  sha256HexParts,
   sha256Prefixed,
   sigmoid,
   writeJsonFile,

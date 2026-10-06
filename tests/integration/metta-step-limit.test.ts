@@ -1,4 +1,4 @@
-import { createMeTTa, ErrorCode, parseMeTTa } from '@senars/metta';
+import { createMeTTa, MeTTaReason, parseMeTTa } from '@senars/metta';
 import { Effect } from 'effect';
 import { describe, expect, it } from 'vitest';
 
@@ -15,8 +15,11 @@ describe('MeTTa step limit', () => {
     const exit = run(0, '! (+ 1 2)');
     expect(exit._tag).toBe('Failure');
     if (exit._tag !== 'Failure') return;
-    const cause = exit.cause as { error?: { code?: string; context?: Record<string, unknown> } };
-    expect(cause.error?.code).toBe(ErrorCode.STEP_LIMIT);
+    const cause = exit.cause as {
+      error?: { code?: string; reason?: string; context?: Record<string, unknown> };
+    };
+    expect(cause.error?.reason).toBe(MeTTaReason.STEP_LIMIT);
+    expect(cause.error?.code).toBe('METTA_ERROR');
     expect(cause.error?.context?.maxSteps).toBe(0);
   });
 

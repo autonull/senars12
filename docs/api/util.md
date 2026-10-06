@@ -438,7 +438,7 @@
 
 - `sha256Hex` — SHA-256 hex digest — the single hashing entry point for digests and provenance keys.
 
-- `sha256HexParts` — Streaming SHA-256 hex digest over an ordered list of parts (no intermediate concat).
+- `sha256HexParts` — Streaming SHA-256 hex digest over an ordered list of parts.
 
 - `sha256Prefixed` — Algorithm-pinned digest form (`sha256:<hex>`) used by ModelDigest, lock files, and dialogue digests.
 
@@ -651,6 +651,8 @@
 - `truncateBytes` — Byte-safe truncation for tool output — never splits a multi-byte character.
 
 - `wordOverlap`
+
+- `structuralEqual` — Structural equality over a term AST — the same walk {@link Unifier} descends,
 
 - `Unifier`
 
@@ -980,7 +982,7 @@
 
 ## `./utils/eval`
 
-- `ExpressionError` — Safe arithmetic expression evaluator — a non-eval replacement for `new Function()` math.
+- `ExpressionError` — The only way {@link evaluateExpression} fails: input the closed grammar cannot read.
 
 - `evaluateExpression` — Evaluate an arithmetic expression; throws `ExpressionError` on malformed input.
 
