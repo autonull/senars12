@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { clamp, sha256Hex } from '@senars/util';
+import { type AgentTrace, clamp, sha256Hex } from '@senars/util';
 import type { ContrastiveMemory } from './contrastive.js';
 import type { DistillationLabel, JudgmentDataset } from './distill.js';
 import { HEAD_SPECS, specToQuery } from './head-ontology.js';
@@ -13,19 +13,8 @@ import type {
 } from './types.js';
 import { createSystemOneBudget } from './types.js';
 
-/** A completed tool execution observed in the agent trace (E4 agent-trace grading). */
-export interface TracedToolCall {
-  command: string;
-  success: boolean;
-}
-
-export interface TraceGradeInput {
-  narration: string;
-  toolCalls: readonly TracedToolCall[];
-  correlationId?: string;
-  /** Egress-gate verdict — ground truth for the groundedness rubric (reject ⇒ observed 0). */
-  egress?: { grounded: boolean; score?: number };
-}
+/** The graded cycle. `AgentTrace` is `util`'s record; the grader adds no fields. */
+export type TraceGradeInput = AgentTrace;
 
 export interface TraceGroundednessGrade {
   score: number;
@@ -114,7 +103,7 @@ export function createTraceGrader(options: TraceGraderOptions) {
 
     // CLM contrastive trace quality: zero-shot in-domain-ness of the narration.
     const narrationEmbedding = embeddingCache.read(narrationPointer);
-    const correlationId = trace.correlationId ?? 'default';
+    const { correlationId } = trace;
     const contrastive = getContrastive?.(correlationId);
     const contrastiveQuality = narrationEmbedding
       ? contrastive?.score(narrationEmbedding, 'groundedness')

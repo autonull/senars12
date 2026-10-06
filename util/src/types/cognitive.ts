@@ -89,6 +89,34 @@ export type GroundednessGate = (
 export const egressVerdict = (answer: boolean | EgressVerdict): EgressVerdict =>
   typeof answer === 'boolean' ? { grounded: answer } : answer;
 
+/** One tool the agent executed during a cycle, as the trace grader sees it. */
+export interface TracedToolCall {
+  readonly command: string;
+  readonly success: boolean;
+}
+
+/**
+ * One completed agent cycle, handed to a trace grader at end-of-cycle.
+ *
+ * Declared once because four sites had their own copy of this record and they
+ * drifted: the `AgentOptions` spelling had lost `egress`, so a grader wired
+ * through the options silently stopped receiving the groundedness ground truth
+ * that the `CycleHost` spelling still passed. `correlationId` is required rather
+ * than optional because the cycle host always has one, and a grader keying a
+ * trajectory store on it had to spell `?? ''` at two call sites to accept a
+ * record the producer could not actually omit.
+ */
+export interface AgentTrace {
+  readonly narration: string;
+  readonly toolCalls: readonly TracedToolCall[];
+  readonly correlationId: string;
+  /** Egress-gate verdict — ground truth for the groundedness rubric. */
+  readonly egress?: EgressVerdict;
+}
+
+/** Grades one completed cycle into a dataset; the return value is the grader's own. */
+export type TraceGrader = (trace: AgentTrace) => Promise<unknown>;
+
 export interface ChatStreamEvent {
   readonly kind: 'text-delta' | 'tool-call' | 'tool-result' | 'finish' | 'error' | 'aborted';
   readonly text?: string;

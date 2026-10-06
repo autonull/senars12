@@ -3,6 +3,7 @@ import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { createLogger, errMsg } from '@senars/util';
+import { withDefaults } from '@senars/util/config';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { BaseConnection } from './base.js';
 
@@ -17,16 +18,31 @@ export interface MCPToolInfo {
   inputSchema: Record<string, unknown>;
 }
 
+interface MCPOptions {
+  name: string;
+  transport: 'stdio' | 'sse' | 'http' | 'in-memory';
+  command?: string;
+  args?: string[];
+  url?: string;
+  inMemoryPair?: [unknown, unknown];
+}
+
+/** What this transport does when configured with nothing at all. */
+const MCP_DEFAULTS: MCPOptions = { name: 'MCP', transport: 'stdio' };
+
 export class MCPConnection extends BaseConnection {
   override readonly type = 'mcp';
   override readonly logger = createLogger({ scope: 'io:mcp' });
-  private readonly transport: 'stdio' | 'sse' | 'http' | 'in-memory' = 'stdio';
+  private readonly transport: MCPOptions['transport'];
+  private readonly options: Omit<MCPOptions, 'name' | 'transport'>;
   private client: Client | null = null;
 
   constructor(config: ConnectionConfig, deps: ConnectionDeps) {
     super(config, deps);
-    this.name = (config.config.name as string) ?? 'MCP';
-    this.transport = (config.config.transport as 'stdio' | 'sse' | 'http') ?? 'stdio';
+    const { name, transport, ...options } = withDefaults<MCPOptions>(config.config, MCP_DEFAULTS);
+    this.name = name;
+    this.transport = transport;
+    this.options = options;
   }
 
   override async connect(): Promise<void> {
@@ -34,16 +50,15 @@ export class MCPConnection extends BaseConnection {
       this.client = new Client({ name: 'senars-mcp-client', version: '1.0.0' });
 
       if (this.transport === 'stdio') {
-        const command = this.config.config.command as string;
-        const args = (this.config.config.args as string[]) ?? [];
+        const { command, args = [] } = this.options;
         if (!command) throw new Error('MCP stdio transport requires command in config');
         await this.client.connect(new StdioClientTransport({ command, args }));
       } else if (this.transport === 'in-memory') {
-        const pair = this.config.config.inMemoryPair as [unknown, unknown] | undefined;
+        const { inMemoryPair: pair } = this.options;
         if (!pair) throw new Error('MCP in-memory transport requires inMemoryPair in config');
         await this.client.connect(pair[0] as never);
       } else {
-        const url = this.config.config.url as string;
+        const { url } = this.options;
         if (!url) throw new Error('MCP sse/http transport requires url in config');
         await this.client.connect(
           this.transport === 'http'

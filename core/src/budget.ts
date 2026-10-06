@@ -13,7 +13,7 @@
  * imported downward. The trace-vocabulary half of that announcement lives in
  * `budget-otel.ts`; this module is the accounting and the typed bus.
  */
-import { clamp, maxScore, occupancy } from '@senars/util';
+import { clamp, type EventBus, maxScore, occupancy } from '@senars/util';
 import { announceBudgetTrace } from './budget-otel.js';
 import type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason } from './schemas/index.js';
 import { zeroConsumed } from './schemas/index.js';
@@ -97,10 +97,14 @@ export interface BudgetEventMap {
   };
 }
 
-/** The one bus method `BudgetSlice` needs — a NAR `NarEventBus` satisfies it. */
-export interface BudgetEventBus {
-  emit<K extends keyof BudgetEventMap>(eventName: K, payload: BudgetEventMap[K]): void;
-}
+/**
+ * The one bus method `BudgetSlice` needs — a NAR `NarEventBus` satisfies it.
+ *
+ * Derived from {@link EventBus} rather than restated: the spelling was a second
+ * declaration of `EventBus.emit`, so a change to the emit signature (the void
+ * signal form, for instance) had to be made twice and the two could disagree.
+ */
+export type BudgetEventBus = Pick<EventBus<BudgetEventMap>, 'emit'>;
 
 /** A budget plus the slice identity that threads and focus nodes are keyed by. */
 export interface BudgetSlice extends ReasoningBudget {

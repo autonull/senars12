@@ -149,7 +149,11 @@ describe('TODO22 CLM — trace grader contrastive quality', () => {
       embeddingCache: cache,
       getContrastive: () => memory,
     });
-    const result = await grader({ narration: 'sunny meadow day', toolCalls: [] });
+    const result = await grader({
+      correlationId: 'cid',
+      narration: 'sunny meadow day',
+      toolCalls: [],
+    });
     expect(result.contrastiveQuality).toBeDefined();
     expect(result.contrastiveQuality!).toBeGreaterThan(0.4);
   });
@@ -157,7 +161,11 @@ describe('TODO22 CLM — trace grader contrastive quality', () => {
   it('omits contrastiveQuality without a contrastive memory', async () => {
     const manifold = createManifold(cache);
     const grader = createTraceGrader({ manifold, embeddingCache: cache });
-    const result = await grader({ narration: 'sunny meadow day', toolCalls: [] });
+    const result = await grader({
+      correlationId: 'cid',
+      narration: 'sunny meadow day',
+      toolCalls: [],
+    });
     expect(result.contrastiveQuality).toBeUndefined();
   });
 });

@@ -1,5 +1,6 @@
 import { createLogger, makeId } from '@senars/util';
 import { type WebSocket, WebSocketServer } from 'ws';
+import { withDefaults } from '@senars/util/config';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { startWSServer } from '../utils/http.js';
 import {
@@ -13,6 +14,15 @@ import {
 } from '../utils/websocket.js';
 import { BaseConnection } from './base.js';
 
+interface WSOptions {
+  name: string;
+  port: number;
+  greeting?: string;
+}
+
+/** What this transport does when configured with nothing at all. */
+const WS_DEFAULTS: WSOptions = { name: 'WebSocket', port: 8765 };
+
 export class WSConnection extends BaseConnection {
   override readonly type = 'websocket';
   override readonly logger = createLogger({ scope: 'io:ws' });
@@ -24,9 +34,10 @@ export class WSConnection extends BaseConnection {
 
   constructor(config: ConnectionConfig, deps: ConnectionDeps) {
     super(config, deps);
-    this.name = (config.config.name as string) ?? 'WebSocket';
-    this.port = (config.config.port as number) ?? 8765;
-    this.greeting = config.config.greeting as string | undefined;
+    const { name, port, greeting } = withDefaults<WSOptions>(config.config, WS_DEFAULTS);
+    this.name = name;
+    this.port = port;
+    this.greeting = greeting;
   }
 
   override async connect(): Promise<void> {

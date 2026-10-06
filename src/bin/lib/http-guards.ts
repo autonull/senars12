@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
-import { ApiKeyManager } from '@senars/io/utils/http';
 import { SlidingWindowRateLimiter } from '@senars/util';
 
 export interface HttpGuardOptions {
@@ -14,7 +13,7 @@ export interface HttpGuardOptions {
  * rejected, or null when allowed.
  */
 export class HttpGuard {
-  private readonly apiKeys = new ApiKeyManager();
+  private readonly apiKeys = new Set<string>();
   private readonly rateLimiter: SlidingWindowRateLimiter;
   readonly rateLimitPerMinute: number;
 
@@ -38,7 +37,7 @@ export class HttpGuard {
   }
 
   get activeKey(): string {
-    return [...this.apiKeys.keys()][0] ?? '';
+    return this.apiKeys.values().next().value ?? '';
   }
 }
 

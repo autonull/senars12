@@ -1,10 +1,15 @@
 /**
- * Generic base class for collections keyed by a derived identity.
+ * The two keyed substrates every named collection in the repository sits on.
  *
- * One `Map` keyed by the derived identity holds both membership and iteration
- * order. This replaces the parallel array + side index pattern that made
- * deletes O(n) — `Map` already iterates in insertion order, so the array was a
- * hand-rolled copy of what the structure gives away.
+ * {@link KeyedCollection} is storage keyed by a *derived* identity: one `Map` holds
+ * both membership and iteration order, so a delete is O(1) rather than a shift of
+ * every index above the hole. {@link KeyedRegistry} is the registration policy on
+ * top of it — what a key is derived from, and what a repeated key does.
+ *
+ * Four registries (cognition components, arcade games, tools, strategy
+ * registrations) each carried their own `Map<string, T>` plus the same four
+ * methods, and the one that differed — whether a second registration replaced or
+ * refused — was a private branch in each rather than a declared policy.
  */
 export abstract class KeyedCollection<K, V, DerivedKey extends PropertyKey = string> {
   protected readonly slots = new Map<DerivedKey, V>();
@@ -36,132 +41,76 @@ export abstract class KeyedCollection<K, V, DerivedKey extends PropertyKey = str
   protected deleteEntry(key: K): boolean {
     return this.slots.delete(this.deriveKey(key));
   }
+}
 
-  /** Index-free iterator over values with a projection. */
-  protected iterProject<U>(project: (item: V) => U): IterableIterator<U> {
-    const values = this.slots.values();
-    const it: IterableIterator<U> = {
-      next: (): IteratorResult<U> => {
-        const step = values.next();
-        return step.done
-          ? { value: undefined, done: true }
-          : { value: project(step.value), done: false };
-      },
-      [Symbol.iterator](): IterableIterator<U> {
-        return it;
-      },
-    };
-    return it;
-  }
+export interface KeyedRegistryOptions<T> {
+  /**
+   * The item's identity. A registry is keyed by a property of the thing it holds
+   * (`id`, `name`, …) rather than by a caller-supplied key, so a registered item
+   * cannot be filed under a name it does not carry.
+   */
+  keyOf: (item: T) => string;
+  /**
+   * Called instead of the overwrite when a key arrives twice. Throw from it to
+   * refuse; omit it and the last registration wins, which is what an
+   * idempotent-per-id collection wants. Without this a duplicate either
+   * overwrites silently or throws, decided per registry.
+   */
+  onDuplicate?: (key: string, incumbent: T) => void;
 }
 
 /**
- * Map-like collection with derived keys.
+ * A named collection of registered items: {@link KeyedCollection} with the
+ * registration policy declared once.
  *
  * @example
  * ```typescript
- * class UserByEmail extends KeyedMap<string, User, string> {
- *   protected deriveKey(email: string): string {
- *     return email.toLowerCase();
+ * class SensorRegistry extends KeyedRegistry<Sensor> {
+ *   constructor() {
+ *     super({ keyOf: (sensor) => sensor.id });
  *   }
  * }
  * ```
  */
-export abstract class KeyedMap<K, V, DerivedKey extends PropertyKey = string> extends KeyedCollection<K, V, DerivedKey> {
-  get(key: K): V | undefined {
+export class KeyedRegistry<T> extends KeyedCollection<string, T> {
+  readonly #keyOf: (item: T) => string;
+  readonly #onDuplicate?: (key: string, incumbent: T) => void;
+
+  constructor({ keyOf, onDuplicate }: KeyedRegistryOptions<T>) {
+    super();
+    this.#keyOf = keyOf;
+    this.#onDuplicate = onDuplicate;
+  }
+
+  /** A registry's key is the derived identity itself. */
+  protected override deriveKey(key: string): string {
+    return key;
+  }
+
+  register(item: T): this {
+    const key = this.#keyOf(item);
+    const incumbent = this.slots.get(key);
+    if (incumbent !== undefined) this.#onDuplicate?.(key, incumbent);
+    return this.setEntry(key, item);
+  }
+
+  get(key: string): T | undefined {
     return this.getEntry(key);
   }
 
-  set(key: K, value: V): this {
-    return this.setEntry(key, value);
-  }
-
-  has(key: K): boolean {
+  has(key: string): boolean {
     return this.hasKey(key);
   }
 
-  delete(key: K): boolean {
+  delete(key: string): boolean {
     return this.deleteEntry(key);
   }
 
-  keys(): IterableIterator<K> {
-    return this.iterProject((entry) => entry as unknown as K);
+  keys(): string[] {
+    return [...this.slots.keys()];
   }
 
-  values(): IterableIterator<V> {
-    return this.iterProject((v) => v);
-  }
-
-  entries(): IterableIterator<[K, V]> {
-    return this.iterProject((v) => [this.keyOfValue(v), v] as [K, V]);
-  }
-
-  [Symbol.iterator](): IterableIterator<[K, V]> {
-    return this.entries();
-  }
-
-  forEach(callbackfn: (value: V, key: K, map: this) => void): void {
-    for (const [derivedKey, value] of this.slots) {
-      callbackfn(value, this.keyOfValue(value), this);
-    }
-  }
-
-  /** Override to map a value back to its user-facing key (for entries/forEach). */
-  protected abstract keyOfValue(value: V): K;
-}
-
-/**
- * Set-like collection with derived keys.
- *
- * @example
- * ```typescript
- * class LowercaseSet extends KeyedSet<string, string> {
- *   protected deriveKey(key: string): string {
- *     return key.toLowerCase();
- *   }
- *   protected keyOfValue(value: string): string {
- *     return value;
- *   }
- * }
- * ```
- */
-export abstract class KeyedSet<K, DerivedKey extends PropertyKey = string> extends KeyedCollection<K, K, DerivedKey> {
-  add(key: K): this {
-    this.setEntry(key, key);
-    return this;
-  }
-
-  has(key: K): boolean {
-    return this.hasKey(key);
-  }
-
-  delete(key: K): boolean {
-    return this.deleteEntry(key);
-  }
-
-  values(): IterableIterator<K> {
-    return this.iterProject((v) => v);
-  }
-
-  keys(): IterableIterator<K> {
-    return this.values();
-  }
-
-  entries(): IterableIterator<[K, K]> {
-    return this.iterProject((v) => [v, v] as [K, K]);
-  }
-
-  forEach(callbackfn: (value: K, key: K, set: this) => void): void {
-    for (const value of this.slots.values()) {
-      callbackfn(value, value, this);
-    }
-  }
-
-  toArray(): K[] {
+  all(): T[] {
     return [...this.slots.values()];
-  }
-
-  protected keyOfValue(value: K): K {
-    return value;
   }
 }

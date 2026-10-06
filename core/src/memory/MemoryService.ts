@@ -1,5 +1,6 @@
 import { BoundedRing, generateId, takeLast } from '@senars/util';
 import type { Engine } from '../engine/Engine.js';
+import { sweepEngines } from '../engine/sweep.js';
 import type { EventLog } from '../eventlog/EventLog.js';
 import type { SkillFeedback, ToolRegistry } from '../motor/ToolRegistry.js';
 import type { MemoryEntry, MemoryQuery } from './types.js';
@@ -127,17 +128,8 @@ export class MemoryService {
 
   /** Tier 2: Semantic memory via engines */
   async querySemantic(pattern: string): Promise<unknown[]> {
-    if (!this.#engines) return [];
-    const results: unknown[] = [];
-    for (const engine of this.#engines.values()) {
-      try {
-        const engineResults = await engine.query(pattern);
-        results.push(...engineResults);
-      } catch {
-        // engine unavailable
-      }
-    }
-    return results;
+    const results = await sweepEngines(this.#engines, (engine) => engine.query(pattern));
+    return results.flat();
   }
 
   /** Tier 3: Procedural memory — tool feedback */
@@ -147,23 +139,11 @@ export class MemoryService {
 
   /** Tier 4: Long-term persistence */
   async persist(): Promise<void> {
-    for (const engine of this.#engines?.values() ?? []) {
-      try {
-        await engine.persist?.();
-      } catch {
-        /* ignore */
-      }
-    }
+    await sweepEngines(this.#engines, (engine) => engine.persist?.());
   }
 
   async load(): Promise<void> {
-    for (const engine of this.#engines?.values() ?? []) {
-      try {
-        await engine.load?.();
-      } catch {
-        /* ignore */
-      }
-    }
+    await sweepEngines(this.#engines, (engine) => engine.load?.());
   }
 
   /** Register an additional memory tier (e.g. vector store via plugin). */

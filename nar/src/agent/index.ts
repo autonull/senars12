@@ -263,7 +263,7 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
         risks: { command: string; score: number; abstained: boolean }[];
       };
       await trajectoryStore.recordCycle({
-        correlationId: trace.correlationId ?? '',
+        correlationId: trace.correlationId,
         timestamp: Date.now(),
         steps: [
           { timestamp: Date.now(), type: 'narrative', data: trace.narration },

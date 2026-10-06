@@ -86,27 +86,3 @@ export const startWSServer = (
   const server = new WSServerClass({ port });
   return listenWithDeadline(server, () => undefined, 'WebSocket', options?.timeout ?? 10000);
 };
-
-export class ApiKeyManager {
-  private _keys = new Set<string>();
-
-  get size(): number {
-    return this._keys.size;
-  }
-
-  add(key: string): void {
-    this._keys.add(key);
-  }
-
-  remove(key: string): void {
-    this._keys.delete(key);
-  }
-
-  has(key: string): boolean {
-    return this._keys.has(key);
-  }
-
-  keys(): IterableIterator<string> {
-    return this._keys.keys();
-  }
-}

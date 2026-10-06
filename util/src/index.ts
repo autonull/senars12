@@ -107,6 +107,7 @@ export type { CapabilityRisk } from './types/capability.js';
 /** @public The shared capability risk vocabulary. */
 export { CAPABILITY_RISKS, CapabilityRiskSchema } from './types/capability.js';
 export type {
+  AgentTrace,
   BandDecision,
   ChatOptions,
   CognitiveAxis,
@@ -116,6 +117,8 @@ export type {
   EgressVerdict,
   EngineOrigin,
   GroundednessGate,
+  TraceGrader,
+  TracedToolCall,
 } from './types/cognitive.js';
 /** @public The vocabularies a cognitive event carries, so the zod boundary in `core`
  *  cannot admit an origin, a band, an axis or a query shape the types do not carry. */
@@ -143,8 +146,6 @@ export type {
   EpisodicMemoryConfig,
 } from './types/episodic-memory.js';
 export { EPISODE_TYPES } from './types/episodic-memory.js';
-/** @public Typed event emitter contract. */
-export type { EventHandler, TypedEventEmitter } from './types/events.js';
 /** @public Health-report types (O3, TODO20). */
 export type { HealthCheckResult, HealthReport } from './types/health.js';
 /** @public Component lifecycle and observability contracts. */
@@ -396,11 +397,11 @@ export {
 } from './utils/id.js';
 /** @public Deterministic JSON with sorted object keys — the one serializer behind every cache key and content digest. */
 export { extractJsonObject, parseJsonObject, stableStringify } from './utils/json.js';
-/** @public Generic keyed collections with derived structural keys. */
+/** @public Keyed storage by derived identity, and the named registry over it. */
+export type { KeyedRegistryOptions } from './utils/keyed-collection.js';
 export {
   KeyedCollection,
-  KeyedMap,
-  KeyedSet,
+  KeyedRegistry,
 } from './utils/keyed-collection.js';
 export type { LruCacheOptions } from './utils/lru-cache.js';
 /** @public Bounded recency-ordered cache with optional TTL. */

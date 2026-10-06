@@ -9,7 +9,6 @@ export type {
   MessageMiddleware,
 } from '@senars/io';
 export {
-  ApiKeyManager,
   AuthManager,
   BaseConnection,
   broadcastToSubscribers,

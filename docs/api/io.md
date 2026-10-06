@@ -52,8 +52,6 @@
 
 - `ConnectionError`
 
-- `ApiKeyManager`
-
 - `parseHttpBody` — A request body as text, truncated at `maxBytes` and marked when cut.
 
 - `setCORSHeaders`
@@ -89,17 +87,3 @@
 ## `./connections/reply-target`
 
 - `resolveReplyTarget`
-
-## `./utils/http`
-
-- `ServerStartupOptions`
-
-- `parseHttpBody` — A request body as text, truncated at `maxBytes` and marked when cut.
-
-- `setCORSHeaders`
-
-- `startHttpServer`
-
-- `startWSServer`
-
-- `ApiKeyManager`

@@ -13,7 +13,7 @@
 import { emitDomainEvent } from '@senars/core/event-sink';
 
 import { ConfigurationError } from '../../types';
-import { ambientRng, getOrInsert, keyedBy } from '@senars/util';
+import { ambientRng, getOrInsert, KeyedRegistry, keyedBy } from '@senars/util';
 import type { RandomSource } from '../../types/primitives.js';
 import { recordStrategyMemoSize } from '../../metrics/prometheus.js';
 import {
@@ -34,7 +34,21 @@ import { LruCache } from '@senars/util';
 import type { CognitiveParameters, StrategySlotParams } from '../../config/cognitive-parameters.js';
 import { STRATEGY_SLOTS } from '../../config/cognitive-parameters.js';
 
-type Slot = Map<string, StrategyRegistration>;
+/** The registration catalogue for one slot: keyed by name, duplicate refused. */
+type Slot = KeyedRegistry<StrategyRegistration>;
+
+const slot = (type: StrategyType): Slot =>
+  new KeyedRegistry({
+    keyOf: (registration) => registration.name,
+    onDuplicate: (name) => {
+      throw new ConfigurationError(`'${name}' already registered for ${type}`, { type, name });
+    },
+  });
+
+/** A resolved default instance per name — the tier-0 memo, keyed by the name. */
+type DefaultMemo = Map<string, StrategyImpl>;
+
+const defaultMemo = (): DefaultMemo => new Map();
 
 /**
  * Every slot the registry resolves, read from the one slot table. The list used
@@ -86,17 +100,15 @@ export const createDefaultRegistry = ({ rng }: { rng?: RandomSource } = {}): Cog
   return registry;
 };
 
-const emptyStores = <V>(): Record<StrategyType, Map<string, V>> =>
-  keyedBy(
-    SLOT_TYPES,
-    (type) => type,
-    () => new Map<string, V>()
-  );
+const emptyStores = (): Record<StrategyType, Slot> => keyedBy(SLOT_TYPES, (type) => type, slot);
+
+const emptyDefaults = (): Record<StrategyType, DefaultMemo> =>
+  keyedBy(SLOT_TYPES, (type) => type, defaultMemo);
 
 export class CognitiveRegistry implements StrategyRegistry {
   private readonly stores: Record<StrategyType, Slot> = emptyStores();
   /** Tier 0: the registered default instance per name. */
-  private readonly defaults: Record<StrategyType, Map<string, StrategyImpl>> = emptyStores();
+  private readonly defaults: Record<StrategyType, DefaultMemo> = emptyDefaults();
   /** Tier 1: configured instances keyed by config digest. */
   private readonly configured: Record<StrategyType, LruCache<string, StrategyImpl>> = memoStores();
   /** Tier 2: composed instances keyed by their deterministic label. */
@@ -129,13 +141,7 @@ export class CognitiveRegistry implements StrategyRegistry {
           } satisfies StrategyRegistration)
         : nameOrRegistration;
 
-    if (this.stores[type].has(registration.name)) {
-      throw new ConfigurationError(`'${registration.name}' already registered for ${type}`, {
-        type,
-        name: registration.name,
-      });
-    }
-    this.stores[type].set(registration.name, registration);
+    this.stores[type].register(registration);
   }
 
   /** What a factory gets: tier-0 resolution by name, and the ambient stream. */
@@ -167,7 +173,7 @@ export class CognitiveRegistry implements StrategyRegistry {
   }
 
   list(type: StrategyType): StrategyRegistration[] {
-    return [...this.stores[type].values()];
+    return this.stores[type].all();
   }
 
   has(type: StrategyType, name: string): boolean {
@@ -215,7 +221,7 @@ export class CognitiveRegistry implements StrategyRegistry {
   #buildDefault(type: StrategyType, name: string): StrategyImpl {
     const registration = this.stores[type].get(name);
     if (!registration) {
-      const candidates = [...this.stores[type].keys()].sort();
+      const candidates = this.stores[type].keys().sort();
       throw new ConfigurationError(
         `No ${type} strategy named '${name}' (available: ${candidates.join(', ') || 'none'})`,
         { type, name }

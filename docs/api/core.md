@@ -168,7 +168,7 @@
 
 - `ChatMessage`
 
-- `CONNECTION_COLORS` — Color coding for WebSocket connection states.
+- `CONNECTION_COLORS` — Color coding for connection states.
 
 - `CognitiveDelta`
 
@@ -224,7 +224,7 @@
 
 ## `./protocol`
 
-- `CONNECTION_COLORS` — Color coding for WebSocket connection states.
+- `CONNECTION_COLORS` — Color coding for connection states.
 
 - `EDGE_LABELS` — Human-readable labels for edge types (aliased from EDGE_TYPES for convenience).
 

@@ -19,6 +19,7 @@ export {
   nestedBounds,
   validateAgainstBounds,
 } from './bounds.js';
+export { withDefaults } from './defaults.js';
 export {
   type CognitiveBoundCategory,
   cognitiveBound,

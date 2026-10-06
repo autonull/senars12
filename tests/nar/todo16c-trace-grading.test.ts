@@ -37,6 +37,7 @@ describe('E4 trace grading (agent-trace observability)', () => {
     const grader = createTraceGrader({ manifold, embeddingCache: cache });
 
     const result = await grader({
+      correlationId: 'cid',
       narration: 'I moved the file to the backup folder.',
       toolCalls: [
         { command: 'move_file', success: true },
@@ -73,7 +74,11 @@ describe('E4 trace grading (agent-trace observability)', () => {
     const grader = createTraceGrader({ manifold, embeddingCache: cache, dataset, source: 'test' });
 
     const raw = 'secret utterance about dinosaurs';
-    await grader({ narration: raw, toolCalls: [{ command: 'search', success: false }] });
+    await grader({
+      correlationId: 'cid',
+      narration: raw,
+      toolCalls: [{ command: 'search', success: false }],
+    });
 
     const labels = (dataset as unknown as { toJSONL(): string }).toJSONL();
     expect(labels).not.toContain(raw);
@@ -99,7 +104,11 @@ describe('E4 trace grading (agent-trace observability)', () => {
       evaluate: async () => ({ score: 0.7, abstained: false }),
     });
     const grader = createTraceGrader({ manifold, embeddingCache: cache });
-    const result = await grader({ narration: 'plain narration', toolCalls: [] });
+    const result = await grader({
+      correlationId: 'cid',
+      narration: 'plain narration',
+      toolCalls: [],
+    });
     expect(result.groundedness!.score).toBeGreaterThan(0);
     expect(result.risks).toHaveLength(0);
   });
@@ -118,12 +127,18 @@ describe('E4 follow-up (b): egress verdict is the groundedness ground truth', ()
     const grader = createTraceGrader({ manifold, embeddingCache: cache, dataset, source: 'test' });
 
     await grader({
+      correlationId: 'cid',
       narration: 'rejected narration',
       toolCalls: [],
       egress: { grounded: false, score: 0.3 },
     });
-    await grader({ narration: 'accepted narration', toolCalls: [], egress: { grounded: true } });
-    await grader({ narration: 'unverdicted narration', toolCalls: [] });
+    await grader({
+      correlationId: 'cid',
+      narration: 'accepted narration',
+      toolCalls: [],
+      egress: { grounded: true },
+    });
+    await grader({ correlationId: 'cid', narration: 'unverdicted narration', toolCalls: [] });
 
     const rows = (dataset as unknown as { toJSONL(): string })
       .toJSONL()

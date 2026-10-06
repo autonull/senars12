@@ -5,7 +5,15 @@ import { ListenerBag } from './listener-bag.js';
 export type EventReceiver<T> = (params: T) => void;
 export type EventUnsubscribe = () => void;
 
-export class EventBus<T extends Record<string, unknown> = Record<string, unknown>> {
+/**
+ * A named-event fan-out: one listener bag per event name, dropped when empty.
+ *
+ * `T` is constrained to `object` rather than to `Record<string, unknown>` because
+ * an event-map *interface* has no index signature, and the index signature a
+ * consumer had to add to satisfy the older constraint widened `keyof T` to
+ * `string` — which is what let a bus accept an event name its map never declared.
+ */
+export class EventBus<T extends object = Record<string, unknown>> {
   private bags = new Map<string, ListenerBag<unknown>>();
   private readonly logger: Logger;
 

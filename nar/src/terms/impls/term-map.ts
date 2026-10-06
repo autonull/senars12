@@ -41,16 +41,16 @@ export class TermMap<V> extends TermCollection<TermMapEntry<V>> {
     return [...this.slots.values()];
   }
 
-  items(): IterableIterator<[Term, V]> {
-    return this.iterProject((e) => [e.key, e.value] as [Term, V]);
+  *items(): Generator<[Term, V]> {
+    for (const entry of this.slots.values()) yield [entry.key, entry.value];
   }
 
-  keys(): IterableIterator<Term> {
-    return this.iterProject((e) => e.key);
+  *keys(): Generator<Term> {
+    for (const entry of this.slots.values()) yield entry.key;
   }
 
-  values(): IterableIterator<V> {
-    return this.iterProject((e) => e.value);
+  *values(): Generator<V> {
+    for (const entry of this.slots.values()) yield entry.value;
   }
 
   [Symbol.iterator](): IterableIterator<[Term, V]> {

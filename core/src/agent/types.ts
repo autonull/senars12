@@ -1,12 +1,12 @@
 import type {
   AgentOptions as UtilAgentOptions,
-  EgressVerdict,
   EpisodicMemory,
   GroundednessGate,
   HealthStatus,
   LMTask,
   ParsedCommand,
   SkillDefinition,
+  TraceGrader,
   BridgeOptions as UtilBridgeOptions,
 } from '@senars/util';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
@@ -56,11 +56,7 @@ export interface AgentOptions extends UtilAgentOptions {
   /** System One egress gate: returns true (or `{grounded, score}`) when a narration draft is grounded enough to emit. */
   groundednessGate?: GroundednessGate;
   /** E4 agent-trace grading: grades the completed cycle's narration + executed tools into the distillation dataset. */
-  traceGrader?: (trace: {
-    narration: string;
-    toolCalls: readonly { command: string; success: boolean }[];
-    correlationId: string;
-  }) => Promise<unknown>;
+  traceGrader?: TraceGrader;
   /** H2: default narration tier for chat cycles when the caller passes none. */
   narrateTier?: LMTask;
   /** Phase A (REFACTOR.todo1): custom macro-cycle phases; default `DEFAULT_MACRO_PIPELINE`. */

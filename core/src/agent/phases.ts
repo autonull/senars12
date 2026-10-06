@@ -6,18 +6,11 @@
  */
 
 import { mintCognitiveEvent } from '../schemas/index.js';
-import {
-  createLogger,
-  dispatch,
-  drain,
-  egressVerdict,
-  errMsg,
-  type LMTask,
-  toolError,
-} from '@senars/util';
+import { createLogger, dispatch, drain, egressVerdict, type LMTask, toolError } from '@senars/util';
 
 import type { ChatStreamEvent } from '../chat.js';
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
+import { sweepEngines } from '../engine/sweep.js';
 import { RECALL_WINDOW } from '../memory/types.js';
 import {
   type CycleHost,
@@ -73,24 +66,29 @@ const recall = async (
   return { cid, context };
 };
 
+/**
+ * One engine down is a degraded cycle, not a fault — but silence here reads as a
+ * healthy cycle with zero derivations, so the fault is logged, tallied and
+ * surfaced by `Agent.health().errorRate`.
+ */
+const engineFault =
+  (host: CycleHost, hook: string) =>
+  (id: string, error: string): void => {
+    logger.warn(`engine.${hook} failed`, { engine: id, error });
+    host.onEngineError?.(id, error);
+  };
+
 const reason = async (
   host: CycleHost,
   stimulus: CognitiveStimulus,
   context: Context
 ): Promise<Derivation[]> => {
-  const derivations: Derivation[] = [];
-  for (const [id, engine] of host.engines) {
-    try {
-      derivations.push(...(await engine.reason(stimulus, context)));
-    } catch (e) {
-      // One engine down is a degraded cycle, not a fault — but silence here reads
-      // as a healthy cycle with zero derivations, so the fault is logged, tallied
-      // and surfaced by `Agent.health().errorRate`.
-      logger.warn('engine.reason failed', { engine: id, error: errMsg(e) });
-      host.onEngineError?.(id, errMsg(e));
-    }
-  }
-  return derivations;
+  const derivations = await sweepEngines(
+    host.engines,
+    (engine) => engine.reason(stimulus, context),
+    engineFault(host, 'reason')
+  );
+  return derivations.flat();
 };
 
 /** Fail-safe template verbalization when the egress gate rejects or abstains. */
@@ -210,14 +208,11 @@ const act = async (ctx: MacroContext): Promise<Array<{ command: string; result: 
         correlationId: stimulus.correlationId,
         causationId: state.cid?.id ?? '',
       });
-      for (const [id, engine] of host.engines) {
-        try {
-          engine.absorb?.(result);
-        } catch (e) {
-          logger.warn('engine.absorb failed', { engine: id, error: errMsg(e) });
-          host.onEngineError?.(id, errMsg(e));
-        }
-      }
+      await sweepEngines(
+        host.engines,
+        (engine) => engine.absorb?.(result),
+        engineFault(host, 'absorb')
+      );
     }
   }
   return toolResults;

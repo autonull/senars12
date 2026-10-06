@@ -1,11 +1,13 @@
 import {
-  type EgressVerdict,
   type EpisodicMemory,
+  type EventUnsubscribe,
   generateId,
   incrementCount,
   type LMTask,
   makeId,
   mapToRecord,
+  Signal,
+  type TraceGrader,
 } from '@senars/util';
 import { ApprovalService } from './ApprovalService.js';
 import { type CycleHost, runCycle, runCycleStream } from './agent/phases.js';
@@ -20,6 +22,7 @@ import type {
 import type { ChatOptions, ChatStreamEvent } from './chat.js';
 import type { LLMCortex } from './cortex/LLMCortex.js';
 import type { CognitiveStimulus, Derivation, Engine } from './engine/Engine.js';
+import { invokeEngineHook, sweepEngines } from './engine/sweep.js';
 import type { EventLog } from './eventlog/EventLog.js';
 import { InMemoryEventLog } from './eventlog/InMemoryEventLog.js';
 import { MemoryService } from './memory/MemoryService.js';
@@ -52,7 +55,7 @@ export class Agent {
   readonly sessionManager?: PersistableSessionManager;
   readonly threadScope?: CorrelationScopeStore;
 
-  #cognitiveListeners = new Set<(e: CognitiveEvent) => void>();
+  readonly #cognitive = new Signal<CognitiveEvent>();
   #transports = new Map<string, Connection>();
   #transportHandlers = new Map<string, (msg: { text: string }) => Promise<void>>();
   #skills = new Map<string, SkillDefinition>();
@@ -61,12 +64,7 @@ export class Agent {
     narration: string,
     correlationId: string
   ) => Promise<boolean | { grounded: boolean; score?: number }>;
-  #traceGrader?: (trace: {
-    narration: string;
-    toolCalls: readonly { command: string; success: boolean }[];
-    correlationId: string;
-    egress?: EgressVerdict;
-  }) => Promise<unknown>;
+  #traceGrader?: TraceGrader;
   #narrateTier?: LMTask;
   #macroPipeline?: MacroPhase[];
   #consolidateLearning?: (options: { budget?: number }) => Promise<void>;
@@ -155,12 +153,12 @@ export class Agent {
     this.#transports.delete(id);
   }
 
-  on(_event: string | '*', handler: (e: CognitiveEvent) => void): void {
-    this.#cognitiveListeners.add(handler);
+  on(_event: string | '*', handler: (e: CognitiveEvent) => void): EventUnsubscribe {
+    return this.#cognitive.on(handler);
   }
 
   off(_event: string | '*', handler: (e: CognitiveEvent) => void): void {
-    this.#cognitiveListeners.delete(handler);
+    this.#cognitive.off(handler);
   }
 
   emitCognitive(event: CognitiveEvent): void {
@@ -207,15 +205,7 @@ export class Agent {
   async start(): Promise<void> {
     if (this.#started) return;
     this.#started = true;
-    for (const engine of this.engines.values()) {
-      try {
-        if ('initialize' in engine && typeof engine.initialize === 'function') {
-          await engine.initialize();
-        }
-      } catch {
-        // engine init failed, continue
-      }
-    }
+    await sweepEngines(this.engines, (engine) => invokeEngineHook(engine, 'initialize'));
     await this.memory.load();
     await this.sessionManager?.restore();
   }
@@ -229,15 +219,7 @@ export class Agent {
       this.unmount(id);
       await transport.disconnect('agent stopping');
     }
-    for (const engine of this.engines.values()) {
-      try {
-        if ('shutdown' in engine && typeof engine.shutdown === 'function') {
-          await engine.shutdown();
-        }
-      } catch {
-        // ignore
-      }
-    }
+    await sweepEngines(this.engines, (engine) => invokeEngineHook(engine, 'shutdown'));
   }
 
   async *chat(input: string, opts?: ChatOptions): AsyncGenerator<ChatStreamEvent, string> {
@@ -300,13 +282,7 @@ export class Agent {
   }
 
   #emitCognitive(event: CognitiveEvent): void {
-    for (const listener of this.#cognitiveListeners) {
-      try {
-        listener(event);
-      } catch {
-        /* ignore listener errors */
-      }
-    }
+    this.#cognitive.emit(event);
   }
 
   /** Phase A (REFACTOR.todo1): install a custom macro pipeline (e.g. dialogue Capture phase). */

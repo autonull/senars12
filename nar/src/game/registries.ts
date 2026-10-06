@@ -1,28 +1,17 @@
-import { assertDefined } from '@senars/util';
+import { assertDefined, KeyedRegistry } from '@senars/util';
 import type { CognitionAction, CognitionContext, Reward, Sensor } from './types.js';
 
 /**
  * C1: component registries. Named, seeded, addressable; games compose specs
  * from these (R1). Registration is idempotent per id.
  */
-export class ComponentRegistry<T extends { readonly id: string }> {
-  private readonly components = new Map<string, T>();
-
-  register(component: T): this {
-    this.components.set(component.id, component);
-    return this;
-  }
-
-  get(id: string): T | undefined {
-    return this.components.get(id);
+export class ComponentRegistry<T extends { readonly id: string }> extends KeyedRegistry<T> {
+  constructor() {
+    super({ keyOf: (component) => component.id });
   }
 
   require(id: string): T {
-    return assertDefined(this.components.get(id), `component not registered: ${id}`);
-  }
-
-  all(): T[] {
-    return [...this.components.values()];
+    return assertDefined(this.get(id), `component not registered: ${id}`);
   }
 }
 

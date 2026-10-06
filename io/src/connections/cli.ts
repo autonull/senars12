@@ -8,6 +8,7 @@ import {
   QUIT_SENTINEL,
   splitWords,
 } from '@senars/util';
+import { withDefaults } from '@senars/util/config';
 import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../types.js';
 import { BaseConnection } from './base.js';
 
@@ -21,6 +22,18 @@ export { QUIT_SENTINEL };
 
 /** Deepest command backlog the REPL holds while the previous command is still running. */
 const MAX_QUEUED_COMMANDS = 1000;
+
+interface CLIOptions {
+  name: string;
+  sendFn: (text: string) => void;
+  commands?: CLICommand[];
+}
+
+/** What this transport does when configured with nothing at all. */
+const CLI_DEFAULTS: CLIOptions = {
+  name: 'CLI',
+  sendFn: (text) => console.log(text),
+};
 
 export class CLIConnection extends BaseConnection {
   override readonly type = 'cli';
@@ -36,14 +49,11 @@ export class CLIConnection extends BaseConnection {
 
   constructor(config: ConnectionConfig, deps: ConnectionDeps) {
     super(config, deps);
-    this.name = (config.config.name as string) ?? 'CLI';
-    this.sendFn = (config.config.sendFn as (text: string) => void) ?? ((text) => console.log(text));
+    const { name, sendFn, commands = [] } = withDefaults<CLIOptions>(config.config, CLI_DEFAULTS);
+    this.name = name;
+    this.sendFn = sendFn;
     this.cmdQueue = new BoundedRing<() => Promise<void>>(MAX_QUEUED_COMMANDS);
-    this.commands = new Map();
-    const cmds = (config.config.commands as CLICommand[] | undefined) ?? [];
-    for (const cmd of cmds) {
-      this.commands.set(cmd.name, cmd);
-    }
+    this.commands = new Map(commands.map((cmd) => [cmd.name, cmd]));
   }
 
   override async connect(): Promise<void> {

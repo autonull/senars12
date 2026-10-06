@@ -7,6 +7,7 @@ import {
   type Middleware,
   type ParsedCommand,
   PushQueue,
+  type TraceGrader,
 } from '@senars/util';
 import type { ChatOptions, ChatStreamEvent } from '../chat.js';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
@@ -43,13 +44,7 @@ export interface CycleHost {
   /** System One egress gate (§7.4): returns true (or `{grounded, score}`) when the narration is grounded enough to emit. */
   readonly groundednessGate?: GroundednessGate;
   /** E4: grades the completed cycle (narration + executed tools) into the distillation dataset. */
-  readonly traceGrader?: (trace: {
-    narration: string;
-    toolCalls: readonly { command: string; success: boolean }[];
-    correlationId: string;
-    /** E4 follow-up (b): egress-gate verdict — groundedness ground truth (reject ⇒ observed 0). */
-    egress?: EgressVerdict;
-  }) => Promise<unknown>;
+  readonly traceGrader?: TraceGrader;
   /** H2: default narration tier when the caller passes none. */
   readonly narrateTier?: LMTask;
   /** Phase A: custom macro-cycle phase list; default is `DEFAULT_MACRO_PIPELINE`. */

@@ -8,6 +8,7 @@ import {
   toError,
   withRetry as retry,
 } from '@senars/util';
+import { withDefaults } from '@senars/util/config';
 import type {
   Connection,
   ConnectionConfig,
@@ -15,6 +16,9 @@ import type {
   ConnectionState,
   IOMessage,
 } from '../types.js';
+
+/** The transport-agnostic name a connection carries when configured without one. */
+const CONNECTION_NAME = { name: 'Connection' } as const;
 
 export abstract class BaseConnection implements Connection {
   id: string;
@@ -35,7 +39,7 @@ export abstract class BaseConnection implements Connection {
     this.config = config;
     this.emit = _deps.emit;
     this.id = config.id;
-    this.name = (config.config.name as string) ?? 'Connection';
+    this.name = withDefaults<{ name: string }>(config.config, CONNECTION_NAME).name;
   }
 
   private _state: ConnectionState = 'disconnected';

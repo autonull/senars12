@@ -1,3 +1,4 @@
+import { KeyedRegistry } from '@senars/util';
 import type { Game } from './Game.js';
 import { createArithmeticGame } from './impls/ArithmeticGame.js';
 import { createBanditGame } from './impls/BanditGame.js';
@@ -31,28 +32,17 @@ export class UnknownGameError extends Error {
 }
 
 /** Open registry of playable games — adding a game is implementing `Game` + one spec. */
-export class GameRegistry {
-  private readonly specs = new Map<string, GameSpec>();
-
-  register(spec: GameSpec): this {
-    this.specs.set(spec.name, spec);
-    return this;
-  }
-
-  has(name: string): boolean {
-    return this.specs.has(name);
-  }
-
-  get(name: string): GameSpec | undefined {
-    return this.specs.get(name);
+export class GameRegistry extends KeyedRegistry<GameSpec> {
+  constructor() {
+    super({ keyOf: (spec) => spec.name });
   }
 
   names(): string[] {
-    return [...this.specs.keys()];
+    return this.keys();
   }
 
   create(name: string, seed: number): Game {
-    const spec = this.specs.get(name);
+    const spec = this.get(name);
     if (!spec) throw new UnknownGameError(name, this.names());
     return spec.create(seed);
   }

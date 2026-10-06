@@ -1,4 +1,4 @@
-import { errMsg, toolError } from '@senars/util';
+import { errMsg, KeyedRegistry, toolError } from '@senars/util';
 import { ToolError } from '../../types';
 import type {
   Tool,
@@ -14,26 +14,22 @@ import { validateToolArgs } from './validation';
 
 export type { ToolDescriptor } from '@senars/util';
 
-export class Registry implements ToolRegistry {
-  private tools: Map<string, Tool> = new Map();
-
-  register(tool: Tool): void {
-    if (this.tools.has(tool.name)) {
-      throw new ToolError(`Tool '${tool.name}' is already registered`, { tool: tool.name });
-    }
-    this.tools.set(tool.name, tool);
+export class Registry extends KeyedRegistry<Tool> implements ToolRegistry {
+  constructor() {
+    super({
+      keyOf: (tool) => tool.name,
+      onDuplicate: (name) => {
+        throw new ToolError(`Tool '${name}' is already registered`, { tool: name });
+      },
+    });
   }
 
   unregister(name: string): void {
-    this.tools.delete(name);
-  }
-
-  get(name: string): Tool | undefined {
-    return this.tools.get(name);
+    this.delete(name);
   }
 
   list(_filter?: ToolFilter): Tool[] {
-    return Array.from(this.tools.values());
+    return this.all();
   }
 
   async execute(
@@ -41,7 +37,7 @@ export class Registry implements ToolRegistry {
     args: Record<string, unknown>,
     context?: ToolContext
   ): Promise<ToolResult> {
-    const tool = this.tools.get(name);
+    const tool = this.get(name);
     if (!tool) {
       throw new ToolError(`Tool '${name}' not found`, { tool: name });
     }
@@ -95,6 +91,6 @@ export class Registry implements ToolRegistry {
   }
 
   getCapabilities(name: string): ToolCapabilities | undefined {
-    return this.tools.get(name)?.capabilities;
+    return this.get(name)?.capabilities;
   }
 }

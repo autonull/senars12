@@ -19,10 +19,6 @@
     "./connections/reply-target": {
       "types": "./src/connections/reply-target.ts",
       "import": "./src/connections/reply-target.ts"
-    },
-    "./utils/http": {
-      "types": "./src/utils/http.ts",
-      "import": "./src/utils/http.ts"
     }
   },
   "scripts": {

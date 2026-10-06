@@ -57,7 +57,6 @@ export { ConnectionError } from './types.js';
 export type { ServerStartupOptions } from './utils/http.js';
 /** HTTP/WS server helpers. @public */
 export {
-  ApiKeyManager,
   parseHttpBody,
   setCORSHeaders,
   startHttpServer,

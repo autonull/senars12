@@ -1,5 +1,6 @@
 import { BoundedRing, createLogger, deadline, periodic, removeBy } from '@senars/util';
 import irc, { type Client as IRCClient } from 'irc';
+import { withDefaults } from '@senars/util/config';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { BaseConnection } from './base.js';
 
@@ -34,13 +35,32 @@ const MAX_QUEUED_MESSAGES = 1000;
 /** How long a registration handshake may take before the attempt is abandoned. */
 const CONNECT_TIMEOUT_MS = 10_000;
 
+/** Every default resolved, so no read has to re-apply `??`. */
+type ResolvedIRCConfig = IRCConnectionConfig &
+  Required<Pick<IRCConnectionConfig, 'floodProtectionDelay'>>;
+
+/** What this transport does when configured with nothing at all. */
+const IRC_DEFAULTS: ResolvedIRCConfig = {
+  server: 'localhost',
+  port: 6667,
+  nick: 'senars',
+  channels: ['#senars'],
+  password: '',
+  tls: false,
+  sasl: false,
+  autoReconnect: true,
+  autoReconnectMaxRetries: 10,
+  floodProtectionDelay: 2000,
+  floodProtectionMaxPending: 2,
+  pingTimeout: 60,
+};
+
 export class IRCConnection extends BaseConnection {
   override readonly type = 'irc';
   override readonly logger = createLogger({ scope: 'io:irc' });
   private client: IRCClient | null = null;
   /** Every default resolved in the constructor, so no read has to re-apply `??`. */
-  private readonly ircConfig: IRCConnectionConfig &
-    Required<Pick<IRCConnectionConfig, 'floodProtectionDelay'>>;
+  private readonly ircConfig: ResolvedIRCConfig;
   private pendingMessages: Map<string, string[]> = new Map();
   private readonly messageQueue: BoundedRing<QueuedMessage>;
   private stopQueueDrain: (() => void) | null = null;
@@ -49,27 +69,13 @@ export class IRCConnection extends BaseConnection {
 
   constructor(config: ConnectionConfig, deps: ConnectionDeps) {
     super(config, deps);
-    const cfg = config.config as unknown as IRCConnectionConfig;
-    const nick = cfg.nick ?? 'senars';
+    const { nick, username, realname, ...rest } = withDefaults<ResolvedIRCConfig>(
+      config.config,
+      IRC_DEFAULTS
+    );
     this.name = nick;
     this.messageQueue = new BoundedRing<QueuedMessage>(MAX_QUEUED_MESSAGES);
-    this.ircConfig = {
-      server: cfg.server ?? 'localhost',
-      port: cfg.port ?? 6667,
-      nick,
-      username: cfg.username ?? nick,
-      realname: cfg.realname ?? nick,
-      password: cfg.password ?? '',
-      channels: cfg.channels ?? ['#senars'],
-      tls: cfg.tls ?? false,
-      sasl: cfg.sasl ?? false,
-      autoReconnect: cfg.autoReconnect ?? true,
-      autoReconnectMaxRetries: cfg.autoReconnectMaxRetries ?? 10,
-      floodProtectionDelay: cfg.floodProtectionDelay ?? 2000,
-      floodProtectionMaxPending: cfg.floodProtectionMaxPending ?? 2,
-      pingTimeout: cfg.pingTimeout ?? 60,
-      greeting: cfg.greeting,
-    };
+    this.ircConfig = { ...rest, nick, username: username ?? nick, realname: realname ?? nick };
   }
 
   override async connect(): Promise<void> {

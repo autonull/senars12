@@ -10,8 +10,9 @@ import {
   makeId,
   mapToRecord,
 } from '@senars/util';
+import { withDefaults } from '@senars/util/config';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
-import { ApiKeyManager, parseHttpBody, setCORSHeaders, startHttpServer } from '../utils/http.js';
+import { parseHttpBody, setCORSHeaders, startHttpServer } from '../utils/http.js';
 import { BaseConnection } from './base.js';
 
 /** In-flight handler callbacks a single HTTP connection may hold before dropping the oldest. */
@@ -19,12 +20,21 @@ const MAX_INFLIGHT_REQUESTS = 256;
 /** Handler callbacks unclaimed by a response this long are abandoned. */
 const REQUEST_TIMEOUT_MS = 30_000;
 
+interface HTTPOptions {
+  name: string;
+  port: number;
+  apiKey?: string;
+}
+
+/** What this transport does when configured with nothing at all. */
+const HTTP_DEFAULTS: HTTPOptions = { name: 'HTTP', port: 8080 };
+
 export class HTTPConnection extends BaseConnection {
   override readonly type = 'http';
   override readonly logger = createLogger({ scope: 'io:http' });
   private server: Server | null = null;
   private readonly port: number;
-  private apiKeys = new ApiKeyManager();
+  private readonly apiKeys = new Set<string>();
   private readonly pendingRequests = new BoundedMap<string, (text: string) => void>({
     maxSize: MAX_INFLIGHT_REQUESTS,
     ttlMs: REQUEST_TIMEOUT_MS,
@@ -33,9 +43,9 @@ export class HTTPConnection extends BaseConnection {
 
   constructor(config: ConnectionConfig, deps: ConnectionDeps) {
     super(config, deps);
-    this.name = (config.config.name as string) ?? 'HTTP';
-    this.port = (config.config.port as number) ?? 8080;
-    const apiKey = config.config.apiKey as string;
+    const { name, port, apiKey } = withDefaults<HTTPOptions>(config.config, HTTP_DEFAULTS);
+    this.name = name;
+    this.port = port;
     if (apiKey) this.apiKeys.add(apiKey);
     this.health = deps.health;
   }
@@ -67,8 +77,13 @@ export class HTTPConnection extends BaseConnection {
     }
   }
 
-  addApiKey = (key: string): void => this.apiKeys.add(key);
-  removeApiKey = (key: string): void => this.apiKeys.remove(key);
+  addApiKey = (key: string): void => {
+    this.apiKeys.add(key);
+  };
+
+  removeApiKey = (key: string): void => {
+    this.apiKeys.delete(key);
+  };
 
   private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url || '/', `http://localhost:${this.port}`);

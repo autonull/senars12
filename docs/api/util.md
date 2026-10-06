@@ -72,7 +72,7 @@
 
 - `ValidationError`
 
-- `EventBus`
+- `EventBus` — A named-event fan-out: one listener bag per event name, dropped when empty.
 
 - `ListenerBag` — One subject's listener set — the shared core of {@link EventBus} and
 
@@ -460,9 +460,7 @@
 
 - `KeyedCollection`
 
-- `KeyedMap`
-
-- `KeyedSet`
+- `KeyedRegistry` — A named collection of registered items: {@link KeyedCollection} with the
 
 - `LruCache`
 
@@ -700,6 +698,8 @@
 
 - `validateAgainstBounds` — Validate a config object against a bound table's rows.
 
+- `withDefaults` — A declared configuration record with its caller's values overlaid.
+
 - `type CognitiveBoundCategory`
 
 - `cognitiveBound` — The one reader of {@link cognitiveBounds}, addressed as `category.key`.
@@ -832,7 +832,7 @@
 
 ## `./events`
 
-- `EventBus`
+- `EventBus` — A named-event fan-out: one listener bag per event name, dropped when empty.
 
 - `PushQueue` — Single-writer push buffer exposed as an async iterator — the one bridge
 
@@ -905,6 +905,12 @@
 - `GroundednessGate` — The System One egress gate. Answers `true` for a gate that carries no score, so
 
 - `egressVerdict` — Narrow a gate's answer to the one shape every consumer downstream expects.
+
+- `TracedToolCall` — One tool the agent executed during a cycle, as the trace grader sees it.
+
+- `AgentTrace` — One completed agent cycle, handed to a trace grader at end-of-cycle.
+
+- `TraceGrader` — Grades one completed cycle into a dataset; the return value is the grader's own.
 
 - `ChatStreamEvent`
 

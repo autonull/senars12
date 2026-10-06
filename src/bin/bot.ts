@@ -167,7 +167,11 @@ async function collectChat(rt: BotRuntime, input: string, tier: LMTask): Promise
     // macro pipeline (installed at startup); no fire-and-forget hook here.
     if (trace.enabled && trace.grader && Math.random() < trace.sampleRate) {
       try {
-        const grade = await trace.grader({ narration: response || input, toolCalls: [] });
+        const grade = await trace.grader({
+          correlationId: makeId(),
+          narration: response || input,
+          toolCalls: [],
+        });
         const abstained = grade.groundedness?.abstained ?? false;
         const score = abstained ? grade.contrastiveQuality : grade.groundedness?.score;
         if (score !== undefined && score >= DISTILL_CAPTURE_THRESHOLD) {

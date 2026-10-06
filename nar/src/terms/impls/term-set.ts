@@ -22,16 +22,16 @@ export class TermSet extends TermCollection<Term> {
     return this.deleteEntry(term);
   }
 
-  values(): IterableIterator<Term> {
-    return this.iterProject((t) => t);
+  *values(): Generator<Term> {
+    yield* this.slots.values();
   }
 
   keys(): IterableIterator<Term> {
     return this.values();
   }
 
-  entries(): IterableIterator<[Term, Term]> {
-    return this.iterProject((t) => [t, t] as [Term, Term]);
+  *entries(): Generator<[Term, Term]> {
+    for (const term of this.slots.values()) yield [term, term];
   }
 
   forEach(callbackfn: (value: Term, key: Term, set: TermSet) => void): void {
