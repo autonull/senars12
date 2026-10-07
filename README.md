@@ -4,7 +4,13 @@
 
 SeNARS is a bounded, event-sourced cognitive runtime designed for auditable, continuous operation. It provides a hardened execution kernel that synthesizes uncertain symbolic inference (Non-Axiomatic Logic), exact algebraic rewriting (MeTTa), and optional neural-assisted formalization into a unified, provenance-preserving state machine.
 
-Rather than treating language models as standalone reasoning engines, SeNARS integrates them as untrusted "System 1" proposers within a broader cognitive architecture. Every proposer output — translations, synthesized candidates, policy scores — is judged by a calibrated **Judgment Manifold** before it can influence state. The SeNARS kernel acts as the "System 2" source of truth, enforcing strict epistemic boundaries, resource limits, and structural invariants.
+Rather than treating language models as standalone reasoning engines, SeNARS organizes cognition into two systems, with a governance layer enforcing the boundary between them:
+
+- **System 1 — fast, statistical.** LLM proposers, reflex policies, and the calibrated **Judgment Manifold**, which judges every proposer output — translations, synthesized candidates, policy scores — from one context embedding. These are pattern-matching subsystems: useful, but never a source of logical truth. The Judgment Manifold is System 1 *with discipline*, not System 2 — its judgments are calibrated scores, not proofs.
+- **System 2 — slow, symbolic.** The NAL inference engine and the MeTTa exact-computation substrate: deduction, induction, abduction, and algebraic rewriting under auditable truth-value algebra. This is where conclusions are *derived*.
+- **Kernel gates — governance, neither system.** The Perception, Action, Reward, and Budget gates admit and record. Every state mutation passes through them — from System 1 or System 2 alike — enforcing strict epistemic boundaries, resource limits, and structural invariants.
+
+System 1 *proposes*; System 2 *derives*; the gates *admit and record*.
 
 * **Event-Sourced Provenance:** Every cognitive mutation is an append-only event, enabling deterministic replay, standalone verification, and complete derivation tracing.
 * **Bounded Cognition (AIKR):** Built on the Assumption of Insufficient Knowledge and Resources. The system utilizes bounded priority bags, cooperative yielding, and anytime algorithms to ensure graceful degradation under memory or CPU pressure.
@@ -76,31 +82,65 @@ pnpm exec tsx scripts/rl-parity.ts --env nonstationary --mode native --seeds 5
 
 ## The Trusted Cognitive Kernel
 
+SeNARS separates *how cognition is produced* from *how it becomes state*. Three layers, and the
+boundary between them is mechanical rather than a matter of trust:
+
+- **System 1 — statistical proposers.** LLM translation, the calibrated Judgment Manifold, and
+  reflex policies. Pattern-matching subsystems; useful, but never a source of logical truth.
+- **System 2 — symbolic reasoning.** NAL inference and MeTTa exact computation. Conclusions are
+  *derived* under truth-value algebra, and every derivation carries a trace.
+- **Kernel gates — governance, neither system.** Perception, Action, Reward, and Budget gates
+  mediate *every* state mutation, from either system, and are the only writer to the event log.
+
+The rule that draws the line: **if it runs on embeddings, learned heads, Brier scores, or LM
+calls, it is System 1; if it runs on NAL truth-value algebra, inference rules, or MeTTa rewriting,
+it is System 2; the gates are governance and belong to neither.**
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      UNTRUSTED PROPOSERS                            │
-│  ┌──────────┐   ┌──────────────┐   ┌────────────────────────────┐   │
-│  │ LLM (S1) │   │ NAR Engine   │   │ Reflexes                   │   │
-│  │(Translate│   │(Uncertain    │   │(Fast S1                    │   │
-│  │ & Enrich)│   │  Inference)  │   │ Policies)                  │   │
-│  └────┬─────┘   └──────┬───────┘   └────────────┬───────────────┘   │
-│       │                │                        │                  │
-│       └────────────────┴────────────────────────┘                  │
-│                                │ (Proposals / Tool Requests)        │
-│                                ▼                                    │
-├════════════════════════════════════════════════════════════════════════┤
-│  GATES: PerceptionGate | ActionGate | RewardGate | BudgetGate       │
-├════════════════════════════════════════════════════════════════════════┤
-│                     TRUSTED COGNITIVE KERNEL                        │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │  EVENT LOG (Append-Only)  <-- Source of Truth for State       │  │
-│  ├───────────────────────────────────────────────────────────────┤  │
-│  │  • Type & Schema Validation (Zod)   • Evidence Independence  │  │
-│  │  • Budget Accounting & Throttling   • Derivation Verifier    │  │
-│  │  • Policy Enforcement               • Capability Sandboxing  │  │
-│  └───────────────────────────────────────────────────────────────┘  │
+│            SYSTEM 1 — UNTRUSTED PROPOSERS (statistical)             │
+│ ┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐ │
+│ │ LLM (System 1)    │  │ Judgment Manifold │  │ Reflexes          │ │
+│ │ Translate &       │  │ (System 1)        │  │ (System 1)        │ │
+│ │ enrich natural    │  │ Calibrated heads: │  │ Fast policies:    │ │
+│ │ language into     │  │ ambiguity,        │  │ tabular Q, UCB,   │ │
+│ │ Narsese / MeTTa   │  │ injection risk    │  │ priority picks    │ │
+│ └───────────────────┘  └───────────────────┘  └───────────────────┘ │
+│                                 │ (scored proposals)                │
+│                                 ▼                                   │
+│              SYSTEM 2 — SYMBOLIC REASONING (auditable)              │
+│  ┌─────────────────────────────┐   ┌─────────────────────────────┐  │
+│  │ NAL Inference Engine        │   │ MeTTa Exact Computation     │  │
+│  │ (System 2)                  │   │ (System 2)                  │  │
+│  │ Uncertain logic,            │   │ E-graphs, rewriting,        │  │
+│  │ truth-value algebra,        │   │ dependent types,            │  │
+│  │ deduction, induction,       │   │ pattern matching,           │  │
+│  │ abduction, traces           │   │ exact evaluation            │  │
+│  └─────────────────────────────┘   └─────────────────────────────┘  │
+│                                 │ (derivations, still untrusted)    │
+│                                 ▼                                   │
+├═════════════════════════════════════════════════════════════════════┤
+│             KERNEL GATES — GOVERNANCE (neither system)              │
+│        PerceptionGate | ActionGate | RewardGate | BudgetGate        │
+├═════════════════════════════════════════════════════════════════════┤
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │ EVENT LOG (Append-Only) — Source of Truth for State         │    │
+│  │ • Type & Schema Validation (Zod)   • Evidence Independence  │    │
+│  │ • Budget Accounting & Throttling   • Derivation Verifier    │    │
+│  │ • Policy Enforcement               • Capability Sandboxing  │    │
+│  └─────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+Two properties the diagram encodes deliberately:
+
+- **System 2 is not automatically trusted.** A derivation is only a *candidate*; it reaches the
+  event log through the same gates a System 1 proposal does. The epistemic boundary is enforced by
+  the gates, not by the producing subsystem's label.
+- **The Judgment Manifold is inside System 1.** It is the disciplined half of System 1 — calibrated,
+  digested, and auditable, but built on embeddings and learned heads, so it scores meaning rather
+  than deriving it. It refines *what a proposal says*; it never becomes the reason a conclusion
+  holds.
 
 ### Kernel Gates — Trusted Boundary
 
@@ -268,9 +308,10 @@ As inference moves from cloud to edge — phones, IoT devices, local servers —
 The kernel enforces a strict division of labor between **System 1** and **System 2**:
 
 1. **LLM (System 1)** — Translates Natural Language → formal Narsese/MeTTa candidates
-2. **Symbolic Engine (System 2)** — Performs rigorous deduction with truth algebra
-3. **Kernel Gates** — Validate, budget-check, and admit proposals to the event log
-4. **LLM (System 1)** — Translates results back to Natural Language
+2. **Judgment Manifold (System 1)** — Scores those candidates — task type, ambiguity, injection risk, source quality, feasibility — via calibrated embedding heads. Still statistical; no symbolic derivation occurs here, so its output is a proposal quality score, not a conclusion.
+3. **NAL / MeTTa (System 2)** — Performs rigorous deduction, induction, and exact rewriting with truth algebra. This is where logical conclusions are *derived*, and where the derivation trace comes from.
+4. **Kernel Gates (governance)** — Validate, budget-check, and admit derivations to the append-only event log. Gates admit System 2 output too: a derivation is a candidate until admitted.
+5. **LLM (System 1)** — Translates results back to Natural Language
 
 LLMs dangerously conflate **what is** (beliefs) with **what should be** (goals). In natural language, "The server is down" and "The server should be down" differ by one word but have opposite implications. LLMs mix these freely, leading to reward hacking, sycophancy, and unintended optimization.
 
@@ -671,7 +712,9 @@ LM_PROVIDER=llamacpp LM_LLAMACPP_HOST=http://localhost:8080 pnpm start
 
 ## System One — The Judgment Manifold
 
-System One is SeNARS's calibrated decision layer. Where the kernel gates decide *what enters state*, the Judgment Manifold decides *what the untrusted proposers' outputs mean*: task type, illocution, injection risk, ambiguity, tense, source quality, feasibility, risk, and value — all scored in a single batched pass over one context embedding.
+System One is SeNARS's calibrated decision layer — the *disciplined half of System 1*, and still System 1. It scores with embeddings and learned heads; it does not derive with truth-value algebra, so its judgments are statistical calibrations rather than logical proofs. Calibration buys traceability, not authority.
+
+Where the kernel gates decide *what enters state*, the Judgment Manifold decides *what the untrusted proposers' outputs mean*: task type, illocution, injection risk, ambiguity, tense, source quality, feasibility, risk, and value — all scored in a single batched pass over one context embedding.
 
 All manifold judgments sit **behind** the four kernel gates; enabling System One changes nothing when `systemOne.enabled: false` (the disabled path is byte-identical). See `docs/system-one-guide.md` for the end-user enable/config/troubleshooting guide.
 

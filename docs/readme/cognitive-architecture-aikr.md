@@ -25,9 +25,10 @@ As inference moves from cloud to edge — phones, IoT devices, local servers —
 The kernel enforces a strict division of labor between **System 1** and **System 2**:
 
 1. **LLM (System 1)** — Translates Natural Language → formal Narsese/MeTTa candidates
-2. **Symbolic Engine (System 2)** — Performs rigorous deduction with truth algebra
-3. **Kernel Gates** — Validate, budget-check, and admit proposals to the event log
-4. **LLM (System 1)** — Translates results back to Natural Language
+2. **Judgment Manifold (System 1)** — Scores those candidates — task type, ambiguity, injection risk, source quality, feasibility — via calibrated embedding heads. Still statistical; no symbolic derivation occurs here, so its output is a proposal quality score, not a conclusion.
+3. **NAL / MeTTa (System 2)** — Performs rigorous deduction, induction, and exact rewriting with truth algebra. This is where logical conclusions are *derived*, and where the derivation trace comes from.
+4. **Kernel Gates (governance)** — Validate, budget-check, and admit derivations to the append-only event log. Gates admit System 2 output too: a derivation is a candidate until admitted.
+5. **LLM (System 1)** — Translates results back to Natural Language
 
 LLMs dangerously conflate **what is** (beliefs) with **what should be** (goals). In natural language, "The server is down" and "The server should be down" differ by one word but have opposite implications. LLMs mix these freely, leading to reward hacking, sycophancy, and unintended optimization.
 
