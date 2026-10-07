@@ -118,7 +118,9 @@
   `core/theme.css`, `styles/tokens.ts` (and `build-tokens` no longer emits it),
   `components/index.ts`, `spacegraph-app.ts`, and `src/stories/` (+ its biome ignore). The
   standalone `spacegraph/index.html` now mounts `<spacegraph-viewport>` — it previously mounted an
-  unregistered `<spacegraph-app>` tag and rendered nothing.
+  unregistered `<spacegraph-app>` tag and rendered nothing. All removed files are preserved
+  path-for-path under `docs/archive/ui-dead-artifacts/` (see its `INDEX.md` for per-file
+  resurrection notes and the removal commit).
 
 **Verification**
 

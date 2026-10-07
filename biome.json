@@ -41,6 +41,7 @@
       "!**/*.log",
       "!coverage",
       "!docs/presentations",
+      "!docs/archive/ui-dead-artifacts",
       "!**/pnpm-lock.yaml",
       "!**/peggy-generated.cjs",
       "!ui/spacegraphjs7",
