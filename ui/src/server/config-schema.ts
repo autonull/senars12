@@ -104,3 +104,16 @@ export function applyConfigField(key: string, value: unknown): Partial<typeof DE
   if (Number.isNaN(num)) return null;
   return { [field]: num };
 }
+
+export type ConfigCategory = NonNullable<ConfigFieldType['category']>;
+
+export function resetConfigFields(category?: ConfigCategory): Partial<typeof DEFAULTS> {
+  const schema = buildConfigSchema();
+  const updates: Partial<typeof DEFAULTS> = {};
+  for (const [key, field] of Object.entries(schema)) {
+    if (category && field.category !== category) continue;
+    const narField = KEY_TO_NAR_FIELD[key];
+    if (narField) updates[narField] = DEFAULTS[narField];
+  }
+  return updates;
+}

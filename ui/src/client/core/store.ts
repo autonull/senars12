@@ -489,6 +489,7 @@ export function exposeTestApi(): void {
       getState: (path: string) => storeAtoms[path as TestApiStorePath]?.get(),
     },
     connection: { getState: () => $connectionState.get() },
+    workingMemory: { getTerms: () => $workingMemory.get() },
   };
   w.__testApiExposed = true;
 }

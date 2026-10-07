@@ -196,12 +196,14 @@ export class ConfigHUD extends BaseComponent {
         this.validationErrors.delete(key);
       }
     }
+    send({ type: 'config.reset', category: cat });
     this.requestUpdate();
   }
 
   private resetAll() {
     this.dirtyFields.clear();
     this.validationErrors.clear();
+    send({ type: 'config.reset' });
     this.requestUpdate();
   }
 

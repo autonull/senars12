@@ -10,7 +10,7 @@ import {
   LMStatusMsg,
   LMStatusRequest,
 } from './chat.js';
-import { type ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
+import { type ConfigField, ConfigResetMsg, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
 import { ServerError } from './error.js';
 import { CognitiveDelta } from './graph-ops.js';
 import { NodeHistoryMsg, NodeHistoryRequestMsg } from './history.js';
@@ -28,6 +28,7 @@ import {
 export const IncomingFromClient = z.discriminatedUnion('type', [
   ChatUserMsg,
   ConfigSetMsg,
+  ConfigResetMsg,
   SyncRequest,
   LensSet,
   FocusSet,

@@ -64,7 +64,7 @@
   entries; `lens.set` ⇒ delta tagged `goal`; bogus message ⇒ `server.error invalid_message`;
   `object.set` ⇒ an update delta. *(Playwright itself could not run here — browsers are not installed.)*
 
-**Still open in Phase 0**
+**Still open in Phase 0** *(as of Session 1)*
 
 - 0.3 — the bridge covers 6 event types; still to route `belief.added/revised`,
   `derivation.accepted`, `judgment.resolved`, `proposal.admitted/rejected`, `goal.*`,
@@ -77,7 +77,7 @@
   `components/index.ts` barrel, `spacegraph-app.ts`, `src/stories/` cruft.
 - 0.7 — the full command contract (`test:visual`, `ui:gallery`); server-inclusive typecheck is now real.
 
-**New opportunities spotted**
+**New opportunities spotted** *(Session 1)*
 
 - The no-agent `startTestServer` branch bypasses `handleClientMessage` entirely — it still emits
   unvalidated `cognitive.delta` and never answers `sync.request`. Unify the two connection paths
@@ -85,8 +85,73 @@
 - `telemetry` runs a 1 Hz timer even with zero clients; gate it on `wss.clients.size > 0`.
 - The projection's `#edgeData` drops `truth`/`priority` even though `GraphEdge` now carries them
   (they only survive in the map, not on the wire op) — wire them once the lens needs edge truth.
-- `ui/vitest.config.ts` `__dirname` warning and the regenerated `styles/tokens.{ts,css}` churn on
+- `ui/vitest.config.ts` `__dirname` warning and the regenerated `styles/tokens.css` churn on
   every `pnpm build` are both determinism debt (Phase 1/3).
+
+---
+
+### Session 2 — Phase 0: contract completion + dead-artifact removal (2026-10-07)
+
+**Landed**
+
+- **0.3 — bridge widened.** The `agent.on('*')` bridge now folds in the graph-relevant slice of
+  every engine family: `derivation.made` (+ `rule/cpuMs/lmCalls/lmTokens`), `derivation.accepted`
+  (rule id + premise edges), `belief.added`, `belief.revised` (new truth, `update_node` on a known
+  term), `concept.activated`, `goal.achieved/failed` (`goal:` nodes), `skill.executed`
+  (`metta:skill` node with args/result/durationMs), `proposal.admitted/rejected`
+  (`proposal:` nodes with verdict), `task.admitted`, `atom.derived/retracted`,
+  `belief.retracted`, `conflict:detected`. `GraphNodeDataView` gained optional
+  `rule/cpuMs/lmCalls/lmTokens`; `makeNode` takes an extras bag so provenance rides the wire.
+- **0.4 — real config reset.** New `config.reset` client→server message (optional `category`);
+  the server restores the mapped NAR fields to `DEFAULT_CONFIG` via `resetConfigFields` and
+  rebroadcasts `config.schema`. `config-hud`'s per-category and reset-all buttons now send it
+  instead of only clearing dirty flags. `config.set`/`config.reset` share `applyConfigUpdates`.
+- **0.4 — `<export-import>` implemented.** A focused `export-import` Lit element (export button,
+  paste textarea, import button, inline error) now backs `config-profiles`; the old undefined tag
+  was inert. `handleImport` returns an error string so the child owns the error slot.
+- **0.4 — remaining wiring.** `focusNode`/context-menu focus send the target's `term` (not id);
+  `exportSubgraph` exports the selected node's 1-hop neighborhood instead of the whole graph; the
+  `workingMemory.getTerms()` test namespace is mounted; the 3D viewport subscribes to
+  `graph:fit/search/pan-to/zoom-in/out` (camera-distance zoom, term search + `focusNode`, center
+  pan) and exposes `spacegraph.focusNode`.
+- **0.6 — dead artifacts removed.** `lens-selector.ts` (plus both side-effect imports),
+  `core/theme.css`, `styles/tokens.ts` (and `build-tokens` no longer emits it),
+  `components/index.ts`, `spacegraph-app.ts`, and `src/stories/` (+ its biome ignore). The
+  standalone `spacegraph/index.html` now mounts `<spacegraph-viewport>` — it previously mounted an
+  unregistered `<spacegraph-app>` tag and rendered nothing.
+
+**Verification**
+
+- `pnpm --dir core exec tsc --noEmit` clean; `pnpm --dir ui exec tsc --noEmit` clean.
+- `pnpm --dir ui build` succeeds (tokens.css regenerated, tokens.ts not).
+- UI unit 21/21; root `tests/unit/server` 11/11 (new `config-reset.test.ts` + projection);
+  `biome lint` clean on all 12 changed files.
+
+**Still open in Phase 0**
+
+- 0.3 — the *stream-only* events are not graph-foldable and remain unwired:
+  `judgment.resolved`, `budget.exhausted`, `policy.violation`, `egress.gate.rejected`,
+  `shadow.validation.dropped`. They need the append-only event stream (Phase 6.6), not node ops.
+- 0.3 — edge `truth`/`priority` still do not survive `#edgeData` onto the wire (Phase 6.1/8.2).
+- 0.4 — the standalone `graph-test.html` harness still calls `focus.set` with ids; benign because
+  the server uses terms as ids for concepts, but inconsistent with the prefixed signal nodes.
+- 0.5 — user-triggered reconnect reset and offline-queue expiry remain.
+- 0.7 — `test:visual`/`ui:gallery` deferred to Phase 2 (baselines, `build-gallery.ts`, visual
+  config are Phase 2 deliverables).
+
+**New opportunities spotted** *(Session 2)*
+
+- The 3D zoom handlers move the camera, and `onCameraChange` derives the persisted zoom proxy as
+  `cameraDistance / 500`; the two can fight on rapid zoom. A single `setCamera`-level zoom model
+  would make 2D↔3D viewport state honestly equivalent (Phase 8.5).
+- `proposal:`/`goal:`/`skill:`/`task:` nodes are added but never removed; they will accumulate.
+  Once the event stream lands they belong there, with the graph showing only believed/derived state.
+- `resetConfigFields` already filters by category, but only `nars` fields are mapped today —
+  LLM/system categories become real resets as their fields are added (Phase 9.3).
+- `config-profiles.ts` still uses `prompt()` for "Save as profile" (Phase 5.6 replaces prompts
+  with dialogs).
+- `build-tokens` now only writes CSS; `design-tokens.json` should still be the single source for
+  the future runtime `theme` facade (Phase 3.1).
 
 ---
 
@@ -304,11 +369,11 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 
 - [x] **0.1** Server handlers for `lens.set`, `focus.set`, `object.set`, `node.set`, `lens.define`, `node.history.request`, `sync.request`, wired to projection/engine; validate inbound with `IncomingFromClient.safeParse`, reject with a typed error frame.
 - [x] **0.2** Emit `state.snapshot` (graph + working memory + config + seq), `node.history`, `lens.defined`, `telemetry`; monotonic `seqId`, never `Date.now()`.
-- [ ] **0.3** Widen the bridge: translate every relevant engine event into projection ops + append-only stream — `derivation.made/accepted`, `belief.added/retracted/revised`, `concept.activated`, `conflict:detected`, `goal.achieved/failed`, `skill.executed`, `atom.derived/retracted`, `proposal.admitted/rejected`, `judgment.resolved`, `budget.exhausted`, `policy.violation`, `task.admitted`. Carry rule/cpuMs/lmCalls/lmTokens/truth; real priority/confidence; emit `update_node` on revision. *(partial: 6 event types + truth/priority + update-on-revision done; see log)*
-- [ ] **0.4** Fix dead wiring: implement-or-remove `graph:zoom-in/out|fit|search|pan-to`, `lens:changed`; real config reset; resolve `<export-import>`; add `lm.switch` to the union; fix `focusNode` term/id, `exportSubgraph` scope, `workingMemory` test namespace. *(partial: 2D zoom/fit/search/pan wired, `lens:changed` removed, `lm.switch` added)*
+- [ ] **0.3** Widen the bridge: translate every relevant engine event into projection ops + append-only stream — `derivation.made/accepted`, `belief.added/retracted/revised`, `concept.activated`, `conflict:detected`, `goal.achieved/failed`, `skill.executed`, `atom.derived/retracted`, `proposal.admitted/rejected`, `judgment.resolved`, `budget.exhausted`, `policy.violation`, `task.admitted`. Carry rule/cpuMs/lmCalls/lmTokens/truth; real priority/confidence; emit `update_node` on revision. *(partial: 15 graph-relevant event types wired + provenance fields on the wire; `judgment.resolved`/`budget.exhausted`/`policy.violation`/`egress.gate.rejected`/`shadow.validation.dropped` remain — they need the append-only event stream, see log)*
+- [ ] **0.4** Fix dead wiring: implement-or-remove `graph:zoom-in/out|fit|search|pan-to`, `lens:changed`; real config reset; resolve `<export-import>`; add `lm.switch` to the union; fix `focusNode` term/id, `exportSubgraph` scope, `workingMemory` test namespace. *(partial: real `config.reset` + `<export-import>` + `focusTerm`/export/`workingMemory` fixed; 2D+3D zoom/fit/search/pan wired, `lens:changed` removed, `lm.switch` added)*
 - [x] **0.5** Transport: derive `wss:`; guard `JSON.parse`; cap/expire offline queue; user-triggered reconnect reset; `/health` + `/ready`; traversal-safe static; gate `/test/*` by env flag while keeping Playwright enabled. *(queue cap + `/health`/`/ready` + traversal-safe + gate done; reconnect reset/expiry pending)*
-- [ ] **0.6** Remove/integrate dead artifacts: `lens-selector.ts`, `core/theme.css`, unused `styles/tokens.ts`, `components/index.ts` barrel, `spacegraph-app.ts`, `src/stories/` cruft; fix Storybook aliases + port drift. *(partial: Vite/Vitest/Storybook aliases unified; dead artifacts remain)*
-- [ ] **0.7** Establish the UI command contract (`build`, `typecheck`, `test:unit`, `test:e2e`, `test:visual`, `storybook`, `build-storybook`, `ui:gallery`).
+- [x] **0.6** Remove/integrate dead artifacts: `lens-selector.ts`, `core/theme.css`, unused `styles/tokens.ts`, `components/index.ts` barrel, `spacegraph-app.ts`, `src/stories/` cruft; fix Storybook aliases + port drift. *(done: all six removed; standalone `spacegraph/index.html` now mounts `<spacegraph-viewport>`)*
+- [ ] **0.7** Establish the UI command contract (`build`, `typecheck`, `test:unit`, `test:e2e`, `test:visual`, `storybook`, `build-storybook`, `ui:gallery`). *(server-inclusive typecheck real; `test:visual`/`ui:gallery` deferred to Phase 2 — their baselines, `build-gallery.ts`, and visual config are Phase 2 deliverables)*
 
 **Verification:** every declared client message round-trips in a test; telemetry/history render non-empty against the real server; no `eventBus` emit lacks a listener; build/typecheck/unit/e2e green.
 **Deliverable:** the app stops lying.

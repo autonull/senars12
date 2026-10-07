@@ -87,18 +87,29 @@ export class SpaceGraphViewport extends BaseComponent {
     });
     renderer.connect();
     eventBus.on('graph:layout', this.layoutHandler);
+    eventBus.on('graph:fit', this.fitGraph);
+    eventBus.on('graph:search', this.searchGraph);
+    eventBus.on('graph:pan-to', this.panTo);
+    eventBus.on('graph:zoom-in', this.zoomIn);
+    eventBus.on('graph:zoom-out', this.zoomOut);
     mountTestApi('spacegraph', {
       getNodeCount: () => this.sg?.nodeCount ?? 0,
       getEdgeCount: () => this.sg?.edgeCount ?? 0,
       getNodeData: (id: string) => this.sg?.getNode(id)?.data ?? null,
       getAllNodeIds: () => this.sg?.nodes.map((n) => n.id) ?? [],
       clickNode: (id: string) => this.sg?.getNode(id)?.object?.dispatchEvent?.(new Event('click')),
+      focusNode: (id: string) => this.sg?.focusNode(id, 100, 0.4),
     });
   }
 
   override disconnectedCallback() {
     super.disconnectedCallback();
     eventBus.off('graph:layout', this.layoutHandler);
+    eventBus.off('graph:fit', this.fitGraph);
+    eventBus.off('graph:search', this.searchGraph);
+    eventBus.off('graph:pan-to', this.panTo);
+    eventBus.off('graph:zoom-in', this.zoomIn);
+    eventBus.off('graph:zoom-out', this.zoomOut);
     this.sg?.dispose();
   }
 
@@ -174,6 +185,36 @@ export class SpaceGraphViewport extends BaseComponent {
   private layoutHandler = (layoutName: string) => {
     if (!this.sg) return;
     this.sg.layout(layoutName as any, { animate: true, duration: 1.0 });
+  };
+
+  private fitGraph = () => this.sg?.fitView(undefined, 0.3);
+
+  private panTo = ({ x, y }: { x: number; y: number }) => this.sg?.center(x, 0, y);
+
+  private zoomIn = () => this.zoomBy(1 / 1.3);
+
+  private zoomOut = () => this.zoomBy(1.3);
+
+  private zoomBy = (factor: number) => {
+    if (!this.sg) return;
+    const [px, py, pz] = this.sg.cameraPosition;
+    const [tx, ty, tz] = this.sg.cameraTarget;
+    this.sg.setCamera(
+      [tx + (px - tx) * factor, ty + (py - ty) * factor, tz + (pz - tz) * factor],
+      [tx, ty, tz]
+    );
+  };
+
+  private searchGraph = (query: string) => {
+    if (!this.sg || !query.trim()) return;
+    const needle = query.toLowerCase();
+    const match = this.sg.nodes.find((n) => {
+      const d: Record<string, unknown> = n.data ?? {};
+      return String(d.term ?? d.label ?? n.id)
+        .toLowerCase()
+        .includes(needle);
+    });
+    if (match) this.sg.focusNode(match.id, 100, 0.4);
   };
 
   private setupNodeInteractions(node: any): void {

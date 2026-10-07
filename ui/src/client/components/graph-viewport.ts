@@ -364,7 +364,8 @@ export class GraphViewport extends BaseComponent {
   private contextFocus() {
     if (this.contextTarget) {
       $selectedNodeId.set(this.contextTarget);
-      send({ type: 'focus.set', term: this.contextTarget });
+      const term = $graphNodes.get().get(this.contextTarget)?.term ?? this.contextTarget;
+      send({ type: 'focus.set', term });
     }
     this.closeContextMenu();
   }

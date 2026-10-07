@@ -281,7 +281,7 @@ export class NodeDetailDrawer extends BaseComponent {
 
   private focusNode(id: string) {
     $selectedNodeId.set(id);
-    send({ type: 'focus.set', term: id });
+    send({ type: 'focus.set', term: $graphNodes.get().get(id)?.term ?? id });
   }
 
   private copyTerm() {
@@ -448,18 +448,24 @@ export class NodeDetailDrawer extends BaseComponent {
   }
 
   private exportSubgraph() {
+    const start = this.node?.id;
+    if (!start) return;
     const nodes = $graphNodes.get();
     const edges = $graphEdges.get();
+    const ids = new Set<string>([start]);
+    for (const ed of edges.values()) {
+      if (ed.source === start) ids.add(ed.target);
+      else if (ed.target === start) ids.add(ed.source);
+    }
     const data = {
-      nodes: Array.from(nodes.values()),
-      edges: Array.from(edges.values()),
+      nodes: [...ids].map((id) => nodes.get(id)).filter(Boolean),
+      edges: [...edges.values()].filter((ed) => ids.has(ed.source) && ids.has(ed.target)),
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const nodeId = this.node?.id ?? 'export';
-    a.download = `subgraph-${nodeId}.json`;
+    a.download = `subgraph-${start}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }

@@ -12,7 +12,6 @@ import './components/graph-toolbar.js';
 import './components/connection-banner.js';
 import './components/error-boundary.js';
 import './components/graph-viewport.js';
-import './components/lens-selector.js';
 import './components/input-hud.js';
 import './components/config-hud.js';
 import './components/telemetry-panel.js';

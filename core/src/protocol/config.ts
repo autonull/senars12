@@ -26,3 +26,6 @@ export const ConfigSchemaMsg = msg('config.schema', {
   data: z.record(z.string(), ConfigField),
 });
 export const ConfigSetMsg = msg('config.set', { key: z.string(), value: z.any() });
+export const ConfigResetMsg = msg('config.reset', {
+  category: z.enum(['llm', 'nars', 'system', 'advanced']).optional(),
+});

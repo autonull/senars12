@@ -10,7 +10,6 @@ import '../components/primitives/index.js';
 import '../components/connection-banner.js';
 import '../components/error-boundary.js';
 import '../components/input-hud.js';
-import '../components/lens-selector.js';
 import '../components/contradiction-badge.js';
 import '../components/telemetry-panel.js';
 

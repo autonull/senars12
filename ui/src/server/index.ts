@@ -16,7 +16,7 @@ import { DEFAULT_CONFIG, parseTermToEdges, termParser } from '@senars/nar';
 import { handleMetricsRequest } from '@senars/nar/metrics';
 import { envBool, envPositive, makeId, splitLines } from '@senars/util';
 import { type RawData, WebSocket, WebSocketServer } from 'ws';
-import { applyConfigField, buildConfigSchema } from './config-schema.js';
+import { applyConfigField, buildConfigSchema, resetConfigFields } from './config-schema.js';
 import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -259,7 +259,12 @@ async function aggregateChatResponse(agent: Agent, text: string, ws?: WebSocket)
   return response;
 }
 
-function makeNode(term: string, truth?: Truth, priority?: number): GraphNodeData {
+function makeNode(
+  term: string,
+  truth?: Truth,
+  priority?: number,
+  extra: Partial<GraphNodeData> = {}
+): GraphNodeData {
   return {
     id: term,
     term,
@@ -267,6 +272,7 @@ function makeNode(term: string, truth?: Truth, priority?: number): GraphNodeData
     nodeType: 'nar:concept',
     ...(truth ? { truth } : {}),
     ...(priority !== undefined ? { priority } : {}),
+    ...extra,
   };
 }
 
@@ -283,7 +289,7 @@ function createServerWithProjection(agent?: Agent): {
     agent.on('*', (event: CognitiveEvent) => {
       switch (event.type) {
         case 'derivation.made': {
-          const { conclusion, premises } = event.payload;
+          const { conclusion, premises, rule, cpuMs, lmCalls, lmTokens } = event.payload;
           const truth = nar()
             ?.getBeliefs?.()
             .find((b) => b.term.toString() === conclusion)?.truth;
@@ -309,7 +315,40 @@ function createServerWithProjection(agent?: Agent): {
               /* structural parse is best-effort decoration */
             }
           }
-          projection.applyDelta({ nodes: [makeNode(conclusion, truth)], edges });
+          projection.applyDelta({
+            nodes: [makeNode(conclusion, truth, undefined, { rule, cpuMs, lmCalls, lmTokens })],
+            edges,
+          });
+          break;
+        }
+        case 'derivation.accepted': {
+          const { conclusion, premises, truth, ruleId } = event.payload;
+          projection.applyDelta({
+            nodes: [makeNode(conclusion, truth, undefined, { rule: ruleId })],
+            edges: premises.map((premise) => ({
+              source: premise,
+              target: conclusion,
+              type: 'derivation',
+              weight: 1,
+              directed: true,
+            })),
+          });
+          break;
+        }
+        case 'belief.added': {
+          const { term, truth } = event.payload;
+          projection.applyDelta({
+            nodes: [makeNode(term, truth, projection.node(term)?.priority)],
+            edges: [],
+          });
+          break;
+        }
+        case 'belief.revised': {
+          const { term, newTruth } = event.payload;
+          projection.applyDelta({
+            nodes: [makeNode(term, newTruth, projection.node(term)?.priority)],
+            edges: [],
+          });
           break;
         }
         case 'concept.activated': {
@@ -330,6 +369,64 @@ function createServerWithProjection(agent?: Agent): {
           const { atom, space } = event.payload;
           projection.applyDelta({
             nodes: [{ id: atom, atom, label: atom, nodeType: 'metta:atom', space }],
+            edges: [],
+          });
+          break;
+        }
+        case 'goal.achieved': {
+          const goal = event.payload.goal;
+          projection.applyDelta({
+            nodes: [makeNode(`goal:${goal}`, undefined, undefined, { type: 'goal', result: 'achieved' })],
+            edges: [],
+          });
+          break;
+        }
+        case 'goal.failed': {
+          const { goal, reason } = event.payload;
+          projection.applyDelta({
+            nodes: [makeNode(`goal:${goal}`, undefined, undefined, { type: 'goal', result: reason })],
+            edges: [],
+          });
+          break;
+        }
+        case 'skill.executed': {
+          const { skill, args, result, durationMs } = event.payload;
+          projection.applyDelta({
+            nodes: [
+              {
+                id: `skill:${skill}`,
+                skill,
+                label: skill,
+                nodeType: 'metta:skill',
+                args,
+                result,
+                durationMs,
+              },
+            ],
+            edges: [],
+          });
+          break;
+        }
+        case 'proposal.admitted': {
+          const { proposalId, kind } = event.payload;
+          projection.applyDelta({
+            nodes: [makeNode(`proposal:${proposalId}`, undefined, undefined, { type: 'proposal', result: `admitted:${kind}` })],
+            edges: [],
+          });
+          break;
+        }
+        case 'proposal.rejected': {
+          const { proposalId, reason } = event.payload;
+          projection.applyDelta({
+            nodes: [makeNode(`proposal:${proposalId}`, undefined, undefined, { type: 'proposal', result: `rejected:${reason}` })],
+            edges: [],
+          });
+          break;
+        }
+        case 'task.admitted': {
+          const { taskId, term } = event.payload;
+          projection.applyDelta({
+            nodes: [makeNode(`task:${taskId}`, undefined, undefined, { type: 'task', term, label: term })],
             edges: [],
           });
           break;
@@ -424,6 +521,23 @@ function createServerWithProjection(agent?: Agent): {
     );
   }
 
+  function broadcastConfigSchema(): void {
+    const schema = buildConfigSchema(currentNarConfig);
+    for (const client of wss.clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({ type: 'config.schema', data: schema }));
+      }
+    }
+  }
+
+  function applyConfigUpdates(updates: Partial<typeof currentNarConfig>): void {
+    const engine = nar();
+    if (!engine?.setConfig) return;
+    engine.setConfig(updates);
+    Object.assign(currentNarConfig, updates);
+    broadcastConfigSchema();
+  }
+
   function handleClientMessage(ws: WebSocket, msg: IncomingFromClient): void {
     switch (msg.type) {
       case 'chat.user':
@@ -442,18 +556,12 @@ function createServerWithProjection(agent?: Agent): {
         return;
       case 'config.set': {
         const updates = applyConfigField(msg.key, msg.value);
-        const engine = nar();
-        if (!updates || !engine?.setConfig) return;
-        engine.setConfig(updates);
-        Object.assign(currentNarConfig, updates);
-        const schema = buildConfigSchema(currentNarConfig);
-        for (const client of wss.clients) {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'config.schema', data: schema }));
-          }
-        }
+        if (updates) applyConfigUpdates(updates);
         return;
       }
+      case 'config.reset':
+        applyConfigUpdates(resetConfigFields(msg.category));
+        return;
       case 'sync.request':
         sendStateSnapshot(ws);
         return;

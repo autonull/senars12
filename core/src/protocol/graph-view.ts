@@ -24,6 +24,11 @@ export const GraphNodeDataView = z.object({
   args: z.array(z.string()).optional(),
   type: z.string().optional(),
   result: z.string().optional(),
+  /** Derivation provenance: which NAL rule produced this node, and what it cost. */
+  rule: z.string().optional(),
+  cpuMs: z.number().optional(),
+  lmCalls: z.number().optional(),
+  lmTokens: z.number().optional(),
 });
 export type GraphNodeDataView = z.infer<typeof GraphNodeDataView>;
 
