@@ -264,6 +264,7 @@ normal part of development** — no manual UI audit gate.
 - Reuse `store`, `GraphRenderer`, `UnifiedGraphProjection`, `RendererApi`, lenses, tokens, Playwright fixtures. No rewrite, no second state system.
 - Keep `main` green: `pnpm --dir ui build`, `typecheck`, `test:unit`, and relevant `test:e2e` at each phase boundary.
 - Terse syntax, named imports, focused functions, specific error types, no empty catches, no dead code (per `AGENTS.md`).
+- **Archive before deleting.** Removing a file/artifact is never a bare `rm`: preserve it path-for-path under `docs/archive/ui-dead-artifacts/`, add an `INDEX.md` entry (why removed, removal commit, last-live revision, restore steps), and exclude it from tooling. Applies to every phase, including 11.5.
 - No secrets/logs; no PR/commit unless asked.
 
 ---
@@ -535,7 +536,7 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [ ] **11.2** Error taxonomy: specific error types with context, surfaced in log + error boundary; optional client telemetry behind a flag.
 - [ ] **11.3** Docs as code: `docs/ui/` — architecture map, registry/descriptor catalog (generated from Storybook), test/visual workflow, scenario authoring; `README.md` stays generated via `docs/readme/*`.
 - [ ] **11.4** UI gate: typecheck + unit + scenario seeds + visual regression, wired into `pnpm gates`.
-- [ ] **11.5** Remove residual duplication/dead code; keep one source per concept.
+- [ ] **11.5** Remove residual duplication/dead code; keep one source per concept. Every removal is archived (`docs/archive/ui-dead-artifacts/`, §2.2), not deleted outright.
 
 **Verification:** gates clean; a contributor adds a surface (descriptor + `renderBody`) and gets story + gallery + a11y + docs automatically.
 **Deliverable:** an evolvable product surface with a self-serve quality loop.
@@ -592,6 +593,7 @@ proposal, MeTTa rewrite, temporal ordering.
 - Empty/loading/error/degraded slots present and baselined.
 - No fake state on a product surface; synthetic injectors test-only and labelled.
 - No duplicated concept: color, events, fields, lens validation, layouts, IDs, scenarios each have one source.
+- No bare deletions: every removed artifact is archived under `docs/archive/ui-dead-artifacts/` with an index entry (§2.2).
 - The gallery reflects the current UI and is reviewable without opening a browser interactively.
 
 ---
