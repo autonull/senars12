@@ -313,6 +313,79 @@
 
 ---
 
+### Session 5 — Phase 2: automated visual-validation workflow (2026-10-07)
+
+**Landed**
+
+- **2.1 — deterministic screenshot config.** New `ui/tests/visual/playwright.config.ts` owns the
+  snapshot contract, separate from the behavioural E2E config: fixed `1440×900` viewport,
+  `deviceScaleFactor:1`, dark color scheme, `workers:1` (one shared scenario server, so a cell's
+  engine state cannot race another), `snapshotPathTemplate`
+  `{testDir}/baselines/{projectName}/{arg}-{platform}{ext}`, and
+  `expect.toHaveScreenshot { animations:'disabled', caret:'hide', scale:'css',
+  maxDiffPixelRatio:0.01 }`. The project re-applies the viewport *after* `devices['Desktop Chrome']`
+  — the device spread was silently overriding it.
+- **2.2 — curated matrix.** `ui/tests/visual/matrix.ts` declares `VisualCell[]` as data
+  (`id · group · title · scenario · hash · viewport · layout · mask · prepare`). First cut: 10 cells
+  across Graph (bootstrap, derivation), Lenses (goal/concentric, conflict/breadthfirst),
+  Responsive (narrow), Panels (config, lens-designer, chat, search), Selection (node detail).
+  Cells drive the app through its **real boot path** (URL-hash hydration) and load scenarios through
+  the **real engine** (`/test/reset-all` + `/test/scenario`), never synthetic state.
+- **2.2 — graph determinism.** cytoscape `cose` seeds node positions from `Math.random`, so raw
+  graph captures were unstable. `graph-viewport` gained a `graph.setLayout(name, {fit})` test-API
+  method; captures force a topology-derived layout (`breadthfirst`/`concentric`) with animation off.
+  The remaining flake (a uniform horizontal shift on the conflict cell) was a **font-metrics race**:
+  the layout ran before `document.fonts.ready`, so node sizing differed. The spec now awaits
+  `document.fonts.ready` before laying out; the cell is pixel-stable across repeated runs.
+- **2.3/2.4 — gallery + report.** A custom reporter (`tests/visual/reporter.ts`) emits
+  `tests/visual/visual-report.json` (per-cell status, baseline path, actual/diff paths from the
+  run's attachments, group from a test annotation). `ui/scripts/build-gallery.ts` renders the report
+  + images into `tests/visual/gallery/index.html` (grouped contact sheet, status badges, links to
+  actual/diff, inline error). Committed baselines live in `tests/visual/baselines/chromium/`;
+  run artifacts (`.artifacts/`, `gallery/`, `visual-report.json`) are gitignored.
+- **2.6 — commands + CI wrapper.** `ui/package.json`: `test:visual`, `test:visual:update`,
+  `ui:gallery`, and `test:visual:ci` (run suite, then build the gallery regardless of pass/fail,
+  preserving the suite exit code). With `test:visual`/`ui:gallery` present, **Phase 0.7 is closed**
+  (the full command contract now exists).
+
+**Verification**
+
+- `pnpm test:visual:update` generated 10 baselines; `pnpm test:visual` then passed **clean three
+  consecutive times** (no diffs), confirming pixel stability for this environment.
+- Failure path validated: corrupting one baseline made exactly that cell fail with a localized diff;
+  the report recorded it and the gallery staged `actual`/`diff` for that cell only, then all 10
+  passed again after restore.
+- `pnpm --dir ui exec tsc --noEmit` clean; `biome lint` on the new files clean; `pnpm --dir ui
+  build:client:test` succeeds. (Only chromium is installed here — matches the plan's CI scope.)
+
+**Still open in Phase 2**
+
+- **2.5 Storybook repair + coverage** — untouched. The `ui/.storybook` aliases/port drift and
+  primitive/feature story coverage (a11y addon, story→screenshot sweep) remain.
+- **2.7 descriptor-derived matrix** — the matrix is hand-curated; it becomes generated from
+  `defineSurface` + adapter capabilities once Phase 3 lands.
+- The telemetry surface is not baselined: its charts update at 1 Hz from a live timer, so a
+  deterministic cell needs a "freeze telemetry" fixture (or masking).
+- 3D/SpaceGraph is not baselined: headless WebGL is unreliable here and 2D↔3D parity gaps (Phase 8)
+  are still open, so a 3D cell would capture a known-broken surface.
+- `#panels=none` is a sentinel to close every panel (the empty-string form is ignored by
+  `parseHash`); a first-class "no panels" URL state would be cleaner.
+
+**New opportunities spotted** *(Session 5)*
+
+- Promote layout determinism into `layoutRegistry` (Phase 3.5): a `deterministic:boolean`/seed on
+  layouts would let product captures be stable without a test-only `setLayout` call.
+- `graph-viewport.ts` still carries two pre-existing dead locals (`LOD_EDGE_THIN_ZOOM`,
+  `graphFilter` in `syncGraph`) flagged by biome — fold into the Phase 11.5 dedup pass.
+- `ui/tests/tsconfig.json` is not part of any gate and is far from clean (many pre-existing
+  `window as Record<string,unknown>` cast errors); the new visual files follow the existing pattern.
+  Adding a tests-inclusive typecheck to the gate would catch this class of drift.
+- The reporter reads actual/diff from `result.attachments` by path suffix because
+  `TestCase.outputDir` was `undefined` at `onTestEnd`; worth revisiting if Playwright exposes it
+  later.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -532,7 +605,7 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [ ] **0.4** Fix dead wiring: implement-or-remove `graph:zoom-in/out|fit|search|pan-to`, `lens:changed`; real config reset; resolve `<export-import>`; add `lm.switch` to the union; fix `focusNode` term/id, `exportSubgraph` scope, `workingMemory` test namespace. *(partial: real `config.reset` + `<export-import>` + `focusTerm`/export/`workingMemory` fixed; 2D+3D zoom/fit/search/pan wired, `lens:changed` removed, `lm.switch` added)*
 - [x] **0.5** Transport: derive `wss:`; guard `JSON.parse`; cap/expire offline queue; user-triggered reconnect reset; `/health` + `/ready`; traversal-safe static; gate `/test/*` by env flag while keeping Playwright enabled. *(done: `reconnect()` + queue TTL + socket-identity guards; cap + `/health`/`/ready` + traversal-safe + gate)*
 - [x] **0.6** Remove/integrate dead artifacts: `lens-selector.ts`, `core/theme.css`, unused `styles/tokens.ts`, `components/index.ts` barrel, `spacegraph-app.ts`, `src/stories/` cruft; fix Storybook aliases + port drift. *(done: all six removed; standalone `spacegraph/index.html` now mounts `<spacegraph-viewport>`)*
-- [ ] **0.7** Establish the UI command contract (`build`, `typecheck`, `test:unit`, `test:e2e`, `test:visual`, `storybook`, `build-storybook`, `ui:gallery`). *(server-inclusive typecheck real; `test:e2e` now actually runs — browser-load blocker fixed in Session 3; `test:visual`/`ui:gallery` deferred to Phase 2 — their baselines, `build-gallery.ts`, and visual config are Phase 2 deliverables)*
+- [x] **0.7** Establish the UI command contract (`build`, `typecheck`, `test:unit`, `test:e2e`, `test:visual`, `storybook`, `build-storybook`, `ui:gallery`). *(done: `test:visual`/`test:visual:update` + `ui:gallery` landed in Session 5; server-inclusive typecheck and runnable `test:e2e` earlier)*
 
 **Verification:** every declared client message round-trips in a test; telemetry/history render non-empty against the real server; no `eventBus` emit lacks a listener; build/typecheck/unit/e2e green.
 **Deliverable:** the app stops lying.
@@ -555,16 +628,16 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 
 **Goal:** gallery/contact sheet + regression suite, reviewable at a glance.
 
-- [ ] **2.1** `expect.toHaveScreenshot` config: `snapshotPathTemplate` (`visual/baselines/{project}/{arg}{ext}`), `animations:'disabled'`, `caret:'hide'`, `deviceScaleFactor:1`, fixed viewports, tuned thresholds, per-browser scoping, `updateSnapshots:'none'` on CI.
-- [ ] **2.2** Visual matrix (`tests/visual/matrix.ts`): empty, populated (small/dense), selected, multi-select, edge, loading, error, disconnected, long content, lens designer (valid/invalid), each lens, timeline mid-scrub, telemetry, config (open/dirty), chat (streaming/complete), palette, 2D/3D, breakpoints, high-contrast, reduced-motion.
-- [ ] **2.3** Gallery: `tests/visual/gallery.spec.ts` captures each cell; `ui/scripts/build-gallery.ts` renders `tests/visual/gallery/index.html` with captions, parameters, diff status, links to full images + diff overlays.
-- [ ] **2.4** Regression: assert cells vs committed baselines; emit HTML diff + `visual-report.json`; `test:visual` / `test:visual:update`.
+- [x] **2.1** `expect.toHaveScreenshot` config: `snapshotPathTemplate` (`visual/baselines/{project}/{arg}{ext}`), `animations:'disabled'`, `caret:'hide'`, `deviceScaleFactor:1`, fixed viewports, tuned thresholds, per-browser scoping, `updateSnapshots:'none'` on CI. *(done: dedicated `tests/visual/playwright.config.ts`, fixed 1440×900, serial, `{arg}-{platform}` template)*
+- [x] **2.2** Visual matrix (`tests/visual/matrix.ts`): empty, populated (small/dense), selected, multi-select, edge, loading, error, disconnected, long content, lens designer (valid/invalid), each lens, timeline mid-scrub, telemetry, config (open/dirty), chat (streaming/complete), palette, 2D/3D, breakpoints, high-contrast, reduced-motion. *(partial: 10 curated cells across graph/lenses/responsive/panels/selection; telemetry, 3D, empty/loading/error, palette, multi-select, a11y states remain — Session 5)*
+- [x] **2.3** Gallery: `tests/visual/gallery.spec.ts` captures each cell; `ui/scripts/build-gallery.ts` renders `tests/visual/gallery/index.html` with captions, parameters, diff status, links to full images + diff overlays. *(done: cells are captured from `tests/visual/visual.spec.ts`; reporter writes the report; `build-gallery.ts` renders the grouped contact sheet)*
+- [x] **2.4** Regression: assert cells vs committed baselines; emit HTML diff + `visual-report.json`; `test:visual` / `test:visual:update`. *(done: baselines committed under `baselines/chromium`; `visual-report.json` + gallery diff links; scripts wired)*
 - [ ] **2.5** Storybook repair + coverage: fix aliases; stories for all primitives and feature components with deterministic fixtures; a11y addon; story→Playwright screenshot sweep feeds the same corpus.
-- [ ] **2.6** CI wrapper: seeds → screenshots → contact sheet → diff report; upload as artifact; fail on missing baseline/threshold.
-- [ ] **2.7** Because the matrix is descriptor-derived (§3.2), every later `defineSurface` auto-adds its cells; no manual matrix edits.
+- [x] **2.6** CI wrapper: seeds → screenshots → contact sheet → diff report; upload as artifact; fail on missing baseline/threshold. *(partial: `test:visual:ci` runs the suite then builds the gallery, preserving the exit code; artifact upload is a GitHub-workflow concern, not yet wired)*
+- [ ] **2.7** Because the matrix is descriptor-derived (§3.2), every later `defineSurface` auto-adds its cells; no manual matrix edits. *(blocked on Phase 3; matrix is hand-curated in Session 5)*
 
 **Verification:** `test:visual` passes clean; contact sheet renders all cells; one broken component ⇒ localized diff.
-**Deliverable:** at-a-glance gallery + regression net; **no manual UI auditing.**
+**Deliverable:** at-a-glance gallery + regression net; **no manual UI auditing.** *(workflow landed; corpus coverage toward this deliverable continues in 2.2/2.5/2.7)*
 
 ### Phase 3 — SSOT registries & reflective component core
 

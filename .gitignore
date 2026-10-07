@@ -29,6 +29,11 @@ ui/test-results.json
 coverage
 performance-results
 
+# Visual regression run artifacts (committed baselines live in ui/tests/visual/baselines)
+ui/tests/visual/.artifacts/
+ui/tests/visual/gallery/
+ui/tests/visual/visual-report.json
+
 *storybook.log
 storybook-static
 test-results/

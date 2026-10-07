@@ -128,6 +128,13 @@ export class GraphViewport extends BaseComponent {
         $graphNodes.set(nodes);
         $graphEdges.set(edges);
       },
+      /** Deterministic layout for visual captures: no animation, exact name. */
+      setLayout: (name: string, opts: { fit?: boolean } = {}) => {
+        if (!this.cy) return;
+        const def = layoutRegistry.get(name);
+        if (!def) return;
+        this.cy.layout(def.getLayout(this.cy, { fit: opts.fit ?? true, animate: false })).run();
+      },
     });
   }
 

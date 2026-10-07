@@ -51,7 +51,10 @@
     "test:e2e:debug": "pnpm build:client:test && playwright test --config tests/playwright.config.ts --debug",
     "test:e2e:smoke": "pnpm build:client:test && playwright test tests/scenarios/smoke --config tests/playwright.config.ts",
     "test:e2e:critical": "pnpm build:client:test && playwright test --config tests/playwright.config.ts --grep @critical",
-    "test:visual:update": "pnpm build:client:test && playwright test --config tests/playwright.config.ts --update-snapshots",
+    "test:visual": "pnpm build:client:test && playwright test --config tests/visual/playwright.config.ts",
+    "test:visual:update": "pnpm build:client:test && playwright test --config tests/visual/playwright.config.ts --update-snapshots",
+    "test:visual:ci": "pnpm build:client:test && playwright test --config tests/visual/playwright.config.ts; STATUS=$?; pnpm ui:gallery; exit $STATUS",
+    "ui:gallery": "tsx scripts/build-gallery.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
