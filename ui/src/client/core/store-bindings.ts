@@ -18,6 +18,7 @@ import {
   $streamingDelta,
   $telemetry,
   $workingMemory,
+  pushServerError,
   registerLens,
 } from './store.js';
 
@@ -159,6 +160,11 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
 
     case 'lm.status':
       $lmStatus.set(msg.data);
+      break;
+
+    case 'server.error':
+      pushServerError(msg.code, msg.message);
+      console.error('[Server]', msg.code, msg.message, msg.context ?? '');
       break;
   }
 }

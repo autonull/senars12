@@ -6,10 +6,12 @@ import {
   ChatAgentComplete,
   ChatAgentStream,
   ChatUserMsg,
+  LMSwitchMsg,
   LMStatusMsg,
   LMStatusRequest,
 } from './chat.js';
 import { type ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
+import { ServerError } from './error.js';
 import { CognitiveDelta } from './graph-ops.js';
 import { NodeHistoryMsg, NodeHistoryRequestMsg } from './history.js';
 import { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './lens-msgs.js';
@@ -35,6 +37,7 @@ export const IncomingFromClient = z.discriminatedUnion('type', [
   LensDefineMsg,
   NodeHistoryRequestMsg,
   LMStatusRequest,
+  LMSwitchMsg,
 ]);
 export const IncomingFromServer = z.discriminatedUnion('type', [
   ChatAgentStream,
@@ -48,6 +51,7 @@ export const IncomingFromServer = z.discriminatedUnion('type', [
   LensFieldsMsg,
   NodeHistoryMsg,
   LMStatusMsg,
+  ServerError,
 ]);
 export type IncomingFromClient = z.infer<typeof IncomingFromClient>;
 export type IncomingFromServer = z.infer<typeof IncomingFromServer>;

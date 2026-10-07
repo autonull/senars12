@@ -6,6 +6,11 @@
     "useDefineForClassFields": false,
     "types": ["node"]
   },
-  "include": ["src/client/**/*.ts", "src/backend/**/*.ts", "src/shared/**/*.ts"],
-  "exclude": ["node_modules", "dist", "src/server"]
+  "include": [
+    "src/client/**/*.ts",
+    "src/backend/**/*.ts",
+    "src/server/**/*.ts",
+    "src/shared/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
 }

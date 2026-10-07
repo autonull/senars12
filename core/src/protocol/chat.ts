@@ -33,4 +33,5 @@ export const ChatAgentComplete = msg('chat.agent.complete', {
   messageId: z.string(),
 });
 export const LMStatusRequest = msg('lm.status.request', {});
+export const LMSwitchMsg = msg('lm.switch', { provider: nonEmpty });
 export const LMStatusMsg = msg('lm.status', { data: z.record(z.string(), z.unknown()) });

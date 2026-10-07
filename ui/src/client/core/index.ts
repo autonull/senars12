@@ -20,6 +20,7 @@ export {
   $lensLayout,
   $lensRegistry,
   $lensViewport,
+  $lmStatus,
   $nodeHistory,
   $panels,
   $selectedEdgeId,

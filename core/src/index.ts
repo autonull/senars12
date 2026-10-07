@@ -211,9 +211,12 @@ export {
   LENS_LABELS,
   Lens,
   type LensFieldDescriptor,
+  LMSwitchMsg,
   MettaAtomNode,
   MettaSkillNode,
   NarConceptNode,
+  ServerError,
+  type ServerErrorCode,
 } from './protocol/index.js';
 /** The one cognitive event union, and the two runtime guards over it. @public */
 export type { CognitiveEvent } from './schemas/cognitive-events.js';

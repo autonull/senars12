@@ -4,13 +4,15 @@ import { applyServerMessage } from './store-bindings.js';
 
 function resolveWsUrl(): string {
   if (typeof location === 'undefined') return 'ws://localhost/ws';
-  return `ws://${location.host}/ws`;
+  const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${scheme}//${location.host}/ws`;
 }
 
 const RECONNECT_BASE_MS = 500;
 const RECONNECT_MAX_MS = 10_000;
 const MAX_RECONNECT_ATTEMPTS = 20;
 const PING_INTERVAL_MS = 25_000;
+const MAX_PENDING_MESSAGES = 100;
 
 let socket: WebSocket | null = null;
 let reconnectAttempt = 0;
@@ -41,7 +43,14 @@ export function connect(): void {
 
   socket.onmessage = (ev) => {
     if (ev.data === 'pong') return;
-    const parsed = IncomingFromServer.safeParse(JSON.parse(ev.data as string));
+    let json: unknown;
+    try {
+      json = JSON.parse(ev.data as string);
+    } catch {
+      console.error('[WS] Dropped non-JSON frame');
+      return;
+    }
+    const parsed = IncomingFromServer.safeParse(json);
     if (!parsed.success) {
       console.error('[WS] Malformed message dropped:', parsed.error, ev.data);
       return;
@@ -102,9 +111,12 @@ function flushPending(): void {
 export function send(msg: Record<string, unknown>): void {
   if (socket?.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(msg));
-  } else {
-    pendingMessages.push(msg);
+    return;
   }
+  // Bounded: an offline client used to queue without limit. The oldest intent is
+  // the least likely to still matter, so it is dropped rather than the newest.
+  if (pendingMessages.length >= MAX_PENDING_MESSAGES) pendingMessages.shift();
+  pendingMessages.push(msg);
 }
 
 export function disconnect(): void {

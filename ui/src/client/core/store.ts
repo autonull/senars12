@@ -86,6 +86,22 @@ export const $connectionState = atom<'connecting' | 'connected' | 'reconnecting'
 );
 export const $lastSeqId = atom<number | null>(null);
 
+export interface ServerErrorRecord {
+  code: string;
+  message: string;
+  at: number;
+}
+
+const SERVER_ERROR_CAP = 20;
+export const $serverErrors = atom<ServerErrorRecord[]>([]);
+
+export function pushServerError(code: string, message: string): void {
+  $serverErrors.set([
+    ...$serverErrors.get().slice(-(SERVER_ERROR_CAP - 1)),
+    { code, message, at: Date.now() },
+  ]);
+}
+
 // --- WebLLM ---
 export const $webllmAvailable = atom<boolean>(false);
 export const $webllmActive = atom<boolean>(false);

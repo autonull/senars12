@@ -9,7 +9,6 @@
  * misspelled event name or a `pan-to` carrying the wrong shape is a compile
  * error rather than a dead control.
  */
-import type { Lens } from '@senars/core';
 import { EventBus } from '@senars/util';
 
 /**
@@ -26,7 +25,6 @@ export type UiSignals = {
   'graph:zoom-out': void;
   'graph:fit': void;
   'graph:minimap-toggle': void;
-  'lens:changed': Lens;
 };
 
 export const eventBus = new EventBus<UiSignals>();

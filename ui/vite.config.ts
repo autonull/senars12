@@ -1,14 +1,12 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
+import { resolveAliases } from './vite.aliases.js';
 
 export default defineConfig({
   root: 'src/client',
   base: '/',
   resolve: {
-    alias: {
-      spacegraphjs: resolve(__dirname, 'spacegraphjs7/src/index.ts'),
-      '@senars/core': resolve(__dirname, '../core/src/protocol/index.ts'),
-    },
+    alias: resolveAliases,
   },
   build: {
     outDir: '../../dist/client',

@@ -1,11 +1,9 @@
-import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
+import { resolveAliases } from './vite.aliases.js';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      spacegraphjs: resolve(__dirname, 'spacegraphjs7/src/index.ts'),
-    },
+    alias: resolveAliases,
   },
   test: {
     include: ['tests/**/*.test.ts'],

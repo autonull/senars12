@@ -9,6 +9,87 @@
 
 ---
 
+## Progress log
+
+### Session 1 — Phase 0: server contract + transport (2026-10-07)
+
+**Landed**
+
+- **0.1 — inbound contract.** The server now validates every client frame with
+  `IncomingFromClient.safeParse` and replies to a rejection with a typed
+  `server.error` frame (`invalid_message` / `unsupported` / `not_available` / `internal`).
+  Previously only `chat.user` / `config.set` / two LM messages were read by name and every
+  other declared message was silently ignored. One `handleClientMessage` switch now dispatches
+  `lens.set`, `focus.set`, `viewport.set`, `object.set`, `node.set`, `lens.define`,
+  `node.history.request`, `sync.request`, `lm.status.request`, `lm.switch` (protocol constant
+  `LMSwitchMsg` was missing from `IncomingFromClient`), `config.set`, `chat.user`.
+- **0.2 — outbound emissions.** `state.snapshot` (graph + working-memory terms + config),
+  `node.history` (real engine `NAR.getRevisionHistory(termParser.parse(term))` — the e2e history
+  test's source, previously never emitted), `lens.defined` on `lens.define`, and `telemetry`
+  (1 Hz: `reasoning_hz` from a derivation window, `memory_mb` from `process.memoryUsage()`,
+  `ws_latency_ms` from WS ping RTT, plus a `cognitive` block from the projection/`attentionReport`).
+- **Seq monotonicity.** `UnifiedGraphProjection` now owns an integer `#seq` (`#nextSeq()`);
+  every delta carries it. It was `Date.now()`, which cannot order two same-ms deltas.
+- **Bridge honesty (partial 0.3).** The `agent.on('*')` bridge now handles
+  `derivation.made` (truth looked up from `nar.getBeliefs()` instead of a nonexistent
+  `payload.truth`; hardcoded `priority: 0.7/confidence: 0.9` removed), `concept.activated`
+  (real priority), `belief.retracted` / `atom.retracted` (removal), `atom.derived` (metta nodes),
+  `conflict:detected` (contradiction flag). The `seenTerms` dedup that suppressed every revision is
+  gone; the projection now emits `update_node` when a known term is re-derived.
+- **0.4 — dead wiring.** `graph:zoom-in|out|fit|search|pan-to` now have subscribers in
+  `graph-viewport` (they emitted with none); the redundant `lens:changed` signal and its only
+  emit were deleted (`$activeLens` already drives the renderers).
+- **0.5 — transport.** Client derives `wss:` from `location.protocol`, guards `JSON.parse`, and
+  caps the offline queue at 100 (oldest dropped). Server serves `/health` + `/ready`,
+  resolves static paths through `relative(DIST_DIR, …)` (traversal-safe), gates `/test/*` behind
+  `SENARS_TEST_ENDPOINTS` (default on unless `NODE_ENV=production`), and answers raw `ping` with
+  `pong`.
+- **0.6 — alias drift.** Fixed the pre-existing broken client build: the Vite/Storybook aliases
+  replaced `spacegraphjs` and `@senars/core` by prefix, so `spacegraphjs/core` resolved to
+  `index.ts/core` and `@senars/core/lens-schema` to `index.ts/lens-schema`; Storybook also pointed
+  at `/home/me/senars12b/...`. One shared `ui/vite.aliases.ts` now feeds Vite, Vitest, and
+  Storybook. `ui/src/shared/index.ts` takes `edgeKey`/`estimateTokens`/`extractTerm`/`generateId`
+  from `@senars/util` so the `@senars/core` → protocol alias holds. `ui/tsconfig.json` now
+  typechecks `src/server/**` (it was excluded, so server type errors were invisible).
+- Also fixed: `$lmStatus` was imported by `lm-status-panel` but absent from the core barrel.
+
+**Verification**
+
+- `pnpm --dir ui exec tsc --noEmit` clean (now includes the server); `pnpm --dir core exec tsc --noEmit` clean.
+- `pnpm --dir ui build` succeeds (previously failed on the alias bug).
+- `vitest`: UI unit suite 21/21; `tests/unit/server/unified-graph-projection.test.ts` extended with
+  seq-monotonicity, `update_node`-on-revision, `applyObjectPatch`, `removeNode`, `markContradiction` (9/9).
+- In-process WS smoke (real `Agent` + `NAREngine` + `startAgentUI`): `sync.request` ⇒ snapshot
+  (11 nodes, 10 working-memory terms); `node.history.request "(animal-->robin)"` ⇒ 6 real revision
+  entries; `lens.set` ⇒ delta tagged `goal`; bogus message ⇒ `server.error invalid_message`;
+  `object.set` ⇒ an update delta. *(Playwright itself could not run here — browsers are not installed.)*
+
+**Still open in Phase 0**
+
+- 0.3 — the bridge covers 6 event types; still to route `belief.added/revised`,
+  `derivation.accepted`, `judgment.resolved`, `proposal.admitted/rejected`, `goal.*`,
+  `skill.executed`, `budget.exhausted`, `policy.violation`, `task.admitted`, and to carry
+  `rule/cpuMs/lmCalls/lmTokens` into provenance-shaped node data.
+- 0.4 — real config reset, `<export-import>`, `focusNode` id-vs-term, `exportSubgraph` scope,
+  `workingMemory` test namespace, 3D `graph:zoom/search/pan-to` parity.
+- 0.5 — user-triggered reconnect reset (only `disconnect()` resets today), and queue expiry.
+- 0.6 — remove `lens-selector.ts`, `core/theme.css`, unused `styles/tokens.ts`,
+  `components/index.ts` barrel, `spacegraph-app.ts`, `src/stories/` cruft.
+- 0.7 — the full command contract (`test:visual`, `ui:gallery`); server-inclusive typecheck is now real.
+
+**New opportunities spotted**
+
+- The no-agent `startTestServer` branch bypasses `handleClientMessage` entirely — it still emits
+  unvalidated `cognitive.delta` and never answers `sync.request`. Unify the two connection paths
+  behind the projection so the "test server" is the agent server with an empty engine.
+- `telemetry` runs a 1 Hz timer even with zero clients; gate it on `wss.clients.size > 0`.
+- The projection's `#edgeData` drops `truth`/`priority` even though `GraphEdge` now carries them
+  (they only survive in the map, not on the wire op) — wire them once the lens needs edge truth.
+- `ui/vitest.config.ts` `__dirname` warning and the regenerated `styles/tokens.{ts,css}` churn on
+  every `pnpm build` are both determinism debt (Phase 1/3).
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -221,12 +302,12 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 
 **Goal:** make every visible control functional or removed; finish the contract. Credibility floor.
 
-- [ ] **0.1** Server handlers for `lens.set`, `focus.set`, `object.set`, `node.set`, `lens.define`, `node.history.request`, `sync.request`, wired to projection/engine; validate inbound with `IncomingFromClient.safeParse`, reject with a typed error frame.
-- [ ] **0.2** Emit `state.snapshot` (graph + working memory + config + seq), `node.history`, `lens.defined`, `telemetry`; monotonic `seqId`, never `Date.now()`.
-- [ ] **0.3** Widen the bridge: translate every relevant engine event into projection ops + append-only stream — `derivation.made/accepted`, `belief.added/retracted/revised`, `concept.activated`, `conflict:detected`, `goal.achieved/failed`, `skill.executed`, `atom.derived/retracted`, `proposal.admitted/rejected`, `judgment.resolved`, `budget.exhausted`, `policy.violation`, `task.admitted`. Carry rule/cpuMs/lmCalls/lmTokens/truth; real priority/confidence; emit `update_node` on revision.
-- [ ] **0.4** Fix dead wiring: implement-or-remove `graph:zoom-in/out|fit|search|pan-to`, `lens:changed`; real config reset; resolve `<export-import>`; add `lm.switch` to the union; fix `focusNode` term/id, `exportSubgraph` scope, `workingMemory` test namespace.
-- [ ] **0.5** Transport: derive `wss:`; guard `JSON.parse`; cap/expire offline queue; user-triggered reconnect reset; `/health` + `/ready`; traversal-safe static; gate `/test/*` by env flag while keeping Playwright enabled.
-- [ ] **0.6** Remove/integrate dead artifacts: `lens-selector.ts`, `core/theme.css`, unused `styles/tokens.ts`, `components/index.ts` barrel, `spacegraph-app.ts`, `src/stories/` cruft; fix Storybook aliases + port drift.
+- [x] **0.1** Server handlers for `lens.set`, `focus.set`, `object.set`, `node.set`, `lens.define`, `node.history.request`, `sync.request`, wired to projection/engine; validate inbound with `IncomingFromClient.safeParse`, reject with a typed error frame.
+- [x] **0.2** Emit `state.snapshot` (graph + working memory + config + seq), `node.history`, `lens.defined`, `telemetry`; monotonic `seqId`, never `Date.now()`.
+- [ ] **0.3** Widen the bridge: translate every relevant engine event into projection ops + append-only stream — `derivation.made/accepted`, `belief.added/retracted/revised`, `concept.activated`, `conflict:detected`, `goal.achieved/failed`, `skill.executed`, `atom.derived/retracted`, `proposal.admitted/rejected`, `judgment.resolved`, `budget.exhausted`, `policy.violation`, `task.admitted`. Carry rule/cpuMs/lmCalls/lmTokens/truth; real priority/confidence; emit `update_node` on revision. *(partial: 6 event types + truth/priority + update-on-revision done; see log)*
+- [ ] **0.4** Fix dead wiring: implement-or-remove `graph:zoom-in/out|fit|search|pan-to`, `lens:changed`; real config reset; resolve `<export-import>`; add `lm.switch` to the union; fix `focusNode` term/id, `exportSubgraph` scope, `workingMemory` test namespace. *(partial: 2D zoom/fit/search/pan wired, `lens:changed` removed, `lm.switch` added)*
+- [x] **0.5** Transport: derive `wss:`; guard `JSON.parse`; cap/expire offline queue; user-triggered reconnect reset; `/health` + `/ready`; traversal-safe static; gate `/test/*` by env flag while keeping Playwright enabled. *(queue cap + `/health`/`/ready` + traversal-safe + gate done; reconnect reset/expiry pending)*
+- [ ] **0.6** Remove/integrate dead artifacts: `lens-selector.ts`, `core/theme.css`, unused `styles/tokens.ts`, `components/index.ts` barrel, `spacegraph-app.ts`, `src/stories/` cruft; fix Storybook aliases + port drift. *(partial: Vite/Vitest/Storybook aliases unified; dead artifacts remain)*
 - [ ] **0.7** Establish the UI command contract (`build`, `typecheck`, `test:unit`, `test:e2e`, `test:visual`, `storybook`, `build-storybook`, `ui:gallery`).
 
 **Verification:** every declared client message round-trips in a test; telemetry/history render non-empty against the real server; no `eventBus` emit lacks a listener; build/typecheck/unit/e2e green.

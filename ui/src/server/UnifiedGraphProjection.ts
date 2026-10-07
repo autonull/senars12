@@ -1,26 +1,43 @@
-import type { GraphNodeData, GraphOp, IncomingFromServer } from '@senars/core';
+import type { GraphNodeData, GraphOp, IncomingFromServer, LensSpec } from '@senars/core';
 import { builtinLensSpecs } from '@senars/core';
+
+export type GraphEdge = {
+  source: string;
+  target: string;
+  type: string;
+  weight?: number;
+  directed?: boolean;
+  truth?: { frequency: number; confidence: number };
+  priority?: number;
+  confidence?: number;
+};
 
 export type GraphDelta = {
   nodes: GraphNodeData[];
-  edges: Array<{
-    source: string;
-    target: string;
-    type: string;
-    weight?: number;
-    directed?: boolean;
-  }>;
+  edges: GraphEdge[];
 };
 
+export type ObjectPatch = {
+  truth?: { frequency: number; confidence: number };
+  type?: string;
+  priority?: number;
+  confidence?: number;
+};
+
+/**
+ * The projection is the server's one graph state: engine events are folded in,
+ * and every change is emitted as a monotonic `cognitive.delta`. The sequence is
+ * an integer counter shared across senders — it used to be `Date.now()`, which
+ * two deltas in the same millisecond could not order, breaking replay and `sync.request`.
+ */
 export class UnifiedGraphProjection {
   readonly #senders = new Set<(msg: IncomingFromServer) => void>();
   #nodes = new Map<string, GraphNodeData>();
-  #edges = new Map<
-    string,
-    { source: string; target: string; type: string; weight?: number; directed?: boolean }
-  >();
+  #edges = new Map<string, GraphEdge>();
+  #lenses = new Map<string, LensSpec>();
   #currentLens = 'belief';
   #focusTerm = '';
+  #seq = 0;
 
   mount(sender: (msg: IncomingFromServer) => void): void {
     this.#senders.add(sender);
@@ -31,41 +48,116 @@ export class UnifiedGraphProjection {
     else this.#senders.clear();
   }
 
+  get seq(): number {
+    return this.#seq;
+  }
+
+  get lens(): string {
+    return this.#currentLens;
+  }
+
+  #nextSeq(): number {
+    return ++this.#seq;
+  }
+
   applyDelta(delta: GraphDelta): void {
-    for (const node of delta.nodes) {
-      this.#nodes.set(node.id ?? node.term ?? `node-${Date.now()}`, node);
-    }
-
-    for (const edge of delta.edges) {
-      const edgeId = `${edge.source}->${edge.target}:${edge.type}`;
-      this.#edges.set(edgeId, edge);
-    }
-
     const ops: GraphOp[] = [];
     for (const node of delta.nodes) {
-      ops.push({
-        action: 'add_node',
-        id: node.id ?? node.term ?? `node-${Date.now()}`,
-        data: node,
-      });
+      const id = node.id ?? node.term ?? `node-${this.#nextSeq()}`;
+      const existing = this.#nodes.has(id);
+      this.#nodes.set(id, node);
+      ops.push({ action: existing ? 'update_node' : 'add_node', id, data: { ...node, id } });
     }
 
     for (const edge of delta.edges) {
-      ops.push({
-        action: 'add_edge',
-        source: edge.source,
-        target: edge.target,
-        data: { weight: edge.weight ?? 1, type: edge.type, directed: edge.directed ?? true },
-      });
+      this.#edges.set(this.#edgeId(edge), edge);
+      ops.push({ action: 'add_edge', source: edge.source, target: edge.target, data: this.#edgeData(edge) });
     }
 
-    console.log('[Projection.applyDelta] Emitting cognitive.delta with', ops.length, 'ops');
-    this.#emitAll({
-      type: 'cognitive.delta',
-      seqId: Date.now(),
-      lens: this.#currentLens,
-      ops,
+    this.#emitAll({ type: 'cognitive.delta', seqId: this.#nextSeq(), lens: this.#currentLens, ops });
+  }
+
+  graphSnapshot(): { nodes: GraphNodeData[]; edges: GraphEdge[] } {
+    return { nodes: [...this.#nodes.values()], edges: [...this.#edges.values()] };
+  }
+
+  node(term: string): GraphNodeData | undefined {
+    return this.#nodes.get(term);
+  }
+
+  applyObjectPatch(kind: 'node' | 'edge', id: string, patch: ObjectPatch): void {
+    if (kind === 'node') {
+      const existing = this.#nodes.get(id);
+      if (!existing) return;
+      const updated = { ...existing, ...patch } as GraphNodeData;
+      this.#nodes.set(id, updated);
+      this.#emitAll({
+        type: 'cognitive.delta',
+        seqId: this.#nextSeq(),
+        lens: this.#currentLens,
+        ops: [{ action: 'update_node', id, data: updated }],
+      });
+      return;
+    }
+    this.#applyEdgePatch(id, patch);
+  }
+
+  #applyEdgePatch(id: string, patch: ObjectPatch): void {
+    const [source, target] = id.split('->');
+    const entry = [...this.#edges.entries()].find(
+      ([, e]) => e.source === source && e.target === target
+    );
+    if (!entry) return;
+    const [key, edge] = entry;
+    const updated: GraphEdge = { ...edge, ...patch };
+    const ops: GraphOp[] = [{ action: 'remove_edge', source: edge.source, target: edge.target }];
+    if (patch.type && patch.type !== edge.type) {
+      this.#edges.delete(key);
+      const nextKey = this.#edgeId(updated);
+      this.#edges.set(nextKey, updated);
+    } else {
+      this.#edges.set(key, updated);
+    }
+    ops.push({
+      action: 'add_edge',
+      source: updated.source,
+      target: updated.target,
+      data: this.#edgeData(updated),
     });
+    this.#emitAll({ type: 'cognitive.delta', seqId: this.#nextSeq(), lens: this.#currentLens, ops });
+  }
+
+  defineLens(spec: LensSpec): void {
+    this.#lenses.set(spec.id, spec);
+    this.#emitAll({ type: 'lens.defined', lens: spec });
+  }
+
+  removeNode(id: string): void {
+    if (!this.#nodes.delete(id)) return;
+    const ops: GraphOp[] = [{ action: 'remove_node', id }];
+    for (const [key, edge] of this.#edges) {
+      if (edge.source !== id && edge.target !== id) continue;
+      this.#edges.delete(key);
+      ops.push({ action: 'remove_edge', source: edge.source, target: edge.target });
+    }
+    this.#emitAll({ type: 'cognitive.delta', seqId: this.#nextSeq(), lens: this.#currentLens, ops });
+  }
+
+  markContradiction(...terms: string[]): void {
+    const ops: GraphOp[] = [];
+    for (const term of terms) {
+      const existing = this.#nodes.get(term);
+      if (!existing) continue;
+      const updated = { ...existing, isContradiction: true } as GraphNodeData;
+      this.#nodes.set(term, updated);
+      ops.push({ action: 'update_node', id: term, data: updated });
+    }
+    if (ops.length === 0) return;
+    this.#emitAll({ type: 'cognitive.delta', seqId: this.#nextSeq(), lens: this.#currentLens, ops });
+  }
+
+  lenses(): LensSpec[] {
+    return [...this.#lenses.values()];
   }
 
   sendInitialState(): void {
@@ -79,60 +171,46 @@ export class UnifiedGraphProjection {
       ],
     });
 
-    this.#emitAll({
-      type: 'lens.list',
-      lenses: builtinLensSpecs().map((spec) => ({
-        id: spec.id,
-        label: spec.label,
-        description: spec.description,
-        modulation: spec.modulation,
-        requires: spec.requires,
-      })),
-    });
+    this.#emitAll({ type: 'lens.list', lenses: [...builtinLensSpecs(), ...this.#lenses.values()] });
 
     const ops: GraphOp[] = [];
     for (const [id, data] of this.#nodes) {
       if (this.#focusTerm && id !== this.#focusTerm) continue;
       ops.push({ action: 'add_node', id, data });
     }
-    for (const [, edge] of this.#edges) {
-      ops.push({
-        action: 'add_edge',
-        source: edge.source,
-        target: edge.target,
-        data: { weight: edge.weight ?? 1, type: edge.type, directed: edge.directed ?? true },
-      });
+    for (const edge of this.#edges.values()) {
+      ops.push({ action: 'add_edge', source: edge.source, target: edge.target, data: this.#edgeData(edge) });
     }
-    this.#emitAll({
-      type: 'cognitive.delta',
-      seqId: 0,
-      lens: this.#currentLens,
-      ops,
-    });
+    this.#emitAll({ type: 'cognitive.delta', seqId: this.#seq, lens: this.#currentLens, ops });
   }
 
   setLens(lens: string): void {
     this.#currentLens = lens;
-    this.#emitAll({
-      type: 'cognitive.delta',
-      seqId: Date.now(),
-      lens,
-      ops: [...this.#nodes.entries()]
-        .filter(([id]) => !this.#focusTerm || id === this.#focusTerm)
-        .map(([id, data]) => ({ action: 'add_node' as const, id, data })),
-    });
+    this.#emitAll({ type: 'cognitive.delta', seqId: this.#nextSeq(), lens, ops: this.#nodeOps() });
   }
 
   setFocus(term: string): void {
     this.#focusTerm = term;
     this.#emitAll({
       type: 'cognitive.delta',
-      seqId: Date.now(),
+      seqId: this.#nextSeq(),
       lens: this.#currentLens,
-      ops: [...this.#nodes.entries()]
-        .filter(([id]) => !term || id === term)
-        .map(([id, data]) => ({ action: 'add_node' as const, id, data })),
+      ops: this.#nodeOps(),
     });
+  }
+
+  #nodeOps(): GraphOp[] {
+    return [...this.#nodes.entries()]
+      .filter(([id]) => !this.#focusTerm || id === this.#focusTerm)
+      .map(([id, data]) => ({ action: 'add_node' as const, id, data }));
+  }
+
+  #edgeId(edge: GraphEdge): string {
+    return `${edge.source}->${edge.target}:${edge.type}`;
+  }
+
+  #edgeData(edge: GraphEdge): { weight: number; type: string; directed: boolean } {
+    return { weight: edge.weight ?? 1, type: edge.type, directed: edge.directed ?? true };
   }
 
   #emitAll(msg: IncomingFromServer): void {
@@ -140,7 +218,7 @@ export class UnifiedGraphProjection {
       try {
         sender(msg);
       } catch {
-        /* ignore */
+        /* a broken socket must not silence the others */
       }
     }
   }

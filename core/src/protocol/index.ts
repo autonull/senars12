@@ -19,8 +19,10 @@ export {
   ChatAgentStream,
   ChatMessage,
   ChatUserMsg,
+  LMSwitchMsg,
 } from './chat.js';
 export { ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
+export { ServerError, type ServerErrorCode } from './error.js';
 export {
   GraphNodeDataStrict,
   MettaAtomNode,

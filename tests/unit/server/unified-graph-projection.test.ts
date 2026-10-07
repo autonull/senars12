@@ -77,4 +77,60 @@ describe('UnifiedGraphProjection', () => {
       expect(ids.includes('bird')).toBe(true);
     }
   });
+
+  it('assigns a monotonic seqId, never a wall clock', () => {
+    projection.applyDelta(makeDelta([makeNode('bird')]));
+    projection.applyDelta(makeDelta([makeNode('cat')]));
+    const seqs = sent
+      .filter((m) => m.type === 'cognitive.delta')
+      .map((m) => (m as { seqId: number }).seqId);
+    expect(seqs).toEqual([1, 2]);
+  });
+
+  it('emits update_node when a known term is revised', () => {
+    projection.applyDelta(makeDelta([makeNode('bird')]));
+    sent.length = 0;
+    projection.applyDelta(makeDelta([makeNode('bird')]));
+    const delta = sent.find((m) => m.type === 'cognitive.delta');
+    if (delta?.type === 'cognitive.delta') {
+      expect(delta.ops.some((o) => o.action === 'update_node')).toBe(true);
+    }
+  });
+
+  it('applyObjectPatch updates a node in place', () => {
+    projection.applyDelta(makeDelta([makeNode('bird')]));
+    sent.length = 0;
+    projection.applyObjectPatch('node', 'bird', { priority: 0.42 });
+    const delta = sent.find((m) => m.type === 'cognitive.delta');
+    if (delta?.type === 'cognitive.delta') {
+      const op = delta.ops.find((o) => o.action === 'update_node');
+      expect(op?.action === 'update_node' && op.data.priority).toBe(0.42);
+    }
+  });
+
+  it('removeNode drops the node and its incident edges', () => {
+    projection.applyDelta({
+      nodes: [makeNode('bird'), makeNode('animal')],
+      edges: [{ source: 'bird', target: 'animal', type: 'inheritance' }],
+    });
+    sent.length = 0;
+    projection.removeNode('bird');
+    const delta = sent.find((m) => m.type === 'cognitive.delta');
+    if (delta?.type === 'cognitive.delta') {
+      expect(delta.ops.some((o) => o.action === 'remove_node' && o.id === 'bird')).toBe(true);
+      expect(delta.ops.some((o) => o.action === 'remove_edge')).toBe(true);
+    }
+    expect(projection.node('bird')).toBeUndefined();
+  });
+
+  it('markContradiction flags known terms', () => {
+    projection.applyDelta(makeDelta([makeNode('bird')]));
+    sent.length = 0;
+    projection.markContradiction('bird');
+    const delta = sent.find((m) => m.type === 'cognitive.delta');
+    if (delta?.type === 'cognitive.delta') {
+      const op = delta.ops.find((o) => o.action === 'update_node');
+      expect(op?.action === 'update_node' && op.data.isContradiction).toBe(true);
+    }
+  });
 });

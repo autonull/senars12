@@ -1,20 +1,45 @@
 import { readFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createServer } from 'node:http';
-import { extname, resolve } from 'node:path';
+import { extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Agent, CognitiveEvent, GraphNodeData, IncomingFromServer } from '@senars/core';
-import { isNarsese } from '@senars/core';
+import type {
+  Agent,
+  CognitiveEvent,
+  GraphNodeData,
+  IncomingFromClient,
+  IncomingFromServer,
+  LensSpec,
+} from '@senars/core';
+import { IncomingFromClient as IncomingFromClientSchema, isNarsese } from '@senars/core';
 import { DEFAULT_CONFIG, parseTermToEdges, termParser } from '@senars/nar';
 import { handleMetricsRequest } from '@senars/nar/metrics';
 import { envBool, envPositive, makeId, splitLines } from '@senars/util';
-import { type WebSocket, WebSocketServer } from 'ws';
+import { type RawData, WebSocket, WebSocketServer } from 'ws';
 import { applyConfigField, buildConfigSchema } from './config-schema.js';
 import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const DIST_DIR = resolve(__dirname, '../../dist/client');
 const DEFAULT_PORT = envPositive('PORT', 3000);
+const TEST_ENDPOINTS = envBool('SENARS_TEST_ENDPOINTS', process.env.NODE_ENV !== 'production');
+
+type Truth = { frequency: number; confidence: number };
+type RevisionEntry = {
+  truth: Truth;
+  stampId: string;
+  timestamp: number;
+  source: 'input' | 'derivation' | 'revision' | 'inference';
+};
+type NarBelief = { term: { toString(): string }; truth: Truth };
+type NarLike = {
+  getBeliefs?: () => NarBelief[];
+  getRevisionHistory?: (term: unknown) => RevisionEntry[];
+  getLMClient?: () => { provider?: string; model?: string; available?: boolean; getStats?: () => unknown };
+  getLMClientStats?: () => unknown;
+  setConfig?: (updates: Record<string, unknown>) => void;
+  attentionReport?: () => { total: number };
+};
 
 const mimeTypes: Record<string, string> = {
   '.html': 'text/html',
@@ -34,9 +59,40 @@ const testState = {
   connected: false,
 };
 
+function narOf(agent?: Agent): NarLike | undefined {
+  return (agent?.engines.get('nar') as { nar?: NarLike } | undefined)?.nar;
+}
+
+function sendJson(res: ServerResponse, status: number, body: unknown): void {
+  res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+  res.end(JSON.stringify(body));
+}
+
+function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk: Buffer) => {
+      body += chunk;
+    });
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
+async function readJson<T>(req: IncomingMessage): Promise<T> {
+  return JSON.parse(await readBody(req)) as T;
+}
+
+function pathOf(req: IncomingMessage): string {
+  return (req.url ?? '/').split('?')[0] ?? '/';
+}
+
 async function serveStatic(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
-  const url = req.url || '/';
-  const filePath = resolve(DIST_DIR, url === '/' ? 'index.html' : url.slice(1));
+  const url = pathOf(req);
+  const rel = url === '/' ? 'index.html' : decodeURIComponent(url.slice(1));
+  const filePath = resolve(DIST_DIR, rel);
+  // A resolved path that escapes the dist root is a traversal attempt, not a file.
+  if (relative(DIST_DIR, filePath).startsWith('..')) return false;
   const ext = extname(filePath);
   try {
     const content = await readFile(filePath);
@@ -48,183 +104,142 @@ async function serveStatic(req: IncomingMessage, res: ServerResponse): Promise<b
   }
 }
 
-function handleTestEndpoints(
+async function handleTestEndpoints(
   req: IncomingMessage,
   res: ServerResponse,
   projection?: UnifiedGraphProjection,
   agent?: Agent
-): boolean {
-  const url = req.url || '';
-  if (!url.startsWith('/test/')) return false;
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Access-Control-Allow-Origin', '*');
+): Promise<boolean> {
+  const url = pathOf(req);
+  if (!TEST_ENDPOINTS || !url.startsWith('/test/')) return false;
 
-  if (url === '/test/reset' && req.method === 'POST') {
-    testState.concepts = [];
-    testState.chatHistory = [];
-    testState.derivations = [];
-    testState.connected = false;
-    res.end(JSON.stringify({ success: true }));
-    return true;
-  }
+  try {
+    if (url === '/test/reset' && req.method === 'POST') {
+      testState.concepts = [];
+      testState.chatHistory = [];
+      testState.derivations = [];
+      testState.connected = false;
+      sendJson(res, 200, { success: true });
+      return true;
+    }
 
-  if (url === '/test/seed-graph' && req.method === 'POST') {
-    let body = '';
-    req.on('data', (chunk: Buffer) => {
-      body += chunk;
-    });
-    req.on('end', () => {
-      const { concepts } = JSON.parse(body);
+    if (url === '/test/seed-graph' && req.method === 'POST') {
+      const { concepts } = await readJson<{ concepts: typeof testState.concepts }>(req);
       testState.concepts = concepts;
       if (projection) {
-        const nodes: GraphNodeData[] = concepts.map(
-          (c: { term: string; f: number; c: number }, i: number) => ({
-            id: `concept:${i}`,
-            term: c.term,
-            label: c.term,
-            nodeType: 'nar:concept',
-            priority: c.f,
-            confidence: c.c,
-          })
-        );
+        const nodes: GraphNodeData[] = concepts.map((c, i) => ({
+          id: `concept:${i}`,
+          term: c.term,
+          label: c.term,
+          nodeType: 'nar:concept',
+          priority: c.f,
+          confidence: c.c,
+        }));
         projection.applyDelta({ nodes, edges: [] });
       }
-      res.end(JSON.stringify({ success: true, count: concepts.length }));
-    });
-    return true;
-  }
+      sendJson(res, 200, { success: true, count: concepts.length });
+      return true;
+    }
 
-  if (url === '/test/inject-chat' && req.method === 'POST') {
-    let body = '';
-    req.on('data', (chunk: Buffer) => {
-      body += chunk;
-    });
-    req.on('end', () => {
-      const { stream, complete } = JSON.parse(body);
+    if (url === '/test/inject-chat' && req.method === 'POST') {
+      const { stream, complete } = await readJson<{ stream: string; complete: string }>(req);
       testState.chatHistory.push({ role: 'user', content: stream });
       testState.chatHistory.push({ role: 'agent', content: complete });
-      res.end(JSON.stringify({ success: true }));
-    });
-    return true;
-  }
+      sendJson(res, 200, { success: true });
+      return true;
+    }
 
-  if (url === '/test/inject-derivation' && req.method === 'POST') {
-    let body = '';
-    req.on('data', (chunk: Buffer) => {
-      body += chunk;
-    });
-    req.on('end', () => {
-      const { conclusion, frequency, confidence } = JSON.parse(body);
-      testState.derivations.push({ conclusion, frequency, confidence });
-      if (projection) {
-        projection.applyDelta({
-          nodes: [
-            {
-              id: conclusion,
-              term: conclusion,
-              label: conclusion,
-              nodeType: 'nar:concept',
-              priority: frequency ?? 0.85,
-              confidence: confidence ?? 0.9,
-            },
-          ],
-          edges: [],
-        });
+    if (url === '/test/inject-derivation' && req.method === 'POST') {
+      const { conclusion, frequency, confidence } = await readJson<{
+        conclusion: string;
+        frequency?: number;
+        confidence?: number;
+      }>(req);
+      testState.derivations.push({
+        conclusion,
+        frequency: frequency ?? 0.85,
+        confidence: confidence ?? 0.9,
+      });
+      projection?.applyDelta({
+        nodes: [
+          {
+            id: conclusion,
+            term: conclusion,
+            label: conclusion,
+            nodeType: 'nar:concept',
+            priority: frequency ?? 0.85,
+            confidence: confidence ?? 0.9,
+          },
+        ],
+        edges: [],
+      });
+      sendJson(res, 200, { success: true });
+      return true;
+    }
+
+    if (url === '/test/pre-bootstrap' && req.method === 'POST') {
+      testState.connected = true;
+      sendJson(res, 200, { success: true });
+      return true;
+    }
+
+    if (url === '/test/state' && req.method === 'GET') {
+      sendJson(res, 200, testState);
+      return true;
+    }
+
+    if (url === '/test/session-save' && req.method === 'POST') {
+      if (!agent?.sessionManager) {
+        sendJson(res, 200, { success: false, error: 'No session manager' });
+        return true;
       }
-      res.end(JSON.stringify({ success: true }));
-    });
-    return true;
-  }
-
-  if (url === '/test/pre-bootstrap' && req.method === 'POST') {
-    testState.connected = true;
-    res.end(JSON.stringify({ success: true }));
-    return true;
-  }
-
-  if (url === '/test/state' && req.method === 'GET') {
-    res.end(JSON.stringify(testState));
-    return true;
-  }
-
-  if (url === '/test/session-save' && req.method === 'POST') {
-    if (agent?.sessionManager) {
       agent.sessionManager
         .snapshot()
-        .then(() => res.end(JSON.stringify({ success: true })))
-        .catch((e: Error) => res.end(JSON.stringify({ success: false, error: e.message })));
-    } else {
-      res.end(JSON.stringify({ success: false, error: 'No session manager' }));
+        .then(() => sendJson(res, 200, { success: true }))
+        .catch((e: Error) => sendJson(res, 200, { success: false, error: e.message }));
+      return true;
     }
-    return true;
-  }
 
-  if (url === '/test/session-load' && req.method === 'POST') {
-    if (agent?.sessionManager) {
+    if (url === '/test/session-load' && req.method === 'POST') {
+      if (!agent?.sessionManager) {
+        sendJson(res, 200, { success: false, error: 'No session manager' });
+        return true;
+      }
       agent.sessionManager
         .restore()
-        .then(() => res.end(JSON.stringify({ success: true })))
-        .catch((e: Error) => res.end(JSON.stringify({ success: false, error: e.message })));
-    } else {
-      res.end(JSON.stringify({ success: false, error: 'No session manager' }));
+        .then(() => sendJson(res, 200, { success: true }))
+        .catch((e: Error) => sendJson(res, 200, { success: false, error: e.message }));
+      return true;
     }
-    return true;
-  }
 
-  if (url === '/test/import-beliefs' && req.method === 'POST') {
-    let body = '';
-    req.on('data', (chunk: Buffer) => {
-      body += chunk;
-    });
-    req.on('end', async () => {
-      try {
-        const { statements, narsese } = JSON.parse(body) as {
-          statements?: string[];
-          narsese?: string;
-        };
-        const lines = statements ?? splitLines(narsese ?? '');
-        const narEngine = agent?.engines.get('nar') as
-          | { nar?: { believe: (s: string) => Promise<void>; run: (n: number) => void } }
-          | undefined;
-        if (!narEngine?.nar?.believe) {
-          res.end(
-            JSON.stringify({ success: false, error: 'No NAR engine with believe() available' })
-          );
-          return;
-        }
-        for (const stmt of lines) {
-          await narEngine.nar.believe(stmt);
-          narEngine.nar.run(3);
-        }
-        res.end(JSON.stringify({ success: true, count: lines.length }));
-      } catch (e: unknown) {
-        res.end(JSON.stringify({ success: false, error: (e as Error).message }));
-      }
-    });
-    return true;
-  }
-
-  if (url === '/test/export-beliefs' && req.method === 'GET') {
-    try {
-      const narEngine = agent?.engines.get('nar') as
-        | {
-            nar?: {
-              getBeliefs?: () => Array<{
-                term: { toString(): string };
-                truth: { frequency: number; confidence: number };
-              }>;
-            };
-          }
+    if (url === '/test/import-beliefs' && req.method === 'POST') {
+      const { statements, narsese } = await readJson<{ statements?: string[]; narsese?: string }>(req);
+      const lines = statements ?? splitLines(narsese ?? '');
+      const nar = narOf(agent) as
+        | { believe?: (s: string) => Promise<void>; run?: (n: number) => void }
         | undefined;
-      const beliefs = narEngine?.nar?.getBeliefs?.() ?? [];
-      const result = beliefs.map((b) => ({
-        term: b.term.toString(),
-        truth: { frequency: b.truth.frequency, confidence: b.truth.confidence },
-      }));
-      res.end(JSON.stringify({ beliefs: result, count: result.length }));
-    } catch (e: unknown) {
-      res.end(JSON.stringify({ success: false, error: (e as Error).message }));
+      if (!nar?.believe || !nar.run) {
+        sendJson(res, 200, { success: false, error: 'No NAR engine with believe() available' });
+        return true;
+      }
+      for (const stmt of lines) {
+        await nar.believe(stmt);
+        nar.run(3);
+      }
+      sendJson(res, 200, { success: true, count: lines.length });
+      return true;
     }
+
+    if (url === '/test/export-beliefs' && req.method === 'GET') {
+      const beliefs = narOf(agent)?.getBeliefs?.() ?? [];
+      sendJson(res, 200, {
+        beliefs: beliefs.map((b) => ({ term: b.term.toString(), truth: b.truth })),
+        count: beliefs.length,
+      });
+      return true;
+    }
+  } catch (e: unknown) {
+    sendJson(res, 400, { success: false, error: (e as Error).message });
     return true;
   }
 
@@ -232,23 +247,27 @@ function handleTestEndpoints(
 }
 
 async function aggregateChatResponse(agent: Agent, text: string, ws?: WebSocket): Promise<string> {
-  console.log('[aggregateChatResponse] Called with:', text);
   let response = '';
-  if (typeof agent.chat === 'function') {
-    console.log('[aggregateChatResponse] Calling agent.chat...');
-    for await (const evt of agent.chat(text)) {
-      console.log('[aggregateChatResponse] Got event:', evt.kind);
-      if (evt.kind === 'text-delta' && evt.text) {
-        response += evt.text;
-        if (ws && ws.readyState === 1) {
-          // WebSocket.OPEN = 1
-          ws.send(JSON.stringify({ type: 'chat.agent.stream', delta: evt.text }));
-        }
-      }
+  if (typeof agent.chat !== 'function') return response;
+  for await (const evt of agent.chat(text)) {
+    if (evt.kind !== 'text-delta' || !evt.text) continue;
+    response += evt.text;
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'chat.agent.stream', delta: evt.text }));
     }
-    console.log('[aggregateChatResponse] Done, response:', response);
   }
   return response;
+}
+
+function makeNode(term: string, truth?: Truth, priority?: number): GraphNodeData {
+  return {
+    id: term,
+    term,
+    label: term,
+    nodeType: 'nar:concept',
+    ...(truth ? { truth } : {}),
+    ...(priority !== undefined ? { priority } : {}),
+  };
 }
 
 function createServerWithProjection(agent?: Agent): {
@@ -257,83 +276,83 @@ function createServerWithProjection(agent?: Agent): {
   wss: WebSocketServer;
 } {
   const projection = agent ? new UnifiedGraphProjection() : undefined;
-  const seenTerms = new Set<string>();
   const currentNarConfig = { ...DEFAULT_CONFIG };
+  const nar = () => narOf(agent);
 
-  if (agent) {
+  if (agent && projection) {
     agent.on('*', (event: CognitiveEvent) => {
-      if (event.type !== 'derivation.made') return;
-      const payload = event.payload as {
-        conclusion: string;
-        truth?: { frequency: number; confidence: number };
-        premises?: string[];
-      };
-      console.log('[Server] Agent event:', event.type, event.engine, payload.conclusion ?? '');
-      const term = payload.conclusion;
-      if (seenTerms.has(term)) return;
-      seenTerms.add(term);
-      const node: GraphNodeData = {
-        id: term,
-        term,
-        label: term,
-        nodeType: 'nar:concept',
-        priority: 0.7,
-        confidence: 0.9,
-        truth: payload.truth,
-      };
-
-      const edges: Array<{
-        source: string;
-        target: string;
-        type: string;
-        weight?: number;
-        directed?: boolean;
-      }> = [];
-
-      if (isNarsese(term)) {
-        try {
-          const parsedTerm = termParser.parse(term);
-          const termEdges = parseTermToEdges(parsedTerm);
-          for (const te of termEdges) {
-            edges.push({
-              source: te.source,
-              target: te.target,
-              type: te.type,
-              weight: te.weight,
-              directed: te.directed,
-            });
-          }
-        } catch {
-          console.warn('[Server] Failed to parse Narsese term for edges:', term);
-        }
-      }
-
-      if (payload.premises) {
-        for (const premise of payload.premises) {
-          edges.push({
+      switch (event.type) {
+        case 'derivation.made': {
+          const { conclusion, premises } = event.payload;
+          const truth = nar()
+            ?.getBeliefs?.()
+            .find((b) => b.term.toString() === conclusion)?.truth;
+          const edges = premises.map((premise) => ({
             source: premise,
-            target: term,
+            target: conclusion,
             type: 'derivation',
-            weight: 1.0,
+            weight: 1,
             directed: true,
-          });
+          }));
+          if (isNarsese(conclusion)) {
+            try {
+              edges.push(
+                ...parseTermToEdges(termParser.parse(conclusion)).map((edge) => ({
+                  source: edge.source,
+                  target: edge.target,
+                  type: edge.type,
+                  weight: edge.weight,
+                  directed: edge.directed ?? true,
+                }))
+              );
+            } catch {
+              /* structural parse is best-effort decoration */
+            }
+          }
+          projection.applyDelta({ nodes: [makeNode(conclusion, truth)], edges });
+          break;
         }
-      }
-
-      if (projection) {
-        projection.applyDelta({ nodes: [node], edges });
+        case 'concept.activated': {
+          const { term, priority } = event.payload;
+          projection.applyDelta({
+            nodes: [makeNode(term, projection.node(term)?.truth, priority)],
+            edges: [],
+          });
+          break;
+        }
+        case 'belief.retracted':
+          projection.removeNode(event.payload.term);
+          break;
+        case 'atom.retracted':
+          projection.removeNode(event.payload.atom);
+          break;
+        case 'atom.derived': {
+          const { atom, space } = event.payload;
+          projection.applyDelta({
+            nodes: [{ id: atom, atom, label: atom, nodeType: 'metta:atom', space }],
+            edges: [],
+          });
+          break;
+        }
+        case 'conflict:detected':
+          projection.markContradiction(event.payload.term, event.payload.conflictWith);
+          break;
       }
     });
   }
 
   const httpServer = createServer(async (req, res) => {
+    const url = pathOf(req);
     if (await handleMetricsRequest(req, res)) return;
-    if (handleTestEndpoints(req, res, projection, agent)) return;
+    if (url === '/health' || url === '/ready') {
+      sendJson(res, 200, { status: 'ok', ready: true, agent: !!agent });
+      return;
+    }
+    if (await handleTestEndpoints(req, res, projection, agent)) return;
     if (await serveStatic(req, res)) return;
     try {
-      const content = await readFile(resolve(DIST_DIR, 'index.html'));
       res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(content);
+      res.end(await readFile(resolve(DIST_DIR, 'index.html')));
     } catch {
       res.writeHead(404);
       res.end('Not found — run `pnpm build` first');
@@ -341,131 +360,179 @@ function createServerWithProjection(agent?: Agent): {
   });
 
   const wss = new WebSocketServer({ noServer: true });
+  const pingSentAt = new Map<WebSocket, number>();
+  const latency = new Map<WebSocket, number>();
+
+  function errorFrame(
+    code: 'invalid_message' | 'not_available' | 'internal',
+    message: string,
+    context?: Record<string, unknown>
+  ): IncomingFromServer {
+    return { type: 'server.error', code, message, context };
+  }
+
+  function sendStateSnapshot(ws: WebSocket): void {
+    if (!projection || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(
+      JSON.stringify({
+        type: 'state.snapshot',
+        seqId: projection.seq,
+        data: {
+          graph: projection.graphSnapshot(),
+          workingMemory: nar()?.getBeliefs?.().map((b) => b.term.toString()) ?? [],
+          config: buildConfigSchema(currentNarConfig),
+        },
+      })
+    );
+  }
+
+  function sendNodeHistory(ws: WebSocket, term: string): void {
+    let history: RevisionEntry[] = [];
+    try {
+      history = nar()?.getRevisionHistory?.(termParser.parse(term)) ?? [];
+    } catch {
+      history = [];
+    }
+    if (ws.readyState !== WebSocket.OPEN) return;
+    ws.send(
+      JSON.stringify({
+        type: 'node.history',
+        term,
+        history: history.map(({ truth, stampId, timestamp, source }) => ({
+          truth,
+          stampId,
+          timestamp,
+          source,
+        })),
+      })
+    );
+  }
+
+  function sendLmStatus(ws: WebSocket): void {
+    const lm = nar()?.getLMClient?.() ?? {};
+    if (ws.readyState !== WebSocket.OPEN) return;
+    ws.send(
+      JSON.stringify({
+        type: 'lm.status',
+        data: {
+          provider: lm.provider ?? 'none',
+          model: lm.model,
+          available: lm.available ?? false,
+          stats: typeof lm.getStats === 'function' ? lm.getStats() : {},
+        },
+      })
+    );
+  }
+
+  function handleClientMessage(ws: WebSocket, msg: IncomingFromClient): void {
+    switch (msg.type) {
+      case 'chat.user':
+        if (!agent) return;
+        aggregateChatResponse(agent, msg.content, ws)
+          .then((response) => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(
+                JSON.stringify({ type: 'chat.agent.complete', messageId: makeId(), content: response })
+              );
+            }
+          })
+          .catch((e: unknown) => {
+            ws.send(JSON.stringify(errorFrame('internal', (e as Error).message)));
+          });
+        return;
+      case 'config.set': {
+        const updates = applyConfigField(msg.key, msg.value);
+        const engine = nar();
+        if (!updates || !engine?.setConfig) return;
+        engine.setConfig(updates);
+        Object.assign(currentNarConfig, updates);
+        const schema = buildConfigSchema(currentNarConfig);
+        for (const client of wss.clients) {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type: 'config.schema', data: schema }));
+          }
+        }
+        return;
+      }
+      case 'sync.request':
+        sendStateSnapshot(ws);
+        return;
+      case 'lens.set':
+        projection?.setLens(msg.lens);
+        return;
+      case 'focus.set':
+        projection?.setFocus(msg.term);
+        return;
+      case 'viewport.set':
+        return;
+      case 'object.set':
+        projection?.applyObjectPatch(msg.kind, msg.id, msg.patch);
+        return;
+      case 'node.set':
+        projection?.applyObjectPatch('node', msg.id, msg.patch);
+        return;
+      case 'lens.define':
+        projection?.defineLens(msg.lens as LensSpec);
+        return;
+      case 'node.history.request':
+        sendNodeHistory(ws, msg.term);
+        return;
+      case 'lm.status.request':
+        sendLmStatus(ws);
+        return;
+      case 'lm.switch':
+        nar()?.setConfig?.({ lm: { provider: msg.provider } });
+        return;
+    }
+  }
 
   wss.on('connection', (ws: WebSocket) => {
-    for (const msg of [
-      { type: 'config.schema', data: buildConfigSchema(currentNarConfig) },
-      { type: 'lens.fields', fields: [] },
-      { type: 'lens.list', lenses: [] },
-    ])
-      ws.send(JSON.stringify(msg));
+    ws.send(JSON.stringify({ type: 'config.schema', data: buildConfigSchema(currentNarConfig) }));
 
     if (projection) {
       const sender = (msg: IncomingFromServer) => {
-        if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
+        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
       };
       projection.mount(sender);
       projection.sendInitialState();
 
-      ws.on('error', (e) => {
-        console.error('[WS] Connection error:', e);
+      ws.on('pong', () => {
+        const sent = pingSentAt.get(ws);
+        if (sent) latency.set(ws, Date.now() - sent);
       });
-
-      ws.on('message', (raw) => {
-        try {
-          const msg = JSON.parse(raw.toString());
-          console.log('[WS] Received message:', msg.type);
-          if (msg.type === 'chat.user' && msg.content && agent) {
-            console.log('[WS] Calling aggregateChatResponse...');
-            aggregateChatResponse(agent, msg.content, ws)
-              .then((response) => {
-                console.log('[WS] Got response:', response);
-                if (ws.readyState === 1) {
-                  // WebSocket.OPEN
-                  ws.send(
-                    JSON.stringify({
-                      type: 'chat.agent.complete',
-                      messageId: makeId(),
-                      content: response,
-                    })
-                  );
-                }
-              })
-              .catch((e) => {
-                console.error('[WS] Error in aggregateChatResponse:', e);
-              });
-          }
-
-          if (msg.type === 'lm.status.request' && agent) {
-            try {
-              const narEngine = agent.engines.get('nar') as
-                | { nar?: { getLMClient?: () => Record<string, unknown> | undefined } }
-                | undefined;
-              const lm = narEngine?.nar?.getLMClient?.() ?? {};
-              if (ws.readyState === ws.OPEN) {
-                ws.send(
-                  JSON.stringify({
-                    type: 'lm.status',
-                    data: {
-                      provider: lm.provider ?? 'none',
-                      model: lm.model,
-                      available: lm.available ?? false,
-                      stats: typeof lm.getStats === 'function' ? lm.getStats() : {},
-                    },
-                  })
-                );
-              }
-            } catch (e) {
-              console.error('[WS] lm.status failed:', e);
-            }
-          }
-
-          if (msg.type === 'lm.switch' && agent) {
-            try {
-              const provider = String(msg.provider ?? '');
-              const narEngine = agent.engines.get('nar') as
-                | { nar?: { setConfig: (u: Record<string, unknown>) => void } }
-                | undefined;
-              if (
-                narEngine?.nar?.setConfig &&
-                [
-                  'webllm',
-                  'transformers',
-                  'ollama',
-                  'anthropic',
-                  'openai',
-                  'openai-compatible',
-                  'mock',
-                ].includes(provider)
-              ) {
-                narEngine.nar.setConfig({ lm: { provider } });
-                console.log(`[WS] Switched LM provider to: ${provider}`);
-              }
-            } catch (e) {
-              console.error('[WS] lm.switch failed:', e);
-            }
-          }
-
-          if (msg.type === 'config.set' && agent) {
-            try {
-              const narEngine = agent.engines.get('nar') as
-                | { nar?: { setConfig: (u: Record<string, unknown>) => void } }
-                | undefined;
-              if (narEngine?.nar?.setConfig) {
-                const updates = applyConfigField(msg.key, msg.value);
-                if (updates) {
-                  narEngine.nar.setConfig(updates);
-                  Object.assign(currentNarConfig, updates);
-                  const schema = buildConfigSchema(currentNarConfig);
-                  for (const client of wss.clients) {
-                    if (client.readyState === client.OPEN) {
-                      client.send(JSON.stringify({ type: 'config.schema', data: schema }));
-                    }
-                  }
-                }
-              }
-            } catch (e) {
-              console.error('[WS] Error applying config.set:', e);
-            }
-          }
-        } catch (e) {
-          console.error('[WS] Parse error:', e);
+      ws.on('error', (e: Error) => {
+        console.error('[WS] Connection error:', e.message);
+      });
+      ws.on('message', (raw: RawData) => {
+        const text = raw.toString();
+        if (text === 'ping') {
+          ws.send('pong');
+          return;
         }
+        let json: unknown;
+        try {
+          json = JSON.parse(text);
+        } catch {
+          ws.send(JSON.stringify(errorFrame('invalid_message', 'Malformed JSON')));
+          return;
+        }
+        const parsed = IncomingFromClientSchema.safeParse(json);
+        if (!parsed.success) {
+          ws.send(
+            JSON.stringify(
+              errorFrame('invalid_message', 'Message failed protocol validation', {
+                issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+              })
+            )
+          );
+          return;
+        }
+        handleClientMessage(ws, parsed.data);
       });
-
       ws.on('close', () => {
-        console.log('[WS] Connection closed');
         projection.unmount(sender);
+        pingSentAt.delete(ws);
+        latency.delete(ws);
       });
     } else {
       testState.connected = true;
@@ -489,7 +556,11 @@ function createServerWithProjection(agent?: Agent): {
           })
         );
       }
-      ws.on('message', (raw) => {
+      ws.on('message', (raw: RawData) => {
+        if (raw.toString() === 'ping') {
+          ws.send('pong');
+          return;
+        }
         try {
           const msg = JSON.parse(raw.toString());
           if (msg.type === 'chat.user' && msg.content) {
@@ -513,6 +584,49 @@ function createServerWithProjection(agent?: Agent): {
     }
   });
 
+  let derivationsWindow = 0;
+  const lastTelemetryAt = { t: Date.now() };
+  const telemetryTimer = setInterval(() => {
+    const now = Date.now();
+    const elapsed = Math.max((now - lastTelemetryAt.t) / 1000, 0.001);
+    const reasoningHz = derivationsWindow / elapsed;
+    derivationsWindow = 0;
+    lastTelemetryAt.t = now;
+    const snapshot = projection?.graphSnapshot();
+    const cognitive = snapshot
+      ? {
+          activeConcepts: snapshot.nodes.length,
+          totalConcepts: nar()?.attentionReport?.().total ?? snapshot.nodes.length,
+          derivationsPerSec: reasoningHz,
+          contradictionCount: snapshot.nodes.filter((n) => n.isContradiction).length,
+          workingMemorySize: nar()?.getBeliefs?.().length ?? 0,
+        }
+      : undefined;
+    for (const client of wss.clients) {
+      if (client.readyState !== WebSocket.OPEN) continue;
+      client.ping();
+      pingSentAt.set(client, now);
+      client.send(
+        JSON.stringify({
+          type: 'telemetry',
+          metrics: {
+            reasoning_hz: reasoningHz,
+            tokens_per_sec: 0,
+            memory_mb: Math.round(process.memoryUsage().rss / 1048576),
+            ws_latency_ms: latency.get(client) ?? 0,
+          },
+          cognitive,
+        })
+      );
+    }
+  }, 1000);
+
+  if (agent) {
+    agent.on('derivation.made', () => {
+      derivationsWindow++;
+    });
+  }
+
   httpServer.on('upgrade', (request, socket, head) => {
     if (request.url?.startsWith('/ws') || request.url === '/') {
       wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));
@@ -520,6 +634,8 @@ function createServerWithProjection(agent?: Agent): {
       socket.destroy();
     }
   });
+
+  httpServer.on('close', () => clearInterval(telemetryTimer));
 
   return { server: httpServer, projection, wss };
 }

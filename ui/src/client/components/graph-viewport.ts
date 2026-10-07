@@ -103,6 +103,11 @@ export class GraphViewport extends BaseComponent {
     });
     renderer.connect();
     eventBus.on('graph:layout', this.layoutHandler);
+    eventBus.on('graph:zoom-in', this.zoomIn);
+    eventBus.on('graph:zoom-out', this.zoomOut);
+    eventBus.on('graph:fit', this.fitGraph);
+    eventBus.on('graph:search', this.searchGraph);
+    eventBus.on('graph:pan-to', this.panTo);
     mountTestApi('graph', {
       getNodeCount: () => this.cy?.nodes().length ?? 0,
       getEdgeCount: () => this.cy?.edges().length ?? 0,
@@ -129,6 +134,11 @@ export class GraphViewport extends BaseComponent {
   override disconnectedCallback() {
     super.disconnectedCallback();
     eventBus.off('graph:layout', this.layoutHandler);
+    eventBus.off('graph:zoom-in', this.zoomIn);
+    eventBus.off('graph:zoom-out', this.zoomOut);
+    eventBus.off('graph:fit', this.fitGraph);
+    eventBus.off('graph:search', this.searchGraph);
+    eventBus.off('graph:pan-to', this.panTo);
     this.cy?.destroy();
   }
 
@@ -281,6 +291,41 @@ export class GraphViewport extends BaseComponent {
     $lensLayout.set(layouts);
     const def = layoutRegistry.get(layoutName);
     if (def) this.cy.layout(def.getLayout(this.cy, { fit: false })).run();
+  };
+
+  private zoomIn = () => this.zoomBy(1.3);
+
+  private zoomOut = () => this.zoomBy(1 / 1.3);
+
+  private zoomBy = (factor: number) => {
+    if (!this.cy) return;
+    this.cy.zoom({
+      level: this.cy.zoom() * factor,
+      renderedPosition: { x: this.cy.width() / 2, y: this.cy.height() / 2 },
+    });
+  };
+
+  private fitGraph = () => this.cy?.fit(undefined, 50);
+
+  private panTo = ({ x, y }: { x: number; y: number }) => {
+    if (!this.cy) return;
+    const zoom = this.cy.zoom();
+    this.cy.pan({
+      x: this.cy.width() / 2 - x * zoom,
+      y: this.cy.height() / 2 - y * zoom,
+    });
+  };
+
+  private searchGraph = (query: string) => {
+    if (!this.cy || !query.trim()) return;
+    const needle = query.toLowerCase();
+    const match = this.cy
+      .nodes()
+      .filter((n) => String(n.data('term') ?? n.data('label') ?? n.id()).toLowerCase().includes(needle));
+    const node = match[0];
+    if (!node) return;
+    this.cy.animate({ center: { eles: node }, zoom: Math.max(this.cy.zoom(), 1.2), duration: 250 });
+    this.highlightNode(node);
   };
 
   private buildTooltipContent(data: Record<string, any>): string {

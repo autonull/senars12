@@ -1,4 +1,5 @@
 import type { StorybookConfig } from '@storybook/web-components-vite';
+import { resolveAliases } from '../vite.aliases.js';
 
 const config: StorybookConfig = {
   stories: ['../src/client/**/*.stories.@(ts|tsx)'],
@@ -15,19 +16,10 @@ const config: StorybookConfig = {
     autodocs: 'tag',
   },
   staticDirs: ['../dist/client'],
-  viteFinal: async (config) => {
-    return {
-      ...config,
-      resolve: {
-        ...config.resolve,
-        alias: {
-          ...config.resolve?.alias,
-          spacegraphjs: '/home/me/senars12b/senars12/ui/spacegraphjs7/src/index.ts',
-          '@senars/core': '/home/me/senars12b/senars12/core/src/protocol/index.ts',
-        },
-      },
-    };
-  },
+  viteFinal: async (config) => ({
+    ...config,
+    resolve: { ...config.resolve, alias: resolveAliases },
+  }),
 };
 
 export default config;

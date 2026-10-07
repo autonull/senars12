@@ -2,7 +2,7 @@ import type { Lens } from '@senars/core';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { LENS_COLORS } from '../constants.js';
-import { $activeLens, $graphNodes, BaseComponent, eventBus, send } from '../core/index.js';
+import { $activeLens, $graphNodes, BaseComponent, send } from '../core/index.js';
 
 export interface LensDef {
   id: Lens;
@@ -175,7 +175,6 @@ export class LensController extends BaseComponent {
   private selectLens(lens: Lens) {
     $activeLens.set(lens);
     send({ type: 'lens.set', lens });
-    eventBus.emit('lens:changed', lens);
     this.activePopover = null;
   }
 }
