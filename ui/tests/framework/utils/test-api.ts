@@ -44,7 +44,7 @@ export class TestApiClient {
         | Record<string, unknown>
         | undefined;
       return (api?.graph?.getNodeData?.(id) ?? {}) as Record<string, unknown>;
-    });
+    }, nodeId);
   }
 
   async clickNode(nodeId: string): Promise<void> {
@@ -53,7 +53,7 @@ export class TestApiClient {
         | Record<string, unknown>
         | undefined;
       api?.graph?.clickNode?.(id);
-    });
+    }, nodeId);
   }
 
   async clickEdge(source: string, target: string): Promise<void> {
@@ -62,7 +62,7 @@ export class TestApiClient {
         | Record<string, unknown>
         | undefined;
       api?.graph?.clickEdge?.(s, t);
-    });
+    }, [source, target]);
   }
 
   async getAllNodeIds(): Promise<string[]> {
@@ -89,7 +89,7 @@ export class TestApiClient {
         | Record<string, unknown>
         | undefined;
       return (api?.graph?.getEdgeData?.(s, t) ?? {}) as Record<string, unknown>;
-    });
+    }, [source, target]);
   }
 
   async getWorkingMemoryTerms(): Promise<string[]> {

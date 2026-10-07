@@ -1,7 +1,7 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('Relational Gate: auto-link', () => {
-  test('multi-clause Narsese input produces multiple nodes and edges', async ({
+  test('multi-clause Narsese input produces multiple nodes and edges @critical', async ({
     page,
     testApi,
   }) => {
@@ -41,7 +41,7 @@ test.describe('Relational Gate: auto-link', () => {
     expect(finalEdgeCount).toBeGreaterThanOrEqual(initialEdgeCount + 2);
   });
 
-  test('NL multi-clause sentence produces concepts via NL understanding', async ({
+  test('NL multi-clause sentence produces concepts via NL understanding @critical', async ({
     page,
     testApi,
   }) => {

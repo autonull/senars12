@@ -1,9 +1,12 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
+import { waitConnected } from '../../framework/utils/interactions';
 
-test('app loads successfully', async ({ page, testApi }) => {
-  await expect(page.locator('input-hud')).toBeVisible();
-  await expect(async () => {
-    const state = await testApi.getConnectionState();
-    expect(state).toBe('connected');
-  }).toPass({ timeout: 10000 });
+test('the LM status strip names the active provider @critical', async ({ page, testApi }) => {
+  await waitConnected(testApi);
+  const panel = page.locator('lm-status-panel');
+  await expect(panel).toBeVisible();
+  await expect(panel.locator('.panel')).toBeVisible();
+  await expect(panel.locator('.dot')).toBeVisible();
+  // Renders a provider line even when no LM is configured; real switching lands in Phase 9.2.
+  await expect(panel.locator('.panel')).toContainText('LM:');
 });

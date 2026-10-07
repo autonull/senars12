@@ -1,9 +1,16 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
+import { waitConnected } from '../../framework/utils/interactions';
 
-test('app loads successfully', async ({ page, testApi }) => {
-  await expect(page.locator('graph-viewport')).toBeVisible();
-  await expect(async () => {
-    const state = await testApi.getConnectionState();
-    expect(state).toBe('connected');
-  }).toPass({ timeout: 10000 });
+test('admitting new beliefs grows the projected graph @critical', async ({
+  testApi,
+  testControl,
+}) => {
+  await testControl.loadScenario('bootstrap');
+  await waitConnected(testApi);
+  const before = await testApi.getGraphNodeCount();
+
+  await testControl.importBeliefs(['<nova --> star>.', '<star --> celestial>.']);
+  await testControl.step(3);
+
+  await expect.poll(() => testApi.getGraphNodeCount()).toBeGreaterThan(before);
 });

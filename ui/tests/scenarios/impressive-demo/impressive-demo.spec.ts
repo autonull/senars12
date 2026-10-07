@@ -1,7 +1,7 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('impressive demo: live graph + revision history', () => {
-  test('bootstrap → graph grows → node click shows history → screenshot', async ({
+  test('bootstrap → graph grows → node click shows history → screenshot @visual', async ({
     testApi,
     testControl,
     page,

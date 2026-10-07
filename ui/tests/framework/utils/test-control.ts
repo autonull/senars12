@@ -29,6 +29,14 @@ export class TestControl {
     return response.json();
   }
 
+  /** Admit Narsese beliefs through the real engine (`believe` + `run`). */
+  async importBeliefs(statements: string[]) {
+    const response = await this.context.post(`${this.baseUrl}/test/import-beliefs`, {
+      data: { statements },
+    });
+    return response.json();
+  }
+
   async getState() {
     const response = await this.context.get(`${this.baseUrl}/test/state`);
     return response.json();

@@ -1,7 +1,7 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('Config Gate: lens designer', () => {
-  test('open designer, create lens, commit lens successfully', async ({ page, testApi }) => {
+  test('open designer, create lens, commit lens successfully @critical', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
     await expect.poll(() => testApi.getConnectionState()).toBe('connected');
 
@@ -36,7 +36,7 @@ test.describe('Config Gate: lens designer', () => {
     await expect(designer).not.toBeVisible({ timeout: 3000 });
   });
 
-  test('add isContradiction → color mapping, commit, verify lens exists', async ({
+  test('add isContradiction → color mapping, commit, verify lens exists @critical', async ({
     page,
     testApi,
   }) => {

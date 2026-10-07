@@ -1,6 +1,6 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
-test('full bot: page loads, WS connects, and graph viewport renders', async ({ testApi, page }) => {
+test('full bot: page loads, WS connects, and graph viewport renders @smoke', async ({ testApi, page }) => {
   await expect(page.locator('graph-viewport')).toBeVisible();
   await expect(page.locator('input-hud')).toBeVisible();
 

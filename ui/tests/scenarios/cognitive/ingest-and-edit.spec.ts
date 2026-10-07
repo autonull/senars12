@@ -1,7 +1,7 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('Cognitive Gate: ingest and edit', () => {
-  test('type a sentence, see a node appear', async ({ page, testApi }) => {
+  test('type a sentence, see a node appear @critical', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
 
     await expect(async () => {

@@ -1,7 +1,7 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('Temporal Gate: timeline scrubber and revision history', () => {
-  test('scrub timeline to view time-gated node visibility', async ({ page, testApi }) => {
+  test('scrub timeline to view time-gated node visibility @critical', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
     await expect.poll(() => testApi.getConnectionState()).toBe('connected');
 
@@ -24,7 +24,7 @@ test.describe('Temporal Gate: timeline scrubber and revision history', () => {
     await expect(scrubber).toBeVisible();
   });
 
-  test('node history tab displays revision entries', async ({ page, testApi }) => {
+  test('node history tab displays revision entries @critical', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
     await expect.poll(() => testApi.getConnectionState()).toBe('connected');
 

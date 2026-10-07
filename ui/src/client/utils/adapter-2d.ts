@@ -103,7 +103,6 @@ export function clearNodeStyles(cy: Core): void {
         opacity: 0.15,
         width: 30,
         height: 30,
-        'border-style': 'none',
         'border-width': 0,
       });
     }

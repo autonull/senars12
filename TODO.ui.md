@@ -239,6 +239,80 @@
 
 ---
 
+### Session 4 — Phase 1.6 close-out + client-render integrity (2026-10-07)
+
+**Landed**
+
+- **Client-load crash fixed (belief-lens color).** `isItemField` omitted `truth`, so the belief
+  lens's `color` channel resolved to the number `0`; cytoscape's color parser called
+  `.toLowerCase()` on it, threw, and opened the `error-boundary` overlay — which (via
+  `preventDefault`) also hid the exception from the `errorMonitor` fixture. `compile.ts` now derives
+  the runtime field set from a `satisfies readonly (keyof Item)[]` list including `truth`;
+  `adapter-2d` only assigns type-valid channel values (color/label/line-style strings; numeric
+  size/opacity/width) so a malformed lens can no longer crash the renderer.
+- **Graph edge integrity fixed.** `derivation.made` emitted structural edges (`parseTermToEdges`)
+  whose endpoints were bare terms (`robin`→`animal`) that were never concept nodes, so
+  `cy.add({group:'edges'})` threw *Can not create edge … nonexistent source*.
+  `UnifiedGraphProjection.applyDelta` now drops edges whose endpoints are not known nodes;
+  `graph-viewport.syncGraph` and `store-bindings.applyGraphOps` guard edge insertion by endpoint
+  existence. Edges now actually render (bootstrap 30, after `basic-derivation` 62).
+- **Invalid cytoscape style removed.** `clearNodeStyles` set `border-style: 'none'` (not a valid
+  cytoscape enum), logging a warning every render; replaced with `border-width: 0` only.
+- **E2E browser test API repaired.** `TestApiClient.getNodeData/clickNode/clickEdge/getEdgeData`
+  called `page.evaluate` with a callback that accepted an argument but never forwarded it, so
+  `id`/`source`/`target` were `undefined` — node/edge clicks and data reads were silent no-ops.
+  All four now pass their argument, unblocking the node/edge-driven specs.
+- **1.6 — placeholder specs wired.** The 14 placeholder specs now assert real scenario/surface
+  behaviour and carry tags. `@smoke`: `smoke/app-loads`, `full-bot`. `@critical`:
+  `keyboard-navigation`, `focus-concept` (loads `basic-derivation`, selects the derived concept,
+  asserts `focusTerm`), `fusion` (premises + derivation edge), `graph-updates`
+  (`/test/import-beliefs` + step grows the graph), `high-throughput` (sustained cycles, no error
+  overlay), `adjust-parameters` (dirty + reset via a URL-opened config panel),
+  `switch-llm-provider` (LM status strip renders; real switching is 9.2), `first-message`,
+  `markdown-rendering`, `streaming-response`, `backpressure`, `long-session`, `network-drop`
+  (`routeWebSocket` drops the first socket; the client self-heals), `xss-protection`.
+  `@visual`: `impressive-demo`.
+- **New test helpers:** `tests/framework/utils/interactions.ts` (`waitConnected`, `openPanels` via
+  URL hash + reload — a hash-only `goto` does not re-run boot hydration, `sendMessage`,
+  `chatMessageCount`); `TestControl.importBeliefs`.
+- **Archived dead artifacts (§2.2):** `tests/impressive-screenshot.spec.ts` (outside `testDir`,
+  port-3000 drift) and `scripts/ready-check.ts` (unreferenced, port-3000 drift); archive `INDEX.md`
+  updated.
+
+**Verification**
+
+- `pnpm --dir ui exec tsc --noEmit` clean.
+- UI unit 22/22 (`tests/components`, `tests/modulation`, incl. new truth→color compile test); root
+  `tests/unit/server/unified-graph-projection.test.ts` 11/11 (incl. new dangling-edge test).
+- Chromium Playwright: the 14 rewritten specs 14/14; smoke `app-loads` green.
+- Firefox/WebKit cannot run here — installed browser revisions don't match Playwright 1.62
+  (only chromium is); CI uses chromium only.
+
+**Still open / newly visible** *(Session 4)*
+
+- The broader chromium scenario suite is still partly red; the honest specs now surface real gaps:
+  `cognitive/timeline` (2), `configuration/lens-designer` (2), `metta` LTM (1),
+  `relational/auto-link` (2), `relational/edit-edge` (2), `spatial/parity` edge-editing (1). Not
+  regressions from this session — the test-API + render fixes moved several from "silently no-op"
+  to "runs and reveals the next gap". Triage next (likely Phase 6.7 timeline, 3.4 lens designer,
+  8.3 edge parity).
+- `switch-llm-provider` only asserts the status strip renders; real `lm.switch` is 9.2.
+- 1.3 mock-LM proposal scenarios and 1.5 proposal/invariant scenario fields remain.
+- The error boundary calls `preventDefault()` on uncaught errors, so `errorMonitor`/Playwright
+  `pageerror` never observe them; the load crash hid behind this for full runs.
+
+**New opportunities spotted** *(Session 4)*
+
+- Add a test asserting the reflective test-API methods actually receive their arguments (the
+  argument-forwarding bug was invisible and defeated every node/edge spec).
+- Scenario-mutating specs share one server and `testControl.reset()` reloads the active scenario
+  per test, so parallel specs can clobber each other; run them with `--workers=1` or move to
+  per-test `/test/reset-all` + scoped servers (Phase 2.6/10.2).
+- `border-style: 'none'` hints that lens/capability channel values are not validated against the
+  cytoscape enum; a channel→property capability matrix (3.4) would reject them at the source.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -470,9 +544,9 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [x] **1.1** Deterministic reset: `/test/reset` clears engine tasks, projection, seq counter, telemetry, event log, `testState`; `/test/reset-all` for parallel isolation. *(done: projection `reset()`; reset restores the active scenario baseline, reset-all forces bootstrap; `/test/scenarios` + `/test/scenario`)*
 - [x] **1.2** Seeded identity/time via `installIdSource`/`sequentialIdSource`; fake clock; remove `Math.random` (reconnect jitter, minimap fallback → deterministic id hashing). *(done: seeded `ids`/`rng`/`clock` in `agent-server`, deterministic backoff + minimap hash)*
 - [x] **1.3** Engine control: `/test/step|pause|resume|inject-event`; a `scenario` endpoint loading named belief/proposal sets through the **real** engine (`believe`+`run`; `LM_PROVIDER=mock` proposals). `/test/inject-derivation` stays explicitly synthetic. *(partial: all endpoints + real-engine scenario loading done; mock-LM proposal sets pending)*
-- [ ] **1.4** Browser test API parity: `workingMemory.getTerms()`, `store.setState`, `events.recent(filter)`, `graph.getProvenance(id)`, `spacegraph.getEdgeData/clickEdge/setGraphData`, `telemetry.getSeries`. *(partial: `store.setState`, `spacegraph` edge ops, `telemetry.getSeries` done; `events.recent`/`graph.getProvenance` blocked on the client event log + provenance, Phases 6.6/6.1)*
+- [ ] **1.4** Browser test API parity: `workingMemory.getTerms()`, `store.setState`, `events.recent(filter)`, `graph.getProvenance(id)`, `spacegraph.getEdgeData/clickEdge/setGraphData`, `telemetry.getSeries`. *(partial: `store.setState`, `spacegraph` edge ops, `telemetry.getSeries` done; the `graph` namespace's `getNodeData/clickNode/clickEdge/getEdgeData` argument-forwarding fixed in Session 4 so node/edge specs actually drive the UI; `events.recent`/`graph.getProvenance` blocked on the client event log + provenance, Phases 6.6/6.1)*
 - [x] **1.5** `tests/framework/fixtures/scenarios.ts`: typed scenario definitions (beliefs, proposals, steps, invariants) shared by E2E and the gallery. *(done: `@senars/ui/scenarios` catalog + test-side re-export; proposal/invariant fields pending)*
-- [ ] **1.6** Wire the 14 placeholder specs to real scenarios or delete; tag `@smoke/@critical/@visual`.
+- [x] **1.6** Wire the 14 placeholder specs to real scenarios or delete; tag `@smoke/@critical/@visual`. *(done: Session 4 — all 14 rewritten to scenario/surface-backed assertions and tagged; a few pre-existing red specs surfaced for triage)*
 
 **Verification:** same scenario twice ⇒ identical graph JSON, event seq, pixel-stable screenshot; `fullyParallel` has zero contamination.
 **Deliverable:** reproducibility.

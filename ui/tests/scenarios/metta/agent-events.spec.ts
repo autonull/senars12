@@ -1,7 +1,7 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('MettaAgent Integration Tests', () => {
-  test('MettaAgent emits derivation events on input', async ({ page, testApi }) => {
+  test('MettaAgent emits derivation events on input @critical', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
     await expect.poll(() => testApi.getConnectionState()).toBe('connected');
 
@@ -22,7 +22,7 @@ test.describe('MettaAgent Integration Tests', () => {
     expect(finalCount).toBeGreaterThanOrEqual(initialCount);
   });
 
-  test('MettaAgent processes MeTTa expressions', async ({ page, testApi }) => {
+  test('MettaAgent processes MeTTa expressions @critical', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
     await expect.poll(() => testApi.getConnectionState()).toBe('connected');
 
@@ -40,7 +40,7 @@ test.describe('MettaAgent Integration Tests', () => {
     expect(nodeCount).toBeGreaterThan(0);
   });
 
-  test('MettaAgent LTM capability available', async ({ page, testControl }) => {
+  test('MettaAgent LTM capability available @critical', async ({ page, testControl }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
     await expect
       .poll(() =>

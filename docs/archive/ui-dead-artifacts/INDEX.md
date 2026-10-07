@@ -34,6 +34,20 @@ below); the removal commit `e60bc53a` shows exactly which lines were dropped.
 | `src/client/spacegraph/spacegraph-app.ts` | Duplicate shell; the standalone entry now mounts `<spacegraph-viewport>`. | `src/client/spacegraph/index.html` was updated to `<spacegraph-viewport>`; revert that tag if the shell is restored. |
 | `src/stories/**` | Unused Storybook scaffold (`Configure.mdx`, CSS, default assets); the Storybook glob targets `src/client/**/*.stories.*`. | Phase 2.5 rebuilds stories deterministically; reuse assets only if re-adopting the default scaffold. Binary assets are included here only for convenience — they also live in `cdfc4dfa`. |
 
+## Later removals
+
+### Phase 1.6 (TODO.ui.md) — dead test/script artifacts
+
+- **Why:** `impressive-screenshot.spec.ts` lived outside Playwright's `testDir`
+  (`tests/scenarios`), so it never ran, and it hard-coded `http://localhost:3000`
+  while the webServer uses port 3456. `ready-check.ts` was unreferenced and also
+  hard-coded port 3000. Neither had a live consumer.
+
+| Archived path (relative to `ui/`) | Removed because | Resurrection notes |
+|---|---|---|
+| `tests/impressive-screenshot.spec.ts` | Outside `testDir`; duplicate of `tests/scenarios/impressive-demo/impressive-demo.spec.ts`; port 3000 drift. | Fold any unique assertion into `impressive-demo.spec.ts` (already tagged `@visual`). |
+| `scripts/ready-check.ts` | Unreferenced; port 3000 drift. | The webServer readiness is owned by `tests/playwright.config.ts`; recreate only if a standalone poller is needed, reading the port from config. |
+
 ## Notes
 
 - This archive is intentionally excluded from formatting/linting so the frozen

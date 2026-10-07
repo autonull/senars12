@@ -1,7 +1,7 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('Relational Gate: edit edge', () => {
-  test('tap an edge, change its type via the drawer, verify update', async ({ page, testApi }) => {
+  test('tap an edge, change its type via the drawer, verify update @critical', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
     await expect.poll(() => testApi.getConnectionState()).toBe('connected');
 
@@ -42,7 +42,7 @@ test.describe('Relational Gate: edit edge', () => {
     await expect(typeSelect).toHaveValue(newType, { timeout: 3000 });
   });
 
-  test('background tap clears edge selection', async ({ page, testApi }) => {
+  test('background tap clears edge selection @critical', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
     await expect.poll(() => testApi.getConnectionState()).toBe('connected');
 

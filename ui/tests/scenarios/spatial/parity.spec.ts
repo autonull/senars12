@@ -1,7 +1,7 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('Spatial Gate: 2D/3D parity', () => {
-  test('2D viewport renders initially', async ({ page, testApi }) => {
+  test('2D viewport renders initially @critical', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
 
     await expect(async () => {
@@ -15,7 +15,7 @@ test.describe('Spatial Gate: 2D/3D parity', () => {
     }).toPass({ timeout: 15000 });
   });
 
-  test('3D viewport renders when toggled', async ({ page, testApi }) => {
+  test('3D viewport renders when toggled @critical', async ({ page, testApi }) => {
     // Ensure we're in 2D mode first
     await expect(page.locator('graph-viewport')).toBeVisible({ timeout: 5000 });
 
@@ -31,7 +31,7 @@ test.describe('Spatial Gate: 2D/3D parity', () => {
     await expect(page.locator('spacegraph-viewport')).toBeVisible({ timeout: 5000 });
   });
 
-  test('node count available via spacegraph test API', async ({ page, testApi }) => {
+  test('node count available via spacegraph test API @critical', async ({ page, testApi }) => {
     // Ensure we're in 2D mode first
     const toolbar = page.locator('graph-toolbar');
     await toolbar.getByRole('button', { name: '3D' }).click({ force: true });
@@ -52,7 +52,7 @@ test.describe('Spatial Gate: 2D/3D parity', () => {
     expect(count).toBeGreaterThanOrEqual(0);
   });
 
-  test('edge editing works in 2D mode', async ({ page, testApi }) => {
+  test('edge editing works in 2D mode @critical', async ({ page, testApi }) => {
     // Ensure we're in 2D mode
     const toolbar = page.locator('graph-toolbar');
     const currentMode = await page.evaluate(() => {
