@@ -134,6 +134,22 @@ describe('UnifiedGraphProjection', () => {
     }
   });
 
+  it('drops edges whose endpoints are not known nodes', () => {
+    projection.applyDelta({
+      nodes: [makeNode('(robin-->bird)'), makeNode('(robin-->animal)')],
+      edges: [
+        { source: 'robin', target: 'animal', type: 'inheritance' },
+        { source: '(robin-->bird)', target: '(robin-->animal)', type: 'derivation' },
+      ],
+    });
+    const delta = sent.find((m) => m.type === 'cognitive.delta');
+    if (delta?.type === 'cognitive.delta') {
+      const edges = delta.ops.filter((o) => o.action === 'add_edge');
+      expect(edges).toHaveLength(1);
+      expect(edges[0]).toMatchObject({ source: '(robin-->bird)', target: '(robin-->animal)' });
+    }
+  });
+
   it('reset clears nodes/edges/lens and rewinds the seq counter', () => {
     projection.applyDelta(makeDelta([makeNode('bird'), makeNode('animal')]));
     projection.setLens('goal');

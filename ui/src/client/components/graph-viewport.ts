@@ -616,7 +616,9 @@ export class GraphViewport extends BaseComponent {
         cy.edges().map((e) => edgeKey(e.data('source'), e.data('target')))
       );
       for (const [key, ed] of edges) {
-        if (!currentEdgeKeys.has(key)) cy.add({ group: 'edges', data: { ...ed } });
+        if (currentEdgeKeys.has(key)) continue;
+        if (!nodes.has(ed.source as string) || !nodes.has(ed.target as string)) continue;
+        cy.add({ group: 'edges', data: { ...ed } });
       }
       for (const e of cy.edges()) {
         const key = edgeKey(e.data('source'), e.data('target'));

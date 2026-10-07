@@ -1,6 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { diffDelta, evaluate } from '../../src/client/modulation/evaluate.js';
+import { compile } from '../../src/client/modulation/compile.js';
 import { getMemoCache, resetMemoCache } from '../../src/client/modulation/memo.js';
 import {
   compose,
@@ -9,7 +10,7 @@ import {
   konst,
   when,
 } from '../../src/client/modulation/operators.js';
-import type { Channel, Delta, Item, View } from '../../src/client/modulation/types.js';
+import type { Channel, Delta, Item, Modulation, View } from '../../src/client/modulation/types.js';
 import { checkUnsupportedChannels } from '../../src/client/spacegraph/adapter-3d.js';
 
 const defaultView: View = {
@@ -212,6 +213,32 @@ describe('Memo', () => {
     expect(cache.getDelta('test')).toBeDefined();
     cache.clear();
     expect(cache.getDelta('test')).toBeUndefined();
+  });
+});
+
+describe('compile', () => {
+  it('maps the truth field to a color string, not the raw value', () => {
+    const mod = compile({
+      id: 'truth-color',
+      label: 'Truth color',
+      description: '',
+      modulation: {
+        op: 'channel',
+        channel: 'color',
+        child: { op: 'field', field: 'truth', map: 'truth-to-color' },
+      },
+    });
+    const item: Item = {
+      id: 'n',
+      priority: 0.5,
+      confidence: 0.9,
+      nodeType: 'concept',
+      truth: { frequency: 0.25, confidence: 0.9 },
+    };
+    const delta = evaluateModulation(mod, item, defaultView);
+    const color = delta.get('n')?.color;
+    expect(typeof color).toBe('string');
+    expect(color).toMatch(/^hsl\(/);
   });
 });
 

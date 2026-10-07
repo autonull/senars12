@@ -28,29 +28,30 @@ function channelToStyles(channels: Partial<Record<Channel, ChannelValue>>): Styl
   for (const [ch, value] of Object.entries(channels)) {
     switch (ch as Channel) {
       case 'color':
-        styles['background-color'] = value as string;
+        if (typeof value === 'string') styles['background-color'] = value;
         break;
       case 'opacity':
-        styles.opacity = value as number;
+        if (typeof value === 'number') styles.opacity = value;
         break;
       case 'size': {
-        const s = value as number;
-        styles.width = s;
-        styles.height = s;
+        if (typeof value !== 'number') break;
+        styles.width = value;
+        styles.height = value;
         break;
       }
       case 'label':
-        styles.label = value as string;
+        if (typeof value === 'string') styles.label = value;
         break;
       case 'stroke.dash':
         styles['border-style'] = 'dashed';
         break;
       case 'stroke.width':
-        styles['border-width'] = value as number;
+        if (typeof value !== 'number') break;
+        styles['border-width'] = value;
         styles['border-color'] = TOKEN_COLORS.borderDefault;
         break;
       case 'z':
-        styles['z-index'] = Math.round(value as number);
+        if (typeof value === 'number') styles['z-index'] = Math.round(value);
         break;
     }
   }
@@ -62,18 +63,20 @@ function edgeChannelToStyles(channels: Partial<Record<Channel, ChannelValue>>): 
   for (const [ch, value] of Object.entries(channels)) {
     switch (ch as Channel) {
       case 'width':
-        styles.width = value as number;
+        if (typeof value === 'number') styles.width = value;
         break;
       case 'edge-color':
       case 'color':
-        styles['line-color'] = value as string;
-        styles['target-arrow-color'] = value as string;
+        if (typeof value === 'string') {
+          styles['line-color'] = value;
+          styles['target-arrow-color'] = value;
+        }
         break;
       case 'line-style':
-        styles['line-style'] = value as string;
+        if (typeof value === 'string') styles['line-style'] = value;
         break;
       case 'opacity':
-        styles.opacity = value as number;
+        if (typeof value === 'number') styles.opacity = value;
         break;
     }
   }

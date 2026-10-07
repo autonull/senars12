@@ -85,6 +85,10 @@ export class UnifiedGraphProjection {
     }
 
     for (const edge of delta.edges) {
+      // An edge is only meaningful between known nodes; structural decorations
+      // can reference bare terms that were never admitted as concepts. Skipping
+      // them here keeps the wire and both renderers free of dangling edges.
+      if (!this.#nodes.has(edge.source) || !this.#nodes.has(edge.target)) continue;
       this.#edges.set(this.#edgeId(edge), edge);
       ops.push({ action: 'add_edge', source: edge.source, target: edge.target, data: this.#edgeData(edge) });
     }

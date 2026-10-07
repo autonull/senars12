@@ -1,6 +1,6 @@
 import { clamp } from '@senars/util';
 import { builtinLensSpecs } from '../../shared/lens-schema.js';
-import { channel, compose, field, konst, union, when } from './operators.js';
+import { channel, field, konst, union, when } from './operators.js';
 import type { ChannelValue, Item, Modulation, View } from './types.js';
 
 export interface LensSpec {
@@ -30,21 +30,27 @@ const SCALE_MAP_NAMES: Record<string, (v: unknown) => ChannelValue> = {
   },
 };
 
+/** Runtime mirror of `keyof Item`; `satisfies` keeps it exhaustive when Item grows. */
+const ITEM_FIELDS = [
+  'id',
+  'priority',
+  'confidence',
+  'nodeType',
+  'isContradiction',
+  'truth',
+  'occurrenceTime',
+  'goalRelevance',
+  'edgeType',
+  'weight',
+  'source',
+  'target',
+  'directed',
+] as const satisfies readonly (keyof Item)[];
+
+const ITEM_FIELD_SET: ReadonlySet<string> = new Set(ITEM_FIELDS);
+
 function isItemField(f: string): f is keyof Item {
-  return [
-    'id',
-    'priority',
-    'confidence',
-    'nodeType',
-    'isContradiction',
-    'occurrenceTime',
-    'goalRelevance',
-    'edgeType',
-    'weight',
-    'source',
-    'target',
-    'directed',
-  ].includes(f);
+  return ITEM_FIELD_SET.has(f);
 }
 
 function compileSpec(spec: ModulationSpec): Modulation {

@@ -217,6 +217,7 @@ function applyGraphOps(ops: GraphOp[], cy?: Core): void {
         if (cy) cy.getElementById(op.id).remove();
         break;
       case 'add_edge': {
+        if (!nodes.has(op.source) || !nodes.has(op.target)) break;
         const edgeData = { ...op.data, source: op.source, target: op.target };
         edges.set(edgeKey(op.source, op.target), edgeData);
         if (cy) cy.add({ group: 'edges', data: edgeData });
