@@ -157,6 +157,88 @@
 
 ---
 
+### Session 3 — Phase 0 close-out + Phase 1 foundation (2026-10-07)
+
+**Landed**
+
+- **0.5 — reconnect + queue expiry (closed).** `ws-client` exports `reconnect()` (clears the
+  reconnect timer and attempt budget, keeps the offline queue) and the Retry buttons in
+  `connection-banner`/`error-boundary` use it, so a manual retry after the attempt limit no longer
+  dead-ends. Pending messages carry a timestamp and expire after 60 s; backoff jitter was removed so
+  the schedule is a pure function of the attempt. Every handler guards on socket identity, so a
+  superseded socket's late `onclose` cannot reschedule the connection that replaced it.
+- **0.7 / E2E unblock — the browser app could not load at all.** `agentOptionsSchema.knowledgePath`
+  evaluated `cachePath('agent-knowledge.json')` (→ `node:path.join`) at module init; `@senars/util`'s
+  barrel is in the client bundle, so the externalized `node:path` proxy threw and aborted the entry
+  bundle — no custom element registered and *every* Playwright spec failed for reasons unrelated to
+  its subject. Fixed with a lazy zod default. `spacegraph-viewport` now imports `SpaceGraph` from
+  `spacegraphjs/SpaceGraph` instead of the barrel (whose `VisionSystem` export eagerly pulls
+  `child_process`/`fs`/`path`). The real `agent-server` + Playwright smoke is now green.
+- **0.3 follow-on — belief truth shape.** `derivation.made` emitted raw NAR belief truth `{f,c}`
+  where the wire contract is `{frequency,confidence}`, so the client's
+  `IncomingFromServer.safeParse` dropped the *whole* delta silently. Mapped through `asBeliefTruth`;
+  `/test/export-beliefs` likewise.
+- **1.1 — deterministic reset.** `UnifiedGraphProjection.reset()` clears nodes/edges/lenses/focus and
+  rewinds `#seq` to 0. `/test/reset` restores the active scenario baseline; `/test/reset-all` forces
+  bootstrap for parallel isolation; `/test/scenarios` lists ids; `/test/scenario` clears the engine
+  and loads a named scenario through the real engine.
+- **1.2 — seeded identity/time.** `agent-server` builds the NAR config from `SENARS_SEED` (default 1;
+  `off` disables): `ids: sequentialIdSource()`, `rng: new SeededRNG(seed)`, `clock: fixedClock(…)`.
+  `Math.random` removed from the reconnect backoff and the minimap's missing-layout fallback
+  (FNV-1a hash of the node id into [-200, 200)).
+- **1.3 — engine control.** `/test/step` (`nar.run(n)`), `/test/pause`/`/test/resume`
+  (`getSelfAnalyzer().stop()/start()`), `/test/inject-event` (tagged `synthetic`, test-only), plus
+  `/test/scenario`.
+- **1.5 — scenario catalog.** New `ui/src/server/scenarios.ts`: typed `Scenario`, `SCENARIOS`
+  (`bootstrap`, `basic-derivation` S1, `conflicting-evidence` S2) and `loadScenario` (real
+  `believe`/`goal` + `run`). Exported as `@senars/ui/scenarios`; test-side view in
+  `ui/tests/framework/fixtures/scenarios.ts`. `agent-server` now seeds bootstrap from the catalog
+  rather than a hardcoded list.
+- **1.4 — test API parity (partial).** `store.setState(path, value)`; `telemetry.getSeries()`;
+  `spacegraph.getEdgeData/clickEdge/setGraphData` to match the 2D API. `graph.getProvenance` and
+  `events.recent` were deliberately deferred — there is no client provenance or event log yet
+  (Phases 6.1/6.6).
+
+**Verification**
+
+- `pnpm --dir ui exec tsc --noEmit`, `pnpm --dir core exec tsc --noEmit`, `pnpm --dir util exec tsc
+  --noEmit` clean; `pnpm --dir ui build` succeeds.
+- UI unit 21/21; root `tests/unit/server` 18/18 — added `scenarios.test.ts` and `test-endpoints.test.ts`
+  (the latter boots a real `Agent` + `NAREngine` + `startAgentUI` and drives
+  reset/scenario/step/inject over HTTP); `unified-graph-projection.test.ts` extended with reset.
+- Playwright chromium: smoke `app-loads` now passes. A cognitive+spatial subset ran 6 pass / 6 fail;
+  the failures are the 3D-parity, timeline, ingest and frame-budget specs. The base build aborted on
+  load, so these specs never ran before this session — the failures are pre-existing gaps being
+  surfaced, not regressions from Session 3.
+
+**Still open / newly visible** *(Session 3)*
+
+- **Phase 1.6 untouched** — the placeholder specs still need wiring to scenarios or deletion. The
+  first honest runs surface real gaps to triage: the toolbar's 3D toggle leaves `$viewportMode` at
+  `2d` under a synthesized click, the 3D `spacegraph-viewport` never becomes visible, ingest's send
+  flow opens the error boundary, and the timeline/frame-budget specs fail. Resolve before Phase 8
+  (2D/3D parity) and 6.7 (timeline).
+- `/test/reset` now reloads the baseline through the engine, changing the E2E fixture contract:
+  `testControl.reset()` is a real reset, not a `testState` wipe. `fullyParallel` specs still share one
+  server, so `reset-all` isolation only pays off once specs use it per-test (or servers are scoped).
+- 1.3 proposal scenarios (`LM_PROVIDER=mock`) and 1.5 `invariants`/proposal fields are not in the
+  `Scenario` type yet.
+- `inject-event` tags synthetic events with a non-schema `synthetic` field (double cast); fold it
+  into the event base schema when the append-only stream lands (6.6).
+- `startUI`'s no-agent branch still bypasses `handleClientMessage` (Session 1 note) — the test server
+  remains a second connection path.
+
+**New opportunities spotted** *(Session 3)*
+
+- **Guard the browser bundle.** The client was broken by two eager Node-only imports reachable
+  through barrels (`@senars/util`'s agent schema, spacegraph's vision export). Add a build guard
+  (import the client entry in jsdom, or assert no externalized `node:` access runs at load) so the
+  next such regression fails CI instead of the first Playwright run.
+- `testControl.reset()` reloads the scenario on every test setup; if that proves slow, make reset
+  projection-only and reserve the engine reload for `/test/reset-all`.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -374,9 +456,9 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [x] **0.2** Emit `state.snapshot` (graph + working memory + config + seq), `node.history`, `lens.defined`, `telemetry`; monotonic `seqId`, never `Date.now()`.
 - [ ] **0.3** Widen the bridge: translate every relevant engine event into projection ops + append-only stream — `derivation.made/accepted`, `belief.added/retracted/revised`, `concept.activated`, `conflict:detected`, `goal.achieved/failed`, `skill.executed`, `atom.derived/retracted`, `proposal.admitted/rejected`, `judgment.resolved`, `budget.exhausted`, `policy.violation`, `task.admitted`. Carry rule/cpuMs/lmCalls/lmTokens/truth; real priority/confidence; emit `update_node` on revision. *(partial: 15 graph-relevant event types wired + provenance fields on the wire; `judgment.resolved`/`budget.exhausted`/`policy.violation`/`egress.gate.rejected`/`shadow.validation.dropped` remain — they need the append-only event stream, see log)*
 - [ ] **0.4** Fix dead wiring: implement-or-remove `graph:zoom-in/out|fit|search|pan-to`, `lens:changed`; real config reset; resolve `<export-import>`; add `lm.switch` to the union; fix `focusNode` term/id, `exportSubgraph` scope, `workingMemory` test namespace. *(partial: real `config.reset` + `<export-import>` + `focusTerm`/export/`workingMemory` fixed; 2D+3D zoom/fit/search/pan wired, `lens:changed` removed, `lm.switch` added)*
-- [x] **0.5** Transport: derive `wss:`; guard `JSON.parse`; cap/expire offline queue; user-triggered reconnect reset; `/health` + `/ready`; traversal-safe static; gate `/test/*` by env flag while keeping Playwright enabled. *(queue cap + `/health`/`/ready` + traversal-safe + gate done; reconnect reset/expiry pending)*
+- [x] **0.5** Transport: derive `wss:`; guard `JSON.parse`; cap/expire offline queue; user-triggered reconnect reset; `/health` + `/ready`; traversal-safe static; gate `/test/*` by env flag while keeping Playwright enabled. *(done: `reconnect()` + queue TTL + socket-identity guards; cap + `/health`/`/ready` + traversal-safe + gate)*
 - [x] **0.6** Remove/integrate dead artifacts: `lens-selector.ts`, `core/theme.css`, unused `styles/tokens.ts`, `components/index.ts` barrel, `spacegraph-app.ts`, `src/stories/` cruft; fix Storybook aliases + port drift. *(done: all six removed; standalone `spacegraph/index.html` now mounts `<spacegraph-viewport>`)*
-- [ ] **0.7** Establish the UI command contract (`build`, `typecheck`, `test:unit`, `test:e2e`, `test:visual`, `storybook`, `build-storybook`, `ui:gallery`). *(server-inclusive typecheck real; `test:visual`/`ui:gallery` deferred to Phase 2 — their baselines, `build-gallery.ts`, and visual config are Phase 2 deliverables)*
+- [ ] **0.7** Establish the UI command contract (`build`, `typecheck`, `test:unit`, `test:e2e`, `test:visual`, `storybook`, `build-storybook`, `ui:gallery`). *(server-inclusive typecheck real; `test:e2e` now actually runs — browser-load blocker fixed in Session 3; `test:visual`/`ui:gallery` deferred to Phase 2 — their baselines, `build-gallery.ts`, and visual config are Phase 2 deliverables)*
 
 **Verification:** every declared client message round-trips in a test; telemetry/history render non-empty against the real server; no `eventBus` emit lacks a listener; build/typecheck/unit/e2e green.
 **Deliverable:** the app stops lying.
@@ -385,11 +467,11 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 
 **Goal:** reproducible state byte-for-byte — prerequisite for visual validation and demos.
 
-- [ ] **1.1** Deterministic reset: `/test/reset` clears engine tasks, projection, seq counter, telemetry, event log, `testState`; `/test/reset-all` for parallel isolation.
-- [ ] **1.2** Seeded identity/time via `installIdSource`/`sequentialIdSource`; fake clock; remove `Math.random` (reconnect jitter, minimap fallback → deterministic id hashing).
-- [ ] **1.3** Engine control: `/test/step|pause|resume|inject-event`; a `scenario` endpoint loading named belief/proposal sets through the **real** engine (`believe`+`run`; `LM_PROVIDER=mock` proposals). `/test/inject-derivation` stays explicitly synthetic.
-- [ ] **1.4** Browser test API parity: `workingMemory.getTerms()`, `store.setState`, `events.recent(filter)`, `graph.getProvenance(id)`, `spacegraph.getEdgeData/clickEdge/setGraphData`, `telemetry.getSeries`.
-- [ ] **1.5** `tests/framework/fixtures/scenarios.ts`: typed scenario definitions (beliefs, proposals, steps, invariants) shared by E2E and the gallery.
+- [x] **1.1** Deterministic reset: `/test/reset` clears engine tasks, projection, seq counter, telemetry, event log, `testState`; `/test/reset-all` for parallel isolation. *(done: projection `reset()`; reset restores the active scenario baseline, reset-all forces bootstrap; `/test/scenarios` + `/test/scenario`)*
+- [x] **1.2** Seeded identity/time via `installIdSource`/`sequentialIdSource`; fake clock; remove `Math.random` (reconnect jitter, minimap fallback → deterministic id hashing). *(done: seeded `ids`/`rng`/`clock` in `agent-server`, deterministic backoff + minimap hash)*
+- [x] **1.3** Engine control: `/test/step|pause|resume|inject-event`; a `scenario` endpoint loading named belief/proposal sets through the **real** engine (`believe`+`run`; `LM_PROVIDER=mock` proposals). `/test/inject-derivation` stays explicitly synthetic. *(partial: all endpoints + real-engine scenario loading done; mock-LM proposal sets pending)*
+- [ ] **1.4** Browser test API parity: `workingMemory.getTerms()`, `store.setState`, `events.recent(filter)`, `graph.getProvenance(id)`, `spacegraph.getEdgeData/clickEdge/setGraphData`, `telemetry.getSeries`. *(partial: `store.setState`, `spacegraph` edge ops, `telemetry.getSeries` done; `events.recent`/`graph.getProvenance` blocked on the client event log + provenance, Phases 6.6/6.1)*
+- [x] **1.5** `tests/framework/fixtures/scenarios.ts`: typed scenario definitions (beliefs, proposals, steps, invariants) shared by E2E and the gallery. *(done: `@senars/ui/scenarios` catalog + test-side re-export; proposal/invariant fields pending)*
 - [ ] **1.6** Wire the 14 placeholder specs to real scenarios or delete; tag `@smoke/@critical/@visual`.
 
 **Verification:** same scenario twice ⇒ identical graph JSON, event seq, pixel-stable screenshot; `fullyParallel` has zero contamination.

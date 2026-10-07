@@ -6,6 +6,20 @@ import { cssToken, TOKEN_COLORS } from '../utils/token-colors.js';
 const MINIMAP_SIZE = 160;
 const PADDING = 10;
 
+/**
+ * Deterministic fallback position for a node with no layout: an FNV-1a hash of
+ * its id in [-200, 200). `Math.random` here made the minimap look different on
+ * every repaint, which defeated screenshot baselines for the same graph.
+ */
+function hashPosition(id: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    hash ^= id.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return ((hash >>> 0) % 1000) / 1000 * 400 - 200;
+}
+
 @customElement('graph-minimap')
 export class GraphMinimap extends BaseComponent {
   static override styles = css`
@@ -92,8 +106,8 @@ export class GraphMinimap extends BaseComponent {
 
     // Parse positions from graph data or edges
     for (const [id, nd] of nodes) {
-      const x = nd.layout?.x ?? Math.random() * 400 - 200;
-      const y = nd.layout?.y ?? Math.random() * 400 - 200;
+      const x = nd.layout?.x ?? hashPosition(id);
+      const y = nd.layout?.y ?? hashPosition(`${id}:y`);
       positions.set(id, { x, y });
       if (x < minX) minX = x;
       if (y < minY) minY = y;

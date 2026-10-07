@@ -16,6 +16,10 @@
       "types": "./src/server/*.ts",
       "import": "./src/server/*.ts"
     },
+    "./scenarios": {
+      "types": "./src/server/scenarios.ts",
+      "import": "./src/server/scenarios.ts"
+    },
     "./unified-graph-projection": {
       "types": "./src/server/UnifiedGraphProjection.ts",
       "import": "./src/server/UnifiedGraphProjection.ts"

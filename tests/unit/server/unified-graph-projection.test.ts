@@ -133,4 +133,20 @@ describe('UnifiedGraphProjection', () => {
       expect(op?.action === 'update_node' && op.data.isContradiction).toBe(true);
     }
   });
+
+  it('reset clears nodes/edges/lens and rewinds the seq counter', () => {
+    projection.applyDelta(makeDelta([makeNode('bird'), makeNode('animal')]));
+    projection.setLens('goal');
+    projection.setFocus('bird');
+    expect(projection.seq).toBeGreaterThan(0);
+
+    projection.reset();
+
+    expect(projection.seq).toBe(0);
+    expect(projection.lens).toBe('belief');
+    expect(projection.graphSnapshot()).toEqual({ nodes: [], edges: [] });
+
+    projection.applyDelta(makeDelta([makeNode('robin')]));
+    expect(projection.seq).toBe(1);
+  });
 });

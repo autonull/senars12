@@ -2,7 +2,12 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 // Dynamic import SpaceGraphJS (source-level via Vite alias)
-import { SpaceGraph } from 'spacegraphjs';
+// Import the class module directly, not the package barrel: the barrel also
+// re-exports `VisionSystem`, whose analyzer pulls `child_process`/`fs`/`path`.
+// Vite externalizes those for the browser, and the resulting module error aborts
+// the whole entry bundle (3D viewport never registers). Only `SpaceGraph` is
+// needed here.
+import { SpaceGraph } from 'spacegraphjs/SpaceGraph';
 import { BaseComponent } from '../core/base-component.js';
 import { GraphRenderer } from '../core/graph-renderer.js';
 import {
@@ -96,9 +101,19 @@ export class SpaceGraphViewport extends BaseComponent {
       getNodeCount: () => this.sg?.nodeCount ?? 0,
       getEdgeCount: () => this.sg?.edgeCount ?? 0,
       getNodeData: (id: string) => this.sg?.getNode(id)?.data ?? null,
+      getEdgeData: (source: string, target: string) =>
+        $graphEdges.get().get(`${source}->${target}`) ?? null,
       getAllNodeIds: () => this.sg?.nodes.map((n) => n.id) ?? [],
       clickNode: (id: string) => this.sg?.getNode(id)?.object?.dispatchEvent?.(new Event('click')),
+      clickEdge: (source: string, target: string) => {
+        const edge = this.sg?.edges.find((e) => e.source?.id === source && e.target?.id === target);
+        edge?.object?.dispatchEvent?.(new Event('click'));
+      },
       focusNode: (id: string) => this.sg?.focusNode(id, 100, 0.4),
+      setGraphData: (nodes: Map<string, any>, edges: Map<string, any>) => {
+        $graphNodes.set(nodes);
+        $graphEdges.set(edges);
+      },
     });
   }
 

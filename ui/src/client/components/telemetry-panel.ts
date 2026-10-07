@@ -158,6 +158,7 @@ export class TelemetryPanel extends BaseComponent {
     this.watchWith($telemetry, () => this.scheduleDraw());
     mountTestApi('telemetry', {
       getData: () => $telemetry.get(),
+      getSeries: () => this.getSeries(),
       getRange: () => this.range,
       setRange: (r: TimeRange) => {
         this.range = r;

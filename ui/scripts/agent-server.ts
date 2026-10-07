@@ -3,52 +3,51 @@
  * Agent test server for Playwright E2E tests.
  * Creates a NAR engine + Agent and starts the UI server.
  * Usage: tsx ui/tests/scripts/agent-server.ts [port]
+ *
+ * Deterministic by default: seeded id source, RNG and clock make a run's graph
+ * JSON, sequence numbers and timestamps reproducible (Phase 1). Set
+ * `SENARS_SEED=off` to fall back to ambient `crypto`/`Math.random`/`Date`.
  */
 import { Agent, InMemoryEventLog } from '@senars/core';
+import { DEFAULT_CONFIG, NAR } from '@senars/nar';
 import { NAREngine } from '@senars/nar/engine/NAREngine';
+import { fixedClock, SeededRNG, sequentialIdSource } from '@senars/util';
+import { loadScenario, SCENARIOS } from '@senars/ui/scenarios';
 import { startAgentUI } from '@senars/ui/server';
 
-// Bootstrap beliefs that produce visible graph nodes and edges.
-// Each statement is valid Narsese that the parser and NAR engine can process.
-const BOOTSTRAP_BELIEFS: string[] = [
-  '<bird --> animal>.',
-  '<robin --> bird>.',
-  '<sky --> blue>.',
-  '<cat --> mammal>.',
-  '<dog --> mammal>.',
-  '<fish --> animal>.',
-];
+const FIXED_CLOCK_START = 1_700_000_000_000;
+
+function narConfig() {
+  const seed = Number(process.env.SENARS_SEED ?? 1);
+  if (process.env.SENARS_SEED === 'off') return DEFAULT_CONFIG;
+  return {
+    ...DEFAULT_CONFIG,
+    ids: sequentialIdSource(),
+    rng: new SeededRNG(seed),
+    clock: fixedClock(FIXED_CLOCK_START),
+  };
+}
 
 async function main(): Promise<void> {
-  // Create agent first so we can bind #emitCognitive to the NAREngine
   const agent = new Agent({ id: 'playwright-agent', log: new InMemoryEventLog() });
 
-  // NAREngine needs #emitCognitive for the event bridge to produce derivations
-  const narEngine = new NAREngine(undefined, agent.emitCognitive.bind(agent));
+  // NAREngine needs #emitCognitive for the event bridge to produce derivations.
+  const nar = new NAR(narConfig());
+  const narEngine = new NAREngine(nar, agent.emitCognitive.bind(agent));
   agent.registerEngine('nar', narEngine);
   await agent.start();
 
   const port = process.argv[2] ? Number(process.argv[2]) : 0;
   const server = await startAgentUI(agent, { port });
 
-  // Seed bootstrap beliefs AFTER server is up so the agent.on('*') listener
-  // (registered inside startAgentUI → createServerWithProjection) captures
-  // derivation.made events and populates the graph projection.
-  // Using agent.chat() ensures the full cycle emits derivation.made events.
-  for (const stmt of BOOTSTRAP_BELIEFS) {
-    try {
-      for await (const _evt of agent.chat(stmt)) {
-        // consume events - derivation.made gets emitted by runCycle
-      }
-    } catch {
-      // skip unparseable statements
-    }
-  }
+  // Seed the bootstrap scenario AFTER the server is up so the projection's
+  // `agent.on('*')` listener captures every event. Loading goes through the real
+  // engine, not a synthetic injector.
+  await loadScenario(nar, SCENARIOS.bootstrap);
 
   const addr = server.address();
   console.log(`AGENT_SERVER_READY port=${addr.port}`);
 
-  // Graceful shutdown
   process.on('SIGINT', async () => {
     await server.close();
     await agent.stop();

@@ -31,7 +31,11 @@ export const agentOptionsSchema = z
     maxLoops: intBetween(0, 50).default(5),
     logger: z.unknown().optional(),
     persistKnowledge: z.boolean().default(false),
-    knowledgePath: z.string().default(cachePath('agent-knowledge.json')),
+    // Lazy default: `cachePath` calls `node:path.join`, and this schema is
+    // reachable from the browser bundle through `@senars/util`'s barrel. Eager
+    // evaluation made loading the client touch the externalized `node:path`
+    // module and throw. The default is only needed at parse time, on the server.
+    knowledgePath: z.string().default(() => cachePath('agent-knowledge.json')),
     workspaceRoot: z.string().optional(),
     externalTools: z.any().optional(),
     approvalManager: z.any().optional(),

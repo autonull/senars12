@@ -55,7 +55,7 @@ export class ConnectionBanner extends BaseComponent {
   }
 
   private handleRetry() {
-    import('../core/ws-client.js').then(({ connect }) => connect());
+    import('../core/ws-client.js').then(({ reconnect }) => reconnect());
     this.dismissed = true;
   }
 }

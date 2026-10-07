@@ -39,6 +39,31 @@ export class TestControl {
     return response.json();
   }
 
+  /** Full isolation: clear engine memory, projection, seq and telemetry, then reload the active scenario. */
+  async resetAll() {
+    const response = await this.context.post(`${this.baseUrl}/test/reset-all`);
+    return response.json();
+  }
+
+  /** Load a named scenario through the real engine (clears the engine first). */
+  async loadScenario(id: string) {
+    const response = await this.context.post(`${this.baseUrl}/test/scenario`, { data: { id } });
+    return response.json();
+  }
+
+  async step(cycles = 1) {
+    const response = await this.context.post(`${this.baseUrl}/test/step`, { data: { cycles } });
+    return response.json();
+  }
+
+  async pause() {
+    return (await this.context.post(`${this.baseUrl}/test/pause`)).json();
+  }
+
+  async resume() {
+    return (await this.context.post(`${this.baseUrl}/test/resume`)).json();
+  }
+
   async preBootstrap() {
     const response = await this.context.post(`${this.baseUrl}/test/pre-bootstrap`);
     return response.json();

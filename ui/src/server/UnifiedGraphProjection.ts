@@ -56,6 +56,21 @@ export class UnifiedGraphProjection {
     return this.#currentLens;
   }
 
+  /**
+   * Return to the empty pre-connection state: no nodes/edges/lenses/focus and a
+   * sequence counter at zero. The seq reset is what makes two runs of the same
+   * scenario byte-identical, so a reconnecting client's `sync.request` sees the
+   * same numbers as a first boot.
+   */
+  reset(): void {
+    this.#nodes.clear();
+    this.#edges.clear();
+    this.#lenses.clear();
+    this.#currentLens = 'belief';
+    this.#focusTerm = '';
+    this.#seq = 0;
+  }
+
   #nextSeq(): number {
     return ++this.#seq;
   }

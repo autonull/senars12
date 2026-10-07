@@ -487,6 +487,11 @@ export function exposeTestApi(): void {
     ...w.__testApi,
     store: {
       getState: (path: string) => storeAtoms[path as TestApiStorePath]?.get(),
+      setState: (path: string, value: unknown) => {
+        const entry = storeAtoms[path as TestApiStorePath] as { set?: (v: unknown) => void } | undefined;
+        if (!entry?.set) throw new Error(`Unknown or read-only store path: ${path}`);
+        entry.set(value);
+      },
     },
     connection: { getState: () => $connectionState.get() },
     workingMemory: { getTerms: () => $workingMemory.get() },

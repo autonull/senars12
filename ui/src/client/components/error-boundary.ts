@@ -107,7 +107,7 @@ export class ErrorBoundary extends BaseComponent {
 
   private retry() {
     this.errors = [];
-    import('../core/ws-client.js').then(({ connect }) => connect());
+    import('../core/ws-client.js').then(({ reconnect }) => reconnect());
   }
 
   private reload() {

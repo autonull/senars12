@@ -14,9 +14,16 @@ import type {
 import { IncomingFromClient as IncomingFromClientSchema, isNarsese } from '@senars/core';
 import { DEFAULT_CONFIG, parseTermToEdges, termParser } from '@senars/nar';
 import { handleMetricsRequest } from '@senars/nar/metrics';
-import { envBool, envPositive, makeId, splitLines } from '@senars/util';
+import { asBeliefTruth, envBool, envPositive, makeId, splitLines } from '@senars/util';
 import { type RawData, WebSocket, WebSocketServer } from 'ws';
 import { applyConfigField, buildConfigSchema, resetConfigFields } from './config-schema.js';
+import {
+  BOOTSTRAP_SCENARIO,
+  loadScenario,
+  scenarioById,
+  scenarioIds,
+  type Scenario,
+} from './scenarios.js';
 import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -31,12 +38,17 @@ type RevisionEntry = {
   timestamp: number;
   source: 'input' | 'derivation' | 'revision' | 'inference';
 };
-type NarBelief = { term: { toString(): string }; truth: Truth };
+type NarBelief = { term: { toString(): string }; truth: { f: number; c: number } };
 type NarLike = {
+  believe?: (statement: string) => Promise<void>;
+  goal?: (statement: string) => Promise<void>;
+  run?: (cycles: number) => unknown;
   getBeliefs?: () => NarBelief[];
   getRevisionHistory?: (term: unknown) => RevisionEntry[];
   getLMClient?: () => { provider?: string; model?: string; available?: boolean; getStats?: () => unknown };
   getLMClientStats?: () => unknown;
+  getSelfAnalyzer?: () => { start?: () => void; stop?: () => void } | undefined;
+  clearMemory?: () => void;
   setConfig?: (updates: Record<string, unknown>) => void;
   attentionReport?: () => { total: number };
 };
@@ -104,21 +116,90 @@ async function serveStatic(req: IncomingMessage, res: ServerResponse): Promise<b
   }
 }
 
+/** Server-side handles the deterministic test endpoints drive. */
+type TestContext = {
+  projection?: UnifiedGraphProjection;
+  agent?: Agent;
+  /** Clear the engine, reset the view, then reload the active scenario. */
+  reloadActiveScenario: () => Promise<void>;
+  /** Force the baseline scenario and reload it — parallel-isolation reset. */
+  resetToBootstrap: () => Promise<void>;
+  /** Clear the engine, reset the view, then load `scenario`. */
+  loadNamedScenario: (scenario: Scenario) => Promise<void>;
+};
+
 async function handleTestEndpoints(
   req: IncomingMessage,
   res: ServerResponse,
-  projection?: UnifiedGraphProjection,
-  agent?: Agent
+  ctx: TestContext
 ): Promise<boolean> {
+  const { projection, agent } = ctx;
   const url = pathOf(req);
   if (!TEST_ENDPOINTS || !url.startsWith('/test/')) return false;
 
   try {
     if (url === '/test/reset' && req.method === 'POST') {
-      testState.concepts = [];
-      testState.chatHistory = [];
-      testState.derivations = [];
-      testState.connected = false;
+      await ctx.reloadActiveScenario();
+      sendJson(res, 200, { success: true, seq: projection?.seq ?? 0 });
+      return true;
+    }
+
+    if (url === '/test/reset-all' && req.method === 'POST') {
+      await ctx.resetToBootstrap();
+      sendJson(res, 200, { success: true, seq: projection?.seq ?? 0 });
+      return true;
+    }
+
+    if (url === '/test/scenarios' && req.method === 'GET') {
+      sendJson(res, 200, { scenarios: scenarioIds() });
+      return true;
+    }
+
+    if (url === '/test/scenario' && req.method === 'POST') {
+      const { id } = await readJson<{ id: string }>(req);
+      const scenario = scenarioById(id);
+      if (!scenario) {
+        sendJson(res, 404, { success: false, error: `Unknown scenario: ${id}` });
+        return true;
+      }
+      await ctx.loadNamedScenario(scenario);
+      sendJson(res, 200, { success: true, id: scenario.id });
+      return true;
+    }
+
+    if (url === '/test/step' && req.method === 'POST') {
+      const { cycles } = await readJson<{ cycles?: number }>(req).catch(() => ({ cycles: 1 }));
+      const nar = narOf(agent);
+      if (!nar?.run) {
+        sendJson(res, 200, { success: false, error: 'No NAR engine with run() available' });
+        return true;
+      }
+      nar.run(cycles ?? 1);
+      sendJson(res, 200, { success: true, seq: projection?.seq ?? 0 });
+      return true;
+    }
+
+    if (url === '/test/pause' && req.method === 'POST') {
+      narOf(agent)?.getSelfAnalyzer?.()?.stop?.();
+      sendJson(res, 200, { success: true, paused: true });
+      return true;
+    }
+
+    if (url === '/test/resume' && req.method === 'POST') {
+      narOf(agent)?.getSelfAnalyzer?.()?.start?.();
+      sendJson(res, 200, { success: true, paused: false });
+      return true;
+    }
+
+    if (url === '/test/inject-event' && req.method === 'POST') {
+      // Explicitly synthetic: only a test harness may push an event the engine did
+      // not produce. Labelled `synthetic` so it can never be mistaken for real state.
+      const { event } = await readJson<{ event: CognitiveEvent }>(req);
+      if (!agent || !event || typeof event.type !== 'string') {
+        sendJson(res, 400, { success: false, error: 'An event with a string `type` is required' });
+        return true;
+      }
+      agent.emitCognitive({ ...event, synthetic: true } as unknown as CognitiveEvent);
       sendJson(res, 200, { success: true });
       return true;
     }
@@ -215,9 +296,7 @@ async function handleTestEndpoints(
     if (url === '/test/import-beliefs' && req.method === 'POST') {
       const { statements, narsese } = await readJson<{ statements?: string[]; narsese?: string }>(req);
       const lines = statements ?? splitLines(narsese ?? '');
-      const nar = narOf(agent) as
-        | { believe?: (s: string) => Promise<void>; run?: (n: number) => void }
-        | undefined;
+      const nar = narOf(agent);
       if (!nar?.believe || !nar.run) {
         sendJson(res, 200, { success: false, error: 'No NAR engine with believe() available' });
         return true;
@@ -233,7 +312,7 @@ async function handleTestEndpoints(
     if (url === '/test/export-beliefs' && req.method === 'GET') {
       const beliefs = narOf(agent)?.getBeliefs?.() ?? [];
       sendJson(res, 200, {
-        beliefs: beliefs.map((b) => ({ term: b.term.toString(), truth: b.truth })),
+        beliefs: beliefs.map((b) => ({ term: b.term.toString(), truth: asBeliefTruth(b.truth) })),
         count: beliefs.length,
       });
       return true;
@@ -284,15 +363,20 @@ function createServerWithProjection(agent?: Agent): {
   const projection = agent ? new UnifiedGraphProjection() : undefined;
   const currentNarConfig = { ...DEFAULT_CONFIG };
   const nar = () => narOf(agent);
+  let activeScenario: Scenario | undefined = agent ? BOOTSTRAP_SCENARIO : undefined;
+  let derivationsWindow = 0;
+  const lastTelemetryAt = { t: Date.now() };
 
   if (agent && projection) {
     agent.on('*', (event: CognitiveEvent) => {
       switch (event.type) {
         case 'derivation.made': {
           const { conclusion, premises, rule, cpuMs, lmCalls, lmTokens } = event.payload;
-          const truth = nar()
+          const belief = nar()
             ?.getBeliefs?.()
-            .find((b) => b.term.toString() === conclusion)?.truth;
+            .find((b) => b.term.toString() === conclusion);
+          // NAR belief truth is `{f, c}`; the wire contract is `{frequency, confidence}`.
+          const truth = asBeliefTruth(belief?.truth);
           const edges = premises.map((premise) => ({
             source: premise,
             target: conclusion,
@@ -445,7 +529,7 @@ function createServerWithProjection(agent?: Agent): {
       sendJson(res, 200, { status: 'ok', ready: true, agent: !!agent });
       return;
     }
-    if (await handleTestEndpoints(req, res, projection, agent)) return;
+    if (await handleTestEndpoints(req, res, makeTestContext())) return;
     if (await serveStatic(req, res)) return;
     try {
       res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -459,6 +543,45 @@ function createServerWithProjection(agent?: Agent): {
   const wss = new WebSocketServer({ noServer: true });
   const pingSentAt = new Map<WebSocket, number>();
   const latency = new Map<WebSocket, number>();
+
+  function clearTestState(): void {
+    testState.concepts = [];
+    testState.chatHistory = [];
+    testState.derivations = [];
+    testState.connected = false;
+  }
+
+  function resetView(): void {
+    projection?.reset();
+    clearTestState();
+    derivationsWindow = 0;
+    lastTelemetryAt.t = Date.now();
+    latency.clear();
+  }
+
+  async function applyScenario(scenario: Scenario, clearEngine = true): Promise<void> {
+    activeScenario = scenario;
+    if (clearEngine) nar()?.clearMemory?.();
+    resetView();
+    const engine = nar();
+    if (engine) await loadScenario(engine, scenario);
+  }
+
+  const reloadActiveScenario = async (): Promise<void> => {
+    resetView();
+    if (activeScenario) await applyScenario(activeScenario);
+  };
+
+  const makeTestContext = (): TestContext => ({
+    projection,
+    agent,
+    reloadActiveScenario,
+    resetToBootstrap: async () => {
+      if (agent) await applyScenario(BOOTSTRAP_SCENARIO);
+      else resetView();
+    },
+    loadNamedScenario: (scenario) => applyScenario(scenario),
+  });
 
   function errorFrame(
     code: 'invalid_message' | 'not_available' | 'internal',
@@ -692,8 +815,6 @@ function createServerWithProjection(agent?: Agent): {
     }
   });
 
-  let derivationsWindow = 0;
-  const lastTelemetryAt = { t: Date.now() };
   const telemetryTimer = setInterval(() => {
     const now = Date.now();
     const elapsed = Math.max((now - lastTelemetryAt.t) / 1000, 0.001);
