@@ -3,7 +3,7 @@ Consider the **MetaReasoner**, in `docs/metareasoner/`:
 - `compare.md` comparing `{control1,control2,information1}/*.space.*.md` architectures
 - consider all `synth/` reasoner control flavors/possibilities/lenses, via `synthesize.md`
 
-Draft an architecture specification `plan/abstract.spec.md` that **abstracts and upgrades SeNARS into an ultimate meta-reasoner supporting versatile control models**:
+Draft an architecture specification `metaspec/spec.md` that **abstracts and upgrades SeNARS into an ultimate meta-reasoner supporting versatile control models**:
 - an ideal, elegant, universal architecture
 - versatility for all possibilities, power, customizability, scalability, efficiency
 - configurable/scalable/modular; from minimal to fully-featured
