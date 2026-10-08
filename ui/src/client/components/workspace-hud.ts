@@ -73,6 +73,13 @@ export class WorkspaceHud extends BaseComponent {
             `
           )}
         </div>
+        <button
+          data-action="palette"
+          title="Command palette (⌘K)"
+          aria-label="Command palette"
+          @click=${(event: Event) =>
+            eventBus.emit('overlay:open', { id: 'palette', anchor: event.currentTarget as HTMLElement })}
+        >⌘K</button>
         ${typeof provider === 'string' ? html`<span class="chip" title="Language model provider">${provider}</span>` : ''}
       </div>
     `;

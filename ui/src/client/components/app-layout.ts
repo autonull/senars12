@@ -88,10 +88,17 @@ export class AppLayout extends BaseComponent {
 
   #overlays?: OverlayHost;
   #overlaySubs: Array<() => void> = [];
+  #onGlobalKey = (event: KeyboardEvent): void => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      eventBus.emit('overlay:open', { id: 'palette' });
+    }
+  };
 
   override connectedCallback() {
     super.connectedCallback();
     this.mountOverlays();
+    window.addEventListener('keydown', this.#onGlobalKey);
     this.watch($connectionState);
     this.watch($panels);
     this.watch($graphNodes);
@@ -105,6 +112,7 @@ export class AppLayout extends BaseComponent {
   }
 
   override disconnectedCallback() {
+    window.removeEventListener('keydown', this.#onGlobalKey);
     for (const unsubscribe of this.#overlaySubs) unsubscribe();
     this.#overlaySubs = [];
     this.#overlays?.dispose();

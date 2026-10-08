@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { OverlayHost } from '../../src/client/core/overlay-host.js';
 import {
   overlayDescriptor,
@@ -59,6 +59,20 @@ describe('overlay host', () => {
     const host = makeHost();
     expect(host.open('missing')).toBe(false);
     expect(host.stack()).toEqual([]);
+  });
+
+  it('announces each open on the element', () => {
+    const host = makeHost();
+    host.open('test-overlay');
+    const element = host.element('test-overlay')!;
+    const opened = vi.fn();
+    element.addEventListener('overlay-open', opened);
+    host.close();
+    host.open('test-overlay', { ref: 'x' });
+    expect(opened).toHaveBeenCalledTimes(1);
+    expect(opened).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { id: 'test-overlay', ref: 'x' } })
+    );
   });
 
   it('disposes the manager and removes overlay elements', () => {

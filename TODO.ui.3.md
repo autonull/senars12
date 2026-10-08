@@ -498,9 +498,9 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 - [x] 0.3 `WorkspaceRenderer` contract + registry (`notebook`, `graph`, `graph3d` stub); mode-switch state; capabilities.
   - Registry now holds `notebook` (`full`, `blockKinds: 'all'`), `graph` (`full`, wraps the landed Cytoscape viewport), and the honest `graph3d` stub (`partial`). `$activeRenderer` is store state (default `graph` to preserve current behavior until capability-composition defaults land).
 - [~] 0.4 Main workspace shell: main area renders the active renderer; floating HUD (mode · provider/backend · budget · ⌘K · stop); permanent panels removed/default-hidden.
-  - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. Remaining: remove/default-hide the standing panels, add budget/stop/⌘K to the HUD once palette and run-control exist (no silent no-ops), and URL-address the active renderer.
+  - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. The HUD now carries `☰` (ToC) and `⌘K` (palette), and `app-layout` binds `⌘/Ctrl+K` globally. Remaining: remove/default-hide the standing panels, add budget/stop to the HUD once run-control exists (no silent no-ops), and URL-address the active renderer.
 - [~] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
-  - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside. A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6). Remaining: command palette (⌘K), artifact viewer, settings/provider dialog, tool approval.
+  - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside. A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6), and the command palette (⌘K). The `FocusTrap` now pierces shadow roots and retries focus on the next frame (every overlay is a Lit element, so its focusables live in a shadow root and render asynchronously). Remaining: artifact viewer, settings/provider dialog, tool approval.
 - [ ] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
 - [ ] 0.7 Compatibility bridge: existing graph nodes/events/chat still render (as overlays/embedded views); landed ViewSpec adapters usable inside overlays/embedded blocks.
 
@@ -894,6 +894,45 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   overlay context for free and satisfy the earlier 0.5 a11y note.
 - `tocEntries`/`explainModel` recompute on every store change; memoise per `$workspaceGraph` identity
   (the graph object is replaced on each projection, so an `identity` check is exact).
+
+### 2026-10-08 (f) — Phase 0.5 command palette (⌘K)
+
+**Landed**
+- `ui/src/client/core/commands.ts` — `Command` + registry (`registerCommand`/`registeredCommands`) and
+  `activeCommands()`: explicit commands plus ones **derived from the registries that already exist**
+  (workspace renderers, overlays, graph view actions). A new renderer or overlay appears in the
+  palette with no edit here; `OverlayDescriptor.hiddenInPalette` keeps the palette out of itself.
+- `ui/src/client/core/command-match.ts` — pure tiered ranker (`matchCommands`): title prefix >
+  word-prefix > substring > in-order subsequence, title order breaking ties.
+- `ui/src/client/components/overlays/palette.ts` — `s-palette`: grouped list, fuzzy filter, arrow-key
+  selection, Enter runs (closes then runs), reset-on-open via the host's new `overlay-open` event.
+- `ui/src/client/core/focus-trap.ts` — now pierces shadow roots (overlay focusables live in the Lit
+  element's shadow root) and re-focuses the first focusable on the next animation frame (Lit renders
+  async), so every overlay autofocuses correctly; Tab cycling recomputes the focusables each keydown.
+- `ui/src/client/core/overlay-host.ts` — dispatches `overlay-open` on the element after opening.
+- HUD `⌘K` button; `app-layout` global `⌘/Ctrl+K` binding. `core/index.ts` + overlays barrel exports.
+- Tests (21 new across 4 files; whole UI suite **161 green**; typecheck + biome clean; client build
+  succeeds): `command-match`, `palette`, `focus-trap`, and an `overlay-open` case in `overlay-host`.
+
+**Notes for remaining work**
+- The palette is non-modal (outside-click dismisses), matching the ToC; if it should capture the
+  background, set `modal: true` on its descriptor — the manager already enforces it.
+- `activeCommands()` recomputes on every palette render and on each keydown; it re-derives from the
+  registries each call. Memoise on the registry versions if command count grows.
+- Renderer/overlay commands fire through the event bus / store; there is no run log yet, so the
+  Phase 3 `ui.command` visible command-log + stop button remain unbuilt (0.4 budget/stop depends on
+  run-control, not on the palette).
+- `FocusTrap`'s frame focus uses `requestAnimationFrame`; in the rare case a surface renders after the
+  frame, focus falls back to the element itself. The palette also focuses its input in the
+  `overlay-open` handler, so it is doubly covered.
+
+**New improvement opportunities**
+- Fold `WorkspaceContext.openPalette` onto the same `activeCommands()` source and have renderers call
+  it directly (via the future `WorkspaceHost`), so `⌘K` is one action rather than an event round-trip.
+- Add a `recently used` MRU group to the palette (`registerCommand` timestamps) — the usual palette
+  quality win, and it makes `activeCommands()` order meaningful.
+- Command availability currently keys off `$activeRenderer`; a tiny `when` predicate over the store
+  (block selected, streaming) would generalise this beyond graph-only commands.
 
 
 

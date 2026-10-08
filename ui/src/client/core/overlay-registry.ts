@@ -13,6 +13,8 @@ export interface OverlayDescriptor {
   readonly tag: string;
   /** A modal captures the background: outside-click is ignored. */
   readonly modal?: boolean;
+  /** Keep the overlay out of the command palette (e.g. the palette itself). */
+  readonly hiddenInPalette?: boolean;
 }
 
 const registry = new Map<string, OverlayDescriptor>();

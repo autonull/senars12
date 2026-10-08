@@ -1,6 +1,8 @@
 export { Announcer } from './announcer.js';
 export { BaseComponent } from './base-component.js';
 export { BLOCK_KIND_LABEL } from './block-labels.js';
+export { matchCommands } from './command-match.js';
+export { activeCommands, type Command, registerCommand, registeredCommands } from './commands.js';
 export { eventBus } from './events.js';
 export { explainModel, type ExplainLink, type ExplainModel } from './explain.js';
 export { FocusTrap } from './focus-trap.js';
