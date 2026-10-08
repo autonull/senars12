@@ -43,7 +43,8 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
    `segmentation.ts`, `artifacts.ts`
 3. **`1.5/1.1 section model`** (L) — unblocks `1.5 page` and notebook depth. `→ toc.ts`,
    `workspace-graph.ts`, `renderers/notebook.ts`
-4. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation.
+4. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
+   renderer/overlays context fields await a consumer.)
 5. **`2.4 inspection & embedded views`** (L) ·
    **`citations model`** (M). (`4.5 pinning` is partially landed — manager/command pinning; see WP4.) (`1.4 rich text` is partially landed — inline tokenizer; see WP1.)
 6. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
@@ -164,10 +165,13 @@ Landed extension points — wire features here instead of re-deriving them.
   capability (`language`/`reasoning`) toggles; unrelated capabilities (tools/memory/uiControl) leave the
   renderer alone. Deliberately *not* applied at boot — the shell's `graph` default stands so the e2e
   suite's `graph-viewport` assertions hold. `→ core/capabilities.ts`. `(k)`
-- [ ] **2.6 context** — extend `WorkspaceContext` (`overlays`, `renderer`, `setRenderer`; fold
+- [~] **2.6 context** — extend `WorkspaceContext` (`overlays`, `renderer`, `setRenderer`; fold
   `openPalette` onto `activeCommands()`); retire `$viewportMode`/`$graphShape` shell atoms once
-  `graph-surface` owns them. `→ core/workspace-renderer.ts`, `components/workspace-host.ts`,
-  `core/commands.ts`. `(b)`,`(f)`,`(ae)`
+  `graph-surface` owns them. Landed: `openPalette` now dispatches the `overlay.palette` command (one
+  open seam; `workspace-host`'s `openPalette` emits the same `overlay:open` as before). Deferred: the
+  `renderer`/`setRenderer`/`overlays` fields — **no renderer consumes them yet**, so adding them now is
+  dead API; add them with the first renderer that switches modes. `$viewportMode`/`$graphShape`
+  retirement still waits on `graph-surface` ownership. `→ components/workspace-host.ts`. `(b)`,`(f)`,`(ae)`
 
 ## WP3 — View & artifact completion
 
@@ -412,3 +416,6 @@ in v3 Appendix D). Rolled up:
   `data-pinned` + announces, `overlay:pin`/`overlay:pin-toggle` events, app-layout handlers, and an
   `overlay.pin` palette command that toggles the top overlay — **`4.5 pinning`** partially landed
   (per-overlay button + `[data-pinned]` CSS remain). Suite **326 green**.
+- **WP2 context** — `WorkspaceContext.openPalette` now dispatches the `overlay.palette` command, so the
+  palette opens through the one command seam — **`2.6 context`** partially landed (renderer/overlays
+  context fields deferred until a renderer consumes them). Suite **326 green**.

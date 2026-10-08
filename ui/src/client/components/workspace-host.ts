@@ -12,6 +12,7 @@
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
+import { dispatchCommand } from '../core/commands.js';
 import { eventBus } from '../core/events.js';
 import { $activeRenderer } from '../core/store.js';
 import {
@@ -23,7 +24,8 @@ import {
 
 const WORKSPACE_CONTEXT: WorkspaceContext = {
   openOverlay: (id, ref) => eventBus.emit('overlay:open', { id, ref }),
-  openPalette: () => eventBus.emit('overlay:open', { id: 'palette' }),
+  // Funnel the palette through the command registry, so there is one open seam (§2.6).
+  openPalette: () => void dispatchCommand('overlay.palette'),
 };
 
 @customElement('workspace-host')
