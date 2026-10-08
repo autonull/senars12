@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { Announcer } from '../../src/client/core/announcer.js';
 import { OverlayManager } from '../../src/client/core/overlay-manager.js';
 
 const makeOverlay = (withButton = true): HTMLElement => {
@@ -26,6 +27,7 @@ const clickOutside = (): void => {
 afterEach(() => {
   for (const manager of managers.splice(0)) manager.dispose();
   document.body.innerHTML = '';
+  vi.restoreAllMocks();
 });
 
 describe('overlay manager', () => {
@@ -107,5 +109,17 @@ describe('overlay manager', () => {
     expect(manager.size()).toBe(0);
     pressEscape();
     expect(manager.size()).toBe(0);
+  });
+
+  it('announces focus-less popovers but not focus-moving overlays', () => {
+    const announce = vi.spyOn(Announcer.getInstance(), 'announce').mockImplementation(() => {});
+    const manager = makeManager();
+    manager.open({ id: 'inspector', title: 'Inspector', element: makeOverlay(), autoFocus: false });
+    manager.open({ id: 'settings', title: 'Settings', element: makeOverlay() });
+    expect(announce).toHaveBeenCalledWith('Inspector opened');
+    expect(announce).not.toHaveBeenCalledWith('Settings opened');
+
+    manager.close('inspector');
+    expect(announce).toHaveBeenCalledWith('Inspector closed');
   });
 });

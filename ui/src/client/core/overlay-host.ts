@@ -36,6 +36,7 @@ export class OverlayHost {
     this.manager.open({
       id,
       element,
+      title: descriptor.title,
       anchor,
       modal: descriptor.modal,
       autoFocus: descriptor.autoFocus,

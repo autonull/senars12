@@ -58,10 +58,11 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 - [ ] **Sweep — overlays/HUD/palette**:
   - [x] `overlay.*` forwards all args (`ref`/`anchor`) to `overlay:open`; `[ ]` generic anchor resolver
     in `OverlayHost` (pass the Cytoscape container, not the viewport element). `(v)`,`(e)`,`(o)`
-  - [ ] palette modality decision (`modal: true`?); [x] MRU group; [ ] `Announcer` bridge on
-    open/close. `(f)`,`(b)`,`(e)`
-  - HUD `⚙` → `overlay.settings`; provider switching as an overlay action; split Provider vs
-    Configuration entries once the `LmProvider` façade lands; `config-hud` `embedded` mode. `(aa)`
+  - [x] palette modality decision — keep **non-modal** (outside-click dismiss); a true modal needs a
+    scrim the manager does not yet render (see opportunities); [x] MRU group; [x] `Announcer` bridge
+    on open/close for focus-less popovers. `(f)`,`(b)`,`(e)`
+  - [x] HUD `⚙` → `overlay.settings`; [ ] provider switching as an overlay action; [ ] split Provider
+    vs Configuration entries once the `LmProvider` façade lands; [ ] `config-hud` `embedded` mode. `(aa)`
   - one registry-derived action source shared by HUD and palette; derive renderer/layer controls from
     registries + capability flags (drop `active === 'graph'`). `(c)`,`(k)`,`(ab)`,`(ae)`
   - `capabilityGate`/`CapabilityHost` mixin for descriptor-declared capabilities; command `available()`
@@ -238,6 +239,16 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 
 Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
 
+### (v4.6) — WP1 sweep: overlay announcer + modality decision
+- **Announcer bridge** — `OverlayEntry` gained `title`; `OverlayManager` announces `"{title} opened"`
+  / `"{title} closed"` for focus-less popovers (`autoFocus: false`, e.g. the inspector), while
+  focus-moving overlays keep relying on their dialog semantics. Re-opening an existing overlay
+  (restack) stays silent, so graph `j`/`k` navigation does not spam the live region.
+- **Palette modality** — decided **non-modal** (outside-click dismisses). `modal` currently only
+  means "ignore outside-click"; a true modal needs a scrim the manager does not render, recorded as
+  an opportunity (needed by 0.5 tool approval).
+- **Tests** — `overlay-manager` covers announce/don't-announce; suite 258 green.
+
 ### (v4.5) — WP1 sweep: overlay args + palette MRU
 - **`overlay.*` args** — the derived overlay commands now forward the caller's `ref`/`anchor`
   (previously only `ref`) to `overlay:open` via spread, so an agent/palette caller can pass an anchor.
@@ -302,10 +313,13 @@ Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
   drawer because the old standing panel keyed only on `$selectedNodeId`. The `$selectedEdgeId`
   watcher added in v4.2 now opens the inspector for edges, but the stale selector remains; both cases
   are red on pristine.
-- **Overlay sweep still open:** `overlay.*` arg forwarding and the generic `OverlayHost` anchor
-  resolver (pass the Cytoscape container); palette modality/MRU/announcer bridge; the HUD expansion
-  and Panels menu are now derived from the registry, but the layer/renderer controls still branch on
-  `active === 'graph'` rather than capability flags (WP1 sweep).
+- **Overlay sweep still open:** generic `OverlayHost` anchor resolver (pass the Cytoscape container,
+  not the viewport element); the layer/renderer controls still branch on `active === 'graph'` rather
+  than capability flags; `config-hud` `embedded` mode + provider switching as an overlay action (await
+  the `LmProvider` façade). `overlay.*` arg forwarding, palette MRU/modality/announcer are done (v4.5/v4.6).
+- **Modal scrim (new).** The manager treats `modal` as "ignore outside-click" but does not block
+  background interaction or paint a scrim, so nothing is marked modal. If a true modal is needed
+  (tool approval, 0.5), add a scrim element + `pointer-events` capture to `OverlayManager`.
 
 ### (v4.1) — restructured into work packages
 - Rewrote the forward plan as work packages with a dependency spine; folded every improvement

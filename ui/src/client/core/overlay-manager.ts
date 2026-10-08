@@ -8,11 +8,14 @@
  * overlay is a floating card that `Esc`/outside-click leave alone.
  */
 
+import { Announcer } from './announcer.js';
 import { FocusTrap } from './focus-trap.js';
 
 export interface OverlayEntry {
   readonly id: string;
   readonly element: HTMLElement;
+  /** Human label announced to assistive tech for focus-less popovers. */
+  readonly title?: string;
   /** Element focus returns to when the overlay closes. */
   readonly anchor?: HTMLElement;
   /** A modal captures the background: outside-click is ignored. */
@@ -59,6 +62,11 @@ export class OverlayManager {
     overlay.trap.activate();
     this.#stack.push(overlay);
     this.#restack();
+    // Focus-moving overlays are announced by their own dialog semantics; only
+    // focus-less popovers need an explicit cue that they appeared.
+    if (overlay.autoFocus === false) {
+      Announcer.getInstance().announce(`${overlay.title ?? overlay.id} opened`);
+    }
   }
 
   /** Close the overlay with `id`, or the topmost when omitted. Returns whether one closed. */
@@ -73,6 +81,9 @@ export class OverlayManager {
     overlay.element.hidden = true;
     overlay.anchor?.focus();
     this.#restack();
+    if (overlay.autoFocus === false) {
+      Announcer.getInstance().announce(`${overlay.title ?? overlay.id} closed`);
+    }
     return true;
   }
 
