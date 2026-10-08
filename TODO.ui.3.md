@@ -1695,5 +1695,35 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   layers gets the control, and derive the renderer/layer controls together from the registries.
 - Skip laying out / exclude from `fit` the hidden layer so a `conversation`-only frame is tight.
 
+### 2026-10-08 (ac) — URL-address the active graph layout (2.2 / 1.5)
+
+**Landed**
+- `ui/src/client/core/store.ts` — `UrlState.layout?: string`; `parseHash`/`serializeHash` round-trip it;
+  `hydrateFromUrl` writes it into `$lensLayout` for the active lens; and a `mirrorLayout` subscription on
+  `$lensLayout` **and** `$activeLens` mirrors the active lens's layout into `$urlState`, emitting the
+  field only when it differs from that lens's default (`LENS_DEFAULT_LAYOUTS`), so the common case stays
+  out of the URL. Switching a concept/conversation layout from the toolbar or the `graph.layout.*`
+  commands now updates the hash, and a shared link restores it.
+- Tests (+1; **249 green / 44 files**; UI typecheck and biome clean): `url-state` hydrates
+  `layout=breadthfirst` into `$lensLayout.belief` and the URL slice, and clears the field when the active
+  layout returns to its default.
+
+**Notes for remaining work**
+- The field is per active lens; switching lens recomputes it (goal's `concentric` default drops the
+  field), so it URL-addresses "the layout of the current view", not all lenses at once. Mirroring every
+  lens would need a compound field.
+- `layout` is not validated against `layoutRegistry` ids (the store cannot import `utils/layout-registry`
+  without a cycle); like `renderer`, an unknown id lands in `$lensLayout` and the graph falls back to no
+  layout. A cycle-free id allowlist would fix both.
+- `$activeLens` changes still do not mirror `urlState.lens` (pre-existing gap); the layout mirror watches
+  the lens only to re-evaluate the layout field.
+
+**New improvement opportunities**
+- Validate `renderer` and `layout` in `hydrateFromUrl` against plain id allowlists exported from the
+  registries (arrays, no cycle), removing the last unvalidated URL fields.
+- Add a `mirrorAtom(atom, pick, equals?)` helper to collapse the now near-identical mirror subscriptions
+  (`renderer`, `focus`, `folded`, `layer`, `layout`, plus `lens` once added).
+- Mirror `$activeLens` into `urlState.lens` so the `lens` param also tracks UI changes.
+
 
 

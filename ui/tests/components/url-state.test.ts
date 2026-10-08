@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  $activeLens,
   $activeRenderer,
   $collapsedBlocks,
   $graphLayer,
+  $lensLayout,
   $urlState,
   $workspaceGraph,
   hydrateFromUrl,
@@ -19,6 +21,8 @@ afterEach(() => {
   $workspaceGraph.set(emptyWorkspaceGraph());
   $collapsedBlocks.set(new Set());
   $graphLayer.set('both');
+  $activeLens.set('belief');
+  $lensLayout.set({ belief: 'cose' });
   $urlState.set({ lens: 'belief' });
 });
 
@@ -58,5 +62,15 @@ describe('url-addressable state', () => {
     expect($graphLayer.get()).toBe('conversation');
     setGraphLayer('concepts');
     expect($urlState.get().layer).toBe('concepts');
+  });
+
+  it('hydrates and mirrors the active graph layout', () => {
+    window.location.hash = 'layout=breadthfirst';
+    hydrateFromUrl();
+    expect($lensLayout.get().belief).toBe('breadthfirst');
+    expect($urlState.get().layout).toBe('breadthfirst');
+
+    $lensLayout.set({ belief: 'cose' });
+    expect($urlState.get().layout).toBeUndefined();
   });
 });
