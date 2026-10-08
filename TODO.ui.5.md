@@ -201,7 +201,8 @@ Landed extension points — wire features here instead of re-deriving them.
   full tables (`budget="full"`); ensure the view barrel is imported standalone / owned by
   `WorkspaceHost`. Landed: `core/inline-text.ts` (`tokenizeInline` — code/strong/em/link, pure and
   escaped-by-construction, no `innerHTML`) rendered by the Notebook for headings, paragraphs and list
-  items. Remaining: image intrinsic size, inline full tables, view-barrel ownership.
+  items; image blocks now honour intrinsic `{width?,height?}` (attributes elided with `nothing`).
+  Remaining: inline full tables, view-barrel ownership.
   `→ core/inline-text.ts`, `components/renderers/notebook.ts`. `(i)`,`(j)`
 - [ ] **citations model** — `Source`/bibliography (stable citation key, `[n]` resolution) to split
   formal citations from plain links. `→ core/segmentation.ts`, `core/artifacts.ts`,
@@ -400,9 +401,9 @@ in v3 Appendix D). Rolled up:
   viewports, and `UrlState.scope`/`layout` round-trip; `$lensLayer` remembers the graph layer per lens.
   `2.6 scope` except the fold-all debounce. Suite **316 green**.
 - **WP1 rich text** — `core/inline-text.ts` (`tokenizeInline`: code/strong/em/link, pure, escaped by
-  construction) rendered by the Notebook for headings, paragraphs and list items — **`1.4 rich text`**
-  partially landed (image intrinsic size, inline full tables, view-barrel ownership remain). Suite
-  **319 green**.
+  construction) rendered by the Notebook for headings, paragraphs and list items, and image blocks
+  honour intrinsic `{width?,height?}` — **`1.4 rich text`** partially landed (inline full tables,
+  view-barrel ownership remain). Suite **326 green** (with WP4 pinning).
 - **WP5 layouts** — `core/reasoning-layout.ts` (`reasoningPositions`: provenance depth, gate stages,
   contradiction neighbourhood, resource lanes — pure and deterministic) registered as four concept-scope
   `layoutRegistry` rows with `recommendedFor` lenses — completes **`3.4 layouts`**. The link-catalog

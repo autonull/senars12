@@ -10,7 +10,7 @@
  */
 
 import type { TemplateResult } from 'lit';
-import { css, html } from 'lit';
+import { css, html, nothing } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
 import { artifactViewSpec } from '../../core/artifacts.js';
@@ -105,8 +105,20 @@ function renderBlock(block: SemanticBlock, focused = false, fold?: FoldControl):
   const body = (() => {
     if (block.kind === 'heading') return renderHeading(block);
     if (block.kind === 'image' && block.data) {
-      const { alt, src } = block.data as { alt: string; src: string };
-      return html`<img class="image" src=${src} alt=${alt} loading="lazy" />`;
+      const { alt, src, width, height } = block.data as {
+        alt: string;
+        src: string;
+        width?: number;
+        height?: number;
+      };
+      return html`<img
+        class="image"
+        src=${src}
+        alt=${alt}
+        loading="lazy"
+        width=${width ?? nothing}
+        height=${height ?? nothing}
+      />`;
     }
     if (block.kind === 'citation' && block.data) {
       const { label, key, href } = block.data as { label?: string; key?: string; href: string };
