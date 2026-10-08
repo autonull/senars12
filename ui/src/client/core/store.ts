@@ -6,6 +6,7 @@ import { beliefLens, builtinLensModulations, compile } from '../modulation/compi
 import { timeGate } from '../modulation/composition.js';
 import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
+import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 
 type Listener<T> = (value: T) => void;
 type Unsubscriber = () => void;
@@ -238,7 +239,7 @@ export function removeLens(id: string): void {
 
 /** Get all registered lens IDs (builtins + user-defined). */
 export function getLensIds(): string[] {
-  const ids = ['belief', 'goal', 'contradiction'];
+  const ids: string[] = PRIMARY_LENSES.map((lens) => lens.id);
   for (const id of $lensRegistry.get().keys()) {
     if (!ids.includes(id)) ids.push(id);
   }
@@ -247,16 +248,7 @@ export function getLensIds(): string[] {
 
 /** Get the full LensSpec for a given lens ID, including builtins. */
 export function getLensSpec(id: string): LensSpec | undefined {
-  const builtin: Record<string, Pick<LensSpec, 'id' | 'label' | 'description'>> = {
-    belief: { id: 'belief', label: 'Beliefs', description: 'What the system knows' },
-    goal: { id: 'goal', label: 'Goals', description: 'What the system wants' },
-    contradiction: {
-      id: 'contradiction',
-      label: 'Conflicts',
-      description: 'Where beliefs conflict',
-    },
-  };
-  return $lensRegistry.get().get(id) ?? (builtin[id] as LensSpec | undefined);
+  return $lensRegistry.get().get(id) ?? builtinLensSpec(id);
 }
 
 export function getActiveLensModulation(): Modulation {
@@ -288,12 +280,7 @@ export function evaluateLens(): Delta {
 }
 
 // --- Phase 3: Per-lens layout selection ---
-export const $lensLayout = atom<Record<string, string>>({
-  belief: 'cose',
-  goal: 'concentric',
-  contradiction: 'breadthfirst',
-  temporal: 'preset',
-});
+export const $lensLayout = atom<Record<string, string>>({ ...LENS_DEFAULT_LAYOUTS });
 
 // --- Phase 0: Panel Registry ---
 export interface PanelState {

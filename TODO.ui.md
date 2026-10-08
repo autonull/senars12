@@ -559,6 +559,78 @@
 
 ---
 
+### Session 9 — Phase 3.4: lens catalog + renderer capability matrix (2026-10-08)
+
+**Landed**
+
+- **3.4 — `lensCatalog`.** New `ui/src/client/utils/lens-catalog.ts` is the one presentation +
+  validation registry for the lens vocabulary. `LENS_CATALOG` carries
+  `label · description · color · defaultLayout · primary · spec` for every `BuiltinLens`:
+  presentation comes from core `LENS_VOCABULARY` (label/description/color), the modulation and
+  `requires` from core `builtinLensSpecs()`. `LENS_DEFAULT_LAYOUTS`/`LENS_PRIMARY` are
+  `satisfies Record<BuiltinLens, …>`. Helpers `lensMeta`/`builtinLensSpec`/`LENS_IDS`/`PRIMARY_LENSES`.
+  `validateLens(spec)` is the one *client* validation path (accept returns the parsed spec, reject a
+  path-qualified error string); the wire schema still validates inbound on the server.
+- **3.4 — renderer capability matrix.** New `ui/src/client/utils/renderer-capabilities.ts`:
+  `RENDERER_CAPABILITIES` (`satisfies Record<RendererId, …>`) declares node/edge channel support for
+  `2d`/`3d`; `supportsChannel` and `unsupportedChannels(delta, renderer, isEdge)` read it.
+  `adapter-2d` now declares `SUPPORT_2D`/`SUPPORT_2D_EDGES` and skips undeclared channels;
+  `adapter-3d`'s `SUPPORT_3D*` and `checkUnsupportedChannels` are thin reads over the same matrix
+  (identical behavior — the modulation property test still passes).
+- **3.4 — channel + scale-map vocabulary.** `CHANNEL_CATALOG satisfies Record<Channel, …>` labels
+  every modulation channel with its target (`node`/`edge`/`both`); `SCALE_MAP_CATALOG
+  satisfies Record<ScaleMapId, …>` labels each scale map; `compile.ts`'s runtime map is typed
+  `satisfies Record<ScaleMapId, …>`, so an implementation without a label (or vice-versa) fails the
+  build.
+- **3.4 — consumers de-duplicated.** `lens-controller` renders `PRIMARY_LENSES` (labels/descriptions/
+  colors from the catalog; the local `LensDef` + `buildLensDefs` are deleted). `store.ts`'s
+  `$lensLayout` seeds from `LENS_DEFAULT_LAYOUTS`, `getLensIds` from `PRIMARY_LENSES`, and
+  `getLensSpec` from `builtinLensSpec` (the hand-written builtin fallback map is gone).
+  `layout-registry.getForLens` falls back to `lensMeta(lens).defaultLayout` instead of a hardcoded
+  `goal→concentric`/`contradiction→breadthfirst` switch. `lens-designer` **generates** its field
+  (core `LENS_FIELDS`), channel (`CHANNEL_CATALOG`) and scale-map (`SCALE_MAP_CATALOG`) options
+  instead of hand-listing them, and uses `validateLens` for both preview and commit.
+- **Dead artifact archived.** `ui/src/client/constants.ts` was a four-symbol barrel whose only
+  importer was `lens-controller`; archived under `docs/archive/ui-dead-artifacts/ui/src/client/` with
+  an INDEX entry (§2.2).
+- **Guard test.** `tests/unit/server/lens-catalog.test.ts` (14) asserts catalog ↔
+  `BUILTIN_LENS_IDS`/`builtinLensSpecs` coverage, `primary` flags, `validateLens` accept/reject,
+  `CHANNEL_CATALOG` ↔ `CHANNELS`, `SCALE_MAP_IDS`, and the capability matrix / `supportsChannel` /
+  `unsupportedChannels` behavior.
+
+**Verification**
+
+- `pnpm --dir ui exec tsc --noEmit` and `pnpm --dir core exec tsc --noEmit` clean; `pnpm --dir ui
+  build` succeeds.
+- UI unit **27/27**; root `tests/unit/server` **49/49** (7 files; +14 lens-catalog). `biome lint`
+  clean on all new/changed files (only pre-existing warnings remain: `layout-registry` unused `cy`,
+  `adapter-3d`/`store` `any`, `store` `isNaN`).
+- Lens presentation is byte-identical (same core labels/descriptions/hex, same default layouts), so
+  no visual baseline is implied; the designer's added `time-to-depth`/`edgeType`/`weight` options are
+  non-rendering option-list additions.
+
+**Still open in Phase 3**
+
+- **3.5–3.10 untouched** — `layoutRegistry` SSOT name maps + single `shouldRelayout`, `idSource`,
+  `SurfaceComponent`/`defineSurface`, `renderField`, reflective generators, guard scripts.
+- **3.4 follow-ons** — the capability matrix is declared but not yet *surfaced*: the designer neither
+  warns about nor disables a mapping whose channel the active renderer cannot paint (2D has no
+  `checkUnsupportedChannels` wired into the viewport like 3D), and edge-only channels still appear in
+  the node-oriented mapping rows. The `supportsChannel` data is the seam for 4.1/8.2.
+
+**New opportunities spotted** *(Session 9)*
+
+- Filter/annotate the designer's channel options by the active viewport and element kind from
+  `RENDERER_CAPABILITIES`/`CHANNEL_CATALOG` (4.1, 8.2) so an inert `flow.enable` or edge-only channel
+  is labelled rather than silently no-op'ing.
+- Core still holds two lens presentation sources — `LENS_VOCABULARY` in `constants.ts` and the
+  label/description in `builtinLensSpecs()`. The catalog reads both; consolidating core on the spec
+  list would remove the last in-core lens duplication.
+- `getLensSpec`/`getLensIds` are exported but have no consumer (only the barrel re-exports them);
+  retire them or let the command palette (5.2) index lenses through them.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -819,7 +891,7 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [x] **3.1** `theme` facade: generate a runtime reader from `design-tokens.json`; migrate CSS, Cytoscape/Three/Chart adapters off `TOKEN_COLORS`/inline hex; add light + high-contrast sets; token parity test. *(done: `tokens.generated.ts` + `utils/theme.ts`; all `TOKEN_COLORS`/inline-hex consumers migrated; `tokens.css` emits dark/light/high-contrast blocks; `tests/theme.test.ts` parity. Not yet wired to a theme switcher — Session 6)*
 - [x] **3.2** `eventCatalog`: presentation metadata keyed exhaustively by event discriminant (label, category, severity, provenance role, shape hints); bridge/reducers/log/timeline/narration read it. *(done: `ui/src/client/utils/event-catalog.ts` covers all 34 discriminants with `satisfies Record<CognitiveEvent['type'], EventMeta>`; `GRAPH_REDUCERS` in `ui/src/server/event-reducers.ts` is catalog-keyed with a parity guard. Client consumers — event log/timeline/provenance/narration — remain, Phases 5.3/6.2/6.6/6.7)*
 - [x] **3.3** `fieldCatalog`: derive label/unit/range/kind/format from schema metadata; single reader for forms, axes, columns, provenance. *(done: `ui/src/client/utils/field-catalog.ts` keyed exhaustively off the schema-inferred metric types; telemetry/cognitive/node/truth panels migrated; guard test; config form + provenance fields remain, see log)*
-- [ ] **3.4** `lensCatalog` + renderer capability matrix; one validation path; generated designer form; adapters declare supported channels.
+- [x] **3.4** `lensCatalog` + renderer capability matrix; one validation path; generated designer form; adapters declare supported channels. *(done: `ui/src/client/utils/lens-catalog.ts` + `renderer-capabilities.ts`; `LENS_CATALOG` (`satisfies Record<BuiltinLens,…>`), `validateLens`, `CHANNEL_CATALOG`, `SCALE_MAP_CATALOG`; controller/store/layout-registry/designer migrated off duplicated lists; `adapter-2d`/`adapter-3d` declare from the matrix; guard test. Matrix not yet surfaced — see log)*
 - [ ] **3.5** `layoutRegistry` SSOT with 2D/3D name maps; single `shouldRelayout`; delete the three duplicate heuristics.
 - [ ] **3.6** `idSource` unification across client/projection/tests.
 - [ ] **3.7** `SurfaceComponent` + `defineSurface` + declarative `bindings`; derive registration, reflective test API, empty/loading/error slots.

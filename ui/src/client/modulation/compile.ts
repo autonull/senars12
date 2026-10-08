@@ -1,5 +1,6 @@
 import { clamp } from '@senars/util';
 import { builtinLensSpecs } from '../../shared/lens-schema.js';
+import type { ScaleMapId } from '../utils/lens-catalog.js';
 import { channel, field, konst, union, when } from './operators.js';
 import type { ChannelValue, Item, Modulation, View } from './types.js';
 
@@ -17,7 +18,7 @@ export type ModulationSpec =
   | { op: 'when'; predicate: string; child: ModulationSpec }
   | { op: 'union'; children: ModulationSpec[] };
 
-const SCALE_MAP_NAMES: Record<string, (v: unknown) => ChannelValue> = {
+const SCALE_MAP_NAMES = {
   'truth-to-color': (v: unknown) => {
     const f = (v as { frequency?: number })?.frequency ?? 0.5;
     return `hsl(${Math.round(f * 120)}, 70%, 50%)`;
@@ -28,7 +29,7 @@ const SCALE_MAP_NAMES: Record<string, (v: unknown) => ChannelValue> = {
     const t = v as number;
     return t !== undefined ? t / 1000 : 0;
   },
-};
+} satisfies Record<ScaleMapId, (v: unknown) => ChannelValue>;
 
 /** Runtime mirror of `keyof Item`; `satisfies` keeps it exhaustive when Item grows. */
 const ITEM_FIELDS = [
@@ -59,7 +60,7 @@ function compileSpec(spec: ModulationSpec): Modulation {
       return konst(spec.value);
     case 'field': {
       if (!isItemField(spec.field)) return konst(0);
-      const mapFn = spec.map ? SCALE_MAP_NAMES[spec.map] : undefined;
+      const mapFn = spec.map ? SCALE_MAP_NAMES[spec.map as ScaleMapId] : undefined;
       return field(spec.field, mapFn);
     }
     case 'channel':

@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import { LENS_FIELDS } from '../../shared/constants.js';
 import type { LensSpec, ModulationSpec } from '../../shared/lens-schema.js';
-import { LensSpecSchema } from '../../shared/lens-schema.js';
 import {
   $activeLens,
   $graphNodes,
@@ -15,43 +15,19 @@ import {
 import { compile } from '../modulation/compile.js';
 import { evaluate } from '../modulation/evaluate.js';
 import type { Delta } from '../modulation/types.js';
+import {
+  CHANNEL_CATALOG,
+  CHANNEL_IDS,
+  SCALE_MAP_CATALOG,
+  SCALE_MAP_IDS,
+  validateLens,
+} from '../utils/lens-catalog.js';
 
-/** Fields available for lens mapping, with type info for the UI. */
-export interface FieldOption {
-  key: string;
-  label: string;
-  type: 'number' | 'boolean' | 'string' | 'object';
-}
-
-const FALLBACK_FIELDS: FieldOption[] = [
-  { key: 'priority', label: 'Priority', type: 'number' },
-  { key: 'confidence', label: 'Confidence', type: 'number' },
-  { key: 'isContradiction', label: 'Is Contradiction', type: 'boolean' },
-  { key: 'truth', label: 'Truth (frequency)', type: 'object' },
-  { key: 'occurrenceTime', label: 'Occurrence Time', type: 'number' },
-  { key: 'goalRelevance', label: 'Goal Relevance', type: 'number' },
-  { key: 'nodeType', label: 'Node Type', type: 'string' },
-];
-
-const CHANNEL_OPTIONS = [
-  { key: 'color', label: 'Color' },
-  { key: 'opacity', label: 'Opacity' },
-  { key: 'size', label: 'Size' },
-  { key: 'label', label: 'Label' },
-  { key: 'stroke.dash', label: 'Stroke Dash' },
-  { key: 'stroke.width', label: 'Stroke Width' },
-  { key: 'z', label: 'Z Index' },
-  { key: 'flow.enable', label: 'Flow Animation' },
-  { key: 'line-style', label: 'Line Style' },
-  { key: 'width', label: 'Width' },
-  { key: 'edge-color', label: 'Edge Color' },
-];
+const CHANNEL_OPTIONS = CHANNEL_IDS.map((key) => ({ key, label: CHANNEL_CATALOG[key].label }));
 
 const SCALE_MAP_OPTIONS = [
   { key: '', label: 'None (direct value)' },
-  { key: 'truth-to-color', label: 'Truth → Color (red→green)' },
-  { key: 'priority-to-size', label: 'Priority → Size' },
-  { key: 'confidence-to-opacity', label: 'Confidence → Opacity' },
+  ...SCALE_MAP_IDS.map((key) => ({ key, label: SCALE_MAP_CATALOG[key].label })),
 ];
 
 interface Mapping {
@@ -153,9 +129,9 @@ export class LensDesigner extends BaseComponent {
   @state() private previewDelta: Delta | null = null;
   @state() private nodeCount = 0;
 
-  private get fieldOptions(): FieldOption[] {
+  private get fieldOptions() {
     const serverFields = $lensFields.get();
-    return serverFields.length > 0 ? serverFields : FALLBACK_FIELDS;
+    return serverFields.length > 0 ? serverFields : LENS_FIELDS;
   }
 
   override connectedCallback() {
@@ -335,14 +311,9 @@ export class LensDesigner extends BaseComponent {
 
   private rebuildPreview() {
     const spec = buildLensSpec(this.name || 'preview', this.description, this.mappings);
-    const parsed = LensSpecSchema.safeParse(spec);
-    if (!parsed.success) {
-      this.validationError = parsed.error.issues
-        .map(
-          (e: { path: (string | symbol | number)[]; message: string }) =>
-            `${String(e.path.join('.'))}: ${e.message}`
-        )
-        .join('; ');
+    const validation = validateLens(spec);
+    if (!validation.ok) {
+      this.validationError = validation.error;
       this.previewJson = JSON.stringify(spec.modulation, null, 2);
       this.previewDelta = null;
       return;
@@ -377,18 +348,13 @@ export class LensDesigner extends BaseComponent {
     if (!this.name.trim()) return;
 
     const spec = buildLensSpec(this.name, this.description, this.mappings);
-    const parsed = LensSpecSchema.safeParse(spec);
-    if (!parsed.success) {
-      this.validationError = parsed.error.issues
-        .map(
-          (e: { path: (string | symbol | number)[]; message: string }) =>
-            `${String(e.path.join('.'))}: ${e.message}`
-        )
-        .join('; ');
+    const validation = validateLens(spec);
+    if (!validation.ok) {
+      this.validationError = validation.error;
       return;
     }
 
-    const lensSpec = parsed.data as unknown as LensSpec;
+    const lensSpec = validation.spec;
 
     // Register locally
     registerLens(lensSpec);

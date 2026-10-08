@@ -1,6 +1,10 @@
 import type { Core } from 'cytoscape';
 import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
+import { RENDERER_CAPABILITIES } from './renderer-capabilities.js';
 import { theme } from './theme.js';
+
+export const SUPPORT_2D = RENDERER_CAPABILITIES['2d'].node;
+export const SUPPORT_2D_EDGES = RENDERER_CAPABILITIES['2d'].edge;
 
 interface StyleChanges {
   'background-color'?: string;
@@ -26,6 +30,7 @@ interface EdgeStyleChanges {
 function channelToStyles(channels: Partial<Record<Channel, ChannelValue>>): StyleChanges {
   const styles: StyleChanges = {};
   for (const [ch, value] of Object.entries(channels)) {
+    if (!SUPPORT_2D.has(ch as Channel)) continue;
     switch (ch as Channel) {
       case 'color':
         if (typeof value === 'string') styles['background-color'] = value;
@@ -61,6 +66,7 @@ function channelToStyles(channels: Partial<Record<Channel, ChannelValue>>): Styl
 function edgeChannelToStyles(channels: Partial<Record<Channel, ChannelValue>>): EdgeStyleChanges {
   const styles: EdgeStyleChanges = {};
   for (const [ch, value] of Object.entries(channels)) {
+    if (!SUPPORT_2D_EDGES.has(ch as Channel)) continue;
     switch (ch as Channel) {
       case 'width':
         if (typeof value === 'number') styles.width = value;

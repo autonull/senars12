@@ -1,6 +1,7 @@
 import type { Lens } from '@senars/core';
 import type { Core, LayoutOptions } from 'cytoscape';
 import { $lensLayout } from '../core/index.js';
+import { lensMeta } from './lens-catalog.js';
 
 export interface LayoutDefinition {
   id: string;
@@ -28,9 +29,7 @@ class LayoutRegistryImpl {
   getForLens(lens: Lens): string {
     const saved = $lensLayout.get()[lens];
     if (saved && this.layouts.has(saved)) return saved;
-    if (lens === 'goal') return 'concentric';
-    if (lens === 'contradiction') return 'breadthfirst';
-    return 'cose';
+    return lensMeta(lens)?.defaultLayout ?? 'cose';
   }
 
   runLayout(cy: Core, lens: Lens, opts?: Record<string, unknown>): void {

@@ -60,6 +60,17 @@ below); the removal commit `e60bc53a` shows exactly which lines were dropped.
 |---|---|---|
 | `src/client/utils/token-colors.ts` | Hand-maintained mirror of `design-tokens.json`; superseded by the generated `theme` facade. | `cssToken` and every color now live in `src/client/utils/theme.ts`; do not restore — extend `design-tokens.json` instead. |
 
+### Phase 3.4 (TODO.ui.md) — re-export barrel with no importers
+
+- **Why:** TODO.ui.md §3.4 — `ui/src/client/constants.ts` was a four-symbol
+  re-export barrel (`CONNECTION_COLORS`, `LENS_COLORS`, `LENS_DESCRIPTIONS`,
+  `LENS_LABELS`) whose only importer was `lens-controller.ts`. After the lens
+  catalog took over the lens presentation, it had no consumers left.
+
+| Archived path (relative to `ui/`) | Removed because | Resurrection notes |
+|---|---|---|
+| `src/client/constants.ts` | Unreferenced re-export barrel; every consumer imports `src/shared/constants.ts` (or core) directly. | Import straight from `src/shared/constants.ts`/`@senars/core`; lens presentation now lives in `src/client/utils/lens-catalog.ts`. |
+
 ## Notes
 
 - This archive is intentionally excluded from formatting/linting so the frozen

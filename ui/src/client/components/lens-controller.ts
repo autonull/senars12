@@ -1,47 +1,8 @@
 import type { Lens } from '@senars/core';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { LENS_COLORS } from '../constants.js';
 import { $activeLens, $graphNodes, BaseComponent, send } from '../core/index.js';
-
-export interface LensDef {
-  id: Lens;
-  label: string;
-  description: string;
-  colorToken: string;
-  defaultLayout: string;
-  requires?: string[];
-}
-
-/** Lenses whose capability requirements are always satisfied (no graph dependency). */
-function buildLensDefs(): LensDef[] {
-  return [
-    {
-      id: 'belief',
-      label: 'Beliefs',
-      description: 'What the system knows',
-      colorToken: 'lens.belief',
-      defaultLayout: 'cose',
-      requires: ['truth-revision'],
-    },
-    {
-      id: 'goal',
-      label: 'Goals',
-      description: 'What the system wants',
-      colorToken: 'lens.goal',
-      defaultLayout: 'concentric',
-      requires: ['goal-management'],
-    },
-    {
-      id: 'contradiction',
-      label: 'Conflicts',
-      description: 'Where beliefs conflict',
-      colorToken: 'lens.contradiction',
-      defaultLayout: 'breadthfirst',
-      requires: ['truth-revision'],
-    },
-  ];
-}
+import { type LensDescriptor, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 
 @customElement('lens-controller')
 export class LensController extends BaseComponent {
@@ -72,7 +33,7 @@ export class LensController extends BaseComponent {
   `;
   @state() private activePopover: string | null = null;
   @state() private nodeCounts: Record<string, number> = {};
-  @state() private applicableLenses: LensDef[] = [];
+  @state() private applicableLenses: LensDescriptor[] = [];
   private popoverTimer: ReturnType<typeof setTimeout> | null = null;
 
   override connectedCallback() {
@@ -105,7 +66,7 @@ export class LensController extends BaseComponent {
                 ? html`
               <div class="popover" @mouseenter=${this.onPopoverEnter} @mouseleave=${this.onLeave}>
                 <div class="popover-header">
-                  <span class="popover-swatch" style="background:${LENS_COLORS[def.id]}"></span>
+                  <span class="popover-swatch" style="background:${def.color}"></span>
                   <span class="popover-title">${def.label}</span>
                 </div>
                 <div class="popover-desc">${def.description}</div>
@@ -132,8 +93,8 @@ export class LensController extends BaseComponent {
         activeCaps.add(cap);
       }
     }
-    this.applicableLenses = buildLensDefs().filter(
-      (def) => !def.requires || def.requires.every((c) => activeCaps.has(c))
+    this.applicableLenses = PRIMARY_LENSES.filter(
+      (lens) => !lens.spec.requires || lens.spec.requires.every((c) => activeCaps.has(c))
     );
     // If current active lens is no longer applicable, fall back to first applicable
     const current = $activeLens.get();

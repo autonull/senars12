@@ -1,21 +1,12 @@
-import { unique } from '@senars/util';
 import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
+import { RENDERER_CAPABILITIES, unsupportedChannels } from '../utils/renderer-capabilities.js';
 import { theme } from '../utils/theme.js';
 
-export const SUPPORT_3D: Set<Channel> = new Set(['color', 'opacity', 'size', 'label', 'z']);
+export const SUPPORT_3D = RENDERER_CAPABILITIES['3d'].node;
+export const SUPPORT_3D_EDGES = RENDERER_CAPABILITIES['3d'].edge;
 
-export const SUPPORT_3D_EDGES: Set<Channel> = new Set(['color', 'width', 'opacity', 'edge-color']);
-
-export function checkUnsupportedChannels(delta: Delta, isEdge: (id: string) => boolean): Channel[] {
-  const unsupported: Channel[] = [];
-  for (const [id, channels] of delta) {
-    const supported = isEdge(id) ? SUPPORT_3D_EDGES : SUPPORT_3D;
-    for (const ch of Object.keys(channels) as Channel[]) {
-      if (!supported.has(ch)) unsupported.push(ch);
-    }
-  }
-  return unique(unsupported);
-}
+export const checkUnsupportedChannels = (delta: Delta, isEdge: (id: string) => boolean): Channel[] =>
+  unsupportedChannels(delta, '3d', isEdge);
 
 function applyNodeVisuals(
   node: {
