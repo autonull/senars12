@@ -498,7 +498,7 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 - [x] 0.3 `WorkspaceRenderer` contract + registry (`notebook`, `graph`, `graph3d` stub); mode-switch state; capabilities.
   - Registry now holds `notebook` (`full`, `blockKinds: 'all'`), `graph` (`full`, wraps the landed Cytoscape viewport), and the honest `graph3d` stub (`partial`). `$activeRenderer` is store state (default `graph` to preserve current behavior until capability-composition defaults land).
 - [~] 0.4 Main workspace shell: main area renders the active renderer; floating HUD (mode · provider/backend · budget · ⌘K · stop); permanent panels removed/default-hidden.
-  - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. The HUD now carries `☰` (ToC) and `⌘K` (palette), and `app-layout` binds `⌘/Ctrl+K` globally. Remaining: remove/default-hide the standing panels, add budget/stop to the HUD once run-control exists (no silent no-ops), and URL-address the active renderer.
+  - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. The HUD now carries `☰` (ToC) and `⌘K` (palette), and `app-layout` binds `⌘/Ctrl+K` globally. Remaining: remove/default-hide the standing panels, and add budget/stop to the HUD once run-control exists (no silent no-ops). The active renderer is now URL-addressable (see (s)).
 - [~] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
   - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside; the `FocusTrap` pierces shadow roots and retries focus on the next frame (every overlay is a Lit element, so its focusables live in a shadow root and render asynchronously). A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6), the command palette (⌘K), and the artifact viewer (4.3). Tables now render through the landed `s-view`/`ViewSpec` view system (embedded budget) instead of bespoke markup, and `artifactViewSpec` maps a block's payload to a `ViewSpec`. Remaining: settings/provider dialog, tool approval, timeline overlay (4.4), pinning (4.5).
 - [~] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
@@ -518,7 +518,7 @@ Goal: build the unique LM conversation UI first.
 - [~] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
   - Landed `core/segmentation.ts` (`segmentText`): deterministic, dependency-free Markdown parsing into heading/paragraph/list/table/code segments with table rows and fenced-code language, plus standalone images (`![alt](src)` → `image` with `{alt,src}`) and links (Markdown link or reference definition → `citation` with `{label|key,href}`); inline links stay in their paragraph. `projectChat` expands assistant turns into child blocks (`childId(msg,index)` position-anchor ids) linked by `contains`, with the raw turn text retained on the turn block. Notebook renders the children richly (including `<img>` and `<a>` for image/citation; tables render through `<s-view>` at the embedded budget via `artifactViewSpec`). Remaining: block-level streaming (`status: 'streaming'` re-parse).
 - [x] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
-  - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Breadcrumbs (`core/navigation.ts` `breadcrumb`, rendered atop the notebook, clickable to an ancestor) and keyboard navigation (`j`/`k` blocks, `[ ]` pages via `navigationForKey`, bound in `app-layout`, ignored while an overlay is open or an editable is focused) are landed; the notebook scrolls the focused block into view. Remaining (deferred): URL-addressable `(page, block, disclosure)` and virtualization for long sessions (section folding is landed in 1.1).
+  - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Breadcrumbs (`core/navigation.ts` `breadcrumb`, rendered atop the notebook, clickable to an ancestor) and keyboard navigation (`j`/`k` blocks, `[ ]` pages via `navigationForKey`, bound in `app-layout`, ignored while an overlay is open or an editable is focused) are landed; the notebook scrolls the focused block into view. Remaining (deferred): URL-addressable `(page, block, disclosure)` is partly landed — the active renderer and the focused block now round-trip through the hash (`UrlState.renderer`/`focus`, mirrored by `$activeRenderer`/`$workspaceGraph.focus` subscriptions and hydrated on load) — plus virtualization for long sessions (section folding is landed in 1.1).
 - [~] 1.6 Contextual link menu: ask follow-up, explain, open related, view as graph, copy/export, (formalize-as-belief/goal/question seam).
   - Landed `s-block-menu` + `s-explain` overlays over the pure `explainModel` (`core/explain.ts`): **Ask follow-up** (focuses the composer with the block as context — see (m)), Explain, Open in graph, View provenance (only when the block has provenance links — hidden, not inert), Copy text, and — capability-gated — **Formalize as belief/goal** (shown only when `reasoning` is on; hidden otherwise, never inert). The explanation popover exposes the `summary · card · detail · raw` disclosure levels as data; an `Open artifact` affordance (only when the block has a typed artifact — table/code via `artifactViewSpec`, or an image) opens the artifact viewer. Remaining: **Open related** (semantic-neighborhood navigation) is landed — see 2.4; a dedicated "formalize as question" action is redundant with the composer `question` mode + follow-up.
 - [~] 1.7 LM-only completeness: Notebook works with no reasoning backend; provider status in HUD; rich artifacts; conversation graph exists even without NARS.
@@ -1378,6 +1378,41 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   on ⌥-click), so exploration and drill-down share the popover.
 - Extract a tiny adjacency index on `WorkspaceGraph` (`linksByBlock`) shared by `linksTouching`,
   `neighborhood` and the graph projection.
+
+### 2026-10-08 (s) — URL-address the active renderer + focus (1.5 / 0.4)
+
+**Landed**
+- `ui/src/client/core/store.ts` — `UrlState` gains `renderer?: string`; `parseHash`/`serializeHash`
+  round-trip it; `hydrateFromUrl` applies `renderer` (`$activeRenderer`) and `focus`
+  (`setWorkspaceFocus`). Two module-level subscriptions mirror live state into `$urlState`:
+  `$activeRenderer` → `renderer` and `$workspaceGraph` → `focus` (guarded, so no redundant writes), and
+  the existing debounced `syncUrl` writes the hash. So switching renderer or focusing a block updates the
+  URL, and a shared link restores it on load — `hydrateFromUrl` is already called from `entry.ts` and
+  `spacegraph/main.ts`.
+- Tests (+2; **222 green / 36 files**; UI typecheck and biome clean): `url-state` hydrates
+  renderer+focus from the hash and mirrors renderer+focus changes into `$urlState`.
+
+**Notes for remaining work**
+- Still deferred from 1.5: `page` and `disclosure` in the URL (`(page, block, disclosure)`); `renderer` +
+  `focus` cover the highest-value navigation and the mechanism (add a field → parse/serialize → mirror)
+  is now a repeatable three-line pattern.
+- `UrlState.renderer` is not validated against the renderer registry; an unknown id would set
+  `$activeRenderer` to something the shell can't mount (it falls back to no renderer). Validate in
+  `hydrateFromUrl` once the registry is importable without a store cycle.
+- The mirror subscriptions run on every workspace update (guarded equality check + a Set allocation only
+  when the focus actually changes), so the steady-state cost is one comparison per projection.
+- `urlState.panels` sync is one-way (hydrate only); panel toggles are not reflected back into the hash.
+
+**New improvement opportunities**
+- Add `page`/`disclosure` (and the `$collapsedBlocks` fold set) to `UrlState` using the same pattern, so
+  a link restores the exact reading position including folds.
+- Reflect panel open/close into `$urlState.panels` (currently hydrate-only) for symmetry, and validate
+  `renderer` against `workspaceRenderers()`.
+- Replace the two ad-hoc mirror subscriptions with a tiny `mirrorAtom(atom, pick)` helper to keep the
+  URL slice declarative as more fields join.
+- A route/hash change listener (`hashchange` → `hydrateFromUrl`) so back/forward and pasted hashes
+  re-hydrate without a reload.
+
 
 
 

@@ -384,6 +384,7 @@ export const $configOpen = {
 // --- Phase 0: URL State ---
 export interface UrlState {
   lens: Lens;
+  renderer?: string;
   focus?: string;
   viewport?: { x: number; y: number; zoom: number };
   search?: string;
@@ -408,6 +409,8 @@ function parseHash(): Partial<UrlState> {
   const state: Partial<UrlState> = {};
   const lens = params.get('lens') as Lens | null;
   if (lens && ['belief', 'goal', 'contradiction'].includes(lens)) state.lens = lens;
+  const renderer = params.get('renderer');
+  if (renderer) state.renderer = renderer;
   const focus = params.get('focus');
   if (focus) state.focus = focus;
   const vp = params.get('viewport');
@@ -437,6 +440,7 @@ function parseHash(): Partial<UrlState> {
 function serializeHash(state: UrlState): string {
   const params = new URLSearchParams();
   params.set('lens', state.lens);
+  if (state.renderer) params.set('renderer', state.renderer);
   if (state.focus) params.set('focus', state.focus);
   if (state.viewport)
     params.set('viewport', `${state.viewport.x},${state.viewport.y},${state.viewport.zoom}`);
@@ -450,6 +454,8 @@ export function hydrateFromUrl() {
   if (parsed.lens) $activeLens.set(parsed.lens);
   const currentUrl = $urlState.get();
   $urlState.set({ ...currentUrl, ...parsed });
+  if (parsed.renderer) $activeRenderer.set(parsed.renderer);
+  if (parsed.focus) setWorkspaceFocus(parsed.focus);
   if (parsed.panels) {
     const panels = new Map($panels.get());
     for (const [id, panel] of panels) {
@@ -458,6 +464,14 @@ export function hydrateFromUrl() {
     $panels.set(panels);
   }
 }
+
+// Keep the URL-addressable slice of session state in step with the atoms it mirrors (§1.5).
+$activeRenderer.subscribe((renderer) => {
+  if ($urlState.get().renderer !== renderer) $urlState.set({ ...$urlState.get(), renderer });
+});
+$workspaceGraph.subscribe((graph) => {
+  if ($urlState.get().focus !== graph.focus) $urlState.set({ ...$urlState.get(), focus: graph.focus });
+});
 
 // Sync URL when urlState changes
 $urlState.subscribe(syncUrl);
