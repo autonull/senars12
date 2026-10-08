@@ -3,6 +3,7 @@ import '../../src/client/components/renderers/graph.js';
 import '../../src/client/components/renderers/graph3d.js';
 import '../../src/client/components/renderers/notebook.js';
 import '../../src/client/components/workspace-hud.js';
+import { eventBus } from '../../src/client/core/events.js';
 import { $activeRenderer, $graphLayer, $lmStatus } from '../../src/client/core/store.js';
 
 afterEach(() => {
@@ -70,5 +71,14 @@ describe('workspace hud', () => {
     $activeRenderer.set('notebook');
     await el.updateComplete;
     expect(layers()).toEqual([]);
+  });
+
+  it('summons the timeline overlay from the HUD', async () => {
+    const el = await mountHud();
+    const opened: string[] = [];
+    const unsubscribe = eventBus.on('overlay:open', ({ id }) => opened.push(id));
+    query<HTMLButtonElement>(el.shadowRoot, 'button[data-action="timeline"]').click();
+    unsubscribe();
+    expect(opened).toEqual(['timeline']);
   });
 });

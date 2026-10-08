@@ -5,4 +5,5 @@ import './explain.js';
 import './palette.js';
 import './related.js';
 import './settings.js';
+import './timeline.js';
 import './toc.js';

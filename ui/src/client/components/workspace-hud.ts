@@ -72,6 +72,13 @@ export class WorkspaceHud extends BaseComponent {
           @click=${(event: Event) =>
             eventBus.emit('overlay:open', { id: 'toc', anchor: event.currentTarget as HTMLElement })}
         >☰</button>
+        <button
+          data-action="timeline"
+          title="Timeline"
+          aria-label="Timeline"
+          @click=${(event: Event) =>
+            eventBus.emit('overlay:open', { id: 'timeline', anchor: event.currentTarget as HTMLElement })}
+        >⏱</button>
         <div class="modes">
           ${workspaceRenderers().map(
             (renderer) => html`

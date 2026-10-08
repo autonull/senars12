@@ -498,7 +498,7 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 - [x] 0.3 `WorkspaceRenderer` contract + registry (`notebook`, `graph`, `graph3d` stub); mode-switch state; capabilities.
   - Registry now holds `notebook` (`full`, `blockKinds: 'all'`), `graph` (`full`, wraps the landed Cytoscape viewport), and the honest `graph3d` stub (`partial`). `$activeRenderer` is store state (default `graph` to preserve current behavior until capability-composition defaults land).
 - [~] 0.4 Main workspace shell: main area renders the active renderer; floating HUD (mode · provider/backend · budget · ⌘K · stop); permanent panels removed/default-hidden.
-  - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. The HUD now carries `☰` (ToC) and `⌘K` (palette), and `app-layout` binds `⌘/Ctrl+K` globally. The main area is now one `<workspace-host>` that mounts the active renderer through the registry (`mount`/`snapshot`/`dispose`/`restore`) and supplies the `WorkspaceContext`; Graph's table/2D/3D variants moved into `graph-surface` (see (ae)), so the shell no longer branches on renderer tags. Remaining: the standing diagnostic panels are now default-closed and palette-reachable (`view.panel.*`, see (af)) — still to demote are the auto-opening node-detail drawer (→ inspector popover) and the always-present timeline scrubber (→ 4.4 overlay) — and add budget/stop to the HUD once run-control exists (no silent no-ops). The active renderer is now URL-addressable (see (s)).
+  - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. The HUD now carries `☰` (ToC) and `⌘K` (palette), and `app-layout` binds `⌘/Ctrl+K` globally. The main area is now one `<workspace-host>` that mounts the active renderer through the registry (`mount`/`snapshot`/`dispose`/`restore`) and supplies the `WorkspaceContext`; Graph's table/2D/3D variants moved into `graph-surface` (see (ae)), so the shell no longer branches on renderer tags. The standing diagnostic panels are now default-closed and palette-reachable (`view.panel.*`, see (af)), and the always-present timeline scrubber is now a summoned overlay (`overlay.timeline` / HUD `⏱`, see (ag)). Remaining: the auto-opening node-detail drawer (→ inspector popover, not yet demoted) and budget/stop in the HUD once run-control exists (no silent no-ops). The active renderer is now URL-addressable (see (s)).
 - [~] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
   - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside; the `FocusTrap` pierces shadow roots and retries focus on the next frame (every overlay is a Lit element, so its focusables live in a shadow root and render asynchronously). A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6), the command palette (⌘K), the artifact viewer (4.3), and the settings/provider dialog (aa). Tables now render through the landed `s-view`/`ViewSpec` view system (embedded budget) instead of bespoke markup, and `artifactViewSpec` maps a block's payload to a `ViewSpec`. Remaining: tool approval, timeline overlay (4.4), pinning (4.5).
 - [~] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
@@ -562,7 +562,8 @@ Goal: local Graph-in-Notebook and Notebook-in-Graph without panel sprawl.
 - [ ] 4.2 Embedded notebook card in Graph popovers (block sequence for node/cluster).
 - [~] 4.3 Artifact viewer overlay: table/code/chart/image/diff/json/derivation-record; fullscreen and inline.
   - Landed the viewer + most of the matrix. `s-artifact` (0.5/4.3) renders a block's artifact at full budget through the shared `<s-view>` host (shape switcher/fullscreen for free) or an `<img>` for image blocks; the block menu's "Open artifact" appears only when the block has a typed artifact or image (hidden, not inert). `artifactViewSpec` maps `table` (table/text), `code` (text, titled by language), `chart` carrying a `SeriesDataset` (series/table/text), and a structured-JSON `text` fallback for payloads without a bespoke view (`chart` without a series, plus `derivation · gate-decision · budget · config-change · tool-call · tool-result`). See (j) and (ad). Remaining: bespoke `diff` and `derivation-record` views (a diff shape/two-column projection and an `s-tree` provenance view), and the overlay's own Copy/Open-in-graph affordances.
-- [ ] 4.4 Timeline overlay: present-anchored scrubber (live/past/prospective) filtering the current renderer projection by time.
+- [~] 4.4 Timeline overlay: present-anchored scrubber (live/past/prospective) filtering the current renderer projection by time.
+  - Landed the demotion (0.4/4.4): the always-rendered `timeline-scrubber` bar is now the `s-timeline` overlay, summoned from the HUD (`⏱`) or the derived `overlay.timeline` palette/`ui.command` action. The overlay hosts the unchanged scrubber, which still writes `$view.timeline.t`; the modulation/gate filters (`compile.ts`/`composition.ts`) that read it already do the live-vs-past-vs-prospective filtering, so no rendering logic moved. See (ag). Remaining: explicit live/past/prospective affordances (a "now" reset + range display) and a present-anchored cursor that highlights newly admitted blocks.
 - [ ] 4.5 Pinning: overlays pinnable as floating cards; still not permanent defaults.
 
 **Verification:** a Notebook page contains a live graph; a graph node opens local Notebook context; embedded views use the same selection/focus model.
@@ -1827,6 +1828,52 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   standing right panel.
 - Move telemetry content into the HUD expansion (sparkline + `s-table-mini`) per the migration table,
   retiring the bottom panel.
+
+### 2026-10-08 (ag) — Phase 4.4 timeline overlay (0.4 demotion)
+
+**Landed**
+- `ui/src/client/components/overlays/timeline.ts` — `s-timeline` surface + `registerOverlay`
+  (non-modal, palette-visible): hosts the existing `<timeline-scrubber>` behind a title/close frame, so
+  the scrubber is summoned chrome rather than an always-present bar. It imports `timeline-scrubber.js`,
+  so the element is defined even though the shell no longer does. The scrubber keeps writing
+  `$view.timeline.t` unchanged; the modulation/gate filters that consume it are untouched.
+- `ui/src/client/components/app-layout.ts` — removed the always-rendered
+  `timeline-scrubber` block and its import; the last always-on chrome row above the composer is gone.
+- `ui/src/client/components/workspace-hud.ts` — a `⏱` trigger (`data-action="timeline"`) beside `☰`,
+  opening the overlay with itself as the focus anchor. The derived `overlay.timeline` palette/agent
+  command already existed from `commands.ts`, so no new command registry entry.
+- `overlays/index.ts` barrel import; `tests/scenarios/cognitive/timeline.spec.ts` opens the overlay from
+  the HUD before asserting the scrubber is visible (the standing-DOM assumption was the old contract).
+- Tests (+5; **263 green / 47 files**; UI typecheck + biome lint clean): `timeline-overlay` (descriptor
+  is non-modal/palette-visible and hosts the scrubber; closes via the host) and a `workspace-hud` case
+  asserting the `⏱` button emits `overlay:open { id:'timeline' }`.
+
+**Notes for remaining work**
+- 4.4 is now a demotion, not the full feature: the scrubber has no explicit "now"/live reset, no
+  past/prospective range labelling, and it does not announce the time window it applied. The filters
+  already honour `$view.timeline.t`; surfacing "present-anchored" semantics is the remaining half.
+- The `timeline` test API (`mountTestApi('timeline', …)`) now registers only once the overlay has been
+  opened at least once (it lives in `timeline-scrubber.connectedCallback`); any e2e/helper that read it
+  before opening must open the overlay first (or the registration should move up to the overlay).
+- The visual baselines that captured the standing bottom scrubber need regeneration; pixel baselines
+  are a demoted regression net (§0.4/§13), so this is an accepted, intentional diff.
+- Still standing for 0.4: the auto-opening node-detail drawer (→ inspector popover / pinnable card) —
+  the last permanent side panel. It is now the only remaining demotion before 0.4's "no required side
+  panel" criterion is fully met (the panel-first config/chat/telemetry/search/lens panels are already
+  default-closed and palette-reachable).
+
+**New improvement opportunities**
+- Add explicit live/past/prospective controls to the timeline overlay (a "now" button resetting `t` to
+  `Infinity`, and a range readout), turning the existing filter behavior into an obvious affordance.
+- The `⏱` HUD control is shown in every renderer; gate it on temporal availability (any node with an
+  `occurrenceTime`, or a capability flag) using the same registry/capability approach as the layer
+  control, so it is absent when it can do nothing.
+- A `ws.scrubTime`-style `ui.command` (already in the §3.5 schema) can drive `$view.timeline.t` for
+  agent demonstrations ("rewind to the moment the belief was admitted") without the overlay being open.
+- Present-anchor the WorkspaceGraph projection: once `createdAt` is threaded through `projectGraph`
+  (see (a)), the same `t` can fade newly admitted blocks, unifying the engine concept timeline with the
+  conversation timeline in one scrubber.
+
 
 
 

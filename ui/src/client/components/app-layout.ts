@@ -32,7 +32,6 @@ import './workspace-hud.js';
 import './input-hud.js';
 import './config-hud.js';
 import './telemetry-panel.js';
-import './timeline-scrubber.js';
 import './contradiction-badge.js';
 import './connection-banner.js';
 import './lm-status-panel.js';
@@ -264,10 +263,6 @@ export class AppLayout extends BaseComponent {
 
       <div class="bottom-area">
         <input-hud></input-hud>
-      </div>
-
-      <div style="position:absolute;bottom:44px;left:0;right:0;height:60px;z-index:var(--zIndex-layers-panel)">
-        <timeline-scrubber></timeline-scrubber>
       </div>
 
       <error-boundary></error-boundary>

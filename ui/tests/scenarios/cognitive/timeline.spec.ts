@@ -16,12 +16,10 @@ test.describe('Temporal Gate: timeline scrubber and revision history', () => {
     // Wait for new node to appear
     await expect.poll(() => testApi.getGraphNodeCount()).toBeGreaterThan(initialCount);
 
-    // Check timeline scrubber is in the DOM
+    // The scrubber is an overlay, not a standing panel: summon it from the HUD
+    await page.locator('workspace-hud [data-action="timeline"]').click();
     const scrubber = page.locator('timeline-scrubber');
     await expect(scrubber).toBeVisible({ timeout: 3000 });
-
-    // Verify timeline scrubber has updated (or at least exists)
-    await expect(scrubber).toBeVisible();
   });
 
   test('node history tab displays revision entries @critical', async ({ page, testApi }) => {
