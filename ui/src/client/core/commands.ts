@@ -10,7 +10,14 @@ import { capabilityGate } from './capabilities.js';
 import { recordCommandUse } from './command-history.js';
 import { eventBus } from './events.js';
 import { overlays } from './overlay-registry.js';
-import { $activeRenderer, $panels } from './store.js';
+import { foldableSections, sectionTree } from './sections.js';
+import {
+  $activeRenderer,
+  $collapsedBlocks,
+  $panels,
+  $workspaceGraph,
+  setCollapsed,
+} from './store.js';
 import { workspaceRenderers } from './workspace-renderer.js';
 
 export type CommandArgs = Record<string, unknown>;
@@ -125,6 +132,19 @@ const derivedCommands = (): Command[] => [
     group: 'View',
     keywords: 'overlay pin float card stay open',
     run: () => eventBus.emit('overlay:pin-toggle'),
+  },
+  {
+    id: 'view.fold-all',
+    title: 'Fold/unfold all sections',
+    group: 'View',
+    keywords: 'notebook fold unfold sections collapse expand',
+    run: () => {
+      const sections = new Set(foldableSections(sectionTree($workspaceGraph.get())));
+      const collapsed = $collapsedBlocks.get();
+      const allFolded = [...sections].every((ref) => collapsed.has(ref));
+      setCollapsed(allFolded ? new Set() : sections);
+    },
+    available: () => foldableSections(sectionTree($workspaceGraph.get())).length > 0,
   },
 ];
 

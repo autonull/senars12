@@ -4,7 +4,6 @@ import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
   linksTouching,
-  rootBlocks,
   type SemanticBlock,
   type SemanticLink,
   type WorkspaceOp,
@@ -33,7 +32,7 @@ describe('workspace graph ops', () => {
       { op: 'block.add', block: block('a') },
       { op: 'block.add', block: block('b') }
     );
-    expect(rootBlocks(graph).map((b) => b.id)).toEqual(['a', 'b']);
+    expect(graph.roots).toEqual(['a', 'b']);
   });
 
   it('inserts a block after an anchor and appends when the anchor is absent', () => {

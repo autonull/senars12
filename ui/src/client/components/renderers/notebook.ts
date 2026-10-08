@@ -1,26 +1,27 @@
 /**
  * The Notebook renderer (§4, Phase 1.1) — the first workspace renderer and the
- * standalone semantic-LM wedge. It renders the top-level blocks of the
- * WorkspaceGraph as vertically sequenced pages/sections, giving each known block
- * kind its own affordance and degrading unknown kinds to text. It registers with
- * both contracts: `defineSurface` (so it gets the reflective test API, story,
- * gallery cell and lifecycle slots) and `registerRenderer` (so the mode switcher
- * and the shell can admit it). Nothing here is graph-specific: with only
- * `language` enabled it is a complete conversation surface.
+ * standalone semantic-LM wedge. It renders the **section model** (`sections.ts`)
+ * as vertically sequenced pages and nested sections, giving each known block kind
+ * its own affordance and degrading unknown kinds to text; containment nests to
+ * any depth and folding a section hides its subtree. It registers with both
+ * contracts: `defineSurface` (so it gets the reflective test API, story, gallery
+ * cell and lifecycle slots) and `registerRenderer` (so the mode switcher and the
+ * shell can admit it). Nothing here is graph-specific: with only `language`
+ * enabled it is a complete conversation surface.
  */
 
 import type { TemplateResult } from 'lit';
 import { css, html, nothing } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
 import { artifactViewSpec } from '../../core/artifacts.js';
+import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
 import type { TableData } from '../../core/block-payload.js';
 import { payloadOf } from '../../core/block-payload.js';
 import { collectSources, resolveSource, type Source } from '../../core/citations.js';
-import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { breadcrumb } from '../../core/navigation.js';
 import { eventBus } from '../../core/events.js';
 import { tokenizeInline } from '../../core/inline-text.js';
+import { breadcrumb } from '../../core/navigation.js';
+import { type SectionNode, sectionTree } from '../../core/sections.js';
 import {
   $collapsedBlocks,
   $workspaceGraph,
@@ -28,12 +29,12 @@ import {
   setWorkspaceSelection,
   toggleCollapsed,
 } from '../../core/store.js';
+import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import type { Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
-import { rootBlocks } from '../../core/workspace-graph.js';
 import {
+  type RendererSnapshot,
   registerRenderer,
   WORKSPACE_INTERACTIONS,
-  type RendererSnapshot,
   type WorkspaceContext,
   type WorkspaceRenderer,
   type WorkspaceRendererCaps,
@@ -121,9 +122,14 @@ interface RenderOptions {
   sources: readonly Source[];
   focused?: boolean;
   fold?: FoldControl;
+  /** Containment depth — 0 at a page root. */
+  depth?: number;
 }
 
-function renderBlock(block: SemanticBlock, { sources, focused, fold }: RenderOptions): TemplateResult {
+function renderBlock(
+  block: SemanticBlock,
+  { sources, focused, fold, depth }: RenderOptions
+): TemplateResult {
   const body = (() => {
     if (block.kind === 'heading') return renderHeading(block, sources);
     if (block.kind === 'image' && block.data) {
@@ -180,6 +186,7 @@ function renderBlock(block: SemanticBlock, { sources, focused, fold }: RenderOpt
       class="block"
       data-id=${block.id}
       data-kind=${block.kind}
+      data-depth=${depth ?? 0}
       data-role=${block.role}
       data-status=${block.status ?? 'complete'}
       data-focused=${focused}
@@ -228,6 +235,7 @@ export class NotebookView extends SurfaceComponent {
     .pages { display: flex; flex-direction: column; gap: var(--spacing-scale-4); max-width: 72ch; margin: 0 auto; }
     .page { display: flex; flex-direction: column; gap: var(--spacing-scale-2); }
     .page:not(:first-child) { border-top: 1px solid var(--colors-semantic-border-subtle); padding-top: var(--spacing-scale-4); }
+    .node { display: flex; flex-direction: column; gap: var(--spacing-scale-2); margin-left: var(--spacing-scale-4); padding-left: var(--spacing-scale-3); border-left: 1px solid var(--colors-semantic-border-subtle); }
     .block { display: flex; flex-direction: column; gap: var(--spacing-scale-1); padding: var(--spacing-scale-3); border-radius: 6px; background: var(--colors-semantic-bg-subtle); }
     .block[data-role='user'] { border-left: 3px solid var(--colors-semantic-accent-cyan); }
     .block[data-role='assistant'] { border-left: 3px solid var(--colors-semantic-accent-violet); }
@@ -245,7 +253,7 @@ export class NotebookView extends SurfaceComponent {
     .more:hover { color: var(--colors-semantic-text-primary); }
     .fold { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-xs); line-height: 1; padding: 0 var(--spacing-scale-1); }
     .fold:hover { color: var(--colors-semantic-text-primary); }
-    .page[data-folded='true'] { background: var(--colors-semantic-bg-subtle); border-radius: 6px; }
+    [data-folded='true'] { background: var(--colors-semantic-bg-subtle); border-radius: 6px; }
     .block[data-focused='true'] { outline: 1px solid var(--colors-semantic-accent-cyan); }
     .chip { padding: 0 var(--spacing-scale-1); border-radius: 4px; background: var(--colors-semantic-bg-overlay); color: var(--colors-semantic-text-secondary); font-family: var(--typography-fontFamilies-data); }
     .text { color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-base); line-height: var(--typography-lineHeights-relaxed); white-space: pre-wrap; word-break: break-word; }
@@ -296,9 +304,33 @@ export class NotebookView extends SurfaceComponent {
 
   protected override renderBody() {
     const graph = $workspaceGraph.get();
-    const pages = rootBlocks(graph);
+    const tree = sectionTree(graph, $collapsedBlocks.get());
     const sources = collectSources(graph);
     const crumbs = breadcrumb(graph, graph.focus);
+    const render = (node: SectionNode): TemplateResult => {
+      const fold =
+        node.children.length > 0
+          ? { folded: node.folded, toggle: () => toggleCollapsed(node.ref) }
+          : undefined;
+      // A container renders as its own header; its body is the subtree below.
+      const header = node.children.length > 0 ? { ...node.block, text: undefined } : node.block;
+      return html`
+        <section
+          class=${node.depth === 0 ? 'page' : 'node'}
+          data-id=${node.ref}
+          data-depth=${node.depth}
+          data-folded=${node.folded}
+        >
+          ${renderBlock(header, {
+            sources,
+            focused: graph.focus === node.ref,
+            fold,
+            depth: node.depth,
+          })}
+          ${node.folded ? '' : node.children.map(render)}
+        </section>
+      `;
+    };
     return html`
       ${
         crumbs.length > 0
@@ -317,29 +349,7 @@ export class NotebookView extends SurfaceComponent {
             </nav>`
           : ''
       }
-      <div class="pages">
-        ${pages.map((block) => {
-          const children = (block.children ?? [])
-            .map((id) => graph.blocks.get(id))
-            .filter((child): child is SemanticBlock => !!child);
-          const folded = $collapsedBlocks.get().has(block.id);
-          const fold =
-            children.length > 0 ? { folded, toggle: () => toggleCollapsed(block.id) } : undefined;
-          const options: RenderOptions = { sources, focused: graph.focus === block.id, fold };
-          return html`
-            <section class="page" data-id=${block.id} data-folded=${folded}>
-              ${renderBlock(children.length > 0 ? { ...block, text: undefined } : block, options)}
-              ${
-                folded
-                  ? ''
-                  : children.map((child) =>
-                      renderBlock(child, { sources, focused: graph.focus === child.id })
-                    )
-              }
-            </section>
-          `;
-        })}
-      </div>
+      <div class="pages">${tree.roots.map(render)}</div>
     `;
   }
 }

@@ -220,10 +220,6 @@ export function applyWorkspaceOp(graph: WorkspaceGraph, op: WorkspaceOp): Worksp
 export const applyWorkspaceOps = (graph: WorkspaceGraph, ops: readonly WorkspaceOp[]): WorkspaceGraph =>
   ops.reduce(applyWorkspaceOp, graph);
 
-/** The top-level blocks in notebook page order. */
-export const rootBlocks = (graph: WorkspaceGraph): SemanticBlock[] =>
-  graph.roots.map((id) => graph.blocks.get(id)).filter((block): block is SemanticBlock => !!block);
-
 /** The links touching a block, in either direction. */
 export const linksTouching = (graph: WorkspaceGraph, id: Ref): SemanticLink[] =>
   [...graph.links.values()].filter((link) => link.source === id || link.target === id);

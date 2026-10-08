@@ -80,10 +80,16 @@ describe('notebook surface', () => {
   it('renders segmented children of a turn page (heading, list, table, code)', async () => {
     $workspaceGraph.set(
       applyWorkspaceOps(emptyWorkspaceGraph(), [
-        { op: 'block.add', block: block('t1', { children: ['t1-h', 't1-l', 't1-tb', 't1-c'], text: undefined }) },
+        {
+          op: 'block.add',
+          block: block('t1', { children: ['t1-h', 't1-l', 't1-tb', 't1-c'], text: undefined }),
+        },
         { op: 'block.add', block: block('t1-h', { kind: 'heading', level: 2, text: 'Findings' }) },
         { op: 'block.add', block: block('t1-l', { kind: 'list', data: { items: ['a', 'b'] } }) },
-        { op: 'block.add', block: block('t1-tb', { kind: 'table', data: { headers: ['x'], rows: [['1']] } }) },
+        {
+          op: 'block.add',
+          block: block('t1-tb', { kind: 'table', data: { headers: ['x'], rows: [['1']] } }),
+        },
         { op: 'block.add', block: block('t1-c', { kind: 'code', text: 'const x = 1;' }) },
         { op: 'roots.set', roots: ['t1'] },
       ])
@@ -105,8 +111,14 @@ describe('notebook surface', () => {
     $workspaceGraph.set(
       applyWorkspaceOps(emptyWorkspaceGraph(), [
         { op: 'block.add', block: block('t1', { children: ['img', 'cite'], text: undefined }) },
-        { op: 'block.add', block: block('img', { kind: 'image', data: { alt: 'robin', src: 'https://x/y.png' } }) },
-        { op: 'block.add', block: block('cite', { kind: 'citation', data: { label: 'docs', href: 'https://x' } }) },
+        {
+          op: 'block.add',
+          block: block('img', { kind: 'image', data: { alt: 'robin', src: 'https://x/y.png' } }),
+        },
+        {
+          op: 'block.add',
+          block: block('cite', { kind: 'citation', data: { label: 'docs', href: 'https://x' } }),
+        },
         { op: 'roots.set', roots: ['t1'] },
       ])
     );
@@ -173,7 +185,15 @@ describe('notebook surface', () => {
     $workspaceGraph.set(
       applyWorkspaceOps(emptyWorkspaceGraph(), [
         { op: 'block.add', block: block('t1', { children: ['c1'], text: undefined }) },
-        { op: 'block.add', block: block('c1', { kind: 'claim', role: 'assistant', createdBy: 'lm', text: 'child text' }) },
+        {
+          op: 'block.add',
+          block: block('c1', {
+            kind: 'claim',
+            role: 'assistant',
+            createdBy: 'lm',
+            text: 'child text',
+          }),
+        },
         { op: 'roots.set', roots: ['t1'] },
       ])
     );
@@ -188,6 +208,42 @@ describe('notebook surface', () => {
     expect(el.shadowRoot?.textContent).not.toContain('child text');
     expect(el.shadowRoot?.querySelector('.fold')?.getAttribute('aria-expanded')).toBe('false');
     expect([...$collapsedBlocks.get()]).toContain('t1');
+  });
+
+  it('nests sections to any depth and folds a subtree from its own header', async () => {
+    $workspaceGraph.set(
+      applyWorkspaceOps(emptyWorkspaceGraph(), [
+        { op: 'block.add', block: block('t1', { children: ['s1'], text: undefined }) },
+        {
+          op: 'block.add',
+          block: block('s1', {
+            kind: 'section',
+            role: 'assistant',
+            children: ['deep'],
+            text: 'Evidence',
+          }),
+        },
+        { op: 'block.add', block: block('deep', { kind: 'paragraph', text: 'deep prose' }) },
+        { op: 'roots.set', roots: ['t1'] },
+      ])
+    );
+    const el = document.createElement('s-notebook');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const root = el.shadowRoot;
+    const depths = [...(root?.querySelectorAll('.block') ?? [])].map((node) =>
+      node.getAttribute('data-depth')
+    );
+    expect(depths).toEqual(['0', '1', '2']);
+    expect(root?.querySelector('.node[data-id="s1"] .node[data-id="deep"]')).toBeTruthy();
+    // A container shows its header, not a duplicate body.
+    expect(root?.querySelector('.block[data-id="s1"] .text')).toBeFalsy();
+
+    root?.querySelector<HTMLButtonElement>('.node[data-id="s1"] .fold')?.click();
+    await el.updateComplete;
+    expect(el.shadowRoot?.textContent).not.toContain('deep prose');
+    expect(el.shadowRoot?.querySelector('.block[data-id="deep"]')).toBeFalsy();
+    expect(el.shadowRoot?.querySelector('.block[data-id="t1"]')).toBeTruthy();
   });
 
   it('marks the focused block', async () => {

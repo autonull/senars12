@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '../../src/client/components/overlays/toc.js';
 import { eventBus } from '../../src/client/core/events.js';
-import { $workspaceGraph } from '../../src/client/core/store.js';
+import { $collapsedBlocks, $workspaceGraph } from '../../src/client/core/store.js';
 import { tocEntries } from '../../src/client/core/toc.js';
 import {
   applyWorkspaceOps,
@@ -24,12 +24,25 @@ const build = () =>
   applyWorkspaceOps(emptyWorkspaceGraph(), [
     {
       op: 'block.add',
-      block: block('t1', { children: ['h1', 'c1', 'tb1', 'p1'], text: undefined }),
+      block: block('t1', { children: ['h1', 's1', 'tb1', 'p1'], text: undefined }),
     },
     { op: 'block.add', block: block('h1', { kind: 'heading', level: 2, text: 'Findings' }) },
     {
       op: 'block.add',
+      block: block('s1', {
+        kind: 'section',
+        children: ['c1', 'c2'],
+        text: 'Evidence',
+        role: 'assistant',
+      }),
+    },
+    {
+      op: 'block.add',
       block: block('c1', { kind: 'claim', role: 'assistant', createdBy: 'lm', text: 'Robins fly' }),
+    },
+    {
+      op: 'block.add',
+      block: block('c2', { kind: 'claim', role: 'assistant', createdBy: 'lm', text: 'Swifts fly' }),
     },
     {
       op: 'block.add',
@@ -49,25 +62,53 @@ const mount = async () => {
 afterEach(() => {
   document.body.innerHTML = '';
   $workspaceGraph.set(emptyWorkspaceGraph());
+  $collapsedBlocks.set(new Set());
 });
 
 describe('tocEntries', () => {
-  it('walks page order and children in document order, keeping navigable kinds', () => {
+  it('walks nested sections in document order, keeping navigable kinds', () => {
     const entries = tocEntries(build());
-    expect(entries.map((entry) => entry.kind)).toEqual(['heading', 'claim', 'table']);
-    expect(entries[0]).toMatchObject({ ref: 'h1', label: 'Findings', level: 2, pageRef: 't1' });
-    expect(entries[1]?.label).toBe('Robins fly');
+    expect(entries.map((entry) => entry.ref)).toEqual(['h1', 'c1', 'c2', 'tb1']);
+    expect(entries[0]).toMatchObject({
+      ref: 'h1',
+      label: 'Findings',
+      level: 2,
+      pageRef: 't1',
+      depth: 1,
+    });
+    expect(entries[1]).toMatchObject({ ref: 'c1', label: 'Robins fly', pageRef: 't1', depth: 2 });
+  });
+
+  it('drops the entries a folded section hides', () => {
+    expect(tocEntries(build(), new Set(['s1'])).map((entry) => entry.ref)).toEqual(['h1', 'tb1']);
   });
 });
 
 describe('toc surface', () => {
-  it('renders one row per navigable block', async () => {
+  it('renders one indented row per navigable block', async () => {
     $workspaceGraph.set(build());
     const el = await mount();
     const rows = el.shadowRoot?.querySelectorAll('.entry') ?? [];
-    expect(rows).toHaveLength(3);
+    expect(rows).toHaveLength(4);
     expect(rows[0]?.querySelector('.kind')?.textContent).toContain('Heading');
     expect(rows[0]?.querySelector('.label')?.textContent).toContain('Findings');
+    expect([...rows].map((row) => row.getAttribute('data-depth'))).toEqual(['1', '2', '2', '1']);
+  });
+
+  it('shows the folded count and folds/unfolds every section from the badge', async () => {
+    $workspaceGraph.set(build());
+    $collapsedBlocks.set(new Set(['s1']));
+    const el = await mount();
+    expect(el.shadowRoot?.querySelectorAll('.entry')).toHaveLength(2);
+    const badge = el.shadowRoot?.querySelector<HTMLButtonElement>('.folds');
+    expect(badge?.textContent).toContain('1 folded');
+    badge?.click();
+    expect([...$collapsedBlocks.get()].sort()).toEqual(['s1', 't1']);
+    await el.updateComplete;
+    badge?.click();
+    expect($collapsedBlocks.get().size).toBe(0);
+    await el.updateComplete;
+    expect(el.shadowRoot?.querySelectorAll('.entry')).toHaveLength(4);
   });
 
   it('filters rows by kind', async () => {
@@ -77,8 +118,8 @@ describe('toc surface', () => {
     chip?.click();
     await el.updateComplete;
     const rows = el.shadowRoot?.querySelectorAll('.entry') ?? [];
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.getAttribute('data-kind')).toBe('claim');
+    expect(rows).toHaveLength(2);
+    expect([...rows].every((row) => row.getAttribute('data-kind') === 'claim')).toBe(true);
   });
 
   it('navigates focus and closes on entry selection', async () => {

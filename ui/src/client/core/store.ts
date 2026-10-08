@@ -200,6 +200,13 @@ export function toggleCollapsed(ref: string): void {
   $collapsedBlocks.set(next);
 }
 
+/** Fold exactly `refs` — the bulk counterpart of `toggleCollapsed` (§1.5 fold-all). */
+export function setCollapsed(refs: ReadonlySet<string>): void {
+  const current = $collapsedBlocks.get();
+  if (refs.size === current.size && [...refs].every((ref) => current.has(ref))) return;
+  $collapsedBlocks.set(new Set(refs));
+}
+
 // --- Batch 4: Capability-based filtering ---
 export const $capabilityFilter = atom<string | 'all'>('all');
 

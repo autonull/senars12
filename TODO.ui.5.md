@@ -40,21 +40,22 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
 1. **`0.6 backend seam`** (M) — both read halves landed (LM façade + `ReasoningBackend` contract and
    NARS adapter); what is left is the *control* half (`submit`/`step`/`run`), which belongs with the
    **`3.6` steer/author** producers. `→ core/`
-2. **`1.5/1.1 section model`** (L) — unblocks `1.5 page` and notebook depth. `→ toc.ts`,
-   `workspace-graph.ts`, `renderers/notebook.ts`
+2. **`1.5 page`** (M) — URL-address `page`; the **section model** it waits on is landed.
+   `→ core/store.ts`, `core/sections.ts`, `core/toc.ts`
 3. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
-   renderer/overlays context fields await a consumer; fold-all debounce awaits a fold-all command.)
+   renderer/overlays context fields await a consumer; fold-all debounce awaits a bulk writer.)
 4. **`2.4 inspection & embedded views`** (L) · **`4.3 affordances`** (M). (`4.5 pinning` partial —
    manager/command pinning; `1.4 rich text` partial — inline tokenizer.)
 5. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
    (`4.4 controls` is partially landed — live reset + readout; see WP4.)
 
-*(Landed from this queue: the `4.3 typing` payload contract and the `citations model` bibliography
-rendering — see §Landed (v5). The three small state wins `2.5 defaults`, `2.5 selection atom` and
-`2.5 focus react` were landed earlier.)*
+*(Landed from this queue: the `1.5/1.1 section model` (recursive containment, fold-aware `j`/`k`,
+`view.fold-all`), the `4.3 typing` payload contract and the `citations model` bibliography rendering —
+see §Landed (v5). The three small state wins `2.5 defaults`, `2.5 selection atom` and `2.5 focus react`
+were landed earlier.)*
 
-**Gated** (see §Blockers): `0.5`; `1.5 page` (needs the section model); the inspector half of
-`4.3 affordances`; WP5 `3.3` → `4.3 derivation-record`; WP5 `3.6` → the `config-change` producer.
+**Gated** (see §Blockers): `0.5`; the inspector half of `4.3 affordances`; WP5 `3.3` →
+`4.3 derivation-record`; WP5 `3.6` → the `config-change` producer.
 
 ## Blockers / prerequisites
 
@@ -71,8 +72,11 @@ Cross-cutting constraints that gate multiple items — each is a work order: fir
   on the LM side; the `ReasoningBackend` half WP5 needed is landed too (`core/reasoning-backend.ts`
   + `core/nars-backend.ts`) — what it does *not* carry is the control half (`submit`/`step`/`run`),
   which is `3.6` work, not contract work.
-- **Section model** — blocks **`1.5 page`**. *First step:* recurse `roots` + heading `level`s into a
-  section tree in `core/toc.ts`. *Done when:* pages/ToC are non-shallow and `page` is URL-addressable.
+- **Section model** — blocks **`1.5 page`**. **Landed:** `core/sections.ts` (`sectionTree`,
+  `SectionNode`/`SectionTree`, `pageOf`, `foldableSections`) — one recursive, fold-aware reading of
+  containment that the notebook, the ToC, `j`/`k` and the breadcrumb all walk. *Remaining:* make `page`
+  itself URL-addressable (`1.5 page`) and settle the turn/page boundary policy (auto-page per turn
+  pair with agent/user overrides).
 - **Node→workspace-block mapping** — blocks the inspector half of **`4.3 affordances`** and richer
   **`2.4`**. *First step:* decide where a selected engine node/edge resolves to a block `ref`. *Done
   when:* the inspector can open an artifact for the selected node.
@@ -107,6 +111,11 @@ Landed extension points — wire features here instead of re-deriving them.
   `providerUsable`) + `core/lm-transport.ts` (`refreshLmStatus`, `switchLmProvider`): read the
   provider state, never the `lm.status` payload; request a switch through the transport, never a raw
   `lm.switch`.
+- **Section model** — `core/sections.ts` (`sectionTree`, `SectionNode`/`SectionTree`, `pageOf`,
+  `foldableSections`): the one recursive, fold-aware reading of containment. The notebook, the ToC,
+  `j`/`k` and the breadcrumb all walk it, so a new nesting depth needs no new walker — and
+  `1.5 page` gets its model for free. `parentMap` and `rootBlocks` are gone; `navigation.ts` no
+  longer re-derives the tree.
 - **Reasoning backend** — `core/reasoning-backend.ts` (`ReasoningBackend`, `BackendVocabulary`,
   `BackendNode`/`BackendEdge`/`BackendSnapshot`) + `core/nars-backend.ts` (`narsBackend`, adapter #1;
   `NAL_VOCABULARY`): take engine-specific node/edge kinds, labels, text fallbacks and the truth
@@ -178,8 +187,10 @@ Landed extension points — wire features here instead of re-deriving them.
   `register()` and `hydrateFromUrl` drops an id the leaf does not know (a stale link cannot seed
   `$lensLayout`). `→ core/store.ts`, `core/layout-ids.ts`, `utils/layout-registry.ts`.
   `(s)`,`(t)`,`(x)`,`(ac)`
-- [ ] **1.5 page** — URL-address `page` (`(page, block, disclosure)`); needs the **section model**
-  blocker. `→ core/store.ts` (url-state), `core/toc.ts`. `(s)`,`(t)`,`(h)`,`(q)`
+- [ ] **1.5 page** — URL-address `page` (`(page, block, disclosure)`); the **section model** blocker
+  is **cleared** (`core/sections.ts` gives `pageOf` and per-node `depth`), so this is now a URL-state
+  field plus the turn/page boundary policy. `→ core/store.ts` (url-state), `core/sections.ts`.
+  `(s)`,`(t)`,`(h)`,`(q)`
 - [~] **2.6 scope** — scope-aware active layout (concept vs conversation) + URL-address it; remember
   the graph layer per lens; debounce `folded` writes for fold-all. Landed: `$layoutScope` +
   `$conversationLayout` (concept layouts keep the per-lens `$lensLayout`, conversation gets its own
@@ -229,12 +240,26 @@ Landed extension points — wire features here instead of re-deriving them.
   `chart` series entries as deep as the series view requires.
   `→ core/block-payload.ts`, `core/segmentation.ts`, `core/workspace-graph.ts`, `core/artifacts.ts`.
   `(i)`,`(j)`,`(d)`
-- [ ] **1.5/1.1 section model** *(merged: `1.5 page` model + `1.5/1.1 notebook structure`)* — recurse
+- [~] **1.5/1.1 section model** *(merged: `1.5 page` model + `1.5/1.1 notebook structure`)* — recurse
   nested `contains`/headings so pages/ToC aren't shallow; nested-section folding by heading `level`;
   fold-all/unfold-all command; folded-count badge; keep `j/k` consistent with folded visibility and
   decide whether it skips container roots; optional `clampStep`; "jump to related block" from
-  breadcrumb/block menu. Provides the model `1.5 page` needs. `→ core/toc.ts`,
-  `core/workspace-graph.ts`, `components/renderers/notebook.ts`. `(d)`,`(q)`,`(h)`,`(s)`,`(t)`
+  breadcrumb/block menu. Provides the model `1.5 page` needs. Landed as `core/sections.ts`:
+  `sectionTree(graph, folded)` builds the whole containment — `depth`, `ancestors`, `folded`/`hidden`,
+  `order` (everything) and `visible` (what is on screen) — and a ref claimed twice keeps its first
+  placement, so a malformed cycle terminates. Four consumers now read it instead of re-walking
+  `children`: the notebook renders it recursively (nested sections get their own header + fold, and a
+  container shows its header rather than a duplicate body), the ToC recurses to any depth with a
+  `depth` column and folds out of the list, `j`/`k` steps the `visible` order so they never land on a
+  hidden block, and `breadcrumb` reads `ancestors`. **Decisions taken:** container roots stay in the
+  `j`/`k` walk (they render as focusable blocks); `clampStep` stays clamped with no wrap — the
+  optionality was speculative, not asked for. Fold-all landed as the derived `view.fold-all` command
+  plus `setCollapsed` and a folded-count badge in the ToC header, so the fold set is reachable from the
+  palette, the badge and the URL alike. Remaining: heading-`level` boundaries (they belong to the
+  turn/page policy) and "jump to related block", which is **`2.4`** work. `→ core/sections.ts`,
+  `core/navigation.ts`, `core/toc.ts`, `core/commands.ts`, `core/workspace-graph.ts` (`parentMap`/
+  `rootBlocks` deleted), `components/renderers/notebook.ts`, `components/overlays/toc.ts`.
+  `(d)`,`(q)`,`(h)`,`(s)`,`(t)`
 - [ ] **2.4 inspection & embedded views** *(merged: `2.4 graph inspection` + `4.1/4.2 embedded
   views`)* — node/edge hover popovers reusing `explainModel`/`neighborhood`; artifact edge previews;
   richer inspector (link confidence + event refs); "Open related" from graph menu and ToC; remember
@@ -516,3 +541,13 @@ in v3 Appendix D). Rolled up:
   with **`3.6`**. Suite **353 green** (new: NARS record normalization + label/text fallbacks +
   confidence guarding, snapshot memoisation, and a second adapter — `proof-checked` truth, its own
   node/edge kinds — projecting through the same engine-agnostic code).
+- **WP3 `1.5/1.1 section model`** — `core/sections.ts`: `sectionTree(graph, folded)` is the one
+  recursive, fold-aware reading of containment (`depth`, `ancestors`, `folded`/`hidden`, `order`,
+  `visible`, plus `pageOf`/`foldableSections`). The notebook now renders nesting to any depth
+  (`.node` sections with their own header and fold button, a container showing its header instead of a
+  duplicate body), the ToC recurses with a `depth` column and drops folded subtrees, and `j`/`k` steps
+  the `visible` order so it can never land on a block a folded section hides. Fold-all landed as the
+  derived `view.fold-all` command + `setCollapsed` + a folded-count badge in the ToC header.
+  `navigation.ts` lost `blockOrder`'s hand-rolled walk, `parentMap` and `rootOf`'s recursive
+  `contains`; `workspace-graph.ts` lost `rootBlocks`. Suite **363 green**.
+

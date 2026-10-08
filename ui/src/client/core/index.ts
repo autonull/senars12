@@ -92,7 +92,6 @@ export {
   breadcrumb,
   type Crumb,
   navigationForKey,
-  parentMap,
   rootOf,
   stepBlock,
   stepPage,
@@ -111,6 +110,13 @@ export {
   overlays,
   registerOverlay,
 } from './overlay-registry.js';
+export {
+  foldableSections,
+  pageOf,
+  type SectionNode,
+  type SectionTree,
+  sectionTree,
+} from './sections.js';
 export { type TocEntry, TOC_KINDS_TYPE, tocEntries } from './toc.js';
 export {
   $activeLens,
@@ -254,7 +260,6 @@ export {
   emptyWorkspaceGraph,
   linksTouching,
   type Ref,
-  rootBlocks,
   type SemanticBlock,
   type SemanticLink,
   type SemanticLinkKind,

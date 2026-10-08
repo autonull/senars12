@@ -3,15 +3,17 @@
  * projection (`tocEntries`) with search and kind filters, opened through the one
  * overlay host. Selecting an entry sets the workspace focus (session state) and
  * closes the overlay, so the ToC navigates the substrate instead of owning a
- * second copy of it.
+ * second copy of it. Rows carry the section model's `depth`, and the folded-count
+ * badge dispatches the same `view.fold-all` the palette offers.
  */
 
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { artifactViewSpec } from '../../core/artifacts.js';
 import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
+import { dispatchCommand } from '../../core/commands.js';
 import { eventBus } from '../../core/events.js';
-import { $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
+import { $collapsedBlocks, $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
@@ -36,7 +38,9 @@ export class TocView extends SurfaceComponent {
     .filters button[aria-pressed='true'] { background: var(--colors-semantic-accent-cyan); color: var(--colors-semantic-bg-base); border-color: transparent; }
     ul { list-style: none; margin: 0; padding: var(--spacing-scale-2); overflow: auto; display: flex; flex-direction: column; gap: 2px; }
     .row { display: flex; align-items: stretch; gap: 2px; }
-    .entry { display: flex; flex: 1; min-width: 0; align-items: baseline; gap: var(--spacing-scale-2); text-align: left; border: none; border-radius: 4px; padding: var(--spacing-scale-1) var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-primary); cursor: pointer; }
+    .entry { display: flex; flex: 1; min-width: 0; align-items: baseline; gap: var(--spacing-scale-2); text-align: left; border: none; border-radius: 4px; padding: var(--spacing-scale-1) var(--spacing-scale-2) var(--spacing-scale-1) calc(var(--spacing-scale-2) + var(--depth, 0) * var(--spacing-scale-3)); background: transparent; color: var(--colors-semantic-text-primary); cursor: pointer; }
+    .folds { border: 1px solid var(--colors-semantic-border-subtle); border-radius: 999px; padding: 2px var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-xs); }
+    .folds:hover { color: var(--colors-semantic-text-primary); }
     .entry:hover { background: var(--colors-semantic-bg-subtle); }
     .entry[aria-current='true'] { background: var(--colors-semantic-bg-subtle); outline: 1px solid var(--colors-semantic-accent-cyan); }
     .entry .kind { flex-shrink: 0; width: 6.5rem; text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
@@ -50,9 +54,15 @@ export class TocView extends SurfaceComponent {
   @state() private filter: Filter = 'all';
   @state() private query = '';
 
+  override connectedCallback(): void {
+    super.connectedCallback();
+    this.watch($collapsedBlocks);
+  }
+
   protected override renderBody() {
     const graph = $workspaceGraph.get();
-    const entries = tocEntries(graph);
+    const folded = $collapsedBlocks.get();
+    const entries = tocEntries(graph, folded);
     const present = TOC_KINDS_TYPE.filter((kind) => entries.some((entry) => entry.kind === kind));
     const query = this.query.trim().toLowerCase();
     const shown = entries.filter(
@@ -69,6 +79,15 @@ export class TocView extends SurfaceComponent {
         <header>
           <div class="bar">
             <span class="title">Contents</span>
+            ${
+              folded.size > 0
+                ? html`<button
+                    class="folds"
+                    title="Fold/unfold all sections"
+                    @click=${() => dispatchCommand('view.fold-all')}
+                  >${folded.size} folded</button>`
+                : ''
+            }
             <button class="close" title="Close" aria-label="Close contents" @click=${this.close}>&times;</button>
           </div>
           <label class="sr-only" for="toc-search">Search contents</label>
@@ -102,6 +121,8 @@ export class TocView extends SurfaceComponent {
           class="entry"
           data-ref=${entry.ref}
           data-kind=${entry.kind}
+          data-depth=${entry.depth}
+          style=${`--depth: ${entry.depth}`}
           aria-current=${current}
           @click=${() => this.navigate(entry.ref)}
         >

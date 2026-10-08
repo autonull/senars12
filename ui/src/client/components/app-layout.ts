@@ -3,6 +3,7 @@ import { customElement } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
 import {
   $activeRenderer,
+  $collapsedBlocks,
   $connectionState,
   $graphNodes,
   $panels,
@@ -103,7 +104,7 @@ export class AppLayout extends BaseComponent {
     if (event.altKey || overlays?.hasModal() || overlays?.containsFocus()) return;
     if (isEditableTarget(event)) return;
     const graph = $workspaceGraph.get();
-    const target = navigationForKey(graph, event.key, graph.focus);
+    const target = navigationForKey(graph, event.key, graph.focus, $collapsedBlocks.get());
     if (target === undefined) return;
     event.preventDefault();
     setWorkspaceFocus(target);
