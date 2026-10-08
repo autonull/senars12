@@ -514,7 +514,7 @@ Goal: build the unique LM conversation UI first.
 - [x] 1.3 Input decomposition: deterministic claim/question/command split; raw preserved; extracted structure shown.
   - Landed `core/input-decomposition.ts` (`decomposeInput` + `isFaithfulDecomposition`): a slash line is one `command`, an interrogative (`?` or leading wh-word) is a `question`, every other sentence a `claim` — purely lexical, no LM. `projectChat` now expands **user** turns into these children linked by `contains`; a `raw` child is added only when the split is lossy, otherwise the turn block's `text` already preserves the raw verbatim. The legacy `input-hud` composer previews the extracted structure live as chips. Added `command` to `BlockKind` and the kind-label SSOT.
 - [~] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
-  - Landed `core/segmentation.ts` (`segmentText`): deterministic, dependency-free Markdown parsing into heading/paragraph/list/table/code segments with table rows and fenced-code language. `projectChat` expands assistant turns into child blocks (`childId(msg,index)` position-anchor ids) linked by `contains`, with the raw turn text retained on the turn block. Notebook renders the children richly. Remaining: image/link/citation segmentation and block-level streaming (`status: 'streaming'` re-parse).
+  - Landed `core/segmentation.ts` (`segmentText`): deterministic, dependency-free Markdown parsing into heading/paragraph/list/table/code segments with table rows and fenced-code language, plus standalone images (`![alt](src)` → `image` with `{alt,src}`) and links (Markdown link or reference definition → `citation` with `{label|key,href}`); inline links stay in their paragraph. `projectChat` expands assistant turns into child blocks (`childId(msg,index)` position-anchor ids) linked by `contains`, with the raw turn text retained on the turn block. Notebook renders the children richly (including `<img>` and `<a>` for image/citation). Remaining: block-level streaming (`status: 'streaming'` re-parse).
 - [x] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
   - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Breadcrumbs (`core/navigation.ts` `breadcrumb`, rendered atop the notebook, clickable to an ancestor) and keyboard navigation (`j`/`k` blocks, `[ ]` pages via `navigationForKey`, bound in `app-layout`, ignored while an overlay is open or an editable is focused) are landed; the notebook scrolls the focused block into view. Remaining (deferred): URL-addressable `(page, block, disclosure)`, section folding, and virtualization for long sessions.
 - [~] 1.6 Contextual link menu: ask follow-up, explain, open related, view as graph, copy/export, (formalize-as-belief/goal/question seam).
@@ -1009,6 +1009,38 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   navigation from linear to graph-aware without any new data.
 - Section folding can key off `breadcrumb`/`parentMap`: collapse a container by hiding its descendants,
   and reuse `blockOrder` to keep `j/k` consistent with what is visible.
+
+### 2026-10-08 (i) — Phase 1.4 image/link/citation segmentation
+
+**Landed**
+- `ui/src/client/core/segmentation.ts` — the parser now recognises, as standalone lines, Markdown
+  images (`![alt](src)` → `image` block carrying `{alt, src}`) and links — both inline links
+  (`[label](href)`) and reference definitions (`[key]: href`) → `citation` blocks carrying
+  `{label|key, href}`. Inline links (a link not alone on its line) stay inside their paragraph, and
+  `startsBlock` was extended so these lines break a preceding paragraph correctly.
+- `ui/src/client/components/renderers/notebook.ts` — `image` renders as a lazy `<img>` and `citation`
+  as an external `<a rel="noreferrer">`; both get typed styling.
+- Tests (5 new across 2 files; whole UI suite **184 green**; typecheck + biome clean; client build
+  succeeds): segmentation cases (image, link, reference definition, inline-link-stays-paragraph) and
+  a notebook render case for image + citation.
+
+**Notes for remaining work**
+- Block-level streaming (`status: 'streaming'` re-parse as the assistant streams) is the only part of
+  1.4 left; it needs partial assistant text to enter `$chatMessages` (currently `$streamingDelta` is
+  a preview only), so it is backend-coupled rather than a parser change.
+- `citation` is used for any labeled URL; a future `Source`/bibliography model could split formal
+  citations from plain links by giving citations a stable key and resolving `[n]` references to them.
+- Images keep no intrinsic size/aspect data; a `data: {alt, src, width?, height?}` extension would let
+  the notebook reserve layout space and avoid reflow when artifacts render through the view system.
+
+**New improvement opportunities**
+- Route `code`/`table` children through the landed view adapters (`s-view` + `ViewSpec`) instead of
+  bespoke notebook markup — the plan's "artifacts typed, not markdown spans" goal and the 0.5
+  artifact-viewer overlay both become a thin `Segment.data → ViewSpec` adapter.
+- Inline rich text is still a single `text` string; a lightweight inline tokenizer (links/emphasis/
+  code spans) would let paragraphs render anchors without changing the block model.
+- `Segment.data` is `unknown`; give `image`/`citation`/`table`/`code` a discriminated `Artifact`
+  union so renderers narrow without casts (currently each does `as {…}`).
 
 
 

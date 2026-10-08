@@ -54,4 +54,28 @@ describe('output segmentation', () => {
     const segments = segmentText('# H\n\ntext\n\n- a\n- b\n\n| x |\n| --- |\n| 1 |');
     expect(segments.map((s) => s.kind)).toEqual(['heading', 'paragraph', 'list', 'table']);
   });
+
+  it('parses a standalone image line', () => {
+    expect(segmentText('![a robin](https://x/y.png)')).toEqual([
+      { kind: 'image', text: 'a robin', data: { alt: 'a robin', src: 'https://x/y.png' } },
+    ]);
+  });
+
+  it('parses a standalone link as a citation', () => {
+    expect(segmentText('[docs](https://x)')).toEqual([
+      { kind: 'citation', text: 'docs', data: { label: 'docs', href: 'https://x' } },
+    ]);
+  });
+
+  it('parses a reference link definition as a citation', () => {
+    expect(segmentText('[1]: https://x')).toEqual([
+      { kind: 'citation', text: '1', data: { key: '1', href: 'https://x' } },
+    ]);
+  });
+
+  it('keeps an inline link inside its paragraph', () => {
+    expect(segmentText('see [docs](https://x) here')).toEqual([
+      { kind: 'paragraph', text: 'see [docs](https://x) here' },
+    ]);
+  });
 });

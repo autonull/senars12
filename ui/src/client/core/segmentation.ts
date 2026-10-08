@@ -32,6 +32,10 @@ const FENCE = /^\s*```(\w*)\s*$/;
 const LIST_ITEM = /^\s*(?:[-*+]|\d+\.)\s+(.*)$/;
 const BLOCKQUOTE = /^\s*>\s?(.*)$/;
 const SEPARATOR = /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/;
+// Standalone Markdown image / link, and reference-style link definition.
+const IMAGE = /^!\[([^\]]*)\]\(\s*(\S+?)(?:\s+"[^"]*")?\s*\)\s*$/;
+const LINK = /^\[([^\]]+)\]\(\s*(\S+?)(?:\s+"[^"]*")?\s*\)\s*$/;
+const LINK_DEFINITION = /^\[([^\]]+)\]:\s*(\S+)\s*$/;
 
 const isBlank = (line: string): boolean => line.trim() === '';
 const hasPipe = (line: string): boolean => line.includes('|');
@@ -45,7 +49,10 @@ const startsBlock = (line: string): boolean =>
   FENCE.test(line) ||
   HEADING.test(line) ||
   LIST_ITEM.test(line) ||
-  BLOCKQUOTE.test(line);
+  BLOCKQUOTE.test(line) ||
+  IMAGE.test(line) ||
+  LINK.test(line) ||
+  LINK_DEFINITION.test(line);
 
 function parseTable(lines: readonly string[], start: number): { segment: Segment; next: number } {
   const headers = splitRow(lines[start] ?? '');
@@ -119,6 +126,33 @@ export function segmentText(text: string): Segment[] {
         i++;
       }
       segments.push({ kind: 'paragraph', text: quoted.join('\n') });
+      continue;
+    }
+
+    const image = IMAGE.exec(line);
+    if (image) {
+      const alt = image[1] ?? '';
+      const src = image[2] ?? '';
+      segments.push({ kind: 'image', text: alt, data: { alt, src } });
+      i++;
+      continue;
+    }
+
+    const linkDefinition = LINK_DEFINITION.exec(line);
+    if (linkDefinition) {
+      const key = linkDefinition[1] ?? '';
+      const href = linkDefinition[2] ?? '';
+      segments.push({ kind: 'citation', text: key, data: { key, href } });
+      i++;
+      continue;
+    }
+
+    const link = LINK.exec(line);
+    if (link) {
+      const label = link[1] ?? '';
+      const href = link[2] ?? '';
+      segments.push({ kind: 'citation', text: label, data: { label, href } });
+      i++;
       continue;
     }
 

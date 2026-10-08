@@ -75,6 +75,16 @@ function renderHeading(block: SemanticBlock): TemplateResult {
 function renderBlock(block: SemanticBlock, focused = false): TemplateResult {
   const body = (() => {
     if (block.kind === 'heading') return renderHeading(block);
+    if (block.kind === 'image' && block.data) {
+      const { alt, src } = block.data as { alt: string; src: string };
+      return html`<img class="image" src=${src} alt=${alt} loading="lazy" />`;
+    }
+    if (block.kind === 'citation' && block.data) {
+      const { label, key, href } = block.data as { label?: string; key?: string; href: string };
+      return html`<a class="citation" href=${href} target="_blank" rel="noreferrer"
+        >${label ?? key ?? href}</a
+      >`;
+    }
     if (block.kind === 'code')
       return html`<pre class="code"><code>${block.text}</code></pre>`;
     if (block.kind === 'table' && block.data)
@@ -141,6 +151,9 @@ export class NotebookView extends SurfaceComponent {
     .heading { margin: 0; color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-ui); }
     .code { margin: 0; padding: var(--spacing-scale-3); border-radius: 6px; background: var(--colors-semantic-bg-base); overflow: auto; }
     .code code { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-secondary); }
+    .image { max-width: 100%; border-radius: 6px; }
+    .citation { color: var(--colors-semantic-accent-cyan); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-sm); text-decoration: none; }
+    .citation:hover { text-decoration: underline; }
     .list { margin: 0; padding-left: var(--spacing-scale-4); color: var(--colors-semantic-text-primary); font-size: var(--typography-scale-base); line-height: var(--typography-lineHeights-relaxed); }
     table.data { border-collapse: collapse; width: 100%; font-size: var(--typography-scale-sm); color: var(--colors-semantic-text-primary); }
     table.data th, table.data td { border: 1px solid var(--colors-semantic-border-subtle); padding: var(--spacing-scale-1) var(--spacing-scale-2); text-align: left; }

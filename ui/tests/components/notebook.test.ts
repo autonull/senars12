@@ -94,6 +94,24 @@ describe('notebook surface', () => {
     expect(root?.querySelector('pre.code')?.textContent).toContain('const x = 1;');
   });
 
+  it('renders image and citation blocks', async () => {
+    $workspaceGraph.set(
+      applyWorkspaceOps(emptyWorkspaceGraph(), [
+        { op: 'block.add', block: block('t1', { children: ['img', 'cite'], text: undefined }) },
+        { op: 'block.add', block: block('img', { kind: 'image', data: { alt: 'robin', src: 'https://x/y.png' } }) },
+        { op: 'block.add', block: block('cite', { kind: 'citation', data: { label: 'docs', href: 'https://x' } }) },
+        { op: 'roots.set', roots: ['t1'] },
+      ])
+    );
+    const el = document.createElement('s-notebook');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.shadowRoot?.querySelector('img.image')?.getAttribute('src')).toBe('https://x/y.png');
+    expect(el.shadowRoot?.querySelector('img.image')?.getAttribute('alt')).toBe('robin');
+    expect(el.shadowRoot?.querySelector('a.citation')?.getAttribute('href')).toBe('https://x');
+    expect(el.shadowRoot?.querySelector('a.citation')?.textContent).toContain('docs');
+  });
+
   it('offers each block a context menu affordance', async () => {
     $workspaceGraph.set(graph(block('user-1', { text: 'Robins are birds' })));
     const el = document.createElement('s-notebook');
