@@ -51,6 +51,7 @@ export type BlockKind =
   | 'derivation'
   | 'gate-decision'
   | 'budget'
+  | 'command'
   | 'config-change'
   | 'error'
   | 'embedded-view'

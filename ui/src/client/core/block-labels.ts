@@ -27,6 +27,7 @@ export const BLOCK_KIND_LABEL = {
   derivation: 'Derivation',
   'gate-decision': 'Gate decision',
   budget: 'Budget',
+  command: 'Command',
   'config-change': 'Config change',
   error: 'Error',
   'embedded-view': 'Embedded view',

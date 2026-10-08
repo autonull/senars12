@@ -9,6 +9,7 @@
  */
 
 import type { ChatMessage, GraphNodeData } from '@senars/core';
+import { decomposeInput, isFaithfulDecomposition } from './input-decomposition.js';
 import { segmentText } from './segmentation.js';
 import type {
   BlockKind,
@@ -54,7 +55,30 @@ const link = (
 ): SemanticLink => ({ id: linkId(source, target, kind), source, target, kind, createdBy });
 
 /** Stable id for a segmented child block of a message. */
-export const childId = (messageId: Ref, index: number): Ref => `blk:${messageId}:${index}`;
+export const childId = (messageId: Ref, index: number | string): Ref => `blk:${messageId}:${index}`;
+
+/** Stable id for the raw-fidelity child of a decomposed input. */
+export const rawChildId = (messageId: Ref): Ref => childId(messageId, 'raw');
+
+const childBlock = (
+  message: ChatMessage,
+  id: Ref,
+  kind: BlockKind,
+  role: SemanticRole,
+  createdBy: CreatedBy,
+  text: string,
+  extra: Partial<SemanticBlock> = {}
+): SemanticBlock => ({
+  id,
+  kind,
+  role,
+  title: kind,
+  text,
+  status: 'complete',
+  createdAt: message.timestamp,
+  createdBy,
+  ...extra,
+});
 
 /** Project the chat log into ordered turn blocks, segmented output children, and discourse links. */
 export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment {
@@ -84,20 +108,32 @@ export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment
       segmentText(message.content).forEach((segment, index) => {
         const blockId = childId(message.id, index);
         children.push(blockId);
-        blocks.push({
-          id: blockId,
-          kind: segment.kind,
-          role,
-          title: segment.kind,
-          text: segment.text,
-          level: segment.level,
-          data: segment.data,
-          status: 'complete',
-          createdAt: message.timestamp,
-          createdBy,
-        });
+        blocks.push(
+          childBlock(message, blockId, segment.kind, role, createdBy, segment.text, {
+            level: segment.level,
+            data: segment.data,
+          })
+        );
         links.push(link(id, blockId, 'contains', createdBy));
       });
+      if (children.length > 0) block.children = children;
+    }
+
+    if (message.role === 'user') {
+      const children: Ref[] = [];
+      const segments = decomposeInput(message.content);
+      segments.forEach((segment, index) => {
+        const blockId = childId(message.id, index);
+        children.push(blockId);
+        blocks.push(childBlock(message, blockId, segment.kind, role, createdBy, segment.text));
+        links.push(link(id, blockId, 'contains', createdBy));
+      });
+      if (segments.length > 0 && !isFaithfulDecomposition(message.content, segments)) {
+        const blockId = rawChildId(message.id);
+        children.push(blockId);
+        blocks.push(childBlock(message, blockId, 'raw', role, createdBy, message.content));
+        links.push(link(id, blockId, 'contains', createdBy));
+      }
       if (children.length > 0) block.children = children;
     }
 

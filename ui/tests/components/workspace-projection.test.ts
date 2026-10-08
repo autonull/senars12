@@ -7,6 +7,7 @@ import {
   projectChat,
   projectGraph,
   projectWorkspace,
+  rawChildId,
   turnId,
 } from '../../src/client/core/workspace-projection.js';
 
@@ -63,6 +64,30 @@ describe('chat projection', () => {
     expect(fragment.blocks.map((b) => b.kind)).toEqual(['heading', 'paragraph', 'list', 'turn']);
     const contains = fragment.links.filter((l) => l.kind === 'contains');
     expect(contains.map((l) => l.target)).toEqual(agent.children);
+  });
+
+  it('decomposes user input into claim/question children, adding a raw child when lossy', () => {
+    const fragment = projectChat([
+      message({ id: 'u1', role: 'user', content: 'A. B?', timestamp: 1 }),
+    ]);
+    const user = must(fragment.blocks.find((b) => b.id === turnId('u1')));
+    expect(user.children).toEqual([childId('u1', 0), childId('u1', 1), rawChildId('u1')]);
+    expect(fragment.blocks.find((b) => b.id === childId('u1', 0))).toMatchObject({
+      kind: 'claim',
+      text: 'A.',
+    });
+    expect(fragment.blocks.find((b) => b.id === childId('u1', 1))).toMatchObject({
+      kind: 'question',
+      text: 'B?',
+    });
+    expect(fragment.blocks.find((b) => b.id === rawChildId('u1'))?.text).toBe('A. B?');
+  });
+
+  it('keeps a single verbatim claim as the only child (raw lives on the turn)', () => {
+    const fragment = projectChat([message({ id: 'u1', role: 'user', content: 'hello' })]);
+    const user = must(fragment.blocks.find((b) => b.id === turnId('u1')));
+    expect(user.children).toEqual([childId('u1', 0)]);
+    expect(fragment.blocks.some((b) => b.kind === 'raw')).toBe(false);
   });
 
   it('links an agent turn to the preceding user turn, or to an explicit parent', () => {

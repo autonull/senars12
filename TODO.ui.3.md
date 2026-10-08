@@ -511,7 +511,8 @@ Goal: build the unique LM conversation UI first.
 - [~] 1.1 Notebook renderer: vertical page renderer, block components, block affordances, folding, focus/selection, streaming-friendly.
   - Landed the `s-notebook` surface (`defineSurface`) + `notebookRenderer`: top-level blocks render as vertical pages with per-kind affordances (`BLOCK_KIND_LABEL`, now in `core/block-labels.ts`), role/status styling, uncertainty chips, empty-state slot, and focus/selection round-trip for renderer switches. Pages now walk `children`/`contains` and render heading/list/table/code blocks richly (static-tag headings to satisfy Lit). Every block now carries a `⋯` context-menu affordance (opens the block menu with the triggering element as anchor) and highlights when it is the workspace focus (set by the ToC or by clicking the block). Remaining: section folding, artifact rendering via the inner view system, and virtualization.
 - [ ] 1.2 Composer overlay with modes; universal input (NL now; Narsese/structured seam).
-- [ ] 1.3 Input decomposition: deterministic claim/question/command split; raw preserved; extracted structure shown.
+- [x] 1.3 Input decomposition: deterministic claim/question/command split; raw preserved; extracted structure shown.
+  - Landed `core/input-decomposition.ts` (`decomposeInput` + `isFaithfulDecomposition`): a slash line is one `command`, an interrogative (`?` or leading wh-word) is a `question`, every other sentence a `claim` — purely lexical, no LM. `projectChat` now expands **user** turns into these children linked by `contains`; a `raw` child is added only when the split is lossy, otherwise the turn block's `text` already preserves the raw verbatim. The legacy `input-hud` composer previews the extracted structure live as chips. Added `command` to `BlockKind` and the kind-label SSOT.
 - [~] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
   - Landed `core/segmentation.ts` (`segmentText`): deterministic, dependency-free Markdown parsing into heading/paragraph/list/table/code segments with table rows and fenced-code language. `projectChat` expands assistant turns into child blocks (`childId(msg,index)` position-anchor ids) linked by `contains`, with the raw turn text retained on the turn block. Notebook renders the children richly. Remaining: image/link/citation segmentation and block-level streaming (`status: 'streaming'` re-parse).
 - [~] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
@@ -933,6 +934,44 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   quality win, and it makes `activeCommands()` order meaningful.
 - Command availability currently keys off `$activeRenderer`; a tiny `when` predicate over the store
   (block selected, streaming) would generalise this beyond graph-only commands.
+
+### 2026-10-08 (g) — Phase 1.3 input decomposition
+
+**Landed**
+- `ui/src/client/core/input-decomposition.ts` — `decomposeInput(text)` + `isFaithfulDecomposition`:
+  deterministic, LM-free split of raw input into ordered `claim`/`question`/`command` segments. A
+  slash line is one command; an interrogative (`?` or leading wh-word) is a question; every other
+  sentence a claim. Sentences are kept verbatim; classification does not depend on punctuation alone.
+- `ui/src/client/core/workspace-projection.ts` — `projectChat` expands **user** turns into decomposed
+  children linked by `contains` (mirroring the agent segmentation path, now via a shared `childBlock`
+  helper). `childId` accepts a string index; `rawChildId(messageId) = childId(messageId,'raw')` is
+  the raw-fidelity child. Raw is preserved by the turn block's `text`, and an explicit `raw` child is
+  added only when the split is lossy (multi-segment or non-claim), so plain one-liners stay clean.
+- `BlockKind` gains `command`; `BLOCK_KIND_LABEL` (the exhaustive SSOT) names it.
+- `ui/src/client/components/input-hud.ts` — the composer previews the extracted structure live as
+  per-kind chips while typing, satisfying "extracted structure shown" without a separate composer UI.
+- `core/index.ts` exports. Tests (10 new across 3 files; whole UI suite **171 green**; typecheck +
+  biome clean; client build succeeds): `input-decomposition`, user-decomposition cases in
+  `workspace-projection`, and `input-hud` preview.
+
+**Notes for remaining work**
+- The composer is still the legacy full-width `input-hud` dock, not the §8.1 floating/anchored
+  overlay with capability-gated modes — that is Phase 1.2 (`ComposerMode`). The decomposition is the
+  reusable substrate, so 1.2 can call `decomposeInput` directly and replace the preview.
+- `decomposeInput` splits on `[.!?]`, so abbreviations ("e.g.") over-split; a targeted guard (common
+  abbreviations / decimals) is the obvious follow-up if it matters. It never drops text.
+- The `raw` child is emitted only for lossy splits; if a future producer needs byte-exact child
+  segmentation (whitespace-significant input), switch `isFaithfulDecomposition` to always-false and
+  the raw child becomes unconditional.
+
+**New improvement opportunities**
+- Once reasoning is on, route `claim` children through the formalization/gate pipeline (3.2) and
+  `question` children through formalized queries — the decomposition already carries the kind needed
+  to choose the path.
+- Add `asks`/`answers` links from question/answer children (e.g. assistant `answers` the parent user
+  `question` child) so the graph shows Q→A structure, not only `contains`.
+- The preview could offer per-segment affordances (fix kind, merge/split) — cheap with the current
+  data and it makes the deterministic split user-correctable, honouring "annotations, not truth".
 
 
 

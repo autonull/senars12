@@ -7,6 +7,9 @@ import {
   $streamingDelta,
   addUserMessage,
   BaseComponent,
+  BLOCK_KIND_LABEL,
+  decomposeInput,
+  type InputSegment,
   send,
 } from '../core/index.js';
 
@@ -83,9 +86,13 @@ export class InputHUD extends BaseComponent {
     .suggestion { padding: var(--spacing-scale-2) var(--spacing-scale-3); font-family: var(--typography-fontFamilies-data); font-size: 0.7rem; color: var(--colors-semantic-text-primary); cursor: pointer; display: flex; align-items: center; gap: var(--spacing-scale-2); }
     .suggestion:hover, .suggestion.selected { background: var(--colors-semantic-bg-panel-hover); }
     .suggestion-type { font-size: 0.55rem; color: var(--colors-semantic-text-muted); text-transform: uppercase; padding: 1px 4px; border: 1px solid var(--colors-semantic-border-subtle); border-radius: 3px; }
+    .decomposition { display: flex; flex-wrap: wrap; gap: var(--spacing-scale-1); }
+    .segment { display: inline-flex; align-items: center; gap: var(--spacing-scale-1); max-width: 100%; padding: 1px var(--spacing-scale-2); border: 1px solid var(--colors-semantic-border-subtle); border-radius: 999px; font-family: var(--typography-fontFamilies-data); font-size: 0.6rem; color: var(--colors-semantic-text-secondary); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .segment-kind { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.55rem; color: var(--colors-semantic-text-muted); }
   `;
   @state() private composing = false;
   @state() private textareaValue = '';
+  @state() private decomposition: InputSegment[] = [];
   @state() private showSuggestions = false;
   @state() private suggestionIndex = -1;
   @state() private suggestions: Suggestion[] = [];
@@ -144,6 +151,18 @@ export class InputHUD extends BaseComponent {
             }}
             @input=${this.onInput}
           ></textarea>
+          ${
+            this.decomposition.length > 1 ||
+            (this.decomposition[0] !== undefined && this.decomposition[0].kind !== 'claim')
+              ? html`<div class="decomposition" aria-label="Extracted input structure">
+                  ${this.decomposition.map(
+                    (segment) => html`<span class="segment" data-kind=${segment.kind}>
+                      <span class="segment-kind">${BLOCK_KIND_LABEL[segment.kind]}</span>${segment.text}
+                    </span>`
+                  )}
+                </div>`
+              : ''
+          }
           <div class="hud-footer">
             <span class="slash-hints">Slash: ${SLASH_COMMANDS.map((c) => html`<span class="key">${c.id}</span>`).reduce((a, b) => html`${a} ${b}`)}</span>
             <span class="token-count">~${tokens}/4096 tokens</span>
@@ -230,6 +249,7 @@ export class InputHUD extends BaseComponent {
     addUserMessage(content);
     send({ type: 'chat.user', content });
     this.textareaValue = '';
+    this.decomposition = [];
     this.composing = false;
     this.showSuggestions = false;
   }
@@ -237,6 +257,7 @@ export class InputHUD extends BaseComponent {
   private onInput(e: Event) {
     const ta = e.target as HTMLTextAreaElement;
     this.textareaValue = ta.value;
+    this.decomposition = decomposeInput(ta.value);
     this.autoResize(ta);
 
     const suggestions = this.getSuggestions(ta.value);
