@@ -10,6 +10,7 @@ import {
   $focusTerm,
   $graphEdges,
   $graphFilter,
+  $graphLayer,
   $graphMeta,
   $graphNodes,
   $lensLayout,
@@ -22,6 +23,7 @@ import {
   BaseComponent,
   evaluateLens,
   eventBus,
+  layerVisible,
   mountTestApi,
   projectWorkspaceGraph,
   send,
@@ -105,6 +107,7 @@ export class GraphViewport extends BaseComponent {
     });
     renderer.connect();
     this.watchWith($workspaceGraph, () => this.syncGraph());
+    this.watchWith($graphLayer, () => this.applyGraphFilter());
     eventBus.on('graph:layout', this.layoutHandler);
     eventBus.on('graph:zoom-in', this.zoomIn);
     eventBus.on('graph:zoom-out', this.zoomOut);
@@ -592,10 +595,18 @@ export class GraphViewport extends BaseComponent {
 
   private applyGraphFilter() {
     if (!this.cy) return;
+    const layer = $graphLayer.get();
     const filter = $graphFilter.get();
     const capFilter = $capabilityFilter.get();
     for (const n of this.cy.nodes()) {
-      if (n.hasClass('workspace')) continue;
+      if (!layerVisible(n.hasClass('workspace'), layer)) {
+        n.style('display', 'none');
+        continue;
+      }
+      if (n.hasClass('workspace')) {
+        n.style('display', 'element');
+        continue;
+      }
       if (filter === 'contradiction') {
         n.style('display', n.data('isContradiction') ? 'element' : 'none');
       } else if (capFilter !== 'all') {
@@ -604,6 +615,9 @@ export class GraphViewport extends BaseComponent {
       } else {
         n.style('display', 'element');
       }
+    }
+    for (const e of this.cy.edges()) {
+      e.style('display', layerVisible(e.hasClass('workspace'), layer) ? 'element' : 'none');
     }
   }
 

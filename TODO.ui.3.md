@@ -530,7 +530,7 @@ Goal: build the unique LM conversation UI first.
 ### Phase 2 — Graph renderer for semantic conversation
 Goal: render the same semantic conversation as a flowing content graph.
 - [~] 2.1 Graph projection: blocks → nodes, links → edges, sections → compound nodes/clusters; incremental animated growth.
-  - Landed the pure projection + an additive Graph-mode layer. `core/graph-projection.ts` maps a `WorkspaceGraph` to renderer-agnostic `{ nodes, edges }` (`projectWorkspaceGraph`): one labelled node per block (`nodeType:'workspace'`, `term`=label so tooltip/search/lens cover it), one typed edge per link whose endpoints both exist (dangling links dropped), and `section`/`heading` blocks with `children` become Cytoscape compound `parent`s. `graph-viewport` now watches `$workspaceGraph` and diffs the projection into Cytoscape under the `workspace` class (concept nodes/edges keep their ids and lifecycle), with dedicated node/edge styles; concept-graph diffing and `applyGraphFilter` exclude the workspace layer. So the conversation is navigable as a graph with no reasoning backend attached. Remaining: **incremental animated growth** (new blocks animate in rather than appearing at the next layout) and section clusters from chat `contains`/heading structure (chat turns don't set `children` today); graph-native selection is wired (see 2.3).
+  - Landed the pure projection + an additive Graph-mode layer. `core/graph-projection.ts` maps a `WorkspaceGraph` to renderer-agnostic `{ nodes, edges }` (`projectWorkspaceGraph`): one labelled node per block (`nodeType:'workspace'`, `term`=label so tooltip/search/lens cover it), one typed edge per link whose endpoints both exist (dangling links dropped), and `section`/`heading` blocks with `children` become Cytoscape compound `parent`s. `graph-viewport` now watches `$workspaceGraph` and diffs the projection into Cytoscape under the `workspace` class (concept nodes/edges keep their ids and lifecycle), with dedicated node/edge styles; concept-graph diffing and `applyGraphFilter` exclude the workspace layer. The two layers can be isolated with `$graphLayer` (`both · conversation · concepts`, pure `layerVisible`) and the `graph.layer.*` commands. So the conversation is navigable as a graph with no reasoning backend attached. Remaining: **incremental animated growth** (new blocks animate in rather than appearing at the next layout) and section clusters from chat `contains`/heading structure (chat turns don't set `children` today); graph-native selection is wired (see 2.3).
 - [ ] 2.2 Conversation layouts: `chronological-flow`, `semantic-map`, `artifact-map`, `source-view` (registry rows + deterministic variants).
 - [~] 2.3 Graph-native input: composer anchored to node/edge/canvas/selection; selected nodes become prompt context; create question/claim nodes.
   - Landed selection routing + selection-as-context. Tapping a `workspace` node focuses the block (`setWorkspaceFocus`); double-click opens Explanation; right-click opens the block menu. The Graph renderer's `openComposer(anchor?)` no longer calls the non-existent `composer` overlay — it emits `composer:focus` with the anchor (or the workspace subset of `$selectedNodeIds`), and a `graph.ask-selection` command does the same for the palette/agent. The composer carries a *list* of context refs end-to-end (`composer:focus { refs }` → `chat.user`/`ChatMessage.contexts: string[]` → composer chips → `projectChat` emits one `references` edge per known ref). Remaining: the composer is still the persistent dock (not a floating overlay anchored to the node/edge), and node-creating (question/claim) ops from the graph.
@@ -1498,6 +1498,33 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   command fired — locks the client/server contract without the socket.
 - Emit the executed `ui.command` id into the timeline/telemetry for an agent-action provenance trail.
 - Let `overlay.*` forward all args to `overlay:open` (currently just `ref`) once overlays declare what they read.
+
+### 2026-10-08 (w) — Graph conversation/concepts layer toggle (2.1)
+
+**Landed**
+- `ui/src/client/core/graph-layer.ts` — `GRAPH_LAYERS` (`both · conversation · concepts`), `GraphLayer`,
+  and the pure `layerVisible(isWorkspace, layer)` predicate, so layer visibility is one testable rule.
+- `ui/src/client/core/store.ts` — `$graphLayer` atom + `setGraphLayer` (session state); exported from
+  `core/index`. (Restored `setWorkspaceSelection`, accidentally dropped while inserting the atom.)
+- `ui/src/client/components/graph-viewport.ts` — `applyGraphFilter` now composes the layer with the
+  capability/contradiction filter: workspace nodes/edges hide under `concepts`, concept nodes/edges hide
+  under `conversation`, `both` is unchanged; edges respect the layer too. Watches `$graphLayer`.
+- `ui/src/client/components/renderers/graph.ts` — `graph.layer.both` / `.conversation` / `.concepts`
+  commands (palette + agent via `ui.command`).
+- Tests (+4; **233 green / 41 files**; UI typecheck and biome clean): `graph-layer` truth table + default.
+
+**Notes for remaining work**
+- The layer is Graph-mode-only; the Notebook always shows the conversation (fine — it *is* the conversation).
+- `$graphLayer` is not URL-addressable yet (could join `UrlState` like `renderer`/`folded`).
+- Under `conversation`, concept edges that were never laid out may still influence the layout engine's
+  bounding box; hiding is post-layout (`display: none`), not removal.
+
+**New improvement opportunities**
+- Add `$graphLayer` to `UrlState` (three-line pattern) so a shared link restores the isolated layer.
+- A small HUD/segmented control next to the renderer switch for the layer, instead of palette-only.
+- When a layer is hidden, skip laying it out / exclude from `fit` so `conversation`-only frames tightly.
+- Remember the layer per lens (the lens already picks a layout), so switching lenses can imply a layer.
+
 
 
 

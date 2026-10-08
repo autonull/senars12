@@ -9,7 +9,7 @@
  */
 
 import type { BlockKind, Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
-import { registerCommand, $selectedNodeIds, $workspaceGraph } from '../../core/index.js';
+import { registerCommand, $selectedNodeIds, $workspaceGraph, setGraphLayer } from '../../core/index.js';
 import { eventBus } from '../../core/events.js';
 import {
   registerRenderer,
@@ -123,3 +123,17 @@ registerCommand({
     if (refs.length) eventBus.emit('composer:focus', { refs });
   },
 });
+
+for (const [layer, title] of [
+  ['both', 'Show concepts and conversation'],
+  ['conversation', 'Show conversation only'],
+  ['concepts', 'Show concepts only'],
+] as const) {
+  registerCommand({
+    id: `graph.layer.${layer}`,
+    title,
+    group: 'Graph',
+    keywords: 'layer filter conversation concepts isolate',
+    run: () => setGraphLayer(layer),
+  });
+}

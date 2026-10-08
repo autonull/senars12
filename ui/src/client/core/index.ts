@@ -34,6 +34,7 @@ export { matchCommands } from './command-match.js';
 export { activeCommands, type Command, registerCommand, registeredCommands } from './commands.js';
 export { eventBus } from './events.js';
 export { explainModel, type ExplainLink, type ExplainModel } from './explain.js';
+export { GRAPH_LAYERS, type GraphLayer, layerVisible } from './graph-layer.js';
 export { type Neighbor, type Neighborhood, neighborhood } from './neighborhood.js';
 export { FocusTrap } from './focus-trap.js';
 export {
@@ -73,6 +74,7 @@ export {
   $graphEdges,
   $graphFilter,
   $graphMeta,
+  $graphLayer,
   $graphNodes,
   $graphShape,
   $lastSeqId,
@@ -114,6 +116,7 @@ export {
   removeLens,
   setWorkspaceFocus,
   setWorkspaceSelection,
+  setGraphLayer,
   toggleCollapsed,
   type TelemetryData,
   type TestApiStorePath,

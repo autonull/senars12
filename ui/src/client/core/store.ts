@@ -8,6 +8,7 @@ import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
 import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 import { getSurfaces } from './surface-registry.js';
+import { type GraphLayer } from './graph-layer.js';
 import { viewAdapters } from './view-adapter.js';
 import type { Shape, ViewSelection } from './view-spec.js';
 import { emptyWorkspaceGraph, type WorkspaceGraph } from './workspace-graph.js';
@@ -152,6 +153,11 @@ export const $activeRenderer = atom<string>('graph');
 export function setWorkspaceFocus(ref?: string): void {
   $workspaceGraph.set({ ...$workspaceGraph.get(), focus: ref });
 }
+
+/** Which Graph-mode layer(s) to show: the engine concepts, the conversation, or both (§2.1). */
+export const $graphLayer = atom<GraphLayer>('both');
+
+export const setGraphLayer = (layer: GraphLayer): void => $graphLayer.set(layer);
 
 /** Replace the workspace selection set (session state; survives re-projection). */
 export function setWorkspaceSelection(refs: Iterable<string>): void {
