@@ -305,12 +305,12 @@ Landed extension points — wire features here instead of re-deriving them.
   docs-as-code from descriptors; re-expand the visual-regression net. `→ core/`, `tests/visual`. `(7.3)`
 - [ ] **tests & parity harness** *(merged: `2.x pure-helper tests` + `tests sweep`)* — extract +
   unit-test `nodeTapAction`/`nodeGesture`, `workspaceRefs`; Graph-renderer unit test (import pulls
-  Cytoscape) and an `app-layout` test; parity link-catalog `layouts` ⊆ `layoutRegistry`; segmentation
-  round-trip property test; Notebook `composer:focus` path test; regenerate visual baselines for the
-  telemetry/timeline demotions; fix the stale e2e "default telemetry panel" comment and the
-  timeline-overlay test-API registration note. Sweep: a guard test that every `layoutRegistry`-registered
-  id is reachable (mirrors the existing conversation-layout scope guard) so a new layout cannot skip the
-  catalog. `→ tests/`.
+  Cytoscape) and an `app-layout` test; segmentation round-trip property test; Notebook `composer:focus`
+  path test; regenerate visual baselines for the telemetry/timeline demotions; fix the stale e2e
+  "default telemetry panel" comment and the timeline-overlay test-API registration note. Landed:
+  `tests/components/layout-registry.test.ts` — link-catalog `layouts` ⊆ registry (the WP5 `3.4` ids
+  `reasoning-provenance`/`contradiction-neighborhood`/`gate-pipeline` are allowlisted as pending),
+  scope partitioning, and per-primary-lens resolution. `→ tests/`.
   `(o)`,`(p)`,`(ae)`,`(Phase 0.1–0.3)`,`(d)`,`(q)`,`(af)`,`(ag)`
 - [ ] **6 Graph3D** — `WorkspaceRenderer` over SpaceGraph, `parity: 'partial'`; only after Notebook/Graph
   are excellent. Sweep: mirror the Graph's `reactToFocus` (centre on an outside `$workspaceGraph.focus`)
@@ -368,10 +368,12 @@ in v3 Appendix D). Rolled up:
   compared store projection; all former dual writers route through `setWorkspaceSelection` — completes
   **`2.5 selection atom`**. `setCapability` reframes the active renderer to the composition default when
   `language`/`reasoning` toggles (`defaultRendererFor`, not applied at boot) — completes
-  **`2.5 defaults`**. Suite **305 green** (new: capability renderer reframing).
+  **`2.5 defaults`**. Suite **307 green** (new: capability renderer reframing).
 - **WP4 timeline** — the `⏱` HUD control is gated on temporal availability (`hasTemporalData()` over
   `$graphNodes`; HUD watches `$graphNodes`) — completes **`4.4 gating`**. The scrubber gained a `Now`
   reset (`t = Infinity`) and a live/scrubbed `role="status"` readout, and renders the present as
   `maxTime` rather than the invalid `Infinity` — **`4.4 controls`** partially landed (prospective
-  control still open). Suite **308 green**. NOTE: regenerate visual baselines that capture the timeline
+  control still open). Suite **310 green**. NOTE: regenerate visual baselines that capture the timeline
   overlay (new `Now` control).
+- **Tests** — `tests/components/layout-registry.test.ts`: link-catalog `layouts` ⊆ registry (the WP5
+  `3.4` ids allowlisted as pending), scope partitioning, per-primary-lens resolution. Suite **313 green**.
