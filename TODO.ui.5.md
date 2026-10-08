@@ -46,8 +46,8 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
 4. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation.
 5. **`4.5 pinning`** (M) · **`1.4 rich text`** (M) · **`2.4 inspection & embedded views`** (L) ·
    **`citations model`** (M).
-6. **`4.4 controls`** (S) · **`4.4 anchor`** (M) · **`ops sequencing`** (M) —
-   timeline/ops, independent of WP3 completion.
+6. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
+   (`4.4 controls` is partially landed — live reset + readout; see WP4.)
 
 *(The three small state wins — `2.5 defaults`, `2.5 selection atom`, `2.5 focus react` — are landed.)*
 
@@ -195,8 +195,12 @@ Landed extension points — wire features here instead of re-deriving them.
 
 *Outcome: the timeline is a real present-anchored scrubber. Deps: WP3 (soft).*
 
-- [ ] **4.4 controls** — explicit live/past/prospective controls ("now" resetting `t` to `Infinity`, a
-  range readout) and announce the applied window. `→ components/overlays/timeline.ts`. `(ag)`
+- [~] **4.4 controls** — explicit live/past/prospective controls ("now" resetting `t` to `Infinity`, a
+  range readout) and announce the applied window. Landed: a `Now` button returning to the present
+  (`t = Infinity`) and a `role="status"` readout ("Live · all events" vs the scrubbed time); the range
+  now renders the present as `maxTime` instead of the invalid `Infinity`, so the default live state is
+  usable. Remaining: an explicit *prospective* control (the temporal gate has no future term today) and
+  moving the announce region to the overlay header. `→ components/timeline-scrubber.ts`. `(ag)`
 - [ ] **4.4 anchor** — present-anchored cursor fading newly admitted blocks; thread `createdAt`/event
   time through `projectGraph`/projection. `→ core/workspace-graph.ts`,
   `core/workspace-projection.ts`, `components/overlays/timeline.ts`. `(ag)`,`(y)`
@@ -366,4 +370,8 @@ in v3 Appendix D). Rolled up:
   `language`/`reasoning` toggles (`defaultRendererFor`, not applied at boot) — completes
   **`2.5 defaults`**. Suite **305 green** (new: capability renderer reframing).
 - **WP4 timeline** — the `⏱` HUD control is gated on temporal availability (`hasTemporalData()` over
-  `$graphNodes`; HUD watches `$graphNodes`) — completes **`4.4 gating`**. Suite **307 green**.
+  `$graphNodes`; HUD watches `$graphNodes`) — completes **`4.4 gating`**. The scrubber gained a `Now`
+  reset (`t = Infinity`) and a live/scrubbed `role="status"` readout, and renders the present as
+  `maxTime` rather than the invalid `Infinity` — **`4.4 controls`** partially landed (prospective
+  control still open). Suite **308 green**. NOTE: regenerate visual baselines that capture the timeline
+  overlay (new `Now` control).

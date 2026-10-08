@@ -75,6 +75,11 @@ export class TimelineScrubber extends BaseComponent {
       border-color: var(--colors-semantic-accent-primary);
       color: var(--colors-semantic-accent-primary);
     }
+    .now:disabled {
+      cursor: default;
+      color: var(--colors-semantic-accent-primary);
+      border-color: var(--colors-semantic-accent-primary);
+    }
   `;
 
   @state() private minTime = 0;
@@ -100,8 +105,12 @@ export class TimelineScrubber extends BaseComponent {
 
   override render() {
     const t = $view.get().timeline.t;
+    const live = !Number.isFinite(t);
+    const position = live ? this.maxTime : t;
     const percentage =
-      this.maxTime > this.minTime ? ((t - this.minTime) / (this.maxTime - this.minTime)) * 100 : 50;
+      this.maxTime > this.minTime
+        ? ((position - this.minTime) / (this.maxTime - this.minTime)) * 100
+        : 50;
     return html`
       <div class="scrubber-container">
         <span class="time-label">${this.formatTime(this.minTime)}</span>
@@ -111,13 +120,24 @@ export class TimelineScrubber extends BaseComponent {
             min="${this.minTime}"
             max="${this.maxTime}"
             step="1"
-            .value="${String(t)}"
+            .value="${String(position)}"
             @input="${this.onInput}"
           />
           <div class="playhead" style="left:${percentage}%"></div>
         </div>
         <span class="time-label">${this.formatTime(this.maxTime)}</span>
-        <span class="time-value">${this.formatTime(t)}</span>
+        <span class="time-value" role="status" aria-live="polite"
+          >${live ? 'Live · all events' : this.formatTime(t)}</span
+        >
+        <button
+          class="play now"
+          data-action="now"
+          title="Return to the present (live)"
+          ?disabled="${live}"
+          @click="${this.onNow}"
+        >
+          Now
+        </button>
         <button class="play" @click="${() => this.onPlayPause()}">
           ${this.playing ? '❚❚' : '▶'}
         </button>
@@ -164,6 +184,13 @@ export class TimelineScrubber extends BaseComponent {
   private onInput(e: Event) {
     const t = Number.parseFloat((e.target as HTMLInputElement).value);
     $view.set({ ...$view.get(), timeline: { t } });
+    this.requestUpdate();
+  }
+
+  /** Snap back to the present: `Infinity` disables the temporal gate so all events show (§4.4). */
+  private onNow() {
+    this.stopPlaying();
+    $view.set({ ...$view.get(), timeline: { t: Number.POSITIVE_INFINITY } });
     this.requestUpdate();
   }
 
