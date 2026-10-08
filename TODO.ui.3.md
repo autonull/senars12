@@ -518,7 +518,7 @@ Goal: build the unique LM conversation UI first.
 - [~] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
   - Landed `core/segmentation.ts` (`segmentText`): deterministic, dependency-free Markdown parsing into heading/paragraph/list/table/code segments with table rows and fenced-code language, plus standalone images (`![alt](src)` → `image` with `{alt,src}`) and links (Markdown link or reference definition → `citation` with `{label|key,href}`); inline links stay in their paragraph. `projectChat` expands assistant turns into child blocks (`childId(msg,index)` position-anchor ids) linked by `contains`, with the raw turn text retained on the turn block. Notebook renders the children richly (including `<img>` and `<a>` for image/citation; tables render through `<s-view>` at the embedded budget via `artifactViewSpec`). Remaining: block-level streaming (`status: 'streaming'` re-parse).
 - [x] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
-  - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Breadcrumbs (`core/navigation.ts` `breadcrumb`, rendered atop the notebook, clickable to an ancestor) and keyboard navigation (`j`/`k` blocks, `[ ]` pages via `navigationForKey`, bound in `app-layout`, ignored while an overlay is open or an editable is focused) are landed; the notebook scrolls the focused block into view. Remaining (deferred): URL-addressable `(page, block, disclosure)` is partly landed — the active renderer and the focused block now round-trip through the hash (`UrlState.renderer`/`focus`, mirrored by `$activeRenderer`/`$workspaceGraph.focus` subscriptions and hydrated on load) — plus virtualization for long sessions (section folding is landed in 1.1).
+  - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Breadcrumbs (`core/navigation.ts` `breadcrumb`, rendered atop the notebook, clickable to an ancestor) and keyboard navigation (`j`/`k` blocks, `[ ]` pages via `navigationForKey`, bound in `app-layout`, ignored while an overlay is open or an editable is focused) are landed; the notebook scrolls the focused block into view. Remaining (deferred): URL-addressable `(page, block, disclosure)` is landed for the active renderer, the focused block and the disclosure (fold set) — `UrlState` carries `renderer`/`focus`/`folded`, mirrored by `$activeRenderer`/`$workspaceGraph.focus`/`$collapsedBlocks` subscriptions and hydrated on load and on `hashchange`; `page` remains (a page is a root/heading, so this wants the section model) — plus virtualization for long sessions (section folding is landed in 1.1).
 - [~] 1.6 Contextual link menu: ask follow-up, explain, open related, view as graph, copy/export, (formalize-as-belief/goal/question seam).
   - Landed `s-block-menu` + `s-explain` overlays over the pure `explainModel` (`core/explain.ts`): **Ask follow-up** (focuses the composer with the block as context — see (m)), Explain, Open in graph, View provenance (only when the block has provenance links — hidden, not inert), Copy text, and — capability-gated — **Formalize as belief/goal** (shown only when `reasoning` is on; hidden otherwise, never inert). The explanation popover exposes the `summary · card · detail · raw` disclosure levels as data; an `Open artifact` affordance (only when the block has a typed artifact — table/code via `artifactViewSpec`, or an image) opens the artifact viewer. Remaining: **Open related** (semantic-neighborhood navigation) is landed — see 2.4; a dedicated "formalize as question" action is redundant with the composer `question` mode + follow-up.
 - [~] 1.7 LM-only completeness: Notebook works with no reasoning backend; provider status in HUD; rich artifacts; conversation graph exists even without NARS.
@@ -1410,8 +1410,35 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   `renderer` against `workspaceRenderers()`.
 - Replace the two ad-hoc mirror subscriptions with a tiny `mirrorAtom(atom, pick)` helper to keep the
   URL slice declarative as more fields join.
-- A route/hash change listener (`hashchange` → `hydrateFromUrl`) so back/forward and pasted hashes
-  re-hydrate without a reload.
+- ~~A route/hash change listener (`hashchange` → `hydrateFromUrl`) so back/forward and pasted hashes
+  re-hydrate without a reload.~~ **Done — see (t).**
+
+### 2026-10-08 (t) — URL disclosure (fold set) + hashchange (1.5)
+
+**Landed**
+- `ui/src/client/core/store.ts` — `UrlState` gains `folded?: string[]` (the disclosure/fold set);
+  `parseHash`/`serializeHash` round-trip it (comma list); `hydrateFromUrl` applies it to
+  `$collapsedBlocks`; a guarded `$collapsedBlocks` subscription mirrors live folds into `$urlState`
+  (via a small `sameStringSet` check so it only writes on a real change). A module-level
+  `window.addEventListener('hashchange', hydrateFromUrl)` re-hydrates on back/forward or a pasted hash
+  (`replaceState` writes do not fire `hashchange`, so there is no loop).
+- Tests (+2; **224 green / 39 files**; UI typecheck and biome clean): `url-state` hydrates + mirrors the
+  fold set, and re-hydrates on `hashchange`.
+
+**Notes for remaining work**
+- Only `page` remains from `(page, block, disclosure)`: a "page" is a root/heading block, so it wants the
+  section model (roots + heading levels); `focus` already covers "which block".
+- `renderer` is still unvalidated against the registry (store cannot import `workspace-renderer` without a
+  cycle); an unknown id leaves `$activeRenderer` pointing at an unmountable renderer.
+- `urlState.panels` remains hydrate-only (not mirrored back) — the one field that may surprise.
+
+**New improvement opportunities**
+- Add `page` once roots/heading levels are first-class, reusing the same parse/serialize/mirror pattern.
+- Replace the three ad-hoc mirror subscriptions with a `mirrorAtom(atom, pick, equals?)` helper as the URL
+  slice grows.
+- Reflect `$panels` open/close into `$urlState.panels`, and validate `renderer` in `hydrateFromUrl` via a
+  registered-id allowlist exported from the registry (breaking the cycle with a plain array).
+- Debounce write-once for `folded` when many folds toggle in one gesture (e.g. fold-all).
 
 
 

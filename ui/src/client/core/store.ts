@@ -386,6 +386,7 @@ export interface UrlState {
   lens: Lens;
   renderer?: string;
   focus?: string;
+  folded?: string[];
   viewport?: { x: number; y: number; zoom: number };
   search?: string;
   panels?: string[];
@@ -434,6 +435,8 @@ function parseHash(): Partial<UrlState> {
   if (search) state.search = search;
   const panels = params.get('panels');
   if (panels) state.panels = panels.split(',');
+  const folded = params.get('folded');
+  if (folded) state.folded = folded.split(',').filter(Boolean);
   return state;
 }
 
@@ -446,6 +449,7 @@ function serializeHash(state: UrlState): string {
     params.set('viewport', `${state.viewport.x},${state.viewport.y},${state.viewport.zoom}`);
   if (state.search) params.set('search', state.search);
   if (state.panels?.length) params.set('panels', state.panels.join(','));
+  if (state.folded?.length) params.set('folded', state.folded.join(','));
   return params.toString();
 }
 
@@ -456,6 +460,7 @@ export function hydrateFromUrl() {
   $urlState.set({ ...currentUrl, ...parsed });
   if (parsed.renderer) $activeRenderer.set(parsed.renderer);
   if (parsed.focus) setWorkspaceFocus(parsed.focus);
+  if (parsed.folded) $collapsedBlocks.set(new Set(parsed.folded));
   if (parsed.panels) {
     const panels = new Map($panels.get());
     for (const [id, panel] of panels) {
@@ -466,15 +471,26 @@ export function hydrateFromUrl() {
 }
 
 // Keep the URL-addressable slice of session state in step with the atoms it mirrors (§1.5).
+const sameStringSet = (serialized: readonly string[] | undefined, live: ReadonlySet<string>): boolean =>
+  !!serialized && serialized.length === live.size && serialized.every((id) => live.has(id));
+
 $activeRenderer.subscribe((renderer) => {
   if ($urlState.get().renderer !== renderer) $urlState.set({ ...$urlState.get(), renderer });
 });
 $workspaceGraph.subscribe((graph) => {
   if ($urlState.get().focus !== graph.focus) $urlState.set({ ...$urlState.get(), focus: graph.focus });
 });
+$collapsedBlocks.subscribe((folded) => {
+  if (!sameStringSet($urlState.get().folded, folded)) {
+    $urlState.set({ ...$urlState.get(), folded: [...folded] });
+  }
+});
 
 // Sync URL when urlState changes
 $urlState.subscribe(syncUrl);
+
+// Re-hydrate on back/forward or a pasted hash (replaceState writes do not fire hashchange).
+if (typeof window !== 'undefined') window.addEventListener('hashchange', hydrateFromUrl);
 
 // --- Phase 0: Test API ---
 type ReadableAtom<T> = { get(): T };
