@@ -560,7 +560,8 @@ Goal: SeNARS reasoning enriches the same Notebook/Graph substrate.
 Goal: local Graph-in-Notebook and Notebook-in-Graph without panel sprawl.
 - [ ] 4.1 Embedded graph block in Notebook (selected refs: derivation, contradiction, topic neighborhood).
 - [ ] 4.2 Embedded notebook card in Graph popovers (block sequence for node/cluster).
-- [ ] 4.3 Artifact viewer overlay: table/code/chart/image/diff/json/derivation-record; fullscreen and inline.
+- [~] 4.3 Artifact viewer overlay: table/code/chart/image/diff/json/derivation-record; fullscreen and inline.
+  - Landed the viewer + most of the matrix. `s-artifact` (0.5/4.3) renders a block's artifact at full budget through the shared `<s-view>` host (shape switcher/fullscreen for free) or an `<img>` for image blocks; the block menu's "Open artifact" appears only when the block has a typed artifact or image (hidden, not inert). `artifactViewSpec` maps `table` (table/text), `code` (text, titled by language), `chart` carrying a `SeriesDataset` (series/table/text), and a structured-JSON `text` fallback for payloads without a bespoke view (`chart` without a series, plus `derivation · gate-decision · budget · config-change · tool-call · tool-result`). See (j) and (ad). Remaining: bespoke `diff` and `derivation-record` views (a diff shape/two-column projection and an `s-tree` provenance view), and the overlay's own Copy/Open-in-graph affordances.
 - [ ] 4.4 Timeline overlay: present-anchored scrubber (live/past/prospective) filtering the current renderer projection by time.
 - [ ] 4.5 Pinning: overlays pinnable as floating cards; still not permanent defaults.
 
@@ -1724,6 +1725,35 @@ The `language`-only composition is deliberately shippable on its own: a conversa
 - Add a `mirrorAtom(atom, pick, equals?)` helper to collapse the now near-identical mirror subscriptions
   (`renderer`, `focus`, `folded`, `layer`, `layout`, plus `lens` once added).
 - Mirror `$activeLens` into `urlState.lens` so the `lens` param also tracks UI changes.
+
+### 2026-10-08 (ad) — artifact matrix: chart/series + structured JSON (4.3)
+
+**Landed**
+- `ui/src/client/core/artifacts.ts` — `artifactViewSpec` also maps a `chart` block carrying a
+  `SeriesDataset` to a `series` spec (`shapes: ['series','table','text']`, rendered by the landed
+  series/table projections) and maps a payload without a bespoke view — `chart` without a series, plus
+  `derivation · gate-decision · budget · config-change · tool-call · tool-result` — to a structured JSON
+  `text` spec. A small `specOf` builder and `JSON_KINDS` set keep the branches declarative; `table`/`code`
+  are unchanged. The block menu's "Open artifact" gate reads `artifactViewSpec` and the artifact overlay
+  renders through `<s-view>`, so both extend for free. No producer emits these kinds yet (Phase 3), so this
+  lands the viewer contract ahead of the producer.
+- Tests (+3; **252 green / 44 files**; UI typecheck and biome clean): `artifacts` — chart→series with the
+  table/text alternatives, the JSON fallback for a reasoning payload, and chart-without-series /
+  derivation-without-data.
+
+**Notes for remaining work**
+- `diff` and `derivation-record` are still not bespoke: a diff wants a two-column projection (or a `diff`
+  shape) and a `DerivationRecord` wants `s-tree` (premises→conclusion) rather than JSON.
+- The JSON fallback is `text`, so it is readable but not navigable; a `tree` mapping for `derivation` would
+  make provenance browsable without a new shape.
+- The artifact overlay has no "Copy"/"Open in graph" affordances yet (also noted in (j)).
+
+**New improvement opportunities**
+- Map `derivation`/`gate-decision` to `tree` (`s-tree`) once the `DerivationRecord` payload shape lands in
+  Phase 3.3, so provenance is a first-class tree in the viewer and the notebook preview.
+- Add a `diff` representation (two-column table projection or a `diff` shape) for `config-change` and
+  artifact comparisons.
+- Let the artifact overlay offer "Copy" and "Open in graph" by reusing the block-menu actions.
 
 
 

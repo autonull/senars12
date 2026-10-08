@@ -7,8 +7,16 @@
  */
 
 import type { TableData } from './segmentation.js';
-import type { ColumnSpec, TableDataset, TextDataset, ViewSource, ViewSpec } from './view-spec.js';
-import type { SemanticBlock } from './workspace-graph.js';
+import type {
+  ColumnSpec,
+  SeriesDataset,
+  Shape,
+  TableDataset,
+  TextDataset,
+  ViewSource,
+  ViewSpec,
+} from './view-spec.js';
+import type { BlockKind, SemanticBlock } from './workspace-graph.js';
 
 /** Build a `TableDataset` from a header row and a matrix of cell values. */
 export function tableFromColumns(
@@ -25,12 +33,45 @@ export function tableFromColumns(
   };
 }
 
-const staticSource = (dataset: TableDataset | TextDataset): ViewSource => ({
+const staticSource = (dataset: TableDataset | TextDataset | SeriesDataset): ViewSource => ({
   get: () => dataset,
 });
 
 const codeLanguage = (block: SemanticBlock): string | undefined =>
   (block.data as { lang?: string } | undefined)?.lang;
+
+const json = (value: unknown): string => JSON.stringify(value, null, 2) ?? String(value);
+
+const seriesDataset = (data: unknown): SeriesDataset | undefined => {
+  const candidate = data as Partial<SeriesDataset> | undefined;
+  return candidate?.kind === 'series' && Array.isArray(candidate.series)
+    ? (candidate as SeriesDataset)
+    : undefined;
+};
+
+const specOf = (
+  block: SemanticBlock,
+  dataset: TableDataset | TextDataset | SeriesDataset,
+  shapes: readonly Shape[],
+  shape?: Shape
+): ViewSpec => ({
+  id: `artifact:${block.id}`,
+  title: block.title ?? block.kind,
+  shapes,
+  source: staticSource(dataset),
+  shape,
+  interactions: ['select'],
+});
+
+/** Kinds whose payload is best inspected as structured JSON until a bespoke view lands. */
+const JSON_KINDS = new Set<BlockKind>([
+  'derivation',
+  'gate-decision',
+  'budget',
+  'config-change',
+  'tool-call',
+  'tool-result',
+]);
 
 /** The `ViewSpec` for a block's artifact, or `undefined` when it has none. */
 export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
@@ -55,6 +96,14 @@ export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
       source: staticSource(dataset),
       interactions: ['select'],
     };
+  }
+  if (block.kind === 'chart') {
+    const series = seriesDataset(block.data);
+    if (series) return specOf(block, series, ['series', 'table', 'text'], 'series');
+  }
+  if (block.data !== undefined && (block.kind === 'chart' || JSON_KINDS.has(block.kind))) {
+    const dataset: TextDataset = { kind: 'text', lines: json(block.data).split('\n') };
+    return specOf(block, dataset, ['text'], 'text');
   }
   return undefined;
 }

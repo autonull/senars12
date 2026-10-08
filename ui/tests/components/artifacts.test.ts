@@ -51,4 +51,26 @@ describe('artifactViewSpec', () => {
     expect(artifactViewSpec(block({ kind: 'paragraph', text: 'hi' }))).toBeUndefined();
     expect(artifactViewSpec(block({ data: {} }))).toBeUndefined();
   });
+
+  it('maps a chart block to a series dataset with table and text alternatives', () => {
+    const data = { kind: 'series' as const, series: [{ id: 's', label: 'spend', values: [1, 2] }] };
+    const spec = artifactViewSpec(block({ kind: 'chart', data, title: 'Budget' }));
+    if (!spec) throw new Error('expected a chart view spec');
+    expect(spec.shape).toBe('series');
+    expect(spec.shapes).toEqual(['series', 'table', 'text']);
+    expect(spec.source.get()).toEqual(data);
+  });
+
+  it('falls back to a structured JSON text spec for reasoning payloads', () => {
+    const spec = artifactViewSpec(block({ kind: 'derivation', data: { rule: 'deduction' } }));
+    if (!spec) throw new Error('expected a derivation view spec');
+    expect(spec.shape).toBe('text');
+    expect((spec.source.get() as TextDataset).lines.join('\n')).toContain('"rule": "deduction"');
+  });
+
+  it('treats a chart without a series payload as structured JSON', () => {
+    const spec = artifactViewSpec(block({ kind: 'chart', data: { labels: ['a'], values: [1] } }));
+    expect(spec?.shape).toBe('text');
+    expect(artifactViewSpec(block({ kind: 'derivation' }))).toBeUndefined();
+  });
 });
