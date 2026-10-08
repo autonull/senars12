@@ -44,8 +44,8 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
 3. **`1.5/1.1 section model`** (L) — unblocks `1.5 page` and notebook depth. `→ toc.ts`,
    `workspace-graph.ts`, `renderers/notebook.ts`
 4. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation.
-5. **`4.5 pinning`** (M) · **`1.4 rich text`** (M) · **`2.4 inspection & embedded views`** (L) ·
-   **`citations model`** (M).
+5. **`4.5 pinning`** (M) · **`2.4 inspection & embedded views`** (L) ·
+   **`citations model`** (M). (`1.4 rich text` is partially landed — inline tokenizer; see WP1.)
 6. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
    (`4.4 controls` is partially landed — live reset + readout; see WP4.)
 
@@ -84,6 +84,8 @@ Landed extension points — wire features here instead of re-deriving them.
   (`registerViewAdapter`, `viewAdapterFor`, `supportedShapes`); `core/view-projection.ts`
   (`projectDataset`, `projectableShapes`, `datasetIsEmpty`); `components/views/index.ts` barrel;
   `components/views/token-render.ts` (`highlightLine`/`highlightStyles`).
+- **Inline text** — `core/inline-text.ts` (`tokenizeInline`) — the safe inline Markdown subset the
+  Notebook renders as Lit nodes (no `innerHTML`); reuse it instead of adding a second renderer.
 - **Artifacts** — `core/artifacts.ts` (`artifactViewSpec`); `core/diff.ts` (`diffLines`).
 - **Commands** — `core/commands.ts` (`activeCommands`/`dispatchCommand`/`paletteCommands`,
   `available`/`params`); `core/command-history.ts` (MRU); `core/command-match.ts`.
@@ -188,11 +190,13 @@ Landed extension points — wire features here instead of re-deriving them.
 - [~] **4.3 affordances** — the artifact overlay **Copy** / **Open in graph** and the ToC per-row
   artifact button are done. Remaining: inspector reach — needs the **node→block mapping** blocker.
   `→ components/overlays/inspector.ts`, `components/node-detail-drawer.ts`. `(j)`,`(ad)`
-- [ ] **1.4 rich text** — inline tokenizer for paragraphs (links/emphasis/code spans), unified with the
+- [~] **1.4 rich text** — inline tokenizer for paragraphs (links/emphasis/code spans), unified with the
   landed `tokenizeCode` seam where possible; image intrinsic size `{width?,height?}`; optional inline
   full tables (`budget="full"`); ensure the view barrel is imported standalone / owned by
-  `WorkspaceHost`. `→ components/views/text-view.ts`, `components/views/token-render.ts`,
-  `core/view-*`. `(i)`,`(j)`
+  `WorkspaceHost`. Landed: `core/inline-text.ts` (`tokenizeInline` — code/strong/em/link, pure and
+  escaped-by-construction, no `innerHTML`) rendered by the Notebook for headings, paragraphs and list
+  items. Remaining: image intrinsic size, inline full tables, view-barrel ownership.
+  `→ core/inline-text.ts`, `components/renderers/notebook.ts`. `(i)`,`(j)`
 - [ ] **citations model** — `Source`/bibliography (stable citation key, `[n]` resolution) to split
   formal citations from plain links. `→ core/segmentation.ts`, `core/artifacts.ts`,
   `components/views/text-view.ts`. `(i)`
@@ -387,3 +391,7 @@ in v3 Appendix D). Rolled up:
   slot independent of the per-lens concept slots), `setActiveLayout` routing, `getForScope` in both
   viewports, and `UrlState.scope`/`layout` round-trip; `$lensLayer` remembers the graph layer per lens.
   `2.6 scope` except the fold-all debounce. Suite **316 green**.
+- **WP1 rich text** — `core/inline-text.ts` (`tokenizeInline`: code/strong/em/link, pure, escaped by
+  construction) rendered by the Notebook for headings, paragraphs and list items — **`1.4 rich text`**
+  partially landed (image intrinsic size, inline full tables, view-barrel ownership remain). Suite
+  **319 green**.

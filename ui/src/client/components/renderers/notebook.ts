@@ -18,6 +18,7 @@ import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { breadcrumb } from '../../core/navigation.js';
 import type { TableData } from '../../core/segmentation.js';
 import { eventBus } from '../../core/events.js';
+import { tokenizeInline } from '../../core/inline-text.js';
 import {
   $collapsedBlocks,
   $workspaceGraph,
@@ -60,21 +61,39 @@ function renderTable(data: TableData): TemplateResult {
 }
 
 function renderHeading(block: SemanticBlock): TemplateResult {
-  const content = block.text ?? block.title;
+  const body = renderInline(block.text ?? block.title ?? '');
   switch (Math.min(Math.max(block.level ?? 2, 1), 6)) {
     case 1:
-      return html`<h1 class="heading">${content}</h1>`;
+      return html`<h1 class="heading">${body}</h1>`;
     case 2:
-      return html`<h2 class="heading">${content}</h2>`;
+      return html`<h2 class="heading">${body}</h2>`;
     case 3:
-      return html`<h3 class="heading">${content}</h3>`;
+      return html`<h3 class="heading">${body}</h3>`;
     case 4:
-      return html`<h4 class="heading">${content}</h4>`;
+      return html`<h4 class="heading">${body}</h4>`;
     case 5:
-      return html`<h5 class="heading">${content}</h5>`;
+      return html`<h5 class="heading">${body}</h5>`;
     default:
-      return html`<h6 class="heading">${content}</h6>`;
+      return html`<h6 class="heading">${body}</h6>`;
   }
+}
+
+/** Render the inline subset as Lit nodes — no `innerHTML`, so text is escaped by construction. */
+function renderInline(text: string): unknown[] {
+  return tokenizeInline(text).map((token) => {
+    switch (token.type) {
+      case 'code':
+        return html`<code>${token.value}</code>`;
+      case 'strong':
+        return html`<strong>${token.value}</strong>`;
+      case 'em':
+        return html`<em>${token.value}</em>`;
+      case 'link':
+        return html`<a href=${token.href} target="_blank" rel="noreferrer">${token.value}</a>`;
+      default:
+        return token.value;
+    }
+  });
 }
 
 interface FoldControl {
@@ -113,9 +132,11 @@ function renderBlock(block: SemanticBlock, focused = false, fold?: FoldControl):
     }
     if (block.kind === 'list' && block.data) {
       const items = (block.data as { items: string[] }).items;
-      return html`<ul class="list">${items.map((item) => html`<li>${item}</li>`)}</ul>`;
+      return html`<ul class="list">
+        ${items.map((item) => html`<li>${renderInline(item)}</li>`)}
+      </ul>`;
     }
-    return block.text ? html`<div class="text">${block.text}</div>` : html``;
+    return block.text ? html`<div class="text">${renderInline(block.text)}</div>` : html``;
   })();
 
   return html`

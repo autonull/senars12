@@ -60,6 +60,7 @@ export {
   type InputSegment,
   isFaithfulDecomposition,
 } from './input-decomposition.js';
+export { type InlineToken, tokenizeInline } from './inline-text.js';
 export { type OverlayEntry, OverlayManager } from './overlay-manager.js';
 export { OverlayHost, type OpenOverlayOptions } from './overlay-host.js';
 export {
