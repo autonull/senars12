@@ -69,6 +69,21 @@ describe('block menu surface', () => {
     expect(action(el, 'provenance')).toBeTruthy();
   });
 
+  it('opens the semantic neighborhood only when related blocks exist', async () => {
+    $workspaceGraph.set(build(false));
+    expect(action(await mount('c'), 'related')).toBeFalsy();
+
+    $workspaceGraph.set(build(true));
+    const el = await mount('c');
+    const related = action(el, 'related');
+    expect(related).toBeTruthy();
+    const open = vi.fn();
+    const off = eventBus.on('overlay:open', open);
+    related?.click();
+    expect(open).toHaveBeenCalledWith({ id: 'related', ref: 'c' });
+    off();
+  });
+
   it('opens the explanation overlay', async () => {
     $workspaceGraph.set(build(false));
     const el = await mount('c');

@@ -3,4 +3,5 @@ import './artifact.js';
 import './block-menu.js';
 import './explain.js';
 import './palette.js';
+import './related.js';
 import './toc.js';

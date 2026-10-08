@@ -520,7 +520,7 @@ Goal: build the unique LM conversation UI first.
 - [x] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
   - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Breadcrumbs (`core/navigation.ts` `breadcrumb`, rendered atop the notebook, clickable to an ancestor) and keyboard navigation (`j`/`k` blocks, `[ ]` pages via `navigationForKey`, bound in `app-layout`, ignored while an overlay is open or an editable is focused) are landed; the notebook scrolls the focused block into view. Remaining (deferred): URL-addressable `(page, block, disclosure)` and virtualization for long sessions (section folding is landed in 1.1).
 - [~] 1.6 Contextual link menu: ask follow-up, explain, open related, view as graph, copy/export, (formalize-as-belief/goal/question seam).
-  - Landed `s-block-menu` + `s-explain` overlays over the pure `explainModel` (`core/explain.ts`): **Ask follow-up** (focuses the composer with the block as context — see (m)), Explain, Open in graph, View provenance (only when the block has provenance links — hidden, not inert), Copy text, and — capability-gated — **Formalize as belief/goal** (shown only when `reasoning` is on; hidden otherwise, never inert). The explanation popover exposes the `summary · card · detail · raw` disclosure levels as data; an `Open artifact` affordance (only when the block has a typed artifact — table/code via `artifactViewSpec`, or an image) opens the artifact viewer. Remaining: **Open related** (semantic-neighborhood navigation) is deferred to 2.4; a dedicated "formalize as question" action is redundant with the composer `question` mode + follow-up.
+  - Landed `s-block-menu` + `s-explain` overlays over the pure `explainModel` (`core/explain.ts`): **Ask follow-up** (focuses the composer with the block as context — see (m)), Explain, Open in graph, View provenance (only when the block has provenance links — hidden, not inert), Copy text, and — capability-gated — **Formalize as belief/goal** (shown only when `reasoning` is on; hidden otherwise, never inert). The explanation popover exposes the `summary · card · detail · raw` disclosure levels as data; an `Open artifact` affordance (only when the block has a typed artifact — table/code via `artifactViewSpec`, or an image) opens the artifact viewer. Remaining: **Open related** (semantic-neighborhood navigation) is landed — see 2.4; a dedicated "formalize as question" action is redundant with the composer `question` mode + follow-up.
 - [~] 1.7 LM-only completeness: Notebook works with no reasoning backend; provider status in HUD; rich artifacts; conversation graph exists even without NARS.
   - Notebook, artifacts and provider status (`lm.status` chip) are in place; the remaining gap — the conversation graph existing without NARS — is closed by 2.1's additive workspace projection into Graph mode. Open follow-ups: the HUD stop/cancel control (still absent until streaming cancel is wired, per 0.4).
 
@@ -534,7 +534,8 @@ Goal: render the same semantic conversation as a flowing content graph.
 - [ ] 2.2 Conversation layouts: `chronological-flow`, `semantic-map`, `artifact-map`, `source-view` (registry rows + deterministic variants).
 - [~] 2.3 Graph-native input: composer anchored to node/edge/canvas/selection; selected nodes become prompt context; create question/claim nodes.
   - Landed selection routing + selection-as-context. Tapping a `workspace` node focuses the block (`setWorkspaceFocus`); double-click opens Explanation; right-click opens the block menu. The Graph renderer's `openComposer(anchor?)` no longer calls the non-existent `composer` overlay — it emits `composer:focus` with the anchor (or the workspace subset of `$selectedNodeIds`), and a `graph.ask-selection` command does the same for the palette/agent. The composer carries a *list* of context refs end-to-end (`composer:focus { refs }` → `chat.user`/`ChatMessage.contexts: string[]` → composer chips → `projectChat` emits one `references` edge per known ref). Remaining: the composer is still the persistent dock (not a floating overlay anchored to the node/edge), and node-creating (question/claim) ops from the graph.
-- [ ] 2.4 Graph inspection: node/edge popovers, artifact preview popovers, "open in Notebook," semantic neighborhood navigation.
+- [~] 2.4 Graph inspection: node/edge popovers, artifact preview popovers, "open in Notebook," semantic neighborhood navigation.
+  - Landed semantic-neighborhood navigation. `core/neighborhood.ts` is a pure BFS (`neighborhood(graph, ref, depth)`) over `linksTouching`, returning each neighbor with its link and `in`/`out` direction; `s-related` (overlay `related`) groups them by relation+direction and navigating a row focuses the block and closes. The block menu's "Open related" appears only when the block has neighbors (hidden, not inert). Remaining: node/edge popovers on the graph itself (hover/click a link), artifact preview popovers on edges, and an explicit "open in Notebook" from a graph selection (selection currently focuses, which the Notebook reveals).
 - [ ] 2.5 Mode parity: shared focus/selection; actions work in both; switching preserves context; parity specs.
 
 **Verification:** the same LM-only conversation is usable in Notebook and Graph; follow-up from a graph node; output appears as a network; selected subnetwork becomes next prompt context.
@@ -1346,6 +1347,38 @@ The `language`-only composition is deliberately shippable on its own: a conversa
 - A "fold all / unfold all" palette command over `$collapsedBlocks`, and remembering folds in the URL
   alongside `(page, block, disclosure)`.
 - Surface a folded-count badge on collapsed pages ("3 blocks hidden") for scanability.
+
+### 2026-10-08 (r) — 2.4 semantic-neighborhood navigation ("Open related")
+
+**Landed**
+- `ui/src/client/core/neighborhood.ts` — pure, deterministic BFS `neighborhood(graph, ref, depth)` over
+  `linksTouching`: each `Neighbor` carries its `block`, the `link`, direction (`out` when the link points
+  from the origin, else `in`) and hop `depth`; unknown origin returns `undefined`. Exported from
+  `core/index`.
+- `ui/src/client/components/overlays/related.ts` — `s-related` (overlay `related`): groups neighbors by
+  relation + direction, each row focuses that block (`setWorkspaceFocus`) and closes; registered via the
+  overlays barrel.
+- `ui/src/client/components/overlays/block-menu.ts` — "Open related" action, shown only when
+  `neighborhood(...).neighbors` is non-empty (hidden, not inert), emitting `overlay:open { id:'related', ref }`.
+- Tests (+4; **220 green / 36 files**; UI typecheck and biome clean): `neighborhood` (unknown origin,
+  direction + order, bounded BFS without revisiting) and the block-menu related gate/emit.
+
+**Notes for remaining work**
+- Navigation focuses the block; the Notebook reveals it via its existing focus-scroll, but in Graph mode a
+  focused workspace node is highlighted only by selection, not auto-centered — 2.3/2.4 could center it.
+- The overlay groups by `direction + link.label|kind`; a richer 2.4 inspector could also show link
+  confidence and event refs (both already on `SemanticLink`).
+- `neighborhood` calls `linksTouching` per frontier node (O(nodes·links)); fine at current sizes, and the
+  obvious place to pre-index adjacency if it ever matters.
+
+**New improvement opportunities**
+- Node/edge hover popovers in Graph mode reusing `explainModel`/`neighborhood` (the "inspection" half of 2.4).
+- "Open related" from the *graph* context menu too (currently only the block menu), and from the ToC.
+- Remember the neighborhood depth/preference and let a row open the Explanation instead of navigating (or
+  on ⌥-click), so exploration and drill-down share the popover.
+- Extract a tiny adjacency index on `WorkspaceGraph` (`linksByBlock`) shared by `linksTouching`,
+  `neighborhood` and the graph projection.
+
 
 
 

@@ -14,6 +14,7 @@ import { artifactViewSpec } from '../../core/artifacts.js';
 import { $capabilities } from '../../core/capabilities.js';
 import { eventBus } from '../../core/events.js';
 import { explainModel } from '../../core/explain.js';
+import { neighborhood } from '../../core/neighborhood.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
 import { $activeRenderer, $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
 import { surfaceTag } from '../../core/surface-registry.js';
@@ -46,12 +47,18 @@ export class BlockMenuView extends SurfaceComponent {
     const { block, links } = model;
     const hasProvenance = links.some((link) => linkMeta(link.kind).category === 'provenance');
     const hasArtifact = block.kind === 'image' || artifactViewSpec(block) !== undefined;
+    const hasRelated = (neighborhood($workspaceGraph.get(), this.ref)?.neighbors.length ?? 0) > 0;
     const reasoning = $capabilities.get().has('reasoning');
     return html`
       <div class="menu" role="menu" aria-label="Block actions">
         <span class="hint">${block.title ?? block.id}</span>
         <button role="menuitem" data-action="follow-up" @click=${this.followUp}>Ask follow-up</button>
         <button role="menuitem" data-action="explain" @click=${this.explain}>Explain</button>
+        ${
+          hasRelated
+            ? html`<button role="menuitem" data-action="related" @click=${this.openRelated}>Open related</button>`
+            : ''
+        }
         ${
           hasArtifact
             ? html`<button role="menuitem" data-action="artifact" @click=${this.openArtifact}>Open artifact</button>`
@@ -75,6 +82,8 @@ export class BlockMenuView extends SurfaceComponent {
   }
 
   private readonly followUp = () => eventBus.emit('composer:focus', { refs: [this.ref] });
+
+  private readonly openRelated = () => eventBus.emit('overlay:open', { id: 'related', ref: this.ref });
 
   private readonly formalizeBelief = () =>
     eventBus.emit('composer:focus', { refs: [this.ref], mode: 'believe' });
