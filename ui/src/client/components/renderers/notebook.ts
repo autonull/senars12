@@ -13,6 +13,7 @@ import type { TemplateResult } from 'lit';
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
+import { artifactViewSpec } from '../../core/artifacts.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { breadcrumb } from '../../core/navigation.js';
 import type { TableData } from '../../core/segmentation.js';
@@ -87,8 +88,12 @@ function renderBlock(block: SemanticBlock, focused = false): TemplateResult {
     }
     if (block.kind === 'code')
       return html`<pre class="code"><code>${block.text}</code></pre>`;
-    if (block.kind === 'table' && block.data)
-      return renderTable(block.data as TableData);
+    if (block.kind === 'table' && block.data) {
+      const spec = artifactViewSpec(block);
+      return spec
+        ? html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'}></s-view>`
+        : renderTable(block.data as TableData);
+    }
     if (block.kind === 'list' && block.data) {
       const items = (block.data as { items: string[] }).items;
       return html`<ul class="list">${items.map((item) => html`<li>${item}</li>`)}</ul>`;

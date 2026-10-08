@@ -500,7 +500,7 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 - [~] 0.4 Main workspace shell: main area renders the active renderer; floating HUD (mode · provider/backend · budget · ⌘K · stop); permanent panels removed/default-hidden.
   - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. The HUD now carries `☰` (ToC) and `⌘K` (palette), and `app-layout` binds `⌘/Ctrl+K` globally. Remaining: remove/default-hide the standing panels, add budget/stop to the HUD once run-control exists (no silent no-ops), and URL-address the active renderer.
 - [~] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
-  - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside. A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6), and the command palette (⌘K). The `FocusTrap` now pierces shadow roots and retries focus on the next frame (every overlay is a Lit element, so its focusables live in a shadow root and render asynchronously). Remaining: artifact viewer, settings/provider dialog, tool approval.
+  - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside; the `FocusTrap` pierces shadow roots and retries focus on the next frame (every overlay is a Lit element, so its focusables live in a shadow root and render asynchronously). A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6), the command palette (⌘K), and the artifact viewer (4.3). Tables now render through the landed `s-view`/`ViewSpec` view system (embedded budget) instead of bespoke markup, and `artifactViewSpec` maps a block's payload to a `ViewSpec`. Remaining: settings/provider dialog, tool approval, timeline overlay (4.4), pinning (4.5).
 - [ ] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
 - [ ] 0.7 Compatibility bridge: existing graph nodes/events/chat still render (as overlays/embedded views); landed ViewSpec adapters usable inside overlays/embedded blocks.
 
@@ -514,11 +514,11 @@ Goal: build the unique LM conversation UI first.
 - [x] 1.3 Input decomposition: deterministic claim/question/command split; raw preserved; extracted structure shown.
   - Landed `core/input-decomposition.ts` (`decomposeInput` + `isFaithfulDecomposition`): a slash line is one `command`, an interrogative (`?` or leading wh-word) is a `question`, every other sentence a `claim` — purely lexical, no LM. `projectChat` now expands **user** turns into these children linked by `contains`; a `raw` child is added only when the split is lossy, otherwise the turn block's `text` already preserves the raw verbatim. The legacy `input-hud` composer previews the extracted structure live as chips. Added `command` to `BlockKind` and the kind-label SSOT.
 - [~] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
-  - Landed `core/segmentation.ts` (`segmentText`): deterministic, dependency-free Markdown parsing into heading/paragraph/list/table/code segments with table rows and fenced-code language, plus standalone images (`![alt](src)` → `image` with `{alt,src}`) and links (Markdown link or reference definition → `citation` with `{label|key,href}`); inline links stay in their paragraph. `projectChat` expands assistant turns into child blocks (`childId(msg,index)` position-anchor ids) linked by `contains`, with the raw turn text retained on the turn block. Notebook renders the children richly (including `<img>` and `<a>` for image/citation). Remaining: block-level streaming (`status: 'streaming'` re-parse).
+  - Landed `core/segmentation.ts` (`segmentText`): deterministic, dependency-free Markdown parsing into heading/paragraph/list/table/code segments with table rows and fenced-code language, plus standalone images (`![alt](src)` → `image` with `{alt,src}`) and links (Markdown link or reference definition → `citation` with `{label|key,href}`); inline links stay in their paragraph. `projectChat` expands assistant turns into child blocks (`childId(msg,index)` position-anchor ids) linked by `contains`, with the raw turn text retained on the turn block. Notebook renders the children richly (including `<img>` and `<a>` for image/citation; tables render through `<s-view>` at the embedded budget via `artifactViewSpec`). Remaining: block-level streaming (`status: 'streaming'` re-parse).
 - [x] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
   - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Breadcrumbs (`core/navigation.ts` `breadcrumb`, rendered atop the notebook, clickable to an ancestor) and keyboard navigation (`j`/`k` blocks, `[ ]` pages via `navigationForKey`, bound in `app-layout`, ignored while an overlay is open or an editable is focused) are landed; the notebook scrolls the focused block into view. Remaining (deferred): URL-addressable `(page, block, disclosure)`, section folding, and virtualization for long sessions.
 - [~] 1.6 Contextual link menu: ask follow-up, explain, open related, view as graph, copy/export, (formalize-as-belief/goal/question seam).
-  - Landed `s-block-menu` + `s-explain` overlays over the pure `explainModel` (`core/explain.ts`): Explain, Open in graph, View provenance (only when the block has provenance links — hidden, not inert), Copy text; the explanation popover exposes the `summary · card · detail · raw` disclosure levels as data. Remaining: ask follow-up / open related until the composer (1.2) exists, and the formalize-as-belief/goal seam until the capability registry (0.6) lands.
+  - Landed `s-block-menu` + `s-explain` overlays over the pure `explainModel` (`core/explain.ts`): Explain, Open in graph, View provenance (only when the block has provenance links — hidden, not inert), Copy text; the explanation popover exposes the `summary · card · detail · raw` disclosure levels as data; an `Open artifact` affordance (only when the block has a typed artifact — table/code via `artifactViewSpec`, or an image) opens the artifact viewer. Remaining: ask follow-up / open related until the composer (1.2) exists, and the formalize-as-belief/goal seam until the capability registry (0.6) lands.
 - [ ] 1.7 LM-only completeness: Notebook works with no reasoning backend; provider status in HUD; rich artifacts; conversation graph exists even without NARS.
 
 **Verification:** LM-only Notebook is a better-than-chat UI; a response with headings/table/code becomes navigable blocks; ToC and contextual actions are block-aware; no reasoning capability required.
@@ -1041,6 +1041,46 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   code spans) would let paragraphs render anchors without changing the block model.
 - `Segment.data` is `unknown`; give `image`/`citation`/`table`/`code` a discriminated `Artifact`
   union so renderers narrow without casts (currently each does `as {…}`).
+
+### 2026-10-08 (j) — artifact typing via the view system + artifact viewer
+
+**Landed**
+- `ui/src/client/core/artifacts.ts` — `tableFromColumns(headers, rows)` builds a `TableDataset`
+  (padding missing cells), and `artifactViewSpec(block)` maps a `table` block to a `ViewSpec`
+  (`shapes: ['table','text']`) or a `code` block to a `TextDataset` spec titled by language, returning
+  `undefined` otherwise. Pure and total, so unsupported blocks never render a wrong shape.
+- `ui/src/client/components/renderers/notebook.ts` — table children now render through
+  `<s-view budget="embedded" chrome=false>` (the `s-table-mini` embedded adapter: key-value for one
+  row, top-N for many) with the bespoke renderer kept as a fallback; code stays bespoke (keeps its
+  language styling).
+- `ui/src/client/components/overlays/artifact.ts` — `s-artifact` overlay (0.5/4.3): renders the block's
+  artifact at full budget through the same `<s-view>` host (shape switcher + fullscreen for free) or an
+  `<img>` for image blocks; registered with `hiddenInPalette` (it needs a `Ref`).
+- `ui/src/client/components/overlays/block-menu.ts` — `Open artifact` affordance, shown only when the
+  block has a typed artifact (table/code) or image data — hidden, not inert.
+- `core/index.ts` exports. Tests (13 new across 4 files; whole UI suite green — 32 files; typecheck +
+  biome clean; client build succeeds): `artifacts` (pure), `artifact` overlay, block-menu artifact
+  affordance, and the notebook table now asserted through `s-view`.
+
+**Notes for remaining work**
+- The notebook embeds tables at the `embedded` budget, so long tables show top-N + "+N more" — the
+  full table is one `Open artifact` away. If inline full tables are wanted, pass `budget="full"`.
+- Code artifacts go through the `text` shape, which drops syntax highlighting; a dedicated `code`
+  shape/adapter (`s-code`) is the natural home for highlighting and is also needed by 4.3's artifact
+  matrix (chart/diff/json/derivation-record).
+- `artifactViewSpec` reads `block.data` with casts; a discriminated `Artifact` union on
+  `SemanticBlock`/`Segment` would remove them (see (i)).
+- The `s-view` adapter registry is populated by `entry.ts` importing `views/index.js`; the notebook
+  relies on the shell having done so. If the notebook is ever used standalone, it must import the view
+  barrel (or the shell's `WorkspaceHost` should own that).
+
+**New improvement opportunities**
+- A `code` shape + `s-code` adapter would let both the notebook and the artifact viewer render code
+  typed (language, line numbers, highlighting) with no bespoke markup.
+- `artifactViewSpec` is the seam for 4.3's full artifact matrix: add `chart`(series)/`diff`/`json`
+  mappings and the overlay gains them without change.
+- The artifact overlay could offer "Copy" and "Open in graph" reusing the block-menu actions, and be
+  reachable from the ToC/inspector, making artifacts first-class objects rather than block payloads.
 
 
 

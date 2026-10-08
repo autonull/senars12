@@ -77,6 +77,23 @@ describe('block menu surface', () => {
     off();
   });
 
+  it('offers an artifact action only for artifact blocks', async () => {
+    $workspaceGraph.set(
+      applyWorkspaceOps(emptyWorkspaceGraph(), [
+        { op: 'block.add', block: block('c') },
+        {
+          op: 'block.add',
+          block: block('tb', { kind: 'table', data: { headers: ['x'], rows: [['1']] } }),
+        },
+        { op: 'roots.set', roots: ['c', 'tb'] },
+      ] satisfies WorkspaceOp[])
+    );
+    const claim = await mount('c');
+    expect(action(claim, 'artifact')).toBeFalsy();
+    const table = await mount('tb');
+    expect(action(table, 'artifact')).toBeTruthy();
+  });
+
   it('switches to graph and focuses the block on open-in-graph', async () => {
     $workspaceGraph.set(build(false));
     const el = await mount('c');

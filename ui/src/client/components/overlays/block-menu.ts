@@ -9,6 +9,7 @@
 import { css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { Announcer } from '../../core/announcer.js';
+import { artifactViewSpec } from '../../core/artifacts.js';
 import { eventBus } from '../../core/events.js';
 import { explainModel } from '../../core/explain.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
@@ -41,10 +42,16 @@ export class BlockMenuView extends SurfaceComponent {
     if (!model) return html`<div class="menu"><p class="empty">Block not found</p></div>`;
     const { block, links } = model;
     const hasProvenance = links.some((link) => linkMeta(link.kind).category === 'provenance');
+    const hasArtifact = block.kind === 'image' || artifactViewSpec(block) !== undefined;
     return html`
       <div class="menu" role="menu" aria-label="Block actions">
         <span class="hint">${block.title ?? block.id}</span>
         <button role="menuitem" data-action="explain" @click=${this.explain}>Explain</button>
+        ${
+          hasArtifact
+            ? html`<button role="menuitem" data-action="artifact" @click=${this.openArtifact}>Open artifact</button>`
+            : ''
+        }
         <button role="menuitem" data-action="open-graph" @click=${this.openInGraph}>Open in graph</button>
         ${
           hasProvenance
@@ -58,6 +65,9 @@ export class BlockMenuView extends SurfaceComponent {
 
   private readonly explain = () =>
     eventBus.emit('overlay:open', { id: 'explain', ref: this.ref });
+
+  private readonly openArtifact = () =>
+    eventBus.emit('overlay:open', { id: 'artifact', ref: this.ref });
 
   private readonly openInGraph = () => {
     $activeRenderer.set('graph');

@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { notebookRenderer } from '../../src/client/components/renderers/notebook.js';
+import '../../src/client/components/views/table-mini-view.js';
+import '../../src/client/components/views/table-view.js';
 import { eventBus } from '../../src/client/core/events.js';
 import { $workspaceGraph } from '../../src/client/core/store.js';
+import '../../src/client/core/view-host.js';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
@@ -90,7 +93,7 @@ describe('notebook surface', () => {
     const root = el.shadowRoot;
     expect(root?.querySelector('h2')?.textContent).toBe('Findings');
     expect(root?.querySelector('ul.list')?.children).toHaveLength(2);
-    expect(root?.querySelector('table.data')?.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(root?.querySelector('s-view')).toBeTruthy();
     expect(root?.querySelector('pre.code')?.textContent).toContain('const x = 1;');
   });
 
