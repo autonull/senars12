@@ -500,7 +500,7 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 - [~] 0.4 Main workspace shell: main area renders the active renderer; floating HUD (mode · provider/backend · budget · ⌘K · stop); permanent panels removed/default-hidden.
   - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. The HUD now carries `☰` (ToC) and `⌘K` (palette), and `app-layout` binds `⌘/Ctrl+K` globally. Remaining: remove/default-hide the standing panels, and add budget/stop to the HUD once run-control exists (no silent no-ops). The active renderer is now URL-addressable (see (s)).
 - [~] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
-  - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside; the `FocusTrap` pierces shadow roots and retries focus on the next frame (every overlay is a Lit element, so its focusables live in a shadow root and render asynchronously). A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6), the command palette (⌘K), and the artifact viewer (4.3). Tables now render through the landed `s-view`/`ViewSpec` view system (embedded budget) instead of bespoke markup, and `artifactViewSpec` maps a block's payload to a `ViewSpec`. Remaining: settings/provider dialog, tool approval, timeline overlay (4.4), pinning (4.5).
+  - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside; the `FocusTrap` pierces shadow roots and retries focus on the next frame (every overlay is a Lit element, so its focusables live in a shadow root and render asynchronously). A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6), the command palette (⌘K), the artifact viewer (4.3), and the settings/provider dialog (aa). Tables now render through the landed `s-view`/`ViewSpec` view system (embedded budget) instead of bespoke markup, and `artifactViewSpec` maps a block's payload to a `ViewSpec`. Remaining: tool approval, timeline overlay (4.4), pinning (4.5).
 - [~] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
   - Landed the **capability registry + toggles** (`core/capabilities.ts`): the five capabilities (`language · reasoning · tools · memory · uiControl`) as an exhaustive catalog with labels/descriptions/defaults, the `$capabilities` composition atom (defaults to `{language}` — the LM-only product), and `capabilityEnabled`/`setCapability`. The composer modes consume it (1.2). Also landed the **`ui.command` contract + dispatcher stub**: `UiCommandMsg` (`core/src/protocol/ui-command.ts`, in `IncomingFromServer`), `dispatchCommand(id, args?)` over the one command registry (respecting `available()` and an optional per-command `parse(args)` validator, so every palette command is agent-settable — the derived `overlay.*` and `composer.focus` commands forward `ref`/`refs`/`mode`), and the `applyServerMessage` case that dispatches it. The remaining 0.6 contracts (`ReasoningBackend`, `LmProvider` façade — note `lm.status`/`lm.switch` are already real) and fuller `ui.command` execution (Phase 5) are still to come.
 - [ ] 0.7 Compatibility bridge: existing graph nodes/events/chat still render (as overlays/embedded views); landed ViewSpec adapters usable inside overlays/embedded blocks.
@@ -1641,6 +1641,37 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   closing the last focus asymmetry between the two renderers.
 - Make the §10 capability matrix data (`rendererParity(interaction)`) so the palette and shell can gate
   actions on `rendererSupports` uniformly instead of the graph-only `available()` checks.
+
+### 2026-10-08 (aa) — settings/provider dialog overlay (0.5 / panel migration)
+
+**Landed**
+- `ui/src/client/components/overlays/settings.ts` — `s-settings`, a modal, palette-visible overlay
+  (`registerOverlay` `modal: true`) that hosts the existing config form (`<config-hud>`), so provider
+  and region settings live in one focus-trapped dialog instead of a standing panel. The form's own
+  close affordance (`s-close`) routes through the overlay host (`overlay:close { id:'settings' }`).
+  Added to the overlays barrel, so the derived `overlay.settings` palette command appears with no edit.
+- Tests (2 new; **247 green / 44 files**; UI typecheck and biome clean): `settings` — the descriptor is
+  modal + palette-visible with the `s-settings` tag, and the overlay hosts `config-hud` and closes on
+  `s-close`.
+
+**Notes for remaining work**
+- Additive: the legacy config panel (`app-layout` right panel + toolbar Config button) is untouched
+  because e2e specs (`scenarios/configuration/adjust-parameters`) drive it; demoting it to the overlay
+  is the remaining 0.4 step and should migrate those specs in the same change.
+- The overlay reuses `config-hud` wholesale, so its header (title + Profiles) is the dialog's header;
+  a follow-up could generalise `config-hud` with an `embedded` mode if the frame should own the title.
+- Provider switching is not yet a first-class overlay action; the dialog surfaces whatever `llm.*` fields
+  the config registry declares.
+- 0.5 still needs the tool-approval dialog, timeline overlay (4.4) and pinning (4.5).
+
+**New improvement opportunities**
+- Migrate `config-hud`/`config-profiles` out of the panel into the settings overlay, update the
+  configuration e2e specs to open the palette command, then default the config panel off entirely
+  (finishing the panel-migration row).
+- Generalise `config-hud` with an `embedded` mode (no duplicate header) so overlays can own the frame,
+  and split "Provider" from "Configuration" into two palette entries once `LmProvider` (§3.4) lands.
+- Add a HUD `⚙` affordance next to `⌘K` that opens `overlay.settings`, so the dialog is discoverable
+  without the palette (and independent of the graph toolbar, which is hidden in Notebook mode).
 
 
 
