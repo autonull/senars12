@@ -16,6 +16,7 @@ import { CognitiveDelta } from './graph-ops.js';
 import { NodeHistoryMsg, NodeHistoryRequestMsg } from './history.js';
 import { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './lens-msgs.js';
 import { NodeSetMsg, ObjectSetMsg } from './object-patch.js';
+import { UiCommandMsg } from './ui-command.js';
 import {
   FocusSet,
   LensSet,
@@ -53,6 +54,7 @@ export const IncomingFromServer = z.discriminatedUnion('type', [
   NodeHistoryMsg,
   LMStatusMsg,
   ServerError,
+  UiCommandMsg,
 ]);
 export type IncomingFromClient = z.infer<typeof IncomingFromClient>;
 export type IncomingFromServer = z.infer<typeof IncomingFromServer>;

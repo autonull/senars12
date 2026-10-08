@@ -2,6 +2,7 @@ import type { ChatMessage, GraphNodeData, GraphOp, IncomingFromServer } from '@s
 import { generateId, makeId, truncate } from '@senars/util';
 import type { Core } from 'cytoscape';
 import { edgeKey, extractTerm } from '../../shared/index.js';
+import { dispatchCommand } from './commands.js';
 import type { CognitiveMetricsData } from './store.js';
 import {
   $activeLens,
@@ -162,6 +163,12 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
 
     case 'lm.status':
       $lmStatus.set(msg.data);
+      break;
+
+    case 'ui.command':
+      if (!dispatchCommand(msg.command)) {
+        console.warn('[UI] Unknown ui.command:', msg.command);
+      }
       break;
 
     case 'server.error':

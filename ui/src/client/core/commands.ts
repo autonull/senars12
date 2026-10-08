@@ -75,3 +75,15 @@ export const activeCommands = (): Command[] =>
   [...registeredCommands(), ...derivedCommands()].filter(
     (command) => command.available?.() ?? true
   );
+
+/**
+ * Run a command by id, respecting availability, and report whether it ran. This
+ * is the seam the agent `ui.command` (§3.6) and any programmatic caller use, so
+ * every palette command is agent-settable without a second registry.
+ */
+export const dispatchCommand = (id: string): boolean => {
+  const command = activeCommands().find((candidate) => candidate.id === id);
+  if (!command) return false;
+  command.run();
+  return true;
+};

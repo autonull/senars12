@@ -123,6 +123,7 @@ export {
   type ViewportMode,
 } from './store.js';
 export { addUserMessage, applyServerMessage } from './store-bindings.js';
+export { dispatchCommand } from './commands.js';
 export { connect, disconnect, send } from './ws-client.js';
 export {
   defineSurface,
