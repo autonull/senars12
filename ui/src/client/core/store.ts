@@ -8,7 +8,7 @@ import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
 import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 import { getSurfaces } from './surface-registry.js';
-import { type GraphLayer } from './graph-layer.js';
+import { GRAPH_LAYERS, type GraphLayer } from './graph-layer.js';
 import { viewAdapters } from './view-adapter.js';
 import type { Shape, ViewSelection } from './view-spec.js';
 import { emptyWorkspaceGraph, type WorkspaceGraph } from './workspace-graph.js';
@@ -391,6 +391,7 @@ export const $configOpen = {
 export interface UrlState {
   lens: Lens;
   renderer?: string;
+  layer?: GraphLayer;
   focus?: string;
   folded?: string[];
   viewport?: { x: number; y: number; zoom: number };
@@ -418,6 +419,8 @@ function parseHash(): Partial<UrlState> {
   if (lens && ['belief', 'goal', 'contradiction'].includes(lens)) state.lens = lens;
   const renderer = params.get('renderer');
   if (renderer) state.renderer = renderer;
+  const layer = params.get('layer');
+  if (layer && (GRAPH_LAYERS as readonly string[]).includes(layer)) state.layer = layer as GraphLayer;
   const focus = params.get('focus');
   if (focus) state.focus = focus;
   const vp = params.get('viewport');
@@ -450,6 +453,7 @@ function serializeHash(state: UrlState): string {
   const params = new URLSearchParams();
   params.set('lens', state.lens);
   if (state.renderer) params.set('renderer', state.renderer);
+  if (state.layer && state.layer !== 'both') params.set('layer', state.layer);
   if (state.focus) params.set('focus', state.focus);
   if (state.viewport)
     params.set('viewport', `${state.viewport.x},${state.viewport.y},${state.viewport.zoom}`);
@@ -465,6 +469,7 @@ export function hydrateFromUrl() {
   const currentUrl = $urlState.get();
   $urlState.set({ ...currentUrl, ...parsed });
   if (parsed.renderer) $activeRenderer.set(parsed.renderer);
+  if (parsed.layer) $graphLayer.set(parsed.layer);
   if (parsed.focus) setWorkspaceFocus(parsed.focus);
   if (parsed.folded) $collapsedBlocks.set(new Set(parsed.folded));
   if (parsed.panels) {
@@ -485,6 +490,9 @@ $activeRenderer.subscribe((renderer) => {
 });
 $workspaceGraph.subscribe((graph) => {
   if ($urlState.get().focus !== graph.focus) $urlState.set({ ...$urlState.get(), focus: graph.focus });
+});
+$graphLayer.subscribe((layer) => {
+  if ($urlState.get().layer !== layer) $urlState.set({ ...$urlState.get(), layer });
 });
 $collapsedBlocks.subscribe((folded) => {
   if (!sameStringSet($urlState.get().folded, folded)) {

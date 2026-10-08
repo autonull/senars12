@@ -1520,10 +1520,34 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   bounding box; hiding is post-layout (`display: none`), not removal.
 
 **New improvement opportunities**
-- Add `$graphLayer` to `UrlState` (three-line pattern) so a shared link restores the isolated layer.
+- ~~Add `$graphLayer` to `UrlState` (three-line pattern) so a shared link restores the isolated layer.~~
+  **Done — see (x).**
 - A small HUD/segmented control next to the renderer switch for the layer, instead of palette-only.
 - When a layer is hidden, skip laying it out / exclude from `fit` so `conversation`-only frames tightly.
 - Remember the layer per lens (the lens already picks a layout), so switching lenses can imply a layer.
+
+### 2026-10-08 (x) — URL-address the graph layer (2.1 / 1.5)
+
+**Landed**
+- `ui/src/client/core/store.ts` — `UrlState` gains `layer?: GraphLayer`; `parseHash` validates it against
+  `GRAPH_LAYERS`, `serializeHash` emits it (omitting the default `both`), `hydrateFromUrl` applies it to
+  `$graphLayer`, and a guarded subscription mirrors live layer changes into `$urlState`. Follows the same
+  three-line pattern as `renderer`/`folded`.
+- Tests (+1; **234 green / 41 files**; UI typecheck and biome clean): `url-state` hydrates `layer` from the
+  hash and mirrors `setGraphLayer`.
+
+**Notes for remaining work**
+- `$graphLayer` now round-trips in the URL; a HUD segmented control for the layer is still pending
+  (palette-only today).
+- The `renderer` field remains unvalidated (unlike `layer`), since the renderer registry lives in a module
+  the store would cycle through; the asymmetry is intentional for now.
+
+**New improvement opportunities**
+- A `mirrorAtom(atom, pick, equals?)` helper would collapse the four near-identical mirror subscriptions
+  (`renderer`, `focus`, `folded`, `layer`) into declarations.
+- Validate `renderer` the same way as `layer` once a cycle-free registry id list is available.
+- A HUD layer control (segmented `both · conversation · concepts`) beside the renderer switch.
+
 
 
 

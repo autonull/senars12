@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   $activeRenderer,
   $collapsedBlocks,
+  $graphLayer,
   $urlState,
   $workspaceGraph,
   hydrateFromUrl,
+  setGraphLayer,
   toggleCollapsed,
 } from '../../src/client/core/store.js';
 import { emptyWorkspaceGraph } from '../../src/client/core/workspace-graph.js';
@@ -16,6 +18,7 @@ afterEach(() => {
   $activeRenderer.set('graph');
   $workspaceGraph.set(emptyWorkspaceGraph());
   $collapsedBlocks.set(new Set());
+  $graphLayer.set('both');
   $urlState.set({ lens: 'belief' });
 });
 
@@ -47,5 +50,13 @@ describe('url-addressable state', () => {
     window.dispatchEvent(new Event('hashchange'));
     expect($activeRenderer.get()).toBe('notebook');
     expect($workspaceGraph.get().focus).toBe('blk9');
+  });
+
+  it('hydrates and mirrors the graph layer', () => {
+    window.location.hash = 'layer=conversation';
+    hydrateFromUrl();
+    expect($graphLayer.get()).toBe('conversation');
+    setGraphLayer('concepts');
+    expect($urlState.get().layer).toBe('concepts');
   });
 });
