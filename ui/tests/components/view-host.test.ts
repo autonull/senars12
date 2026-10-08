@@ -131,4 +131,13 @@ describe('view host', () => {
     await el.updateComplete;
     expect(el.shadowRoot?.querySelector('s-series')).toBeTruthy();
   });
+
+  it('drops the chrome in bare mode but keeps the adapter', async () => {
+    const el = await mount({ id: 't', title: 'Test', shapes: ['series'], source: source(series) });
+    expect(el.shadowRoot?.querySelector('.chrome')).toBeTruthy();
+    el.chrome = false;
+    await el.updateComplete;
+    expect(el.shadowRoot?.querySelector('.chrome')).toBeNull();
+    expect(el.shadowRoot?.querySelector('s-series')).toBeTruthy();
+  });
 });

@@ -101,6 +101,7 @@ export {
   projectableShapes,
   projectDataset,
 } from './view-projection.js';
+export { type Readable, viewSource } from './view-sources.js';
 export type {
   Budget,
   ColumnSpec,

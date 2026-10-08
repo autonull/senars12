@@ -46,6 +46,8 @@ export class ViewHost extends SurfaceComponent {
   `;
   @property({ attribute: false }) spec?: ViewSpec;
   @property({ attribute: false }) budget: Budget = 'full';
+  /** `false` drops the chrome — for a view embedded in a surface that owns its own header. */
+  @property({ attribute: false }) chrome = true;
   @state() private shape?: Shape;
   @state() private fullscreen = false;
   private sourceUnsub: (() => void) | null = null;
@@ -75,14 +77,18 @@ export class ViewHost extends SurfaceComponent {
     const tag = unsafeStatic(adapter.tag);
     return html`
       <div class="view ${this.fullscreen ? 'full' : ''}">
-        <header class="chrome">
-          <span class="title">${spec.title}</span>
-          ${this.renderSwitcher()}
-          <span class="spacer"></span>
-          <button class="chrome-btn" @click=${() => (this.fullscreen = !this.fullscreen)}>
-            ${this.fullscreen ? 'Exit' : 'Full'}
-          </button>
-        </header>
+        ${
+          this.chrome
+            ? html`<header class="chrome">
+            <span class="title">${spec.title}</span>
+            ${this.renderSwitcher()}
+            <span class="spacer"></span>
+            <button class="chrome-btn" @click=${() => (this.fullscreen = !this.fullscreen)}>
+              ${this.fullscreen ? 'Exit' : 'Full'}
+            </button>
+          </header>`
+            : nothing
+        }
         <div class="body" @view-select=${this.handleSelect}>
           ${staticHtml`<${tag} class="adapter" .data=${data}
             .selection=${$viewSelection.get()} .budget=${this.budget}></${tag}>`}
