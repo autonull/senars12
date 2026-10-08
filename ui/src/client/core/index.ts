@@ -67,6 +67,17 @@ export {
   reasoningPositions,
 } from './reasoning-layout.js';
 export { collectSources, resolveSource, type Source } from './citations.js';
+export {
+  $lmProvider,
+  applyLmStatus,
+  type LmProviderState,
+  type ProviderDescriptor,
+  providerLabel,
+  providerUsable,
+  type ProviderKind,
+  requestLmProvider,
+} from './lm-provider.js';
+export { refreshLmStatus, switchLmProvider } from './lm-transport.js';
 export { type Neighbor, type Neighborhood, neighborhood } from './neighborhood.js';
 export { FocusTrap } from './focus-trap.js';
 export {
@@ -117,7 +128,6 @@ export {
   $lensLayer,
   $lensRegistry,
   $lensViewport,
-  $lmStatus,
   $nodeHistory,
   $panels,
   $selectedEdgeId,

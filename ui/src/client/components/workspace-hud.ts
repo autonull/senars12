@@ -13,11 +13,11 @@ import { BaseComponent } from '../core/base-component.js';
 import { activeCommands, dispatchCommand } from '../core/commands.js';
 import { eventBus } from '../core/events.js';
 import { GRAPH_LAYERS, type GraphLayer } from '../core/graph-layer.js';
+import { $lmProvider, type LmProviderState, providerLabel } from '../core/lm-provider.js';
 import {
   $activeRenderer,
   $graphLayer,
   $graphNodes,
-  $lmStatus,
   $telemetry,
   hasTemporalData,
   setGraphLayer,
@@ -37,6 +37,20 @@ const LAYER_LABELS: Record<GraphLayer, string> = {
   conversation: 'Thread',
   concepts: 'Concepts',
 };
+
+/** The provider chip is the provider switcher: it opens the Provider overlay. */
+const providerChip = (provider: LmProviderState) =>
+  provider.id === 'unknown'
+    ? ''
+    : html`<button
+        class="chip"
+        data-action="provider"
+        title=${provider.stale
+          ? `Requested ${provider.pending} — the engine kept ${providerLabel(provider.id)}`
+          : 'Language model provider'}
+        @click=${(event: Event) =>
+          dispatchCommand('overlay.provider', { anchor: event.currentTarget as HTMLElement })}
+      >${providerLabel(provider.id)}${provider.stale ? ' ⚠' : ''}</button>`;
 
 @customElement('workspace-hud')
 export class WorkspaceHud extends BaseComponent {
@@ -97,7 +111,7 @@ export class WorkspaceHud extends BaseComponent {
     this.watch($activeRenderer);
     this.watch($graphLayer);
     this.watch($graphNodes);
-    this.watch($lmStatus);
+    this.watch($lmProvider);
     this.watch($telemetry);
   }
 
@@ -105,7 +119,7 @@ export class WorkspaceHud extends BaseComponent {
     const active = $activeRenderer.get();
     const activeRenderer = workspaceRenderer(active);
     const layer = $graphLayer.get();
-    const provider = $lmStatus.get().provider;
+    const provider = $lmProvider.get();
     const data = $telemetry.get();
     return html`
       ${this.statsOpen ? this.renderStats(data) : ''}
@@ -184,7 +198,7 @@ export class WorkspaceHud extends BaseComponent {
           @click=${(event: Event) =>
             dispatchCommand('overlay.palette', { anchor: event.currentTarget as HTMLElement })}
         >⌘K</button>
-        ${typeof provider === 'string' ? html`<span class="chip" title="Language model provider">${provider}</span>` : ''}
+        ${providerChip(provider)}
       </div>
     `;
   }

@@ -8,9 +8,9 @@ afterEach(() => {
 });
 
 describe('settings overlay', () => {
-  it('registers a modal, palette-visible settings overlay', () => {
+  it('registers a modal, palette-visible configuration overlay', () => {
     const descriptor = overlayDescriptor('settings');
-    expect(descriptor).toMatchObject({ id: 'settings', title: 'Settings', modal: true });
+    expect(descriptor).toMatchObject({ id: 'settings', title: 'Configuration', modal: true });
     expect(descriptor?.hiddenInPalette).toBeUndefined();
     expect(descriptor?.tag).toBe('s-settings');
   });

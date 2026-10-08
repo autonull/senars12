@@ -1,8 +1,9 @@
 /**
- * The settings dialog (§1, Phase 0.5; panel migration: config-hud/config-profiles
+ * The configuration dialog (§1, Phase 0.5; panel migration: config-hud/config-profiles
  * → settings dialog). A palette-launched overlay that hosts the existing config
- * form (fields from `$config`/`fieldCatalog` via `renderField`), so provider and
- * region settings live in one focus-trapped dialog instead of a standing panel.
+ * form (fields from `$config`/`fieldCatalog` via `renderField`), so the reasoning
+ * and system settings live in one focus-trapped dialog instead of a standing
+ * panel. Which model runs is the sibling overlay (`provider`).
  * Modal: it captures the background, and the form's own close affordance routes
  * through the overlay host.
  */
@@ -33,7 +34,7 @@ export class SettingsView extends SurfaceComponent {
   private readonly close = () => eventBus.emit('overlay:close', { id: 'settings' });
 }
 
-const SETTINGS_SURFACE = { id: 'settings', title: 'Settings', group: 'overlay' } as const;
+const SETTINGS_SURFACE = { id: 'settings', title: 'Configuration', group: 'overlay' } as const;
 
 defineSurface(SETTINGS_SURFACE, SettingsView);
 registerOverlay({

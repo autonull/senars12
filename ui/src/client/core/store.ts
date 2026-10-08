@@ -77,7 +77,6 @@ export interface CognitiveMeta {
 
 // --- Existing atoms ---
 export const $chatMessages = atom<ChatMessage[]>([]);
-export const $lmStatus = atom<Record<string, unknown>>({});
 export const $streamingDelta = atom<string>('');
 export const $graphNodes = atom<Map<string, GraphNodeData>>(new Map());
 export const $graphEdges = atom<Map<string, Record<string, any>>>(new Map());

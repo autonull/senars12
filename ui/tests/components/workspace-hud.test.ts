@@ -7,14 +7,17 @@ import '../../src/client/components/views/index.js';
 import '../../src/client/components/workspace-hud.js';
 import '../../src/client/core/view-host.js';
 import { eventBus } from '../../src/client/core/events.js';
-import { $activeRenderer, $graphLayer, $graphNodes, $lmStatus, $telemetry } from '../../src/client/core/store.js';
+import { $lmProvider } from '../../src/client/core/lm-provider.js';
+import { $activeRenderer, $graphLayer, $graphNodes, $telemetry } from '../../src/client/core/store.js';
+
+const UNKNOWN_PROVIDER = { id: 'unknown', available: false, providers: [] } as const;
 
 afterEach(() => {
   document.body.innerHTML = '';
   $activeRenderer.set('graph');
   $graphLayer.set('both');
   $graphNodes.set(new Map());
-  $lmStatus.set({});
+  $lmProvider.set(UNKNOWN_PROVIDER);
   $telemetry.set({ reasoning_hz: [1, 2], tokens_per_sec: [1, 2], memory_mb: [1, 2], ws_latency_ms: [1, 2] });
 });
 
@@ -52,10 +55,16 @@ describe('workspace hud', () => {
     ).toBe('notebook');
   });
 
-  it('shows the provider chip from lm status', async () => {
-    $lmStatus.set({ provider: 'mock' });
+  it('shows the provider chip from the LmProvider facade and opens the switcher', async () => {
+    $lmProvider.set({ id: 'mock', available: true, providers: [] });
     const el = await mountHud();
-    expect(el.shadowRoot?.querySelector('.chip')?.textContent).toContain('mock');
+    const chip = el.shadowRoot?.querySelector('button[data-action="provider"]');
+    expect(chip?.textContent).toContain('Mock (no model)');
+    const opened: string[] = [];
+    const unsubscribe = eventBus.on('overlay:open', ({ id }) => id && opened.push(id));
+    chip?.click();
+    unsubscribe();
+    expect(opened).toEqual(['provider']);
   });
 
   it('derives the layer control from renderer capabilities', async () => {

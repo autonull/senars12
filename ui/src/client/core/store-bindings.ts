@@ -3,6 +3,7 @@ import { generateId, makeId, truncate } from '@senars/util';
 import type { Core } from 'cytoscape';
 import { edgeKey, extractTerm } from '../../shared/index.js';
 import { dispatchCommand } from './commands.js';
+import { applyLmStatus } from './lm-provider.js';
 import type { CognitiveMetricsData } from './store.js';
 import {
   $activeLens,
@@ -14,7 +15,6 @@ import {
   $graphNodes,
   $lastSeqId,
   $lensFields,
-  $lmStatus,
   $nodeHistory,
   $streamingDelta,
   $telemetry,
@@ -162,7 +162,7 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
       break;
 
     case 'lm.status':
-      $lmStatus.set(msg.data);
+      applyLmStatus(msg.data);
       break;
 
     case 'ui.command':

@@ -1,10 +1,16 @@
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { $lmStatus, $webllmActive, $webllmAvailable, BaseComponent, send } from '../core/index.js';
+import { customElement } from 'lit/decorators.js';
+import { BaseComponent } from '../core/base-component.js';
+import { eventBus } from '../core/events.js';
+import { $lmProvider, providerLabel } from '../core/lm-provider.js';
+import { refreshLmStatus, switchLmProvider } from '../core/lm-transport.js';
+import { $webllmActive, $webllmAvailable } from '../core/store.js';
 
 /**
- * Small status strip answering "which model am I actually using?"
- * Data source: the `lm.status` WS message (mirrors the `nar://lm-status` resource).
+ * Small status strip answering "which model am I actually using?" — a read-only
+ * view of the `LmProvider` façade (§0.6), which is what owns `lm.status` and the
+ * switch protocol. Switching lives in the Provider overlay; this strip only
+ * reflects it and offers the one switch worth a single click.
  */
 @customElement('lm-status-panel')
 export class LMStatusPanel extends BaseComponent {
@@ -36,73 +42,51 @@ export class LMStatusPanel extends BaseComponent {
     }
     .run-locally-btn:hover { background: var(--colors-semantic-bg-hover); }
     .run-locally-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .provider-link {
+      background: none; border: none; padding: 0; cursor: pointer;
+      color: var(--colors-semantic-text-muted); font: inherit; text-decoration: underline dotted;
+    }
   `;
 
-  @state() private provider = 'unknown';
-  @state() private model = '';
-  @state() private available = false;
-  @state() private webllmAvailable = false;
-  @state() private webllmActive = false;
+  private webllmAvailable = false;
 
   override connectedCallback() {
     super.connectedCallback();
-    this.watch($lmStatus);
+    this.watch($lmProvider);
     this.watch($webllmAvailable);
     this.watch($webllmActive);
-    this.watchWith($lmStatus, (data) => {
-      this.provider = String(data.provider ?? 'none');
-      this.model = String(data.model ?? '');
-      this.available = Boolean(data.available);
-    });
-    this.watchWith($webllmAvailable, (v) => {
-      this.webllmAvailable = v;
-    });
-    this.watchWith($webllmActive, (v) => {
-      this.webllmActive = v;
-    });
-
-    // Detect WebGPU availability
     this.webllmAvailable = 'gpu' in navigator;
-    send({ type: 'lm.status.request' });
+    refreshLmStatus();
   }
 
-  private async switchToWebLLM() {
-    if (!this.webllmAvailable || this.webllmActive) return;
+  private readonly switchToWebLLM = () => switchLmProvider('webllm');
 
-    // Send a message to the server to switch provider to webllm
-    // The server will need to handle this and update the lm-status
-    send({ type: 'lm.switch', provider: 'webllm' });
-  }
+  private readonly openProvider = () => eventBus.emit('overlay:open', { id: 'provider' });
 
   override render() {
-    const isWebLLM = this.provider === 'webllm';
-    const showRunLocally = this.webllmAvailable && !this.webllmActive && !isWebLLM;
+    const { id, model, available, stale } = $lmProvider.get();
+    const isWebLLM = id === 'webllm';
+    const showRunLocally = this.webllmAvailable && !$webllmActive.get() && !isWebLLM;
 
     return html`
       <span class="panel">
-        <span class="dot ${this.available ? 'ok' : 'down'}"></span>
-        <span>LM: ${this.provider}</span>
-        <span class="muted">${this.model}</span>
-        
-        ${
-          isWebLLM
-            ? html`
-          <span class="webllm-badge local">🌐 Running locally (WebLLM)</span>
-        `
-            : ''
-        }
-        
+        <span class="dot ${available ? 'ok' : 'down'}"></span>
+        <button class="provider-link" data-action="provider" @click=${this.openProvider}>
+          LM: ${providerLabel(id)}
+        </button>
+        <span class="muted">${model ?? ''}</span>
+        ${stale ? html`<span class="muted">switch not applied</span>` : ''}
+        ${isWebLLM ? html`<span class="webllm-badge local">🌐 Running locally (WebLLM)</span>` : ''}
         ${
           showRunLocally
-            ? html`
-          <button 
-            class="run-locally-btn" 
-            @click=${this.switchToWebLLM}
-            title="Switch to local WebGPU inference"
-          >
-            🌐 Run locally
-          </button>
-        `
+            ? html`<button
+              class="run-locally-btn"
+              data-action="run-locally"
+              @click=${this.switchToWebLLM}
+              title="Switch to local WebGPU inference"
+            >
+              🌐 Run locally
+            </button>`
             : ''
         }
       </span>

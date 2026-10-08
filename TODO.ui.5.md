@@ -37,8 +37,8 @@ Size legend: **S** ≈ under half a day · **M** ≈ about a day · **L** ≈ mu
 
 Ordered by leverage on the critical path; `→` files are the likely edit surface.
 
-1. **`0.6 backend seam`** (L) — opens WP5 and the WP1 sweep. `→ core/` backend contract + `LmProvider`
-   façade, `shared/`, `workspace-renderer.ts`
+1. **`0.6 backend seam`** (L) — the LM half landed (façade + Provider overlay + engine registry); the
+   **`ReasoningBackend`** contract + adapter seam is what WP5 still waits on. `→ core/`
 2. **`1.5/1.1 section model`** (L) — unblocks `1.5 page` and notebook depth. `→ toc.ts`,
    `workspace-graph.ts`, `renderers/notebook.ts`
 3. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
@@ -65,6 +65,9 @@ Cross-cutting constraints that gate multiple items — each is a work order: fir
 - **`LmProvider` façade** — the `0.6` contract; blocks WP1 sweep + **WP5**. *First step:* define the
   backend/provider interface and adapt the real `lm.status`/`lm.switch`. *Done when:* provider
   switching, the Provider/Config split, and `config-hud` `embedded` are wired against the façade.
+  Landed except `config-hud embedded`: `core/lm-provider.ts` (state) + `core/lm-transport.ts`
+  (wire), the `provider` overlay, the server answering a switch with a status. **Still open:** the
+  `ReasoningBackend` half WP5 needs.
 - **Section model** — blocks **`1.5 page`**. *First step:* recurse `roots` + heading `level`s into a
   section tree in `core/toc.ts`. *Done when:* pages/ToC are non-shallow and `page` is URL-addressable.
 - **Node→workspace-block mapping** — blocks the inspector half of **`4.3 affordances`** and richer
@@ -97,6 +100,10 @@ Landed extension points — wire features here instead of re-deriving them.
 - **Commands** — `core/commands.ts` (`activeCommands`/`dispatchCommand`/`paletteCommands`,
   `available`/`params`); `core/command-history.ts` (MRU); `core/command-match.ts`.
 - **Capabilities** — `core/capabilities.ts` (`capabilityGate`, `$capabilities`).
+- **LM provider** — `core/lm-provider.ts` (`$lmProvider`, `applyLmStatus`, `providerLabel`,
+  `providerUsable`) + `core/lm-transport.ts` (`refreshLmStatus`, `switchLmProvider`): read the
+  provider state, never the `lm.status` payload; request a switch through the transport, never a raw
+  `lm.switch`.
 - **Renderers** — `core/workspace-renderer.ts` (`registerRenderer`, caps/`controls`,
   `workspaceRendererIds`); `components/renderers/*`.
 - **State / URL** — `core/store.ts` (`$urlState`, `setUrlState`, `mirrorAtom`, `hydrateFromUrl`,
@@ -126,12 +133,22 @@ Landed extension points — wire features here instead of re-deriving them.
   overlay. Remaining: a per-overlay pin *button* (the command is the current affordance) and CSS for
   `[data-pinned]`. `→ core/overlay-manager.ts`, `core/events.ts`, `core/commands.ts`,
   `components/app-layout.ts`. `(b)`,`(e)`,`(aa)`
-- [ ] **0.6 backend seam** — land the `ReasoningBackend` contract + adapter seam (`LmProvider` façade;
-  `lm.status`/`lm.switch` already real). Needed by WP5. Sweep once it lands:
-  - provider switching as an overlay action; split Provider vs Configuration entries.
-  - `config-hud` `embedded` mode.
-  - `CapabilityHost` mixin form, once a component gates its whole presence. `→ core/` contract,
-    `components/overlays/settings.ts`/`config-hud.ts`. `(c)`,`(aa)`,`(m)`,`(k)`,`(f)`
+- [~] **0.6 backend seam** — land the `ReasoningBackend` contract + adapter seam (`LmProvider` façade;
+  `lm.status`/`lm.switch` already real). Needed by WP5. Landed the **LM half** as the façade
+  `core/lm-provider.ts` (state contract: `ProviderDescriptor`, `$lmProvider`, `applyLmStatus`
+  normalising the wire record, `providerLabel`/`providerUsable`) + `core/lm-transport.ts`
+  (`refreshLmStatus`/`switchLmProvider`) — one seam, split so the socket module stays out of the
+  façade's dependency path. The engine now reports its provider registry in `lm.status`
+  (`LM_PROVIDER_NAMES` + which ids are browser-only) and **answers a `lm.switch` with a fresh
+  status**, so routing is observable instead of assumed: a request the engine cannot apply shows up
+  as `stale` in the UI rather than as a silent success. The Provider/Configuration split is real —
+  a `provider` overlay (registered, so the palette entry and `overlay.provider` derive themselves)
+  and the settings overlay retitled **Configuration**; the HUD provider chip and the status strip
+  are read-only views of the same state (`$lmStatus` is gone). Remaining: the **`ReasoningBackend`**
+  contract + adapter seam (the half WP5 waits on), `config-hud` `embedded` mode (no second host
+  exists yet, so a mode now would be dead API), and the `CapabilityHost` mixin form once a component
+  gates its whole presence. `→ core/lm-provider.ts`, `core/lm-transport.ts`,
+  `components/overlays/{provider,settings}.ts`, `server/index.ts`. `(c)`,`(aa)`,`(m)`,`(k)`,`(f)`
 
 ## WP2 — State & URL consolidation
 
@@ -455,3 +472,11 @@ in v3 Appendix D). Rolled up:
   entry — completes **`citations model`** (the `text-view` arm dropped, see the item). Suite **336
   green** (new: `block-payload` validation/rejection, citation token, bibliography numbering, inline
   reference resolution).
+- **WP1 backend seam (LM half)** — `core/lm-provider.ts` + `core/lm-transport.ts`: one façade over
+  `lm.status`/`lm.switch` with pending/stale reconciliation, `providerLabel`/`providerUsable`
+  (browser providers gated on WebGPU); the engine reports its provider registry in `lm.status` and
+  answers a switch with a fresh status; a registered `provider` overlay splits Provider from
+  Configuration (settings retitled) and the HUD chip opens it; `$lmStatus` retired. **`0.6`
+  partially landed** — the `ReasoningBackend` contract is still to do. Suite **348 green** (new:
+  façade normalization/pending/stale, provider overlay, HUD chip). VISUAL: the HUD provider chip and
+  the LM strip text changed, so baselines need regenerating with the rest of the pending sweep.

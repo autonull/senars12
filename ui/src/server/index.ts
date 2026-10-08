@@ -13,6 +13,7 @@ import type {
 } from '@senars/core';
 import { IncomingFromClient as IncomingFromClientSchema } from '@senars/core';
 import { DEFAULT_CONFIG, termParser } from '@senars/nar';
+import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 import { handleMetricsRequest } from '@senars/nar/metrics';
 import { asBeliefTruth, envBool, envPositive, makeId, splitLines } from '@senars/util';
 import { type RawData, WebSocket, WebSocketServer } from 'ws';
@@ -468,23 +469,61 @@ function createServerWithProjection(agent?: Agent): {
     );
   }
 
-  function sendLmStatus(ws: WebSocket): void {
-    const lm = nar()?.getLMClient?.() ?? {};
-    if (ws.readyState !== WebSocket.OPEN) return;
-    ws.send(
-      JSON.stringify({
-        type: 'lm.status',
-        data: {
-          provider: lm.provider ?? 'none',
-          model: lm.model,
-          available: lm.available ?? false,
-          stats: typeof lm.getStats === 'function' ? lm.getStats() : {},
-        },
-      })
-    );
-  }
+/**
+ * The provider registry the engine accepts (§0.6 `LmProvider`). The engine owns
+ * this list; the browser side decides what it can additionally run in-process
+ * (`webllm`), which is why the kind travels with the entry. Labels are the
+ * client's business — the UI owns presentation.
+ */
+const BROWSER_PROVIDERS = new Set(['webllm']);
 
-  function broadcastConfigSchema(): void {
+const providerCatalog = () =>
+  LM_PROVIDER_NAMES.map((id) => ({
+    id,
+    kind: BROWSER_PROVIDERS.has(id) ? 'browser' : 'engine',
+  }));
+
+function sendLmStatus(ws: WebSocket): void {
+  const lm = nar()?.getLMClient?.() ?? {};
+  if (ws.readyState !== WebSocket.OPEN) return;
+  ws.send(
+    JSON.stringify({
+      type: 'lm.status',
+      data: {
+        provider: lm.provider ?? 'none',
+        model: lm.model,
+        available: lm.available ?? false,
+        stats: typeof lm.getStats === 'function' ? lm.getStats() : {},
+        providers: providerCatalog(),
+      },
+    })
+  );
+}
+
+  /**
+ * Apply a provider switch and answer with the resulting status, so routing is
+ * observable rather than assumed: the engine's LM client is fixed at boot, so a
+ * request it cannot honour shows up as an unchanged provider rather than as a
+ * silent success.
+ */
+function applyLmSwitch(ws: WebSocket, provider: string): void {
+  const known = LM_PROVIDER_NAMES.includes(provider as (typeof LM_PROVIDER_NAMES)[number]);
+  if (!known) {
+    ws.send(
+      JSON.stringify(
+        errorFrame('invalid_message', `Unknown LM provider "${provider}"`, {
+          provider,
+          providers: LM_PROVIDER_NAMES,
+        })
+      )
+    );
+    return;
+  }
+  nar()?.setConfig?.({ lm: { provider } });
+  sendLmStatus(ws);
+}
+
+function broadcastConfigSchema(): void {
     const schema = buildConfigSchema(currentNarConfig);
     for (const client of wss.clients) {
       if (client.readyState === WebSocket.OPEN) {
@@ -552,7 +591,7 @@ function createServerWithProjection(agent?: Agent): {
         sendLmStatus(ws);
         return;
       case 'lm.switch':
-        nar()?.setConfig?.({ lm: { provider: msg.provider } });
+        applyLmSwitch(ws, msg.provider);
         return;
     }
   }
