@@ -91,7 +91,7 @@ const ARTIFACT_KINDS: ReadonlySet<BlockKind> = new Set<BlockKind>([
 const SOURCE_ORDER: readonly CreatedBy[] = ['user', 'lm', 'reasoner', 'tool', 'system'];
 
 /** Every block in document order, then any detached block, so no node is left unplaced. */
-const blocksInOrder = (graph: WorkspaceGraph): SemanticBlock[] => {
+export const blocksInOrder = (graph: WorkspaceGraph): SemanticBlock[] => {
   const ordered = blockOrder(graph)
     .map((id) => graph.blocks.get(id))
     .filter((block): block is SemanticBlock => !!block);

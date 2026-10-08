@@ -16,6 +16,10 @@ import {
   CONVERSATION_LAYOUT_CATALOG,
   CONVERSATION_LAYOUT_IDS,
   conversationPositions,
+  REASONING_LAYOUT_CATALOG,
+  REASONING_LAYOUT_IDS,
+  type ReasoningLayoutId,
+  reasoningPositions,
 } from '../core/index.js';
 import { type LayoutScope, registerLayoutId } from '../core/layout-ids.js';
 import { lensMeta } from './lens-catalog.js';
@@ -212,6 +216,38 @@ for (const id of CONVERSATION_LAYOUT_IDS) {
     scope: 'conversation',
     getLayout: (_cy, opts) => {
       const positions = conversationPositions($workspaceGraph.get(), id);
+      return {
+        name: 'preset',
+        positions: (node: NodeSingular) => positions.get(node.id()) ?? node.position(),
+        fit: (opts?.fit as boolean) ?? true,
+        padding: 40,
+        animate: false,
+        ...opts,
+      };
+    },
+    surface: null,
+  });
+}
+
+/**
+ * Reasoning layouts (§3.4, Phase 3) arrange the reasoning structure: provenance
+ * chains, the gate pipeline, contradictions and resource lanes. Concept-scope
+ * and deterministic, via the pure `reasoningPositions` projection.
+ */
+const REASONING_LENSES: Record<ReasoningLayoutId, Lens> = {
+  'reasoning-provenance': 'belief',
+  'gate-pipeline': 'belief',
+  'contradiction-neighborhood': 'contradiction',
+  'budget-resource': 'goal',
+};
+
+for (const id of REASONING_LAYOUT_IDS) {
+  layoutRegistry.register({
+    id,
+    label: REASONING_LAYOUT_CATALOG[id].label,
+    recommendedFor: [REASONING_LENSES[id]],
+    getLayout: (_cy, opts) => {
+      const positions = reasoningPositions($workspaceGraph.get(), id);
       return {
         name: 'preset',
         positions: (node: NodeSingular) => positions.get(node.id()) ?? node.position(),

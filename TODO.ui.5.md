@@ -98,7 +98,8 @@ Landed extension points — wire features here instead of re-deriving them.
 - **Projection** — `core/workspace-projection.ts`, `core/graph-projection.ts`, `core/segmentation.ts`.
 - **Explain / links / ToC** — `core/explain.ts`, `core/neighborhood.ts`, `core/toc.ts`,
   `utils/link-catalog.ts`.
-- **Layouts** — `utils/layout-registry.ts`, `utils/lens-catalog.ts`; `core/layout-ids.ts`
+- **Layouts** — `utils/layout-registry.ts`, `utils/lens-catalog.ts`; the pure position projections
+  `core/conversation-layout.ts` and `core/reasoning-layout.ts` (`reasoningPositions`); `core/layout-ids.ts`
   (`registerLayoutId`/`isRegisteredLayoutId`) — the cycle-free id leaf the store validates against.
 - **Block affordances** — `components/overlays/block-menu.ts` (Copy / Open-in-graph / artifact /
   provenance / formalize).
@@ -240,9 +241,11 @@ Landed extension points — wire features here instead of re-deriving them.
 - [ ] **3.5 explanation** — extend the explanation popover to reasoning targets (claim/node/edge/event/
   belief/goal/derivation) with `summary · card · detail · raw`. `→ core/explain.ts`,
   `components/overlays/explain.ts`. `(Phase 3)`
-- [ ] **3.4 layouts** — `reasoning-provenance`, `gate-pipeline`, `contradiction-neighborhood`,
-  `budget-resource` as `layoutRegistry` rows with deterministic variants.
-  `→ utils/layout-registry.ts`. `(Phase 3)`
+- [x] **3.4 layouts** — `reasoning-provenance`, `gate-pipeline`, `contradiction-neighborhood`,
+  `budget-resource` as `layoutRegistry` rows with deterministic variants. Landed as
+  `core/reasoning-layout.ts` (`reasoningPositions`, pure, reusing `blocksInOrder` and `Point`) +
+  concept-scope registry rows with `recommendedFor` lenses; the link-catalog parity test now passes
+  without an allowlist. `→ core/reasoning-layout.ts`, `utils/layout-registry.ts`. `(Phase 3)`
 - [ ] **3.6 steer/author** — retract/revise belief, add goal, adjust budget/provider from block/node
   actions; live reaction as new blocks/links. Also the **`config-change` producer** (emit the landed
   diff payload on settings changes). `→ core/commands.ts`, `components/overlays/block-menu.ts`,
@@ -318,9 +321,9 @@ Landed extension points — wire features here instead of re-deriving them.
   Cytoscape) and an `app-layout` test; segmentation round-trip property test; Notebook `composer:focus`
   path test; regenerate visual baselines for the telemetry/timeline demotions; fix the stale e2e
   "default telemetry panel" comment and the timeline-overlay test-API registration note. Landed:
-  `tests/components/layout-registry.test.ts` — link-catalog `layouts` ⊆ registry (the WP5 `3.4` ids
-  `reasoning-provenance`/`contradiction-neighborhood`/`gate-pipeline` are allowlisted as pending),
-  scope partitioning, and per-primary-lens resolution. `→ tests/`.
+  `tests/components/layout-registry.test.ts` — link-catalog `layouts` ⊆ registry (now complete; the
+  WP5 `3.4` ids register in `core/reasoning-layout.ts`), scope partitioning, and per-primary-lens
+  resolution. `→ tests/`.
   `(o)`,`(p)`,`(ae)`,`(Phase 0.1–0.3)`,`(d)`,`(q)`,`(af)`,`(ag)`
 - [ ] **6 Graph3D** — `WorkspaceRenderer` over SpaceGraph, `parity: 'partial'`; only after Notebook/Graph
   are excellent. Sweep: mirror the Graph's `reactToFocus` (centre on an outside `$workspaceGraph.focus`)
@@ -395,3 +398,7 @@ in v3 Appendix D). Rolled up:
   construction) rendered by the Notebook for headings, paragraphs and list items — **`1.4 rich text`**
   partially landed (image intrinsic size, inline full tables, view-barrel ownership remain). Suite
   **319 green**.
+- **WP5 layouts** — `core/reasoning-layout.ts` (`reasoningPositions`: provenance depth, gate stages,
+  contradiction neighbourhood, resource lanes — pure and deterministic) registered as four concept-scope
+  `layoutRegistry` rows with `recommendedFor` lenses — completes **`3.4 layouts`**. The link-catalog
+  parity test no longer needs its pending allowlist. Suite **325 green**.

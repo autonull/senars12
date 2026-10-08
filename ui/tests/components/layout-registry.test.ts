@@ -3,19 +3,11 @@ import { layoutRegistry } from '../../src/client/utils/layout-registry.js';
 import { PRIMARY_LENSES } from '../../src/client/utils/lens-catalog.js';
 import { LINK_CATALOG } from '../../src/client/utils/link-catalog.js';
 
-const PENDING_WP5_LAYOUTS = new Set([
-  'reasoning-provenance',
-  'contradiction-neighborhood',
-  'gate-pipeline',
-]);
-
 describe('layout registry (§2.6)', () => {
-  it('references only registered layouts or the known pending WP5 set', () => {
+  it('registers every layout the link catalog references', () => {
     const referenced = new Set(Object.values(LINK_CATALOG).flatMap((meta) => meta.layouts));
-    const unknown = [...referenced].filter(
-      (id) => !layoutRegistry.get(id) && !PENDING_WP5_LAYOUTS.has(id)
-    );
-    expect(unknown).toEqual([]);
+    const missing = [...referenced].filter((id) => !layoutRegistry.get(id));
+    expect(missing).toEqual([]);
   });
 
   it('assigns every layout exactly one scope', () => {

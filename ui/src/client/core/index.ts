@@ -44,6 +44,14 @@ export {
   conversationPositions,
   type Point,
 } from './conversation-layout.js';
+export {
+  type ReasoningLayoutDescriptor,
+  type ReasoningLayoutId,
+  REASONING_LAYOUT_CATALOG,
+  REASONING_LAYOUT_IDS,
+  type ReasoningPositions,
+  reasoningPositions,
+} from './reasoning-layout.js';
 export { type Neighbor, type Neighborhood, neighborhood } from './neighborhood.js';
 export { FocusTrap } from './focus-trap.js';
 export {
