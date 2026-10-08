@@ -498,7 +498,7 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 - [x] 0.3 `WorkspaceRenderer` contract + registry (`notebook`, `graph`, `graph3d` stub); mode-switch state; capabilities.
   - Registry now holds `notebook` (`full`, `blockKinds: 'all'`), `graph` (`full`, wraps the landed Cytoscape viewport), and the honest `graph3d` stub (`partial`). `$activeRenderer` is store state (default `graph` to preserve current behavior until capability-composition defaults land).
 - [~] 0.4 Main workspace shell: main area renders the active renderer; floating HUD (mode · provider/backend · budget · ⌘K · stop); permanent panels removed/default-hidden.
-  - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. The HUD now carries `☰` (ToC) and `⌘K` (palette), and `app-layout` binds `⌘/Ctrl+K` globally. The main area is now one `<workspace-host>` that mounts the active renderer through the registry (`mount`/`snapshot`/`dispose`/`restore`) and supplies the `WorkspaceContext`; Graph's table/2D/3D variants moved into `graph-surface` (see (ae)), so the shell no longer branches on renderer tags. Remaining: remove/default-hide the standing panels, and add budget/stop to the HUD once run-control exists (no silent no-ops). The active renderer is now URL-addressable (see (s)).
+  - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. The HUD now carries `☰` (ToC) and `⌘K` (palette), and `app-layout` binds `⌘/Ctrl+K` globally. The main area is now one `<workspace-host>` that mounts the active renderer through the registry (`mount`/`snapshot`/`dispose`/`restore`) and supplies the `WorkspaceContext`; Graph's table/2D/3D variants moved into `graph-surface` (see (ae)), so the shell no longer branches on renderer tags. Remaining: the standing diagnostic panels are now default-closed and palette-reachable (`view.panel.*`, see (af)) — still to demote are the auto-opening node-detail drawer (→ inspector popover) and the always-present timeline scrubber (→ 4.4 overlay) — and add budget/stop to the HUD once run-control exists (no silent no-ops). The active renderer is now URL-addressable (see (s)).
 - [~] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
   - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside; the `FocusTrap` pierces shadow roots and retries focus on the next frame (every overlay is a Lit element, so its focusables live in a shadow root and render asynchronously). A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6), the command palette (⌘K), the artifact viewer (4.3), and the settings/provider dialog (aa). Tables now render through the landed `s-view`/`ViewSpec` view system (embedded budget) instead of bespoke markup, and `artifactViewSpec` maps a block's payload to a `ViewSpec`. Remaining: tool approval, timeline overlay (4.4), pinning (4.5).
 - [~] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
@@ -1797,6 +1797,36 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   parity suite.
 - Retire `$viewportMode`/`$graphShape` as shell-level shared atoms once `graph-surface` owns them
   exclusively.
+
+### 2026-10-08 (af) — demote diagnostic panels to palette toggles (0.4)
+
+**Landed**
+- `ui/src/client/core/store.ts` — the `telemetry` panel now defaults `open: false` (it was the one
+  permanently-open diagnostic panel), satisfying §1 "no permanent diagnostic panels by default". All five
+  panels (`config · telemetry · chat · search · lens-designer`) now start closed.
+- `ui/src/client/core/commands.ts` — derived commands add one `view.panel.<id>` toggle per registered
+  panel (`PANEL_LABELS`), so a demoted panel stays reachable from the palette and agent `ui.command`
+  without a standing button — and a panel added to `$panels` appears with no edit here.
+- Tests (4 new; **260 green / 46 files**; UI typecheck + biome clean): `panel-commands` — the telemetry
+  default is closed, every panel has a toggle command, toggling flips `$panels`, and an unknown panel
+  command is refused.
+
+**Notes for remaining work**
+- Visual baselines (`tests/visual`) that captured the default telemetry panel need regeneration; pixel
+  baselines are a demoted regression net (§0.4/§13), so this is an accepted, intentional diff.
+- The e2e comment in `scenarios/configuration/adjust-parameters` about the "default telemetry panel" is
+  now stale (telemetry is closed by default); the spec still passes.
+- Still standing: the node-detail drawer auto-opens on selection (→ inspector popover, §13) and the
+  timeline scrubber is always rendered (→ 4.4 overlay). These are the next 0.4 demotions.
+- Panels remain docked in `app-layout` (not overlays); the palette toggles are the interim reachability.
+
+**New improvement opportunities**
+- Add a `$panels` → `$urlState.panels` mirror so a toggled panel is deep-linkable (the field is currently
+  hydrate-only), and a HUD "Panels" menu derived from `view.panel.*`.
+- Convert the node-detail drawer to a pinned inspector card / overlay so selection stops opening a
+  standing right panel.
+- Move telemetry content into the HUD expansion (sparkline + `s-table-mini`) per the migration table,
+  retiring the bottom panel.
 
 
 

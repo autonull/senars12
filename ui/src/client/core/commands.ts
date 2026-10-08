@@ -8,10 +8,26 @@
 
 import { eventBus } from './events.js';
 import { overlays } from './overlay-registry.js';
-import { $activeRenderer } from './store.js';
+import { $activeRenderer, $panels } from './store.js';
 import { workspaceRenderers } from './workspace-renderer.js';
 
 export type CommandArgs = Record<string, unknown>;
+
+const PANEL_LABELS: Record<string, string> = {
+  config: 'Configuration',
+  telemetry: 'Telemetry',
+  chat: 'Chat History',
+  search: 'Search',
+  'lens-designer': 'Lens Designer',
+};
+
+const togglePanel = (id: string): void => {
+  const panels = new Map($panels.get());
+  const panel = panels.get(id);
+  if (!panel) return;
+  panels.set(id, { ...panel, open: !panel.open });
+  $panels.set(panels);
+};
 
 export interface Command {
   readonly id: string;
@@ -56,6 +72,15 @@ const derivedCommands = (): Command[] => [
         run: (args) => eventBus.emit('overlay:open', { id: overlay.id, ref: args?.ref as string | undefined }),
       })
     ),
+  ...[...$panels.get().keys()].map(
+    (id): Command => ({
+      id: `view.panel.${id}`,
+      title: `Toggle ${PANEL_LABELS[id] ?? id}`,
+      group: 'View',
+      keywords: `panel toggle show hide ${id}`,
+      run: () => togglePanel(id),
+    })
+  ),
   {
     id: 'view.fit',
     title: 'Fit view',
