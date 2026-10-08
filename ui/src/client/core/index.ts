@@ -79,6 +79,14 @@ export {
 } from './lm-provider.js';
 export { refreshLmStatus, switchLmProvider } from './lm-transport.js';
 export { type Neighbor, type Neighborhood, neighborhood } from './neighborhood.js';
+export { narsBackend, NAL_VOCABULARY } from './nars-backend.js';
+export {
+  type BackendEdge,
+  type BackendNode,
+  type BackendSnapshot,
+  type BackendVocabulary,
+  type ReasoningBackend,
+} from './reasoning-backend.js';
 export { FocusTrap } from './focus-trap.js';
 export {
   breadcrumb,
@@ -260,7 +268,7 @@ export {
   claimId,
   linkId,
   projectChat,
-  projectGraph,
+  projectReasoning,
   projectWorkspace,
   turnId,
   type WorkspaceFragment,

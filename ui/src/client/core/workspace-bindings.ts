@@ -1,14 +1,15 @@
 /**
  * The live seam between client state and the workspace substrate (§0.2). The
  * pure projection in `workspace-projection.ts` turns the chat log and the
- * engine graph — themselves produced by the existing bridge/`GRAPH_REDUCERS`
- * path — into `WorkspaceOps`-equivalent content; this binding keeps
- * `$workspaceGraph` in step with them, so the workspace renders the real
- * session without re-owning the graph's event behavior. Session state
- * (`focus`/`selection`/`timeCursor`) is carried across re-projections because it
- * is not event-sourced.
+ * attached reasoning backend's substrate — the latter itself produced by the
+ * existing bridge/`GRAPH_REDUCERS` path — into `WorkspaceOps`-equivalent
+ * content; this binding keeps `$workspaceGraph` in step with them, so the
+ * workspace renders the real session without re-owning the graph's event
+ * behavior. Session state (`focus`/`selection`/`timeCursor`) is carried across
+ * re-projections because it is not event-sourced.
  */
 
+import { narsBackend } from './nars-backend.js';
 import { $chatMessages, $graphEdges, $graphNodes, $workspaceGraph } from './store.js';
 import { projectWorkspace } from './workspace-projection.js';
 import type { WorkspaceGraph } from './workspace-graph.js';
@@ -16,11 +17,7 @@ import type { WorkspaceGraph } from './workspace-graph.js';
 /** Re-project current client state into `$workspaceGraph`, preserving session state. */
 export function syncWorkspaceGraph(): WorkspaceGraph {
   const previous = $workspaceGraph.get();
-  const next = projectWorkspace({
-    messages: $chatMessages.get(),
-    nodes: $graphNodes.get(),
-    edges: $graphEdges.get(),
-  });
+  const next = projectWorkspace({ messages: $chatMessages.get(), backend: narsBackend });
   next.focus = previous.focus;
   next.selection = previous.selection;
   next.timeCursor = previous.timeCursor;

@@ -37,8 +37,9 @@ Size legend: **S** ≈ under half a day · **M** ≈ about a day · **L** ≈ mu
 
 Ordered by leverage on the critical path; `→` files are the likely edit surface.
 
-1. **`0.6 backend seam`** (L) — the LM half landed (façade + Provider overlay + engine registry); the
-   **`ReasoningBackend`** contract + adapter seam is what WP5 still waits on. `→ core/`
+1. **`0.6 backend seam`** (M) — both read halves landed (LM façade + `ReasoningBackend` contract and
+   NARS adapter); what is left is the *control* half (`submit`/`step`/`run`), which belongs with the
+   **`3.6` steer/author** producers. `→ core/`
 2. **`1.5/1.1 section model`** (L) — unblocks `1.5 page` and notebook depth. `→ toc.ts`,
    `workspace-graph.ts`, `renderers/notebook.ts`
 3. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
@@ -66,8 +67,10 @@ Cross-cutting constraints that gate multiple items — each is a work order: fir
   backend/provider interface and adapt the real `lm.status`/`lm.switch`. *Done when:* provider
   switching, the Provider/Config split, and `config-hud` `embedded` are wired against the façade.
   Landed except `config-hud embedded`: `core/lm-provider.ts` (state) + `core/lm-transport.ts`
-  (wire), the `provider` overlay, the server answering a switch with a status. **Still open:** the
-  `ReasoningBackend` half WP5 needs.
+  (wire), the `provider` overlay, the server answering a switch with a status. **Still open:** nothing
+  on the LM side; the `ReasoningBackend` half WP5 needed is landed too (`core/reasoning-backend.ts`
+  + `core/nars-backend.ts`) — what it does *not* carry is the control half (`submit`/`step`/`run`),
+  which is `3.6` work, not contract work.
 - **Section model** — blocks **`1.5 page`**. *First step:* recurse `roots` + heading `level`s into a
   section tree in `core/toc.ts`. *Done when:* pages/ToC are non-shallow and `page` is URL-addressable.
 - **Node→workspace-block mapping** — blocks the inspector half of **`4.3 affordances`** and richer
@@ -104,6 +107,13 @@ Landed extension points — wire features here instead of re-deriving them.
   `providerUsable`) + `core/lm-transport.ts` (`refreshLmStatus`, `switchLmProvider`): read the
   provider state, never the `lm.status` payload; request a switch through the transport, never a raw
   `lm.switch`.
+- **Reasoning backend** — `core/reasoning-backend.ts` (`ReasoningBackend`, `BackendVocabulary`,
+  `BackendNode`/`BackendEdge`/`BackendSnapshot`) + `core/nars-backend.ts` (`narsBackend`, adapter #1;
+  `NAL_VOCABULARY`): take engine-specific node/edge kinds, labels, text fallbacks and the truth
+  vocabulary to the adapter, and keep the projection engine-agnostic. Add a second engine (WP5 `3.7`)
+  by implementing another `ReasoningBackend` and handing it to `projectWorkspace`, not by branching
+  in the projection. `projectGraph` is gone — the reasoning producer is `projectReasoning(backend,
+  exclude)`.
 - **Renderers** — `core/workspace-renderer.ts` (`registerRenderer`, caps/`controls`,
   `workspaceRendererIds`); `components/renderers/*`.
 - **State / URL** — `core/store.ts` (`$urlState`, `setUrlState`, `mirrorAtom`, `hydrateFromUrl`,
@@ -144,10 +154,18 @@ Landed extension points — wire features here instead of re-deriving them.
   as `stale` in the UI rather than as a silent success. The Provider/Configuration split is real —
   a `provider` overlay (registered, so the palette entry and `overlay.provider` derive themselves)
   and the settings overlay retitled **Configuration**; the HUD provider chip and the status strip
-  are read-only views of the same state (`$lmStatus` is gone). Remaining: the **`ReasoningBackend`**
-  contract + adapter seam (the half WP5 waits on), `config-hud` `embedded` mode (no second host
-  exists yet, so a mode now would be dead API), and the `CapabilityHost` mixin form once a component
-  gates its whole presence. `→ core/lm-provider.ts`, `core/lm-transport.ts`,
+  are read-only views of the same state (`$lmStatus` is gone). Landed the **reasoning half** as
+  `core/reasoning-backend.ts` (`ReasoningBackend`, `BackendVocabulary`, `BackendNode`/`BackendEdge`/
+  `BackendSnapshot`) + `core/nars-backend.ts` (adapter #1 over `$graphNodes`/`$graphEdges`): the
+  NARS/MeTTa vocabulary — node kind → block kind, edge kind → link kind, the `label→term→atom→id`
+  fallback, the `nal` truth label — moved out of the projection into the adapter, and
+  `projectGraph(nodes, edges, exclude)` became **`projectReasoning(backend, exclude)`**, so a second
+  engine is an adapter, not a branch. Remaining: the **control half** (`submit`/`step`/`run` +
+  `BackendCaps`), which is a claim about producers the wire does not carry yet and therefore belongs
+  with **`3.6` steer/author** rather than here; `config-hud` `embedded` mode (no second host exists
+  yet, so a mode now would be dead API); and the `CapabilityHost` mixin form once a component gates
+  its whole presence. `→ core/lm-provider.ts`, `core/lm-transport.ts`, `core/reasoning-backend.ts`,
+  `core/nars-backend.ts`, `core/workspace-projection.ts`,
   `components/overlays/{provider,settings}.ts`, `server/index.ts`. `(c)`,`(aa)`,`(m)`,`(k)`,`(f)`
 
 ## WP2 — State & URL consolidation
@@ -273,8 +291,10 @@ Landed extension points — wire features here instead of re-deriving them.
 *Outcome: the `reasoning` capability end-to-end. Deps: WP3; needs `0.6`.*
 
 - [ ] **3.1 projection** — map NAR concepts/events → blocks/links: beliefs, goals, questions,
-  derivations, revisions, contradictions, budget events, gate decisions.
-  `→ core/workspace-projection.ts`, `core/graph-projection.ts`. `(Phase 3)`
+  derivations, revisions, contradictions, budget events, gate decisions. The backend seam landed, so
+  this is now **vocabulary work** — new node/edge kinds and the block/link kinds they become, declared
+  in `core/nars-backend.ts` — rather than engine-shaped code inside the projection.
+  `→ core/nars-backend.ts`, `core/workspace-projection.ts`, `core/graph-projection.ts`. `(Phase 3)`
 - [ ] **3.2 formalization** — claim → candidate → gate admission → belief/goal/question, visible in both
   renderers; route `claim`/`question` composer children through it; emit `asks`/`answers` links;
   special-case structured modes in `projectChat`; server `mode`/`contexts` consumption.
@@ -295,7 +315,9 @@ Landed extension points — wire features here instead of re-deriving them.
   actions; live reaction as new blocks/links. Also the **`config-change` producer** (emit the landed
   diff payload on settings changes). `→ core/commands.ts`, `components/overlays/block-menu.ts`,
   `core/workspace-graph.ts`. `(Phase 3)`
-- [ ] **3.7 MeTTa** — adapter feeding the same substrate; one scenario through it. `→ core/` adapter. `(Phase 3)`
+- [ ] **3.7 MeTTa** — adapter feeding the same substrate; one scenario through it. The seam is ready
+  (`ReasoningBackend`): implement `core/metta-backend.ts` with its own `vocab`/`kind` and pass it to
+  `projectWorkspace` — no projection change. `→ core/metta-backend.ts`. `(Phase 3)`
 - [ ] **2.3 node ops** — node-creating ops from the graph ("Ask as question" / "Assert as claim" →
   `WorkspaceOp.block.add`); reconcile cross-fragment context refs in `projectWorkspace`.
   `→ core/workspace-projection.ts`, `components/renderers/graph.ts`. `(o)`,`(p)`,`(m)`
@@ -480,3 +502,17 @@ in v3 Appendix D). Rolled up:
   partially landed** — the `ReasoningBackend` contract is still to do. Suite **348 green** (new:
   façade normalization/pending/stale, provider overlay, HUD chip). VISUAL: the HUD provider chip and
   the LM strip text changed, so baselines need regenerating with the rest of the pending sweep.
+- **WP1 backend seam (reasoning half)** — `core/reasoning-backend.ts`: the `ReasoningBackend`
+  contract (`id`/`kind`/`vocab`/`snapshot()`) with `BackendVocabulary`, `BackendNode`, `BackendEdge`
+  and `BackendSnapshot`; `core/nars-backend.ts`: adapter #1 over `$graphNodes`/`$graphEdges`
+  (`narsBackend`, `NAL_VOCABULARY`), memoised on the identity of the two engine maps so a chat-only
+  re-projection reuses one snapshot. The projection's `NODE_KINDS`/`EDGE_KINDS` tables and its
+  `label→term→atom→id`, `typeof confidence === 'number'` and hardcoded `'nal'` assumptions all moved
+  into the adapter, and `projectGraph(nodes, edges, exclude)` became
+  **`projectReasoning(backend, exclude)`** — `projectWorkspace({ messages, backend })` takes the
+  backend explicitly and `syncWorkspaceGraph` passes `narsBackend`. Behaviour-preserving: same
+  blocks, links, ids and ordering, now resolved through the backend's vocabulary. **`0.6` further
+  landed** — only the control half (`submit`/`step`/`run`, `BackendCaps`) remains, and it belongs
+  with **`3.6`**. Suite **353 green** (new: NARS record normalization + label/text fallbacks +
+  confidence guarding, snapshot memoisation, and a second adapter — `proof-checked` truth, its own
+  node/edge kinds — projecting through the same engine-agnostic code).

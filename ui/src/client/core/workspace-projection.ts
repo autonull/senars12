@@ -2,16 +2,19 @@
  * Projection from the current client state into the WorkspaceGraph (§0.2). The
  * chat log projects to ordered `turn` blocks with `responds-to`/`supports`/
  * `contradicts`/`derived-from` discourse links (and `references` when a turn
- * follows up on a block) ; the engine graph projects to
- * `claim` blocks with `derived-from`/`references` links and engine uncertainty.
- * The projection is deterministic (stable ids, sorted graph blocks), so a
- * streaming reparse yields identical blocks and the existing graph/event
- * behavior is preserved rather than re-owned.
+ * follows up on a block); whatever reasoning backend is attached projects its
+ * substrate to `claim`/`tool-call` blocks with `derived-from`/`references` links
+ * and the engine's own uncertainty. Both producers are pure and deterministic
+ * (stable ids, sorted graph blocks), so a streaming reparse yields identical
+ * blocks and the existing graph/event behavior is preserved rather than
+ * re-owned.
  */
 
-import type { ChatMessage, GraphNodeData } from '@senars/core';
+import type { ChatMessage } from '@senars/core';
 import { decomposeForMode, DEFAULT_COMPOSER_MODE, isComposerMode } from './composer-modes.js';
 import { isFaithfulDecomposition } from './input-decomposition.js';
+import { NAL_VOCABULARY } from './nars-backend.js';
+import type { ReasoningBackend } from './reasoning-backend.js';
 import { segmentText } from './segmentation.js';
 import type {
   BlockKind,
@@ -47,7 +50,7 @@ const ROLE_MAP = {
 >;
 
 const uncertaintyFrom = (truth?: { frequency: number; confidence: number }): Uncertainty | undefined =>
-  truth ? { frequency: truth.frequency, confidence: truth.confidence, vocabulary: 'nal' } : undefined;
+  truth ? { frequency: truth.frequency, confidence: truth.confidence, vocabulary: NAL_VOCABULARY } : undefined;
 
 const link = (
   source: Ref,
@@ -169,26 +172,20 @@ export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment
   return { blocks, links, roots };
 }
 
-const NODE_KINDS: Record<GraphNodeData['nodeType'], BlockKind> = {
-  'nar:concept': 'claim',
-  'metta:atom': 'claim',
-  'metta:skill': 'tool-call',
-};
-
-const EDGE_KINDS: Record<string, SemanticLinkKind> = {
-  derivation: 'derived-from',
-  support: 'supports',
-  contradiction: 'contradicts',
-  revision: 'revises',
-  reference: 'references',
-};
-
-/** Project the engine graph into claim/tool blocks with provenance and reference links. */
-export function projectGraph(
-  nodes: ReadonlyMap<Ref, GraphNodeData>,
-  edges: ReadonlyMap<Ref, Record<string, unknown>>,
+/**
+ * Project a reasoning backend's substrate into claim/tool blocks with
+ * provenance links. Everything engine-specific — which node kind is a claim,
+ * which edge kind is a derivation, what the truth values are called — arrives
+ * through the adapter's vocabulary; an unmapped kind degrades to the generic
+ * `claim`/`references` pair rather than disappearing.
+ */
+export function projectReasoning(
+  backend: ReasoningBackend,
   exclude: ReadonlySet<Ref> = new Set()
 ): WorkspaceFragment {
+  const { nodes, edges } = backend.snapshot();
+  const { nodes: nodeKinds, edges: edgeKinds } = backend.vocab;
+
   const blocks: SemanticBlock[] = [];
   const links: SemanticLink[] = [];
   const roots: Ref[] = [];
@@ -197,16 +194,16 @@ export function projectGraph(
     if (exclude.has(id)) continue;
     const node = nodes.get(id);
     if (!node) continue;
-    const kind = NODE_KINDS[node.nodeType] ?? 'claim';
+    const kind = nodeKinds[node.kind] ?? 'claim';
     const blockId = claimId(id);
     blocks.push({
       id: blockId,
       kind,
       role: kind === 'tool-call' ? 'tool' : 'reasoner',
-      title: node.label ?? node.term ?? node.atom ?? id,
-      text: node.term ?? node.atom,
-      data: node,
-      uncertainty: uncertaintyFrom(node.truth),
+      title: node.label,
+      text: node.text,
+      data: node.attrs,
+      uncertainty: node.uncertainty,
       status: 'complete',
       createdAt: 0,
       createdBy: 'reasoner',
@@ -216,16 +213,16 @@ export function projectGraph(
 
   const blockIds = new Set(blocks.map((block) => block.id));
   for (const [id, edge] of [...edges.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-    const source = claimId(String(edge.source));
-    const target = claimId(String(edge.target));
+    const source = claimId(edge.source);
+    const target = claimId(edge.target);
     if (!blockIds.has(source) || !blockIds.has(target)) continue;
-    const kind: SemanticLinkKind = EDGE_KINDS[String(edge.type)] ?? 'references';
+    const kind = edgeKinds[edge.kind] ?? 'references';
     links.push({
       id: linkId(source, target, kind),
       source,
       target,
       kind,
-      confidence: typeof edge.confidence === 'number' ? edge.confidence : undefined,
+      confidence: edge.confidence,
       eventRefs: id ? [id] : undefined,
       createdBy: 'reasoner',
     });
@@ -247,9 +244,8 @@ const merge = (fragments: readonly WorkspaceFragment[]): WorkspaceGraph => {
 /** Project the whole current client state into one WorkspaceGraph. */
 export function projectWorkspace(state: {
   messages: readonly ChatMessage[];
-  nodes: ReadonlyMap<Ref, GraphNodeData>;
-  edges: ReadonlyMap<Ref, Record<string, unknown>>;
+  backend: ReasoningBackend;
 }): WorkspaceGraph {
   const messageIds = new Set(state.messages.map((message) => message.id));
-  return merge([projectChat(state.messages), projectGraph(state.nodes, state.edges, messageIds)]);
+  return merge([projectChat(state.messages), projectReasoning(state.backend, messageIds)]);
 }

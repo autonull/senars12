@@ -1,19 +1,19 @@
 import type { ChatMessage, GraphNodeData } from '@senars/core';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { narsBackend } from '../../src/client/core/nars-backend.js';
+import { $graphEdges, $graphNodes } from '../../src/client/core/store.js';
 import {
   childId,
   claimId,
   linkId,
   projectChat,
-  projectGraph,
+  projectReasoning,
   projectWorkspace,
   rawChildId,
   turnId,
 } from '../../src/client/core/workspace-projection.js';
 
-const message = (
-  over: Partial<ChatMessage> & Pick<ChatMessage, 'id' | 'role'>
-): ChatMessage => ({
+const message = (over: Partial<ChatMessage> & Pick<ChatMessage, 'id' | 'role'>): ChatMessage => ({
   content: '',
   timestamp: 0,
   parentId: null,
@@ -36,6 +36,17 @@ const must = <T>(value: T | undefined): T => {
   if (value === undefined) throw new Error('expected a projected block');
   return value;
 };
+
+/** The engine graph the NARS adapter reads, written straight into the store atoms. */
+const engine = (
+  nodes: GraphNodeData[] = [],
+  edges: [string, Record<string, unknown>][] = []
+): void => {
+  $graphNodes.set(new Map(nodes.map((node) => [node.id as string, node])));
+  $graphEdges.set(new Map(edges));
+};
+
+beforeEach(() => engine());
 
 describe('chat projection', () => {
   it('projects ordered turn blocks with mapped roles', () => {
@@ -148,13 +159,13 @@ describe('chat projection', () => {
   });
 });
 
-describe('graph projection', () => {
+describe('reasoning projection', () => {
   it('projects engine nodes to typed blocks with uncertainty', () => {
-    const nodes = new Map<string, GraphNodeData>([
-      ['bird', node('bird', { truth: { frequency: 0.9, confidence: 0.8 } })],
-      ['skill:x', node('skill:x', { nodeType: 'metta:skill' })],
+    engine([
+      node('bird', { truth: { frequency: 0.9, confidence: 0.8 } }),
+      node('skill:x', { nodeType: 'metta:skill' }),
     ]);
-    const fragment = projectGraph(nodes, new Map());
+    const fragment = projectReasoning(narsBackend);
     const bird = must(fragment.blocks.find((b) => b.id === claimId('bird')));
     expect(bird.kind).toBe('claim');
     expect(bird.uncertainty).toEqual({ frequency: 0.9, confidence: 0.8, vocabulary: 'nal' });
@@ -162,34 +173,45 @@ describe('graph projection', () => {
   });
 
   it('projects derivations, unknown edges, and skips dangling endpoints', () => {
-    const nodes = new Map<string, GraphNodeData>([['a', node('a')], ['b', node('b')]]);
-    const edges = new Map<string, Record<string, unknown>>([
-      ['e1', { source: 'a', target: 'b', type: 'derivation' }],
-      ['e2', { source: 'b', target: 'a', type: 'mystery', confidence: 0.3 }],
-      ['e3', { source: 'a', target: 'ghost', type: 'derivation' }],
-    ]);
-    const fragment = projectGraph(nodes, edges);
+    engine(
+      [node('a'), node('b')],
+      [
+        ['e1', { source: 'a', target: 'b', type: 'derivation' }],
+        ['e2', { source: 'b', target: 'a', type: 'mystery', confidence: 0.3 }],
+        ['e3', { source: 'a', target: 'ghost', type: 'derivation' }],
+      ]
+    );
+    const fragment = projectReasoning(narsBackend);
     expect(fragment.links.map((l) => l.kind)).toEqual(['derived-from', 'references']);
     expect(fragment.links[1].confidence).toBe(0.3);
     expect(fragment.links).toHaveLength(2);
   });
 
   it('is deterministic under shuffled insertion order', () => {
-    const a = projectGraph(new Map([['b', node('b')], ['a', node('a')]]), new Map());
-    const b = projectGraph(new Map([['a', node('a')], ['b', node('b')]]), new Map());
+    $graphNodes.set(
+      new Map([
+        ['b', node('b')],
+        ['a', node('a')],
+      ])
+    );
+    const a = projectReasoning(narsBackend);
+    $graphNodes.set(
+      new Map([
+        ['a', node('a')],
+        ['b', node('b')],
+      ])
+    );
+    const b = projectReasoning(narsBackend);
     expect(a.roots).toEqual(b.roots);
     expect(a.roots).toEqual([claimId('a'), claimId('b')]);
   });
 });
 
 describe('workspace projection', () => {
-  it('merges chat and graph, excluding graph nodes that are chat messages', () => {
+  it('merges chat and reasoning, excluding nodes that are chat messages', () => {
     const messages = [message({ id: 'u1', role: 'user' }), message({ id: 'm1', role: 'agent' })];
-    const nodes = new Map<string, GraphNodeData>([
-      ['m1', node('m1')],
-      ['bird', node('bird')],
-    ]);
-    const graph = projectWorkspace({ messages, nodes, edges: new Map() });
+    engine([node('m1'), node('bird')]);
+    const graph = projectWorkspace({ messages, backend: narsBackend });
     expect(graph.roots).toEqual([turnId('u1'), turnId('m1'), claimId('bird')]);
     expect(graph.blocks.has(claimId('m1'))).toBe(false);
   });
