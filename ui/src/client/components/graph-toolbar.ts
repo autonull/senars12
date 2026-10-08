@@ -6,6 +6,7 @@ import {
   $capabilityFilter,
   $connectionState,
   $graphNodes,
+  $graphShape,
   $lensLayout,
   $panels,
   $selectedNodeIds,
@@ -118,6 +119,7 @@ export class GraphToolbar extends BaseComponent {
     this.watch($connectionState);
     this.watch($panels);
     this.watch($viewportMode);
+    this.watch($graphShape);
     this.watchWith($viewport, (vp) => {
       this.zoom = vp.zoom;
     });
@@ -193,6 +195,9 @@ export class GraphToolbar extends BaseComponent {
       <button class="toolbar-btn ${this.viewportMode === '3d' ? 'active' : ''}"
         @click=${this.toggleViewportMode} title="Toggle 2D/3D viewport">3D</button>
 
+      <button class="toolbar-btn ${$graphShape.get() === 'table' ? 'active' : ''}"
+        @click=${this.toggleGraphShape} title="Toggle graph/table view">Table</button>
+
       ${
         this.multiSelectCount > 0
           ? html`
@@ -253,6 +258,10 @@ export class GraphToolbar extends BaseComponent {
   private toggleViewportMode() {
     const current = $viewportMode.get();
     $viewportMode.set(current === '2d' ? '3d' : '2d');
+  }
+
+  private toggleGraphShape() {
+    $graphShape.set($graphShape.get() === 'table' ? 'graph' : 'table');
   }
 
   private handleSearch(value: string) {

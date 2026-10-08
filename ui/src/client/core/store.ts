@@ -9,7 +9,7 @@ import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../m
 import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 import { getSurfaces } from './surface-registry.js';
 import { viewAdapters } from './view-adapter.js';
-import type { ViewSelection } from './view-spec.js';
+import type { Shape, ViewSelection } from './view-spec.js';
 
 type Listener<T> = (value: T) => void;
 type Unsubscriber = () => void;
@@ -137,6 +137,9 @@ export const $graphFilter = atom<string | null>(null);
 // --- Phase 6: Viewport mode (2D/3D toggle) ---
 export type ViewportMode = '2d' | '3d';
 export const $viewportMode = atom<ViewportMode>('2d');
+
+/** The shape the graph surface renders as: the viewport or its tabular alternative. */
+export const $graphShape = atom<Shape>('graph');
 
 // --- Batch 4: Capability-based filtering ---
 export const $capabilityFilter = atom<string | 'all'>('all');
@@ -462,6 +465,7 @@ const storeAtoms = {
   lensFields: $lensFields,
   nodeHistory: $nodeHistory,
   viewportMode: $viewportMode,
+  graphShape: $graphShape,
 } satisfies Record<string, ReadableAtom<unknown>>;
 
 export type TestApiStorePath = keyof typeof storeAtoms;

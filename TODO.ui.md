@@ -1089,6 +1089,65 @@ rather than a `satisfies` against a schema.
 
 ---
 
+### Session 19 — Phase 4.6: graph → graph/table (2026-10-08)
+
+**Landed**
+
+- **4.6 (partial) — the graph gained a tabular shape.** `$graphShape` (`Shape`, default `'graph'`) is a
+  store atom, exported from the barrel and listed in the test-API store map, so the graph's shape is
+  addressable state rather than component-local. `app-layout` renders the graph as `<s-view
+  chrome=false>` over the new `GRAPH_VIEW_SPEC` when the shape is `'table'`, and the 2D/3D viewport
+  otherwise (the `$viewportMode` conditional it already owned).
+- **4.6 (partial) — `graphTable`.** New `views/graph-table.ts` projects `$graphNodes` into a
+  `TableDataset` (Term · Type · Priority · Confidence). It is the graph canvas's text alternative and
+  the dataset the table adapter renders — no second renderer. `views/graph-view-spec.ts` wraps it in
+  `GRAPH_VIEW_SPEC` (`shapes: ['table']`, `source: viewSource($graphNodes, graphTable)`).
+- **4.5 — table row ↔ inspector.** `app-layout` maps `$viewSelection.focus` (written by the
+  `ViewHost` on a row click) onto `$selectedNodeId`, so selecting a concept in the table opens the same
+  node-detail drawer a graph click does.
+- **Toolbar control.** `graph-toolbar` gained a `Table` toggle next to `3D`, bound to `$graphShape`
+  (discoverable shape switch without the view host's chrome).
+- **Tests + baseline.** `tests/components/graph-view.test.ts` (4): the projection's columns/rows, the
+  term→label→id fallback, `GRAPH_VIEW_SPEC`'s table source over `$graphNodes`, and subscriber
+  forwarding. New visual cell `graph-table` (scenario `basic-derivation`, sets `graphShape` through the
+  test-API store and captures the table).
+
+**Verification**
+
+- `pnpm --dir ui typecheck` clean; `pnpm --dir ui test:unit` **73/73** (13 files; +4); `biome lint
+  --diagnostic-level=error` clean on all 8 changed files.
+- Chromium visual suite **11/11**: the new `graph-table` baseline generated and stable on a re-run;
+  `graph-narrow` regenerated (the added toolbar button wraps the toolbar at the 640px breakpoint — the
+  one cell whose pixels moved; the other nine stayed within the 1% ratio).
+
+**Still open in Phase 4**
+
+- **4.6 — the `graph` shape is still the store-driven viewport seam**, not a `ViewSpec`-sourced
+  adapter; switching to `table` unmounts `graph-viewport` (destroying cytoscape and losing the current
+  layout/viewport on switch back). Truly sourcing the viewport from a `ViewSpec` is 4.6/8.5.
+- **4.6 — provenance→tree/table/graph** and **event log→text/table** remain blocked (no client data
+  sources — Phases 6.2/6.6); **config→form/table** has no `form` shape in the view system.
+- **4.7/4.8** — views are embedded in telemetry, metrics and now the graph table; no adapter has a
+  mini/compact graph cell, and the matrix is still hand-curated.
+
+**New opportunities spotted** *(Session 19)*
+
+- A graph `ViewSpec`/adapter that reads a source instead of the store would let the shape switch
+  preserve cytoscape state (and make the 4.4 `mini-graph` real): the table already proves the source
+  side; only the viewport remains store-coupled (4.6/8.5).
+- Render a visually-hidden `<s-table>` **alongside** the `graph` shape so the canvas always has a text
+  alternative for screen readers, rather than only when the user switches shapes (7.4).
+- Extend `graphTable` with edge rows (or an `edges` table) and route truth/priority through
+  `FieldDescriptor` so the table columns and the node drawer share one field vocabulary (3.3/6.1).
+- A separately-imported component module that calls `defineSurface` can, under vitest/jsdom, miss its
+  `customElements.define` depending on module-eval order (the first `<graph-view>` element was dropped
+  for exactly this); consolidating the graph branch back into `app-layout` avoided it. Worth making
+  surface registration robust to eval order (define lazily, or register in a test setup).
+- Put the graph table's source in the same spec registry as telemetry's (Session 18) so the command
+  palette and URL address every view spec uniformly (5.2).
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -1369,9 +1428,9 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [x] **4.3** `ViewHost` (`<s-view>`): adapter resolution by shape+budget, shared chrome (title/export/fullscreen/shape switcher), container-query sizing, descriptor-driven states. *(done: `view-host.ts` resolves the adapter by shape+budget, mounts the registry tag via `lit/static-html`, projects the dataset, and owns title/shape-switcher/fullscreen chrome + empty/error slots; container-query sizing and export are 4.6/5.4)*
 - [ ] **4.4** Compact adapter variants for `embedded` (sparkline, key-value, mini-graph, top-N table) selected by capability. *(partial: the registry resolves the most specialized variant per shape+budget; `s-sparkline` + `s-table-mini` (key-value / top-N) landed and `s-series`/`s-table` are now full-only; mini-graph deferred — `graph` is still a store-driven seam, 4.6/8.5)*
 - [x] **4.5** Unified `ViewSelection` through the store: cross-shape highlight/link (table row ↔ graph node ↔ inspector). *(done: `$viewSelection` atom + `view-select` handling at the host; cross-shape consumers land with 4.6)*
-- [ ] **4.6** Migrate surfaces to views: telemetry→series/table, provenance→tree/table/graph, graph→graph/table, metrics→cards/table, event log→text/table, config→form/table. *(partial: `viewSource` adapts store atoms to `ViewSource`; `ViewHost` gained a chrome-less embedded mode; `metrics` renders as an embedded key-value table view and `telemetry` now renders its chart through `<s-view>` series/table — the bespoke canvas is deleted; graph/provenance/event-log/config remain, see log)*
+- [ ] **4.6** Migrate surfaces to views: telemetry→series/table, provenance→tree/table/graph, graph→graph/table, metrics→cards/table, event log→text/table, config→form/table. *(partial: `viewSource` adapts store atoms to `ViewSource`; `ViewHost` gained a chrome-less embedded mode; `metrics` renders as an embedded key-value table view and `telemetry` now renders its chart through `<s-view>` series/table — the bespoke canvas is deleted; `graph` renders its table shape through `<s-view>` over `GRAPH_VIEW_SPEC` with a toolbar shape toggle (the viewport stays the store-driven `graph` seam); provenance/event-log/config remain, see log)*
 - [ ] **4.7** Embed views everywhere: inspector cards, left rail, bottom drawer, chat (inline sparkline/mini-graph/top-N), demo player.
-- [ ] **4.8** Matrix coverage for shape × budget × state; determinism + visual baselines for each adapter.
+- [ ] **4.8** Matrix coverage for shape × budget × state; determinism + visual baselines for each adapter. *(partial: the `graph-table` cell baselines the graph's table shape; the graph viewport and other adapters still lack cells)*
 
 **Verification:** the same dataset renders identically in full-screen and embedded; switching shape preserves selection/lens/time; zero bespoke chart/table/list renderers remain for migrated surfaces.
 **Deliverable:** one view system for graphs, charts, tables, and trees, in any context.

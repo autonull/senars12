@@ -50,6 +50,23 @@ export const VISUAL_CELLS: VisualCell[] = [
     hash: '#panels=none',
   },
   {
+    id: 'graph-table',
+    group: 'Graph',
+    title: 'Graph as table — concepts',
+    scenario: 'basic-derivation',
+    hash: '#panels=none',
+    prepare: async ({ page }) => {
+      await page.evaluate(() => {
+        (
+          (window as Record<string, unknown>).__testApi as {
+            store?: { setState?: (path: string, value: unknown) => void };
+          }
+        )?.store?.setState?.('graphShape', 'table');
+      });
+      await page.waitForTimeout(200);
+    },
+  },
+  {
     id: 'graph-goal-lens',
     group: 'Lenses',
     title: 'Goal lens — concentric by priority',

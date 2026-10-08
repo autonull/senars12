@@ -15,6 +15,7 @@ export {
   $graphFilter,
   $graphMeta,
   $graphNodes,
+  $graphShape,
   $lastSeqId,
   $lensFields,
   $lensLayout,
