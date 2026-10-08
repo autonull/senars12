@@ -736,6 +736,56 @@
 
 ---
 
+### Session 12 — Phase 3.7: reflective surface contract (2026-10-08)
+
+**Landed**
+
+- **3.7 — `SurfaceComponent` + `defineSurface`.** New `ui/src/client/core/surface.ts` is the
+  reflective component contract: a surface declares a `SurfaceDescriptor` (`id · title · tag? ·
+  bindings?`) and implements only `renderBody`; the base owns store wiring (declarative `bindings`
+  watched once), the `loading|empty|error|ready` slots via `surfaceState()`, and a test API derived
+  from the descriptor (`{ descriptor, state, snapshot }` + a `surfaceApi()` hook). `defineSurface(
+  descriptor, ctor)` binds the descriptor, derives the tag (`s-${id}` or explicit `tag`), and defines
+  the element exactly once.
+- **3.7 — first surface migrated.** `contradiction-badge` drops `@customElement` for `defineSurface`,
+  stops hand-wiring `$graphNodes`/`$graphFilter` (now declared as `bindings`, watched by the base) and
+  derives its empty state through `surfaceState`, keeping only the pulse side-effect in
+  `connectedCallback`. Its tag is preserved via `tag: 'contradiction-badge'`; it now exposes
+  `__testApi['contradiction-badge']` (a snapshot of its two bindings) where it had none.
+- **Tests.** `ui/tests/components/surface.test.ts` (4): tag derives from id and registers
+  idempotently; one slot per lifecycle state; declared bindings re-render through the base lifecycle;
+  the reflective API is mounted from the descriptor (`descriptor`/`state`/`snapshot` + `surfaceApi`
+  hook).
+
+**Verification**
+
+- `pnpm --dir ui exec tsc --noEmit` clean; `pnpm --dir ui build` succeeds; `biome lint
+  --diagnostic-level=error` clean on the four files.
+- UI unit **31/31** (4 files; +4 surface). Chromium visual suite **10/10** unchanged (badge markup is
+  identical; `graph-conflict-lens` still renders it).
+
+**Still open in Phase 3**
+
+- **3.8–3.10 untouched** — `renderField`, reflective generators (story/gallery/a11y/docs from
+  `defineSurface`), guard scripts.
+- **3.7 follow-ons** — only `contradiction-badge` is on the contract; the other feature components
+  still use `@customElement` + hand-wired `mountTestApi` (`telemetry`, `timeline`, `graph`,
+  `spacegraph`). The descriptor is deliberately minimal (no `shapes`/`levels`/`a11y`/`states` yet) —
+  3.9/4.1/5.4/7.7 extend it. Empty/loading/error copy is still per-surface methods, not descriptor
+  data.
+
+**New opportunities spotted** *(Session 12)*
+
+- Migrate the hand-wired test-API surfaces (`telemetry`, `timeline`, `graph`, `spacegraph`) next:
+  most of their API is a `snapshot` + `interact`, which `SurfaceDescriptor.bindings`/`surfaceApi`
+  already express; this removes four bespoke `mountTestApi` blocks.
+- Having `defineSurface` also augment `HTMLElementTagNameMap` would delete every per-component
+  `declare global` block — worth a typed overload.
+- `surfaceState` derived from bindings (e.g. `empty` when a declared collection is empty) is a
+  repeated pattern; a descriptor-level `emptyWhen`/`readyWhen` predicate would make states data (5.4).
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -999,7 +1049,7 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [x] **3.4** `lensCatalog` + renderer capability matrix; one validation path; generated designer form; adapters declare supported channels. *(done: `ui/src/client/utils/lens-catalog.ts` + `renderer-capabilities.ts`; `LENS_CATALOG` (`satisfies Record<BuiltinLens,…>`), `validateLens`, `CHANNEL_CATALOG`, `SCALE_MAP_CATALOG`; controller/store/layout-registry/designer migrated off duplicated lists; `adapter-2d`/`adapter-3d` declare from the matrix; guard test. Matrix not yet surfaced — see log)*
 - [x] **3.5** `layoutRegistry` SSOT with 2D/3D name maps; single `shouldRelayout`; delete the three duplicate heuristics. *(done: `LayoutDefinition.getLayout` + `surface` per-renderer names; `runLayout`/`runSurface`/`surfaceFor`/`surfaceForLens`; one `shouldRelayout`; `GraphRenderer`'s dead copy + `RendererApi.onLayout` removed; 3D layout no-op fixed; guard test. Toolbar option list still hand-listed — see log)*
 - [x] **3.6** `idSource` unification across client/projection/tests. *(done: `generateId` now takes its entropy from the installed source instead of `Math.random` (shared `minted` ledger with `makeId`); client ids import from `@senars/util` only; guard test. Browser seeding seam still open — see log)*
-- [ ] **3.7** `SurfaceComponent` + `defineSurface` + declarative `bindings`; derive registration, reflective test API, empty/loading/error slots.
+- [x] **3.7** `SurfaceComponent` + `defineSurface` + declarative `bindings`; derive registration, reflective test API, empty/loading/error slots. *(done: `ui/src/client/core/surface.ts` — descriptor-derived tag registration, watched `bindings`, `loading|empty|error|ready` slots, `{descriptor,state,snapshot}` test API; `contradiction-badge` migrated as the first surface; 4 unit tests. Remaining surfaces still hand-wired — see log)*
 - [ ] **3.8** `renderField` generic input renderer; migrate `config-hud`, `lens-designer`, `node-detail-drawer`, filters.
 - [ ] **3.9** Reflective generators: `defineSurface` emits Storybook params, gallery matrix entries, a11y targets, and docs stubs.
 - [ ] **3.10** Guard scripts: exhaustive `satisfies` checks for every registry; CI fails on missing metadata.

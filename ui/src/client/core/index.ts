@@ -59,3 +59,10 @@ export {
 } from './store.js';
 export { addUserMessage, applyServerMessage } from './store-bindings.js';
 export { connect, disconnect, send } from './ws-client.js';
+export {
+  defineSurface,
+  SurfaceComponent,
+  type SurfaceDescriptor,
+  type SurfaceState,
+  type SurfaceTestApi,
+} from './surface.js';

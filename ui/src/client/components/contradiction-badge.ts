@@ -1,9 +1,8 @@
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { $graphFilter, $graphNodes, BaseComponent } from '../core/index.js';
+import { state } from 'lit/decorators.js';
+import { $graphFilter, $graphNodes, defineSurface, SurfaceComponent } from '../core/index.js';
 
-@customElement('contradiction-badge')
-export class ContradictionBadge extends BaseComponent {
+export class ContradictionBadge extends SurfaceComponent {
   static override styles = css`
     :host { display: inline-flex; align-items: center; }
     .badge {
@@ -24,38 +23,37 @@ export class ContradictionBadge extends BaseComponent {
     .badge.pulse { animation: pulse 1s ease-in-out 3; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
   `;
-  @state() private count = 0;
   @state() private pulsing = false;
-  @state() private filterActive = false;
   private prevCount = 0;
+
+  protected override surfaceState() {
+    return this.countContradictions() === 0 ? 'empty' : 'ready';
+  }
 
   override connectedCallback() {
     super.connectedCallback();
     this.watchWith($graphNodes, () => {
-      this.count = this.countContradictions();
-      if (this.count > this.prevCount) {
+      const count = this.countContradictions();
+      if (count > this.prevCount) {
         this.pulsing = true;
         setTimeout(() => {
           this.pulsing = false;
           this.requestUpdate();
         }, 3000);
       }
-      this.prevCount = this.count;
-      this.requestUpdate();
-    });
-    this.watchWith($graphFilter, (filter) => {
-      this.filterActive = filter === 'contradiction';
+      this.prevCount = count;
     });
   }
 
-  override render() {
-    if (this.count === 0) return html``;
+  protected override renderBody() {
+    const count = this.countContradictions();
+    const filterActive = $graphFilter.get() === 'contradiction';
     return html`
-      <div class="badge ${this.pulsing ? 'pulse' : ''} ${this.filterActive ? 'filter-active' : ''}"
-        title="${this.filterActive ? 'Show all nodes' : `Filter to ${this.count} contradiction(s)`}"
+      <div class="badge ${this.pulsing ? 'pulse' : ''} ${filterActive ? 'filter-active' : ''}"
+        title="${filterActive ? 'Show all nodes' : `Filter to ${count} contradiction(s)`}"
         @click=${this.handleClick} role="button" tabindex="0">
         <span>⚡</span>
-        <span>${this.count}</span>
+        <span>${count}</span>
       </div>
     `;
   }
@@ -69,10 +67,22 @@ export class ContradictionBadge extends BaseComponent {
   }
 
   private handleClick() {
-    if (this.filterActive) {
-      $graphFilter.set(null);
-    } else {
-      $graphFilter.set('contradiction');
-    }
+    $graphFilter.set($graphFilter.get() === 'contradiction' ? null : 'contradiction');
+  }
+}
+
+defineSurface(
+  {
+    id: 'contradiction-badge',
+    title: 'Contradiction badge',
+    tag: 'contradiction-badge',
+    bindings: { graphNodes: $graphNodes, graphFilter: $graphFilter },
+  },
+  ContradictionBadge
+);
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'contradiction-badge': ContradictionBadge;
   }
 }
