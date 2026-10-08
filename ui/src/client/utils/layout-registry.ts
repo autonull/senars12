@@ -7,15 +7,26 @@
  */
 
 import type { Lens } from '@senars/core';
-import type { Core, LayoutOptions } from 'cytoscape';
-import { $lensLayout } from '../core/index.js';
+import type { Core, LayoutOptions, NodeSingular } from 'cytoscape';
+import {
+  $lensLayout,
+  $workspaceGraph,
+  CONVERSATION_LAYOUT_CATALOG,
+  CONVERSATION_LAYOUT_IDS,
+  conversationPositions,
+} from '../core/index.js';
 import { lensMeta } from './lens-catalog.js';
+
+/** Whether a layout arranges the reasoning graph or the semantic conversation. */
+export type LayoutScope = 'concept' | 'conversation';
 
 export interface LayoutDefinition {
   id: string;
   label: string;
-  /** Lenses this layout is recommended for (empty = any). */
+  /** Lenses this layout is recommended for (empty = any). Defaults to `concept`. */
   recommendedFor?: Lens[];
+  /** The substrate a layout arranges; conversation layouts are workspace-only. */
+  scope?: LayoutScope;
   /** Cytoscape (2D) options factory. */
   getLayout: (cy: Core, opts?: Record<string, unknown>) => LayoutOptions;
   /** SpaceGraph (3D) plugin name; null keeps the current node positions. */
@@ -43,6 +54,11 @@ class LayoutRegistryImpl {
 
   getAll(): LayoutDefinition[] {
     return [...this.layouts.values()];
+  }
+
+  /** Layouts of one substrate (defaults to `concept` when unspecified). */
+  layoutsFor(scope: LayoutScope): LayoutDefinition[] {
+    return this.getAll().filter((layout) => (layout.scope ?? 'concept') === scope);
   }
 
   getForLens(lens: Lens): string {
@@ -168,3 +184,29 @@ layoutRegistry.register({
   }),
   surface: 'RadialLayout',
 });
+
+/**
+ * Conversation layouts (§5.3, Phase 2.2) arrange the semantic conversation, not
+ * the reasoning graph. Positions come from the pure `conversationPositions`
+ * projection, so the placement is deterministic and unit-testable; the registry
+ * just runs them through a `preset` layout.
+ */
+for (const id of CONVERSATION_LAYOUT_IDS) {
+  layoutRegistry.register({
+    id,
+    label: CONVERSATION_LAYOUT_CATALOG[id].label,
+    scope: 'conversation',
+    getLayout: (_cy, opts) => {
+      const positions = conversationPositions($workspaceGraph.get(), id);
+      return {
+        name: 'preset',
+        positions: (node: NodeSingular) => positions.get(node.id()) ?? node.position(),
+        fit: (opts?.fit as boolean) ?? true,
+        padding: 40,
+        animate: false,
+        ...opts,
+      };
+    },
+    surface: null,
+  });
+}

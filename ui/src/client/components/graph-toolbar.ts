@@ -17,6 +17,7 @@ import {
   eventBus,
   send,
 } from '../core/index.js';
+import { layoutRegistry } from '../utils/layout-registry.js';
 import { renderField } from '../utils/render-field.js';
 import './contradiction-badge.js';
 import './lens-controller.js';
@@ -183,11 +184,16 @@ export class GraphToolbar extends BaseComponent {
 
       <select class="layout-select" @change=${this.selectLayout} title="Graph layout" aria-label="Graph layout"
         .value=${this.layoutName}>
-        <option value="cose">Cose</option>
-        <option value="concentric">Concentric</option>
-        <option value="concentric-urgency">Urgency</option>
-        <option value="breadthfirst">Breadthfirst</option>
-        <option value="preset">Preset</option>
+        <optgroup label="Concept">
+          ${layoutRegistry.layoutsFor('concept').map(
+            (layout) => html`<option value=${layout.id}>${layout.label}</option>`
+          )}
+        </optgroup>
+        <optgroup label="Conversation">
+          ${layoutRegistry.layoutsFor('conversation').map(
+            (layout) => html`<option value=${layout.id}>${layout.label}</option>`
+          )}
+        </optgroup>
       </select>
 
       <button class="toolbar-btn" @click=${this.toggleMinimap} title="Toggle minimap">Minimap</button>

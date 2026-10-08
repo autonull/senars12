@@ -35,6 +35,15 @@ export { activeCommands, type Command, registerCommand, registeredCommands } fro
 export { eventBus } from './events.js';
 export { explainModel, type ExplainLink, type ExplainModel } from './explain.js';
 export { GRAPH_LAYERS, type GraphLayer, layerVisible } from './graph-layer.js';
+export {
+  CONVERSATION_LAYOUT_CATALOG,
+  CONVERSATION_LAYOUT_IDS,
+  type ConversationLayoutDescriptor,
+  type ConversationLayoutId,
+  type ConversationPositions,
+  conversationPositions,
+  type Point,
+} from './conversation-layout.js';
 export { type Neighbor, type Neighborhood, neighborhood } from './neighborhood.js';
 export { FocusTrap } from './focus-trap.js';
 export {

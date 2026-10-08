@@ -531,7 +531,8 @@ Goal: build the unique LM conversation UI first.
 Goal: render the same semantic conversation as a flowing content graph.
 - [~] 2.1 Graph projection: blocks → nodes, links → edges, sections → compound nodes/clusters; incremental animated growth.
   - Landed the pure projection + an additive Graph-mode layer. `core/graph-projection.ts` maps a `WorkspaceGraph` to renderer-agnostic `{ nodes, edges }` (`projectWorkspaceGraph`): one labelled node per block (`nodeType:'workspace'`, `term`=label so tooltip/search/lens cover it), one typed edge per link whose endpoints both exist (dangling links dropped), and `section`/`heading` blocks with `children` become Cytoscape compound `parent`s. `graph-viewport` now watches `$workspaceGraph` and diffs the projection into Cytoscape under the `workspace` class (concept nodes/edges keep their ids and lifecycle), with dedicated node/edge styles; concept-graph diffing and `applyGraphFilter` exclude the workspace layer. The two layers can be isolated with `$graphLayer` (`both · conversation · concepts`, pure `layerVisible`) and the `graph.layer.*` commands. So the conversation is navigable as a graph with no reasoning backend attached. Remaining: **incremental animated growth** (new blocks animate in rather than appearing at the next layout) and section clusters from chat `contains`/heading structure (chat turns don't set `children` today); graph-native selection is wired (see 2.3).
-- [ ] 2.2 Conversation layouts: `chronological-flow`, `semantic-map`, `artifact-map`, `source-view` (registry rows + deterministic variants).
+- [x] 2.2 Conversation layouts: `chronological-flow`, `semantic-map`, `artifact-map`, `source-view` (registry rows + deterministic variants).
+  - Landed `core/conversation-layout.ts`: the four ids + an exhaustive catalog and the pure `conversationPositions(graph, id)` — deterministic positions for every block (`blockOrder` plus any detached block, so nothing is left at its old position). `chronological-flow` serpentines document order; `semantic-map` clusters blocks joined by `same-topic` links (union-find) and groups the rest by kind into a grid of lanes; `artifact-map` centres typed-output kinds and rings the rest; `source-view` lays one lane per `createdBy`. `layoutRegistry` gains a `scope` (`concept` default / `conversation`) and registers the four rows, each running the pure positions through a Cytoscape `preset` layout; `layoutsFor(scope)` reads them. The graph toolbar derives its layout options from the registry (grouped `Concept` / `Conversation`) instead of hardcoding them, and `graph.layout.<id>` commands expose the conversation layouts to the palette/agent (gated to Graph mode). See (y).
 - [~] 2.3 Graph-native input: composer anchored to node/edge/canvas/selection; selected nodes become prompt context; create question/claim nodes.
   - Landed selection routing + selection-as-context. Tapping a `workspace` node focuses the block (`setWorkspaceFocus`); double-click opens Explanation; right-click opens the block menu. The Graph renderer's `openComposer(anchor?)` no longer calls the non-existent `composer` overlay — it emits `composer:focus` with the anchor (or the workspace subset of `$selectedNodeIds`), and a `graph.ask-selection` command does the same for the palette/agent. The composer carries a *list* of context refs end-to-end (`composer:focus { refs }` → `chat.user`/`ChatMessage.contexts: string[]` → composer chips → `projectChat` emits one `references` edge per known ref). Remaining: the composer is still the persistent dock (not a floating overlay anchored to the node/edge), and node-creating (question/claim) ops from the graph.
 - [~] 2.4 Graph inspection: node/edge popovers, artifact preview popovers, "open in Notebook," semantic neighborhood navigation.
@@ -1548,14 +1549,56 @@ The `language`-only composition is deliberately shippable on its own: a conversa
 - Validate `renderer` the same way as `layer` once a cycle-free registry id list is available.
 - A HUD layer control (segmented `both · conversation · concepts`) beside the renderer switch.
 
+### 2026-10-08 (y) — Phase 2.2 conversation layouts
 
+**Landed**
+- `ui/src/client/core/conversation-layout.ts` — `ConversationLayoutId` + `CONVERSATION_LAYOUT_IDS`
+  (tuple) + exhaustive `CONVERSATION_LAYOUT_CATALOG` (label/description) and the pure
+  `conversationPositions(graph, layout)` returning a `Map<Ref, Point>` for every block. All four are
+  pure functions of the WorkspaceGraph, so they are testable without Cytoscape and reproducible for
+  captures. `blocksInOrder` = `blockOrder` plus any detached block, so no node is left unplaced.
+  - `chronological-flow` — document order, serpentine columns of `FLOW_ROWS`.
+  - `semantic-map` — union-find over `same-topic` links; linked blocks are one group, the rest group by
+    `kind`; groups become lanes in a `ceil(sqrt)` grid (`+1` row gap so clusters never touch).
+  - `artifact-map` — artifact kinds (table/code/math/chart/image/diagram/citation/tool-result/
+    derivation/embedded-view) centred in a grid, the rest on a ring.
+  - `source-view` — one lane per `createdBy` in `user · lm · reasoner · tool · system` order.
+- `ui/src/client/utils/layout-registry.ts` — `LayoutDefinition.scope?: LayoutScope` (`concept` default /
+  `conversation`), `layoutsFor(scope)`, and four registered rows that run the pure positions through a
+  `preset` layout (`positions: (node) => positions.get(node.id()) ?? node.position()`, `fit`, no
+  animation). Imports `$workspaceGraph`, the catalog, the ids and `conversationPositions` from core.
+- `ui/src/client/components/graph-toolbar.ts` — the layout `<select>` now derives its options from
+  `layoutRegistry` (grouped `Concept` / `Conversation`) instead of a hardcoded list, so a new registry
+  row appears with no edit here.
+- `ui/src/client/components/renderers/graph.ts` — `graph.layout.<id>` commands for the four conversation
+  layouts (palette + `ui.command`), gated to Graph mode.
+- `core/index.ts` exports. Tests (7 new; **241 green / 42 files**; UI typecheck and biome clean):
+  `conversation-layout` — every layout positions every block deterministically, flow order, same-topic
+  clustering, artifact centring, source lanes, and the registry rows/scopes.
 
+**Notes for remaining work**
+- Layout selection still flows through the lens-keyed `$lensLayout` (the `graph:layout` event stores it
+  per lens), so a conversation layout is remembered as *the* layout for that lens. A scope-aware slot
+  would keep concept and conversation selection independent and makes the choice URL-addressable.
+- Positions are computed against `$workspaceGraph` at layout time; `syncWorkspaceLayer` runs before the
+  relayout in `syncGraph`, so the workspace nodes exist. Concept nodes have no entry and keep their
+  current position (the `node.position()` fallback).
+- Cytoscape `preset` does not animate by design (positions are exact) — incremental animated growth
+  (§2.1) is still separate.
+- `semantic-map` groups by kind when there are no `same-topic` links (LM enrichment is not built yet);
+  the union-find path is already exercised and only expects the links to be produced.
 
-
-
-
-
-
+**New improvement opportunities**
+- Add a HUD segmented control / palette group for layouts (they now carry a `scope`) and a
+  `graph.layout.cycle` command.
+- Make the active layout scope-aware state (see above) and URL-address it (`UrlState.layout`), so a
+  shared link restores both mode and arrangement.
+- Register `chronological-flow` / `source-view` as SpaceGraph surfaces once a 3D storyboard adapter
+  exists (`surface: null` today), reusing the same pure positions.
+- A timeline overlay (4.4) can filter the same projection by `createdAt`; `chronological-flow` already
+  uses document order, so an event-time variant is a small addition.
+- Reuse `conversationPositions` for embedded graph views (§7) so their arrangement matches the main
+  Graph renderer.
 
 
 

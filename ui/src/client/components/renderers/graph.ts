@@ -9,7 +9,15 @@
  */
 
 import type { BlockKind, Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
-import { registerCommand, $selectedNodeIds, $workspaceGraph, setGraphLayer } from '../../core/index.js';
+import {
+  $activeRenderer,
+  $selectedNodeIds,
+  $workspaceGraph,
+  CONVERSATION_LAYOUT_CATALOG,
+  CONVERSATION_LAYOUT_IDS,
+  registerCommand,
+  setGraphLayer,
+} from '../../core/index.js';
 import { eventBus } from '../../core/events.js';
 import {
   registerRenderer,
@@ -135,5 +143,16 @@ for (const [layer, title] of [
     group: 'Graph',
     keywords: 'layer filter conversation concepts isolate',
     run: () => setGraphLayer(layer),
+  });
+}
+
+for (const layout of CONVERSATION_LAYOUT_IDS) {
+  registerCommand({
+    id: `graph.layout.${layout}`,
+    title: `Arrange: ${CONVERSATION_LAYOUT_CATALOG[layout].label}`,
+    group: 'Graph',
+    keywords: `layout arrange conversation ${layout}`,
+    run: () => eventBus.emit('graph:layout', layout),
+    available: () => $activeRenderer.get() === 'graph',
   });
 }
