@@ -631,6 +631,61 @@
 
 ---
 
+### Session 10 — Phase 3.5: layout registry SSOT (2026-10-08)
+
+**Landed**
+
+- **3.5 — one layout source with 2D/3D name maps.** `LayoutDefinition` now carries both renderers:
+  `getLayout(cy, opts)` (Cytoscape) and `surface` (SpaceGraph plugin name; `null` = keep positions).
+  New `surfaceFor(id)`/`surfaceForLens(lens)`/`runSurface(sg, …)` mirror `runLayout(cy, …)`, and both
+  runners are keyed by layout id (the lens is resolved once via `getForLens`). Registered maps:
+  `cose→ForceLayout`, `concentric`/`concentric-urgency→RadialLayout`, `breadthfirst→HierarchicalLayout`,
+  `preset→null`.
+- **3.5 — the 3D layout no-op is fixed.** `spacegraph-viewport` passed Cytoscape ids (`cose`, …)
+  straight to `sg.layout(...)`, none of which are SpaceGraph plugins — every explicit layout selection
+  (and the goal lens default) silently did nothing. It now resolves through
+  `layoutRegistry.surfaceFor`/`runSurface`, so the 3D viewport actually moves nodes; the default
+  relayout uses the lens-resolved surface instead of a hardcoded `ForceLayout`.
+- **3.5 — single relayout heuristic.** The three copies (`GraphRenderer.shouldRelayout` +
+  `relayoutIfNeeded` + its two `LAYOUT_RELAYOUT_*` constants; `spacegraph-viewport.shouldRelayout`;
+  `layoutRegistry.shouldRelayout`) are now one `layoutRegistry.shouldRelayout(prev, curr)`. The dead
+  `GraphRenderer.relayoutIfNeeded`/`prevNodeCount` and the `RendererApi.onLayout` seam (its only
+  caller) are removed; both viewports call the registry directly. Semantics are the `max(5, 20%)`
+  form the two viewports already used.
+- **Guard test.** `tests/unit/server/layout-registry.test.ts` (8) asserts the exact registered id set,
+  that every `LENS_DEFAULT_LAYOUTS` value resolves to a registered layout, that `$lensLayout`
+  overrides win, the id→SpaceGraph name map (incl. `preset→null`), and the relayout threshold behavior.
+
+**Verification**
+
+- `pnpm --dir ui exec tsc --noEmit` clean; `biome lint --diagnostic-level=error` clean on all 5 files.
+- Root `tests/unit/server` **57/57** (8 files; +8 layout-registry); UI unit **27/27**; `pnpm --dir ui
+  build` succeeds.
+- Chromium visual suite **10/10** unchanged — no baseline regeneration (the default layout path and
+  `getForLens` resolution are byte-identical; only the dynamic relayout threshold and the
+  previously-dead 3D names changed).
+
+**Still open in Phase 3**
+
+- **3.6–3.10 untouched** — `idSource` unification, `SurfaceComponent`/`defineSurface`, `renderField`,
+  reflective generators, guard scripts.
+- **3.5 follow-ons** — the `graph-toolbar` layout `<select>` still hand-lists
+  `cose|concentric|concentric-urgency|breadthfirst|preset` instead of generating options from
+  `layoutRegistry.getAll()` (the registry is now the source; the toolbar is the last hand-listed
+  layout consumer). The `globe`/`grid`/`timeline`/`cluster`/`spectral`/`circular` SpaceGraph plugins
+  exist but have no registry rows, so 3D is limited to the four mapped topologies.
+
+**New opportunities spotted** *(Session 10)*
+
+- Generate the toolbar's layout options (and the future command palette entries) from
+  `layoutRegistry.getAll()`, removing the `graph-toolbar` `$lensLayout` local fallback duplication.
+- Add SpaceGraph-native rows for `timeline→TimelineLayout`, `cluster→ClusterLayout`,
+  `grid→GridLayout` so temporal/other lenses get honest 3D topologies (Phase 8.1).
+- Carry the Session 5 note forward: a `deterministic`/seed hint on a layout would let product
+  captures stabilize without the test-only `graph.setLayout`.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -892,7 +947,7 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [x] **3.2** `eventCatalog`: presentation metadata keyed exhaustively by event discriminant (label, category, severity, provenance role, shape hints); bridge/reducers/log/timeline/narration read it. *(done: `ui/src/client/utils/event-catalog.ts` covers all 34 discriminants with `satisfies Record<CognitiveEvent['type'], EventMeta>`; `GRAPH_REDUCERS` in `ui/src/server/event-reducers.ts` is catalog-keyed with a parity guard. Client consumers — event log/timeline/provenance/narration — remain, Phases 5.3/6.2/6.6/6.7)*
 - [x] **3.3** `fieldCatalog`: derive label/unit/range/kind/format from schema metadata; single reader for forms, axes, columns, provenance. *(done: `ui/src/client/utils/field-catalog.ts` keyed exhaustively off the schema-inferred metric types; telemetry/cognitive/node/truth panels migrated; guard test; config form + provenance fields remain, see log)*
 - [x] **3.4** `lensCatalog` + renderer capability matrix; one validation path; generated designer form; adapters declare supported channels. *(done: `ui/src/client/utils/lens-catalog.ts` + `renderer-capabilities.ts`; `LENS_CATALOG` (`satisfies Record<BuiltinLens,…>`), `validateLens`, `CHANNEL_CATALOG`, `SCALE_MAP_CATALOG`; controller/store/layout-registry/designer migrated off duplicated lists; `adapter-2d`/`adapter-3d` declare from the matrix; guard test. Matrix not yet surfaced — see log)*
-- [ ] **3.5** `layoutRegistry` SSOT with 2D/3D name maps; single `shouldRelayout`; delete the three duplicate heuristics.
+- [x] **3.5** `layoutRegistry` SSOT with 2D/3D name maps; single `shouldRelayout`; delete the three duplicate heuristics. *(done: `LayoutDefinition.getLayout` + `surface` per-renderer names; `runLayout`/`runSurface`/`surfaceFor`/`surfaceForLens`; one `shouldRelayout`; `GraphRenderer`'s dead copy + `RendererApi.onLayout` removed; 3D layout no-op fixed; guard test. Toolbar option list still hand-listed — see log)*
 - [ ] **3.6** `idSource` unification across client/projection/tests.
 - [ ] **3.7** `SurfaceComponent` + `defineSurface` + declarative `bindings`; derive registration, reflective test API, empty/loading/error slots.
 - [ ] **3.8** `renderField` generic input renderer; migrate `config-hud`, `lens-designer`, `node-detail-drawer`, filters.

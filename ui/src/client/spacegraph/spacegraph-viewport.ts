@@ -25,6 +25,7 @@ import {
   eventBus,
   mountTestApi,
 } from '../core/index.js';
+import { layoutRegistry } from '../utils/layout-registry.js';
 import { theme } from '../utils/theme.js';
 import { applyDelta, checkUnsupportedChannels, clearNodeStyles } from './adapter-3d.js';
 
@@ -88,7 +89,6 @@ export class SpaceGraphViewport extends BaseComponent {
       applyGraphFilter: () => this.applyGraphFilter(),
       restoreViewport: (vp) => this.restoreViewport(vp),
       centerOnNode: (id) => this.centerOnNode(id),
-      onLayout: (layoutName) => this.layoutHandler(layoutName),
     });
     renderer.connect();
     eventBus.on('graph:layout', this.layoutHandler);
@@ -199,7 +199,7 @@ export class SpaceGraphViewport extends BaseComponent {
 
   private layoutHandler = (layoutName: string) => {
     if (!this.sg) return;
-    this.sg.layout(layoutName as any, { animate: true, duration: 1.0 });
+    layoutRegistry.runSurface(this.sg, layoutName, { animate: true, duration: 1.0 });
   };
 
   private fitGraph = () => this.sg?.fitView(undefined, 0.3);
@@ -380,8 +380,11 @@ export class SpaceGraphViewport extends BaseComponent {
     // Run layout if needed
     const currentNodeCount = this.sg.nodeCount;
     const isFirstLayout = currentNodeCount <= 1;
-    if (isFirstLayout || this.shouldRelayout(this.prevNodeCount, currentNodeCount)) {
-      this.sg.layout('ForceLayout', { animate: isFirstLayout, duration: isFirstLayout ? 0 : 1.0 });
+    if (isFirstLayout || layoutRegistry.shouldRelayout(this.prevNodeCount, currentNodeCount)) {
+      layoutRegistry.runSurface(this.sg, layoutRegistry.getForLens($activeLens.get()), {
+        animate: isFirstLayout,
+        duration: isFirstLayout ? 0 : 1.0,
+      });
     }
     this.prevNodeCount = currentNodeCount;
 
@@ -391,11 +394,6 @@ export class SpaceGraphViewport extends BaseComponent {
     for (const id of selectedIds) {
       this.sg.select(id);
     }
-  }
-
-  private shouldRelayout(oldCount: number, newCount: number): boolean {
-    // Simple heuristic: relayout if node count changed significantly
-    return Math.abs(newCount - oldCount) > Math.max(5, oldCount * 0.2);
   }
 
   private updatePosition(id: string, position: [number, number, number]): void {

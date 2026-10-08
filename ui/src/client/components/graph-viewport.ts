@@ -99,7 +99,6 @@ export class GraphViewport extends BaseComponent {
       applyGraphFilter: () => this.applyGraphFilter(),
       restoreViewport: (vp) => this.restoreViewport(vp),
       centerOnNode: (id) => this.centerOnNode(id),
-      onLayout: (layoutName) => this.layoutHandler(layoutName),
     });
     renderer.connect();
     eventBus.on('graph:layout', this.layoutHandler);
@@ -296,8 +295,7 @@ export class GraphViewport extends BaseComponent {
     const lens = $activeLens.get();
     const layouts = { ...$lensLayout.get(), [lens]: layoutName };
     $lensLayout.set(layouts);
-    const def = layoutRegistry.get(layoutName);
-    if (def) this.cy.layout(def.getLayout(this.cy, { fit: false })).run();
+    layoutRegistry.runLayout(this.cy, layoutName, { fit: false });
   };
 
   private zoomIn = () => this.zoomBy(1.3);
@@ -655,7 +653,7 @@ export class GraphViewport extends BaseComponent {
     this.prevNodeCount = currentNodeCount;
 
     if (isFirstLayout || topologyChanged) {
-      layoutRegistry.runLayout(cy, lens, { fit: isFirstLayout });
+      layoutRegistry.runLayout(cy, layoutRegistry.getForLens(lens), { fit: isFirstLayout });
     }
   }
 }

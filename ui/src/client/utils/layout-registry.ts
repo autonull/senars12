@@ -1,3 +1,11 @@
+/**
+ * The one source for graph layouts and the one relayout heuristic. A layout is
+ * declared once with both renderer names — the Cytoscape options factory the 2D
+ * viewport runs and the SpaceGraph plugin name the 3D viewport runs — so the two
+ * viewports stay in step instead of each hardcoding a name that only one of them
+ * understands (the 3D `layout('cose')` no-op this replaces).
+ */
+
 import type { Lens } from '@senars/core';
 import type { Core, LayoutOptions } from 'cytoscape';
 import { $lensLayout } from '../core/index.js';
@@ -6,10 +14,21 @@ import { lensMeta } from './lens-catalog.js';
 export interface LayoutDefinition {
   id: string;
   label: string;
-  getLayout: (cy: Core, opts?: Record<string, unknown>) => LayoutOptions;
   /** Lenses this layout is recommended for (empty = any). */
   recommendedFor?: Lens[];
+  /** Cytoscape (2D) options factory. */
+  getLayout: (cy: Core, opts?: Record<string, unknown>) => LayoutOptions;
+  /** SpaceGraph (3D) plugin name; null keeps the current node positions. */
+  surface: string | null;
 }
+
+/** The subset of SpaceGraph the registry drives for 3D layouts. */
+export interface SurfaceApi {
+  layout(name: string, opts?: Record<string, unknown>): void | Promise<void>;
+}
+
+const RELAYOUT_RATIO = 0.2;
+const RELAYOUT_MIN_NODES = 5;
 
 class LayoutRegistryImpl {
   private layouts = new Map<string, LayoutDefinition>();
@@ -32,34 +51,43 @@ class LayoutRegistryImpl {
     return lensMeta(lens)?.defaultLayout ?? 'cose';
   }
 
-  runLayout(cy: Core, lens: Lens, opts?: Record<string, unknown>): void {
-    const name = this.getForLens(lens);
-    const def = this.layouts.get(name);
-    if (!def) return;
-    const layoutOpts = def.getLayout(cy, opts);
-    cy.layout(layoutOpts).run();
+  /** SpaceGraph plugin name for a registry layout id (null = no 3D equivalent). */
+  surfaceFor(id: string): string | null {
+    return this.layouts.get(id)?.surface ?? null;
   }
 
-  /** Returns true if topology changed significantly — new nodes > threshold (default 20%) and at least K seeds touched. */
-  shouldRelayout(
-    prevNodeCount: number,
-    currentNodeCount: number,
-    threshold = 0.2,
-    minSeedNodes = 3
-  ): boolean {
+  surfaceForLens(lens: Lens): string | null {
+    return this.surfaceFor(this.getForLens(lens));
+  }
+
+  /** Run a layout in the 2D (Cytoscape) renderer. */
+  runLayout(cy: Core, layoutId: string, opts?: Record<string, unknown>): void {
+    const def = this.layouts.get(layoutId);
+    if (def) cy.layout(def.getLayout(cy, opts)).run();
+  }
+
+  /** Run a layout in the 3D (SpaceGraph) renderer. */
+  runSurface(sg: SurfaceApi, layoutId: string, opts?: Record<string, unknown>): void {
+    const name = this.surfaceFor(layoutId);
+    if (name) void sg.layout(name, opts);
+  }
+
+  /**
+   * One relayout heuristic shared by both viewports: a topology change is worth
+   * a new layout when the node count moves by more than `RELAYOUT_RATIO` or
+   * `RELAYOUT_MIN_NODES`. An empty graph always lays out.
+   */
+  shouldRelayout(prevNodeCount: number, currentNodeCount: number): boolean {
     if (prevNodeCount === 0) return true;
-    const delta = currentNodeCount - prevNodeCount;
-    const ratio = delta / prevNodeCount;
-    // Small absolute changes with few new nodes don't trigger re-layout
-    if (delta > 0 && delta <= minSeedNodes && ratio <= 0.1) return false;
-    if (delta < 0 && -delta <= minSeedNodes && ratio >= -0.1) return false;
-    return Math.abs(ratio) > threshold;
+    return (
+      Math.abs(currentNodeCount - prevNodeCount) >
+      Math.max(RELAYOUT_MIN_NODES, prevNodeCount * RELAYOUT_RATIO)
+    );
   }
 }
 
 export const layoutRegistry = new LayoutRegistryImpl();
 
-// Register built-in layouts
 layoutRegistry.register({
   id: 'cose',
   label: 'Cose',
@@ -74,6 +102,7 @@ layoutRegistry.register({
     gravity: 0.25,
     ...opts,
   }),
+  surface: 'ForceLayout',
 });
 
 layoutRegistry.register({
@@ -90,6 +119,7 @@ layoutRegistry.register({
     levelWidth: () => 2,
     ...opts,
   }),
+  surface: 'RadialLayout',
 });
 
 layoutRegistry.register({
@@ -106,6 +136,7 @@ layoutRegistry.register({
     spacingFactor: 1.5,
     ...opts,
   }),
+  surface: 'HierarchicalLayout',
 });
 
 layoutRegistry.register({
@@ -116,6 +147,7 @@ layoutRegistry.register({
     positions: undefined,
     ...opts,
   }),
+  surface: null,
 });
 
 layoutRegistry.register({
@@ -134,4 +166,5 @@ layoutRegistry.register({
     levelWidth: () => 1,
     ...opts,
   }),
+  surface: 'RadialLayout',
 });

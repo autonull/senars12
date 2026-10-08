@@ -21,8 +21,6 @@ export interface RendererApi {
   restoreViewport(vp: { x: number; y: number; zoom: number }): void;
 
   centerOnNode(id: string | null): void;
-
-  onLayout(layoutName: string): void;
 }
 
 type WatchFn = <T>(
@@ -30,16 +28,12 @@ type WatchFn = <T>(
   fn: (v: T) => void
 ) => void;
 
-const LAYOUT_RELAYOUT_RATIO = 0.2;
-const LAYOUT_RELAYOUT_MIN = 5;
-
 /**
  * Shared store-subscription + lifecycle glue for every graph viewport.
  * One mind (the store) observed by many eyes (2D cytoscape, 3D spacegraph).
  */
 export class GraphRenderer {
   protected mounted = false;
-  protected prevNodeCount = 0;
 
   constructor(
     protected watch: WatchFn,
@@ -77,22 +71,6 @@ export class GraphRenderer {
     const lens = $activeLens.get();
     const vp = $lensViewport.get()[lens];
     if (vp && this.mounted) this.api.restoreViewport(vp);
-  }
-
-  shouldRelayout(oldCount: number, newCount: number, isFirst: boolean): boolean {
-    if (isFirst) return true;
-    return (
-      Math.abs(newCount - oldCount) >
-      Math.max(LAYOUT_RELAYOUT_MIN, oldCount * LAYOUT_RELAYOUT_RATIO)
-    );
-  }
-
-  relayoutIfNeeded(nodeCount: number): void {
-    const isFirst = nodeCount <= 1;
-    if (this.shouldRelayout(this.prevNodeCount, nodeCount, isFirst)) {
-      this.api.onLayout($activeLens.get() as unknown as string);
-    }
-    this.prevNodeCount = nodeCount;
   }
 
   applyFilterToElementMap(
