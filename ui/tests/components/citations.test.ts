@@ -40,6 +40,17 @@ describe('citations model', () => {
     expect(resolveSource('missing', sources)).toBeUndefined();
   });
 
+  it('falls back to the bibliography position for a numeric reference', () => {
+    const sources = collectSources(
+      applyWorkspaceOps(emptyWorkspaceGraph(), [
+        { op: 'block.add', block: citation('c1', { key: 'iso-42001', href: 'https://a' }) },
+        { op: 'block.add', block: citation('c2', { key: 'wcag', href: 'https://b' }) },
+      ] satisfies WorkspaceOp[])
+    );
+    expect(resolveSource('[2]', sources)?.href).toBe('https://b');
+    expect(resolveSource('wcag', sources)?.index).toBe(2);
+  });
+
   it('treats a plain link (no key) as a non-source', () => {
     expect(collectSources(graph).some((source) => source.href === 'https://b')).toBe(false);
   });

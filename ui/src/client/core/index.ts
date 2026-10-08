@@ -2,6 +2,20 @@ export { Announcer } from './announcer.js';
 export { BaseComponent } from './base-component.js';
 export { BLOCK_KIND_LABEL } from './block-labels.js';
 export {
+  type ArtifactKind,
+  type ArtifactPayload,
+  type BlockPayloads,
+  type ChartData,
+  type CitationData,
+  type CodeData,
+  type ConfigChangeData,
+  type ImageData,
+  type ListData,
+  payloadOf,
+  type PayloadOf,
+  type TableData,
+} from './block-payload.js';
+export {
   type WorkspaceEdgeData,
   type WorkspaceNodeData,
   type WorkspaceProjection,
@@ -242,18 +256,8 @@ export {
   type WorkspaceFragment,
 } from './workspace-projection.js';
 export {
-  asCitationData,
-  asCodeData,
-  asImageData,
-  asListData,
-  asTableData,
-  type CitationData,
-  type CodeData,
-  type ImageData,
-  type ListData,
   type Segment,
   segmentText,
-  type TableData,
 } from './segmentation.js';
 export { mountWorkspaceProjection, syncWorkspaceGraph } from './workspace-bindings.js';
 export {

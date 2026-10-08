@@ -6,8 +6,9 @@
  * unsupported block returns `undefined` rather than a wrong view.
  */
 
+import type { ChartData, ConfigChangeData } from './block-payload.js';
+import { payloadOf } from './block-payload.js';
 import { diffLines } from './diff.js';
-import { asCodeData, asTableData } from './segmentation.js';
 import type {
   CodeDataset,
   ColumnSpec,
@@ -42,38 +43,7 @@ const staticSource = (
   get: () => dataset,
 });
 
-const codeLanguage = (block: SemanticBlock): string | undefined => asCodeData(block.data)?.lang;
-
 const json = (value: unknown): string => JSON.stringify(value, null, 2) ?? String(value);
-
-const seriesDataset = (data: unknown): SeriesDataset | undefined => {
-  const candidate = data as Partial<SeriesDataset> | undefined;
-  return candidate?.kind === 'series' && Array.isArray(candidate.series)
-    ? (candidate as SeriesDataset)
-    : undefined;
-};
-
-/** The `config-change` payload: two text revisions, optionally labelled and language-tagged. */
-interface ConfigChange {
-  before: string;
-  after: string;
-  language?: string;
-  from?: string;
-  to?: string;
-}
-
-const configChange = (data: unknown): ConfigChange | undefined => {
-  const candidate = data as Partial<ConfigChange> | undefined;
-  if (typeof candidate?.before !== 'string' || typeof candidate.after !== 'string')
-    return undefined;
-  return {
-    before: candidate.before,
-    after: candidate.after,
-    language: typeof candidate.language === 'string' ? candidate.language : undefined,
-    from: typeof candidate.from === 'string' ? candidate.from : undefined,
-    to: typeof candidate.to === 'string' ? candidate.to : undefined,
-  };
-};
 
 const specOf = (
   block: SemanticBlock,
@@ -102,7 +72,7 @@ const JSON_KINDS = new Set<BlockKind>([
 /** The `ViewSpec` for a block's artifact, or `undefined` when it has none. */
 export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
   if (block.kind === 'table') {
-    const data = asTableData(block.data);
+    const data = payloadOf(block.data, 'table');
     if (!data) return undefined;
     return {
       id: `artifact:${block.id}`,
@@ -114,7 +84,7 @@ export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
     };
   }
   if (block.kind === 'code') {
-    const language = codeLanguage(block);
+    const language = payloadOf(block.data, 'code')?.lang;
     const dataset: CodeDataset = {
       kind: 'code',
       language,
@@ -130,11 +100,11 @@ export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
     };
   }
   if (block.kind === 'chart') {
-    const series = seriesDataset(block.data);
+    const series: ChartData | undefined = payloadOf(block.data, 'chart');
     if (series) return specOf(block, series, ['series', 'table', 'text'], 'series');
   }
   if (block.kind === 'config-change') {
-    const change = configChange(block.data);
+    const change: ConfigChangeData | undefined = payloadOf(block.data, 'config-change');
     if (change) {
       const dataset: DiffDataset = {
         kind: 'diff',

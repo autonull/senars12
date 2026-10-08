@@ -39,19 +39,18 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
 
 1. **`0.6 backend seam`** (L) — opens WP5 and the WP1 sweep. `→ core/` backend contract + `LmProvider`
    façade, `shared/`, `workspace-renderer.ts`
-2. **`4.3 typing`** (M) — unblocks the `data` casts and `3.3 derivation-record`. Payload accessor
-   guards landed; the `Artifact` union still to do. `→ segmentation.ts`, `artifacts.ts`
-3. **`1.5/1.1 section model`** (L) — unblocks `1.5 page` and notebook depth. `→ toc.ts`,
+2. **`1.5/1.1 section model`** (L) — unblocks `1.5 page` and notebook depth. `→ toc.ts`,
    `workspace-graph.ts`, `renderers/notebook.ts`
-4. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
-   renderer/overlays context fields await a consumer.)
-5. **`2.4 inspection & embedded views`** (L) ·
-   **`citations model`** (M). (`4.5 pinning` partial — manager/command pinning; `1.4 rich text` partial
-   — inline tokenizer; `citations model` partial — bibliography core.)
-6. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
+3. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
+   renderer/overlays context fields await a consumer; fold-all debounce awaits a fold-all command.)
+4. **`2.4 inspection & embedded views`** (L) · **`4.3 affordances`** (M). (`4.5 pinning` partial —
+   manager/command pinning; `1.4 rich text` partial — inline tokenizer.)
+5. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
    (`4.4 controls` is partially landed — live reset + readout; see WP4.)
 
-*(The three small state wins — `2.5 defaults`, `2.5 selection atom`, `2.5 focus react` — are landed.)*
+*(Landed from this queue: the `4.3 typing` payload contract and the `citations model` bibliography
+rendering — see §Landed (v5). The three small state wins `2.5 defaults`, `2.5 selection atom` and
+`2.5 focus react` were landed earlier.)*
 
 **Gated** (see §Blockers): `0.5`; `1.5 page` (needs the section model); the inspector half of
 `4.3 affordances`; WP5 `3.3` → `4.3 derivation-record`; WP5 `3.6` → the `config-change` producer.
@@ -86,9 +85,15 @@ Landed extension points — wire features here instead of re-deriving them.
   (`registerViewAdapter`, `viewAdapterFor`, `supportedShapes`); `core/view-projection.ts`
   (`projectDataset`, `projectableShapes`, `datasetIsEmpty`); `components/views/index.ts` barrel;
   `components/views/token-render.ts` (`highlightLine`/`highlightStyles`).
-- **Inline text** — `core/inline-text.ts` (`tokenizeInline`) — the safe inline Markdown subset the
-  Notebook renders as Lit nodes (no `innerHTML`); reuse it instead of adding a second renderer.
+- **Inline text** — `core/inline-text.ts` (`tokenizeInline`: code/strong/em/link/`citation`) — the safe
+  inline Markdown subset the Notebook renders as Lit nodes (no `innerHTML`); reuse it instead of adding
+  a second renderer. A `[n]` reference arrives as a `citation` token, resolved against the bibliography.
+- **Block payloads** — `core/block-payload.ts` (`payloadOf(data, kind)`, `ArtifactPayload`,
+  `PayloadOf<K>`): the one payload contract `Segment`/`SemanticBlock` produce and every consumer
+  narrows through. Add a payload here, not a `data as …` cast at the consumer.
 - **Artifacts** — `core/artifacts.ts` (`artifactViewSpec`); `core/diff.ts` (`diffLines`).
+- **Citations** — `core/citations.ts` (`collectSources`, `resolveSource`) — the bibliography a
+  `citation` token and a `citation` block resolve against.
 - **Commands** — `core/commands.ts` (`activeCommands`/`dispatchCommand`/`paletteCommands`,
   `available`/`params`); `core/command-history.ts` (MRU); `core/command-match.ts`.
 - **Capabilities** — `core/capabilities.ts` (`capabilityGate`, `$capabilities`).
@@ -178,15 +183,17 @@ Landed extension points — wire features here instead of re-deriving them.
 
 *Outcome: full view matrix, clean artifact typing, embedded views, section model. No deps.*
 
-- [~] **4.3 typing** *(promoted)* — discriminated `Artifact` union on `SemanticBlock`/`Segment` (drop
-  `data` casts); promote `Segment.data` to the `Artifact` contract. Now has concrete consumers:
-  `codeLanguage` (`artifacts.ts`), `config-change`, and the image `data` cast. Migration: add the
-  union *alongside* `data`, migrate consumers one by one, then remove casts. Landed: the typed payload
-  interfaces (`CodeData`/`ListData`/`ImageData`/`CitationData`, next to `TableData`) and the accessor
-  guards `asTableData`/`asCodeData`/`asListData`/`asImageData`/`asCitationData` in `core/segmentation.ts`;
-  `artifacts.ts` and the Notebook now narrow through them instead of casting `block.data`. Remaining:
-  the `Artifact` union type itself and promoting `data`/`Segment.data` to it.
-  `→ core/segmentation.ts`, `core/artifacts.ts`, `components/renderers/notebook.ts`. `(i)`,`(j)`,`(d)`
+- [x] **4.3 typing** *(promoted)* — discriminated `Artifact` union on `SemanticBlock`/`Segment` (drop
+  `data` casts); promote `Segment.data` to the `Artifact` contract. Landed as `core/block-payload.ts`:
+  the payload interfaces (`table`/`list`/`code`/`image`/`citation`/`chart`/`config-change`), the
+  `BlockPayloads` map and the `ArtifactPayload` union it makes, one validating normalizer per kind
+  behind `payloadOf(data, kind)`, `PayloadOf<K>` for the static side, `Segment<K>`/`SemanticBlock<K>`
+  typed by kind (engine payloads stay `unknown`), and every remaining cast removed — `artifacts.ts`,
+  `citations.ts`, the Notebook and the artifact overlay all narrow through `payloadOf`. Sweeps worth
+  taking next: derive a `DerivationRecord` payload in the same file for WP5 **`3.3`**, and validate the
+  `chart` series entries as deep as the series view requires.
+  `→ core/block-payload.ts`, `core/segmentation.ts`, `core/workspace-graph.ts`, `core/artifacts.ts`.
+  `(i)`,`(j)`,`(d)`
 - [ ] **1.5/1.1 section model** *(merged: `1.5 page` model + `1.5/1.1 notebook structure`)* — recurse
   nested `contains`/headings so pages/ToC aren't shallow; nested-section folding by heading `level`;
   fold-all/unfold-all command; folded-count badge; keep `j/k` consistent with folded visibility and
@@ -213,12 +220,15 @@ Landed extension points — wire features here instead of re-deriving them.
   items; image blocks now honour intrinsic `{width?,height?}` (attributes elided with `nothing`).
   Remaining: inline full tables, view-barrel ownership.
   `→ core/inline-text.ts`, `components/renderers/notebook.ts`. `(i)`,`(j)`
-- [~] **citations model** — `Source`/bibliography (stable citation key, `[n]` resolution) to split
+- [x] **citations model** — `Source`/bibliography (stable citation key, `[n]` resolution) to split
   formal citations from plain links. Landed: `core/citations.ts` — `collectSources(graph)` builds a
   numbered bibliography from reference-style citation blocks (de-duplicated by key), `resolveSource`
-  resolves bare/`[n]` keys; `Source` exported from the barrel. Remaining: render `[n]` references in
-  the Notebook/`text-view` against the bibliography. `→ core/citations.ts`, `core/segmentation.ts`,
-  `core/artifacts.ts`. `(i)`
+  resolves bare/`[n]` keys and falls back to the bibliography position for a numeric reference;
+  `tokenizeInline` emits a `citation` token for a bare `[n]`; the Notebook renders it as a link into
+  the bibliography and numbers each `citation` entry `[n]`, leaving an unknown key as literal text.
+  The `text-view` arm was dropped by decision: a `TextDataset` has no graph context, so resolving
+  references there would be dead API until something wants it (see opportunities).
+  `→ core/citations.ts`, `core/inline-text.ts`, `components/renderers/notebook.ts`. `(i)`
 
 ## WP4 — Timeline present-anchoring
 
@@ -434,3 +444,14 @@ in v3 Appendix D). Rolled up:
 - **WP3 citations** — `core/citations.ts`: `collectSources` builds a numbered, key-deduplicated
   bibliography from reference-style citation blocks and `resolveSource` resolves bare/`[n]` keys —
   **`citations model`** partially landed (inline `[n]` rendering remains). Suite **331 green**.
+- **WP3 typing** — `core/block-payload.ts`: one payload contract (`BlockPayloads`, `ArtifactPayload`,
+  `PayloadOf<K>`) with a validating `payloadOf(data, kind)` normalizer per kind; `Segment<K>` and
+  `SemanticBlock<K>` carry the payload their kind declares, and every `data as …` cast in
+  `artifacts.ts`, `citations.ts`, the Notebook and the artifact overlay is gone — completes
+  **`4.3 typing`**.
+- **WP3 citations (cont.)** — inline `[n]` references resolved against the bibliography: a `citation`
+  token in `tokenizeInline` (a link still wins over it), `resolveSource` falling back to the
+  bibliography position, the Notebook rendering a reference as a link and numbering each `citation`
+  entry — completes **`citations model`** (the `text-view` arm dropped, see the item). Suite **336
+  green** (new: `block-payload` validation/rejection, citation token, bibliography numbering, inline
+  reference resolution).

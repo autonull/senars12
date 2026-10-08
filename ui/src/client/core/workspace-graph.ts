@@ -8,6 +8,7 @@
  * overlays and embedded views.
  */
 
+import type { PayloadOf } from './block-payload.js';
 import type { ViewSpec } from './view-spec.js';
 
 /** One id namespace: a block's `Ref` is a graph node id, a popover anchor, a citation target and an engine `Ref`. */
@@ -66,16 +67,16 @@ export type BlockStatus = 'streaming' | 'complete' | 'error' | 'rejected' | 'par
 /** The producer of a block or link. */
 export type CreatedBy = 'user' | 'lm' | 'reasoner' | 'tool' | 'system';
 
-export interface SemanticBlock {
+export interface SemanticBlock<K extends BlockKind = BlockKind> {
   id: Ref;
-  kind: BlockKind;
+  kind: K;
   role: SemanticRole;
   title?: string;
   text?: string;
   /** Heading depth / grouping level. */
   level?: number;
-  /** Structured payload (rows, chart spec, `DerivationRecord`, …). */
-  data?: unknown;
+  /** Structured payload, typed by `kind` for the kinds that declare one (`block-payload.ts`). */
+  data?: PayloadOf<K>;
   /** Formalized artifact contract. */
   artifact?: Artifact;
   /** Rich render instruction for the inner view system (§3.3). */

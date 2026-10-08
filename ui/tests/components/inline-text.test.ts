@@ -25,4 +25,13 @@ describe('tokenizeInline (§1.4)', () => {
       { type: 'text', value: ' and *' },
     ]);
   });
+
+  it('tokenizes a bare [n] reference as a citation, not a link', () => {
+    expect(tokenizeInline('see [1] and [iso-42001]')).toEqual([
+      { type: 'text', value: 'see ' },
+      { type: 'citation', key: '1' },
+      { type: 'text', value: ' and ' },
+      { type: 'citation', key: 'iso-42001' },
+    ]);
+  });
 });

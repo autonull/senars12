@@ -10,6 +10,7 @@ import { css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { Announcer } from '../../core/announcer.js';
 import { artifactViewSpec } from '../../core/artifacts.js';
+import { payloadOf } from '../../core/block-payload.js';
 import { eventBus } from '../../core/events.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
 import { $activeRenderer, $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
@@ -18,11 +19,8 @@ import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { projectDataset } from '../../core/view-projection.js';
 import type { SemanticBlock } from '../../core/workspace-graph.js';
 
-const imageOf = (block: SemanticBlock): { alt: string; src: string } | undefined => {
-  if (block.kind !== 'image') return undefined;
-  const data = block.data as { alt?: string; src?: string } | undefined;
-  return data?.src ? { alt: data.alt ?? '', src: data.src } : undefined;
-};
+const imageOf = (block: SemanticBlock): { alt: string; src: string } | undefined =>
+  payloadOf(block.data, 'image');
 
 @customElement('s-artifact')
 export class ArtifactView extends SurfaceComponent {

@@ -119,6 +119,42 @@ describe('notebook surface', () => {
     expect(el.shadowRoot?.querySelector('a.citation')?.textContent).toContain('docs');
   });
 
+  it('renders a citation entry numbered from the bibliography', async () => {
+    $workspaceGraph.set(
+      applyWorkspaceOps(emptyWorkspaceGraph(), [
+        {
+          op: 'block.add',
+          block: block('cite', { kind: 'citation', data: { key: 'iso-42001', href: 'https://x' } }),
+        },
+      ])
+    );
+    const el = document.createElement('s-notebook');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.shadowRoot?.querySelector('a.citation .cite-index')?.textContent).toBe('[1]');
+  });
+
+  it('resolves inline [n] references against the bibliography, leaving unknown keys as text', async () => {
+    $workspaceGraph.set(
+      applyWorkspaceOps(emptyWorkspaceGraph(), [
+        { op: 'block.add', block: block('t1', { children: ['p1', 'cite'], text: undefined }) },
+        { op: 'block.add', block: block('p1', { kind: 'paragraph', text: 'per [1] and [nope]' }) },
+        {
+          op: 'block.add',
+          block: block('cite', { kind: 'citation', data: { key: '1', href: 'https://x' } }),
+        },
+        { op: 'roots.set', roots: ['t1'] },
+      ])
+    );
+    const el = document.createElement('s-notebook');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const ref = el.shadowRoot?.querySelector<HTMLAnchorElement>('a.cite-ref');
+    expect(ref?.getAttribute('href')).toBe('https://x');
+    expect(ref?.textContent).toBe('[1]');
+    expect(el.shadowRoot?.querySelector('.text')?.textContent).toContain('[nope]');
+  });
+
   it('offers each block a context menu affordance', async () => {
     $workspaceGraph.set(graph(block('user-1', { text: 'Robins are birds' })));
     const el = document.createElement('s-notebook');

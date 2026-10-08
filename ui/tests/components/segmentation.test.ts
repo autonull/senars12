@@ -1,13 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  asCitationData,
-  asCodeData,
-  asImageData,
-  asListData,
-  asTableData,
-  segmentText,
-  type TableData,
-} from '../../src/client/core/segmentation.js';
+import { segmentText } from '../../src/client/core/segmentation.js';
 
 describe('output segmentation', () => {
   it('returns nothing for empty text', () => {
@@ -85,34 +77,5 @@ describe('output segmentation', () => {
     expect(segmentText('see [docs](https://x) here')).toEqual([
       { kind: 'paragraph', text: 'see [docs](https://x) here' },
     ]);
-  });
-});
-
-describe('typed payload accessors (§4.3)', () => {
-  it('narrows the payload a segment carries', () => {
-    expect(asTableData(segmentText('| x |\n| --- |\n| 1 |')[0]?.data)).toEqual({
-      headers: ['x'],
-      rows: [['1']],
-    });
-    expect(asListData(segmentText('- a\n- b')[0]?.data)).toEqual({ items: ['a', 'b'] });
-    expect(asCodeData(segmentText('```ts\nx\n```')[0]?.data)).toEqual({ lang: 'ts' });
-    expect(asImageData(segmentText('![a](https://x/y.png)')[0]?.data)).toEqual({
-      alt: 'a',
-      src: 'https://x/y.png',
-      width: undefined,
-      height: undefined,
-    });
-    expect(asCitationData(segmentText('[docs](https://x)')[0]?.data)).toEqual({
-      label: 'docs',
-      key: undefined,
-      href: 'https://x',
-    });
-  });
-
-  it('rejects malformed payloads rather than casting', () => {
-    expect(asTableData({ headers: 'x' })).toBeUndefined();
-    expect(asListData({ items: [1, 2] })).toBeUndefined();
-    expect(asImageData(null)).toBeUndefined();
-    expect(asCitationData({})).toBeUndefined();
   });
 });

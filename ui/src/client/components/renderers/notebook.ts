@@ -14,15 +14,11 @@ import { css, html, nothing } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
 import { artifactViewSpec } from '../../core/artifacts.js';
+import type { TableData } from '../../core/block-payload.js';
+import { payloadOf } from '../../core/block-payload.js';
+import { collectSources, resolveSource, type Source } from '../../core/citations.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { breadcrumb } from '../../core/navigation.js';
-import {
-  asCitationData,
-  asImageData,
-  asListData,
-  asTableData,
-  type TableData,
-} from '../../core/segmentation.js';
 import { eventBus } from '../../core/events.js';
 import { tokenizeInline } from '../../core/inline-text.js';
 import {
@@ -66,8 +62,8 @@ function renderTable(data: TableData): TemplateResult {
   `;
 }
 
-function renderHeading(block: SemanticBlock): TemplateResult {
-  const body = renderInline(block.text ?? block.title ?? '');
+function renderHeading(block: SemanticBlock, sources: readonly Source[]): TemplateResult {
+  const body = renderInline(block.text ?? block.title ?? '', sources);
   switch (Math.min(Math.max(block.level ?? 2, 1), 6)) {
     case 1:
       return html`<h1 class="heading">${body}</h1>`;
@@ -85,7 +81,7 @@ function renderHeading(block: SemanticBlock): TemplateResult {
 }
 
 /** Render the inline subset as Lit nodes — no `innerHTML`, so text is escaped by construction. */
-function renderInline(text: string): unknown[] {
+function renderInline(text: string, sources: readonly Source[]): unknown[] {
   return tokenizeInline(text).map((token) => {
     switch (token.type) {
       case 'code':
@@ -96,6 +92,19 @@ function renderInline(text: string): unknown[] {
         return html`<em>${token.value}</em>`;
       case 'link':
         return html`<a href=${token.href} target="_blank" rel="noreferrer">${token.value}</a>`;
+      case 'citation': {
+        const source = resolveSource(token.key, sources);
+        return source
+          ? html`<a
+              class="cite-ref"
+              href=${source.href}
+              target="_blank"
+              rel="noreferrer"
+              title=${source.label ?? source.href}
+              >[${token.key}]</a
+            >`
+          : `[${token.key}]`;
+      }
       default:
         return token.value;
     }
@@ -107,11 +116,18 @@ interface FoldControl {
   toggle: () => void;
 }
 
-function renderBlock(block: SemanticBlock, focused = false, fold?: FoldControl): TemplateResult {
+interface RenderOptions {
+  /** The bibliography inline `[n]` references and citation entries resolve against. */
+  sources: readonly Source[];
+  focused?: boolean;
+  fold?: FoldControl;
+}
+
+function renderBlock(block: SemanticBlock, { sources, focused, fold }: RenderOptions): TemplateResult {
   const body = (() => {
-    if (block.kind === 'heading') return renderHeading(block);
+    if (block.kind === 'heading') return renderHeading(block, sources);
     if (block.kind === 'image' && block.data) {
-      const image = asImageData(block.data);
+      const image = payloadOf(block.data, 'image');
       if (!image) return html``;
       return html`<img
         class="image"
@@ -123,10 +139,13 @@ function renderBlock(block: SemanticBlock, focused = false, fold?: FoldControl):
       />`;
     }
     if (block.kind === 'citation' && block.data) {
-      const citation = asCitationData(block.data);
+      const citation = payloadOf(block.data, 'citation');
       if (!citation) return html``;
+      const source = citation.key ? resolveSource(citation.key, sources) : undefined;
       return html`<a class="citation" href=${citation.href} target="_blank" rel="noreferrer"
-        >${citation.label ?? citation.key ?? citation.href}</a
+        >${source ? html`<span class="cite-index">[${source.index}]</span> ` : ''}${citation.label ??
+          citation.key ??
+          citation.href}</a
       >`;
     }
     if (block.kind === 'code') {
@@ -138,7 +157,7 @@ function renderBlock(block: SemanticBlock, focused = false, fold?: FoldControl):
     if (block.kind === 'table' && block.data) {
       const spec = artifactViewSpec(block);
       if (spec) return html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'}></s-view>`;
-      const data = asTableData(block.data);
+      const data = payloadOf(block.data, 'table');
       return data ? renderTable(data) : html``;
     }
     if (block.kind === 'config-change') {
@@ -146,14 +165,14 @@ function renderBlock(block: SemanticBlock, focused = false, fold?: FoldControl):
       if (spec) return html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'}></s-view>`;
     }
     if (block.kind === 'list' && block.data) {
-      const items = asListData(block.data)?.items;
+      const items = payloadOf(block.data, 'list')?.items;
       return items
         ? html`<ul class="list">
-            ${items.map((item) => html`<li>${renderInline(item)}</li>`)}
+            ${items.map((item) => html`<li>${renderInline(item, sources)}</li>`)}
           </ul>`
         : html``;
     }
-    return block.text ? html`<div class="text">${renderInline(block.text)}</div>` : html``;
+    return block.text ? html`<div class="text">${renderInline(block.text, sources)}</div>` : html``;
   })();
 
   return html`
@@ -236,6 +255,9 @@ export class NotebookView extends SurfaceComponent {
     .image { max-width: 100%; border-radius: 6px; }
     .citation { color: var(--colors-semantic-accent-cyan); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-sm); text-decoration: none; }
     .citation:hover { text-decoration: underline; }
+    .cite-index { color: var(--colors-semantic-text-muted); }
+    .cite-ref { color: var(--colors-semantic-accent-cyan); text-decoration: none; }
+    .cite-ref:hover { text-decoration: underline; }
     .list { margin: 0; padding-left: var(--spacing-scale-4); color: var(--colors-semantic-text-primary); font-size: var(--typography-scale-base); line-height: var(--typography-lineHeights-relaxed); }
     table.data { border-collapse: collapse; width: 100%; font-size: var(--typography-scale-sm); color: var(--colors-semantic-text-primary); }
     table.data th, table.data td { border: 1px solid var(--colors-semantic-border-subtle); padding: var(--spacing-scale-1) var(--spacing-scale-2); text-align: left; }
@@ -275,6 +297,7 @@ export class NotebookView extends SurfaceComponent {
   protected override renderBody() {
     const graph = $workspaceGraph.get();
     const pages = rootBlocks(graph);
+    const sources = collectSources(graph);
     const crumbs = breadcrumb(graph, graph.focus);
     return html`
       ${
@@ -302,10 +325,17 @@ export class NotebookView extends SurfaceComponent {
           const folded = $collapsedBlocks.get().has(block.id);
           const fold =
             children.length > 0 ? { folded, toggle: () => toggleCollapsed(block.id) } : undefined;
+          const options: RenderOptions = { sources, focused: graph.focus === block.id, fold };
           return html`
             <section class="page" data-id=${block.id} data-folded=${folded}>
-              ${renderBlock(children.length > 0 ? { ...block, text: undefined } : block, graph.focus === block.id, fold)}
-              ${folded ? '' : children.map((child) => renderBlock(child, graph.focus === child.id))}
+              ${renderBlock(children.length > 0 ? { ...block, text: undefined } : block, options)}
+              ${
+                folded
+                  ? ''
+                  : children.map((child) =>
+                      renderBlock(child, { sources, focused: graph.focus === child.id })
+                    )
+              }
             </section>
           `;
         })}

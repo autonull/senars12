@@ -5,7 +5,7 @@
  * numbering follows document (insertion) order.
  */
 
-import { asCitationData } from './segmentation.js';
+import { payloadOf } from './block-payload.js';
 import type { WorkspaceGraph } from './workspace-graph.js';
 
 export interface Source {
@@ -24,7 +24,7 @@ export function collectSources(graph: WorkspaceGraph): Source[] {
   const seen = new Set<string>();
   for (const block of graph.blocks.values()) {
     if (block.kind !== 'citation') continue;
-    const data = asCitationData(block.data);
+    const data = payloadOf(block.data, 'citation');
     if (!data?.key || seen.has(data.key)) continue;
     seen.add(data.key);
     sources.push({ key: data.key, href: data.href, index: sources.length + 1, label: data.label });
@@ -32,8 +32,17 @@ export function collectSources(graph: WorkspaceGraph): Source[] {
   return sources;
 }
 
-/** Resolve a `[key]` reference against a bibliography, or `undefined` when unknown. */
+/**
+ * Resolve a `[key]` reference against a bibliography, or `undefined` when
+ * unknown. A key matches the citation key first, then — for a numeric reference —
+ * the bibliography position, so `[2]` resolves `[n]`-style numbering even when
+ * the stable key is not a number.
+ */
 export function resolveSource(key: string, sources: readonly Source[]): Source | undefined {
   const normalized = key.trim().replace(/^\[|\]$/g, '');
-  return sources.find((source) => source.key === normalized);
+  const position = Number(normalized);
+  return (
+    sources.find((source) => source.key === normalized) ??
+    (Number.isInteger(position) && position > 0 ? sources[position - 1] : undefined)
+  );
 }
