@@ -443,6 +443,61 @@
 
 ---
 
+### Session 7 — Phase 3.2: event catalog (2026-10-08)
+
+**Landed**
+
+- **3.2 — the event presentation registry.** New `ui/src/client/utils/event-catalog.ts` is the one
+  presentation registry for the cognitive vocabulary: `EVENT_CATALOG` carries a `label`, `category`,
+  `severity`, `provenanceRole` and `shapes` hint for **all 34** `CognitiveEventSchema` discriminants.
+  Exhaustiveness is a type, not a review catch — `satisfies Record<CognitiveEvent['type'], EventMeta>`
+  makes a schema variant without metadata (and a metadata typo) a compile error. Helpers:
+  `eventMeta`, `EVENT_TYPES`, `EVENT_CATEGORIES`, `eventsByCategory`, `eventsByShape`,
+  `eventsBySeverity`; `ViewShape` is the §3.3 shape union, declared here until Phase 4 owns it.
+- **3.2 — the bridge is catalog-keyed.** The 15-case `agent.on('*')` switch moved out of
+  `ui/src/server/index.ts` into `ui/src/server/event-reducers.ts`: `GRAPH_REDUCERS` is a
+  `[K in CognitiveEvent['type']]?` map whose per-key `event` is narrowed to `CognitiveEventOf<K>`,
+  dispatched by `dispatchGraphEvent`. The derivations-per-second window now rides the single `*`
+  subscription. The "which events are graph-relevant" decision is no longer the switch's:
+  `EVENT_CATALOG[*].shapes` includes `'graph'` for exactly the 15 reducers.
+- **Guard test.** `tests/unit/server/event-catalog.test.ts` compares catalog keys to
+  `CognitiveEventSchema.options` discriminants, validates every category/severity/role/shape and the
+  category partition, and asserts the graph-shaped event set **equals** `GRAPH_REDUCERS`' keys — so a
+  newly graph-shaped event cannot be silently dropped by the bridge.
+
+**Verification**
+
+- `pnpm --dir ui exec tsc --noEmit` clean; root `tests/unit/server` **24/24** (5 files; +5 event-catalog
+  tests, and the refactored bridge still passes the real-agent `test-endpoints` suite); `biome lint`
+  clean on all 4 files.
+
+**Still open in Phase 3**
+
+- **3.3–3.10 untouched** — `fieldCatalog`, `lensCatalog` + capability matrix, `layoutRegistry` SSOT,
+  `idSource`, `SurfaceComponent`/`defineSurface`/`renderField`, reflective generators, guard scripts.
+- **3.2 consumption is partial.** The bridge is catalog-keyed, but the client has no consumer yet:
+  the event log (6.6), timeline (6.7), provenance (6.2) and narration (5.3) still to read it. The
+  metadata is currently exercised only by the guard test.
+
+**New opportunities spotted** *(Session 7)*
+
+- `ViewShape` here duplicates the `Shape` union Phase 4.1 introduces (`ViewSpec`/`ViewAdapter`); when
+  it lands, keep one definition in the view system and have `EventMeta.shapes` reference it.
+- `severity` is static, so `health` (degraded vs ok) and `policy.violation`
+  (`warn`/`block`/`quarantine`) always report their worst case. A per-event severity resolver
+  (`severityOf(event)`) would let the status strip (5.3) and log (6.6) reflect the actual payload.
+- `CognitiveEventOf` is only exported from `@senars/core/schemas`, not the core root; the reducers
+  import the subpath. Re-export it from `@senars/core` so consumers stop reaching past the barrel.
+- The vite `@senars/core` alias still matches by prefix (the Session 1/3 bug class), so a client
+  value import of `@senars/core/schemas` would resolve to `protocol/index.ts/schemas`. The catalog
+  sidesteps it with a type-only import (erased before resolution); a real client consumer of the
+  schema (or the catalog) needs a regex alias like the `lens-schema` one.
+- `proposal:`/`goal:`/`skill:`/`task:` nodes still accumulate (Session 2 note); the catalog now tags
+  them `category: 'proposal'|'goal'|'skill'`, which is the grouping a future memory-eviction or
+  event-stream surface will filter on.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -701,7 +756,7 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 **Goal:** one source per concept, and a component contract that generates its own wiring, tests, stories, docs.
 
 - [x] **3.1** `theme` facade: generate a runtime reader from `design-tokens.json`; migrate CSS, Cytoscape/Three/Chart adapters off `TOKEN_COLORS`/inline hex; add light + high-contrast sets; token parity test. *(done: `tokens.generated.ts` + `utils/theme.ts`; all `TOKEN_COLORS`/inline-hex consumers migrated; `tokens.css` emits dark/light/high-contrast blocks; `tests/theme.test.ts` parity. Not yet wired to a theme switcher — Session 6)*
-- [ ] **3.2** `eventCatalog`: presentation metadata keyed exhaustively by event discriminant (label, category, severity, provenance role, shape hints); bridge/reducers/log/timeline/narration read it.
+- [x] **3.2** `eventCatalog`: presentation metadata keyed exhaustively by event discriminant (label, category, severity, provenance role, shape hints); bridge/reducers/log/timeline/narration read it. *(done: `ui/src/client/utils/event-catalog.ts` covers all 34 discriminants with `satisfies Record<CognitiveEvent['type'], EventMeta>`; `GRAPH_REDUCERS` in `ui/src/server/event-reducers.ts` is catalog-keyed with a parity guard. Client consumers — event log/timeline/provenance/narration — remain, Phases 5.3/6.2/6.6/6.7)*
 - [ ] **3.3** `fieldCatalog`: derive label/unit/range/kind/format from schema metadata; single reader for forms, axes, columns, provenance.
 - [ ] **3.4** `lensCatalog` + renderer capability matrix; one validation path; generated designer form; adapters declare supported channels.
 - [ ] **3.5** `layoutRegistry` SSOT with 2D/3D name maps; single `shouldRelayout`; delete the three duplicate heuristics.

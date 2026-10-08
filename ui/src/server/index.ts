@@ -11,8 +11,8 @@ import type {
   IncomingFromServer,
   LensSpec,
 } from '@senars/core';
-import { IncomingFromClient as IncomingFromClientSchema, isNarsese } from '@senars/core';
-import { DEFAULT_CONFIG, parseTermToEdges, termParser } from '@senars/nar';
+import { IncomingFromClient as IncomingFromClientSchema } from '@senars/core';
+import { DEFAULT_CONFIG, termParser } from '@senars/nar';
 import { handleMetricsRequest } from '@senars/nar/metrics';
 import { asBeliefTruth, envBool, envPositive, makeId, splitLines } from '@senars/util';
 import { type RawData, WebSocket, WebSocketServer } from 'ws';
@@ -25,6 +25,7 @@ import {
   type Scenario,
 } from './scenarios.js';
 import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
+import { dispatchGraphEvent, type ReducerContext } from './event-reducers.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const DIST_DIR = resolve(__dirname, '../../dist/client');
@@ -338,23 +339,6 @@ async function aggregateChatResponse(agent: Agent, text: string, ws?: WebSocket)
   return response;
 }
 
-function makeNode(
-  term: string,
-  truth?: Truth,
-  priority?: number,
-  extra: Partial<GraphNodeData> = {}
-): GraphNodeData {
-  return {
-    id: term,
-    term,
-    label: term,
-    nodeType: 'nar:concept',
-    ...(truth ? { truth } : {}),
-    ...(priority !== undefined ? { priority } : {}),
-    ...extra,
-  };
-}
-
 function createServerWithProjection(agent?: Agent): {
   server: ReturnType<typeof createServer>;
   projection?: UnifiedGraphProjection;
@@ -368,157 +352,13 @@ function createServerWithProjection(agent?: Agent): {
   const lastTelemetryAt = { t: Date.now() };
 
   if (agent && projection) {
+    const reducerCtx: ReducerContext = {
+      projection,
+      beliefs: () => nar()?.getBeliefs?.() ?? [],
+    };
     agent.on('*', (event: CognitiveEvent) => {
-      switch (event.type) {
-        case 'derivation.made': {
-          const { conclusion, premises, rule, cpuMs, lmCalls, lmTokens } = event.payload;
-          const belief = nar()
-            ?.getBeliefs?.()
-            .find((b) => b.term.toString() === conclusion);
-          // NAR belief truth is `{f, c}`; the wire contract is `{frequency, confidence}`.
-          const truth = asBeliefTruth(belief?.truth);
-          const edges = premises.map((premise) => ({
-            source: premise,
-            target: conclusion,
-            type: 'derivation',
-            weight: 1,
-            directed: true,
-          }));
-          if (isNarsese(conclusion)) {
-            try {
-              edges.push(
-                ...parseTermToEdges(termParser.parse(conclusion)).map((edge) => ({
-                  source: edge.source,
-                  target: edge.target,
-                  type: edge.type,
-                  weight: edge.weight,
-                  directed: edge.directed ?? true,
-                }))
-              );
-            } catch {
-              /* structural parse is best-effort decoration */
-            }
-          }
-          projection.applyDelta({
-            nodes: [makeNode(conclusion, truth, undefined, { rule, cpuMs, lmCalls, lmTokens })],
-            edges,
-          });
-          break;
-        }
-        case 'derivation.accepted': {
-          const { conclusion, premises, truth, ruleId } = event.payload;
-          projection.applyDelta({
-            nodes: [makeNode(conclusion, truth, undefined, { rule: ruleId })],
-            edges: premises.map((premise) => ({
-              source: premise,
-              target: conclusion,
-              type: 'derivation',
-              weight: 1,
-              directed: true,
-            })),
-          });
-          break;
-        }
-        case 'belief.added': {
-          const { term, truth } = event.payload;
-          projection.applyDelta({
-            nodes: [makeNode(term, truth, projection.node(term)?.priority)],
-            edges: [],
-          });
-          break;
-        }
-        case 'belief.revised': {
-          const { term, newTruth } = event.payload;
-          projection.applyDelta({
-            nodes: [makeNode(term, newTruth, projection.node(term)?.priority)],
-            edges: [],
-          });
-          break;
-        }
-        case 'concept.activated': {
-          const { term, priority } = event.payload;
-          projection.applyDelta({
-            nodes: [makeNode(term, projection.node(term)?.truth, priority)],
-            edges: [],
-          });
-          break;
-        }
-        case 'belief.retracted':
-          projection.removeNode(event.payload.term);
-          break;
-        case 'atom.retracted':
-          projection.removeNode(event.payload.atom);
-          break;
-        case 'atom.derived': {
-          const { atom, space } = event.payload;
-          projection.applyDelta({
-            nodes: [{ id: atom, atom, label: atom, nodeType: 'metta:atom', space }],
-            edges: [],
-          });
-          break;
-        }
-        case 'goal.achieved': {
-          const goal = event.payload.goal;
-          projection.applyDelta({
-            nodes: [makeNode(`goal:${goal}`, undefined, undefined, { type: 'goal', result: 'achieved' })],
-            edges: [],
-          });
-          break;
-        }
-        case 'goal.failed': {
-          const { goal, reason } = event.payload;
-          projection.applyDelta({
-            nodes: [makeNode(`goal:${goal}`, undefined, undefined, { type: 'goal', result: reason })],
-            edges: [],
-          });
-          break;
-        }
-        case 'skill.executed': {
-          const { skill, args, result, durationMs } = event.payload;
-          projection.applyDelta({
-            nodes: [
-              {
-                id: `skill:${skill}`,
-                skill,
-                label: skill,
-                nodeType: 'metta:skill',
-                args,
-                result,
-                durationMs,
-              },
-            ],
-            edges: [],
-          });
-          break;
-        }
-        case 'proposal.admitted': {
-          const { proposalId, kind } = event.payload;
-          projection.applyDelta({
-            nodes: [makeNode(`proposal:${proposalId}`, undefined, undefined, { type: 'proposal', result: `admitted:${kind}` })],
-            edges: [],
-          });
-          break;
-        }
-        case 'proposal.rejected': {
-          const { proposalId, reason } = event.payload;
-          projection.applyDelta({
-            nodes: [makeNode(`proposal:${proposalId}`, undefined, undefined, { type: 'proposal', result: `rejected:${reason}` })],
-            edges: [],
-          });
-          break;
-        }
-        case 'task.admitted': {
-          const { taskId, term } = event.payload;
-          projection.applyDelta({
-            nodes: [makeNode(`task:${taskId}`, undefined, undefined, { type: 'task', term, label: term })],
-            edges: [],
-          });
-          break;
-        }
-        case 'conflict:detected':
-          projection.markContradiction(event.payload.term, event.payload.conflictWith);
-          break;
-      }
+      if (event.type === 'derivation.made') derivationsWindow++;
+      dispatchGraphEvent(event, reducerCtx);
     });
   }
 
@@ -849,12 +689,6 @@ function createServerWithProjection(agent?: Agent): {
       );
     }
   }, 1000);
-
-  if (agent) {
-    agent.on('derivation.made', () => {
-      derivationsWindow++;
-    });
-  }
 
   httpServer.on('upgrade', (request, socket, head) => {
     if (request.url?.startsWith('/ws') || request.url === '/') {
