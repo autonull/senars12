@@ -4,9 +4,12 @@ import {
   compact,
   ensureArray,
   fnv1a,
+  generateId,
+  installIdSource,
   isNil,
   makeId,
   safeDiv,
+  sequentialIdSource,
   sleep,
   wordOverlap,
 } from '@senars/util';
@@ -75,6 +78,57 @@ describe('Utility Functions', () => {
     test('format is consistent across many iterations', () => {
       for (let i = 0; i < 100; i++) {
         expect(makeId()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      }
+    });
+  });
+
+  describe('generateId', () => {
+    const underSequentialSource = (): string[] => {
+      const restore = installIdSource(sequentialIdSource());
+      try {
+        return [generateId('user'), generateId('thread'), generateId('agent')];
+      } finally {
+        restore();
+      }
+    };
+
+    test('keeps the prefix and mints unique ids', () => {
+      const [first] = underSequentialSource();
+      expect(first).toMatch(/^user-\d+-[0-9a-z]+$/);
+      expect(new Set(underSequentialSource()).size).toBe(3);
+    });
+
+    test('default entropy follows the installed id source', () => {
+      const entropy = (ids: string[]) => ids.map((id) => id.split('-').pop());
+      expect(entropy(underSequentialSource())).toEqual(entropy(underSequentialSource()));
+    });
+
+    test('explicit rng owns the entropy deterministically', () => {
+      const draw = () => {
+        const state = { seed: 12345 };
+        const rng = () => {
+          state.seed = (state.seed * 1103515245 + 12345) & 0x7fffffff;
+          return state.seed / 0x7fffffff;
+        };
+        const restore = installIdSource(() => 'unused');
+        try {
+          return [generateId('v', rng), generateId('v', rng)];
+        } finally {
+          restore();
+        }
+      };
+      const [a, b] = draw();
+      expect(draw()).toEqual([a, b]);
+      expect(a).not.toBe(b);
+    });
+
+    test('shares the makeId ledger so the two domains cannot collide', () => {
+      const restore = installIdSource(sequentialIdSource());
+      try {
+        const ids = [generateId('a'), makeId(), generateId('b'), makeId()];
+        expect(new Set(ids).size).toBe(ids.length);
+      } finally {
+        restore();
       }
     });
   });

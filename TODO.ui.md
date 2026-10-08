@@ -686,6 +686,56 @@
 
 ---
 
+### Session 11 — Phase 3.6: idSource unification (2026-10-08)
+
+**Landed**
+
+- **3.6 — `generateId` honours the installed source.** `util/src/utils/id.ts`'s `generateId` defaulted
+  its entropy to `Math.random`, so a seeded process (NAR installs `sequentialIdSource`) stamped random
+  ids for every `generateId` call — `Agent.id`, `MemoryService`, io session ids, `cognitive-events`
+  correlation ids, client chat ids — beside the ids it had fixed. It now takes its default entropy from
+  the installed source (`makeId()`) and keeps the injectable `rng` for streams that must own the choice.
+  The `minted` ledger is shared with `makeId`, so the two id domains cannot collide; the
+  `prefix-<ledger>-<token>` format is unchanged.
+- **3.6 — one id import path on the client.** `store-bindings` imported `makeId` from `@senars/util` but
+  `generateId` from the `ui/src/shared` barrel; both now come from `@senars/util`, and the barrel no
+  longer re-exports `generateId`. Every id mint (client, projection, tests) routes through the one util
+  module; the projection already mints from its integer `#seq`, and the E2E harness already installs
+  `sequentialIdSource`.
+- **Guard test.** `tests/nar/unit/utils.test.ts` gains a `generateId` block: prefix/format + uniqueness,
+  default entropy tracks the installed source (identical tokens across fresh `sequentialIdSource()`
+  installs while the global ledger advances), explicit `rng` determinism, and ledger sharing with
+  `makeId`.
+
+**Verification**
+
+- Root `pnpm typecheck` clean; `pnpm --dir ui exec tsc --noEmit` clean; `pnpm --dir ui build` succeeds.
+- `tests/nar/unit` + `tests/unit/{core,util,agent,io}` **1270/1270** (111 files); root `tests/unit/server`
+  **57/57**; UI unit **27/27**; `biome lint` clean on the four changed files.
+- Determinism-sensitive suites (clock seam, gate correlation id, hermetic run) remain green, confirming
+  the seeded source flows through `generateId` without disturbing the `makeId` ledger.
+
+**Still open in Phase 3**
+
+- **3.7–3.10 untouched** — `SurfaceComponent`/`defineSurface`, `renderField`, reflective generators,
+  guard scripts.
+- **3.6 follow-on** — the browser has no *seeding* seam: it mints through the shared source
+  (ambient `crypto.randomUUID`) but nothing installs a deterministic source in the page, so
+  client-minted chat ids stay ambient under a seeded server. A URL/global seed → `installIdSource` at
+  boot would close that; no visual cell currently sends a message, so it is not yet load-bearing. A few
+  E2E specs still hand `randomUUID()` as a `messageId` *input* (the client echoes it) — cosmetic, not an
+  app mint.
+
+**New opportunities spotted** *(Session 11)*
+
+- Install a seeded client id source at boot when a seed is present (URL hash or `window`), so
+  client-minted ids (user chat messages, thread roots) join the deterministic run.
+- `webllm.ts`'s per-stream `textId` counter and `error-boundary.ts`'s `++errorId` are local monotonic
+  ids that bypass the shared source; route them through `makeId` (or document them as display-local)
+  when Phase 9 touches those surfaces.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -948,7 +998,7 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [x] **3.3** `fieldCatalog`: derive label/unit/range/kind/format from schema metadata; single reader for forms, axes, columns, provenance. *(done: `ui/src/client/utils/field-catalog.ts` keyed exhaustively off the schema-inferred metric types; telemetry/cognitive/node/truth panels migrated; guard test; config form + provenance fields remain, see log)*
 - [x] **3.4** `lensCatalog` + renderer capability matrix; one validation path; generated designer form; adapters declare supported channels. *(done: `ui/src/client/utils/lens-catalog.ts` + `renderer-capabilities.ts`; `LENS_CATALOG` (`satisfies Record<BuiltinLens,…>`), `validateLens`, `CHANNEL_CATALOG`, `SCALE_MAP_CATALOG`; controller/store/layout-registry/designer migrated off duplicated lists; `adapter-2d`/`adapter-3d` declare from the matrix; guard test. Matrix not yet surfaced — see log)*
 - [x] **3.5** `layoutRegistry` SSOT with 2D/3D name maps; single `shouldRelayout`; delete the three duplicate heuristics. *(done: `LayoutDefinition.getLayout` + `surface` per-renderer names; `runLayout`/`runSurface`/`surfaceFor`/`surfaceForLens`; one `shouldRelayout`; `GraphRenderer`'s dead copy + `RendererApi.onLayout` removed; 3D layout no-op fixed; guard test. Toolbar option list still hand-listed — see log)*
-- [ ] **3.6** `idSource` unification across client/projection/tests.
+- [x] **3.6** `idSource` unification across client/projection/tests. *(done: `generateId` now takes its entropy from the installed source instead of `Math.random` (shared `minted` ledger with `makeId`); client ids import from `@senars/util` only; guard test. Browser seeding seam still open — see log)*
 - [ ] **3.7** `SurfaceComponent` + `defineSurface` + declarative `bindings`; derive registration, reflective test API, empty/loading/error slots.
 - [ ] **3.8** `renderField` generic input renderer; migrate `config-hud`, `lens-designer`, `node-detail-drawer`, filters.
 - [ ] **3.9** Reflective generators: `defineSurface` emits Storybook params, gallery matrix entries, a11y targets, and docs stubs.

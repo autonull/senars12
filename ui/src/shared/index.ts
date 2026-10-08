@@ -9,5 +9,5 @@ export {
   IncomingFromServer,
   Lens,
 } from '@senars/core';
-export { edgeKey, estimateTokens, extractTerm, generateId } from '@senars/util';
+export { edgeKey, estimateTokens, extractTerm } from '@senars/util';
 export * from './constants.js';

@@ -68,9 +68,14 @@ export const sequentialIdSource = (): IdSource => {
 };
 
 /**
- * Monotonic, collision-resistant id. Pass an injectable `rng` (seeded runs,
- * deterministic replay) — the default source is the global `Math.random`.
+ * A prefixed, human-readable id. The default entropy is the installed id source
+ * so a seeded run mints these deterministically too — `Math.random` here let a
+ * seeded process stamp random ids beside the ids it had fixed. Pass an
+ * injectable `rng` where a specific stream (e.g. a NAR's `SeededRNG`) must own
+ * the choice. The `minted` ledger is shared with `makeId`, so the two id
+ * domains never collide.
  */
-export function generateId(prefix: string, rng: () => number = Math.random): string {
-  return `${prefix}-${minted}-${rng().toString(36).slice(2, 6)}`;
+export function generateId(prefix: string, rng?: () => number): string {
+  const token = rng ? rng().toString(36).slice(2, 6) : makeId().slice(-4);
+  return `${prefix}-${minted}-${token}`;
 }
