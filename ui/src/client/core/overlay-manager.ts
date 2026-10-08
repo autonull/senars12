@@ -124,9 +124,10 @@ export class OverlayManager {
   #handlePointerDown(event: Event): void {
     const top = this.#top();
     if (!top || top.modal || top.pinned) return;
-    const target = event.target;
-    if (!(target instanceof Node)) return;
-    if (top.element.contains(target) || top.anchor?.contains(target)) return;
+    // `composedPath` so a click on a shadow-DOM anchor is recognised as inside.
+    const path = event.composedPath();
+    if (path.includes(top.element) || (top.anchor !== undefined && path.includes(top.anchor)))
+      return;
     this.close(top.id);
   }
 }

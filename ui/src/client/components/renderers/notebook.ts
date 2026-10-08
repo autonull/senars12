@@ -12,10 +12,12 @@
 import type { TemplateResult } from 'lit';
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
+import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import type { TableData } from '../../core/segmentation.js';
-import { $workspaceGraph } from '../../core/store.js';
-import type { BlockKind, Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
+import { eventBus } from '../../core/events.js';
+import { $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
+import type { Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
 import { rootBlocks } from '../../core/workspace-graph.js';
 import {
   registerRenderer,
@@ -26,34 +28,6 @@ import {
   type WorkspaceRendererCaps,
 } from '../../core/workspace-renderer.js';
 import '../primitives/empty-state.js';
-
-/** Presentation label per block kind — exhaustive, so a new kind must name itself here. */
-export const BLOCK_KIND_LABEL = {
-  turn: 'Turn',
-  section: 'Section',
-  heading: 'Heading',
-  paragraph: 'Paragraph',
-  claim: 'Claim',
-  question: 'Question',
-  answer: 'Answer',
-  list: 'List',
-  table: 'Table',
-  code: 'Code',
-  math: 'Math',
-  image: 'Image',
-  diagram: 'Diagram',
-  chart: 'Chart',
-  citation: 'Citation',
-  'tool-call': 'Tool call',
-  'tool-result': 'Tool result',
-  derivation: 'Derivation',
-  'gate-decision': 'Gate decision',
-  budget: 'Budget',
-  'config-change': 'Config change',
-  error: 'Error',
-  'embedded-view': 'Embedded view',
-  raw: 'Raw',
-} satisfies Record<BlockKind, string>;
 
 const isSection = (block: SemanticBlock): boolean =>
   block.kind === 'turn' || block.kind === 'section';
@@ -97,10 +71,9 @@ function renderHeading(block: SemanticBlock): TemplateResult {
   }
 }
 
-function renderBlock(block: SemanticBlock): TemplateResult {
-  if (block.kind === 'heading') return renderHeading(block);
-
+function renderBlock(block: SemanticBlock, focused = false): TemplateResult {
   const body = (() => {
+    if (block.kind === 'heading') return renderHeading(block);
     if (block.kind === 'code')
       return html`<pre class="code"><code>${block.text}</code></pre>`;
     if (block.kind === 'table' && block.data)
@@ -113,11 +86,25 @@ function renderBlock(block: SemanticBlock): TemplateResult {
   })();
 
   return html`
-    <article class="block" data-kind=${block.kind} data-role=${block.role} data-status=${block.status ?? 'complete'}>
+    <article
+      class="block"
+      data-kind=${block.kind}
+      data-role=${block.role}
+      data-status=${block.status ?? 'complete'}
+      data-focused=${focused}
+      aria-current=${focused}
+      @click=${() => setWorkspaceFocus(block.id)}
+    >
       <header class="block-head">
         <span class="kind">${BLOCK_KIND_LABEL[block.kind]}</span>
-        ${block.title && !isSection(block) ? html`<span class="title">${block.title}</span>` : ''}
-        ${uncertaintyChip(block)}
+        ${block.title && !isSection(block) && block.title !== BLOCK_KIND_LABEL[block.kind] ? html`<span class="title">${block.title}</span>` : ''}
+        <span class="meta">
+          ${uncertaintyChip(block)}
+          <button class="more" title="Block actions" aria-label="Block actions" @click=${(event: Event) => {
+            event.stopPropagation();
+            eventBus.emit('overlay:open', { id: 'block-menu', ref: block.id, anchor: event.currentTarget as HTMLElement });
+          }}>⋯</button>
+        </span>
       </header>
       ${body}
     </article>
@@ -138,7 +125,11 @@ export class NotebookView extends SurfaceComponent {
     .block-head { display: flex; align-items: center; gap: var(--spacing-scale-2); font-size: var(--typography-scale-xs); }
     .kind { text-transform: uppercase; letter-spacing: 0.06em; color: var(--colors-semantic-text-muted); }
     .title { color: var(--colors-semantic-text-secondary); font-weight: var(--typography-fontWeights-medium); }
-    .chip { margin-left: auto; padding: 0 var(--spacing-scale-1); border-radius: 4px; background: var(--colors-semantic-bg-overlay); color: var(--colors-semantic-text-secondary); font-family: var(--typography-fontFamilies-data); }
+    .meta { display: flex; align-items: center; gap: var(--spacing-scale-2); margin-left: auto; }
+    .more { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); line-height: 1; padding: 0 var(--spacing-scale-1); }
+    .more:hover { color: var(--colors-semantic-text-primary); }
+    .block[data-focused='true'] { outline: 1px solid var(--colors-semantic-accent-cyan); }
+    .chip { padding: 0 var(--spacing-scale-1); border-radius: 4px; background: var(--colors-semantic-bg-overlay); color: var(--colors-semantic-text-secondary); font-family: var(--typography-fontFamilies-data); }
     .text { color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-base); line-height: var(--typography-lineHeights-relaxed); white-space: pre-wrap; word-break: break-word; }
     .heading { margin: 0; color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-ui); }
     .code { margin: 0; padding: var(--spacing-scale-3); border-radius: 6px; background: var(--colors-semantic-bg-base); overflow: auto; }
@@ -173,8 +164,8 @@ export class NotebookView extends SurfaceComponent {
             .filter((child): child is SemanticBlock => !!child);
           return html`
             <section class="page" data-id=${block.id}>
-              ${renderBlock(children.length > 0 ? { ...block, text: undefined } : block)}
-              ${children.map(renderBlock)}
+              ${renderBlock(children.length > 0 ? { ...block, text: undefined } : block, graph.focus === block.id)}
+              ${children.map((child) => renderBlock(child, graph.focus === child.id))}
             </section>
           `;
         })}

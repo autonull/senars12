@@ -500,7 +500,7 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 - [~] 0.4 Main workspace shell: main area renders the active renderer; floating HUD (mode · provider/backend · budget · ⌘K · stop); permanent panels removed/default-hidden.
   - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. Remaining: remove/default-hide the standing panels, add budget/stop/⌘K to the HUD once palette and run-control exist (no silent no-ops), and URL-address the active renderer.
 - [~] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
-  - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). Remaining: the concrete overlay descriptors (palette, inspector, popover, ToC, artifact viewer, settings dialog, tool approval).
+  - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside. A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6). Remaining: command palette (⌘K), artifact viewer, settings/provider dialog, tool approval.
 - [ ] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
 - [ ] 0.7 Compatibility bridge: existing graph nodes/events/chat still render (as overlays/embedded views); landed ViewSpec adapters usable inside overlays/embedded blocks.
 
@@ -509,13 +509,15 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 ### Phase 1 — Semantic Notebook / standalone LM UI wedge
 Goal: build the unique LM conversation UI first.
 - [~] 1.1 Notebook renderer: vertical page renderer, block components, block affordances, folding, focus/selection, streaming-friendly.
-  - Landed the `s-notebook` surface (`defineSurface`) + `notebookRenderer`: top-level blocks render as vertical pages with per-kind affordances (`BLOCK_KIND_LABEL`, exhaustive), role/status styling, uncertainty chips, empty-state slot, and focus/selection round-trip for renderer switches. Pages now walk `children`/`contains` and render heading/list/table/code blocks richly (static-tag headings to satisfy Lit). Remaining: block context menus/affordances (§4.2), section folding, artifact rendering via the inner view system, and virtualization.
+  - Landed the `s-notebook` surface (`defineSurface`) + `notebookRenderer`: top-level blocks render as vertical pages with per-kind affordances (`BLOCK_KIND_LABEL`, now in `core/block-labels.ts`), role/status styling, uncertainty chips, empty-state slot, and focus/selection round-trip for renderer switches. Pages now walk `children`/`contains` and render heading/list/table/code blocks richly (static-tag headings to satisfy Lit). Every block now carries a `⋯` context-menu affordance (opens the block menu with the triggering element as anchor) and highlights when it is the workspace focus (set by the ToC or by clicking the block). Remaining: section folding, artifact rendering via the inner view system, and virtualization.
 - [ ] 1.2 Composer overlay with modes; universal input (NL now; Narsese/structured seam).
 - [ ] 1.3 Input decomposition: deterministic claim/question/command split; raw preserved; extracted structure shown.
 - [~] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
   - Landed `core/segmentation.ts` (`segmentText`): deterministic, dependency-free Markdown parsing into heading/paragraph/list/table/code segments with table rows and fenced-code language. `projectChat` expands assistant turns into child blocks (`childId(msg,index)` position-anchor ids) linked by `contains`, with the raw turn text retained on the turn block. Notebook renders the children richly. Remaining: image/link/citation segmentation and block-level streaming (`status: 'streaming'` re-parse).
-- [ ] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
-- [ ] 1.6 Contextual link menu: ask follow-up, explain, open related, view as graph, copy/export, (formalize-as-belief/goal/question seam).
+- [~] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
+  - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Remaining: breadcrumbs, `j/k`/`[ ]` keyboard navigation, URL-addressable `(page, block, disclosure)`, and virtualization for long sessions.
+- [~] 1.6 Contextual link menu: ask follow-up, explain, open related, view as graph, copy/export, (formalize-as-belief/goal/question seam).
+  - Landed `s-block-menu` + `s-explain` overlays over the pure `explainModel` (`core/explain.ts`): Explain, Open in graph, View provenance (only when the block has provenance links — hidden, not inert), Copy text; the explanation popover exposes the `summary · card · detail · raw` disclosure levels as data. Remaining: ask follow-up / open related until the composer (1.2) exists, and the formalize-as-belief/goal seam until the capability registry (0.6) lands.
 - [ ] 1.7 LM-only completeness: Notebook works with no reasoning backend; provider status in HUD; rich artifacts; conversation graph exists even without NARS.
 
 **Verification:** LM-only Notebook is a better-than-chat UI; a response with headings/table/code becomes navigable blocks; ToC and contextual actions are block-aware; no reasoning capability required.
@@ -839,6 +841,59 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   the live binding stays cheap under streaming.
 - A segmentation property test (segment → reassemble loses no non-whitespace text) would guard the
   fidelity guarantee the raw turn block currently provides implicitly.
+
+### 2026-10-08 (e) — Phase 0.5 overlay host + concrete overlays (ToC 1.5, block menu/explain 1.6)
+
+**Landed**
+- `ui/src/client/core/overlay-registry.ts` — `OverlayDescriptor` data catalog (`registerOverlay`/
+  `overlayDescriptor`/`overlays`), so palette/shortcuts/tests enumerate overlays without importing
+  their elements.
+- `ui/src/client/core/overlay-host.ts` — `OverlayHost`: lazily instantiates a registered overlay's
+  element into a container, assigns the `Ref` it inspects, and opens it through the one
+  `OverlayManager`. The shell (`app-layout`) now owns one host and routes `overlay:open`/
+  `overlay:close` signals (added to `UiSignals`); it exposes `window.__testApi.overlays`
+  (`open`/`close`/`isOpen`/`stack`/`descriptors`).
+- `ui/src/client/core/overlay-manager.ts` — outside-click now reads `event.composedPath()`, so an
+  anchor inside a shadow root is recognised as inside (Escape and focus-return were already safe).
+- `ui/src/client/core/block-labels.ts` — `BLOCK_KIND_LABEL` extracted from the notebook as the one
+  exhaustive kind → label SSOT; ToC and inspector read it too.
+- `ui/src/client/core/toc.ts` — pure `tocEntries`: page order + `children` in document order, keeping
+  navigable kinds; `ui/src/client/core/explain.ts` — pure `explainModel`: a block plus every touching
+  link labelled through `linkMeta`.
+- `ui/src/client/components/overlays/{toc,explain,block-menu}.ts` + `index.ts` — the first concrete
+  overlays: semantic ToC (search, present-kind filter chips, focus-on-select), the explanation
+  popover (`summary · card · detail · raw`), and the contextual block menu (Explain, Open in graph,
+  View provenance only when links exist, Copy text). Hidden-not-inert affordances that need a
+  capability/producer not yet built.
+- Store: `setWorkspaceFocus`/`setWorkspaceSelection` session-state helpers. Notebook: per-block `⋯`
+  context menu (emits `overlay:open` with the triggering element as anchor) and focused-block
+  highlight. HUD: `☰` ToC trigger. Barrel exports + `core/index.ts`.
+- Tests (25 new across 5 files; whole UI suite 148 green; typecheck + biome clean; client build
+  succeeds): `tests/components/{overlay-host,toc,explain,block-menu}.test.ts` + notebook affordance/
+  focus specs.
+
+**Notes for remaining work**
+- Overlays are lazily created and appended to `document.body`; a renderer switch does not unmount
+  them. Pin state and overlay stack are in-memory only (Appendix C URL-addressable pinned cards).
+- Overlay trigger/anchor elements live inside a surface's shadow root; the manager resolves
+  containment via `composedPath` but focus-return still calls `.focus()` on the inner element, which
+  is correct. If overlays become anchored popovers, add an explicit anchor resolver to `OverlayHost`.
+- `explainModel` labels the "other" end from `title`/first text line; when the graph grows, add a
+  `blockLabel(block)` SSOT reused by ToC, explain and the block menu instead of the three private
+  helpers that exist now.
+- The block menu hides follow-up/formalize/embed; wire them when the composer (1.2), capability
+  registry (0.6) and embedded views (Phase 4) land rather than shipping placeholders.
+
+**New improvement opportunities**
+- ⌘K command palette is now the only missing piece to make the HUD "complete"; derive its commands
+  from the same registries (renderers, overlays, capabilities) so a new surface appears in both.
+- Derive a `WorkspaceHost` element that owns the `OverlayHost` and mounts the active renderer, so
+  `app-layout` stops hardcoding which element each renderer uses and `WorkspaceContext.openOverlay`
+  becomes real for every renderer (currently renderers open overlays via the event bus).
+- An `Announcer` bridge on `OverlayHost` open/close (emit the title) would give screen readers the
+  overlay context for free and satisfy the earlier 0.5 a11y note.
+- `tocEntries`/`explainModel` recompute on every store change; memoise per `$workspaceGraph` identity
+  (the graph object is replaced on each projection, so an `identity` check is exact).
 
 
 

@@ -25,6 +25,9 @@ export type UiSignals = {
   'graph:zoom-out': void;
   'graph:fit': void;
   'graph:minimap-toggle': void;
+  /** Open/close a registered overlay through the shell's one overlay host. */
+  'overlay:open': { id: string; ref?: string; anchor?: HTMLElement };
+  'overlay:close': { id?: string };
 };
 
 export const eventBus = new EventBus<UiSignals>();

@@ -1,8 +1,18 @@
 export { Announcer } from './announcer.js';
 export { BaseComponent } from './base-component.js';
+export { BLOCK_KIND_LABEL } from './block-labels.js';
 export { eventBus } from './events.js';
+export { explainModel, type ExplainLink, type ExplainModel } from './explain.js';
 export { FocusTrap } from './focus-trap.js';
 export { type OverlayEntry, OverlayManager } from './overlay-manager.js';
+export { OverlayHost, type OpenOverlayOptions } from './overlay-host.js';
+export {
+  overlayDescriptor,
+  type OverlayDescriptor,
+  overlays,
+  registerOverlay,
+} from './overlay-registry.js';
+export { type TocEntry, TOC_KINDS_TYPE, tocEntries } from './toc.js';
 export {
   $activeLens,
   $activeRenderer,
@@ -55,6 +65,8 @@ export {
   type RevisionEntry,
   registerLens,
   removeLens,
+  setWorkspaceFocus,
+  setWorkspaceSelection,
   type TelemetryData,
   type TestApiStorePath,
   type UrlState,

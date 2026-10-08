@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { notebookRenderer } from '../../src/client/components/renderers/notebook.js';
+import { eventBus } from '../../src/client/core/events.js';
 import { $workspaceGraph } from '../../src/client/core/store.js';
 import {
   applyWorkspaceOps,
@@ -91,6 +92,28 @@ describe('notebook surface', () => {
     expect(root?.querySelector('ul.list')?.children).toHaveLength(2);
     expect(root?.querySelector('table.data')?.querySelectorAll('tbody tr')).toHaveLength(1);
     expect(root?.querySelector('pre.code')?.textContent).toContain('const x = 1;');
+  });
+
+  it('offers each block a context menu affordance', async () => {
+    $workspaceGraph.set(graph(block('user-1', { text: 'Robins are birds' })));
+    const el = document.createElement('s-notebook');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const opened = vi.fn();
+    const off = eventBus.on('overlay:open', opened);
+    el.shadowRoot?.querySelector<HTMLButtonElement>('.more')?.click();
+    expect(opened).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'block-menu', ref: 'user-1' })
+    );
+    off();
+  });
+
+  it('marks the focused block', async () => {
+    $workspaceGraph.set({ ...graph(block('user-1', { text: 'hi' })), focus: 'user-1' });
+    const el = document.createElement('s-notebook');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.shadowRoot?.querySelector('.block[data-focused="true"]')).toBeTruthy();
   });
 });
 

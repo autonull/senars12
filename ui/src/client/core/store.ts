@@ -148,6 +148,16 @@ export const $workspaceGraph = atom<WorkspaceGraph>(emptyWorkspaceGraph());
 /** The active `WorkspaceRenderer` id — URL-addressable, palette-switchable, agent-settable. */
 export const $activeRenderer = atom<string>('graph');
 
+/** Point the workspace focus at a block (session state; survives re-projection). */
+export function setWorkspaceFocus(ref?: string): void {
+  $workspaceGraph.set({ ...$workspaceGraph.get(), focus: ref });
+}
+
+/** Replace the workspace selection set (session state; survives re-projection). */
+export function setWorkspaceSelection(refs: Iterable<string>): void {
+  $workspaceGraph.set({ ...$workspaceGraph.get(), selection: new Set(refs) });
+}
+
 // --- Batch 4: Capability-based filtering ---
 export const $capabilityFilter = atom<string | 'all'>('all');
 

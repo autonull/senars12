@@ -10,6 +10,7 @@
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
+import { eventBus } from '../core/events.js';
 import { $activeRenderer, $lmStatus } from '../core/store.js';
 import { workspaceRenderers } from '../core/workspace-renderer.js';
 
@@ -54,6 +55,13 @@ export class WorkspaceHud extends BaseComponent {
     const provider = $lmStatus.get().provider;
     return html`
       <div class="hud" role="toolbar" aria-label="Workspace">
+        <button
+          data-action="toc"
+          title="Table of contents"
+          aria-label="Table of contents"
+          @click=${(event: Event) =>
+            eventBus.emit('overlay:open', { id: 'toc', anchor: event.currentTarget as HTMLElement })}
+        >☰</button>
         <div class="modes">
           ${workspaceRenderers().map(
             (renderer) => html`

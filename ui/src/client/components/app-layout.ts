@@ -10,8 +10,13 @@ import {
   $selectedNodeId,
   $viewSelection,
   $viewportMode,
+  eventBus,
+  mountTestApi,
+  OverlayHost,
+  overlays,
 } from '../core/index.js';
 import { GRAPH_VIEW_SPEC } from './views/graph-view-spec.js';
+import './overlays/index.js';
 import './graph-viewport.js';
 import '../spacegraph/spacegraph-viewport.js';
 import './graph-toolbar.js';
@@ -81,8 +86,12 @@ export class AppLayout extends BaseComponent {
     }
   `;
 
+  #overlays?: OverlayHost;
+  #overlaySubs: Array<() => void> = [];
+
   override connectedCallback() {
     super.connectedCallback();
+    this.mountOverlays();
     this.watch($connectionState);
     this.watch($panels);
     this.watch($graphNodes);
@@ -92,6 +101,31 @@ export class AppLayout extends BaseComponent {
     this.watch($activeRenderer);
     this.watchWith($viewSelection, (selection) => {
       if (selection.focus) $selectedNodeId.set(selection.focus);
+    });
+  }
+
+  override disconnectedCallback() {
+    for (const unsubscribe of this.#overlaySubs) unsubscribe();
+    this.#overlaySubs = [];
+    this.#overlays?.dispose();
+    this.#overlays = undefined;
+    super.disconnectedCallback();
+  }
+
+  private mountOverlays() {
+    this.#overlays ??= new OverlayHost();
+    this.#overlaySubs = [
+      eventBus.on('overlay:open', ({ id, ref, anchor }) =>
+        this.#overlays?.open(id, { ref, anchor })
+      ),
+      eventBus.on('overlay:close', ({ id }) => this.#overlays?.close(id)),
+    ];
+    mountTestApi('overlays', {
+      open: (id: string, ref?: string) => this.#overlays?.open(id, { ref }),
+      close: (id?: string) => this.#overlays?.close(id),
+      isOpen: (id: string) => this.#overlays?.isOpen(id),
+      stack: () => this.#overlays?.stack(),
+      descriptors: () => overlays(),
     });
   }
 
