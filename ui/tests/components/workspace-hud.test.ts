@@ -81,4 +81,13 @@ describe('workspace hud', () => {
     unsubscribe();
     expect(opened).toEqual(['timeline']);
   });
+
+  it('summons the settings overlay from the HUD', async () => {
+    const el = await mountHud();
+    const opened: string[] = [];
+    const unsubscribe = eventBus.on('overlay:open', ({ id }) => opened.push(id));
+    query<HTMLButtonElement>(el.shadowRoot, 'button[data-action="settings"]').click();
+    unsubscribe();
+    expect(opened).toEqual(['settings']);
+  });
 });

@@ -143,7 +143,6 @@ export class GraphToolbar extends BaseComponent {
   override render() {
     const activeLens = $activeLens.get();
     const state = $connectionState.get();
-    const configOpen = $panels.get().get('config')?.open;
     const telemetryOpen = $panels.get().get('telemetry')?.open;
     const lensDesignerOpen = $panels.get().get('lens-designer')?.open;
 
@@ -220,8 +219,8 @@ export class GraphToolbar extends BaseComponent {
 
       <div class="spacer"></div>
 
-      <button class="toolbar-btn ${configOpen ? 'active' : ''}"
-        @click=${() => this.togglePanel('config')} title="Toggle configuration panel">Config</button>
+      <button class="toolbar-btn"
+        @click=${() => eventBus.emit('overlay:open', { id: 'settings' })} title="Open settings dialog">Config</button>
 
       <button class="toolbar-btn ${lensDesignerOpen ? 'active' : ''}"
         @click=${() => this.togglePanel('lens-designer')} title="Open Lens Designer">Design</button>

@@ -107,6 +107,13 @@ export class WorkspaceHud extends BaseComponent {
             : ''
         }
         <button
+          data-action="settings"
+          title="Settings"
+          aria-label="Settings"
+          @click=${(event: Event) =>
+            eventBus.emit('overlay:open', { id: 'settings', anchor: event.currentTarget as HTMLElement })}
+        >⚙</button>
+        <button
           data-action="palette"
           title="Command palette (⌘K)"
           aria-label="Command palette"

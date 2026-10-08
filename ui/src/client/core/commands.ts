@@ -14,7 +14,6 @@ import { workspaceRenderers } from './workspace-renderer.js';
 export type CommandArgs = Record<string, unknown>;
 
 const PANEL_LABELS: Record<string, string> = {
-  config: 'Configuration',
   telemetry: 'Telemetry',
   chat: 'Chat History',
   search: 'Search',

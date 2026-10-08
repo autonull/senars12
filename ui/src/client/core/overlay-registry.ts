@@ -13,6 +13,8 @@ export interface OverlayDescriptor {
   readonly tag: string;
   /** A modal captures the background: outside-click is ignored. */
   readonly modal?: boolean;
+  /** Focus the first focusable on open. Off for popovers that follow live selection. */
+  readonly autoFocus?: boolean;
   /** Keep the overlay out of the command palette (e.g. the palette itself). */
   readonly hiddenInPalette?: boolean;
 }

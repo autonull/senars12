@@ -33,7 +33,13 @@ export class OverlayHost {
     if (!descriptor) return false;
     const element = this.#element(descriptor);
     if (ref !== undefined) (element as { ref?: string }).ref = ref;
-    this.manager.open({ id, element, anchor, modal: descriptor.modal });
+    this.manager.open({
+      id,
+      element,
+      anchor,
+      modal: descriptor.modal,
+      autoFocus: descriptor.autoFocus,
+    });
     element.dispatchEvent(new CustomEvent('overlay-open', { detail: { id, ref } }));
     return true;
   }

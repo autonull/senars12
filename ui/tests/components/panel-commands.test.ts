@@ -16,6 +16,10 @@ describe('panel commands (0.4)', () => {
     expect(initialTelemetryOpen).toBe(false);
   });
 
+  it('retires the config panel in favour of the settings overlay', () => {
+    expect($panels.get().has('config')).toBe(false);
+  });
+
   it('derives a toggle command for every panel', () => {
     const ids = activeCommands().map((command) => command.id);
     for (const id of $panels.get().keys()) {

@@ -17,6 +17,8 @@ export interface OverlayEntry {
   readonly anchor?: HTMLElement;
   /** A modal captures the background: outside-click is ignored. */
   readonly modal?: boolean;
+  /** Focus the first focusable on open. Off for popovers that follow live selection. */
+  readonly autoFocus?: boolean;
 }
 
 interface OpenOverlay extends OverlayEntry {
@@ -49,7 +51,11 @@ export class OverlayManager {
       return;
     }
     entry.element.hidden = false;
-    const overlay: OpenOverlay = { ...entry, trap: new FocusTrap(entry.element), pinned: false };
+    const overlay: OpenOverlay = {
+      ...entry,
+      trap: new FocusTrap(entry.element, entry.autoFocus ?? true),
+      pinned: false,
+    };
     overlay.trap.activate();
     this.#stack.push(overlay);
     this.#restack();

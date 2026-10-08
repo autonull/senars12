@@ -28,4 +28,15 @@ describe('FocusTrap', () => {
     trap.dispose();
     expect(document.activeElement).toBe(trigger);
   });
+
+  it('leaves focus alone when autoFocus is off', () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+    const host = shadowHost('<button id="a">a</button>');
+    const trap = new FocusTrap(host, false);
+    trap.activate();
+    expect(document.activeElement).toBe(trigger);
+    trap.dispose();
+  });
 });

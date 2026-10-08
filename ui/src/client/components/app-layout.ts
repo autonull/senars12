@@ -6,6 +6,7 @@ import {
   $connectionState,
   $graphNodes,
   $panels,
+  $selectedEdgeId,
   $selectedNodeId,
   $viewSelection,
   $workspaceGraph,
@@ -30,13 +31,11 @@ import './renderers/notebook.js';
 import './workspace-host.js';
 import './workspace-hud.js';
 import './input-hud.js';
-import './config-hud.js';
 import './telemetry-panel.js';
 import './contradiction-badge.js';
 import './connection-banner.js';
 import './lm-status-panel.js';
 import './error-boundary.js';
-import './node-detail-drawer.js';
 import './chat-history-panel.js';
 import './lens-designer.js';
 import './primitives/empty-state.js';
@@ -117,8 +116,9 @@ export class AppLayout extends BaseComponent {
     this.watch($connectionState);
     this.watch($panels);
     this.watch($graphNodes);
-    this.watch($selectedNodeId);
     this.watch($activeRenderer);
+    this.watchWith($selectedNodeId, () => this.syncInspector());
+    this.watchWith($selectedEdgeId, () => this.syncInspector());
     this.watchWith($viewSelection, (selection) => {
       if (selection.focus) $selectedNodeId.set(selection.focus);
     });
@@ -150,9 +150,15 @@ export class AppLayout extends BaseComponent {
     });
   }
 
+  /** The inspector popover follows the live selection: open while a node/edge is chosen. */
+  private syncInspector() {
+    const active = $selectedNodeId.get() !== null || $selectedEdgeId.get() !== null;
+    if (active) this.#overlays?.open('inspector');
+    else this.#overlays?.close('inspector');
+  }
+
   override render() {
     const panels = $panels.get();
-    const configPanel = panels.get('config');
     const searchPanel = panels.get('search');
     const telemetryPanel = panels.get('telemetry');
     const chatPanel = panels.get('chat');
@@ -199,30 +205,6 @@ export class AppLayout extends BaseComponent {
           <workspace-host></workspace-host>
           <workspace-hud></workspace-hud>
         </div>
-
-        ${
-          configPanel?.open
-            ? html`
-          <div class="panel-right" style=${this.getPanelStyle('config')}>
-            <s-panel heading="Configuration" docked="right" closable @s-close=${() => this.togglePanel('config')}>
-              <config-hud></config-hud>
-            </s-panel>
-          </div>
-        `
-            : ''
-        }
-
-        ${
-          $selectedNodeId.get()
-            ? html`
-          <div class="panel-right" style="width:300px;overflow:hidden;border-left:1px solid var(--colors-semantic-border-subtle);">
-            <s-panel heading="Node Detail" docked="right" closable @s-close=${() => $selectedNodeId.set(null)}>
-              <node-detail-drawer></node-detail-drawer>
-            </s-panel>
-          </div>
-        `
-            : ''
-        }
 
         ${
           chatPanel?.open

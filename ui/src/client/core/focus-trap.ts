@@ -25,20 +25,30 @@ const focusables = (container: HTMLElement): HTMLElement[] => {
 export class FocusTrap {
   private previousActive: Element | null = null;
   private readonly container: HTMLElement;
+  private readonly autoFocus: boolean;
   private handler: ((event: KeyboardEvent) => void) | null = null;
   private frame = 0;
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, autoFocus = true) {
     this.container = container;
     this.previousActive = container.ownerDocument.activeElement;
+    this.autoFocus = autoFocus;
   }
 
   activate() {
+    if (!this.autoFocus) {
+      this.#trapTab();
+      return;
+    }
     this.focusFirst();
     this.frame = this.container.ownerDocument.defaultView?.requestAnimationFrame(() =>
       this.focusFirst()
     ) ?? 0;
 
+    this.#trapTab();
+  }
+
+  #trapTab() {
     this.handler = (event: KeyboardEvent) => {
       if (event.key !== 'Tab') return;
       const list = focusables(this.container);

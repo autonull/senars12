@@ -34,13 +34,17 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 
 *Outcome: no standing panels; overlay primitives complete. No deps.*
 
-- [ ] **0.4 inspector** — demote the auto-opening node-detail drawer (last standing side panel) to a
+- [x] **0.4 inspector** — demote the auto-opening node-detail drawer (last standing side panel) to a
   contextual inspector popover / pinnable card; project workspace-node data into it or hide when
-  contentless. `(b)`,`(af)`,`(ag)`,`(ae)`,`(n)`,`(o)`
+  contentless. `(b)`,`(af)`,`(ag)`,`(ae)`,`(n)`,`(o)` — landed as the `inspector` overlay
+  (`s-inspector`): non-modal, follows `$selectedNodeId`/`$selectedEdgeId`, closing clears selection.
+  Opens without stealing focus (new `autoFocus` overlay primitive). Pinning (4.5) still to do.
 - [ ] **0.4 telemetry** — move telemetry content into the HUD expansion (`s-sparkline` + `s-table-mini`)
   and retire the bottom panel; add a HUD "Panels" menu derived from `view.panel.*`. `(af)`
-- [ ] **0.4 config demotion** — migrate the legacy config panel into the settings overlay, migrate the
-  configuration e2e spec, then default it off. `(aa)`,`(c)`,`(af)`
+- [x] **0.4 config demotion** — migrate the legacy config panel into the settings overlay, migrate the
+  configuration e2e spec, then default it off. `(aa)`,`(c)`,`(af)` — `config` retired from `$panels`
+  and `$configOpen`; the settings overlay is the one home; toolbar `Config` + HUD `⚙` open
+  `overlay.settings`; e2e/visual migrated.
 - [ ] **0.5 tool approval** — build the tool-approval dialog overlay. `(b)`,`(aa)`
 - [ ] **4.5 pinning** — overlays pinnable as floating cards (manager seam `setPinned`/`pinned` exists);
   decide session-only vs URL-addressable. `(b)`,`(e)`,`(aa)`
@@ -227,6 +231,38 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 ## Progress log
 
 Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
+
+### (v4.2) — WP1 shell demotions: inspector + config
+- **0.4 inspector** — `node-detail-drawer` is now the `inspector` overlay (`s-inspector`): a
+  non-modal popover that follows `$selectedNodeId`/`$selectedEdgeId` and closes when the selection
+  clears. The standing right-side panel is gone from `app-layout`.
+  - New overlay primitive: `autoFocus` threaded through `FocusTrap` → `OverlayManager` →
+    `OverlayDescriptor` → `OverlayHost`, so a selection-following popover opens **without** stealing
+    graph focus. Default remains `true`.
+- **0.4 config demotion** — retired the legacy `config` panel (removed from `$panels` and the
+  `$configOpen` alias/export); the settings overlay (0.5) is the one home. Toolbar `Config` and a new
+  HUD `⚙` open `overlay.settings`. Migrated `tests/scenarios/configuration/adjust-parameters.spec.ts`
+  (now drives the settings overlay through the toolbar) and the visual matrix cell (`overlay-settings`).
+- **Tests** — added `app-layout.test.ts` (inspector wiring), `inspector-overlay.test.ts`; extended
+  `focus-trap` (autoFocus off), `workspace-hud` (⚙ → settings), `panel-commands` (config retired).
+
+### Discoveries / notes for the next session
+- **Telemetry (0.4) still open.** It is default-closed, so no standing panel shows, but the
+  HUD-expansion (`s-sparkline` + `s-table-mini`) + HUD "Panels" menu migration remains. `telemetry`
+  panel entry and `telemetry-panel` element are still wired.
+- **HUD is obscured by the fixed composer (pre-existing).** `input-hud` is `position: fixed`, so its
+  full-width host overlays the bottom of `graph-area` where `workspace-hud` floats. Its buttons
+  (toc/timeline/palette/settings) are therefore **pointer-unreachable** — only ⌘K works. Confirmed on
+  pristine source: `tests/scenarios/cognitive/timeline.spec.ts` first case fails identically without
+  this change. Likely fix: drop `position: fixed` from `input-hud` so it occupies the `bottom` grid
+  row and `graph-area` ends above it; needs visual-baseline regen.
+- **`edit-edge` e2e (pre-existing).** `tests/scenarios/relational/edit-edge.spec.ts` uses
+  `node-detail-drawer .tab-button` (real class is `.tab`) and its `clickEdge` path never opened a
+  drawer because the old standing panel keyed only on `$selectedNodeId`. The `$selectedEdgeId`
+  watcher added here now opens the inspector for edges, but the stale selector remains; both cases
+  are red on pristine.
+- **Overlay sweep still open:** `overlay.*` arg forwarding and the generic `OverlayHost` anchor
+  resolver (pass the Cytoscape container); palette modality/MRU/announcer bridge.
 
 ### (v4.1) — restructured into work packages
 - Rewrote the forward plan as work packages with a dependency spine; folded every improvement

@@ -336,7 +336,6 @@ export interface PanelState {
 
 export const $panels = atom<Map<string, PanelState>>(
   new Map([
-    ['config', { id: 'config', open: false, docked: 'right', size: 320, order: 0 }],
     ['telemetry', { id: 'telemetry', open: false, docked: 'bottom', size: 200, order: 0 }],
     ['chat', { id: 'chat', open: false, docked: 'right', size: 360, order: 1 }],
     ['search', { id: 'search', open: false, docked: 'left', size: 280, order: 0 }],
@@ -371,21 +370,6 @@ export function updateNodeData(
   $graphNodes.set(nodes);
   return updated;
 }
-
-// Migration alias: $configOpen → $panels.get('config').open
-export const $configOpen = {
-  get: () => $panels.get().get('config')?.open ?? false,
-  set: (open: boolean) => {
-    const panels = new Map($panels.get());
-    const panel = panels.get('config');
-    if (panel) {
-      panels.set('config', { ...panel, open });
-      $panels.set(panels);
-    }
-  },
-  subscribe: (fn: (value: boolean) => void) =>
-    $panels.subscribe((p) => fn(p.get('config')?.open ?? false)),
-};
 
 // --- Phase 0: URL State ---
 export interface UrlState {

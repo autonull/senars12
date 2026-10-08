@@ -89,10 +89,20 @@ export const VISUAL_CELLS: VisualCell[] = [
     viewport: NARROW,
   },
   {
-    id: 'panel-config',
-    group: 'Panels',
-    title: 'Configuration panel',
-    hash: '#panels=config',
+    id: 'overlay-settings',
+    group: 'Overlays',
+    title: 'Settings overlay',
+    hash: '#panels=none',
+    prepare: async ({ page }) => {
+      await page.evaluate(() => {
+        (
+          (window as Record<string, unknown>).__testApi as {
+            overlays?: { open?: (id: string) => void };
+          }
+        )?.overlays?.open?.('settings');
+      });
+      await page.waitForTimeout(200);
+    },
   },
   {
     id: 'panel-lens-designer',

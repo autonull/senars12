@@ -77,7 +77,6 @@ export {
   $collapsedBlocks,
   $cognitiveMetrics,
   $config,
-  $configOpen,
   $connectionState,
   $focusTerm,
   $graphEdges,
