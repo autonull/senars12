@@ -37,6 +37,9 @@ import './components/views/index.js';
 // Phase 0.3: Workspace renderers
 import './components/renderers/graph3d.js';
 
+// Phase 0.2: Live workspace projection
+import { mountWorkspaceProjection } from './core/workspace-bindings.js';
+
 // Accessibility: live region announcements
 const announcer = Announcer.getInstance();
 $connectionState.subscribe((state) => {
@@ -49,4 +52,5 @@ $activeLens.subscribe((lens) => {
 });
 
 hydrateFromUrl();
+mountWorkspaceProjection();
 connect();

@@ -493,12 +493,13 @@ Each phase is small, verifiable, leaves the app working, and reorders around the
 ### Phase 0 — Main workspace contract
 Goal: replace panel-first architecture with one workspace renderer contract.
 - [x] 0.1 WorkspaceGraph substrate: `SemanticBlock`, `SemanticLink`, `WorkspaceOp`, store atoms; link-kind catalog as data.
-- [~] 0.2 Projection from current state: chat → turns/blocks; existing `GRAPH_REDUCERS`/`UnifiedGraphProjection` wrapped as a block/link producer (behavior-preserving; existing tests stay green).
-  - Client half landed (`projectChat`/`projectGraph`/`projectWorkspace`: chat turns + discourse links; engine nodes → claim/tool blocks with `derived-from`/`references` links and NAL uncertainty). Remaining: wrap the server `GRAPH_REDUCERS`/`UnifiedGraphProjection` as an op-emitting producer and drive `$workspaceGraph` reactively.
+- [x] 0.2 Projection from current state: chat → turns/blocks; existing `GRAPH_REDUCERS`/`UnifiedGraphProjection` wrapped as a block/link producer (behavior-preserving; existing tests stay green).
+  - Landed: pure `projectChat`/`projectGraph`/`projectWorkspace`, plus `workspace-bindings.ts` (`mountWorkspaceProjection`) which keeps `$workspaceGraph` live from `$chatMessages`/`$graphNodes`/`$graphEdges` (the existing `GRAPH_REDUCERS`/`UnifiedGraphProjection` path) while preserving session state. Wired in `entry.ts`. Behavior-preserving: bridge/reducers untouched; existing graph tests green.
 - [~] 0.3 `WorkspaceRenderer` contract + registry (`notebook`, `graph`, `graph3d` stub); mode-switch state; capabilities.
   - Contract, registry, `$activeRenderer` state and the honest `graph3d` stub (parity `partial`) landed. Real `notebook`/`graph` renderers land in Phases 1–2.
 - [ ] 0.4 Main workspace shell: main area renders the active renderer; floating HUD (mode · provider/backend · budget · ⌘K · stop); permanent panels removed/default-hidden.
-- [ ] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
+- [~] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
+  - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). Remaining: the concrete overlay descriptors (palette, inspector, popover, ToC, artifact viewer, settings dialog, tool approval).
 - [ ] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
 - [ ] 0.7 Compatibility bridge: existing graph nodes/events/chat still render (as overlays/embedded views); landed ViewSpec adapters usable inside overlays/embedded blocks.
 
@@ -730,5 +731,38 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   (catalog layouts ⊆ `layoutRegistry` ids, once those layouts land) would prevent drift.
 - `applyWorkspaceOp` copies whole `Map`s per op; batch streaming should fold ops before a single
   `set` — revisit when the projection is wired.
+
+### 2026-10-08 (b) — Phase 0.2 live projection + Phase 0.5 overlay manager
+
+**Landed**
+- `ui/src/client/core/workspace-bindings.ts` — `syncWorkspaceGraph` (re-projects chat + engine graph
+  into `$workspaceGraph`, carrying `focus`/`selection`/`timeCursor` across) and
+  `mountWorkspaceProjection` (subscribes to `$chatMessages`/`$graphNodes`/`$graphEdges`, returns an
+  unsubscribe). Wired once in `entry.ts`. Completes 0.2 on the client: the substrate is live from the
+  existing bridge/`GRAPH_REDUCERS` path without touching it.
+- `ui/src/client/core/overlay-manager.ts` — `OverlayManager`: stacking order + z-order, `Esc` closes
+  the topmost unpinned overlay, outside-click dismisses only non-modals, a `FocusTrap` on every
+  overlay, focus returns to the anchor, and the pinning seam (`setPinned`/`pinned`).
+- Tests: `tests/components/{workspace-bindings,overlay-manager}.test.ts` (11 new; whole UI suite 108
+  green; typecheck + biome clean).
+
+**Notes for remaining work**
+- `0.5` still needs the concrete overlay descriptors built on the manager: command palette, contextual
+  inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool
+  approval. Each should be a `defineSurface` descriptor (§1) and register with the shell's manager.
+- `0.4` shell is the next structural step: render `$activeRenderer` into the main area, mount its
+  `mount(host, ctx)` with an `OverlayManager`-backed `WorkspaceContext`, and demote panels.
+- `mountWorkspaceProjection` re-projects the whole graph on every atom change; once streaming lands,
+  switch to incremental `WorkspaceOp`s or coalesce with a microtask/rAF before `set`.
+
+**New improvement opportunities**
+- `WorkspaceContext` is currently `{ openOverlay, openPalette }`; the shell will likely want
+  `overlays: OverlayManager`, `renderer`, and a `setRenderer` callback — extend the contract now that
+  a real manager exists.
+- Pin state is in-memory only; §Appendix C flags URL-addressable pinned cards — decide whether pin
+  ids join the hash URL state alongside `panels`.
+- Add an `OverlayManager`-driven announcement (`Announcer.announce` on open/close) so screen readers
+  get the overlay title for free.
+
 
 

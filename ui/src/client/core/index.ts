@@ -2,6 +2,7 @@ export { Announcer } from './announcer.js';
 export { BaseComponent } from './base-component.js';
 export { eventBus } from './events.js';
 export { FocusTrap } from './focus-trap.js';
+export { type OverlayEntry, OverlayManager } from './overlay-manager.js';
 export {
   $activeLens,
   $activeRenderer,
@@ -153,6 +154,7 @@ export {
   turnId,
   type WorkspaceFragment,
 } from './workspace-projection.js';
+export { mountWorkspaceProjection, syncWorkspaceGraph } from './workspace-bindings.js';
 export {
   registerRenderer,
   rendererSupports,
