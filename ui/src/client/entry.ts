@@ -35,6 +35,8 @@ import './core/view-host.js';
 import './components/views/index.js';
 
 // Phase 0.3: Workspace renderers
+import './components/renderers/graph.js';
+import './components/renderers/notebook.js';
 import './components/renderers/graph3d.js';
 
 // Phase 0.2: Live workspace projection

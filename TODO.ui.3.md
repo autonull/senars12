@@ -495,9 +495,10 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 - [x] 0.1 WorkspaceGraph substrate: `SemanticBlock`, `SemanticLink`, `WorkspaceOp`, store atoms; link-kind catalog as data.
 - [x] 0.2 Projection from current state: chat → turns/blocks; existing `GRAPH_REDUCERS`/`UnifiedGraphProjection` wrapped as a block/link producer (behavior-preserving; existing tests stay green).
   - Landed: pure `projectChat`/`projectGraph`/`projectWorkspace`, plus `workspace-bindings.ts` (`mountWorkspaceProjection`) which keeps `$workspaceGraph` live from `$chatMessages`/`$graphNodes`/`$graphEdges` (the existing `GRAPH_REDUCERS`/`UnifiedGraphProjection` path) while preserving session state. Wired in `entry.ts`. Behavior-preserving: bridge/reducers untouched; existing graph tests green.
-- [~] 0.3 `WorkspaceRenderer` contract + registry (`notebook`, `graph`, `graph3d` stub); mode-switch state; capabilities.
-  - Contract, registry, `$activeRenderer` state and the honest `graph3d` stub (parity `partial`) landed. Real `notebook`/`graph` renderers land in Phases 1–2.
-- [ ] 0.4 Main workspace shell: main area renders the active renderer; floating HUD (mode · provider/backend · budget · ⌘K · stop); permanent panels removed/default-hidden.
+- [x] 0.3 `WorkspaceRenderer` contract + registry (`notebook`, `graph`, `graph3d` stub); mode-switch state; capabilities.
+  - Registry now holds `notebook` (`full`, `blockKinds: 'all'`), `graph` (`full`, wraps the landed Cytoscape viewport), and the honest `graph3d` stub (`partial`). `$activeRenderer` is store state (default `graph` to preserve current behavior until capability-composition defaults land).
+- [~] 0.4 Main workspace shell: main area renders the active renderer; floating HUD (mode · provider/backend · budget · ⌘K · stop); permanent panels removed/default-hidden.
+  - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. Remaining: remove/default-hide the standing panels, add budget/stop/⌘K to the HUD once palette and run-control exist (no silent no-ops), and URL-address the active renderer.
 - [~] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
   - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). Remaining: the concrete overlay descriptors (palette, inspector, popover, ToC, artifact viewer, settings dialog, tool approval).
 - [ ] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
@@ -507,7 +508,8 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 
 ### Phase 1 — Semantic Notebook / standalone LM UI wedge
 Goal: build the unique LM conversation UI first.
-- [ ] 1.1 Notebook renderer: vertical page renderer, block components, block affordances, folding, focus/selection, streaming-friendly.
+- [~] 1.1 Notebook renderer: vertical page renderer, block components, block affordances, folding, focus/selection, streaming-friendly.
+  - Landed the `s-notebook` surface (`defineSurface`) + `notebookRenderer`: top-level blocks render as vertical pages with per-kind affordances (`BLOCK_KIND_LABEL`, exhaustive), role/status styling, uncertainty chips, empty-state slot, and focus/selection round-trip for renderer switches. Remaining: block context menus/affordances (§4.2), section folding, richer table/code/artifact rendering via the inner view system, and virtualization.
 - [ ] 1.2 Composer overlay with modes; universal input (NL now; Narsese/structured seam).
 - [ ] 1.3 Input decomposition: deterministic claim/question/command split; raw preserved; extracted structure shown.
 - [ ] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
@@ -763,6 +765,45 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   ids join the hash URL state alongside `panels`.
 - Add an `OverlayManager`-driven announcement (`Announcer.announce` on open/close) so screen readers
   get the overlay title for free.
+
+### 2026-10-08 (c) — Phase 0.3 complete, 0.4 shell + 1.1 Notebook
+
+**Landed**
+- `ui/src/client/components/renderers/notebook.ts` — `s-notebook` surface (`defineSurface`, bindings
+  on `$workspaceGraph`) rendering top-level blocks as vertical pages with per-kind affordances
+  (`BLOCK_KIND_LABEL`, exhaustive), role/status styling, uncertainty chips, empty-state slot; plus
+  `notebookRenderer` (`parity: 'full'`, `blockKinds: 'all'`) with focus/selection round-trip and
+  overlay routing. Registered with both `defineSurface` and `registerRenderer`.
+- `ui/src/client/components/renderers/graph.ts` — `graphRenderer` adapter wrapping the landed
+  Cytoscape `graph-viewport` into the contract; completes the registry (`notebook`/`graph`/`graph3d`).
+- `ui/src/client/components/workspace-hud.ts` — thin floating HUD: registry-driven mode switch
+  (`aria-pressed`) over `workspaceRenderers()` and an `lm.status` provider chip. No silent no-op
+  controls (⌘K/stop deferred until palette/run-control exist).
+- `app-layout.ts` — main area renders the active renderer (`<s-notebook>` vs graph/table/3D); the
+  graph toolbar is hidden in notebook mode; `<workspace-hud>` embedded. `$activeRenderer` default set
+  to `graph` to preserve current behavior until capability-composition defaults land.
+- Tests: `tests/components/{notebook,workspace-hud}.test.ts` (9 new; whole UI suite 117 green;
+  typecheck + biome clean; client build succeeds).
+
+**Notes for remaining work**
+- `0.4` still to do: demote/default-hide the standing panels, URL-address the active renderer, and add
+  budget/stop/⌘K to the HUD once those features do real work.
+- `1.1` next: block context menu (§4.2 affordances), section folding, and rendering table/code blocks
+  through the inner view system (`s-table`/`s-sparkline`/`s-tree`) instead of the text fallback.
+- Notebook currently renders only direct roots; when output segmentation produces `contains`-linked
+  child blocks, page rendering should walk `contains`/headings rather than only `roots`.
+- The `graph`/`notebook`/`graph3d` adapters ignore `present`/`apply` because they subscribe to the
+  store directly; if a second consumer of an off-store `WorkspaceRenderer` appears, revisit whether
+  renderers should own the data push instead of reading atoms.
+
+**New improvement opportunities**
+- Move the renderer mount/switch into a `WorkspaceHost` element that owns an `OverlayManager`, so
+  `app-layout` stops hardcoding which element each renderer uses and the `WorkspaceContext` becomes
+  real for all renderers.
+- The HUD and the future command palette should share one action source (registry-derived), so a new
+  renderer or overlay appears in both without edits.
+- `$activeRenderer` should join `$urlState`/hash parsing next to `lens`/`panels` for shareable mode
+  links.
 
 
 

@@ -146,7 +146,7 @@ export const $graphShape = atom<Shape>('graph');
 /** The one semantic substrate every workspace renderer projects. */
 export const $workspaceGraph = atom<WorkspaceGraph>(emptyWorkspaceGraph());
 /** The active `WorkspaceRenderer` id — URL-addressable, palette-switchable, agent-settable. */
-export const $activeRenderer = atom<string>('notebook');
+export const $activeRenderer = atom<string>('graph');
 
 // --- Batch 4: Capability-based filtering ---
 export const $capabilityFilter = atom<string | 'all'>('all');

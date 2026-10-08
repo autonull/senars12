@@ -2,6 +2,7 @@ import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
 import {
+  $activeRenderer,
   $connectionState,
   $graphNodes,
   $graphShape,
@@ -14,6 +15,8 @@ import { GRAPH_VIEW_SPEC } from './views/graph-view-spec.js';
 import './graph-viewport.js';
 import '../spacegraph/spacegraph-viewport.js';
 import './graph-toolbar.js';
+import './renderers/notebook.js';
+import './workspace-hud.js';
 import './input-hud.js';
 import './config-hud.js';
 import './telemetry-panel.js';
@@ -86,6 +89,7 @@ export class AppLayout extends BaseComponent {
     this.watch($selectedNodeId);
     this.watch($graphShape);
     this.watch($viewportMode);
+    this.watch($activeRenderer);
     this.watchWith($viewSelection, (selection) => {
       if (selection.focus) $selectedNodeId.set(selection.focus);
     });
@@ -99,6 +103,7 @@ export class AppLayout extends BaseComponent {
     const chatPanel = panels.get('chat');
     const lensDesignerPanel = panels.get('lens-designer');
     const hasNodes = $graphNodes.get().size > 0;
+    const notebook = $activeRenderer.get() === 'notebook';
 
     return html`
       <div class="banner-area">
@@ -107,7 +112,7 @@ export class AppLayout extends BaseComponent {
       </div>
 
       <div class="toolbar-area">
-        <graph-toolbar></graph-toolbar>
+        ${notebook ? '' : html`<graph-toolbar></graph-toolbar>`}
       </div>
 
       <div class="body-area">
@@ -126,7 +131,7 @@ export class AppLayout extends BaseComponent {
 
         <div class="graph-area">
           ${
-            !hasNodes
+            !notebook && !hasNodes
               ? html`
             <div class="empty-overlay">
               <s-empty-state icon="🧠" heading="SeNARS Cognitive HUD" description="Send a message to start populating the knowledge graph" size="lg">
@@ -137,12 +142,15 @@ export class AppLayout extends BaseComponent {
               : ''
           }
           ${
-            $graphShape.get() === 'table'
-              ? html`<s-view budget="full" .chrome=${false} .spec=${GRAPH_VIEW_SPEC}></s-view>`
-              : $viewportMode.get() === '3d'
-                ? html`<spacegraph-viewport></spacegraph-viewport>`
-                : html`<graph-viewport></graph-viewport>`
+            notebook
+              ? html`<s-notebook></s-notebook>`
+              : $graphShape.get() === 'table'
+                ? html`<s-view budget="full" .chrome=${false} .spec=${GRAPH_VIEW_SPEC}></s-view>`
+                : $viewportMode.get() === '3d'
+                  ? html`<spacegraph-viewport></spacegraph-viewport>`
+                  : html`<graph-viewport></graph-viewport>`
           }
+          <workspace-hud></workspace-hud>
         </div>
 
         ${
