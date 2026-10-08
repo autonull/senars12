@@ -15,6 +15,7 @@ describe('view adapter registry', () => {
     expect(viewAdapterFor('text')?.tag).toBe('s-text');
     expect(viewAdapterFor('tree')?.tag).toBe('s-tree');
     expect(viewAdapterFor('code')?.tag).toBe('s-code');
+    expect(viewAdapterFor('diff')?.tag).toBe('s-diff');
     expect(viewAdapterFor('graph')?.tag).toBe('graph-viewport');
   });
 
@@ -35,12 +36,12 @@ describe('view adapter registry', () => {
 
   it('lists the shapes a budget supports', () => {
     expect(supportedShapes()).toEqual(
-      expect.arrayContaining(['graph', 'series', 'table', 'tree', 'text', 'code'])
+      expect.arrayContaining(['graph', 'series', 'table', 'tree', 'text', 'code', 'diff'])
     );
     expect(supportedShapes('embedded')).toEqual(
-      expect.arrayContaining(['graph', 'series', 'table', 'tree', 'text', 'code'])
+      expect.arrayContaining(['graph', 'series', 'table', 'tree', 'text', 'code', 'diff'])
     );
-    expect(viewAdapters()).toHaveLength(8);
+    expect(viewAdapters()).toHaveLength(9);
   });
 
   it('returns undefined for an unregistered shape', () => {

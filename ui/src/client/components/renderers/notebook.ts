@@ -107,6 +107,10 @@ function renderBlock(block: SemanticBlock, focused = false, fold?: FoldControl):
         ? html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'}></s-view>`
         : renderTable(block.data as TableData);
     }
+    if (block.kind === 'config-change') {
+      const spec = artifactViewSpec(block);
+      if (spec) return html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'}></s-view>`;
+    }
     if (block.kind === 'list' && block.data) {
       const items = (block.data as { items: string[] }).items;
       return html`<ul class="list">${items.map((item) => html`<li>${item}</li>`)}</ul>`;

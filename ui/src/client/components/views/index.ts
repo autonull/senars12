@@ -6,4 +6,5 @@ import './table-view.js';
 import './table-mini-view.js';
 import './text-view.js';
 import './code-view.js';
+import './diff-view.js';
 import './tree-view.js';

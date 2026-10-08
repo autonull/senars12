@@ -7,7 +7,7 @@
  */
 
 /** The shapes one dataset can be rendered as (§3.3). The view system owns this union. */
-export type Shape = 'graph' | 'series' | 'table' | 'tree' | 'text' | 'code';
+export type Shape = 'graph' | 'series' | 'table' | 'tree' | 'text' | 'code' | 'diff';
 
 /** Full-screen or embedded — the context a view is rendered in. */
 export type Budget = 'full' | 'embedded';
@@ -59,6 +59,20 @@ export interface CodeDataset {
   lines: string[];
 }
 
+/** One line of a unified diff; `context` is an unchanged line. */
+export interface DiffLine {
+  kind: 'add' | 'del' | 'context';
+  text: string;
+}
+
+export interface DiffDataset {
+  kind: 'diff';
+  language?: string;
+  from?: string;
+  to?: string;
+  lines: DiffLine[];
+}
+
 export interface TreeNode {
   id: string;
   label: string;
@@ -70,7 +84,13 @@ export interface TreeDataset {
   roots: TreeNode[];
 }
 
-export type ViewDataset = SeriesDataset | TableDataset | TextDataset | TreeDataset | CodeDataset;
+export type ViewDataset =
+  | SeriesDataset
+  | TableDataset
+  | TextDataset
+  | TreeDataset
+  | CodeDataset
+  | DiffDataset;
 export type DatasetKind = ViewDataset['kind'];
 
 export interface ViewSpec {

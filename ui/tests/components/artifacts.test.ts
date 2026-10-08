@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { artifactViewSpec, tableFromColumns } from '../../src/client/core/artifacts.js';
 import type { TableData } from '../../src/client/core/segmentation.js';
-import type { TableDataset, TextDataset, CodeDataset } from '../../src/client/core/view-spec.js';
+import type {
+  CodeDataset,
+  DiffDataset,
+  TableDataset,
+  TextDataset,
+} from '../../src/client/core/view-spec.js';
 import type { SemanticBlock } from '../../src/client/core/workspace-graph.js';
 
 const block = (over: Partial<SemanticBlock>): SemanticBlock => ({
@@ -53,6 +58,33 @@ describe('artifactViewSpec', () => {
       language: 'ts',
       lines: ['const x = 1;'],
     });
+  });
+
+  it('maps a config-change payload to a diff dataset', () => {
+    const data = { before: 'a\nb', after: 'a\nc', language: 'json' };
+    const spec = artifactViewSpec(block({ kind: 'config-change', data, title: 'Settings' }));
+    if (!spec) throw new Error('expected a diff view spec');
+    expect(spec.shape).toBe('diff');
+    expect(spec.shapes).toEqual(['diff', 'text']);
+    expect(spec.title).toBe('Settings');
+    expect(spec.source.get() as DiffDataset).toEqual({
+      kind: 'diff',
+      language: 'json',
+      from: undefined,
+      to: undefined,
+      lines: [
+        { kind: 'context', text: 'a' },
+        { kind: 'del', text: 'b' },
+        { kind: 'add', text: 'c' },
+      ],
+    });
+  });
+
+  it('falls back to structured JSON when a config-change has no revisions', () => {
+    const spec = artifactViewSpec(block({ kind: 'config-change', data: { key: 'theme' } }));
+    if (!spec) throw new Error('expected a config-change view spec');
+    expect(spec.shape).toBe('text');
+    expect((spec.source.get() as TextDataset).lines.join('\n')).toContain('"theme"');
   });
 
   it('returns undefined for a block with no artifact', () => {

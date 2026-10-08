@@ -111,7 +111,11 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
   light token highlighting via a pure line-local `tokenizeCode`); `artifactViewSpec` now maps
   `code` blocks to a `CodeDataset` (`shapes: ['code','text']`) and the Notebook renders them
   through `s-view`, so code has one rendering path in the notebook and the artifact overlay. `(j)`,`(i)`,`(ad)`
-- [ ] **4.3 diff** — add a `diff` representation/view (config-change + comparisons). `(ad)`
+- [x] **4.3 diff** — added a `diff` shape + `s-diff` adapter (unified sign gutter, add/del tint,
+  token-highlighted body) over a `DiffDataset`; `core/diff.ts` (`diffLines`, LCS) builds it and
+  projects to `text`/`table`. `config-change` blocks with a `{ before, after }` payload map to a
+  diff (labelled, language-aware) and the Notebook renders them through `s-view`; JSON stays the
+  fallback. `(ad)`
 - [ ] **4.3 derivation-record** — `s-tree` provenance view. **Depends on WP5/3.3** for the
   `DerivationRecord` payload. `(ad)`
 - [ ] **4.3 affordances** — Copy / Open-in-graph in the artifact overlay, reachable from ToC/inspector. `(j)`,`(ad)`
@@ -251,6 +255,23 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 ## Progress log
 
 Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
+
+### (v4.13) — WP3: the `diff` shape + `s-diff` adapter
+- **Contract** — `Shape` gained `'diff'`; new `DiffLine { kind:'add'|'del'|'context'; text }` and
+  `DiffDataset { kind:'diff'; language?; from?; to?; lines }` join `ViewDataset`.
+- **Representation** — `core/diff.ts` `diffLines(before, after)` is a pure LCS line differ (bounded
+  for config/comparison payloads). `view-projection` renders `diff` → signed `text` and → `table`;
+  `projectableShapes`/`datasetIsEmpty` cover it.
+- **Adapter** — `components/views/diff-view.ts` (`s-diff`) draws a unified sign gutter with add/del
+  tints (`status-connected`/`status-disconnected`) and a token-highlighted body; embedded keeps the
+  first 12 lines plus a count. The token palette/highlight moved to `views/token-render.ts`
+  (`highlightStyles`/`highlightLine`), now shared by `s-code` and `s-diff` (DRY).
+- **Config-change** — `artifactViewSpec` maps a `config-change` block whose data is
+  `{ before, after, language?, from?, to? }` to a `DiffDataset` (`shapes: ['diff','text']`, default
+  title "Config change") and falls back to structured JSON otherwise; the Notebook routes
+  `config-change` through `s-view`.
+- **Tests** — new `diff-view.test.ts` (differ + element); projection/adapter/artifacts updated;
+  279 component tests green.
 
 ### (v4.12) — WP3 start: the `code` shape + `s-code` adapter
 - **Contract** — `Shape` gained `'code'`; new `CodeDataset { kind:'code'; language?; lines }` joins
@@ -408,6 +429,12 @@ Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
   Upgrade paths if wanted: a tokenizer with carry (still dependency-free), or reuse the landed
   inline-tokenizer seam from `1.4 rich text`. `codeLanguage` in `artifacts.ts` still casts
   `block.data`; landing `4.3 typing` removes that cast and lets the language ride the typed contract.
+- **`config-change` payload has no producer yet (new).** The landed diff view reads
+  `{ before, after, language?, from?, to? }`, but nothing emits `config-change` blocks today
+  (segmentation/projection/3.6). Whoever produces them first must match that payload, or adjust
+  `artifacts.ts`; the JSON fallback keeps an unmatched shape renderable meanwhile. `diffLines` is
+  O(n·m), fine for config/comparison sizes but not for large file diffs — a Myers/edit-script or a
+  side-by-side shape would be the upgrade path.
 
 ### (v4.1) — restructured into work packages
 - Rewrote the forward plan as work packages with a dependency spine; folded every improvement

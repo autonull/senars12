@@ -7,6 +7,7 @@ import {
 } from '../../src/client/core/view-projection.js';
 import type {
   CodeDataset,
+  DiffDataset,
   SeriesDataset,
   TableDataset,
   TextDataset,
@@ -36,6 +37,15 @@ const table: TableDataset = {
 const text: TextDataset = { kind: 'text', lines: ['alpha', 'beta'] };
 
 const code: CodeDataset = { kind: 'code', language: 'ts', lines: ['const x = 1;', '// note'] };
+
+const diff: DiffDataset = {
+  kind: 'diff',
+  lines: [
+    { kind: 'context', text: 'a' },
+    { kind: 'del', text: 'b' },
+    { kind: 'add', text: 'c' },
+  ],
+};
 
 const tree: TreeDataset = {
   kind: 'tree',
@@ -102,15 +112,29 @@ describe('view projection', () => {
     expect(projectDataset(null, 'table')).toBeUndefined();
   });
 
+  it('projects diff lines into signed text and a table', () => {
+    const asText = projectDataset(diff, 'text') as TextDataset;
+    expect(asText.lines).toEqual([' a', '-b', '+c']);
+    const asTable = projectDataset(diff, 'table') as TableDataset;
+    expect(asTable.rows).toEqual([
+      { index: 0, line: ' a' },
+      { index: 1, line: '-b' },
+      { index: 2, line: '+c' },
+    ]);
+  });
+
   it('reports projectable shapes and emptiness', () => {
     expect(projectableShapes(series)).toEqual(['series', 'table', 'text']);
     expect(projectableShapes(tree)).toEqual(['tree', 'text']);
     expect(projectableShapes(code)).toEqual(['code', 'table', 'text']);
+    expect(projectableShapes(diff)).toEqual(['diff', 'table', 'text']);
     expect(datasetIsEmpty({ kind: 'series', series: [] })).toBe(true);
     expect(datasetIsEmpty(series)).toBe(false);
     expect(datasetIsEmpty({ kind: 'table', columns: [], rows: [] })).toBe(true);
     expect(datasetIsEmpty({ kind: 'code', lines: [] })).toBe(true);
     expect(datasetIsEmpty(code)).toBe(false);
+    expect(datasetIsEmpty({ kind: 'diff', lines: [] })).toBe(true);
+    expect(datasetIsEmpty(diff)).toBe(false);
     expect(datasetIsEmpty(null)).toBe(true);
   });
 

@@ -1,41 +1,40 @@
-import { css, html, type TemplateResult } from 'lit';
+import { css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { BaseComponent } from '../../core/base-component.js';
 import { registerViewAdapter } from '../../core/view-adapter.js';
 import type { Budget, CodeDataset } from '../../core/view-spec.js';
-import { tokenizeCode } from './code-highlight.js';
+import { highlightLine, highlightStyles } from './token-render.js';
 
 const EMBEDDED_LINES = 8;
 
 /** Renders a `CodeDataset` with a line-number gutter and light token highlighting. */
 @customElement('s-code')
 export class CodeView extends BaseComponent {
-  static override styles = css`
-    :host { display: block; overflow: auto; }
-    .code {
-      display: grid; grid-template-columns: auto 1fr; margin: 0;
-      background: var(--colors-semantic-bg-base); border-radius: 6px;
-      font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs);
-      line-height: 1.5;
-    }
-    .gutter {
-      display: flex; flex-direction: column; padding: var(--spacing-scale-2);
-      text-align: right; color: var(--colors-semantic-text-muted); user-select: none;
-      background: var(--colors-semantic-bg-subtle);
-      border-right: 1px solid var(--colors-semantic-border-subtle);
-    }
-    .body {
-      display: flex; flex-direction: column; padding: var(--spacing-scale-2) var(--spacing-scale-3);
-      overflow-x: auto;
-    }
-    .line { white-space: pre; min-height: 1.5em; }
-    .comment { color: var(--colors-semantic-text-muted); font-style: italic; }
-    .string { color: var(--colors-semantic-accent-cyan); }
-    .number { color: var(--colors-semantic-accent-violet); }
-    .keyword { color: var(--colors-semantic-accent-primary); }
-    .more { padding: var(--spacing-scale-1) var(--spacing-scale-3); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
-    .empty { padding: var(--spacing-scale-3); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
-  `;
+  static override styles = [
+    highlightStyles,
+    css`
+      :host { display: block; overflow: auto; }
+      .code {
+        display: grid; grid-template-columns: auto 1fr; margin: 0;
+        background: var(--colors-semantic-bg-base); border-radius: 6px;
+        font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs);
+        line-height: 1.5;
+      }
+      .gutter {
+        display: flex; flex-direction: column; padding: var(--spacing-scale-2);
+        text-align: right; color: var(--colors-semantic-text-muted); user-select: none;
+        background: var(--colors-semantic-bg-subtle);
+        border-right: 1px solid var(--colors-semantic-border-subtle);
+      }
+      .body {
+        display: flex; flex-direction: column; padding: var(--spacing-scale-2) var(--spacing-scale-3);
+        overflow-x: auto;
+      }
+      .line { white-space: pre; min-height: 1.5em; }
+      .more { padding: var(--spacing-scale-1) var(--spacing-scale-3); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
+      .empty { padding: var(--spacing-scale-3); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
+    `,
+  ];
   @property({ attribute: false }) data: CodeDataset | null = null;
   @property({ attribute: false }) budget: Budget = 'full';
 
@@ -50,7 +49,7 @@ export class CodeView extends BaseComponent {
           ${shown.map((_, index) => html`<span>${index + 1}</span>`)}
         </div>
         <div class="body">
-          ${shown.map((line) => html`<div class="line">${this.tokens(line, language)}</div>`)}
+          ${shown.map((line) => html`<div class="line">${highlightLine(line, language)}</div>`)}
         </div>
       </div>
       ${
@@ -59,12 +58,6 @@ export class CodeView extends BaseComponent {
           : ''
       }
     `;
-  }
-
-  private tokens(line: string, language?: string): TemplateResult {
-    return html`${tokenizeCode(line, language).map((token) =>
-      token.kind === 'plain' ? token.text : html`<span class=${token.kind}>${token.text}</span>`
-    )}`;
   }
 }
 

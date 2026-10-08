@@ -1,6 +1,8 @@
 import type {
   CodeDataset,
   ColumnSpec,
+  DiffDataset,
+  DiffLine,
   SeriesDataset,
   Shape,
   TableDataset,
@@ -81,6 +83,13 @@ const codeToText = (dataset: CodeDataset): TextDataset => ({
   lines: dataset.lines,
 });
 
+const DIFF_SIGN: Record<DiffLine['kind'], string> = { add: '+', del: '-', context: ' ' };
+
+const diffToText = (dataset: DiffDataset): TextDataset => ({
+  kind: 'text',
+  lines: dataset.lines.map((line) => `${DIFF_SIGN[line.kind]}${line.text}`),
+});
+
 function treeToText(dataset: TreeDataset): TextDataset {
   const lines: string[] = [];
   const walk = (node: TreeNode, depth: number): void => {
@@ -113,13 +122,16 @@ export function projectDataset(
     case 'code':
       if (shape === 'text') return codeToText(dataset);
       return shape === 'table' ? textToTable(codeToText(dataset)) : undefined;
+    case 'diff':
+      if (shape === 'text') return diffToText(dataset);
+      return shape === 'table' ? textToTable(diffToText(dataset)) : undefined;
   }
 }
 
 /** Shapes a dataset can become, including its own kind. */
 export function projectableShapes(dataset: ViewDataset): Shape[] {
   const shapes: Shape[] = [dataset.kind];
-  for (const shape of ['graph', 'series', 'table', 'tree', 'text', 'code'] as Shape[]) {
+  for (const shape of ['graph', 'series', 'table', 'tree', 'text', 'code', 'diff'] as Shape[]) {
     if (shape !== dataset.kind && projectDataset(dataset, shape)?.kind === shape)
       shapes.push(shape);
   }
@@ -138,6 +150,8 @@ export function datasetIsEmpty(dataset: ViewDataset | null | undefined): boolean
     case 'tree':
       return dataset.roots.length === 0;
     case 'code':
+      return dataset.lines.length === 0;
+    case 'diff':
       return dataset.lines.length === 0;
   }
 }

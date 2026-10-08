@@ -7,9 +7,11 @@
  */
 
 import type { TableData } from './segmentation.js';
+import { diffLines } from './diff.js';
 import type {
   CodeDataset,
   ColumnSpec,
+  DiffDataset,
   SeriesDataset,
   Shape,
   TableDataset,
@@ -35,7 +37,7 @@ export function tableFromColumns(
 }
 
 const staticSource = (
-  dataset: TableDataset | TextDataset | SeriesDataset | CodeDataset
+  dataset: TableDataset | TextDataset | SeriesDataset | CodeDataset | DiffDataset
 ): ViewSource => ({
   get: () => dataset,
 });
@@ -50,6 +52,28 @@ const seriesDataset = (data: unknown): SeriesDataset | undefined => {
   return candidate?.kind === 'series' && Array.isArray(candidate.series)
     ? (candidate as SeriesDataset)
     : undefined;
+};
+
+/** The `config-change` payload: two text revisions, optionally labelled and language-tagged. */
+interface ConfigChange {
+  before: string;
+  after: string;
+  language?: string;
+  from?: string;
+  to?: string;
+}
+
+const configChange = (data: unknown): ConfigChange | undefined => {
+  const candidate = data as Partial<ConfigChange> | undefined;
+  if (typeof candidate?.before !== 'string' || typeof candidate.after !== 'string')
+    return undefined;
+  return {
+    before: candidate.before,
+    after: candidate.after,
+    language: typeof candidate.language === 'string' ? candidate.language : undefined,
+    from: typeof candidate.from === 'string' ? candidate.from : undefined,
+    to: typeof candidate.to === 'string' ? candidate.to : undefined,
+  };
 };
 
 const specOf = (
@@ -109,6 +133,26 @@ export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
   if (block.kind === 'chart') {
     const series = seriesDataset(block.data);
     if (series) return specOf(block, series, ['series', 'table', 'text'], 'series');
+  }
+  if (block.kind === 'config-change') {
+    const change = configChange(block.data);
+    if (change) {
+      const dataset: DiffDataset = {
+        kind: 'diff',
+        language: change.language,
+        from: change.from,
+        to: change.to,
+        lines: diffLines(change.before, change.after),
+      };
+      return {
+        id: `artifact:${block.id}`,
+        title: block.title ?? 'Config change',
+        shapes: ['diff', 'text'],
+        source: staticSource(dataset),
+        shape: 'diff',
+        interactions: ['select'],
+      };
+    }
   }
   if (block.data !== undefined && (block.kind === 'chart' || JSON_KINDS.has(block.kind))) {
     const dataset: TextDataset = { kind: 'text', lines: json(block.data).split('\n') };
