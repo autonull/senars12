@@ -7,6 +7,7 @@ import { timeGate } from '../modulation/composition.js';
 import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
 import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
+import { getSurfaces } from './surface-registry.js';
 
 type Listener<T> = (value: T) => void;
 type Unsubscriber = () => void;
@@ -482,6 +483,7 @@ export function exposeTestApi(): void {
     },
     connection: { getState: () => $connectionState.get() },
     workingMemory: { getTerms: () => $workingMemory.get() },
+    surfaces: { list: () => getSurfaces() },
   };
   w.__testApiExposed = true;
 }

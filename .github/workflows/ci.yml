@@ -76,6 +76,9 @@ jobs:
       # TODO28 §8.10: every gate in scripts/lib/gates.ts, including this one.
       - run: pnpm complexity:budget
       - run: pnpm test:unit
+      # The UI registries are exhaustive by `satisfies`; this runs the UI
+      # typecheck (missing catalog row → failure) and the UI unit suite.
+      - run: pnpm ui:gate
       # TODO32 integration milestones. Each gate is its own step so a red build
       # names the milestone rather than "tests failed".
       # M1/M3/M6/M7 — composition, the MeTTa tool leg, live WS delegation, and

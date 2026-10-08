@@ -114,6 +114,10 @@ export const GATES: readonly Gate[] = [
   // test, which is why it survived being red for a pass.
   script('docs:drift'),
   script('test:unit'),
+  // The UI registries (theme/event/field/lens/layout/surface) are exhaustive by
+  // `satisfies`, so a missing catalog row fails the UI typecheck; this gate makes
+  // that failure a CI one instead of a review catch.
+  script('ui:gate'),
   script('test:determinism', 'slow'),
   // Ambient entropy throws for the duration — TODO28 §7.3's hermetic seeded run.
   script('test:hermetic', 'slow'),

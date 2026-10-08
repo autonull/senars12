@@ -66,3 +66,23 @@ export {
   type SurfaceState,
   type SurfaceTestApi,
 } from './surface.js';
+export {
+  getSurfaces,
+  registerSurface,
+  surfaceFor,
+  surfaceTag,
+  type SurfaceBinding,
+  type SurfaceSource,
+} from './surface-registry.js';
+export {
+  generateSurfaces,
+  surfaceA11y,
+  surfaceDoc,
+  surfaceGalleryCell,
+  surfaceStory,
+  type SurfaceArtifacts,
+  type SurfaceA11yTarget,
+  type SurfaceDoc,
+  type SurfaceGalleryCell,
+  type SurfaceStory,
+} from './surface-codegen.js';

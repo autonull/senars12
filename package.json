@@ -84,6 +84,7 @@
     "fuzz": "tsx scripts/fuzz-narsese.ts",
     "fuzz:ci": "tsx scripts/fuzz-narsese.ts 10000",
     "web": "pnpm --dir ui dev",
+  "ui:gate": "pnpm --dir ui typecheck && pnpm --dir ui test:unit",
     "build": "turbo run build",
     "bench:system-one": "tsx scripts/system-one-bench.ts",
     "bench:cycle": "tsx scripts/cycle-bench.ts",

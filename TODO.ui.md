@@ -835,6 +835,51 @@
 
 ---
 
+### Session 14 — Phase 3.9 + 3.10: reflective generators + UI gate (2026-10-08)
+
+**Landed**
+
+- **3.9 — the surface registry.** New `ui/src/client/core/surface-registry.ts` is the pure,
+  DOM-free half of the contract: `SurfaceDescriptor` (`id · title · tag? · group? · bindings?`) plus
+  `registerSurface`/`getSurfaces`/`surfaceFor`/`surfaceTag`. `defineSurface` registers there and now
+  guards `customElements` for non-DOM use; `surface.ts` re-exports the types so imports are unchanged.
+- **3.9 — reflective generators.** New `ui/src/client/core/surface-codegen.ts` derives each consumer's
+  parameters from one descriptor: `surfaceStory` (Storybook title/tags/a11y params),
+  `surfaceGalleryCell` (contact-sheet cell), `surfaceA11y` (target), `surfaceDoc` (docs stub), and
+  `generateSurfaces()` for the batch. The runtime test API exposes `__testApi.surfaces.list()` so
+  tooling can enumerate registered surfaces.
+- **3.9 — guard test.** `ui/tests/components/surface-codegen.test.ts` (4): registration/lookup, tag
+  derivation, each generator's output, and batch generation from the registry.
+- **3.10 — the UI gate.** The UI was not in CI at all. Added root `ui:gate`
+  (`pnpm --dir ui typecheck && pnpm --dir ui test:unit`), listed it in `scripts/lib/gates.ts` and
+  `.github/workflows/ci.yml`, so the `satisfies` exhaustiveness checks that make a missing
+  token/event/field/lens row a compile error now fail a CI gate instead of a review catch.
+
+**Verification**
+
+- `pnpm ui:gate` green (UI typecheck + UI unit **40/40**, 6 files); root `tests/unit/server` **57/57**;
+  `biome lint` clean on the changed files.
+- The gates manifest self-check passes (`missing scripts: []`, `absent from ci (gate tier): []`).
+- Chromium visual suite **10/10** unchanged.
+
+**Phase 3 complete.** 3.1–3.10 are landed. Follow-ons live in later phases: the codegen's file
+emission into Storybook (2.5), the descriptor-derived gallery matrix (2.7) and `docs/ui` (11.3) — the
+generators are exercised by the guard test today; the surface contract's
+`shapes`/`levels`/`a11y`/`states` fields arrive with 4.1/5.4/7.7. The layout and surface registries are
+not schema-keyed, so their guard is coverage in `layout-registry.test.ts` / `surface-codegen.test.ts`
+rather than a `satisfies` against a schema.
+
+**New opportunities spotted** *(Session 14)*
+
+- Wire `generateSurfaces()` into `build-gallery.ts` / a Storybook CSF emitter / `docs/ui`, and add the
+  descriptor-derived visual cells (2.5/2.7/11.3) — the emitted data is already well-formed.
+- The UI gate runs typecheck + unit only; `test:visual` and `test:e2e` need a browser, so they belong
+  in a separate slow job once CI is re-enabled for UI (11.4).
+- Descriptors still cannot be collected in a bare Node process without importing `lit` + a DOM; moving
+  each descriptor into a data module (or a `customElements` shim) would let codegen run without jsdom.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -1100,8 +1145,8 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [x] **3.6** `idSource` unification across client/projection/tests. *(done: `generateId` now takes its entropy from the installed source instead of `Math.random` (shared `minted` ledger with `makeId`); client ids import from `@senars/util` only; guard test. Browser seeding seam still open — see log)*
 - [x] **3.7** `SurfaceComponent` + `defineSurface` + declarative `bindings`; derive registration, reflective test API, empty/loading/error slots. *(done: `ui/src/client/core/surface.ts` — descriptor-derived tag registration, watched `bindings`, `loading|empty|error|ready` slots, `{descriptor,state,snapshot}` test API; `contradiction-badge` migrated as the first surface; 4 unit tests. Remaining surfaces still hand-wired — see log)*
 - [x] **3.8** `renderField` generic input renderer; migrate `config-hud`, `lens-designer`, `node-detail-drawer`, filters. *(done: `ui/src/client/utils/render-field.ts` maps a `FieldSpec` to slider/dropdown/text/number/search/textarea/toggle and normalizes the value; config-hud, lens-designer, node-detail-drawer and graph-toolbar migrated; 5 unit tests; visual baselines unchanged. `s-input`/`input-hud` remain — see log)*
-- [ ] **3.9** Reflective generators: `defineSurface` emits Storybook params, gallery matrix entries, a11y targets, and docs stubs.
-- [ ] **3.10** Guard scripts: exhaustive `satisfies` checks for every registry; CI fails on missing metadata.
+- [x] **3.9** Reflective generators: `defineSurface` emits Storybook params, gallery matrix entries, a11y targets, and docs stubs. *(done: `surface-registry.ts` (pure) + `surface-codegen.ts` (`surfaceStory`/`surfaceGalleryCell`/`surfaceA11y`/`surfaceDoc`/`generateSurfaces`) + `__testApi.surfaces.list()`; guard test. The generators are consumed by the test; file emission into Storybook/gallery/docs is 2.5/2.7/11.3)*
+- [x] **3.10** Guard scripts: exhaustive `satisfies` checks for every registry; CI fails on missing metadata. *(done: the exhaustive `satisfies` checks already fail the UI typecheck; added the root `ui:gate` (UI typecheck + unit), listed it in `scripts/lib/gates.ts` and `ci.yml` — the UI previously had no CI job at all. Layout/surface registries are guarded by their tests, not a schema `satisfies`)*
 
 **Verification:** adding a token/event/field/schema without metadata fails the build; a new surface needs only a descriptor + `renderBody`; no duplicated validation/heuristics remain.
 **Deliverable:** SSOT + reflective core.

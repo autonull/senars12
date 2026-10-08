@@ -1,7 +1,14 @@
 import type { TemplateResult } from 'lit';
 import { html } from 'lit';
 import { BaseComponent } from './base-component.js';
+import { registerSurface, surfaceTag, type SurfaceDescriptor, type SurfaceSource } from './surface-registry.js';
 import { mountTestApi } from './store.js';
+
+export type {
+  SurfaceBinding,
+  SurfaceDescriptor,
+  SurfaceSource,
+} from './surface-registry.js';
 
 /**
  * The reflective surface contract. A product surface declares a descriptor and
@@ -15,30 +22,7 @@ import { mountTestApi } from './store.js';
 /** The honest lifecycle of a data-backed surface. */
 export type SurfaceState = 'loading' | 'empty' | 'error' | 'ready';
 
-/** A readable the surface renders. */
-export interface SurfaceSource {
-  get(): unknown;
-}
-
-/** A readable that also notifies on change — what the base lifecycle watches. */
-export interface SurfaceBinding extends SurfaceSource {
-  subscribe(fn: () => void): () => void;
-}
-
-export interface SurfaceDescriptor {
-  /** Stable flat id: the test-API namespace and, by default, the element suffix. */
-  id: string;
-  /** Human title for palettes, stories and docs. */
-  title: string;
-  /** Explicit custom-element tag when the surface predates this contract. */
-  tag?: string;
-  /** The data the surface renders: watched on change and snapshotted by its reflective API. */
-  bindings?: Readonly<Record<string, SurfaceBinding>>;
-}
-
 export type SurfaceTestApi = Record<string, unknown>;
-
-const tagOf = (descriptor: SurfaceDescriptor): string => descriptor.tag ?? `s-${descriptor.id}`;
 
 /**
  * The base of every product surface. Subclasses declare their descriptor via
@@ -120,7 +104,10 @@ export function defineSurface<T extends SurfaceComponent>(
   ctor: SurfaceClass<T>
 ): SurfaceClass<T> {
   ctor.descriptor = descriptor;
-  const tag = tagOf(descriptor);
-  if (!customElements.get(tag)) customElements.define(tag, ctor);
+  registerSurface(descriptor);
+  const tag = surfaceTag(descriptor);
+  if (typeof customElements !== 'undefined' && !customElements.get(tag)) {
+    customElements.define(tag, ctor);
+  }
   return ctor;
 }
