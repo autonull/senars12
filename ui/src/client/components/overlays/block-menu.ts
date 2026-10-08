@@ -74,14 +74,13 @@ export class BlockMenuView extends SurfaceComponent {
     `;
   }
 
-  private readonly followUp = () =>
-    eventBus.emit('composer:focus', { ref: this.ref });
+  private readonly followUp = () => eventBus.emit('composer:focus', { refs: [this.ref] });
 
   private readonly formalizeBelief = () =>
-    eventBus.emit('composer:focus', { ref: this.ref, mode: 'believe' });
+    eventBus.emit('composer:focus', { refs: [this.ref], mode: 'believe' });
 
   private readonly formalizeGoal = () =>
-    eventBus.emit('composer:focus', { ref: this.ref, mode: 'goal' });
+    eventBus.emit('composer:focus', { refs: [this.ref], mode: 'goal' });
 
   private readonly explain = () =>
     eventBus.emit('overlay:open', { id: 'explain', ref: this.ref });

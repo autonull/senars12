@@ -9,6 +9,8 @@
  */
 
 import type { BlockKind, Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
+import { registerCommand, $selectedNodeIds, $workspaceGraph } from '../../core/index.js';
+import { eventBus } from '../../core/events.js';
 import {
   registerRenderer,
   WORKSPACE_INTERACTIONS,
@@ -18,6 +20,11 @@ import {
   type WorkspaceRendererCaps,
 } from '../../core/workspace-renderer.js';
 import '../graph-viewport.js';
+
+const workspaceRefs = (ids: Iterable<Ref>): Ref[] => {
+  const blocks = $workspaceGraph.get().blocks;
+  return [...ids].filter((id) => blocks.has(id));
+};
 
 const GRAPH_BLOCK_KINDS: readonly BlockKind[] = [
   'turn',
@@ -78,7 +85,8 @@ class GraphRenderer implements WorkspaceRenderer {
   }
 
   openComposer(anchor?: Ref): void {
-    this.#ctx?.openOverlay('composer', anchor ?? this.#focus);
+    const refs = anchor ? [anchor] : workspaceRefs($selectedNodeIds.get());
+    eventBus.emit('composer:focus', { refs: refs.length ? refs : undefined });
   }
 
   openExplain(ref: Ref): void {
@@ -104,3 +112,14 @@ class GraphRenderer implements WorkspaceRenderer {
 export const graphRenderer = new GraphRenderer();
 
 registerRenderer(graphRenderer);
+
+registerCommand({
+  id: 'graph.ask-selection',
+  title: 'Ask about selection',
+  group: 'Graph',
+  keywords: 'context prompt selection composer',
+  run: () => {
+    const refs = workspaceRefs($selectedNodeIds.get());
+    if (refs.length) eventBus.emit('composer:focus', { refs });
+  },
+});

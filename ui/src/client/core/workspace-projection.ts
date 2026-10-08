@@ -159,8 +159,10 @@ export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment
 
   const blockIds = new Set(blocks.map((b) => b.id));
   for (const message of messages) {
-    if (message.context && blockIds.has(message.context)) {
-      links.push(link(turnId(message.id), message.context, 'references', ROLE_MAP[message.role].createdBy));
+    for (const target of message.contexts ?? []) {
+      if (blockIds.has(target)) {
+        links.push(link(turnId(message.id), target, 'references', ROLE_MAP[message.role].createdBy));
+      }
     }
   }
 

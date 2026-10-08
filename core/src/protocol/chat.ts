@@ -15,8 +15,8 @@ export const ChatMessage = z.object({
   html: z.string().optional(),
   /** Declared composer intent (§8.1); a free string so the protocol stays UI-agnostic. */
   mode: z.string().optional(),
-  /** The workspace block this turn follows up on (§1.6); a free string, client-owned. */
-  context: z.string().optional(),
+  /** The workspace blocks this turn follows up on / is prompted from (§1.6, §2.3). */
+  contexts: z.array(z.string()).optional(),
   timestamp: z.number(),
   term: z.string().optional(),
   truth: TruthValueSchema.optional(),
@@ -32,7 +32,7 @@ export type ChatMessage = z.infer<typeof ChatMessage>;
 export const ChatUserMsg = msg('chat.user', {
   content: nonEmpty.max(10000),
   mode: z.string().optional(),
-  context: z.string().optional(),
+  contexts: z.array(z.string()).optional(),
 });
 export const ChatAgentStream = msg('chat.agent.stream', { delta: z.string() });
 export const ChatAgentComplete = msg('chat.agent.complete', {

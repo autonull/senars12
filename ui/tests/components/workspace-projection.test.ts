@@ -115,8 +115,8 @@ describe('chat projection', () => {
   it('references the block a turn follows up on, dropping unknown targets', () => {
     const fragment = projectChat([
       message({ id: 'u1', role: 'user', content: 'Robins are birds.' }),
-      message({ id: 'u2', role: 'user', content: 'Why?', context: childId('u1', 0) }),
-      message({ id: 'u3', role: 'user', content: 'And?', context: 'ghost' }),
+      message({ id: 'u2', role: 'user', content: 'Why?', contexts: [childId('u1', 0)] }),
+      message({ id: 'u3', role: 'user', content: 'And?', contexts: ['ghost'] }),
     ]);
     const references = fragment.links.filter((l) => l.kind === 'references');
     expect(references).toHaveLength(1);

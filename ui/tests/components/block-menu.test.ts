@@ -110,7 +110,7 @@ describe('block menu surface', () => {
     const focus = vi.fn();
     const off = eventBus.on('composer:focus', focus);
     action(el, 'follow-up')?.click();
-    expect(focus).toHaveBeenCalledWith({ ref: 'c' });
+    expect(focus).toHaveBeenCalledWith({ refs: ['c'] });
     off();
   });
 
@@ -132,7 +132,7 @@ describe('block menu surface', () => {
     const focus = vi.fn();
     const off = eventBus.on('composer:focus', focus);
     action(el, 'belief')?.click();
-    expect(focus).toHaveBeenCalledWith({ ref: 'c', mode: 'believe' });
+    expect(focus).toHaveBeenCalledWith({ refs: ['c'], mode: 'believe' });
     off();
   });
 });

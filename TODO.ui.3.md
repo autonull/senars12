@@ -533,7 +533,7 @@ Goal: render the same semantic conversation as a flowing content graph.
   - Landed the pure projection + an additive Graph-mode layer. `core/graph-projection.ts` maps a `WorkspaceGraph` to renderer-agnostic `{ nodes, edges }` (`projectWorkspaceGraph`): one labelled node per block (`nodeType:'workspace'`, `term`=label so tooltip/search/lens cover it), one typed edge per link whose endpoints both exist (dangling links dropped), and `section`/`heading` blocks with `children` become Cytoscape compound `parent`s. `graph-viewport` now watches `$workspaceGraph` and diffs the projection into Cytoscape under the `workspace` class (concept nodes/edges keep their ids and lifecycle), with dedicated node/edge styles; concept-graph diffing and `applyGraphFilter` exclude the workspace layer. So the conversation is navigable as a graph with no reasoning backend attached. Remaining: **incremental animated growth** (new blocks animate in rather than appearing at the next layout) and section clusters from chat `contains`/heading structure (chat turns don't set `children` today); graph-native selection is wired (see 2.3).
 - [ ] 2.2 Conversation layouts: `chronological-flow`, `semantic-map`, `artifact-map`, `source-view` (registry rows + deterministic variants).
 - [~] 2.3 Graph-native input: composer anchored to node/edge/canvas/selection; selected nodes become prompt context; create question/claim nodes.
-  - Landed the selection half: tapping a `workspace` node now focuses the block (`setWorkspaceFocus`) instead of emitting an engine `focus.set`, double-click opens the Explanation overlay, and right-click opens the block menu — all reusing the 1.6/overlays path, so graph and Notebook act on the same blocks. Remaining: anchoring the composer to the selected node/edge/canvas/selection (the composer is still the persistent dock), turning selected node ids into prompt context (like 1.6's follow-up `context`), and node-creating ops (question/claim) from the graph.
+  - Landed selection routing + selection-as-context. Tapping a `workspace` node focuses the block (`setWorkspaceFocus`); double-click opens Explanation; right-click opens the block menu. The Graph renderer's `openComposer(anchor?)` no longer calls the non-existent `composer` overlay — it emits `composer:focus` with the anchor (or the workspace subset of `$selectedNodeIds`), and a `graph.ask-selection` command does the same for the palette/agent. The composer carries a *list* of context refs end-to-end (`composer:focus { refs }` → `chat.user`/`ChatMessage.contexts: string[]` → composer chips → `projectChat` emits one `references` edge per known ref). Remaining: the composer is still the persistent dock (not a floating overlay anchored to the node/edge), and node-creating (question/claim) ops from the graph.
 - [ ] 2.4 Graph inspection: node/edge popovers, artifact preview popovers, "open in Notebook," semantic neighborhood navigation.
 - [ ] 2.5 Mode parity: shared focus/selection; actions work in both; switching preserves context; parity specs.
 
@@ -1282,6 +1282,42 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   `ref`, or a new `composer:focus` `refs` array) so "graph-native input" composes from a selection.
 - Add context-menu entries that create blocks (question/claim) via `WorkspaceOp`s, so graph selection can
   author as well as navigate — the input half of 2.3.
+
+### 2026-10-08 (p) — 2.3 selection becomes prompt context (multi-ref)
+
+**Landed**
+- `core/src/protocol/chat.ts` — `ChatMessage`/`chat.user` `context?: string` becomes `contexts?: string[]`
+  (a turn can be prompted from several blocks). Still an optional, client-owned free-string array.
+- `ui/src/client/core/events.ts` — `composer:focus` payload is `{ refs?: string[]; mode?: string }`.
+- `ui/src/client/core/store-bindings.ts` — `addUserMessage(content, mode?, contexts?)`.
+- `ui/src/client/core/workspace-projection.ts` — `projectChat` emits one `references` edge per
+  `message.contexts` target present in the fragment (unknown targets dropped).
+- `ui/src/client/components/input-hud.ts` — `contextRefs: string[]`; the composer renders a chip per ref
+  (individually dismissible) and sends `contexts`; `onComposerFocus` replaces the ref list from the signal.
+- `ui/src/client/components/overlays/block-menu.ts` — follow-up/formalize emit `{ refs: [this.ref], … }`.
+- `ui/src/client/components/renderers/graph.ts` — `openComposer(anchor?)` now emits `composer:focus`
+  instead of calling the never-registered `composer` overlay (a latent no-op now fixed); refs are the
+  anchor or the workspace subset of `$selectedNodeIds`. New `graph.ask-selection` command exposes the same
+  from the palette/agent.
+- Tests updated for the array payload (block-menu, workspace-projection); full suite **215 green / 36
+  files**; root + UI typecheck and biome clean.
+
+**Notes for remaining work**
+- The composer remains the persistent dock; "anchored" here means *context*, not geometry. A floating
+  composer positioned at the node/edge still needs a summoned (not persistent) composer and cy→DOM
+  coordinate handoff.
+- `graph.ask-selection` reads the *live* `$selectedNodeIds`; concept-node ids are filtered out by the
+  `$workspaceGraph.blocks` check, so mixed selections contribute only their blocks.
+- No unit test covers the Graph renderer/command (importing `graph.ts` pulls the Cytoscape viewport);
+  the pure parts (`workspaceRefs` guard, the projection) are tested.
+
+**New improvement opportunities**
+- Extract `workspaceRefs`/selection→context into `core` and unit-test it; the renderer then just wires it.
+- Bind `graph.ask-selection` to a keystroke (e.g. `a` when a graph viewport is focused) so selection→prompt
+  is one gesture; the command already exists.
+- Echo context blocks as quoted excerpts in the sent content (an actual "reply"), gated by preference.
+- Node-creating ops: a graph context-menu "Ask as question"/"Assert as claim" that dispatches a
+  `WorkspaceOp` (block.add) and focuses the new block — closes the authoring half of 2.3.
 
 
 

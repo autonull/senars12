@@ -97,16 +97,17 @@ export class InputHUD extends BaseComponent {
     .decomposition { display: flex; flex-wrap: wrap; gap: var(--spacing-scale-1); }
     .segment { display: inline-flex; align-items: center; gap: var(--spacing-scale-1); max-width: 100%; padding: 1px var(--spacing-scale-2); border: 1px solid var(--colors-semantic-border-subtle); border-radius: 999px; font-family: var(--typography-fontFamilies-data); font-size: 0.6rem; color: var(--colors-semantic-text-secondary); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
     .segment-kind { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.55rem; color: var(--colors-semantic-text-muted); }
-    .context { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: 1px var(--spacing-scale-2); border-left: 2px solid var(--colors-semantic-accent-primary); font-family: var(--typography-fontFamilies-data); font-size: 0.65rem; color: var(--colors-semantic-text-secondary); }
+    .contexts { display: flex; align-items: center; gap: var(--spacing-scale-2); flex-wrap: wrap; padding: 2px 2px 0; }
     .context-label { color: var(--colors-semantic-text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.55rem; }
-    .context-title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 40ch; }
-    .context-clear { margin-left: auto; background: transparent; border: none; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: 0.85rem; line-height: 1; }
+    .context { display: inline-flex; align-items: center; gap: 4px; padding: 0 var(--spacing-scale-2); border-radius: 999px; border: 1px solid var(--colors-semantic-accent-primary); font-family: var(--typography-fontFamilies-data); font-size: 0.65rem; color: var(--colors-semantic-text-secondary); }
+    .context-title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 32ch; }
+    .context-clear { background: transparent; border: none; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: 0.85rem; line-height: 1; padding: 0; }
     .context-clear:hover { color: var(--colors-semantic-accent-primary); }
   `;
   @state() private composing = false;
   @state() private textareaValue = '';
   @state() private mode: ComposerMode = DEFAULT_COMPOSER_MODE;
-  @state() private contextRef?: string;
+  @state() private contextRefs: string[] = [];
   @state() private decomposition: InputSegment[] = [];
   @state() private showSuggestions = false;
   @state() private suggestionIndex = -1;
@@ -132,8 +133,8 @@ export class InputHUD extends BaseComponent {
     super.disconnectedCallback();
   }
 
-  onComposerFocus = ({ ref, mode }: { ref?: string; mode?: string }) => {
-    if (ref) this.contextRef = ref;
+  onComposerFocus = ({ refs, mode }: { refs?: string[]; mode?: string }) => {
+    if (refs?.length) this.contextRefs = [...new Set(refs)];
     if (mode && availableComposerModes($capabilities.get()).some((m) => m.id === mode)) {
       this.mode = mode as ComposerMode;
     }
@@ -152,9 +153,8 @@ export class InputHUD extends BaseComponent {
     const tokens = estimateTokens(this.textareaValue);
     const hasContent = !!(streamingDelta || this.textareaValue.trim());
     const canHistoryUp = inputHistory.length > 0;
-    const contextBlock = this.contextRef
-      ? $workspaceGraph.get().blocks.get(this.contextRef)
-      : undefined;
+    const graph = $workspaceGraph.get();
+    const contexts = this.contextRefs.map((id) => ({ id, block: graph.blocks.get(id) }));
 
     return html`
       <div class="hud-input">
@@ -178,11 +178,19 @@ export class InputHUD extends BaseComponent {
               : ''
           }
           ${
-            this.contextRef && contextBlock
-              ? html`<div class="context">
-                  <span class="context-label">↳ Ask about</span>
-                  <span class="context-title">${contextBlock.title ?? contextBlock.text ?? this.contextRef}</span>
-                  <button class="context-clear" title="Clear context" @click=${() => (this.contextRef = undefined)}>×</button>
+            contexts.length
+              ? html`<div class="contexts">
+                  <span class="context-label">↳ Context</span>
+                  ${contexts.map(
+                    ({ id, block }) => html`<span class="context">
+                      <span class="context-title">${block?.title ?? block?.text ?? id}</span>
+                      <button
+                        class="context-clear"
+                        title="Remove context"
+                        @click=${() => (this.contextRefs = this.contextRefs.filter((ref) => ref !== id))}
+                      >×</button>
+                    </span>`
+                  )}
                 </div>`
               : ''
           }
@@ -308,10 +316,10 @@ export class InputHUD extends BaseComponent {
     inputHistory.push(content);
     if (inputHistory.length > MAX_HISTORY) inputHistory.shift();
     historyIndex = inputHistory.length;
-    addUserMessage(content, this.mode, this.contextRef);
-    send({ type: 'chat.user', content, mode: this.mode, context: this.contextRef });
+    addUserMessage(content, this.mode, this.contextRefs);
+    send({ type: 'chat.user', content, mode: this.mode, contexts: this.contextRefs });
     this.textareaValue = '';
-    this.contextRef = undefined;
+    this.contextRefs = [];
     this.decomposition = [];
     this.composing = false;
     this.showSuggestions = false;

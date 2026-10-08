@@ -28,8 +28,8 @@ export type UiSignals = {
   /** Open/close a registered overlay through the shell's one overlay host. */
   'overlay:open': { id: string; ref?: string; anchor?: HTMLElement };
   'overlay:close': { id?: string };
-  /** Focus the universal composer (§8.1) — palette-launched, renderer-agnostic. */
-  'composer:focus': { ref?: string; mode?: string };
+  /** Focus the universal composer (§8.1) — palette/selection-launched, renderer-agnostic. */
+  'composer:focus': { refs?: string[]; mode?: string };
 };
 
 export const eventBus = new EventBus<UiSignals>();
