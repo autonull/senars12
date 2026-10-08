@@ -18,6 +18,7 @@ const type = async (el: HTMLElement, value: string) => {
 
 afterEach(() => {
   document.body.innerHTML = '';
+  document.documentElement.style.removeProperty('--composer-height');
 });
 
 describe('input hud decomposition preview', () => {
@@ -60,5 +61,27 @@ describe('composer modes', () => {
     await el.updateComplete;
     await type(el, 'Robins are birds.');
     expect(el.shadowRoot?.querySelector('.segment')?.getAttribute('data-kind')).toBe('question');
+  });
+});
+
+describe('composer height publication', () => {
+  it('publishes the composer height for floating chrome above it', async () => {
+    const original = globalThis.ResizeObserver;
+    class StubObserver {
+      constructor(private readonly callback: () => void) {}
+      observe() {
+        this.callback();
+      }
+      disconnect() {}
+      unobserve() {}
+    }
+    globalThis.ResizeObserver = StubObserver as unknown as typeof ResizeObserver;
+    try {
+      await mount();
+      await Promise.resolve();
+      expect(document.documentElement.style.getPropertyValue('--composer-height')).toMatch(/px$/);
+    } finally {
+      globalThis.ResizeObserver = original;
+    }
   });
 });

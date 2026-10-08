@@ -71,8 +71,8 @@ let historyIndex = -1;
 @customElement('input-hud')
 export class InputHUD extends BaseComponent {
   static override styles = css`
-    :host { display: block; position: fixed; bottom: 0; left: 0; right: 0; z-index: var(--zIndex-layers-panel); }
-    .hud-input { background: var(--colors-semantic-bg-panel-solid); border-top: 1px solid var(--colors-semantic-border-subtle); padding: var(--spacing-scale-2) var(--spacing-scale-4); display: flex; gap: var(--spacing-scale-3); align-items: flex-end; max-width: 900px; margin: 0 auto; }
+    :host { display: block; position: fixed; bottom: 0; left: 0; right: 0; z-index: var(--zIndex-layers-panel); pointer-events: none; }
+    .hud-input { pointer-events: auto; background: var(--colors-semantic-bg-panel-solid); border-top: 1px solid var(--colors-semantic-border-subtle); padding: var(--spacing-scale-2) var(--spacing-scale-4); display: flex; gap: var(--spacing-scale-3); align-items: flex-end; max-width: 900px; margin: 0 auto; }
     .input-wrapper { flex: 1; display: flex; flex-direction: column; gap: var(--spacing-scale-1); position: relative; }
     textarea { background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle); color: var(--colors-semantic-text-primary); padding: var(--spacing-scale-3) var(--spacing-scale-4); font-family: var(--typography-fontFamilies-ui); font-size: 0.85rem; line-height: 1.5; border-radius: 6px; resize: none; outline: none; transition: var(--transitions-fast); min-height: 44px; max-height: 200px; overflow-y: auto; }
     textarea:focus { border-color: var(--colors-semantic-border-focus); box-shadow: 0 0 0 1px var(--colors-semantic-border-focus); }
@@ -114,6 +114,7 @@ export class InputHUD extends BaseComponent {
   @state() private suggestions: Suggestion[] = [];
 
   #unsubscribeFocus?: () => void;
+  #composerObserver?: ResizeObserver;
 
   override connectedCallback() {
     super.connectedCallback();
@@ -126,11 +127,32 @@ export class InputHUD extends BaseComponent {
       }
     });
     this.#unsubscribeFocus = eventBus.on('composer:focus', this.onComposerFocus);
+    this.observeComposerHeight();
   }
 
   override disconnectedCallback() {
     this.#unsubscribeFocus?.();
+    this.#composerObserver?.disconnect();
     super.disconnectedCallback();
+  }
+
+  /**
+   * Publish the composer height so floating chrome above it (the workspace HUD)
+   * can clear it. The composer is fixed, so the grid cannot reserve space for it.
+   */
+  private observeComposerHeight() {
+    if (typeof ResizeObserver === 'undefined') return;
+    void this.updateComplete.then(() => {
+      const bar = this.shadowRoot?.querySelector('.hud-input');
+      if (!bar) return;
+      this.#composerObserver = new ResizeObserver(() => {
+        document.documentElement.style.setProperty(
+          '--composer-height',
+          `${bar.getBoundingClientRect().height}px`
+        );
+      });
+      this.#composerObserver.observe(bar);
+    });
   }
 
   onComposerFocus = ({ refs, mode }: { refs?: string[]; mode?: string }) => {

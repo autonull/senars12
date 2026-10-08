@@ -33,7 +33,7 @@ const LAYER_LABELS: Record<GraphLayer, string> = {
 @customElement('workspace-hud')
 export class WorkspaceHud extends BaseComponent {
   static override styles = css`
-    :host { position: absolute; bottom: var(--spacing-scale-4); left: 50%; transform: translateX(-50%); z-index: var(--zIndex-layers-panel); }
+    :host { position: absolute; bottom: calc(var(--composer-height, 0px) + var(--spacing-scale-4)); left: 50%; transform: translateX(-50%); z-index: var(--zIndex-layers-panel); }
     .hud {
       display: flex; align-items: center; gap: var(--spacing-scale-2);
       padding: var(--spacing-scale-1) var(--spacing-scale-2);

@@ -237,6 +237,20 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 
 Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
 
+### (v4.4) — HUD clears the composer (unblocks HUD-summoned overlays)
+- **Problem** (found in v4.3): `input-hud` is `position: fixed`, so its full-width host overlaid the
+  bottom of `graph-area` and made every `workspace-hud` button pointer-unreachable; only the `⌘K`
+  palette could summon overlays.
+- **Fix** — kept the composer fixed (so the graph does not resize while typing), and instead:
+  - `input-hud` publishes `--composer-height` (via `ResizeObserver`) to `documentElement`, and sets
+    `pointer-events: none` on its host with `auto` on `.hud-input`, so only the visible bar captures
+    clicks and the rest of the fixed band passes through.
+  - `workspace-hud` floats at `bottom: calc(var(--composer-height, 0px) + …)`, so the pill and its
+    popovers sit above the composer and update as it grows (up to the 200px textarea max).
+- **Validated**: `timeline` HUD-click case (previously red on pristine) and
+  `smoke`/`focus-concept`/`slider-mash`/`keyboard-navigation` all pass on chromium.
+- **Follow-up**: visual baselines are now stale — run `pnpm test:visual:update`.
+
 ### (v4.3) — WP1 shell demotions: telemetry (WP1 complete)
 - **0.4 telemetry** — retired the standing bottom panel. `telemetry-panel` is unchanged but now
   reached via the new `telemetry` overlay (`s-telemetry`); the HUD keeps a one-glance expansion.
@@ -271,14 +285,9 @@ Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
   `focus-trap` (autoFocus off), `workspace-hud` (⚙ → settings), `panel-commands` (config retired).
 
 ### Discoveries / notes for the next session
-- **HUD is obscured by the fixed composer (pre-existing).** `input-hud` is `position: fixed`, so its
-  full-width host overlays the bottom of `graph-area` where `workspace-hud` floats. Its buttons
-  (toc/timeline/telemetry/panels/settings/palette) are therefore **pointer-unreachable** in the app
-  and by Playwright — only ⌘K works. Confirmed on pristine source:
-  `tests/scenarios/cognitive/timeline.spec.ts` first case fails identically without these changes.
-  Likely fix: drop `position: fixed` from `input-hud` so it occupies the `bottom` grid row and
-  `graph-area` ends above it; needs visual-baseline regen. Worth doing before relying on HUD-summoned
-  overlays (WP1 sweep).
+- **Visual baselines are stale.** The HUD moved above the composer, and earlier demotions renamed
+  cells (`panel-config` → `overlay-settings`, telemetry removal), so `pnpm test:visual:update`
+  should be run (and the gallery refreshed) before relying on `test:visual`.
 - **`edit-edge` e2e (pre-existing).** `tests/scenarios/relational/edit-edge.spec.ts` uses
   `node-detail-drawer .tab-button` (real class is `.tab`) and its `clickEdge` path never opened a
   drawer because the old standing panel keyed only on `$selectedNodeId`. The `$selectedEdgeId`
