@@ -58,10 +58,11 @@ describe('view host', () => {
     expect(customElements.get('s-view')).toBe(ViewHost);
   });
 
-  const mount = async (spec: ViewSpec): Promise<ViewHost> => {
+  const mount = async (spec: ViewSpec, budget: 'full' | 'embedded' = 'full'): Promise<ViewHost> => {
     const el = document.createElement('s-view') as ViewHost;
     container.appendChild(el);
     await el.updateComplete;
+    el.budget = budget;
     el.spec = spec;
     await el.updateComplete;
     await tick();
@@ -72,6 +73,26 @@ describe('view host', () => {
   it('mounts the adapter for the default shape', async () => {
     const el = await mount({ id: 't', title: 'Test', shapes: ['series', 'table'], source: source(series) });
     expect(el.shadowRoot?.querySelector('s-series')).toBeTruthy();
+  });
+
+  it('mounts the compact adapter for the embedded budget', async () => {
+    const spec = { id: 't', title: 'Test', shapes: ['series'] as const, source: source(series) };
+    const el = await mount(spec, 'embedded');
+    expect(el.shadowRoot?.querySelector('s-sparkline')).toBeTruthy();
+  });
+
+  it('renders a single-row table as key-value in the compact table adapter', async () => {
+    const single = {
+      kind: 'table' as const,
+      columns: [
+        { id: 'term', label: 'Term' },
+        { id: 'priority', label: 'Priority' },
+      ],
+      rows: [{ id: 'r0', term: 'cat', priority: 0.5 }],
+    };
+    const el = await mount({ id: 't', title: 'Test', shapes: ['table'], source: source(single) }, 'embedded');
+    const kv = el.shadowRoot?.querySelector('s-table-mini')?.shadowRoot?.querySelector('dl');
+    expect(kv?.querySelector('dt')?.textContent).toBe('Term');
   });
 
   it('switches shape through the chrome switcher', async () => {

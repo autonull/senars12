@@ -14,28 +14,45 @@ export interface ViewAdapter {
   readonly interactions: readonly Interaction[];
 }
 
-const registry = new Map<Shape, ViewAdapter>();
+const registry = new Map<Shape, ViewAdapter[]>();
 
 export const registerViewAdapter = (adapter: ViewAdapter): void => {
-  registry.set(adapter.shape, adapter);
+  registry.set(adapter.shape, [...(registry.get(adapter.shape) ?? []), adapter]);
 };
 
 /** Every registered adapter, in registration order. */
-export const viewAdapters = (): ViewAdapter[] => [...registry.values()];
+export const viewAdapters = (): ViewAdapter[] => [...registry.values()].flat();
 
-/** The adapter for a shape that supports the requested budget, if any. */
-export const viewAdapterFor = (shape: Shape, budget: Budget = 'full'): ViewAdapter | undefined => {
-  const adapter = registry.get(shape);
-  return adapter?.budgets.includes(budget) ? adapter : undefined;
-};
+/** Every adapter registered for a shape — the full variant and its compact ones. */
+export const adaptersFor = (shape: Shape): ViewAdapter[] => registry.get(shape) ?? [];
 
+/**
+ * The adapter for a shape that supports the requested budget. When several do,
+ * the most specialized wins — an `embedded`-only compact variant over one that
+ * serves both budgets — so a compact adapter is selected by capability rather
+ * than registration order. The full variant remains the fallback.
+ */
+export const viewAdapterFor = (shape: Shape, budget: Budget = 'full'): ViewAdapter | undefined =>
+  adaptersFor(shape)
+    .filter((adapter) => adapter.budgets.includes(budget))
+    .sort((a, b) => a.budgets.length - b.budgets.length)[0];
+
+/** What a shape can do, unioned across its variants. */
 export const capabilitiesFor = (shape: Shape): ShapeCaps | undefined => {
-  const adapter = registry.get(shape);
-  return adapter && { shape, budgets: adapter.budgets, interactions: adapter.interactions };
+  const adapters = adaptersFor(shape);
+  if (adapters.length === 0) return undefined;
+  return {
+    shape,
+    budgets: [...new Set(adapters.flatMap((adapter) => adapter.budgets))],
+    interactions: [...new Set(adapters.flatMap((adapter) => adapter.interactions))],
+  };
 };
 
 /** Shapes a budget can render — the shape switcher offers exactly these. */
-export const supportedShapes = (budget: Budget = 'full'): Shape[] =>
-  viewAdapters()
-    .filter((adapter) => adapter.budgets.includes(budget))
-    .map((adapter) => adapter.shape);
+export const supportedShapes = (budget: Budget = 'full'): Shape[] => [
+  ...new Set(
+    viewAdapters()
+      .filter((adapter) => adapter.budgets.includes(budget))
+      .map((adapter) => adapter.shape)
+  ),
+];

@@ -1,11 +1,14 @@
-import { css, html, nothing, svg } from 'lit';
+import { css, html, svg } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { BaseComponent } from '../../core/base-component.js';
 import { registerViewAdapter } from '../../core/view-adapter.js';
 import type { Budget, SeriesDataset, SeriesDatum, ViewSelection } from '../../core/view-spec.js';
 import { theme } from '../../utils/theme.js';
+import { linePoints } from './series-geometry.js';
 
-/** Renders a `SeriesDataset` as an SVG line chart; embedded drops the legend and shrinks. */
+const HEIGHT = 60;
+
+/** Renders a `SeriesDataset` as a full SVG line chart with a legend. */
 @customElement('s-series')
 export class SeriesView extends BaseComponent {
   static override styles = css`
@@ -28,31 +31,23 @@ export class SeriesView extends BaseComponent {
   override render() {
     const series = this.data?.series ?? [];
     if (series.length === 0) return html`<div class="empty">No series</div>`;
-    const height = this.budget === 'embedded' ? 24 : 60;
     return html`
-      <svg class="chart" viewBox="0 0 100 ${height}" preserveAspectRatio="none"
+      <svg class="chart" viewBox="0 0 100 ${HEIGHT}" preserveAspectRatio="none"
         role="img" aria-label="Series chart">
-        ${series.map((s) => this.line(s, height))}
+        ${series.map((s) => this.line(s))}
       </svg>
-      ${this.budget === 'embedded'
-        ? nothing
-        : html`<ul class="legend">
-            ${series.map(
-              (s) => html`<li>
-                <span class="dot" style="background:${s.color ?? theme.colors.info}"></span>${s.label}
-              </li>`
-            )}
-          </ul>`}
+      <ul class="legend">
+        ${series.map(
+          (s) => html`<li>
+            <span class="dot" style="background:${s.color ?? theme.colors.info}"></span>${s.label}
+          </li>`
+        )}
+      </ul>
     `;
   }
 
-  private line(s: SeriesDatum, height: number) {
-    const max = Math.max(...s.values, 1);
-    const step = 100 / Math.max(s.values.length - 1, 1);
-    const points = s.values
-      .map((value, index) => `${(index * step).toFixed(2)},${(height - (value / max) * height).toFixed(2)}`)
-      .join(' ');
-    return svg`<polyline class="line" points=${points} fill="none"
+  private line(s: SeriesDatum) {
+    return svg`<polyline class="line" points=${linePoints(s.values, HEIGHT)} fill="none"
       stroke=${s.color ?? theme.colors.info} vector-effect="non-scaling-stroke" />`;
   }
 }
@@ -60,6 +55,6 @@ export class SeriesView extends BaseComponent {
 registerViewAdapter({
   shape: 'series',
   tag: 's-series',
-  budgets: ['full', 'embedded'],
+  budgets: ['full'],
   interactions: ['select', 'highlight'],
 });

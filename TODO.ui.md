@@ -951,6 +951,53 @@ rather than a `satisfies` against a schema.
 
 ---
 
+### Session 16 — Phase 4.4: compact embedded adapters (2026-10-08)
+
+**Landed**
+
+- **4.4 — the registry holds several adapters per shape.** `viewAdapterFor(shape, budget)` now picks the
+  *most specialized* variant that declares the budget — an `embedded`-only compact adapter over one
+  serving both — so the compact variant is selected by capability rather than registration order.
+  `adaptersFor(shape)` enumerates a shape's variants; `capabilitiesFor(shape)` unions budgets and
+  interactions across them (was: exactly one adapter per shape, resolved by direct lookup).
+- **4.4 — compact adapters.** `s-sparkline` (`series`/`embedded`) is a bare inline polyline with no
+  legend or chrome; `s-table-mini` (`table`/`embedded`) renders a **single row as key-value pairs**
+  (the inspector shape) and many rows as a **top-N table** with a `+N more` hint. Series geometry is
+  shared via new `series-geometry.ts` (`linePoints`), so the full chart and the sparkline cannot drift.
+- **4.4 — the full adapters lost their embedded branches.** `s-series` and `s-table` are now `full`-only
+  (legend always on; no row cap). `s-text`/`s-tree` keep their dual-budget embedded branches (not named
+  in the plan) — see the follow-on below.
+- **Tests.** `view-adapter.test.ts` asserts the compact-variant resolution (`s-sparkline`/`s-table-mini`
+  for `embedded`, `s-series`/`s-table` for `full`), `adaptersFor` order, and the capabilities union;
+  `view-host.test.ts` mounts the `embedded` budget and asserts the sparkline and the key-value table.
+
+**Verification**
+
+- `pnpm --dir ui exec tsc --noEmit` clean; `pnpm --dir ui build` succeeds; `biome lint
+  --diagnostic-level=error` clean on all 12 files.
+- UI unit **62/62** (was 60; +2 host). No visual baseline is affected — no cell renders `<s-view>` or
+  the view elements yet, so the `views/index.ts` barrel is exercised only by the tests.
+
+**Still open in Phase 4**
+
+- **4.4 — mini-graph is deferred.** The `graph` shape is still the store-driven `graph-viewport` seam,
+  and no compact graph element exists (`graph-minimap` is a floating overlay with its own toggle, not an
+  embeddable adapter). A `mini-graph` needs the true `ViewSpec`-sourced graph adapter (4.6/8.5).
+- **4.6–4.8 untouched** — nothing is migrated to `<s-view>` yet; views are not embedded in the shell;
+  the matrix is not extended.
+
+**New opportunities spotted** *(Session 16)*
+
+- Apply the same split to the remaining budget branches: turn `s-text`'s and `s-tree`'s embedded
+  branches into `s-log-mini`/`s-tree-mini` so no adapter carries a `budget` branch.
+- `capabilitiesFor` now unions interactions the host still does not honour (`multi-select`, `filter`,
+  `zoom`); the chrome and adapters should read it so unsupported affordances are hidden, not inert
+  (Session 15 note).
+- The `embedded` table's key-value/top-N switch is a data-shape decision the host could surface as a
+  disclosure level instead of a size heuristic.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -1229,7 +1276,7 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [x] **4.1** `ViewSpec` + `ViewAdapter` + adapter registry; generalize `RendererApi` into the graph adapter. *(done: `view-spec.ts`/`view-adapter.ts`/`view-projection.ts`; the registry resolves a tag by shape+budget; graph is registered as the `graph-viewport` seam — a truly `ViewSpec`-sourced graph adapter is 4.6/8.5)*
 - [ ] **4.2** Adapters: graph (wrap existing 2D/3D), series (chart/sparkline), table (sort/filter/virtualize), tree (provenance), text (event/log). *(partial: `series`/`table`/`text`/`tree` adapters + the `graph-viewport` seam landed; graph is still store-driven and tables are not yet virtualized/sortable — 4.6/11.1)*
 - [x] **4.3** `ViewHost` (`<s-view>`): adapter resolution by shape+budget, shared chrome (title/export/fullscreen/shape switcher), container-query sizing, descriptor-driven states. *(done: `view-host.ts` resolves the adapter by shape+budget, mounts the registry tag via `lit/static-html`, projects the dataset, and owns title/shape-switcher/fullscreen chrome + empty/error slots; container-query sizing and export are 4.6/5.4)*
-- [ ] **4.4** Compact adapter variants for `embedded` (sparkline, key-value, mini-graph, top-N table) selected by capability.
+- [ ] **4.4** Compact adapter variants for `embedded` (sparkline, key-value, mini-graph, top-N table) selected by capability. *(partial: the registry resolves the most specialized variant per shape+budget; `s-sparkline` + `s-table-mini` (key-value / top-N) landed and `s-series`/`s-table` are now full-only; mini-graph deferred — `graph` is still a store-driven seam, 4.6/8.5)*
 - [x] **4.5** Unified `ViewSelection` through the store: cross-shape highlight/link (table row ↔ graph node ↔ inspector). *(done: `$viewSelection` atom + `view-select` handling at the host; cross-shape consumers land with 4.6)*
 - [ ] **4.6** Migrate surfaces to views: telemetry→series/table, provenance→tree/table/graph, graph→graph/table, metrics→cards/table, event log→text/table, config→form/table.
 - [ ] **4.7** Embed views everywhere: inspector cards, left rail, bottom drawer, chat (inline sparkline/mini-graph/top-N), demo player.

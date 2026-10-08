@@ -5,9 +5,7 @@ import { registerViewAdapter } from '../../core/view-adapter.js';
 import { formatCell } from '../../core/view-projection.js';
 import type { Budget, TableDataset, ViewSelection } from '../../core/view-spec.js';
 
-const EMBEDDED_ROWS = 5;
-
-/** Renders a `TableDataset`; embedded shows the top rows, and a row click selects its id. */
+/** Renders a full `TableDataset`; a row click selects its id. */
 @customElement('s-table')
 export class TableView extends BaseComponent {
   static override styles = css`
@@ -28,7 +26,6 @@ export class TableView extends BaseComponent {
   override render() {
     const dataset = this.data;
     if (!dataset || dataset.rows.length === 0) return html`<div class="empty">No rows</div>`;
-    const rows = this.budget === 'embedded' ? dataset.rows.slice(0, EMBEDDED_ROWS) : dataset.rows;
     const selected = this.selection?.focus;
     return html`
       <table>
@@ -36,7 +33,7 @@ export class TableView extends BaseComponent {
           <tr>${dataset.columns.map((column) => html`<th scope="col">${column.label}</th>`)}</tr>
         </thead>
         <tbody>
-          ${rows.map((row, index) => {
+          ${dataset.rows.map((row, index) => {
             const id = String(row.id ?? index);
             return html`<tr class=${id === selected ? 'selected' : ''} @click=${() => this.select(id)}>
               ${dataset.columns.map((column) => html`<td>${formatCell(row[column.id])}</td>`)}
@@ -57,6 +54,6 @@ export class TableView extends BaseComponent {
 registerViewAdapter({
   shape: 'table',
   tag: 's-table',
-  budgets: ['full', 'embedded'],
+  budgets: ['full'],
   interactions: ['select', 'multi-select', 'filter', 'highlight'],
 });
