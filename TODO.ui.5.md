@@ -133,8 +133,12 @@ Landed extension points — wire features here instead of re-deriving them.
 - [ ] **2.6 scope** — scope-aware active layout (concept vs conversation) + URL-address it; remember
   the graph layer per lens; debounce `folded` writes for fold-all. `→ core/store.ts`,
   `utils/layout-registry.ts`, `utils/lens-catalog.ts`. `(y)`,`(ac)`,`(w)`,`(t)`
-- [ ] **2.5 selection atom** — derive `$selectedNodeIds` from `$workspaceGraph.selection`.
-  `→ core/store.ts`, `core/workspace-graph.ts`. `(z)`
+- [x] **2.5 selection atom** — `$selectedNodeIds` is now derived from `$workspaceGraph.selection`: a
+  store-level projection subscription mirrors the set (value-compared, so re-projection carrying the
+  selection over does not churn), and every former writer (`graph-viewport`, `graph` renderer,
+  `graph-toolbar`, `node-detail-drawer`) now routes through `setWorkspaceSelection`. This removes the
+  dual-write footgun; `$selectedNodeIds` stays a readable-compatible atom for the flat-set consumers.
+  `→ core/store.ts`. `(z)`
 - [x] **2.5 focus react** — Graph viewport centres/highlights on `$workspaceGraph.focus` (Notebook
   already scrolls). Landed as `GraphViewport.reactToFocus()` at the end of `syncGraph`: it tracks the
   last focus and calls `centerOnNode` for an outside focus (ToC/breadcrumb/block-menu/URL), while a
@@ -350,3 +354,6 @@ in v3 Appendix D). Rolled up:
   same-value write; `GraphViewport.reactToFocus()` centres/highlights an outside focus (ToC/breadcrumb/
   block-menu/URL) while leaving selection-driven centring to the existing watch — completes
   **`2.5 focus react`** (2D only). Component suite **305 green** (new: unregistered-layout rejection).
+- **WP2 state (cont.)** — `$selectedNodeIds` is derived from `$workspaceGraph.selection` via a value-
+  compared store projection; all former dual writers route through `setWorkspaceSelection` — completes
+  **`2.5 selection atom`**. Suite **305 green**.

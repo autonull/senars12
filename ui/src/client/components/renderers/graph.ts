@@ -96,7 +96,6 @@ class GraphRenderer implements WorkspaceRenderer {
 
   select(refs: readonly Ref[]): void {
     setWorkspaceSelection(refs);
-    $selectedNodeIds.set(new Set(refs));
     $selectedNodeId.set(refs.length === 1 ? (refs[0] ?? null) : null);
   }
 
@@ -117,7 +116,6 @@ class GraphRenderer implements WorkspaceRenderer {
   restore(snap: RendererSnapshot): void {
     setWorkspaceFocus(snap.focus);
     setWorkspaceSelection(snap.selection);
-    $selectedNodeIds.set(new Set(snap.selection));
   }
 
   dispose(): void {

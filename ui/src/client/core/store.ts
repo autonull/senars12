@@ -168,6 +168,18 @@ export function setWorkspaceSelection(refs: Iterable<string>): void {
   $workspaceGraph.set({ ...$workspaceGraph.get(), selection: new Set(refs) });
 }
 
+/**
+ * `$selectedNodeIds` is derived, not a second source: `$workspaceGraph.selection`
+ * is authoritative and this projection keeps the two in step for the renderers
+ * that read the flat set (§2.5). Compares by value so a re-projection that
+ * carries the same selection over does not churn subscribers.
+ */
+$workspaceGraph.subscribe(({ selection }) => {
+  const current = $selectedNodeIds.get();
+  if (current.size === selection.size && [...selection].every((id) => current.has(id))) return;
+  $selectedNodeIds.set(new Set(selection));
+});
+
 /** Blocks whose children are folded in the workspace renderers (§1.1; session state). */
 export const $collapsedBlocks = atom<ReadonlySet<string>>(new Set());
 

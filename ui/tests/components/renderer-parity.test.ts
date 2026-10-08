@@ -18,7 +18,6 @@ describe('renderer parity (§10, Phase 2.5)', () => {
   afterEach(() => {
     setWorkspaceFocus(undefined);
     setWorkspaceSelection([]);
-    $selectedNodeIds.set(new Set());
   });
 
   it('registers notebook, graph and a declared-partial graph3d', () => {

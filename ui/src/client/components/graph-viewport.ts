@@ -194,7 +194,6 @@ export class GraphViewport extends BaseComponent {
       if (node.hasClass('workspace')) {
         if (evt.originalEvent?.shiftKey) this.toggleMultiSelect(id);
         else {
-          $selectedNodeIds.set(new Set([id]));
           $selectedNodeId.set(id);
           setWorkspaceSelection([id]);
           setWorkspaceFocus(id);
@@ -204,7 +203,6 @@ export class GraphViewport extends BaseComponent {
       if (evt.originalEvent?.shiftKey) {
         this.toggleMultiSelect(id);
       } else {
-        $selectedNodeIds.set(new Set([id]));
         $selectedNodeId.set(id);
         setWorkspaceSelection([id]);
         const term = node.data('term') || id;
@@ -217,7 +215,6 @@ export class GraphViewport extends BaseComponent {
       if (evt.target === this.cy) {
         $selectedNodeId.set(null);
         $selectedEdgeId.set(null);
-        $selectedNodeIds.set(new Set());
         setWorkspaceSelection([]);
         this.closeContextMenu();
       }
@@ -231,7 +228,7 @@ export class GraphViewport extends BaseComponent {
       const key = `${source}->${target}`;
       $selectedEdgeId.set(key);
       $selectedNodeId.set(null);
-      $selectedNodeIds.set(new Set());
+      setWorkspaceSelection([]);
     });
 
     // Double-click: focus term
@@ -384,7 +381,6 @@ export class GraphViewport extends BaseComponent {
     } else {
       selected.add(id);
     }
-    $selectedNodeIds.set(selected);
     setWorkspaceSelection(selected);
     // Also keep single selection in sync
     if (selected.size === 1) {
@@ -412,7 +408,7 @@ export class GraphViewport extends BaseComponent {
     if (this.contextTarget) {
       const ids = new Set($selectedNodeIds.get());
       ids.add(this.contextTarget);
-      $selectedNodeIds.set(ids);
+      setWorkspaceSelection(ids);
     }
     this.closeContextMenu();
   }

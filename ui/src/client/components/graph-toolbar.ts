@@ -16,6 +16,7 @@ import {
   BaseComponent,
   eventBus,
   send,
+  setWorkspaceSelection,
 } from '../core/index.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
 import { renderField } from '../utils/render-field.js';
@@ -321,11 +322,11 @@ export class GraphToolbar extends BaseComponent {
     const nodes = new Map($graphNodes.get());
     for (const id of ids) nodes.delete(id);
     $graphNodes.set(nodes);
-    $selectedNodeIds.set(new Set());
+    setWorkspaceSelection([]);
   }
 
   private clearSelection() {
-    $selectedNodeIds.set(new Set());
+    setWorkspaceSelection([]);
   }
 }
 

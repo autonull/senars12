@@ -15,6 +15,7 @@ import {
   BaseComponent,
   type RevisionEntry,
   send,
+  setWorkspaceSelection,
   updateEdgeData,
   updateNodeData,
 } from '../core/index.js';
@@ -294,7 +295,7 @@ export class NodeDetailDrawer extends BaseComponent {
     if (this.node) {
       const ids = new Set($selectedNodeIds.get());
       ids.add(this.node.id ?? '');
-      $selectedNodeIds.set(ids);
+      setWorkspaceSelection(ids);
     }
   }
 
