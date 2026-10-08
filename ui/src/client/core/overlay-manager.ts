@@ -54,6 +54,7 @@ export class OverlayManager {
       return;
     }
     entry.element.hidden = false;
+    entry.element.toggleAttribute('data-pinned', false);
     const overlay: OpenOverlay = {
       ...entry,
       trap: new FocusTrap(entry.element, entry.autoFocus ?? true),
@@ -125,7 +126,10 @@ export class OverlayManager {
 
   setPinned(id: string, pinned: boolean): void {
     const overlay = this.#stack.find((open) => open.id === id);
-    if (overlay) overlay.pinned = pinned;
+    if (!overlay || overlay.pinned === pinned) return;
+    overlay.pinned = pinned;
+    overlay.element.toggleAttribute('data-pinned', pinned);
+    Announcer.getInstance().announce(`${overlay.title ?? id} ${pinned ? 'pinned' : 'unpinned'}`);
   }
 
   pinned(): string[] {

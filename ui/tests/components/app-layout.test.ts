@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import '../../src/client/components/app-layout.js';
+import { dispatchCommand } from '../../src/client/core/commands.js';
 import { $selectedEdgeId, $selectedNodeId } from '../../src/client/core/store.js';
 
 afterEach(() => {
@@ -9,8 +10,13 @@ afterEach(() => {
 });
 
 const overlays = () =>
-  (window as unknown as { __testApi?: { overlays?: { isOpen(id: string): boolean } } }).__testApi
-    ?.overlays;
+  (
+    window as unknown as {
+      __testApi?: {
+        overlays?: { isOpen(id: string): boolean; pinned(): string[] };
+      };
+    }
+  ).__testApi?.overlays;
 
 const mount = async () => {
   const el = document.createElement('app-layout');
@@ -35,5 +41,17 @@ describe('app-layout inspector wiring (0.4)', () => {
     await mount();
     $selectedEdgeId.set('a->b');
     expect(overlays()?.isOpen('inspector')).toBe(true);
+  });
+
+  it('pins and unpins the top overlay through the pin command (§4.5)', async () => {
+    await mount();
+    expect(dispatchCommand('overlay.palette')).toBe(true);
+    expect(overlays()?.isOpen('palette')).toBe(true);
+
+    expect(dispatchCommand('overlay.pin')).toBe(true);
+    expect(overlays()?.pinned()).toEqual(['palette']);
+
+    expect(dispatchCommand('overlay.pin')).toBe(true);
+    expect(overlays()?.pinned()).toEqual([]);
   });
 });

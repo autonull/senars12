@@ -140,12 +140,19 @@ export class AppLayout extends BaseComponent {
         this.#overlays?.open(id, { ref, anchor })
       ),
       eventBus.on('overlay:close', ({ id }) => this.#overlays?.close(id)),
+      eventBus.on('overlay:pin', ({ id, pinned }) => this.#overlays?.manager.setPinned(id, pinned)),
+      eventBus.on('overlay:pin-toggle', () => {
+        const manager = this.#overlays?.manager;
+        const top = manager?.stack().at(-1);
+        if (manager && top) manager.setPinned(top, !manager.pinned().includes(top));
+      }),
     ];
     mountTestApi('overlays', {
       open: (id: string, ref?: string) => this.#overlays?.open(id, { ref }),
       close: (id?: string) => this.#overlays?.close(id),
       isOpen: (id: string) => this.#overlays?.isOpen(id),
       stack: () => this.#overlays?.stack(),
+      pinned: () => this.#overlays?.manager.pinned(),
       descriptors: () => overlays(),
     });
   }

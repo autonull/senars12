@@ -28,6 +28,10 @@ export type UiSignals = {
   /** Open/close a registered overlay through the shell's one overlay host. */
   'overlay:open': { id: string; ref?: string; anchor?: HTMLElement };
   'overlay:close': { id?: string };
+  /** Pin/unpin a specific floating overlay (§4.5). */
+  'overlay:pin': { id: string; pinned: boolean };
+  /** Toggle pinning of the topmost overlay — the palette/shortcut affordance (§4.5). */
+  'overlay:pin-toggle': void;
   /** Focus the universal composer (§8.1) — palette/selection-launched, renderer-agnostic. */
   'composer:focus': { refs?: string[]; mode?: string };
 };

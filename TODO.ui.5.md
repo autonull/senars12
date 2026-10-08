@@ -44,8 +44,8 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
 3. **`1.5/1.1 section model`** (L) — unblocks `1.5 page` and notebook depth. `→ toc.ts`,
    `workspace-graph.ts`, `renderers/notebook.ts`
 4. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation.
-5. **`4.5 pinning`** (M) · **`2.4 inspection & embedded views`** (L) ·
-   **`citations model`** (M). (`1.4 rich text` is partially landed — inline tokenizer; see WP1.)
+5. **`2.4 inspection & embedded views`** (L) ·
+   **`citations model`** (M). (`4.5 pinning` is partially landed — manager/command pinning; see WP4.) (`1.4 rich text` is partially landed — inline tokenizer; see WP1.)
 6. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
    (`4.4 controls` is partially landed — live reset + readout; see WP4.)
 
@@ -112,8 +112,13 @@ Landed extension points — wire features here instead of re-deriving them.
 
 - [ ] **0.5 tool approval** — build the tool-approval dialog overlay; needs the **modal scrim**
   blocker. `→ overlays/tool-approval.ts` (new), `core/overlay-manager.ts`. `(b)`,`(aa)`
-- [ ] **4.5 pinning** — overlays pinnable as floating cards (manager seam `setPinned`/`pinned` exists);
-  decide session-only vs URL-addressable. `→ core/overlay-manager.ts`, `core/overlay-registry.ts`. `(b)`,`(e)`,`(aa)`
+- [~] **4.5 pinning** — overlays pinnable as floating cards (manager seam `setPinned`/`pinned` exists);
+  decide session-only vs URL-addressable. Landed: **session-only** pinning through the manager —
+  `setPinned` reflects `data-pinned` on the element and announces; `overlay:pin {id,pinned}` and
+  `overlay:pin-toggle` events; app-layout wires them; an `overlay.pin` palette command toggles the top
+  overlay. Remaining: a per-overlay pin *button* (the command is the current affordance) and CSS for
+  `[data-pinned]`. `→ core/overlay-manager.ts`, `core/events.ts`, `core/commands.ts`,
+  `components/app-layout.ts`. `(b)`,`(e)`,`(aa)`
 - [ ] **0.6 backend seam** — land the `ReasoningBackend` contract + adapter seam (`LmProvider` façade;
   `lm.status`/`lm.switch` already real). Needed by WP5. Sweep once it lands:
   - provider switching as an overlay action; split Provider vs Configuration entries.
@@ -402,3 +407,7 @@ in v3 Appendix D). Rolled up:
   contradiction neighbourhood, resource lanes — pure and deterministic) registered as four concept-scope
   `layoutRegistry` rows with `recommendedFor` lenses — completes **`3.4 layouts`**. The link-catalog
   parity test no longer needs its pending allowlist. Suite **325 green**.
+- **WP4 pinning** — session-only overlay pinning wired through the manager: `setPinned` reflects
+  `data-pinned` + announces, `overlay:pin`/`overlay:pin-toggle` events, app-layout handlers, and an
+  `overlay.pin` palette command that toggles the top overlay — **`4.5 pinning`** partially landed
+  (per-overlay button + `[data-pinned]` CSS remain). Suite **326 green**.

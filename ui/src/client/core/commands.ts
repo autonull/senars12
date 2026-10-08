@@ -119,6 +119,13 @@ const derivedCommands = (): Command[] => [
     run: () => eventBus.emit('graph:minimap-toggle'),
     available: () => $activeRenderer.get() === 'graph',
   },
+  {
+    id: 'overlay.pin',
+    title: 'Pin/unpin top overlay',
+    group: 'View',
+    keywords: 'overlay pin float card stay open',
+    run: () => eventBus.emit('overlay:pin-toggle'),
+  },
 ];
 
 /** Every command the palette may offer right now, explicit then derived. */

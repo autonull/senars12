@@ -71,12 +71,19 @@ describe('overlay manager', () => {
 
   it('leaves a pinned overlay alone on Escape and outside-click', () => {
     const manager = makeManager();
-    manager.open({ id: 'card', element: makeOverlay() });
+    const card = makeOverlay();
+    manager.open({ id: 'card', element: card });
     manager.setPinned('card', true);
     expect(manager.pinned()).toEqual(['card']);
+    expect(card.hasAttribute('data-pinned')).toBe(true);
     pressEscape();
     clickOutside();
     expect(manager.isOpen('card')).toBe(true);
+
+    manager.setPinned('card', false);
+    expect(card.hasAttribute('data-pinned')).toBe(false);
+    pressEscape();
+    expect(manager.isOpen('card')).toBe(false);
   });
 
   it('dismisses a non-modal on outside-click but not a modal', () => {
