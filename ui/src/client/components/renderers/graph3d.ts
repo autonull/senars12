@@ -38,6 +38,7 @@ class Graph3DRenderer implements WorkspaceRenderer {
   readonly label = 'Graph 3D';
 
   private ctx?: WorkspaceContext;
+  private element?: HTMLElement;
   private focusRef?: Ref;
   private selection = new Set<Ref>();
 
@@ -45,8 +46,10 @@ class Graph3DRenderer implements WorkspaceRenderer {
     return { interactions: INTERACTIONS, blockKinds: 'all', parity: 'partial' };
   }
 
-  mount(_host: HTMLElement, ctx: WorkspaceContext): void {
+  mount(host: HTMLElement, ctx: WorkspaceContext): void {
     this.ctx = ctx;
+    this.element = document.createElement('spacegraph-viewport');
+    host.appendChild(this.element);
   }
 
   present(_blocks: readonly SemanticBlock[], _links: readonly SemanticLink[]): void {}
@@ -83,6 +86,8 @@ class Graph3DRenderer implements WorkspaceRenderer {
   }
 
   dispose(): void {
+    this.element?.remove();
+    this.element = undefined;
     this.ctx = undefined;
   }
 }

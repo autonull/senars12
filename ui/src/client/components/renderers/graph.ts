@@ -30,7 +30,7 @@ import {
   type WorkspaceRenderer,
   type WorkspaceRendererCaps,
 } from '../../core/workspace-renderer.js';
-import '../graph-viewport.js';
+import './graph-surface.js';
 
 const workspaceRefs = (ids: Iterable<Ref>): Ref[] => {
   const blocks = $workspaceGraph.get().blocks;
@@ -77,7 +77,7 @@ class GraphRenderer implements WorkspaceRenderer {
 
   mount(host: HTMLElement, ctx: WorkspaceContext): void {
     this.#ctx = ctx;
-    this.#element = document.createElement('graph-viewport');
+    this.#element = document.createElement('graph-surface');
     host.appendChild(this.#element);
   }
 

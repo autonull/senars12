@@ -498,7 +498,7 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 - [x] 0.3 `WorkspaceRenderer` contract + registry (`notebook`, `graph`, `graph3d` stub); mode-switch state; capabilities.
   - Registry now holds `notebook` (`full`, `blockKinds: 'all'`), `graph` (`full`, wraps the landed Cytoscape viewport), and the honest `graph3d` stub (`partial`). `$activeRenderer` is store state (default `graph` to preserve current behavior until capability-composition defaults land).
 - [~] 0.4 Main workspace shell: main area renders the active renderer; floating HUD (mode · provider/backend · budget · ⌘K · stop); permanent panels removed/default-hidden.
-  - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. The HUD now carries `☰` (ToC) and `⌘K` (palette), and `app-layout` binds `⌘/Ctrl+K` globally. Remaining: remove/default-hide the standing panels, and add budget/stop to the HUD once run-control exists (no silent no-ops). The active renderer is now URL-addressable (see (s)).
+  - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. The HUD now carries `☰` (ToC) and `⌘K` (palette), and `app-layout` binds `⌘/Ctrl+K` globally. The main area is now one `<workspace-host>` that mounts the active renderer through the registry (`mount`/`snapshot`/`dispose`/`restore`) and supplies the `WorkspaceContext`; Graph's table/2D/3D variants moved into `graph-surface` (see (ae)), so the shell no longer branches on renderer tags. Remaining: remove/default-hide the standing panels, and add budget/stop to the HUD once run-control exists (no silent no-ops). The active renderer is now URL-addressable (see (s)).
 - [~] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
   - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside; the `FocusTrap` pierces shadow roots and retries focus on the next frame (every overlay is a Lit element, so its focusables live in a shadow root and render asynchronously). A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6), the command palette (⌘K), the artifact viewer (4.3), and the settings/provider dialog (aa). Tables now render through the landed `s-view`/`ViewSpec` view system (embedded budget) instead of bespoke markup, and `artifactViewSpec` maps a block's payload to a `ViewSpec`. Remaining: tool approval, timeline overlay (4.4), pinning (4.5).
 - [~] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
@@ -538,7 +538,7 @@ Goal: render the same semantic conversation as a flowing content graph.
 - [~] 2.4 Graph inspection: node/edge popovers, artifact preview popovers, "open in Notebook," semantic neighborhood navigation.
   - Landed semantic-neighborhood navigation. `core/neighborhood.ts` is a pure BFS (`neighborhood(graph, ref, depth)`) over `linksTouching`, returning each neighbor with its link and `in`/`out` direction; `s-related` (overlay `related`) groups them by relation+direction and navigating a row focuses the block and closes. The block menu's "Open related" appears only when the block has neighbors (hidden, not inert). Remaining: node/edge popovers on the graph itself (hover/click a link), artifact preview popovers on edges, and an explicit "open in Notebook" from a graph selection (selection currently focuses, which the Notebook reveals).
 - [~] 2.5 Mode parity: shared focus/selection; actions work in both; switching preserves context; parity specs.
-  - Landed the shared focus/selection spine + parity specs. The `notebook`/`graph` adapters now read and write the one session state (`$workspaceGraph.focus`/`selection`) in `focus`/`select`/`snapshot`/`restore` instead of private fields, so `snapshot()` → `restore()` is a real round-trip; the Graph adapter also mirrors selection into `$selectedNodeIds`/`$selectedNodeId` so multi-select styling and the detail drawer follow. The graph viewport writes every selection change (node/concept tap, background deselect, shift multi-select) into `setWorkspaceSelection`, so both renderers see the same selection. `renderer-parity` specs assert the full renderers share state, snapshot/restore round-trip, a Notebook↔Graph switch preserves focus/selection, and `graph3d` declares `partial`. See (z). Remaining: the shell still mounts renderers by hardcoded tag in `app-layout` — a `WorkspaceHost` that calls `mount`/`snapshot`/`dispose`/`restore` through the registry would make the switch mechanism itself registry-driven — and the canonical-loop behavioral parity suite (the §10 matrix) is still to come.
+  - Landed the shared focus/selection spine + parity specs. The `notebook`/`graph` adapters now read and write the one session state (`$workspaceGraph.focus`/`selection`) in `focus`/`select`/`snapshot`/`restore` instead of private fields, so `snapshot()` → `restore()` is a real round-trip; the Graph adapter also mirrors selection into `$selectedNodeIds`/`$selectedNodeId` so multi-select styling and the detail drawer follow. The graph viewport writes every selection change (node/concept tap, background deselect, shift multi-select) into `setWorkspaceSelection`, so both renderers see the same selection. `renderer-parity` specs assert the full renderers share state, snapshot/restore round-trip, a Notebook↔Graph switch preserves focus/selection, and `graph3d` declares `partial`. See (z). Now completed: `WorkspaceHost` owns the registry-driven mount/switch (`mount`/`snapshot`/`dispose`/`restore`) and Graph's `graph-surface` owns the table/2D/3D variants, so the shell no longer hardcodes a tag per renderer — see (ae). Remaining: the canonical-loop behavioral parity suite (the §10 matrix) across renderers.
 
 **Verification:** the same LM-only conversation is usable in Notebook and Graph; follow-up from a graph node; output appears as a network; selected subnetwork becomes next prompt context.
 **Deliverable:** an innovative graph-native LM conversation UI.
@@ -1754,6 +1754,49 @@ The `language`-only composition is deliberately shippable on its own: a conversa
 - Add a `diff` representation (two-column table projection or a `diff` shape) for `config-change` and
   artifact comparisons.
 - Let the artifact overlay offer "Copy" and "Open in graph" by reusing the block-menu actions.
+
+### 2026-10-08 (ae) — WorkspaceHost: registry-driven renderer mount/switch (0.4 / 2.5)
+
+**Landed**
+- `ui/src/client/components/workspace-host.ts` — `workspace-host` renders one `.stage` and mounts the
+  active renderer through the registry: on an `$activeRenderer` change it `snapshot()`s the current
+  renderer, `dispose()`s it, `mount()`s the next and `restore()`s the snapshot; it also supplies the
+  `WorkspaceContext` (`openOverlay`/`openPalette`) so renderers never import shell chrome. An unknown id
+  falls back to the first registered renderer.
+- `ui/src/client/components/renderers/graph-surface.ts` — `graph-surface` owns Graph's internal
+  table/2D/3D variants (`$graphShape`/`$viewportMode`), so the renderer's `mount` creates one
+  `<graph-surface>` instead of the shell branching on tags. It references `spacegraph-viewport`/`s-view`
+  by tag (registered by the shell/view barrel) rather than importing the 3D stack, keeping the Graph
+  renderer importable in unit tests.
+- `renderers/graph.ts` mounts `<graph-surface>`; `renderers/graph3d.ts` now mounts a real
+  `<spacegraph-viewport>` and removes it on dispose (it was a silent no-op — clicking Graph3D showed the
+  2D graph). `app-layout` now renders `<workspace-host>`; its per-renderer tag branch,
+  `$graphShape`/`$viewportMode` watches and `GRAPH_VIEW_SPEC` import are gone.
+- Tests (4 new; **256 green / 45 files**; UI typecheck + biome clean; **client build succeeds**):
+  `workspace-host` uses a fake registry renderer to assert registry mount, snapshot/dispose/remount on a
+  mode switch (with `s-notebook` mounted for the real Notebook), the shell context, and dispose on
+  unmount.
+
+**Notes for remaining work**
+- Shared focus/selection already live in the store, so `snapshot()`/`restore()` around a switch is now
+  load-bearing only for renderer-local viewport/camera state; the host still round-trips it as the
+  contract requires.
+- `spacegraph-viewport` remains registered by `app-layout`; if the workspace host is used without the
+  shell, the 3D branch and graph3d need that import. A surface/registrar seam would decouple it.
+- `app-layout` still owns the legacy panels (config/chat/telemetry/node-detail/lens-designer/timeline);
+  demoting them is the remaining 0.4 work.
+- No `app-layout` unit test exists; the host is tested directly, but the shell wiring is covered only by
+  typecheck/build (and e2e, not run here).
+
+**New improvement opportunities**
+- Move the `spacegraph`/`s-view` imports behind a small surface registry so the host mounts renderers
+  without the shell pre-importing their variant stacks.
+- Drive the toolbar (currently shown for graph/graph3d via `active !== 'notebook'`) from renderer
+  capabilities instead.
+- Script the canonical loop (§10) per renderer using the host's switch path to make 2.5 an executable
+  parity suite.
+- Retire `$viewportMode`/`$graphShape` as shell-level shared atoms once `graph-surface` owns them
+  exclusively.
 
 
 

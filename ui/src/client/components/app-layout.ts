@@ -5,11 +5,9 @@ import {
   $activeRenderer,
   $connectionState,
   $graphNodes,
-  $graphShape,
   $panels,
   $selectedNodeId,
   $viewSelection,
-  $viewportMode,
   $workspaceGraph,
   eventBus,
   mountTestApi,
@@ -18,9 +16,7 @@ import {
   overlays,
   setWorkspaceFocus,
 } from '../core/index.js';
-import { GRAPH_VIEW_SPEC } from './views/graph-view-spec.js';
 import './overlays/index.js';
-import './graph-viewport.js';
 
 const isEditableTarget = (event: KeyboardEvent): boolean =>
   event.composedPath().some(
@@ -31,6 +27,7 @@ const isEditableTarget = (event: KeyboardEvent): boolean =>
 import '../spacegraph/spacegraph-viewport.js';
 import './graph-toolbar.js';
 import './renderers/notebook.js';
+import './workspace-host.js';
 import './workspace-hud.js';
 import './input-hud.js';
 import './config-hud.js';
@@ -70,7 +67,6 @@ export class AppLayout extends BaseComponent {
       flex: 1; min-width: 0; position: relative;
       display: flex; flex-direction: column;
     }
-    graph-viewport, spacegraph-viewport, s-view { flex: 1; min-height: 0; }
 
     .panel-left { flex-shrink: 0; overflow: hidden; border-right: 1px solid var(--colors-semantic-border-subtle); }
     .panel-right { flex-shrink: 0; overflow: hidden; border-left: 1px solid var(--colors-semantic-border-subtle); }
@@ -123,8 +119,6 @@ export class AppLayout extends BaseComponent {
     this.watch($panels);
     this.watch($graphNodes);
     this.watch($selectedNodeId);
-    this.watch($graphShape);
-    this.watch($viewportMode);
     this.watch($activeRenderer);
     this.watchWith($viewSelection, (selection) => {
       if (selection.focus) $selectedNodeId.set(selection.focus);
@@ -203,15 +197,7 @@ export class AppLayout extends BaseComponent {
           `
               : ''
           }
-          ${
-            notebook
-              ? html`<s-notebook></s-notebook>`
-              : $graphShape.get() === 'table'
-                ? html`<s-view budget="full" .chrome=${false} .spec=${GRAPH_VIEW_SPEC}></s-view>`
-                : $viewportMode.get() === '3d'
-                  ? html`<spacegraph-viewport></spacegraph-viewport>`
-                  : html`<graph-viewport></graph-viewport>`
-          }
+          <workspace-host></workspace-host>
           <workspace-hud></workspace-hud>
         </div>
 
