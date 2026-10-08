@@ -37,5 +37,9 @@ export const TelemetryMsg = msg('telemetry', {
   cognitive: CognitiveMetrics.optional(),
 });
 
+/** The metric dimension names a telemetry frame carries — the key space `fieldCatalog` covers. */
+export type TelemetryMetrics = z.infer<typeof TelemetryMsg>['metrics'];
+export type CognitiveMetricsData = z.infer<typeof CognitiveMetrics>;
+
 export const LensSet = msg('lens.set', { lens: Lens });
 export const FocusSet = msg('focus.set', { term: z.string() });

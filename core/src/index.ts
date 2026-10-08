@@ -190,6 +190,8 @@ export {
 } from './plugins/index.js';
 /** Protocol enum types. @public */
 export type { ConfigFieldType, GraphOpType } from './protocol/index.js';
+/** Telemetry/cognitive metric key spaces consumed by the UI field catalog. @public */
+export type { CognitiveMetricsData, TelemetryMetrics } from './protocol/index.js';
 /** UI/protocol projection types. @public */
 export {
   AgentCapabilities,
@@ -221,6 +223,8 @@ export {
 /** The one cognitive event union, and the two runtime guards over it. @public */
 export type { CognitiveEvent } from './schemas/cognitive-events.js';
 export { isEventType, isNarEvent } from './schemas/cognitive-events.js';
+/** Budget/truth value types the UI field catalog is keyed against. @public */
+export type { ConsumedBudget, ReasoningBudget, TruthValue } from './schemas/index.js';
 /** Stats manager. @public */
 /** Transport-level connection error. @public */
 export { ConnectionError } from './Transport.js';

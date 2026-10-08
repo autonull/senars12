@@ -18,6 +18,7 @@ import {
   updateEdgeData,
   updateNodeData,
 } from '../core/index.js';
+import { fieldMeta, formatField } from '../utils/field-catalog.js';
 import { theme } from '../utils/theme.js';
 
 type TabId = 'overview' | 'links' | 'actions' | 'edge' | 'history';
@@ -317,19 +318,19 @@ export class NodeDetailDrawer extends BaseComponent {
       <div class="section-title">Node Details</div>
       <div class="field"><span class="field-label">Term</span><span class="field-value">${n.term ?? n.label ?? nodeId}</span></div>
       <div class="field"><span class="field-label">Type</span><span class="field-value">${formatNodeType(n.nodeType)}</span></div>
-      <div class="field"><span class="field-label">Priority</span><span class="field-value">${n.priority?.toFixed(3) ?? '—'}</span></div>
-      <div class="field"><span class="field-label">Confidence</span><span class="field-value">${n.confidence?.toFixed(3) ?? '—'}</span></div>
+      <div class="field"><span class="field-label">${fieldMeta('node.priority').label}</span><span class="field-value">${formatField('node.priority', n.priority)}</span></div>
+      <div class="field"><span class="field-label">${fieldMeta('node.confidence').label}</span><span class="field-value">${formatField('node.confidence', n.confidence)}</span></div>
       ${n.isContradiction ? html`<div class="field"><span class="field-label">Contradiction</span><span class="field-value" style="color:${theme.colors.accentAmber}">⚠ Detected</span></div>` : ''}
       <div class="section-title">Truth Value</div>
       <div class="field">
-        <span class="field-label">Frequency</span>
+        <span class="field-label">${fieldMeta('truth.frequency').label}</span>
         <span class="field-value" style="display:flex;align-items:center;gap:6px">
           <input type="range" min="0" max="1" step="0.01" .value=${String(this.truthFrequency)} @input=${this.onTruthInput} style="width:80px;accent-color:${truthColor}" />
-          <span style="color:${truthColor};font-weight:bold">${this.truthFrequency.toFixed(2)}</span>
+          <span style="color:${truthColor};font-weight:bold">${formatField('truth.frequency', this.truthFrequency)}</span>
           <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${truthColor}"></span>
         </span>
       </div>
-      <div class="field"><span class="field-label">Confidence</span><span class="field-value">${this.truthConfidence.toFixed(3)}</span></div>
+      <div class="field"><span class="field-label">${fieldMeta('truth.confidence').label}</span><span class="field-value">${formatField('truth.confidence', this.truthConfidence)}</span></div>
       ${n.punctuation ? html`<div class="field"><span class="field-label">Punctuation</span><span class="field-value">${n.punctuation}</span></div>` : ''}
     `;
   }

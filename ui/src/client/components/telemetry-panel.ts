@@ -2,19 +2,18 @@ import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { $cognitiveMetrics, $telemetry, BaseComponent, mountTestApi } from '../core/index.js';
+import { type FieldId, fieldKey, fieldMeta, formatField, TELEMETRY_FIELDS } from '../utils/field-catalog.js';
 import { cssToken, theme } from '../utils/theme.js';
 
 interface TelemetrySeries {
-  key: string;
+  id: FieldId;
   values: number[];
   color: string;
-  label: string;
-  unit: string;
 }
 
 type TimeRange = '1m' | '5m' | '15m' | '1h';
 const RANGE_POINTS: Record<TimeRange, number> = { '1m': 60, '5m': 300, '15m': 900, '1h': 3600 };
-const ALL_METRICS = ['reasoning_hz', 'tokens_per_sec', 'memory_mb', 'ws_latency_ms'] as const;
+const ALL_METRICS = TELEMETRY_FIELDS.map((id) => fieldKey(id));
 
 @customElement('telemetry-panel')
 export class TelemetryPanel extends BaseComponent {
@@ -148,8 +147,7 @@ export class TelemetryPanel extends BaseComponent {
     'tokens_per_sec',
     'memory_mb',
   ]);
-  @state() private hoverValue: { x: number; label: string; value: number; unit: string } | null =
-    null;
+  @state() private hoverValue: { x: number; id: FieldId; value: number } | null = null;
   @state() private fullscreen = false;
   @state() private showExportMenu = false;
 
@@ -197,19 +195,12 @@ export class TelemetryPanel extends BaseComponent {
 
         <span class="toolbar-label">Metrics</span>
         <div class="toolbar-group">
-          ${ALL_METRICS.map((k) => {
-            const m =
-              k === 'reasoning_hz'
-                ? { label: 'Hz', color: theme.colors.warning }
-                : k === 'tokens_per_sec'
-                  ? { label: 'TPS', color: theme.colors.accentCyan }
-                  : k === 'memory_mb'
-                    ? { label: 'Mem', color: theme.colors.accentMagenta }
-                    : { label: 'Lat', color: theme.colors.info };
+          ${TELEMETRY_FIELDS.map((id) => {
+            const d = fieldMeta(id);
             return html`
-              <button class="metric-toggle ${this.visibleMetrics.has(k) ? 'on' : 'off'}" @click=${() => this.toggleMetric(k)}>
-                <span class="dot" style="background:${m.color}"></span>
-                ${m.label}
+              <button class="metric-toggle ${this.visibleMetrics.has(fieldKey(id)) ? 'on' : 'off'}" @click=${() => this.toggleMetric(fieldKey(id))}>
+                <span class="dot" style="background:${theme.colors[d.color ?? 'info']}"></span>
+                ${d.short ?? d.label}
               </button>
             `;
           })}
@@ -247,7 +238,7 @@ export class TelemetryPanel extends BaseComponent {
           tooltip
             ? html`
           <div class="hover-tooltip" style="left:${tooltip.x}px;top:110px">
-            ${tooltip.label}: ${tooltip.value.toFixed(2)} ${tooltip.unit}
+            ${fieldMeta(tooltip.id).label}: ${formatField(tooltip.id, tooltip.value)}
           </div>
         `
             : ''
@@ -294,23 +285,12 @@ export class TelemetryPanel extends BaseComponent {
   }
 
   private getSeries(): TelemetrySeries[] {
-    const meta: Record<
-      (typeof ALL_METRICS)[number],
-      { label: string; color: string; unit: string }
-    > = {
-      reasoning_hz: { label: 'Hz', color: theme.colors.warning, unit: 'Hz' },
-      tokens_per_sec: { label: 'TPS', color: theme.colors.accentCyan, unit: 'tps' },
-      memory_mb: { label: 'Mem', color: theme.colors.accentMagenta, unit: 'MB' },
-      ws_latency_ms: { label: 'Lat', color: theme.colors.info, unit: 'ms' },
-    };
-    return ALL_METRICS.filter((k) => this.visibleMetrics.has(k)).map((key) => {
-      const m = meta[key];
+    return TELEMETRY_FIELDS.filter((id) => this.visibleMetrics.has(fieldKey(id))).map((id) => {
+      const d = fieldMeta(id);
       return {
-        key,
-        values: this.getValues(key),
-        color: m.color,
-        label: m.label,
-        unit: m.unit,
+        id,
+        values: this.getValues(fieldKey(id)),
+        color: theme.colors[d.color ?? 'info'],
       };
     });
   }
@@ -388,13 +368,13 @@ export class TelemetryPanel extends BaseComponent {
     const y = e.clientY - rect.top;
 
     const series = this.getSeries();
-    for (const { values, label, unit } of series) {
+    for (const { id, values } of series) {
       if (values.length < 2) continue;
       const chartW = rect.width - 8;
       const step = chartW / Math.max(values.length - 1, 1);
       const idx = Math.round(x / step);
       if (idx >= 0 && idx < values.length) {
-        this.hoverValue = { x: e.clientX - rect.left, label, value: values[idx]!, unit };
+        this.hoverValue = { x: e.clientX - rect.left, id, value: values[idx]! };
         break;
       }
     }
@@ -425,7 +405,10 @@ export class TelemetryPanel extends BaseComponent {
   private exportCSV() {
     const data = $telemetry.get();
     const points = RANGE_POINTS[this.range];
-    const len = Math.min(...ALL_METRICS.map((k) => (data[k] as number[]).length), points);
+    const len = Math.min(
+      ...ALL_METRICS.map((k) => (data[k as keyof typeof data] as number[]).length),
+      points
+    );
     const start = data.reasoning_hz.length - len;
     let csv = 'index,' + ALL_METRICS.join(',') + '\n';
     for (let i = 0; i < len; i++) {
@@ -441,7 +424,7 @@ export class TelemetryPanel extends BaseComponent {
     const points = RANGE_POINTS[this.range];
     const sliced: Record<string, number[]> = {};
     for (const k of ALL_METRICS) {
-      const arr = data[k] as number[];
+      const arr = data[k as keyof typeof data] as number[];
       sliced[k] = arr.length > points ? arr.slice(-points) : [...arr];
     }
     this.downloadFile(JSON.stringify(sliced, null, 2), 'telemetry.json', 'application/json');

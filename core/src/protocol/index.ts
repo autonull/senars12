@@ -44,5 +44,6 @@ export {
   TelemetryMsg,
   ViewportSet,
 } from './sync.js';
+export type { CognitiveMetricsData, TelemetryMetrics } from './sync.js';
 export type { ConfigFieldType } from './unions.js';
 export { IncomingFromClient, IncomingFromServer } from './unions.js';

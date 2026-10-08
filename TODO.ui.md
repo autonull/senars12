@@ -498,6 +498,67 @@
 
 ---
 
+### Session 8 — Phase 3.3: field catalog (2026-10-08)
+
+**Landed**
+
+- **3.3 — the field presentation registry.** New `ui/src/client/utils/field-catalog.ts` is the one
+  reader for a data field's presentation. `FieldId` is spelled from the schema-inferred key spaces
+  (`TelemetryMetrics`, `CognitiveMetricsData`, `TruthValue`, `ConsumedBudget`) plus the explicit
+  budget scalars and node metrics, and `FIELD_CATALOG satisfies Record<FieldId, FieldDescriptor>`
+  makes a schema metric without a descriptor (and a descriptor for a field the schema lacks) a
+  compile error. `FieldDescriptor` carries `label · short · kind · unit · range · precision ·
+  description · color`; helpers `fieldMeta`, `fieldCategory`, `fieldKey`, `fieldsByCategory`,
+  `formatField`, plus `TELEMETRY_FIELDS`/`COGNITIVE_FIELDS` for the panels.
+- **3.3 — schema-derived key spaces.** `core` now exports the inferred metric types the catalog is
+  keyed against: `TelemetryMetrics` + `CognitiveMetricsData` (declared in `protocol/sync.ts`, re-exported
+  from the protocol barrel and the core root) and `ConsumedBudget`/`ReasoningBudget`/`TruthValue` from
+  the root. They are the external union that gives the catalog its exhaustiveness, exactly as
+  `CognitiveEvent['type']` does for `eventCatalog`.
+- **3.3 — consumers migrated off per-panel field code.** `telemetry-panel` (metric labels, colors,
+  hover formatting, export columns), `cognitive-metrics` (the five cards) and `node-detail-drawer`
+  (priority/confidence + the truth frequency/confidence rows) now read the catalog. The metric→color
+  map that was duplicated between the toolbar and the series now lives once, as a `theme.colors` key
+  on the descriptor. Labels and precision are byte-identical for the baselined surfaces.
+- **Guard test.** `tests/unit/server/field-catalog.test.ts` asserts the telemetry/cognitive/truth/
+  consumed id sets **equal** the live schema shapes, that every budget scalar exists on
+  `ReasoningBudgetSchema`, that the node set is exact, that descriptors are well-formed and partition
+  across categories, and that `formatField` applies per-kind precision + units.
+
+**Verification**
+
+- `pnpm --dir core exec tsc --noEmit` and `pnpm --dir ui exec tsc --noEmit` clean.
+- UI unit **27/27**; root `tests/unit/server` **35/35** (6 files; +11 field-catalog tests).
+- `pnpm --dir ui build` succeeds — the catalog imports `@senars/core` **type-only**, so the client
+  bundle is unchanged (the Session 7 alias hazard does not apply).
+- `biome lint` clean on the new file; the only warnings on touched files are pre-existing
+  (`telemetry-panel` `hoverTimer`/`y`/non-null assertions, `node-detail-drawer` `hasTruth`).
+
+**Still open in Phase 3**
+
+- **3.4–3.10 untouched** — `lensCatalog` + capability matrix, `layoutRegistry` SSOT, `idSource`,
+  `SurfaceComponent`/`defineSurface`/`renderField`, reflective generators, guard scripts.
+- **3.3 coverage is the scalar metrics only.** The config form still rides the server's parallel
+  `ConfigField` metadata (`server/config-schema.ts`); provenance fields (`cpuMs`/`lmCalls`/`lmTokens`,
+  `totalCycles`/`maxDepthReached`) and record-valued fields (`goalUrgencyDistribution`) are not yet
+  descriptors.
+
+**New opportunities spotted** *(Session 8)*
+
+- Fold the config form's `ConfigField` (label/min/max/step/description) into the same registry once
+  LLM/system categories become real resets (9.3) — today it is a second field-metadata system.
+- Add a record/map `FieldDescriptor` variant so `goalUrgencyDistribution` (and future per-engine
+  health maps) render through the catalog instead of a bespoke branch in `cognitive-metrics`.
+- `renderField` (3.8) can consume `FieldDescriptor.kind`/`range`/`options` directly; the catalog is
+  now the source it should read.
+- `ThemeColor` (`keyof theme.colors`) is the catalog's color vocabulary; the minimap/adapter palettes
+  can adopt the same keying to finish the token migration started in 3.1.
+- The `FieldId` union is deliberately `category.leaf`; a `fieldPath` resolver over a schema object
+  would let a form be generated from an object schema (e.g. `ReasoningBudget`) rather than a flat id
+  list.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -757,7 +818,7 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 
 - [x] **3.1** `theme` facade: generate a runtime reader from `design-tokens.json`; migrate CSS, Cytoscape/Three/Chart adapters off `TOKEN_COLORS`/inline hex; add light + high-contrast sets; token parity test. *(done: `tokens.generated.ts` + `utils/theme.ts`; all `TOKEN_COLORS`/inline-hex consumers migrated; `tokens.css` emits dark/light/high-contrast blocks; `tests/theme.test.ts` parity. Not yet wired to a theme switcher — Session 6)*
 - [x] **3.2** `eventCatalog`: presentation metadata keyed exhaustively by event discriminant (label, category, severity, provenance role, shape hints); bridge/reducers/log/timeline/narration read it. *(done: `ui/src/client/utils/event-catalog.ts` covers all 34 discriminants with `satisfies Record<CognitiveEvent['type'], EventMeta>`; `GRAPH_REDUCERS` in `ui/src/server/event-reducers.ts` is catalog-keyed with a parity guard. Client consumers — event log/timeline/provenance/narration — remain, Phases 5.3/6.2/6.6/6.7)*
-- [ ] **3.3** `fieldCatalog`: derive label/unit/range/kind/format from schema metadata; single reader for forms, axes, columns, provenance.
+- [x] **3.3** `fieldCatalog`: derive label/unit/range/kind/format from schema metadata; single reader for forms, axes, columns, provenance. *(done: `ui/src/client/utils/field-catalog.ts` keyed exhaustively off the schema-inferred metric types; telemetry/cognitive/node/truth panels migrated; guard test; config form + provenance fields remain, see log)*
 - [ ] **3.4** `lensCatalog` + renderer capability matrix; one validation path; generated designer form; adapters declare supported channels.
 - [ ] **3.5** `layoutRegistry` SSOT with 2D/3D name maps; single `shouldRelayout`; delete the three duplicate heuristics.
 - [ ] **3.6** `idSource` unification across client/projection/tests.

@@ -1,6 +1,7 @@
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { $cognitiveMetrics, BaseComponent } from '../core/index.js';
+import { COGNITIVE_FIELDS, fieldKey, fieldMeta, formatField } from '../utils/field-catalog.js';
 import { theme } from '../utils/theme.js';
 
 @customElement('cognitive-metrics')
@@ -64,17 +65,15 @@ export class CognitiveMetrics extends BaseComponent {
     const m = $cognitiveMetrics.get();
     if (!m) return html``;
 
-    const cards = [
-      { label: 'Active Concepts', value: m.activeConcepts, color: theme.colors.accentCyan },
-      { label: 'Total Concepts', value: m.totalConcepts, color: theme.colors.textSecondary },
-      {
-        label: 'Derivations/s',
-        value: m.derivationsPerSec.toFixed(1),
-        color: theme.colors.accentAmber,
-      },
-      { label: 'Contradictions', value: m.contradictionCount, color: theme.colors.error },
-      { label: 'Working Mem', value: m.workingMemorySize, color: theme.colors.accentMagenta },
-    ];
+    const metrics = m as unknown as Record<string, unknown>;
+    const cards = COGNITIVE_FIELDS.map((id) => {
+      const meta = fieldMeta(id);
+      return {
+        label: meta.label,
+        value: formatField(id, metrics[fieldKey(id)]),
+        color: theme.colors[meta.color ?? 'textSecondary'],
+      };
+    });
 
     return html`
       <div class="cards">
