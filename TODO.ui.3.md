@@ -530,9 +530,10 @@ Goal: build the unique LM conversation UI first.
 ### Phase 2 — Graph renderer for semantic conversation
 Goal: render the same semantic conversation as a flowing content graph.
 - [~] 2.1 Graph projection: blocks → nodes, links → edges, sections → compound nodes/clusters; incremental animated growth.
-  - Landed the pure projection + an additive Graph-mode layer. `core/graph-projection.ts` maps a `WorkspaceGraph` to renderer-agnostic `{ nodes, edges }` (`projectWorkspaceGraph`): one labelled node per block (`nodeType:'workspace'`, `term`=label so tooltip/search/lens cover it), one typed edge per link whose endpoints both exist (dangling links dropped), and `section`/`heading` blocks with `children` become Cytoscape compound `parent`s. `graph-viewport` now watches `$workspaceGraph` and diffs the projection into Cytoscape under the `workspace` class (concept nodes/edges keep their ids and lifecycle), with dedicated node/edge styles; concept-graph diffing and `applyGraphFilter` exclude the workspace layer. So the conversation is navigable as a graph with no reasoning backend attached. Remaining: **incremental animated growth** (new blocks animate in rather than appearing at the next layout), section clusters from chat `contains`/heading structure (chat turns don't set `children` today), and graph-native selection wiring (2.3) so clicking a workspace node focuses the block.
+  - Landed the pure projection + an additive Graph-mode layer. `core/graph-projection.ts` maps a `WorkspaceGraph` to renderer-agnostic `{ nodes, edges }` (`projectWorkspaceGraph`): one labelled node per block (`nodeType:'workspace'`, `term`=label so tooltip/search/lens cover it), one typed edge per link whose endpoints both exist (dangling links dropped), and `section`/`heading` blocks with `children` become Cytoscape compound `parent`s. `graph-viewport` now watches `$workspaceGraph` and diffs the projection into Cytoscape under the `workspace` class (concept nodes/edges keep their ids and lifecycle), with dedicated node/edge styles; concept-graph diffing and `applyGraphFilter` exclude the workspace layer. So the conversation is navigable as a graph with no reasoning backend attached. Remaining: **incremental animated growth** (new blocks animate in rather than appearing at the next layout) and section clusters from chat `contains`/heading structure (chat turns don't set `children` today); graph-native selection is wired (see 2.3).
 - [ ] 2.2 Conversation layouts: `chronological-flow`, `semantic-map`, `artifact-map`, `source-view` (registry rows + deterministic variants).
-- [ ] 2.3 Graph-native input: composer anchored to node/edge/canvas/selection; selected nodes become prompt context; create question/claim nodes.
+- [~] 2.3 Graph-native input: composer anchored to node/edge/canvas/selection; selected nodes become prompt context; create question/claim nodes.
+  - Landed the selection half: tapping a `workspace` node now focuses the block (`setWorkspaceFocus`) instead of emitting an engine `focus.set`, double-click opens the Explanation overlay, and right-click opens the block menu — all reusing the 1.6/overlays path, so graph and Notebook act on the same blocks. Remaining: anchoring the composer to the selected node/edge/canvas/selection (the composer is still the persistent dock), turning selected node ids into prompt context (like 1.6's follow-up `context`), and node-creating ops (question/claim) from the graph.
 - [ ] 2.4 Graph inspection: node/edge popovers, artifact preview popovers, "open in Notebook," semantic neighborhood navigation.
 - [ ] 2.5 Mode parity: shared focus/selection; actions work in both; switching preserves context; parity specs.
 
@@ -1234,8 +1235,9 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   message. **Incremental animated growth** is not done — new nodes appear at the next layout.
 - Chat `contains` links (turn → child) are projected as edges, but chat turn blocks do not set
   `children`, so chat has no compound sections yet; only engine/notebook sections cluster.
-- Clicking a workspace node still runs the concept-graph `tap` handler (`focus.set` on `term`); 2.3
-  should route workspace-node selection back to the block (`setWorkspaceFocus` + block menu).
+- Clicking a workspace node previously ran the concept-graph `tap` handler (`focus.set` on `term`); now
+  it routes to `setWorkspaceFocus` (see (o)), so the workspace-node click path is block-native. The
+  detail drawer still reads `$graphNodes`, so a selected workspace node has no drawer content yet.
 - `syncWorkspaceLayer` strips lens inline styles each sync so the class style wins; once workspace nodes
   adopt lens/capability styling this can be unified in the adapter.
 
@@ -1247,6 +1249,39 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   isolate the thread or the semantic web (palette command + HUD affordance).
 - Reuse `projectWorkspaceGraph` in `graph3d` and in the embedded-view graph shape so all three graph
   surfaces project the one substrate identically.
+
+### 2026-10-08 (o) — 2.3 graph-native selection
+
+**Landed**
+- `ui/src/client/components/graph-viewport.ts` — the node tap/dblclick/cxttap handlers now branch on
+  `node.hasClass('workspace')`:
+  - tap → select + `setWorkspaceFocus(id)` (no engine `focus.set`);
+  - dblclick → focus the block and open the Explanation overlay (`overlay:open` `explain`);
+  - cxttap → focus the block and open the block menu (`overlay:open` `block-menu`, anchored to the
+    viewport) instead of the concept-graph context menu.
+  Concept nodes keep the existing `focus.set`/context-menu behavior, so the legacy bridge is unchanged.
+- Imports `setWorkspaceFocus`; no new module, reuses 1.6's overlay/`composer:focus` path.
+- Verified by root + UI typecheck, biome, and the full unit suite (**215 green / 36 files**). No new unit
+  test: the decision lives in Cytoscape event handlers, which the jsdom suite does not exercise (the
+  viewport has no unit harness) — worth a small extracted `nodeTapAction(node)` pure helper if this grows.
+
+**Notes for remaining work**
+- 2.3 is now half done: selection is block-native; the composer is still the persistent dock (not
+  anchored to the node/selection), selected nodes are not yet turned into prompt context, and there are
+  no node-creating (question/claim) ops from the graph.
+- The detail drawer reads `$graphNodes` by id, so tapping a workspace node selects it but shows no
+  drawer content; either project workspace node data into the drawer or hide the drawer for workspace
+  selections.
+- The `anchor` passed to `overlay:open` is the viewport element, so outside-click dismissal recognises
+  any click inside the graph as "inside the anchor"; passing the Cytoscape container would be tighter.
+
+**New improvement opportunities**
+- Extract `nodeTapAction(node)` / `nodeGesture(node)` pure helpers in `core` and unit-test the
+  workspace-vs-concept routing without a live Cytoscape instance.
+- Feed the selected workspace node(s) into the composer as prompt context (reuse `composer:focus`
+  `ref`, or a new `composer:focus` `refs` array) so "graph-native input" composes from a selection.
+- Add context-menu entries that create blocks (question/claim) via `WorkspaceOp`s, so graph selection can
+  author as well as navigate — the input half of 2.3.
 
 
 

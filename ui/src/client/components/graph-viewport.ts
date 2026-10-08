@@ -25,6 +25,7 @@ import {
   mountTestApi,
   projectWorkspaceGraph,
   send,
+  setWorkspaceFocus,
 } from '../core/index.js';
 import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
@@ -184,6 +185,15 @@ export class GraphViewport extends BaseComponent {
     this.cy.on('tap', 'node', (evt) => {
       const node = evt.target;
       const id = node.id();
+      if (node.hasClass('workspace')) {
+        if (evt.originalEvent?.shiftKey) this.toggleMultiSelect(id);
+        else {
+          $selectedNodeIds.set(new Set([id]));
+          $selectedNodeId.set(id);
+          setWorkspaceFocus(id);
+        }
+        return;
+      }
       if (evt.originalEvent?.shiftKey) {
         this.toggleMultiSelect(id);
       } else {
@@ -218,6 +228,11 @@ export class GraphViewport extends BaseComponent {
     // Double-click: focus term
     this.cy.on('dblclick', 'node', (evt) => {
       const node = evt.target;
+      if (node.hasClass('workspace')) {
+        setWorkspaceFocus(node.id());
+        eventBus.emit('overlay:open', { id: 'explain', ref: node.id(), anchor: this });
+        return;
+      }
       const term = node.data('term') || node.id();
       $focusTerm.set(term);
       send({ type: 'focus.set', term });
@@ -227,6 +242,11 @@ export class GraphViewport extends BaseComponent {
     this.cy.on('cxttap', 'node', (evt) => {
       evt.originalEvent?.preventDefault();
       const node = evt.target;
+      if (node.hasClass('workspace')) {
+        setWorkspaceFocus(node.id());
+        eventBus.emit('overlay:open', { id: 'block-menu', ref: node.id(), anchor: this });
+        return;
+      }
       this.contextTarget = node.id();
       const pos = evt.renderedPosition || node.renderedPosition();
       this.contextMenu = { x: pos.x, y: pos.y, nodeId: node.id() };
