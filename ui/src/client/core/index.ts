@@ -240,7 +240,20 @@ export {
   turnId,
   type WorkspaceFragment,
 } from './workspace-projection.js';
-export { type Segment, segmentText, type TableData } from './segmentation.js';
+export {
+  asCitationData,
+  asCodeData,
+  asImageData,
+  asListData,
+  asTableData,
+  type CitationData,
+  type CodeData,
+  type ImageData,
+  type ListData,
+  type Segment,
+  segmentText,
+  type TableData,
+} from './segmentation.js';
 export { mountWorkspaceProjection, syncWorkspaceGraph } from './workspace-bindings.js';
 export {
   registerRenderer,

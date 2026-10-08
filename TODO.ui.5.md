@@ -39,8 +39,8 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
 
 1. **`0.6 backend seam`** (L) — opens WP5 and the WP1 sweep. `→ core/` backend contract + `LmProvider`
    façade, `shared/`, `workspace-renderer.ts`
-2. **`4.3 typing`** (M) — unblocks the `data` casts and `3.3 derivation-record`. `→ workspace-graph.ts`,
-   `segmentation.ts`, `artifacts.ts`
+2. **`4.3 typing`** (M) — unblocks the `data` casts and `3.3 derivation-record`. Payload accessor
+   guards landed; the `Artifact` union still to do. `→ segmentation.ts`, `artifacts.ts`
 3. **`1.5/1.1 section model`** (L) — unblocks `1.5 page` and notebook depth. `→ toc.ts`,
    `workspace-graph.ts`, `renderers/notebook.ts`
 4. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
@@ -177,11 +177,15 @@ Landed extension points — wire features here instead of re-deriving them.
 
 *Outcome: full view matrix, clean artifact typing, embedded views, section model. No deps.*
 
-- [ ] **4.3 typing** *(promoted)* — discriminated `Artifact` union on `SemanticBlock`/`Segment` (drop
+- [~] **4.3 typing** *(promoted)* — discriminated `Artifact` union on `SemanticBlock`/`Segment` (drop
   `data` casts); promote `Segment.data` to the `Artifact` contract. Now has concrete consumers:
   `codeLanguage` (`artifacts.ts`), `config-change`, and the image `data` cast. Migration: add the
-  union *alongside* `data`, migrate consumers one by one, then remove casts.
-  `→ core/workspace-graph.ts`, `core/segmentation.ts`, `core/artifacts.ts`. `(i)`,`(j)`,`(d)`
+  union *alongside* `data`, migrate consumers one by one, then remove casts. Landed: the typed payload
+  interfaces (`CodeData`/`ListData`/`ImageData`/`CitationData`, next to `TableData`) and the accessor
+  guards `asTableData`/`asCodeData`/`asListData`/`asImageData`/`asCitationData` in `core/segmentation.ts`;
+  `artifacts.ts` and the Notebook now narrow through them instead of casting `block.data`. Remaining:
+  the `Artifact` union type itself and promoting `data`/`Segment.data` to it.
+  `→ core/segmentation.ts`, `core/artifacts.ts`, `components/renderers/notebook.ts`. `(i)`,`(j)`,`(d)`
 - [ ] **1.5/1.1 section model** *(merged: `1.5 page` model + `1.5/1.1 notebook structure`)* — recurse
   nested `contains`/headings so pages/ToC aren't shallow; nested-section folding by heading `level`;
   fold-all/unfold-all command; folded-count badge; keep `j/k` consistent with folded visibility and
@@ -419,3 +423,7 @@ in v3 Appendix D). Rolled up:
 - **WP2 context** — `WorkspaceContext.openPalette` now dispatches the `overlay.palette` command, so the
   palette opens through the one command seam — **`2.6 context`** partially landed (renderer/overlays
   context fields deferred until a renderer consumes them). Suite **326 green**.
+- **WP3 typing** — typed payload interfaces (`CodeData`/`ListData`/`ImageData`/`CitationData`) and the
+  guards `asTableData`/`asCodeData`/`asListData`/`asImageData`/`asCitationData` in `core/segmentation.ts`;
+  `artifacts.ts` and the Notebook narrow through them instead of casting `block.data` — **`4.3 typing`**
+  partially landed (the `Artifact` union itself remains). Suite **328 green**.

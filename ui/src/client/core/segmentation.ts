@@ -27,6 +27,63 @@ export interface TableData {
   rows: string[][];
 }
 
+/** Typed payloads a `Segment`/`SemanticBlock` can carry, keyed by its `kind` (§4.3). */
+export interface CodeData {
+  lang?: string;
+}
+export interface ListData {
+  items: string[];
+}
+export interface ImageData {
+  alt: string;
+  src: string;
+  width?: number;
+  height?: number;
+}
+export interface CitationData {
+  label?: string;
+  key?: string;
+  href: string;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+/** The typed accessors that replace the per-consumer `data as …` casts (§4.3). */
+export const asTableData = (data: unknown): TableData | undefined =>
+  isRecord(data) && Array.isArray(data.headers) && Array.isArray(data.rows)
+    ? { headers: data.headers as string[], rows: data.rows as string[][] }
+    : undefined;
+
+export const asCodeData = (data: unknown): CodeData | undefined =>
+  isRecord(data) && (data.lang === undefined || typeof data.lang === 'string')
+    ? { lang: data.lang as string | undefined }
+    : undefined;
+
+export const asListData = (data: unknown): ListData | undefined =>
+  isRecord(data) && Array.isArray(data.items) && data.items.every((item) => typeof item === 'string')
+    ? { items: data.items as string[] }
+    : undefined;
+
+export const asImageData = (data: unknown): ImageData | undefined =>
+  isRecord(data) && typeof data.src === 'string'
+    ? {
+        alt: typeof data.alt === 'string' ? data.alt : '',
+        src: data.src,
+        width: typeof data.width === 'number' ? data.width : undefined,
+        height: typeof data.height === 'number' ? data.height : undefined,
+      }
+    : undefined;
+
+export const asCitationData = (data: unknown): CitationData | undefined =>
+  isRecord(data) && typeof data.href === 'string'
+    ? {
+        label: typeof data.label === 'string' ? data.label : undefined,
+        key: typeof data.key === 'string' ? data.key : undefined,
+        href: data.href,
+      }
+    : undefined;
+
 const HEADING = /^(#{1,6})\s+(.*)$/;
 const FENCE = /^\s*```(\w*)\s*$/;
 const LIST_ITEM = /^\s*(?:[-*+]|\d+\.)\s+(.*)$/;

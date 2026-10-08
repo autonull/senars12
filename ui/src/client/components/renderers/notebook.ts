@@ -16,7 +16,13 @@ import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
 import { artifactViewSpec } from '../../core/artifacts.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { breadcrumb } from '../../core/navigation.js';
-import type { TableData } from '../../core/segmentation.js';
+import {
+  asCitationData,
+  asImageData,
+  asListData,
+  asTableData,
+  type TableData,
+} from '../../core/segmentation.js';
 import { eventBus } from '../../core/events.js';
 import { tokenizeInline } from '../../core/inline-text.js';
 import {
@@ -105,25 +111,22 @@ function renderBlock(block: SemanticBlock, focused = false, fold?: FoldControl):
   const body = (() => {
     if (block.kind === 'heading') return renderHeading(block);
     if (block.kind === 'image' && block.data) {
-      const { alt, src, width, height } = block.data as {
-        alt: string;
-        src: string;
-        width?: number;
-        height?: number;
-      };
+      const image = asImageData(block.data);
+      if (!image) return html``;
       return html`<img
         class="image"
-        src=${src}
-        alt=${alt}
+        src=${image.src}
+        alt=${image.alt}
         loading="lazy"
-        width=${width ?? nothing}
-        height=${height ?? nothing}
+        width=${image.width ?? nothing}
+        height=${image.height ?? nothing}
       />`;
     }
     if (block.kind === 'citation' && block.data) {
-      const { label, key, href } = block.data as { label?: string; key?: string; href: string };
-      return html`<a class="citation" href=${href} target="_blank" rel="noreferrer"
-        >${label ?? key ?? href}</a
+      const citation = asCitationData(block.data);
+      if (!citation) return html``;
+      return html`<a class="citation" href=${citation.href} target="_blank" rel="noreferrer"
+        >${citation.label ?? citation.key ?? citation.href}</a
       >`;
     }
     if (block.kind === 'code') {
@@ -134,19 +137,21 @@ function renderBlock(block: SemanticBlock, focused = false, fold?: FoldControl):
     }
     if (block.kind === 'table' && block.data) {
       const spec = artifactViewSpec(block);
-      return spec
-        ? html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'}></s-view>`
-        : renderTable(block.data as TableData);
+      if (spec) return html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'}></s-view>`;
+      const data = asTableData(block.data);
+      return data ? renderTable(data) : html``;
     }
     if (block.kind === 'config-change') {
       const spec = artifactViewSpec(block);
       if (spec) return html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'}></s-view>`;
     }
     if (block.kind === 'list' && block.data) {
-      const items = (block.data as { items: string[] }).items;
-      return html`<ul class="list">
-        ${items.map((item) => html`<li>${renderInline(item)}</li>`)}
-      </ul>`;
+      const items = asListData(block.data)?.items;
+      return items
+        ? html`<ul class="list">
+            ${items.map((item) => html`<li>${renderInline(item)}</li>`)}
+          </ul>`
+        : html``;
     }
     return block.text ? html`<div class="text">${renderInline(block.text)}</div>` : html``;
   })();

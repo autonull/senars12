@@ -6,8 +6,8 @@
  * unsupported block returns `undefined` rather than a wrong view.
  */
 
-import type { TableData } from './segmentation.js';
 import { diffLines } from './diff.js';
+import { asCodeData, asTableData } from './segmentation.js';
 import type {
   CodeDataset,
   ColumnSpec,
@@ -42,8 +42,7 @@ const staticSource = (
   get: () => dataset,
 });
 
-const codeLanguage = (block: SemanticBlock): string | undefined =>
-  (block.data as { lang?: string } | undefined)?.lang;
+const codeLanguage = (block: SemanticBlock): string | undefined => asCodeData(block.data)?.lang;
 
 const json = (value: unknown): string => JSON.stringify(value, null, 2) ?? String(value);
 
@@ -103,8 +102,8 @@ const JSON_KINDS = new Set<BlockKind>([
 /** The `ViewSpec` for a block's artifact, or `undefined` when it has none. */
 export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
   if (block.kind === 'table') {
-    const data = block.data as Partial<TableData> | undefined;
-    if (!Array.isArray(data?.headers) || !Array.isArray(data.rows)) return undefined;
+    const data = asTableData(block.data);
+    if (!data) return undefined;
     return {
       id: `artifact:${block.id}`,
       title: block.title ?? 'Table',
