@@ -11,8 +11,15 @@ import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
 import { eventBus } from '../core/events.js';
-import { $activeRenderer, $lmStatus } from '../core/store.js';
+import { GRAPH_LAYERS, type GraphLayer } from '../core/graph-layer.js';
+import { $activeRenderer, $graphLayer, $lmStatus, setGraphLayer } from '../core/store.js';
 import { workspaceRenderers } from '../core/workspace-renderer.js';
+
+const LAYER_LABELS: Record<GraphLayer, string> = {
+  both: 'Both',
+  conversation: 'Thread',
+  concepts: 'Concepts',
+};
 
 @customElement('workspace-hud')
 export class WorkspaceHud extends BaseComponent {
@@ -27,7 +34,8 @@ export class WorkspaceHud extends BaseComponent {
       backdrop-filter: blur(8px);
       box-shadow: var(--shadows-md, 0 2px 12px rgb(0 0 0 / 0.3));
     }
-    .modes { display: flex; gap: 2px; }
+    .modes, .layers { display: flex; gap: 2px; }
+    .layers { border-left: 1px solid var(--colors-semantic-border-subtle); padding-left: var(--spacing-scale-2); }
     button {
       border: none; border-radius: 999px; cursor: pointer;
       padding: var(--spacing-scale-1) var(--spacing-scale-3);
@@ -47,11 +55,13 @@ export class WorkspaceHud extends BaseComponent {
   override connectedCallback(): void {
     super.connectedCallback();
     this.watch($activeRenderer);
+    this.watch($graphLayer);
     this.watch($lmStatus);
   }
 
   override render() {
     const active = $activeRenderer.get();
+    const layer = $graphLayer.get();
     const provider = $lmStatus.get().provider;
     return html`
       <div class="hud" role="toolbar" aria-label="Workspace">
@@ -73,6 +83,22 @@ export class WorkspaceHud extends BaseComponent {
             `
           )}
         </div>
+        ${
+          active === 'graph'
+            ? html`
+              <div class="layers" role="group" aria-label="Graph layer">
+                ${GRAPH_LAYERS.map(
+                  (id) => html`<button
+                    data-layer=${id}
+                    aria-pressed=${id === layer}
+                    title=${`Show ${id}`}
+                    @click=${() => setGraphLayer(id)}
+                  >${LAYER_LABELS[id]}</button>`
+                )}
+              </div>
+            `
+            : ''
+        }
         <button
           data-action="palette"
           title="Command palette (⌘K)"

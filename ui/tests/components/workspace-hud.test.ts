@@ -3,11 +3,12 @@ import '../../src/client/components/renderers/graph.js';
 import '../../src/client/components/renderers/graph3d.js';
 import '../../src/client/components/renderers/notebook.js';
 import '../../src/client/components/workspace-hud.js';
-import { $activeRenderer, $lmStatus } from '../../src/client/core/store.js';
+import { $activeRenderer, $graphLayer, $lmStatus } from '../../src/client/core/store.js';
 
 afterEach(() => {
   document.body.innerHTML = '';
   $activeRenderer.set('graph');
+  $graphLayer.set('both');
   $lmStatus.set({});
 });
 
@@ -49,5 +50,25 @@ describe('workspace hud', () => {
     $lmStatus.set({ provider: 'mock' });
     const el = await mountHud();
     expect(el.shadowRoot?.querySelector('.chip')?.textContent).toContain('mock');
+  });
+
+  it('offers the graph layer control only in Graph mode', async () => {
+    const el = await mountHud();
+    const layers = () =>
+      [...(el.shadowRoot?.querySelectorAll('button[data-layer]') ?? [])].map((button) =>
+        button.getAttribute('data-layer')
+      );
+    expect(layers()).toEqual(['both', 'conversation', 'concepts']);
+
+    query<HTMLButtonElement>(el.shadowRoot, 'button[data-layer="conversation"]').click();
+    expect($graphLayer.get()).toBe('conversation');
+    await el.updateComplete;
+    expect(
+      el.shadowRoot?.querySelector('button[data-layer="conversation"]')?.getAttribute('aria-pressed')
+    ).toBe('true');
+
+    $activeRenderer.set('notebook');
+    await el.updateComplete;
+    expect(layers()).toEqual([]);
   });
 });

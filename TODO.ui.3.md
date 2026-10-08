@@ -1673,5 +1673,27 @@ The `language`-only composition is deliberately shippable on its own: a conversa
 - Add a HUD `⚙` affordance next to `⌘K` that opens `overlay.settings`, so the dialog is discoverable
   without the palette (and independent of the graph toolbar, which is hidden in Notebook mode).
 
+### 2026-10-08 (ab) — HUD graph-layer control (2.1)
+
+**Landed**
+- `ui/src/client/components/workspace-hud.ts` — a `Both · Thread · Concepts` segmented control
+  (`data-layer`, `aria-pressed`) beside the renderer switch, shown only when the active renderer is
+  `graph` (the layer is Graph-only). Bound to `$graphLayer`/`setGraphLayer`, so it is the same state the
+  palette `graph.layer.*` commands and the URL `layer` use — no second source. Labels via a
+  `LAYER_LABELS` map over `GRAPH_LAYERS`.
+- Tests (+1; **248 green / 44 files**; UI typecheck and biome clean): `workspace-hud` — the layer control
+  lists `both · conversation · concepts`, switching sets `$graphLayer` and `aria-pressed`, and it
+  disappears in Notebook mode.
+
+**Notes for remaining work**
+- The control duplicates the palette commands intentionally (glanceable chrome + agent-settable command);
+  both read `$graphLayer`, so there is no divergence.
+- Hiding a layer is still post-layout `display:none`; it is not yet skipped in layout/`fit` (the (w) note).
+
+**New improvement opportunities**
+- Generalise the `active === 'graph'` check to a renderer capability flag so any renderer that consumes
+  layers gets the control, and derive the renderer/layer controls together from the registries.
+- Skip laying out / exclude from `fit` the hidden layer so a `conversation`-only frame is tight.
+
 
 
