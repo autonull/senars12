@@ -13,6 +13,7 @@ import type { TemplateResult } from 'lit';
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
+import type { TableData } from '../../core/segmentation.js';
 import { $workspaceGraph } from '../../core/store.js';
 import type { BlockKind, Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
 import { rootBlocks } from '../../core/workspace-graph.js';
@@ -65,11 +66,52 @@ function uncertaintyChip(block: SemanticBlock): TemplateResult {
   </span>`;
 }
 
-function renderBlock(block: SemanticBlock): TemplateResult {
-  if (block.kind === 'heading') {
-    const level = Math.min(Math.max(block.level ?? 2, 1), 6);
-    return html`<h${level} class="heading">${block.text ?? block.title}</h${level}>`;
+function renderTable(data: TableData): TemplateResult {
+  return html`
+    <table class="data">
+      <thead><tr>${data.headers.map((cell) => html`<th>${cell}</th>`)}</tr></thead>
+      <tbody>
+        ${data.rows.map(
+          (row) => html`<tr>${row.map((cell) => html`<td>${cell}</td>`)}</tr>`
+        )}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderHeading(block: SemanticBlock): TemplateResult {
+  const content = block.text ?? block.title;
+  switch (Math.min(Math.max(block.level ?? 2, 1), 6)) {
+    case 1:
+      return html`<h1 class="heading">${content}</h1>`;
+    case 2:
+      return html`<h2 class="heading">${content}</h2>`;
+    case 3:
+      return html`<h3 class="heading">${content}</h3>`;
+    case 4:
+      return html`<h4 class="heading">${content}</h4>`;
+    case 5:
+      return html`<h5 class="heading">${content}</h5>`;
+    default:
+      return html`<h6 class="heading">${content}</h6>`;
   }
+}
+
+function renderBlock(block: SemanticBlock): TemplateResult {
+  if (block.kind === 'heading') return renderHeading(block);
+
+  const body = (() => {
+    if (block.kind === 'code')
+      return html`<pre class="code"><code>${block.text}</code></pre>`;
+    if (block.kind === 'table' && block.data)
+      return renderTable(block.data as TableData);
+    if (block.kind === 'list' && block.data) {
+      const items = (block.data as { items: string[] }).items;
+      return html`<ul class="list">${items.map((item) => html`<li>${item}</li>`)}</ul>`;
+    }
+    return block.text ? html`<div class="text">${block.text}</div>` : html``;
+  })();
+
   return html`
     <article class="block" data-kind=${block.kind} data-role=${block.role} data-status=${block.status ?? 'complete'}>
       <header class="block-head">
@@ -77,7 +119,7 @@ function renderBlock(block: SemanticBlock): TemplateResult {
         ${block.title && !isSection(block) ? html`<span class="title">${block.title}</span>` : ''}
         ${uncertaintyChip(block)}
       </header>
-      ${block.text ? html`<div class="text">${block.text}</div>` : ''}
+      ${body}
     </article>
   `;
 }
@@ -99,6 +141,12 @@ export class NotebookView extends SurfaceComponent {
     .chip { margin-left: auto; padding: 0 var(--spacing-scale-1); border-radius: 4px; background: var(--colors-semantic-bg-overlay); color: var(--colors-semantic-text-secondary); font-family: var(--typography-fontFamilies-data); }
     .text { color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-base); line-height: var(--typography-lineHeights-relaxed); white-space: pre-wrap; word-break: break-word; }
     .heading { margin: 0; color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-ui); }
+    .code { margin: 0; padding: var(--spacing-scale-3); border-radius: 6px; background: var(--colors-semantic-bg-base); overflow: auto; }
+    .code code { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-secondary); }
+    .list { margin: 0; padding-left: var(--spacing-scale-4); color: var(--colors-semantic-text-primary); font-size: var(--typography-scale-base); line-height: var(--typography-lineHeights-relaxed); }
+    table.data { border-collapse: collapse; width: 100%; font-size: var(--typography-scale-sm); color: var(--colors-semantic-text-primary); }
+    table.data th, table.data td { border: 1px solid var(--colors-semantic-border-subtle); padding: var(--spacing-scale-1) var(--spacing-scale-2); text-align: left; }
+    table.data th { color: var(--colors-semantic-text-secondary); font-weight: var(--typography-fontWeights-medium); }
   `;
 
   protected override surfaceState() {
@@ -115,14 +163,21 @@ export class NotebookView extends SurfaceComponent {
   }
 
   protected override renderBody() {
-    const pages = rootBlocks($workspaceGraph.get());
+    const graph = $workspaceGraph.get();
+    const pages = rootBlocks(graph);
     return html`
       <div class="pages">
-        ${pages.map(
-          (block) => html`
-            <section class="page" data-id=${block.id}>${renderBlock(block)}</section>
-          `
-        )}
+        ${pages.map((block) => {
+          const children = (block.children ?? [])
+            .map((id) => graph.blocks.get(id))
+            .filter((child): child is SemanticBlock => !!child);
+          return html`
+            <section class="page" data-id=${block.id}>
+              ${renderBlock(children.length > 0 ? { ...block, text: undefined } : block)}
+              ${children.map(renderBlock)}
+            </section>
+          `;
+        })}
       </div>
     `;
   }

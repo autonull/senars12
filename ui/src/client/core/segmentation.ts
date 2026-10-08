@@ -1,0 +1,139 @@
+/**
+ * Deterministic output segmentation (§9.1): Markdown is an interchange format,
+ * not the substrate, so streaming text is parsed into typed semantic blocks —
+ * headings, paragraphs, lists, tables, fenced code — before it enters the
+ * WorkspaceGraph. The parser is deterministic and dependency-free (no `marked`)
+ * so the same text yields the same blocks in tests and under streaming reparse;
+ * block ids are assigned by the caller from the position anchor. Unknown
+ * constructs degrade to paragraphs, never to lost text.
+ */
+
+import type { BlockKind } from './workspace-graph.js';
+
+/** A parsed segment before the caller assigns ids, role and provenance. */
+export interface Segment {
+  kind: BlockKind;
+  text: string;
+  /** Heading depth. */
+  level?: number;
+  /** Fenced-code language. */
+  lang?: string;
+  /** Structured payload for `table` (headers/rows) and `code` (language). */
+  data?: unknown;
+}
+
+export interface TableData {
+  headers: string[];
+  rows: string[][];
+}
+
+const HEADING = /^(#{1,6})\s+(.*)$/;
+const FENCE = /^\s*```(\w*)\s*$/;
+const LIST_ITEM = /^\s*(?:[-*+]|\d+\.)\s+(.*)$/;
+const BLOCKQUOTE = /^\s*>\s?(.*)$/;
+const SEPARATOR = /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/;
+
+const isBlank = (line: string): boolean => line.trim() === '';
+const hasPipe = (line: string): boolean => line.includes('|');
+
+const splitRow = (line: string): string[] => {
+  const trimmed = line.trim().replace(/^\|/, '').replace(/\|$/, '');
+  return trimmed.split('|').map((cell) => cell.trim());
+};
+
+const startsBlock = (line: string): boolean =>
+  FENCE.test(line) ||
+  HEADING.test(line) ||
+  LIST_ITEM.test(line) ||
+  BLOCKQUOTE.test(line);
+
+function parseTable(lines: readonly string[], start: number): { segment: Segment; next: number } {
+  const headers = splitRow(lines[start] ?? '');
+  const rows: string[][] = [];
+  let i = start + 2;
+  while (i < lines.length && hasPipe(lines[i] ?? '') && !isBlank(lines[i] ?? '')) {
+    rows.push(splitRow(lines[i] ?? ''));
+    i++;
+  }
+  return {
+    segment: { kind: 'table', text: headers.join(' | '), data: { headers, rows } satisfies TableData },
+    next: i,
+  };
+}
+
+/** Segment Markdown-ish text into typed blocks, in document order. */
+export function segmentText(text: string): Segment[] {
+  const lines = text.split(/\r?\n/);
+  const segments: Segment[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i] ?? '';
+    if (isBlank(line)) {
+      i++;
+      continue;
+    }
+
+    const fence = FENCE.exec(line);
+    if (fence) {
+      const lang = fence[1] ?? '';
+      const body: string[] = [];
+      i++;
+      while (i < lines.length && !FENCE.test(lines[i] ?? '')) {
+        body.push(lines[i] ?? '');
+        i++;
+      }
+      i++;
+      segments.push({ kind: 'code', text: body.join('\n'), lang, data: { lang } });
+      continue;
+    }
+
+    if (HEADING.test(line)) {
+      const match = HEADING.exec(line);
+      segments.push({ kind: 'heading', text: match?.[2] ?? '', level: (match?.[1]?.length ?? 1) });
+      i++;
+      continue;
+    }
+
+    if (hasPipe(line) && SEPARATOR.test(lines[i + 1] ?? '')) {
+      const { segment, next } = parseTable(lines, i);
+      segments.push(segment);
+      i = next;
+      continue;
+    }
+
+    if (LIST_ITEM.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && LIST_ITEM.test(lines[i] ?? '')) {
+        items.push(LIST_ITEM.exec(lines[i] ?? '')?.[1] ?? '');
+        i++;
+      }
+      segments.push({ kind: 'list', text: items.join('\n'), data: { items } });
+      continue;
+    }
+
+    if (BLOCKQUOTE.test(line)) {
+      const quoted: string[] = [];
+      while (i < lines.length && BLOCKQUOTE.test(lines[i] ?? '')) {
+        quoted.push(BLOCKQUOTE.exec(lines[i] ?? '')?.[1] ?? '');
+        i++;
+      }
+      segments.push({ kind: 'paragraph', text: quoted.join('\n') });
+      continue;
+    }
+
+    const paragraph: string[] = [];
+    while (
+      i < lines.length &&
+      !isBlank(lines[i] ?? '') &&
+      !startsBlock(lines[i] ?? '') &&
+      !(hasPipe(lines[i] ?? '') && SEPARATOR.test(lines[i + 1] ?? ''))
+    ) {
+      paragraph.push(lines[i] ?? '');
+      i++;
+    }
+    segments.push({ kind: 'paragraph', text: paragraph.join('\n') });
+  }
+
+  return segments;
+}

@@ -509,10 +509,11 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 ### Phase 1 — Semantic Notebook / standalone LM UI wedge
 Goal: build the unique LM conversation UI first.
 - [~] 1.1 Notebook renderer: vertical page renderer, block components, block affordances, folding, focus/selection, streaming-friendly.
-  - Landed the `s-notebook` surface (`defineSurface`) + `notebookRenderer`: top-level blocks render as vertical pages with per-kind affordances (`BLOCK_KIND_LABEL`, exhaustive), role/status styling, uncertainty chips, empty-state slot, and focus/selection round-trip for renderer switches. Remaining: block context menus/affordances (§4.2), section folding, richer table/code/artifact rendering via the inner view system, and virtualization.
+  - Landed the `s-notebook` surface (`defineSurface`) + `notebookRenderer`: top-level blocks render as vertical pages with per-kind affordances (`BLOCK_KIND_LABEL`, exhaustive), role/status styling, uncertainty chips, empty-state slot, and focus/selection round-trip for renderer switches. Pages now walk `children`/`contains` and render heading/list/table/code blocks richly (static-tag headings to satisfy Lit). Remaining: block context menus/affordances (§4.2), section folding, artifact rendering via the inner view system, and virtualization.
 - [ ] 1.2 Composer overlay with modes; universal input (NL now; Narsese/structured seam).
 - [ ] 1.3 Input decomposition: deterministic claim/question/command split; raw preserved; extracted structure shown.
-- [ ] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
+- [~] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
+  - Landed `core/segmentation.ts` (`segmentText`): deterministic, dependency-free Markdown parsing into heading/paragraph/list/table/code segments with table rows and fenced-code language. `projectChat` expands assistant turns into child blocks (`childId(msg,index)` position-anchor ids) linked by `contains`, with the raw turn text retained on the turn block. Notebook renders the children richly. Remaining: image/link/citation segmentation and block-level streaming (`status: 'streaming'` re-parse).
 - [ ] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
 - [ ] 1.6 Contextual link menu: ask follow-up, explain, open related, view as graph, copy/export, (formalize-as-belief/goal/question seam).
 - [ ] 1.7 LM-only completeness: Notebook works with no reasoning backend; provider status in HUD; rich artifacts; conversation graph exists even without NARS.
@@ -804,6 +805,40 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   renderer or overlay appears in both without edits.
 - `$activeRenderer` should join `$urlState`/hash parsing next to `lens`/`panels` for shareable mode
   links.
+
+### 2026-10-08 (d) — Phase 1.4 output segmentation + structured Notebook
+
+**Landed**
+- `ui/src/client/core/segmentation.ts` — `segmentText`: deterministic, dependency-free Markdown
+  parsing into `heading`/`paragraph`/`list`/`table`/`code` segments (`Segment`), with `TableData`
+  payloads and fenced-code language. Document-order preserved; unknown constructs degrade to a
+  paragraph.
+- `ui/src/client/core/workspace-projection.ts` — `projectChat` now expands assistant turns into child
+  blocks via `childId(messageId, index)` with `contains` links; the raw turn text stays on the turn
+  block for fidelity. `childId` exported.
+- `ui/src/client/components/renderers/notebook.ts` — pages walk `children`/`contains` and render
+  headings (static `<h1..h6>`, since Lit cannot interpolate tag names), lists, tables and code
+  blocks richly.
+- Tests: `tests/components/segmentation.test.ts` (7) + updated projection/notebook specs (whole UI
+  suite 126 green; typecheck + biome clean).
+
+**Notes for remaining work**
+- Segment `image`/`link`/`citation` blocks and support block-level streaming: re-parse on each delta
+  and reuse ids by position so a `status: 'streaming'` tail block settles into final kinds.
+- Child ids are position anchors; the plan's "content-hash + position anchor" needs a content hash to
+  stay stable when a block is inserted mid-stream — add when streaming re-parse lands.
+- Notebook page composition still only understands direct `children`; nested `contains`/headings
+  sections (§4.3 folding) should recurse or the ToC will be shallow.
+- User input is still an unsegmented raw turn; Phase 1.3 (`claim`/`question`/command split) reuses
+  `segmentText` plus sentence/command detection.
+
+**New improvement opportunities**
+- Promote `Segment.data` to the `Artifact` contract so code/table segments can carry a `ViewSpec` and
+  render through `s-table`/`s-code` instead of bespoke notebook markup.
+- `projectChat` segments on every re-projection; cache segmentation per message id + content hash so
+  the live binding stays cheap under streaming.
+- A segmentation property test (segment → reassemble loses no non-whitespace text) would guard the
+  fidelity guarantee the raw turn block currently provides implicitly.
 
 
 

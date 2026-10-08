@@ -146,6 +146,7 @@ export {
   type WorkspaceOp,
 } from './workspace-graph.js';
 export {
+  childId,
   claimId,
   linkId,
   projectChat,
@@ -154,6 +155,7 @@ export {
   turnId,
   type WorkspaceFragment,
 } from './workspace-projection.js';
+export { type Segment, segmentText, type TableData } from './segmentation.js';
 export { mountWorkspaceProjection, syncWorkspaceGraph } from './workspace-bindings.js';
 export {
   registerRenderer,

@@ -9,6 +9,7 @@
  */
 
 import type { ChatMessage, GraphNodeData } from '@senars/core';
+import { segmentText } from './segmentation.js';
 import type {
   BlockKind,
   CreatedBy,
@@ -52,7 +53,10 @@ const link = (
   createdBy: CreatedBy
 ): SemanticLink => ({ id: linkId(source, target, kind), source, target, kind, createdBy });
 
-/** Project the chat log into ordered turn blocks and discourse links. */
+/** Stable id for a segmented child block of a message. */
+export const childId = (messageId: Ref, index: number): Ref => `blk:${messageId}:${index}`;
+
+/** Project the chat log into ordered turn blocks, segmented output children, and discourse links. */
 export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment {
   const blocks: SemanticBlock[] = [];
   const links: SemanticLink[] = [];
@@ -63,7 +67,7 @@ export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment
   for (const message of messages) {
     const id = turnId(message.id);
     const { role, createdBy } = ROLE_MAP[message.role];
-    blocks.push({
+    const block: SemanticBlock = {
       id,
       kind: 'turn',
       role,
@@ -73,7 +77,31 @@ export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment
       status: 'complete',
       createdAt: message.timestamp,
       createdBy,
-    });
+    };
+
+    if (message.role === 'agent') {
+      const children: Ref[] = [];
+      segmentText(message.content).forEach((segment, index) => {
+        const blockId = childId(message.id, index);
+        children.push(blockId);
+        blocks.push({
+          id: blockId,
+          kind: segment.kind,
+          role,
+          title: segment.kind,
+          text: segment.text,
+          level: segment.level,
+          data: segment.data,
+          status: 'complete',
+          createdAt: message.timestamp,
+          createdBy,
+        });
+        links.push(link(id, blockId, 'contains', createdBy));
+      });
+      if (children.length > 0) block.children = children;
+    }
+
+    blocks.push(block);
     roots.push(id);
 
     const replyTo = message.parentId ?? (message.role === 'agent' ? lastUser : undefined);

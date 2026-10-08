@@ -71,6 +71,27 @@ describe('notebook surface', () => {
     await el.updateComplete;
     expect(el.shadowRoot?.querySelector('.chip')?.textContent).toContain('f0.90');
   });
+
+  it('renders segmented children of a turn page (heading, list, table, code)', async () => {
+    $workspaceGraph.set(
+      applyWorkspaceOps(emptyWorkspaceGraph(), [
+        { op: 'block.add', block: block('t1', { children: ['t1-h', 't1-l', 't1-tb', 't1-c'], text: undefined }) },
+        { op: 'block.add', block: block('t1-h', { kind: 'heading', level: 2, text: 'Findings' }) },
+        { op: 'block.add', block: block('t1-l', { kind: 'list', data: { items: ['a', 'b'] } }) },
+        { op: 'block.add', block: block('t1-tb', { kind: 'table', data: { headers: ['x'], rows: [['1']] } }) },
+        { op: 'block.add', block: block('t1-c', { kind: 'code', text: 'const x = 1;' }) },
+        { op: 'roots.set', roots: ['t1'] },
+      ])
+    );
+    const el = document.createElement('s-notebook');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const root = el.shadowRoot;
+    expect(root?.querySelector('h2')?.textContent).toBe('Findings');
+    expect(root?.querySelector('ul.list')?.children).toHaveLength(2);
+    expect(root?.querySelector('table.data')?.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(root?.querySelector('pre.code')?.textContent).toContain('const x = 1;');
+  });
 });
 
 describe('notebook workspace renderer', () => {

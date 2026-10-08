@@ -1,6 +1,7 @@
 import type { ChatMessage, GraphNodeData } from '@senars/core';
 import { describe, expect, it } from 'vitest';
 import {
+  childId,
   claimId,
   linkId,
   projectChat,
@@ -42,11 +43,26 @@ describe('chat projection', () => {
       message({ id: 'a1', role: 'agent', content: 'hello', timestamp: 2 }),
     ]);
     expect(fragment.roots).toEqual([turnId('u1'), turnId('a1')]);
-    expect(fragment.blocks.map((b) => [b.kind, b.role])).toEqual([
-      ['turn', 'user'],
-      ['turn', 'assistant'],
+    const user = must(fragment.blocks.find((b) => b.id === turnId('u1')));
+    const agent = must(fragment.blocks.find((b) => b.id === turnId('a1')));
+    expect(user).toMatchObject({ kind: 'turn', role: 'user' });
+    expect(agent).toMatchObject({ kind: 'turn', role: 'assistant', createdBy: 'lm' });
+    expect(agent.children).toEqual([childId('a1', 0)]);
+    expect(must(fragment.blocks.find((b) => b.id === childId('a1', 0)))).toMatchObject({
+      kind: 'paragraph',
+      text: 'hello',
+    });
+  });
+
+  it('segments agent output into child blocks linked by contains', () => {
+    const fragment = projectChat([
+      message({ id: 'a1', role: 'agent', content: '# Title\n\nbody\n\n- a\n- b' }),
     ]);
-    expect(fragment.blocks[1]).toMatchObject({ text: 'hello', status: 'complete', createdBy: 'lm' });
+    const agent = must(fragment.blocks.find((b) => b.id === turnId('a1')));
+    expect(agent.children).toHaveLength(3);
+    expect(fragment.blocks.map((b) => b.kind)).toEqual(['heading', 'paragraph', 'list', 'turn']);
+    const contains = fragment.links.filter((l) => l.kind === 'contains');
+    expect(contains.map((l) => l.target)).toEqual(agent.children);
   });
 
   it('links an agent turn to the preceding user turn, or to an explicit parent', () => {
