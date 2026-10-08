@@ -4,6 +4,7 @@ export { eventBus } from './events.js';
 export { FocusTrap } from './focus-trap.js';
 export {
   $activeLens,
+  $activeRenderer,
   $capabilityFilter,
   $chatMessages,
   $cognitiveMetrics,
@@ -38,6 +39,7 @@ export {
   $webllmAvailable,
   $webllmModel,
   $workingMemory,
+  $workspaceGraph,
   type CognitiveMeta,
   type CognitiveMetricsData,
   evaluateLens,
@@ -123,3 +125,45 @@ export type {
   ViewSpec,
 } from './view-spec.js';
 export { ViewHost } from './view-host.js';
+export {
+  applyWorkspaceOp,
+  applyWorkspaceOps,
+  type Artifact,
+  type BlockKind,
+  type BlockStatus,
+  type CreatedBy,
+  emptyWorkspaceGraph,
+  linksTouching,
+  type Ref,
+  rootBlocks,
+  type SemanticBlock,
+  type SemanticLink,
+  type SemanticLinkKind,
+  type SemanticRole,
+  type Uncertainty,
+  type WorkspaceGraph,
+  type WorkspaceOp,
+} from './workspace-graph.js';
+export {
+  claimId,
+  linkId,
+  projectChat,
+  projectGraph,
+  projectWorkspace,
+  turnId,
+  type WorkspaceFragment,
+} from './workspace-projection.js';
+export {
+  registerRenderer,
+  rendererSupports,
+  renderersForKind,
+  WORKSPACE_INTERACTIONS,
+  type RendererSnapshot,
+  type WorkspaceContext,
+  type WorkspaceInteraction,
+  type WorkspaceRenderer,
+  type WorkspaceRendererCaps,
+  workspaceRenderer,
+  workspaceRendererIds,
+  workspaceRenderers,
+} from './workspace-renderer.js';

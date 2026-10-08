@@ -34,6 +34,9 @@ import './components/cognitive-metrics.js';
 import './core/view-host.js';
 import './components/views/index.js';
 
+// Phase 0.3: Workspace renderers
+import './components/renderers/graph3d.js';
+
 // Accessibility: live region announcements
 const announcer = Announcer.getInstance();
 $connectionState.subscribe((state) => {

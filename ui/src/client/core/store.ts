@@ -10,6 +10,7 @@ import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, PRIMARY_LENSES } from '../utils/
 import { getSurfaces } from './surface-registry.js';
 import { viewAdapters } from './view-adapter.js';
 import type { Shape, ViewSelection } from './view-spec.js';
+import { emptyWorkspaceGraph, type WorkspaceGraph } from './workspace-graph.js';
 
 type Listener<T> = (value: T) => void;
 type Unsubscriber = () => void;
@@ -140,6 +141,12 @@ export const $viewportMode = atom<ViewportMode>('2d');
 
 /** The shape the graph surface renders as: the viewport or its tabular alternative. */
 export const $graphShape = atom<Shape>('graph');
+
+// --- Phase 0.1: One workspace, many renderers ---
+/** The one semantic substrate every workspace renderer projects. */
+export const $workspaceGraph = atom<WorkspaceGraph>(emptyWorkspaceGraph());
+/** The active `WorkspaceRenderer` id — URL-addressable, palette-switchable, agent-settable. */
+export const $activeRenderer = atom<string>('notebook');
 
 // --- Batch 4: Capability-based filtering ---
 export const $capabilityFilter = atom<string | 'all'>('all');
@@ -466,6 +473,8 @@ const storeAtoms = {
   nodeHistory: $nodeHistory,
   viewportMode: $viewportMode,
   graphShape: $graphShape,
+  workspaceGraph: $workspaceGraph,
+  activeRenderer: $activeRenderer,
 } satisfies Record<string, ReadableAtom<unknown>>;
 
 export type TestApiStorePath = keyof typeof storeAtoms;
