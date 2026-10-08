@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import '../../src/client/components/overlays/index.js';
 import '../../src/client/components/renderers/graph.js';
 import '../../src/client/components/renderers/graph3d.js';
 import '../../src/client/components/renderers/notebook.js';

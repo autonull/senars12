@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { dispatchCommand, registerCommand } from '../../src/client/core/commands.js';
+import {
+  activeCommands,
+  dispatchCommand,
+  paletteCommands,
+  registerCommand,
+} from '../../src/client/core/commands.js';
 
 describe('dispatchCommand', () => {
   it('runs a registered command and reports success', () => {
@@ -63,5 +68,20 @@ describe('dispatchCommand', () => {
     });
     expect(dispatchCommand('test.reject', {})).toBe(false);
     expect(ran).toBe(false);
+  });
+
+  it('keeps palette-hidden commands dispatchable but out of the palette list', () => {
+    registerCommand({
+      id: 'test.hidden',
+      title: 'Hidden',
+      group: 'Test',
+      paletteHidden: true,
+      run: () => {},
+    });
+    registerCommand({ id: 'test.shown', title: 'Shown', group: 'Test', run: () => {} });
+    const paletteIds = paletteCommands().map((command) => command.id);
+    expect(paletteIds).toContain('test.shown');
+    expect(paletteIds).not.toContain('test.hidden');
+    expect(activeCommands().map((command) => command.id)).toContain('test.hidden');
   });
 });

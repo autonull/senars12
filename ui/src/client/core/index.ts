@@ -31,7 +31,7 @@ export {
 } from './composer-modes.js';
 export { artifactViewSpec, tableFromColumns } from './artifacts.js';
 export { matchCommands } from './command-match.js';
-export { activeCommands, type Command, registerCommand, registeredCommands } from './commands.js';
+export { activeCommands, type Command, paletteCommands, registerCommand, registeredCommands } from './commands.js';
 export { eventBus } from './events.js';
 export { explainModel, type ExplainLink, type ExplainModel } from './explain.js';
 export { GRAPH_LAYERS, type GraphLayer, layerVisible } from './graph-layer.js';

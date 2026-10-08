@@ -8,7 +8,7 @@
 
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { activeCommands, dispatchCommand, type Command } from '../../core/commands.js';
+import { dispatchCommand, paletteCommands, type Command } from '../../core/commands.js';
 import { recentCommandIds } from '../../core/command-history.js';
 import { matchCommands } from '../../core/command-match.js';
 import { eventBus } from '../../core/events.js';
@@ -95,7 +95,7 @@ export class PaletteView extends SurfaceComponent {
    * relevance ranking. Indices index this display order, matching the rows.
    */
   private rows(): Row[] {
-    const shown = matchCommands(activeCommands(), this.query);
+    const shown = matchCommands(paletteCommands(), this.query);
     if (this.query.trim() !== '') {
       return shown.map((command, index) => ({ command, index, group: command.group }));
     }

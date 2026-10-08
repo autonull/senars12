@@ -39,6 +39,8 @@ export interface Command {
   parse?(args: CommandArgs): CommandArgs;
   /** A command that only makes sense in some state can hide itself. */
   available?(): boolean;
+  /** Keep the command dispatchable but out of the palette list (e.g. the palette itself). */
+  readonly paletteHidden?: boolean;
 }
 
 const registry = new Map<string, Command>();
@@ -75,6 +77,20 @@ const derivedCommands = (): Command[] => [
           }),
       })
     ),
+  {
+    // The palette excludes itself from its own list, but the HUD button and the
+    // ⌘K shortcut still reach it through the same dispatch seam as every overlay.
+    id: 'overlay.palette',
+    title: 'Command palette',
+    group: 'Open',
+    keywords: 'command palette shortcut',
+    paletteHidden: true,
+    run: (args) =>
+      eventBus.emit('overlay:open', {
+        id: 'palette',
+        ...(args as { ref?: string; anchor?: HTMLElement } | undefined),
+      }),
+  },
   ...[...$panels.get().keys()].map(
     (id): Command => ({
       id: `view.panel.${id}`,
@@ -107,6 +123,10 @@ export const activeCommands = (): Command[] =>
   [...registeredCommands(), ...derivedCommands()].filter(
     (command) => command.available?.() ?? true
   );
+
+/** Commands the palette lists (drops those that hide themselves from it). */
+export const paletteCommands = (): Command[] =>
+  activeCommands().filter((command) => !command.paletteHidden);
 
 /**
  * Run a command by id, respecting availability, and report whether it ran. This

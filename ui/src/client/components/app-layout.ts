@@ -10,6 +10,7 @@ import {
   $selectedNodeId,
   $viewSelection,
   $workspaceGraph,
+  dispatchCommand,
   eventBus,
   mountTestApi,
   navigationForKey,
@@ -94,7 +95,7 @@ export class AppLayout extends BaseComponent {
     if (event.metaKey || event.ctrlKey) {
       if (event.key.toLowerCase() === 'k') {
         event.preventDefault();
-        eventBus.emit('overlay:open', { id: 'palette' });
+        dispatchCommand('overlay.palette');
       }
       return;
     }

@@ -107,14 +107,14 @@ export class WorkspaceHud extends BaseComponent {
           title="Table of contents"
           aria-label="Table of contents"
           @click=${(event: Event) =>
-            eventBus.emit('overlay:open', { id: 'toc', anchor: event.currentTarget as HTMLElement })}
+            dispatchCommand('overlay.toc', { anchor: event.currentTarget as HTMLElement })}
         >☰</button>
         <button
           data-action="timeline"
           title="Timeline"
           aria-label="Timeline"
           @click=${(event: Event) =>
-            eventBus.emit('overlay:open', { id: 'timeline', anchor: event.currentTarget as HTMLElement })}
+            dispatchCommand('overlay.timeline', { anchor: event.currentTarget as HTMLElement })}
         >⏱</button>
         <button
           data-action="telemetry"
@@ -162,14 +162,14 @@ export class WorkspaceHud extends BaseComponent {
           title="Settings"
           aria-label="Settings"
           @click=${(event: Event) =>
-            eventBus.emit('overlay:open', { id: 'settings', anchor: event.currentTarget as HTMLElement })}
+            dispatchCommand('overlay.settings', { anchor: event.currentTarget as HTMLElement })}
         >⚙</button>
         <button
           data-action="palette"
           title="Command palette (⌘K)"
           aria-label="Command palette"
           @click=${(event: Event) =>
-            eventBus.emit('overlay:open', { id: 'palette', anchor: event.currentTarget as HTMLElement })}
+            dispatchCommand('overlay.palette', { anchor: event.currentTarget as HTMLElement })}
         >⌘K</button>
         ${typeof provider === 'string' ? html`<span class="chip" title="Language model provider">${provider}</span>` : ''}
       </div>
@@ -206,7 +206,7 @@ export class WorkspaceHud extends BaseComponent {
             data-action="telemetry-full"
             title="Open full telemetry"
             @click=${(event: Event) =>
-              eventBus.emit('overlay:open', { id: 'telemetry', anchor: event.currentTarget as HTMLElement })}
+              dispatchCommand('overlay.telemetry', { anchor: event.currentTarget as HTMLElement })}
           >Full</button>
         </header>
         <div class="spark"><s-view .spec=${seriesSpec} budget="embedded" .chrome=${false}></s-view></div>
