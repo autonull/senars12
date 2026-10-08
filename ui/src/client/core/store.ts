@@ -8,6 +8,8 @@ import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
 import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 import { getSurfaces } from './surface-registry.js';
+import { viewAdapters } from './view-adapter.js';
+import type { ViewSelection } from './view-spec.js';
 
 type Listener<T> = (value: T) => void;
 type Unsubscriber = () => void;
@@ -118,6 +120,9 @@ export const $workingMemory = atom<string[]>([]);
 
 // --- Phase 2: Multi-select ---
 export const $selectedNodeIds = atom<Set<string>>(new Set());
+
+// --- Phase 4: The one cross-shape selection model ---
+export const $viewSelection = atom<ViewSelection>({ nodes: new Set(), edges: new Set() });
 
 // --- Phase 2: Per-lens viewport persistence ---
 export const $lensViewport = atom<Record<string, { x: number; y: number; zoom: number }>>({
@@ -448,6 +453,7 @@ const storeAtoms = {
   panels: $panels,
   urlState: $urlState,
   selectedNodeIds: $selectedNodeIds,
+  viewSelection: $viewSelection,
   lensViewport: $lensViewport,
   graphFilter: $graphFilter,
   capabilityFilter: $capabilityFilter,
@@ -484,6 +490,10 @@ export function exposeTestApi(): void {
     connection: { getState: () => $connectionState.get() },
     workingMemory: { getTerms: () => $workingMemory.get() },
     surfaces: { list: () => getSurfaces() },
+    views: {
+      adapters: () => viewAdapters(),
+      selection: () => $viewSelection.get(),
+    },
   };
   w.__testApiExposed = true;
 }

@@ -10,6 +10,7 @@
  */
 
 import type { CognitiveEvent } from '@senars/core';
+import type { Shape } from '../core/view-spec.js';
 
 /** Coarse grouping for filtering, narration tone and gallery/report sections. */
 export type EventCategory =
@@ -48,15 +49,15 @@ export type ProvenanceRole =
   | 'meta'
   | 'activity';
 
-/** Presentation shapes (§3.3). Canonical here until the view system owns it in Phase 4. */
-export type ViewShape = 'graph' | 'series' | 'table' | 'tree' | 'text';
+/** Presentation shapes (§3.3). The view system owns the union; this is its event-side alias. */
+export type ViewShape = Shape;
 
 export type EventMeta = {
   readonly label: string;
   readonly category: EventCategory;
   readonly severity: EventSeverity;
   readonly provenanceRole: ProvenanceRole;
-  readonly shapes: readonly ViewShape[];
+  readonly shapes: readonly Shape[];
 };
 
 export const EVENT_CATALOG = {
@@ -122,7 +123,7 @@ export const eventMeta = (type: EventType): EventMeta => EVENT_CATALOG[type];
 export const eventsByCategory = (category: EventCategory): EventType[] =>
   EVENT_TYPES.filter((type) => EVENT_CATALOG[type].category === category);
 
-export const eventsByShape = (shape: ViewShape): EventType[] =>
+export const eventsByShape = (shape: Shape): EventType[] =>
   EVENT_TYPES.filter((type) => EVENT_CATALOG[type].shapes.some((candidate) => candidate === shape));
 
 export const eventsBySeverity = (severity: EventSeverity): EventType[] =>

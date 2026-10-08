@@ -30,6 +30,10 @@ import './components/lens-designer.js';
 // Phase 5: Observability
 import './components/cognitive-metrics.js';
 
+// Phase 4: Unified view system
+import './core/view-host.js';
+import './components/views/index.js';
+
 // Accessibility: live region announcements
 const announcer = Announcer.getInstance();
 $connectionState.subscribe((state) => {

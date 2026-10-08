@@ -880,6 +880,77 @@ rather than a `satisfies` against a schema.
 
 ---
 
+### Session 15 — Phase 4.1 + 4.2 + 4.3 + 4.5: the unified view system (2026-10-08)
+
+**Landed**
+
+- **4.1 — `ViewSpec` + `ViewAdapter` + registry.** New `ui/src/client/core/view-spec.ts` is the pure
+  contract: `Shape` (`graph|series|table|tree|text`), `Budget` (`full|embedded`), `Disclosure`,
+  `Interaction`, `ViewSource`, and the typed `ViewDataset` union (`series|table|text|tree`).
+  `view-adapter.ts` is the registry — `registerViewAdapter`, `viewAdapterFor(shape, budget)`,
+  `capabilitiesFor`, `supportedShapes`, `viewAdapters` — so the host resolves a **tag** from the shape
+  rather than switching on it. `view-projection.ts` is the one "dataset rendered many ways"
+  projection (`projectDataset`, `projectableShapes`, `datasetIsEmpty`, `formatCell`): series↔table,
+  table→series (numeric columns), series/table/tree→text, text→table; an unsupported transition
+  returns `undefined` rather than a wrong shape.
+- **4.2 — adapters (series · table · text · tree + graph seam).** New
+  `ui/src/client/components/views/`: `s-series` (SVG line chart; embedded drops the legend), `s-table`
+  (columns/rows; a row click emits `view-select`; embedded caps at 5 rows), `s-text` (preformatted
+  log; embedded keeps the tail), `s-tree` (nested provenance lists). Each self-registers its adapter
+  and budgets. `graph-adapter.ts` registers `graph → graph-viewport` as the seam over the existing
+  store-driven viewports (a true `ViewSpec`-sourced graph adapter is 4.6/8.5).
+- **4.3 — `ViewHost` (`<s-view>`).** New `ui/src/client/core/view-host.ts` is `defineSurface`d as the
+  `view` surface: it resolves the adapter by active shape + budget, projects the dataset into that
+  shape, and owns the shared chrome (title; a shape switcher built from `spec.shapes` filtered to
+  registered adapters; fullscreen) plus descriptor-driven empty/error slots. It subscribes to
+  `spec.source` and re-renders on change, and its `surfaceApi` exposes `shapes/shape/setShape`. The
+  adapter element is mounted through the registry `tag` via `lit/static-html` `unsafeStatic`, so no
+  shape→tag map is hand-written.
+- **4.5 — one selection model.** `$viewSelection` (`{ nodes, edges, focus }`) lives in the store, is a
+  `storeAtoms` path, and surfaces as `__testApi.views.selection()`; `__testApi.views.adapters()`
+  enumerates the registry. The host listens for the adapter's `view-select` event and writes the
+  focus. The `eventCatalog`'s `ViewShape` is now an alias of the view system's `Shape` (the Session 7
+  follow-on closed).
+- **Wiring.** `core/index.ts` re-exports the new modules; `entry.ts` boots `core/view-host.js` and the
+  `components/views` barrel so the elements exist in the app.
+
+**Verification**
+
+- `pnpm --dir ui exec tsc --noEmit` clean; `pnpm --dir ui build` succeeds; `biome lint
+  --diagnostic-level=error` clean on all new/changed files.
+- UI unit **60/60** (9 files; +20: `view-adapter` 5, `view-projection` 9, `view-host` 6). Root
+  `tests/unit/server` **57/57** unchanged (the event-catalog guard still passes with the aliased
+  `Shape`).
+- No surface renders `<s-view>` yet, so no visual baseline is implied; `tokens.css` is unchanged.
+
+**Still open in Phase 4**
+
+- **4.1/4.2 — the graph adapter is a seam, not a view.** It names `graph-viewport`, which reads the
+  store and ignores the `ViewSpec`; truly generalizing `RendererApi` (the viewport consumes a
+  `ViewSource`; the 2D/3D toggle is a capability) is 4.6/8.5.
+- **4.4 untouched** — compact variants exist only as budget branches (legend/cap/tail), not distinct
+  `embedded` adapters selected by capability.
+- **4.6–4.8 untouched** — nothing is migrated to `<s-view>` yet (telemetry→series/table,
+  provenance→tree/table/graph, graph→graph/table, metrics→cards/table, event log→text/table,
+  config→form/table); views are not embedded in the shell; the matrix is not extended.
+- `ViewHost` fullscreen is a local CSS overlay, not a `FocusTrap`d dialog (7.3); the shape switcher is
+  a plain tablist without roving tabindex (7.3).
+
+**New opportunities spotted** *(Session 15)*
+
+- `ViewSpec.source` is a runtime object, so specs cannot live in the pure surface registry; a
+  `SourceRef` (`{ atom: TestApiStorePath } | { query }`) resolved by the store would make specs
+  serializable data and shareable with the command palette (3.2/5.2).
+- `s-table` already renders the text alternative a canvas needs; routing the graph's accessible table
+  through the same adapter closes 7.4 without a second renderer.
+- `capabilitiesFor` exposes interactions the host does not yet honour (`multi-select`, `filter`,
+  `zoom`); the chrome and adapters should read it so unsupported affordances are hidden rather than
+  inert.
+- Adapters extend `BaseComponent`, not `SurfaceComponent`, so the gallery cannot enumerate them; the
+  registry could feed `generateSurfaces` (or adapters could register as surfaces) for 2.7/11.3.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -1155,11 +1226,11 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 
 **Goal:** one dataset, many shapes, both contexts — delete the bespoke presentation stack.
 
-- [ ] **4.1** `ViewSpec` + `ViewAdapter` + adapter registry; generalize `RendererApi` into the graph adapter.
-- [ ] **4.2** Adapters: graph (wrap existing 2D/3D), series (chart/sparkline), table (sort/filter/virtualize), tree (provenance), text (event/log).
-- [ ] **4.3** `ViewHost` (`<s-view>`): adapter resolution by shape+budget, shared chrome (title/export/fullscreen/shape switcher), container-query sizing, descriptor-driven states.
+- [x] **4.1** `ViewSpec` + `ViewAdapter` + adapter registry; generalize `RendererApi` into the graph adapter. *(done: `view-spec.ts`/`view-adapter.ts`/`view-projection.ts`; the registry resolves a tag by shape+budget; graph is registered as the `graph-viewport` seam — a truly `ViewSpec`-sourced graph adapter is 4.6/8.5)*
+- [ ] **4.2** Adapters: graph (wrap existing 2D/3D), series (chart/sparkline), table (sort/filter/virtualize), tree (provenance), text (event/log). *(partial: `series`/`table`/`text`/`tree` adapters + the `graph-viewport` seam landed; graph is still store-driven and tables are not yet virtualized/sortable — 4.6/11.1)*
+- [x] **4.3** `ViewHost` (`<s-view>`): adapter resolution by shape+budget, shared chrome (title/export/fullscreen/shape switcher), container-query sizing, descriptor-driven states. *(done: `view-host.ts` resolves the adapter by shape+budget, mounts the registry tag via `lit/static-html`, projects the dataset, and owns title/shape-switcher/fullscreen chrome + empty/error slots; container-query sizing and export are 4.6/5.4)*
 - [ ] **4.4** Compact adapter variants for `embedded` (sparkline, key-value, mini-graph, top-N table) selected by capability.
-- [ ] **4.5** Unified `ViewSelection` through the store: cross-shape highlight/link (table row ↔ graph node ↔ inspector).
+- [x] **4.5** Unified `ViewSelection` through the store: cross-shape highlight/link (table row ↔ graph node ↔ inspector). *(done: `$viewSelection` atom + `view-select` handling at the host; cross-shape consumers land with 4.6)*
 - [ ] **4.6** Migrate surfaces to views: telemetry→series/table, provenance→tree/table/graph, graph→graph/table, metrics→cards/table, event log→text/table, config→form/table.
 - [ ] **4.7** Embed views everywhere: inspector cards, left rail, bottom drawer, chat (inline sparkline/mini-graph/top-N), demo player.
 - [ ] **4.8** Matrix coverage for shape × budget × state; determinism + visual baselines for each adapter.

@@ -32,6 +32,7 @@ export {
   $view,
   $viewport,
   $viewportMode,
+  $viewSelection,
   $webllmActive,
   $webllmAvailable,
   $webllmModel,
@@ -86,3 +87,37 @@ export {
   type SurfaceGalleryCell,
   type SurfaceStory,
 } from './surface-codegen.js';
+export {
+  capabilitiesFor,
+  registerViewAdapter,
+  supportedShapes,
+  type ViewAdapter,
+  viewAdapterFor,
+  viewAdapters,
+} from './view-adapter.js';
+export {
+  datasetIsEmpty,
+  formatCell,
+  projectableShapes,
+  projectDataset,
+} from './view-projection.js';
+export type {
+  Budget,
+  ColumnSpec,
+  DatasetKind,
+  Disclosure,
+  Interaction,
+  SeriesDatum,
+  SeriesDataset,
+  Shape,
+  ShapeCaps,
+  TableDataset,
+  TextDataset,
+  TreeNode,
+  TreeDataset,
+  ViewDataset,
+  ViewSelection,
+  ViewSource,
+  ViewSpec,
+} from './view-spec.js';
+export { ViewHost } from './view-host.js';
