@@ -1,5 +1,8 @@
 # TODO.ui.4.md — Work-Package Backlog
 
+> **Superseded.** For all **open** work this file is superseded by `TODO.ui.5.md` (the consolidated
+> execution spine). v4 is retained as the **landed record** and the per-version progress log.
+>
 > **Relationship to prior plans.** Supersedes `TODO.ui.3.md` **for all open work**; v3 is retained as
 > the **landed record** (product framing, `WorkspaceGraph`/`WorkspaceRenderer` contracts, keep/demote
 > ledger, block-kind matrix, 35-entry log `(a)…(ag)`). This file is the **execution spine**: one home
