@@ -3,6 +3,8 @@ import '../../src/client/components/overlays/index.js';
 import '../../src/client/components/renderers/graph.js';
 import '../../src/client/components/renderers/graph3d.js';
 import '../../src/client/components/renderers/notebook.js';
+import { resetCommandHistory } from '../../src/client/core/command-history.js';
+import { dispatchCommand } from '../../src/client/core/commands.js';
 import { eventBus } from '../../src/client/core/events.js';
 import { $activeRenderer } from '../../src/client/core/store.js';
 
@@ -28,6 +30,7 @@ const type = async (el: HTMLElement, value: string) => {
 afterEach(() => {
   document.body.innerHTML = '';
   $activeRenderer.set('graph');
+  resetCommandHistory();
 });
 
 describe('command palette', () => {
@@ -68,5 +71,14 @@ describe('command palette', () => {
     el.dispatchEvent(new CustomEvent('overlay-open'));
     await el.updateComplete;
     expect(el.shadowRoot?.querySelector<HTMLInputElement>('input')?.value).toBe('');
+  });
+
+  it('fronts a Recent group with the last-run commands, most recent first', async () => {
+    dispatchCommand('renderer.graph3d');
+    dispatchCommand('overlay.toc');
+    dispatchCommand('renderer.graph3d');
+    const el = await mount();
+    expect(el.shadowRoot?.querySelector('.group')?.textContent).toBe('Recent');
+    expect(ids(el).slice(0, 2)).toEqual(['renderer.graph3d', 'overlay.toc']);
   });
 });

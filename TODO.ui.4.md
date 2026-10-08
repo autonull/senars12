@@ -56,9 +56,10 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 - [ ] **0.6 backend seam** — land the `ReasoningBackend` contract + adapter seam (`LmProvider` façade;
   `lm.status`/`lm.switch` already real). Blocked on nothing; needed by WP5. `(c)`
 - [ ] **Sweep — overlays/HUD/palette**:
-  - `overlay.*` forwards all args to `overlay:open` (today only `ref`); generic anchor resolver in
-    `OverlayHost` (pass the Cytoscape container, not the viewport element). `(v)`,`(e)`,`(o)`
-  - palette modality decision (`modal: true`?); MRU group; `Announcer` bridge on open/close. `(f)`,`(b)`,`(e)`
+  - [x] `overlay.*` forwards all args (`ref`/`anchor`) to `overlay:open`; `[ ]` generic anchor resolver
+    in `OverlayHost` (pass the Cytoscape container, not the viewport element). `(v)`,`(e)`,`(o)`
+  - [ ] palette modality decision (`modal: true`?); [x] MRU group; [ ] `Announcer` bridge on
+    open/close. `(f)`,`(b)`,`(e)`
   - HUD `⚙` → `overlay.settings`; provider switching as an overlay action; split Provider vs
     Configuration entries once the `LmProvider` façade lands; `config-hud` `embedded` mode. `(aa)`
   - one registry-derived action source shared by HUD and palette; derive renderer/layer controls from
@@ -236,6 +237,14 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 ## Progress log
 
 Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
+
+### (v4.5) — WP1 sweep: overlay args + palette MRU
+- **`overlay.*` args** — the derived overlay commands now forward the caller's `ref`/`anchor`
+  (previously only `ref`) to `overlay:open` via spread, so an agent/palette caller can pass an anchor.
+- **Palette MRU** — new `core/command-history.ts` records every successful `dispatchCommand`; the
+  palette fronts a "Recent" group (max 5, most-recent first, de-duplicated) when the query is empty,
+  and `run()` now goes through `dispatchCommand`, so palette/HUD/agent usage all share one recorder.
+- **Tests** — `palette` covers the Recent ordering; full component suite 257 green.
 
 ### (v4.4) — HUD clears the composer (unblocks HUD-summoned overlays)
 - **Problem** (found in v4.3): `input-hud` is `position: fixed`, so its full-width host overlaid the

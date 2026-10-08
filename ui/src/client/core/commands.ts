@@ -6,6 +6,7 @@
  * explicit commands register themselves into the same list.
  */
 
+import { recordCommandUse } from './command-history.js';
 import { eventBus } from './events.js';
 import { overlays } from './overlay-registry.js';
 import { $activeRenderer, $panels } from './store.js';
@@ -67,7 +68,11 @@ const derivedCommands = (): Command[] => [
         title: overlay.title,
         group: 'Open',
         keywords: `overlay panel open ${overlay.id}`,
-        run: (args) => eventBus.emit('overlay:open', { id: overlay.id, ref: args?.ref as string | undefined }),
+        run: (args) =>
+          eventBus.emit('overlay:open', {
+            id: overlay.id,
+            ...(args as { ref?: string; anchor?: HTMLElement } | undefined),
+          }),
       })
     ),
   ...[...$panels.get().keys()].map(
@@ -118,5 +123,6 @@ export const dispatchCommand = (id: string, args: CommandArgs = {}): boolean => 
     console.warn(`[command] ${id} rejected its args`, error);
     return false;
   }
+  recordCommandUse(id);
   return true;
 };

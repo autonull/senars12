@@ -8,7 +8,8 @@
 
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { activeCommands, type Command } from '../../core/commands.js';
+import { activeCommands, dispatchCommand, type Command } from '../../core/commands.js';
+import { recentCommandIds } from '../../core/command-history.js';
 import { matchCommands } from '../../core/command-match.js';
 import { eventBus } from '../../core/events.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
@@ -19,6 +20,7 @@ import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 interface Row {
   readonly command: Command;
   readonly index: number;
+  readonly group: string;
 }
 
 @customElement('s-palette')
@@ -51,13 +53,13 @@ export class PaletteView extends SurfaceComponent {
   }
 
   protected override renderBody() {
-    const shown = matchCommands(activeCommands(), this.query);
+    const rows = this.rows();
     const groups = new Map<string, Row[]>();
-    shown.forEach((command, index) => {
-      const rows = groups.get(command.group) ?? [];
-      rows.push({ command, index });
-      groups.set(command.group, rows);
-    });
+    for (const row of rows) {
+      const grouped = groups.get(row.group) ?? [];
+      grouped.push(row);
+      groups.set(row.group, grouped);
+    }
     return html`
       <div class="palette" role="dialog" aria-label="Command palette">
         <input
@@ -71,12 +73,12 @@ export class PaletteView extends SurfaceComponent {
           @keydown=${this.onKeyDown}
         />
         ${
-          shown.length > 0
+          rows.length > 0
             ? html`<ul id="palette-list" role="listbox" aria-label="Commands">
                 ${[...groups].map(
-                  ([group, rows]) => html`
+                  ([group, groupRows]) => html`
                     <li class="group" role="presentation">${group}</li>
-                    ${rows.map((row) => this.commandRow(row))}
+                    ${groupRows.map((row) => this.commandRow(row))}
                   `
                 )}
               </ul>`
@@ -85,6 +87,29 @@ export class PaletteView extends SurfaceComponent {
         <footer>↑↓ navigate · ↵ run · esc close</footer>
       </div>
     `;
+  }
+
+  /**
+   * Commands in display order: an empty query fronts a session MRU group, so the
+   * commands run most recently stay one keystroke away; typing returns to plain
+   * relevance ranking. Indices index this display order, matching the rows.
+   */
+  private rows(): Row[] {
+    const shown = matchCommands(activeCommands(), this.query);
+    if (this.query.trim() !== '') {
+      return shown.map((command, index) => ({ command, index, group: command.group }));
+    }
+    const byId = new Map(shown.map((command) => [command.id, command]));
+    const recent = recentCommandIds()
+      .map((id) => byId.get(id))
+      .filter((command): command is Command => command !== undefined);
+    const recentIds = new Set(recent.map((command) => command.id));
+    const rest = shown.filter((command) => !recentIds.has(command.id));
+    return [...recent, ...rest].map((command, index) => ({
+      command,
+      index,
+      group: index < recent.length ? 'Recent' : command.group,
+    }));
   }
 
   private commandRow({ command, index }: Row) {
@@ -109,7 +134,7 @@ export class PaletteView extends SurfaceComponent {
   }
 
   private onKeyDown(event: KeyboardEvent) {
-    const shown = matchCommands(activeCommands(), this.query);
+    const shown = this.rows();
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       this.active = Math.min(this.active + 1, shown.length - 1);
@@ -118,14 +143,14 @@ export class PaletteView extends SurfaceComponent {
       this.active = Math.max(this.active - 1, 0);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      const command = shown[this.active];
-      if (command) this.run(command);
+      const row = shown[this.active];
+      if (row) this.run(row.command);
     }
   }
 
   private run(command: Command) {
+    dispatchCommand(command.id);
     eventBus.emit('overlay:close', { id: 'palette' });
-    command.run();
   }
 
   private readonly reset = () => {
