@@ -23,6 +23,8 @@ export class SeriesView extends BaseComponent {
     }
     .legend li { display: flex; align-items: center; gap: 4px; }
     .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .grid { stroke: var(--colors-semantic-border-subtle); stroke-width: 0.5; }
+    .fill { opacity: 0.1; }
   `;
   @property({ attribute: false }) data: SeriesDataset | null = null;
   @property({ attribute: false }) budget: Budget = 'full';
@@ -34,6 +36,11 @@ export class SeriesView extends BaseComponent {
     return html`
       <svg class="chart" viewBox="0 0 100 ${HEIGHT}" preserveAspectRatio="none"
         role="img" aria-label="Series chart">
+        ${[0.25, 0.5, 0.75].map(
+          (fraction) => svg`<line class="grid" x1="0" y1=${(fraction * HEIGHT).toFixed(2)}
+            x2="100" y2=${(fraction * HEIGHT).toFixed(2)} vector-effect="non-scaling-stroke" />`
+        )}
+        ${series.map((s) => this.fill(s))}
         ${series.map((s) => this.line(s))}
       </svg>
       <ul class="legend">
@@ -44,6 +51,11 @@ export class SeriesView extends BaseComponent {
         )}
       </ul>
     `;
+  }
+
+  private fill(s: SeriesDatum) {
+    return svg`<polygon class="fill" points="0,${HEIGHT} ${linePoints(s.values, HEIGHT)} 100,${HEIGHT}"
+      fill=${s.color ?? theme.colors.info} />`;
   }
 
   private line(s: SeriesDatum) {

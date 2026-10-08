@@ -1046,6 +1046,49 @@ rather than a `satisfies` against a schema.
 
 ---
 
+### Session 18 — Phase 4.6: telemetry chart migration (2026-10-08)
+
+**Landed**
+
+- **4.6 (partial) — `s-series` is a real chart.** The full adapter gained a three-line grid and a
+  per-series fill (a polygon under each polyline); the sparkline stays bare. This is what let the
+  canvas be deleted without losing the chart's structure.
+- **4.6 (partial) — the telemetry canvas is gone.** The panel now renders
+  `<s-view budget="full">` over a `chartSource` (`$telemetry` → `SeriesDataset`) with shapes
+  `series|table`; the ~150-line canvas/DPR/rAF renderer was removed. The panel keeps its range and
+  metric-toggle filters, its export menu, and a hover readout — now computed from the source data
+  (linear index over the wrapper width) rather than from canvas pixels. Fullscreen moved to the host
+  chrome. The panel no longer re-renders on every 1 Hz tick (the host subscribes to the source); it
+  notifies the host on range/metric changes through the source's subscriber set.
+- **Tests.** `telemetry-panel.test.ts` mounts the panel, publishes a telemetry sample, and asserts the
+  chart resolves to `s-view` → `s-series` with the three default series, and that the
+  `telemetry.getSeries()` test API still returns them.
+
+**Verification**
+
+- `pnpm --dir ui exec tsc --noEmit` clean; `pnpm --dir ui build` succeeds; `biome lint
+  --diagnostic-level=error` clean on all changed files.
+- UI unit **69/69** (was 67; +2). No visual baseline is affected — telemetry is not baselined.
+
+**Still open in Phase 4**
+
+- **4.6 — graph→graph/table** (the viewport is still store-driven, not a `ViewSpec` source),
+  **provenance→tree/table/graph** and **event log→text/table** (data sources do not exist yet —
+  Phases 6.2/6.6), **config→form/table**.
+- **4.7/4.8 untouched** — views are embedded in telemetry and metrics only; no adapter has its own
+  visual cell/baseline.
+
+**New opportunities spotted** *(Session 18)*
+
+- Telemetry is now a `ViewSpec` surface; place its spec/source in a registry so the command palette
+  (5.2) and the URL can address it like any other view.
+- The hover readout is panel-owned because `s-series` emits no interaction event; a `view-hover`
+  event from the adapter would let the host own it and make 2D/3D hover parity (8.3) uniform.
+- `s-series` draws a 0-based grid with no axis labels; `FieldDescriptor.range`/`unit` (3.3) are the
+  data an axis should read once axes land (7.2).
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -1326,7 +1369,7 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [x] **4.3** `ViewHost` (`<s-view>`): adapter resolution by shape+budget, shared chrome (title/export/fullscreen/shape switcher), container-query sizing, descriptor-driven states. *(done: `view-host.ts` resolves the adapter by shape+budget, mounts the registry tag via `lit/static-html`, projects the dataset, and owns title/shape-switcher/fullscreen chrome + empty/error slots; container-query sizing and export are 4.6/5.4)*
 - [ ] **4.4** Compact adapter variants for `embedded` (sparkline, key-value, mini-graph, top-N table) selected by capability. *(partial: the registry resolves the most specialized variant per shape+budget; `s-sparkline` + `s-table-mini` (key-value / top-N) landed and `s-series`/`s-table` are now full-only; mini-graph deferred — `graph` is still a store-driven seam, 4.6/8.5)*
 - [x] **4.5** Unified `ViewSelection` through the store: cross-shape highlight/link (table row ↔ graph node ↔ inspector). *(done: `$viewSelection` atom + `view-select` handling at the host; cross-shape consumers land with 4.6)*
-- [ ] **4.6** Migrate surfaces to views: telemetry→series/table, provenance→tree/table/graph, graph→graph/table, metrics→cards/table, event log→text/table, config→form/table. *(partial: `viewSource` adapts store atoms to `ViewSource`; `ViewHost` gained a chrome-less embedded mode; `metrics` now renders as an embedded key-value table view via `s-table-mini`; telemetry/graph/provenance/event-log/config remain, see log)*
+- [ ] **4.6** Migrate surfaces to views: telemetry→series/table, provenance→tree/table/graph, graph→graph/table, metrics→cards/table, event log→text/table, config→form/table. *(partial: `viewSource` adapts store atoms to `ViewSource`; `ViewHost` gained a chrome-less embedded mode; `metrics` renders as an embedded key-value table view and `telemetry` now renders its chart through `<s-view>` series/table — the bespoke canvas is deleted; graph/provenance/event-log/config remain, see log)*
 - [ ] **4.7** Embed views everywhere: inspector cards, left rail, bottom drawer, chat (inline sparkline/mini-graph/top-N), demo player.
 - [ ] **4.8** Matrix coverage for shape × budget × state; determinism + visual baselines for each adapter.
 
