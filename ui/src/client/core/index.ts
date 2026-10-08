@@ -7,6 +7,15 @@ export { eventBus } from './events.js';
 export { explainModel, type ExplainLink, type ExplainModel } from './explain.js';
 export { FocusTrap } from './focus-trap.js';
 export {
+  breadcrumb,
+  type Crumb,
+  navigationForKey,
+  parentMap,
+  rootOf,
+  stepBlock,
+  stepPage,
+} from './navigation.js';
+export {
   decomposeInput,
   type InputSegment,
   isFaithfulDecomposition,

@@ -4,7 +4,7 @@
  * gallery all read this rather than each spelling their own label table.
  */
 
-import type { BlockKind } from './workspace-graph.js';
+import type { BlockKind, SemanticBlock } from './workspace-graph.js';
 
 export const BLOCK_KIND_LABEL = {
   turn: 'Turn',
@@ -33,3 +33,10 @@ export const BLOCK_KIND_LABEL = {
   'embedded-view': 'Embedded view',
   raw: 'Raw',
 } satisfies Record<BlockKind, string>;
+
+/** The one human label for a block: heading text > title > first non-blank line > kind. */
+export function blockLabel(block: SemanticBlock): string {
+  if (block.kind === 'heading') return block.text ?? block.title ?? BLOCK_KIND_LABEL.heading;
+  const firstLine = block.text?.split('\n').find((line) => line.trim() !== '');
+  return block.title ?? firstLine ?? BLOCK_KIND_LABEL[block.kind];
+}

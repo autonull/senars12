@@ -6,8 +6,8 @@
  * substrate, a new producer appears in the ToC without an edit here.
  */
 
-import { BLOCK_KIND_LABEL } from './block-labels.js';
-import type { BlockKind, Ref, SemanticBlock, WorkspaceGraph } from './workspace-graph.js';
+import { BLOCK_KIND_LABEL, blockLabel } from './block-labels.js';
+import type { BlockKind, Ref, WorkspaceGraph } from './workspace-graph.js';
 
 /** The block kinds worth a ToC row (paragraphs and raw payloads stay out). */
 export const TOC_KINDS_TYPE: readonly BlockKind[] = [
@@ -36,21 +36,13 @@ export interface TocEntry {
   readonly pageRef: Ref;
 }
 
-const firstLine = (block: SemanticBlock): string =>
-  block.text?.split('\n').find((line) => line.trim() !== '') ?? '';
-
-const entryLabel = (block: SemanticBlock): string => {
-  if (block.kind === 'heading') return block.text ?? block.title ?? '';
-  return block.title ?? firstLine(block) ?? BLOCK_KIND_LABEL[block.kind];
-};
-
 const push = (graph: WorkspaceGraph, id: Ref, pageRef: Ref, out: TocEntry[]): void => {
   const block = graph.blocks.get(id);
   if (!block || !TOC_KINDS.has(block.kind)) return;
   out.push({
     ref: block.id,
     kind: block.kind,
-    label: entryLabel(block).slice(0, 120) || BLOCK_KIND_LABEL[block.kind],
+    label: blockLabel(block).slice(0, 120) || BLOCK_KIND_LABEL[block.kind],
     level: block.level,
     pageRef,
   });

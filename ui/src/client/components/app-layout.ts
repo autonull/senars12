@@ -10,14 +10,24 @@ import {
   $selectedNodeId,
   $viewSelection,
   $viewportMode,
+  $workspaceGraph,
   eventBus,
   mountTestApi,
+  navigationForKey,
   OverlayHost,
   overlays,
+  setWorkspaceFocus,
 } from '../core/index.js';
 import { GRAPH_VIEW_SPEC } from './views/graph-view-spec.js';
 import './overlays/index.js';
 import './graph-viewport.js';
+
+const isEditableTarget = (event: KeyboardEvent): boolean =>
+  event.composedPath().some(
+    (node) =>
+      node instanceof HTMLElement &&
+      (node.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName))
+  );
 import '../spacegraph/spacegraph-viewport.js';
 import './graph-toolbar.js';
 import './renderers/notebook.js';
@@ -89,10 +99,20 @@ export class AppLayout extends BaseComponent {
   #overlays?: OverlayHost;
   #overlaySubs: Array<() => void> = [];
   #onGlobalKey = (event: KeyboardEvent): void => {
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-      event.preventDefault();
-      eventBus.emit('overlay:open', { id: 'palette' });
+    if (event.metaKey || event.ctrlKey) {
+      if (event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        eventBus.emit('overlay:open', { id: 'palette' });
+      }
+      return;
     }
+    if (event.altKey || (this.#overlays?.manager.size() ?? 0) > 0) return;
+    if (isEditableTarget(event)) return;
+    const graph = $workspaceGraph.get();
+    const target = navigationForKey(graph, event.key, graph.focus);
+    if (target === undefined) return;
+    event.preventDefault();
+    setWorkspaceFocus(target);
   };
 
   override connectedCallback() {

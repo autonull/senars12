@@ -515,8 +515,8 @@ Goal: build the unique LM conversation UI first.
   - Landed `core/input-decomposition.ts` (`decomposeInput` + `isFaithfulDecomposition`): a slash line is one `command`, an interrogative (`?` or leading wh-word) is a `question`, every other sentence a `claim` — purely lexical, no LM. `projectChat` now expands **user** turns into these children linked by `contains`; a `raw` child is added only when the split is lossy, otherwise the turn block's `text` already preserves the raw verbatim. The legacy `input-hud` composer previews the extracted structure live as chips. Added `command` to `BlockKind` and the kind-label SSOT.
 - [~] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
   - Landed `core/segmentation.ts` (`segmentText`): deterministic, dependency-free Markdown parsing into heading/paragraph/list/table/code segments with table rows and fenced-code language. `projectChat` expands assistant turns into child blocks (`childId(msg,index)` position-anchor ids) linked by `contains`, with the raw turn text retained on the turn block. Notebook renders the children richly. Remaining: image/link/citation segmentation and block-level streaming (`status: 'streaming'` re-parse).
-- [~] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
-  - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Remaining: breadcrumbs, `j/k`/`[ ]` keyboard navigation, URL-addressable `(page, block, disclosure)`, and virtualization for long sessions.
+- [x] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
+  - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Breadcrumbs (`core/navigation.ts` `breadcrumb`, rendered atop the notebook, clickable to an ancestor) and keyboard navigation (`j`/`k` blocks, `[ ]` pages via `navigationForKey`, bound in `app-layout`, ignored while an overlay is open or an editable is focused) are landed; the notebook scrolls the focused block into view. Remaining (deferred): URL-addressable `(page, block, disclosure)`, section folding, and virtualization for long sessions.
 - [~] 1.6 Contextual link menu: ask follow-up, explain, open related, view as graph, copy/export, (formalize-as-belief/goal/question seam).
   - Landed `s-block-menu` + `s-explain` overlays over the pure `explainModel` (`core/explain.ts`): Explain, Open in graph, View provenance (only when the block has provenance links — hidden, not inert), Copy text; the explanation popover exposes the `summary · card · detail · raw` disclosure levels as data. Remaining: ask follow-up / open related until the composer (1.2) exists, and the formalize-as-belief/goal seam until the capability registry (0.6) lands.
 - [ ] 1.7 LM-only completeness: Notebook works with no reasoning backend; provider status in HUD; rich artifacts; conversation graph exists even without NARS.
@@ -972,6 +972,43 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   `question` child) so the graph shows Q→A structure, not only `contains`.
 - The preview could offer per-segment affordances (fix kind, merge/split) — cheap with the current
   data and it makes the deterministic split user-correctable, honouring "annotations, not truth".
+
+### 2026-10-08 (h) — Phase 1.5 breadcrumbs + keyboard navigation
+
+**Landed**
+- `ui/src/client/core/navigation.ts` — pure navigation projections over the WorkspaceGraph:
+  `blockOrder` (depth-first document order), `parentMap`, `rootOf`, `stepBlock` (`j/k`, clamped),
+  `stepPage` (`[ ]`), `breadcrumb`, and `navigationForKey` (key → target). No DOM, so movement rules
+  are unit-tested directly and the shell only maps a key to a target.
+- `ui/src/client/core/block-labels.ts` — `blockLabel(block)` is now the one label rule (heading text >
+  title > first line > kind); `toc.ts` and `explain.ts` drop their private label helpers and use it.
+- `ui/src/client/components/renderers/notebook.ts` — every block carries `data-id` (its `Ref`); a
+  clickable breadcrumb bar renders the focus path (page → … → block) and focuses ancestors on click;
+  the focused block scrolls into view on focus change (`updated`, guarded for jsdom).
+- `ui/src/client/components/app-layout.ts` — the global key handler now also does workspace navigation:
+  `j`/`k` step blocks, `[`/`]` step pages, ignored while an overlay is open or while an editable
+  element (input/textarea/select/contenteditable, found through `composedPath`) has focus.
+- Tests (12 new across 2 files; whole UI suite **179 green**; typecheck + biome clean; client build
+  succeeds): `navigation` (order/step/clamp/page/breadcrumb/key-mapping/`blockLabel`) and notebook
+  breadcrumb + `data-id`.
+
+**Notes for remaining work**
+- `stepBlock`/`stepPage` clamp at the ends (no wrap); if wrap is wanted, change only `clampStep`.
+- `j/k` currently walks container turn/section roots as well as content; if navigation should skip
+  containers, filter `blockOrder` by `(children ?? []).length === 0`.
+- Navigation is unmodified by active renderer: in graph mode `j/k` still moves `$workspaceGraph.focus`
+  (the graph does not yet scroll to it). Gating the binding on the notebook renderer, or teaching the
+  graph renderer to react to `focus`, is the follow-up.
+- `scrollIntoView` is called only when `focus` changes (tracked in `#scrolledFocus`), so re-renders do
+  not fight the user's scroll position.
+
+**New improvement opportunities**
+- URL-address `(page, block, disclosure)` now that focus is a first-class store field: a small
+  `history` sync in `app-layout` would make notebook state deep-linkable and complete the 1.5 line.
+- A "jump to related block" action in the breadcrumb/block menu using `explainModel` links would turn
+  navigation from linear to graph-aware without any new data.
+- Section folding can key off `breadcrumb`/`parentMap`: collapse a container by hiding its descendants,
+  and reuse `blockOrder` to keep `j/k` consistent with what is visible.
 
 
 

@@ -7,6 +7,7 @@
  */
 
 import { linkMeta } from '../utils/link-catalog.js';
+import { blockLabel } from './block-labels.js';
 import type {
   Ref,
   SemanticBlock,
@@ -30,11 +31,8 @@ export interface ExplainModel {
   readonly links: ExplainLink[];
 }
 
-const labelOf = (block: SemanticBlock | undefined, fallback: Ref): string => {
-  if (!block) return fallback;
-  const first = block.text?.split('\n').find((line) => line.trim() !== '') ?? '';
-  return block.title ?? first ?? fallback;
-};
+const labelOf = (block: SemanticBlock | undefined, fallback: Ref): string =>
+  block ? blockLabel(block) : fallback;
 
 const toExplainLink = (graph: WorkspaceGraph, block: Ref, link: SemanticLink): ExplainLink => {
   const out = link.source === block;

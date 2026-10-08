@@ -14,6 +14,7 @@ import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
+import { breadcrumb } from '../../core/navigation.js';
 import type { TableData } from '../../core/segmentation.js';
 import { eventBus } from '../../core/events.js';
 import { $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
@@ -88,6 +89,7 @@ function renderBlock(block: SemanticBlock, focused = false): TemplateResult {
   return html`
     <article
       class="block"
+      data-id=${block.id}
       data-kind=${block.kind}
       data-role=${block.role}
       data-status=${block.status ?? 'complete'}
@@ -126,6 +128,11 @@ export class NotebookView extends SurfaceComponent {
     .kind { text-transform: uppercase; letter-spacing: 0.06em; color: var(--colors-semantic-text-muted); }
     .title { color: var(--colors-semantic-text-secondary); font-weight: var(--typography-fontWeights-medium); }
     .meta { display: flex; align-items: center; gap: var(--spacing-scale-2); margin-left: auto; }
+    .breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-scale-1); max-width: 72ch; margin: 0 auto var(--spacing-scale-3); font-size: var(--typography-scale-xs); }
+    .breadcrumb .crumb { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; padding: 0; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); }
+    .breadcrumb .crumb:hover { color: var(--colors-semantic-text-primary); }
+    .breadcrumb .crumb[aria-current='true'] { color: var(--colors-semantic-text-secondary); }
+    .breadcrumb .sep { color: var(--colors-semantic-text-muted); }
     .more { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); line-height: 1; padding: 0 var(--spacing-scale-1); }
     .more:hover { color: var(--colors-semantic-text-primary); }
     .block[data-focused='true'] { outline: 1px solid var(--colors-semantic-accent-cyan); }
@@ -153,10 +160,40 @@ export class NotebookView extends SurfaceComponent {
     ></s-empty-state>`;
   }
 
+  #scrolledFocus?: string;
+
+  override updated(): void {
+    const focus = $workspaceGraph.get().focus;
+    if (focus === undefined || focus === this.#scrolledFocus) return;
+    this.#scrolledFocus = focus;
+    const escaped = globalThis.CSS?.escape?.(focus) ?? focus;
+    this.renderRoot
+      .querySelector<HTMLElement>(`[data-id="${escaped}"]`)
+      ?.scrollIntoView?.({ block: 'center' });
+  }
+
   protected override renderBody() {
     const graph = $workspaceGraph.get();
     const pages = rootBlocks(graph);
+    const crumbs = breadcrumb(graph, graph.focus);
     return html`
+      ${
+        crumbs.length > 0
+          ? html`<nav class="breadcrumb" aria-label="Breadcrumb">
+              ${crumbs.map(
+                (crumb, index) => html`
+                  ${index > 0 ? html`<span class="sep">›</span>` : ''}
+                  <button
+                    class="crumb"
+                    data-ref=${crumb.ref}
+                    aria-current=${index === crumbs.length - 1}
+                    @click=${() => setWorkspaceFocus(crumb.ref)}
+                  >${BLOCK_KIND_LABEL[crumb.kind]} · ${crumb.label}</button>
+                `
+              )}
+            </nav>`
+          : ''
+      }
       <div class="pages">
         ${pages.map((block) => {
           const children = (block.children ?? [])

@@ -115,6 +115,33 @@ describe('notebook surface', () => {
     await el.updateComplete;
     expect(el.shadowRoot?.querySelector('.block[data-focused="true"]')).toBeTruthy();
   });
+
+  it('shows a breadcrumb for the focused block and navigates on click', async () => {
+    $workspaceGraph.set(
+      applyWorkspaceOps(emptyWorkspaceGraph(), [
+        { op: 'block.add', block: block('t1', { children: ['h1'], text: undefined }) },
+        { op: 'block.add', block: block('h1', { kind: 'heading', text: 'Findings' }) },
+        { op: 'roots.set', roots: ['t1'] },
+      ])
+    );
+    $workspaceGraph.set({ ...$workspaceGraph.get(), focus: 'h1' });
+    const el = document.createElement('s-notebook');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const crumbs = el.shadowRoot?.querySelectorAll('.breadcrumb .crumb') ?? [];
+    expect(crumbs).toHaveLength(2);
+    expect(crumbs[1]?.getAttribute('aria-current')).toBe('true');
+    crumbs[0]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect($workspaceGraph.get().focus).toBe('t1');
+  });
+
+  it('tags every block with its ref for navigation', async () => {
+    $workspaceGraph.set(graph(block('user-1', { text: 'hi' })));
+    const el = document.createElement('s-notebook');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.shadowRoot?.querySelector('[data-id="user-1"]')).toBeTruthy();
+  });
 });
 
 describe('notebook workspace renderer', () => {
