@@ -6,5 +6,6 @@ import './inspector.js';
 import './palette.js';
 import './related.js';
 import './settings.js';
+import './telemetry.js';
 import './timeline.js';
 import './toc.js';

@@ -13,11 +13,14 @@ import {
 } from '../core/index.js';
 import { type FieldId, fieldKey, fieldMeta, formatField, TELEMETRY_FIELDS } from '../utils/field-catalog.js';
 import { theme } from '../utils/theme.js';
-
-type TimeRange = '1m' | '5m' | '15m' | '1h';
-const RANGE_POINTS: Record<TimeRange, number> = { '1m': 60, '5m': 300, '15m': 900, '1h': 3600 };
-const ALL_METRICS = TELEMETRY_FIELDS.map((id) => fieldKey(id));
-const DEFAULT_METRICS = ['reasoning_hz', 'tokens_per_sec', 'memory_mb'];
+import {
+  TELEMETRY_METRIC_KEYS,
+  TELEMETRY_RANGE_POINTS,
+  TELEMETRY_RANGES,
+  DEFAULT_TELEMETRY_METRICS,
+  telemetrySeries,
+  type TelemetryRange,
+} from '../utils/telemetry-view.js';
 
 @customElement('telemetry-panel')
 export class TelemetryPanel extends BaseComponent {
@@ -102,8 +105,8 @@ export class TelemetryPanel extends BaseComponent {
     .export-item:hover { background: var(--colors-semantic-bg-panel-hover); }
     .sep { width: 1px; height: 14px; background: var(--colors-semantic-border-subtle); }
   `;
-  @state() private range: TimeRange = '5m';
-  @state() private visibleMetrics = new Set<string>(DEFAULT_METRICS);
+  @state() private range: TelemetryRange = '5m';
+  @state() private visibleMetrics = new Set<string>(DEFAULT_TELEMETRY_METRICS);
   @state() private hoverValue: { x: number; id: FieldId; value: number } | null = null;
   @state() private showExportMenu = false;
 
@@ -130,7 +133,7 @@ export class TelemetryPanel extends BaseComponent {
       getData: () => $telemetry.get(),
       getSeries: () => this.getSeries(),
       getRange: () => this.range,
-      setRange: (r: TimeRange) => this.setRange(r),
+      setRange: (r: TelemetryRange) => this.setRange(r),
     });
   }
 
@@ -142,7 +145,7 @@ export class TelemetryPanel extends BaseComponent {
       <div class="toolbar">
         <span class="toolbar-label">Range</span>
         <div class="toolbar-group">
-          ${(['1m', '5m', '15m', '1h'] as TimeRange[]).map(
+          ${TELEMETRY_RANGES.map(
             (r) => html`
             <button class="range-btn ${classMap({ active: this.range === r })}" @click=${() => this.setRange(r)}>${r}</button>
           `
@@ -209,25 +212,8 @@ export class TelemetryPanel extends BaseComponent {
     `;
   }
 
-  private getValues(key: string): number[] {
-    const values = $telemetry.get()[key as keyof ReturnType<typeof $telemetry.get>] as
-      | number[]
-      | undefined;
-    if (!values) return [];
-    const points = RANGE_POINTS[this.range];
-    return values.length > points ? values.slice(-points) : values;
-  }
-
   private getSeries(): SeriesDatum[] {
-    return TELEMETRY_FIELDS.filter((id) => this.visibleMetrics.has(fieldKey(id))).map((id) => {
-      const d = fieldMeta(id);
-      return {
-        id,
-        label: d.short ?? d.label,
-        color: theme.colors[d.color ?? 'info'],
-        values: this.getValues(fieldKey(id)),
-      };
-    });
+    return telemetrySeries($telemetry.get(), this.visibleMetrics, this.range);
   }
 
   private seriesDataset(): SeriesDataset {
@@ -266,23 +252,23 @@ export class TelemetryPanel extends BaseComponent {
     this.refreshChart();
   }
 
-  private setRange(range: TimeRange) {
+  private setRange(range: TelemetryRange) {
     this.range = range;
     this.refreshChart();
   }
 
   private exportCSV() {
     const data = $telemetry.get();
-    const points = RANGE_POINTS[this.range];
+    const points = TELEMETRY_RANGE_POINTS[this.range];
     const len = Math.min(
-      ...ALL_METRICS.map((k) => (data[k as keyof typeof data] as number[]).length),
+      ...TELEMETRY_METRIC_KEYS.map((k) => (data[k as keyof typeof data] as number[]).length),
       points
     );
     const start = data.reasoning_hz.length - len;
-    let csv = 'index,' + ALL_METRICS.join(',') + '\n';
+    let csv = 'index,' + TELEMETRY_METRIC_KEYS.join(',') + '\n';
     for (let i = 0; i < len; i++) {
       const idx = start + i;
-      csv += `${i},${ALL_METRICS.map((k) => (data[k as keyof typeof data] as number[])?.[idx] ?? '').join(',')}\n`;
+      csv += `${i},${TELEMETRY_METRIC_KEYS.map((k) => (data[k as keyof typeof data] as number[])?.[idx] ?? '').join(',')}\n`;
     }
     this.downloadFile(csv, 'telemetry.csv', 'text/csv');
     this.showExportMenu = false;
@@ -290,9 +276,9 @@ export class TelemetryPanel extends BaseComponent {
 
   private exportJSON() {
     const data = $telemetry.get();
-    const points = RANGE_POINTS[this.range];
+    const points = TELEMETRY_RANGE_POINTS[this.range];
     const sliced: Record<string, number[]> = {};
-    for (const k of ALL_METRICS) {
+    for (const k of TELEMETRY_METRIC_KEYS) {
       const arr = data[k as keyof typeof data] as number[];
       sliced[k] = arr.length > points ? arr.slice(-points) : [...arr];
     }

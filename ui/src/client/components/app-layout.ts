@@ -31,7 +31,6 @@ import './renderers/notebook.js';
 import './workspace-host.js';
 import './workspace-hud.js';
 import './input-hud.js';
-import './telemetry-panel.js';
 import './contradiction-badge.js';
 import './connection-banner.js';
 import './lm-status-panel.js';
@@ -68,7 +67,6 @@ export class AppLayout extends BaseComponent {
 
     .panel-left { flex-shrink: 0; overflow: hidden; border-right: 1px solid var(--colors-semantic-border-subtle); }
     .panel-right { flex-shrink: 0; overflow: hidden; border-left: 1px solid var(--colors-semantic-border-subtle); }
-    .panel-bottom { position: absolute; bottom: 0; left: 0; right: 0; z-index: var(--zIndex-layers-panel); overflow: hidden; border-top: 1px solid var(--colors-semantic-border-subtle); }
 
     .bottom-area { grid-area: bottom; display: flex; flex-direction: column; }
 
@@ -160,7 +158,6 @@ export class AppLayout extends BaseComponent {
   override render() {
     const panels = $panels.get();
     const searchPanel = panels.get('search');
-    const telemetryPanel = panels.get('telemetry');
     const chatPanel = panels.get('chat');
     const lensDesignerPanel = panels.get('lens-designer');
     const hasNodes = $graphNodes.get().size > 0;
@@ -224,18 +221,6 @@ export class AppLayout extends BaseComponent {
           <div class="panel-right" style=${this.getPanelStyle('lens-designer')}>
             <s-panel heading="Lens Designer" docked="right" closable @s-close=${() => this.togglePanel('lens-designer')}>
               <lens-designer></lens-designer>
-            </s-panel>
-          </div>
-        `
-            : ''
-        }
-
-        ${
-          telemetryPanel?.open
-            ? html`
-          <div class="panel-bottom" style="height:${telemetryPanel.size}px">
-            <s-panel heading="Telemetry" docked="bottom" closable noPad @s-close=${() => this.togglePanel('telemetry')}>
-              <telemetry-panel></telemetry-panel>
             </s-panel>
           </div>
         `

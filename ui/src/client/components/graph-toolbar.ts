@@ -143,7 +143,6 @@ export class GraphToolbar extends BaseComponent {
   override render() {
     const activeLens = $activeLens.get();
     const state = $connectionState.get();
-    const telemetryOpen = $panels.get().get('telemetry')?.open;
     const lensDesignerOpen = $panels.get().get('lens-designer')?.open;
 
     return html`
@@ -224,8 +223,6 @@ export class GraphToolbar extends BaseComponent {
 
       <button class="toolbar-btn ${lensDesignerOpen ? 'active' : ''}"
         @click=${() => this.togglePanel('lens-designer')} title="Open Lens Designer">Design</button>
-
-      <button class="toolbar-btn ${telemetryOpen ? 'active' : ''}" @click=${() => this.togglePanel('telemetry')} title="Toggle telemetry panel">Telemetry</button>
 
       <contradiction-badge></contradiction-badge>
 

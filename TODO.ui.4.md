@@ -39,8 +39,13 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
   contentless. `(b)`,`(af)`,`(ag)`,`(ae)`,`(n)`,`(o)` — landed as the `inspector` overlay
   (`s-inspector`): non-modal, follows `$selectedNodeId`/`$selectedEdgeId`, closing clears selection.
   Opens without stealing focus (new `autoFocus` overlay primitive). Pinning (4.5) still to do.
-- [ ] **0.4 telemetry** — move telemetry content into the HUD expansion (`s-sparkline` + `s-table-mini`)
-  and retire the bottom panel; add a HUD "Panels" menu derived from `view.panel.*`. `(af)`
+- [x] **0.4 telemetry** — move telemetry content into the HUD expansion (`s-sparkline` + `s-table-mini`)
+  and retire the bottom panel; add a HUD "Panels" menu derived from `view.panel.*`. `(af)` — the
+  standing bottom panel is gone; the HUD `📈` expands a range-switchable sparkline + latest-values
+  `s-table-mini`, and the full panel moved to the `telemetry` overlay. Shared projection in
+  `utils/telemetry-view.ts`. HUD `▾` is a Panels menu derived from `activeCommands()` `view.panel.*`.
+  Fixed a latent `s-view` bug: `budget` was `attribute: false`, so `budget="embedded"` never took
+  effect (cognitive metrics now correctly render `s-table-mini`).
 - [x] **0.4 config demotion** — migrate the legacy config panel into the settings overlay, migrate the
   configuration e2e spec, then default it off. `(aa)`,`(c)`,`(af)` — `config` retired from `$panels`
   and `$configOpen`; the settings overlay is the one home; toolbar `Config` + HUD `⚙` open
@@ -232,6 +237,25 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 
 Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
 
+### (v4.3) — WP1 shell demotions: telemetry (WP1 complete)
+- **0.4 telemetry** — retired the standing bottom panel. `telemetry-panel` is unchanged but now
+  reached via the new `telemetry` overlay (`s-telemetry`); the HUD keeps a one-glance expansion.
+  - **HUD expansion** (`workspace-hud`): the `📈` button toggles a popover above the pill with a
+    range switcher (`1m`/`5m`/`15m`/`1h`) and two embedded `s-view`s — `s-sparkline` (series) over
+    `s-table-mini` (latest values) — plus a "Full" action that opens the overlay.
+  - **HUD "Panels" menu**: the `▾` button lists every `view.panel.*` command (derived from
+    `activeCommands()`), so the menu stays in sync with the registry; toggling one closes the menu.
+  - **DRY**: new `utils/telemetry-view.ts` owns ranges, default metrics, series projection and the
+    snapshot table; `telemetry-panel` now reads it instead of re-deriving.
+- **Latent bug fixed** — `s-view`'s `budget` was `@property({ attribute: false })`, so static
+  `budget="embedded"` bindings were ignored and every embed fell back to the full adapter.
+  `budget` is now attribute-observed; `cognitive-metrics` (the other `budget="embedded"` caller)
+  correctly renders `s-table-mini` again.
+- **Cleanup** — removed `telemetry` from `$panels`, its `PANEL_LABELS` entry, the graph-toolbar
+  Telemetry button, and the `app-layout` bottom-panel block.
+- **Tests** — `panel-commands` (telemetry/config retire to overlays), `workspace-hud` (expansion +
+  Panels menu), new `telemetry-overlay.test.ts`.
+
 ### (v4.2) — WP1 shell demotions: inspector + config
 - **0.4 inspector** — `node-detail-drawer` is now the `inspector` overlay (`s-inspector`): a
   non-modal popover that follows `$selectedNodeId`/`$selectedEdgeId` and closes when the selection
@@ -247,22 +271,23 @@ Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
   `focus-trap` (autoFocus off), `workspace-hud` (⚙ → settings), `panel-commands` (config retired).
 
 ### Discoveries / notes for the next session
-- **Telemetry (0.4) still open.** It is default-closed, so no standing panel shows, but the
-  HUD-expansion (`s-sparkline` + `s-table-mini`) + HUD "Panels" menu migration remains. `telemetry`
-  panel entry and `telemetry-panel` element are still wired.
 - **HUD is obscured by the fixed composer (pre-existing).** `input-hud` is `position: fixed`, so its
   full-width host overlays the bottom of `graph-area` where `workspace-hud` floats. Its buttons
-  (toc/timeline/palette/settings) are therefore **pointer-unreachable** — only ⌘K works. Confirmed on
-  pristine source: `tests/scenarios/cognitive/timeline.spec.ts` first case fails identically without
-  this change. Likely fix: drop `position: fixed` from `input-hud` so it occupies the `bottom` grid
-  row and `graph-area` ends above it; needs visual-baseline regen.
+  (toc/timeline/telemetry/panels/settings/palette) are therefore **pointer-unreachable** in the app
+  and by Playwright — only ⌘K works. Confirmed on pristine source:
+  `tests/scenarios/cognitive/timeline.spec.ts` first case fails identically without these changes.
+  Likely fix: drop `position: fixed` from `input-hud` so it occupies the `bottom` grid row and
+  `graph-area` ends above it; needs visual-baseline regen. Worth doing before relying on HUD-summoned
+  overlays (WP1 sweep).
 - **`edit-edge` e2e (pre-existing).** `tests/scenarios/relational/edit-edge.spec.ts` uses
   `node-detail-drawer .tab-button` (real class is `.tab`) and its `clickEdge` path never opened a
   drawer because the old standing panel keyed only on `$selectedNodeId`. The `$selectedEdgeId`
-  watcher added here now opens the inspector for edges, but the stale selector remains; both cases
+  watcher added in v4.2 now opens the inspector for edges, but the stale selector remains; both cases
   are red on pristine.
 - **Overlay sweep still open:** `overlay.*` arg forwarding and the generic `OverlayHost` anchor
-  resolver (pass the Cytoscape container); palette modality/MRU/announcer bridge.
+  resolver (pass the Cytoscape container); palette modality/MRU/announcer bridge; the HUD expansion
+  and Panels menu are now derived from the registry, but the layer/renderer controls still branch on
+  `active === 'graph'` rather than capability flags (WP1 sweep).
 
 ### (v4.1) — restructured into work packages
 - Rewrote the forward plan as work packages with a dependency spine; folded every improvement

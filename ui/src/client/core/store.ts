@@ -336,7 +336,6 @@ export interface PanelState {
 
 export const $panels = atom<Map<string, PanelState>>(
   new Map([
-    ['telemetry', { id: 'telemetry', open: false, docked: 'bottom', size: 200, order: 0 }],
     ['chat', { id: 'chat', open: false, docked: 'right', size: 360, order: 1 }],
     ['search', { id: 'search', open: false, docked: 'left', size: 280, order: 0 }],
     ['lens-designer', { id: 'lens-designer', open: false, docked: 'right', size: 400, order: 2 }],

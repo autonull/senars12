@@ -45,7 +45,7 @@ export class ViewHost extends SurfaceComponent {
     .slot { padding: var(--spacing-scale-3); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
   `;
   @property({ attribute: false }) spec?: ViewSpec;
-  @property({ attribute: false }) budget: Budget = 'full';
+  @property({ type: String }) budget: Budget = 'full';
   /** `false` drops the chrome — for a view embedded in a surface that owns its own header. */
   @property({ attribute: false }) chrome = true;
   @state() private shape?: Shape;

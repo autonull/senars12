@@ -2,15 +2,18 @@ import { afterEach, describe, expect, it } from 'vitest';
 import '../../src/client/components/renderers/graph.js';
 import '../../src/client/components/renderers/graph3d.js';
 import '../../src/client/components/renderers/notebook.js';
+import '../../src/client/components/views/index.js';
 import '../../src/client/components/workspace-hud.js';
+import '../../src/client/core/view-host.js';
 import { eventBus } from '../../src/client/core/events.js';
-import { $activeRenderer, $graphLayer, $lmStatus } from '../../src/client/core/store.js';
+import { $activeRenderer, $graphLayer, $lmStatus, $telemetry } from '../../src/client/core/store.js';
 
 afterEach(() => {
   document.body.innerHTML = '';
   $activeRenderer.set('graph');
   $graphLayer.set('both');
   $lmStatus.set({});
+  $telemetry.set({ reasoning_hz: [1, 2], tokens_per_sec: [1, 2], memory_mb: [1, 2], ws_latency_ms: [1, 2] });
 });
 
 const mountHud = async () => {
@@ -89,5 +92,32 @@ describe('workspace hud', () => {
     query<HTMLButtonElement>(el.shadowRoot, 'button[data-action="settings"]').click();
     unsubscribe();
     expect(opened).toEqual(['settings']);
+  });
+
+  it('expands a telemetry sparkline and latest-values table above the pill', async () => {
+    const el = await mountHud();
+    query<HTMLButtonElement>(el.shadowRoot, 'button[data-action="telemetry"]').click();
+    await el.updateComplete;
+    expect(el.shadowRoot?.querySelector('.stats')).toBeTruthy();
+    const hosts = [...(el.shadowRoot?.querySelectorAll('s-view') ?? [])] as unknown as (HTMLElement & {
+      updateComplete: Promise<unknown>;
+    })[];
+    await Promise.all(hosts.map((host) => host.updateComplete));
+    const tags = hosts.map((host) =>
+      host.shadowRoot?.querySelector('s-sparkline, s-table-mini')?.tagName.toLowerCase()
+    );
+    expect(tags).toEqual(expect.arrayContaining(['s-sparkline', 's-table-mini']));
+  });
+
+  it('offers a Panels menu derived from the view.panel commands', async () => {
+    const el = await mountHud();
+    query<HTMLButtonElement>(el.shadowRoot, 'button[data-action="panels"]').click();
+    await el.updateComplete;
+    const items = [...(el.shadowRoot?.querySelectorAll('.panels button') ?? [])].map((button) =>
+      button.getAttribute('data-panel')
+    );
+    expect(items).toEqual(
+      expect.arrayContaining(['view.panel.chat', 'view.panel.search', 'view.panel.lens-designer'])
+    );
   });
 });
