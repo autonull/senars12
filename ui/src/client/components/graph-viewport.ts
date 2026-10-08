@@ -48,6 +48,7 @@ export class GraphViewport extends BaseComponent {
   static override styles = css`
     :host { display: block; position: relative; flex: 1; background: var(--colors-semantic-bg-base); min-height: 0; }
     #cy-container { width: 100%; height: 100%; position: relative; }
+    #cy-container:focus-visible { outline: 2px solid var(--colors-semantic-accent-cyan); outline-offset: -2px; }
     .warning { position: absolute; bottom: 8px; left: 8px; background: rgba(255, 176, 0, 0.1); border-left: 2px solid var(--colors-primitive-warning); padding: 4px 8px; font-family: var(--typography-fontFamilies-data); font-size: 0.65rem; color: var(--colors-primitive-warning); pointer-events: none; }
     .html-label { position: absolute; pointer-events: auto; overflow: hidden; background: transparent; z-index: 100; }
     .html-label .graph-message { transform-origin: top left; }
@@ -237,7 +238,7 @@ export class GraphViewport extends BaseComponent {
       const node = evt.target;
       if (node.hasClass('workspace')) {
         setWorkspaceFocus(node.id());
-        eventBus.emit('overlay:open', { id: 'explain', ref: node.id(), anchor: this });
+        eventBus.emit('overlay:open', { id: 'explain', ref: node.id() });
         return;
       }
       const term = node.data('term') || node.id();
@@ -251,7 +252,7 @@ export class GraphViewport extends BaseComponent {
       const node = evt.target;
       if (node.hasClass('workspace')) {
         setWorkspaceFocus(node.id());
-        eventBus.emit('overlay:open', { id: 'block-menu', ref: node.id(), anchor: this });
+        eventBus.emit('overlay:open', { id: 'block-menu', ref: node.id() });
         return;
       }
       this.contextTarget = node.id();
@@ -289,7 +290,7 @@ export class GraphViewport extends BaseComponent {
   override render() {
     const meta = $graphMeta.get();
     return html`
-      <div id="cy-container" @click=${this.closeContextMenu}></div>
+      <div id="cy-container" tabindex="0" @click=${this.closeContextMenu}></div>
       ${meta?.truncated ? html`<div class="warning">▼ ${meta.totalHidden} lower-priority concepts hidden</div>` : ''}
       ${Array.from(this.htmlLabels.values()).map(
         (d) => html`

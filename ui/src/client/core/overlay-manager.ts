@@ -105,6 +105,24 @@ export class OverlayManager {
     return this.#stack.length;
   }
 
+  /** Whether any open overlay declares itself modal (captures the background). */
+  hasModal(): boolean {
+    return this.#stack.some((overlay) => overlay.modal === true);
+  }
+
+  /**
+   * Whether focus currently sits inside an open overlay. Background shortcuts
+   * (graph `j`/`k`) stay live for focus-less popovers but must yield while a
+   * dialog owns focus.
+   */
+  containsFocus(): boolean {
+    const active = this.#doc?.activeElement;
+    if (!active) return false;
+    return this.#stack.some(
+      (overlay) => overlay.element === active || overlay.element.contains(active)
+    );
+  }
+
   setPinned(id: string, pinned: boolean): void {
     const overlay = this.#stack.find((open) => open.id === id);
     if (overlay) overlay.pinned = pinned;

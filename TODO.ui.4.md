@@ -56,8 +56,10 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 - [ ] **0.6 backend seam** — land the `ReasoningBackend` contract + adapter seam (`LmProvider` façade;
   `lm.status`/`lm.switch` already real). Blocked on nothing; needed by WP5. `(c)`
 - [ ] **Sweep — overlays/HUD/palette**:
-  - [x] `overlay.*` forwards all args (`ref`/`anchor`) to `overlay:open`; `[ ]` generic anchor resolver
-    in `OverlayHost` (pass the Cytoscape container, not the viewport element). `(v)`,`(e)`,`(o)`
+  - [x] `overlay.*` forwards all args (`ref`/`anchor`) to `overlay:open`; [x] generic anchor resolver
+    in `OverlayHost` — defaults to the element focused at open time, and the graph canvas is now
+    focusable (`tabindex=0`), so graph/shortcut-triggered overlays restore focus without callers
+    passing `this`. `(v)`,`(e)`,`(o)`
   - [x] palette modality decision — keep **non-modal** (outside-click dismiss); a true modal needs a
     scrim the manager does not yet render (see opportunities); [x] MRU group; [x] `Announcer` bridge
     on open/close for focus-less popovers. `(f)`,`(b)`,`(e)`
@@ -239,6 +241,20 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 
 Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
 
+### (v4.7) — WP1 sweep: anchor resolver + graph focus
+- **Generic anchor resolver** — `OverlayHost.open` now defaults the focus-return anchor to
+  `document.activeElement` when the caller does not name one, so overlays opened from the graph or a
+  shortcut restore focus without each caller passing an element. HUD/notebook callers still pass the
+  explicit button.
+- **Graph canvas is focusable** — `#cy-container` gained `tabindex="0"` (+ `:focus-visible` ring), so
+  clicking the graph focuses it and overlays restore focus there; `graph-viewport` no longer passes
+  `anchor: this`.
+- **Fixed a v4.2 regression** — the global `j`/`k` guard bailed whenever *any* overlay was open, so
+  the focus-less inspector disabled graph navigation. The guard now yields only when an overlay
+  `containsFocus()` or `hasModal()`. New `OverlayManager.containsFocus()`/`hasModal()`.
+- **Tests** — `overlay-host` (anchor default), `overlay-manager` (focus/modal); e2e
+  `timeline`/`focus-concept`/`keyboard-navigation`/`smoke` green.
+
 ### (v4.6) — WP1 sweep: overlay announcer + modality decision
 - **Announcer bridge** — `OverlayEntry` gained `title`; `OverlayManager` announces `"{title} opened"`
   / `"{title} closed"` for focus-less popovers (`autoFocus: false`, e.g. the inspector), while
@@ -313,10 +329,10 @@ Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
   drawer because the old standing panel keyed only on `$selectedNodeId`. The `$selectedEdgeId`
   watcher added in v4.2 now opens the inspector for edges, but the stale selector remains; both cases
   are red on pristine.
-- **Overlay sweep still open:** generic `OverlayHost` anchor resolver (pass the Cytoscape container,
-  not the viewport element); the layer/renderer controls still branch on `active === 'graph'` rather
-  than capability flags; `config-hud` `embedded` mode + provider switching as an overlay action (await
-  the `LmProvider` façade). `overlay.*` arg forwarding, palette MRU/modality/announcer are done (v4.5/v4.6).
+- **Overlay sweep still open:** the layer/renderer controls still branch on `active === 'graph'`
+  rather than capability flags; `config-hud` `embedded` mode + provider switching as an overlay
+  action (await the `LmProvider` façade). `overlay.*` arg forwarding, anchor resolver, palette
+  MRU/modality/announcer are done (v4.5–v4.7).
 - **Modal scrim (new).** The manager treats `modal` as "ignore outside-click" but does not block
   background interaction or paint a scrim, so nothing is marked modal. If a true modal is needed
   (tool approval, 0.5), add a scrim element + `pointer-events` capture to `OverlayManager`.

@@ -122,4 +122,19 @@ describe('overlay manager', () => {
     manager.close('inspector');
     expect(announce).toHaveBeenCalledWith('Inspector closed');
   });
+
+  it('reports modal presence and whether focus is inside an overlay', () => {
+    const manager = makeManager();
+    expect(manager.hasModal()).toBe(false);
+    expect(manager.containsFocus()).toBe(false);
+
+    manager.open({ id: 'settings', element: makeOverlay() });
+    expect(manager.containsFocus()).toBe(true);
+
+    manager.open({ id: 'approval', element: makeOverlay(), modal: true });
+    expect(manager.hasModal()).toBe(true);
+
+    manager.close();
+    expect(manager.hasModal()).toBe(false);
+  });
 });

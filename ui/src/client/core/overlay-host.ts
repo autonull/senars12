@@ -33,11 +33,15 @@ export class OverlayHost {
     if (!descriptor) return false;
     const element = this.#element(descriptor);
     if (ref !== undefined) (element as { ref?: string }).ref = ref;
+    const focused = this.#container.ownerDocument.activeElement as HTMLElement | null;
     this.manager.open({
       id,
       element,
       title: descriptor.title,
-      anchor,
+      // Callers may name an anchor (a HUD button); otherwise return focus to
+      // whatever held it when the overlay opened, so graph/shortcut triggers
+      // restore correctly without each caller knowing the focused element.
+      anchor: anchor ?? focused ?? undefined,
       modal: descriptor.modal,
       autoFocus: descriptor.autoFocus,
     });

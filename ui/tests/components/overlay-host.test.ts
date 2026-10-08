@@ -75,6 +75,16 @@ describe('overlay host', () => {
     );
   });
 
+  it('defaults the anchor to the element focused when opening', () => {
+    const host = makeHost();
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    button.focus();
+    host.open('test-overlay');
+    host.close();
+    expect(document.activeElement).toBe(button);
+  });
+
   it('disposes the manager and removes overlay elements', () => {
     const host = makeHost();
     host.open('test-overlay');

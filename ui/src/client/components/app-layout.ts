@@ -98,7 +98,8 @@ export class AppLayout extends BaseComponent {
       }
       return;
     }
-    if (event.altKey || (this.#overlays?.manager.size() ?? 0) > 0) return;
+    const overlays = this.#overlays?.manager;
+    if (event.altKey || overlays?.hasModal() || overlays?.containsFocus()) return;
     if (isEditableTarget(event)) return;
     const graph = $workspaceGraph.get();
     const target = navigationForKey(graph, event.key, graph.focus);
