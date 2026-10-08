@@ -3,7 +3,7 @@ import { notebookRenderer } from '../../src/client/components/renderers/notebook
 import '../../src/client/components/views/table-mini-view.js';
 import '../../src/client/components/views/table-view.js';
 import { eventBus } from '../../src/client/core/events.js';
-import { $workspaceGraph } from '../../src/client/core/store.js';
+import { $collapsedBlocks, $workspaceGraph } from '../../src/client/core/store.js';
 import '../../src/client/core/view-host.js';
 import {
   applyWorkspaceOps,
@@ -32,6 +32,7 @@ const graph = (...blocks: SemanticBlock[]) =>
 afterEach(() => {
   document.body.innerHTML = '';
   $workspaceGraph.set(emptyWorkspaceGraph());
+  $collapsedBlocks.set(new Set());
 });
 
 describe('notebook surface', () => {
@@ -127,6 +128,27 @@ describe('notebook surface', () => {
       expect.objectContaining({ id: 'block-menu', ref: 'user-1' })
     );
     off();
+  });
+
+  it('folds and unfolds a page with children, preserving the fold in session state', async () => {
+    $workspaceGraph.set(
+      applyWorkspaceOps(emptyWorkspaceGraph(), [
+        { op: 'block.add', block: block('t1', { children: ['c1'], text: undefined }) },
+        { op: 'block.add', block: block('c1', { kind: 'claim', role: 'assistant', createdBy: 'lm', text: 'child text' }) },
+        { op: 'roots.set', roots: ['t1'] },
+      ])
+    );
+    const el = document.createElement('s-notebook');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.shadowRoot?.textContent).toContain('child text');
+    const fold = el.shadowRoot?.querySelector<HTMLButtonElement>('.fold');
+    expect(fold?.getAttribute('aria-expanded')).toBe('true');
+    fold?.click();
+    await el.updateComplete;
+    expect(el.shadowRoot?.textContent).not.toContain('child text');
+    expect(el.shadowRoot?.querySelector('.fold')?.getAttribute('aria-expanded')).toBe('false');
+    expect([...$collapsedBlocks.get()]).toContain('t1');
   });
 
   it('marks the focused block', async () => {

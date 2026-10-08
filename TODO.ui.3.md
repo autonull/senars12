@@ -510,7 +510,7 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 ### Phase 1 — Semantic Notebook / standalone LM UI wedge
 Goal: build the unique LM conversation UI first.
 - [~] 1.1 Notebook renderer: vertical page renderer, block components, block affordances, folding, focus/selection, streaming-friendly.
-  - Landed the `s-notebook` surface (`defineSurface`) + `notebookRenderer`: top-level blocks render as vertical pages with per-kind affordances (`BLOCK_KIND_LABEL`, now in `core/block-labels.ts`), role/status styling, uncertainty chips, empty-state slot, and focus/selection round-trip for renderer switches. Pages now walk `children`/`contains` and render heading/list/table/code blocks richly (static-tag headings to satisfy Lit). Every block now carries a `⋯` context-menu affordance (opens the block menu with the triggering element as anchor) and highlights when it is the workspace focus (set by the ToC or by clicking the block). Remaining: section folding, artifact rendering via the inner view system, and virtualization.
+  - Landed the `s-notebook` surface (`defineSurface`) + `notebookRenderer`: top-level blocks render as vertical pages with per-kind affordances (`BLOCK_KIND_LABEL`, now in `core/block-labels.ts`), role/status styling, uncertainty chips, empty-state slot, and focus/selection round-trip for renderer switches. Pages now walk `children`/`contains` and render heading/list/table/code blocks richly (static-tag headings to satisfy Lit). Every block now carries a `⋯` context-menu affordance (opens the block menu with the triggering element as anchor) and highlights when it is the workspace focus (set by the ToC or by clicking the block). **Section folding** is landed: a page with children gets a `▸`/`▾` toggle (`aria-expanded`) backed by the `$collapsedBlocks` session atom (`toggleCollapsed`), hiding/showing its children in place and preserved across renderer switches. Remaining: virtualization for long sessions (the "artifact rendering via the inner view system" is largely landed for tables via `s-view` and for image/citation/code).
 - [~] 1.2 Composer overlay with modes; universal input (NL now; Narsese/structured seam).
   - Landed the mode substrate + a mode-aware universal composer. `core/capabilities.ts` (Phase 0.6 partial) is the one capability registry — `CAPABILITY_CATALOG`, `$capabilities`, `capabilityEnabled`/`setCapability`, defaulting to the LM-only `{language}` composition. `core/composer-modes.ts` is the §8.1 mode catalog as data (`ask · reply · question · command · explain · demonstrate · transform · believe · goal · tool`), each declaring the capability that makes it do work and whether it is a structured seam; `availableComposerModes(caps)` hides intents the composition cannot honour, and `decomposeForMode(text, mode)` reshapes the §8.2 split (`question` imposes the question kind, `command` collapses the input to one command, the rest use the lexical split). The `input-hud` composer now renders a mode bar over the available modes, uses the mode hint as placeholder, feeds the mode-aware decomposition, and sends `{ type:'chat.user', content, mode }`; a `composer.focus` command + `composer:focus` signal make it palette-reachable. The declared mode is now carried end-to-end: `core/protocol/chat.ts` accepts an optional `mode` on `ChatMessage`/`chat.user` (a free string so the protocol stays UI-agnostic), `addUserMessage(content, mode?)` stores it, and `projectChat` runs `decomposeForMode` on user turns (guarded by `isComposerMode`, falling back to the lexical split) — so the intent shows up as the block kinds in the WorkspaceGraph, not only in the composer preview. Remaining: the true *floating* composer anchored to a selected block/node/subgraph (§8.1) — that needs graph-native selection and a summoned rather than persistent dock — and the structured modes' producers (formalize/gate for believe/goal, tool transport).
 - [x] 1.3 Input decomposition: deterministic claim/question/command split; raw preserved; extracted structure shown.
@@ -518,7 +518,7 @@ Goal: build the unique LM conversation UI first.
 - [~] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
   - Landed `core/segmentation.ts` (`segmentText`): deterministic, dependency-free Markdown parsing into heading/paragraph/list/table/code segments with table rows and fenced-code language, plus standalone images (`![alt](src)` → `image` with `{alt,src}`) and links (Markdown link or reference definition → `citation` with `{label|key,href}`); inline links stay in their paragraph. `projectChat` expands assistant turns into child blocks (`childId(msg,index)` position-anchor ids) linked by `contains`, with the raw turn text retained on the turn block. Notebook renders the children richly (including `<img>` and `<a>` for image/citation; tables render through `<s-view>` at the embedded budget via `artifactViewSpec`). Remaining: block-level streaming (`status: 'streaming'` re-parse).
 - [x] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
-  - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Breadcrumbs (`core/navigation.ts` `breadcrumb`, rendered atop the notebook, clickable to an ancestor) and keyboard navigation (`j`/`k` blocks, `[ ]` pages via `navigationForKey`, bound in `app-layout`, ignored while an overlay is open or an editable is focused) are landed; the notebook scrolls the focused block into view. Remaining (deferred): URL-addressable `(page, block, disclosure)`, section folding, and virtualization for long sessions.
+  - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Breadcrumbs (`core/navigation.ts` `breadcrumb`, rendered atop the notebook, clickable to an ancestor) and keyboard navigation (`j`/`k` blocks, `[ ]` pages via `navigationForKey`, bound in `app-layout`, ignored while an overlay is open or an editable is focused) are landed; the notebook scrolls the focused block into view. Remaining (deferred): URL-addressable `(page, block, disclosure)` and virtualization for long sessions (section folding is landed in 1.1).
 - [~] 1.6 Contextual link menu: ask follow-up, explain, open related, view as graph, copy/export, (formalize-as-belief/goal/question seam).
   - Landed `s-block-menu` + `s-explain` overlays over the pure `explainModel` (`core/explain.ts`): **Ask follow-up** (focuses the composer with the block as context — see (m)), Explain, Open in graph, View provenance (only when the block has provenance links — hidden, not inert), Copy text, and — capability-gated — **Formalize as belief/goal** (shown only when `reasoning` is on; hidden otherwise, never inert). The explanation popover exposes the `summary · card · detail · raw` disclosure levels as data; an `Open artifact` affordance (only when the block has a typed artifact — table/code via `artifactViewSpec`, or an image) opens the artifact viewer. Remaining: **Open related** (semantic-neighborhood navigation) is deferred to 2.4; a dedicated "formalize as question" action is redundant with the composer `question` mode + follow-up.
 - [~] 1.7 LM-only completeness: Notebook works with no reasoning backend; provider status in HUD; rich artifacts; conversation graph exists even without NARS.
@@ -1318,6 +1318,34 @@ The `language`-only composition is deliberately shippable on its own: a conversa
 - Echo context blocks as quoted excerpts in the sent content (an actual "reply"), gated by preference.
 - Node-creating ops: a graph context-menu "Ask as question"/"Assert as claim" that dispatches a
   `WorkspaceOp` (block.add) and focuses the new block — closes the authoring half of 2.3.
+
+### 2026-10-08 (q) — 1.1 section folding (+ fix the last dangling composer call)
+
+**Landed**
+- `ui/src/client/core/store.ts` — `$collapsedBlocks` session atom (`ReadonlySet<ref>`) + `toggleCollapsed(ref)`.
+  Session state, like focus/selection, so folds survive a renderer switch; exported from `core/index`.
+- `ui/src/client/components/renderers/notebook.ts` — a page with children renders a `▸`/`▾` fold toggle
+  (`aria-expanded`, `stopPropagation` so it doesn't focus the block); folded pages hide their children in
+  place and get a `data-folded` treatment. Watches `$collapsedBlocks` so folds re-render. Also fixed
+  `NotebookRenderer.openComposer`, which still called the never-registered `composer` overlay — it now
+  emits `composer:focus { refs }` (the same fix already applied to the Graph renderer).
+- Tests (+1; **216 green / 36 files**; UI typecheck and biome clean): notebook folds/unfolds a page,
+  toggles `aria-expanded`, and records the fold in `$collapsedBlocks`; suite resets the atom after each.
+
+**Notes for remaining work**
+- Folding is per-page (children hidden), not nested-section aware by heading level; fine for chat turns,
+  may want level-based folding when engine sections land.
+- The fold is UI state on `$collapsedBlocks`, not part of `WorkspaceGraph` (intentionally — it is session
+  state like focus); 2.5's "switching preserves context" now covers folds too.
+- `NotebookRenderer.openComposer` is untested (the renderer has no direct openComposer test); add one when
+  a notebook `composer:focus` path is exercised.
+
+**New improvement opportunities**
+- Level-based folding (a heading folds everything until the next heading of equal/higher level) once
+  segmentation emits `level` on sections, reusing `$collapsedBlocks`.
+- A "fold all / unfold all" palette command over `$collapsedBlocks`, and remembering folds in the URL
+  alongside `(page, block, disclosure)`.
+- Surface a folded-count badge on collapsed pages ("3 blocks hidden") for scanability.
 
 
 

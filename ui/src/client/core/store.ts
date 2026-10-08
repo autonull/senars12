@@ -158,6 +158,17 @@ export function setWorkspaceSelection(refs: Iterable<string>): void {
   $workspaceGraph.set({ ...$workspaceGraph.get(), selection: new Set(refs) });
 }
 
+/** Blocks whose children are folded in the workspace renderers (§1.1; session state). */
+export const $collapsedBlocks = atom<ReadonlySet<string>>(new Set());
+
+/** Fold/unfold a block's children in place, preserved across renderer switches. */
+export function toggleCollapsed(ref: string): void {
+  const next = new Set($collapsedBlocks.get());
+  if (next.has(ref)) next.delete(ref);
+  else next.add(ref);
+  $collapsedBlocks.set(next);
+}
+
 // --- Batch 4: Capability-based filtering ---
 export const $capabilityFilter = atom<string | 'all'>('all');
 

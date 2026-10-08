@@ -18,7 +18,7 @@ import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { breadcrumb } from '../../core/navigation.js';
 import type { TableData } from '../../core/segmentation.js';
 import { eventBus } from '../../core/events.js';
-import { $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
+import { $collapsedBlocks, $workspaceGraph, setWorkspaceFocus, toggleCollapsed } from '../../core/store.js';
 import type { Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
 import { rootBlocks } from '../../core/workspace-graph.js';
 import {
@@ -73,7 +73,12 @@ function renderHeading(block: SemanticBlock): TemplateResult {
   }
 }
 
-function renderBlock(block: SemanticBlock, focused = false): TemplateResult {
+interface FoldControl {
+  folded: boolean;
+  toggle: () => void;
+}
+
+function renderBlock(block: SemanticBlock, focused = false, fold?: FoldControl): TemplateResult {
   const body = (() => {
     if (block.kind === 'heading') return renderHeading(block);
     if (block.kind === 'image' && block.data) {
@@ -117,6 +122,19 @@ function renderBlock(block: SemanticBlock, focused = false): TemplateResult {
         ${block.title && !isSection(block) && block.title !== BLOCK_KIND_LABEL[block.kind] ? html`<span class="title">${block.title}</span>` : ''}
         <span class="meta">
           ${uncertaintyChip(block)}
+          ${
+            fold
+              ? html`<button
+                  class="fold"
+                  title=${fold.folded ? 'Expand' : 'Collapse'}
+                  aria-expanded=${!fold.folded}
+                  @click=${(event: Event) => {
+                    event.stopPropagation();
+                    fold.toggle();
+                  }}
+                >${fold.folded ? '▸' : '▾'}</button>`
+              : ''
+          }
           <button class="more" title="Block actions" aria-label="Block actions" @click=${(event: Event) => {
             event.stopPropagation();
             eventBus.emit('overlay:open', { id: 'block-menu', ref: block.id, anchor: event.currentTarget as HTMLElement });
@@ -150,6 +168,9 @@ export class NotebookView extends SurfaceComponent {
     .breadcrumb .sep { color: var(--colors-semantic-text-muted); }
     .more { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); line-height: 1; padding: 0 var(--spacing-scale-1); }
     .more:hover { color: var(--colors-semantic-text-primary); }
+    .fold { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-xs); line-height: 1; padding: 0 var(--spacing-scale-1); }
+    .fold:hover { color: var(--colors-semantic-text-primary); }
+    .page[data-folded='true'] { background: var(--colors-semantic-bg-subtle); border-radius: 6px; }
     .block[data-focused='true'] { outline: 1px solid var(--colors-semantic-accent-cyan); }
     .chip { padding: 0 var(--spacing-scale-1); border-radius: 4px; background: var(--colors-semantic-bg-overlay); color: var(--colors-semantic-text-secondary); font-family: var(--typography-fontFamilies-data); }
     .text { color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-base); line-height: var(--typography-lineHeights-relaxed); white-space: pre-wrap; word-break: break-word; }
@@ -179,6 +200,11 @@ export class NotebookView extends SurfaceComponent {
   }
 
   #scrolledFocus?: string;
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    this.watch($collapsedBlocks);
+  }
 
   override updated(): void {
     const focus = $workspaceGraph.get().focus;
@@ -217,10 +243,12 @@ export class NotebookView extends SurfaceComponent {
           const children = (block.children ?? [])
             .map((id) => graph.blocks.get(id))
             .filter((child): child is SemanticBlock => !!child);
+          const folded = $collapsedBlocks.get().has(block.id);
+          const fold = children.length > 0 ? { folded, toggle: () => toggleCollapsed(block.id) } : undefined;
           return html`
-            <section class="page" data-id=${block.id}>
-              ${renderBlock(children.length > 0 ? { ...block, text: undefined } : block, graph.focus === block.id)}
-              ${children.map((child) => renderBlock(child, graph.focus === child.id))}
+            <section class="page" data-id=${block.id} data-folded=${folded}>
+              ${renderBlock(children.length > 0 ? { ...block, text: undefined } : block, graph.focus === block.id, fold)}
+              ${folded ? '' : children.map((child) => renderBlock(child, graph.focus === child.id))}
             </section>
           `;
         })}
@@ -266,7 +294,7 @@ class NotebookRenderer implements WorkspaceRenderer {
   }
 
   openComposer(anchor?: Ref): void {
-    this.#ctx?.openOverlay('composer', anchor ?? this.#focus);
+    eventBus.emit('composer:focus', { refs: anchor ? [anchor] : undefined });
   }
 
   openExplain(ref: Ref): void {
