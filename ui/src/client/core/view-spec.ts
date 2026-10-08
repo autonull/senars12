@@ -7,7 +7,7 @@
  */
 
 /** The shapes one dataset can be rendered as (§3.3). The view system owns this union. */
-export type Shape = 'graph' | 'series' | 'table' | 'tree' | 'text';
+export type Shape = 'graph' | 'series' | 'table' | 'tree' | 'text' | 'code';
 
 /** Full-screen or embedded — the context a view is rendered in. */
 export type Budget = 'full' | 'embedded';
@@ -53,6 +53,12 @@ export interface TextDataset {
   lines: string[];
 }
 
+export interface CodeDataset {
+  kind: 'code';
+  language?: string;
+  lines: string[];
+}
+
 export interface TreeNode {
   id: string;
   label: string;
@@ -64,7 +70,7 @@ export interface TreeDataset {
   roots: TreeNode[];
 }
 
-export type ViewDataset = SeriesDataset | TableDataset | TextDataset | TreeDataset;
+export type ViewDataset = SeriesDataset | TableDataset | TextDataset | TreeDataset | CodeDataset;
 export type DatasetKind = ViewDataset['kind'];
 
 export interface ViewSpec {

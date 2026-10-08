@@ -107,7 +107,10 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 
 - [ ] **4.3 typing** — discriminated `Artifact` union on `SemanticBlock`/`Segment` (drop `data` casts);
   promote `Segment.data` to the `Artifact` contract. `(i)`,`(j)`,`(d)`
-- [ ] **4.3 code** — add a `code` shape + `s-code` adapter (language, line numbers, highlighting). `(j)`,`(i)`,`(ad)`
+- [x] **4.3 code** — added a `code` shape + `s-code` adapter (language, line-number gutter,
+  light token highlighting via a pure line-local `tokenizeCode`); `artifactViewSpec` now maps
+  `code` blocks to a `CodeDataset` (`shapes: ['code','text']`) and the Notebook renders them
+  through `s-view`, so code has one rendering path in the notebook and the artifact overlay. `(j)`,`(i)`,`(ad)`
 - [ ] **4.3 diff** — add a `diff` representation/view (config-change + comparisons). `(ad)`
 - [ ] **4.3 derivation-record** — `s-tree` provenance view. **Depends on WP5/3.3** for the
   `DerivationRecord` payload. `(ad)`
@@ -249,6 +252,21 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 
 Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
 
+### (v4.12) — WP3 start: the `code` shape + `s-code` adapter
+- **Contract** — `Shape` gained `'code'`; new `CodeDataset { kind:'code'; language?; lines }` joins
+  `ViewDataset`. `view-projection` projects `code` → `text` and → single-column `table`;
+  `projectableShapes`/`datasetIsEmpty` cover it.
+- **Adapter** — `components/views/code-view.ts` (`s-code`) renders a line-number gutter (CSS grid,
+  `user-select: none`) and `components/views/code-highlight.ts` (`tokenizeCode`) is a pure,
+  line-local tokenizer (strings / comments / numbers / keywords, with `#` comments gated to
+  hash-comment languages and a round-trip invariant). Embedded budget keeps the first 8 lines plus
+  an "… N more lines" count.
+- **One rendering path** — `artifactViewSpec` maps a `code` block to a `CodeDataset`
+  (`shapes: ['code','text']`, title = language); the Notebook routes `code` through `s-view` like
+  `table`, keeping the `<pre class="code">` only as a no-spec fallback.
+- **Tests** — new `code-view.test.ts` (tokenizer + element); projection/adapter/artifacts updated;
+  272 component tests green.
+
 ### (v4.11) — WP2 start: one URL mirror primitive + renderer validation
 - **2.6 mirrors** — added `setUrlState(key, value, equals?)` (write-if-changed) and
   `mirrorAtom(source, key, project, equals?)`; every ad-hoc subscription now goes through
@@ -385,6 +403,11 @@ Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
 - **Modal scrim (new).** The manager treats `modal` as "ignore outside-click" but does not block
   background interaction or paint a scrim, so nothing is marked modal. If a true modal is needed
   (tool approval, 0.5), add a scrim element + `pointer-events` capture to `OverlayManager`.
+- **Code highlighting is line-local (new).** `tokenizeCode` deliberately carries no state across
+  lines, so multi-line block comments, template-literal interpolation and heredocs are not tracked.
+  Upgrade paths if wanted: a tokenizer with carry (still dependency-free), or reuse the landed
+  inline-tokenizer seam from `1.4 rich text`. `codeLanguage` in `artifacts.ts` still casts
+  `block.data`; landing `4.3 typing` removes that cast and lets the language ride the typed contract.
 
 ### (v4.1) — restructured into work packages
 - Rewrote the forward plan as work packages with a dependency spine; folded every improvement

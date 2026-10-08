@@ -8,6 +8,7 @@
 
 import type { TableData } from './segmentation.js';
 import type {
+  CodeDataset,
   ColumnSpec,
   SeriesDataset,
   Shape,
@@ -33,7 +34,9 @@ export function tableFromColumns(
   };
 }
 
-const staticSource = (dataset: TableDataset | TextDataset | SeriesDataset): ViewSource => ({
+const staticSource = (
+  dataset: TableDataset | TextDataset | SeriesDataset | CodeDataset
+): ViewSource => ({
   get: () => dataset,
 });
 
@@ -88,12 +91,18 @@ export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
     };
   }
   if (block.kind === 'code') {
-    const dataset: TextDataset = { kind: 'text', lines: (block.text ?? '').split('\n') };
+    const language = codeLanguage(block);
+    const dataset: CodeDataset = {
+      kind: 'code',
+      language,
+      lines: (block.text ?? '').split('\n'),
+    };
     return {
       id: `artifact:${block.id}`,
-      title: codeLanguage(block) || block.title || 'Code',
-      shapes: ['text'],
+      title: language || block.title || 'Code',
+      shapes: ['code', 'text'],
       source: staticSource(dataset),
+      shape: 'code',
       interactions: ['select'],
     };
   }

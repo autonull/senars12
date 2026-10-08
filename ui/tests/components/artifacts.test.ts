@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { artifactViewSpec, tableFromColumns } from '../../src/client/core/artifacts.js';
 import type { TableData } from '../../src/client/core/segmentation.js';
-import type { TableDataset, TextDataset } from '../../src/client/core/view-spec.js';
+import type { TableDataset, TextDataset, CodeDataset } from '../../src/client/core/view-spec.js';
 import type { SemanticBlock } from '../../src/client/core/workspace-graph.js';
 
 const block = (over: Partial<SemanticBlock>): SemanticBlock => ({
@@ -40,11 +40,19 @@ describe('artifactViewSpec', () => {
     expect((spec.source.get() as TableDataset).rows).toEqual([{ c0: '1', c1: '2' }]);
   });
 
-  it('maps a code block to a text dataset titled by language', () => {
-    const spec = artifactViewSpec(block({ kind: 'code', text: 'const x = 1;', data: { lang: 'ts' } }));
+  it('maps a code block to a code dataset titled by language', () => {
+    const spec = artifactViewSpec(
+      block({ kind: 'code', text: 'const x = 1;', data: { lang: 'ts' } })
+    );
     if (!spec) throw new Error('expected a code view spec');
+    expect(spec.shape).toBe('code');
+    expect(spec.shapes).toEqual(['code', 'text']);
     expect(spec.title).toBe('ts');
-    expect((spec.source.get() as TextDataset).lines).toEqual(['const x = 1;']);
+    expect(spec.source.get() as CodeDataset).toEqual({
+      kind: 'code',
+      language: 'ts',
+      lines: ['const x = 1;'],
+    });
   });
 
   it('returns undefined for a block with no artifact', () => {

@@ -94,8 +94,11 @@ describe('notebook surface', () => {
     const root = el.shadowRoot;
     expect(root?.querySelector('h2')?.textContent).toBe('Findings');
     expect(root?.querySelector('ul.list')?.children).toHaveLength(2);
-    expect(root?.querySelector('s-view')).toBeTruthy();
-    expect(root?.querySelector('pre.code')?.textContent).toContain('const x = 1;');
+    const artifactViews = [...(root?.querySelectorAll('s-view') ?? [])].map(
+      (view) => (view as { spec?: { shape?: string } }).spec?.shape
+    );
+    expect(artifactViews).toContain('table');
+    expect(artifactViews).toContain('code');
   });
 
   it('renders image and citation blocks', async () => {

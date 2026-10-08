@@ -53,9 +53,7 @@ function renderTable(data: TableData): TemplateResult {
     <table class="data">
       <thead><tr>${data.headers.map((cell) => html`<th>${cell}</th>`)}</tr></thead>
       <tbody>
-        ${data.rows.map(
-          (row) => html`<tr>${row.map((cell) => html`<td>${cell}</td>`)}</tr>`
-        )}
+        ${data.rows.map((row) => html`<tr>${row.map((cell) => html`<td>${cell}</td>`)}</tr>`)}
       </tbody>
     </table>
   `;
@@ -97,8 +95,12 @@ function renderBlock(block: SemanticBlock, focused = false, fold?: FoldControl):
         >${label ?? key ?? href}</a
       >`;
     }
-    if (block.kind === 'code')
-      return html`<pre class="code"><code>${block.text}</code></pre>`;
+    if (block.kind === 'code') {
+      const spec = artifactViewSpec(block);
+      return spec
+        ? html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'}></s-view>`
+        : html`<pre class="code"><code>${block.text}</code></pre>`;
+    }
     if (block.kind === 'table' && block.data) {
       const spec = artifactViewSpec(block);
       return spec
@@ -141,9 +143,15 @@ function renderBlock(block: SemanticBlock, focused = false, fold?: FoldControl):
                 >${fold.folded ? '▸' : '▾'}</button>`
               : ''
           }
-          <button class="more" title="Block actions" aria-label="Block actions" @click=${(event: Event) => {
+          <button class="more" title="Block actions" aria-label="Block actions" @click=${(
+            event: Event
+          ) => {
             event.stopPropagation();
-            eventBus.emit('overlay:open', { id: 'block-menu', ref: block.id, anchor: event.currentTarget as HTMLElement });
+            eventBus.emit('overlay:open', {
+              id: 'block-menu',
+              ref: block.id,
+              anchor: event.currentTarget as HTMLElement,
+            });
           }}>⋯</button>
         </span>
       </header>
@@ -250,7 +258,8 @@ export class NotebookView extends SurfaceComponent {
             .map((id) => graph.blocks.get(id))
             .filter((child): child is SemanticBlock => !!child);
           const folded = $collapsedBlocks.get().has(block.id);
-          const fold = children.length > 0 ? { folded, toggle: () => toggleCollapsed(block.id) } : undefined;
+          const fold =
+            children.length > 0 ? { folded, toggle: () => toggleCollapsed(block.id) } : undefined;
           return html`
             <section class="page" data-id=${block.id} data-folded=${folded}>
               ${renderBlock(children.length > 0 ? { ...block, text: undefined } : block, graph.focus === block.id, fold)}

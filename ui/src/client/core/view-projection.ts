@@ -1,4 +1,5 @@
 import type {
+  CodeDataset,
   ColumnSpec,
   SeriesDataset,
   Shape,
@@ -37,7 +38,8 @@ function seriesToTable(dataset: SeriesDataset): TableDataset {
 
 function tableToSeries(dataset: TableDataset): SeriesDataset | undefined {
   const valueColumns = dataset.columns.filter(
-    (column) => column.id !== 'index' && dataset.rows.some((row) => typeof row[column.id] === 'number')
+    (column) =>
+      column.id !== 'index' && dataset.rows.some((row) => typeof row[column.id] === 'number')
   );
   if (valueColumns.length === 0) return undefined;
   return {
@@ -74,6 +76,11 @@ function textToTable(dataset: TextDataset): TableDataset {
   };
 }
 
+const codeToText = (dataset: CodeDataset): TextDataset => ({
+  kind: 'text',
+  lines: dataset.lines,
+});
+
 function treeToText(dataset: TreeDataset): TextDataset {
   const lines: string[] = [];
   const walk = (node: TreeNode, depth: number): void => {
@@ -103,14 +110,18 @@ export function projectDataset(
       return shape === 'table' ? textToTable(dataset) : undefined;
     case 'tree':
       return shape === 'text' ? treeToText(dataset) : undefined;
+    case 'code':
+      if (shape === 'text') return codeToText(dataset);
+      return shape === 'table' ? textToTable(codeToText(dataset)) : undefined;
   }
 }
 
 /** Shapes a dataset can become, including its own kind. */
 export function projectableShapes(dataset: ViewDataset): Shape[] {
   const shapes: Shape[] = [dataset.kind];
-  for (const shape of ['graph', 'series', 'table', 'tree', 'text'] as Shape[]) {
-    if (shape !== dataset.kind && projectDataset(dataset, shape)?.kind === shape) shapes.push(shape);
+  for (const shape of ['graph', 'series', 'table', 'tree', 'text', 'code'] as Shape[]) {
+    if (shape !== dataset.kind && projectDataset(dataset, shape)?.kind === shape)
+      shapes.push(shape);
   }
   return shapes;
 }
@@ -126,5 +137,7 @@ export function datasetIsEmpty(dataset: ViewDataset | null | undefined): boolean
       return dataset.lines.length === 0;
     case 'tree':
       return dataset.roots.length === 0;
+    case 'code':
+      return dataset.lines.length === 0;
   }
 }

@@ -6,6 +6,7 @@ import {
   projectDataset,
 } from '../../src/client/core/view-projection.js';
 import type {
+  CodeDataset,
   SeriesDataset,
   TableDataset,
   TextDataset,
@@ -33,6 +34,8 @@ const table: TableDataset = {
 };
 
 const text: TextDataset = { kind: 'text', lines: ['alpha', 'beta'] };
+
+const code: CodeDataset = { kind: 'code', language: 'ts', lines: ['const x = 1;', '// note'] };
 
 const tree: TreeDataset = {
   kind: 'tree',
@@ -83,6 +86,16 @@ describe('view projection', () => {
     expect(projected.lines).toEqual(['A', '  B']);
   });
 
+  it('projects code into text and a single-column table', () => {
+    const asText = projectDataset(code, 'text') as TextDataset;
+    expect(asText.lines).toEqual(['const x = 1;', '// note']);
+    const asTable = projectDataset(code, 'table') as TableDataset;
+    expect(asTable.rows).toEqual([
+      { index: 0, line: 'const x = 1;' },
+      { index: 1, line: '// note' },
+    ]);
+  });
+
   it('passes a dataset through for the graph shape and returns undefined when unsupported', () => {
     expect(projectDataset(series, 'graph')).toBe(series);
     expect(projectDataset(series, 'tree')).toBeUndefined();
@@ -92,9 +105,12 @@ describe('view projection', () => {
   it('reports projectable shapes and emptiness', () => {
     expect(projectableShapes(series)).toEqual(['series', 'table', 'text']);
     expect(projectableShapes(tree)).toEqual(['tree', 'text']);
+    expect(projectableShapes(code)).toEqual(['code', 'table', 'text']);
     expect(datasetIsEmpty({ kind: 'series', series: [] })).toBe(true);
     expect(datasetIsEmpty(series)).toBe(false);
     expect(datasetIsEmpty({ kind: 'table', columns: [], rows: [] })).toBe(true);
+    expect(datasetIsEmpty({ kind: 'code', lines: [] })).toBe(true);
+    expect(datasetIsEmpty(code)).toBe(false);
     expect(datasetIsEmpty(null)).toBe(true);
   });
 
