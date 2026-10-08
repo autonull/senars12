@@ -9,7 +9,8 @@
  */
 
 import type { ChatMessage, GraphNodeData } from '@senars/core';
-import { decomposeInput, isFaithfulDecomposition } from './input-decomposition.js';
+import { decomposeForMode, DEFAULT_COMPOSER_MODE, isComposerMode } from './composer-modes.js';
+import { isFaithfulDecomposition } from './input-decomposition.js';
 import { segmentText } from './segmentation.js';
 import type {
   BlockKind,
@@ -121,7 +122,10 @@ export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment
 
     if (message.role === 'user') {
       const children: Ref[] = [];
-      const segments = decomposeInput(message.content);
+      const segments = decomposeForMode(
+        message.content,
+        isComposerMode(message.mode) ? message.mode : DEFAULT_COMPOSER_MODE
+      );
       segments.forEach((segment, index) => {
         const blockId = childId(message.id, index);
         children.push(blockId);

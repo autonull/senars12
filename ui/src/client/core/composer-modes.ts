@@ -57,6 +57,10 @@ export const availableComposerModes = (
 /** The mode the composer starts in; available in every composition with `language`. */
 export const DEFAULT_COMPOSER_MODE: ComposerMode = 'ask';
 
+/** Narrow a carried/wire mode string (the protocol keeps it free-form). */
+export const isComposerMode = (value: string | undefined): value is ComposerMode =>
+  value !== undefined && (COMPOSER_MODE_IDS as readonly string[]).includes(value);
+
 /**
  * Decompose input under a declared mode. `question` imposes the question kind on
  * every segment, `command` makes the whole input one command; the remaining

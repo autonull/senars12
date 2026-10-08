@@ -90,6 +90,28 @@ describe('chat projection', () => {
     expect(fragment.blocks.some((b) => b.kind === 'raw')).toBe(false);
   });
 
+  it('reshapes a user turn to the declared composer mode', () => {
+    const fragment = projectChat([
+      message({ id: 'u1', role: 'user', content: 'Robins are birds.', mode: 'question' }),
+      message({ id: 'u2', role: 'user', content: 'A. B.', mode: 'command' }),
+    ]);
+    expect(fragment.blocks.find((b) => b.id === childId('u1', 0))).toMatchObject({
+      kind: 'question',
+      text: 'Robins are birds.',
+    });
+    expect(fragment.blocks.find((b) => b.id === childId('u2', 0))).toMatchObject({
+      kind: 'command',
+      text: 'A. B.',
+    });
+  });
+
+  it('falls back to the lexical split for an unknown carried mode', () => {
+    const fragment = projectChat([
+      message({ id: 'u1', role: 'user', content: 'A. B?', mode: 'telepathy' }),
+    ]);
+    expect(fragment.blocks.find((b) => b.id === childId('u1', 0))?.kind).toBe('claim');
+  });
+
   it('links an agent turn to the preceding user turn, or to an explicit parent', () => {
     const fragment = projectChat([
       message({ id: 'u1', role: 'user' }),

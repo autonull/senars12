@@ -280,7 +280,7 @@ export class InputHUD extends BaseComponent {
     inputHistory.push(content);
     if (inputHistory.length > MAX_HISTORY) inputHistory.shift();
     historyIndex = inputHistory.length;
-    addUserMessage(content);
+    addUserMessage(content, this.mode);
     send({ type: 'chat.user', content, mode: this.mode });
     this.textareaValue = '';
     this.decomposition = [];

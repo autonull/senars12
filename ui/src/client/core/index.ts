@@ -21,6 +21,7 @@ export {
   composerModes,
   decomposeForMode,
   DEFAULT_COMPOSER_MODE,
+  isComposerMode,
 } from './composer-modes.js';
 export { artifactViewSpec, tableFromColumns } from './artifacts.js';
 export { matchCommands } from './command-match.js';

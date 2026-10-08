@@ -512,7 +512,7 @@ Goal: build the unique LM conversation UI first.
 - [~] 1.1 Notebook renderer: vertical page renderer, block components, block affordances, folding, focus/selection, streaming-friendly.
   - Landed the `s-notebook` surface (`defineSurface`) + `notebookRenderer`: top-level blocks render as vertical pages with per-kind affordances (`BLOCK_KIND_LABEL`, now in `core/block-labels.ts`), role/status styling, uncertainty chips, empty-state slot, and focus/selection round-trip for renderer switches. Pages now walk `children`/`contains` and render heading/list/table/code blocks richly (static-tag headings to satisfy Lit). Every block now carries a `⋯` context-menu affordance (opens the block menu with the triggering element as anchor) and highlights when it is the workspace focus (set by the ToC or by clicking the block). Remaining: section folding, artifact rendering via the inner view system, and virtualization.
 - [~] 1.2 Composer overlay with modes; universal input (NL now; Narsese/structured seam).
-  - Landed the mode substrate + a mode-aware universal composer. `core/capabilities.ts` (Phase 0.6 partial) is the one capability registry — `CAPABILITY_CATALOG`, `$capabilities`, `capabilityEnabled`/`setCapability`, defaulting to the LM-only `{language}` composition. `core/composer-modes.ts` is the §8.1 mode catalog as data (`ask · reply · question · command · explain · demonstrate · transform · believe · goal · tool`), each declaring the capability that makes it do work and whether it is a structured seam; `availableComposerModes(caps)` hides intents the composition cannot honour, and `decomposeForMode(text, mode)` reshapes the §8.2 split (`question` imposes the question kind, `command` collapses the input to one command, the rest use the lexical split). The `input-hud` composer now renders a mode bar over the available modes, uses the mode hint as placeholder, feeds the mode-aware decomposition, and sends `{ type:'chat.user', content, mode }`; a `composer.focus` command + `composer:focus` signal make it palette-reachable. Remaining: the true *floating* composer anchored to a selected block/node/subgraph (§8.1) — that needs graph-native selection and a summoned rather than persistent dock — and the structured modes' producers (formalize/gate for believe/goal, tool transport).
+  - Landed the mode substrate + a mode-aware universal composer. `core/capabilities.ts` (Phase 0.6 partial) is the one capability registry — `CAPABILITY_CATALOG`, `$capabilities`, `capabilityEnabled`/`setCapability`, defaulting to the LM-only `{language}` composition. `core/composer-modes.ts` is the §8.1 mode catalog as data (`ask · reply · question · command · explain · demonstrate · transform · believe · goal · tool`), each declaring the capability that makes it do work and whether it is a structured seam; `availableComposerModes(caps)` hides intents the composition cannot honour, and `decomposeForMode(text, mode)` reshapes the §8.2 split (`question` imposes the question kind, `command` collapses the input to one command, the rest use the lexical split). The `input-hud` composer now renders a mode bar over the available modes, uses the mode hint as placeholder, feeds the mode-aware decomposition, and sends `{ type:'chat.user', content, mode }`; a `composer.focus` command + `composer:focus` signal make it palette-reachable. The declared mode is now carried end-to-end: `core/protocol/chat.ts` accepts an optional `mode` on `ChatMessage`/`chat.user` (a free string so the protocol stays UI-agnostic), `addUserMessage(content, mode?)` stores it, and `projectChat` runs `decomposeForMode` on user turns (guarded by `isComposerMode`, falling back to the lexical split) — so the intent shows up as the block kinds in the WorkspaceGraph, not only in the composer preview. Remaining: the true *floating* composer anchored to a selected block/node/subgraph (§8.1) — that needs graph-native selection and a summoned rather than persistent dock — and the structured modes' producers (formalize/gate for believe/goal, tool transport).
 - [x] 1.3 Input decomposition: deterministic claim/question/command split; raw preserved; extracted structure shown.
   - Landed `core/input-decomposition.ts` (`decomposeInput` + `isFaithfulDecomposition`): a slash line is one `command`, an interrogative (`?` or leading wh-word) is a `question`, every other sentence a `claim` — purely lexical, no LM. `projectChat` now expands **user** turns into these children linked by `contains`; a `raw` child is added only when the split is lossy, otherwise the turn block's `text` already preserves the raw verbatim. The legacy `input-hud` composer previews the extracted structure live as chips. Added `command` to `BlockKind` and the kind-label SSOT.
 - [~] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
@@ -1130,9 +1130,8 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   both use it.
 
 **New improvement opportunities**
-- Thread the declared `mode` into `projectChat` so a `question`/`command` user turn is decomposed under
-  the declared intent (the turn currently re-runs the lexical split), making the mode visible in the
-  WorkspaceGraph, not only in the composer preview.
+- ~~Thread the declared `mode` into `projectChat` …~~ **Done — see (l).** The declared intent now shapes
+  the projected block kinds.
 - Derive a capability-aware **default renderer** from `$capabilities` (§0.3: `language`→Notebook,
   `reasoning`→Graph) instead of the hardcoded `'graph'` default; this is the natural completion of the
   registry and removes the note on 0.3.
@@ -1140,6 +1139,37 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   `composer.mode.<id>`), so a mode switch is an agent-settable `ui.command` for free.
 - Gate overlays/commands on capabilities too (e.g. provenance/derivation affordances appear only with
   `reasoning`), now that the registry exists, replacing the per-surface `hidden-not-inert` checks.
+
+### 2026-10-08 (l) — carry the composer mode into the workspace projection
+
+**Landed**
+- `core/src/protocol/chat.ts` — `ChatMessage` and `chat.user` gain an optional `mode: string`. It is a
+  free string (not a `ComposerMode` enum) so the engine protocol stays UI-agnostic; the client narrows
+  it with `isComposerMode`. Additive and backward-compatible (zod objects strip unknowns, and the field
+  is optional).
+- `ui/src/client/core/composer-modes.ts` — `isComposerMode(value)` guard (exported from `core/index`).
+- `ui/src/client/core/store-bindings.ts` — `addUserMessage(content, mode?)` stores the declared mode on
+  the optimistic user turn.
+- `ui/src/client/core/workspace-projection.ts` — `projectChat` decomposes user turns with
+  `decomposeForMode(content, isComposerMode(message.mode) ? message.mode : DEFAULT_COMPOSER_MODE)`, so a
+  `question`/`command` mode changes the projected block kinds (the intent is now visible in the
+  WorkspaceGraph, not just the composer preview). `decomposeInput` is no longer imported there.
+- `ui/src/client/components/input-hud.ts` — passes `this.mode` to `addUserMessage`.
+- Tests (3 new; **207 green / 36 files**; root + UI typecheck and biome clean): `composer-modes`
+  (`isComposerMode` narrowing), `workspace-projection` (mode reshapes user-turn children; unknown carried
+  mode falls back to the lexical split).
+
+**Notes for remaining work**
+- The `mode` now round-trips on the wire but the server still ignores it (`ui/src/server/index.ts` reads
+  only `content`); nothing needs to change until an engine-side producer wants the intent.
+- The capability-gated structured modes (`believe`/`goal`) project as their lexical fallback today; when
+  3.2 lands, `projectChat` can special-case them alongside `decomposeForMode`.
+
+**New improvement opportunities**
+- The client could avoid re-parsing on every projection by memoising `decomposeForMode` per
+  `(content, mode)`; only worth it once profiling shows segmentation in a hot path.
+- Surface the active mode on the projected turn block (e.g. a `data`/`title` hint) so the Graph/Notebook
+  can badge a turn with its declared intent without re-reading the message.
 
 
 

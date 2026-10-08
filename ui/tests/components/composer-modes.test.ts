@@ -5,6 +5,7 @@ import {
   COMPOSER_MODE_IDS,
   composerModes,
   decomposeForMode,
+  isComposerMode,
 } from '../../src/client/core/composer-modes.js';
 
 const caps = (...ids: Capability[]): Set<Capability> => new Set(ids);
@@ -26,6 +27,12 @@ describe('composer mode catalog', () => {
   it('admits structured modes only when their capability is on', () => {
     const ids = availableComposerModes(caps('language', 'reasoning', 'tools')).map((m) => m.id);
     expect(ids).toEqual(expect.arrayContaining(['believe', 'goal', 'tool']));
+  });
+
+  it('narrows carried mode strings', () => {
+    expect(isComposerMode('goal')).toBe(true);
+    expect(isComposerMode('telepathy')).toBe(false);
+    expect(isComposerMode(undefined)).toBe(false);
   });
 });
 

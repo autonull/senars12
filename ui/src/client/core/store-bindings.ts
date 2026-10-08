@@ -31,11 +31,12 @@ function renderMessageHtml(msg: ChatMessage): string {
 }
 
 /** Adds a user chat message to the store and triggers graph update. */
-export function addUserMessage(content: string): void {
+export function addUserMessage(content: string, mode?: string): void {
   const chat: ChatMessage = {
     id: generateId('user'),
     role: 'user',
     content,
+    mode,
     html: renderMessageHtml({
       id: '',
       role: 'user',

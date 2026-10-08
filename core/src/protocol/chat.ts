@@ -13,6 +13,8 @@ export const ChatMessage = z.object({
   role: MessageRoleSchema,
   content: z.string(),
   html: z.string().optional(),
+  /** Declared composer intent (§8.1); a free string so the protocol stays UI-agnostic. */
+  mode: z.string().optional(),
   timestamp: z.number(),
   term: z.string().optional(),
   truth: TruthValueSchema.optional(),
@@ -25,7 +27,7 @@ export const ChatMessage = z.object({
 });
 export type ChatMessage = z.infer<typeof ChatMessage>;
 
-export const ChatUserMsg = msg('chat.user', { content: nonEmpty.max(10000) });
+export const ChatUserMsg = msg('chat.user', { content: nonEmpty.max(10000), mode: z.string().optional() });
 export const ChatAgentStream = msg('chat.agent.stream', { delta: z.string() });
 export const ChatAgentComplete = msg('chat.agent.complete', {
   content: z.string(),
