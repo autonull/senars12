@@ -40,19 +40,17 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
 1. **`0.6 backend seam`** (M) — both read halves landed (LM façade + `ReasoningBackend` contract and
    NARS adapter); what is left is the *control* half (`submit`/`step`/`run`), which belongs with the
    **`3.6` steer/author** producers. `→ core/`
-2. **`1.5 page`** (M) — URL-address `page`; the **section model** it waits on is landed.
-   `→ core/store.ts`, `core/sections.ts`, `core/toc.ts`
-3. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
+2. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
    renderer/overlays context fields await a consumer; fold-all debounce awaits a bulk writer.)
-4. **`2.4 inspection & embedded views`** (L) · **`4.3 affordances`** (M). (`4.5 pinning` partial —
+3. **`2.4 inspection & embedded views`** (L) · **`4.3 affordances`** (M). (`4.5 pinning` partial —
    manager/command pinning; `1.4 rich text` partial — inline tokenizer.)
-5. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
+4. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
    (`4.4 controls` is partially landed — live reset + readout; see WP4.)
 
-*(Landed from this queue: the `1.5/1.1 section model` (recursive containment, fold-aware `j`/`k`,
-`view.fold-all`), the `4.3 typing` payload contract and the `citations model` bibliography rendering —
-see §Landed (v5). The three small state wins `2.5 defaults`, `2.5 selection atom` and `2.5 focus react`
-were landed earlier.)*
+*(Landed from this queue: the `1.5 page` URL address, the `1.5/1.1 section model` (recursive
+containment, fold-aware `j`/`k`, `view.fold-all`), the `4.3 typing` payload contract and the
+`citations model` bibliography rendering — see §Landed (v5). The three small state wins `2.5 defaults`,
+`2.5 selection atom` and `2.5 focus react` were landed earlier.)*
 
 **Gated** (see §Blockers): `0.5`; the inspector half of `4.3 affordances`; WP5 `3.3` →
 `4.3 derivation-record`; WP5 `3.6` → the `config-change` producer.
@@ -187,9 +185,15 @@ Landed extension points — wire features here instead of re-deriving them.
   `register()` and `hydrateFromUrl` drops an id the leaf does not know (a stale link cannot seed
   `$lensLayout`). `→ core/store.ts`, `core/layout-ids.ts`, `utils/layout-registry.ts`.
   `(s)`,`(t)`,`(x)`,`(ac)`
-- [ ] **1.5 page** — URL-address `page` (`(page, block, disclosure)`); the **section model** blocker
-  is **cleared** (`core/sections.ts` gives `pageOf` and per-node `depth`), so this is now a URL-state
-  field plus the turn/page boundary policy. `→ core/store.ts` (url-state), `core/sections.ts`.
+- [x] **1.5 page** — URL-address `page` (`(page, block, disclosure)`); the **section model** blocker
+  is **cleared** (`core/sections.ts` gives `pageOf` and per-node `depth`), so this landed as the URL
+  half of the tuple: `UrlState.page`, parsed/serialized and hydrated like the rest, with a page-only
+  link focusing the page and an explicit `focus` winning as the more specific half. It is **derived,
+  not owned** — `mirrorAtom` projects `pageOf(sectionTree(graph), graph.focus)` off the same graph the
+  focus comes from, and elides itself when the focus *is* the page, so a page link stays one
+  `focus=` instead of a redundant pair. `disclosure` was already the `folded` field. **Still open: the
+  turn/page boundary policy** (auto-page per turn pair with agent/user overrides) — that changes which
+  blocks are roots, i.e. the projection, not the URL. `→ core/store.ts`, `core/sections.ts`.
   `(s)`,`(t)`,`(h)`,`(q)`
 - [~] **2.6 scope** — scope-aware active layout (concept vs conversation) + URL-address it; remember
   the graph layer per lens; debounce `folded` writes for fold-all. Landed: `$layoutScope` +
@@ -434,8 +438,10 @@ Landed extension points — wire features here instead of re-deriving them.
 
 ## Open questions (carried from v3 Appendix C) — and where they gate work
 
-- Turn/page boundary policy: auto-page per turn pair with agent/user overrides. → **`1.5/1.1 section
-  model`**, **`1.5 page`**
+- Turn/page boundary policy: auto-page per turn pair with agent/user overrides. Both landing sites are
+  in — the **section model** is recursive and **`1.5 page`** is URL-addressable — so this is now purely
+  "which blocks are roots": a page-boundary producer over the turn pairs. → **`2.4`** (it needs the
+  producer) / a new **`1.5 paging`**
 - Block-id stability under streaming reparse (content-hash + position anchor). → **`1.4` streaming**
   (awaiting)
 - ToC scale: virtualization and outline-only mode for very long sessions. → **`7.3 performance`**
@@ -550,4 +556,9 @@ in v3 Appendix D). Rolled up:
   derived `view.fold-all` command + `setCollapsed` + a folded-count badge in the ToC header.
   `navigation.ts` lost `blockOrder`'s hand-rolled walk, `parentMap` and `rootOf`'s recursive
   `contains`; `workspace-graph.ts` lost `rootBlocks`. Suite **363 green**.
+- **WP2 `1.5 page`** — `UrlState.page` completes the URL tuple `(page, block, disclosure)`:
+  `disclosure` was already `folded`; the page half is derived through `pageOf(sectionTree(graph),
+  graph.focus)` by a `mirrorAtom`, so it can never disagree with the focus, and it elides itself when
+  the focus *is* the page so a page-only link stays a single `focus=`. Hydration takes a page-only
+  link and lets an explicit `focus` win as the more specific half. Suite **365 green**.
 

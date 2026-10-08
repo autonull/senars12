@@ -10,6 +10,7 @@ import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, PRIMARY_LENSES } from '../utils/
 import { CONVERSATION_LAYOUT_IDS } from './conversation-layout.js';
 import { GRAPH_LAYERS, type GraphLayer } from './graph-layer.js';
 import { isRegisteredLayoutId, type LayoutScope } from './layout-ids.js';
+import { pageOf, sectionTree } from './sections.js';
 import { getSurfaces } from './surface-registry.js';
 import { viewAdapters } from './view-adapter.js';
 import type { Shape, ViewSelection } from './view-spec.js';
@@ -434,6 +435,8 @@ export interface UrlState {
   layout?: string;
   scope?: LayoutScope;
   focus?: string;
+  /** The page (root section) holding `focus`; omitted when focus *is* the page. */
+  page?: string;
   folded?: string[];
   viewport?: { x: number; y: number; zoom: number };
   search?: string;
@@ -468,6 +471,8 @@ function parseHash(): Partial<UrlState> {
   if (scope === 'concept' || scope === 'conversation') state.scope = scope;
   const focus = params.get('focus');
   if (focus) state.focus = focus;
+  const page = params.get('page');
+  if (page) state.page = page;
   const vp = params.get('viewport');
   if (vp) {
     const parts = vp.split(',').map(Number);
@@ -502,6 +507,7 @@ function serializeHash(state: UrlState): string {
   if (state.layout) params.set('layout', state.layout);
   if (state.scope && state.scope !== 'concept') params.set('scope', state.scope);
   if (state.focus) params.set('focus', state.focus);
+  if (state.page) params.set('page', state.page);
   if (state.viewport)
     params.set('viewport', `${state.viewport.x},${state.viewport.y},${state.viewport.zoom}`);
   if (state.search) params.set('search', state.search);
@@ -534,7 +540,8 @@ export function hydrateFromUrl() {
     if (scope === 'conversation') $conversationLayout.set(parsed.layout);
     else $lensLayout.set({ ...$lensLayout.get(), [$activeLens.get()]: parsed.layout });
   }
-  if (parsed.focus) setWorkspaceFocus(parsed.focus);
+  // A page link focuses the page; an explicit block ref is the more specific half of the tuple.
+  if (parsed.focus ?? parsed.page) setWorkspaceFocus(parsed.focus ?? parsed.page);
   if (parsed.folded) $collapsedBlocks.set(new Set(parsed.folded));
   if (parsed.panels) {
     const panels = new Map($panels.get());
@@ -575,6 +582,12 @@ function mirrorAtom<K extends keyof UrlState, T>(
 mirrorAtom($activeRenderer, 'renderer', (renderer) => renderer);
 mirrorAtom($activeLens, 'lens', (lens) => lens);
 mirrorAtom($workspaceGraph, 'focus', (graph) => graph.focus);
+// The page half of the URL tuple (§1.5): derived from focus through the section model, and
+// elided when the focus is the page itself, so a page link stays a single `focus`.
+mirrorAtom($workspaceGraph, 'page', (graph) => {
+  const page = pageOf(sectionTree(graph), graph.focus);
+  return page === graph.focus ? undefined : page;
+});
 mirrorAtom($graphLayer, 'layer', (layer) => layer);
 mirrorAtom($collapsedBlocks, 'folded', (folded) => [...folded], sameStringList);
 mirrorAtom(

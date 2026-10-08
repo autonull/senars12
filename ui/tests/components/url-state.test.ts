@@ -16,7 +16,12 @@ import {
   setGraphLayer,
   toggleCollapsed,
 } from '../../src/client/core/store.js';
-import { emptyWorkspaceGraph } from '../../src/client/core/workspace-graph.js';
+import {
+  applyWorkspaceOps,
+  emptyWorkspaceGraph,
+  type SemanticBlock,
+  type WorkspaceOp,
+} from '../../src/client/core/workspace-graph.js';
 import {
   registerRenderer,
   type WorkspaceRenderer,
@@ -40,6 +45,25 @@ const fakeRenderer = (id: string): WorkspaceRenderer => ({
 });
 
 registerRenderer(fakeRenderer('notebook'));
+
+const block = (id: string, children: string[] = []): SemanticBlock => ({
+  id,
+  kind: 'turn',
+  role: 'user',
+  createdAt: 0,
+  createdBy: 'user',
+  ...(children.length > 0 ? { children, text: undefined } : {}),
+});
+
+/** Two pages, the first holding a nested section with a leaf block. */
+const nested = () =>
+  applyWorkspaceOps(emptyWorkspaceGraph(), [
+    { op: 'block.add', block: block('t1', ['s1']) },
+    { op: 'block.add', block: block('s1', ['b1']) },
+    { op: 'block.add', block: block('b1', []) },
+    { op: 'block.add', block: block('t2') },
+    { op: 'roots.set', roots: ['t1', 't2'] },
+  ] satisfies WorkspaceOp[]);
 
 const clearHash = () => window.history.replaceState(null, '', window.location.pathname);
 const setPanels = (open: (id: string) => boolean) =>
@@ -72,6 +96,31 @@ describe('url-addressable state', () => {
     $activeRenderer.set('graph');
     $workspaceGraph.set({ ...$workspaceGraph.get(), focus: 'blk2' });
     expect($urlState.get()).toEqual(expect.objectContaining({ renderer: 'graph', focus: 'blk2' }));
+  });
+
+  it('addresses the page holding the focus, and elides it when the focus is the page', () => {
+    $workspaceGraph.set(nested());
+    $workspaceGraph.set({ ...$workspaceGraph.get(), focus: 'b1' });
+    expect($urlState.get().page).toBe('t1');
+
+    $workspaceGraph.set({ ...$workspaceGraph.get(), focus: 't1' });
+    expect($urlState.get().page).toBeUndefined();
+
+    $workspaceGraph.set({ ...$workspaceGraph.get(), focus: 't2' });
+    expect($urlState.get().page).toBeUndefined();
+  });
+
+  it('focuses the page from a page-only link, and lets an explicit block win', () => {
+    $workspaceGraph.set(nested());
+    window.location.hash = 'page=t2';
+    hydrateFromUrl();
+    expect($workspaceGraph.get().focus).toBe('t2');
+
+    $workspaceGraph.set(nested());
+    window.location.hash = 'page=t1&focus=b1';
+    hydrateFromUrl();
+    expect($workspaceGraph.get().focus).toBe('b1');
+    expect($urlState.get().page).toBe('t1');
   });
 
   it('hydrates and mirrors folded blocks (disclosure)', () => {
