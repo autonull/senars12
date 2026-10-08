@@ -537,7 +537,8 @@ Goal: render the same semantic conversation as a flowing content graph.
   - Landed selection routing + selection-as-context. Tapping a `workspace` node focuses the block (`setWorkspaceFocus`); double-click opens Explanation; right-click opens the block menu. The Graph renderer's `openComposer(anchor?)` no longer calls the non-existent `composer` overlay — it emits `composer:focus` with the anchor (or the workspace subset of `$selectedNodeIds`), and a `graph.ask-selection` command does the same for the palette/agent. The composer carries a *list* of context refs end-to-end (`composer:focus { refs }` → `chat.user`/`ChatMessage.contexts: string[]` → composer chips → `projectChat` emits one `references` edge per known ref). Remaining: the composer is still the persistent dock (not a floating overlay anchored to the node/edge), and node-creating (question/claim) ops from the graph.
 - [~] 2.4 Graph inspection: node/edge popovers, artifact preview popovers, "open in Notebook," semantic neighborhood navigation.
   - Landed semantic-neighborhood navigation. `core/neighborhood.ts` is a pure BFS (`neighborhood(graph, ref, depth)`) over `linksTouching`, returning each neighbor with its link and `in`/`out` direction; `s-related` (overlay `related`) groups them by relation+direction and navigating a row focuses the block and closes. The block menu's "Open related" appears only when the block has neighbors (hidden, not inert). Remaining: node/edge popovers on the graph itself (hover/click a link), artifact preview popovers on edges, and an explicit "open in Notebook" from a graph selection (selection currently focuses, which the Notebook reveals).
-- [ ] 2.5 Mode parity: shared focus/selection; actions work in both; switching preserves context; parity specs.
+- [~] 2.5 Mode parity: shared focus/selection; actions work in both; switching preserves context; parity specs.
+  - Landed the shared focus/selection spine + parity specs. The `notebook`/`graph` adapters now read and write the one session state (`$workspaceGraph.focus`/`selection`) in `focus`/`select`/`snapshot`/`restore` instead of private fields, so `snapshot()` → `restore()` is a real round-trip; the Graph adapter also mirrors selection into `$selectedNodeIds`/`$selectedNodeId` so multi-select styling and the detail drawer follow. The graph viewport writes every selection change (node/concept tap, background deselect, shift multi-select) into `setWorkspaceSelection`, so both renderers see the same selection. `renderer-parity` specs assert the full renderers share state, snapshot/restore round-trip, a Notebook↔Graph switch preserves focus/selection, and `graph3d` declares `partial`. See (z). Remaining: the shell still mounts renderers by hardcoded tag in `app-layout` — a `WorkspaceHost` that calls `mount`/`snapshot`/`dispose`/`restore` through the registry would make the switch mechanism itself registry-driven — and the canonical-loop behavioral parity suite (the §10 matrix) is still to come.
 
 **Verification:** the same LM-only conversation is usable in Notebook and Graph; follow-up from a graph node; output appears as a network; selected subnetwork becomes next prompt context.
 **Deliverable:** an innovative graph-native LM conversation UI.
@@ -1599,6 +1600,47 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   uses document order, so an event-time variant is a small addition.
 - Reuse `conversationPositions` for embedded graph views (§7) so their arrangement matches the main
   Graph renderer.
+
+### 2026-10-08 (z) — Phase 2.5 shared focus/selection + parity specs
+
+**Landed**
+- `ui/src/client/components/renderers/notebook.ts` and `renderers/graph.ts` — both adapters drop their
+  private `#focus`/`#selection` and route `focus`/`select` through `setWorkspaceFocus`/
+  `setWorkspaceSelection`; `snapshot()` reads the one `$workspaceGraph` session state and `restore()`
+  writes it back, so a renderer switch is a true `snapshot()` → `restore()` round-trip. The Graph
+  adapter additionally mirrors selection into `$selectedNodeIds`/`$selectedNodeId` (so graph
+  multi-select styling and the node-detail drawer follow a restored selection).
+- `ui/src/client/components/graph-viewport.ts` — every selection change now writes the shared set via
+  `setWorkspaceSelection`: workspace/concept node tap, background deselect, and shift multi-select
+  (`toggleMultiSelect`). Notebook and Graph therefore share focus *and* selection.
+- `ui/tests/components/renderer-parity.test.ts` — the parity spec: the registry admits `notebook`,
+  `graph` and a declared-partial `graph3d`; every full renderer keeps the shared state; every full
+  renderer snapshots/restores focus+selection; a Notebook↔Graph switch preserves both (and syncs
+  `$selectedNodeIds`).
+- Tests (4 new; **245 green / 43 files**; UI typecheck and biome clean).
+
+**Notes for remaining work**
+- The shell (`app-layout`) still mounts the active renderer by hardcoded tag (`<s-notebook>` vs
+  `<graph-viewport>`); it does not exercise the registry `mount`/`snapshot`/`restore` contract. A
+  `WorkspaceHost` that owns the registry-driven mount/switch is the remaining structural step, and it
+  is what makes `snapshot`/`restore` load-bearing rather than merely tested.
+- `graph3d` keeps local focus/selection (honest for a stub); it joins the shared state when Phase 6
+  gives it a real viewport.
+- Graph focus is shared but the viewport does not yet react to `$workspaceGraph.focus` changes by
+  centering/highlighting (noted in 2.1/2.4) — the Notebook scrolls to focus, the Graph does not.
+- Selection is mirrored in two atoms (`$workspaceGraph.selection` and `$selectedNodeIds`); a future
+  consolidation would make `$selectedNodeIds` derived from the workspace selection.
+
+**New improvement opportunities**
+- Build the `WorkspaceHost` element (repeated opportunity) so `app-layout` renders one host and the
+  registry owns mount/dispose/snapshot/restore; it also makes `WorkspaceContext.openOverlay` real for
+  every renderer and removes the per-renderer tag hardcoding.
+- Script the canonical loop (§10) once and run it per full renderer, turning the parity matrix into an
+  executable suite rather than a table plus per-renderer assertions.
+- Make the Graph renderer react to shared focus (center + highlight the focused workspace node),
+  closing the last focus asymmetry between the two renderers.
+- Make the §10 capability matrix data (`rendererParity(interaction)`) so the palette and shell can gate
+  actions on `rendererSupports` uniformly instead of the graph-only `available()` checks.
 
 
 

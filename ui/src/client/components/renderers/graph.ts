@@ -11,12 +11,15 @@
 import type { BlockKind, Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
 import {
   $activeRenderer,
+  $selectedNodeId,
   $selectedNodeIds,
   $workspaceGraph,
   CONVERSATION_LAYOUT_CATALOG,
   CONVERSATION_LAYOUT_IDS,
   registerCommand,
   setGraphLayer,
+  setWorkspaceFocus,
+  setWorkspaceSelection,
 } from '../../core/index.js';
 import { eventBus } from '../../core/events.js';
 import {
@@ -67,8 +70,6 @@ class GraphRenderer implements WorkspaceRenderer {
 
   #element?: HTMLElement;
   #ctx?: WorkspaceContext;
-  #focus?: Ref;
-  #selection = new Set<Ref>();
 
   capabilities(): WorkspaceRendererCaps {
     return { interactions: WORKSPACE_INTERACTIONS, blockKinds: GRAPH_BLOCK_KINDS, parity: 'full' };
@@ -85,11 +86,13 @@ class GraphRenderer implements WorkspaceRenderer {
   apply(_ops: readonly WorkspaceOp[]): void {}
 
   focus(ref: Ref): void {
-    this.#focus = ref;
+    setWorkspaceFocus(ref);
   }
 
   select(refs: readonly Ref[]): void {
-    this.#selection = new Set(refs);
+    setWorkspaceSelection(refs);
+    $selectedNodeIds.set(new Set(refs));
+    $selectedNodeId.set(refs.length === 1 ? (refs[0] ?? null) : null);
   }
 
   openComposer(anchor?: Ref): void {
@@ -102,12 +105,14 @@ class GraphRenderer implements WorkspaceRenderer {
   }
 
   snapshot(): RendererSnapshot {
-    return { renderer: this.id, focus: this.#focus, selection: [...this.#selection] };
+    const { focus, selection } = $workspaceGraph.get();
+    return { renderer: this.id, focus, selection: [...selection] };
   }
 
   restore(snap: RendererSnapshot): void {
-    this.#focus = snap.focus;
-    this.#selection = new Set(snap.selection);
+    setWorkspaceFocus(snap.focus);
+    setWorkspaceSelection(snap.selection);
+    $selectedNodeIds.set(new Set(snap.selection));
   }
 
   dispose(): void {

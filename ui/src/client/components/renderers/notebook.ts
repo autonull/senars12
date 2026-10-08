@@ -18,7 +18,13 @@ import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { breadcrumb } from '../../core/navigation.js';
 import type { TableData } from '../../core/segmentation.js';
 import { eventBus } from '../../core/events.js';
-import { $collapsedBlocks, $workspaceGraph, setWorkspaceFocus, toggleCollapsed } from '../../core/store.js';
+import {
+  $collapsedBlocks,
+  $workspaceGraph,
+  setWorkspaceFocus,
+  setWorkspaceSelection,
+  toggleCollapsed,
+} from '../../core/store.js';
 import type { Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
 import { rootBlocks } from '../../core/workspace-graph.js';
 import {
@@ -268,8 +274,6 @@ class NotebookRenderer implements WorkspaceRenderer {
 
   #element?: NotebookView;
   #ctx?: WorkspaceContext;
-  #focus?: Ref;
-  #selection = new Set<Ref>();
 
   capabilities(): WorkspaceRendererCaps {
     return { interactions: WORKSPACE_INTERACTIONS, blockKinds: 'all', parity: 'full' };
@@ -286,11 +290,11 @@ class NotebookRenderer implements WorkspaceRenderer {
   apply(_ops: readonly WorkspaceOp[]): void {}
 
   focus(ref: Ref): void {
-    this.#focus = ref;
+    setWorkspaceFocus(ref);
   }
 
   select(refs: readonly Ref[]): void {
-    this.#selection = new Set(refs);
+    setWorkspaceSelection(refs);
   }
 
   openComposer(anchor?: Ref): void {
@@ -302,12 +306,13 @@ class NotebookRenderer implements WorkspaceRenderer {
   }
 
   snapshot(): RendererSnapshot {
-    return { renderer: this.id, focus: this.#focus, selection: [...this.#selection] };
+    const { focus, selection } = $workspaceGraph.get();
+    return { renderer: this.id, focus, selection: [...selection] };
   }
 
   restore(snap: RendererSnapshot): void {
-    this.#focus = snap.focus;
-    this.#selection = new Set(snap.selection);
+    setWorkspaceFocus(snap.focus);
+    setWorkspaceSelection(snap.selection);
   }
 
   dispose(): void {

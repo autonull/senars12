@@ -28,6 +28,7 @@ import {
   projectWorkspaceGraph,
   send,
   setWorkspaceFocus,
+  setWorkspaceSelection,
 } from '../core/index.js';
 import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
@@ -193,6 +194,7 @@ export class GraphViewport extends BaseComponent {
         else {
           $selectedNodeIds.set(new Set([id]));
           $selectedNodeId.set(id);
+          setWorkspaceSelection([id]);
           setWorkspaceFocus(id);
         }
         return;
@@ -202,6 +204,7 @@ export class GraphViewport extends BaseComponent {
       } else {
         $selectedNodeIds.set(new Set([id]));
         $selectedNodeId.set(id);
+        setWorkspaceSelection([id]);
         const term = node.data('term') || id;
         send({ type: 'focus.set', term });
       }
@@ -213,6 +216,7 @@ export class GraphViewport extends BaseComponent {
         $selectedNodeId.set(null);
         $selectedEdgeId.set(null);
         $selectedNodeIds.set(new Set());
+        setWorkspaceSelection([]);
         this.closeContextMenu();
       }
     });
@@ -379,6 +383,7 @@ export class GraphViewport extends BaseComponent {
       selected.add(id);
     }
     $selectedNodeIds.set(selected);
+    setWorkspaceSelection(selected);
     // Also keep single selection in sync
     if (selected.size === 1) {
       $selectedNodeId.set(selected.values().next().value ?? null);
