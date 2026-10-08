@@ -520,7 +520,7 @@ Goal: build the unique LM conversation UI first.
 - [x] 1.5 Semantic ToC overlay (headings, claims, tables, code, tool calls, reasoning events; search/filter) + kind filters + breadcrumbs + keyboard nav.
   - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Breadcrumbs (`core/navigation.ts` `breadcrumb`, rendered atop the notebook, clickable to an ancestor) and keyboard navigation (`j`/`k` blocks, `[ ]` pages via `navigationForKey`, bound in `app-layout`, ignored while an overlay is open or an editable is focused) are landed; the notebook scrolls the focused block into view. Remaining (deferred): URL-addressable `(page, block, disclosure)`, section folding, and virtualization for long sessions.
 - [~] 1.6 Contextual link menu: ask follow-up, explain, open related, view as graph, copy/export, (formalize-as-belief/goal/question seam).
-  - Landed `s-block-menu` + `s-explain` overlays over the pure `explainModel` (`core/explain.ts`): Explain, Open in graph, View provenance (only when the block has provenance links — hidden, not inert), Copy text; the explanation popover exposes the `summary · card · detail · raw` disclosure levels as data; an `Open artifact` affordance (only when the block has a typed artifact — table/code via `artifactViewSpec`, or an image) opens the artifact viewer. Remaining: ask follow-up / open related until the composer (1.2) exists, and the formalize-as-belief/goal seam until the capability registry (0.6) lands.
+  - Landed `s-block-menu` + `s-explain` overlays over the pure `explainModel` (`core/explain.ts`): **Ask follow-up** (focuses the composer with the block as context — see (m)), Explain, Open in graph, View provenance (only when the block has provenance links — hidden, not inert), Copy text, and — capability-gated — **Formalize as belief/goal** (shown only when `reasoning` is on; hidden otherwise, never inert). The explanation popover exposes the `summary · card · detail · raw` disclosure levels as data; an `Open artifact` affordance (only when the block has a typed artifact — table/code via `artifactViewSpec`, or an image) opens the artifact viewer. Remaining: **Open related** (semantic-neighborhood navigation) is deferred to 2.4; a dedicated "formalize as question" action is redundant with the composer `question` mode + follow-up.
 - [ ] 1.7 LM-only completeness: Notebook works with no reasoning backend; provider status in HUD; rich artifacts; conversation graph exists even without NARS.
 
 **Verification:** LM-only Notebook is a better-than-chat UI; a response with headings/table/code becomes navigable blocks; ToC and contextual actions are block-aware; no reasoning capability required.
@@ -1170,6 +1170,46 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   `(content, mode)`; only worth it once profiling shows segmentation in a hot path.
 - Surface the active mode on the projected turn block (e.g. a `data`/`title` hint) so the Graph/Notebook
   can badge a turn with its declared intent without re-reading the message.
+
+### 2026-10-08 (m) — complete 1.6 contextual actions (follow-up + capability-gated formalize)
+
+**Landed**
+- `core/src/protocol/chat.ts` — `ChatMessage`/`chat.user` gain an optional `context: string` (the block a
+  turn follows up on). Free string, client-owned; additive like `mode`.
+- `ui/src/client/core/events.ts` — `composer:focus` now carries `{ ref?: string; mode?: string }`, so a
+  surface can focus the universal composer with a context block and/or a declared mode.
+- `ui/src/client/components/overlays/block-menu.ts` — adds **Ask follow-up** (always; `composer:focus`
+  with the block ref) and, gated on `$capabilities` (`reasoning`), **Formalize as belief** / **Formalize
+  as goal** (`composer:focus` with the block ref + `believe`/`goal` mode). The menu watches
+  `$capabilities` so the gated actions appear/disappear live; they are absent (not inert) when off.
+- `ui/src/client/components/input-hud.ts` — listens for the richer `composer:focus`, sets the context
+  ref/declared mode (guarding the mode against `availableComposerModes`), renders a dismissible
+  "↳ Ask about <label>" context chip, and sends `context` on `chat.user` (cleared after send).
+  `addUserMessage(content, mode?, context?)` stores it.
+- `ui/src/client/core/workspace-projection.ts` — `projectChat` adds a `references` link from a turn to
+  its `context` block when that block exists in the fragment (unknown targets are dropped), so a follow-up
+  shows up as a real semantic edge in the WorkspaceGraph/Graph.
+- Tests (5 new; **211 green / 36 files**; root + UI typecheck and biome clean): block-menu follow-up
+  event, capability-gated formalize (hidden→shown on `reasoning`), formalize-as-belief mode; projection
+  follow-up reference (and unknown-target drop).
+
+**Notes for remaining work**
+- The context reference is validated inside `projectChat`'s own fragment, so a follow-up on an engine
+  `claim:` block (Phase 3) is not linked yet; `projectWorkspace` can reconcile cross-fragment references
+  when the reasoning producer lands.
+- "Open related"/semantic-neighborhood navigation remains for 2.4 (it wants graph ownership of neighbors).
+- `composer:focus`'s `mode` is a free string on the signal (narrowed by `availableComposerModes`); if more
+  signals start carrying modes, a shared `ComposerFocus` type is worth extracting.
+
+**New improvement opportunities**
+- The composer could echo the context block as a quoted excerpt in the sent content (a real "reply")
+  rather than only linking it; gate on user preference to avoid polluting the transcript.
+- A `composer.prefill` signal (text + ref + mode) would let ToC/graph actions seed a draft, reusing the
+  context chip rather than a bespoke path.
+- The block menu's capability gate is inline (`$capabilities.get().has('reasoning')`); once a few menus
+  gate, extract a `capabilityGate`/`CapabilityHost` mixin so overlays declare required capabilities in
+  their descriptors and the host filters/palette-hides them uniformly (the 0.6 follow-through).
+
 
 
 

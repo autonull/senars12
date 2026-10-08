@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '../../src/client/components/overlays/block-menu.js';
+import { $capabilities, defaultCapabilities, setCapability } from '../../src/client/core/capabilities.js';
 import { eventBus } from '../../src/client/core/events.js';
 import { $activeRenderer, $workspaceGraph } from '../../src/client/core/store.js';
 import {
@@ -49,6 +50,7 @@ afterEach(() => {
   document.body.innerHTML = '';
   $workspaceGraph.set(emptyWorkspaceGraph());
   $activeRenderer.set('graph');
+  $capabilities.set(defaultCapabilities());
 });
 
 describe('block menu surface', () => {
@@ -100,5 +102,37 @@ describe('block menu surface', () => {
     action(el, 'open-graph')?.click();
     expect($activeRenderer.get()).toBe('graph');
     expect($workspaceGraph.get().focus).toBe('c');
+  });
+
+  it('asks a follow-up by focusing the composer on the block', async () => {
+    $workspaceGraph.set(build(false));
+    const el = await mount('c');
+    const focus = vi.fn();
+    const off = eventBus.on('composer:focus', focus);
+    action(el, 'follow-up')?.click();
+    expect(focus).toHaveBeenCalledWith({ ref: 'c' });
+    off();
+  });
+
+  it('offers formalize only when reasoning is on', async () => {
+    $workspaceGraph.set(build(false));
+    const el = await mount('c');
+    expect(action(el, 'belief')).toBeFalsy();
+    expect(action(el, 'goal')).toBeFalsy();
+    setCapability('reasoning', true);
+    await el.updateComplete;
+    expect(action(el, 'belief')).toBeTruthy();
+    expect(action(el, 'goal')).toBeTruthy();
+  });
+
+  it('formalizes as belief in the believe mode', async () => {
+    setCapability('reasoning', true);
+    $workspaceGraph.set(build(false));
+    const el = await mount('c');
+    const focus = vi.fn();
+    const off = eventBus.on('composer:focus', focus);
+    action(el, 'belief')?.click();
+    expect(focus).toHaveBeenCalledWith({ ref: 'c', mode: 'believe' });
+    off();
   });
 });

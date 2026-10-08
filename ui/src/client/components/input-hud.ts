@@ -6,6 +6,7 @@ import {
   $capabilities,
   $graphNodes,
   $streamingDelta,
+  $workspaceGraph,
   addUserMessage,
   BaseComponent,
   BLOCK_KIND_LABEL,
@@ -96,10 +97,16 @@ export class InputHUD extends BaseComponent {
     .decomposition { display: flex; flex-wrap: wrap; gap: var(--spacing-scale-1); }
     .segment { display: inline-flex; align-items: center; gap: var(--spacing-scale-1); max-width: 100%; padding: 1px var(--spacing-scale-2); border: 1px solid var(--colors-semantic-border-subtle); border-radius: 999px; font-family: var(--typography-fontFamilies-data); font-size: 0.6rem; color: var(--colors-semantic-text-secondary); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
     .segment-kind { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.55rem; color: var(--colors-semantic-text-muted); }
+    .context { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: 1px var(--spacing-scale-2); border-left: 2px solid var(--colors-semantic-accent-primary); font-family: var(--typography-fontFamilies-data); font-size: 0.65rem; color: var(--colors-semantic-text-secondary); }
+    .context-label { color: var(--colors-semantic-text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.55rem; }
+    .context-title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 40ch; }
+    .context-clear { margin-left: auto; background: transparent; border: none; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: 0.85rem; line-height: 1; }
+    .context-clear:hover { color: var(--colors-semantic-accent-primary); }
   `;
   @state() private composing = false;
   @state() private textareaValue = '';
   @state() private mode: ComposerMode = DEFAULT_COMPOSER_MODE;
+  @state() private contextRef?: string;
   @state() private decomposition: InputSegment[] = [];
   @state() private showSuggestions = false;
   @state() private suggestionIndex = -1;
@@ -111,18 +118,27 @@ export class InputHUD extends BaseComponent {
     super.connectedCallback();
     this.watch($streamingDelta);
     this.watch($graphNodes);
+    this.watch($workspaceGraph);
     this.watchWith($capabilities, (capabilities) => {
       if (!availableComposerModes(capabilities).some((m) => m.id === this.mode)) {
         this.mode = DEFAULT_COMPOSER_MODE;
       }
     });
-    this.#unsubscribeFocus = eventBus.on('composer:focus', this.focusInput);
+    this.#unsubscribeFocus = eventBus.on('composer:focus', this.onComposerFocus);
   }
 
   override disconnectedCallback() {
     this.#unsubscribeFocus?.();
     super.disconnectedCallback();
   }
+
+  onComposerFocus = ({ ref, mode }: { ref?: string; mode?: string }) => {
+    if (ref) this.contextRef = ref;
+    if (mode && availableComposerModes($capabilities.get()).some((m) => m.id === mode)) {
+      this.mode = mode as ComposerMode;
+    }
+    this.focusInput();
+  };
 
   focusInput = () => {
     requestAnimationFrame(() => {
@@ -136,6 +152,9 @@ export class InputHUD extends BaseComponent {
     const tokens = estimateTokens(this.textareaValue);
     const hasContent = !!(streamingDelta || this.textareaValue.trim());
     const canHistoryUp = inputHistory.length > 0;
+    const contextBlock = this.contextRef
+      ? $workspaceGraph.get().blocks.get(this.contextRef)
+      : undefined;
 
     return html`
       <div class="hud-input">
@@ -156,6 +175,15 @@ export class InputHUD extends BaseComponent {
               )}
             </div>
           `
+              : ''
+          }
+          ${
+            this.contextRef && contextBlock
+              ? html`<div class="context">
+                  <span class="context-label">↳ Ask about</span>
+                  <span class="context-title">${contextBlock.title ?? contextBlock.text ?? this.contextRef}</span>
+                  <button class="context-clear" title="Clear context" @click=${() => (this.contextRef = undefined)}>×</button>
+                </div>`
               : ''
           }
           <textarea
@@ -280,9 +308,10 @@ export class InputHUD extends BaseComponent {
     inputHistory.push(content);
     if (inputHistory.length > MAX_HISTORY) inputHistory.shift();
     historyIndex = inputHistory.length;
-    addUserMessage(content, this.mode);
-    send({ type: 'chat.user', content, mode: this.mode });
+    addUserMessage(content, this.mode, this.contextRef);
+    send({ type: 'chat.user', content, mode: this.mode, context: this.contextRef });
     this.textareaValue = '';
+    this.contextRef = undefined;
     this.decomposition = [];
     this.composing = false;
     this.showSuggestions = false;
@@ -365,7 +394,7 @@ registerCommand({
   title: 'Focus composer',
   group: 'Compose',
   keywords: 'input ask type message mode',
-  run: () => eventBus.emit('composer:focus'),
+  run: () => eventBus.emit('composer:focus', {}),
 });
 
 declare global {

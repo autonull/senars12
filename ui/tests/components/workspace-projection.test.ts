@@ -112,6 +112,17 @@ describe('chat projection', () => {
     expect(fragment.blocks.find((b) => b.id === childId('u1', 0))?.kind).toBe('claim');
   });
 
+  it('references the block a turn follows up on, dropping unknown targets', () => {
+    const fragment = projectChat([
+      message({ id: 'u1', role: 'user', content: 'Robins are birds.' }),
+      message({ id: 'u2', role: 'user', content: 'Why?', context: childId('u1', 0) }),
+      message({ id: 'u3', role: 'user', content: 'And?', context: 'ghost' }),
+    ]);
+    const references = fragment.links.filter((l) => l.kind === 'references');
+    expect(references).toHaveLength(1);
+    expect(references[0]).toMatchObject({ source: turnId('u2'), target: childId('u1', 0) });
+  });
+
   it('links an agent turn to the preceding user turn, or to an explicit parent', () => {
     const fragment = projectChat([
       message({ id: 'u1', role: 'user' }),

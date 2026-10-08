@@ -1,7 +1,8 @@
 /**
  * Projection from the current client state into the WorkspaceGraph (§0.2). The
  * chat log projects to ordered `turn` blocks with `responds-to`/`supports`/
- * `contradicts`/`derived-from` discourse links; the engine graph projects to
+ * `contradicts`/`derived-from` discourse links (and `references` when a turn
+ * follows up on a block) ; the engine graph projects to
  * `claim` blocks with `derived-from`/`references` links and engine uncertainty.
  * The projection is deterministic (stable ids, sorted graph blocks), so a
  * streaming reparse yields identical blocks and the existing graph/event
@@ -154,6 +155,13 @@ export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment
       if (ids.has(target)) links.push(link(id, turnId(target), 'contradicts', createdBy));
     for (const target of message.derivesFrom)
       if (ids.has(target)) links.push(link(id, turnId(target), 'derived-from', createdBy));
+  }
+
+  const blockIds = new Set(blocks.map((b) => b.id));
+  for (const message of messages) {
+    if (message.context && blockIds.has(message.context)) {
+      links.push(link(turnId(message.id), message.context, 'references', ROLE_MAP[message.role].createdBy));
+    }
   }
 
   return { blocks, links, roots };

@@ -29,7 +29,7 @@ export type UiSignals = {
   'overlay:open': { id: string; ref?: string; anchor?: HTMLElement };
   'overlay:close': { id?: string };
   /** Focus the universal composer (§8.1) — palette-launched, renderer-agnostic. */
-  'composer:focus': void;
+  'composer:focus': { ref?: string; mode?: string };
 };
 
 export const eventBus = new EventBus<UiSignals>();
