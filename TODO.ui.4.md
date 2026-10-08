@@ -79,11 +79,15 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 
 *Outcome: one state source; everything deep-linkable. Deps: WP1.*
 
-- [ ] **2.6 mirrors** — `mirrorAtom(atom, pick, equals?)` helper; replace the ad-hoc mirror
-  subscriptions (`renderer`, `focus`, `folded`, `layer`, `layout`, `lens`) and reflect `$panels`
-  two-way into `$urlState.panels`. `(s)`,`(t)`,`(x)`,`(ac)`,`(af)`
-- [ ] **2.6 validation** — validate `UrlState.renderer` (cycle-free allowlist) and `UrlState.layout`
-  (vs `layoutRegistry`) on hydrate; mirror `$activeLens` → `urlState.lens`. `(s)`,`(t)`,`(x)`,`(ac)`
+- [x] **2.6 mirrors** — `mirrorAtom(source, key, project, equals?)` + the `setUrlState`
+  no-op-skipping primitive now own every URL mirror (`renderer`, `focus`, `folded`, `layer`,
+  `layout`, `lens`), and `$panels` reflects two-way (open ids → `urlState.panels`, hash →
+  `$panels`). `(s)`,`(t)`,`(x)`,`(ac)`,`(af)`
+- [~] **2.6 validation** — done: reject an unregistered `UrlState.renderer` on hydrate
+  (cycle-free via `workspaceRendererIds()`) and mirror `$activeLens` → `urlState.lens`.
+  Remaining: validate `UrlState.layout` vs `layoutRegistry` — blocked on a **cycle-free
+  layout-id source**, since `store` cannot import `layout-registry` (it already imports
+  `core/index` → `store`). `(s)`,`(t)`,`(x)`,`(ac)`
 - [ ] **1.5 page** — URL-address `page` (`(page, block, disclosure)`), requiring the section model
   (roots + heading levels). `(s)`,`(t)`,`(h)`,`(q)`
 - [ ] **2.6 scope** — make active layout scope-aware (concept vs conversation) and URL-address it;
@@ -244,6 +248,18 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 ## Progress log
 
 Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
+
+### (v4.11) — WP2 start: one URL mirror primitive + renderer validation
+- **2.6 mirrors** — added `setUrlState(key, value, equals?)` (write-if-changed) and
+  `mirrorAtom(source, key, project, equals?)`; every ad-hoc subscription now goes through
+  `mirrorAtom`: `renderer`, `lens` (new), `focus`, `layer`, `folded`, `panels`. `layout`
+  stays a two-atom derived mirror but shares `setUrlState`. Folded/panels compare with a
+  shared order-insensitive `sameStringList`, so a re-serialised set does not churn the URL.
+- **2.6 validation (partial)** — `hydrateFromUrl` now drops a `renderer` that no registered
+  renderer claims (`workspaceRendererIds()`, cycle-free), and `$activeLens` mirrors into
+  `urlState.lens`. `layout` validation deferred (see the `2.6 validation` note).
+- **Tests** — `url-state.test.ts`: unregistered-renderer ignored, active-lens mirror, panels
+  two-way. 266 component tests green.
 
 ### (v4.10) — WP1 sweep: capability gate (WP1 complete)
 - **`capabilityGate`** — renamed `capabilityEnabled` to `capabilityGate(cap)`, the one predicate

@@ -5,6 +5,7 @@ import {
   $collapsedBlocks,
   $graphLayer,
   $lensLayout,
+  $panels,
   $urlState,
   $workspaceGraph,
   hydrateFromUrl,
@@ -12,8 +13,32 @@ import {
   toggleCollapsed,
 } from '../../src/client/core/store.js';
 import { emptyWorkspaceGraph } from '../../src/client/core/workspace-graph.js';
+import {
+  registerRenderer,
+  type WorkspaceRenderer,
+} from '../../src/client/core/workspace-renderer.js';
+
+const fakeRenderer = (id: string): WorkspaceRenderer => ({
+  id,
+  label: id,
+  capabilities: () => ({ interactions: [], blockKinds: 'all', parity: 'full' }),
+  mount: () => {},
+  present: () => {},
+  apply: () => {},
+  focus: () => {},
+  select: () => {},
+  openComposer: () => {},
+  openExplain: () => {},
+  snapshot: () => ({ renderer: id, selection: [] }),
+  restore: () => {},
+  dispose: () => {},
+});
+
+registerRenderer(fakeRenderer('notebook'));
 
 const clearHash = () => window.history.replaceState(null, '', window.location.pathname);
+const setPanels = (open: (id: string) => boolean) =>
+  $panels.set(new Map([...$panels.get()].map(([id, panel]) => [id, { ...panel, open: open(id) }])));
 
 afterEach(() => {
   clearHash();
@@ -23,6 +48,7 @@ afterEach(() => {
   $graphLayer.set('both');
   $activeLens.set('belief');
   $lensLayout.set({ belief: 'cose' });
+  setPanels(() => false);
   $urlState.set({ lens: 'belief' });
 });
 
@@ -72,5 +98,27 @@ describe('url-addressable state', () => {
 
     $lensLayout.set({ belief: 'cose' });
     expect($urlState.get().layout).toBeUndefined();
+  });
+
+  it('ignores a renderer that is not registered', () => {
+    window.location.hash = 'renderer=not-a-renderer';
+    hydrateFromUrl();
+    expect($activeRenderer.get()).toBe('graph');
+    expect($urlState.get().renderer).toBeUndefined();
+  });
+
+  it('mirrors the active lens into the url state', () => {
+    $activeLens.set('goal');
+    expect($urlState.get().lens).toBe('goal');
+  });
+
+  it('reflects panel open state two-way with the url', () => {
+    setPanels((id) => id === 'chat');
+    expect($urlState.get().panels).toEqual(['chat']);
+
+    window.location.hash = 'panels=search';
+    hydrateFromUrl();
+    expect($panels.get().get('search')?.open).toBe(true);
+    expect($panels.get().get('chat')?.open).toBe(false);
   });
 });

@@ -8,6 +8,7 @@ import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
 import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 import { getSurfaces } from './surface-registry.js';
+import { workspaceRendererIds } from './workspace-renderer.js';
 import { GRAPH_LAYERS, type GraphLayer } from './graph-layer.js';
 import { viewAdapters } from './view-adapter.js';
 import type { Shape, ViewSelection } from './view-spec.js';
@@ -452,6 +453,10 @@ function serializeHash(state: UrlState): string {
 
 export function hydrateFromUrl() {
   const parsed = parseHash();
+  // An address that names no registered renderer is dropped rather than adopted (§2.6).
+  if (parsed.renderer && !workspaceRendererIds().includes(parsed.renderer)) {
+    delete parsed.renderer;
+  }
   if (parsed.lens) $activeLens.set(parsed.lens);
   const currentUrl = $urlState.get();
   $urlState.set({ ...currentUrl, ...parsed });
@@ -469,33 +474,54 @@ export function hydrateFromUrl() {
   }
 }
 
-// Keep the URL-addressable slice of session state in step with the atoms it mirrors (§1.5).
-const sameStringSet = (serialized: readonly string[] | undefined, live: ReadonlySet<string>): boolean =>
-  !!serialized && serialized.length === live.size && serialized.every((id) => live.has(id));
+// Keep the URL-addressable slice of session state in step with the atoms it mirrors (§2.6).
+const sameStringList = (
+  a: readonly string[] | undefined,
+  b: readonly string[] | undefined
+): boolean => (a && b ? a.length === b.length && a.every((id) => b.includes(id)) : a === b);
 
-$activeRenderer.subscribe((renderer) => {
-  if ($urlState.get().renderer !== renderer) $urlState.set({ ...$urlState.get(), renderer });
-});
-$workspaceGraph.subscribe((graph) => {
-  if ($urlState.get().focus !== graph.focus) $urlState.set({ ...$urlState.get(), focus: graph.focus });
-});
-$graphLayer.subscribe((layer) => {
-  if ($urlState.get().layer !== layer) $urlState.set({ ...$urlState.get(), layer });
-});
+/** Write one URL-owned key, skipping a no-op write. The one mirror primitive. */
+function setUrlState<K extends keyof UrlState>(
+  key: K,
+  value: UrlState[K],
+  equals: (a: UrlState[K], b: UrlState[K]) => boolean = Object.is
+): void {
+  if (!equals($urlState.get()[key], value)) {
+    $urlState.set({ ...$urlState.get(), [key]: value } as UrlState);
+  }
+}
+
+/** Keep one URL-owned key in step with an atom's projection of it. */
+function mirrorAtom<K extends keyof UrlState, T>(
+  source: Readable<T>,
+  key: K,
+  project: (value: T) => UrlState[K],
+  equals?: (a: UrlState[K], b: UrlState[K]) => boolean
+): void {
+  source.subscribe((value) => setUrlState(key, project(value), equals));
+}
+
+mirrorAtom($activeRenderer, 'renderer', (renderer) => renderer);
+mirrorAtom($activeLens, 'lens', (lens) => lens);
+mirrorAtom($workspaceGraph, 'focus', (graph) => graph.focus);
+mirrorAtom($graphLayer, 'layer', (layer) => layer);
+mirrorAtom($collapsedBlocks, 'folded', (folded) => [...folded], sameStringList);
+mirrorAtom(
+  $panels,
+  'panels',
+  (panels) => [...panels.values()].filter((panel) => panel.open).map((panel) => panel.id),
+  sameStringList
+);
+
+// Layout is derived from the active lens, so it reads both atoms rather than one.
 const DEFAULT_LAYOUTS = LENS_DEFAULT_LAYOUTS as Record<string, string>;
 const mirrorLayout = (): void => {
   const lens = $activeLens.get();
   const layout = $lensLayout.get()[lens];
-  const next = layout && layout !== DEFAULT_LAYOUTS[lens] ? layout : undefined;
-  if ($urlState.get().layout !== next) $urlState.set({ ...$urlState.get(), layout: next });
+  setUrlState('layout', layout && layout !== DEFAULT_LAYOUTS[lens] ? layout : undefined);
 };
 $lensLayout.subscribe(mirrorLayout);
 $activeLens.subscribe(mirrorLayout);
-$collapsedBlocks.subscribe((folded) => {
-  if (!sameStringSet($urlState.get().folded, folded)) {
-    $urlState.set({ ...$urlState.get(), folded: [...folded] });
-  }
-});
 
 // Sync URL when urlState changes
 $urlState.subscribe(syncUrl);
