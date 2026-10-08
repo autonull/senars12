@@ -1,6 +1,6 @@
 import type { Core } from 'cytoscape';
 import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
-import { TOKEN_COLORS } from './token-colors.js';
+import { theme } from './theme.js';
 
 interface StyleChanges {
   'background-color'?: string;
@@ -48,7 +48,7 @@ function channelToStyles(channels: Partial<Record<Channel, ChannelValue>>): Styl
       case 'stroke.width':
         if (typeof value !== 'number') break;
         styles['border-width'] = value;
-        styles['border-color'] = TOKEN_COLORS.borderDefault;
+        styles['border-color'] = theme.colors.borderDefault;
         break;
       case 'z':
         if (typeof value === 'number') styles['z-index'] = Math.round(value);
@@ -99,7 +99,7 @@ export function clearNodeStyles(cy: Core): void {
   cy.batch(() => {
     for (const node of cy.nodes()) {
       node.style({
-        'background-color': TOKEN_COLORS.accentCyan,
+        'background-color': theme.colors.accentCyan,
         opacity: 0.15,
         width: 30,
         height: 30,

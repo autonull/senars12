@@ -386,6 +386,63 @@
 
 ---
 
+### Session 6 — Phase 3.1: theme facade (2026-10-07)
+
+**Landed**
+
+- **3.1 — generated runtime token facade.** `ui/scripts/build-tokens.ts` now derives everything from
+  `design-tokens.json` and emits **two** artifacts from the one source: `styles/tokens.css` (three
+  `:root` / `:root[data-theme=…]` blocks) and the new `styles/tokens.generated.ts`
+  (`ThemeName`, `DEFAULT_THEME`, `THEME_NAMES`, and `TOKENS: Record<ThemeName, token→value>`). Added
+  `themes.light` / `themes.high-contrast` override sets to `design-tokens.json`; semantic aliases
+  resolve per theme (e.g. `--colors-semantic-bg-base` is `#000000` dark / `#ffffff` light / `#000000`
+  high-contrast). The default `:root` block is byte-identical to the previous `tokens.css`, so this is
+  purely additive — committed visual baselines are unaffected.
+- **3.1 — `theme` facade.** New `ui/src/client/utils/theme.ts` is the one runtime reader: `token(path)`
+  (active theme, default-theme fallback), `setTheme`/`getTheme` (also mirrors `<html data-theme>`),
+  `cssVar`, `cssToken` (live computed-property read for canvas), and a `theme.colors` object whose
+  entries are **getters** so reads track the active theme rather than import time.
+- **3.1 — consumers migrated off `TOKEN_COLORS` + inline hex.** `adapter-2d`, `adapter-3d`
+  (`'#00f3ff'`), `graph-viewport`, `graph-minimap` (`'#ffaa00'`), `cognitive-metrics`,
+  `telemetry-panel`, `spacegraph-viewport` now import `theme`; `node-detail-drawer` uses
+  `theme.colors.accentAmber`; `lm-status-panel` uses `var(--colors-primitive-success/error)` +
+  `color-mix`. `utils/token-colors.ts` archived path-for-path under
+  `docs/archive/ui-dead-artifacts/ui/src/client/utils/` and removed (INDEX.md entry added).
+- **Tests.** `ui/tests/theme.test.ts`: independent re-flatten/resolve of `design-tokens.json` compared
+  against `TOKENS` and against the generated `tokens.css` for every theme (parity), plus facade
+  default/fallback/switch assertions.
+
+**Verification**
+
+- `pnpm --dir ui exec tsc --noEmit` clean; `pnpm --dir ui build` succeeds.
+- UI unit **27/27** (was 22; +5 theme parity/facade). `biome lint` clean on all new files; the only
+  warnings on touched files are pre-existing (`node-detail-drawer` `hasTruth`, `spacegraph-viewport`
+  `any`).
+- `git diff` of `tokens.css` is **290 insertions, 0 deletions** — the default theme is unchanged, so
+  no baseline regeneration is implied.
+
+**Still open in Phase 3**
+
+- **3.2–3.10 untouched** — `eventCatalog`, `fieldCatalog`, `lensCatalog`, `layoutRegistry` SSOT,
+  `idSource`, `SurfaceComponent`/`defineSurface`/`renderField`, reflective generators, guard scripts.
+- **3.1 follow-ons** — light/high-contrast exist as data + CSS but no UI surfaces `setTheme` (no
+  `prefers-color-scheme` wiring, no toggle; Phase 5.6/7.1). `cssToken` still reads `getComputedStyle`
+  on every canvas paint (uncached); a renderer may prefer `token()` now that it is theme-aware.
+  Storybook backgrounds are not yet fed from `THEME_NAMES`.
+
+**New opportunities spotted** *(Session 6)*
+
+- Wire `prefers-color-scheme` + a persisted preference into `setTheme` and re-run each viewport's
+  style application on change (Cytoscape `cy.style()`, Three materials) — the getters make the
+  values live but the renderers cache styles at first paint.
+- Fold the other static palettes into tokens as they appear: `graph-viewport`'s `'JetBrains Mono,
+  monospace'` font string and the `rgba(255,176,0,0.1)` warning tint are still literals.
+- The `themes` map is a generic override tree, so a `tokens.generated.ts` consumer can type the token
+  paths (`keyof typeof TOKENS.dark`) to make a misspelled path a compile error instead of a silent
+  fallback.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -643,7 +700,7 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 
 **Goal:** one source per concept, and a component contract that generates its own wiring, tests, stories, docs.
 
-- [ ] **3.1** `theme` facade: generate a runtime reader from `design-tokens.json`; migrate CSS, Cytoscape/Three/Chart adapters off `TOKEN_COLORS`/inline hex; add light + high-contrast sets; token parity test.
+- [x] **3.1** `theme` facade: generate a runtime reader from `design-tokens.json`; migrate CSS, Cytoscape/Three/Chart adapters off `TOKEN_COLORS`/inline hex; add light + high-contrast sets; token parity test. *(done: `tokens.generated.ts` + `utils/theme.ts`; all `TOKEN_COLORS`/inline-hex consumers migrated; `tokens.css` emits dark/light/high-contrast blocks; `tests/theme.test.ts` parity. Not yet wired to a theme switcher — Session 6)*
 - [ ] **3.2** `eventCatalog`: presentation metadata keyed exhaustively by event discriminant (label, category, severity, provenance role, shape hints); bridge/reducers/log/timeline/narration read it.
 - [ ] **3.3** `fieldCatalog`: derive label/unit/range/kind/format from schema metadata; single reader for forms, axes, columns, provenance.
 - [ ] **3.4** `lensCatalog` + renderer capability matrix; one validation path; generated designer form; adapters declare supported channels.

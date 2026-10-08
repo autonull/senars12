@@ -2,7 +2,7 @@ import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { $cognitiveMetrics, $telemetry, BaseComponent, mountTestApi } from '../core/index.js';
-import { cssToken, TOKEN_COLORS } from '../utils/token-colors.js';
+import { cssToken, theme } from '../utils/theme.js';
 
 interface TelemetrySeries {
   key: string;
@@ -200,12 +200,12 @@ export class TelemetryPanel extends BaseComponent {
           ${ALL_METRICS.map((k) => {
             const m =
               k === 'reasoning_hz'
-                ? { label: 'Hz', color: TOKEN_COLORS.warning }
+                ? { label: 'Hz', color: theme.colors.warning }
                 : k === 'tokens_per_sec'
-                  ? { label: 'TPS', color: TOKEN_COLORS.accentCyan }
+                  ? { label: 'TPS', color: theme.colors.accentCyan }
                   : k === 'memory_mb'
-                    ? { label: 'Mem', color: TOKEN_COLORS.accentMagenta }
-                    : { label: 'Lat', color: TOKEN_COLORS.info };
+                    ? { label: 'Mem', color: theme.colors.accentMagenta }
+                    : { label: 'Lat', color: theme.colors.info };
             return html`
               <button class="metric-toggle ${this.visibleMetrics.has(k) ? 'on' : 'off'}" @click=${() => this.toggleMetric(k)}>
                 <span class="dot" style="background:${m.color}"></span>
@@ -298,10 +298,10 @@ export class TelemetryPanel extends BaseComponent {
       (typeof ALL_METRICS)[number],
       { label: string; color: string; unit: string }
     > = {
-      reasoning_hz: { label: 'Hz', color: TOKEN_COLORS.warning, unit: 'Hz' },
-      tokens_per_sec: { label: 'TPS', color: TOKEN_COLORS.accentCyan, unit: 'tps' },
-      memory_mb: { label: 'Mem', color: TOKEN_COLORS.accentMagenta, unit: 'MB' },
-      ws_latency_ms: { label: 'Lat', color: TOKEN_COLORS.info, unit: 'ms' },
+      reasoning_hz: { label: 'Hz', color: theme.colors.warning, unit: 'Hz' },
+      tokens_per_sec: { label: 'TPS', color: theme.colors.accentCyan, unit: 'tps' },
+      memory_mb: { label: 'Mem', color: theme.colors.accentMagenta, unit: 'MB' },
+      ws_latency_ms: { label: 'Lat', color: theme.colors.info, unit: 'ms' },
     };
     return ALL_METRICS.filter((k) => this.visibleMetrics.has(k)).map((key) => {
       const m = meta[key];
@@ -340,7 +340,7 @@ export class TelemetryPanel extends BaseComponent {
     if (series.length === 0) return;
 
     // Draw grid lines
-    ctx.strokeStyle = cssToken('--colors-semantic-border-subtle', TOKEN_COLORS.borderDim) + '4D';
+    ctx.strokeStyle = cssToken('--colors-semantic-border-subtle', theme.colors.borderDim) + '4D';
     ctx.lineWidth = 0.5;
     for (let i = 0; i < 4; i++) {
       const y = pad.top + (chartH / 4) * i;

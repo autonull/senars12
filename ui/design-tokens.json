@@ -198,5 +198,70 @@
     "fast": "{motion.durations.fast} {motion.easings.ease-out}",
     "normal": "{motion.durations.normal} {motion.easings.ease-out}",
     "slow": "{motion.durations.slow} {motion.easings.ease-out}"
+  },
+  "themes": {
+    "light": {
+      "colors": {
+        "primitive": {
+          "void": "#ffffff",
+          "void-hover": "#f5f5f5",
+          "void-active": "#eeeeee",
+          "panel": "#f7f7f7",
+          "panel-solid": "#ffffff",
+          "panel-hover": "#efefef",
+          "border-dim": "#e0e0e0",
+          "border-default": "#c4c4c4",
+          "border-bright": "#a8a8a8",
+          "text-primary": "#1a1a1a",
+          "text-secondary": "#444444",
+          "text-dim": "#767676",
+          "text-inverse": "#ffffff",
+          "accent-cyan": "#0088aa",
+          "accent-cyan-dim": "#006f88",
+          "accent-cyan-subtle": "#d0f0f5",
+          "accent-magenta": "#c4007f",
+          "accent-magenta-dim": "#9a0064",
+          "accent-amber": "#b36b00",
+          "accent-amber-dim": "#8a5300",
+          "focus-ring": "#0088aa",
+          "error": "#cc0000",
+          "warning": "#b36b00",
+          "success": "#00794d",
+          "info": "#0055aa"
+        },
+        "cognitiveLens": {
+          "goal": {
+            "subtle": "rgba(196, 0, 127, 0.1)",
+            "bg": "rgba(196, 0, 127, 0.1)"
+          },
+          "contradiction": {
+            "subtle": "rgba(179, 107, 0, 0.12)",
+            "bg": "rgba(179, 107, 0, 0.12)"
+          }
+        }
+      }
+    },
+    "high-contrast": {
+      "colors": {
+        "primitive": {
+          "border-dim": "#444444",
+          "border-default": "#6a6a6a",
+          "border-bright": "#8a8a8a",
+          "text-primary": "#ffffff",
+          "text-secondary": "#e0e0e0",
+          "text-dim": "#c0c0c0",
+          "accent-cyan": "#5dfaff",
+          "accent-cyan-dim": "#3fd4dd",
+          "accent-cyan-subtle": "#00565c",
+          "accent-magenta": "#ff66cc",
+          "accent-amber": "#ffd24d",
+          "focus-ring": "#5dfaff",
+          "error": "#ff7070",
+          "warning": "#ffd24d",
+          "success": "#4dffb0",
+          "info": "#66ccff"
+        }
+      }
+    }
   }
 }

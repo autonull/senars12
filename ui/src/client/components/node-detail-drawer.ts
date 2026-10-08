@@ -18,6 +18,7 @@ import {
   updateEdgeData,
   updateNodeData,
 } from '../core/index.js';
+import { theme } from '../utils/theme.js';
 
 type TabId = 'overview' | 'links' | 'actions' | 'edge' | 'history';
 
@@ -318,7 +319,7 @@ export class NodeDetailDrawer extends BaseComponent {
       <div class="field"><span class="field-label">Type</span><span class="field-value">${formatNodeType(n.nodeType)}</span></div>
       <div class="field"><span class="field-label">Priority</span><span class="field-value">${n.priority?.toFixed(3) ?? '—'}</span></div>
       <div class="field"><span class="field-label">Confidence</span><span class="field-value">${n.confidence?.toFixed(3) ?? '—'}</span></div>
-      ${n.isContradiction ? html`<div class="field"><span class="field-label">Contradiction</span><span class="field-value" style="color:#ffaa00">⚠ Detected</span></div>` : ''}
+      ${n.isContradiction ? html`<div class="field"><span class="field-label">Contradiction</span><span class="field-value" style="color:${theme.colors.accentAmber}">⚠ Detected</span></div>` : ''}
       <div class="section-title">Truth Value</div>
       <div class="field">
         <span class="field-label">Frequency</span>

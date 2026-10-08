@@ -1,5 +1,6 @@
 import { unique } from '@senars/util';
 import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
+import { theme } from '../utils/theme.js';
 
 export const SUPPORT_3D: Set<Channel> = new Set(['color', 'opacity', 'size', 'label', 'z']);
 
@@ -110,7 +111,7 @@ export function clearNodeStyles(sg: { forNodes: (fn: (node: any) => void) => voi
   sg.forNodes((node: any) => {
     if (!node.object) return;
     if (node.object.material) {
-      node.object.material.color.set('#00f3ff');
+      node.object.material.color.set(theme.colors.accentCyan);
       node.object.material.opacity = 0.15;
       node.object.material.needsUpdate = true;
     }

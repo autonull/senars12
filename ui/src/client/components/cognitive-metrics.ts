@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { $cognitiveMetrics, BaseComponent } from '../core/index.js';
-import { TOKEN_COLORS } from '../utils/token-colors.js';
+import { theme } from '../utils/theme.js';
 
 @customElement('cognitive-metrics')
 export class CognitiveMetrics extends BaseComponent {
@@ -65,15 +65,15 @@ export class CognitiveMetrics extends BaseComponent {
     if (!m) return html``;
 
     const cards = [
-      { label: 'Active Concepts', value: m.activeConcepts, color: TOKEN_COLORS.accentCyan },
-      { label: 'Total Concepts', value: m.totalConcepts, color: TOKEN_COLORS.textSecondary },
+      { label: 'Active Concepts', value: m.activeConcepts, color: theme.colors.accentCyan },
+      { label: 'Total Concepts', value: m.totalConcepts, color: theme.colors.textSecondary },
       {
         label: 'Derivations/s',
         value: m.derivationsPerSec.toFixed(1),
-        color: TOKEN_COLORS.accentAmber,
+        color: theme.colors.accentAmber,
       },
-      { label: 'Contradictions', value: m.contradictionCount, color: TOKEN_COLORS.error },
-      { label: 'Working Mem', value: m.workingMemorySize, color: TOKEN_COLORS.accentMagenta },
+      { label: 'Contradictions', value: m.contradictionCount, color: theme.colors.error },
+      { label: 'Working Mem', value: m.workingMemorySize, color: theme.colors.accentMagenta },
     ];
 
     return html`
@@ -96,7 +96,7 @@ export class CognitiveMetrics extends BaseComponent {
               ${Object.entries(m.goalUrgencyDistribution).map(
                 ([k, v]) => html`
                 <div class="urgency-item">
-                  <span class="urgency-dot" style="background:${k === 'high' ? TOKEN_COLORS.error : k === 'medium' ? TOKEN_COLORS.accentAmber : TOKEN_COLORS.success}"></span>
+                  <span class="urgency-dot" style="background:${k === 'high' ? theme.colors.error : k === 'medium' ? theme.colors.accentAmber : theme.colors.success}"></span>
                   <span class="urgency-value">${v}</span>
                 </div>
               `

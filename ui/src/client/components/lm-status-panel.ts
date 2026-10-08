@@ -15,7 +15,7 @@ export class LMStatusPanel extends BaseComponent {
       font-size: var(--typography-scale-xs); gap: 8px; padding: 2px 8px; flex-wrap: wrap;
     }
     .dot { border-radius: 50%; height: 6px; width: 6px; }
-    .ok { background: #4caf50; } .down { background: #ff5252; }
+    .ok { background: var(--colors-primitive-success); } .down { background: var(--colors-primitive-error); }
     .muted { opacity: 0.6; }
     .webllm-badge {
       background: var(--colors-semantic-bg-emphasis);
@@ -24,7 +24,7 @@ export class LMStatusPanel extends BaseComponent {
       padding: 2px 6px;
       font-size: var(--typography-scale-xxs);
     }
-    .webllm-badge.local { background: #e8f5e9; border-color: #4caf50; color: #2e7d32; }
+    .webllm-badge.local { background: color-mix(in srgb, var(--colors-primitive-success) 14%, transparent); border-color: var(--colors-primitive-success); color: var(--colors-primitive-success); }
     .run-locally-btn {
       background: var(--colors-semantic-bg-emphasis);
       border: 1px solid var(--colors-semantic-border-subtle);

@@ -25,7 +25,7 @@ import {
   eventBus,
   mountTestApi,
 } from '../core/index.js';
-import { TOKEN_COLORS } from '../utils/token-colors.js';
+import { theme } from '../utils/theme.js';
 import { applyDelta, checkUnsupportedChannels, clearNodeStyles } from './adapter-3d.js';
 
 interface NodeSpec3D {
@@ -46,7 +46,7 @@ interface EdgeSpec3D {
 
 const CHAT_NODE_STYLE = {
   shape: 'round-rectangle',
-  'border-color': TOKEN_COLORS.accentCyan,
+  'border-color': theme.colors.accentCyan,
   'border-width': 1.5,
 };
 
@@ -319,7 +319,7 @@ export class SpaceGraphViewport extends BaseComponent {
           : [0, 0, 0];
 
         const nodeData: Record<string, unknown> = {
-          color: TOKEN_COLORS.accentCyan,
+          color: theme.colors.accentCyan,
           priority: nd.priority,
           confidence: nd.confidence,
           isContradiction: nd.isContradiction,

@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { $graphEdges, $graphNodes, $viewport, BaseComponent, eventBus } from '../core/index.js';
-import { cssToken, TOKEN_COLORS } from '../utils/token-colors.js';
+import { cssToken, theme } from '../utils/theme.js';
 
 const MINIMAP_SIZE = 160;
 const PADDING = 10;
@@ -123,7 +123,7 @@ export class GraphMinimap extends BaseComponent {
     const py = (y: number) => PADDING + (y - minY) * scale;
 
     // Draw edges
-    ctx.strokeStyle = cssToken('--colors-semantic-border-subtle', TOKEN_COLORS.borderDim);
+    ctx.strokeStyle = cssToken('--colors-semantic-border-subtle', theme.colors.borderDim);
     ctx.lineWidth = 0.5;
     for (const [, ed] of edges) {
       const src = positions.get(ed.source);
@@ -143,7 +143,7 @@ export class GraphMinimap extends BaseComponent {
       const cx = px(pos.x);
       const cy = py(pos.y);
       const r = Math.max(2, (10 + 30 * (nd.priority ?? 0.5)) * scale * 0.5);
-      ctx.fillStyle = nd.isContradiction ? '#ffaa00' : TOKEN_COLORS.accentCyan;
+      ctx.fillStyle = nd.isContradiction ? '#ffaa00' : theme.colors.accentCyan;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fill();
@@ -156,7 +156,7 @@ export class GraphMinimap extends BaseComponent {
     const vpX = px(vp.x - rangeX / (2 * vp.zoom));
     const vpY = py(vp.y - rangeY / (2 * vp.zoom));
 
-    ctx.strokeStyle = TOKEN_COLORS.accentCyan;
+    ctx.strokeStyle = theme.colors.accentCyan;
     ctx.lineWidth = 1.5;
     ctx.setLineDash([3, 3]);
     ctx.strokeRect(vpX, vpY, vpW, vpH);

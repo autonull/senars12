@@ -48,6 +48,18 @@ below); the removal commit `e60bc53a` shows exactly which lines were dropped.
 | `tests/impressive-screenshot.spec.ts` | Outside `testDir`; duplicate of `tests/scenarios/impressive-demo/impressive-demo.spec.ts`; port 3000 drift. | Fold any unique assertion into `impressive-demo.spec.ts` (already tagged `@visual`). |
 | `scripts/ready-check.ts` | Unreferenced; port 3000 drift. | The webServer readiness is owned by `tests/playwright.config.ts`; recreate only if a standalone poller is needed, reading the port from config. |
 
+### Phase 3.1 (TODO.ui.md) — hand-maintained color mirror
+
+- **Why:** TODO.ui.md §3.1 — `TOKEN_COLORS` duplicated the color primitives of
+  `design-tokens.json` by hand and could silently drift from the generated
+  `tokens.css`. Replaced by the `theme` facade (`ui/src/client/utils/theme.ts`)
+  reading the generated `ui/src/client/styles/tokens.generated.ts`.
+- **Removed in:** the Phase 3.1 commit; see `git log -- ui/src/client/utils/token-colors.ts`.
+
+| Archived path (relative to `ui/`) | Removed because | Resurrection notes |
+|---|---|---|
+| `src/client/utils/token-colors.ts` | Hand-maintained mirror of `design-tokens.json`; superseded by the generated `theme` facade. | `cssToken` and every color now live in `src/client/utils/theme.ts`; do not restore — extend `design-tokens.json` instead. |
+
 ## Notes
 
 - This archive is intentionally excluded from formatting/linting so the frozen

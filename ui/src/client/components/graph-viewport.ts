@@ -28,12 +28,12 @@ import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
 import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
-import { TOKEN_COLORS } from '../utils/token-colors.js';
+import { theme } from '../utils/theme.js';
 import './graph-minimap.js';
 
 const CHAT_NODE_STYLE = {
   shape: 'round-rectangle',
-  'border-color': TOKEN_COLORS.accentCyan,
+  'border-color': theme.colors.accentCyan,
   'border-width': 1.5,
 };
 
@@ -438,9 +438,9 @@ export class GraphViewport extends BaseComponent {
           label: 'data(label)',
           'text-valign': 'center',
           'text-halign': 'center',
-          color: TOKEN_COLORS.textPrimary,
+          color: theme.colors.textPrimary,
           'text-outline-width': 2,
-          'text-outline-color': TOKEN_COLORS.void,
+          'text-outline-color': theme.colors.void,
           'font-size': '11px',
           'font-family': 'JetBrains Mono, monospace',
           'transition-property':
@@ -453,8 +453,8 @@ export class GraphViewport extends BaseComponent {
         selector: 'edge',
         style: {
           width: 1.5,
-          'line-color': TOKEN_COLORS.borderDefault,
-          'target-arrow-color': TOKEN_COLORS.borderDefault,
+          'line-color': theme.colors.borderDefault,
+          'target-arrow-color': theme.colors.borderDefault,
           'target-arrow-shape': 'triangle',
           'curve-style': 'bezier',
           opacity: 0.3,
@@ -463,7 +463,7 @@ export class GraphViewport extends BaseComponent {
       {
         selector: 'edge.thread-edge',
         style: {
-          'line-color': TOKEN_COLORS.accentCyan,
+          'line-color': theme.colors.accentCyan,
           width: 2,
           'line-style': 'dotted',
           'target-arrow-shape': 'none',
@@ -473,7 +473,7 @@ export class GraphViewport extends BaseComponent {
       {
         selector: 'edge[type="derivation"]',
         style: {
-          'line-color': TOKEN_COLORS.warning,
+          'line-color': theme.colors.warning,
           'line-style': 'dashed',
           width: 2,
           'target-arrow-shape': 'vee',
@@ -484,7 +484,7 @@ export class GraphViewport extends BaseComponent {
         selector: '.focused',
         style: {
           'border-width': 3,
-          'border-color': TOKEN_COLORS.accentCyan,
+          'border-color': theme.colors.accentCyan,
           'z-index': 999,
         },
       },
@@ -492,7 +492,7 @@ export class GraphViewport extends BaseComponent {
         selector: '.selected',
         style: {
           'border-width': 3,
-          'border-color': TOKEN_COLORS.accentCyan,
+          'border-color': theme.colors.accentCyan,
           'z-index': 998,
         },
       },
@@ -500,7 +500,7 @@ export class GraphViewport extends BaseComponent {
         selector: '.multi-selected',
         style: {
           'border-width': 2,
-          'border-color': TOKEN_COLORS.accentAmber,
+          'border-color': theme.colors.accentAmber,
           'z-index': 997,
         },
       },
@@ -597,7 +597,7 @@ export class GraphViewport extends BaseComponent {
         } else {
           const data = {
             id: nodeId,
-            color: TOKEN_COLORS.accentCyan,
+            color: theme.colors.accentCyan,
             term: nd.term,
             nodeType: nd.nodeType,
             priority: nd.priority,
