@@ -402,7 +402,11 @@ registerCommand({
   title: 'Focus composer',
   group: 'Compose',
   keywords: 'input ask type message mode',
-  run: () => eventBus.emit('composer:focus', {}),
+  run: (args) =>
+    eventBus.emit('composer:focus', {
+      refs: args?.refs as string[] | undefined,
+      mode: args?.mode as string | undefined,
+    }),
 });
 
 declare global {

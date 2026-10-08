@@ -11,13 +11,17 @@ import { overlays } from './overlay-registry.js';
 import { $activeRenderer } from './store.js';
 import { workspaceRenderers } from './workspace-renderer.js';
 
+export type CommandArgs = Record<string, unknown>;
+
 export interface Command {
   readonly id: string;
   readonly title: string;
   readonly group: string;
   /** Extra search terms (never shown). */
   readonly keywords?: string;
-  run(): void;
+  run(args?: CommandArgs): void;
+  /** Validate/coerce the caller's args (agent `ui.command`); throw to reject. */
+  parse?(args: CommandArgs): CommandArgs;
   /** A command that only makes sense in some state can hide itself. */
   available?(): boolean;
 }
@@ -49,7 +53,7 @@ const derivedCommands = (): Command[] => [
         title: overlay.title,
         group: 'Open',
         keywords: `overlay panel open ${overlay.id}`,
-        run: () => eventBus.emit('overlay:open', { id: overlay.id }),
+        run: (args) => eventBus.emit('overlay:open', { id: overlay.id, ref: args?.ref as string | undefined }),
       })
     ),
   {
@@ -79,11 +83,17 @@ export const activeCommands = (): Command[] =>
 /**
  * Run a command by id, respecting availability, and report whether it ran. This
  * is the seam the agent `ui.command` (§3.6) and any programmatic caller use, so
- * every palette command is agent-settable without a second registry.
+ * every palette command is agent-settable without a second registry. A command
+ * may declare `parse` to validate/coerce args; a rejection is reported, not thrown.
  */
-export const dispatchCommand = (id: string): boolean => {
+export const dispatchCommand = (id: string, args: CommandArgs = {}): boolean => {
   const command = activeCommands().find((candidate) => candidate.id === id);
   if (!command) return false;
-  command.run();
+  try {
+    command.run(command.parse ? command.parse(args) : args);
+  } catch (error) {
+    console.warn(`[command] ${id} rejected its args`, error);
+    return false;
+  }
   return true;
 };

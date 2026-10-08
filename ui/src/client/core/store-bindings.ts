@@ -166,7 +166,7 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
       break;
 
     case 'ui.command':
-      if (!dispatchCommand(msg.command)) {
+      if (!dispatchCommand(msg.command, msg.args ?? {})) {
         console.warn('[UI] Unknown ui.command:', msg.command);
       }
       break;

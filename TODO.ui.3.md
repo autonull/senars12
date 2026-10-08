@@ -502,7 +502,7 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 - [~] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
   - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside; the `FocusTrap` pierces shadow roots and retries focus on the next frame (every overlay is a Lit element, so its focusables live in a shadow root and render asynchronously). A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6), the command palette (⌘K), and the artifact viewer (4.3). Tables now render through the landed `s-view`/`ViewSpec` view system (embedded budget) instead of bespoke markup, and `artifactViewSpec` maps a block's payload to a `ViewSpec`. Remaining: settings/provider dialog, tool approval, timeline overlay (4.4), pinning (4.5).
 - [~] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
-  - Landed the **capability registry + toggles** (`core/capabilities.ts`): the five capabilities (`language · reasoning · tools · memory · uiControl`) as an exhaustive catalog with labels/descriptions/defaults, the `$capabilities` composition atom (defaults to `{language}` — the LM-only product), and `capabilityEnabled`/`setCapability`. The composer modes consume it (1.2). Also landed the **`ui.command` contract + dispatcher stub**: `UiCommandMsg` (`core/src/protocol/ui-command.ts`, in `IncomingFromServer`), `dispatchCommand(id)` over the one command registry (so every palette command is agent-settable), and the `applyServerMessage` case that dispatches it. The remaining 0.6 contracts (`ReasoningBackend`, `LmProvider` façade — note `lm.status`/`lm.switch` are already real) and `ui.command` execution (Phase 5) are still to come.
+  - Landed the **capability registry + toggles** (`core/capabilities.ts`): the five capabilities (`language · reasoning · tools · memory · uiControl`) as an exhaustive catalog with labels/descriptions/defaults, the `$capabilities` composition atom (defaults to `{language}` — the LM-only product), and `capabilityEnabled`/`setCapability`. The composer modes consume it (1.2). Also landed the **`ui.command` contract + dispatcher stub**: `UiCommandMsg` (`core/src/protocol/ui-command.ts`, in `IncomingFromServer`), `dispatchCommand(id, args?)` over the one command registry (respecting `available()` and an optional per-command `parse(args)` validator, so every palette command is agent-settable — the derived `overlay.*` and `composer.focus` commands forward `ref`/`refs`/`mode`), and the `applyServerMessage` case that dispatches it. The remaining 0.6 contracts (`ReasoningBackend`, `LmProvider` façade — note `lm.status`/`lm.switch` are already real) and fuller `ui.command` execution (Phase 5) are still to come.
 - [ ] 0.7 Compatibility bridge: existing graph nodes/events/chat still render (as overlays/embedded views); landed ViewSpec adapters usable inside overlays/embedded blocks.
 
 **Verification:** user switches Notebook ↔ Graph over the same session data; focus/selection survives the switch; no required side panel exists; existing tests pass or are intentionally updated.
@@ -1469,6 +1469,36 @@ The `language`-only composition is deliberately shippable on its own: a conversa
 - Record executed `ui.command`s in the timeline/telemetry for a provenance trail of UI actions.
 - An `available()`-aware palette badge and a `ui.command` round-trip test through `applyServerMessage`
   (a synthetic `IncomingFromServer` frame) to lock the wire contract.
+
+### 2026-10-08 (v) — `ui.command` args + per-command validation (0.6)
+
+**Landed**
+- `ui/src/client/core/commands.ts` — `CommandArgs = Record<string, unknown>`; `Command.run(args?)` and an
+  optional `Command.parse(args)` validator (`throw` rejects). `dispatchCommand(id, args?)` finds the
+  active command, runs `parse` when present, and reports `false` (with a warn) if parse throws instead of
+  propagating. The derived `overlay.<id>` command forwards `args.ref` into `overlay:open`, so an agent can
+  open (e.g.) Explanation on a block.
+- `ui/src/client/components/input-hud.ts` — the `composer.focus` command forwards `args.refs`/`args.mode`
+  into `composer:focus`, so an agent can summon the composer with a context/mode.
+- `ui/src/client/core/store-bindings.ts` — the `ui.command` case passes `msg.args ?? {}`.
+- Tests (+2; **229 green / 40 files**; UI typecheck and biome clean): args flow through `parse` to `run`,
+  and a throwing `parse` yields `false` without running.
+
+**Notes for remaining work**
+- Validation is a hand-rolled `parse` (no schema lib in the UI); a command needing structure writes its own
+  guard. If several commands grow params, adopt a tiny shared validator (or reuse zod already in core).
+- `overlay.*` forwards only `ref`; `explain`/`related` use it, but other overlays ignore args silently.
+- `ui.command` args are not yet type-checked against `UiCommandMsg.args` (`z.record(z.string(), z.unknown())`
+  is the wire shape); they align by construction.
+
+**New improvement opportunities**
+- Give each parameterised command a small `params` descriptor so the palette can prompt for missing args and
+  `parse` is generated rather than hand-written.
+- Round-trip test the wire: build a synthetic `ui.command` frame, run `applyServerMessage`, and assert the
+  command fired — locks the client/server contract without the socket.
+- Emit the executed `ui.command` id into the timeline/telemetry for an agent-action provenance trail.
+- Let `overlay.*` forward all args to `overlay:open` (currently just `ref`) once overlays declare what they read.
+
 
 
 

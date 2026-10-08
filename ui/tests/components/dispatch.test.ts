@@ -34,4 +34,34 @@ describe('dispatchCommand', () => {
     expect(dispatchCommand('test.when')).toBe(false);
     expect(ran).toBe(false);
   });
+
+  it('passes args through parse to run', () => {
+    const seen: unknown[] = [];
+    registerCommand({
+      id: 'test.args',
+      title: 'Args',
+      group: 'Test',
+      parse: (args) => ({ ref: String(args.ref) }),
+      run: (args) => seen.push(args?.ref),
+    });
+    expect(dispatchCommand('test.args', { ref: 7 })).toBe(true);
+    expect(seen).toEqual(['7']);
+  });
+
+  it('reports false and does not run when parse rejects', () => {
+    let ran = false;
+    registerCommand({
+      id: 'test.reject',
+      title: 'Reject',
+      group: 'Test',
+      parse: () => {
+        throw new Error('bad args');
+      },
+      run: () => {
+        ran = true;
+      },
+    });
+    expect(dispatchCommand('test.reject', {})).toBe(false);
+    expect(ran).toBe(false);
+  });
 });
