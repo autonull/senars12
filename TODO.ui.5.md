@@ -46,7 +46,8 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
 4. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
    renderer/overlays context fields await a consumer.)
 5. **`2.4 inspection & embedded views`** (L) ·
-   **`citations model`** (M). (`4.5 pinning` is partially landed — manager/command pinning; see WP4.) (`1.4 rich text` is partially landed — inline tokenizer; see WP1.)
+   **`citations model`** (M). (`4.5 pinning` partial — manager/command pinning; `1.4 rich text` partial
+   — inline tokenizer; `citations model` partial — bibliography core.)
 6. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
    (`4.4 controls` is partially landed — live reset + readout; see WP4.)
 
@@ -212,9 +213,12 @@ Landed extension points — wire features here instead of re-deriving them.
   items; image blocks now honour intrinsic `{width?,height?}` (attributes elided with `nothing`).
   Remaining: inline full tables, view-barrel ownership.
   `→ core/inline-text.ts`, `components/renderers/notebook.ts`. `(i)`,`(j)`
-- [ ] **citations model** — `Source`/bibliography (stable citation key, `[n]` resolution) to split
-  formal citations from plain links. `→ core/segmentation.ts`, `core/artifacts.ts`,
-  `components/views/text-view.ts`. `(i)`
+- [~] **citations model** — `Source`/bibliography (stable citation key, `[n]` resolution) to split
+  formal citations from plain links. Landed: `core/citations.ts` — `collectSources(graph)` builds a
+  numbered bibliography from reference-style citation blocks (de-duplicated by key), `resolveSource`
+  resolves bare/`[n]` keys; `Source` exported from the barrel. Remaining: render `[n]` references in
+  the Notebook/`text-view` against the bibliography. `→ core/citations.ts`, `core/segmentation.ts`,
+  `core/artifacts.ts`. `(i)`
 
 ## WP4 — Timeline present-anchoring
 
@@ -427,3 +431,6 @@ in v3 Appendix D). Rolled up:
   guards `asTableData`/`asCodeData`/`asListData`/`asImageData`/`asCitationData` in `core/segmentation.ts`;
   `artifacts.ts` and the Notebook narrow through them instead of casting `block.data` — **`4.3 typing`**
   partially landed (the `Artifact` union itself remains). Suite **328 green**.
+- **WP3 citations** — `core/citations.ts`: `collectSources` builds a numbered, key-deduplicated
+  bibliography from reference-style citation blocks and `resolveSource` resolves bare/`[n]` keys —
+  **`citations model`** partially landed (inline `[n]` rendering remains). Suite **331 green**.

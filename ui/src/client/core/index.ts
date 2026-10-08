@@ -52,6 +52,7 @@ export {
   type ReasoningPositions,
   reasoningPositions,
 } from './reasoning-layout.js';
+export { collectSources, resolveSource, type Source } from './citations.js';
 export { type Neighbor, type Neighborhood, neighborhood } from './neighborhood.js';
 export { FocusTrap } from './focus-trap.js';
 export {
