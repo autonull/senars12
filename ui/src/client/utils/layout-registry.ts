@@ -15,6 +15,7 @@ import {
   CONVERSATION_LAYOUT_IDS,
   conversationPositions,
 } from '../core/index.js';
+import { registerLayoutId } from '../core/layout-ids.js';
 import { lensMeta } from './lens-catalog.js';
 
 /** Whether a layout arranges the reasoning graph or the semantic conversation. */
@@ -46,6 +47,7 @@ class LayoutRegistryImpl {
 
   register(def: LayoutDefinition): void {
     this.layouts.set(def.id, def);
+    registerLayoutId(def.id);
   }
 
   get(id: string): LayoutDefinition | undefined {

@@ -17,6 +17,7 @@ import {
   registerRenderer,
   type WorkspaceRenderer,
 } from '../../src/client/core/workspace-renderer.js';
+import '../../src/client/utils/layout-registry.js';
 
 const fakeRenderer = (id: string): WorkspaceRenderer => ({
   id,
@@ -105,6 +106,13 @@ describe('url-addressable state', () => {
     hydrateFromUrl();
     expect($activeRenderer.get()).toBe('graph');
     expect($urlState.get().renderer).toBeUndefined();
+  });
+
+  it('ignores a layout that is not registered', () => {
+    window.location.hash = 'layout=not-a-layout';
+    hydrateFromUrl();
+    expect($lensLayout.get().belief).toBe('cose');
+    expect($urlState.get().layout).toBeUndefined();
   });
 
   it('mirrors the active lens into the url state', () => {

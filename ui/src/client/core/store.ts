@@ -7,12 +7,13 @@ import { timeGate } from '../modulation/composition.js';
 import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
 import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
-import { getSurfaces } from './surface-registry.js';
-import { workspaceRendererIds } from './workspace-renderer.js';
 import { GRAPH_LAYERS, type GraphLayer } from './graph-layer.js';
+import { isRegisteredLayoutId } from './layout-ids.js';
+import { getSurfaces } from './surface-registry.js';
 import { viewAdapters } from './view-adapter.js';
 import type { Shape, ViewSelection } from './view-spec.js';
 import { emptyWorkspaceGraph, type WorkspaceGraph } from './workspace-graph.js';
+import { workspaceRendererIds } from './workspace-renderer.js';
 
 type Listener<T> = (value: T) => void;
 type Unsubscriber = () => void;
@@ -152,7 +153,9 @@ export const $activeRenderer = atom<string>('graph');
 
 /** Point the workspace focus at a block (session state; survives re-projection). */
 export function setWorkspaceFocus(ref?: string): void {
-  $workspaceGraph.set({ ...$workspaceGraph.get(), focus: ref });
+  const current = $workspaceGraph.get();
+  if (current.focus === ref) return;
+  $workspaceGraph.set({ ...current, focus: ref });
 }
 
 /** Which Graph-mode layer(s) to show: the engine concepts, the conversation, or both (§2.1). */
@@ -456,6 +459,10 @@ export function hydrateFromUrl() {
   // An address that names no registered renderer is dropped rather than adopted (§2.6).
   if (parsed.renderer && !workspaceRendererIds().includes(parsed.renderer)) {
     delete parsed.renderer;
+  }
+  // Likewise a layout the registry does not know, so a stale link cannot seed `$lensLayout`.
+  if (parsed.layout && !isRegisteredLayoutId(parsed.layout)) {
+    delete parsed.layout;
   }
   if (parsed.lens) $activeLens.set(parsed.lens);
   const currentUrl = $urlState.get();

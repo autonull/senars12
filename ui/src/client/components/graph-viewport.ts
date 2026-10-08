@@ -85,6 +85,7 @@ export class GraphViewport extends BaseComponent {
   private tooltipTimer: ReturnType<typeof setTimeout> | null = null;
   private contextTarget: string | null = null;
   private prevNodeCount = 0;
+  private focusedRef?: string;
   @state() private htmlLabels = new Map<string, HtmlLabelData>();
   @state() private tooltip: { x: number; y: number; content: string } | null = null;
   @state() private contextMenu: { x: number; y: number; nodeId: string } | null = null;
@@ -731,6 +732,22 @@ export class GraphViewport extends BaseComponent {
     if (isFirstLayout || topologyChanged) {
       layoutRegistry.runLayout(cy, layoutRegistry.getForLens(lens), { fit: isFirstLayout });
     }
+
+    this.reactToFocus();
+  }
+
+  /**
+   * Centre/highlight a focus that arrived from outside the viewport — a ToC row,
+   * the block menu, related blocks, a URL link (§2.5). The Graph twin of the
+   * Notebook's `scrollIntoView`; a focus that equals the live selection is
+   * already centred by the selection watch, so it is only recorded.
+   */
+  private reactToFocus() {
+    const focus = $workspaceGraph.get().focus;
+    if (focus === this.focusedRef) return;
+    this.focusedRef = focus;
+    if (focus === undefined || focus === $selectedNodeId.get()) return;
+    this.centerOnNode(focus);
   }
 
   /**

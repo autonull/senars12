@@ -51,9 +51,8 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
 7. **`4.4 controls`** (S) · **`4.4 anchor`** (M) · **`4.4 gating`** (S) · **`ops sequencing`** (M) —
    timeline/ops, independent of WP3 completion.
 
-**Gated** (see §Blockers): `0.5`; `1.5 page` (needs the section model); the layout half of
-`2.6 validation`; the inspector half of `4.3 affordances`; WP5 `3.3` → `4.3 derivation-record`;
-WP5 `3.6` → the `config-change` producer.
+**Gated** (see §Blockers): `0.5`; `1.5 page` (needs the section model); the inspector half of
+`4.3 affordances`; WP5 `3.3` → `4.3 derivation-record`; WP5 `3.6` → the `config-change` producer.
 
 ## Blockers / prerequisites
 
@@ -67,9 +66,6 @@ Cross-cutting constraints that gate multiple items — each is a work order: fir
   switching, the Provider/Config split, and `config-hud` `embedded` are wired against the façade.
 - **Section model** — blocks **`1.5 page`**. *First step:* recurse `roots` + heading `level`s into a
   section tree in `core/toc.ts`. *Done when:* pages/ToC are non-shallow and `page` is URL-addressable.
-- **Cycle-free layout-id source** — blocks the layout half of **`2.6 validation`**. *First step:* have
-  `layout-registry` publish its ids into a leaf module the store can import without the
-  `core/index → store` cycle. *Done when:* `hydrateFromUrl` rejects an unregistered `UrlState.layout`.
 - **Node→workspace-block mapping** — blocks the inspector half of **`4.3 affordances`** and richer
   **`2.4`**. *First step:* decide where a selected engine node/edge resolves to a block `ref`. *Done
   when:* the inspector can open an artifact for the selected node.
@@ -100,7 +96,8 @@ Landed extension points — wire features here instead of re-deriving them.
 - **Projection** — `core/workspace-projection.ts`, `core/graph-projection.ts`, `core/segmentation.ts`.
 - **Explain / links / ToC** — `core/explain.ts`, `core/neighborhood.ts`, `core/toc.ts`,
   `utils/link-catalog.ts`.
-- **Layouts** — `utils/layout-registry.ts`, `utils/lens-catalog.ts`.
+- **Layouts** — `utils/layout-registry.ts`, `utils/lens-catalog.ts`; `core/layout-ids.ts`
+  (`registerLayoutId`/`isRegisteredLayoutId`) — the cycle-free id leaf the store validates against.
 - **Block affordances** — `components/overlays/block-menu.ts` (Copy / Open-in-graph / artifact /
   provenance / formalize).
 
@@ -125,10 +122,12 @@ Landed extension points — wire features here instead of re-deriving them.
 
 *Outcome: one state source; everything deep-linkable. Deps: WP1 (soft).*
 
-- [~] **2.6 validation** — renderer validation (cycle-free `workspaceRendererIds()`) and
-  `$activeLens` → `urlState.lens` are done. Remaining: validate `UrlState.layout` vs `layoutRegistry`
-  — needs the **cycle-free layout-id source** blocker. `→ core/store.ts`,
-  `utils/layout-registry.ts`. `(s)`,`(t)`,`(x)`,`(ac)`
+- [x] **2.6 validation** — renderer validation (cycle-free `workspaceRendererIds()`),
+  `$activeLens` → `urlState.lens`, and now `UrlState.layout` vs the registry are done. The
+  **cycle-free layout-id source** is `core/layout-ids.ts`: `layout-registry` publishes each id at
+  `register()` and `hydrateFromUrl` drops an id the leaf does not know (a stale link cannot seed
+  `$lensLayout`). `→ core/store.ts`, `core/layout-ids.ts`, `utils/layout-registry.ts`.
+  `(s)`,`(t)`,`(x)`,`(ac)`
 - [ ] **1.5 page** — URL-address `page` (`(page, block, disclosure)`); needs the **section model**
   blocker. `→ core/store.ts` (url-state), `core/toc.ts`. `(s)`,`(t)`,`(h)`,`(q)`
 - [ ] **2.6 scope** — scope-aware active layout (concept vs conversation) + URL-address it; remember
@@ -136,9 +135,12 @@ Landed extension points — wire features here instead of re-deriving them.
   `utils/layout-registry.ts`, `utils/lens-catalog.ts`. `(y)`,`(ac)`,`(w)`,`(t)`
 - [ ] **2.5 selection atom** — derive `$selectedNodeIds` from `$workspaceGraph.selection`.
   `→ core/store.ts`, `core/workspace-graph.ts`. `(z)`
-- [ ] **2.5 focus react** — Graph viewport centres/highlights on `$workspaceGraph.focus` (Notebook
-  already scrolls). `→ core/store.ts`, `components/renderers/graph.ts`,
-  `components/graph-viewport.ts`. `(h)`,`(n)`,`(r)`,`(z)`
+- [x] **2.5 focus react** — Graph viewport centres/highlights on `$workspaceGraph.focus` (Notebook
+  already scrolls). Landed as `GraphViewport.reactToFocus()` at the end of `syncGraph`: it tracks the
+  last focus and calls `centerOnNode` for an outside focus (ToC/breadcrumb/block-menu/URL), while a
+  focus equal to the live selection is left to the existing `$selectedNodeId` watch; `setWorkspaceFocus`
+  now skips same-value writes. The 3D viewport is not yet wired (see opportunities).
+  `→ core/store.ts`, `components/graph-viewport.ts`. `(h)`,`(n)`,`(r)`,`(z)`
 - [ ] **2.5 defaults** — capability-aware default renderer (`language`→Notebook, `reasoning`→Graph).
   `→ core/store.ts`, `core/capabilities.ts`, `core/workspace-renderer.ts`. `(k)`
 - [ ] **2.6 context** — extend `WorkspaceContext` (`overlays`, `renderer`, `setRenderer`; fold
@@ -292,10 +294,13 @@ Landed extension points — wire features here instead of re-deriving them.
   Cytoscape) and an `app-layout` test; parity link-catalog `layouts` ⊆ `layoutRegistry`; segmentation
   round-trip property test; Notebook `composer:focus` path test; regenerate visual baselines for the
   telemetry/timeline demotions; fix the stale e2e "default telemetry panel" comment and the
-  timeline-overlay test-API registration note. `→ tests/`.
+  timeline-overlay test-API registration note. Sweep: a guard test that every `layoutRegistry`-registered
+  id is reachable (mirrors the existing conversation-layout scope guard) so a new layout cannot skip the
+  catalog. `→ tests/`.
   `(o)`,`(p)`,`(ae)`,`(Phase 0.1–0.3)`,`(d)`,`(q)`,`(af)`,`(ag)`
 - [ ] **6 Graph3D** — `WorkspaceRenderer` over SpaceGraph, `parity: 'partial'`; only after Notebook/Graph
-  are excellent. `→ components/renderers/graph3d.ts`. `(6)`
+  are excellent. Sweep: mirror the Graph's `reactToFocus` (centre on an outside `$workspaceGraph.focus`)
+  once the surface exposes a camera primitive. `→ components/renderers/graph3d.ts`. `(6)`
 
 ---
 
@@ -336,3 +341,12 @@ in v3 Appendix D). Rolled up:
 - **WP3 views** — `code` shape + `s-code`; `diff` shape + `s-diff` (+ `diffLines`, shared
   `highlightLine`/`highlightStyles`); `config-change` → diff; artifact overlay Copy/Open-in-graph + ToC
   artifact button. Component suite **283 green**.
+
+## Landed (v5) — progress log
+
+- **WP2 state** — `core/layout-ids.ts` is the cycle-free layout-id leaf; `layout-registry` publishes each
+  id on `register()`, and `hydrateFromUrl` drops an unregistered `UrlState.layout`. Closes the
+  **cycle-free layout-id source** blocker and completes **`2.6 validation`**. `setWorkspaceFocus` skips a
+  same-value write; `GraphViewport.reactToFocus()` centres/highlights an outside focus (ToC/breadcrumb/
+  block-menu/URL) while leaving selection-driven centring to the existing watch — completes
+  **`2.5 focus react`** (2D only). Component suite **305 green** (new: unregistered-layout rejection).
