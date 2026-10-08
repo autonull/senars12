@@ -5,8 +5,10 @@ import {
   $activeLens,
   $capabilityFilter,
   $connectionState,
+  $conversationLayout,
   $graphNodes,
   $graphShape,
+  $layoutScope,
   $lensLayout,
   $panels,
   $selectedNodeIds,
@@ -16,6 +18,7 @@ import {
   BaseComponent,
   eventBus,
   send,
+  setActiveLayout,
   setWorkspaceSelection,
 } from '../core/index.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
@@ -111,9 +114,12 @@ export class GraphToolbar extends BaseComponent {
   @state() private zoom = 1;
   @state() private searchQuery = '';
   @state() private multiSelectCount = 0;
-  @state() private layoutName = 'cose';
   @state() private viewportMode: ViewportMode = '2d';
   @state() private activeCapabilities: string[] = [];
+
+  private get activeLayoutName(): string {
+    return layoutRegistry.getForScope($layoutScope.get());
+  }
 
   override connectedCallback() {
     super.connectedCallback();
@@ -122,17 +128,14 @@ export class GraphToolbar extends BaseComponent {
     this.watch($panels);
     this.watch($viewportMode);
     this.watch($graphShape);
+    this.watch($layoutScope);
+    this.watch($conversationLayout);
+    this.watch($lensLayout);
     this.watchWith($viewport, (vp) => {
       this.zoom = vp.zoom;
     });
     this.watchWith($selectedNodeIds, (ids) => {
       this.multiSelectCount = ids.size;
-    });
-    this.watchWith($activeLens, (lens) => {
-      this.layoutName = $lensLayout.get()[lens] ?? 'cose';
-    });
-    this.watchWith($lensLayout, (layouts) => {
-      this.layoutName = layouts[$activeLens.get()] ?? 'cose';
     });
     this.watchWith($viewportMode, (mode) => {
       this.viewportMode = mode;
@@ -142,7 +145,6 @@ export class GraphToolbar extends BaseComponent {
   }
 
   override render() {
-    const activeLens = $activeLens.get();
     const state = $connectionState.get();
     const lensDesignerOpen = $panels.get().get('lens-designer')?.open;
 
@@ -182,7 +184,7 @@ export class GraphToolbar extends BaseComponent {
       <div class="divider"></div>
 
       <select class="layout-select" @change=${this.selectLayout} title="Graph layout" aria-label="Graph layout"
-        .value=${this.layoutName}>
+        .value=${this.activeLayoutName}>
         <optgroup label="Concept">
           ${layoutRegistry.layoutsFor('concept').map(
             (layout) => html`<option value=${layout.id}>${layout.label}</option>`
@@ -287,7 +289,9 @@ export class GraphToolbar extends BaseComponent {
   }
 
   private selectLayout(e: Event) {
-    eventBus.emit('graph:layout', (e.target as HTMLSelectElement).value);
+    const id = (e.target as HTMLSelectElement).value;
+    setActiveLayout(id);
+    eventBus.emit('graph:layout', id);
   }
 
   private toggleMinimap() {

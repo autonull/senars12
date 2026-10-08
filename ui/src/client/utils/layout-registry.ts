@@ -9,17 +9,18 @@
 import type { Lens } from '@senars/core';
 import type { Core, LayoutOptions, NodeSingular } from 'cytoscape';
 import {
+  $activeLens,
+  $conversationLayout,
   $lensLayout,
   $workspaceGraph,
   CONVERSATION_LAYOUT_CATALOG,
   CONVERSATION_LAYOUT_IDS,
   conversationPositions,
 } from '../core/index.js';
-import { registerLayoutId } from '../core/layout-ids.js';
+import { type LayoutScope, registerLayoutId } from '../core/layout-ids.js';
 import { lensMeta } from './lens-catalog.js';
 
-/** Whether a layout arranges the reasoning graph or the semantic conversation. */
-export type LayoutScope = 'concept' | 'conversation';
+export type { LayoutScope };
 
 export interface LayoutDefinition {
   id: string;
@@ -67,6 +68,17 @@ class LayoutRegistryImpl {
     const saved = $lensLayout.get()[lens];
     if (saved && this.layouts.has(saved)) return saved;
     return lensMeta(lens)?.defaultLayout ?? 'cose';
+  }
+
+  /** The active layout for a scope: conversation keeps its own slot, concept stays per-lens (§2.6). */
+  getForScope(scope: LayoutScope): string {
+    const lens = $activeLens.get();
+    const saved = scope === 'conversation' ? $conversationLayout.get() : $lensLayout.get()[lens];
+    const def = saved ? this.layouts.get(saved) : undefined;
+    if (def && (def.scope ?? 'concept') === scope) return saved as string;
+    return scope === 'conversation'
+      ? (CONVERSATION_LAYOUT_IDS[0] ?? 'chronological-flow')
+      : this.getForLens(lens);
   }
 
   /** SpaceGraph plugin name for a registry layout id (null = no 3D equivalent). */

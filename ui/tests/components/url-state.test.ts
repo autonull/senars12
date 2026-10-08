@@ -3,12 +3,16 @@ import {
   $activeLens,
   $activeRenderer,
   $collapsedBlocks,
+  $conversationLayout,
   $graphLayer,
+  $layoutScope,
+  $lensLayer,
   $lensLayout,
   $panels,
   $urlState,
   $workspaceGraph,
   hydrateFromUrl,
+  setActiveLayout,
   setGraphLayer,
   toggleCollapsed,
 } from '../../src/client/core/store.js';
@@ -46,8 +50,11 @@ afterEach(() => {
   $activeRenderer.set('graph');
   $workspaceGraph.set(emptyWorkspaceGraph());
   $collapsedBlocks.set(new Set());
+  $lensLayer.set({});
   $graphLayer.set('both');
   $activeLens.set('belief');
+  $layoutScope.set('concept');
+  $conversationLayout.set('chronological-flow');
   $lensLayout.set({ belief: 'cose' });
   setPanels(() => false);
   $urlState.set({ lens: 'belief' });
@@ -99,6 +106,36 @@ describe('url-addressable state', () => {
 
     $lensLayout.set({ belief: 'cose' });
     expect($urlState.get().layout).toBeUndefined();
+  });
+
+  it('URL-addresses the layout scope alongside the layout', () => {
+    window.location.hash = 'scope=conversation&layout=chronological-flow';
+    hydrateFromUrl();
+    expect($layoutScope.get()).toBe('conversation');
+    expect($conversationLayout.get()).toBe('chronological-flow');
+    expect($urlState.get().scope).toBe('conversation');
+    expect($urlState.get().layout).toBe('chronological-flow');
+  });
+
+  it('routes a chosen layout to its scope without disturbing the other', () => {
+    $lensLayout.set({ belief: 'concentric' });
+    setActiveLayout('semantic-map');
+    expect($layoutScope.get()).toBe('conversation');
+    expect($conversationLayout.get()).toBe('semantic-map');
+    expect($lensLayout.get().belief).toBe('concentric');
+    setActiveLayout('breadthfirst');
+    expect($layoutScope.get()).toBe('concept');
+    expect($lensLayout.get().belief).toBe('breadthfirst');
+    expect($urlState.get().layout).toBe('breadthfirst');
+  });
+
+  it('remembers the graph layer per lens', () => {
+    $activeLens.set('goal');
+    setGraphLayer('concepts');
+    $activeLens.set('belief');
+    expect($graphLayer.get()).toBe('both');
+    $activeLens.set('goal');
+    expect($graphLayer.get()).toBe('concepts');
   });
 
   it('ignores a renderer that is not registered', () => {

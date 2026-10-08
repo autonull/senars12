@@ -7,6 +7,9 @@
 
 const registered = new Set<string>();
 
+/** Whether a layout arranges the reasoning graph or the semantic conversation (§5.3). */
+export type LayoutScope = 'concept' | 'conversation';
+
 export const registerLayoutId = (id: string): void => {
   registered.add(id);
 };

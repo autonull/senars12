@@ -91,8 +91,8 @@ Landed extension points — wire features here instead of re-deriving them.
 - **Renderers** — `core/workspace-renderer.ts` (`registerRenderer`, caps/`controls`,
   `workspaceRendererIds`); `components/renderers/*`.
 - **State / URL** — `core/store.ts` (`$urlState`, `setUrlState`, `mirrorAtom`, `hydrateFromUrl`,
-  `$panels`, `$activeRenderer`, `$activeLens`, `$graphLayer`, `$collapsedBlocks`,
-  `setWorkspaceFocus`).
+  `$panels`, `$activeRenderer`, `$activeLens`, `$graphLayer`, `$lensLayer`, `$layoutScope`,
+  `$conversationLayout`, `setActiveLayout`, `$collapsedBlocks`, `setWorkspaceFocus`).
 - **Projection** — `core/workspace-projection.ts`, `core/graph-projection.ts`, `core/segmentation.ts`.
 - **Explain / links / ToC** — `core/explain.ts`, `core/neighborhood.ts`, `core/toc.ts`,
   `utils/link-catalog.ts`.
@@ -130,9 +130,15 @@ Landed extension points — wire features here instead of re-deriving them.
   `(s)`,`(t)`,`(x)`,`(ac)`
 - [ ] **1.5 page** — URL-address `page` (`(page, block, disclosure)`); needs the **section model**
   blocker. `→ core/store.ts` (url-state), `core/toc.ts`. `(s)`,`(t)`,`(h)`,`(q)`
-- [ ] **2.6 scope** — scope-aware active layout (concept vs conversation) + URL-address it; remember
-  the graph layer per lens; debounce `folded` writes for fold-all. `→ core/store.ts`,
-  `utils/layout-registry.ts`, `utils/lens-catalog.ts`. `(y)`,`(ac)`,`(w)`,`(t)`
+- [~] **2.6 scope** — scope-aware active layout (concept vs conversation) + URL-address it; remember
+  the graph layer per lens; debounce `folded` writes for fold-all. Landed: `$layoutScope` +
+  `$conversationLayout` (concept layouts keep the per-lens `$lensLayout`, conversation gets its own
+  slot), `setActiveLayout(id)` routes a pick to its scope's slot, both viewports lay out via
+  `layoutRegistry.getForScope(scope)`, and `UrlState.scope`/`layout` round-trip a link; `$lensLayer` +
+  `setGraphLayer` remember the layer per lens (a lens switch restores it). Remaining: debounce `folded`
+  writes for a bulk fold-all (no fold-all command exists yet). `→ core/store.ts`,
+  `utils/layout-registry.ts`, `core/layout-ids.ts`, `components/graph-toolbar.ts`,
+  `components/graph-viewport.ts`, `spacegraph/spacegraph-viewport.ts`. `(y)`,`(ac)`,`(w)`,`(t)`
 - [x] **2.5 selection atom** — `$selectedNodeIds` is now derived from `$workspaceGraph.selection`: a
   store-level projection subscription mirrors the set (value-compared, so re-projection carrying the
   selection over does not churn), and every former writer (`graph-viewport`, `graph` renderer,
@@ -377,3 +383,7 @@ in v3 Appendix D). Rolled up:
   overlay (new `Now` control).
 - **Tests** — `tests/components/layout-registry.test.ts`: link-catalog `layouts` ⊆ registry (the WP5
   `3.4` ids allowlisted as pending), scope partitioning, per-primary-lens resolution. Suite **313 green**.
+- **WP2 state** — scope-aware layout selection: `$layoutScope` + `$conversationLayout` (conversation
+  slot independent of the per-lens concept slots), `setActiveLayout` routing, `getForScope` in both
+  viewports, and `UrlState.scope`/`layout` round-trip; `$lensLayer` remembers the graph layer per lens.
+  `2.6 scope` except the fold-all debounce. Suite **316 green**.

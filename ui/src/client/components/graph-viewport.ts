@@ -13,7 +13,7 @@ import {
   $graphLayer,
   $graphMeta,
   $graphNodes,
-  $lensLayout,
+  $layoutScope,
   $lensViewport,
   $selectedEdgeId,
   $selectedNodeId,
@@ -321,9 +321,6 @@ export class GraphViewport extends BaseComponent {
 
   private layoutHandler = (layoutName: string) => {
     if (!this.cy) return;
-    const lens = $activeLens.get();
-    const layouts = { ...$lensLayout.get(), [lens]: layoutName };
-    $lensLayout.set(layouts);
     layoutRegistry.runLayout(this.cy, layoutName, { fit: false });
   };
 
@@ -720,13 +717,14 @@ export class GraphViewport extends BaseComponent {
     }
 
     const currentNodeCount = cy.nodes().length;
-    const lens = $activeLens.get();
     const isFirstLayout = currentNodeCount <= 1;
     const topologyChanged = layoutRegistry.shouldRelayout(this.prevNodeCount, currentNodeCount);
     this.prevNodeCount = currentNodeCount;
 
     if (isFirstLayout || topologyChanged) {
-      layoutRegistry.runLayout(cy, layoutRegistry.getForLens(lens), { fit: isFirstLayout });
+      layoutRegistry.runLayout(cy, layoutRegistry.getForScope($layoutScope.get()), {
+        fit: isFirstLayout,
+      });
     }
 
     this.reactToFocus();

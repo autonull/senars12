@@ -17,6 +17,7 @@ import {
   $graphFilter,
   $graphMeta,
   $graphNodes,
+  $layoutScope,
   $lensViewport,
   $selectedNodeId,
   $selectedNodeIds,
@@ -381,7 +382,7 @@ export class SpaceGraphViewport extends BaseComponent {
     const currentNodeCount = this.sg.nodeCount;
     const isFirstLayout = currentNodeCount <= 1;
     if (isFirstLayout || layoutRegistry.shouldRelayout(this.prevNodeCount, currentNodeCount)) {
-      layoutRegistry.runSurface(this.sg, layoutRegistry.getForLens($activeLens.get()), {
+      layoutRegistry.runSurface(this.sg, layoutRegistry.getForScope($layoutScope.get()), {
         animate: isFirstLayout,
         duration: isFirstLayout ? 0 : 1.0,
       });

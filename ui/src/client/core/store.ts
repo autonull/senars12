@@ -7,8 +7,9 @@ import { timeGate } from '../modulation/composition.js';
 import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
 import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
+import { CONVERSATION_LAYOUT_IDS } from './conversation-layout.js';
 import { GRAPH_LAYERS, type GraphLayer } from './graph-layer.js';
-import { isRegisteredLayoutId } from './layout-ids.js';
+import { isRegisteredLayoutId, type LayoutScope } from './layout-ids.js';
 import { getSurfaces } from './surface-registry.js';
 import { viewAdapters } from './view-adapter.js';
 import type { Shape, ViewSelection } from './view-spec.js';
@@ -161,7 +162,16 @@ export function setWorkspaceFocus(ref?: string): void {
 /** Which Graph-mode layer(s) to show: the engine concepts, the conversation, or both (§2.1). */
 export const $graphLayer = atom<GraphLayer>('both');
 
-export const setGraphLayer = (layer: GraphLayer): void => $graphLayer.set(layer);
+/** The layer each lens last chose, so switching lens restores its filter (§2.6). */
+export const $lensLayer = atom<Record<string, GraphLayer>>({});
+
+export const setGraphLayer = (layer: GraphLayer): void => {
+  $lensLayer.set({ ...$lensLayer.get(), [$activeLens.get()]: layer });
+  $graphLayer.set(layer);
+};
+$activeLens.subscribe((lens) => {
+  $graphLayer.set($lensLayer.get()[lens] ?? 'both');
+});
 
 /** Replace the workspace selection set (session state; survives re-projection). */
 export function setWorkspaceSelection(refs: Iterable<string>): void {
@@ -349,6 +359,22 @@ export function evaluateLens(): Delta {
 // --- Phase 3: Per-lens layout selection ---
 export const $lensLayout = atom<Record<string, string>>({ ...LENS_DEFAULT_LAYOUTS });
 
+/** Which layout substrate is active — concept layouts are per-lens, conversation has one slot (§2.6). */
+export const $layoutScope = atom<LayoutScope>('concept');
+
+/** The one saved conversation layout (the conversation scope's slot). */
+export const $conversationLayout = atom<string>(CONVERSATION_LAYOUT_IDS[0]);
+
+/** Route a chosen layout to its scope's slot; the scope is the layout's own substrate (§2.6). */
+export function setActiveLayout(id: string): void {
+  const scope: LayoutScope = (CONVERSATION_LAYOUT_IDS as readonly string[]).includes(id)
+    ? 'conversation'
+    : 'concept';
+  $layoutScope.set(scope);
+  if (scope === 'conversation') $conversationLayout.set(id);
+  else $lensLayout.set({ ...$lensLayout.get(), [$activeLens.get()]: id });
+}
+
 // --- Phase 0: Panel Registry ---
 export interface PanelState {
   id: string;
@@ -400,6 +426,7 @@ export interface UrlState {
   renderer?: string;
   layer?: GraphLayer;
   layout?: string;
+  scope?: LayoutScope;
   focus?: string;
   folded?: string[];
   viewport?: { x: number; y: number; zoom: number };
@@ -431,6 +458,8 @@ function parseHash(): Partial<UrlState> {
   if (layer && (GRAPH_LAYERS as readonly string[]).includes(layer)) state.layer = layer as GraphLayer;
   const layout = params.get('layout');
   if (layout) state.layout = layout;
+  const scope = params.get('scope');
+  if (scope === 'concept' || scope === 'conversation') state.scope = scope;
   const focus = params.get('focus');
   if (focus) state.focus = focus;
   const vp = params.get('viewport');
@@ -465,6 +494,7 @@ function serializeHash(state: UrlState): string {
   if (state.renderer) params.set('renderer', state.renderer);
   if (state.layer && state.layer !== 'both') params.set('layer', state.layer);
   if (state.layout) params.set('layout', state.layout);
+  if (state.scope && state.scope !== 'concept') params.set('scope', state.scope);
   if (state.focus) params.set('focus', state.focus);
   if (state.viewport)
     params.set('viewport', `${state.viewport.x},${state.viewport.y},${state.viewport.zoom}`);
@@ -488,8 +518,16 @@ export function hydrateFromUrl() {
   const currentUrl = $urlState.get();
   $urlState.set({ ...currentUrl, ...parsed });
   if (parsed.renderer) $activeRenderer.set(parsed.renderer);
-  if (parsed.layer) $graphLayer.set(parsed.layer);
-  if (parsed.layout) $lensLayout.set({ ...$lensLayout.get(), [$activeLens.get()]: parsed.layout });
+  if (parsed.layer) setGraphLayer(parsed.layer);
+  if (parsed.scope) $layoutScope.set(parsed.scope);
+  if (parsed.layout) {
+    const scope =
+      parsed.scope ?? ((CONVERSATION_LAYOUT_IDS as readonly string[]).includes(parsed.layout)
+        ? 'conversation'
+        : 'concept');
+    if (scope === 'conversation') $conversationLayout.set(parsed.layout);
+    else $lensLayout.set({ ...$lensLayout.get(), [$activeLens.get()]: parsed.layout });
+  }
   if (parsed.focus) setWorkspaceFocus(parsed.focus);
   if (parsed.folded) $collapsedBlocks.set(new Set(parsed.folded));
   if (parsed.panels) {
@@ -540,14 +578,22 @@ mirrorAtom(
   sameStringList
 );
 
-// Layout is derived from the active lens, so it reads both atoms rather than one.
+// Layout is scope-aware: the conversation slot stands alone, concept layouts are per-lens (§2.6).
 const DEFAULT_LAYOUTS = LENS_DEFAULT_LAYOUTS as Record<string, string>;
 const mirrorLayout = (): void => {
+  const scope = $layoutScope.get();
+  setUrlState('scope', scope === 'concept' ? undefined : scope);
+  if (scope === 'conversation') {
+    setUrlState('layout', $conversationLayout.get());
+    return;
+  }
   const lens = $activeLens.get();
   const layout = $lensLayout.get()[lens];
   setUrlState('layout', layout && layout !== DEFAULT_LAYOUTS[lens] ? layout : undefined);
 };
 $lensLayout.subscribe(mirrorLayout);
+$conversationLayout.subscribe(mirrorLayout);
+$layoutScope.subscribe(mirrorLayout);
 $activeLens.subscribe(mirrorLayout);
 
 // Sync URL when urlState changes
