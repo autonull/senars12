@@ -22,6 +22,7 @@ import {
   SCALE_MAP_IDS,
   validateLens,
 } from '../utils/lens-catalog.js';
+import { renderField } from '../utils/render-field.js';
 
 const CHANNEL_OPTIONS = CHANNEL_IDS.map((key) => ({ key, label: CHANNEL_CATALOG[key].label }));
 
@@ -148,8 +149,16 @@ export class LensDesigner extends BaseComponent {
       <div class="scroll">
         <div class="section-title">Lens Definition</div>
         <div class="meta-row">
-          <input type="text" placeholder="Lens name…" .value=${this.name} @input=${this.onNameInput} />
-          <input type="text" placeholder="Description (optional)" .value=${this.description} @input=${this.onDescInput} />
+          ${renderField(
+            { type: 'text', placeholder: 'Lens name…', on: 'input' },
+            this.name,
+            (v) => this.onNameInput(String(v))
+          )}
+          ${renderField(
+            { type: 'text', placeholder: 'Description (optional)', on: 'input' },
+            this.description,
+            (v) => this.onDescInput(String(v))
+          )}
         </div>
 
         <div class="section-title">Mappings</div>
@@ -175,41 +184,49 @@ export class LensDesigner extends BaseComponent {
   private renderMapping(m: Mapping, i: number) {
     return html`
       <div class="field-row">
-        <select @change=${(e: Event) => this.updateMapping(i, 'op', (e.target as HTMLSelectElement).value)}
-          style="width:60px" .value=${m.op}>
-          <option value="field">Field</option>
-          <option value="const">Const</option>
-        </select>
+        ${renderField(
+          { type: 'dropdown', style: 'width:60px', options: [{ value: 'field', label: 'Field' }, { value: 'const', label: 'Const' }] },
+          m.op,
+          (v) => this.updateMapping(i, 'op', String(v))
+        )}
 
         ${
           m.op === 'field'
-            ? html`
-          <select @change=${(e: Event) => this.updateMapping(i, 'field', (e.target as HTMLSelectElement).value)}
-            style="flex:1" .value=${m.field}>
-            ${this.fieldOptions.map((f) => html`<option value=${f.key}>${f.label}</option>`)}
-          </select>
-        `
-            : html`
-          <input type="text" placeholder="Value…" style="flex:1" .value=${m.constValue}
-            @input=${(e: Event) => this.updateMapping(i, 'constValue', (e.target as HTMLInputElement).value)} />
-        `
+            ? renderField(
+                { type: 'dropdown', style: 'flex:1', options: this.fieldOptions.map((f) => ({ value: f.key, label: f.label })) },
+                m.field,
+                (v) => this.updateMapping(i, 'field', String(v))
+              )
+            : renderField(
+                { type: 'text', placeholder: 'Value…', style: 'flex:1', on: 'input' },
+                m.constValue,
+                (v) => this.updateMapping(i, 'constValue', String(v))
+              )
         }
 
         <span style="color:var(--colors-semantic-text-muted)">→</span>
 
-        <select @change=${(e: Event) => this.updateMapping(i, 'channel', (e.target as HTMLSelectElement).value)}
-          style="flex:1" .value=${m.channel}>
-          ${CHANNEL_OPTIONS.map((c) => html`<option value=${c.key}>${c.label}</option>`)}
-        </select>
+        ${renderField(
+          {
+            type: 'dropdown',
+            style: 'flex:1',
+            options: CHANNEL_OPTIONS.map((c) => ({ value: c.key, label: c.label })),
+          },
+          m.channel,
+          (v) => this.updateMapping(i, 'channel', String(v))
+        )}
 
         ${
           m.op === 'field'
-            ? html`
-          <select @change=${(e: Event) => this.updateMapping(i, 'map', (e.target as HTMLSelectElement).value)}
-            style="flex:1.5" .value=${m.map}>
-            ${SCALE_MAP_OPTIONS.map((s) => html`<option value=${s.key}>${s.label}</option>`)}
-          </select>
-        `
+            ? renderField(
+                {
+                  type: 'dropdown',
+                  style: 'flex:1.5',
+                  options: SCALE_MAP_OPTIONS.map((s) => ({ value: s.key, label: s.label })),
+                },
+                m.map,
+                (v) => this.updateMapping(i, 'map', String(v))
+              )
             : ''
         }
 
@@ -281,13 +298,13 @@ export class LensDesigner extends BaseComponent {
     };
   }
 
-  private onNameInput(e: Event) {
-    this.name = (e.target as HTMLInputElement).value;
+  private onNameInput(value: string) {
+    this.name = value;
     this.rebuildPreview();
   }
 
-  private onDescInput(e: Event) {
-    this.description = (e.target as HTMLInputElement).value;
+  private onDescInput(value: string) {
+    this.description = value;
   }
 
   private updateMapping(index: number, key: keyof Mapping, value: string) {

@@ -786,6 +786,55 @@
 
 ---
 
+### Session 13 — Phase 3.8: generic field renderer (2026-10-08)
+
+**Landed**
+
+- **3.8 — `renderField`.** New `ui/src/client/utils/render-field.ts` is the one renderer for a form
+  control: a `FieldSpec` (`type · options · min/max/step · placeholder · disabled · ariaLabel · on ·
+  style · className`) maps to the right `<input>`/`<select>`/`<textarea>` and normalizes the emitted
+  value (number for slider/number, boolean for toggle, string otherwise). Dropdown options accept
+  `string | { value, label }` and the current value is marked `selected`; the event (`input` vs
+  `change`) is chosen per control with an override.
+- **3.8 — consumers migrated.** `config-hud` (slider/dropdown/toggle/text), `node-detail-drawer`
+  (truth + edge-strength sliders, edge-type dropdown, link filter), `lens-designer`
+  (name/description/const text and the op/field/channel/scale-map dropdowns) and `graph-toolbar`
+  (search) now render every control through `renderField`; their handlers take the normalized value
+  instead of digging it out of the DOM event. Panels keep their own labels, readouts, wrappers and
+  styles.
+- **Guard test.** `ui/tests/components/render-field.test.ts` (5) renders each control into the DOM and
+  asserts the emitted value/type and event (slider→number on input, dropdown→selected value on change,
+  toggle→boolean, text→change only, search→input + `aria-label`).
+
+**Verification**
+
+- `pnpm --dir ui exec tsc --noEmit` clean; `pnpm --dir ui build` succeeds; `biome lint
+  --diagnostic-level=error` clean on the six files.
+- UI unit **36/36** (5 files; +5 render-field). Chromium visual suite **10/10 unchanged** — the
+  migrated panels (`panel-config`, `panel-lens-designer`, `selection-node-detail`) render
+  byte-identically.
+
+**Still open in Phase 3**
+
+- **3.9–3.10 untouched** — reflective generators (story/gallery/a11y/docs from `defineSurface`),
+  guard scripts.
+- **3.8 follow-ons** — `input-hud` chat textarea, `app-layout` search (the `<s-input>` primitive),
+  `config-profiles` profile select, `timeline-scrubber` range and `graph-toolbar`'s layout `<select>`
+  still hand-roll controls; the `s-input` primitive overlaps `renderField` and should either delegate
+  to it or be retired.
+
+**New opportunities spotted** *(Session 13)*
+
+- `s-input` and `renderField` are two control renderers; make `s-input` a thin wrapper over
+  `renderField` (or remove it) so there is one, and migrate `input-hud`/`app-layout` (5.6/7.2).
+- `config-hud` still maps `ConfigField.type` → `FieldSpec` inline and re-implements validation; a form
+  could generate from one descriptor once the server metadata carries the field catalog's `kind`
+  (9.3).
+- The `graph-toolbar` layout `<select>` can generate its options from `layoutRegistry.getAll()`
+  (Session 10 note) through `renderField`.
+
+---
+
 ## 0. Purpose & north star
 
 The UI is a **major product surface**: an **AI Reasoning Explorer** that lets any audience —
@@ -1050,7 +1099,7 @@ Each phase: **Goal · Tasks · Verification · Deliverable.** Task IDs are stabl
 - [x] **3.5** `layoutRegistry` SSOT with 2D/3D name maps; single `shouldRelayout`; delete the three duplicate heuristics. *(done: `LayoutDefinition.getLayout` + `surface` per-renderer names; `runLayout`/`runSurface`/`surfaceFor`/`surfaceForLens`; one `shouldRelayout`; `GraphRenderer`'s dead copy + `RendererApi.onLayout` removed; 3D layout no-op fixed; guard test. Toolbar option list still hand-listed — see log)*
 - [x] **3.6** `idSource` unification across client/projection/tests. *(done: `generateId` now takes its entropy from the installed source instead of `Math.random` (shared `minted` ledger with `makeId`); client ids import from `@senars/util` only; guard test. Browser seeding seam still open — see log)*
 - [x] **3.7** `SurfaceComponent` + `defineSurface` + declarative `bindings`; derive registration, reflective test API, empty/loading/error slots. *(done: `ui/src/client/core/surface.ts` — descriptor-derived tag registration, watched `bindings`, `loading|empty|error|ready` slots, `{descriptor,state,snapshot}` test API; `contradiction-badge` migrated as the first surface; 4 unit tests. Remaining surfaces still hand-wired — see log)*
-- [ ] **3.8** `renderField` generic input renderer; migrate `config-hud`, `lens-designer`, `node-detail-drawer`, filters.
+- [x] **3.8** `renderField` generic input renderer; migrate `config-hud`, `lens-designer`, `node-detail-drawer`, filters. *(done: `ui/src/client/utils/render-field.ts` maps a `FieldSpec` to slider/dropdown/text/number/search/textarea/toggle and normalizes the value; config-hud, lens-designer, node-detail-drawer and graph-toolbar migrated; 5 unit tests; visual baselines unchanged. `s-input`/`input-hud` remain — see log)*
 - [ ] **3.9** Reflective generators: `defineSurface` emits Storybook params, gallery matrix entries, a11y targets, and docs stubs.
 - [ ] **3.10** Guard scripts: exhaustive `satisfies` checks for every registry; CI fails on missing metadata.
 

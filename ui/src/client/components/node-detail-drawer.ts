@@ -19,6 +19,7 @@ import {
   updateNodeData,
 } from '../core/index.js';
 import { fieldMeta, formatField } from '../utils/field-catalog.js';
+import { renderField } from '../utils/render-field.js';
 import { theme } from '../utils/theme.js';
 
 type TabId = 'overview' | 'links' | 'actions' | 'edge' | 'history';
@@ -189,24 +190,22 @@ export class NodeDetailDrawer extends BaseComponent {
     }
   }
 
-  private onEdgeTruthInput(e: Event) {
-    const f = Number.parseFloat((e.target as HTMLInputElement).value);
-    this.edgeTruthFrequency = f;
+  private onEdgeTruthInput(value: number) {
+    this.edgeTruthFrequency = value;
     const ed = this.edgeData;
     if (!ed) return;
     const key = `${ed.source}->${ed.target}`;
-    updateEdgeData(key, { weight: f });
-    this.commitEdgeTruth(key, f, (ed.confidence as number) ?? 0.9);
+    updateEdgeData(key, { weight: value });
+    this.commitEdgeTruth(key, value, (ed.confidence as number) ?? 0.9);
   }
 
-  private onEdgeTypeChange(e: Event) {
-    const t = (e.target as HTMLSelectElement).value;
-    this.edgeType = t;
+  private onEdgeTypeChange(value: string) {
+    this.edgeType = value;
     const ed = this.edgeData;
     if (!ed) return;
     const key = `${ed.source}->${ed.target}`;
-    updateEdgeData(key, { type: t });
-    send({ type: 'object.set', kind: 'edge', id: key, patch: { type: t } });
+    updateEdgeData(key, { type: value });
+    send({ type: 'object.set', kind: 'edge', id: key, patch: { type: value } });
   }
 
   private syncTruth() {
@@ -225,16 +224,15 @@ export class NodeDetailDrawer extends BaseComponent {
     return `hsl(${hue}, 70%, 50%)`;
   }
 
-  private onTruthInput(e: Event) {
-    const f = Number.parseFloat((e.target as HTMLInputElement).value);
-    this.truthFrequency = f;
+  private onTruthInput(value: number) {
+    this.truthFrequency = value;
     const node = this.node;
     if (!node) return;
     const nodeId = node.id ?? '';
     updateNodeData(nodeId, {
-      truth: { frequency: f, confidence: this.truthConfidence },
+      truth: { frequency: value, confidence: this.truthConfidence },
     });
-    this.commitNodeTruth(nodeId, f, this.truthConfidence);
+    this.commitNodeTruth(nodeId, value, this.truthConfidence);
   }
 
   private fetchHistory() {
@@ -325,7 +323,17 @@ export class NodeDetailDrawer extends BaseComponent {
       <div class="field">
         <span class="field-label">${fieldMeta('truth.frequency').label}</span>
         <span class="field-value" style="display:flex;align-items:center;gap:6px">
-          <input type="range" min="0" max="1" step="0.01" .value=${String(this.truthFrequency)} @input=${this.onTruthInput} style="width:80px;accent-color:${truthColor}" />
+          ${renderField(
+            {
+              type: 'slider',
+              min: 0,
+              max: 1,
+              step: 0.01,
+              style: `width:80px;accent-color:${truthColor}`,
+            },
+            this.truthFrequency,
+            (v) => this.onTruthInput(Number(v))
+          )}
           <span style="color:${truthColor};font-weight:bold">${formatField('truth.frequency', this.truthFrequency)}</span>
           <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${truthColor}"></span>
         </span>
@@ -349,20 +357,33 @@ export class NodeDetailDrawer extends BaseComponent {
       <div class="field">
         <span class="field-label">Type</span>
         <span class="field-value">
-          <select @change=${this.onEdgeTypeChange} style="background:var(--colors-semantic-bg-base);color:var(--colors-semantic-text-primary);border:1px solid var(--colors-semantic-border-subtle);border-radius:var(--borderRadius-component-input);font-family:var(--typography-fontFamilies-data);font-size:var(--typography-scale-xs);padding:var(--spacing-scale-1)">
-            ${Object.entries(EDGE_TYPES).map(
-              ([val, label]) => html`
-            <option value=${val} ?selected=${this.edgeType === val}>${label}</option>
-            `
-            )}
-          </select>
+          ${renderField(
+            {
+              type: 'dropdown',
+              style:
+                'background:var(--colors-semantic-bg-base);color:var(--colors-semantic-text-primary);border:1px solid var(--colors-semantic-border-subtle);border-radius:var(--borderRadius-component-input);font-family:var(--typography-fontFamilies-data);font-size:var(--typography-scale-xs);padding:var(--spacing-scale-1)',
+              options: Object.entries(EDGE_TYPES).map(([value, label]) => ({ value, label })),
+            },
+            this.edgeType,
+            (v) => this.onEdgeTypeChange(String(v))
+          )}
         </span>
       </div>
       <div class="section-title">Weight</div>
       <div class="field">
         <span class="field-label">Strength</span>
         <span class="field-value" style="display:flex;align-items:center;gap:6px">
-          <input type="range" min="0" max="1" step="0.01" .value=${String(this.edgeTruthFrequency)} @input=${this.onEdgeTruthInput} style="width:80px;accent-color:var(--colors-semantic-accent-primary)" />
+          ${renderField(
+            {
+              type: 'slider',
+              min: 0,
+              max: 1,
+              step: 0.01,
+              style: 'width:80px;accent-color:var(--colors-semantic-accent-primary)',
+            },
+            this.edgeTruthFrequency,
+            (v) => this.onEdgeTruthInput(Number(v))
+          )}
           <span style="font-weight:bold">${this.edgeTruthFrequency.toFixed(2)}</span>
         </span>
       </div>
@@ -372,12 +393,14 @@ export class NodeDetailDrawer extends BaseComponent {
   private renderLinks() {
     const { in: inLinks, out: outLinks } = this.getLinks();
     return html`
-      <input class="link-filter" type="text" placeholder="Filter links…" .value=${this.linkFilter} @input=${(
-        e: Event
-      ) => {
-        this.linkFilter = (e.target as HTMLInputElement).value;
-        this.requestUpdate();
-      }} />
+      ${renderField(
+        { type: 'text', className: 'link-filter', placeholder: 'Filter links…', on: 'input' },
+        this.linkFilter,
+        (v) => {
+          this.linkFilter = String(v);
+          this.requestUpdate();
+        }
+      )}
       <div class="section-title">Outgoing (${outLinks.length})</div>
       ${
         outLinks.length === 0

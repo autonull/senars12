@@ -16,6 +16,7 @@ import {
   eventBus,
   send,
 } from '../core/index.js';
+import { renderField } from '../utils/render-field.js';
 import './contradiction-badge.js';
 import './lens-controller.js';
 
@@ -153,8 +154,11 @@ export class GraphToolbar extends BaseComponent {
 
       <div class="divider"></div>
 
-      <input class="search-input" type="search" placeholder="Search nodes…"
-        .value=${this.searchQuery} @input=${this.handleSearch} aria-label="Search nodes" />
+      ${renderField(
+        { type: 'search', className: 'search-input', placeholder: 'Search nodes…', ariaLabel: 'Search nodes' },
+        this.searchQuery,
+        (v) => this.handleSearch(String(v))
+      )}
 
       <div class="divider"></div>
 
@@ -251,8 +255,7 @@ export class GraphToolbar extends BaseComponent {
     $viewportMode.set(current === '2d' ? '3d' : '2d');
   }
 
-  private handleSearch(e: Event) {
-    const value = (e.target as HTMLInputElement).value;
+  private handleSearch(value: string) {
     this.searchQuery = value;
     const urlState = $urlState.get();
     $urlState.set({ ...urlState, search: value || undefined });

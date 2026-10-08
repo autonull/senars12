@@ -4,6 +4,7 @@ import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { $config, BaseComponent, send } from '../core/index.js';
+import { renderField, type FieldValue } from '../utils/render-field.js';
 import './config-profiles.js';
 
 type ConfigCategory = 'llm' | 'nars' | 'system' | 'advanced';
@@ -216,37 +217,7 @@ export class ConfigHUD extends BaseComponent {
   private renderField(field: ConfigFieldType, key: string): unknown {
     const isDirty = this.dirtyFields.has(key);
     const error = this.validationErrors.get(key);
-    const val = field.value;
     const desc = field.description;
-
-    const input =
-      field.type === 'slider'
-        ? html`
-      <div class="field-value">
-        <input type="range" min=${field.min ?? 0} max=${field.max ?? 1} step=${field.step ?? 0.1}
-          .value=${val} @input=${(e: Event) => this.handleChange(key, Number.parseFloat((e.target as HTMLInputElement).value))} />
-        <span class="val">${typeof val === 'number' ? val.toFixed(2) : val}</span>
-      </div>`
-        : field.type === 'dropdown'
-          ? html`
-      <div class="field-value">
-        <select @change=${(e: Event) => this.handleChange(key, (e.target as HTMLSelectElement).value)}>
-          ${field.options?.map((o) => html`<option value=${o} ?selected=${o === String(val)}>${o}</option>`)}
-        </select>
-      </div>`
-          : field.type === 'toggle'
-            ? html`
-      <div class="field-value">
-        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
-          <input type="checkbox" ?checked=${val} @change=${(e: Event) => this.handleChange(key, (e.target as HTMLInputElement).checked)} />
-          <span style="color:var(--colors-semantic-text-primary);font-size:0.75rem;">${val ? 'Enabled' : 'Disabled'}</span>
-        </label>
-      </div>`
-            : html`
-      <div class="field-value">
-        <input type=${field.type === 'text' ? 'text' : 'number'} .value=${val}
-          @change=${(e: Event) => this.handleChange(key, (e.target as HTMLInputElement).value)} />
-      </div>`;
 
     return html`
       <div class="field ${classMap({ dirty: isDirty, error: !!error })}">
@@ -254,9 +225,37 @@ export class ConfigHUD extends BaseComponent {
           <label>${field.label} ${isDirty ? html`<span class="dirty-dot"></span>` : ''}</label>
         </div>
         ${desc ? html`<span class="field-description">${desc}</span>` : ''}
-        ${input}
+        <div class="field-value">${this.renderControl(field, key)}</div>
         ${error ? html`<span class="field-error">${error}</span>` : ''}
       </div>`;
+  }
+
+  private renderControl(field: ConfigFieldType, key: string): unknown {
+    const change = (value: FieldValue) => this.handleChange(key, value);
+    const val = field.value;
+
+    switch (field.type) {
+      case 'slider':
+        return html`${renderField(
+          { type: 'slider', min: field.min, max: field.max, step: field.step ?? 0.1 },
+          typeof val === 'number' ? val : 0,
+          change
+        )}
+        <span class="val">${typeof val === 'number' ? val.toFixed(2) : val}</span>`;
+      case 'dropdown':
+        return renderField(
+          { type: 'dropdown', options: field.options ?? [] },
+          String(val ?? ''),
+          change
+        );
+      case 'toggle':
+        return html`<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+          ${renderField({ type: 'toggle' }, Boolean(val), change)}
+          <span style="color:var(--colors-semantic-text-primary);font-size:0.75rem;">${val ? 'Enabled' : 'Disabled'}</span>
+        </label>`;
+      default:
+        return renderField({ type: 'text' }, String(val ?? ''), change);
+    }
   }
 
   private groupByCategory(): Map<ConfigCategory, [string, ConfigFieldType][]> {
