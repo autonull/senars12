@@ -1,5 +1,10 @@
 # TODO.ui.3.md — One Workspace, Many Renderers
 
+> **Frozen for open work — superseded by `TODO.ui.4.md`.** This file is retained as the **landed
+> record** (product framing, contracts, keep/demote ledger, Appendix D implementation log). All
+> remaining/partial work, merged improvement opportunities, open questions, and the updated ordering
+> now live in `TODO.ui.4.md`; do not track new work here. Item ids are preserved across both files.
+
 **Relationship to prior plans.** This integrates and supersedes both `TODO.ui.2.md` and the "Revised Core Direction" memo. Nothing landed is discarded: the SSOT registries (`theme`, `eventCatalog`, `fieldCatalog`, `lensCatalog`, `layoutRegistry`, `idSource`), the reactive core/store, the `ViewSpec`/adapter view system (`s-series`/`s-table`/`s-table-mini`/`s-sparkline`/`s-tree`/`s-text`), the protocol + event bridge + `GRAPH_REDUCERS` catalogs, `defineSurface`/surface registry, the scenario catalog, and the `/test/*` harness are the **existing baseline**. `TODO.ui.md` remains the progress log; `TODO.ui.2.md` remains the source of the carried-forward contracts (§3.2, §3.4, §3.5).
 
 **Why v3 — the product pivot.** The UI is not a shell with standing panels. It is **one main workspace** with switchable renderers over one semantic substrate, plus overlays:
