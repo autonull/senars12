@@ -7,6 +7,7 @@
  * that touches overlay elements.
  */
 
+import { capabilityGate } from './capabilities.js';
 import { OverlayManager } from './overlay-manager.js';
 import { overlayDescriptor, type OverlayDescriptor } from './overlay-registry.js';
 
@@ -31,6 +32,7 @@ export class OverlayHost {
   open(id: string, { anchor, ref }: OpenOverlayOptions = {}): boolean {
     const descriptor = overlayDescriptor(id);
     if (!descriptor) return false;
+    if (descriptor.capability && !capabilityGate(descriptor.capability)) return false;
     const element = this.#element(descriptor);
     if (ref !== undefined) (element as { ref?: string }).ref = ref;
     const focused = this.#container.ownerDocument.activeElement as HTMLElement | null;

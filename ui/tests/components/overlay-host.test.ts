@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { activeCommands } from '../../src/client/core/commands.js';
+import { $capabilities, defaultCapabilities, setCapability } from '../../src/client/core/capabilities.js';
 import { OverlayHost } from '../../src/client/core/overlay-host.js';
 import {
   overlayDescriptor,
@@ -7,6 +9,12 @@ import {
 } from '../../src/client/core/overlay-registry.js';
 
 registerOverlay({ id: 'test-overlay', title: 'Test overlay', tag: 'div' });
+registerOverlay({
+  id: 'test-gated',
+  title: 'Gated overlay',
+  tag: 'div',
+  capability: 'reasoning',
+});
 
 const hosts: OverlayHost[] = [];
 const makeHost = () => {
@@ -18,6 +26,7 @@ const makeHost = () => {
 afterEach(() => {
   for (const host of hosts.splice(0)) host.dispose();
   document.body.innerHTML = '';
+  $capabilities.set(defaultCapabilities());
 });
 
 describe('overlay registry', () => {
@@ -59,6 +68,22 @@ describe('overlay host', () => {
     const host = makeHost();
     expect(host.open('missing')).toBe(false);
     expect(host.stack()).toEqual([]);
+  });
+
+  it('refuses a capability-gated overlay until its capability is on', () => {
+    const host = makeHost();
+    expect(host.open('test-gated')).toBe(false);
+    expect(host.stack()).toEqual([]);
+    setCapability('reasoning', true);
+    expect(host.open('test-gated')).toBe(true);
+    expect(host.stack()).toEqual(['test-gated']);
+  });
+
+  it('hides a capability-gated overlay command from the registry', () => {
+    const ids = () => activeCommands().map((command) => command.id);
+    expect(ids()).not.toContain('overlay.test-gated');
+    setCapability('reasoning', true);
+    expect(ids()).toContain('overlay.test-gated');
   });
 
   it('announces each open on the element', () => {

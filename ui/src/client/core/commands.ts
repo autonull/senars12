@@ -6,6 +6,7 @@
  * explicit commands register themselves into the same list.
  */
 
+import { capabilityGate } from './capabilities.js';
 import { recordCommandUse } from './command-history.js';
 import { eventBus } from './events.js';
 import { overlays } from './overlay-registry.js';
@@ -64,8 +65,9 @@ const derivedCommands = (): Command[] => [
   ),
   ...overlays()
     .filter((overlay) => !overlay.hiddenInPalette)
-    .map(
-      (overlay): Command => ({
+    .map((overlay): Command => {
+      const gate = overlay.capability;
+      return {
         id: `overlay.${overlay.id}`,
         title: overlay.title,
         group: 'Open',
@@ -75,8 +77,9 @@ const derivedCommands = (): Command[] => [
             id: overlay.id,
             ...(args as { ref?: string; anchor?: HTMLElement } | undefined),
           }),
-      })
-    ),
+        available: gate ? () => capabilityGate(gate) : undefined,
+      };
+    }),
   {
     // The palette excludes itself from its own list, but the HUD button and the
     // ⌘K shortcut still reach it through the same dispatch seam as every overlay.

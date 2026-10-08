@@ -14,7 +14,7 @@ export {
   type Capability,
   capabilityDescriptors,
   type CapabilityDescriptor,
-  capabilityEnabled,
+  capabilityGate,
   defaultCapabilities,
   setCapability,
 } from './capabilities.js';

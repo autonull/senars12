@@ -11,7 +11,7 @@ import { css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { Announcer } from '../../core/announcer.js';
 import { artifactViewSpec } from '../../core/artifacts.js';
-import { $capabilities } from '../../core/capabilities.js';
+import { capabilityGate, $capabilities } from '../../core/capabilities.js';
 import { eventBus } from '../../core/events.js';
 import { explainModel } from '../../core/explain.js';
 import { neighborhood } from '../../core/neighborhood.js';
@@ -48,7 +48,7 @@ export class BlockMenuView extends SurfaceComponent {
     const hasProvenance = links.some((link) => linkMeta(link.kind).category === 'provenance');
     const hasArtifact = block.kind === 'image' || artifactViewSpec(block) !== undefined;
     const hasRelated = (neighborhood($workspaceGraph.get(), this.ref)?.neighbors.length ?? 0) > 0;
-    const reasoning = $capabilities.get().has('reasoning');
+    const reasoning = capabilityGate('reasoning');
     return html`
       <div class="menu" role="menu" aria-label="Block actions">
         <span class="hint">${block.title ?? block.id}</span>

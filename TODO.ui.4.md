@@ -69,8 +69,10 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
     [x] share one registry-derived action source between HUD and palette — HUD buttons and ⌘K now
     dispatch the `overlay.*` commands, and the palette itself is a `paletteHidden` command (out of its
     own list, still dispatchable). `(c)`,`(k)`,`(ab)`,`(ae)`
-  - `capabilityGate`/`CapabilityHost` mixin for descriptor-declared capabilities; command `available()`
-    `when` predicate. `(m)`,`(k)`,`(f)`
+  - [x] `capabilityGate`/descriptor capabilities — `capabilityGate(cap)` replaces inline
+    `$capabilities.get().has(...)`, `OverlayDescriptor.capability` makes the host refuse a gated
+    overlay and the derived `overlay.*` command hide via its `available()` `when` predicate; the
+    `CapabilityHost` mixin form is deferred until a component gates its whole presence. `(m)`,`(k)`,`(f)`
   - add budget/stop to the HUD once run-control (WP7) exists. `(c)`,`(f)`
 
 ## WP2 — State & URL consolidation
@@ -243,6 +245,17 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 
 Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
 
+### (v4.10) — WP1 sweep: capability gate (WP1 complete)
+- **`capabilityGate`** — renamed `capabilityEnabled` to `capabilityGate(cap)`, the one predicate
+  capability-aware surfaces/commands read; `block-menu` now uses it instead of inline
+  `$capabilities.get().has('reasoning')`.
+- **Descriptor-declared capabilities** — `OverlayDescriptor.capability`; `OverlayHost.open` refuses a
+  gated overlay, and the derived `overlay.*` command carries `available: () => capabilityGate(cap)`
+  so the palette/HUD hide it uniformly. The `CapabilityHost` mixin form waits for a component that
+  gates its whole presence.
+- **Tests** — `capabilities` (gate), `overlay-host` (gated open refused + gated command hidden);
+  263 component tests green.
+
 ### (v4.9) — WP1 sweep: one action source (HUD dispatches commands)
 - **Unified dispatch** — the HUD buttons (toc/timeline/settings/telemetry-full/palette) and the `⌘K`
   shortcut now `dispatchCommand('overlay.*', { anchor })` instead of emitting `overlay:open` directly,
@@ -349,10 +362,10 @@ Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
   watcher added in v4.2 now opens the inspector for edges, but the stale selector remains; both cases
   are red on pristine.
 - **Overlay/command sweep still open:** `config-hud` `embedded` mode + provider switching as an
-  overlay action (await the `LmProvider` façade); `capabilityGate`/`CapabilityHost` mixin for
-  descriptor-declared capabilities. `overlay.*` arg forwarding, anchor resolver, capability-derived
-  layer control, palette MRU/modality/announcer, and unified HUD↔palette dispatch are done
-  (v4.5–v4.9).
+  overlay action (await the `LmProvider` façade); a `CapabilityHost` mixin once a component gates its
+  whole presence. `overlay.*` arg forwarding, anchor resolver, capability-derived layer control,
+  `capabilityGate`/descriptor capabilities, palette MRU/modality/announcer, and unified HUD↔palette
+  dispatch are done (v4.5–v4.10). WP1's sweep is otherwise complete.
 - **Modal scrim (new).** The manager treats `modal` as "ignore outside-click" but does not block
   background interaction or paint a scrim, so nothing is marked modal. If a true modal is needed
   (tool approval, 0.5), add a scrim element + `pointer-events` capture to `OverlayManager`.

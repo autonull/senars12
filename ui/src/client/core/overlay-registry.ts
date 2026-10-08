@@ -6,6 +6,8 @@
  * `modal` marks the ones that capture the background.
  */
 
+import type { Capability } from './capabilities.js';
+
 export interface OverlayDescriptor {
   readonly id: string;
   readonly title: string;
@@ -17,6 +19,8 @@ export interface OverlayDescriptor {
   readonly autoFocus?: boolean;
   /** Keep the overlay out of the command palette (e.g. the palette itself). */
   readonly hiddenInPalette?: boolean;
+  /** Capability required to offer or open the overlay; unmet => hidden/refused. */
+  readonly capability?: Capability;
 }
 
 const registry = new Map<string, OverlayDescriptor>();

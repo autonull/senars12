@@ -62,7 +62,9 @@ export const defaultCapabilities = (): Set<Capability> =>
 /** The enabled composition — the one gate every capability-aware surface reads. */
 export const $capabilities = atom<ReadonlySet<Capability>>(defaultCapabilities());
 
-export const capabilityEnabled = (id: Capability): boolean => $capabilities.get().has(id);
+/** The one gate every capability-aware surface, overlay and command reads. */
+export const capabilityGate = (capability: Capability): boolean =>
+  $capabilities.get().has(capability);
 
 export const setCapability = (id: Capability, enabled: boolean): void => {
   const next = new Set($capabilities.get());
