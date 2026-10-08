@@ -1,281 +1,234 @@
-# TODO.ui.4.md — Consolidated Forward Backlog
+# TODO.ui.4.md — Work-Package Backlog
 
-> **Relationship to prior plans.** This document **supersedes `TODO.ui.3.md` for all open work**.
-> `TODO.ui.3.md` is retained as the **landed record** — its product framing, the full `WorkspaceGraph`
-> / `WorkspaceRenderer` contracts, the keep/demote ledger, the block-kind matrix, and the 35-entry
-> implementation log `(a)…(ag)` remain authoritative for *what exists*. This file carries only the
-> **still-open backlog, merged improvement opportunities, and the ordering for the next arcs**, so a
-> work session does not have to read ~1,900 lines of history.
+> **Relationship to prior plans.** Supersedes `TODO.ui.3.md` **for all open work**; v3 is retained as
+> the **landed record** (product framing, `WorkspaceGraph`/`WorkspaceRenderer` contracts, keep/demote
+> ledger, block-kind matrix, 35-entry log `(a)…(ag)`). This file is the **execution spine**: one home
+> per open item, grouped into shippable work packages.
 >
-> **Stable IDs.** Phase/item ids are preserved from v3 (`0.4`, `3.1`, `4.3`, …) so old references and
-> log provenance (`see (ag)`) still resolve. Do not renumber. New items get the next free id in their
-> arc.
+> **Stable ids.** Legacy phase/item ids (`0.4`, `3.3`, `4.3`, …) are kept as **tags** so old references
+> and provenance resolve. Do not renumber. Provenance tags `(x)` point into v3 Appendix D.
 >
-> **What is done.** Phases 0.1–0.3, 1.1–1.7, 2.1–2.5 (partials below), 4.3–4.4 (demotion), and the
-> overlay manager/palette/primitives all landed; see v3 Appendix D. The product now renders one
-> workspace (Notebook/Graph) over one `WorkspaceGraph` with a floating HUD and summoned overlays, and
-> works LM-only with no reasoning backend.
+> **Structure.** Every open task has exactly one home (§ Work Packages or § Awaiting). Opportunities
+> are folded into their owning item as sweep bullets — there is no separate opportunities list.
+
+## Principles & gates (unchanged — v3 §1–§3, §12, §13)
+
+One workspace + overlays; blocks are primary; LM structure is System 1 annotation unless a gate admits
+it; capabilities compose; validation is behavioural, not pixel. Definition of done: v3 §12.
+
+## Dependency spine
+
+```
+WP1 ─┬─▶ WP2 ─┐
+     │        ├─▶ WP6 ─▶ WP7 ─▶ WP8
+WP3 ─┴────────┘
+WP3 ─▶ WP4        WP3 ─▶ WP5 ─▶ WP6
+```
+Critical path: **WP1 → WP3 → WP5 → WP6 → WP7**. WP2 and WP4 can run in parallel after their deps.
+
+Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting.
 
 ---
 
-## 0. Working principles (unchanged — full text in v3 §1–§3)
+## WP1 — Shell completion
 
-- **One workspace + overlays.** No permanent diagnostic panels by default; pinning is user-driven;
-  every overlay is a `defineSurface` descriptor.
-- **One semantic substrate.** Blocks are primary; renderers project them. Blocks carry `Ref`s that are
-  simultaneously graph ids, popover anchors, URL targets, and engine refs.
-- **Epistemic firewall.** LM-proposed structure is System 1 annotation (`createdBy:'lm'`), never truth;
-  beliefs only via formalization → gates when `reasoning` is on.
-- **Capabilities compose, none privileged** (`language · reasoning · tools · memory · uiControl`).
-- **Behavioural, not pixel, validation.** The pixel harness is a demoted design-regression net.
+*Outcome: no standing panels; overlay primitives complete. No deps.*
 
-Definition of done and validation gates: v3 §12. Keep/demote ledger and panel-migration table: v3 §13.
+- [ ] **0.4 inspector** — demote the auto-opening node-detail drawer (last standing side panel) to a
+  contextual inspector popover / pinnable card; project workspace-node data into it or hide when
+  contentless. `(b)`,`(af)`,`(ag)`,`(ae)`,`(n)`,`(o)`
+- [ ] **0.4 telemetry** — move telemetry content into the HUD expansion (`s-sparkline` + `s-table-mini`)
+  and retire the bottom panel; add a HUD "Panels" menu derived from `view.panel.*`. `(af)`
+- [ ] **0.4 config demotion** — migrate the legacy config panel into the settings overlay, migrate the
+  configuration e2e spec, then default it off. `(aa)`,`(c)`,`(af)`
+- [ ] **0.5 tool approval** — build the tool-approval dialog overlay. `(b)`,`(aa)`
+- [ ] **4.5 pinning** — overlays pinnable as floating cards (manager seam `setPinned`/`pinned` exists);
+  decide session-only vs URL-addressable. `(b)`,`(e)`,`(aa)`
+- [ ] **0.6 backend seam** — land the `ReasoningBackend` contract + adapter seam (`LmProvider` façade;
+  `lm.status`/`lm.switch` already real). Blocked on nothing; needed by WP5. `(c)`
+- [ ] **Sweep — overlays/HUD/palette**:
+  - `overlay.*` forwards all args to `overlay:open` (today only `ref`); generic anchor resolver in
+    `OverlayHost` (pass the Cytoscape container, not the viewport element). `(v)`,`(e)`,`(o)`
+  - palette modality decision (`modal: true`?); MRU group; `Announcer` bridge on open/close. `(f)`,`(b)`,`(e)`
+  - HUD `⚙` → `overlay.settings`; provider switching as an overlay action; split Provider vs
+    Configuration entries once the `LmProvider` façade lands; `config-hud` `embedded` mode. `(aa)`
+  - one registry-derived action source shared by HUD and palette; derive renderer/layer controls from
+    registries + capability flags (drop `active === 'graph'`). `(c)`,`(k)`,`(ab)`,`(ae)`
+  - `capabilityGate`/`CapabilityHost` mixin for descriptor-declared capabilities; command `available()`
+    `when` predicate. `(m)`,`(k)`,`(f)`
+  - add budget/stop to the HUD once run-control (WP7) exists. `(c)`,`(f)`
 
----
+## WP2 — State & URL consolidation
 
-## 1. Arc A — Finish the shell
+*Outcome: one state source; everything deep-linkable. Deps: WP1.*
 
-- [~] **0.4** No permanent side panel; thin floating HUD.
-  - Landed: shell, HUD (`mode · provider · ☰ ToC · ⏱ timeline · ⌘K`), standing diagnostic panels
-    default-closed + palette-reachable, timeline scrubber demoted to an overlay.
-  - **Gap:** the auto-opening **node-detail drawer** is still the last standing side panel → convert to
-    a contextual inspector popover / pinnable card. The legacy config panel is still docked; migrate it
-    to the settings overlay (and the config e2e spec), then default it off. Move telemetry content into
-    the HUD expansion (sparkline + `s-table-mini`) and retire the bottom panel. Add a HUD "Panels" menu
-    derived from `view.panel.*`. Add budget/stop to the HUD once run-control (5.2) exists.
-- [~] **0.5** Overlay manager + primitives.
-  - Landed: manager (stacking, `Esc` stack skipping pinned, outside-click, focus trap, anchor return,
-    pinning seam), `OverlayHost`, palette, ToC, block menu, explanation, artifact viewer, settings.
-  - **Gap:** build the **tool-approval dialog** overlay; land **pinning** (4.5); decide palette
-    modality (`modal: true`?); let `overlay.*` forward all args to `overlay:open` (today only `ref`);
-    add a generic anchor resolver so anchored popovers pass the Cytoscape container.
-- [~] **0.6** Carried contracts.
-  - Landed: capability registry/toggles; `ui.command` schema + dispatcher stub over the one registry.
-  - **Gap:** `ReasoningBackend` contract + adapter seam; `LmProvider` façade (note `lm.status`/
-    `lm.switch` are already real); fuller `ui.command` execution is Phase 5.
+- [ ] **2.6 mirrors** — `mirrorAtom(atom, pick, equals?)` helper; replace the ad-hoc mirror
+  subscriptions (`renderer`, `focus`, `folded`, `layer`, `layout`, `lens`) and reflect `$panels`
+  two-way into `$urlState.panels`. `(s)`,`(t)`,`(x)`,`(ac)`,`(af)`
+- [ ] **2.6 validation** — validate `UrlState.renderer` (cycle-free allowlist) and `UrlState.layout`
+  (vs `layoutRegistry`) on hydrate; mirror `$activeLens` → `urlState.lens`. `(s)`,`(t)`,`(x)`,`(ac)`
+- [ ] **1.5 page** — URL-address `page` (`(page, block, disclosure)`), requiring the section model
+  (roots + heading levels). `(s)`,`(t)`,`(h)`,`(q)`
+- [ ] **2.6 scope** — make active layout scope-aware (concept vs conversation) and URL-address it;
+  remember the graph layer per lens; debounce `folded` writes for fold-all. `(y)`,`(ac)`,`(w)`,`(t)`
+- [ ] **2.5 selection atom** — make `$selectedNodeIds` derived from `$workspaceGraph.selection`. `(z)`
+- [ ] **2.5 focus react** — Graph viewport centres/highlights on `$workspaceGraph.focus` (Notebook
+  already scrolls). `(h)`,`(n)`,`(r)`,`(z)`
+- [ ] **2.5 defaults** — derive the capability-aware default renderer from `$capabilities`
+  (`language`→Notebook, `reasoning`→Graph). `(k)`
+- [ ] **2.6 context** — extend `WorkspaceContext` (`overlays`, `renderer`, `setRenderer`; fold
+  `openPalette` onto `activeCommands()`); retire `$viewportMode`/`$graphShape` shell atoms once
+  `graph-surface` owns them. `(b)`,`(f)`,`(ae)`
 
-## 2. Arc B — Compatibility bridge
+## WP3 — View & artifact completion
 
-- [ ] **0.7** Bridge: existing graph nodes/events/chat render as overlays/embedded views; the landed
-  ViewSpec adapters are usable inside overlays and `embedded-view` blocks. Fold the last legacy
-  consumers onto the workspace substrate.
+*Outcome: full view matrix, clean artifact typing, embedded views. No deps.*
 
-## 3. Arc C — Notebook & Graph excellence
+- [ ] **4.3 typing** — discriminated `Artifact` union on `SemanticBlock`/`Segment` (drop `data` casts);
+  promote `Segment.data` to the `Artifact` contract. `(i)`,`(j)`,`(d)`
+- [ ] **4.3 code** — add a `code` shape + `s-code` adapter (language, line numbers, highlighting). `(j)`,`(i)`,`(ad)`
+- [ ] **4.3 diff** — add a `diff` representation/view (config-change + comparisons). `(ad)`
+- [ ] **4.3 derivation-record** — `s-tree` provenance view. **Depends on WP5/3.3** for the
+  `DerivationRecord` payload. `(ad)`
+- [ ] **4.3 affordances** — Copy / Open-in-graph in the artifact overlay, reachable from ToC/inspector. `(j)`,`(ad)`
+- [ ] **4.1/4.2 embedded views** — Notebook embedded graph block (derivation/contradiction/topic
+  neighborhood); Graph node popover notebook card; graph edge popover derivation tree; wire the
+  block-menu "embed" affordance; reuse `conversationPositions` and `projectWorkspaceGraph` in embedded
+  graph shapes. `(n)`,`(y)`,`(e)`
+- [ ] **2.4 graph inspection** — node/edge hover popovers reusing `explainModel`/`neighborhood`; artifact
+  edge previews; richer inspector (link confidence + event refs); "Open related" from graph menu and
+  ToC; remember neighborhood depth; ⌥-click a row to explain instead of navigate. `(r)`
+- [ ] **1.5/1.1 notebook structure** — recurse nested `contains`/headings so pages/ToC aren't shallow;
+  nested-section folding by heading `level`; fold-all/unfold-all command; folded-count badge; keep
+  `j/k` consistent with folded visibility and decide whether it skips container roots; optional
+  `clampStep`; "jump to related block" from breadcrumb/block menu. `(d)`,`(q)`,`(h)`
+- [ ] **1.4 rich text** — inline tokenizer for paragraphs (links/emphasis/code spans); image intrinsic
+  size `{width?,height?}`; optional inline full tables (`budget="full"`); ensure the view barrel is
+  imported standalone / owned by `WorkspaceHost`. `(i)`,`(j)`
+- [ ] **citations model** — `Source`/bibliography (stable citation key, `[n]` resolution) to split
+  formal citations from plain links. `(i)`
 
-- [~] **1.1** Notebook renderer.
-  - **Gap:** virtualization for long sessions.
-- [~] **1.2** Composer overlay with modes; universal input.
-  - **Gap:** the true **floating composer** anchored to a selected block/node/subgraph (needs 2.3);
-    structured-mode producers (`believe`/`goal`/`tool`) once 3.2 + tool transport land.
-  - Related opportunities: mode-bar ↔ palette share one action source; `composer.prefill` signal;
-    per-segment preview (fix kind, merge/split); guard `decomposeInput` against abbreviation/decimal
-    over-splitting; echo the context block as a quoted excerpt in a reply.
-- [~] **1.4** Output segmentation.
-  - **Gap:** block-level streaming (`status:'streaming'` re-parse) — backend-coupled (needs partial
-    assistant text in `$chatMessages`); add a content hash to child ids for stability mid-stream.
-  - Opportunities: promote `Segment.data` to the `Artifact` contract; add a `code` shape + `s-code`;
-    segmentation round-trip property test.
-- [~] **1.5** Semantic ToC + navigation.
-  - **Gap:** URL-addressable `page` (needs the section model); ToC virtualization / outline-only mode.
-  - Opportunities: `fold all / unfold all` palette command; folded-count badge; nested-section folding
-    by heading `level`; keep `j/k` consistent with folded visibility; `jump to related block`.
-- [~] **1.6/1.7** Contextual link menu / LM-only completeness — largely landed; keep LM-only green as
-  the primary product gate.
-- [~] **2.1** Graph projection.
-  - **Gap:** incremental **animated growth** of the workspace layer (today replace-by-diff);
-    compound clusters from chat `contains`/headings (chat turns don't set `children`).
-- [~] **2.3** Graph-native input.
-  - **Gap:** floating/anchored composer at the node/edge (shared with 1.2); node-creating ops
-    ("Ask as question" / "Assert as claim" → `WorkspaceOp.block.add`).
-- [~] **2.4** Graph inspection.
-  - **Gap:** node/edge hover popovers reusing `explainModel`/`neighborhood`; artifact preview popovers
-    on edges; explicit "Open in Notebook" from a graph selection.
-  - Opportunities: richer inspector (link confidence + event refs); "Open related" from graph context
-    menu and ToC; remember neighborhood depth; ⌥-click a row to explain instead of navigate.
-- [~] **2.5** Mode parity.
-  - **Gap:** the **canonical-loop behavioural parity suite** (the §10 matrix) scripted per full
-    renderer, plus per-pair continuity round-trips.
-  - Opportunities: make the §10 matrix **data** (`rendererParity(interaction)`) so palette/shell gate
-    uniformly via `rendererSupports`; derive capability-aware default renderer from `$capabilities`;
-    Graph viewport should react to `$workspaceGraph.focus` by centering/highlighting; consolidate
-    selection into one atom (`$selectedNodeIds` derived).
-- [~] **2.6** URL/state consolidation (cross-cutting; see §5).
-- [~] **2.7** Graph3D — deferred (Phase 6); keep the honest `partial` declaration.
+## WP4 — Timeline present-anchoring
 
-## 4. Arc D — Artifacts, embedded views, timeline, pinning
+*Outcome: the timeline is a real present-anchored scrubber. Deps: WP3.*
 
-- [~] **4.1** Embedded graph block in Notebook (derivation/contradiction/topic neighborhood). Wire the
-  block-menu "embed" affordance when it lands; reuse `conversationPositions`.
-- [ ] **4.2** Embedded notebook card in Graph popovers (block sequence for node/cluster); Graph edge
-  popover shows a derivation tree.
-- [~] **4.3** Artifact viewer.
-  - **Gap:** bespoke **`diff`** view (two-column projection / `diff` shape) and **`derivation-record`**
-    view (`s-tree`), once the `DerivationRecord` payload lands (3.3); add Copy / Open-in-graph
-    affordances.
-- [~] **4.4** Timeline overlay.
-  - Landed: demotion — the scrubber is a summoned overlay writing `$view.timeline.t`; the existing
-    modulation/gate filters already do live/past/prospective filtering.
-  - **Gap:** explicit live/past/prospective controls (a "now" reset to `Infinity` + range readout);
-    announce the applied window; a present-anchored cursor fading newly admitted blocks; gate the `⏱`
-    HUD control on temporal availability; a `ws.scrubTime` `ui.command` for agent demos.
-- [ ] **4.5** Pinning: overlays pinnable as floating cards (manager seam `setPinned`/`pinned` exists).
-  Decide persistence: session-only vs URL-addressable.
+- [ ] **4.4 controls** — explicit live/past/prospective controls ("now" resetting `t` to `Infinity`, a
+  range readout) and announce the applied window. `(ag)`
+- [ ] **4.4 anchor** — present-anchored cursor fading newly admitted blocks; thread `createdAt`/event
+  time through `projectGraph`/projection. `(ag)`,`(y)`
+- [ ] **4.4 gating** — gate the `⏱` HUD control on temporal availability (node with `occurrenceTime`
+  or a capability flag). `(ag)`
+- [ ] **5.1 scrub** — `ws.scrubTime` `ui.command` driving `$view.timeline.t` for agent demos. `(u)`,`(ag)`
+- [ ] **ops sequencing** — carry engine `seq`/`eventRefs` on `WorkspaceOp` for ordering/provenance. `(Phase 0.1–0.3)`
 
-## 5. Arc E — The reasoning half (Phase 3)
+## WP5 — Reasoning vertical slice
 
-> The whole Phase 3 matrix is unstarted. It reuses the landed `GRAPH_REDUCERS` bridge as the producer
-> and the `SemanticBlock`/`SemanticLink` substrate as the target. This is the next big arc and the
-> point of the `reasoning` capability.
+*Outcome: the `reasoning` capability end-to-end. Deps: WP3; needs WP1/0.6 seam.*
 
-- [ ] **3.1** Map NAR concepts/events → blocks/links: beliefs, goals, questions, derivations,
-  revisions, contradictions, budget events, gate decisions.
-- [ ] **3.2** Formalization flow: conversational claim → candidate → gate admission → belief/goal/
-  question; visible in both renderers (System 1 → 2 → gate pipeline blocks). Route `claim`/`question`
-  children through it (ties to 1.2).
-- [ ] **3.3** Provenance blocks: `derivation-record` (premises/conclusion links, truth/confidence, rule
-  id, evidence lineage, raw record). This defines the `DerivationRecord` payload 4.3 needs.
-- [ ] **3.4** Reasoning layouts: `reasoning-provenance`, `gate-pipeline`, `contradiction-neighborhood`,
-  `budget-resource` as `layoutRegistry` rows with deterministic variants.
-- [ ] **3.5** Contextual explanation popover for claim/block/node/edge/event/belief/goal/derivation;
-  disclosure levels `summary · card · detail · raw` as data (mostly landed for conversation blocks —
-  extend to reasoning targets).
-- [ ] **3.6** Steer/author: retract/revise belief, add goal, adjust budget/provider from block/node
-  actions; live reaction as new blocks/links.
-- [ ] **3.7** Generality probe: MeTTa adapter feeding the same substrate; one scenario through it.
+- [ ] **3.1 projection** — map NAR concepts/events → blocks/links: beliefs, goals, questions,
+  derivations, revisions, contradictions, budget events, gate decisions. `(Phase 3)`
+- [ ] **3.2 formalization** — claim → candidate → gate admission → belief/goal/question, visible in both
+  renderers; route `claim`/`question` composer children through it; emit `asks`/`answers` links;
+  special-case structured modes in `projectChat`; server `mode`/`contexts` consumption. `(g)`,`(l)`,`(k)`
+- [ ] **3.3 provenance** — `derivation-record` blocks (premises/conclusion links, truth/confidence, rule
+  id, evidence lineage, raw record); defines the payload WP3/4.3 needs. `(Phase 3)`
+- [ ] **3.5 explanation** — extend the explanation popover to reasoning targets (claim/node/edge/event/
+  belief/goal/derivation) with `summary · card · detail · raw`. `(Phase 3)`
+- [ ] **3.4 layouts** — `reasoning-provenance`, `gate-pipeline`, `contradiction-neighborhood`,
+  `budget-resource` as `layoutRegistry` rows with deterministic variants. `(Phase 3)`
+- [ ] **3.6 steer/author** — retract/revise belief, add goal, adjust budget/provider from block/node
+  actions; live reaction as new blocks/links. `(Phase 3)`
+- [ ] **3.7 MeTTa** — adapter feeding the same substrate; one scenario through it. `(Phase 3)`
+- [ ] **2.3 node ops** — node-creating ops from the graph ("Ask as question" / "Assert as claim" →
+  `WorkspaceOp.block.add`); reconcile cross-fragment context refs in `projectWorkspace`. `(o)`,`(p)`,`(m)`
 
-## 6. Arc F — Agent-operable (Phase 5)
+## WP6 — Parity & rendering quality
 
-- [ ] **5.1** `ui.command` over the workspace: set renderer, focus, explain, highlight, open ToC/search,
-  present artifact, embed view, compose, narrate, scrub.
-  - Opportunities: engine emits `ui.command` for narrations/demos; record executed commands in the
-    timeline/telemetry (provenance trail); round-trip test through `applyServerMessage`; parameterised
-    commands with a `params` descriptor + generated `parse`/prompt; type-check args against
-    `UiCommandMsg.args`; `available()`-aware palette badge.
-- [ ] **5.2** UI Control Mode: default off → suggestions; on → execution with visible command log +
-  stop button in the HUD.
-- [ ] **5.3** Demonstrations ("show me how you got that"): switch renderers, focus refs, open
-  provenance, narrate — no fake player.
-- [ ] **5.4** Screen-record mode: minimal HUD, visible focus highlight, captions/narration.
+*Outcome: executable §10 parity; live graph. Deps: WP1, WP2, WP5.*
 
-## 7. Arc G — Standalone product & hardening
+- [ ] **2.5 parity suite** — script the canonical loop per full renderer; per-pair continuity
+  round-trips; make the §10 matrix **data** (`rendererParity`/`rendererSupports`) so palette/shell gate
+  uniformly. `(z)`,`(ae)`
+- [ ] **2.1 growth** — incremental animated growth of the workspace layer (today replace-by-diff). `(n)`,`(y)`
+- [ ] **2.1 clusters** — compound clusters from chat `contains`/headings (set `children` on turns /
+  infer). `(n)`
+- [ ] **1.2/2.3 floating composer** — anchored to block/node/subgraph (summoned, not persistent) with
+  capability-gated modes and cy→DOM coordinate handoff. `(k)`,`(g)`,`(o)`,`(p)`
+- [ ] **1.2 composer sweep** — mode bar ↔ palette share one action source; `composer.prefill` signal;
+  per-segment preview (fix kind, merge/split); guard `decomposeInput` against abbreviation/decimal
+  over-splitting; optional context-excerpt reply; extract shared `ComposerFocus` type. `(m)`,`(k)`,`(g)`
+- [ ] **2.x graph polish** — unify workspace-node lens/capability styling in the adapter; skip laying
+  out / exclude hidden layer from `fit`; bind `graph.ask-selection` (e.g. `a`); HUD/palette layout group
+  + `graph.layout.cycle`; register `chronological-flow`/`source-view` SpaceGraph surfaces when a
+  storyboard adapter exists. `(n)`,`(w)`,`(ab)`,`(p)`,`(y)`
+- [ ] **2.x pure-helper tests** — extract + unit-test `nodeTapAction`/`nodeGesture`, `workspaceRefs`; add
+  a Graph-renderer unit test (import pulls Cytoscape) and an `app-layout` test. `(o)`,`(p)`,`(ae)`
 
-- [ ] **7.1** Package boundary (`semantic-graph` vs umbrella; see open questions).
-- [ ] **7.2** Standalone engine-free build: LM provider + segmentation + semantic links + Notebook/
-  Graph.
-- [ ] **7.3** Hardening: op batching + virtualization + graph decimation + latency budgets; error
-  taxonomy; accessibility pass (keyboard-only walkthrough, canvas text alternatives via the table
-  adapter, `aria-live`/Announcer); plugin/descriptor API for new renderers/block kinds/link kinds;
-  docs-as-code from descriptors; re-expand the visual-regression net.
-- [ ] **6** Graph3D renderer over SpaceGraph (deferred until Notebook/Graph are excellent).
+## WP7 — Agent-operable
 
----
+*Outcome: the agent drives the workspace. Deps: WP6.*
 
-## 8. Consolidated improvement opportunities
+- [ ] **5.1 execution** — `ui.command` over the workspace (set renderer, focus, explain, highlight, open
+  ToC/search, present artifact, embed view, compose, narrate, scrub); round-trip test through
+  `applyServerMessage`; record executed commands in timeline/telemetry; engine emits `ui.command` for
+  narrations/demos. `(u)`,`(v)`
+- [ ] **5.1 args** — parameterised commands with a `params` descriptor (generated `parse` + palette
+  prompt); type-check args against `UiCommandMsg.args`; `available()`-aware palette badge. `(u)`,`(v)`
+- [ ] **5.2 control mode** — default off → suggestions; on → execution with a visible command log + HUD
+  stop button. `(c)`,`(f)`
+- [ ] **5.3 demonstrations** — "show me how you got that" switches renderers, focuses refs, opens
+  provenance, narrates; no fake player. `(Phase 5)`
+- [ ] **5.4 screen-record mode** — minimal HUD, focus highlight, captions/narration. `(Phase 5)`
 
-Merged from the v3 log; provenance in parentheses. These are not blockers — schedule into the arcs.
+## WP8 — Bridge, hardening, standalone, 3D
 
-### URL / state consolidation
-- Add `page` to the URL (`(page, block, disclosure)`) — needs the section model (`(s)`,`(t)`,`(h)`,`(q)`).
-- Validate `UrlState.renderer` against the renderer registry via a cycle-free allowlist (`(s)`,`(t)`,`(x)`,`(ac)`).
-- Validate `UrlState.layout` against `layoutRegistry` ids (`(ac)`).
-- Mirror `$activeLens` into `urlState.lens` (`(ac)`).
-- Reflect `$panels` open/close into `$urlState.panels` (today hydrate-only) (`(s)`,`(t)`,`(af)`).
-- Replace ad-hoc mirror subscriptions with a `mirrorAtom(atom, pick, equals?)` helper (`(s)`,`(t)`,`(x)`,`(ac)`).
-- Make active layout scope-aware (concept vs conversation) and URL-address it (`(y)`,`(ac)`).
-- Remember the graph layer per lens (`(w)`); debounce `folded` writes for fold-all gestures (`(t)`).
+*Outcome: shippable product. Deps: WP7.*
 
-### Overlays / HUD / palette
-- Add an `Announcer` bridge on overlay open/close (`(b)`,`(e)`).
-- Add "recently used" (MRU) group to the palette (`(f)`).
-- HUD `⚙` affordance → `overlay.settings`; provider switching as a first-class overlay action;
-  generalise `config-hud` with an `embedded` mode (`(aa)`).
-- Extract a `capabilityGate`/`CapabilityHost` mixin so overlays declare required capabilities in
-  descriptors (`(m)`,`(k)`).
-- Generalise command `available()` with a small `when` predicate (`(f)`); derive renderer/layer
-  controls from registries/capabilities instead of `active === 'graph'` (`(ab)`,`(ae)`).
-
-### Graph
-- Detail drawer reads `$graphNodes`, so workspace nodes have no content — project workspace node data
-  or hide the drawer (`(n)`,`(o)`).
-- Unify workspace-node lens/capability styling in the adapter (`(n)`); reuse `projectWorkspaceGraph` in
-  `graph3d` and the embedded-view graph shape (`(n)`).
-- Skip laying out / exclude the hidden layer from `fit` (`(w)`,`(ab)`).
-- Bind `graph.ask-selection` to a keystroke (e.g. `a`) (`(p)`).
-- Reuse `conversationPositions` for embedded graph views (`(y)`).
-- HUD/palette group for layouts + `graph.layout.cycle` (`(y)`).
-- Register `chronological-flow`/`source-view` as SpaceGraph surfaces once a storyboard adapter exists (`(y)`).
-
-### Notebook
-- Recurse nested `contains`/headings sections so pages/ToC aren't shallow (`(d)`).
-- Inline rich-text tokenizer (links/emphasis/code spans) for paragraphs (`(i)`).
-- Image intrinsic size/aspect `{width?,height?}` to reserve layout space (`(i)`).
-- Optional inline full tables (`budget="full"`); optional end-clamped `j/k`; decide whether `j/k` skip
-  container roots (`(j)`,`(h)`).
-- Notebook must import the view barrel standalone / `WorkspaceHost` owns it (`(j)`).
-
-### Performance
-- `mountWorkspaceProjection` re-projects the whole graph per change → incremental ops or microtask/rAF
-  coalescing (`(b)`); `applyWorkspaceOp` copies whole `Map`s per op → publish a batch op (`(Phase 0.1–0.3)`).
-- Memoise `tocEntries`/`explainModel` per graph identity (`(e)`); memoise `activeCommands()` on registry
-  versions (`(f)`); cache segmentation per `(id, hash)` (`(d)`).
-- Pre-index adjacency: shared `linksByBlock` used by `linksTouching`/`neighborhood`/projection (`(r)`).
-- Carry engine `seq`/`eventRefs` on `WorkspaceOp` for ordering/provenance (`(Phase 0.1–0.3)`).
-- Thread `createdAt`/event time through `projectGraph` for exact chronology and present-anchoring (`(y)`,`(ag)`).
-
-### Protocol / contracts
-- Discriminated `Artifact` union on `SemanticBlock`/`Segment` so renderers narrow `data` without casts
-  (`(i)`,`(j)`,`(d)`); add the `code` shape + `s-code` (`(j)`,`(ad)`); add the `diff` representation (`(ad)`).
-- Introduce a `Source`/bibliography model (stable citation key, `[n]` resolution) (`(i)`).
-- Align CLI/`ui.command` arg typing.
-
-### Testing
-- Script the canonical loop per full renderer (executable parity suite) (`(z)`,`(ae)`).
-- No unit test for the Graph renderer/command (import pulls Cytoscape) (`(p)`); no `app-layout` unit
-  test (`(ae)`); add a Notebook `composer:focus` path test (`(q)`).
-- Extract and unit-test pure graph helpers `nodeTapAction`/`nodeGesture`, `workspaceRefs` (`(o)`,`(p)`).
-- Parity test: link-catalog `layouts` ⊆ `layoutRegistry` (`(Phase 0.1–0.3)`).
-- Regenerate visual baselines for the telemetry-closed + timeline demotions (intentional diffs);
-  update the stale e2e "default telemetry panel" comment (`(af)`,`(ag)`).
-- Timeline test API registers only after the overlay opens — helpers must open it first (`(ag)`).
-
-### Streaming / contracts (blocked)
-- Block-level streaming needs partial assistant text (backend); child-id content hash for stability
-  (`(d)`,`(i)`).
+- [ ] **0.7 bridge** — legacy graph nodes/events/chat render as overlays/embedded views; ViewSpec
+  adapters usable inside overlays and `embedded-view` blocks. `(0.7)`
+- [ ] **7.1 boundary** — package split (`semantic-graph` vs SpaceGraphJS umbrella; see open questions). `(7.1)`
+- [ ] **7.2 standalone** — engine-free build: LM provider + segmentation + semantic links + Notebook/Graph. `(7.2)`
+- [ ] **7.3 performance** — op batching, notebook/ToC virtualization, graph decimation, latency budgets;
+  `mountWorkspaceProjection` incremental ops / microtask-rAF coalescing; `applyWorkspaceOp` batch
+  publish; memoise `tocEntries`/`explainModel`/`activeCommands()`/segmentation; shared `linksByBlock`
+  adjacency index for `linksTouching`/`neighborhood`/projection. `(b)`,`(e)`,`(f)`,`(d)`,`(r)`
+- [ ] **7.3 quality** — error taxonomy; accessibility pass (keyboard-only walkthrough, canvas text
+  alternatives via the table adapter); plugin/descriptor API for renderers/block kinds/link kinds;
+  docs-as-code from descriptors; re-expand the visual-regression net. `(7.3)`
+- [ ] **tests sweep** — parity: link-catalog `layouts` ⊆ `layoutRegistry`; segmentation round-trip
+  property test; a Notebook `composer:focus` path test; regenerate visual baselines for the
+  telemetry/timeline demotions; fix the stale e2e "default telemetry panel" comment and the
+  timeline-overlay test-API registration note. `(Phase 0.1–0.3)`,`(d)`,`(q)`,`(af)`,`(ag)`
+- [ ] **6 Graph3D** — `WorkspaceRenderer` over SpaceGraph, `parity: 'partial'`; only after Notebook/Graph
+  are excellent. `(6)`
 
 ---
 
-## 9. Open questions (carried from v3 Appendix C)
+## Awaiting / deferred — not actionable yet
 
-- Turn/page boundary policy: auto-page per turn pair, with agent/user overrides.
-- Block id stability under streaming reparse (content-hash + position anchor).
-- ToC scale: virtualization and outline-only mode for long sessions.
+- **1.4 block-level streaming** — needs partial assistant text in `$chatMessages` (backend-coupled);
+  child-id content hash for mid-stream stability. `(d)`,`(i)`
+- **tool transport** for `uiControl` — in-process first, MCP later. `(Appendix C)`
+- **LM-assisted enrichment defaults** — on/off, cost visibility, annotation vocabulary. `(Appendix C)`
+- **artifact/block sandboxing** policy before untrusted content. `(Appendix C)`
+- **multi-agent boundary** — future contract. `(Appendix C)`
+
+## Open questions (carried from v3 Appendix C)
+
+- Turn/page boundary policy: auto-page per turn pair with agent/user overrides.
+- Block-id stability under streaming reparse (content-hash + position anchor).
+- ToC scale: virtualization and outline-only mode for very long sessions.
 - Composer defaults: which modes surface LM-only; how Believe/Goal degrade to suggestions.
-- LM-assisted enrichment: default on/off, cost visibility, annotation styling vocabulary.
-- Pinning persistence: session-only vs URL-addressable pinned cards.
-- Tool transport for `uiControl`: in-process first, MCP later.
-- Artifact/block sandboxing policy before any untrusted content.
-- Multi-agent boundary remains a future contract.
-- Package naming and whether `semantic-graph` ships inside the SpaceGraphJS umbrella at extraction.
-
----
-
-## 10. Immediate implementation order (updated)
-
-1. **0.4 finish** — inspector overlay (demote node-detail drawer); HUD telemetry expansion.
-2. **0.5 finish** — tool-approval overlay; **4.5 pinning**.
-3. **4.3 finish** — `diff` view; Copy/Open-in-graph in the artifact overlay. **4.4** present-anchoring.
-4. **§8 URL/state consolidation** — `mirrorAtom`, validation, `page` (a contained, high-leverage pass).
-5. **Phase 3.1–3.3** — engine projection, formalization flow, provenance blocks (the reasoning arc).
-6. **2.x parity suite** — script the canonical loop; make §10 matrix data.
-7. **Phase 5** — `ui.command` execution + UI Control Mode + demonstrations.
-8. **0.7 bridge**, then **7.x hardening/standalone**, then **6 (Graph3D)**.
+- Pinning persistence: session-only vs URL-addressable.
+- Package naming / umbrella placement at extraction.
 
 ---
 
 ## Progress log
 
-Newest first. Historical detail for everything before this file lives in `TODO.ui.3.md` Appendix D.
+Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
 
-### (v4) — extracted & consolidated from `TODO.ui.3.md`
-- Split the open backlog, merged improvement opportunities, open questions, and a re-ordered plan out
-  of v3; v3 frozen as the landed record and implementation log. No code change.
+### (v4.1) — restructured into work packages
+- Rewrote the forward plan as work packages with a dependency spine; folded every improvement
+  opportunity into its owning item (one home per task); moved blocked/ambiguous items to §Awaiting;
+  pruned landed-prose (v3 holds history). No code change.
