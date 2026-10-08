@@ -13,7 +13,15 @@ import { BaseComponent } from '../core/base-component.js';
 import { activeCommands, dispatchCommand } from '../core/commands.js';
 import { eventBus } from '../core/events.js';
 import { GRAPH_LAYERS, type GraphLayer } from '../core/graph-layer.js';
-import { $activeRenderer, $graphLayer, $lmStatus, $telemetry, setGraphLayer } from '../core/store.js';
+import {
+  $activeRenderer,
+  $graphLayer,
+  $graphNodes,
+  $lmStatus,
+  $telemetry,
+  hasTemporalData,
+  setGraphLayer,
+} from '../core/store.js';
 import type { ViewSpec } from '../core/view-spec.js';
 import { rendererHasControl, workspaceRenderer, workspaceRenderers } from '../core/workspace-renderer.js';
 import {
@@ -88,6 +96,7 @@ export class WorkspaceHud extends BaseComponent {
     super.connectedCallback();
     this.watch($activeRenderer);
     this.watch($graphLayer);
+    this.watch($graphNodes);
     this.watch($lmStatus);
     this.watch($telemetry);
   }
@@ -109,13 +118,17 @@ export class WorkspaceHud extends BaseComponent {
           @click=${(event: Event) =>
             dispatchCommand('overlay.toc', { anchor: event.currentTarget as HTMLElement })}
         >☰</button>
-        <button
-          data-action="timeline"
-          title="Timeline"
-          aria-label="Timeline"
-          @click=${(event: Event) =>
-            dispatchCommand('overlay.timeline', { anchor: event.currentTarget as HTMLElement })}
-        >⏱</button>
+        ${
+          hasTemporalData()
+            ? html`<button
+                data-action="timeline"
+                title="Timeline"
+                aria-label="Timeline"
+                @click=${(event: Event) =>
+                  dispatchCommand('overlay.timeline', { anchor: event.currentTarget as HTMLElement })}
+              >⏱</button>`
+            : ''
+        }
         <button
           data-action="telemetry"
           title="Telemetry"

@@ -269,6 +269,14 @@ export function getItems(): Item[] {
   return items;
 }
 
+/** Whether any engine node carries a temporal anchor — the timeline control gates on this (§4.4). */
+export const hasTemporalData = (): boolean => {
+  for (const node of $graphNodes.get().values()) {
+    if (node.occurrenceTime !== undefined) return true;
+  }
+  return false;
+};
+
 // --- Phase 4: Lens Registry ---
 export const $lensRegistry = atom<Map<string, LensSpec>>(new Map());
 

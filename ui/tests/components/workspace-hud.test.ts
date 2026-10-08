@@ -7,12 +7,13 @@ import '../../src/client/components/views/index.js';
 import '../../src/client/components/workspace-hud.js';
 import '../../src/client/core/view-host.js';
 import { eventBus } from '../../src/client/core/events.js';
-import { $activeRenderer, $graphLayer, $lmStatus, $telemetry } from '../../src/client/core/store.js';
+import { $activeRenderer, $graphLayer, $graphNodes, $lmStatus, $telemetry } from '../../src/client/core/store.js';
 
 afterEach(() => {
   document.body.innerHTML = '';
   $activeRenderer.set('graph');
   $graphLayer.set('both');
+  $graphNodes.set(new Map());
   $lmStatus.set({});
   $telemetry.set({ reasoning_hz: [1, 2], tokens_per_sec: [1, 2], memory_mb: [1, 2], ws_latency_ms: [1, 2] });
 });
@@ -81,13 +82,20 @@ describe('workspace hud', () => {
     expect(layers()).toEqual([]);
   });
 
-  it('summons the timeline overlay from the HUD', async () => {
+  it('summons the timeline overlay from the HUD when nodes carry occurrence times', async () => {
+    $graphNodes.set(new Map([['n1', { id: 'n1', nodeType: 'nar:concept', occurrenceTime: 1000 }]]));
     const el = await mountHud();
     const opened: string[] = [];
     const unsubscribe = eventBus.on('overlay:open', ({ id }) => opened.push(id));
     query<HTMLButtonElement>(el.shadowRoot, 'button[data-action="timeline"]').click();
     unsubscribe();
     expect(opened).toEqual(['timeline']);
+  });
+
+  it('hides the timeline control when no node is temporal', async () => {
+    $graphNodes.set(new Map([['n1', { id: 'n1', nodeType: 'nar:concept' }]]));
+    const el = await mountHud();
+    expect(el.shadowRoot?.querySelector('button[data-action="timeline"]')).toBeNull();
   });
 
   it('summons the settings overlay from the HUD', async () => {
