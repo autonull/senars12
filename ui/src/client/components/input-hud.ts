@@ -3,13 +3,20 @@ import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { estimateTokens } from '../../shared/index.js';
 import {
+  $capabilities,
   $graphNodes,
   $streamingDelta,
   addUserMessage,
   BaseComponent,
   BLOCK_KIND_LABEL,
-  decomposeInput,
+  availableComposerModes,
+  COMPOSER_MODE_CATALOG,
+  type ComposerMode,
+  decomposeForMode,
+  DEFAULT_COMPOSER_MODE,
+  eventBus,
   type InputSegment,
+  registerCommand,
   send,
 } from '../core/index.js';
 
@@ -70,9 +77,9 @@ export class InputHUD extends BaseComponent {
     textarea:focus { border-color: var(--colors-semantic-border-focus); box-shadow: 0 0 0 1px var(--colors-semantic-border-focus); }
 
     .hud-footer { display: flex; justify-content: space-between; align-items: center; padding: 0 2px; }
-    .slash-hints { font-family: var(--typography-fontFamilies-data); font-size: 0.6rem; color: var(--colors-semantic-text-muted); }
-    .slash-hints span { cursor: default; }
-    .slash-hints .key { color: var(--colors-semantic-text-secondary); }
+    .modes { display: flex; gap: var(--spacing-scale-1); flex-wrap: wrap; }
+    .modes button { background: transparent; border: 1px solid var(--colors-semantic-border-subtle); color: var(--colors-semantic-text-secondary); padding: 1px var(--spacing-scale-2); font-family: var(--typography-fontFamilies-data); font-size: 0.6rem; border-radius: 999px; cursor: pointer; transition: var(--transitions-fast); }
+    .modes button[aria-pressed='true'] { background: var(--colors-semantic-accent-primary); color: var(--colors-semantic-text-on-accent); border-color: transparent; }
     .token-count { font-family: var(--typography-fontFamilies-data); font-size: 0.6rem; color: var(--colors-semantic-text-muted); }
 
     .actions { display: flex; gap: var(--spacing-scale-2); align-items: center; }
@@ -92,23 +99,37 @@ export class InputHUD extends BaseComponent {
   `;
   @state() private composing = false;
   @state() private textareaValue = '';
+  @state() private mode: ComposerMode = DEFAULT_COMPOSER_MODE;
   @state() private decomposition: InputSegment[] = [];
   @state() private showSuggestions = false;
   @state() private suggestionIndex = -1;
   @state() private suggestions: Suggestion[] = [];
 
+  #unsubscribeFocus?: () => void;
+
   override connectedCallback() {
     super.connectedCallback();
     this.watch($streamingDelta);
     this.watch($graphNodes);
+    this.watchWith($capabilities, (capabilities) => {
+      if (!availableComposerModes(capabilities).some((m) => m.id === this.mode)) {
+        this.mode = DEFAULT_COMPOSER_MODE;
+      }
+    });
+    this.#unsubscribeFocus = eventBus.on('composer:focus', this.focusInput);
   }
 
-  focusInput() {
+  override disconnectedCallback() {
+    this.#unsubscribeFocus?.();
+    super.disconnectedCallback();
+  }
+
+  focusInput = () => {
     requestAnimationFrame(() => {
       const ta = this.shadowRoot?.querySelector('textarea');
       (ta as HTMLTextAreaElement | undefined)?.focus();
     });
-  }
+  };
 
   override render() {
     const streamingDelta = $streamingDelta.get();
@@ -139,7 +160,7 @@ export class InputHUD extends BaseComponent {
           }
           <textarea
             class="chat-input"
-            placeholder="Ask SeNARS…"
+            placeholder=${COMPOSER_MODE_CATALOG[this.mode].hint}
             .value=${streamingDelta || this.textareaValue}
             @keydown=${this.onKeyDown}
             @focus=${() => (this.composing = true)}
@@ -164,7 +185,15 @@ export class InputHUD extends BaseComponent {
               : ''
           }
           <div class="hud-footer">
-            <span class="slash-hints">Slash: ${SLASH_COMMANDS.map((c) => html`<span class="key">${c.id}</span>`).reduce((a, b) => html`${a} ${b}`)}</span>
+            <div class="modes" role="group" aria-label="Composer mode">
+              ${availableComposerModes($capabilities.get()).map(
+                (mode) => html`<button
+                  data-mode=${mode.id}
+                  aria-pressed=${this.mode === mode.id}
+                  @click=${() => this.setMode(mode.id)}
+                >${mode.label}</button>`
+              )}
+            </div>
             <span class="token-count">~${tokens}/4096 tokens</span>
           </div>
         </div>
@@ -240,6 +269,11 @@ export class InputHUD extends BaseComponent {
     });
   }
 
+  private setMode(mode: ComposerMode) {
+    this.mode = mode;
+    this.decomposition = decomposeForMode(this.textareaValue, mode);
+  }
+
   private sendMessage() {
     const content = this.textareaValue.trim();
     if (!content) return;
@@ -247,7 +281,7 @@ export class InputHUD extends BaseComponent {
     if (inputHistory.length > MAX_HISTORY) inputHistory.shift();
     historyIndex = inputHistory.length;
     addUserMessage(content);
-    send({ type: 'chat.user', content });
+    send({ type: 'chat.user', content, mode: this.mode });
     this.textareaValue = '';
     this.decomposition = [];
     this.composing = false;
@@ -257,7 +291,7 @@ export class InputHUD extends BaseComponent {
   private onInput(e: Event) {
     const ta = e.target as HTMLTextAreaElement;
     this.textareaValue = ta.value;
-    this.decomposition = decomposeInput(ta.value);
+    this.decomposition = decomposeForMode(ta.value, this.mode);
     this.autoResize(ta);
 
     const suggestions = this.getSuggestions(ta.value);
@@ -325,6 +359,14 @@ export class InputHUD extends BaseComponent {
     }
   }
 }
+
+registerCommand({
+  id: 'composer.focus',
+  title: 'Focus composer',
+  group: 'Compose',
+  keywords: 'input ask type message mode',
+  run: () => eventBus.emit('composer:focus'),
+});
 
 declare global {
   interface HTMLElementTagNameMap {

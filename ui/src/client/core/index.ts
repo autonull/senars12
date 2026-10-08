@@ -1,6 +1,27 @@
 export { Announcer } from './announcer.js';
 export { BaseComponent } from './base-component.js';
 export { BLOCK_KIND_LABEL } from './block-labels.js';
+export {
+  $capabilities,
+  CAPABILITY_CATALOG,
+  CAPABILITY_IDS,
+  type Capability,
+  capabilityDescriptors,
+  type CapabilityDescriptor,
+  capabilityEnabled,
+  defaultCapabilities,
+  setCapability,
+} from './capabilities.js';
+export {
+  availableComposerModes,
+  COMPOSER_MODE_CATALOG,
+  COMPOSER_MODE_IDS,
+  type ComposerMode,
+  type ComposerModeDescriptor,
+  composerModes,
+  decomposeForMode,
+  DEFAULT_COMPOSER_MODE,
+} from './composer-modes.js';
 export { artifactViewSpec, tableFromColumns } from './artifacts.js';
 export { matchCommands } from './command-match.js';
 export { activeCommands, type Command, registerCommand, registeredCommands } from './commands.js';

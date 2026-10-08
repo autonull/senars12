@@ -42,3 +42,23 @@ describe('input hud decomposition preview', () => {
     expect(el.shadowRoot?.querySelector('.segment')?.getAttribute('data-kind')).toBe('command');
   });
 });
+
+describe('composer modes', () => {
+  it('offers only the language modes under the default composition', async () => {
+    const el = await mount();
+    const ids = [...(el.shadowRoot?.querySelectorAll('.modes button') ?? [])].map((b) =>
+      b.getAttribute('data-mode')
+    );
+    expect(ids).toContain('ask');
+    expect(ids).not.toContain('believe');
+    expect(ids).not.toContain('tool');
+  });
+
+  it('reshapes the decomposition to the declared mode', async () => {
+    const el = await mount();
+    el.shadowRoot?.querySelector<HTMLButtonElement>('[data-mode="question"]')?.click();
+    await el.updateComplete;
+    await type(el, 'Robins are birds.');
+    expect(el.shadowRoot?.querySelector('.segment')?.getAttribute('data-kind')).toBe('question');
+  });
+});

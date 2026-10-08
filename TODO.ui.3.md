@@ -501,7 +501,8 @@ Goal: replace panel-first architecture with one workspace renderer contract.
   - Landed: `app-layout` renders the active renderer (`<s-notebook>` vs graph/table/3D), a thin floating `workspace-hud` (registry-driven mode switch + provider chip) replaces graph-only chrome in notebook mode. The HUD now carries `☰` (ToC) and `⌘K` (palette), and `app-layout` binds `⌘/Ctrl+K` globally. Remaining: remove/default-hide the standing panels, add budget/stop to the HUD once run-control exists (no silent no-ops), and URL-address the active renderer.
 - [~] 0.5 Overlay manager + primitives: command palette, contextual inspector, explanation popover, semantic ToC, artifact viewer, settings/provider dialog, tool approval; focus trap, `Esc` stack, pinning seam.
   - Manager core landed (`overlay-manager.ts`): stacking + z-order, `Esc` closes topmost (skipping pinned), outside-click dismisses non-modals (modals protected), focus trap on every overlay, focus returns to the anchor, pinning seam (`setPinned`/`pinned`). The DOM outside-click check now reads `event.composedPath()`, so an anchor inside a shadow root is recognised as inside; the `FocusTrap` pierces shadow roots and retries focus on the next frame (every overlay is a Lit element, so its focusables live in a shadow root and render asynchronously). A real `OverlayHost` (`overlay-host.ts`) + data `overlay-registry.ts` now lazily instantiate a registered overlay element, assign the `Ref` it inspects, and open it under the manager; the shell (`app-layout`) owns one host and routes `overlay:open`/`overlay:close` signals. First concrete overlays landed: semantic ToC (1.5), explanation popover, contextual block menu (1.6), the command palette (⌘K), and the artifact viewer (4.3). Tables now render through the landed `s-view`/`ViewSpec` view system (embedded budget) instead of bespoke markup, and `artifactViewSpec` maps a block's payload to a `ViewSpec`. Remaining: settings/provider dialog, tool approval, timeline overlay (4.4), pinning (4.5).
-- [ ] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
+- [~] 0.6 Carried contracts: `ReasoningBackend` + semantic substrate (NARS adapter behavior-preserving); `LmProvider` façade + real `lm.status`/`lm.switch`; capability registry + toggles; `ui.command` schema (dispatcher stub; execution Phase 5).
+  - Landed the **capability registry + toggles** (`core/capabilities.ts`): the five capabilities (`language · reasoning · tools · memory · uiControl`) as an exhaustive catalog with labels/descriptions/defaults, the `$capabilities` composition atom (defaults to `{language}` — the LM-only product), and `capabilityEnabled`/`setCapability`. The composer modes consume it (1.2); the remaining 0.6 contracts (`ReasoningBackend`, `LmProvider`, `ui.command`) are still to come.
 - [ ] 0.7 Compatibility bridge: existing graph nodes/events/chat still render (as overlays/embedded views); landed ViewSpec adapters usable inside overlays/embedded blocks.
 
 **Verification:** user switches Notebook ↔ Graph over the same session data; focus/selection survives the switch; no required side panel exists; existing tests pass or are intentionally updated.
@@ -510,7 +511,8 @@ Goal: replace panel-first architecture with one workspace renderer contract.
 Goal: build the unique LM conversation UI first.
 - [~] 1.1 Notebook renderer: vertical page renderer, block components, block affordances, folding, focus/selection, streaming-friendly.
   - Landed the `s-notebook` surface (`defineSurface`) + `notebookRenderer`: top-level blocks render as vertical pages with per-kind affordances (`BLOCK_KIND_LABEL`, now in `core/block-labels.ts`), role/status styling, uncertainty chips, empty-state slot, and focus/selection round-trip for renderer switches. Pages now walk `children`/`contains` and render heading/list/table/code blocks richly (static-tag headings to satisfy Lit). Every block now carries a `⋯` context-menu affordance (opens the block menu with the triggering element as anchor) and highlights when it is the workspace focus (set by the ToC or by clicking the block). Remaining: section folding, artifact rendering via the inner view system, and virtualization.
-- [ ] 1.2 Composer overlay with modes; universal input (NL now; Narsese/structured seam).
+- [~] 1.2 Composer overlay with modes; universal input (NL now; Narsese/structured seam).
+  - Landed the mode substrate + a mode-aware universal composer. `core/capabilities.ts` (Phase 0.6 partial) is the one capability registry — `CAPABILITY_CATALOG`, `$capabilities`, `capabilityEnabled`/`setCapability`, defaulting to the LM-only `{language}` composition. `core/composer-modes.ts` is the §8.1 mode catalog as data (`ask · reply · question · command · explain · demonstrate · transform · believe · goal · tool`), each declaring the capability that makes it do work and whether it is a structured seam; `availableComposerModes(caps)` hides intents the composition cannot honour, and `decomposeForMode(text, mode)` reshapes the §8.2 split (`question` imposes the question kind, `command` collapses the input to one command, the rest use the lexical split). The `input-hud` composer now renders a mode bar over the available modes, uses the mode hint as placeholder, feeds the mode-aware decomposition, and sends `{ type:'chat.user', content, mode }`; a `composer.focus` command + `composer:focus` signal make it palette-reachable. Remaining: the true *floating* composer anchored to a selected block/node/subgraph (§8.1) — that needs graph-native selection and a summoned rather than persistent dock — and the structured modes' producers (formalize/gate for believe/goal, tool transport).
 - [x] 1.3 Input decomposition: deterministic claim/question/command split; raw preserved; extracted structure shown.
   - Landed `core/input-decomposition.ts` (`decomposeInput` + `isFaithfulDecomposition`): a slash line is one `command`, an interrogative (`?` or leading wh-word) is a `question`, every other sentence a `claim` — purely lexical, no LM. `projectChat` now expands **user** turns into these children linked by `contains`; a `raw` child is added only when the split is lossy, otherwise the turn block's `text` already preserves the raw verbatim. The legacy `input-hud` composer previews the extracted structure live as chips. Added `command` to `BlockKind` and the kind-label SSOT.
 - [~] 1.4 Output segmentation: headings, paragraphs, lists, tables, code, images/links, citations; block-level streaming; stable ids.
@@ -1081,6 +1083,64 @@ The `language`-only composition is deliberately shippable on its own: a conversa
   mappings and the overlay gains them without change.
 - The artifact overlay could offer "Copy" and "Open in graph" reusing the block-menu actions, and be
   reachable from the ToC/inspector, making artifacts first-class objects rather than block payloads.
+
+### 2026-10-08 (k) — Phase 1.2 composer modes + capability registry (0.6 partial)
+
+**Landed**
+- `ui/src/client/core/capabilities.ts` — the capability registry (§0.3/§3.6, 0.6 partial): `CAPABILITY_IDS`
+  and an exhaustive `CAPABILITY_CATALOG` (`{id,label,description,default}`) for
+  `language · reasoning · tools · memory · uiControl`; `capabilityDescriptors()`;
+  `defaultCapabilities()` (`{language}` — the standalone LM-only product); the `$capabilities`
+  composition atom; `capabilityEnabled`/`setCapability`. The module imports only `atom` from `store`,
+  so there is no store⇄capabilities cycle and no capability atom on the store test API.
+- `ui/src/client/core/composer-modes.ts` — the §8.1 mode catalog as data: `COMPOSER_MODE_IDS` +
+  exhaustive `COMPOSER_MODE_CATALOG` (`ask · reply · question · command · explain · demonstrate ·
+  transform · believe · goal · tool`), each declaring its `capability`, label, hint, and `structured`
+  flag; `composerModes()`, `availableComposerModes(caps)` (hides intents the composition cannot
+  honour — no silent no-ops), `DEFAULT_COMPOSER_MODE = 'ask'`, and `decomposeForMode(text, mode)`
+  which imposes the question kind in `question` mode, collapses the input to one command in `command`
+  mode, and otherwise defers to the deterministic lexical split (§8.2). Structured modes fall back to
+  the lexical split until their producer exists.
+- `ui/src/client/components/input-hud.ts` — the universal composer is now mode-aware: it watches
+  `$capabilities`, renders a `.modes` bar over `availableComposerModes` with `aria-pressed`, resets an
+  unavailable mode to the default, uses the active mode's hint as the textarea placeholder, feeds
+  `decomposeForMode`, and sends `{ type:'chat.user', content, mode }`. The old slash-hints footer is
+  replaced by the mode bar (slash autocomplete is unchanged). A `composer.focus` command and a
+  `composer:focus` `UiSignals` event make the composer palette-reachable and renderer-agnostic.
+- `ui/src/client/core/events.ts` — `UiSignals` gains `'composer:focus': void`; `core/index.ts` exports
+  the capability and composer-mode modules.
+- Tests (10 new across 3 files; whole UI suite **204 green / 36 files**; typecheck + biome clean):
+  `capabilities` (default composition, exhaustive ids, toggle immutability), `composer-modes`
+  (catalog completeness, capability gating, mode-aware decomposition), and `input-hud` mode-bar/
+  mode-reshape cases.
+
+**Notes for remaining work**
+- The composer is still the **persistent bottom dock**, not the §8.1 *floating overlay* anchored to a
+  selected block/node/subgraph. The dock is the right UX for the LM wedge (an always-needed input; a
+  focus-trapped modal overlay would fight typing and Tab). The anchored/summoned variant depends on
+  graph-native selection (Phase 2.3) and should reuse `composer-modes` + `decomposeForMode` unchanged.
+- `believe`/`goal`/`tool` are catalogued and gated but hidden by default (`{language}`), so they never
+  render inert. Wiring them is Phase 3.2 (formalize→gate) and the tools transport; when they land,
+  `decomposeForMode` gains their structured branches.
+- The `mode` field on `chat.user` is currently ignored by the server (`ui/src/server/index.ts` only
+  reads `content`). It is carried so a future server/projection can adopt the declared intent; today
+  the client-side decomposition is what reflects the mode.
+- `input-hud` now calls `eventBus.on('composer:focus', …)` and stores the unsubscribe; if a generic
+  `BaseComponent.watchEvent` helper is added later, this and `palette`'s `overlay-open` listener should
+  both use it.
+
+**New improvement opportunities**
+- Thread the declared `mode` into `projectChat` so a `question`/`command` user turn is decomposed under
+  the declared intent (the turn currently re-runs the lexical split), making the mode visible in the
+  WorkspaceGraph, not only in the composer preview.
+- Derive a capability-aware **default renderer** from `$capabilities` (§0.3: `language`→Notebook,
+  `reasoning`→Graph) instead of the hardcoded `'graph'` default; this is the natural completion of the
+  registry and removes the note on 0.3.
+- The mode bar and the command palette should share one source (the mode catalog as commands, e.g.
+  `composer.mode.<id>`), so a mode switch is an agent-settable `ui.command` for free.
+- Gate overlays/commands on capabilities too (e.g. provenance/derivation affordances appear only with
+  `reasoning`), now that the registry exists, replacing the per-surface `hidden-not-inert` checks.
+
 
 
 
