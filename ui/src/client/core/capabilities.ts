@@ -6,7 +6,7 @@
  * from one source instead of each hardcoding a feature flag.
  */
 
-import { atom } from './store.js';
+import { $activeRenderer, atom } from './store.js';
 
 export const CAPABILITY_IDS = ['language', 'reasoning', 'tools', 'memory', 'uiControl'] as const;
 
@@ -66,9 +66,22 @@ export const $capabilities = atom<ReadonlySet<Capability>>(defaultCapabilities()
 export const capabilityGate = (capability: Capability): boolean =>
   $capabilities.get().has(capability);
 
+/**
+ * The renderer the enabled composition defaults to (§2.5): a language-only
+ * workspace reads as a Notebook, turning on Reasoning reframes it as a Graph.
+ * Deliberately not applied at boot, where the shell's own default holds.
+ */
+export const defaultRendererFor = (caps: ReadonlySet<Capability>): string =>
+  caps.has('reasoning') ? 'graph' : 'notebook';
+
+/** Capabilities that carry a default-renderer opinion; toggling others never reframes the workspace. */
+const RENDERER_CAPABILITIES = new Set<Capability>(['language', 'reasoning']);
+
 export const setCapability = (id: Capability, enabled: boolean): void => {
   const next = new Set($capabilities.get());
   if (enabled) next.add(id);
   else next.delete(id);
   $capabilities.set(next);
+  // Enabling Reasoning or dropping the last Language switches to the composition's default renderer.
+  if (RENDERER_CAPABILITIES.has(id)) $activeRenderer.set(defaultRendererFor(next));
 };

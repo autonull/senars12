@@ -43,13 +43,13 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
    `segmentation.ts`, `artifacts.ts`
 3. **`1.5/1.1 section model`** (L) — unblocks `1.5 page` and notebook depth. `→ toc.ts`,
    `workspace-graph.ts`, `renderers/notebook.ts`
-4. **`2.5 defaults`** (S) · **`2.5 selection atom`** (S) · **`2.5 focus react`** (S) — small, independent
-   state wins.
-5. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation.
-6. **`4.5 pinning`** (M) · **`1.4 rich text`** (M) · **`2.4 inspection & embedded views`** (L) ·
+4. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation.
+5. **`4.5 pinning`** (M) · **`1.4 rich text`** (M) · **`2.4 inspection & embedded views`** (L) ·
    **`citations model`** (M).
-7. **`4.4 controls`** (S) · **`4.4 anchor`** (M) · **`4.4 gating`** (S) · **`ops sequencing`** (M) —
+6. **`4.4 controls`** (S) · **`4.4 anchor`** (M) · **`4.4 gating`** (S) · **`ops sequencing`** (M) —
    timeline/ops, independent of WP3 completion.
+
+*(The three small state wins — `2.5 defaults`, `2.5 selection atom`, `2.5 focus react` — are landed.)*
 
 **Gated** (see §Blockers): `0.5`; `1.5 page` (needs the section model); the inspector half of
 `4.3 affordances`; WP5 `3.3` → `4.3 derivation-record`; WP5 `3.6` → the `config-change` producer.
@@ -145,8 +145,11 @@ Landed extension points — wire features here instead of re-deriving them.
   focus equal to the live selection is left to the existing `$selectedNodeId` watch; `setWorkspaceFocus`
   now skips same-value writes. The 3D viewport is not yet wired (see opportunities).
   `→ core/store.ts`, `components/graph-viewport.ts`. `(h)`,`(n)`,`(r)`,`(z)`
-- [ ] **2.5 defaults** — capability-aware default renderer (`language`→Notebook, `reasoning`→Graph).
-  `→ core/store.ts`, `core/capabilities.ts`, `core/workspace-renderer.ts`. `(k)`
+- [x] **2.5 defaults** — capability-aware default renderer (`language`→Notebook, `reasoning`→Graph).
+  `defaultRendererFor(caps)` plus `setCapability` reframing the active renderer when a renderer-bearing
+  capability (`language`/`reasoning`) toggles; unrelated capabilities (tools/memory/uiControl) leave the
+  renderer alone. Deliberately *not* applied at boot — the shell's `graph` default stands so the e2e
+  suite's `graph-viewport` assertions hold. `→ core/capabilities.ts`. `(k)`
 - [ ] **2.6 context** — extend `WorkspaceContext` (`overlays`, `renderer`, `setRenderer`; fold
   `openPalette` onto `activeCommands()`); retire `$viewportMode`/`$graphShape` shell atoms once
   `graph-surface` owns them. `→ core/workspace-renderer.ts`, `components/workspace-host.ts`,
@@ -356,4 +359,6 @@ in v3 Appendix D). Rolled up:
   **`2.5 focus react`** (2D only). Component suite **305 green** (new: unregistered-layout rejection).
 - **WP2 state (cont.)** — `$selectedNodeIds` is derived from `$workspaceGraph.selection` via a value-
   compared store projection; all former dual writers route through `setWorkspaceSelection` — completes
-  **`2.5 selection atom`**. Suite **305 green**.
+  **`2.5 selection atom`**. `setCapability` reframes the active renderer to the composition default when
+  `language`/`reasoning` toggles (`defaultRendererFor`, not applied at boot) — completes
+  **`2.5 defaults`**. Suite **305 green** (new: capability renderer reframing).
