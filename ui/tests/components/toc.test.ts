@@ -22,10 +22,19 @@ const block = (id: string, over: Partial<SemanticBlock> = {}): SemanticBlock => 
 
 const build = () =>
   applyWorkspaceOps(emptyWorkspaceGraph(), [
-    { op: 'block.add', block: block('t1', { children: ['h1', 'c1', 'tb1', 'p1'], text: undefined }) },
+    {
+      op: 'block.add',
+      block: block('t1', { children: ['h1', 'c1', 'tb1', 'p1'], text: undefined }),
+    },
     { op: 'block.add', block: block('h1', { kind: 'heading', level: 2, text: 'Findings' }) },
-    { op: 'block.add', block: block('c1', { kind: 'claim', role: 'assistant', createdBy: 'lm', text: 'Robins fly' }) },
-    { op: 'block.add', block: block('tb1', { kind: 'table', data: { headers: ['a'], rows: [['1']] } }) },
+    {
+      op: 'block.add',
+      block: block('c1', { kind: 'claim', role: 'assistant', createdBy: 'lm', text: 'Robins fly' }),
+    },
+    {
+      op: 'block.add',
+      block: block('tb1', { kind: 'table', data: { headers: ['a'], rows: [['1']] } }),
+    },
     { op: 'block.add', block: block('p1', { kind: 'paragraph', text: 'prose' }) },
     { op: 'roots.set', roots: ['t1'] },
   ] satisfies WorkspaceOp[]);
@@ -88,5 +97,23 @@ describe('toc surface', () => {
     const el = await mount();
     const current = el.shadowRoot?.querySelector('.entry[aria-current="true"]');
     expect(current?.getAttribute('data-ref')).toBe('c1');
+  });
+
+  it('offers an artifact affordance only for blocks that have one', async () => {
+    $workspaceGraph.set(build());
+    const el = await mount();
+    const buttons = [...(el.shadowRoot?.querySelectorAll('.artifact') ?? [])];
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]?.getAttribute('data-artifact')).toBe('tb1');
+  });
+
+  it('opens the artifact overlay for a row', async () => {
+    $workspaceGraph.set(build());
+    const el = await mount();
+    const opened = vi.fn();
+    const off = eventBus.on('overlay:open', opened);
+    el.shadowRoot?.querySelector<HTMLButtonElement>('.artifact')?.click();
+    expect(opened).toHaveBeenCalledWith({ id: 'artifact', ref: 'tb1' });
+    off();
   });
 });

@@ -8,12 +8,14 @@
 
 import { css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import { Announcer } from '../../core/announcer.js';
 import { artifactViewSpec } from '../../core/artifacts.js';
 import { eventBus } from '../../core/events.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
-import { $workspaceGraph } from '../../core/store.js';
+import { $activeRenderer, $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
+import { projectDataset } from '../../core/view-projection.js';
 import type { SemanticBlock } from '../../core/workspace-graph.js';
 
 const imageOf = (block: SemanticBlock): { alt: string; src: string } | undefined => {
@@ -31,6 +33,8 @@ export class ArtifactView extends SurfaceComponent {
     header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
     .kind { text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
     .title { flex: 1; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); color: var(--colors-semantic-text-primary); }
+    .action { border: 1px solid var(--colors-semantic-border-subtle); border-radius: 4px; padding: 2px var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-secondary); cursor: pointer; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); }
+    .action:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
     .close { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); }
     .body { overflow: auto; padding: var(--spacing-scale-2); }
     .image { max-width: 100%; }
@@ -47,25 +51,54 @@ export class ArtifactView extends SurfaceComponent {
   protected override renderBody() {
     const block = $workspaceGraph.get().blocks.get(this.ref);
     if (!block) return html`<div class="panel"><p class="empty">Block not found</p></div>`;
-    const image = imageOf(block);
-    const spec = image ? undefined : artifactViewSpec(block);
+    const { image, spec } = this.resolve(block);
     return html`
       <div class="panel" role="dialog" aria-label="Artifact">
         <header>
           <span class="kind">${block.kind}</span>
           <span class="title">${block.title ?? block.id}</span>
+          <button class="action" data-action="copy" title="Copy" aria-label="Copy artifact" @click=${this.copy}>Copy</button>
+          <button class="action" data-action="graph" title="Open in graph" aria-label="Open in graph" @click=${this.openInGraph}>Graph</button>
           <button class="close" title="Close" aria-label="Close artifact" @click=${this.close}>&times;</button>
         </header>
         <div class="body">
-          ${image
-            ? html`<img class="image" src=${image.src} alt=${image.alt} />`
-            : spec
-              ? html`<s-view .spec=${spec} .chrome=${true} .budget=${'full'}></s-view>`
-              : html`<p class="empty">No artifact for this block</p>`}
+          ${
+            image
+              ? html`<img class="image" src=${image.src} alt=${image.alt} />`
+              : spec
+                ? html`<s-view .spec=${spec} .chrome=${true} .budget=${'full'}></s-view>`
+                : html`<p class="empty">No artifact for this block</p>`
+          }
         </div>
       </div>
     `;
   }
+
+  private resolve(block: SemanticBlock) {
+    const image = imageOf(block);
+    return { image, spec: image ? undefined : artifactViewSpec(block) };
+  }
+
+  /** The clipboard text for the artifact: image source, its text projection, or the block text. */
+  private textOf(block: SemanticBlock): string {
+    const { image, spec } = this.resolve(block);
+    if (image) return image.src;
+    const projected = spec ? projectDataset(spec.source.get(), 'text') : undefined;
+    return projected?.kind === 'text' ? projected.lines.join('\n') : (block.text ?? '');
+  }
+
+  private readonly copy = () => {
+    const block = $workspaceGraph.get().blocks.get(this.ref);
+    if (!block) return;
+    void navigator.clipboard?.writeText(this.textOf(block));
+    Announcer.getInstance().announce('Copied artifact');
+  };
+
+  private readonly openInGraph = () => {
+    $activeRenderer.set('graph');
+    setWorkspaceFocus(this.ref);
+    eventBus.emit('overlay:close', { id: 'artifact' });
+  };
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'artifact' });
 }

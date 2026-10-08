@@ -8,6 +8,7 @@
 
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import { artifactViewSpec } from '../../core/artifacts.js';
 import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
 import { eventBus } from '../../core/events.js';
 import { $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
@@ -34,11 +35,14 @@ export class TocView extends SurfaceComponent {
     .filters button { border: 1px solid var(--colors-semantic-border-subtle); border-radius: 999px; padding: 2px var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-secondary); cursor: pointer; font-size: var(--typography-scale-xs); }
     .filters button[aria-pressed='true'] { background: var(--colors-semantic-accent-cyan); color: var(--colors-semantic-bg-base); border-color: transparent; }
     ul { list-style: none; margin: 0; padding: var(--spacing-scale-2); overflow: auto; display: flex; flex-direction: column; gap: 2px; }
-    .entry { display: flex; align-items: baseline; gap: var(--spacing-scale-2); width: 100%; text-align: left; border: none; border-radius: 4px; padding: var(--spacing-scale-1) var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-primary); cursor: pointer; }
+    .row { display: flex; align-items: stretch; gap: 2px; }
+    .entry { display: flex; flex: 1; min-width: 0; align-items: baseline; gap: var(--spacing-scale-2); text-align: left; border: none; border-radius: 4px; padding: var(--spacing-scale-1) var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-primary); cursor: pointer; }
     .entry:hover { background: var(--colors-semantic-bg-subtle); }
     .entry[aria-current='true'] { background: var(--colors-semantic-bg-subtle); outline: 1px solid var(--colors-semantic-accent-cyan); }
     .entry .kind { flex-shrink: 0; width: 6.5rem; text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
     .entry .label { font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); }
+    .artifact { flex-shrink: 0; border: none; border-radius: 4px; padding: 0 var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-sm); }
+    .artifact:hover { background: var(--colors-semantic-bg-subtle); color: var(--colors-semantic-accent-primary); }
     .empty { padding: var(--spacing-scale-4); text-align: center; color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-sm); }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   `;
@@ -49,15 +53,17 @@ export class TocView extends SurfaceComponent {
   protected override renderBody() {
     const graph = $workspaceGraph.get();
     const entries = tocEntries(graph);
-    const present = TOC_KINDS_TYPE.filter((kind) =>
-      entries.some((entry) => entry.kind === kind)
-    );
+    const present = TOC_KINDS_TYPE.filter((kind) => entries.some((entry) => entry.kind === kind));
     const query = this.query.trim().toLowerCase();
     const shown = entries.filter(
       (entry) =>
         (this.filter === 'all' || entry.kind === this.filter) &&
         (query === '' || entry.label.toLowerCase().includes(query))
     );
+    const hasArtifact = (ref: string): boolean => {
+      const block = graph.blocks.get(ref);
+      return block ? block.kind === 'image' || artifactViewSpec(block) !== undefined : false;
+    };
     return html`
       <div class="panel" role="dialog" aria-label="Table of contents">
         <header>
@@ -74,7 +80,7 @@ export class TocView extends SurfaceComponent {
         </header>
         ${
           shown.length > 0
-            ? html`<ul>${shown.map((entry) => this.row(entry, graph.focus === entry.ref))}</ul>`
+            ? html`<ul>${shown.map((entry) => this.row(entry, graph.focus === entry.ref, hasArtifact(entry.ref)))}</ul>`
             : html`<p class="empty">No matching blocks</p>`
         }
       </div>
@@ -89,9 +95,9 @@ export class TocView extends SurfaceComponent {
     >${label}</button>`;
   }
 
-  private row(entry: TocEntry, current: boolean) {
+  private row(entry: TocEntry, current: boolean, hasArtifact: boolean) {
     return html`
-      <li>
+      <li class="row">
         <button
           class="entry"
           data-ref=${entry.ref}
@@ -102,6 +108,17 @@ export class TocView extends SurfaceComponent {
           <span class="kind">${BLOCK_KIND_LABEL[entry.kind]}</span>
           <span class="label">${entry.label}</span>
         </button>
+        ${
+          hasArtifact
+            ? html`<button
+                class="artifact"
+                data-artifact=${entry.ref}
+                title="Open artifact"
+                aria-label="Open artifact"
+                @click=${() => this.openArtifact(entry.ref)}
+              >▦</button>`
+            : ''
+        }
       </li>
     `;
   }
@@ -113,6 +130,10 @@ export class TocView extends SurfaceComponent {
   private navigate(ref: string) {
     setWorkspaceFocus(ref);
     eventBus.emit('overlay:close', { id: 'toc' });
+  }
+
+  private openArtifact(ref: string) {
+    eventBus.emit('overlay:open', { id: 'artifact', ref });
   }
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'toc' });

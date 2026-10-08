@@ -118,7 +118,12 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
   fallback. `(ad)`
 - [ ] **4.3 derivation-record** — `s-tree` provenance view. **Depends on WP5/3.3** for the
   `DerivationRecord` payload. `(ad)`
-- [ ] **4.3 affordances** — Copy / Open-in-graph in the artifact overlay, reachable from ToC/inspector. `(j)`,`(ad)`
+- [~] **4.3 affordances** — done: the artifact overlay header gains **Copy** (image src / the
+  dataset's `text` projection / block text) and **Open in graph** (`$activeRenderer='graph'` +
+  `setWorkspaceFocus`, then close), and the ToC offers a per-row artifact button for blocks that
+  have one. Remaining: **reachable from the inspector** — the inspector is engine-node based and has
+  no node→workspace-block mapping; add one (or route a selected block's ref through) before it can
+  open an artifact. `(j)`,`(ad)`
 - [ ] **4.1/4.2 embedded views** — Notebook embedded graph block (derivation/contradiction/topic
   neighborhood); Graph node popover notebook card; graph edge popover derivation tree; wire the
   block-menu "embed" affordance; reuse `conversationPositions` and `projectWorkspaceGraph` in embedded
@@ -255,6 +260,18 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 ## Progress log
 
 Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
+
+### (v4.14) — WP3: artifact affordances (Copy / Open-in-graph) + ToC reach
+- **Artifact overlay** — a `resolve(block)` helper centralises `{ image, spec }`, and the header now
+  carries **Copy** and **Graph** actions. Copy writes the image `src`, else the artifact's `text`
+  projection (`projectDataset(source, 'text')`), else the block text, and announces; Graph switches
+  the renderer, focuses the block and closes the overlay.
+- **ToC** — rows are restructured from a bare `.entry` button to `li.row` (entry + optional
+  `.artifact` button, so no nested buttons). The button appears only for blocks with an artifact
+  (`image` or a non-null `artifactViewSpec`) and opens `overlay:open { id:'artifact', ref }`.
+- **Tests** — `artifact.test.ts` (copy source, open-in-graph); `toc.test.ts` (affordance only when
+  present, opens the artifact). 283 component tests green.
+- **Deferred** — inspector reachability (no node→block mapping yet); see the `4.3 affordances` note.
 
 ### (v4.13) — WP3: the `diff` shape + `s-diff` adapter
 - **Contract** — `Shape` gained `'diff'`; new `DiffLine { kind:'add'|'del'|'context'; text }` and
@@ -435,6 +452,10 @@ Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
   `artifacts.ts`; the JSON fallback keeps an unmatched shape renderable meanwhile. `diffLines` is
   O(n·m), fine for config/comparison sizes but not for large file diffs — a Myers/edit-script or a
   side-by-side shape would be the upgrade path.
+- **ToC artifact lookup is per-render (new).** `hasArtifact` calls `artifactViewSpec` for every
+  rendered row on each update; fine at current scale but a candidate for the WP8 `7.3 performance`
+  memoisation pass (alongside `tocEntries`/`explainModel`/`activeCommands()`). Inspector
+  reachability for artifacts waits on a node→workspace-block mapping, which no producer emits yet.
 
 ### (v4.1) — restructured into work packages
 - Rewrote the forward plan as work packages with a dependency spine; folded every improvement

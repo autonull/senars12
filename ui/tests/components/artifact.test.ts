@@ -1,9 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import '../../src/client/components/overlays/artifact.js';
 import '../../src/client/components/views/table-mini-view.js';
 import '../../src/client/components/views/table-view.js';
 import '../../src/client/components/views/text-view.js';
-import { $workspaceGraph } from '../../src/client/core/store.js';
+import { $activeRenderer, $workspaceGraph } from '../../src/client/core/store.js';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
@@ -25,8 +25,14 @@ const block = (id: string, over: Partial<SemanticBlock> = {}): SemanticBlock => 
 const build = () =>
   applyWorkspaceOps(emptyWorkspaceGraph(), [
     { op: 'block.add', block: block('p', { text: 'prose' }) },
-    { op: 'block.add', block: block('tb', { kind: 'table', data: { headers: ['x'], rows: [['1']] } }) },
-    { op: 'block.add', block: block('img', { kind: 'image', data: { alt: 'robin', src: 'https://x/y.png' } }) },
+    {
+      op: 'block.add',
+      block: block('tb', { kind: 'table', data: { headers: ['x'], rows: [['1']] } }),
+    },
+    {
+      op: 'block.add',
+      block: block('img', { kind: 'image', data: { alt: 'robin', src: 'https://x/y.png' } }),
+    },
     { op: 'roots.set', roots: ['p', 'tb', 'img'] },
   ] satisfies WorkspaceOp[]);
 
@@ -69,5 +75,23 @@ describe('artifact overlay', () => {
     $workspaceGraph.set(build());
     const el = await mount('missing');
     expect(el.shadowRoot?.textContent).toContain('Block not found');
+  });
+
+  it('copies the artifact source', async () => {
+    $workspaceGraph.set(build());
+    const el = await mount('img');
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    el.shadowRoot?.querySelector<HTMLButtonElement>('[data-action="copy"]')?.click();
+    expect(writeText).toHaveBeenCalledWith('https://x/y.png');
+  });
+
+  it('opens the block in the graph and closes', async () => {
+    $workspaceGraph.set(build());
+    const el = await mount('tb');
+    $activeRenderer.set('notebook');
+    el.shadowRoot?.querySelector<HTMLButtonElement>('[data-action="graph"]')?.click();
+    expect($activeRenderer.get()).toBe('graph');
+    expect($workspaceGraph.get().focus).toBe('tb');
   });
 });
