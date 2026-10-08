@@ -231,11 +231,14 @@ export { type Segment, segmentText, type TableData } from './segmentation.js';
 export { mountWorkspaceProjection, syncWorkspaceGraph } from './workspace-bindings.js';
 export {
   registerRenderer,
+  rendererHasControl,
   rendererSupports,
   renderersForKind,
+  WORKSPACE_CONTROLS,
   WORKSPACE_INTERACTIONS,
   type RendererSnapshot,
   type WorkspaceContext,
+  type WorkspaceControl,
   type WorkspaceInteraction,
   type WorkspaceRenderer,
   type WorkspaceRendererCaps,

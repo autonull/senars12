@@ -34,12 +34,19 @@ export const WORKSPACE_INTERACTIONS = [
 
 export type WorkspaceInteraction = (typeof WORKSPACE_INTERACTIONS)[number];
 
+/** Optional chrome a renderer opts into, so the shell never hard-codes renderer ids. */
+export const WORKSPACE_CONTROLS = ['layers'] as const;
+
+export type WorkspaceControl = (typeof WORKSPACE_CONTROLS)[number];
+
 export type WorkspaceRendererCaps = {
   readonly interactions: readonly WorkspaceInteraction[];
   /** Block kinds this renderer presents richly, or `'all'`. */
   readonly blockKinds: readonly BlockKind[] | 'all';
   /** `graph3d` ships partial, declared honestly (§0.2/§10). */
   readonly parity: 'full' | 'partial';
+  /** Optional shell controls this renderer presents (e.g. the graph layer filter). */
+  readonly controls?: readonly WorkspaceControl[];
 };
 
 /** Viewport/scroll/camera plus focus/selection — what a renderer switch preserves. */
@@ -99,3 +106,7 @@ export const rendererSupports = (
   renderer: WorkspaceRenderer,
   interaction: WorkspaceInteraction
 ): boolean => renderer.capabilities().interactions.includes(interaction);
+
+/** Whether a renderer opts into a shell control (the graph layer filter, etc.). */
+export const rendererHasControl = (renderer: WorkspaceRenderer, control: WorkspaceControl): boolean =>
+  renderer.capabilities().controls?.includes(control) ?? false;

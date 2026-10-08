@@ -15,7 +15,7 @@ import { eventBus } from '../core/events.js';
 import { GRAPH_LAYERS, type GraphLayer } from '../core/graph-layer.js';
 import { $activeRenderer, $graphLayer, $lmStatus, $telemetry, setGraphLayer } from '../core/store.js';
 import type { ViewSpec } from '../core/view-spec.js';
-import { workspaceRenderers } from '../core/workspace-renderer.js';
+import { rendererHasControl, workspaceRenderer, workspaceRenderers } from '../core/workspace-renderer.js';
 import {
   DEFAULT_TELEMETRY_METRICS,
   TELEMETRY_RANGES,
@@ -94,6 +94,7 @@ export class WorkspaceHud extends BaseComponent {
 
   override render() {
     const active = $activeRenderer.get();
+    const activeRenderer = workspaceRenderer(active);
     const layer = $graphLayer.get();
     const provider = $lmStatus.get().provider;
     const data = $telemetry.get();
@@ -141,7 +142,7 @@ export class WorkspaceHud extends BaseComponent {
           )}
         </div>
         ${
-          active === 'graph'
+          activeRenderer && rendererHasControl(activeRenderer, 'layers')
             ? html`
               <div class="layers" role="group" aria-label="Graph layer">
                 ${GRAPH_LAYERS.map(

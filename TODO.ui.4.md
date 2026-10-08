@@ -65,8 +65,9 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
     on open/close for focus-less popovers. `(f)`,`(b)`,`(e)`
   - [x] HUD `⚙` → `overlay.settings`; [ ] provider switching as an overlay action; [ ] split Provider
     vs Configuration entries once the `LmProvider` façade lands; [ ] `config-hud` `embedded` mode. `(aa)`
-  - one registry-derived action source shared by HUD and palette; derive renderer/layer controls from
-    registries + capability flags (drop `active === 'graph'`). `(c)`,`(k)`,`(ab)`,`(ae)`
+  - [x] derive renderer/layer controls from registries + capability flags (drop `active === 'graph'`);
+    [ ] share one registry-derived action source between HUD and palette (HUD buttons still emit
+    `overlay:open` directly instead of dispatching the `overlay.*` commands). `(c)`,`(k)`,`(ab)`,`(ae)`
   - `capabilityGate`/`CapabilityHost` mixin for descriptor-declared capabilities; command `available()`
     `when` predicate. `(m)`,`(k)`,`(f)`
   - add budget/stop to the HUD once run-control (WP7) exists. `(c)`,`(f)`
@@ -241,6 +242,13 @@ Status legend: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked/awaiting
 
 Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
 
+### (v4.8) — WP1 sweep: capability-derived HUD controls
+- **Renderer controls by capability** — `WorkspaceRendererCaps` gained an optional `controls:
+  readonly WorkspaceControl[]` (`'layers'`), with `rendererHasControl()`. The graph renderer declares
+  `controls: ['layers']`; `workspace-hud` shows the layer filter iff the active renderer opts in, so
+  `active === 'graph'` is gone. Notebook/graph3d declare none and show no layer filter.
+- **Tests** — `workspace-hud` now asserts graph3d and notebook both hide the layer control.
+
 ### (v4.7) — WP1 sweep: anchor resolver + graph focus
 - **Generic anchor resolver** — `OverlayHost.open` now defaults the focus-return anchor to
   `document.activeElement` when the caller does not name one, so overlays opened from the graph or a
@@ -329,10 +337,10 @@ Newest first. Pre-v4 history: `TODO.ui.3.md` Appendix D.
   drawer because the old standing panel keyed only on `$selectedNodeId`. The `$selectedEdgeId`
   watcher added in v4.2 now opens the inspector for edges, but the stale selector remains; both cases
   are red on pristine.
-- **Overlay sweep still open:** the layer/renderer controls still branch on `active === 'graph'`
-  rather than capability flags; `config-hud` `embedded` mode + provider switching as an overlay
-  action (await the `LmProvider` façade). `overlay.*` arg forwarding, anchor resolver, palette
-  MRU/modality/announcer are done (v4.5–v4.7).
+- **Overlay sweep still open:** `config-hud` `embedded` mode + provider switching as an overlay
+  action (await the `LmProvider` façade); sharing one registry-derived action source between HUD and
+  palette (HUD buttons emit `overlay:open` directly). `overlay.*` arg forwarding, anchor resolver,
+  capability-derived layer control, palette MRU/modality/announcer are done (v4.5–v4.8).
 - **Modal scrim (new).** The manager treats `modal` as "ignore outside-click" but does not block
   background interaction or paint a scrim, so nothing is marked modal. If a true modal is needed
   (tool approval, 0.5), add a scrim element + `pointer-events` capture to `OverlayManager`.

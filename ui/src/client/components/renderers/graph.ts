@@ -72,7 +72,12 @@ class GraphRenderer implements WorkspaceRenderer {
   #ctx?: WorkspaceContext;
 
   capabilities(): WorkspaceRendererCaps {
-    return { interactions: WORKSPACE_INTERACTIONS, blockKinds: GRAPH_BLOCK_KINDS, parity: 'full' };
+    return {
+      interactions: WORKSPACE_INTERACTIONS,
+      blockKinds: GRAPH_BLOCK_KINDS,
+      parity: 'full',
+      controls: ['layers'],
+    };
   }
 
   mount(host: HTMLElement, ctx: WorkspaceContext): void {

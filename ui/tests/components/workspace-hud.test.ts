@@ -56,7 +56,7 @@ describe('workspace hud', () => {
     expect(el.shadowRoot?.querySelector('.chip')?.textContent).toContain('mock');
   });
 
-  it('offers the graph layer control only in Graph mode', async () => {
+  it('derives the layer control from renderer capabilities', async () => {
     const el = await mountHud();
     const layers = () =>
       [...(el.shadowRoot?.querySelectorAll('button[data-layer]') ?? [])].map((button) =>
@@ -70,6 +70,10 @@ describe('workspace hud', () => {
     expect(
       el.shadowRoot?.querySelector('button[data-layer="conversation"]')?.getAttribute('aria-pressed')
     ).toBe('true');
+
+    $activeRenderer.set('graph3d');
+    await el.updateComplete;
+    expect(layers()).toEqual([]);
 
     $activeRenderer.set('notebook');
     await el.updateComplete;
