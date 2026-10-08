@@ -18,10 +18,12 @@ import {
   $selectedNodeId,
   $selectedNodeIds,
   $viewport,
+  $workspaceGraph,
   BaseComponent,
   evaluateLens,
   eventBus,
   mountTestApi,
+  projectWorkspaceGraph,
   send,
 } from '../core/index.js';
 import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
@@ -101,6 +103,7 @@ export class GraphViewport extends BaseComponent {
       centerOnNode: (id) => this.centerOnNode(id),
     });
     renderer.connect();
+    this.watchWith($workspaceGraph, () => this.syncGraph());
     eventBus.on('graph:layout', this.layoutHandler);
     eventBus.on('graph:zoom-in', this.zoomIn);
     eventBus.on('graph:zoom-out', this.zoomOut);
@@ -502,6 +505,29 @@ export class GraphViewport extends BaseComponent {
           'z-index': 997,
         },
       },
+      {
+        selector: 'node.workspace',
+        style: {
+          shape: 'round-rectangle',
+          'background-color': theme.colors.accentCyan,
+          'background-opacity': 0.12,
+          'border-color': theme.colors.accentCyan,
+          'border-width': 1.5,
+          width: 'label',
+          height: 'label',
+          padding: '8px',
+          opacity: 1,
+        },
+      },
+      {
+        selector: 'edge.workspace',
+        style: {
+          'line-color': theme.colors.accentCyan,
+          'target-arrow-color': theme.colors.accentCyan,
+          width: 1.5,
+          opacity: 0.45,
+        },
+      },
     ];
   }
 
@@ -549,6 +575,7 @@ export class GraphViewport extends BaseComponent {
     const filter = $graphFilter.get();
     const capFilter = $capabilityFilter.get();
     for (const n of this.cy.nodes()) {
+      if (n.hasClass('workspace')) continue;
       if (filter === 'contradiction') {
         n.style('display', n.data('isContradiction') ? 'element' : 'none');
       } else if (capFilter !== 'all') {
@@ -586,7 +613,12 @@ export class GraphViewport extends BaseComponent {
     const graphFilter = $graphFilter.get();
 
     cy.batch(() => {
-      const currentIds = new Set(cy.nodes().map((n) => n.id()));
+      const currentIds = new Set(
+        cy
+          .nodes()
+          .filter((n) => !n.hasClass('workspace'))
+          .map((n) => n.id())
+      );
 
       for (const [nodeId, nd] of nodes) {
         const el = currentIds.has(nodeId) ? cy.getElementById(nodeId) : null;
@@ -618,14 +650,17 @@ export class GraphViewport extends BaseComponent {
       }
 
       const currentEdgeKeys = new Set(
-        cy.edges().map((e) => edgeKey(e.data('source'), e.data('target')))
+        cy
+          .edges()
+          .filter((e) => !e.hasClass('workspace'))
+          .map((e) => edgeKey(e.data('source'), e.data('target')))
       );
       for (const [key, ed] of edges) {
         if (currentEdgeKeys.has(key)) continue;
         if (!nodes.has(ed.source as string) || !nodes.has(ed.target as string)) continue;
         cy.add({ group: 'edges', data: { ...ed } });
       }
-      for (const e of cy.edges()) {
+      for (const e of cy.edges().filter((el) => !el.hasClass('workspace'))) {
         const key = edgeKey(e.data('source'), e.data('target'));
         if (!edges.has(key)) e.remove();
       }
@@ -636,6 +671,7 @@ export class GraphViewport extends BaseComponent {
       clearNodeStyles(cy);
       applyDelta(cy, delta);
       this.applyGraphFilter();
+      this.syncWorkspaceLayer(cy);
     });
 
     // Update multi-select styles
@@ -654,6 +690,41 @@ export class GraphViewport extends BaseComponent {
 
     if (isFirstLayout || topologyChanged) {
       layoutRegistry.runLayout(cy, layoutRegistry.getForLens(lens), { fit: isFirstLayout });
+    }
+  }
+
+  /**
+   * Project the WorkspaceGraph (§2.1) as an additive Cytoscape layer. Concept
+   * nodes/edges keep their ids and lifecycle; workspace blocks/links diff in by
+   * id under the `workspace` class, so the conversation is navigable as a graph
+   * with no reasoning backend attached.
+   */
+  private syncWorkspaceLayer(cy: Core) {
+    const { nodes, edges } = projectWorkspaceGraph($workspaceGraph.get());
+    cy.$('.workspace').removeStyle('background-color opacity width height border-width');
+    const existing = new Map(
+      cy.$('.workspace').map((el): [string, cytoscape.SingularElementArgument] => [el.id(), el])
+    );
+
+    for (const [id, data] of nodes) {
+      const el = existing.get(id);
+      if (el) el.data(data);
+      else cy.add({ group: 'nodes', data, classes: 'workspace' });
+    }
+    for (const [id, el] of existing) {
+      if (el.isNode() && !nodes.has(id)) el.remove();
+    }
+
+    const existingEdges = new Map(
+      cy.$('edge.workspace').map((el): [string, cytoscape.SingularElementArgument] => [el.id(), el])
+    );
+    for (const [id, data] of edges) {
+      if (existingEdges.has(id)) continue;
+      if (!nodes.has(data.source) || !nodes.has(data.target)) continue;
+      cy.add({ group: 'edges', data, classes: 'workspace' });
+    }
+    for (const [id, el] of existingEdges) {
+      if (!edges.has(id)) el.remove();
     }
   }
 }

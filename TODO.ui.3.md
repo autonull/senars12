@@ -521,14 +521,16 @@ Goal: build the unique LM conversation UI first.
   - Landed `s-toc` overlay + pure `tocEntries` (`core/toc.ts`): walks page order and `children` in document order, keeps the navigable kinds, and offers search, present-kind filter chips, and focus-on-select (sets `$workspaceGraph.focus`, closes). Opened from the floating HUD (`☰`). Breadcrumbs (`core/navigation.ts` `breadcrumb`, rendered atop the notebook, clickable to an ancestor) and keyboard navigation (`j`/`k` blocks, `[ ]` pages via `navigationForKey`, bound in `app-layout`, ignored while an overlay is open or an editable is focused) are landed; the notebook scrolls the focused block into view. Remaining (deferred): URL-addressable `(page, block, disclosure)`, section folding, and virtualization for long sessions.
 - [~] 1.6 Contextual link menu: ask follow-up, explain, open related, view as graph, copy/export, (formalize-as-belief/goal/question seam).
   - Landed `s-block-menu` + `s-explain` overlays over the pure `explainModel` (`core/explain.ts`): **Ask follow-up** (focuses the composer with the block as context — see (m)), Explain, Open in graph, View provenance (only when the block has provenance links — hidden, not inert), Copy text, and — capability-gated — **Formalize as belief/goal** (shown only when `reasoning` is on; hidden otherwise, never inert). The explanation popover exposes the `summary · card · detail · raw` disclosure levels as data; an `Open artifact` affordance (only when the block has a typed artifact — table/code via `artifactViewSpec`, or an image) opens the artifact viewer. Remaining: **Open related** (semantic-neighborhood navigation) is deferred to 2.4; a dedicated "formalize as question" action is redundant with the composer `question` mode + follow-up.
-- [ ] 1.7 LM-only completeness: Notebook works with no reasoning backend; provider status in HUD; rich artifacts; conversation graph exists even without NARS.
+- [~] 1.7 LM-only completeness: Notebook works with no reasoning backend; provider status in HUD; rich artifacts; conversation graph exists even without NARS.
+  - Notebook, artifacts and provider status (`lm.status` chip) are in place; the remaining gap — the conversation graph existing without NARS — is closed by 2.1's additive workspace projection into Graph mode. Open follow-ups: the HUD stop/cancel control (still absent until streaming cancel is wired, per 0.4).
 
 **Verification:** LM-only Notebook is a better-than-chat UI; a response with headings/table/code becomes navigable blocks; ToC and contextual actions are block-aware; no reasoning capability required.
 **Deliverable:** a standalone semantic LM conversation workspace.
 
 ### Phase 2 — Graph renderer for semantic conversation
 Goal: render the same semantic conversation as a flowing content graph.
-- [ ] 2.1 Graph projection: blocks → nodes, links → edges, sections → compound nodes/clusters; incremental animated growth.
+- [~] 2.1 Graph projection: blocks → nodes, links → edges, sections → compound nodes/clusters; incremental animated growth.
+  - Landed the pure projection + an additive Graph-mode layer. `core/graph-projection.ts` maps a `WorkspaceGraph` to renderer-agnostic `{ nodes, edges }` (`projectWorkspaceGraph`): one labelled node per block (`nodeType:'workspace'`, `term`=label so tooltip/search/lens cover it), one typed edge per link whose endpoints both exist (dangling links dropped), and `section`/`heading` blocks with `children` become Cytoscape compound `parent`s. `graph-viewport` now watches `$workspaceGraph` and diffs the projection into Cytoscape under the `workspace` class (concept nodes/edges keep their ids and lifecycle), with dedicated node/edge styles; concept-graph diffing and `applyGraphFilter` exclude the workspace layer. So the conversation is navigable as a graph with no reasoning backend attached. Remaining: **incremental animated growth** (new blocks animate in rather than appearing at the next layout), section clusters from chat `contains`/heading structure (chat turns don't set `children` today), and graph-native selection wiring (2.3) so clicking a workspace node focuses the block.
 - [ ] 2.2 Conversation layouts: `chronological-flow`, `semantic-map`, `artifact-map`, `source-view` (registry rows + deterministic variants).
 - [ ] 2.3 Graph-native input: composer anchored to node/edge/canvas/selection; selected nodes become prompt context; create question/claim nodes.
 - [ ] 2.4 Graph inspection: node/edge popovers, artifact preview popovers, "open in Notebook," semantic neighborhood navigation.
@@ -1209,6 +1211,43 @@ The `language`-only composition is deliberately shippable on its own: a conversa
 - The block menu's capability gate is inline (`$capabilities.get().has('reasoning')`); once a few menus
   gate, extract a `capabilityGate`/`CapabilityHost` mixin so overlays declare required capabilities in
   their descriptors and the host filters/palette-hides them uniformly (the 0.6 follow-through).
+
+### 2026-10-08 (n) — 2.1 graph projection (workspace blocks into Graph mode)
+
+**Landed**
+- `ui/src/client/core/graph-projection.ts` — the pure `projectWorkspaceGraph(graph)` → `{ nodes, edges }`:
+  each block becomes a labelled node (`nodeType:'workspace'`, `term`=label so tooltip/search/lens apply),
+  each link with both endpoints present becomes a typed edge (dangling links dropped), and
+  `section`/`heading` blocks with `children` become compound `parent`s. `labelFor` falls back to the
+  first text line then the kind label. Exported from `core/index`.
+- `ui/src/client/components/graph-viewport.ts` — watches `$workspaceGraph` (`watchWith`, 2-arg form) and
+  diffs the projection into Cytoscape under the `workspace` class (`syncWorkspaceLayer`), updating
+  existing nodes by id and removing stale ones; the concept-graph node/edge diff and `applyGraphFilter`
+  now exclude `.workspace` so the legacy bridge is untouched. Added `node.workspace`/`edge.workspace`
+  styles and strip the generic inline styles the lens pass applies to workspace nodes.
+- Tests (4 new; **215 green / 36 files**; root + UI typecheck and biome clean):
+  `graph-projection` — block→labelled node + link→typed edge, first-line/kind-label fallback, section
+  compound parent, dangling-link drop.
+
+**Notes for remaining work**
+- The workspace layer is fully replaced-by-diff on each sync (small N); streaming will re-project each
+  message. **Incremental animated growth** is not done — new nodes appear at the next layout.
+- Chat `contains` links (turn → child) are projected as edges, but chat turn blocks do not set
+  `children`, so chat has no compound sections yet; only engine/notebook sections cluster.
+- Clicking a workspace node still runs the concept-graph `tap` handler (`focus.set` on `term`); 2.3
+  should route workspace-node selection back to the block (`setWorkspaceFocus` + block menu).
+- `syncWorkspaceLayer` strips lens inline styles each sync so the class style wins; once workspace nodes
+  adopt lens/capability styling this can be unified in the adapter.
+
+**New improvement opportunities**
+- Animate the diff (fade/spring new nodes, `layout` a sub-community) rather than reappearing at layout.
+- Derive compound clusters from `contains` links generally (not just explicit `children`), so chat turns
+  cluster once the projection sets `children` (or infers from `contains`).
+- Give the graph a "conversation vs concepts" source toggle now that both layers coexist, so a user can
+  isolate the thread or the semantic web (palette command + HUD affordance).
+- Reuse `projectWorkspaceGraph` in `graph3d` and in the embedded-view graph shape so all three graph
+  surfaces project the one substrate identically.
+
 
 
 

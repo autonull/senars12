@@ -2,6 +2,12 @@ export { Announcer } from './announcer.js';
 export { BaseComponent } from './base-component.js';
 export { BLOCK_KIND_LABEL } from './block-labels.js';
 export {
+  type WorkspaceEdgeData,
+  type WorkspaceNodeData,
+  type WorkspaceProjection,
+  projectWorkspaceGraph,
+} from './graph-projection.js';
+export {
   $capabilities,
   CAPABILITY_CATALOG,
   CAPABILITY_IDS,
