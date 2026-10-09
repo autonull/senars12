@@ -13,6 +13,7 @@ import { registerOverlay } from '../../core/overlay-registry.js';
 import { $selectedEdgeId, $selectedNodeId } from '../../core/store.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
+import { overlayManager } from '../../core/overlay-manager.js';
 import '../node-detail-drawer.js';
 
 @customElement('s-inspector')
@@ -32,12 +33,18 @@ export class InspectorView extends SurfaceComponent {
       <div class="panel" role="dialog" aria-label="Inspector">
         <header>
           <span class="title">Inspector</span>
+          <button class="pin-btn" aria-label="Pin inspector" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
           <button class="close" title="Close" aria-label="Close inspector" @click=${this.close}>&times;</button>
         </header>
         <node-detail-drawer></node-detail-drawer>
       </div>
     `;
   }
+
+  private readonly togglePin = () => {
+    const pinned = this.hasAttribute('data-pinned');
+    overlayManager.setPinned('inspector', !pinned);
+  };
 
   private readonly close = () => {
     $selectedNodeId.set(null);

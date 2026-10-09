@@ -16,6 +16,7 @@ import { refreshLmStatus, switchLmProvider } from '../../core/lm-transport.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
+import { overlayManager } from '../../core/overlay-manager.js';
 import { $webllmActive, $webllmAvailable } from '../../core/store.js';
 
 @customElement('s-provider')
@@ -62,6 +63,7 @@ export class ProviderView extends SurfaceComponent {
         <header>
           <span class="title">Provider</span>
           <button class="action" @click=${() => refreshLmStatus()}>Refresh</button>
+          <button class="pin-btn" aria-label="Pin provider" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
           <button class="close" title="Close" aria-label="Close provider" @click=${this.close}>&times;</button>
         </header>
         <div class="active">
@@ -111,6 +113,11 @@ export class ProviderView extends SurfaceComponent {
   }
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'provider' });
+
+  private readonly togglePin = () => {
+    const pinned = this.hasAttribute('data-pinned');
+    overlayManager.setPinned('provider', !pinned);
+  };
 }
 
 const PROVIDER_SURFACE = { id: 'provider', title: 'Provider', group: 'overlay' } as const;

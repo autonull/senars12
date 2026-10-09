@@ -15,4 +15,38 @@
     pointer-events: auto;
     background: var(--colors-semantic-bg-scrim);
   }
+
+  /*
+   * Pinned overlay styles — a pinned overlay becomes a floating card that Esc/
+   * outside-click leave alone. It sits at the top of its layer and shows a pin
+   * indicator.
+   */
+  :host([data-pinned]) {
+    outline: 2px solid var(--colors-semantic-accent-primary);
+    outline-offset: 2px;
+    box-shadow: var(--shadows-pinned), var(--shadows-panel);
+  }
+
+  .pin-btn {
+    border: none;
+    background: transparent;
+    color: var(--colors-semantic-text-muted);
+    cursor: pointer;
+    font-size: var(--typography-scale-sm);
+    padding: var(--spacing-scale-1);
+    border-radius: var(--borderRadius-scale-sm);
+    transition: var(--transitions-fast);
+    line-height: 1;
+  }
+  .pin-btn:hover {
+    color: var(--colors-semantic-accent-primary);
+    background: var(--colors-semantic-bg-panel);
+  }
+  .pin-btn[aria-pressed="true"] {
+    color: var(--colors-semantic-accent-primary);
+    background: var(--colors-semantic-bg-accent-subtle);
+  }
+  :host([data-pinned]) .pin-btn[aria-pressed="true"] {
+    color: var(--colors-semantic-accent-primary);
+  }
 }

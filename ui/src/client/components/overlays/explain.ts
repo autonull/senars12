@@ -29,6 +29,7 @@ import { registerOverlay } from '../../core/overlay-registry.js';
 import { $nodeHistory, $workspaceGraph } from '../../core/store.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
+import { overlayManager } from '../../core/overlay-manager.js';
 import type { Disclosure } from '../../core/view-spec.js';
 import { linkMeta } from '../../utils/link-catalog.js';
 import { blockBodyStyles, renderBlockBody } from '../../utils/render-block.js';
@@ -109,6 +110,7 @@ export class ExplainView extends SurfaceComponent {
         <header>
           <span class="kind">${kind}</span>
           <span class="title">${title}</span>
+          <button class="pin-btn" aria-label="Pin explanation" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
           <button class="close" title="Close" aria-label="Close explanation" @click=${this.close}>&times;</button>
         </header>
         <div class="levels" role="group" aria-label="Disclosure level">
@@ -235,6 +237,11 @@ export class ExplainView extends SurfaceComponent {
   }
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'explain' });
+
+  private readonly togglePin = () => {
+    const pinned = this.hasAttribute('data-pinned');
+    overlayManager.setPinned('explain', !pinned);
+  };
 }
 
 const EXPLAIN_SURFACE = { id: 'explain', title: 'Explanation', group: 'overlay' } as const;

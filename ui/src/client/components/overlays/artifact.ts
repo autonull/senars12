@@ -16,6 +16,7 @@ import { registerOverlay } from '../../core/overlay-registry.js';
 import { $activeRenderer, $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
+import { overlayManager } from '../../core/overlay-manager.js';
 import { projectDataset } from '../../core/view-projection.js';
 import type { SemanticBlock } from '../../core/workspace-graph.js';
 
@@ -57,6 +58,7 @@ export class ArtifactView extends SurfaceComponent {
           <span class="title">${block.title ?? block.id}</span>
           <button class="action" data-action="copy" title="Copy" aria-label="Copy artifact" @click=${this.copy}>Copy</button>
           <button class="action" data-action="graph" title="Open in graph" aria-label="Open in graph" @click=${this.openInGraph}>Graph</button>
+          <button class="pin-btn" aria-label="Pin artifact" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
           <button class="close" title="Close" aria-label="Close artifact" @click=${this.close}>&times;</button>
         </header>
         <div class="body">
@@ -99,6 +101,11 @@ export class ArtifactView extends SurfaceComponent {
   };
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'artifact' });
+
+  private readonly togglePin = () => {
+    const pinned = this.hasAttribute('data-pinned');
+    overlayManager.setPinned('artifact', !pinned);
+  };
 }
 
 const ARTIFACT_SURFACE = { id: 'artifact', title: 'Artifact', group: 'overlay' } as const;

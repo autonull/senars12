@@ -19,6 +19,7 @@ import { $collapsedBlocks, $workspaceGraph, setWorkspaceFocus } from '../../core
 import { registerOverlay } from '../../core/overlay-registry.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
+import { overlayManager } from '../../core/overlay-manager.js';
 import type { BlockKind } from '../../core/workspace-graph.js';
 import { TOC_KINDS_TYPE, tocEntries, type TocEntry } from '../../core/toc.js';
 
@@ -91,6 +92,7 @@ export class TocView extends SurfaceComponent {
                   >${folded.size} folded</button>`
                 : ''
             }
+            <button class="pin-btn" aria-label="Pin contents" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
             <button class="close" title="Close" aria-label="Close contents" @click=${this.close}>&times;</button>
           </div>
           <label class="sr-only" for="toc-search">Search contents</label>
@@ -180,6 +182,11 @@ export class TocView extends SurfaceComponent {
   }
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'toc' });
+
+  private readonly togglePin = () => {
+    const pinned = this.hasAttribute('data-pinned');
+    overlayManager.setPinned('toc', !pinned);
+  };
 }
 
 const TOC_SURFACE = { id: 'toc', title: 'Table of contents', group: 'overlay' } as const;

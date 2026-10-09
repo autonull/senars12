@@ -22,6 +22,7 @@ import {
 } from '../../core/store.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
+import { overlayManager } from '../../core/overlay-manager.js';
 
 /** The hop counts "Open related" offers. */
 const DEPTHS = [1, 2, 3] as const;
@@ -88,6 +89,7 @@ export class RelatedView extends SurfaceComponent {
               </button>`
             )}
           </span>
+          <button class="pin-btn" aria-label="Pin related" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
           <button class="close" title="Close" aria-label="Close related" @click=${this.close}>&times;</button>
         </header>
         <div class="body">
@@ -117,6 +119,11 @@ export class RelatedView extends SurfaceComponent {
   }
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'related' });
+
+  private readonly togglePin = () => {
+    const pinned = this.hasAttribute('data-pinned');
+    overlayManager.setPinned('related', !pinned);
+  };
 }
 
 const RELATED_SURFACE = { id: 'related', title: 'Related', group: 'overlay' } as const;
