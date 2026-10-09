@@ -12,10 +12,26 @@ WP3 ─▶ WP5 ─▶ WP6
 WP3 ─▶ WP4
 ```
 
-**Critical path: WP3 → WP5 → WP6 → WP7**. WP5 (Reasoning) is now the active critical-path work package.
+**Critical path: WP6** (WP5 complete). Start WP6 with `2.5 parity suite`.
 
 Status: `[ ]` todo · `[~]` partial · `[x]` done · `!` blocked  
 Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
+
+---
+
+---
+
+## Fresh-session notes (WP6 kick-off — read first)
+
+Exploration landed, no code yet. Where things are:
+
+- **UI code root**: `ui/src/client/` — `core/`, `components/`, `utils/`, `styles/`, `spacegraph/`, `modulation/`. Server in `ui/src/server/`, shared in `ui/src/shared/`.
+- **Renderer registry**: `ui/src/client/core/workspace-renderer.ts`. `WorkspaceRenderer` contract (mount/present/apply/focus/select/openComposer/openExplain/snapshot/restore/dispose), open registry Map, `registerRenderer`/`workspaceRenderers`/`renderersForKind`, `rendererSupports(renderer, interaction)`, `rendererHasControl`, `WORKSPACE_INTERACTIONS` (12), `WORKSPACE_CONTROLS` (['layers']).
+- **`2.5 parity suite` gap** (spec: `TODO.ui.5.md` line ~504, refs (z),(ae)): `rendererSupports` exists; the **§10 matrix as data (`rendererParity`)** does NOT — that's the core of 2.5. Add a data table mapping renderer → parity/supports so palette/shell gate uniformly; plus scripted canonical loop + per-pair continuity round-trips test.
+- **Renderers**: `components/renderers/graph.ts` (GraphRenderer, parity 'full', controls ['layers']), `notebook.ts`, `graph3d.ts`, `graph-surface.ts` (switch on `$graphShape` table → s-view GRAPH_VIEW_SPEC / `$viewportMode` 3d → spacegraph-viewport, else graph-viewport).
+- **`2.x graph polish` partially landed already**: `graph.ask-selection`, `graph.layer.*`, `graph.layout.*` commands + `graph:layout` event in `graph.ts`. Remaining: lens/capability styling unified in adapter, hidden layer excluded from `fit`, HUD/palette layout group + `graph.layout.cycle`, `chronological-flow`/`source-view` SpaceGraph surfaces (spec: `TODO.ui.5.md` line ~518).
+- **WP6 remaining items** (spec: `TODO.ui.5.md` §WP6, line ~502): 2.5 parity suite (M), 2.1 growth (M), 2.1 clusters (M), 1.2/2.3 floating composer (L), 1.2 composer sweep (M), 2.x graph polish (M).
+- **Tests**: 422 passing baseline. Known pre-existing type errors listed in §Known Issues below.
 
 ---
 
