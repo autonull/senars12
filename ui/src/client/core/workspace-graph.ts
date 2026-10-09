@@ -146,12 +146,12 @@ export interface WorkspaceGraph {
 
 /** Event-sourced workspace mutation (§2.3); `seq` monotonicity comes from `UnifiedGraphProjection`. */
 export type WorkspaceOp =
-  | { op: 'block.add'; block: SemanticBlock; after?: Ref }
-  | { op: 'block.patch'; id: Ref; patch: Partial<SemanticBlock> }
-  | { op: 'block.remove'; id: Ref }
-  | { op: 'link.add'; link: SemanticLink }
-  | { op: 'link.remove'; id: Ref }
-  | { op: 'roots.set'; roots: Ref[] };
+  | { op: 'block.add'; block: SemanticBlock; after?: Ref; seq?: number; eventRefs?: Ref[] }
+  | { op: 'block.patch'; id: Ref; patch: Partial<SemanticBlock>; seq?: number; eventRefs?: Ref[] }
+  | { op: 'block.remove'; id: Ref; seq?: number; eventRefs?: Ref[] }
+  | { op: 'link.add'; link: SemanticLink; seq?: number; eventRefs?: Ref[] }
+  | { op: 'link.remove'; id: Ref; seq?: number; eventRefs?: Ref[] }
+  | { op: 'roots.set'; roots: Ref[]; seq?: number; eventRefs?: Ref[] };
 
 export const emptyWorkspaceGraph = (): WorkspaceGraph => ({
   blocks: new Map(),
