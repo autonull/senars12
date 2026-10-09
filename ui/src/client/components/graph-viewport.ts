@@ -5,7 +5,6 @@ import { edgeKey } from '../../shared/index.js';
 import { GraphRenderer } from '../core/graph-renderer.js';
 import {
   $activeLens,
-  $activeRenderer,
   $capabilityFilter,
   $chatMessages,
   $focusTerm,
@@ -22,7 +21,6 @@ import {
   $viewport,
   $workspaceGraph,
   BaseComponent,
-  blockRefFor,
   evaluateLens,
   eventBus,
   layerVisible,
@@ -30,6 +28,8 @@ import {
   mountTestApi,
   narsBackend,
   projectWorkspaceGraph,
+  resolveBlockRef,
+  revealBlock,
   send,
   setWorkspaceFocus,
   setWorkspaceSelection,
@@ -43,16 +43,16 @@ import './graph-minimap.js';
 import './graph-popover.js';
 
 /** The surface-agnostic shape of a cytoscape element, for block resolution. */
-type CyElement = { id(): string; hasClass(name: string): boolean };
+type CyElement = { id(): string };
 
 /**
- * The workspace block a graph element stands for: chat nodes already carry their
- * block ref as their id, engine nodes resolve through the attached backend. One
- * resolution for the inspector, the graph menu and the node popover, so a node
- * and its block never drift apart.
+ * The workspace block a graph element stands for: a conversation node already
+ * carries its block ref as its id, an engine node resolves through the attached
+ * backend. One resolution for the inspector, the graph menu and the popovers, so
+ * a node and its block never drift apart.
  */
 const blockRefOf = (node: CyElement): string | undefined =>
-  node.hasClass('workspace') ? node.id() : blockRefFor(narsBackend, node.id());
+  resolveBlockRef($workspaceGraph.get(), narsBackend, node.id());
 
 const CHAT_NODE_STYLE = {
   shape: 'round-rectangle',
@@ -392,9 +392,7 @@ export class GraphViewport extends BaseComponent {
   private contextOpenBlock() {
     const ref = this.contextMenu?.blockRef;
     this.closeContextMenu();
-    if (!ref) return;
-    $activeRenderer.set('notebook');
-    setWorkspaceFocus(ref);
+    if (ref) revealBlock(ref);
   }
 
   private toggleMultiSelect(id: string) {

@@ -9,9 +9,16 @@ import {
   $graphNodes,
   $workspaceGraph,
 } from '../../src/client/core/store.js';
-import { emptyWorkspaceGraph } from '../../src/client/core/workspace-graph.js';
+import {
+  applyWorkspaceOps,
+  emptyWorkspaceGraph,
+  type SemanticBlock,
+  type SemanticLink,
+  type WorkspaceOp,
+} from '../../src/client/core/workspace-graph.js';
 import {
   claimId,
+  linkId,
   linkRefFor,
   projectWorkspace,
 } from '../../src/client/core/workspace-projection.js';
@@ -24,6 +31,22 @@ const project = (
   $graphNodes.set(new Map(nodes));
   $graphEdges.set(new Map(edges));
   $workspaceGraph.set(projectWorkspace({ messages: [], backend: narsBackend }));
+};
+
+const block = (id: string, over: Partial<SemanticBlock> = {}): SemanticBlock => ({
+  id,
+  kind: 'claim',
+  role: 'reasoner',
+  createdAt: 0,
+  createdBy: 'reasoner',
+  ...over,
+});
+
+/** A workspace assembled from ops — conversation blocks, with no engine behind them. */
+const workspace = (...ops: WorkspaceOp[]): void => {
+  $graphNodes.set(new Map());
+  $graphEdges.set(new Map());
+  $workspaceGraph.set(applyWorkspaceOps(emptyWorkspaceGraph(), ops));
 };
 
 const mount = async (ref: string, link = '') => {
@@ -99,6 +122,56 @@ describe('graph node popover', () => {
     rows[0]?.click();
     expect($activeRenderer.get()).toBe('notebook');
     expect($workspaceGraph.get().focus).toBe(claimId('fly'));
+  });
+});
+
+describe('popover notebook card', () => {
+  it('shows the block as the notebook renders its body', async () => {
+    workspace({
+      op: 'block.add',
+      block: block('agent-1', {
+        kind: 'list',
+        role: 'assistant',
+        createdBy: 'lm',
+        title: 'Robins',
+        data: { items: ['fly south', '**sing**'] },
+      }),
+    });
+    const el = await mount('agent-1');
+    expect(el.shadowRoot?.querySelector('.card ul.list')?.children).toHaveLength(2);
+    expect(el.shadowRoot?.querySelector('.card strong')?.textContent).toBe('sing');
+  });
+
+  it('cards nothing when the body would repeat the head', async () => {
+    workspace({ op: 'block.add', block: block('claim:bird', { title: 'bird', text: 'bird' }) });
+    expect((await mount('claim:bird')).shadowRoot?.querySelector('.card')).toBeFalsy();
+  });
+
+  it('previews the artifact an edge lands on', async () => {
+    const link: SemanticLink = {
+      id: linkId('claim:bird', 'agent-1', 'references'),
+      source: 'claim:bird',
+      target: 'agent-1',
+      kind: 'references',
+      createdBy: 'reasoner',
+    };
+    workspace(
+      { op: 'block.add', block: block('claim:bird', { title: 'bird', text: 'bird' }) },
+      {
+        op: 'block.add',
+        block: block('agent-1', {
+          kind: 'table',
+          title: 'migrating',
+          data: { headers: ['when'], rows: [['october']] },
+        }),
+      },
+      { op: 'link.add', link }
+    );
+    const el = await mount('', link.id);
+    const card = el.shadowRoot?.querySelector('.card');
+    expect(card?.querySelector('s-view')).toBeTruthy();
+    // the link being explained is not repeated among the target's own links
+    expect(el.shadowRoot?.querySelectorAll('.row')).toHaveLength(2);
   });
 });
 

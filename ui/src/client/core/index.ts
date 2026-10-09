@@ -181,6 +181,7 @@ export {
   type RevisionEntry,
   registerLens,
   removeLens,
+  revealBlock,
   setActiveLayout,
   setWorkspaceFocus,
   setWorkspaceSelection,
@@ -285,6 +286,7 @@ export {
   projectChat,
   projectReasoning,
   projectWorkspace,
+  resolveBlockRef,
   turnId,
   type WorkspaceFragment,
 } from './workspace-projection.js';

@@ -6,6 +6,7 @@ import { narsBackend } from '../../src/client/core/nars-backend.js';
 import { overlayDescriptor } from '../../src/client/core/overlay-registry.js';
 import {
   $activeRenderer,
+  $graphEdges,
   $graphNodes,
   $selectedEdgeId,
   $selectedNodeId,
@@ -21,14 +22,18 @@ const engine = (...ids: string[]): void => {
       ids.map((id): [string, GraphNodeData] => [id, { id, term: id, nodeType: 'nar:concept' }])
     )
   );
+  $graphEdges.set(new Map());
   $workspaceGraph.set(projectWorkspace({ messages: [], backend: narsBackend }));
 };
 
-const actions = async (el: HTMLElement): Promise<void> => {
+const openTab = async (el: HTMLElement, index: number): Promise<void> => {
   const tabs = [...(el.shadowRoot?.querySelectorAll('.tab') ?? [])];
-  tabs[2]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  tabs[index]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   await el.updateComplete;
 };
+
+const actions = (el: HTMLElement): Promise<void> => openTab(el, 2);
+const links = (el: HTMLElement): Promise<void> => openTab(el, 1);
 
 afterEach(() => {
   document.body.innerHTML = '';
@@ -36,6 +41,7 @@ afterEach(() => {
   $selectedEdgeId.set(null);
   $activeRenderer.set('graph');
   $graphNodes.set(new Map());
+  $graphEdges.set(new Map());
   $workspaceGraph.set(emptyWorkspaceGraph());
 });
 
@@ -102,5 +108,56 @@ describe('inspector node affordances', () => {
     await el.updateComplete;
     await actions(el);
     expect(el.shadowRoot?.querySelector('button[data-action="open-block"]')).toBeFalsy();
+  });
+});
+
+describe('inspector links tab', () => {
+  const drawerFor = async (nodeId: string): Promise<HTMLElement> => {
+    const el = document.createElement('node-detail-drawer');
+    document.body.appendChild(el);
+    $selectedNodeId.set(nodeId);
+    await el.updateComplete;
+    await links(el);
+    return el;
+  };
+
+  const withEdge = (): void => {
+    engine('bird', 'fly');
+    const edge: Record<string, unknown> = {
+      source: 'bird',
+      target: 'fly',
+      type: 'derivation',
+      confidence: 0.7,
+    };
+    $graphEdges.set(new Map([['bird->fly', edge]]));
+    $workspaceGraph.set(projectWorkspace({ messages: [], backend: narsBackend }));
+  };
+
+  it('explains the links of the node instead of its raw engine edges', async () => {
+    withEdge();
+    const el = await drawerFor('bird');
+    const rows = [...(el.shadowRoot?.querySelectorAll('.link-item') ?? [])];
+    expect(rows).toHaveLength(1);
+    // the link catalog names the relationship, not the engine's `type` string
+    expect(rows[0]?.querySelector('.link-type')?.textContent).toContain('derived from');
+    expect(rows[0]?.querySelector('.link-label')?.textContent).toBe('fly');
+    expect([...(rows[0]?.querySelectorAll('.chip') ?? [])].map((chip) => chip.textContent)).toEqual(
+      ['c0.70', '1 events']
+    );
+  });
+
+  it('takes the reader to the other block of a link', async () => {
+    withEdge();
+    const el = await drawerFor('bird');
+    query<HTMLButtonElement>(el.shadowRoot, '.link-item').click();
+    expect($activeRenderer.get()).toBe('notebook');
+    expect($workspaceGraph.get().focus).toBe('claim:fly');
+  });
+
+  it('reports a node whose block has no links yet', async () => {
+    engine('bird');
+    const el = await drawerFor('bird');
+    expect(el.shadowRoot?.querySelector('.link-item')).toBeFalsy();
+    expect(el.shadowRoot?.textContent).toContain('No outgoing links');
   });
 });

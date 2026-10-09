@@ -4,8 +4,8 @@ import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { EDGE_TYPES } from '../../shared/constants.js';
 import { artifactViewSpec } from '../core/artifacts.js';
+import { type ExplainLink, explainModel } from '../core/explain.js';
 import {
-  $activeRenderer,
   $focusTerm,
   $graphEdges,
   $graphNodes,
@@ -16,12 +16,12 @@ import {
   $view,
   $workspaceGraph,
   BaseComponent,
-  blockRefFor,
   eventBus,
   narsBackend,
   type RevisionEntry,
+  resolveBlockRef,
+  revealBlock,
   send,
-  setWorkspaceFocus,
   setWorkspaceSelection,
   updateEdgeData,
   updateNodeData,
@@ -55,8 +55,10 @@ export class NodeDetailDrawer extends BaseComponent {
     .field-label { color: var(--colors-semantic-text-muted); }
     .field-value { color: var(--colors-semantic-text-primary); font-variant-numeric: tabular-nums; }
     .section-title { font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); text-transform: uppercase; letter-spacing: 1px; margin: var(--spacing-scale-3) 0 var(--spacing-scale-2); }
-    .link-item { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) 0; border-bottom: 1px solid var(--colors-semantic-border-subtle); cursor: pointer; }
+    .link-item { display: flex; align-items: baseline; gap: var(--spacing-scale-2); width: 100%; padding: var(--spacing-scale-2) 0; border: none; border-bottom: 1px solid var(--colors-semantic-border-subtle); background: transparent; color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); text-align: left; cursor: pointer; transition: var(--transitions-fast); }
     .link-item:hover { color: var(--colors-semantic-accent-primary); }
+    .link-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip { flex-shrink: 0; color: var(--colors-semantic-text-muted); font-variant-numeric: tabular-nums; }
     .link-type { font-size: 0.6rem; color: var(--colors-semantic-text-muted); background: var(--colors-semantic-bg-panel); padding: 1px 4px; border-radius: 2px; text-transform: uppercase; }
     .action-btn { display: flex; align-items: center; gap: var(--spacing-scale-2); width: 100%; padding: var(--spacing-scale-2) var(--spacing-scale-3); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-button); background: transparent; color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); cursor: pointer; margin-bottom: var(--spacing-scale-2); transition: var(--transitions-fast); }
     .action-btn:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
@@ -248,48 +250,17 @@ export class NodeDetailDrawer extends BaseComponent {
     send({ type: 'node.history.request', term: this.node.term });
   }
 
-  private getLinks() {
-    if (!this.node)
-      return {
-        in: [] as { id: string; label: string; type: string }[],
-        out: [] as { id: string; label: string; type: string }[],
-      };
-    const edges = $graphEdges.get();
-    const inLinks: { id: string; label: string; type: string }[] = [];
-    const outLinks: { id: string; label: string; type: string }[] = [];
-    const nodes = $graphNodes.get();
-
-    for (const [key, ed] of edges) {
-      const filter = this.linkFilter.toLowerCase();
-      if (ed.source === this.node.id) {
-        const target = nodes.get(ed.target);
-        const label = target?.label ?? ed.target;
-        if (
-          !filter ||
-          label.toLowerCase().includes(filter) ||
-          (ed.type ?? '').toLowerCase().includes(filter)
-        ) {
-          outLinks.push({ id: ed.target, label, type: ed.type ?? 'relation' });
-        }
-      }
-      if (ed.target === this.node.id) {
-        const source = nodes.get(ed.source);
-        const label = source?.label ?? ed.source;
-        if (
-          !filter ||
-          label.toLowerCase().includes(filter) ||
-          (ed.type ?? '').toLowerCase().includes(filter)
-        ) {
-          inLinks.push({ id: ed.source, label, type: ed.type ?? 'relation' });
-        }
-      }
-    }
-    return { in: inLinks, out: outLinks };
-  }
-
-  private focusNode(id: string) {
-    $selectedNodeId.set(id);
-    send({ type: 'focus.set', term: $graphNodes.get().get(id)?.term ?? id });
+  /** The links touching the node's block, as the explanation model reports them. */
+  private get explainedLinks(): ExplainLink[] {
+    const ref = this.blockRef;
+    const model = ref ? explainModel($workspaceGraph.get(), ref) : undefined;
+    const filter = this.linkFilter.toLowerCase();
+    return (model?.links ?? []).filter(
+      (link) =>
+        !filter ||
+        link.otherLabel.toLowerCase().includes(filter) ||
+        link.label.toLowerCase().includes(filter)
+    );
   }
 
   private copyTerm() {
@@ -398,8 +369,43 @@ export class NodeDetailDrawer extends BaseComponent {
     `;
   }
 
+  /** One explained link: which way it runs, what it relates, and how sure the engine is. */
+  private renderLinkRow(link: ExplainLink) {
+    const { confidence, eventRefs } = link;
+    return html`
+      <button
+        class="link-item"
+        data-other=${link.other}
+        title=${`${link.label} · ${link.otherLabel}`}
+        @click=${() => revealBlock(link.other)}
+      >
+        <span class="link-type">${link.direction === 'out' ? '→' : '←'} ${link.label}</span>
+        <span class="link-label">${link.otherLabel}</span>
+        ${confidence === undefined ? '' : html`<span class="chip">c${confidence.toFixed(2)}</span>`}
+        ${
+          eventRefs.length > 0
+            ? html`<span class="chip" title=${eventRefs.join(', ')}>${eventRefs.length} events</span>`
+            : ''
+        }
+      </button>
+    `;
+  }
+
   private renderLinks() {
-    const { in: inLinks, out: outLinks } = this.getLinks();
+    if (!this.blockRef) {
+      return html`<div class="empty">No projected block to explain</div>`;
+    }
+    const links = this.explainedLinks;
+    const direction = (way: ExplainLink['direction']) =>
+      links.filter((link) => link.direction === way);
+    const section = (title: string, rows: readonly ExplainLink[], empty: string) => html`
+      <div class="section-title">${title} (${rows.length})</div>
+      ${
+        rows.length === 0
+          ? html`<div class="empty">${empty}</div>`
+          : rows.map((link) => this.renderLinkRow(link))
+      }
+    `;
     return html`
       ${renderField(
         { type: 'text', className: 'link-filter', placeholder: 'Filter links…', on: 'input' },
@@ -409,43 +415,20 @@ export class NodeDetailDrawer extends BaseComponent {
           this.requestUpdate();
         }
       )}
-      <div class="section-title">Outgoing (${outLinks.length})</div>
-      ${
-        outLinks.length === 0
-          ? html`<div class="empty">No outgoing links</div>`
-          : outLinks.map(
-              (l) => html`
-        <div class="link-item" @click=${() => this.focusNode(l.id)}>
-          <span class="link-type">${l.type}</span>
-          <span>${l.label}</span>
-        </div>
-      `
-            )
-      }
-      <div class="section-title">Incoming (${inLinks.length})</div>
-      ${
-        inLinks.length === 0
-          ? html`<div class="empty">No incoming links</div>`
-          : inLinks.map(
-              (l) => html`
-        <div class="link-item" @click=${() => this.focusNode(l.id)}>
-          <span class="link-type">${l.type}</span>
-          <span>${l.label}</span>
-        </div>
-      `
-            )
-      }
+      ${section('Outgoing', direction('out'), 'No outgoing links')}
+      ${section('Incoming', direction('in'), 'No incoming links')}
     `;
   }
 
   /**
-   * The block this node projects to (§2.4's node→block mapping), resolved through
-   * the reasoning backend rather than assumed — a node the backend does not carry
-   * has no block, and the affordances that need one then stay hidden.
+   * The block this node projects to (§2.4's node→block mapping). The substrate is
+   * the authority: an id the graph already carries is a ref, an engine id resolves
+   * through the attached backend, and a node the backend does not carry has no
+   * block — so the affordances that need one stay hidden.
    */
   private get blockRef(): string | undefined {
     const id = this.node?.id;
-    return id ? blockRefFor(narsBackend, id) : undefined;
+    return id ? resolveBlockRef($workspaceGraph.get(), narsBackend, id) : undefined;
   }
 
   /** The projected block's artifact spec, when it has one (`4.3` affordances). */
@@ -456,10 +439,7 @@ export class NodeDetailDrawer extends BaseComponent {
   }
 
   private openInNotebook = () => {
-    const ref = this.blockRef;
-    if (!ref) return;
-    $activeRenderer.set('notebook');
-    setWorkspaceFocus(ref);
+    revealBlock(this.blockRef);
   };
 
   private openBlockView = () => {

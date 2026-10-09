@@ -42,10 +42,10 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
    **`3.6` steer/author** producers. `→ core/`
 2. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
    renderer/overlays context fields await a consumer; fold-all debounce awaits a bulk writer.)
-3. **`2.4 inspection & embedded views`** (L) — node *and* edge popovers, ToC reach and remembered
-   neighborhood depth landed; the drawer's Links tab, the popover's notebook card and the
-   embedded-view cluster remain. (`4.3 affordances` and `4.5 pinning` partial — inspector reach landed;
-   manager/command pinning. `1.4 rich text` partial — inline tokenizer.)
+3. **`2.4 inspection & embedded views`** (L) — node *and* edge popovers (both now carding the block the
+   notebook would render), ToC reach, remembered neighborhood depth and the explain-model Links tab
+   landed; only the **embedded-view cluster** remains. (`4.3 affordances` and `4.5 pinning` partial —
+   inspector reach landed; manager/command pinning. `1.4 rich text` partial — inline tokenizer.)
 4. **`ops sequencing`** (M) — deferred until something emits `WorkspaceOp`; the cursor half of
    **`4.4`** landed (one cursor, real `createdAt`, admission in the notebook).
    (`4.4 controls` is partially landed — live reset + readout; see WP4.)
@@ -111,6 +111,13 @@ Landed extension points — wire features here instead of re-deriving them.
 - **Block payloads** — `core/block-payload.ts` (`payloadOf(data, kind)`, `ArtifactPayload`,
   `PayloadOf<K>`): the one payload contract `Segment`/`SemanticBlock` produce and every consumer
   narrows through. Add a payload here, not a `data as …` cast at the consumer.
+- **Block bodies** — `utils/render-block.ts` (`renderBlockBody(block, sources)`, `blockBodyStyles`):
+  the one rendering of a block's content, lifted out of the Notebook so a surface that shows a block
+  *inside* something else shows it exactly as the notebook does. Compose `blockBodyStyles` into any
+  host that renders a body; do not re-implement artifact/payload/inline rendering per surface.
+- **Reaching a block** — `revealBlock(ref)` (`core/store.ts`) switches to the Notebook and focuses,
+  and `resolveBlockRef(graph, backend, id)` (`core/workspace-projection.ts`) turns whatever id a graph
+  element carries into a block ref. Every surface that navigates to a block goes through both.
 - **Artifacts** — `core/artifacts.ts` (`artifactViewSpec`); `core/diff.ts` (`diffLines`).
 - **Citations** — `core/citations.ts` (`collectSources`, `resolveSource`) — the bibliography a
   `citation` token and a `citation` block resolve against.
@@ -308,14 +315,24 @@ Landed extension points — wire features here instead of re-deriving them.
   any future narration need anyway. `linkRefFor(backend, edgeId)` is the edge half of the node→block
   mapping: a link ref is derived from both endpoints *and* the backend's edge vocabulary, so it can
   only be minted in the projection. Engine edges carry a generated cytoscape id, so the viewport keys
-  them by `edgeKey(source, target)` — the same key the edge map uses. Still open: the popover's
-  notebook card, artifact edge previews, and the drawer's Links tab (it still reads raw `$graphEdges`
-  instead of the explain model — the last piece of "richer inspector"); plus the whole embedded-view
-  cluster. The **node→block mapping** blocker is cleared for
-  nodes (`blockRefFor`) and edges (`linkRefFor`), so the inspector and both popovers can reach the
-  substrate today. `→ core/explain.ts`, `core/neighborhood.ts`, `core/workspace-projection.ts`,
-  `components/overlays/{inspector,block-menu,related}.ts`, `components/node-detail-drawer.ts`,
-  `components/views/graph-*.ts`. `(r)`,`(n)`,`(y)`,`(e)`
+them by `edgeKey(source, target)` — the same key the edge map uses. **The popover is now a notebook
+   card:** `renderBlockBody` (`utils/render-block.ts`, extracted from the Notebook and shared with it,
+   styles included) renders the block *as the notebook renders it*, so a node hover previews the block's
+   inline text/lists and an **edge preview** shows the artifact its target carries (`s-view`, embedded
+   budget); the card is skipped when the body would only repeat the head (a payload, or text beyond the
+   label, is the test). **The drawer's Links tab reads the explain model** — `ExplainLink` rows labelled
+   through the link catalog, carrying the engine's `confidence` and `eventRefs`, clicking through to the
+   other block — replacing its hand-rolled `$graphEdges` walk, so "richer inspector" is done. Both
+   navigate through one seam, `revealBlock(ref)` in `core/store.ts` (notebook + focus), and both resolve
+   refs through `resolveBlockRef(graph, backend, id)` — the substrate is the authority (a conversation
+   node's id *is* its ref; only an engine id maps through the backend), which retires the viewport's
+   `hasClass('workspace')` branch. Still open: the whole **embedded-view cluster** (the Notebook embedded
+   graph block, the edge popover's derivation tree, the block-menu **embed** affordance, and reusing
+   `conversationPositions`/`projectWorkspaceGraph` in the `graph-*` views). `→ core/explain.ts`,
+   `core/neighborhood.ts`, `core/workspace-projection.ts`, `core/store.ts`, `utils/render-block.ts`,
+   `components/graph-popover.ts`, `components/overlays/{inspector,block-menu,related}.ts`,
+   `components/node-detail-drawer.ts`, `components/renderers/notebook.ts`,
+   `components/views/graph-*.ts`. `(r)`,`(n)`,`(y)`,`(e)`
 - [~] **4.3 affordances** — the artifact overlay **Copy** / **Open in graph** and the ToC per-row
   artifact button are done. Inspector reach landed once the **node→block mapping** blocker cleared: the
   drawer's Actions tab gained **Open in Notebook** (switch renderer, focus the projected block) and
@@ -658,7 +675,35 @@ in v3 Appendix D). Rolled up:
   testable without a canvas. The viewport keeps only hit-testing and placement, resolves elements via
   one `blockRefOf`, and its context menu gained **Open in Notebook**. Suite **374 green**, including a
   test that an engine term containing markup renders as text.
+- **WP3 `2.4` notebook card + explain-model Links tab** — `utils/render-block.ts`
+  (`renderBlockBody` + `blockBodyStyles`) is the Notebook's own body renderer, extracted so the hover
+  popover can show a block *as the notebook renders it*: a node hover previews its inline text/lists, an
+  edge hover previews the artifact its target carries (`s-view`, embedded budget) — the artifact edge
+  preview — and a block whose body would only repeat its head gets no card. The extract is
+  behaviour-preserving for the Notebook (same markup, same classes, styles composed rather than copied)
+  and removes its private `renderTable`/`renderHeading`/`renderInline` trio. The drawer's Links tab now
+  reads `explainModel`: rows labelled through the link catalog with `confidence` and `eventRefs`, a row
+  navigating to the other block, and the filter matching semantic labels instead of engine `type`
+  strings — its raw `$graphEdges` walk and `focusNode` are gone. Two seams behind it: `revealBlock(ref)`
+  (`core/store.ts`) is the one "take the reader to a block" call the popover, the graph context menu and
+  the inspector all use, and `resolveBlockRef(graph, backend, id)` makes the substrate the authority for
+  ref resolution — the viewport's `hasClass('workspace')` branch is gone, so an id the graph already
+  carries *is* a ref and only an engine id maps through the backend. Suite **395 green** (new: popover
+  card for a list/table block, no-card-when-redundant, edge artifact preview, explain-model links rows,
+  link navigation, link-less block, `resolveBlockRef` for both halves).
 
+  **Notes for what is left in `2.4`:** the embedded-view cluster is now the *only* open piece, and the
+  card seam it needs already exists — an embedded view should render its dataset through
+  `components/views/*` inside an `s-view`, and a block shown beside a graph surface should reuse
+  `renderBlockBody`, exactly as the popover does. Sweeps worth taking while in this code: the
+  **explain overlay** still renders a raw `<pre>${block.text}</pre>` for its card body (it wants
+  `renderBlockBody` plus the link rows it already has); the drawer's Overview/History tabs remain
+  engine-shaped (`term`/`priority`/`truth` sliders, `node.history.request`) and are the honest reason the
+  inspector is still a *node* inspector rather than a block inspector — deciding whether the whole drawer
+  moves to blocks (truth edits then need a producer, i.e. `3.6`) is worth an explicit note in the plan.
 
-
-
+  **New improvement opportunities:** `renderBlockBody` is the natural home for the *cursor* treatment
+  (`data-admitted="false"` fades live in the Notebook) — a card preview of a block the scrub cursor has
+  not reached yet should say so rather than render it as present. And `collectSources` is recomputed per
+  popover render; with the card, a hover builds a bibliography per hover, so a memo on the graph (a
+  `7.3 performance` item) should cover it.

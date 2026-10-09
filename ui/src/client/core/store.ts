@@ -159,6 +159,16 @@ export function setWorkspaceFocus(ref?: string): void {
   $workspaceGraph.set({ ...current, focus: ref });
 }
 
+/**
+ * Take the reader to a block: the Notebook is the renderer that shows one, so
+ * reaching a ref from a graph surface (hover popover, context menu, inspector)
+ * means switching to it as well. One seam, so every surface gets there the same way.
+ */
+export function revealBlock(ref?: string): void {
+  $activeRenderer.set('notebook');
+  setWorkspaceFocus(ref);
+}
+
 /** Which Graph-mode layer(s) to show: the engine concepts, the conversation, or both (§2.1). */
 export const $graphLayer = atom<GraphLayer>('both');
 

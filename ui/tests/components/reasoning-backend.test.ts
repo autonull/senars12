@@ -11,6 +11,8 @@ import {
   blockRefFor,
   claimId,
   projectReasoning,
+  projectWorkspace,
+  resolveBlockRef,
 } from '../../src/client/core/workspace-projection.js';
 
 const engine = (
@@ -109,6 +111,15 @@ describe('node→block mapping', () => {
       blockRefFor(backend, 'p'),
     ]);
     expect(blockRefFor(narsBackend, 'p')).toBeUndefined();
+  });
+
+  it('resolves whatever id a graph element carries', () => {
+    engine([node('bird')]);
+    const graph = projectWorkspace({ messages: [], backend: narsBackend });
+    // a conversation node's id is already a block ref; an engine id maps through the backend
+    expect(resolveBlockRef(graph, narsBackend, claimId('bird'))).toBe(claimId('bird'));
+    expect(resolveBlockRef(graph, narsBackend, 'bird')).toBe(claimId('bird'));
+    expect(resolveBlockRef(graph, narsBackend, 'ghost')).toBeUndefined();
   });
 });
 

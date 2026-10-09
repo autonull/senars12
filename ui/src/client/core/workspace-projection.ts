@@ -277,3 +277,15 @@ export const linkRefFor = (backend: ReasoningBackend, id: Ref): Ref | undefined 
     : undefined;
 };
 
+/**
+ * The block ref a graph element id names. The substrate is the authority: an id
+ * the graph already carries *is* a ref (a conversation node's id is its block's),
+ * and only an engine id goes through the backend's mapping — so a surface can
+ * take whatever id the graph layer handed it and still reach the same block.
+ */
+export const resolveBlockRef = (
+  graph: WorkspaceGraph,
+  backend: ReasoningBackend,
+  id: Ref
+): Ref | undefined => (graph.blocks.has(id) ? id : blockRefFor(backend, id));
+

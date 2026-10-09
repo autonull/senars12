@@ -1,10 +1,11 @@
 /**
  * The graph hover popover (§2.4) — the explanation of whatever the pointer is
- * over. A **node** explains its block: identity, truth, and every link touching
- * it. An **edge** explains the link: both endpoints, the confidence and events
- * behind it, and then the explanation of the block it lands on, because that is
- * what an edge is *for*. Both come from `explain.ts`, so the popover never
- * re-derives the semantics.
+ * over. A **node** explains its block: identity, truth, the body the notebook
+ * would render, and every link touching it. An **edge** explains the link: both
+ * endpoints, the confidence and events behind it, and then the block it lands on
+ * — body included, so an edge into an artifact previews that artifact — because
+ * that is what an edge is *for*. Both come from `explain.ts`, and the body from
+ * the notebook's own renderer, so the popover never re-derives the semantics.
  *
  * It takes a block/link **ref** and a position rather than a graph element, so
  * the semantic half renders and is testable without a canvas and the viewport
@@ -15,13 +16,22 @@
 import { css, html, LitElement, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { BLOCK_KIND_LABEL, blockLabel } from '../core/block-labels.js';
+import { collectSources } from '../core/citations.js';
 import { type ExplainModel, explainLinkModel, explainModel } from '../core/explain.js';
-import { $activeRenderer, $workspaceGraph, type Ref, setWorkspaceFocus } from '../core/index.js';
+import { $workspaceGraph, type Ref, revealBlock } from '../core/index.js';
+import type { SemanticBlock } from '../core/workspace-graph.js';
 import { linkMeta } from '../utils/link-catalog.js';
+import { blockBodyStyles, renderBlockBody } from '../utils/render-block.js';
+
+/** The body says something the head did not: a payload, or text beyond the label. */
+const showsBody = (block: SemanticBlock): boolean =>
+  block.data !== undefined || (block.text?.trim() ?? '') !== blockLabel(block);
 
 @customElement('graph-popover')
 export class GraphPopover extends LitElement {
-  static override styles = css`
+  static override styles = [
+    blockBodyStyles,
+    css`
     :host {
       position: absolute; min-width: 15rem; max-width: 24rem; background: var(--colors-semantic-bg-panel-solid);
       border: 1px solid var(--colors-semantic-border-default); border-radius: var(--borderRadius-component-panel);
@@ -34,6 +44,7 @@ export class GraphPopover extends LitElement {
     .kind { text-transform: uppercase; letter-spacing: 0.06em; color: var(--colors-semantic-text-muted); }
     .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--typography-fontWeights-medium); }
     .chip { color: var(--colors-semantic-text-secondary); font-variant-numeric: tabular-nums; }
+    .card { max-height: 14rem; overflow: auto; margin: var(--spacing-scale-2) 0; font-size: var(--typography-scale-sm); }
     .divider { height: 1px; background: var(--colors-semantic-border-subtle); margin: var(--spacing-scale-2) 0; }
     .row { display: flex; align-items: baseline; gap: var(--spacing-scale-2); width: 100%; border: none; border-radius: var(--borderRadius-component-input); padding: var(--spacing-scale-1); background: transparent; color: inherit; cursor: pointer; text-align: left; font: inherit; }
     .row:hover { background: var(--colors-semantic-bg-panel-hover); }
@@ -41,11 +52,11 @@ export class GraphPopover extends LitElement {
     .other { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .empty { color: var(--colors-semantic-text-muted); }
     .events { color: var(--colors-semantic-text-muted); }
-  `;
+    `,
+  ];
 
   @property({ type: Number }) x = 0;
   @property({ type: Number }) y = 0;
-  /** The block this popover explains. */
   /** The block this popover explains, for a node hover. */
   @property({ type: String }) ref: Ref = '';
   /** The link this popover explains, for an edge hover; wins over `ref`. */
@@ -75,11 +86,11 @@ export class GraphPopover extends LitElement {
         </div>
         ${this.endpoint(link.target, '→')}
         ${source ? this.endpoint(source.id, '←') : ''}
-        ${this.blockModel(model, link.id)}
+        ${this.blockCard(model, link.id)}
       `;
     }
     const model = explainModel(graph, this.ref);
-    return model ? this.blockModel(model) : nothing;
+    return model ? this.blockCard(model) : nothing;
   }
 
   private endpoint(ref: Ref, arrow: string) {
@@ -90,13 +101,12 @@ export class GraphPopover extends LitElement {
     </button>`;
   }
 
-  /** The block's identity, truth and links; `skip` drops the link being explained. */
-  private blockModel(model: ExplainModel, skip?: Ref) {
+  /** The block as its **notebook card**: identity, truth, body and links; `skip` drops the link being explained. */
+  private blockCard(model: ExplainModel, skip?: Ref) {
     const { block, links } = model;
     const shown = skip ? links.filter((link) => link.id !== skip) : links;
     const { uncertainty } = block;
     return html`
-      ${shown.length > 0 ? html`<div class="divider"></div>` : ''}
       <div class="head">
         <span class="kind">${BLOCK_KIND_LABEL[block.kind]}</span>
         <span class="label">${blockLabel(block)}</span>
@@ -108,6 +118,11 @@ export class GraphPopover extends LitElement {
             : ''
         }
       </div>
+      ${
+        showsBody(block)
+          ? html`<div class="card">${renderBlockBody(block, collectSources($workspaceGraph.get()))}</div>`
+          : ''
+      }
       ${shown.length > 0 ? html`<div class="divider"></div>` : ''}
       ${shown.map(
         (link) => html`
@@ -133,8 +148,7 @@ export class GraphPopover extends LitElement {
 
   /** Follow a link in the notebook — the popover's rows are navigation, not decoration. */
   private follow(ref: Ref) {
-    $activeRenderer.set('notebook');
-    setWorkspaceFocus(ref);
+    revealBlock(ref);
   }
 }
 
