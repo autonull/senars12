@@ -28,6 +28,7 @@ export class FocusTrap {
   private readonly autoFocus: boolean;
   private handler: ((event: KeyboardEvent) => void) | null = null;
   private frame = 0;
+  private active = false;
 
   constructor(container: HTMLElement, autoFocus = true) {
     this.container = container;
@@ -36,8 +37,10 @@ export class FocusTrap {
   }
 
   activate() {
+    if (this.active) return;
     if (!this.autoFocus) {
       this.#trapTab();
+      this.active = true;
       return;
     }
     this.focusFirst();
@@ -46,6 +49,13 @@ export class FocusTrap {
     ) ?? 0;
 
     this.#trapTab();
+    this.active = true;
+  }
+
+  deactivate() {
+    if (!this.active) return;
+    this.restoreFocus();
+    this.active = false;
   }
 
   #trapTab() {
@@ -73,6 +83,7 @@ export class FocusTrap {
 
   restoreFocus() {
     if (this.handler) this.container.ownerDocument.removeEventListener('keydown', this.handler);
+    this.handler = null;
     if (this.previousActive instanceof HTMLElement) this.previousActive.focus();
   }
 
@@ -80,7 +91,7 @@ export class FocusTrap {
     if (this.frame) this.container.ownerDocument.defaultView?.cancelAnimationFrame(this.frame);
     this.frame = 0;
     this.restoreFocus();
-    this.handler = null;
     this.previousActive = null;
+    this.active = false;
   }
 }

@@ -10,6 +10,7 @@
  * error rather than a dead control.
  */
 import { EventBus } from '@senars/util';
+import type { ToolCall } from '@senars/util';
 
 /**
  * Payload per signal. `void` marks a signal that carries nothing, and is emitted
@@ -32,6 +33,16 @@ export type UiSignals = {
   'overlay:pin': { id: string; pinned: boolean };
   /** Toggle pinning of the topmost overlay — the palette/shortcut affordance (§4.5). */
   'overlay:pin-toggle': void;
+  /** Minimize/restore an overlay (§overlay-windows). */
+  'overlay:minimize': { id: string; minimize: boolean };
+  /** Maximize/restore an overlay (§overlay-windows). */
+  'overlay:maximize': { id: string; maximize: boolean };
+  /** Cascade open windows (§overlay-windows). */
+  'overlay:cascade': { offset?: number };
+  /** Tile open windows in a grid (§overlay-windows). */
+  'overlay:tile': void;
+  /** Tool approval request (§0.5). */
+  'tool.approval.request': { call: ToolCall; spec: import('./tool-registry.js').ToolSpec };
   /** Focus the universal composer (§8.1) — palette/selection-launched, renderer-agnostic. */
   'composer:focus': { refs?: string[]; mode?: string };
 };

@@ -49,4 +49,42 @@
   :host([data-pinned]) .pin-btn[aria-pressed="true"] {
     color: var(--colors-semantic-accent-primary);
   }
+
+  /*
+   * Window state styles (§overlay-windows).
+   * Minimized: collapse to header badge, hide content.
+   * Maximized: fill viewport, disable drag/resize.
+   */
+  :host([data-minimized]) {
+    width: auto !important;
+    height: auto !important;
+    min-width: 0;
+    min-height: 0;
+  }
+  :host([data-minimized]) > .panel,
+  :host([data-minimized]) > div[role="dialog"] > *:not(overlay-header) {
+    display: none;
+  }
+  :host([data-minimized]) overlay-header {
+    border-bottom: none;
+    border-radius: var(--borderRadius-component-panel);
+  }
+  :host([data-maximized]) {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    z-index: 2000 !important;
+  }
+  :host([data-maximized]) overlay-header {
+    border-radius: 0;
+  }
+  :host([data-maximized]) .drag-handle,
+  :host([data-maximized]) .resize-grip {
+    display: none;
+  }
 }

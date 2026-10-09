@@ -4,9 +4,23 @@
  * through the one `OverlayManager`. The registry is data, so the palette,
  * shortcuts and tests can enumerate overlays without importing their elements;
  * `modal` marks the ones that capture the background.
+ *
+ * Window options (§overlay-windows): opt-in window chrome — draggable header,
+ * resizable grip, minimize/maximize buttons, sessionStorage persistence of bounds.
  */
 
 import type { Capability } from './capabilities.js';
+
+export interface OverlayWindowOptions {
+  /** Enable drag-to-reposition via header drag-handle. */
+  readonly draggable?: boolean;
+  /** Enable resize via corner grip. */
+  readonly resizable?: boolean;
+  /** Enable minimize to badge. */
+  readonly minimize?: boolean;
+  /** Persist position/size/pinned state to sessionStorage. */
+  readonly persist?: boolean;
+}
 
 export interface OverlayDescriptor {
   readonly id: string;
@@ -21,6 +35,8 @@ export interface OverlayDescriptor {
   readonly hiddenInPalette?: boolean;
   /** Capability required to offer or open the overlay; unmet => hidden/refused. */
   readonly capability?: Capability;
+  /** Window chrome options: draggable, resizable, minimize, persist. */
+  readonly window?: OverlayWindowOptions;
 }
 
 const registry = new Map<string, OverlayDescriptor>();

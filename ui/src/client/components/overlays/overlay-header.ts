@@ -2,6 +2,7 @@
  * Shared overlay header component (§4.5).
  * Replaces duplicated header markup across overlays; adds drag-handle +
  * resize grip opt-in via `data-draggable` / `data-resizable` on host.
+ * Window controls: minimize, maximize (§overlay-windows).
  */
 
 import { css, html, PropertyValues } from 'lit';
@@ -12,6 +13,8 @@ import { getOverlayManager } from '../../core/overlay-manager.js';
 export interface OverlayHeaderEvents {
   'header-close': { id: string };
   'header-pin': { id: string; pinned: boolean };
+  'header-minimize': { id: string; minimized: boolean };
+  'header-maximize': { id: string; maximized: boolean };
   'header-drag-start': { id: string; clientX: number; clientY: number };
   'header-drag-move': { id: string; clientX: number; clientY: number };
   'header-drag-end': { id: string };
@@ -119,6 +122,14 @@ export class OverlayHeader extends BaseComponent {
     .resize-grip:hover::after {
       border-color: var(--colors-semantic-accent-primary);
     }
+    :host([data-minimized]) .title,
+    :host([data-minimized]) .kind,
+    :host([data-minimized]) .resize-grip {
+      display: none;
+    }
+    :host([data-minimized]) .drag-handle {
+      cursor: grab;
+    }
   `;
 
   @property({ type: String, attribute: 'overlay-id' }) overlayId = '';
@@ -128,20 +139,19 @@ export class OverlayHeader extends BaseComponent {
   @property({ type: Boolean, attribute: 'resizable' }) resizable = false;
   @property({ type: Boolean, attribute: 'pinnable' }) pinnable = true;
   @property({ type: Boolean, attribute: 'closeable' }) closeable = true;
+  @property({ type: Boolean, attribute: 'minimizable' }) minimizable = false;
+  @property({ type: Boolean, attribute: 'maximizable' }) maximizable = false;
 
   @state() private pinned = false;
+  @state() private minimized = false;
+  @state() private maximized = false;
   @state() private dragging = false;
   @state() private resizing = false;
-  private dragStartX = 0;
-  private dragStartY = 0;
-  private elementStartX = 0;
-  private elementStartY = 0;
-  private elementStartWidth = 0;
-  private elementStartHeight = 0;
 
   override connectedCallback(): void {
     super.connectedCallback();
     this.updatePinnedState();
+    this.updateWindowState();
     document.addEventListener('mousemove', this.onDocumentMouseMove);
     document.addEventListener('mouseup', this.onDocumentMouseUp);
   }
@@ -156,6 +166,7 @@ export class OverlayHeader extends BaseComponent {
     super.updated(changedProperties);
     if (changedProperties.has('overlayId')) {
       this.updatePinnedState();
+      this.updateWindowState();
     }
   }
 
@@ -164,6 +175,28 @@ export class OverlayHeader extends BaseComponent {
       const manager = getOverlayManager();
       this.pinned = manager.pinned().includes(this.overlayId);
     }
+  }
+
+  private updateWindowState(): void {
+    if (this.overlayId) {
+      const manager = getOverlayManager();
+      const bounds = manager.getBounds(this.overlayId);
+      if (bounds) {
+        // We can't directly get minimized/maximized state from manager,
+        // so we'll rely on the host element's attributes
+        const host = this.getHostElement();
+        if (host) {
+          this.minimized = host.hasAttribute('data-minimized');
+          this.maximized = host.hasAttribute('data-maximized');
+        }
+      }
+    }
+  }
+
+  private getHostElement(): HTMLElement | null {
+    if (!this.overlayId) return null;
+    const element = document.getElementById(this.overlayId);
+    return element?.closest('[data-surface]') as HTMLElement | null;
   }
 
   protected override render() {
@@ -184,6 +217,32 @@ export class OverlayHeader extends BaseComponent {
       ${this.kind ? html`<span class="kind">${this.kind}</span>` : ''}
       <span class="title">${this.title || this.overlayId}</span>
       <div class="actions">
+        ${this.minimizable
+          ? html`
+              <button
+                class="action-btn"
+                aria-label=${this.minimized ? 'Restore' : 'Minimize'}
+                aria-pressed=${this.minimized}
+                @click=${this.onToggleMinimize}
+                ?disabled=${this.maximized}
+              >
+                ${this.minimized ? '⬜' : '➖'}
+              </button>
+            `
+          : ''}
+        ${this.maximizable
+          ? html`
+              <button
+                class="action-btn"
+                aria-label=${this.maximized ? 'Restore' : 'Maximize'}
+                aria-pressed=${this.maximized}
+                @click=${this.onToggleMaximize}
+                ?disabled=${this.minimized}
+              >
+                ${this.maximized ? '⛶' : '⬜'}
+              </button>
+            `
+          : ''}
         ${this.pinnable
           ? html`
               <button
@@ -226,39 +285,55 @@ export class OverlayHeader extends BaseComponent {
     this.emit('header-pin', { id: this.overlayId, pinned: newPinned });
   };
 
+  private onToggleMinimize = (): void => {
+    if (!this.overlayId) return;
+    const manager = getOverlayManager();
+    const newMinimized = !this.minimized;
+    const success = newMinimized ? manager.minimize(this.overlayId) : manager.restore(this.overlayId);
+    if (success) {
+      this.minimized = newMinimized;
+      const host = this.getHostElement();
+      host?.toggleAttribute('data-minimized', newMinimized);
+      this.emit('header-minimize', { id: this.overlayId, minimized: newMinimized });
+    }
+  };
+
+  private onToggleMaximize = (): void => {
+    if (!this.overlayId) return;
+    const manager = getOverlayManager();
+    const newMaximized = !this.maximized;
+    const success = newMaximized ? manager.maximize(this.overlayId) : manager.unmaximize(this.overlayId);
+    if (success) {
+      this.maximized = newMaximized;
+      const host = this.getHostElement();
+      host?.toggleAttribute('data-maximized', newMaximized);
+      this.emit('header-maximize', { id: this.overlayId, maximized: newMaximized });
+    }
+  };
+
   private onClose = (): void => {
     this.emit('header-close', { id: this.overlayId });
   };
 
   private onDragStart = (event: MouseEvent): void => {
-    if (!this.draggable) return;
+    if (!this.draggable || !this.overlayId) return;
     event.preventDefault();
+    const manager = getOverlayManager();
+    const started = manager.beginDrag(this.overlayId, event.clientX, event.clientY);
+    if (!started) return;
     this.dragging = true;
-    this.dragStartX = event.clientX;
-    this.dragStartY = event.clientY;
-    const overlay = document.getElementById(this.overlayId)?.closest('[data-surface]');
-    if (overlay) {
-      const rect = overlay.getBoundingClientRect();
-      this.elementStartX = rect.left;
-      this.elementStartY = rect.top;
-    }
     this.emit('header-drag-start', { id: this.overlayId, clientX: event.clientX, clientY: event.clientY });
     this.requestUpdate();
   };
 
   private onResizeStart = (event: MouseEvent): void => {
-    if (!this.resizable) return;
+    if (!this.resizable || !this.overlayId) return;
     event.preventDefault();
     event.stopPropagation();
+    const manager = getOverlayManager();
+    const started = manager.beginResize(this.overlayId, event.clientX, event.clientY);
+    if (!started) return;
     this.resizing = true;
-    this.dragStartX = event.clientX;
-    this.dragStartY = event.clientY;
-    const overlay = document.getElementById(this.overlayId)?.closest('[data-surface]');
-    if (overlay) {
-      const rect = overlay.getBoundingClientRect();
-      this.elementStartWidth = rect.width;
-      this.elementStartHeight = rect.height;
-    }
     this.emit('header-resize-start', { id: this.overlayId, clientX: event.clientX, clientY: event.clientY });
   };
 
@@ -291,6 +366,8 @@ declare global {
   interface HTMLElementEventMap {
     'header-close': CustomEvent<OverlayHeaderEvents['header-close']>;
     'header-pin': CustomEvent<OverlayHeaderEvents['header-pin']>;
+    'header-minimize': CustomEvent<OverlayHeaderEvents['header-minimize']>;
+    'header-maximize': CustomEvent<OverlayHeaderEvents['header-maximize']>;
     'header-drag-start': CustomEvent<OverlayHeaderEvents['header-drag-start']>;
     'header-drag-move': CustomEvent<OverlayHeaderEvents['header-drag-move']>;
     'header-drag-end': CustomEvent<OverlayHeaderEvents['header-drag-end']>;

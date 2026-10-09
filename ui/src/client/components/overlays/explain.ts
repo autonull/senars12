@@ -70,7 +70,7 @@ export class ExplainView extends SurfaceComponent {
   static override styles = [
     blockBodyStyles,
     css`
-    :host { position: fixed; top: 10vh; left: 50%; transform: translateX(-50%); width: min(560px, 92vw); max-height: 76vh; z-index: 1; }
+    :host { display: block; }
     :host([hidden]) { display: none; }
     .panel { display: flex; flex-direction: column; max-height: 76vh; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
     header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
@@ -113,6 +113,8 @@ export class ExplainView extends SurfaceComponent {
           .title=${title}
           .draggable=${true}
           .resizable=${true}
+          .minimizable=${true}
+          .maximizable=${true}
           .pinnable=${true}
           .closeable=${true}
           @header-close=${this.close}
@@ -256,6 +258,7 @@ registerOverlay({
   id: EXPLAIN_SURFACE.id,
   title: EXPLAIN_SURFACE.title,
   tag: surfaceTag(EXPLAIN_SURFACE),
+  window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 
 declare global {

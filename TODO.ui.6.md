@@ -26,7 +26,7 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 | 1 | **`2.6 scope`** — debounce `folded` writes for bulk fold-all | M | `core/store.ts`, `utils/layout-registry.ts`, `core/layout-ids.ts`, `components/graph-toolbar.ts`, `components/graph-viewport.ts` | **Done** — `syncUrl` debounce (300ms) batches URL writes; immediate mirror keeps `$urlState.folded` in sync. Layout switching + URL round-trip landed. |
 | 2 | **`2.6 context`** — `WorkspaceContext` fields (`renderer`, `setRenderer`, `overlays`) | M | `core/workspace-renderer.ts`, `components/workspace-host.ts` | **Done** — added `renderer` (getter), `setRenderer()`, `overlays()`, `hasOverlays()` to `WorkspaceContext`; `WORKSPACE_CONTEXT` in `workspace-host.ts` uses `$activeRenderer` + `overlayManager` |
 | 13 | **`overlay-header`** — shared `OverlayHeader` component (title, pin, close, drag-handle, resize) + migration of existing overlays | S | `components/overlays/overlay-header.ts` (new), `components/overlays/*.ts` | **Done** — shared `overlay-header` component with drag-handle, resize grip, pin, close; migrated inspector, timeline, explain, artifact, settings, toc, telemetry, related, provider, tool-approval; 9 overlays migrated |
-| 14 | **`overlay-windows`** — full window stack: draggable, resizable, minimize, maximize, cascade/tile, persist state | M | `core/overlay-manager.ts`, `components/overlays/overlay-header.ts`, `core/surface.ts` | Opt-in via `SurfaceDescriptor.window: { draggable?, resizable?, minimize?, persist? }`; `overlayManager` tracks bounds/z-order; sessionStorage persistence |
+| 14 | **`overlay-windows`** — full window stack: draggable, resizable, minimize, maximize, cascade/tile, persist state | M | `core/overlay-manager.ts`, `components/overlays/overlay-header.ts`, `core/surface.ts` | **Done** — `OverlayManager` tracks bounds/z-order; drag/resize via overlay-header; minimize/maximize buttons; cascade/tile commands; sessionStorage persistence of position/size/pinned state; window options in `OverlayDescriptor.window` |
 | 3 | **`ops sequencing`** — carry engine `seq`/`eventRefs` on `WorkspaceOp` | M | `core/workspace-graph.ts`, `core/workspace-projection.ts` | **Done** — added optional `seq?: number` and `eventRefs?: Ref[]` to all `WorkspaceOp` variants; 3.6 steer/author producer ready |
 | 4 | **`3.2 formalization`** — claim → candidate → gate → belief/goal/question | L | `core/segmentation.ts`, `core/workspace-projection.ts`, `components/input-hud.ts` | **Done** — `input-hud.ts` routes `believe`/`goal` modes through `narsBackend.control.submit()`; claims decomposed via `decomposeForMode` submitted as `belief`/`goal`; chat history preserved |
 | 5 | **`3.7 MeTTa`** — second `ReasoningBackend` adapter | M | `core/metta-backend.ts`, `core/workspace-bindings.ts`, `core/workspace-projection.ts` | **Done** — `metta-backend.ts` implements `ReasoningBackend` with MeTTa vocabulary (`metta:atom`→`claim`, `metta:skill`→`tool-call`); `projectWorkspace` accepts `backends[]` array; both NARS and MeTTa projected; limited control surface (query-oriented) |
@@ -145,6 +145,7 @@ Overlays, Views, Inline text, Block payloads, Block bodies, Reaching a block, Em
 
 ## Landed (v5) — progress log
 
+- **WP2 `overlay-windows`** — full window stack: draggable (header drag), resizable (corner grip), minimize to badge, maximize, cascade/tile commands; `OverlayManager` tracks bounds/z-order; sessionStorage persistence of position/size/pinned/minimized/maximized state; opt-in via `OverlayDescriptor.window: { draggable?, resizable?, minimize?, persist? }`; updated overlays: inspector, timeline, explain, artifact; added `overlay.cascade`/`overlay.tile` palette commands
 - **WP1 `0.6` backend seam (control half) + WP5 `3.6` steer/author** — `ReasoningBackend` extended with `BackendCaps` and optional `control` surface; NARS adapter implements all control methods; protocol schemas (`reasoning-control.ts`); 8 palette commands gated on `reasoning` capability + backend caps; `config-change` producer emits diff blocks on settings change
 - **WP2 `2.6 scope` fold-all debounce** — `syncUrl` debounce (300ms) batches `folded` URL writes for bulk fold-all; immediate `$urlState` mirror preserved for test consistency; all 422 UI tests pass
 - **WP2 `ops sequencing`** — added optional `seq?: number` and `eventRefs?: Ref[]` to all `WorkspaceOp` variants in `workspace-graph.ts`; enables temporal queries, replay, and conflict resolution; 3.6 steer/author producer ready
@@ -178,7 +179,22 @@ Overlays, Views, Inline text, Block payloads, Block bodies, Reaching a block, Em
 | Item | Description |
 |------|-------------|
 | `overlay-header` | Shared component replacing duplicated headers; adds drag-handle + resize grip opt-in; emits `drag-start`/`drag-end`/`resize` events; `data-draggable`/`data-resizable` on host |
-| `overlay-windows` | Full window stack: draggable (header drag), resizable (corner grip), minimize to badge, maximize, cascade/tile commands; `overlayManager` tracks bounds/z-order; `SurfaceDescriptor.window` config; sessionStorage persistence of position/size/pinned state |
+| `overlay-windows` | **Done** — Full window stack: draggable (header drag), resizable (corner grip), minimize to badge, maximize, cascade/tile commands; `overlayManager` tracks bounds/z-order; `OverlayDescriptor.window` config; sessionStorage persistence of position/size/pinned/minimized/maximized state |
 | `overlay-animations` | Enter/exit transitions (fade/slide); reduced-motion respect; `overlayManager` coordinates stagger |
 
 All 422 UI tests pass. Core layout-registry tests pass (8).
+
+## Known Issues (pre-existing, not introduced by overlay-windows)
+
+| Issue | Location | Notes |
+|-------|----------|-------|
+| Type errors: `derivation-record` block kind missing from `BLOCK_KIND_LABEL` | `core/block-labels.ts`, `core/artifacts.ts`, `core/graph-projection.ts`, `core/toc.ts` | DerivationRecordData type missing `rule`, `premises`, `conclusion` fields |
+| Type errors: `BackendVocabulary`/`BackendNode` not found | `core/workspace-projection.ts` | Import/export issue |
+| Type errors: `CognitiveEvent` not found | `core/store.ts` | Should be `CognitiveMeta` or import missing |
+| Type errors: `ConfigChangeData` not exported | `core/config-change-producer.ts` | Missing export from `workspace-graph.ts` |
+| Tool registry: `properties` not in schema type | `core/tool-registry.ts:96` | Schema type definition issue |
+| MeTTa/NARS backend: `SemanticLinkKind` index signature mismatch | `core/metta-backend.ts:40`, `core/nars-backend.ts:73` | Vocabulary type mismatch |
+| Test: `typecheck:bin` fails (1 error) | `tests/nar/refactor4-budget.test.ts` | Bin CLI surface has type errors |
+| Test: RL parity non-stationary adaptation | `tests/nar/rl/parity/cognitive-advantage.test.ts:565` | Q-value for arm 1 is null |
+
+These are pre-existing issues in the codebase, not introduced by the overlay-windows implementation.

@@ -20,7 +20,7 @@ import '../overlays/overlay-header.js';
 @customElement('s-inspector')
 export class InspectorView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; top: 8vh; right: var(--spacing-scale-4); width: min(340px, 92vw); z-index: 1; }
+    :host { display: block; }
     :host([hidden]) { display: none; }
     .panel { display: flex; flex-direction: column; max-height: 80vh; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
     header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
@@ -38,6 +38,8 @@ export class InspectorView extends SurfaceComponent {
           title="Inspector"
           .draggable=${true}
           .resizable=${true}
+          .minimizable=${true}
+          .maximizable=${true}
           .pinnable=${true}
           .closeable=${true}
           @header-close=${this.close}
@@ -67,6 +69,7 @@ registerOverlay({
   title: INSPECTOR_SURFACE.title,
   tag: surfaceTag(INSPECTOR_SURFACE),
   autoFocus: false,
+  window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 
 declare global {

@@ -46,6 +46,7 @@ export class OverlayHost {
       anchor: anchor ?? focused ?? undefined,
       modal: descriptor.modal,
       autoFocus: descriptor.autoFocus,
+      window: descriptor.window,
     });
     element.dispatchEvent(new CustomEvent('overlay-open', { detail: { id, ref } }));
     return true;
@@ -65,6 +66,46 @@ export class OverlayHost {
 
   element(id: string): HTMLElement | undefined {
     return this.#elements.get(id);
+  }
+
+  /** Minimize an overlay. */
+  minimize(id: string): boolean {
+    return this.manager.minimize(id);
+  }
+
+  /** Restore a minimized overlay. */
+  restore(id: string): boolean {
+    return this.manager.restore(id);
+  }
+
+  /** Toggle minimize/restore. */
+  toggleMinimize(id: string): boolean {
+    return this.manager.toggleMinimize(id);
+  }
+
+  /** Maximize an overlay. */
+  maximize(id: string): boolean {
+    return this.manager.maximize(id);
+  }
+
+  /** Restore a maximized overlay. */
+  unmaximize(id: string): boolean {
+    return this.manager.unmaximize(id);
+  }
+
+  /** Toggle maximize/restore. */
+  toggleMaximize(id: string): boolean {
+    return this.manager.toggleMaximize(id);
+  }
+
+  /** Cascade open windows. */
+  cascade(offset?: number): void {
+    this.manager.cascade(offset);
+  }
+
+  /** Tile open windows in a grid. */
+  tile(): void {
+    this.manager.tile();
   }
 
   dispose(): void {

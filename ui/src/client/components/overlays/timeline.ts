@@ -19,7 +19,7 @@ import '../overlays/overlay-header.js';
 @customElement('s-timeline')
 export class TimelineView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; top: 12vh; left: 50%; transform: translateX(-50%); width: min(680px, 94vw); z-index: 1; }
+    :host { display: block; }
     :host([hidden]) { display: none; }
     .panel { display: flex; flex-direction: column; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
     header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
@@ -37,6 +37,8 @@ export class TimelineView extends SurfaceComponent {
           title="Timeline"
           .draggable=${true}
           .resizable=${true}
+          .minimizable=${true}
+          .maximizable=${true}
           .pinnable=${true}
           .closeable=${true}
           @header-close=${this.close}
@@ -61,6 +63,7 @@ registerOverlay({
   id: TIMELINE_SURFACE.id,
   title: TIMELINE_SURFACE.title,
   tag: surfaceTag(TIMELINE_SURFACE),
+  window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 
 declare global {

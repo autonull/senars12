@@ -147,6 +147,14 @@ export class AppLayout extends BaseComponent {
         const top = manager?.stack().at(-1);
         if (manager && top) manager.setPinned(top, !manager.pinned().includes(top));
       }),
+      eventBus.on('overlay:minimize', ({ id, minimize }) =>
+        minimize ? this.#overlays?.minimize(id) : this.#overlays?.restore(id)
+      ),
+      eventBus.on('overlay:maximize', ({ id, maximize }) =>
+        maximize ? this.#overlays?.maximize(id) : this.#overlays?.unmaximize(id)
+      ),
+      eventBus.on('overlay:cascade', ({ offset }) => this.#overlays?.cascade(offset)),
+      eventBus.on('overlay:tile', () => this.#overlays?.tile()),
     ];
     mountTestApi('overlays', {
       open: (id: string, ref?: string) => this.#overlays?.open(id, { ref }),

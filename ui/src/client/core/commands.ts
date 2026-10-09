@@ -147,6 +147,20 @@ const derivedCommands = (): Command[] => [
     },
     available: () => foldableSections(sectionTree($workspaceGraph.get())).length > 0,
   },
+  {
+    id: 'overlay.cascade',
+    title: 'Cascade windows',
+    group: 'View',
+    keywords: 'overlay window cascade arrange stack',
+    run: (args = {}) => eventBus.emit('overlay:cascade', { offset: Number(args.offset ?? 30) }),
+  },
+  {
+    id: 'overlay.tile',
+    title: 'Tile windows',
+    group: 'View',
+    keywords: 'overlay window tile arrange grid',
+    run: () => eventBus.emit('overlay:tile'),
+  },
 ];
 
 /** Reasoning is gated on the `reasoning` capability and the backend's caps. */

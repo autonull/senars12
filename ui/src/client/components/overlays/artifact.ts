@@ -26,7 +26,7 @@ const imageOf = (block: SemanticBlock): { alt: string; src: string } | undefined
 @customElement('s-artifact')
 export class ArtifactView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; top: 8vh; left: 50%; transform: translateX(-50%); width: min(760px, 94vw); max-height: 80vh; z-index: 1; }
+    :host { display: block; }
     :host([hidden]) { display: none; }
     .panel { display: flex; flex-direction: column; max-height: 80vh; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
     header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
@@ -59,6 +59,8 @@ export class ArtifactView extends SurfaceComponent {
           .title=${block.title ?? block.id}
           .draggable=${true}
           .resizable=${true}
+          .minimizable=${true}
+          .maximizable=${true}
           .pinnable=${true}
           .closeable=${true}
           @header-close=${this.close}
@@ -122,6 +124,7 @@ registerOverlay({
   title: ARTIFACT_SURFACE.title,
   tag: surfaceTag(ARTIFACT_SURFACE),
   hiddenInPalette: true,
+  window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 
 declare global {
