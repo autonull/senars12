@@ -25,6 +25,8 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 |---|------|------|-------|-------|
 | 1 | **`2.6 scope`** — debounce `folded` writes for bulk fold-all | M | `core/store.ts`, `utils/layout-registry.ts`, `core/layout-ids.ts`, `components/graph-toolbar.ts`, `components/graph-viewport.ts` | **Done** — `syncUrl` debounce (300ms) batches URL writes; immediate mirror keeps `$urlState.folded` in sync. Layout switching + URL round-trip landed. |
 | 2 | **`2.6 context`** — `WorkspaceContext` fields (`renderer`, `setRenderer`, `overlays`) | M | `components/workspace-host.ts` | Deferred (no consumer); add with first renderer that switches modes |
+| 13 | **`overlay-header`** — shared `OverlayHeader` component (title, pin, close, drag-handle, resize) + migration of existing overlays | S | `components/overlays/overlay-header.ts` (new), `components/overlays/*.ts` | Replaces duplicated header markup; adds drag-to-reposition + resize handle opt-in; `data-draggable` / `data-resizable` on host |
+| 14 | **`overlay-windows`** — full window stack: draggable, resizable, minimize, maximize, cascade/tile, persist state | M | `core/overlay-manager.ts`, `components/overlays/overlay-header.ts`, `core/surface.ts` | Opt-in via `SurfaceDescriptor.window: { draggable?, resizable?, minimize?, persist? }`; `overlayManager` tracks bounds/z-order; sessionStorage persistence |
 | 3 | **`ops sequencing`** — carry engine `seq`/`eventRefs` on `WorkspaceOp` | M | `core/workspace-graph.ts`, `core/workspace-projection.ts` | **Done** — added optional `seq?: number` and `eventRefs?: Ref[]` to all `WorkspaceOp` variants; 3.6 steer/author producer ready |
 | 4 | **`3.2 formalization`** — claim → candidate → gate → belief/goal/question | L | `core/segmentation.ts`, `core/workspace-projection.ts`, `components/input-hud.ts` | **Done** — `input-hud.ts` routes `believe`/`goal` modes through `narsBackend.control.submit()`; claims decomposed via `decomposeForMode` submitted as `belief`/`goal`; chat history preserved |
 | 5 | **`3.7 MeTTa`** — second `ReasoningBackend` adapter | M | `core/metta-backend.ts`, `core/workspace-bindings.ts`, `core/workspace-projection.ts` | **Done** — `metta-backend.ts` implements `ReasoningBackend` with MeTTa vocabulary (`metta:atom`→`claim`, `metta:skill`→`tool-call`); `projectWorkspace` accepts `backends[]` array; both NARS and MeTTa projected; limited control surface (query-oriented) |
@@ -164,5 +166,13 @@ Overlays, Views, Inline text, Block payloads, Block bodies, Reaching a block, Em
 - **WP4 `4.4` anchor/gating** — present-anchored cursor + temporal HUD gating
 - **WP4 `4.4 controls`** — prospective control (10% future zone with amber playhead) + header announcer (aria-live assertive for play/pause/live/seek/prospective) in `timeline-scrubber.ts`
 - **WP3 `4.5 pinning`** — per-overlay pin button + `[data-pinned]` CSS in primitives.css; pin button added to inspector, timeline, explain, artifact, settings, toc, telemetry, related, provider; `overlayManager.setPinned()` toggles attribute + announces via Announcer
+
+## Planned — Overlay system evolution
+
+| Item | Description |
+|------|-------------|
+| `overlay-header` | Shared component replacing duplicated headers; adds drag-handle + resize grip opt-in; emits `drag-start`/`drag-end`/`resize` events; `data-draggable`/`data-resizable` on host |
+| `overlay-windows` | Full window stack: draggable (header drag), resizable (corner grip), minimize to badge, maximize, cascade/tile commands; `overlayManager` tracks bounds/z-order; `SurfaceDescriptor.window` config; sessionStorage persistence of position/size/pinned state |
+| `overlay-animations` | Enter/exit transitions (fade/slide); reduced-motion respect; `overlayManager` coordinates stagger |
 
 All 422 UI tests pass. Core layout-registry tests pass (8).
