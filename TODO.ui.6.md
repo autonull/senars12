@@ -23,7 +23,7 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 
 | # | Item | Size | Files | Notes |
 |---|------|------|-------|-------|
-| 1 | **`2.6 scope`** — debounce `folded` writes for bulk fold-all | M | `core/store.ts`, `utils/layout-registry.ts`, `core/layout-ids.ts`, `components/graph-toolbar.ts`, `components/graph-viewport.ts` | Layout switching + URL round-trip landed; only fold-all debounce remains |
+| 1 | **`2.6 scope`** — debounce `folded` writes for bulk fold-all | M | `core/store.ts`, `utils/layout-registry.ts`, `core/layout-ids.ts`, `components/graph-toolbar.ts`, `components/graph-viewport.ts` | **Done** — `syncUrl` debounce (300ms) batches URL writes; immediate mirror keeps `$urlState.folded` in sync. Layout switching + URL round-trip landed. |
 | 2 | **`2.6 context`** — `WorkspaceContext` fields (`renderer`, `setRenderer`, `overlays`) | M | `components/workspace-host.ts` | Deferred (no consumer); add with first renderer that switches modes |
 | 3 | **`ops sequencing`** — carry engine `seq`/`eventRefs` on `WorkspaceOp` | M | `core/workspace-graph.ts`, `core/workspace-projection.ts` | Needs first `WorkspaceOp` producer (likely `3.6` steer/author) |
 | 4 | **`3.2 formalization`** — claim → candidate → gate → belief/goal/question | L | `core/segmentation.ts`, `core/workspace-projection.ts`, `components/input-hud.ts` | Core reasoning UX loop; routes composer through formalization |
@@ -131,6 +131,7 @@ Overlays, Views, Inline text, Block payloads, Block bodies, Reaching a block, Em
 ## Landed (v5) — progress log
 
 - **WP1 `0.6` backend seam (control half) + WP5 `3.6` steer/author** — `ReasoningBackend` extended with `BackendCaps` and optional `control` surface; NARS adapter implements all control methods; protocol schemas (`reasoning-control.ts`); 8 palette commands gated on `reasoning` capability + backend caps; `config-change` producer emits diff blocks on settings change
+- **WP2 `2.6 scope` fold-all debounce** — `syncUrl` debounce (300ms) batches `folded` URL writes for bulk fold-all; immediate `$urlState` mirror preserved for test consistency; all 422 UI tests pass
 - **WP5 `3.1` projection (graph half)** — `nars-backend.ts` VOCAB derives all NAR rule names from single-source-of-truth `VERIFIER_TRUTH_TABLE` (binary 16, unary 4) + structural (7) + provenance (3) → semantic link kinds; `projectReasoning` detects belief/goal/question/command from punctuation
 - **WP5 `3.4` layouts** — `reasoning-provenance`, `gate-pipeline`, `contradiction-neighborhood`, `budget-resource` registered in `layout-registry`
 - **WP5 `3.5` explanation** — unified `explain()` for block/link/event
