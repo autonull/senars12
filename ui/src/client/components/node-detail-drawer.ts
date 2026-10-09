@@ -5,6 +5,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { EDGE_TYPES } from '../../shared/constants.js';
 import { artifactViewSpec } from '../core/artifacts.js';
 import { type ExplainLink, explainModel } from '../core/explain.js';
+import { generateId } from '../core/index.js';
 import {
   $focusTerm,
   $graphEdges,
@@ -25,6 +26,9 @@ import {
   setWorkspaceSelection,
   updateEdgeData,
   updateNodeData,
+  applyWorkspaceOp,
+  type SemanticBlock,
+  type WorkspaceOp,
 } from '../core/index.js';
 import { fieldMeta, formatField } from '../utils/field-catalog.js';
 import { renderField } from '../utils/render-field.js';
@@ -450,6 +454,7 @@ export class NodeDetailDrawer extends BaseComponent {
 
   private renderActions() {
     const ref = this.blockRef;
+    const node = this.node;
     return html`
       <div class="section-title">Node Actions</div>
       <button class="action-btn" @click=${this.focusOnNode}>Focus Term</button>
@@ -471,7 +476,40 @@ export class NodeDetailDrawer extends BaseComponent {
       <button class="action-btn" @click=${this.copyTerm}>Copy Term</button>
       <button class="action-btn" @click=${this.hideNode}>Hide from Graph</button>
       <button class="action-btn" @click=${this.exportSubgraph}>Export Subgraph</button>
+      ${node ? html`
+        <div class="section-title">Formalize</div>
+        <button class="action-btn" @click=${() => this.createBlockFromNode('question')}>
+          Ask as question
+        </button>
+        <button class="action-btn" @click=${() => this.createBlockFromNode('claim')}>
+          Assert as claim
+        </button>
+      ` : ''}
     `;
+  }
+
+  private createBlockFromNode(kind: 'question' | 'claim') {
+    const node = this.node;
+    if (!node) return;
+    const term = node.term ?? node.label ?? '';
+    if (!term) return;
+
+    const block: SemanticBlock = {
+      id: generateId(kind),
+      kind,
+      role: 'user',
+      title: kind === 'question' ? `Question: ${term}` : `Claim: ${term}`,
+      text: term,
+      sourceRefs: [node.id ?? ''],
+      status: 'complete',
+      createdAt: Date.now(),
+      createdBy: 'user',
+    };
+
+    const op: WorkspaceOp = { op: 'block.add', block };
+    const graph = $workspaceGraph.get();
+    $workspaceGraph.set(applyWorkspaceOp(graph, op));
+    revealBlock(block.id);
   }
 
   private renderHistory() {
