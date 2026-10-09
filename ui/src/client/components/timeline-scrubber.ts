@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
-import { $graphNodes, $nodeHistory, $selectedNodeId, $view, mountTestApi } from '../core/index.js';
+import { $graphNodes, $nodeHistory, $selectedNodeId, $view, mountTestApi, eventBus } from '../core/index.js';
 
 @customElement('timeline-scrubber')
 export class TimelineScrubber extends BaseComponent {
@@ -60,6 +60,19 @@ export class TimelineScrubber extends BaseComponent {
       pointer-events: none;
       transition: left 0.1s linear;
     }
+    .playhead.prospective {
+      background: var(--colors-semantic-accent-amber);
+    }
+    .prospective-zone {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      width: 10%;
+      background: linear-gradient(90deg, transparent, var(--colors-semantic-bg-prospective));
+      pointer-events: none;
+      opacity: 0.5;
+    }
     .play {
       flex-shrink: 0;
       padding: 2px 8px;
@@ -80,12 +93,26 @@ export class TimelineScrubber extends BaseComponent {
       color: var(--colors-semantic-accent-primary);
       border-color: var(--colors-semantic-accent-primary);
     }
+    .status-announce {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
   `;
 
   @state() private minTime = 0;
   @state() private maxTime = 100;
+  @state() private maxDataTime = 100;
   @state() private playing = false;
+  @state() private live = true;
   private animationFrame: number | null = null;
+  private lastAnnouncement = '';
 
   override connectedCallback() {
     super.connectedCallback();
@@ -104,13 +131,23 @@ export class TimelineScrubber extends BaseComponent {
   }
 
   override render() {
-    const t = $view.get().timeline.t;
+    const view = $view.get();
+    const t = view.timeline.t;
     const live = !Number.isFinite(t);
-    const position = live ? this.maxTime : t;
+    this.live = live;
+
+    // Prospective: allow scrubbing up to 10% beyond maxDataTime
+    const prospectiveMax = this.maxDataTime + (this.maxDataTime - this.minTime) * 0.1;
+    this.maxTime = prospectiveMax;
+
+    const position = live ? this.maxDataTime : t;
     const percentage =
       this.maxTime > this.minTime
         ? ((position - this.minTime) / (this.maxTime - this.minTime)) * 100
         : 50;
+
+    const isProspective = position > this.maxDataTime;
+
     return html`
       <div class="scrubber-container">
         <span class="time-label">${this.formatTime(this.minTime)}</span>
@@ -123,7 +160,8 @@ export class TimelineScrubber extends BaseComponent {
             .value="${String(position)}"
             @input="${this.onInput}"
           />
-          <div class="playhead" style="left:${percentage}%"></div>
+          <div class="playhead ${isProspective ? 'prospective' : ''}" style="left:${percentage}%"></div>
+          ${isProspective ? html`<div class="prospective-zone"></div>` : ''}
         </div>
         <span class="time-label">${this.formatTime(this.maxTime)}</span>
         <span class="time-value" role="status" aria-live="polite"
@@ -141,6 +179,9 @@ export class TimelineScrubber extends BaseComponent {
         <button class="play" @click="${() => this.onPlayPause()}">
           ${this.playing ? '❚❚' : '▶'}
         </button>
+        <span class="status-announce" aria-live="assertive" aria-atomic="true">
+          ${this.lastAnnouncement}
+        </span>
       </div>
     `;
   }
@@ -156,7 +197,7 @@ export class TimelineScrubber extends BaseComponent {
         max = Math.max(max, h.timestamp);
       }
       this.minTime = min === Number.POSITIVE_INFINITY ? 0 : min;
-      this.maxTime = max === Number.NEGATIVE_INFINITY ? 100 : max;
+      this.maxDataTime = max === Number.NEGATIVE_INFINITY ? 100 : max;
       return;
     }
 
@@ -170,7 +211,7 @@ export class TimelineScrubber extends BaseComponent {
       }
     }
     this.minTime = min === Number.POSITIVE_INFINITY ? 0 : min;
-    this.maxTime = max === 0 ? 100 : max;
+    this.maxDataTime = max === 0 ? 100 : max;
   }
 
   private formatTime(t: number): string {
@@ -183,7 +224,14 @@ export class TimelineScrubber extends BaseComponent {
 
   private onInput(e: Event) {
     const t = Number.parseFloat((e.target as HTMLInputElement).value);
+    const wasLive = this.live;
+    const nowProspective = t > this.maxDataTime;
     $view.set({ ...$view.get(), timeline: { t } });
+    this.announce(
+      nowProspective
+        ? `Prospective time: ${this.formatTime(t)}`
+        : `Time: ${this.formatTime(t)}`
+    );
     this.requestUpdate();
   }
 
@@ -191,14 +239,17 @@ export class TimelineScrubber extends BaseComponent {
   private onNow() {
     this.stopPlaying();
     $view.set({ ...$view.get(), timeline: { t: Number.POSITIVE_INFINITY } });
+    this.announce('Live — all events');
     this.requestUpdate();
   }
 
   private onPlayPause() {
     if (this.playing) {
       this.stopPlaying();
+      this.announce('Playback paused');
     } else {
       this.startPlaying();
+      this.announce('Playback started');
     }
   }
 
@@ -207,12 +258,21 @@ export class TimelineScrubber extends BaseComponent {
     const step = () => {
       if (!this.playing) return;
       const current = $view.get().timeline.t;
-      const next = Math.min(current + 1000, this.maxTime);
+      const isLive = !Number.isFinite(current);
+      const start = isLive ? this.maxDataTime : current;
+      const next = Math.min(start + 1000, this.maxTime);
       $view.set({ ...$view.get(), timeline: { t: next } });
+      const prospective = next > this.maxDataTime;
+      this.announce(
+        prospective
+          ? `Playing prospective: ${this.formatTime(next)}`
+          : `Playing: ${this.formatTime(next)}`
+      );
       if (next < this.maxTime) {
         this.animationFrame = requestAnimationFrame(step);
       } else {
         this.playing = false;
+        this.announce('Playback reached end');
       }
     };
     this.animationFrame = requestAnimationFrame(step);
@@ -223,6 +283,18 @@ export class TimelineScrubber extends BaseComponent {
     if (this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
       this.animationFrame = null;
+    }
+  }
+
+  private announce(message: string) {
+    if (message !== this.lastAnnouncement) {
+      this.lastAnnouncement = message;
+      this.requestUpdate();
+      // Clear after announcement so repeat changes are announced
+      setTimeout(() => {
+        this.lastAnnouncement = '';
+        this.requestUpdate();
+      }, 1000);
     }
   }
 }
