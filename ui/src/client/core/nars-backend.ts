@@ -29,46 +29,48 @@ import type {
 } from './reasoning-backend.js';
 import { $graphEdges, $graphNodes } from './store.js';
 import { send } from './ws-client.js';
+import { VERIFIER_TRUTH_TABLE } from '@senars/core';
 import type { Ref } from './workspace-graph.js';
 
 /** The uncertainty vocabulary NAL truth values are labelled with. */
 export const NAL_VOCABULARY = 'nal';
 
+/** NAR rule names → semantic link kinds, derived from the single-source-of-truth verifier table. */
+function makeNarEdgeVocab(): Readonly<Record<string, string>> {
+  const binary = Object.keys(VERIFIER_TRUTH_TABLE.BINARY_TRUTH);
+  const unary = Object.keys(VERIFIER_TRUTH_TABLE.UNARY_TRUTH);
+  // Structural rules that appear in the engine but have no truth function
+  const structural = ['inheritance', 'similarity', 'implication', 'equivalence', 'derivation', 'semantic', 'relation'];
+  // Explicit provenance edges
+  const provenance = ['support', 'contradiction', 'reference'];
+
+  const edgeMap: Record<string, string> = {};
+
+  // Logical inference rules → derived-from
+  for (const rule of binary) edgeMap[rule] = 'derived-from';
+  for (const rule of unary) edgeMap[rule] = 'derived-from';
+
+  // Structural/relational
+  for (const rule of structural) {
+    if (rule === 'similarity' || rule === 'equivalence') edgeMap[rule] = 'supports';
+    else if (rule === 'semantic' || rule === 'relation') edgeMap[rule] = 'references';
+    else edgeMap[rule] = 'derived-from';
+  }
+
+  // Provenance
+  for (const rule of provenance) {
+    if (rule === 'support') edgeMap[rule] = 'supports';
+    else if (rule === 'contradiction') edgeMap[rule] = 'contradicts';
+    else edgeMap[rule] = 'references';
+  }
+
+  return edgeMap;
+}
+
 /** Unmapped kinds still surface: a node becomes a `claim`, an edge a `references`. */
 const VOCAB: BackendVocabulary = {
   nodes: { 'nar:concept': 'claim', 'metta:atom': 'claim', 'metta:skill': 'tool-call' },
-  edges: {
-    /** Logical inference edges. */
-    deduction: 'derived-from',
-    induction: 'derived-from',
-    abduction: 'derived-from',
-    revision: 'revises',
-    exemplification: 'derived-from',
-    comparison: 'derived-from',
-    analogy: 'derived-from',
-    resemblance: 'derived-from',
-    intersection: 'derived-from',
-    union: 'derived-from',
-    detachment: 'derived-from',
-    contraposition: 'derived-from',
-    sameness: 'derived-from',
-    conversion: 'derived-from',
-    'negation-intro': 'derived-from',
-    'negation-elim': 'derived-from',
-    negation: 'derived-from',
-    /** Structural/relational edges. */
-    inheritance: 'derived-from',
-    similarity: 'supports',
-    implication: 'derived-from',
-    equivalence: 'supports',
-    derivation: 'derived-from',
-    semantic: 'references',
-    relation: 'references',
-    /** Explicit provenance/revision edges. */
-    support: 'supports',
-    contradiction: 'contradicts',
-    reference: 'references',
-  },
+  edges: makeNarEdgeVocab(),
 };
 
 /** NARS can steer/author — the engine exposes the full control surface. */

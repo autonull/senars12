@@ -14,5 +14,5 @@ export const resolveAliases = [
   { find: /^spacegraphjs$/, replacement: resolve(root, 'spacegraphjs7/src/index.ts') },
   { find: /^spacegraphjs\/(.*)$/, replacement: resolve(root, 'spacegraphjs7/src/$1') },
   { find: /^@senars\/core\/lens-schema$/, replacement: resolve(coreSrc, 'lens-schema.ts') },
-  { find: '@senars/core', replacement: resolve(coreSrc, 'protocol/index.ts') },
+  { find: '@senars/core', replacement: resolve(coreSrc, 'index.ts') },
 ];

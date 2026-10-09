@@ -225,6 +225,9 @@ export type { CognitiveEvent } from './schemas/cognitive-events.js';
 export { isEventType, isNarEvent } from './schemas/cognitive-events.js';
 /** Budget/truth value types the UI field catalog is keyed against. @public */
 export type { ConsumedBudget, ReasoningBudget, TruthValue } from './schemas/index.js';
+/** Derivation verification — the trusted boundary's proof checker. @public */
+export type { VerificationFinding, StepVerificationResult, VerificationResult, VerifyOptions } from './verify-derivation.js';
+export { VERIFIER_TRUTH_TABLE, resolveTruthFn, verifyRecord } from './verify-derivation.js';
 /** Stats manager. @public */
 /** Transport-level connection error. @public */
 export { ConnectionError } from './Transport.js';

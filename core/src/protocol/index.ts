@@ -41,7 +41,6 @@ export {
   type ReasoningAddGoal,
   type ReasoningAdjustBudget,
   type ReasoningAdjustProvider,
-  type ReasoningControlResponse,
 } from './reasoning-control.js';
 export { ServerError, type ServerErrorCode } from './error.js';
 export {
