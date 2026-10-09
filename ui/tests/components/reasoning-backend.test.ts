@@ -117,7 +117,7 @@ describe('node→block mapping', () => {
 
   it('resolves whatever id a graph element carries', () => {
     engine([node('bird')]);
-    const graph = projectWorkspace({ messages: [], backend: narsBackend });
+    const graph = projectWorkspace({ messages: [], backends: [narsBackend] });
     // a conversation node's id is already a block ref; an engine id maps through the backend
     expect(resolveBlockRef(graph, narsBackend, claimId('bird'))).toBe(claimId('bird'));
     expect(resolveBlockRef(graph, narsBackend, 'bird')).toBe(claimId('bird'));

@@ -107,6 +107,7 @@ export {
 } from './embedded-views.js';
 export { type Neighbor, type Neighborhood, neighborhood } from './neighborhood.js';
 export { narsBackend, NAL_VOCABULARY } from './nars-backend.js';
+export { mettaBackend, METTA_VOCABULARY } from './metta-backend.js';
 export {
   type BackendCaps,
   type BackendEdge,

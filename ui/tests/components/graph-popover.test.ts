@@ -31,7 +31,7 @@ const project = (
 ): void => {
   $graphNodes.set(new Map(nodes));
   $graphEdges.set(new Map(edges));
-  $workspaceGraph.set(projectWorkspace({ messages: [], backend: narsBackend }));
+  $workspaceGraph.set(projectWorkspace({ messages: [], backends: [narsBackend] }));
 };
 
 const block = (id: string, over: Partial<SemanticBlock> = {}): SemanticBlock => ({

@@ -10,6 +10,7 @@
  */
 
 import { narsBackend } from './nars-backend.js';
+import { mettaBackend } from './metta-backend.js';
 import { $chatMessages, $graphEdges, $graphNodes, $workspaceGraph, $config } from './store.js';
 import { projectWorkspace } from './workspace-projection.js';
 import { initConfigChangeProducer } from './config-change-producer.js';
@@ -18,7 +19,7 @@ import type { WorkspaceGraph } from './workspace-graph.js';
 /** Re-project current client state into `$workspaceGraph`, preserving session state. */
 export function syncWorkspaceGraph(): WorkspaceGraph {
   const previous = $workspaceGraph.get();
-  const next = projectWorkspace({ messages: $chatMessages.get(), backend: narsBackend });
+  const next = projectWorkspace({ messages: $chatMessages.get(), backends: [narsBackend, mettaBackend] });
   next.focus = previous.focus;
   next.selection = previous.selection;
   next.timeCursor = previous.timeCursor;

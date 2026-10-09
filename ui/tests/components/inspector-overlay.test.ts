@@ -23,7 +23,7 @@ const engine = (...ids: string[]): void => {
     )
   );
   $graphEdges.set(new Map());
-  $workspaceGraph.set(projectWorkspace({ messages: [], backend: narsBackend }));
+  $workspaceGraph.set(projectWorkspace({ messages: [], backends: [narsBackend] }));
 };
 
 const openTab = async (el: HTMLElement, index: number): Promise<void> => {
@@ -130,7 +130,7 @@ describe('inspector links tab', () => {
       confidence: 0.7,
     };
     $graphEdges.set(new Map([['bird->fly', edge]]));
-    $workspaceGraph.set(projectWorkspace({ messages: [], backend: narsBackend }));
+$workspaceGraph.set(projectWorkspace({ messages: [], backends: [narsBackend] }));
   };
 
   it('explains the links of the node instead of its raw engine edges', async () => {

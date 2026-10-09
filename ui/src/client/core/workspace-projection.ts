@@ -405,11 +405,14 @@ const merge = (fragments: readonly WorkspaceFragment[]): WorkspaceGraph => {
 /** Project the whole current client state into one WorkspaceGraph. */
 export function projectWorkspace(state: {
   messages: readonly ChatMessage[];
-  backend: ReasoningBackend;
+  backends: readonly ReasoningBackend[];
   cognitiveEvents?: readonly CognitiveEvent[];
 }): WorkspaceGraph {
   const messageIds = new Set(state.messages.map((message) => message.id));
-  const fragments = [projectChat(state.messages), projectReasoning(state.backend, messageIds)];
+  const fragments = [projectChat(state.messages)];
+  for (const backend of state.backends) {
+    fragments.push(projectReasoning(backend, messageIds));
+  }
   if (state.cognitiveEvents && state.cognitiveEvents.length > 0) {
     fragments.push(projectCognitiveEvents(state.cognitiveEvents));
   }

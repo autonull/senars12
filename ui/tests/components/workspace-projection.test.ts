@@ -1,6 +1,7 @@
 import type { ChatMessage, GraphNodeData } from '@senars/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { narsBackend } from '../../src/client/core/nars-backend.js';
+import { mettaBackend } from '../../src/client/core/metta-backend.js';
 import { $graphEdges, $graphNodes } from '../../src/client/core/store.js';
 import {
   childId,
@@ -211,7 +212,7 @@ describe('workspace projection', () => {
   it('merges chat and reasoning, excluding nodes that are chat messages', () => {
     const messages = [message({ id: 'u1', role: 'user' }), message({ id: 'm1', role: 'agent' })];
     engine([node('m1'), node('bird')]);
-    const graph = projectWorkspace({ messages, backend: narsBackend });
+    const graph = projectWorkspace({ messages, backends: [narsBackend] });
     expect(graph.roots).toEqual([turnId('u1'), turnId('m1'), claimId('bird')]);
     expect(graph.blocks.has(claimId('m1'))).toBe(false);
   });

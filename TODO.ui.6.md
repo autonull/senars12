@@ -27,7 +27,7 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 | 2 | **`2.6 context`** — `WorkspaceContext` fields (`renderer`, `setRenderer`, `overlays`) | M | `components/workspace-host.ts` | Deferred (no consumer); add with first renderer that switches modes |
 | 3 | **`ops sequencing`** — carry engine `seq`/`eventRefs` on `WorkspaceOp` | M | `core/workspace-graph.ts`, `core/workspace-projection.ts` | **Done** — added optional `seq?: number` and `eventRefs?: Ref[]` to all `WorkspaceOp` variants; 3.6 steer/author producer ready |
 | 4 | **`3.2 formalization`** — claim → candidate → gate → belief/goal/question | L | `core/segmentation.ts`, `core/workspace-projection.ts`, `components/input-hud.ts` | **Done** — `input-hud.ts` routes `believe`/`goal` modes through `narsBackend.control.submit()`; claims decomposed via `decomposeForMode` submitted as `belief`/`goal`; chat history preserved |
-| 5 | **`3.7 MeTTa`** — second `ReasoningBackend` adapter | M | `core/metta-backend.ts` | Seam ready; implement `vocab`/`kind` and pass to `projectWorkspace` |
+| 5 | **`3.7 MeTTa`** — second `ReasoningBackend` adapter | M | `core/metta-backend.ts`, `core/workspace-bindings.ts`, `core/workspace-projection.ts` | **Done** — `metta-backend.ts` implements `ReasoningBackend` with MeTTa vocabulary (`metta:atom`→`claim`, `metta:skill`→`tool-call`); `projectWorkspace` accepts `backends[]` array; both NARS and MeTTa projected; limited control surface (query-oriented) |
 | 6 | **`3.1 projection` (event-stream half)** — `budget.exhausted` → `budget` blocks, `policy.violation`/`egress.gate.rejected`/`shadow.validation.dropped`/`judgment.resolved` → `gate-decision` blocks | M | `core/workspace-projection.ts`, `core/graph-projection.ts` | **Done** — added `projectCognitiveEvents()` in `workspace-projection.ts`; projects budget/policy/egress/shadow/judgment events to `budget`/`gate-decision` blocks; optional `cognitiveEvents` param on `projectWorkspace()` |
 | 7 | **`2.3 node ops`** — "Ask as question" / "Assert as claim" → `WorkspaceOp.block.add` | M | `core/workspace-projection.ts`, `components/renderers/graph.ts` | Cross-fragment context refs in `projectWorkspace` |
 | 8 | **`4.3 affordances` (edge half)** — edge popover Open-in-Notebook / Open View | M | `components/overlays/inspector.ts`, `components/node-detail-drawer.ts`, `core/workspace-projection.ts` | Node half landed; edge half needs `linkRefFor` |
@@ -139,6 +139,7 @@ Overlays, Views, Inline text, Block payloads, Block bodies, Reaching a block, Em
 - **WP5 `3.4` layouts** — `reasoning-provenance`, `gate-pipeline`, `contradiction-neighborhood`, `budget-resource` registered in `layout-registry`
 - **WP5 `3.5` explanation** — unified `explain()` for block/link/event
 - **WP5 `3.6` steer/author + `config-change`** — complete
+- **WP5 `3.7 MeTTa`** — second `ReasoningBackend` adapter in `metta-backend.ts` with MeTTa vocabulary (`metta:atom`→`claim`, `metta:skill`→`tool-call`, edges `metta:rewrite`/`query`/`pattern-match`/`skill-execution`/`space`); `projectWorkspace` accepts `backends[]` array projecting both NARS and MeTTa; limited control surface (query-oriented)
 - **WP2 `2.6 validation`** — cycle-free layout ids via `core/layout-ids.ts`
 - **WP2 `2.5` selection/focus/defaults** — all landed
 - **WP3 `4.3 typing`** — discriminated `Artifact` union, `block-payload.ts`
