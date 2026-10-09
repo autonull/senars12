@@ -18,6 +18,17 @@ import { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './len
 import { NodeSetMsg, ObjectSetMsg } from './object-patch.js';
 import { UiCommandMsg } from './ui-command.js';
 import {
+  ReasoningSubmitMsg,
+  ReasoningStepMsg,
+  ReasoningRunMsg,
+  ReasoningRetractMsg,
+  ReasoningReviseMsg,
+  ReasoningAddGoalMsg,
+  ReasoningAdjustBudgetMsg,
+  ReasoningAdjustProviderMsg,
+  ReasoningControlResponse,
+} from './reasoning-control.js';
+import {
   FocusSet,
   LensSet,
   StateSnapshot,
@@ -40,6 +51,14 @@ export const IncomingFromClient = z.discriminatedUnion('type', [
   NodeHistoryRequestMsg,
   LMStatusRequest,
   LMSwitchMsg,
+  ReasoningSubmitMsg,
+  ReasoningStepMsg,
+  ReasoningRunMsg,
+  ReasoningRetractMsg,
+  ReasoningReviseMsg,
+  ReasoningAddGoalMsg,
+  ReasoningAdjustBudgetMsg,
+  ReasoningAdjustProviderMsg,
 ]);
 export const IncomingFromServer = z.discriminatedUnion('type', [
   ChatAgentStream,
@@ -55,6 +74,7 @@ export const IncomingFromServer = z.discriminatedUnion('type', [
   LMStatusMsg,
   ServerError,
   UiCommandMsg,
+  ReasoningControlResponse,
 ]);
 export type IncomingFromClient = z.infer<typeof IncomingFromClient>;
 export type IncomingFromServer = z.infer<typeof IncomingFromServer>;

@@ -108,11 +108,15 @@ export {
 export { type Neighbor, type Neighborhood, neighborhood } from './neighborhood.js';
 export { narsBackend, NAL_VOCABULARY } from './nars-backend.js';
 export {
+  type BackendCaps,
   type BackendEdge,
   type BackendNode,
   type BackendSnapshot,
   type BackendVocabulary,
+  type ControlResult,
   type ReasoningBackend,
+  type ReasoningControl,
+  type SubmitInput,
 } from './reasoning-backend.js';
 export { FocusTrap } from './focus-trap.js';
 export {
@@ -315,7 +319,7 @@ export {
   type Segment,
   segmentText,
 } from './segmentation.js';
-export { mountWorkspaceProjection, syncWorkspaceGraph } from './workspace-bindings.js';
+export { initConfigChangeProducer, mountWorkspaceProjection, syncWorkspaceGraph } from './workspace-bindings.js';
 export {
   registerRenderer,
   rendererHasControl,

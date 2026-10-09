@@ -37,19 +37,23 @@ Size legend: **S** ≈ under half a day · **M** ≈ about a day · **L** ≈ mu
 
 Ordered by leverage on the critical path; `→` files are the likely edit surface.
 
-1. **`0.6 backend seam`** (M) — both read halves landed (LM façade + `ReasoningBackend` contract and
-   NARS adapter); what is left is the *control* half (`submit`/`step`/`run`), which belongs with the
-   **`3.6` steer/author** producers. `→ core/`
-2. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
+1. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
    renderer/overlays context fields await a consumer; fold-all debounce awaits a bulk writer.)
-3. **`2.4 inspection & embedded views`** (L) — **done**: node *and* edge popovers (both carding the
+2. **`2.4 inspection & embedded views`** (L) — **done**: node *and* edge popovers (both carding the
    block the notebook would render, the edge one also showing the derivation tree), ToC reach, remembered
    neighborhood depth, the explain-model Links tab, and the embedded-view cluster (catalog, projections,
    Notebook embedding, block-menu toggles). (`4.3 affordances` and `4.5 pinning` partial —
    inspector reach landed; manager/command pinning. `1.4 rich text` partial — inline tokenizer.)
-4. **`ops sequencing`** (M) — deferred until something emits `WorkspaceOp`; the cursor half of
+3. **`ops sequencing`** (M) — deferred until something emits `WorkspaceOp`; the cursor half of
    **`4.4`** landed (one cursor, real `createdAt`, admission in the notebook).
    (`4.4 controls` is partially landed — live reset + readout; see WP4.)
+
+*(Landed from this queue: the `0.6` backend seam control half — `submit`/`step`/`run` + `BackendCaps`
+via `3.6 steer/author`; the `2.4` node hover popover (and with it the `innerHTML` sink), the
+`1.5 page` URL address, the `1.5/1.1 section model` (recursive
+containment, fold-aware `j`/`k`, `view.fold-all`), the `4.3 typing` payload contract and the
+`citations model` bibliography rendering — see §Landed (v5). The three small state wins `2.5 defaults`,
+`2.5 selection atom` and `2.5 focus react` were landed earlier.)*
 
 *(Landed from this queue: the `2.4` node hover popover (and with it the `innerHTML` sink), the
 `1.5 page` URL address, the `1.5/1.1 section model` (recursive
@@ -57,8 +61,8 @@ containment, fold-aware `j`/`k`, `view.fold-all`), the `4.3 typing` payload cont
 `citations model` bibliography rendering — see §Landed (v5). The three small state wins `2.5 defaults`,
 `2.5 selection atom` and `2.5 focus react` were landed earlier.)*
 
-**Gated** (see §Blockers): `0.5`; WP5 `3.3` → `4.3 derivation-record`; WP5 `3.6` → the
-`config-change` producer.
+**Gated** (see §Blockers): `0.5`; WP5 `3.3` → `4.3 derivation-record`. `3.6` and `config-change`
+producer landed.
 
 ## Blockers / prerequisites
 
@@ -97,8 +101,8 @@ Cross-cutting constraints that gate multiple items — each is a work order: fir
   closed today: an engine claim's payload is the raw record and `claim` is deliberately not in
   `JSON_KINDS`, so it stays hidden until a reasoning producer emits a block kind with a view.
 - **`DerivationRecord` payload** — defined by WP5 **`3.3`**; blocks **`4.3 derivation-record`**.
-- **`config-change` producer** — nothing emits `config-change` yet (segmentation/**`3.6`**); the diff
-  view reads `{ before, after, language?, from?, to? }` (JSON fallback meanwhile).
+- **`config-change` producer** — **landed** as part of **`3.6`**: emits the diff payload on settings
+  changes via `core/config-change-producer.ts`, wired into `mountWorkspaceProjection`.
 
 ## Seams you can build on
 
@@ -191,7 +195,7 @@ Landed extension points — wire features here instead of re-deriving them.
   overlay. Remaining: a per-overlay pin *button* (the command is the current affordance) and CSS for
   `[data-pinned]`. `→ core/overlay-manager.ts`, `core/events.ts`, `core/commands.ts`,
   `components/app-layout.ts`. `(b)`,`(e)`,`(aa)`
-- [~] **0.6 backend seam** — land the `ReasoningBackend` contract + adapter seam (`LmProvider` façade;
+- [x] **0.6 backend seam** — land the `ReasoningBackend` contract + adapter seam (`LmProvider` façade;
   `lm.status`/`lm.switch` already real). Needed by WP5. Landed the **LM half** as the façade
   `core/lm-provider.ts` (state contract: `ProviderDescriptor`, `$lmProvider`, `applyLmStatus`
   normalising the wire record, `providerLabel`/`providerUsable`) + `core/lm-transport.ts`
@@ -208,13 +212,17 @@ Landed extension points — wire features here instead of re-deriving them.
   NARS/MeTTa vocabulary — node kind → block kind, edge kind → link kind, the `label→term→atom→id`
   fallback, the `nal` truth label — moved out of the projection into the adapter, and
   `projectGraph(nodes, edges, exclude)` became **`projectReasoning(backend, exclude)`**, so a second
-  engine is an adapter, not a branch. Remaining: the **control half** (`submit`/`step`/`run` +
-  `BackendCaps`), which is a claim about producers the wire does not carry yet and therefore belongs
-  with **`3.6` steer/author** rather than here; `config-hud` `embedded` mode (no second host exists
-  yet, so a mode now would be dead API); and the `CapabilityHost` mixin form once a component gates
-  its whole presence. `→ core/lm-provider.ts`, `core/lm-transport.ts`, `core/reasoning-backend.ts`,
-  `core/nars-backend.ts`, `core/workspace-projection.ts`,
-  `components/overlays/{provider,settings}.ts`, `server/index.ts`. `(c)`,`(aa)`,`(m)`,`(k)`,`(f)`
+  engine is an adapter, not a branch. Landed the **control half** (`submit`/`step`/`run` +
+  `BackendCaps`) as part of **`3.6` steer/author**: `ReasoningBackend` now carries `caps` and an
+  optional `control` surface; `nars-backend.ts` implements all control methods sending
+  `reasoning.submit/step/run/retract/revise/add-goal/adjust-budget/adjust-provider` wire messages;
+  protocol schemas in `core/src/protocol/reasoning-control.ts`; palette commands in `core/commands.ts`
+  gated on `reasoning` capability and backend caps. Remaining: `config-hud` `embedded` mode (no second
+  host exists yet, so a mode now would be dead API); and the `CapabilityHost` mixin form once a
+  component gates its whole presence. `→ core/lm-provider.ts`, `core/lm-transport.ts`,
+  `core/reasoning-backend.ts`, `core/nars-backend.ts`, `core/workspace-projection.ts`,
+  `components/overlays/{provider,settings}.ts`, `server/index.ts`, `core/src/protocol/reasoning-control.ts`,
+  `core/commands.ts`. `(c)`,`(aa)`,`(m)`,`(k)`,`(f)`
 
 ## WP2 — State & URL consolidation
 
@@ -459,10 +467,17 @@ them by `edgeKey(source, target)` — the same key the edge map uses. **The popo
   `core/reasoning-layout.ts` (`reasoningPositions`, pure, reusing `blocksInOrder` and `Point`) +
   concept-scope registry rows with `recommendedFor` lenses; the link-catalog parity test now passes
   without an allowlist. `→ core/reasoning-layout.ts`, `utils/layout-registry.ts`. `(Phase 3)`
-- [ ] **3.6 steer/author** — retract/revise belief, add goal, adjust budget/provider from block/node
+- [x] **3.6 steer/author** — retract/revise belief, add goal, adjust budget/provider from block/node
   actions; live reaction as new blocks/links. Also the **`config-change` producer** (emit the landed
-  diff payload on settings changes). `→ core/commands.ts`, `components/overlays/block-menu.ts`,
-  `core/workspace-graph.ts`. `(Phase 3)`
+  diff payload on settings changes). Landed: `ReasoningBackend` control surface with
+  `submit`/`step`/`run`/`retract`/`revise`/`addGoal`/`adjustBudget`/`adjustProvider`; NARS adapter
+  implementation sending wire messages; protocol schemas (`reasoning-control.ts`); palette commands
+  (`reasoning.submit`, `reasoning.step`, `reasoning.run`, `reasoning.retract`, `reasoning.revise`,
+  `reasoning.add-goal`, `reasoning.adjust-budget`, `reasoning.adjust-provider`) gated on `reasoning`
+  capability and backend caps; config-change producer in `core/config-change-producer.ts` emitting
+  `config-change` blocks on config diff, wired into `mountWorkspaceProjection`. `→ core/commands.ts`,
+  `core/nars-backend.ts`, `core/reasoning-backend.ts`, `core/config-change-producer.ts`,
+  `core/workspace-bindings.ts`, `core/src/protocol/reasoning-control.ts`. `(Phase 3)`
 - [ ] **3.7 MeTTa** — adapter feeding the same substrate; one scenario through it. The seam is ready
   (`ReasoningBackend`): implement `core/metta-backend.ts` with its own `vocab`/`kind` and pass it to
   `projectWorkspace` — no projection change. `→ core/metta-backend.ts`. `(Phase 3)`
@@ -876,5 +891,16 @@ in v3 Appendix D). Rolled up:
   refs: rendering block labels there would want the graph, so `tree-view`'s embedded budget is the place a
   `label` resolution seam would land.
 
-  Suite **422 green** (new: derivation record projection and its nesting, non-provenance edges untouched,
-  payload normalization, the derivation tree view, unmapped-rule fallback, `block.spec` verbatim).
+Suite **422 green** (new: derivation record projection and its nesting, non-provenance edges untouched,
+   payload normalization, the derivation tree view, unmapped-rule fallback, `block.spec` verbatim).
+- **WP1 `0.6` backend seam (control half) + WP5 `3.6` steer/author** — `ReasoningBackend` extended with
+  `BackendCaps` and optional `control` surface (`submit`/`step`/`run`/`retract`/`revise`/`addGoal`/
+  `adjustBudget`/`adjustProvider`); `core/nars-backend.ts` implements all control methods sending
+  `reasoning.submit/step/run/retract/revise/add-goal/adjust-budget/adjust-provider` wire messages;
+  new protocol schemas in `core/src/protocol/reasoning-control.ts` (added to `IncomingFromClient`/
+  `IncomingFromServer` unions); palette commands in `core/commands.ts` (`reasoning.submit`, `reasoning.step`,
+  `reasoning.run`, `reasoning.retract`, `reasoning.revise`, `reasoning.add-goal`, `reasoning.adjust-budget`,
+  `reasoning.adjust-provider`) gated on `reasoning` capability and backend caps. **`config-change` producer**
+  landed in `core/config-change-producer.ts`: emits `config-change` blocks on config diff, wired into
+  `mountWorkspaceProjection`; `artifacts.ts` already renders the diff through the `s-diff` view.
+  Suite **422 green** (all existing tests pass).

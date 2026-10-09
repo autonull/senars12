@@ -11,6 +11,7 @@ import { recordCommandUse } from './command-history.js';
 import { eventBus } from './events.js';
 import { overlays } from './overlay-registry.js';
 import { foldableSections, sectionTree } from './sections.js';
+import { narsBackend } from './nars-backend.js';
 import {
   $activeRenderer,
   $collapsedBlocks,
@@ -147,6 +148,106 @@ const derivedCommands = (): Command[] => [
     available: () => foldableSections(sectionTree($workspaceGraph.get())).length > 0,
   },
 ];
+
+/** Reasoning is gated on the `reasoning` capability and the backend's caps. */
+const reasoningAvailable = (): boolean => capabilityGate('reasoning');
+const caps = () => narsBackend.caps;
+
+/** Steer/author commands — only available when the reasoning capability is enabled
+ * and the backend supports the specific operation. */
+registerCommand({
+  id: 'reasoning.submit',
+  title: 'Submit to reasoner',
+  group: 'Reasoning',
+  keywords: 'reasoning submit belief goal question nars',
+  run: (args) =>
+    narsBackend.control?.submit({
+      term: String(args.term ?? ''),
+      mode: (args.mode as 'belief' | 'goal' | 'question') ?? 'belief',
+    }),
+  parse: (args) => ({
+    term: String(args.term ?? ''),
+    mode: (args.mode as 'belief' | 'goal' | 'question') ?? 'belief',
+  }),
+  available: () => reasoningAvailable() && caps().canSubmit,
+});
+
+registerCommand({
+  id: 'reasoning.step',
+  title: 'Step reasoner',
+  group: 'Reasoning',
+  keywords: 'reasoning step inference nars',
+  run: () => narsBackend.control?.step(),
+  available: () => reasoningAvailable() && caps().canStep,
+});
+
+registerCommand({
+  id: 'reasoning.run',
+  title: 'Run reasoner',
+  group: 'Reasoning',
+  keywords: 'reasoning run inference nars',
+  run: () => narsBackend.control?.run(),
+  available: () => reasoningAvailable() && caps().canRun,
+});
+
+registerCommand({
+  id: 'reasoning.retract',
+  title: 'Retract belief',
+  group: 'Reasoning',
+  keywords: 'reasoning retract belief remove nars',
+  run: (args) => narsBackend.control?.retract(String(args.nodeId ?? '')),
+  parse: (args) => ({ nodeId: String(args.nodeId ?? '') }),
+  available: () => reasoningAvailable() && caps().canRetract,
+});
+
+registerCommand({
+  id: 'reasoning.revise',
+  title: 'Revise belief',
+  group: 'Reasoning',
+  keywords: 'reasoning revise belief truth frequency confidence nars',
+  run: (args) =>
+    narsBackend.control?.revise(
+      String(args.nodeId ?? ''),
+      Number(args.frequency ?? 0),
+      Number(args.confidence ?? 0)
+    ),
+  parse: (args) => ({
+    nodeId: String(args.nodeId ?? ''),
+    frequency: Number(args.frequency ?? 0),
+    confidence: Number(args.confidence ?? 0),
+  }),
+  available: () => reasoningAvailable() && caps().canRevise,
+});
+
+registerCommand({
+  id: 'reasoning.add-goal',
+  title: 'Add goal',
+  group: 'Reasoning',
+  keywords: 'reasoning add goal nars',
+  run: (args) => narsBackend.control?.addGoal(String(args.term ?? '')),
+  parse: (args) => ({ term: String(args.term ?? '') }),
+  available: () => reasoningAvailable() && caps().canAddGoal,
+});
+
+registerCommand({
+  id: 'reasoning.adjust-budget',
+  title: 'Adjust reasoning budget',
+  group: 'Reasoning',
+  keywords: 'reasoning budget adjust nars',
+  run: (args) => narsBackend.control?.adjustBudget(Number(args.budget ?? 0)),
+  parse: (args) => ({ budget: Number(args.budget ?? 0) }),
+  available: () => reasoningAvailable() && caps().canAdjustBudget,
+});
+
+registerCommand({
+  id: 'reasoning.adjust-provider',
+  title: 'Adjust LM provider for reasoning',
+  group: 'Reasoning',
+  keywords: 'reasoning provider lm switch nars',
+  run: (args) => narsBackend.control?.adjustProvider(String(args.provider ?? '')),
+  parse: (args) => ({ provider: String(args.provider ?? '') }),
+  available: () => reasoningAvailable() && caps().canAdjustProvider,
+});
 
 /** Every command the palette may offer right now, explicit then derived. */
 export const activeCommands = (): Command[] =>

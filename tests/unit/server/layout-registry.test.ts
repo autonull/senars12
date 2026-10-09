@@ -3,7 +3,21 @@ import { LENS_DEFAULT_LAYOUTS, LENS_IDS } from '@senars/ui/client/utils/lens-cat
 import { layoutRegistry } from '@senars/ui/client/utils/layout-registry';
 import { describe, expect, it } from 'vitest';
 
-const LAYOUT_IDS = ['breadthfirst', 'concentric', 'concentric-urgency', 'cose', 'preset'];
+const LAYOUT_IDS = [
+  'artifact-map',
+  'breadthfirst',
+  'budget-resource',
+  'chronological-flow',
+  'concentric',
+  'concentric-urgency',
+  'contradiction-neighborhood',
+  'cose',
+  'gate-pipeline',
+  'preset',
+  'reasoning-provenance',
+  'semantic-map',
+  'source-view',
+];
 
 describe('layoutRegistry — SSOT', () => {
   it('registers each layout once with a label, a 2D factory and a 3D name', () => {

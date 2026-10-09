@@ -23,6 +23,26 @@ export {
 } from './chat.js';
 export { ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
 export { UiCommandMsg } from './ui-command.js';
+export {
+  ReasoningSubmitMsg,
+  ReasoningStepMsg,
+  ReasoningRunMsg,
+  ReasoningRetractMsg,
+  ReasoningReviseMsg,
+  ReasoningAddGoalMsg,
+  ReasoningAdjustBudgetMsg,
+  ReasoningAdjustProviderMsg,
+  ReasoningControlResponse,
+  type ReasoningSubmit,
+  type ReasoningStep,
+  type ReasoningRun,
+  type ReasoningRetract,
+  type ReasoningRevise,
+  type ReasoningAddGoal,
+  type ReasoningAdjustBudget,
+  type ReasoningAdjustProvider,
+  type ReasoningControlResponse,
+} from './reasoning-control.js';
 export { ServerError, type ServerErrorCode } from './error.js';
 export {
   GraphNodeDataStrict,
