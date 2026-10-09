@@ -8,12 +8,14 @@ import {
   $layoutScope,
   $lensLayer,
   $lensLayout,
+  $neighborhoodDepth,
   $panels,
   $urlState,
   $workspaceGraph,
   hydrateFromUrl,
   setActiveLayout,
   setGraphLayer,
+  setNeighborhoodDepth,
   toggleCollapsed,
 } from '../../src/client/core/store.js';
 import {
@@ -121,6 +123,22 @@ describe('url-addressable state', () => {
     hydrateFromUrl();
     expect($workspaceGraph.get().focus).toBe('b1');
     expect($urlState.get().page).toBe('t1');
+  });
+
+  it('hydrates and mirrors the neighborhood depth, clamped to 1–3', () => {
+    window.location.hash = 'depth=3';
+    hydrateFromUrl();
+    expect($neighborhoodDepth.get()).toBe(3);
+
+    setNeighborhoodDepth(1);
+    expect($urlState.get().depth).toBe(1);
+
+    window.location.hash = 'depth=9';
+    hydrateFromUrl();
+    expect($neighborhoodDepth.get()).toBe(3);
+    window.location.hash = 'depth=0';
+    hydrateFromUrl();
+    expect($neighborhoodDepth.get()).toBe(1);
   });
 
   it('hydrates and mirrors folded blocks (disclosure)', () => {

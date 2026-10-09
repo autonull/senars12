@@ -4,7 +4,9 @@
  * overlay host. Selecting an entry sets the workspace focus (session state) and
  * closes the overlay, so the ToC navigates the substrate instead of owning a
  * second copy of it. Rows carry the section model's `depth`, and the folded-count
- * badge dispatches the same `view.fold-all` the palette offers.
+ * badge dispatches the same `view.fold-all` the palette offers. Each row also
+ * reaches sideways: **Open related** opens the neighborhood traversal, and ⌥-click
+ * explains the block instead of navigating to it.
  */
 
 import { css, html } from 'lit';
@@ -46,7 +48,8 @@ export class TocView extends SurfaceComponent {
     .entry .kind { flex-shrink: 0; width: 6.5rem; text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
     .entry .label { font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); }
     .artifact { flex-shrink: 0; border: none; border-radius: 4px; padding: 0 var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-sm); }
-    .artifact:hover { background: var(--colors-semantic-bg-subtle); color: var(--colors-semantic-accent-primary); }
+    .artifact:hover, .related:hover { background: var(--colors-semantic-bg-subtle); color: var(--colors-semantic-accent-primary); }
+    .related { flex-shrink: 0; border: none; border-radius: 4px; padding: 0 var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-sm); }
     .empty { padding: var(--spacing-scale-4); text-align: center; color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-sm); }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   `;
@@ -124,10 +127,21 @@ export class TocView extends SurfaceComponent {
           data-depth=${entry.depth}
           style=${`--depth: ${entry.depth}`}
           aria-current=${current}
-          @click=${() => this.navigate(entry.ref)}
+          title="Click to focus · ⌥-click to explain"
+          @click=${(event: MouseEvent) =>
+            event.altKey ? this.explain(entry.ref) : this.navigate(entry.ref)}
         >
           <span class="kind">${BLOCK_KIND_LABEL[entry.kind]}</span>
           <span class="label">${entry.label}</span>
+        </button>
+        <button
+          class="related"
+          data-related=${entry.ref}
+          title="Open related"
+          aria-label="Open related"
+          @click=${() => this.openRelated(entry.ref)}
+        >
+          ⋯
         </button>
         ${
           hasArtifact
@@ -155,6 +169,14 @@ export class TocView extends SurfaceComponent {
 
   private openArtifact(ref: string) {
     eventBus.emit('overlay:open', { id: 'artifact', ref });
+  }
+
+  private openRelated(ref: string) {
+    eventBus.emit('overlay:open', { id: 'related', ref });
+  }
+
+  private explain(ref: string) {
+    eventBus.emit('overlay:open', { id: 'explain', ref });
   }
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'toc' });

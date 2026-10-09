@@ -193,6 +193,13 @@ $workspaceGraph.subscribe(({ selection }) => {
 /** Blocks whose children are folded in the workspace renderers (§1.1; session state). */
 export const $collapsedBlocks = atom<ReadonlySet<string>>(new Set());
 
+/** How many link hops "Open related" walks (1–3; session state, URL-owned). */
+export const $neighborhoodDepth = atom(2);
+
+export function setNeighborhoodDepth(depth: number): void {
+  $neighborhoodDepth.set(Math.min(Math.max(Math.round(depth), 1), 3));
+}
+
 /** Fold/unfold a block's children in place, preserved across renderer switches. */
 export function toggleCollapsed(ref: string): void {
   const next = new Set($collapsedBlocks.get());
@@ -452,6 +459,8 @@ export interface UrlState {
   focus?: string;
   /** The page (root section) holding `focus`; omitted when focus *is* the page. */
   page?: string;
+  /** Link hops the neighborhood traversal walks. */
+  depth?: number;
   folded?: string[];
   viewport?: { x: number; y: number; zoom: number };
   search?: string;
@@ -488,6 +497,8 @@ function parseHash(): Partial<UrlState> {
   if (focus) state.focus = focus;
   const page = params.get('page');
   if (page) state.page = page;
+  const depth = params.get('depth');
+  if (depth && Number.isFinite(Number(depth))) state.depth = Number(depth);
   const vp = params.get('viewport');
   if (vp) {
     const parts = vp.split(',').map(Number);
@@ -523,6 +534,7 @@ function serializeHash(state: UrlState): string {
   if (state.scope && state.scope !== 'concept') params.set('scope', state.scope);
   if (state.focus) params.set('focus', state.focus);
   if (state.page) params.set('page', state.page);
+  if (state.depth) params.set('depth', String(state.depth));
   if (state.viewport)
     params.set('viewport', `${state.viewport.x},${state.viewport.y},${state.viewport.zoom}`);
   if (state.search) params.set('search', state.search);
@@ -558,6 +570,7 @@ export function hydrateFromUrl() {
   // A page link focuses the page; an explicit block ref is the more specific half of the tuple.
   if (parsed.focus ?? parsed.page) setWorkspaceFocus(parsed.focus ?? parsed.page);
   if (parsed.folded) $collapsedBlocks.set(new Set(parsed.folded));
+  if (parsed.depth !== undefined) setNeighborhoodDepth(parsed.depth);
   if (parsed.panels) {
     const panels = new Map($panels.get());
     for (const [id, panel] of panels) {
@@ -568,6 +581,7 @@ export function hydrateFromUrl() {
 }
 
 // Keep the URL-addressable slice of session state in step with the atoms it mirrors (§2.6).
+const sameNumber = (a: number | undefined, b: number | undefined): boolean => a === b;
 const sameStringList = (
   a: readonly string[] | undefined,
   b: readonly string[] | undefined
@@ -605,6 +619,7 @@ mirrorAtom($workspaceGraph, 'page', (graph) => {
 });
 mirrorAtom($graphLayer, 'layer', (layer) => layer);
 mirrorAtom($collapsedBlocks, 'folded', (folded) => [...folded], sameStringList);
+mirrorAtom($neighborhoodDepth, 'depth', (depth) => depth, sameNumber);
 mirrorAtom(
   $panels,
   'panels',

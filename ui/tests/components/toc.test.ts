@@ -140,6 +140,24 @@ describe('toc surface', () => {
     expect(current?.getAttribute('data-ref')).toBe('c1');
   });
 
+  it('opens the neighborhood and the explanation without losing the row', async () => {
+    $workspaceGraph.set(build());
+    const el = await mount();
+    const opened = vi.fn();
+    const off = eventBus.on('overlay:open', opened);
+    const rows = [...(el.shadowRoot?.querySelectorAll('.row') ?? [])];
+
+    rows[0]?.querySelector<HTMLButtonElement>('.related')?.click();
+    expect(opened).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'related', ref: 'h1' }));
+
+    rows[0]?.querySelector<HTMLButtonElement>('.entry')?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, altKey: true })
+    );
+    expect(opened).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'explain', ref: 'h1' }));
+    expect($workspaceGraph.get().focus).toBeUndefined();
+    off();
+  });
+
   it('offers an artifact affordance only for blocks that have one', async () => {
     $workspaceGraph.set(build());
     const el = await mount();
