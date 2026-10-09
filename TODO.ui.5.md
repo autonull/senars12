@@ -42,9 +42,10 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
    **`3.6` steer/author** producers. `→ core/`
 2. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
    renderer/overlays context fields await a consumer; fold-all debounce awaits a bulk writer.)
-3. **`2.4 inspection & embedded views`** (L) — node *and* edge popovers landed; the popover's notebook
-   card, the drawer's Links tab and the embedded-view cluster remain. (`4.3 affordances` and `4.5 pinning` partial —
-   inspector reach landed; manager/command pinning. `1.4 rich text` partial — inline tokenizer.)
+3. **`2.4 inspection & embedded views`** (L) — node *and* edge popovers, ToC reach and remembered
+   neighborhood depth landed; the drawer's Links tab, the popover's notebook card and the
+   embedded-view cluster remain. (`4.3 affordances` and `4.5 pinning` partial — inspector reach landed;
+   manager/command pinning. `1.4 rich text` partial — inline tokenizer.)
 4. **`ops sequencing`** (M) — deferred until something emits `WorkspaceOp`; the cursor half of
    **`4.4`** landed (one cursor, real `createdAt`, admission in the notebook).
    (`4.4 controls` is partially landed — live reset + readout; see WP4.)
@@ -284,7 +285,12 @@ Landed extension points — wire features here instead of re-deriving them.
 - [~] **2.4 inspection & embedded views** *(merged: `2.4 graph inspection` + `4.1/4.2 embedded
   views`)* — node/edge hover popovers reusing `explainModel`/`neighborhood`; artifact edge previews;
   richer inspector (link confidence + event refs); "Open related" from graph menu and ToC; remember
-  neighborhood depth; ⌥-click a row to explain instead of navigate. Plus: Notebook embedded graph block
+  neighborhood depth; ⌥-click a row to explain instead of navigate. **Reach from the ToC landed:**
+  every row opens the **neighborhood traversal** beside the artifact button, ⌥-click **explains** instead
+  of navigating (the plain click still focuses), and the hop count is no longer a literal in
+  `overlays/related.ts` — it is `$neighborhoodDepth`/`setNeighborhoodDepth` (clamped 1–3), mirrored into
+  the URL as `depth` with a 1/2/3 control in the overlay header, so a link can pin how far "related"
+  reaches. Plus: Notebook embedded graph block
   (derivation/contradiction/topic neighborhood); Graph node popover notebook card; graph edge popover
   derivation tree; wire the block-menu "embed" affordance; reuse `conversationPositions` and
   `projectWorkspaceGraph` in embedded graph shapes. **Node hover popover landed:** the old tooltip was
@@ -303,11 +309,11 @@ Landed extension points — wire features here instead of re-deriving them.
   mapping: a link ref is derived from both endpoints *and* the backend's edge vocabulary, so it can
   only be minted in the projection. Engine edges carry a generated cytoscape id, so the viewport keys
   them by `edgeKey(source, target)` — the same key the edge map uses. Still open: the popover's
-  notebook card, artifact edge previews, the drawer's Links tab (it still reads raw `$graphEdges`
-  instead of the explain model), "Open related" from the ToC, remembered neighborhood depth, ⌥-click,
-  and the whole embedded-view cluster. The **node→block mapping** blocker is cleared for
-  nodes (`blockRefFor`), so the inspector can reach a block today; the **edge** half is what the edge
-  popovers still wait on. `→ core/explain.ts`, `core/neighborhood.ts`, `core/workspace-projection.ts`,
+  notebook card, artifact edge previews, and the drawer's Links tab (it still reads raw `$graphEdges`
+  instead of the explain model — the last piece of "richer inspector"); plus the whole embedded-view
+  cluster. The **node→block mapping** blocker is cleared for
+  nodes (`blockRefFor`) and edges (`linkRefFor`), so the inspector and both popovers can reach the
+  substrate today. `→ core/explain.ts`, `core/neighborhood.ts`, `core/workspace-projection.ts`,
   `components/overlays/{inspector,block-menu,related}.ts`, `components/node-detail-drawer.ts`,
   `components/views/graph-*.ts`. `(r)`,`(n)`,`(y)`,`(e)`
 - [~] **4.3 affordances** — the artifact overlay **Copy** / **Open in graph** and the ToC per-row
@@ -624,6 +630,12 @@ in v3 Appendix D). Rolled up:
   id the backend does not carry resolves to `undefined` rather than to a block that does not exist.
   Consumers: the inspector's Actions tab gains **Open in Notebook** (renderer + focus) and **Open
   View** (artifact overlay, gated on a real `ViewSpec`). Suite **369 green**.
+- **WP3 `2.4` reach from the ToC** — every ToC row reaches sideways: **Open related** beside the
+  artifact button, and ⌥-click to **explain** instead of navigate. The hop count moved out of
+  `overlays/related.ts` (it was the literal `2`) into `$neighborhoodDepth`/`setNeighborhoodDepth`, clamped
+  1–3, mirrored to the URL as `depth` and set by a 1/2/3 control in the overlay header — so a link can
+  pin how far "related" reaches, which is what "remember neighborhood depth" was asking for. Suite
+  **388 green**.
 - **WP4 `4.4 anchor`** — the substrate had no time and the scrub had no effect. `BackendNode.occurredAt`
   carries `occurrenceTime` so reasoning blocks get a real `createdAt` (they were all `0`); the two
   cursors collapse into one — `$workspaceGraph.timeCursor` is derived from `$view.timeline.t`, the
@@ -646,6 +658,7 @@ in v3 Appendix D). Rolled up:
   testable without a canvas. The viewport keeps only hit-testing and placement, resolves elements via
   one `blockRefOf`, and its context menu gained **Open in Notebook**. Suite **374 green**, including a
   test that an engine term containing markup renders as text.
+
 
 
 
