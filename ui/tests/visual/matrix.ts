@@ -146,6 +146,49 @@ const mountView =
     await page.waitForTimeout(400);
   };
 
+/** Drive the shell into a connection state through the real store. */
+const setConnection =
+  (state: string): VisualCell['prepare'] =>
+  async ({ page }) => {
+    await page.evaluate((next) => {
+      (
+        (window as Record<string, unknown>).__testApi as {
+          store?: { setState?: (path: string, value: unknown) => void };
+        }
+      )?.store?.setState?.('connectionState', next);
+    }, state);
+    await page.waitForTimeout(250);
+  };
+
+/** Clear every workspace source so the shell shows its empty state. */
+const emptyShell: VisualCell['prepare'] = async ({ page }) => {
+  await page.evaluate(() => {
+    const api = (window as Record<string, unknown>).__testApi as {
+      store?: { setState?: (path: string, value: unknown) => void };
+    };
+    api?.store?.setState?.('graphNodes', new Map());
+    api?.store?.setState?.('graphEdges', new Map());
+    api?.store?.setState?.('cognitiveEvents', []);
+    api?.store?.setState?.('chatMessages', []);
+  });
+  await page.waitForTimeout(400);
+};
+
+/** Surface the error boundary through its real `app-error` event. */
+const raiseAppError: VisualCell['prepare'] = async ({ page }) => {
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new CustomEvent('app-error', {
+        detail: {
+          message: 'Projection worker failed to reduce the derivation graph',
+          detail: 'Error: reduce() of undefined\n    at projectDerivations (workspace-projection.ts)',
+        },
+      })
+    );
+  });
+  await page.waitForTimeout(300);
+};
+
 /** Open a registered overlay through the shell's own test seam. */const openOverlay = (id: string): VisualCell['prepare'] => async ({ page }) => {
   await page.evaluate((overlayId) => {
     (
@@ -458,6 +501,51 @@ export const VISUAL_CELLS: VisualCell[] = [
     surface: 'view:diff',
     hash: '#panels=none',
     prepare: mountView('diff'),
+  },
+
+  // States (§P1.4) — the shell rendered in each reachable non-happy state.
+  {
+    id: 'state-empty',
+    group: 'States',
+    title: 'State — empty workspace',
+    hash: '#panels=none',
+    prepare: emptyShell,
+  },
+  {
+    id: 'state-loading',
+    group: 'States',
+    title: 'State — connecting',
+    hash: '#panels=none',
+    prepare: setConnection('connecting'),
+  },
+  {
+    id: 'state-disconnected',
+    group: 'States',
+    title: 'State — disconnected',
+    hash: '#panels=none',
+    prepare: setConnection('disconnected'),
+  },
+  {
+    id: 'state-reconnecting',
+    group: 'States',
+    title: 'State — reconnecting',
+    hash: '#panels=none',
+    prepare: setConnection('reconnecting'),
+  },
+  {
+    id: 'state-error-boundary',
+    group: 'States',
+    title: 'State — error boundary',
+    hash: '#panels=none',
+    prepare: raiseAppError,
+  },
+  {
+    id: 'state-wide',
+    group: 'States',
+    title: 'State — wide viewport (1920×1080)',
+    scenario: 'basic-derivation',
+    hash: '#panels=none',
+    viewport: { width: 1920, height: 1080 },
   },
 
   // Responsive.

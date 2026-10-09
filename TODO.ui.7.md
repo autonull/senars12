@@ -177,6 +177,19 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
   built by `mountView` in `matrix.ts`: a real `s-view` host mounted over the shell with one shape +
   a real `ViewDataset`, exercising the adapter registry + projection. `KNOWN_GAPS` in
   `visual-coverage.test.ts` now names only `renderer:graph3d`.
+- `[x]` **P1.4 state matrix** — 6 committed state cells: `state-empty` (cleared graph → HUD empty
+  slot), `state-loading`/`state-disconnected`/`state-reconnecting` (via `store.setState
+  ('connectionState', …)` → connection banner), `state-error-boundary` (real `app-error` window
+  event → modal), `state-wide` (1920×1080). `reduced-motion` and `light` are **N/A**: motion is
+  invisible in a still and the theme is dark-only; `loading` is covered by `connecting`. `narrow`
+  was already covered.
+- `[x]` **P1.6 local verification entry** — root `ui:verify` = `pnpm --dir ui verify`
+  (typecheck + unit incl. `visual-coverage` + `test:visual:ci` incl. `ui:gallery`). CI/GitHub stays
+  off (O4); `ui:gate` remains the fast type+unit gate.
+- `[~]` **P1.3 scenario matrix** — committed scenarios today: `bootstrap` (default), `derivation`
+  (`basic-derivation`), `conflicting-evidence` (via `graph-conflict-lens`). Still to seed:
+  `metta`, `tool-approval`, `budget/gate-decision`, `error/empty`, `disconnected`. `error/empty` and
+  `disconnected` are now exercised by the state cells; the rest need server scenarios or seams.
 - `[~]` **P1 remaining surfaces** — `renderer:graph3d` (deferred O6); see "Next up" below.
   All `layout:*` and `view:*` gaps are closed.
 - `[x]` **P1 layout coverage** — 8 registry-driven cells: 4 reasoning layouts via
@@ -196,7 +209,7 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
 - `[x]` **cross-cutting: `selection-node-detail` determinism** — the inspector cell used to
   inherit whatever the (warm) bootstrap engine had derived, so it drifted across full-suite runs.
   It now isolates the graph to a single known concept and selects that, and is stable across
-  repeated full-suite runs (36/36 green twice).
+  repeated full-suite runs (42/42 green twice).
 - `[x]` **cross-cutting: windowed-overlay positioning** — `OverlayManager.#applyBounds` set
   `left/top` but never `position`, so windowed overlays (explain/artifact/timeline/inspector) fell
   into document flow below the shell; they only ever appeared when focus-scroll dragged them into
