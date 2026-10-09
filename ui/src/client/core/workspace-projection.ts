@@ -10,7 +10,7 @@
  * re-owned.
  */
 
-import type { ChatMessage } from '@senars/core';
+import type { ChatMessage, CognitiveEvent } from '@senars/core';
 import { linkMeta } from '../utils/link-catalog.js';
 import { decomposeForMode, DEFAULT_COMPOSER_MODE, isComposerMode } from './composer-modes.js';
 import { isFaithfulDecomposition } from './input-decomposition.js';
@@ -288,6 +288,110 @@ export function projectReasoning(
   return { blocks: [...nested, ...steps], links, roots };
 }
 
+/**
+ * Project cognitive events into budget and gate-decision blocks.
+ * Events projected:
+ * - budget.exhausted → budget blocks
+ * - policy.violation / egress.gate.rejected / shadow.validation.dropped / judgment.resolved → gate-decision blocks
+ */
+export function projectCognitiveEvents(events: readonly CognitiveEvent[]): WorkspaceFragment {
+  const blocks: SemanticBlock[] = [];
+  const links: SemanticLink[] = [];
+  const roots: Ref[] = [];
+
+  for (const event of events) {
+    switch (event.type) {
+      case 'budget.exhausted': {
+        const id = `event:budget:${event.correlationId ?? event.timestamp}`;
+        blocks.push({
+          id,
+          kind: 'budget',
+          role: 'system',
+          title: `Budget exhausted: ${event.payload.budgetType}`,
+          text: `Budget type: ${event.payload.budgetType}, remaining: ${event.payload.remaining}/${event.payload.limit}, reason: ${event.payload.terminationReason}`,
+          data: event.payload,
+          status: 'complete',
+          createdAt: event.timestamp,
+          createdBy: 'system',
+          eventRefs: [event.correlationId ?? ''],
+        });
+        roots.push(id);
+        break;
+      }
+      case 'policy.violation': {
+        const id = `event:policy:${event.correlationId ?? event.timestamp}`;
+        blocks.push({
+          id,
+          kind: 'gate-decision',
+          role: 'system',
+          title: `Policy violation: ${event.payload.violationType}`,
+          text: `Policy: ${event.payload.policyId}, type: ${event.payload.violationType}, severity: ${event.payload.severity}, detail: ${event.payload.detail}`,
+          data: event.payload,
+          status: 'complete',
+          createdAt: event.timestamp,
+          createdBy: 'system',
+          eventRefs: [event.correlationId ?? ''],
+        });
+        roots.push(id);
+        break;
+      }
+      case 'egress.gate.rejected': {
+        const id = `event:egress:${event.correlationId ?? event.timestamp}`;
+        blocks.push({
+          id,
+          kind: 'gate-decision',
+          role: 'system',
+          title: `Egress gate rejected: ${event.payload.gate}`,
+          text: `Gate: ${event.payload.gate}, score: ${event.payload.score ?? 'N/A'}, detail: ${event.payload.detail ?? 'N/A'}`,
+          data: event.payload,
+          status: 'complete',
+          createdAt: event.timestamp,
+          createdBy: 'system',
+          eventRefs: [event.correlationId ?? ''],
+        });
+        roots.push(id);
+        break;
+      }
+      case 'shadow.validation.dropped': {
+        const id = `event:shadow:${event.correlationId ?? event.timestamp}`;
+        blocks.push({
+          id,
+          kind: 'gate-decision',
+          role: 'system',
+          title: `Shadow validation dropped: ${event.payload.conflictType}`,
+          text: `Candidate: ${event.payload.candidateTerm}, source: ${event.payload.source}, conflict: ${event.payload.conflictType}${event.payload.frequencyDelta ? `, freqDelta: ${event.payload.frequencyDelta}` : ''}${event.payload.semanticScore ? `, semanticScore: ${event.payload.semanticScore}` : ''}`,
+          data: event.payload,
+          status: 'complete',
+          createdAt: event.timestamp,
+          createdBy: 'system',
+          eventRefs: [event.correlationId ?? ''],
+        });
+        roots.push(id);
+        break;
+      }
+      case 'judgment.resolved': {
+        const id = `event:judgment:${event.correlationId ?? event.timestamp}`;
+        blocks.push({
+          id,
+          kind: 'gate-decision',
+          role: 'system',
+          title: `Judgment resolved: ${event.payload.shape}`,
+          text: `Query: ${event.payload.queryId}, axis: ${event.payload.axis}, tier: ${event.payload.tier}, latency: ${event.payload.latencyMs}ms, abstained: ${event.payload.abstained}`,
+          data: event.payload,
+          status: 'complete',
+          createdAt: event.timestamp,
+          createdBy: 'system',
+          eventRefs: [event.correlationId ?? ''],
+        });
+        roots.push(id);
+        break;
+      }
+    }
+  }
+
+  return { blocks, links, roots };
+}
+
 const merge = (fragments: readonly WorkspaceFragment[]): WorkspaceGraph => {
   const graph: WorkspaceGraph = { blocks: new Map(), links: new Map(), roots: [], selection: new Set() };
   for (const fragment of fragments) {
@@ -302,9 +406,14 @@ const merge = (fragments: readonly WorkspaceFragment[]): WorkspaceGraph => {
 export function projectWorkspace(state: {
   messages: readonly ChatMessage[];
   backend: ReasoningBackend;
+  cognitiveEvents?: readonly CognitiveEvent[];
 }): WorkspaceGraph {
   const messageIds = new Set(state.messages.map((message) => message.id));
-  return merge([projectChat(state.messages), projectReasoning(state.backend, messageIds)]);
+  const fragments = [projectChat(state.messages), projectReasoning(state.backend, messageIds)];
+  if (state.cognitiveEvents && state.cognitiveEvents.length > 0) {
+    fragments.push(projectCognitiveEvents(state.cognitiveEvents));
+  }
+  return merge(fragments);
 }
 
 /**

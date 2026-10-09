@@ -309,6 +309,7 @@ export {
   linkId,
   linkRefFor,
   projectChat,
+  projectCognitiveEvents,
   projectReasoning,
   projectWorkspace,
   resolveBlockRef,
