@@ -24,7 +24,7 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 | # | Item | Size | Files | Notes |
 |---|------|------|-------|-------|
 | 1 | **`2.6 scope`** — debounce `folded` writes for bulk fold-all | M | `core/store.ts`, `utils/layout-registry.ts`, `core/layout-ids.ts`, `components/graph-toolbar.ts`, `components/graph-viewport.ts` | **Done** — `syncUrl` debounce (300ms) batches URL writes; immediate mirror keeps `$urlState.folded` in sync. Layout switching + URL round-trip landed. |
-| 2 | **`2.6 context`** — `WorkspaceContext` fields (`renderer`, `setRenderer`, `overlays`) | M | `components/workspace-host.ts` | Deferred (no consumer); add with first renderer that switches modes |
+| 2 | **`2.6 context`** — `WorkspaceContext` fields (`renderer`, `setRenderer`, `overlays`) | M | `core/workspace-renderer.ts`, `components/workspace-host.ts` | **Done** — added `renderer` (getter), `setRenderer()`, `overlays()`, `hasOverlays()` to `WorkspaceContext`; `WORKSPACE_CONTEXT` in `workspace-host.ts` uses `$activeRenderer` + `overlayManager` |
 | 13 | **`overlay-header`** — shared `OverlayHeader` component (title, pin, close, drag-handle, resize) + migration of existing overlays | S | `components/overlays/overlay-header.ts` (new), `components/overlays/*.ts` | Replaces duplicated header markup; adds drag-to-reposition + resize handle opt-in; `data-draggable` / `data-resizable` on host |
 | 14 | **`overlay-windows`** — full window stack: draggable, resizable, minimize, maximize, cascade/tile, persist state | M | `core/overlay-manager.ts`, `components/overlays/overlay-header.ts`, `core/surface.ts` | Opt-in via `SurfaceDescriptor.window: { draggable?, resizable?, minimize?, persist? }`; `overlayManager` tracks bounds/z-order; sessionStorage persistence |
 | 3 | **`ops sequencing`** — carry engine `seq`/`eventRefs` on `WorkspaceOp` | M | `core/workspace-graph.ts`, `core/workspace-projection.ts` | **Done** — added optional `seq?: number` and `eventRefs?: Ref[]` to all `WorkspaceOp` variants; 3.6 steer/author producer ready |
@@ -167,6 +167,7 @@ Overlays, Views, Inline text, Block payloads, Block bodies, Reaching a block, Em
 - **WP4 `4.4 controls`** — prospective control (10% future zone with amber playhead) + header announcer (aria-live assertive for play/pause/live/seek/prospective) in `timeline-scrubber.ts`
 - **WP3 `4.5 pinning`** — per-overlay pin button + `[data-pinned]` CSS in primitives.css; pin button added to inspector, timeline, explain, artifact, settings, toc, telemetry, related, provider; `overlayManager.setPinned()` toggles attribute + announces via Announcer
 - **WP1 `0.5 tool approval + prompt_user tool`** — `tool-approval.ts` modal overlay with dynamic form rendering for `prompt_user` tool (question/confirm/form/select); `tool-registry.ts` with approval callback + `executeToolCall()`; `promptUserTool` spec with JSON Schema; auto-initialized in `workspace-bindings.ts`
+- **WP2 `2.6 context`** — `WorkspaceContext` in `workspace-renderer.ts` gains `renderer` (getter), `setRenderer()`, `overlays()`, `hasOverlays()`; `WORKSPACE_CONTEXT` in `workspace-host.ts` binds to `$activeRenderer` and `overlayManager`; renderers can now query/switch renderer and inspect overlay stack
 
 ## Planned — Overlay system evolution
 

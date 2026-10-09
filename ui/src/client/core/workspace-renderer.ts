@@ -61,6 +61,14 @@ export interface RendererSnapshot {
 export interface WorkspaceContext {
   readonly openOverlay: (id: string, anchor?: Ref) => void;
   readonly openPalette: () => void;
+  /** Current active renderer id. */
+  readonly renderer: string;
+  /** Switch the active renderer (updates URL + session state). */
+  readonly setRenderer: (id: string) => void;
+  /** All open overlay ids, bottom to top. */
+  readonly overlays: () => string[];
+  /** Whether any overlay is open. */
+  readonly hasOverlays: () => boolean;
 }
 
 export interface WorkspaceRenderer {
