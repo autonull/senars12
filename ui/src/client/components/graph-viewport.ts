@@ -26,6 +26,7 @@ import {
   evaluateLens,
   eventBus,
   layerVisible,
+  linkRefFor,
   mountTestApi,
   narsBackend,
   projectWorkspaceGraph,
@@ -90,7 +91,7 @@ export class GraphViewport extends BaseComponent {
   private prevNodeCount = 0;
   private focusedRef?: string;
   @state() private htmlLabels = new Map<string, HtmlLabelData>();
-  @state() private nodePopover: { x: number; y: number; ref: string } | null = null;
+  @state() private nodePopover: { x: number; y: number; ref?: string; link?: string } | null = null;
   @state() private contextMenu: { x: number; y: number; nodeId: string; blockRef?: string } | null =
     null;
   // LOD (Level of Detail) thresholds for performance
@@ -281,6 +282,25 @@ export class GraphViewport extends BaseComponent {
       this.requestUpdate();
     });
 
+    // Hover popover for an edge: the link itself, and the block it lands on
+    this.cy.on('mouseover', 'edge', (evt) => {
+      const edge = evt.target;
+      // Engine edges carry a generated cytoscape id; their key is the endpoint pair.
+      const link = linkRefFor(narsBackend, edgeKey(edge.data('source'), edge.data('target')));
+      if (!link) return;
+      this.popoverTimer = setTimeout(() => {
+        const pos = edge.midpoint();
+        this.nodePopover = { x: pos.x, y: pos.y, link };
+        this.requestUpdate();
+      }, 500);
+    });
+
+    this.cy.on('mouseout', 'edge', () => {
+      if (this.popoverTimer) clearTimeout(this.popoverTimer);
+      this.nodePopover = null;
+      this.requestUpdate();
+    });
+
     const initialDelta = evaluateLens();
     clearNodeStyles(this.cy);
     applyDelta(this.cy, initialDelta);
@@ -300,7 +320,8 @@ export class GraphViewport extends BaseComponent {
         this.nodePopover
           ? html`<graph-popover
               style="left:${this.nodePopover.x}px;top:${this.nodePopover.y}px"
-              .ref=${this.nodePopover.ref}
+              .ref=${this.nodePopover.ref ?? ''}
+              .link=${this.nodePopover.link ?? ''}
             ></graph-popover>`
           : ''
       }

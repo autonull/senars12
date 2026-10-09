@@ -259,3 +259,21 @@ export function projectWorkspace(state: {
  */
 export const blockRefFor = (backend: ReasoningBackend, id: Ref): Ref | undefined =>
   backend.snapshot().nodes.has(id) ? claimId(id) : undefined;
+
+/**
+ * The link an engine edge id projects to, or `undefined` when the backend does
+ * not carry that edge. The edge half of the node→block mapping (§2.4): the link
+ * ref is derived from both endpoints *and* the backend's edge vocabulary, so it
+ * can only be minted here.
+ */
+export const linkRefFor = (backend: ReasoningBackend, id: Ref): Ref | undefined => {
+  const edge = backend.snapshot().edges.get(id);
+  return edge
+    ? linkId(
+        claimId(edge.source),
+        claimId(edge.target),
+        backend.vocab.edges[edge.kind] ?? 'references'
+      )
+    : undefined;
+};
+

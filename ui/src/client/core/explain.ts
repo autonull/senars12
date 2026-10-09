@@ -24,6 +24,9 @@ export interface ExplainLink {
   readonly direction: 'out' | 'in';
   readonly other: Ref;
   readonly otherLabel: string;
+  readonly confidence?: number;
+  /** The cognitive events behind the link, when the producer recorded any. */
+  readonly eventRefs: readonly Ref[];
 }
 
 export interface ExplainModel {
@@ -44,6 +47,8 @@ const toExplainLink = (graph: WorkspaceGraph, block: Ref, link: SemanticLink): E
     direction: out ? 'out' : 'in',
     other,
     otherLabel: labelOf(graph.blocks.get(other), other),
+    confidence: link.confidence,
+    eventRefs: link.eventRefs ?? [],
   };
 };
 
@@ -55,4 +60,31 @@ export function explainModel(graph: WorkspaceGraph, ref: Ref): ExplainModel | un
     .filter((link) => link.source === ref || link.target === ref)
     .map((link) => toExplainLink(graph, ref, link));
   return { block, links };
+}
+
+export interface ExplainedLink {
+  readonly link: SemanticLink;
+  readonly source?: SemanticBlock;
+  readonly target?: SemanticBlock;
+  /** The explanation of the block the link lands on. */
+  readonly model: ExplainModel;
+}
+
+/**
+ * The link at `ref`: both endpoints, plus the explanation of the block it lands
+ * on. The target is what an edge is *for* — the derivation it arrives at — so it
+ * is the part worth reading; the source is where it came from. Undefined when the
+ * ref is not a link or its target is gone (an unprojected edge).
+ */
+export function explainLinkModel(graph: WorkspaceGraph, ref: Ref): ExplainedLink | undefined {
+  const link = graph.links.get(ref);
+  if (!link) return undefined;
+  const model = explainModel(graph, link.target);
+  if (!model) return undefined;
+  return {
+    link,
+    source: graph.blocks.get(link.source),
+    target: graph.blocks.get(link.target),
+    model,
+  };
 }

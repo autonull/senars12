@@ -42,8 +42,8 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
    **`3.6` steer/author** producers. `→ core/`
 2. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
    renderer/overlays context fields await a consumer; fold-all debounce awaits a bulk writer.)
-3. **`2.4 inspection & embedded views`** (L) — node popover landed; the edge popover, the popover's
-   notebook card and the embedded-view cluster remain. (`4.3 affordances` and `4.5 pinning` partial —
+3. **`2.4 inspection & embedded views`** (L) — node *and* edge popovers landed; the popover's notebook
+   card, the drawer's Links tab and the embedded-view cluster remain. (`4.3 affordances` and `4.5 pinning` partial —
    inspector reach landed; manager/command pinning. `1.4 rich text` partial — inline tokenizer.)
 4. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
    (`4.4 controls` is partially landed — live reset + readout; see WP4.)
@@ -83,8 +83,9 @@ Cross-cutting constraints that gate multiple items — each is a work order: fir
   attached backend (`undefined` when the backend does not carry the node) instead of prefixing ids at
   the call site; the inspector's Actions tab uses it for **Open in Notebook** (renderer + focus) and
   **Open View** (the artifact overlay, when the projected block has a spec). *Remaining:* the **edge**
-  half — a selected engine edge resolves to the `link:` ref `projectReasoning` mints — which the edge
-  popovers and the derivation tree in **`2.4`** wait on. **Open View** is honest but nearly always
+  half landed with the edge popover: `linkRefFor(backend, edgeId)` mints the same `link:` ref
+  `projectReasoning` mints, from both endpoints and the backend's edge vocabulary. *Remaining:* the
+  derivation tree in **`2.4`** (depth > 1). **Open View** is honest but nearly always
   closed today: an engine claim's payload is the raw record and `claim` is deliberately not in
   `JSON_KINDS`, so it stays hidden until a reasoning producer emits a block kind with a view.
 - **`DerivationRecord` payload** — defined by WP5 **`3.3`**; blocks **`4.3 derivation-record`**.
@@ -123,9 +124,11 @@ Landed extension points — wire features here instead of re-deriving them.
   `j`/`k` and the breadcrumb all walk it, so a new nesting depth needs no new walker — and
   `1.5 page` gets its model for free. `parentMap` and `rootBlocks` are gone; `navigation.ts` no
   longer re-derives the tree.
-- **Node→block mapping** — `blockRefFor(backend, id)` in `core/workspace-projection.ts`, plus the
-  viewport's `blockRefOf` for chat nodes (whose id *is* the block ref). One resolution feeds the
-  inspector, the graph menu and the node popover, so a node and its block cannot drift apart.
+- **Node→block mapping** — `blockRefFor(backend, id)` / `linkRefFor(backend, edgeId)` in
+  `core/workspace-projection.ts`, plus the viewport's `blockRefOf` for chat nodes (whose id *is* the
+  block ref). One resolution feeds the inspector, the graph menu and the hover popovers, so a node and
+  its block cannot drift apart. Engine edges are keyed `edgeKey(source, target)`, not by their
+  generated cytoscape id.
 - **Reasoning backend** — `core/reasoning-backend.ts` (`ReasoningBackend`, `BackendVocabulary`,
   `BackendNode`/`BackendEdge`/`BackendSnapshot`) + `core/nars-backend.ts` (`narsBackend`, adapter #1;
   `NAL_VOCABULARY`): take engine-specific node/edge kinds, labels, text fallbacks and the truth
@@ -291,8 +294,16 @@ Landed extension points — wire features here instead of re-deriving them.
   clickable into the notebook. The viewport resolves elements through one `blockRefOf` (chat nodes
   already carry their block ref; engine nodes go through `blockRefFor`), and its context menu gained
   **Open in Notebook**. Remaining: the **edge** popover (needs the edge half of the node→block mapping),
-  the popover's notebook card, artifact edge previews, richer inspector, "Open related" from the ToC,
-  remembered neighborhood depth, ⌥-click, and the whole embedded-view cluster. The **node→block mapping** blocker is cleared for
+  the **edge** popover landed with it** — `explainLinkModel`/`ExplainedLink` in `core/explain.ts` make a
+  link explainable (both endpoints, the block it lands on, and that block's own links minus the one
+  being explained), and `ExplainLink` now carries `confidence` + `eventRefs`, which the inspector and
+  any future narration need anyway. `linkRefFor(backend, edgeId)` is the edge half of the node→block
+  mapping: a link ref is derived from both endpoints *and* the backend's edge vocabulary, so it can
+  only be minted in the projection. Engine edges carry a generated cytoscape id, so the viewport keys
+  them by `edgeKey(source, target)` — the same key the edge map uses. Still open: the popover's
+  notebook card, artifact edge previews, the drawer's Links tab (it still reads raw `$graphEdges`
+  instead of the explain model), "Open related" from the ToC, remembered neighborhood depth, ⌥-click,
+  and the whole embedded-view cluster. The **node→block mapping** blocker is cleared for
   nodes (`blockRefFor`), so the inspector can reach a block today; the **edge** half is what the edge
   popovers still wait on. `→ core/explain.ts`, `core/neighborhood.ts`, `core/workspace-projection.ts`,
   `components/overlays/{inspector,block-menu,related}.ts`, `components/node-detail-drawer.ts`,
@@ -595,6 +606,14 @@ in v3 Appendix D). Rolled up:
   id the backend does not carry resolves to `undefined` rather than to a block that does not exist.
   Consumers: the inspector's Actions tab gains **Open in Notebook** (renderer + focus) and **Open
   View** (artifact overlay, gated on a real `ViewSpec`). Suite **369 green**.
+- **WP3 `2.4` edge popover + edge half of the mapping** — `explainLinkModel(graph, ref)` in
+  `core/explain.ts`: a link is explained by both endpoints *plus* the explanation of the block it
+  lands on, because that is what an edge is for; `ExplainLink` gained `confidence` and `eventRefs`.
+  `linkRefFor(backend, edgeId)` derives the link ref from both endpoints **and** the backend's edge
+  vocabulary, so it can only be minted in the projection — and the viewport keys engine edges by
+  `edgeKey(source, target)`, not by their generated cytoscape id. The popover drops the row for the
+  link it is explaining, and an engine edge type the vocabulary does not speak degrades to
+  `references` rather than vanishing (a test pins both). Suite **379 green**.
 - **WP3 `2.4` node hover popover** — `components/graph-popover.ts` replaces the viewport's tooltip.
   The old one was an `innerHTML` sink: `term`/`label`/`priority`/`confidence`/`degree` interpolated into
   an HTML string from an untrusted engine record. The new popover takes a **block ref** and renders
@@ -603,4 +622,5 @@ in v3 Appendix D). Rolled up:
   testable without a canvas. The viewport keeps only hit-testing and placement, resolves elements via
   one `blockRefOf`, and its context menu gained **Open in Notebook**. Suite **374 green**, including a
   test that an engine term containing markup renders as text.
+
 

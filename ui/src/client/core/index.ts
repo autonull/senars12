@@ -47,7 +47,13 @@ export { artifactViewSpec, tableFromColumns } from './artifacts.js';
 export { matchCommands } from './command-match.js';
 export { activeCommands, type Command, paletteCommands, registerCommand, registeredCommands } from './commands.js';
 export { eventBus } from './events.js';
-export { explainModel, type ExplainLink, type ExplainModel } from './explain.js';
+export {
+  type ExplainedLink,
+  type ExplainLink,
+  type ExplainModel,
+  explainLinkModel,
+  explainModel,
+} from './explain.js';
 export { GRAPH_LAYERS, type GraphLayer, layerVisible } from './graph-layer.js';
 export {
   CONVERSATION_LAYOUT_CATALOG,
@@ -273,6 +279,7 @@ export {
   childId,
   claimId,
   linkId,
+  linkRefFor,
   projectChat,
   projectReasoning,
   projectWorkspace,
