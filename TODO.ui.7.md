@@ -173,15 +173,17 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
   graph states/lenses, node detail), fresh baselines + `ui:gallery` (22 cells, 0 failed);
   `visual-coverage.test.ts` asserts every registered surface has a cell **or** a `KNOWN_GAPS` entry
   (with a stale-gap guard); `ui:verify` added. **All `overlay:*` gaps are closed.**
-- `[~]` **P1 remaining surfaces** — `view:{graph,series,tree,text,code,diff}` (need a `<s-view>`
-  host cell with a real `ViewSpec` dataset), `renderer:graph3d` (deferred O6); see "Next up" below.
-  All `layout:*` gaps are now closed (below).
+- `[x]` **P1 view coverage** — 6 registry-driven `<s-view>` cells (graph/series/tree/text/code/diff)
+  built by `mountView` in `matrix.ts`: a real `s-view` host mounted over the shell with one shape +
+  a real `ViewDataset`, exercising the adapter registry + projection. `KNOWN_GAPS` in
+  `visual-coverage.test.ts` now names only `renderer:graph3d`.
+- `[~]` **P1 remaining surfaces** — `renderer:graph3d` (deferred O6); see "Next up" below.
+  All `layout:*` and `view:*` gaps are closed.
 - `[x]` **P1 layout coverage** — 8 registry-driven cells: 4 reasoning layouts via
   `#layout=<id>` + the scenario/lens each recommends (`reasoning-provenance`, `gate-pipeline`,
   `contradiction-neighborhood`, `budget-resource`), and 4 conversation layouts
   (`chronological-flow`, `semantic-map`, `artifact-map`, `source-view`) over a seeded
-  conversation. `KNOWN_GAPS` in `visual-coverage.test.ts` now names only the 6 view shapes +
-  `renderer:graph3d`.
+  conversation.
 - `[x]` **cross-cutting: conversation seeding + deterministic capture** — `matrix.ts` seeds a
   fixed conversation through the real `$chatMessages` store (headings, a Markdown table and a
   fenced code block, so `table`/`code`/`list` child blocks exist), which also gives `panel-chat`
@@ -194,7 +196,7 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
 - `[x]` **cross-cutting: `selection-node-detail` determinism** — the inspector cell used to
   inherit whatever the (warm) bootstrap engine had derived, so it drifted across full-suite runs.
   It now isolates the graph to a single known concept and selects that, and is stable across
-  repeated full-suite runs (30/30 green twice).
+  repeated full-suite runs (36/36 green twice).
 - `[x]` **cross-cutting: windowed-overlay positioning** — `OverlayManager.#applyBounds` set
   `left/top` but never `position`, so windowed overlays (explain/artifact/timeline/inspector) fell
   into document flow below the shell; they only ever appeared when focus-scroll dragged them into
@@ -216,12 +218,12 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
 - **tool-approval** has a test seam: `__testApi.toolApproval.request(args)` calls the real
   `callTool('prompt_user', …)` path (mounted by the overlay's `connectedCallback`); the overlay must
   be opened first so its element mounts and registers the approval handler.
-- **Remaining P1 gaps are view shapes** (`graph/series/tree/text/code/diff`): the product mapping
-  (`artifacts.ts`) only reaches `tree` (derivation), `table`, `code`, `series` (chart) and `diff`
-  (config-change) through block payloads, and no scenario/chat turn produces a `chart` or
-  `config-change` block; `view:text` only appears for JSON-ish kinds. The plan's intended fix is a
-  dedicated `<s-view>` host cell fed a real `ViewSpec` — a small `__testApi.views.mount(spec, shape)`
-  seam (or an overlay) is the cleanest route. `renderer:graph3d` stays a gap (O6).
+- **View-shape cells are fixtures, not product surfaces** — `mountView(shape)` in `matrix.ts`
+  mounts a real `<s-view>` over the shell with a real `ViewDataset` (`VIEW_FIXTURES`). The product
+  mapping (`artifacts.ts`) only reaches `tree` (derivation), `table`, `code`, `series` (chart) and
+  `diff` (config-change) through block payloads, and no scenario/chat turn produces a `chart` or
+  `config-change` block, so a fixture is the only route today. If those block kinds become seedable
+  the fixtures could be replaced by artifact cells. `renderer:graph3d` stays the one gap (O6).
 - **Conversation layouts are captured over seeded chat**, not engine claims: the cells replace the
   engine graph with one deterministic concept so the frame is legible. The server-side
   **derivation-recorder timer outliving `pause()`** is the underlying nondeterminism; making

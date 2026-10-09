@@ -64,8 +64,89 @@ const isolateGraph = (page: Page): Promise<void> =>
     api?.store?.setState?.('graphEdges', new Map());
   }, STUB_NODE);
 
-/** Open a registered overlay through the shell's own test seam. */
-const openOverlay = (id: string): VisualCell['prepare'] => async ({ page }) => {
+/** One dataset per view shape, rendered through the real `<s-view>` host. */
+const VIEW_FIXTURES: Record<string, unknown> = {
+  graph: { kind: 'text', lines: ['(robin-->bird)'] },
+  series: {
+    kind: 'series',
+    series: [
+      { id: 'frequency', label: 'Frequency', values: [0.5, 0.7, 0.9] },
+      { id: 'confidence', label: 'Confidence', values: [0.9, 0.85, 0.8] },
+    ],
+  },
+  tree: {
+    kind: 'tree',
+    roots: [
+      {
+        id: 'root',
+        label: '(robin-->animal)',
+        children: [
+          { id: 'p1', label: '(robin-->bird)' },
+          { id: 'p2', label: '(bird-->animal)' },
+        ],
+      },
+    ],
+  },
+  text: {
+    kind: 'text',
+    lines: ['robin is a bird,', 'bird is an animal,', 'therefore robin is an animal.'],
+  },
+  code: {
+    kind: 'code',
+    language: 'narsese',
+    lines: ['<robin --> bird>.', '<bird --> animal>.', '<robin --> animal>?'],
+  },
+  diff: {
+    kind: 'diff',
+    from: 'revision 1',
+    to: 'revision 2',
+    lines: [
+      { kind: 'context', text: '<robin --> bird>.' },
+      { kind: 'del', text: '<swan --> white>. [f=1.00, c=0.90]' },
+      { kind: 'add', text: '<swan --> white>. [f=0.90, c=0.70]' },
+    ],
+  },
+};
+
+/**
+ * Mount a real `<s-view>` over the shell with one shape + dataset. The view
+ * system's only entry point is the host element, so a shape is best captured by
+ * giving it the host and a source — no bespoke rendering path exists to cover.
+ */
+const mountView =
+  (shape: string): VisualCell['prepare'] =>
+  async ({ page }) => {
+    await page.evaluate(
+      ([activeShape, dataset]) => {
+        const frame = document.createElement('section');
+        frame.setAttribute('data-view-fixture', activeShape);
+        frame.style.cssText =
+          'position:fixed;inset:3.5rem 1.5rem 5.5rem 1.5rem;z-index:100000;' +
+          'background:var(--colors-semantic-bg-base);' +
+          'border:1px solid var(--colors-semantic-border-subtle);';
+        const host = document.createElement('s-view') as HTMLElement & {
+          spec?: unknown;
+          budget?: string;
+          chrome?: boolean;
+        };
+        host.spec = {
+          id: 'view-fixture',
+          title: `${activeShape} view`,
+          shapes: [activeShape],
+          source: { get: () => dataset },
+        };
+        host.budget = 'full';
+        host.chrome = true;
+        host.setAttribute('style', 'height:100%');
+        frame.append(host);
+        document.body.append(frame);
+      },
+      [shape, VIEW_FIXTURES[shape]] as const
+    );
+    await page.waitForTimeout(400);
+  };
+
+/** Open a registered overlay through the shell's own test seam. */const openOverlay = (id: string): VisualCell['prepare'] => async ({ page }) => {
   await page.evaluate((overlayId) => {
     (
       (window as Record<string, unknown>).__testApi as { overlays?: { open?: (id: string) => void } }
@@ -327,6 +408,56 @@ export const VISUAL_CELLS: VisualCell[] = [
     scenario: 'basic-derivation',
     hash: '#panels=none&layout=budget-resource',
     layout: 'budget-resource',
+  },
+
+  // Views (§3.3) — each registered view shape through the one `<s-view>` host.
+  {
+    id: 'view-graph',
+    group: 'Views',
+    title: 'View — graph',
+    surface: 'view:graph',
+    hash: '#panels=none',
+    prepare: mountView('graph'),
+  },
+  {
+    id: 'view-series',
+    group: 'Views',
+    title: 'View — series',
+    surface: 'view:series',
+    hash: '#panels=none',
+    prepare: mountView('series'),
+  },
+  {
+    id: 'view-tree',
+    group: 'Views',
+    title: 'View — tree',
+    surface: 'view:tree',
+    hash: '#panels=none',
+    prepare: mountView('tree'),
+  },
+  {
+    id: 'view-text',
+    group: 'Views',
+    title: 'View — text',
+    surface: 'view:text',
+    hash: '#panels=none',
+    prepare: mountView('text'),
+  },
+  {
+    id: 'view-code',
+    group: 'Views',
+    title: 'View — code',
+    surface: 'view:code',
+    hash: '#panels=none',
+    prepare: mountView('code'),
+  },
+  {
+    id: 'view-diff',
+    group: 'Views',
+    title: 'View — diff',
+    surface: 'view:diff',
+    hash: '#panels=none',
+    prepare: mountView('diff'),
   },
 
   // Responsive.
