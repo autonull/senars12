@@ -21,6 +21,7 @@ import {
   narsBackend,
   type RevisionEntry,
   resolveBlockRef,
+  linkRefFor,
   revealBlock,
   send,
   setWorkspaceSelection,
@@ -333,6 +334,11 @@ export class NodeDetailDrawer extends BaseComponent {
     const nodes = $graphNodes.get();
     const sourceLabel = nodes.get(ed.source as string)?.label ?? (ed.source as string);
     const targetLabel = nodes.get(ed.target as string)?.label ?? (ed.target as string);
+    const edgeId = `${ed.source}->${ed.target}`;
+    const linkRef = linkRefFor(narsBackend, edgeId);
+    const graph = $workspaceGraph.get();
+    const linkBlock = linkRef ? graph.links.get(linkRef) : undefined;
+    const linkViewSpec = linkBlock?.artifact ? artifactViewSpec(linkBlock) : undefined;
     return html`
       <div class="section-title">Edge Details</div>
       <div class="field"><span class="field-label">Source</span><span class="field-value">${sourceLabel}</span></div>
@@ -370,6 +376,21 @@ export class NodeDetailDrawer extends BaseComponent {
           <span style="font-weight:bold">${this.edgeTruthFrequency.toFixed(2)}</span>
         </span>
       </div>
+      <div class="section-title">Edge Actions</div>
+      ${
+        linkRef
+          ? html`<button class="action-btn" data-action="open-block" @click=${() => revealBlock(linkRef)}>
+            Open in Notebook
+          </button>`
+          : ''
+      }
+      ${
+        linkViewSpec
+          ? html`<button class="action-btn" data-action="open-view" @click=${() => eventBus.emit('overlay:open', { id: 'artifact', ref: linkRef })}>
+            Open View
+          </button>`
+          : ''
+      }
     `;
   }
 
