@@ -130,7 +130,9 @@ export class OverlayManager {
       maximized: false,
     };
     overlay.trap.activate();
-    this.#applyBounds(overlay);
+    // Only windowed overlays get managed bounds; every other overlay keeps its
+    // own CSS positioning (centred dialogs, anchored popovers).
+    if (entry.window) this.#applyBounds(overlay);
     this.#stack.push(overlay);
     this.#restack();
     // Focus-moving overlays are announced by their own dialog semantics; only
@@ -469,6 +471,9 @@ export class OverlayManager {
     overlay.element.style.top = `${y}px`;
     overlay.element.style.width = `${width}px`;
     overlay.element.style.height = `${height}px`;
+    // Bounds position a window absolutely; drop any CSS centring transform so
+    // `left`/`top` are the real edges.
+    overlay.element.style.transform = 'none';
   }
 
   #persist(overlay: OpenOverlay): void {
