@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import '../../src/client/components/overlays/explain.js';
-import { explainModel } from '../../src/client/core/explain.js';
-import { $workspaceGraph } from '../../src/client/core/store.js';
+import { explain, explainEventModel, explainModel } from '../../src/client/core/explain.js';
+import { $nodeHistory, $workspaceGraph, type RevisionEntry } from '../../src/client/core/store.js';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
@@ -24,9 +24,16 @@ const linked = () =>
   applyWorkspaceOps(emptyWorkspaceGraph(), [
     { op: 'block.add', block: block('p', 'premise') },
     { op: 'block.add', block: block('c', 'conclusion') },
-    { op: 'link.add', link: { id: 'l1', source: 'c', target: 'p', kind: 'derived-from', createdBy: 'reasoner' } },
+    { op: 'link.add', link: { id: 'l1', source: 'c', target: 'p', kind: 'derived-from', createdBy: 'reasoner', eventRefs: ['e1'] } },
     { op: 'roots.set', roots: ['p', 'c'] },
   ] satisfies WorkspaceOp[]);
+
+const entry: RevisionEntry = {
+  truth: { frequency: 0.4, confidence: 0.8 },
+  stampId: 'e1',
+  timestamp: 0,
+  source: 'derivation',
+};
 
 const mount = async (ref: string) => {
   const el = document.createElement('s-explain');
@@ -39,6 +46,7 @@ const mount = async (ref: string) => {
 afterEach(() => {
   document.body.innerHTML = '';
   $workspaceGraph.set(emptyWorkspaceGraph());
+  $nodeHistory.set([]);
 });
 
 describe('explain model', () => {
@@ -78,9 +86,57 @@ describe('explain surface', () => {
     expect(el.shadowRoot?.querySelector('pre')?.textContent).toContain('"id": "c"');
   });
 
-  it('reports a missing block', async () => {
+  it('reports nothing to explain for a ref that names nothing', async () => {
     $workspaceGraph.set(linked());
     const el = await mount('missing');
-    expect(el.shadowRoot?.textContent).toContain('Block not found');
+    expect(el.shadowRoot?.textContent).toContain('Nothing to explain');
+  });
+});
+
+describe('explain subjects', () => {
+  it('resolves whichever of the three a ref names', () => {
+    const graph = linked();
+    expect(explain(graph, 'c')?.kind).toBe('block');
+    expect(explain(graph, 'l1')?.kind).toBe('link');
+    expect(explain(graph, 'e1', [entry])?.kind).toBe('event');
+    expect(explain(graph, 'missing')).toBeUndefined();
+  });
+
+  it('joins an event to the links that cite it', () => {
+    const event = explainEventModel(linked(), [entry], 'e1');
+    expect(event?.entry.source).toBe('derivation');
+    expect(event?.citing).toMatchObject([{ id: 'l1', label: 'derived from', sourceLabel: 'conclusion', targetLabel: 'premise' }]);
+    expect(explainEventModel(linked(), [], 'e1')).toBeUndefined();
+  });
+
+  it('explains a link by its relationship, endpoints and the block it lands on', async () => {
+    $workspaceGraph.set(linked());
+    const el = await mount('l1');
+    const text = el.shadowRoot?.textContent ?? '';
+    expect(text).toContain('Relationship');
+    expect(text).toContain('derived from');
+    expect(text).toContain('premise');
+  });
+
+  it('explains an event by its truth and what cites it', async () => {
+    $workspaceGraph.set(linked());
+    $nodeHistory.set([entry]);
+    const el = await mount('e1');
+    const text = el.shadowRoot?.textContent ?? '';
+    expect(text).toContain('Stamp');
+    expect(text).toContain('f0.40 c0.80');
+    expect(text).toContain('conclusion → premise');
+  });
+
+  it('renders the block body as the notebook would, not a JSON dump', async () => {
+    $workspaceGraph.set(
+      applyWorkspaceOps(emptyWorkspaceGraph(), [
+        { op: 'block.add', block: block('a', 'plan', { kind: 'list', data: { items: ['fly south', 'sing'] } }) },
+      ] satisfies WorkspaceOp[])
+    );
+    const el = await mount('a');
+    const list = el.shadowRoot?.querySelector('ul.list');
+    expect(list?.children).toHaveLength(2);
+    expect(el.shadowRoot?.querySelector('pre')).toBeFalsy();
   });
 });

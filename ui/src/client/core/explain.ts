@@ -1,13 +1,18 @@
 /**
- * The explanation model (§3.5 seed, Phase 1.6). An explanation of a block is the
+ * The explanation model (§3.5, Phase 1.6). An explanation of a block is the
  * block plus the links that touch it, each labelled through the one link
  * catalog. It is a pure projection of the WorkspaceGraph, so the inspector, the
  * graph popover and a future agent narration render the same facts rather than
  * three hand-built views.
+ *
+ * A ref can name three things — a block, a link, or a truth-value event — so
+ * `explain()` resolves whichever it is: callers ask "explain this ref", and the
+ * subject decides how it reads.
  */
 
 import { linkMeta } from '../utils/link-catalog.js';
 import { blockLabel } from './block-labels.js';
+import type { RevisionEntry } from './store.js';
 import type {
   Ref,
   SemanticBlock,
@@ -87,4 +92,66 @@ export function explainLinkModel(graph: WorkspaceGraph, ref: Ref): ExplainedLink
     target: graph.blocks.get(link.target),
     model,
   };
+}
+
+/** A truth-value revision the engine recorded against a node. */
+export interface ExplainedEvent {
+  readonly entry: RevisionEntry;
+  /** The links whose provenance cites this event. */
+  readonly citing: readonly ExplainedCitation[];
+}
+
+export interface ExplainedCitation {
+  readonly id: Ref;
+  readonly label: string;
+  readonly sourceLabel: string;
+  readonly targetLabel: string;
+}
+
+/**
+ * The event at `stampId` and the links that cite it. A revision entry does not
+ * name its own block — the history the engine sends back belongs to the node that
+ * was inspected — so an event explains itself through its truth, its source and
+ * what cites it, rather than by pretending to own a block.
+ */
+export function explainEventModel(
+  graph: WorkspaceGraph,
+  entries: readonly RevisionEntry[],
+  stampId: Ref
+): ExplainedEvent | undefined {
+  const entry = entries.find((candidate) => candidate.stampId === stampId);
+  if (!entry) return undefined;
+  const citing = [...graph.links.values()]
+    .filter((link) => link.eventRefs?.includes(stampId))
+    .map((link) => ({
+      id: link.id,
+      label: linkMeta(link.kind).label,
+      sourceLabel: labelOf(graph.blocks.get(link.source), link.source),
+      targetLabel: labelOf(graph.blocks.get(link.target), link.target),
+    }));
+  return { entry, citing };
+}
+
+/** What a ref turned out to name — the one explanation of a subject. */
+export type ExplainSubject =
+  | { readonly kind: 'block'; readonly model: ExplainModel }
+  | { readonly kind: 'link'; readonly model: ExplainedLink }
+  | { readonly kind: 'event'; readonly model: ExplainedEvent };
+
+/**
+ * Explain whatever `ref` names. Blocks and links live in the substrate; an event
+ * is only known once its node's history has been fetched, so the entries are
+ * passed in rather than reached for.
+ */
+export function explain(
+  graph: WorkspaceGraph,
+  ref: Ref,
+  entries: readonly RevisionEntry[] = []
+): ExplainSubject | undefined {
+  const model = explainModel(graph, ref);
+  if (model) return { kind: 'block', model };
+  const link = explainLinkModel(graph, ref);
+  if (link) return { kind: 'link', model: link };
+  const event = explainEventModel(graph, entries, ref);
+  return event && { kind: 'event', model: event };
 }

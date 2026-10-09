@@ -18,7 +18,8 @@ import { customElement, property } from 'lit/decorators.js';
 import { BLOCK_KIND_LABEL, blockLabel } from '../core/block-labels.js';
 import { collectSources } from '../core/citations.js';
 import { embeddedViewSpec, hasEmbeddedView } from '../core/embedded-views.js';
-import { type ExplainModel, explainLinkModel, explainModel } from '../core/explain.js';
+import { type ExplainLink, type ExplainModel, explainLinkModel, explainModel } from '../core/explain.js';
+import { eventBus } from '../core/events.js';
 import { $workspaceGraph, type Ref, revealBlock } from '../core/index.js';
 import type { SemanticBlock, WorkspaceGraph } from '../core/workspace-graph.js';
 import { linkMeta } from '../utils/link-catalog.js';
@@ -114,9 +115,14 @@ export class GraphPopover extends LitElement {
       : nothing;
   }
 
+  /** An endpoint row: click to go there, ⌥ to explain the block. */
   private endpoint(ref: Ref, arrow: string) {
     const block = $workspaceGraph.get().blocks.get(ref);
-    return html`<button class="row" data-other=${ref} @click=${() => this.follow(ref)}>
+    return html`<button
+      class="row"
+      data-other=${ref}
+      @click=${(event: MouseEvent) => this.to(ref, event)}
+    >
       <span class="link">${arrow}</span>
       <span class="other">${block ? blockLabel(block) : ref}</span>
     </button>`;
@@ -150,8 +156,8 @@ export class GraphPopover extends LitElement {
           <button
             class="row"
             data-other=${link.other}
-            title=${`${link.label} ${link.otherLabel}`}
-            @click=${() => this.follow(link.other)}
+            title=${`${link.label} ${link.otherLabel} — ⌥ to explain this link`}
+            @click=${(event: MouseEvent) => this.activate(link, event)}
           >
             <span class="link">${link.direction === 'out' ? '→' : '←'} ${link.label}</span>
             <span class="other">${link.otherLabel}</span>
@@ -167,9 +173,19 @@ export class GraphPopover extends LitElement {
     `;
   }
 
-  /** Follow a link in the notebook — the popover's rows are navigation, not decoration. */
-  private follow(ref: Ref) {
-    revealBlock(ref);
+  /**
+   * A row navigates to the other block; ⌥ explains the subject itself, which for a
+   * link row is the link and for an endpoint row the block — the same gesture the
+   * notebook and the ToC use (§3.5).
+   */
+  private to(ref: Ref, event: MouseEvent) {
+    if (event.altKey) eventBus.emit('overlay:open', { id: 'explain', ref });
+    else revealBlock(ref);
+  }
+
+  /** A link row navigates to the other block; ⌥ explains the link itself. */
+  private activate(link: ExplainLink, event: MouseEvent) {
+    this.to(event.altKey ? link.id : link.other, event);
   }
 }
 

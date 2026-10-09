@@ -48,9 +48,14 @@ export { matchCommands } from './command-match.js';
 export { activeCommands, type Command, paletteCommands, registerCommand, registeredCommands } from './commands.js';
 export { eventBus } from './events.js';
 export {
+  explain,
+  type ExplainedCitation,
+  type ExplainedEvent,
   type ExplainedLink,
   type ExplainLink,
   type ExplainModel,
+  type ExplainSubject,
+  explainEventModel,
   explainLinkModel,
   explainModel,
 } from './explain.js';

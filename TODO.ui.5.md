@@ -439,9 +439,12 @@ them by `edgeKey(source, target)` — the same key the edge map uses. **The popo
   id, evidence lineage, raw record); defines the `DerivationRecord` payload. **Absorbs
   `4.3 derivation-record`** — the `s-tree` provenance view consumes this payload.
   `→ core/workspace-projection.ts`, `components/views/tree-view.ts`. `(Phase 3)`,`(ad)`
-- [ ] **3.5 explanation** — extend the explanation popover to reasoning targets (claim/node/edge/event/
-  belief/goal/derivation) with `summary · card · detail · raw`. `→ core/explain.ts`,
-  `components/overlays/explain.ts`. `(Phase 3)`
+- [x] **3.5 explanation** — `explain()` resolves whichever of the three subjects a ref names — **block**,
+  **link** (relationship, both endpoints, the block it lands on, confidence, its events) and **event** (a
+  truth-value revision from `$nodeHistory`, joined to the links whose provenance cites it) — and the
+  overlay renders each at `summary · card · detail · raw` off the one model, with the body rendered by
+  `renderBlockBody` instead of a JSON `<pre>`. A ref that names nothing is reported, not invented.
+  `→ core/explain.ts`, `components/overlays/explain.ts`. `(Phase 3)`
 - [x] **3.4 layouts** — `reasoning-provenance`, `gate-pipeline`, `contradiction-neighborhood`,
   `budget-resource` as `layoutRegistry` rows with deterministic variants. Landed as
   `core/reasoning-layout.ts` (`reasoningPositions`, pure, reusing `blocksInOrder` and `Point`) +
@@ -802,3 +805,32 @@ in v3 Appendix D). Rolled up:
   host can spare re-enabling it).
 
   Suite **412 green** (new: the four scrim tests above).
+- **`3.5` explanation over every subject (Phase 3)** — `explain(graph, ref, entries)` is now the one
+  entry point: a ref names a **block**, a **link**, or a **truth-value event**, and the subject decides
+  how it reads, so a caller asks "explain this ref" instead of knowing which projection to reach for.
+  The **link** subject is the existing `explainLinkModel` (relationship, both endpoints, the block it
+  lands on, `confidence`, `eventRefs`); the **event** subject is new and deliberately modest — a
+  `RevisionEntry` from `$nodeHistory` does not name its own block (the engine's history belongs to the
+  node that was inspected), so `explainEventModel` explains an event through *itself*: its stamp, source,
+  truth and timestamp, joined to the links whose `eventRefs` cite it. That join is a real fact from the
+  substrate rather than a fabricated owner. The overlay grew the per-subject disclosure ladder over one
+  shared `facts`/`body` pair, dropped its local `Level` union for the contract's `Disclosure` type, and —
+  the sweep flagged twice — renders the block body through **`renderBlockBody`**, so an explanation of an
+  artifact or a list *is* that artifact instead of `JSON.stringify(block.data)`; `detail` still adds the
+  machine payload and `raw` the whole subject, which is what those levels are for. `aria-modal` came with
+  it, since this overlay is a dialog. Reach grew to match: ⌥-clicking a popover row explains the *link*
+  (endpoints explain the block), the same gesture the notebook and the ToC already used.
+
+  **Notes:** `belief/goal/derivation` from the plan's original list are not separate subjects — they are
+  link kinds the catalog already names (`supports`/`contradicts`, `achieves`/`fails`, `derived-from`),
+  and they now read through the same subject, so a future `nars-backend` vocabulary row appears here
+  without a new projection. `3.3`'s `DerivationRecord` blocks will land in the **block** subject and
+  gain their provenance tree through the embedded `derivation` view. Sweeps worth taking next: the
+  overlay is registered without `modal: true`, so it does not paint a scrim or trap the workspace
+  behind it while open — now that the manager owns one, marking this dialog `modal` is a one-line change;
+  and `$nodeHistory` is a single node's history with no owner recorded, which is what forced the event
+  subject to describe itself rather than its block — a `history.subject` on the wire would fix that at
+  the root.
+
+  Suite **417 green** (new: `explain()` resolving all three subjects, the event→citing-links join, the
+  link and event overlays, the notebook-rendered body, the popover's ⌥ gesture).
