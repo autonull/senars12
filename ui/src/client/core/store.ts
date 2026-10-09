@@ -230,6 +230,21 @@ export const $view = atom<View>({
   timeline: { t: Number.POSITIVE_INFINITY },
 });
 
+/**
+ * `$workspaceGraph.timeCursor` is derived, not a second source: the scrub cursor
+ * is `$view.timeline.t` (that is what the modulation gate already reads), and this
+ * puts it on the substrate so the workspace renderers can admit blocks by the
+ * same number (§4.4). `Infinity` is the present and is stored as `undefined`.
+ */
+$view.subscribe(({ timeline }) => {
+  const cursor = Number.isFinite(timeline.t) ? timeline.t : undefined;
+  if ($workspaceGraph.get().timeCursor === cursor) return;
+  const graph = $workspaceGraph.get();
+  $workspaceGraph.set(
+    cursor === undefined ? { ...graph, timeCursor: undefined } : { ...graph, timeCursor: cursor }
+  );
+});
+
 /** Dynamic lens fields received from server (fallback to hardcoded). */
 export const $lensFields = atom<LensFieldDescriptor[]>([]);
 

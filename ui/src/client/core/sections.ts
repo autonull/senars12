@@ -96,3 +96,20 @@ export const pageOf = (tree: SectionTree, ref: Ref | undefined): Ref | undefined
 /** Every section that has children — what a fold-all collapses. */
 export const foldableSections = (tree: SectionTree): Ref[] =>
   tree.order.filter((node) => node.children.length > 0).map((node) => node.ref);
+
+/**
+ * Whether a block has been admitted at the present-anchored cursor (§4.4).
+ * A live cursor (`undefined`) admits everything; a scrubbed one admits only what
+ * existed at that moment. A block with no event time is **not** judged — the
+ * producers that do not thread one are not claiming to be from the future, so
+ * they stay visible rather than being guessed about.
+ */
+export const isAdmitted = (block: SemanticBlock, cursor?: number): boolean =>
+  cursor === undefined || block.createdAt <= cursor;
+
+/**
+ * The roots admitted at `cursor`. Only the roots are filtered: a subtree is
+ * rendered as it stands, with each block inside it judged on its own time.
+ */
+export const admittedRoots = (tree: SectionTree, cursor?: number): readonly SectionNode[] =>
+  tree.roots.filter((node) => isAdmitted(node.block, cursor));

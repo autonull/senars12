@@ -31,6 +31,8 @@ export interface BackendNode {
   readonly attrs: Record<string, unknown>;
   /** Truth as the engine declares it, labelled with the backend's `kind`. */
   readonly uncertainty?: Uncertainty;
+  /** When the engine says this happened; absent when it has no timeline. */
+  readonly occurredAt?: number;
 }
 
 /** One substrate edge; resolved through `BackendVocabulary.edges`. */

@@ -205,7 +205,7 @@ export function projectReasoning(
       data: node.attrs,
       uncertainty: node.uncertainty,
       status: 'complete',
-      createdAt: 0,
+      createdAt: node.occurredAt ?? 0,
       createdBy: 'reasoner',
     });
     roots.push(blockId);

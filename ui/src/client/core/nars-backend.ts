@@ -43,6 +43,7 @@ const nodeOf = (id: Ref, node: GraphNodeData): BackendNode => ({
   label: node.label ?? node.term ?? node.atom ?? id,
   text: node.term ?? node.atom,
   attrs: node,
+  occurredAt: node.occurrenceTime,
   uncertainty: node.truth
     ? {
         frequency: node.truth.frequency,

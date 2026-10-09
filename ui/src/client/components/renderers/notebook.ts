@@ -21,7 +21,7 @@ import { collectSources, resolveSource, type Source } from '../../core/citations
 import { eventBus } from '../../core/events.js';
 import { tokenizeInline } from '../../core/inline-text.js';
 import { breadcrumb } from '../../core/navigation.js';
-import { type SectionNode, sectionTree } from '../../core/sections.js';
+import { admittedRoots, isAdmitted, type SectionNode, sectionTree } from '../../core/sections.js';
 import {
   $collapsedBlocks,
   $workspaceGraph,
@@ -124,11 +124,13 @@ interface RenderOptions {
   fold?: FoldControl;
   /** Containment depth — 0 at a page root. */
   depth?: number;
+  /** False while the present-anchored cursor is before the block (§4.4). */
+  admitted?: boolean;
 }
 
 function renderBlock(
   block: SemanticBlock,
-  { sources, focused, fold, depth }: RenderOptions
+  { sources, focused, fold, depth, admitted = true }: RenderOptions
 ): TemplateResult {
   const body = (() => {
     if (block.kind === 'heading') return renderHeading(block, sources);
@@ -149,9 +151,9 @@ function renderBlock(
       if (!citation) return html``;
       const source = citation.key ? resolveSource(citation.key, sources) : undefined;
       return html`<a class="citation" href=${citation.href} target="_blank" rel="noreferrer"
-        >${source ? html`<span class="cite-index">[${source.index}]</span> ` : ''}${citation.label ??
-          citation.key ??
-          citation.href}</a
+        >${source ? html`<span class="cite-index">[${source.index}]</span> ` : ''}${
+          citation.label ?? citation.key ?? citation.href
+        }</a
       >`;
     }
     if (block.kind === 'code') {
@@ -187,6 +189,7 @@ function renderBlock(
       data-id=${block.id}
       data-kind=${block.kind}
       data-depth=${depth ?? 0}
+      data-admitted=${admitted}
       data-role=${block.role}
       data-status=${block.status ?? 'complete'}
       data-focused=${focused}
@@ -240,6 +243,7 @@ export class NotebookView extends SurfaceComponent {
     .block[data-role='user'] { border-left: 3px solid var(--colors-semantic-accent-cyan); }
     .block[data-role='assistant'] { border-left: 3px solid var(--colors-semantic-accent-violet); }
     .block[data-status='streaming'] { opacity: 0.85; }
+    .block[data-admitted='false'] { opacity: 0.35; }
     .block-head { display: flex; align-items: center; gap: var(--spacing-scale-2); font-size: var(--typography-scale-xs); }
     .kind { text-transform: uppercase; letter-spacing: 0.06em; color: var(--colors-semantic-text-muted); }
     .title { color: var(--colors-semantic-text-secondary); font-weight: var(--typography-fontWeights-medium); }
@@ -307,6 +311,7 @@ export class NotebookView extends SurfaceComponent {
     const tree = sectionTree(graph, $collapsedBlocks.get());
     const sources = collectSources(graph);
     const crumbs = breadcrumb(graph, graph.focus);
+    const cursor = graph.timeCursor;
     const render = (node: SectionNode): TemplateResult => {
       const fold =
         node.children.length > 0
@@ -326,6 +331,7 @@ export class NotebookView extends SurfaceComponent {
             focused: graph.focus === node.ref,
             fold,
             depth: node.depth,
+            admitted: isAdmitted(node.block, cursor),
           })}
           ${node.folded ? '' : node.children.map(render)}
         </section>
@@ -349,7 +355,7 @@ export class NotebookView extends SurfaceComponent {
             </nav>`
           : ''
       }
-      <div class="pages">${tree.roots.map(render)}</div>
+      <div class="pages">${admittedRoots(tree, cursor).map(render)}</div>
     `;
   }
 }

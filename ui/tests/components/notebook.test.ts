@@ -3,7 +3,7 @@ import { notebookRenderer } from '../../src/client/components/renderers/notebook
 import '../../src/client/components/views/table-mini-view.js';
 import '../../src/client/components/views/table-view.js';
 import { eventBus } from '../../src/client/core/events.js';
-import { $collapsedBlocks, $workspaceGraph } from '../../src/client/core/store.js';
+import { $collapsedBlocks, $view, $workspaceGraph } from '../../src/client/core/store.js';
 import '../../src/client/core/view-host.js';
 import {
   applyWorkspaceOps,
@@ -33,6 +33,7 @@ afterEach(() => {
   document.body.innerHTML = '';
   $workspaceGraph.set(emptyWorkspaceGraph());
   $collapsedBlocks.set(new Set());
+  $view.set({ ...$view.get(), timeline: { t: Number.POSITIVE_INFINITY } });
 });
 
 describe('notebook surface', () => {
@@ -244,6 +245,46 @@ describe('notebook surface', () => {
     expect(el.shadowRoot?.textContent).not.toContain('deep prose');
     expect(el.shadowRoot?.querySelector('.block[data-id="deep"]')).toBeFalsy();
     expect(el.shadowRoot?.querySelector('.block[data-id="t1"]')).toBeTruthy();
+  });
+
+  it('drops a page admitted only after the scrub cursor and marks the ones still ahead', async () => {
+    $workspaceGraph.set(
+      applyWorkspaceOps(emptyWorkspaceGraph(), [
+        { op: 'block.add', block: block('t1', { children: ['early', 'late'], createdAt: 100 }) },
+        {
+          op: 'block.add',
+          block: block('early', { kind: 'paragraph', text: 'early prose', createdAt: 150 }),
+        },
+        {
+          op: 'block.add',
+          block: block('late', { kind: 'paragraph', text: 'late prose', createdAt: 900 }),
+        },
+        { op: 'roots.set', roots: ['t1'] },
+      ])
+    );
+    $view.set({ ...$view.get(), timeline: { t: 200 } });
+    const el = document.createElement('s-notebook');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect($workspaceGraph.get().timeCursor).toBe(200);
+    expect(
+      el.shadowRoot?.querySelector('.block[data-id="late"]')?.getAttribute('data-admitted')
+    ).toBe('false');
+    expect(
+      el.shadowRoot?.querySelector('.block[data-id="early"]')?.getAttribute('data-admitted')
+    ).toBe('true');
+
+    // A page admitted after the cursor is not on screen at all.
+    $workspaceGraph.set({
+      ...$workspaceGraph.get(),
+      roots: [...$workspaceGraph.get().roots, 't2'],
+      blocks: new Map([
+        ...$workspaceGraph.get().blocks,
+        ['t2', block('t2', { text: 'later page', createdAt: 900 })],
+      ]),
+    });
+    await el.updateComplete;
+    expect(el.shadowRoot?.querySelector('.page[data-id="t2"]')).toBeFalsy();
   });
 
   it('marks the focused block', async () => {

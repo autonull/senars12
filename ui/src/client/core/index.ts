@@ -117,7 +117,9 @@ export {
   registerOverlay,
 } from './overlay-registry.js';
 export {
+  admittedRoots,
   foldableSections,
+  isAdmitted,
   pageOf,
   type SectionNode,
   type SectionTree,

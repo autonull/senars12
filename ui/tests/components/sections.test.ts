@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { foldableSections, pageOf, sectionTree } from '../../src/client/core/sections.js';
+import {
+  admittedRoots,
+  foldableSections,
+  isAdmitted,
+  pageOf,
+  sectionTree,
+} from '../../src/client/core/sections.js';
 import {
   applyWorkspaceOps,
   emptyWorkspaceGraph,
@@ -28,6 +34,39 @@ const build = (): ReturnType<typeof applyWorkspaceOps> =>
     { op: 'block.add', block: block('other') },
     { op: 'roots.set', roots: ['p1', 'p2'] },
   ] satisfies WorkspaceOp[]);
+
+describe('present-anchored admission', () => {
+  const at = (ref: string, createdAt: number, children: string[] = []): SemanticBlock => ({
+    ...block(ref, children),
+    createdAt,
+  });
+
+  const timed = () =>
+    applyWorkspaceOps(emptyWorkspaceGraph(), [
+      { op: 'block.add', block: at('t1', 100, ['old', 'new']) },
+      { op: 'block.add', block: at('old', 150) },
+      { op: 'block.add', block: at('new', 900) },
+      { op: 'block.add', block: at('undated', 0) },
+      { op: 'roots.set', roots: ['t1', 'undated'] },
+    ] satisfies WorkspaceOp[]);
+
+  it('judges a block by its event time against the cursor', () => {
+    expect(isAdmitted(at('x', 150), undefined)).toBe(true);
+    expect(isAdmitted(at('x', 150), 200)).toBe(true);
+    expect(isAdmitted(at('x', 900), 200)).toBe(false);
+  });
+
+  it('admits everything at the live cursor', () => {
+    const tree = sectionTree(timed());
+    expect(admittedRoots(tree, undefined)).toHaveLength(2);
+    expect(admittedRoots(tree, Number.POSITIVE_INFINITY)).toHaveLength(2);
+  });
+
+  it('drops a root admitted only after the cursor, but not an undated one', () => {
+    const tree = sectionTree(timed());
+    expect(admittedRoots(tree, 200).map((node) => node.ref)).toEqual(['t1', 'undated']);
+  });
+});
 
 describe('sectionTree', () => {
   it('recurses containment to any depth', () => {
