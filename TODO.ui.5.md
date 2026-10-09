@@ -435,10 +435,19 @@ them by `edgeKey(source, target)` — the same key the edge map uses. **The popo
   renderers; route `claim`/`question` composer children through it; emit `asks`/`answers` links;
   special-case structured modes in `projectChat`; server `mode`/`contexts` consumption.
   `→ core/segmentation.ts`, `core/workspace-projection.ts`, `components/input-hud.ts`. `(g)`,`(l)`,`(k)`
-- [ ] **3.3 provenance** — `derivation-record` blocks (premises/conclusion links, truth/confidence, rule
-  id, evidence lineage, raw record); defines the `DerivationRecord` payload. **Absorbs
-  `4.3 derivation-record`** — the `s-tree` provenance view consumes this payload.
-  `→ core/workspace-projection.ts`, `components/views/tree-view.ts`. `(Phase 3)`,`(ad)`
+- [~] **3.3 provenance** — `derivation-record` blocks landed: a provenance-category edge becomes its own
+  `derivation` block **nested under the conclusion it justifies** (`derivationId`, one per step — the engine
+  has no step id, so per-edge is the honest granularity), carrying the `DerivationRecordData` payload
+  (rule, premises, conclusion, confidence, the conclusion's truth, the step's events, and the engine's own
+  record verbatim in `raw`) and rendering through `s-tree` as *rule → premises → conclusion*. This also
+  **absorbs `4.3 derivation-record`** and makes the spec-gated **Open View** path reachable from engine
+  claims (`4.3 affordances`): a derivation block is a real artifact. Lands the `block.spec` seam, which the
+  `SemanticBlock` contract declared and nothing used: a block's own instruction now renders verbatim
+  (checked before every artifact branch in `renderBlockBody` and in `artifactViewSpec`).
+  **Still open:** evidence *lineage* — the record names the premise and conclusion but not the chain below
+  the premise; that needs the engine's derivation recorder across the wire (`0.6`), not a projection over
+  what the graph already carries. `→ core/block-payload.ts`, `core/artifacts.ts`,
+  `core/workspace-projection.ts`, `utils/render-block.ts`, `components/views/tree-view.ts`. `(Phase 3)`,`(ad)`
 - [x] **3.5 explanation** — `explain()` resolves whichever of the three subjects a ref names — **block**,
   **link** (relationship, both endpoints, the block it lands on, confidence, its events) and **event** (a
   truth-value revision from `$nodeHistory`, joined to the links whose provenance cites it) — and the
@@ -834,3 +843,38 @@ in v3 Appendix D). Rolled up:
 
   Suite **417 green** (new: `explain()` resolving all three subjects, the event→citing-links join, the
   link and event overlays, the notebook-rendered body, the popover's ⌥ gesture).
+- **`3.3` derivation records (WP5, Phase 3)** — a provenance-category edge is now a **block**, not just a
+  line between two claims. `projectReasoning` emits a `derivation` block per provenance step
+  (`derivationId(edgeId)`), nested under the conclusion claim it justifies through the claim's `children`,
+  so the notebook can fold it, the graph can select it, and the subtree reads *claim → how it was
+  justified*. The payload (`DerivationRecordData`, the one this plan asked `block-payload.ts` to define)
+  carries the rule by its **catalog kind**, the premise and conclusion as block refs, the step's
+  confidence, the conclusion's truth, the cognitive events behind it, and the engine's own record
+  verbatim in `raw` — the projection names what it can and keeps the rest, which is the difference between
+  a normalizer and a reinterpretation. `block-payload.ts` grew a `derivation` normalizer alongside the
+  other payloads; `artifacts.ts` grew a `derivation` branch that maps the record to the tree it *is*
+  (`rule → premises → conclusion`, labelled through the link catalog so `derived-from` reads "derived
+  from" and an unmapped rule keeps its own name rather than inventing one), and dropped `derivation` from
+  `JSON_KINDS` because it no longer needs the JSON fallback. This is the first use of the `block.spec`
+  seam the `SemanticBlock` contract declared ("rich render instruction for the inner view system") with
+  nothing producing it: `renderBlockBody` now renders a block's own instruction **before** any artifact
+  branch, and `artifactViewSpec` returns it verbatim, so a substrate can express a view this mapping does
+  not know how to name. That in turn makes `4.3 affordances`' "spec-gated path reachable for engine
+  claims" path real — a derivation block has a view, so **Open View** appears for it.
+
+  **Notes:** the record is per *edge*, not per *step*, because a step id is exactly what the engine graph
+  does not carry — a conclusion with two premises gets two derivation blocks, and pretending otherwise
+  would mean inventing a grouping. Evidence *lineage* (the chain below a premise) stays open until the
+  derivation recorder crosses the wire; when it does, the payload grows a `steps` field and the tree
+  deepens, and nothing downstream changes. Also worth noting: `projectReasoning` no longer returns
+  `blocks` untouched — it maps over them once to attach the nested steps, which keeps the blocks
+  immutable and the merge in `projectWorkspace` simple.
+
+  **New improvement opportunities:** the derivation block's own `uncertainty` currently duplicates the
+  conclusion's, so a notebook line shows the same truth twice (block header and artifact) — derive it from
+  the record at render time, or stop copying it. And `s-tree` labels its nodes from the payload, which is
+  refs: rendering block labels there would want the graph, so `tree-view`'s embedded budget is the place a
+  `label` resolution seam would land.
+
+  Suite **422 green** (new: derivation record projection and its nesting, non-provenance edges untouched,
+  payload normalization, the derivation tree view, unmapped-rule fallback, `block.spec` verbatim).

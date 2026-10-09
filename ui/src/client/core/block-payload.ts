@@ -44,6 +44,27 @@ export interface ConfigChangeData {
   to?: string;
 }
 
+/**
+ * The `derivation-record` payload (§3.3): what the engine said arrived from where.
+ * It is built by a producer from the substrate, so `raw` keeps the engine's own
+ * record verbatim — anything the projection did not name is still readable.
+ */
+export interface DerivationRecordData {
+  /** The catalog name of the rule that ran, as the link kind that stands for it. */
+  rule: string;
+  /** The premises the rule read, as block refs. */
+  premises: string[];
+  /** What it produced, as a block ref. */
+  conclusion: string;
+  /** The confidence the engine attached to the step. */
+  confidence?: number;
+  /** The truth the conclusion carries, when it has one. */
+  truth?: { frequency: number; confidence: number };
+  /** Cognitive events behind the step, when the producer recorded any. */
+  events: string[];
+  raw: unknown;
+}
+
 /** A `chart` block carries the series dataset the view system already renders. */
 export type ChartData = SeriesDataset;
 
@@ -56,6 +77,7 @@ export interface BlockPayloads {
   citation: CitationData;
   chart: ChartData;
   'config-change': ConfigChangeData;
+  derivation: DerivationRecordData;
 }
 
 export type ArtifactKind = keyof BlockPayloads;
@@ -79,6 +101,17 @@ const optionalString = (value: unknown): string | undefined =>
 
 const optionalNumber = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : undefined;
+
+/** A truth pair, when the producer sent both halves. */
+const truthOf = (
+  value: unknown
+): { frequency: number; confidence: number } | undefined => {
+  if (!isRecord(value)) return undefined;
+  const { frequency, confidence } = value;
+  return typeof frequency === 'number' && typeof confidence === 'number'
+    ? { frequency, confidence }
+    : undefined;
+};
 
 const tableData = (data: Record<string, unknown>): TableData | undefined => {
   const headers = stringArray(data.headers);
@@ -128,6 +161,22 @@ const NORMALIZERS: { [K in ArtifactKind]: Normalizer<K> } = {
     data.kind === 'series' && Array.isArray(data.series)
       ? { kind: 'series', series: data.series as SeriesDataset['series'] }
       : undefined,
+  derivation: (data) => {
+    const premises = stringArray(data.premises);
+    const events = stringArray(data.events) ?? [];
+    if (typeof data.rule !== 'string' || typeof data.conclusion !== 'string' || !premises)
+      return undefined;
+    const truth = truthOf(data.truth);
+    return {
+      rule: data.rule,
+      premises,
+      conclusion: data.conclusion,
+      confidence: optionalNumber(data.confidence),
+      truth,
+      events,
+      raw: data.raw ?? null,
+    };
+  },
   'config-change': (data) =>
     typeof data.before === 'string' && typeof data.after === 'string'
       ? {

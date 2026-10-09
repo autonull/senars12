@@ -11,6 +11,7 @@
  */
 
 import type { ChatMessage } from '@senars/core';
+import { linkMeta } from '../utils/link-catalog.js';
 import { decomposeForMode, DEFAULT_COMPOSER_MODE, isComposerMode } from './composer-modes.js';
 import { isFaithfulDecomposition } from './input-decomposition.js';
 import { NAL_VOCABULARY } from './nars-backend.js';
@@ -39,6 +40,8 @@ export const turnId = (messageId: Ref): Ref => `turn:${messageId}`;
 export const claimId = (nodeId: Ref): Ref => `claim:${nodeId}`;
 export const linkId = (source: Ref, target: Ref, kind: SemanticLinkKind): Ref =>
   `link:${source}->${target}:${kind}`;
+/** The `derivation-record` block documenting one provenance edge (§3.3). */
+export const derivationId = (edge: Ref): Ref => `derivation:${edge}`;
 
 const ROLE_MAP = {
   user: { role: 'user', createdBy: 'user' },
@@ -212,6 +215,9 @@ export function projectReasoning(
   }
 
   const blockIds = new Set(blocks.map((block) => block.id));
+  const steps: SemanticBlock[] = [];
+  const nesting = new Map<Ref, Ref[]>();
+
   for (const [id, edge] of [...edges.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     const source = claimId(edge.source);
     const target = claimId(edge.target);
@@ -226,9 +232,43 @@ export function projectReasoning(
       eventRefs: id ? [id] : undefined,
       createdBy: 'reasoner',
     });
+    // A provenance step is a fact *about* the derivation, not just a line between two
+    // claims, so it gets its own block nested under the conclusion it justifies: the
+    // notebook can fold it, the graph can select it, and the record renders through
+    // the one view contract like any other artifact.
+    if (linkMeta(kind).category === 'provenance') {
+      const premise = nodes.get(edge.source);
+      const conclusion = nodes.get(edge.target);
+      const step = derivationId(id);
+      steps.push({
+        id: step,
+        kind: 'derivation',
+        role: 'reasoner',
+        title: `${linkMeta(kind).label} · ${premise?.label ?? edge.source}`,
+        data: {
+          rule: kind,
+          premises: [source],
+          conclusion: target,
+          confidence: edge.confidence,
+          truth: conclusion?.uncertainty,
+          events: id ? [id] : [],
+          raw: { rule: edge.kind, premise: premise?.attrs, conclusion: conclusion?.attrs },
+        },
+        uncertainty: conclusion?.uncertainty,
+        status: 'complete',
+        createdAt: conclusion?.occurredAt ?? 0,
+        createdBy: 'reasoner',
+      });
+      nesting.set(target, [...(nesting.get(target) ?? []), step]);
+    }
   }
 
-  return { blocks, links, roots };
+  const nested = blocks.map((block) => {
+    const children = nesting.get(block.id);
+    return children ? { ...block, children } : block;
+  });
+
+  return { blocks: [...nested, ...steps], links, roots };
 }
 
 const merge = (fragments: readonly WorkspaceFragment[]): WorkspaceGraph => {

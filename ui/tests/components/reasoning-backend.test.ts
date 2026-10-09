@@ -7,9 +7,11 @@ import type {
   ReasoningBackend,
 } from '../../src/client/core/reasoning-backend.js';
 import { $graphEdges, $graphNodes } from '../../src/client/core/store.js';
+import { payloadOf } from '../../src/client/core/block-payload.js';
 import {
   blockRefFor,
   claimId,
+  derivationId,
   projectReasoning,
   projectWorkspace,
   resolveBlockRef,
@@ -120,6 +122,59 @@ describe('node→block mapping', () => {
     expect(resolveBlockRef(graph, narsBackend, claimId('bird'))).toBe(claimId('bird'));
     expect(resolveBlockRef(graph, narsBackend, 'bird')).toBe(claimId('bird'));
     expect(resolveBlockRef(graph, narsBackend, 'ghost')).toBeUndefined();
+  });
+});
+
+describe('derivation records', () => {
+  /** Two claims the engine linked with a rule it names `entails`, which this backend's vocabulary reads as a derivation. */
+  const deriving = () =>
+    projectReasoning({
+      id: 'metta',
+      kind: 'proof-checked',
+      vocab: { nodes: { proposition: 'claim' }, edges: { entails: 'derived-from' } },
+      snapshot: () => ({
+        nodes: new Map([
+          ['fly', backendNode('fly', 'proposition', { attrs: { id: 'fly', truth: 'yes' } })],
+          ['up', backendNode('up', 'proposition')],
+        ]),
+        edges: new Map([
+          ['e1', { id: 'e1', source: 'fly', target: 'up', kind: 'entails', confidence: 0.75 }],
+        ]),
+      }),
+    });
+
+  it('documents a provenance edge as its own record, nested under the conclusion', () => {
+    const fragment = deriving();
+    const conclusion = fragment.blocks.find((block) => block.id === claimId('up'));
+    expect(conclusion?.children).toEqual([derivationId('e1')]);
+
+    const record = fragment.blocks.find((block) => block.kind === 'derivation');
+    expect(record?.id).toBe(derivationId('e1'));
+    expect(record?.uncertainty).toBeUndefined();
+    expect(payloadOf(record?.data, 'derivation')).toMatchObject({
+      rule: 'derived-from',
+      premises: [claimId('fly')],
+      conclusion: claimId('up'),
+      confidence: 0.75,
+      events: ['e1'],
+    });
+    // the engine's own record is kept, not reinterpreted
+    expect(payloadOf(record?.data, 'derivation')?.raw).toMatchObject({
+      rule: 'entails',
+      premise: { id: 'fly' },
+      conclusion: { id: 'up' },
+    });
+  });
+
+  it('leaves an edge that is not a provenance step without a record', () => {
+    const fragment = projectReasoning(
+      mettaBackend(
+        [backendNode('a', 'proposition'), backendNode('b', 'proposition')],
+        [{ id: 'e2', source: 'a', target: 'b', kind: 'supports' }]
+      )
+    );
+    expect(fragment.blocks.some((block) => block.kind === 'derivation')).toBe(false);
+    expect(fragment.blocks.find((block) => block.id === claimId('b'))?.children).toBeUndefined();
   });
 });
 

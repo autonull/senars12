@@ -34,6 +34,48 @@ describe('tableFromColumns', () => {
   });
 });
 
+describe('derivation view', () => {
+  it('maps a derivation record to the tree it is', () => {
+    const spec = artifactViewSpec(
+      block({
+        kind: 'derivation',
+        title: 'derived from · bird',
+        data: {
+          rule: 'derived-from',
+          premises: ['claim:bird'],
+          conclusion: 'claim:fly',
+          confidence: 0.8,
+          truth: { frequency: 0.9, confidence: 0.8 },
+          events: ['edge-1'],
+          raw: { rule: 'derivation' },
+        },
+      })
+    );
+    if (!spec) throw new Error('expected a derivation view spec');
+    expect(spec.shape).toBe('tree');
+    const tree = spec.source.get() as { kind: string; roots: { label: string; children?: { label: string }[] }[] };
+    expect(tree.roots[0]?.label).toBe('derived from');
+    expect(tree.roots[0]?.children?.map((child) => child.label)).toEqual([
+      'claim:bird',
+      'claim:fly',
+    ]);
+  });
+
+  it('keeps an unmapped rule as the raw name rather than inventing one', () => {
+    const spec = artifactViewSpec(
+      block({ kind: 'derivation', data: { rule: 'custom-step', premises: [], conclusion: 'c', events: [], raw: null } })
+    );
+    expect((spec!.source.get() as { roots: { label: string }[] }).roots[0]?.label).toBe('custom-step');
+  });
+
+  it('renders a spec the block arrived with, verbatim', () => {
+    const spec = artifactViewSpec(
+      block({ kind: 'claim', spec: { id: 'own', title: 'Own', shapes: ['text'], source: { get: () => ({ kind: 'text', lines: ['x'] }) } } })
+    );
+    expect(spec?.id).toBe('own');
+  });
+});
+
 describe('artifactViewSpec', () => {
   it('maps a table block to a table dataset with a text alternative', () => {
     const data: TableData = { headers: ['x', 'y'], rows: [['1', '2']] };
@@ -102,13 +144,13 @@ describe('artifactViewSpec', () => {
   });
 
   it('falls back to a structured JSON text spec for reasoning payloads', () => {
-    const spec = artifactViewSpec(block({ kind: 'derivation', data: { rule: 'deduction' } }));
-    if (!spec) throw new Error('expected a derivation view spec');
+    const spec = artifactViewSpec(block({ kind: 'gate-decision', data: { rule: 'deduction' } }));
+    if (!spec) throw new Error('expected a reasoning view spec');
     expect(spec.shape).toBe('text');
     expect((spec.source.get() as TextDataset).lines.join('\n')).toContain('"rule": "deduction"');
   });
 
-  it('treats a chart without a series payload as structured JSON', () => {
+  it('treats a chart without a series payload, or a derivation without a record, as nothing', () => {
     const spec = artifactViewSpec(block({ kind: 'chart', data: { labels: ['a'], values: [1] } }));
     expect(spec?.shape).toBe('text');
     expect(artifactViewSpec(block({ kind: 'derivation' }))).toBeUndefined();

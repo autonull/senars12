@@ -6,8 +6,9 @@
  * unsupported block returns `undefined` rather than a wrong view.
  */
 
-import type { ChartData, ConfigChangeData } from './block-payload.js';
+import type { ChartData, ConfigChangeData, DerivationRecordData } from './block-payload.js';
 import { payloadOf } from './block-payload.js';
+import { linkMeta, LINK_KINDS } from '../utils/link-catalog.js';
 import { diffLines } from './diff.js';
 import type {
   CodeDataset,
@@ -16,11 +17,12 @@ import type {
   SeriesDataset,
   Shape,
   TableDataset,
+  TreeDataset,
   TextDataset,
   ViewSource,
   ViewSpec,
 } from './view-spec.js';
-import type { BlockKind, SemanticBlock } from './workspace-graph.js';
+import type { BlockKind, SemanticBlock, SemanticLinkKind } from './workspace-graph.js';
 
 /** Build a `TableDataset` from a header row and a matrix of cell values. */
 export function tableFromColumns(
@@ -37,13 +39,34 @@ export function tableFromColumns(
   };
 }
 
-const staticSource = (
-  dataset: TableDataset | TextDataset | SeriesDataset | CodeDataset | DiffDataset
-): ViewSource => ({
-  get: () => dataset,
-});
+/** Datasets a block payload can be mapped into and shown as-is. */
+type StaticDataset = TableDataset | TextDataset | SeriesDataset | CodeDataset | DiffDataset | TreeDataset;
+
+const staticSource = (dataset: StaticDataset): ViewSource => ({ get: () => dataset });
 
 const json = (value: unknown): string => JSON.stringify(value, null, 2) ?? String(value);
+
+/**
+ * A derivation as the tree it is: the rule at the root, its premises below and
+ * what it concluded under them. Refs the producer could not resolve keep their
+ * ref, so a step never silently loses a premise.
+ */
+function derivationTree(record: DerivationRecordData): TreeDataset {
+  const rule = record.rule as SemanticLinkKind;
+  return {
+    kind: 'tree',
+    roots: [
+      {
+        id: `rule:${record.rule}`,
+        label: LINK_KINDS.includes(rule) ? linkMeta(rule).label : record.rule,
+        children: [
+          ...record.premises.map((premise) => ({ id: premise, label: premise })),
+          { id: record.conclusion, label: record.conclusion },
+        ],
+      },
+    ],
+  };
+}
 
 const specOf = (
   block: SemanticBlock,
@@ -61,7 +84,6 @@ const specOf = (
 
 /** Kinds whose payload is best inspected as structured JSON until a bespoke view lands. */
 const JSON_KINDS = new Set<BlockKind>([
-  'derivation',
   'gate-decision',
   'budget',
   'config-change',
@@ -71,6 +93,20 @@ const JSON_KINDS = new Set<BlockKind>([
 
 /** The `ViewSpec` for a block's artifact, or `undefined` when it has none. */
 export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
+  // A block that arrived with its own instruction renders through it verbatim —
+  // the substrate can express more than this mapping knows how to name.
+  if (block.spec) return block.spec;
+  if (block.kind === 'derivation') {
+    const record: DerivationRecordData | undefined = payloadOf(block.data, 'derivation');
+    return record && {
+      id: `artifact:${block.id}`,
+      title: block.title ?? 'Derivation',
+      shapes: ['tree', 'text'],
+      source: staticSource(derivationTree(record)),
+      shape: 'tree',
+      interactions: ['select'],
+    };
+  }
   if (block.kind === 'table') {
     const data = payloadOf(block.data, 'table');
     if (!data) return undefined;

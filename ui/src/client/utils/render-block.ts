@@ -35,7 +35,8 @@ export const blockBodyStyles = css`
   table.data th { color: var(--colors-semantic-text-secondary); font-weight: var(--typography-fontWeights-medium); }
 `;
 
-const view = (spec: ViewSpec): TemplateResult =>
+/** The one way a block renders through the view system: its own instruction, or its artifact's. */
+const embedded = (spec: ViewSpec): TemplateResult =>
   html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'}></s-view>`;
 
 const renderTable = (data: TableData): TemplateResult => html`
@@ -106,6 +107,7 @@ export function renderBlockBody(
   sources: readonly Source[]
 ): TemplateResult | typeof nothing {
   if (block.kind === 'heading') return renderHeading(block, sources);
+  if (block.spec) return embedded(block.spec);
   if (block.kind === 'image' && block.data) {
     const image = payloadOf(block.data, 'image');
     if (image)
@@ -131,17 +133,23 @@ export function renderBlockBody(
   }
   if (block.kind === 'code') {
     const spec = artifactViewSpec(block);
-    return spec ? view(spec) : html`<pre class="code"><code>${block.text}</code></pre>`;
+    return spec
+      ? embedded(spec)
+      : html`<pre class="code"><code>${block.text}</code></pre>`;
   }
   if (block.kind === 'table' && block.data) {
     const spec = artifactViewSpec(block);
-    if (spec) return view(spec);
+    if (spec) return embedded(spec);
     const data = payloadOf(block.data, 'table');
     if (data) return renderTable(data);
   }
   if (block.kind === 'config-change') {
     const spec = artifactViewSpec(block);
-    if (spec) return view(spec);
+    if (spec) return embedded(spec);
+  }
+  if (block.kind === 'derivation' && block.data) {
+    const spec = artifactViewSpec(block);
+    if (spec) return embedded(spec);
   }
   if (block.kind === 'list' && block.data) {
     const items = payloadOf(block.data, 'list')?.items;
