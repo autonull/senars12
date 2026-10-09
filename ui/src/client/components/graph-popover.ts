@@ -17,9 +17,10 @@ import { css, html, LitElement, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { BLOCK_KIND_LABEL, blockLabel } from '../core/block-labels.js';
 import { collectSources } from '../core/citations.js';
+import { embeddedViewSpec, hasEmbeddedView } from '../core/embedded-views.js';
 import { type ExplainModel, explainLinkModel, explainModel } from '../core/explain.js';
 import { $workspaceGraph, type Ref, revealBlock } from '../core/index.js';
-import type { SemanticBlock } from '../core/workspace-graph.js';
+import type { SemanticBlock, WorkspaceGraph } from '../core/workspace-graph.js';
 import { linkMeta } from '../utils/link-catalog.js';
 import { blockBodyStyles, renderBlockBody } from '../utils/render-block.js';
 
@@ -45,6 +46,8 @@ export class GraphPopover extends LitElement {
     .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--typography-fontWeights-medium); }
     .chip { color: var(--colors-semantic-text-secondary); font-variant-numeric: tabular-nums; }
     .card { max-height: 14rem; overflow: auto; margin: var(--spacing-scale-2) 0; font-size: var(--typography-scale-sm); }
+    .embed { margin: var(--spacing-scale-2) 0; padding: var(--spacing-scale-2) 0; border-top: 1px solid var(--colors-semantic-border-subtle); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
+    .embed s-view { max-height: 12rem; }
     .divider { height: 1px; background: var(--colors-semantic-border-subtle); margin: var(--spacing-scale-2) 0; }
     .row { display: flex; align-items: baseline; gap: var(--spacing-scale-2); width: 100%; border: none; border-radius: var(--borderRadius-component-input); padding: var(--spacing-scale-1); background: transparent; color: inherit; cursor: pointer; text-align: left; font: inherit; }
     .row:hover { background: var(--colors-semantic-bg-panel-hover); }
@@ -86,11 +89,29 @@ export class GraphPopover extends LitElement {
         </div>
         ${this.endpoint(link.target, '→')}
         ${source ? this.endpoint(source.id, '←') : ''}
+        ${this.derivation(graph, model.block)}
         ${this.blockCard(model, link.id)}
       `;
     }
     const model = explainModel(graph, this.ref);
     return model ? this.blockCard(model) : nothing;
+  }
+
+  /**
+   * How the block came to be, read through the one embedded-view projection and
+   * rendered by the one view host — the same tree the notebook embeds, so the edge
+   * that claims a derivation shows it rather than asserting it.
+   */
+  private derivation(graph: WorkspaceGraph, block: SemanticBlock) {
+    return hasEmbeddedView(graph, block.id, 'derivation')
+      ? html`<div class="embed" data-embed="derivation">
+          <s-view
+            .spec=${embeddedViewSpec(block, 'derivation')}
+            .chrome=${false}
+            .budget=${'embedded'}
+          ></s-view>
+        </div>`
+      : nothing;
   }
 
   private endpoint(ref: Ref, arrow: string) {

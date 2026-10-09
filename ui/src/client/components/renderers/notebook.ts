@@ -16,6 +16,7 @@ import { customElement } from 'lit/decorators.js';
 import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
 import { collectSources } from '../../core/citations.js';
 import { eventBus } from '../../core/events.js';
+import { embeddedViewMeta, embeddedViewSpec, $embeddedViews } from '../../core/embedded-views.js';
 import { breadcrumb } from '../../core/navigation.js';
 import { admittedRoots, isAdmitted, type SectionNode, sectionTree } from '../../core/sections.js';
 import {
@@ -57,6 +58,8 @@ interface FoldControl {
 interface RenderOptions {
   /** The bibliography inline `[n]` references and citation entries resolve against. */
   sources: Parameters<typeof renderBlockBody>[1];
+  /** The derived views embedded under this block (§4.2). */
+  views?: TemplateResult;
   focused?: boolean;
   fold?: FoldControl;
   /** Containment depth — 0 at a page root. */
@@ -67,7 +70,7 @@ interface RenderOptions {
 
 function renderBlock(
   block: SemanticBlock,
-  { sources, focused, fold, depth, admitted = true }: RenderOptions
+  { sources, views, focused, fold, depth, admitted = true }: RenderOptions
 ): TemplateResult {
   return html`
     <article
@@ -112,7 +115,7 @@ function renderBlock(
           }}>⋯</button>
         </span>
       </header>
-      ${renderBlockBody(block, sources)}
+      ${renderBlockBody(block, sources)} ${views ?? ''}
     </article>
   `;
 }
@@ -147,6 +150,9 @@ export class NotebookView extends SurfaceComponent {
     .fold:hover { color: var(--colors-semantic-text-primary); }
     [data-folded='true'] { background: var(--colors-semantic-bg-subtle); border-radius: 6px; }
     .block[data-focused='true'] { outline: 1px solid var(--colors-semantic-accent-cyan); }
+    .embed { margin-top: var(--spacing-scale-2); border: 1px solid var(--colors-semantic-border-subtle); border-radius: 6px; overflow: hidden; }
+    .embed-label { display: block; padding: var(--spacing-scale-1) var(--spacing-scale-2); border-bottom: 1px solid var(--colors-semantic-border-subtle); color: var(--colors-semantic-text-muted); font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); text-transform: uppercase; letter-spacing: 0.06em; }
+    .embed s-view { max-height: 16rem; padding: var(--spacing-scale-2); }
     .chip { padding: 0 var(--spacing-scale-1); border-radius: 4px; background: var(--colors-semantic-bg-overlay); color: var(--colors-semantic-text-secondary); font-family: var(--typography-fontFamilies-data); }
     `,
   ];
@@ -169,6 +175,7 @@ export class NotebookView extends SurfaceComponent {
   override connectedCallback(): void {
     super.connectedCallback();
     this.watch($collapsedBlocks);
+    this.watch($embeddedViews);
   }
 
   override updated(): void {
@@ -185,8 +192,21 @@ export class NotebookView extends SurfaceComponent {
     const graph = $workspaceGraph.get();
     const tree = sectionTree(graph, $collapsedBlocks.get());
     const sources = collectSources(graph);
+    const shown = $embeddedViews.get();
     const crumbs = breadcrumb(graph, graph.focus);
     const cursor = graph.timeCursor;
+    /** The derived views a block shows, rendered through the one view host. */
+    const embedded = (block: SemanticBlock): TemplateResult | undefined => {
+      const views = shown.get(block.id);
+      if (!views) return undefined;
+      return html`${[...views].map((id) => {
+        const meta = embeddedViewMeta(id);
+        return html`<div class="embed" data-embed=${id}>
+          <span class="embed-label">${meta.label}</span>
+          <s-view .spec=${embeddedViewSpec(block, id)} .chrome=${false} .budget=${'embedded'}></s-view>
+        </div>`;
+      })}`;
+    };
     const render = (node: SectionNode): TemplateResult => {
       const fold =
         node.children.length > 0
@@ -203,6 +223,7 @@ export class NotebookView extends SurfaceComponent {
         >
           ${renderBlock(header, {
             sources,
+            views: embedded(header),
             focused: graph.focus === node.ref,
             fold,
             depth: node.depth,

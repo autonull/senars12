@@ -13,6 +13,13 @@ import { Announcer } from '../../core/announcer.js';
 import { artifactViewSpec } from '../../core/artifacts.js';
 import { capabilityGate, $capabilities } from '../../core/capabilities.js';
 import { eventBus } from '../../core/events.js';
+import {
+  $embeddedViews,
+  embeddedViewMeta,
+  embeddedViewsFor,
+  type EmbeddedViewId,
+  toggleEmbeddedView,
+} from '../../core/embedded-views.js';
 import { explainModel } from '../../core/explain.js';
 import { neighborhood } from '../../core/neighborhood.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
@@ -38,17 +45,20 @@ export class BlockMenuView extends SurfaceComponent {
   override connectedCallback(): void {
     super.connectedCallback();
     this.watch($workspaceGraph);
+    this.watch($embeddedViews);
     this.watch($capabilities);
   }
 
   protected override renderBody() {
-    const model = explainModel($workspaceGraph.get(), this.ref);
+    const graph = $workspaceGraph.get();
+    const model = explainModel(graph, this.ref);
     if (!model) return html`<div class="menu"><p class="empty">Block not found</p></div>`;
     const { block, links } = model;
     const hasProvenance = links.some((link) => linkMeta(link.kind).category === 'provenance');
     const hasArtifact = block.kind === 'image' || artifactViewSpec(block) !== undefined;
-    const hasRelated = (neighborhood($workspaceGraph.get(), this.ref)?.neighbors.length ?? 0) > 0;
+    const hasRelated = (neighborhood(graph, this.ref)?.neighbors.length ?? 0) > 0;
     const reasoning = capabilityGate('reasoning');
+    const shown = $embeddedViews.get().get(this.ref) ?? new Set<EmbeddedViewId>();
     return html`
       <div class="menu" role="menu" aria-label="Block actions">
         <span class="hint">${block.title ?? block.id}</span>
@@ -63,6 +73,21 @@ export class BlockMenuView extends SurfaceComponent {
           hasArtifact
             ? html`<button role="menuitem" data-action="artifact" @click=${this.openArtifact}>Open artifact</button>`
             : ''
+        }
+        ${
+          this.embeddable().map(
+            (id) => html`
+              <button
+                role="menuitemcheckbox"
+                aria-checked=${shown.has(id)}
+                data-action="embed"
+                data-embed=${id}
+                @click=${() => toggleEmbeddedView(this.ref, id)}
+              >
+                Embed · ${embeddedViewMeta(id).label}
+              </button>
+            `
+          )
         }
         <button role="menuitem" data-action="open-graph" @click=${this.openInGraph}>Open in graph</button>
         ${
@@ -79,6 +104,11 @@ export class BlockMenuView extends SurfaceComponent {
         <button role="menuitem" data-action="copy" @click=${this.copy}>Copy text</button>
       </div>
     `;
+  }
+
+  /** The derived views this block has something to show — an affordance is hidden, never inert. */
+  private embeddable(): EmbeddedViewId[] {
+    return embeddedViewsFor($workspaceGraph.get(), this.ref);
   }
 
   private readonly followUp = () => eventBus.emit('composer:focus', { refs: [this.ref] });

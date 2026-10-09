@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { notebookRenderer } from '../../src/client/components/renderers/notebook.js';
 import '../../src/client/components/views/table-mini-view.js';
 import '../../src/client/components/views/table-view.js';
+import '../../src/client/components/views/tree-view.js';
+import { $embeddedViews, toggleEmbeddedView } from '../../src/client/core/embedded-views.js';
 import { eventBus } from '../../src/client/core/events.js';
 import { $collapsedBlocks, $view, $workspaceGraph } from '../../src/client/core/store.js';
 import '../../src/client/core/view-host.js';
@@ -33,6 +35,7 @@ afterEach(() => {
   document.body.innerHTML = '';
   $workspaceGraph.set(emptyWorkspaceGraph());
   $collapsedBlocks.set(new Set());
+  $embeddedViews.set(new Map());
   $view.set({ ...$view.get(), timeline: { t: Number.POSITIVE_INFINITY } });
 });
 
@@ -166,6 +169,34 @@ describe('notebook surface', () => {
     expect(ref?.getAttribute('href')).toBe('https://x');
     expect(ref?.textContent).toBe('[1]');
     expect(el.shadowRoot?.querySelector('.text')?.textContent).toContain('[nope]');
+  });
+
+  it('embeds a derived view under the block that asked for it', async () => {
+    $workspaceGraph.set(
+      applyWorkspaceOps(emptyWorkspaceGraph(), [
+        { op: 'block.add', block: block('agent-1', { kind: 'claim', role: 'assistant', createdBy: 'lm' }) },
+        { op: 'block.add', block: block('record') },
+        {
+          op: 'link.add',
+          link: { id: 'l1', source: 'record', target: 'agent-1', kind: 'derived-from', createdBy: 'reasoner' },
+        },
+      ] satisfies WorkspaceOp[])
+    );
+    toggleEmbeddedView('agent-1', 'derivation');
+    const el = document.createElement('s-notebook');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const embed = el.shadowRoot?.querySelector('.embed[data-embed="derivation"]');
+    const host = embed?.querySelector('s-view') as (HTMLElement & { updateComplete: Promise<unknown> }) | null;
+    expect(embed?.querySelector('.embed-label')?.textContent).toBe('Derivation');
+    expect(host).toBeTruthy();
+    await host!.updateComplete;
+    const tree = host!.shadowRoot?.querySelector('s-tree') as
+      | (HTMLElement & { updateComplete: Promise<unknown> })
+      | null;
+    expect(tree).toBeTruthy();
+    await tree!.updateComplete;
+    expect(tree?.shadowRoot?.textContent).toContain('derived from · record');
   });
 
   it('offers each block a context menu affordance', async () => {

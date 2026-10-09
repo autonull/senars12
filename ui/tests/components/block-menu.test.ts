@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '../../src/client/components/overlays/block-menu.js';
 import { $capabilities, defaultCapabilities, setCapability } from '../../src/client/core/capabilities.js';
+import { $embeddedViews, embeddedViewsShown } from '../../src/client/core/embedded-views.js';
 import { eventBus } from '../../src/client/core/events.js';
 import { $activeRenderer, $workspaceGraph } from '../../src/client/core/store.js';
 import {
@@ -46,9 +47,13 @@ const mount = async (ref: string) => {
 const action = (el: HTMLElement, name: string) =>
   el.shadowRoot?.querySelector<HTMLButtonElement>(`button[data-action="${name}"]`);
 
+const embedAction = (el: HTMLElement, view: string) =>
+  el.shadowRoot?.querySelector<HTMLButtonElement>(`button[data-embed="${view}"]`);
+
 afterEach(() => {
   document.body.innerHTML = '';
   $workspaceGraph.set(emptyWorkspaceGraph());
+  $embeddedViews.set(new Map());
   $activeRenderer.set('graph');
   $capabilities.set(defaultCapabilities());
 });
@@ -127,6 +132,27 @@ describe('block menu surface', () => {
     action(el, 'follow-up')?.click();
     expect(focus).toHaveBeenCalledWith({ refs: ['c'] });
     off();
+  });
+
+  it('offers an embed toggle per view the block has, and reflects the shown state', async () => {
+    $workspaceGraph.set(build(true));
+    const el = await mount('p');
+    expect(embedAction(el, 'derivation')).toBeTruthy();
+    expect(embedAction(el, 'contradiction')).toBeFalsy();
+
+    const toggle = embedAction(el, 'derivation')!;
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    toggle.click();
+    expect(embeddedViewsShown('p')).toEqual(['derivation']);
+    await el.updateComplete;
+    expect(embedAction(el, 'derivation')?.getAttribute('aria-checked')).toBe('true');
+    expect($embeddedViews.get().get('p')).toEqual(new Set(['derivation']));
+  });
+
+  it('offers no embed toggle for a block with nothing to embed', async () => {
+    $workspaceGraph.set(build(false));
+    const el = await mount('c');
+    expect(action(el, 'embed')).toBeFalsy();
   });
 
   it('offers formalize only when reasoning is on', async () => {

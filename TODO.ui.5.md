@@ -42,9 +42,10 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
    **`3.6` steer/author** producers. `→ core/`
 2. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
    renderer/overlays context fields await a consumer; fold-all debounce awaits a bulk writer.)
-3. **`2.4 inspection & embedded views`** (L) — node *and* edge popovers (both now carding the block the
-   notebook would render), ToC reach, remembered neighborhood depth and the explain-model Links tab
-   landed; only the **embedded-view cluster** remains. (`4.3 affordances` and `4.5 pinning` partial —
+3. **`2.4 inspection & embedded views`** (L) — **done**: node *and* edge popovers (both carding the
+   block the notebook would render, the edge one also showing the derivation tree), ToC reach, remembered
+   neighborhood depth, the explain-model Links tab, and the embedded-view cluster (catalog, projections,
+   Notebook embedding, block-menu toggles). (`4.3 affordances` and `4.5 pinning` partial —
    inspector reach landed; manager/command pinning. `1.4 rich text` partial — inline tokenizer.)
 4. **`ops sequencing`** (M) — deferred until something emits `WorkspaceOp`; the cursor half of
    **`4.4`** landed (one cursor, real `createdAt`, admission in the notebook).
@@ -118,6 +119,11 @@ Landed extension points — wire features here instead of re-deriving them.
 - **Reaching a block** — `revealBlock(ref)` (`core/store.ts`) switches to the Notebook and focuses,
   and `resolveBlockRef(graph, backend, id)` (`core/workspace-projection.ts`) turns whatever id a graph
   element carries into a block ref. Every surface that navigates to a block goes through both.
+- **Embedded views** — `core/embedded-views.ts`: add a derived view as one catalog row plus one pure
+  projection (`derivationTree`, `contradictionTable`, `topicTable` → `embeddedDataset` → `ViewSpec`),
+  never as a renderer. A spec's dataset is read live off `$workspaceGraph`, and *which views a block
+  shows* is session state (`toggleEmbeddedView`), not substrate — `$workspaceGraph` is re-projected, so
+  anything written into it is erased on the next chat/engine change.
 - **Artifacts** — `core/artifacts.ts` (`artifactViewSpec`); `core/diff.ts` (`diffLines`).
 - **Citations** — `core/citations.ts` (`collectSources`, `resolveSource`) — the bibliography a
   `citation` token and a `citation` block resolve against.
@@ -289,7 +295,7 @@ Landed extension points — wire features here instead of re-deriving them.
   `core/navigation.ts`, `core/toc.ts`, `core/commands.ts`, `core/workspace-graph.ts` (`parentMap`/
   `rootBlocks` deleted), `components/renderers/notebook.ts`, `components/overlays/toc.ts`.
   `(d)`,`(q)`,`(h)`,`(s)`,`(t)`
-- [~] **2.4 inspection & embedded views** *(merged: `2.4 graph inspection` + `4.1/4.2 embedded
+- [x] **2.4 inspection & embedded views** *(merged: `2.4 graph inspection` + `4.1/4.2 embedded
   views`)* — node/edge hover popovers reusing `explainModel`/`neighborhood`; artifact edge previews;
   richer inspector (link confidence + event refs); "Open related" from graph menu and ToC; remember
   neighborhood depth; ⌥-click a row to explain instead of navigate. **Reach from the ToC landed:**
@@ -297,10 +303,13 @@ Landed extension points — wire features here instead of re-deriving them.
   of navigating (the plain click still focuses), and the hop count is no longer a literal in
   `overlays/related.ts` — it is `$neighborhoodDepth`/`setNeighborhoodDepth` (clamped 1–3), mirrored into
   the URL as `depth` with a 1/2/3 control in the overlay header, so a link can pin how far "related"
-  reaches. Plus: Notebook embedded graph block
-  (derivation/contradiction/topic neighborhood); Graph node popover notebook card; graph edge popover
-  derivation tree; wire the block-menu "embed" affordance; reuse `conversationPositions` and
-  `projectWorkspaceGraph` in embedded graph shapes. **Node hover popover landed:** the old tooltip was
+reaches. Plus: Notebook embedded graph block
+   (derivation/contradiction/topic neighborhood); Graph node popover notebook card; graph edge popover
+   derivation tree; wire the block-menu "embed" affordance; reuse `conversationPositions` and
+   `projectWorkspaceGraph` in embedded graph shapes. *(Everything here landed except the last clause:
+   an embedded **graph** shape still means a store-driven `graph-viewport`, so reusing
+   `conversationPositions` for it needs the viewport-onto-`ViewSpec` migration — the `4.6`/`8.5` item
+   `views/graph-adapter.ts` already names.)* **Node hover popover landed:** the old tooltip was
   raw graph fields (`term`/`priority`/`confidence`/`degree`) interpolated into an HTML string — an
   `innerHTML` sink fed by an untrusted engine term, and facts the semantic model does not hold. It is
   now `components/graph-popover.ts`, taking a **block ref** (not a graph element) so the semantic half
@@ -326,13 +335,21 @@ them by `edgeKey(source, target)` — the same key the edge map uses. **The popo
    navigate through one seam, `revealBlock(ref)` in `core/store.ts` (notebook + focus), and both resolve
    refs through `resolveBlockRef(graph, backend, id)` — the substrate is the authority (a conversation
    node's id *is* its ref; only an engine id maps through the backend), which retires the viewport's
-   `hasClass('workspace')` branch. Still open: the whole **embedded-view cluster** (the Notebook embedded
-   graph block, the edge popover's derivation tree, the block-menu **embed** affordance, and reusing
-   `conversationPositions`/`projectWorkspaceGraph` in the `graph-*` views). `→ core/explain.ts`,
-   `core/neighborhood.ts`, `core/workspace-projection.ts`, `core/store.ts`, `utils/render-block.ts`,
-   `components/graph-popover.ts`, `components/overlays/{inspector,block-menu,related}.ts`,
-   `components/node-detail-drawer.ts`, `components/renderers/notebook.ts`,
-   `components/views/graph-*.ts`. `(r)`,`(n)`,`(y)`,`(e)`
+   `hasClass('workspace')` branch. **The embedded-view cluster landed with it:** `core/embedded-views.ts`
+   is the one catalog for views *derived from the substrate* — `derivation` (the provenance chain behind
+   a block, as a `tree`), `contradiction` (the blocks the link catalog puts in tension, with their truth)
+   and `topic` (the neighborhood within `$neighborhoodDepth`) — each a pure projection plus a spec whose
+   dataset is read **live** off `$workspaceGraph`, so a derived view cannot go stale the way a snapshot
+   would. Which views a block shows is **session state** (`$embeddedViews`/`toggleEmbeddedView`, exactly
+   like `$collapsedBlocks`) because `$workspaceGraph` is re-projected from the chat log and the engine
+   graph: writing an `embedded-view` block into it would be a lie the next projection erases, so the block
+   menu offers a `menuitemcheckbox` **Embed · <view>** per available view (hidden when the block has
+   nothing to show) and the Notebook renders them under the block through `<s-view>` (embedded budget, no
+   chrome). The **edge popover shows the derivation tree** through that same spec, so an edge that claims
+   a derivation shows it. `→ core/explain.ts`, `core/embedded-views.ts`, `core/neighborhood.ts`,
+   `core/workspace-projection.ts`, `core/store.ts`, `utils/render-block.ts`, `components/graph-popover.ts`,
+   `components/overlays/{inspector,block-menu,related}.ts`, `components/node-detail-drawer.ts`,
+  `components/renderers/notebook.ts`, `components/views/graph-*.ts`. `(r)`,`(n)`,`(y)`,`(e)`
 - [~] **4.3 affordances** — the artifact overlay **Copy** / **Open in graph** and the ToC per-row
   artifact button are done. Inspector reach landed once the **node→block mapping** blocker cleared: the
   drawer's Actions tab gained **Open in Notebook** (switch renderer, focus the projected block) and
@@ -707,3 +724,47 @@ in v3 Appendix D). Rolled up:
   not reached yet should say so rather than render it as present. And `collectSources` is recomputed per
   popover render; with the card, a hover builds a bibliography per hover, so a memo on the graph (a
   `7.3 performance` item) should cover it.
+- **WP3 `2.4` embedded-view cluster (closes `2.4`)** — `core/embedded-views.ts` is the one catalog for
+  views *derived from the substrate*: `derivation` (the provenance chain behind a block → `tree`),
+  `contradiction` (the blocks the link catalog puts in tension, with their truth → `table`) and `topic`
+  (the neighborhood within `$neighborhoodDepth` → `table`). One row in `EMBEDDED_VIEWS` declares the
+  label, the native shape and which relationships count — by link **category**, or by the **lens** the
+  catalog already attaches to a kind, so "contradiction" is defined once (`contradicts`, `revises`,
+  `rejected-by-gate`) instead of being listed again in a projection. Each view is a pure function
+  (`derivationTree`/`contradictionTable`/`topicTable` → `embeddedDataset`) and `embeddedViewSpec` wraps it
+  in a `ViewSpec` whose dataset is read **live** off `$workspaceGraph` via the existing `viewSource`
+  adapter, memoized per block in a `WeakMap` so a re-render does not churn the host's subscription.
+  **Which views a block shows is session state** (`$embeddedViews`, `toggleEmbeddedView`,
+  `embeddedViewsShown`) alongside `$collapsedBlocks`, *not* a block written into the substrate: the
+  binding re-projects `$workspaceGraph` from the chat log and the engine graph, so an `embedded-view`
+  block added from the menu would be erased on the next message. The block menu therefore offers a
+  `menuitemcheckbox` **Embed · \<view\>** per view the block actually has (an affordance stays hidden
+  rather than inert), and the Notebook renders each under its block in an `s-view` (embedded budget, no
+  chrome) with a caption. The **edge popover** shows the same derivation tree for the block it lands on,
+  so an edge claiming a derivation shows it instead of asserting it — and it is the same spec the
+  notebook would embed, so the two cannot drift.
+
+  **Decisions taken:** `derivation` reads only `provenance`-category links and its tree is empty (no
+  roots) when nothing derived the block, so "Embed · Derivation" never appears for a bare block; the
+  provenance walk is bounded at 4 hops and cycle-guarded by a `seen` set; `topic` deliberately excludes
+  provenance links (the lens taxonomy separates "how it came to be" from "what it is near").
+
+  **Notes for what is left:** `2.4` is now complete except the one clause the plan itself deferred — an
+  embedded **graph** shape (a mini viewport for a neighborhood/derivation) needs `graph-viewport` to
+  take a dataset instead of reading the store, which is the `4.6`/`8.5` migration
+  `components/views/graph-adapter.ts` already names; until then `derivation`/`contradiction`/`topic` land
+  as `tree`/`table`, both of which have real embedded adapters (`s-tree` serves both budgets,
+  `s-table-mini` is the embedded `table`). Sweeps worth taking next: the **graph context menu** should
+  carry the same embed toggles as the block menu (one component, two hosts) and
+  **`overlays/explain.ts`** should render `renderBlockBody` instead of a raw `<pre>` of `block.data`.
+
+  **New improvement opportunities:** `$embeddedViews` is per-session and per-device, so a block someone
+  embedded is lost on reload — persisting the *choice* (refs + view ids, like the URL-owned
+  `$neighborhoodDepth` in `2.6 scope`) is a `2.6` item. And each embedded view mounts its own
+  `ViewHost` with its own store subscription, so a notebook with many embedded views re-renders all of
+  them on every `WorkspaceGraph` change; a shared subscription (or a single host with several specs) is
+  the natural `7.3 performance` follow-up.
+
+  Suite **408 green** (new: nested/cyclic derivation trees, category-vs-lens filtering, live dataset +
+  spec memoization, embed toggles hidden when empty and reflected when on, notebook embedding end to
+  end through `s-view`/`s-tree`, edge popover derivation tree).

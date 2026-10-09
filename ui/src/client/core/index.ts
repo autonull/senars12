@@ -84,6 +84,22 @@ export {
   requestLmProvider,
 } from './lm-provider.js';
 export { refreshLmStatus, switchLmProvider } from './lm-transport.js';
+export {
+  $embeddedViews,
+  contradictionTable,
+  derivationTree,
+  EMBEDDED_VIEW_IDS,
+  EMBEDDED_VIEWS,
+  embeddedDataset,
+  embeddedViewsFor,
+  embeddedViewsShown,
+  embeddedViewMeta,
+  embeddedViewSpec,
+  type EmbeddedViewId,
+  hasEmbeddedView,
+  toggleEmbeddedView,
+  topicTable,
+} from './embedded-views.js';
 export { type Neighbor, type Neighborhood, neighborhood } from './neighborhood.js';
 export { narsBackend, NAL_VOCABULARY } from './nars-backend.js';
 export {

@@ -1,6 +1,7 @@
 import type { GraphNodeData } from '@senars/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import '../../src/client/components/graph-popover.js';
+import '../../src/client/components/views/tree-view.js';
 import { explainLinkModel } from '../../src/client/core/explain.js';
 import { narsBackend } from '../../src/client/core/nars-backend.js';
 import {
@@ -191,6 +192,21 @@ describe('graph edge popover', () => {
     );
     return $workspaceGraph.get();
   };
+
+  it('shows the derivation tree behind the block the edge lands on', async () => {
+    graphWithEdge();
+    const el = await mount('', linkRefFor(narsBackend, 'bird->fly'));
+    const host = el.shadowRoot?.querySelector('.embed[data-embed="derivation"] s-view') as
+      | (HTMLElement & { updateComplete: Promise<unknown> })
+      | null;
+    expect(host).toBeTruthy();
+    await host!.updateComplete;
+    const tree = host!.shadowRoot?.querySelector('s-tree') as
+      | (HTMLElement & { updateComplete: Promise<unknown> })
+      | null;
+    await tree!.updateComplete;
+    expect(tree?.shadowRoot?.textContent).toContain('derived from · bird');
+  });
 
   it('mints the link ref from both endpoints and the backend vocabulary', () => {
     const graph = graphWithEdge();
