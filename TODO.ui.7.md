@@ -1,5 +1,8 @@
 # TODO.ui.7.md — Working UI + Visual Contract (execution spine)
 
+> **Superseded by `TODO.ui.8.md` for all open work** (v8 reframes the remainder on capability + a
+> quality bar and treats the visual contract as a standing invariant). This file is the landed record.
+>
 > **Relationship.** Supersedes `TODO.ui.6.md` for all open work; v5/v6 are the landed record. This
 > file **refocuses on the outcome** — a UI a human can actually use end-to-end — and folds every
 > open v6 item plus the missing **generated-screenshot contract** into one dependency-ordered spine.
