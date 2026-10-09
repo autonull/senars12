@@ -434,10 +434,19 @@ them by `edgeKey(source, target)` — the same key the edge map uses. **The popo
 
 *Outcome: the `reasoning` capability end-to-end. Deps: WP3; needs `0.6`.*
 
-- [ ] **3.1 projection** — map NAR concepts/events → blocks/links: beliefs, goals, questions,
+- [~] **3.1 projection** — map NAR concepts/events → blocks/links: beliefs, goals, questions,
   derivations, revisions, contradictions, budget events, gate decisions. The backend seam landed, so
   this is now **vocabulary work** — new node/edge kinds and the block/link kinds they become, declared
   in `core/nars-backend.ts` — rather than engine-shaped code inside the projection.
+  **Landed (graph half):** `core/nars-backend.ts` VOCAB maps all NAR edge types (deduction, induction,
+  abduction, revision, exemplification, comparison, analogy, resemblance, intersection, union,
+  detachment, contraposition, sameness, conversion, negation, inheritance, similarity, implication,
+  equivalence, derivation, semantic, relation, support, contradiction, reference) to semantic link kinds;
+  `projectReasoning` now detects `belief`/goal/question/command from NAR concept punctuation (`.`, `!`, `?`, `;`)
+  and maps to `claim`/`question`/`command` block kinds (goals render as claims with reasoner role).
+  **Remaining (event-stream half):** `budget.exhausted` → `budget` blocks, `policy.violation`/`egress.gate.rejected`/
+  `shadow.validation.dropped`/`judgment.resolved` → `gate-decision` blocks — these come from the
+  cognitive event log, not the graph, and need a separate event-stream projection in `projectWorkspace`.
   `→ core/nars-backend.ts`, `core/workspace-projection.ts`, `core/graph-projection.ts`. `(Phase 3)`
 - [ ] **3.2 formalization** — claim → candidate → gate admission → belief/goal/question, visible in both
   renderers; route `claim`/`question` composer children through it; emit `asks`/`answers` links;
@@ -904,3 +913,14 @@ Suite **422 green** (new: derivation record projection and its nesting, non-prov
   landed in `core/config-change-producer.ts`: emits `config-change` blocks on config diff, wired into
   `mountWorkspaceProjection`; `artifacts.ts` already renders the diff through the `s-diff` view.
   Suite **422 green** (all existing tests pass).
+- **WP5 `3.1` projection (graph half, Phase 3)** — `core/nars-backend.ts` VOCAB maps all NAR rule/edge
+  types (deduction, induction, abduction, revision, exemplification, comparison, analogy, resemblance,
+  intersection, union, detachment, contraposition, sameness, conversion, negation, inheritance, similarity,
+  implication, equivalence, derivation, semantic, relation, support, contradiction, reference) to semantic
+  link kinds; `projectReasoning` in `core/workspace-projection.ts` now detects `belief`/goal/question/command
+  from NAR concept punctuation (`.`, `!`, `?`, `;`) via `taskTypeForPunctuation` and maps to `claim`,
+  `question`, `command` block kinds (goals render as claims with reasoner role). Derivation blocks already
+  emit per provenance edge. **Remaining (event-stream half):** `budget.exhausted` → `budget` blocks,
+  `policy.violation`/`egress.gate.rejected`/`shadow.validation.dropped`/`judgment.resolved` →
+  `gate-decision` blocks — these come from the cognitive event log and need a separate event-stream
+  projection. Suite **422 green** (all existing tests pass).

@@ -17,6 +17,7 @@ import { isFaithfulDecomposition } from './input-decomposition.js';
 import { NAL_VOCABULARY } from './nars-backend.js';
 import type { ReasoningBackend } from './reasoning-backend.js';
 import { segmentText } from './segmentation.js';
+import { taskTypeForPunctuation } from '@senars/core';
 import type {
   BlockKind,
   CreatedBy,
@@ -175,6 +176,21 @@ export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment
   return { blocks, links, roots };
 }
 
+/** Determine the block kind for a reasoning node based on its type and punctuation. */
+function blockKindForNode(node: BackendNode, vocab: BackendVocabulary): BlockKind {
+  const baseKind = vocab.nodes[node.kind] ?? 'claim';
+  // For NAR concepts, punctuation indicates belief/goal/question/command
+  if (node.kind === 'nar:concept') {
+    const punctuation = (node.attrs as Record<string, unknown>)?.punctuation as string | undefined;
+    const taskType = punctuation ? taskTypeForPunctuation(punctuation) : null;
+    if (taskType === 'question') return 'question';
+    if (taskType === 'goal') return 'claim'; // goals render as claims with goal role
+    if (taskType === 'command') return 'command';
+    // Default belief → claim
+  }
+  return baseKind;
+}
+
 /**
  * Project a reasoning backend's substrate into claim/tool blocks with
  * provenance links. Everything engine-specific — which node kind is a claim,
@@ -197,12 +213,13 @@ export function projectReasoning(
     if (exclude.has(id)) continue;
     const node = nodes.get(id);
     if (!node) continue;
-    const kind = nodeKinds[node.kind] ?? 'claim';
+    const kind = blockKindForNode(node, backend.vocab);
     const blockId = claimId(id);
+    const isToolCall = node.kind === 'metta:skill';
     blocks.push({
       id: blockId,
       kind,
-      role: kind === 'tool-call' ? 'tool' : 'reasoner',
+      role: isToolCall ? 'tool' : 'reasoner',
       title: node.label,
       text: node.text,
       data: node.attrs,

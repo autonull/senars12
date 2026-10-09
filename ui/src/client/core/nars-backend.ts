@@ -38,10 +38,35 @@ export const NAL_VOCABULARY = 'nal';
 const VOCAB: BackendVocabulary = {
   nodes: { 'nar:concept': 'claim', 'metta:atom': 'claim', 'metta:skill': 'tool-call' },
   edges: {
+    /** Logical inference edges. */
+    deduction: 'derived-from',
+    induction: 'derived-from',
+    abduction: 'derived-from',
+    revision: 'revises',
+    exemplification: 'derived-from',
+    comparison: 'derived-from',
+    analogy: 'derived-from',
+    resemblance: 'derived-from',
+    intersection: 'derived-from',
+    union: 'derived-from',
+    detachment: 'derived-from',
+    contraposition: 'derived-from',
+    sameness: 'derived-from',
+    conversion: 'derived-from',
+    'negation-intro': 'derived-from',
+    'negation-elim': 'derived-from',
+    negation: 'derived-from',
+    /** Structural/relational edges. */
+    inheritance: 'derived-from',
+    similarity: 'supports',
+    implication: 'derived-from',
+    equivalence: 'supports',
     derivation: 'derived-from',
+    semantic: 'references',
+    relation: 'references',
+    /** Explicit provenance/revision edges. */
     support: 'supports',
     contradiction: 'contradicts',
-    revision: 'revises',
     reference: 'references',
   },
 };
