@@ -6,12 +6,14 @@ import { fileURLToPath } from 'node:url';
 import type {
   Agent,
   CognitiveEvent,
+  DerivationRecord,
   GraphNodeData,
   IncomingFromClient,
   IncomingFromServer,
   LensSpec,
 } from '@senars/core';
 import { IncomingFromClient as IncomingFromClientSchema } from '@senars/core';
+import { mintCognitiveEvent } from '@senars/core/schemas';
 import { DEFAULT_CONFIG, termParser } from '@senars/nar';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 import { handleMetricsRequest } from '@senars/nar/metrics';
@@ -41,6 +43,13 @@ type RevisionEntry = {
   source: 'input' | 'derivation' | 'revision' | 'inference';
 };
 type NarBelief = { term: { toString(): string }; truth: { f: number; c: number } };
+type DerivationRecorderLike = {
+  drain(): DerivationRecord[];
+  pending(): number;
+};
+type NarProcessorLike = {
+  getRecorder(): DerivationRecorderLike;
+};
 type NarLike = {
   believe?: (statement: string) => Promise<void>;
   goal?: (statement: string) => Promise<void>;
@@ -53,6 +62,7 @@ type NarLike = {
   clearMemory?: () => void;
   setConfig?: (updates: Record<string, unknown>) => void;
   attentionReport?: () => { total: number };
+  getProcessor?: () => NarProcessorLike;
 };
 
 const mimeTypes: Record<string, string> = {
@@ -739,6 +749,21 @@ function broadcastConfigSchema(): void {
     }
   }, 1000);
 
+  // Drain derivation recorder and emit derivation.record events
+  const derivationRecordTimer = setInterval(() => {
+    const processor = nar()?.getProcessor?.();
+    const recorder = processor?.getRecorder?.();
+    if (!recorder) return;
+    const records = recorder.drain();
+    for (const record of records) {
+      const event = mintCognitiveEvent('derivation.record', {
+        engine: 'nar',
+        payload: record,
+      });
+      broadcastCognitiveEvent(event);
+    }
+  }, 2000);
+
   httpServer.on('upgrade', (request, socket, head) => {
     if (request.url?.startsWith('/ws') || request.url === '/') {
       wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));
@@ -747,7 +772,10 @@ function broadcastConfigSchema(): void {
     }
   });
 
-  httpServer.on('close', () => clearInterval(telemetryTimer));
+  httpServer.on('close', () => {
+    clearInterval(telemetryTimer);
+    clearInterval(derivationRecordTimer);
+  });
 
   return { server: httpServer, projection, wss };
 }

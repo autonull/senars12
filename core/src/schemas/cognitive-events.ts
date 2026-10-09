@@ -20,6 +20,7 @@ import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './prop
 import { BudgetTypeSchema, TerminationReasonSchema } from './reasoning-budget.js';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
+import { DerivationRecordSchema, DerivationStepSchema } from './derivation-records.js';
 
 export { CognitiveEventBaseSchema, EngineOriginSchema } from './event-base.js';
 
@@ -58,6 +59,15 @@ export const DerivationAcceptedEventSchema = CognitiveEventBaseSchema.extend({
     evidenceLineage: z.array(uuid),
     independenceCheck: IndependenceSchema,
   }),
+});
+
+/**
+ * Full derivation record from the engine's DerivationRecorder.
+ * Carries the complete step-by-step proof with evidence lineage and independence.
+ */
+export const DerivationRecordEventSchema = CognitiveEventBaseSchema.extend({
+  type: z.literal('derivation.record'),
+  payload: DerivationRecordSchema,
 });
 
 export const BeliefRevisedEventSchema = CognitiveEventBaseSchema.extend({
@@ -184,6 +194,7 @@ export const ShadowValidationDropEventSchema = CognitiveEventBaseSchema.extend({
 export const CognitiveEventSchema = z.discriminatedUnion('type', [
   TaskAdmittedEventSchema,
   DerivationAcceptedEventSchema,
+  DerivationRecordEventSchema,
   BeliefRevisedEventSchema,
   ConceptActivatedEventSchema,
   BudgetExhaustedEventSchema,
@@ -203,6 +214,7 @@ export type EgressGateRejectedEvent = z.infer<typeof EgressGateRejectedEventSche
 export type ShadowValidationDropEvent = z.infer<typeof ShadowValidationDropEventSchema>;
 export type TaskAdmittedEvent = z.infer<typeof TaskAdmittedEventSchema>;
 export type DerivationAcceptedEvent = z.infer<typeof DerivationAcceptedEventSchema>;
+export type DerivationRecordEvent = z.infer<typeof DerivationRecordEventSchema>;
 export type BeliefRevisedEvent = z.infer<typeof BeliefRevisedEventSchema>;
 export type ConceptActivatedEvent = z.infer<typeof ConceptActivatedEventSchema>;
 export type BudgetExhaustedEvent = z.infer<typeof BudgetExhaustedEventSchema>;

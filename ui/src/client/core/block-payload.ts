@@ -45,23 +45,46 @@ export interface ConfigChangeData {
 }
 
 /**
- * The `derivation-record` payload (§3.3): what the engine said arrived from where.
- * It is built by a producer from the substrate, so `raw` keeps the engine's own
- * record verbatim — anything the projection did not name is still readable.
+ * A single derivation step with full provenance.
+ */
+export interface DerivationStepData {
+  stepId: string;
+  ruleId: string;
+  ruleCategory: string;
+  premises: string[];
+  conclusion: string;
+  truth: { frequency: number; confidence: number };
+  truthFn?: string;
+  substitution?: Record<string, string>;
+  premiseTruths?: Array<{ frequency: number; confidence: number }>;
+  evidenceLineage: string[];
+  independence: 'independent' | 'dependent';
+}
+
+/**
+ * The `derivation-record` payload (§3.3): the full engine derivation record
+ * with step-by-step proof, evidence lineage, and independence tracking.
  */
 export interface DerivationRecordData {
-  /** The catalog name of the rule that ran, as the link kind that stands for it. */
-  rule: string;
-  /** The premises the rule read, as block refs. */
-  premises: string[];
-  /** What it produced, as a block ref. */
-  conclusion: string;
-  /** The confidence the engine attached to the step. */
-  confidence?: number;
-  /** The truth the conclusion carries, when it has one. */
-  truth?: { frequency: number; confidence: number };
-  /** Cognitive events behind the step, when the producer recorded any. */
-  events: string[];
+  /** Unique derivation identifier. */
+  derivationId: string;
+  /** Task that produced this derivation. */
+  taskId: string;
+  /** The goal term that was being derived. */
+  goalTerm: string;
+  /** Step-by-step derivation proof. */
+  steps: DerivationStepData[];
+  /** Final truth of the conclusion. */
+  finalTruth: { frequency: number; confidence: number };
+  /** Total inference cycles spent. */
+  totalCycles: number;
+  /** Maximum proof depth reached. */
+  maxDepthReached: number;
+  /** Timestamp when the record was completed. */
+  timestamp: number;
+  /** Engine that produced the record. */
+  engine: 'nar' | 'metta';
+  /** The raw engine record for fidelity. */
   raw: unknown;
 }
 
@@ -78,6 +101,7 @@ export interface BlockPayloads {
   chart: ChartData;
   'config-change': ConfigChangeData;
   derivation: DerivationRecordData;
+  'derivation-record': DerivationRecordData;
 }
 
 export type ArtifactKind = keyof BlockPayloads;
@@ -126,6 +150,54 @@ const tableData = (data: Record<string, unknown>): TableData | undefined => {
   return { headers, rows };
 };
 
+function normalizeStep(data: unknown): DerivationStepData | undefined {
+  if (!isRecord(data)) return undefined;
+  const premises = stringArray(data.premises);
+  const evidenceLineage = stringArray(data.evidenceLineage) ?? [];
+  const premiseTruths = Array.isArray(data.premiseTruths)
+    ? data.premiseTruths.map(truthOf).filter((t): t is { frequency: number; confidence: number } => t !== undefined)
+    : undefined;
+  if (typeof data.stepId !== 'string' || typeof data.ruleId !== 'string' || typeof data.ruleCategory !== 'string' ||
+      typeof data.conclusion !== 'string' || !premises) return undefined;
+  const truth = truthOf(data.truth);
+  if (!truth) return undefined;
+  return {
+    stepId: data.stepId,
+    ruleId: data.ruleId,
+    ruleCategory: data.ruleCategory,
+    premises,
+    conclusion: data.conclusion,
+    truth,
+    truthFn: optionalString(data.truthFn),
+    substitution: isRecord(data.substitution) ? data.substitution as Record<string, string> : undefined,
+    premiseTruths,
+    evidenceLineage,
+    independence: data.independence === 'dependent' ? 'dependent' : 'independent',
+  };
+}
+
+function normalizeDerivationRecord(data: Record<string, unknown>): DerivationRecordData | undefined {
+  const steps = Array.isArray(data.steps)
+    ? data.steps.map(normalizeStep).filter((s): s is DerivationStepData => s !== undefined)
+    : [];
+  if (typeof data.derivationId !== 'string' || typeof data.taskId !== 'string' ||
+      typeof data.goalTerm !== 'string' || steps.length === 0) return undefined;
+  const finalTruth = truthOf(data.finalTruth);
+  if (!finalTruth) return undefined;
+  return {
+    derivationId: data.derivationId,
+    taskId: data.taskId,
+    goalTerm: data.goalTerm,
+    steps,
+    finalTruth,
+    totalCycles: optionalNumber(data.totalCycles) ?? 0,
+    maxDepthReached: optionalNumber(data.maxDepthReached) ?? 0,
+    timestamp: optionalNumber(data.timestamp) ?? Date.now(),
+    engine: data.engine === 'metta' ? 'metta' : 'nar',
+    raw: data.raw ?? null,
+  };
+}
+
 type Normalizer<K extends ArtifactKind> = (
   data: Record<string, unknown>
 ) => BlockPayloads[K] | undefined;
@@ -161,22 +233,8 @@ const NORMALIZERS: { [K in ArtifactKind]: Normalizer<K> } = {
     data.kind === 'series' && Array.isArray(data.series)
       ? { kind: 'series', series: data.series as SeriesDataset['series'] }
       : undefined,
-  derivation: (data) => {
-    const premises = stringArray(data.premises);
-    const events = stringArray(data.events) ?? [];
-    if (typeof data.rule !== 'string' || typeof data.conclusion !== 'string' || !premises)
-      return undefined;
-    const truth = truthOf(data.truth);
-    return {
-      rule: data.rule,
-      premises,
-      conclusion: data.conclusion,
-      confidence: optionalNumber(data.confidence),
-      truth,
-      events,
-      raw: data.raw ?? null,
-    };
-  },
+  derivation: (data) => normalizeDerivationRecord(data),
+  'derivation-record': (data) => normalizeDerivationRecord(data),
   'config-change': (data) =>
     typeof data.before === 'string' && typeof data.after === 'string'
       ? {

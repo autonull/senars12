@@ -392,6 +392,87 @@ export function projectCognitiveEvents(events: readonly CognitiveEvent[]): Works
   return { blocks, links, roots };
 }
 
+/**
+ * Project derivation.record events into derivation-record blocks with full provenance.
+ * Each derivation record becomes a block with the complete step-by-step proof,
+ * evidence lineage, and independence tracking — rendered via the s-tree view.
+ */
+export function projectDerivationRecords(events: readonly CognitiveEvent[]): WorkspaceFragment {
+  const blocks: SemanticBlock[] = [];
+  const links: SemanticLink[] = [];
+  const roots: Ref[] = [];
+
+  for (const event of events) {
+    if (event.type !== 'derivation.record') continue;
+    const record = event.payload as {
+      derivationId: string;
+      taskId: string;
+      goalTerm: string;
+      steps: Array<{
+        stepId: string;
+        ruleId: string;
+        ruleCategory: string;
+        premises: string[];
+        conclusion: string;
+        truth: { frequency: number; confidence: number };
+        truthFn?: string;
+        substitution?: Record<string, string>;
+        premiseTruths?: Array<{ frequency: number; confidence: number }>;
+        evidenceLineage: string[];
+        independence: 'independent' | 'dependent';
+      }>;
+      finalTruth: { frequency: number; confidence: number };
+      totalCycles: number;
+      maxDepthReached: number;
+      timestamp: number;
+      engine: 'nar' | 'metta';
+    };
+
+    const id = `derivation-record:${record.derivationId}`;
+    const lastStep = record.steps[record.steps.length - 1];
+    blocks.push({
+      id,
+      kind: 'derivation-record',
+      role: 'reasoner',
+      title: `Derivation: ${record.goalTerm}`,
+      text: `${record.steps.length} steps → ${lastStep?.conclusion ?? record.goalTerm} (${record.finalTruth.frequency.toFixed(2)}, ${record.finalTruth.confidence.toFixed(2)})`,
+      data: record,
+      status: 'complete',
+      createdAt: record.timestamp,
+      createdBy: 'reasoner',
+      eventRefs: [event.correlationId ?? ''],
+      provenanceRefs: record.steps.flatMap((step) => step.evidenceLineage),
+    });
+    roots.push(id);
+
+    // Add links from each step's premises to the derivation record
+    for (const step of record.steps) {
+      for (const premise of step.premises) {
+        // Try to find the block that corresponds to this premise
+        // The premise is a term string; we link to the claim block if it exists
+        const premiseBlockId = `claim:${premise}`;
+        links.push({
+          id: linkId(premiseBlockId, id, 'derived-from'),
+          source: premiseBlockId,
+          target: id,
+          kind: 'derived-from',
+          createdBy: 'reasoner',
+        });
+      }
+      // Link from the conclusion to the derivation record
+      links.push({
+        id: linkId(`claim:${step.conclusion}`, id, 'derived-from'),
+        source: `claim:${step.conclusion}`,
+        target: id,
+        kind: 'derived-from',
+        createdBy: 'reasoner',
+      });
+    }
+  }
+
+  return { blocks, links, roots };
+}
+
 const merge = (fragments: readonly WorkspaceFragment[]): WorkspaceGraph => {
   const graph: WorkspaceGraph = { blocks: new Map(), links: new Map(), roots: [], selection: new Set() };
   for (const fragment of fragments) {
@@ -415,6 +496,7 @@ export function projectWorkspace(state: {
   }
   if (state.cognitiveEvents && state.cognitiveEvents.length > 0) {
     fragments.push(projectCognitiveEvents(state.cognitiveEvents));
+    fragments.push(projectDerivationRecords(state.cognitiveEvents));
   }
   return merge(fragments);
 }

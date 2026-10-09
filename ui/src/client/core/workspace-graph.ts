@@ -50,6 +50,7 @@ export type BlockKind =
   | 'tool-call'
   | 'tool-result'
   | 'derivation'
+  | 'derivation-record'
   | 'gate-decision'
   | 'budget'
   | 'command'

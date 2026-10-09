@@ -63,6 +63,7 @@ export type EventMeta = {
 export const EVENT_CATALOG = {
   'input.user': { label: 'User input', category: 'input', severity: 'info', provenanceRole: 'stimulus', shapes: ['table', 'text'] },
   'derivation.made': { label: 'Derivation', category: 'reasoning', severity: 'info', provenanceRole: 'conclusion', shapes: ['graph', 'tree', 'table', 'series'] },
+  'derivation.record': { label: 'Derivation Record', category: 'reasoning', severity: 'info', provenanceRole: 'conclusion', shapes: ['tree', 'table', 'text'] },
   'atom.derived': { label: 'Atom derived', category: 'memory', severity: 'info', provenanceRole: 'conclusion', shapes: ['graph', 'table'] },
   'atom.retracted': { label: 'Atom retracted', category: 'memory', severity: 'notice', provenanceRole: 'retraction', shapes: ['graph', 'table'] },
   'belief.added': { label: 'Belief added', category: 'belief', severity: 'info', provenanceRole: 'conclusion', shapes: ['graph', 'series', 'table'] },

@@ -68,6 +68,54 @@ function derivationTree(record: DerivationRecordData): TreeDataset {
   };
 }
 
+/**
+ * Full derivation record as a tree: each step is a node with its rule, premises,
+ * conclusion, truth, evidence lineage, and independence.
+ */
+function derivationRecordTree(record: DerivationRecordData): TreeDataset {
+  const roots: TreeDataset['roots'] = [];
+
+  // Root node: the derivation record itself
+  const rootId = `derivation:${record.derivationId}`;
+  const rootLabel = `${record.goalTerm} (${record.steps.length} steps, ${record.totalCycles} cycles)`;
+  const rootNode: TreeDataset['roots'][0] = {
+    id: rootId,
+    label: rootLabel,
+    children: [],
+  };
+
+  // Each step becomes a child of the root
+  for (const step of record.steps) {
+    const stepId = `step:${step.stepId}`;
+    const independenceIcon = step.independence === 'dependent' ? '⚠ ' : '';
+    const stepLabel = `${independenceIcon}${step.ruleId} (${step.ruleCategory}) → ${step.conclusion} [${step.truth.frequency.toFixed(2)}, ${step.truth.confidence.toFixed(2)}]`;
+    const stepNode = {
+      id: stepId,
+      label: stepLabel,
+      children: [
+        ...step.premises.map((premise, i) => ({
+          id: `premise:${step.stepId}:${i}`,
+          label: `Premise ${i + 1}: ${premise}${step.premiseTruths?.[i] ? ` [${step.premiseTruths[i].frequency.toFixed(2)}, ${step.premiseTruths[i].confidence.toFixed(2)}]` : ''}`,
+        })),
+        {
+          id: `conclusion:${step.stepId}`,
+          label: `Conclusion: ${step.conclusion}`,
+        },
+        ...(step.evidenceLineage.length > 0
+          ? [{
+              id: `evidence:${step.stepId}`,
+              label: `Evidence lineage: ${step.evidenceLineage.join(', ')}`,
+            }]
+          : []),
+      ],
+    };
+    rootNode.children!.push(stepNode);
+  }
+
+  roots.push(rootNode);
+  return { kind: 'tree', roots };
+}
+
 const specOf = (
   block: SemanticBlock,
   dataset: TableDataset | TextDataset | SeriesDataset,
@@ -103,6 +151,17 @@ export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
       title: block.title ?? 'Derivation',
       shapes: ['tree', 'text'],
       source: staticSource(derivationTree(record)),
+      shape: 'tree',
+      interactions: ['select'],
+    };
+  }
+  if (block.kind === 'derivation-record') {
+    const record: DerivationRecordData | undefined = payloadOf(block.data, 'derivation-record');
+    return record && {
+      id: `artifact:${block.id}`,
+      title: block.title ?? 'Derivation Record',
+      shapes: ['tree', 'text'],
+      source: staticSource(derivationRecordTree(record)),
       shape: 'tree',
       interactions: ['select'],
     };

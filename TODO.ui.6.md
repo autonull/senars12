@@ -44,7 +44,6 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 
 | Item | Blocker | Unblocks |
 |------|---------|----------|
-| **`4.3 derivation-record`** (`s-tree` view) | WP5 `3.3` `DerivationRecord` payload | — |
 | **`1.5 page`** (turn/page boundary policy) | Section model `pageOf` exists; needs auto-page producer | — |
 | **`1.4 block-level streaming`** | Backend partial assistant text in `$chatMessages` | — |
 
@@ -68,7 +67,7 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 
 | Item | Status | Notes |
 |------|--------|-------|
-| `3.3 provenance` | `[~]` | `derivation-record` blocks + `s-tree` view; needs `DerivationRecord` payload (`3.3`); absorbs `4.3 derivation-record` |
+| `3.3 provenance` | `[x]` | `derivation-record` blocks + `s-tree` view; full `DerivationRecord` payload with evidence lineage, independence, step-by-step proof; `derivation.record` cognitive event; server drains recorder every 2s |
 | `1.5/1.1 section model` | `[~]` | Heading-level boundaries (turn/page policy); "jump to related block" (`2.4` work) |
 
 ### WP4 — Timeline present-anchoring (partial)
@@ -84,12 +83,12 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 |------|--------|-------|
 | `3.1 projection` (graph) | `[x]` | NAR vocab from `VERIFIER_TRUTH_TABLE`; punctuation → block kinds |
 | `3.1 projection` (events) | `[x]` | Budget/gate blocks from cognitive event log; server→client `cognitive.events` wire; `$cognitiveEvents` atom |
-| `3.2 formalization` | `[ ]` | Claim → candidate → gate admission |
-| `3.3 provenance` | `[~]` | `derivation-record` + `s-tree`; needs evidence lineage (engine derivation recorder) |
+| `3.2 formalization` | `[x]` | Claim → candidate → gate admission via `input-hud.ts` → `narsBackend.control.submit()` |
+| `3.3 provenance` | `[x]` | `derivation-record` blocks + `s-tree` view; full `DerivationRecord` payload with steps, evidenceLineage, independence; `derivation.record` event; server drains recorder |
 | `3.4 layouts` | `[x]` | `reasoning-provenance`, `gate-pipeline`, `contradiction-neighborhood`, `budget-resource` |
 | `3.5 explanation` | `[x]` | Block/link/event → summary/card/detail/raw via `renderBlockBody` |
 | `3.6 steer/author` | `[x]` | All control methods + palette commands + `config-change` producer |
-| `3.7 MeTTa` | `[ ]` | Second adapter over same substrate |
+| `3.7 MeTTa` | `[x]` | Second `ReasoningBackend` adapter in `metta-backend.ts` |
 
 ### WP6 — Parity & rendering quality
 
@@ -134,6 +133,7 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 - ✅ **Node→workspace-block mapping** (node half) — landed (`blockRefFor` in `workspace-projection.ts`)
 - ✅ **`config-change` producer** — landed (`core/config-change-producer.ts`)
 - ✅ **Cognitive events wire** — server→client `cognitive.events` protocol + `$cognitiveEvents` atom + projection integration
+- ✅ **Derivation recorder wire** — `derivation.record` event + server drain loop + `derivation-record` blocks + `s-tree` view
 
 ---
 
@@ -171,6 +171,7 @@ Overlays, Views, Inline text, Block payloads, Block bodies, Reaching a block, Em
 - **WP2 `2.6 context`** — `WorkspaceContext` in `workspace-renderer.ts` gains `renderer` (getter), `setRenderer()`, `overlays()`, `hasOverlays()`; `WORKSPACE_CONTEXT` in `workspace-host.ts` binds to `$activeRenderer` and `overlayManager`; renderers can now query/switch renderer and inspect overlay stack
 - **WP3 `4.5 overlay-header`** — shared `overlay-header` component in `components/overlays/overlay-header.ts` with drag-handle, resize grip, pin, close; 9 overlays migrated (inspector, timeline, explain, artifact, settings, toc, telemetry, related, provider, tool-approval); `overlayManager` singleton via `getOverlayManager()`/`resetOverlayManager()`
 - **WP5 `3.1 projection` (events full)** — server→client `cognitive.events` wire protocol (`sync.ts`, `unions.ts`); `$cognitiveEvents` atom + `pushCognitiveEvents()`/`clearCognitiveEvents()` in `store.ts`; handler in `store-bindings.ts`; `projectWorkspace` accepts `cognitiveEvents` array; `workspace-bindings.ts` subscribes to cognitive events for re-projection; broadcast from server on every agent event via `broadcastCognitiveEvent()` in `server/index.ts`; all 422 UI tests pass
+- **WP5 `3.3 provenance` / `4.3 derivation-record`** — `derivation.record` cognitive event type in `core/schemas/cognitive-events.ts` carrying full `DerivationRecord`; `derivation-record` block kind in `workspace-graph.ts`; enriched `DerivationRecordData` in `block-payload.ts` with `DerivationStepData` (steps, evidenceLineage, independence, premiseTruths, truthFn, substitution); `projectDerivationRecords()` in `workspace-projection.ts` creates blocks with provenanceRefs; `derivationRecordTree()` in `artifacts.ts` renders step-by-step proof via `s-tree`; server drains `DerivationRecorder` every 2s via `derivationRecordTimer` in `server/index.ts`; `event-catalog.ts` updated with metadata
 
 ## Planned — Overlay system evolution
 
