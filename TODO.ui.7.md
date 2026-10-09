@@ -158,4 +158,20 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
   `rendererSupports`/`rendererHasControl` read the table (single gating source); `rendererKind` is the
   declared `surface` (`s-notebook`/`graph-surface`/`spacegraph-viewport`). Canonical loop + ordered-pair
   round-trips tested. 423/423 units.
-- `[ ]` everything else.
+- `[x]` **cross-cutting: UI now boots in a browser** — the client bundle pulled the Node-only
+  `@senars/core` root (via `VERIFIER_TRUTH_TABLE`, `taskTypeForPunctuation`, `IncomingFromServer`,
+  `shared/constants`, `shared/index`), which evaluated `process.cwd()` and crashed the app at module
+  load. Routed those imports to `@senars/core/{verify-derivation,schemas,protocol}` + added the Vite
+  aliases. *(This was the real reason the visual harness could never populate a graph.)*
+- `[x]` **cross-cutting: overlay positioning** — `OverlayManager.open()` forced inline bounds on
+  **every** overlay, overriding each overlay's centred CSS (settings/palette/telemetry/toc/provider sat
+  off-screen; windowed overlays double-offset). Bounds now apply only to overlays that declare
+  `window`, and `#applyBounds` clears the CSS centring transform.
+- `[~]` **P1 WP9 visual coverage** — registry-driven `VISUAL_CELLS` with `surface` keys; 17 cells
+  (renderers graph+notebook, 6 overlays, 3 panels, graph states/lenses, node detail), fresh baselines +
+  `ui:gallery` (17 cells, 0 failed); `visual-coverage.test.ts` asserts every registered surface has a
+  cell **or** a `KNOWN_GAPS` entry (with a stale-gap guard); `ui:verify` added. Remaining gaps:
+  `overlay:{artifact,block-menu,explain,inspector,related,tool-approval}` (need a live ref/pending
+  call), all 8 `layout:*`, `view:{graph,series,tree,text,code,diff}`, and `renderer:graph3d`
+  (deferred, O6).
+- `[ ]` P2–P4.
