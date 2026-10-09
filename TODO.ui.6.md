@@ -31,7 +31,7 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 | 6 | **`3.1 projection` (event-stream half)** — `budget.exhausted` → `budget` blocks, `policy.violation`/`egress.gate.rejected`/`shadow.validation.dropped`/`judgment.resolved` → `gate-decision` blocks | M | `core/workspace-projection.ts`, `core/graph-projection.ts` | **Done** — added `projectCognitiveEvents()` in `workspace-projection.ts`; projects budget/policy/egress/shadow/judgment events to `budget`/`gate-decision` blocks; optional `cognitiveEvents` param on `projectWorkspace()` |
 | 7 | **`2.3 node ops`** — "Ask as question" / "Assert as claim" → `WorkspaceOp.block.add` | M | `core/workspace-projection.ts`, `components/renderers/graph.ts` | **Done** — added in `node-detail-drawer.ts` Actions tab; creates `question`/`claim` blocks with `sourceRefs` to engine node; `revealBlock` opens in Notebook |
 | 8 | **`4.3 affordances` (edge half)** — edge popover Open-in-Notebook / Open View | M | `components/overlays/inspector.ts`, `components/node-detail-drawer.ts`, `core/workspace-projection.ts` | **Done** — `linkRefFor` already implemented; added edge actions in `node-detail-drawer.ts` renderEdge() for Open in Notebook / Open View via `linkRefFor(narsBackend, edgeId)` |
-| 9 | **`1.4 rich text`** — inline full tables, view-barrel ownership | S | `core/inline-text.ts`, `components/renderers/notebook.ts` | Tokenizer + rendering landed; only tables + barrel remain |
+| 9 | **`1.4 rich text`** — inline full tables, view-barrel ownership | S | `core/inline-text.ts`, `components/renderers/notebook.ts` | **Done** — inline tokenizer (code, links, bold, emphasis, citations); tables rendered via `artifactViewSpec` → view barrel (table-view); view barrel registered in `components/views/index.ts` and imported in `entry.ts` |
 | 10 | **`4.4 controls`** — explicit prospective control, announce in overlay header | S | `components/timeline-scrubber.ts` | Live/past done; prospective + header announce remain |
 | 11 | **`0.5 tool approval + prompt_user tool`** — modal dialog + `prompt_user` tool for system-initiated questions/forms/wizards | M | `overlays/tool-approval.ts` (new), `core/lm-provider.ts`, `core/tool-registry.ts` (new), `components/input-hud.ts` | Modal scrim landed; adds producer for `tool.approval.request`; registers `prompt_user` tool (question/confirm/form/select) with JSON Schema; composer prefill on response; reuses `tool-call`/`tool-result` blocks |
 | 12 | **`4.5 pinning`** — per-overlay pin button + `[data-pinned]` CSS | S | `core/overlay-manager.ts`, `core/events.ts`, `core/commands.ts`, `components/app-layout.ts` | Manager seam + session-only pinning landed |
@@ -160,6 +160,7 @@ Overlays, Views, Inline text, Block payloads, Block bodies, Reaching a block, Em
 - **WP3 `2.4` inspection & embedded views** — node/edge popovers, ToC reach, neighborhood depth
 - **WP3 `1.5/1.1` section model** — recursive containment, fold-aware `j/k`, `view.fold-all`
 - **WP3 `citations model`** — `Source`/bibliography, `[n]` resolution
+- **WP3 `1.4 rich text`** — inline tokenizer (code, links, bold, emphasis, citations); tables via `artifactViewSpec` → view barrel; view barrel registered in `components/views/index.ts`
 - **WP4 `4.4` anchor/gating** — present-anchored cursor + temporal HUD gating
 
 All 422 UI tests pass. Core layout-registry tests pass (8).
