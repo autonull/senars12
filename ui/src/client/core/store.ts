@@ -712,6 +712,7 @@ const storeAtoms = {
   graphShape: $graphShape,
   workspaceGraph: $workspaceGraph,
   activeRenderer: $activeRenderer,
+  cognitiveEvents: $cognitiveEvents,
 } satisfies Record<string, ReadableAtom<unknown>>;
 
 export type TestApiStorePath = keyof typeof storeAtoms;

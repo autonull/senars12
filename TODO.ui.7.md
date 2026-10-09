@@ -173,34 +173,63 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
   graph states/lenses, node detail), fresh baselines + `ui:gallery` (22 cells, 0 failed);
   `visual-coverage.test.ts` asserts every registered surface has a cell **or** a `KNOWN_GAPS` entry
   (with a stale-gap guard); `ui:verify` added. **All `overlay:*` gaps are closed.**
-- `[~]` **P1 remaining surfaces** — `layout:{chronological-flow,semantic-map,artifact-map,source-view,
-  reasoning-provenance,gate-pipeline,contradiction-neighborhood,budget-resource}`,
-  `view:{graph,series,tree,text,code,diff}`, `renderer:graph3d` (deferred O6); see "Next up" below.
+- `[~]` **P1 remaining surfaces** — `view:{graph,series,tree,text,code,diff}` (need a `<s-view>`
+  host cell with a real `ViewSpec` dataset), `renderer:graph3d` (deferred O6); see "Next up" below.
+  All `layout:*` gaps are now closed (below).
+- `[x]` **P1 layout coverage** — 8 registry-driven cells: 4 reasoning layouts via
+  `#layout=<id>` + the scenario/lens each recommends (`reasoning-provenance`, `gate-pipeline`,
+  `contradiction-neighborhood`, `budget-resource`), and 4 conversation layouts
+  (`chronological-flow`, `semantic-map`, `artifact-map`, `source-view`) over a seeded
+  conversation. `KNOWN_GAPS` in `visual-coverage.test.ts` now names only the 6 view shapes +
+  `renderer:graph3d`.
+- `[x]` **cross-cutting: conversation seeding + deterministic capture** — `matrix.ts` seeds a
+  fixed conversation through the real `$chatMessages` store (headings, a Markdown table and a
+  fenced code block, so `table`/`code`/`list` child blocks exist), which also gives `panel-chat`
+  real content. Two drift sources had to be handled: (a) the engine self-analyzer, so the visual
+  spec now **pauses the engine before the client boots** (`visual.spec.ts`) rather than after
+  `settle()`; (b) the server's **derivation-recorder timer fires every 2s and outlives `pause()`**,
+  so conversation cells isolate the graph, wait one interval, isolate again, and capture in the
+  quiet window. `$cognitiveEvents` is now exposed read/write in the store test API so a cell can
+  clear it deterministically.
+- `[x]` **cross-cutting: `selection-node-detail` determinism** — the inspector cell used to
+  inherit whatever the (warm) bootstrap engine had derived, so it drifted across full-suite runs.
+  It now isolates the graph to a single known concept and selects that, and is stable across
+  repeated full-suite runs (30/30 green twice).
 - `[x]` **cross-cutting: windowed-overlay positioning** — `OverlayManager.#applyBounds` set
   `left/top` but never `position`, so windowed overlays (explain/artifact/timeline/inspector) fell
   into document flow below the shell; they only ever appeared when focus-scroll dragged them into
   view (autoFocus). Bounds now pin `position: fixed`. Surfaced by the gallery, not by tests.
-- `[x]` **cross-cutting: deterministic visual capture** — the agent self-analyzer kept deriving
-  during a cell, so the same cell drifted run-to-run (graph grew with wall-clock). The visual spec
-  now pauses the engine after `settle()` and before capture; the suite is stable across full runs.
+- `[x]` **cross-cutting: deterministic visual capture (self-analyzer)** — the agent self-analyzer
+  kept deriving during a cell, so the same cell drifted run-to-run; the visual spec pauses the
+  engine (now before boot — see above) so the suite is stable across full runs.
 - `[ ]` P2–P4.
 
 ### Next up / notes for the next session
 
 - **Ref-bearing overlay cells** are opened by resolving a real workspace block via
-  `__testApi.store.getState('workspaceGraph').blocks` (see `resolveBlockRef` in `tests/visual/matrix.ts`);
-  artifact prefers an `ARTIFACT_KINDS` block, explain/related prefer a `derivation`/`claim`.
-- **`overlay:inspector`** is satisfied by the `selection-node-detail` cell (selects a graph node →
-  `syncInspector` opens the inspector). Kept as one cell on purpose: the drawer *is* the inspector.
+  `__testApi.store.getState('workspaceGraph').blocks` (see `resolveBlockRef` in
+  `tests/visual/matrix.ts`); artifact prefers an `ARTIFACT_KINDS` block, explain/related prefer a
+  `derivation`/`claim`.
+- **`overlay:inspector`** is satisfied by the `selection-node-detail` cell (isolates to one
+  concept, selects it → `syncInspector` opens the inspector). Kept as one cell on purpose: the
+  drawer *is* the inspector.
 - **tool-approval** has a test seam: `__testApi.toolApproval.request(args)` calls the real
   `callTool('prompt_user', …)` path (mounted by the overlay's `connectedCallback`); the overlay must
   be opened first so its element mounts and registers the approval handler.
-- **Remaining P1 gaps need data, not just cells**: conversation layouts (`chronological-flow`,
-  `semantic-map`, `artifact-map`, `source-view`) need chat turns in the workspace graph — there is no
-  chat-seeding scenario yet; view shapes (`graph/series/tree/text/code/diff`) need a `<s-view>` host
-  cell with a real `ViewSpec` dataset. Reasoning layouts could be added hash-first
-  (`#layout=<id>`) against `basic-derivation`/`conflicting-evidence`.
-- **Improvement opportunities**: (a) expose scenario-level chat seeding so conversation-layout and
-  richer overlay cells become possible; (b) generate `docs/readme/ui-gallery.md` per P1.5 (the gallery
-  today is only `tests/visual/gallery/index.html`); (c) the engine pause could be a per-cell opt-out
-  rather than global once motion captures (O8) land.
+- **Remaining P1 gaps are view shapes** (`graph/series/tree/text/code/diff`): the product mapping
+  (`artifacts.ts`) only reaches `tree` (derivation), `table`, `code`, `series` (chart) and `diff`
+  (config-change) through block payloads, and no scenario/chat turn produces a `chart` or
+  `config-change` block; `view:text` only appears for JSON-ish kinds. The plan's intended fix is a
+  dedicated `<s-view>` host cell fed a real `ViewSpec` — a small `__testApi.views.mount(spec, shape)`
+  seam (or an overlay) is the cleanest route. `renderer:graph3d` stays a gap (O6).
+- **Conversation layouts are captured over seeded chat**, not engine claims: the cells replace the
+  engine graph with one deterministic concept so the frame is legible. The server-side
+  **derivation-recorder timer outliving `pause()`** is the underlying nondeterminism; making
+  `/test/pause` drain/stop that recorder would remove the 2.2s quiet-window wait from every
+  engine-free cell (and is the root fix for the drift this session worked around).
+- **Improvement opportunities**: (a) a `docs/readme/ui-gallery.md` generated section (P1.5) — the
+  gallery is still only the gitignored `ui/tests/visual/gallery/index.html`, so a README link would
+  break on a fresh clone unless the section describes generation rather than links the sheet;
+  (b) the engine pause / recorder quiet-window could be a per-cell opt-out rather than global once
+  motion captures (O8) land; (c) chart/config-change scenario seeding would close `view:series`/
+  `view:diff` without a bespoke host.

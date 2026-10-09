@@ -43,6 +43,27 @@ const ARTIFACT_KINDS = [
   'tool-result',
 ] as const;
 
+/** One deterministic concept the engine-free fixtures render, so captures never drift. */
+const STUB_NODE = {
+  id: 'concept:stub',
+  nodeType: 'nar:concept',
+  label: '(robin-->bird)',
+  term: '(robin-->bird)',
+  priority: 0.5,
+  confidence: 1,
+} as const;
+
+/** Replace engine state with one known concept and no events, before capture. */
+const isolateGraph = (page: Page): Promise<void> =>
+  page.evaluate((node) => {
+    const api = (window as Record<string, unknown>).__testApi as {
+      store?: { setState?: (path: string, value: unknown) => void };
+    };
+    api?.store?.setState?.('cognitiveEvents', []);
+    api?.store?.setState?.('graphNodes', new Map([[node.id, node]]));
+    api?.store?.setState?.('graphEdges', new Map());
+  }, STUB_NODE);
+
 /** Open a registered overlay through the shell's own test seam. */
 const openOverlay = (id: string): VisualCell['prepare'] => async ({ page }) => {
   await page.evaluate((overlayId) => {
@@ -73,6 +94,81 @@ const resolveBlockRef = async (page: Page, prefer: readonly string[] = []): Prom
   if (!ref) throw new Error('no workspace block to reference');
   return ref;
 };
+
+const CHAT_BASE = 1_700_000_000_000;
+
+type SeedTurn = { id: string; role: 'user' | 'agent'; content: string };
+
+/**
+ * A conversation that exercises every conversation-layout substrate: ordered
+ * turns, `responds-to` discourse, headings, a Markdown table (a `table` block
+ * with payload) and a fenced code block. Seeded through the real chat store, so
+ * the workspace projection builds the blocks the layouts arrange.
+ */
+const CHAT_TURNS: readonly SeedTurn[] = [
+  { id: 'turn-1', role: 'user', content: 'What follows about robins from the taxonomy?' },
+  {
+    id: 'turn-2',
+    role: 'agent',
+    content:
+      '## Derivation\n\nA robin is a bird; a bird is an animal, so a robin is an animal.\n\n| Premise | Relation |\n| --- | --- |\n| robin | bird |\n| bird | animal |\n\n```narsese\n<robin --> animal>.\n```',
+  },
+  { id: 'turn-3', role: 'user', content: 'And what does the swan colour evidence show?' },
+  {
+    id: 'turn-4',
+    role: 'agent',
+    content:
+      '### Conflicting evidence\n\nTwo beliefs compete for the swan:\n\n- swan is white\n- swan is black\n\nRevision weighs the two by confidence.',
+  },
+];
+
+/** Chat messages shaped for `$chatMessages`, with deterministic ids and order. */
+const chatMessages = (turns: readonly SeedTurn[]) => {
+  let lastUser = '';
+  return turns.map((turn, index) => {
+    const threadRoot = turn.role === 'user' ? turn.id : lastUser || turn.id;
+    if (turn.role === 'user') lastUser = turn.id;
+    return {
+      id: turn.id,
+      role: turn.role,
+      content: turn.content,
+      timestamp: CHAT_BASE + index * 1000,
+      parentId: null,
+      threadRootId: threadRoot,
+      supports: [],
+      contradicts: [],
+      derivesFrom: [],
+    };
+  });
+};
+
+/**
+ * Seed the conversation through the real `$chatMessages` store, then re-settle
+ * so the workspace projection's new blocks are laid out before capture.
+ *
+ * The engine graph is isolated first (see `isolateGraph`): conversation layouts
+ * arrange the conversation, so leaving the reasoning layer in would swamp the
+ * frame. The server drains derivation records on a 2s timer that outlives
+ * `pause()`, so after one interval we isolate again and capture in the quiet
+ * window before the next tick — otherwise those records drift the frame.
+ */
+const seedConversation =
+  (layout?: string, isolate = true): VisualCell['prepare'] =>
+  async ({ page, settle }) => {
+    if (isolate) await isolateGraph(page);
+    await page.evaluate((messages) => {
+      const api = (window as Record<string, unknown>).__testApi as {
+        store?: { setState?: (path: string, value: unknown) => void };
+      };
+      api?.store?.setState?.('chatMessages', messages);
+    }, chatMessages(CHAT_TURNS));
+    await settle(layout);
+    if (isolate) {
+      await page.waitForTimeout(2200);
+      await isolateGraph(page);
+      await settle(layout);
+    }
+  };
 
 /** Open a ref-bearing overlay through the shell test seam, with a real block. */
 const openOverlayWithRef =
@@ -155,6 +251,82 @@ export const VISUAL_CELLS: VisualCell[] = [
     scenario: 'conflicting-evidence',
     hash: '#panels=none&lens=contradiction',
     layout: 'breadthfirst',
+  },
+
+  // Conversation layouts (§5.3) — arrange the seeded conversation; concept
+  // layouts (§3.4) — arrange the reasoning structure. Every registered layout
+  // has a cell (visual-coverage contract).
+  {
+    id: 'layout-chronological-flow',
+    group: 'Layouts',
+    title: 'Conversation — chronological flow',
+    surface: 'layout:chronological-flow',
+    hash: '#panels=none&scope=conversation&layout=chronological-flow',
+    layout: 'chronological-flow',
+    prepare: seedConversation('chronological-flow'),
+  },
+  {
+    id: 'layout-semantic-map',
+    group: 'Layouts',
+    title: 'Conversation — semantic map',
+    surface: 'layout:semantic-map',
+    hash: '#panels=none&scope=conversation&layout=semantic-map',
+    layout: 'semantic-map',
+    prepare: seedConversation('semantic-map'),
+  },
+  {
+    id: 'layout-artifact-map',
+    group: 'Layouts',
+    title: 'Conversation — artifact map',
+    surface: 'layout:artifact-map',
+    hash: '#panels=none&scope=conversation&layout=artifact-map',
+    layout: 'artifact-map',
+    prepare: seedConversation('artifact-map'),
+  },
+  {
+    id: 'layout-source-view',
+    group: 'Layouts',
+    title: 'Conversation — source view',
+    surface: 'layout:source-view',
+    hash: '#panels=none&scope=conversation&layout=source-view',
+    layout: 'source-view',
+    prepare: seedConversation('source-view'),
+  },
+  {
+    id: 'layout-reasoning-provenance',
+    group: 'Layouts',
+    title: 'Reasoning — provenance',
+    surface: 'layout:reasoning-provenance',
+    scenario: 'basic-derivation',
+    hash: '#panels=none&layout=reasoning-provenance',
+    layout: 'reasoning-provenance',
+  },
+  {
+    id: 'layout-gate-pipeline',
+    group: 'Layouts',
+    title: 'Reasoning — gate pipeline',
+    surface: 'layout:gate-pipeline',
+    scenario: 'basic-derivation',
+    hash: '#panels=none&layout=gate-pipeline',
+    layout: 'gate-pipeline',
+  },
+  {
+    id: 'layout-contradiction-neighborhood',
+    group: 'Layouts',
+    title: 'Reasoning — contradiction neighborhood',
+    surface: 'layout:contradiction-neighborhood',
+    scenario: 'conflicting-evidence',
+    hash: '#panels=none&lens=contradiction&layout=contradiction-neighborhood',
+    layout: 'contradiction-neighborhood',
+  },
+  {
+    id: 'layout-budget-resource',
+    group: 'Layouts',
+    title: 'Reasoning — budget/resource lanes',
+    surface: 'layout:budget-resource',
+    scenario: 'basic-derivation',
+    hash: '#panels=none&layout=budget-resource',
+    layout: 'budget-resource',
   },
 
   // Responsive.
@@ -295,6 +467,7 @@ export const VISUAL_CELLS: VisualCell[] = [
     title: 'Chat history',
     surface: 'panel:chat',
     hash: '#panels=chat',
+    prepare: seedConversation(undefined, false),
   },
   {
     id: 'panel-search',
@@ -311,23 +484,20 @@ export const VISUAL_CELLS: VisualCell[] = [
     title: 'Node detail drawer — inspector follows selection',
     surface: 'overlay:inspector',
     hash: '#panels=none',
-    prepare: async ({ page }) => {
-      const id = await page.evaluate(
-        () =>
-          (
-            (window as Record<string, unknown>).__testApi as {
-              graph?: { getAllNodeIds?: () => string[] };
-            }
-          )?.graph?.getAllNodeIds?.()[0] ?? null
-      );
-      if (!id) throw new Error('no graph nodes to select');
+    prepare: async ({ page, settle }) => {
+      await isolateGraph(page);
+      // Let the derivation-recorder timer fire, then isolate into the quiet
+      // window so a late record cannot repopulate the graph mid-capture.
+      await page.waitForTimeout(2200);
+      await isolateGraph(page);
+      await settle();
       await page.evaluate((nodeId) => {
         (
           (window as Record<string, unknown>).__testApi as {
             graph?: { clickNode?: (i: string) => void };
           }
         )?.graph?.clickNode?.(nodeId);
-      }, id);
+      }, STUB_NODE.id);
       await page.waitForTimeout(400);
     },
   },

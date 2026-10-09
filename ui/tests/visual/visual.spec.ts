@@ -13,6 +13,12 @@ for (const cell of VISUAL_CELLS) {
     // Isolation: force the baseline scenario, then load this cell's scenario.
     await testControl.resetAll();
     if (cell.scenario) await testControl.loadScenario(cell.scenario);
+    // Freeze the engine before the client boots: the self-analyzer derives on a
+    // timer, so pausing only after `settle()` let the graph grow by an amount
+    // that depended on how warm the long-lived server was — the same cell drifted
+    // between a fresh and a full-suite run. Paused first, a cell captures exactly
+    // the scenario's own cycles.
+    await testControl.pause();
 
     await page.goto(`/${cell.hash ?? ''}`);
     await page.reload();
@@ -49,9 +55,6 @@ for (const cell of VISUAL_CELLS) {
 
     const ctx: VisualContext = { page, control: testControl, settle };
     await settle();
-    // Freeze the engine before capture: the self-analyzer keeps deriving while a
-    // test runs, so an unfrozen graph grows between runs and the snapshot drifts.
-    await testControl.pause();
     await cell.prepare?.(ctx);
     await page.waitForTimeout(300);
 
