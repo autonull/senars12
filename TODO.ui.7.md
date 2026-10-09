@@ -191,12 +191,17 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
 - `[x]` **P1.6 local verification entry** — root `ui:verify` = `pnpm --dir ui verify`
   (typecheck + unit incl. `visual-coverage` + `test:visual:ci` incl. `ui:gallery`). CI/GitHub stays
   off (O4); `ui:gate` remains the fast type+unit gate.
-- `[~]` **P1.3 scenario matrix** — committed scenarios today: `bootstrap` (default), `derivation`
-  (`basic-derivation`), `conflicting-evidence` (via `graph-conflict-lens`). Still to seed:
-  `metta`, `tool-approval`, `budget/gate-decision`, `error/empty`, `disconnected`. `error/empty` and
-  `disconnected` are now exercised by the state cells; the rest need server scenarios or seams.
-- `[~]` **P1 remaining surfaces** — `renderer:graph3d` (deferred O6); see "Next up" below.
-  All `layout:*` and `view:*` gaps are closed.
+- `[x]` **P1.3 scenario matrix** — canonical states with committed baselines: `bootstrap` (default),
+  `derivation` (`graph-belief-derivation`), `conflicting-evidence` (`graph-conflict-lens`),
+  `metta` (`scenario-metta`, MeTTa atoms/skills seeded into `$graphNodes`), `budget/gate-decision`
+  (`scenario-budget-gate`, `budget.exhausted`/`egress.gate.rejected`/`policy.violation` events),
+  `tool-approval` (`overlay-tool-approval` seam), `error/empty`/`disconnected` (state cells). The
+  two fixture cells render through the Notebook and use the recorder quiet-window so they are
+  deterministic. No server-side scenario was added: MeTTa atoms and cognitive events are projected
+  from the client stores the engine would populate, so a fixture is the honest minimal seam today.
+- `[~]` **P1 status: complete except `renderer:graph3d`** (deferred to P4/O6). All `overlay:*`,
+  `renderer:*` (bar graph3d), `layout:*`, `view:*` and `panel:*` surfaces have cells; all state and
+  scenario groups are captured. `KNOWN_GAPS` is the single `renderer:graph3d` entry.
 - `[x]` **P1 layout coverage** — 8 registry-driven cells: 4 reasoning layouts via
   `#layout=<id>` + the scenario/lens each recommends (`reasoning-provenance`, `gate-pipeline`,
   `contradiction-neighborhood`, `budget-resource`), and 4 conversation layouts
@@ -214,7 +219,7 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
 - `[x]` **cross-cutting: `selection-node-detail` determinism** — the inspector cell used to
   inherit whatever the (warm) bootstrap engine had derived, so it drifted across full-suite runs.
   It now isolates the graph to a single known concept and selects that, and is stable across
-  repeated full-suite runs (42/42 green twice).
+  repeated full-suite runs (44/44 green).
 - `[x]` **cross-cutting: windowed-overlay positioning** — `OverlayManager.#applyBounds` set
   `left/top` but never `position`, so windowed overlays (explain/artifact/timeline/inspector) fell
   into document flow below the shell; they only ever appeared when focus-scroll dragged them into
@@ -247,9 +252,12 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
   **derivation-recorder timer outliving `pause()`** is the underlying nondeterminism; making
   `/test/pause` drain/stop that recorder would remove the 2.2s quiet-window wait from every
   engine-free cell (and is the root fix for the drift this session worked around).
-- **Improvement opportunities**: (a) a `docs/readme/ui-gallery.md` generated section (P1.5) — the
-  gallery is still only the gitignored `ui/tests/visual/gallery/index.html`, so a README link would
-  break on a fresh clone unless the section describes generation rather than links the sheet;
-  (b) the engine pause / recorder quiet-window could be a per-cell opt-out rather than global once
-  motion captures (O8) land; (c) chart/config-change scenario seeding would close `view:series`/
-  `view:diff` without a bespoke host.
+- **P1 is complete** except `renderer:graph3d` (O6/P4). The next spine step is **P2 — WP6 rendering
+  quality** (incremental animated growth, chat clusters, floating composer, graph polish); note 2.5
+  asks to register `chronological-flow`/`source-view` SpaceGraph surfaces, which would add
+  `renderer:spacegraph-*` surfaces the coverage test will then demand cells for.
+- **Improvement opportunities**: (a) the engine pause + recorder quiet-window is a global harness
+  behaviour; once motion captures (O8) land it should become a per-cell opt-out; (b) making
+  `/test/pause` drain/stop the derivation recorder is the root fix (see above); (c) replacing the
+  `metta`/`budget-gate` and view fixtures with real server scenarios/seams once those block kinds
+  are seedable, so the cells exercise the engine rather than the client stores.
