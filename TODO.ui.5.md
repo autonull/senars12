@@ -42,12 +42,14 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
    **`3.6` steer/author** producers. `→ core/`
 2. **`2.6 context`** (M) · **`2.6 scope`** (M) — state/URL consolidation. (`openPalette` fold landed;
    renderer/overlays context fields await a consumer; fold-all debounce awaits a bulk writer.)
-3. **`2.4 inspection & embedded views`** (L) · **`4.3 affordances`** (M). (`4.5 pinning` partial —
-   manager/command pinning; `1.4 rich text` partial — inline tokenizer.)
+3. **`2.4 inspection & embedded views`** (L) — node popover landed; the edge popover, the popover's
+   notebook card and the embedded-view cluster remain. (`4.3 affordances` and `4.5 pinning` partial —
+   inspector reach landed; manager/command pinning. `1.4 rich text` partial — inline tokenizer.)
 4. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
    (`4.4 controls` is partially landed — live reset + readout; see WP4.)
 
-*(Landed from this queue: the `1.5 page` URL address, the `1.5/1.1 section model` (recursive
+*(Landed from this queue: the `2.4` node hover popover (and with it the `innerHTML` sink), the
+`1.5 page` URL address, the `1.5/1.1 section model` (recursive
 containment, fold-aware `j`/`k`, `view.fold-all`), the `4.3 typing` payload contract and the
 `citations model` bibliography rendering — see §Landed (v5). The three small state wins `2.5 defaults`,
 `2.5 selection atom` and `2.5 focus react` were landed earlier.)*
@@ -121,6 +123,9 @@ Landed extension points — wire features here instead of re-deriving them.
   `j`/`k` and the breadcrumb all walk it, so a new nesting depth needs no new walker — and
   `1.5 page` gets its model for free. `parentMap` and `rootBlocks` are gone; `navigation.ts` no
   longer re-derives the tree.
+- **Node→block mapping** — `blockRefFor(backend, id)` in `core/workspace-projection.ts`, plus the
+  viewport's `blockRefOf` for chat nodes (whose id *is* the block ref). One resolution feeds the
+  inspector, the graph menu and the node popover, so a node and its block cannot drift apart.
 - **Reasoning backend** — `core/reasoning-backend.ts` (`ReasoningBackend`, `BackendVocabulary`,
   `BackendNode`/`BackendEdge`/`BackendSnapshot`) + `core/nars-backend.ts` (`narsBackend`, adapter #1;
   `NAL_VOCABULARY`): take engine-specific node/edge kinds, labels, text fallbacks and the truth
@@ -271,13 +276,23 @@ Landed extension points — wire features here instead of re-deriving them.
   `core/navigation.ts`, `core/toc.ts`, `core/commands.ts`, `core/workspace-graph.ts` (`parentMap`/
   `rootBlocks` deleted), `components/renderers/notebook.ts`, `components/overlays/toc.ts`.
   `(d)`,`(q)`,`(h)`,`(s)`,`(t)`
-- [ ] **2.4 inspection & embedded views** *(merged: `2.4 graph inspection` + `4.1/4.2 embedded
+- [~] **2.4 inspection & embedded views** *(merged: `2.4 graph inspection` + `4.1/4.2 embedded
   views`)* — node/edge hover popovers reusing `explainModel`/`neighborhood`; artifact edge previews;
   richer inspector (link confidence + event refs); "Open related" from graph menu and ToC; remember
   neighborhood depth; ⌥-click a row to explain instead of navigate. Plus: Notebook embedded graph block
   (derivation/contradiction/topic neighborhood); Graph node popover notebook card; graph edge popover
   derivation tree; wire the block-menu "embed" affordance; reuse `conversationPositions` and
-  `projectWorkspaceGraph` in embedded graph shapes. The **node→block mapping** blocker is cleared for
+  `projectWorkspaceGraph` in embedded graph shapes. **Node hover popover landed:** the old tooltip was
+  raw graph fields (`term`/`priority`/`confidence`/`degree`) interpolated into an HTML string — an
+  `innerHTML` sink fed by an untrusted engine term, and facts the semantic model does not hold. It is
+  now `components/graph-popover.ts`, taking a **block ref** (not a graph element) so the semantic half
+  renders and tests without a canvas while the viewport keeps only hit-testing and placement: kind,
+  label, truth chip, and one row per `explainModel` link, labelled through the link catalog and
+  clickable into the notebook. The viewport resolves elements through one `blockRefOf` (chat nodes
+  already carry their block ref; engine nodes go through `blockRefFor`), and its context menu gained
+  **Open in Notebook**. Remaining: the **edge** popover (needs the edge half of the node→block mapping),
+  the popover's notebook card, artifact edge previews, richer inspector, "Open related" from the ToC,
+  remembered neighborhood depth, ⌥-click, and the whole embedded-view cluster. The **node→block mapping** blocker is cleared for
   nodes (`blockRefFor`), so the inspector can reach a block today; the **edge** half is what the edge
   popovers still wait on. `→ core/explain.ts`, `core/neighborhood.ts`, `core/workspace-projection.ts`,
   `components/overlays/{inspector,block-menu,related}.ts`, `components/node-detail-drawer.ts`,
@@ -580,4 +595,12 @@ in v3 Appendix D). Rolled up:
   id the backend does not carry resolves to `undefined` rather than to a block that does not exist.
   Consumers: the inspector's Actions tab gains **Open in Notebook** (renderer + focus) and **Open
   View** (artifact overlay, gated on a real `ViewSpec`). Suite **369 green**.
+- **WP3 `2.4` node hover popover** — `components/graph-popover.ts` replaces the viewport's tooltip.
+  The old one was an `innerHTML` sink: `term`/`label`/`priority`/`confidence`/`degree` interpolated into
+  an HTML string from an untrusted engine record. The new popover takes a **block ref** and renders
+  `explainModel` as Lit nodes — kind, label, truth chip, one row per link labelled through the link
+  catalog, rows clickable into the notebook — so text is escaped by construction and the popover is
+  testable without a canvas. The viewport keeps only hit-testing and placement, resolves elements via
+  one `blockRefOf`, and its context menu gained **Open in Notebook**. Suite **374 green**, including a
+  test that an engine term containing markup renders as text.
 

@@ -5,6 +5,7 @@ import { edgeKey } from '../../shared/index.js';
 import { GraphRenderer } from '../core/graph-renderer.js';
 import {
   $activeLens,
+  $activeRenderer,
   $capabilityFilter,
   $chatMessages,
   $focusTerm,
@@ -21,10 +22,12 @@ import {
   $viewport,
   $workspaceGraph,
   BaseComponent,
+  blockRefFor,
   evaluateLens,
   eventBus,
   layerVisible,
   mountTestApi,
+  narsBackend,
   projectWorkspaceGraph,
   send,
   setWorkspaceFocus,
@@ -36,6 +39,19 @@ import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
 import { theme } from '../utils/theme.js';
 import './graph-minimap.js';
+import './graph-popover.js';
+
+/** The surface-agnostic shape of a cytoscape element, for block resolution. */
+type CyElement = { id(): string; hasClass(name: string): boolean };
+
+/**
+ * The workspace block a graph element stands for: chat nodes already carry their
+ * block ref as their id, engine nodes resolve through the attached backend. One
+ * resolution for the inspector, the graph menu and the node popover, so a node
+ * and its block never drift apart.
+ */
+const blockRefOf = (node: CyElement): string | undefined =>
+  node.hasClass('workspace') ? node.id() : blockRefFor(narsBackend, node.id());
 
 const CHAT_NODE_STYLE = {
   shape: 'round-rectangle',
@@ -53,19 +69,6 @@ export class GraphViewport extends BaseComponent {
     .html-label { position: absolute; pointer-events: auto; overflow: hidden; background: transparent; z-index: 100; }
     .html-label .graph-message { transform-origin: top left; }
 
-    /* Tooltip */
-    .tooltip {
-      position: absolute; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-default);
-      border-radius: var(--borderRadius-component-panel); padding: var(--spacing-scale-2) var(--spacing-scale-3);
-      font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs);
-      color: var(--colors-semantic-text-primary); pointer-events: none; z-index: var(--zIndex-layers-popover);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3); white-space: nowrap; transform: translate(-50%, -100%); margin-top: -8px;
-    }
-    .tooltip-row { display: flex; justify-content: space-between; gap: var(--spacing-scale-4); }
-    .tooltip-label { color: var(--colors-semantic-text-muted); }
-    .tooltip-value { color: var(--colors-semantic-text-primary); font-variant-numeric: tabular-nums; }
-    .tooltip-divider { height: 1px; background: var(--colors-semantic-border-subtle); margin: var(--spacing-scale-1) 0; }
-
     /* Context menu */
     .context-menu {
       position: absolute; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-default);
@@ -82,13 +85,14 @@ export class GraphViewport extends BaseComponent {
   `;
   private cy: Core | null = null;
   private mounted = false;
-  private tooltipTimer: ReturnType<typeof setTimeout> | null = null;
+  private popoverTimer: ReturnType<typeof setTimeout> | null = null;
   private contextTarget: string | null = null;
   private prevNodeCount = 0;
   private focusedRef?: string;
   @state() private htmlLabels = new Map<string, HtmlLabelData>();
-  @state() private tooltip: { x: number; y: number; content: string } | null = null;
-  @state() private contextMenu: { x: number; y: number; nodeId: string } | null = null;
+  @state() private nodePopover: { x: number; y: number; ref: string } | null = null;
+  @state() private contextMenu: { x: number; y: number; nodeId: string; blockRef?: string } | null =
+    null;
   // LOD (Level of Detail) thresholds for performance
   private readonly LOD_LABEL_ZOOM = 0.5;
   private readonly LOD_EDGE_THIN_ZOOM = 0.3;
@@ -255,28 +259,25 @@ export class GraphViewport extends BaseComponent {
       }
       this.contextTarget = node.id();
       const pos = evt.renderedPosition || node.renderedPosition();
-      this.contextMenu = { x: pos.x, y: pos.y, nodeId: node.id() };
+      this.contextMenu = { x: pos.x, y: pos.y, nodeId: node.id(), blockRef: blockRefOf(node) };
       this.requestUpdate();
     });
 
-    // Hover tooltip (500ms delay)
+    // Hover popover (500ms delay): the explain model of the hovered node's block
     this.cy.on('mouseover', 'node', (evt) => {
       const node = evt.target;
-      this.tooltipTimer = setTimeout(() => {
+      const ref = blockRefOf(node);
+      if (!ref) return;
+      this.popoverTimer = setTimeout(() => {
         const pos = node.renderedPosition();
-        const data = node.data();
-        this.tooltip = {
-          x: pos.x,
-          y: pos.y,
-          content: this.buildTooltipContent(data),
-        };
+        this.nodePopover = { x: pos.x, y: pos.y, ref };
         this.requestUpdate();
       }, 500);
     });
 
     this.cy.on('mouseout', 'node', () => {
-      if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
-      this.tooltip = null;
+      if (this.popoverTimer) clearTimeout(this.popoverTimer);
+      this.nodePopover = null;
       this.requestUpdate();
     });
 
@@ -296,10 +297,11 @@ export class GraphViewport extends BaseComponent {
       `
       )}
       ${
-        this.tooltip
-          ? html`
-        <div class="tooltip" style="left:${this.tooltip.x}px;top:${this.tooltip.y}px" .innerHTML=${this.tooltip.content}></div>
-      `
+        this.nodePopover
+          ? html`<graph-popover
+              style="left:${this.nodePopover.x}px;top:${this.nodePopover.y}px"
+              .ref=${this.nodePopover.ref}
+            ></graph-popover>`
           : ''
       }
       ${
@@ -307,6 +309,13 @@ export class GraphViewport extends BaseComponent {
           ? html`
         <div class="context-menu" style="left:${this.contextMenu.x}px;top:${this.contextMenu.y}px">
           <button class="context-item" @click=${this.contextFocus}>Focus Term</button>
+          ${
+            this.contextMenu.blockRef
+              ? html`<button class="context-item" @click=${this.contextOpenBlock}>
+                  Open in Notebook
+                </button>`
+              : ''
+          }
           <button class="context-item" @click=${this.contextPin}>Pin to Selection</button>
           <button class="context-item" @click=${this.contextHide}>Hide</button>
           <div class="context-divider"></div>
@@ -359,16 +368,12 @@ export class GraphViewport extends BaseComponent {
     this.highlightNode(node);
   };
 
-  private buildTooltipContent(data: Record<string, any>): string {
-    const p = (data.priority ?? 0).toFixed(3);
-    const c = (data.confidence ?? 0).toFixed(3);
-    const term = data.term ?? data.label ?? data.id;
-    const degree = this.cy?.getElementById(data.id).degree() ?? 0;
-    return `<div class="tooltip-row"><span class="tooltip-label">${term}</span></div>
-<div class="tooltip-divider"></div>
-<div class="tooltip-row"><span class="tooltip-label">Priority</span><span class="tooltip-value">${p}</span></div>
-<div class="tooltip-row"><span class="tooltip-label">Confidence</span><span class="tooltip-value">${c}</span></div>
-<div class="tooltip-row"><span class="tooltip-label">Degree</span><span class="tooltip-value">${degree}</span></div>`;
+  private contextOpenBlock() {
+    const ref = this.contextMenu?.blockRef;
+    this.closeContextMenu();
+    if (!ref) return;
+    $activeRenderer.set('notebook');
+    setWorkspaceFocus(ref);
   }
 
   private toggleMultiSelect(id: string) {
