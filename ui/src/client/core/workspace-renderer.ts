@@ -47,6 +47,8 @@ export type WorkspaceRendererCaps = {
   readonly parity: 'full' | 'partial';
   /** Optional shell controls this renderer presents (e.g. the graph layer filter). */
   readonly controls?: readonly WorkspaceControl[];
+  /** The surface element/kind this renderer presents (e.g. `s-notebook`, `graph-surface`). */
+  readonly surface?: string;
 };
 
 /** Viewport/scroll/camera plus focus/selection — what a renderer switch preserves. */
@@ -89,10 +91,55 @@ export interface WorkspaceRenderer {
   dispose(): void;
 }
 
+/** §10 parity matrix, as data. One row per registered renderer. */
+export type RendererParity = {
+  /** Declared parity from `capabilities()` — the honest self-report. */
+  readonly parity: 'full' | 'partial';
+  /** Interactions the renderer declares. */
+  readonly interactions: readonly WorkspaceInteraction[];
+  /** Optional shell controls (e.g. the graph layer filter). */
+  readonly controls?: readonly WorkspaceControl[];
+  /** The surface kind the renderer presents (`s-notebook`, `graph-surface`, …). */
+  readonly rendererKind: string;
+  /** Interactions declared but not actually implemented — drill-down notes (§10). */
+  readonly gaps?: readonly string[];
+};
+
 const registry = new Map<string, WorkspaceRenderer>();
+const parity = new Map<string, RendererParity>();
+
+/** A renderer's own capabilities, reduced to a §10 matrix row. */
+const parityRow = (id: string, caps: WorkspaceRendererCaps): RendererParity => ({
+  parity: caps.parity,
+  interactions: caps.interactions,
+  ...(caps.controls ? { controls: caps.controls } : {}),
+  rendererKind: caps.surface ?? id,
+});
 
 export const registerRenderer = (renderer: WorkspaceRenderer): void => {
   registry.set(renderer.id, renderer);
+  parity.set(renderer.id, parityRow(renderer.id, renderer.capabilities()));
+};
+
+/** Enrich/override a renderer's §10 matrix row (gaps, surface kind, …). */
+export const declareParity = (id: string, row: Partial<RendererParity>): void => {
+  const caps = registry.get(id)?.capabilities();
+  const base: RendererParity = caps
+    ? parityRow(id, caps)
+    : { parity: 'full', interactions: [], rendererKind: id };
+  parity.set(id, { ...base, ...row });
+};
+
+/** The §10 parity matrix, as data — registration order. */
+export const rendererParity = (): (RendererParity & { readonly id: string })[] =>
+  [...registry.keys()].map((id) => ({ id, ...parity.get(id)! }));
+
+/** The §10 matrix row for one renderer. */
+export const rendererParityFor = (
+  id: string
+): (RendererParity & { readonly id: string }) | undefined => {
+  const row = parity.get(id);
+  return row ? { id, ...row } : undefined;
 };
 
 /** Every registered renderer, in registration order. */
@@ -113,8 +160,14 @@ export const renderersForKind = (kind: BlockKind): WorkspaceRenderer[] =>
 export const rendererSupports = (
   renderer: WorkspaceRenderer,
   interaction: WorkspaceInteraction
-): boolean => renderer.capabilities().interactions.includes(interaction);
+): boolean =>
+  (parity.get(renderer.id)?.interactions ?? renderer.capabilities().interactions).includes(
+    interaction
+  );
 
 /** Whether a renderer opts into a shell control (the graph layer filter, etc.). */
-export const rendererHasControl = (renderer: WorkspaceRenderer, control: WorkspaceControl): boolean =>
-  renderer.capabilities().controls?.includes(control) ?? false;
+export const rendererHasControl = (
+  renderer: WorkspaceRenderer,
+  control: WorkspaceControl
+): boolean =>
+  (parity.get(renderer.id)?.controls ?? renderer.capabilities().controls ?? []).includes(control);

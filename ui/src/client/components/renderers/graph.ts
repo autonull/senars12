@@ -77,6 +77,7 @@ class GraphRenderer implements WorkspaceRenderer {
       blockKinds: GRAPH_BLOCK_KINDS,
       parity: 'full',
       controls: ['layers'],
+      surface: 'graph-surface',
     };
   }
 

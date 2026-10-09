@@ -328,12 +328,16 @@ export {
 } from './segmentation.js';
 export { initConfigChangeProducer, mountWorkspaceProjection, syncWorkspaceGraph } from './workspace-bindings.js';
 export {
+  declareParity,
   registerRenderer,
   rendererHasControl,
+  rendererParity,
+  rendererParityFor,
   rendererSupports,
   renderersForKind,
   WORKSPACE_CONTROLS,
   WORKSPACE_INTERACTIONS,
+  type RendererParity,
   type RendererSnapshot,
   type WorkspaceContext,
   type WorkspaceControl,
@@ -350,6 +354,7 @@ export {
   getTool,
   allTools,
   executeToolCall,
+  setApprovalHandler,
   promptUserTool,
   registerBuiltinTools,
   callTool,
