@@ -10,7 +10,8 @@ import { eventBus } from '../../core/events.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { setApprovalHandler, type ToolSpec } from '../../core/tool-registry.js';
+import { mountTestApi } from '../../core/store.js';
+import { callTool, setApprovalHandler, type ToolSpec } from '../../core/tool-registry.js';
 
 interface PendingCall {
   id: string;
@@ -59,6 +60,9 @@ export class ToolApprovalView extends SurfaceComponent {
   override connectedCallback(): void {
     super.connectedCallback();
     setApprovalHandler(this.handleApprovalRequired.bind(this));
+    mountTestApi('toolApproval', {
+      request: (args: Record<string, unknown>) => callTool('prompt_user', args),
+    });
   }
 
   override disconnectedCallback(): void {

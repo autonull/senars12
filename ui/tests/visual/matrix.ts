@@ -31,6 +31,18 @@ export type VisualCell = {
 
 const NARROW = { width: 640, height: 900 } as const;
 
+/** Kinds whose block carries a typed artifact, so the artifact viewer has content. */
+const ARTIFACT_KINDS = [
+  'derivation',
+  'table',
+  'code',
+  'math',
+  'chart',
+  'image',
+  'diagram',
+  'tool-result',
+] as const;
+
 /** Open a registered overlay through the shell's own test seam. */
 const openOverlay = (id: string): VisualCell['prepare'] => async ({ page }) => {
   await page.evaluate((overlayId) => {
@@ -40,6 +52,45 @@ const openOverlay = (id: string): VisualCell['prepare'] => async ({ page }) => {
   }, id);
   await page.waitForTimeout(300);
 };
+
+/**
+ * Resolve the first workspace block ref, preferring the given kinds, so overlays
+ * that require a `Ref` (explain/artifact/related/block-menu) render real content.
+ */
+const resolveBlockRef = async (page: Page, prefer: readonly string[] = []): Promise<string> => {
+  const ref = await page.evaluate((kinds) => {
+    const graph = (
+      (window as Record<string, unknown>).__testApi as {
+        store?: {
+          getState?: (path: string) => { blocks?: Map<string, { id: string; kind: string }> };
+        };
+      }
+    )?.store?.getState?.('workspaceGraph');
+    const blocks = graph?.blocks ? [...graph.blocks.values()] : [];
+    const preferred = kinds.length ? blocks.find((block) => kinds.includes(block.kind)) : undefined;
+    return (preferred ?? blocks[0])?.id ?? null;
+  }, [...prefer]);
+  if (!ref) throw new Error('no workspace block to reference');
+  return ref;
+};
+
+/** Open a ref-bearing overlay through the shell test seam, with a real block. */
+const openOverlayWithRef =
+  (id: string, prefer?: readonly string[]): VisualCell['prepare'] =>
+  async ({ page }) => {
+    const ref = await resolveBlockRef(page, prefer);
+    await page.evaluate(
+      ([overlayId, blockRef]) => {
+        (
+          (window as Record<string, unknown>).__testApi as {
+            overlays?: { open?: (id: string, ref?: string) => void };
+          }
+        ).overlays?.open?.(overlayId, blockRef);
+      },
+      [id, ref] as const
+    );
+    await page.waitForTimeout(300);
+  };
 
 /**
  * The curated visual matrix. Cells are data: the spec renders each through the
@@ -164,6 +215,71 @@ export const VISUAL_CELLS: VisualCell[] = [
     hash: '#panels=none',
     prepare: openOverlay('provider'),
   },
+  {
+    id: 'overlay-explain',
+    group: 'Overlays',
+    title: 'Explanation overlay — block with links',
+    surface: 'overlay:explain',
+    scenario: 'basic-derivation',
+    hash: '#panels=none',
+    prepare: openOverlayWithRef('explain', ['derivation', 'claim']),
+  },
+  {
+    id: 'overlay-artifact',
+    group: 'Overlays',
+    title: 'Artifact viewer — typed output',
+    surface: 'overlay:artifact',
+    scenario: 'basic-derivation',
+    hash: '#panels=none',
+    prepare: openOverlayWithRef('artifact', ARTIFACT_KINDS),
+  },
+  {
+    id: 'overlay-related',
+    group: 'Overlays',
+    title: 'Related blocks — neighborhood',
+    surface: 'overlay:related',
+    scenario: 'basic-derivation',
+    hash: '#panels=none',
+    prepare: openOverlayWithRef('related', ['derivation', 'claim']),
+  },
+  {
+    id: 'overlay-block-menu',
+    group: 'Overlays',
+    title: 'Block menu — node actions',
+    surface: 'overlay:block-menu',
+    scenario: 'basic-derivation',
+    hash: '#panels=none',
+    prepare: openOverlayWithRef('block-menu', ['derivation', 'claim']),
+  },
+  {
+    id: 'overlay-tool-approval',
+    group: 'Overlays',
+    title: 'Tool approval — pending prompt',
+    surface: 'overlay:tool-approval',
+    hash: '#panels=none',
+    prepare: async ({ page }) => {
+      await page.evaluate(() => {
+        (
+          (window as Record<string, unknown>).__testApi as {
+            overlays?: { open?: (id: string) => void };
+          }
+        )?.overlays?.open?.('tool-approval');
+      });
+      await page.waitForTimeout(150);
+      await page.evaluate(() => {
+        (
+          (window as Record<string, unknown>).__testApi as {
+            toolApproval?: { request?: (args: Record<string, unknown>) => void };
+          }
+        )?.toolApproval?.request?.({
+          promptType: 'confirm',
+          title: 'Approve deployment',
+          message: 'Deploy the revised belief set to the live knowledge base?',
+        });
+      });
+      await page.waitForTimeout(400);
+    },
+  },
 
   // Panels.
   {
@@ -192,7 +308,8 @@ export const VISUAL_CELLS: VisualCell[] = [
   {
     id: 'selection-node-detail',
     group: 'Selection',
-    title: 'Node detail drawer',
+    title: 'Node detail drawer — inspector follows selection',
+    surface: 'overlay:inspector',
     hash: '#panels=none',
     prepare: async ({ page }) => {
       const id = await page.evaluate(

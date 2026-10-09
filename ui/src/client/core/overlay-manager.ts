@@ -467,6 +467,11 @@ export class OverlayManager {
 
   #applyBounds(overlay: OpenOverlay): void {
     const { x, y, width, height } = overlay.bounds;
+    // A windowed overlay is positioned by these bounds, so it must leave document
+    // flow — without an explicit `fixed` position the inline left/top are ignored
+    // and the window falls below the app shell (only ever visible if focus happens
+    // to scroll it into view).
+    overlay.element.style.position = 'fixed';
     overlay.element.style.left = `${x}px`;
     overlay.element.style.top = `${y}px`;
     overlay.element.style.width = `${width}px`;

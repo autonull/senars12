@@ -19,12 +19,6 @@ import { VISUAL_CELLS } from '../visual/matrix.js';
  */
 const KNOWN_GAPS = new Set([
   'renderer:graph3d',
-  'overlay:artifact',
-  'overlay:block-menu',
-  'overlay:explain',
-  'overlay:inspector',
-  'overlay:related',
-  'overlay:tool-approval',
   'layout:chronological-flow',
   'layout:semantic-map',
   'layout:artifact-map',

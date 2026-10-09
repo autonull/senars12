@@ -167,11 +167,40 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
   **every** overlay, overriding each overlay's centred CSS (settings/palette/telemetry/toc/provider sat
   off-screen; windowed overlays double-offset). Bounds now apply only to overlays that declare
   `window`, and `#applyBounds` clears the CSS centring transform.
-- `[~]` **P1 WP9 visual coverage** — registry-driven `VISUAL_CELLS` with `surface` keys; 17 cells
-  (renderers graph+notebook, 6 overlays, 3 panels, graph states/lenses, node detail), fresh baselines +
-  `ui:gallery` (17 cells, 0 failed); `visual-coverage.test.ts` asserts every registered surface has a
-  cell **or** a `KNOWN_GAPS` entry (with a stale-gap guard); `ui:verify` added. Remaining gaps:
-  `overlay:{artifact,block-menu,explain,inspector,related,tool-approval}` (need a live ref/pending
-  call), all 8 `layout:*`, `view:{graph,series,tree,text,code,diff}`, and `renderer:graph3d`
-  (deferred, O6).
+- `[x]` **P1 WP9 overlay coverage** — registry-driven `VISUAL_CELLS` with `surface` keys; 22 cells
+  (renderers graph+notebook, 6 chrome overlays, ref-bearing overlays
+  explain/artifact/related/block-menu, inspector via the selection cell, tool-approval, 3 panels,
+  graph states/lenses, node detail), fresh baselines + `ui:gallery` (22 cells, 0 failed);
+  `visual-coverage.test.ts` asserts every registered surface has a cell **or** a `KNOWN_GAPS` entry
+  (with a stale-gap guard); `ui:verify` added. **All `overlay:*` gaps are closed.**
+- `[~]` **P1 remaining surfaces** — `layout:{chronological-flow,semantic-map,artifact-map,source-view,
+  reasoning-provenance,gate-pipeline,contradiction-neighborhood,budget-resource}`,
+  `view:{graph,series,tree,text,code,diff}`, `renderer:graph3d` (deferred O6); see "Next up" below.
+- `[x]` **cross-cutting: windowed-overlay positioning** — `OverlayManager.#applyBounds` set
+  `left/top` but never `position`, so windowed overlays (explain/artifact/timeline/inspector) fell
+  into document flow below the shell; they only ever appeared when focus-scroll dragged them into
+  view (autoFocus). Bounds now pin `position: fixed`. Surfaced by the gallery, not by tests.
+- `[x]` **cross-cutting: deterministic visual capture** — the agent self-analyzer kept deriving
+  during a cell, so the same cell drifted run-to-run (graph grew with wall-clock). The visual spec
+  now pauses the engine after `settle()` and before capture; the suite is stable across full runs.
 - `[ ]` P2–P4.
+
+### Next up / notes for the next session
+
+- **Ref-bearing overlay cells** are opened by resolving a real workspace block via
+  `__testApi.store.getState('workspaceGraph').blocks` (see `resolveBlockRef` in `tests/visual/matrix.ts`);
+  artifact prefers an `ARTIFACT_KINDS` block, explain/related prefer a `derivation`/`claim`.
+- **`overlay:inspector`** is satisfied by the `selection-node-detail` cell (selects a graph node →
+  `syncInspector` opens the inspector). Kept as one cell on purpose: the drawer *is* the inspector.
+- **tool-approval** has a test seam: `__testApi.toolApproval.request(args)` calls the real
+  `callTool('prompt_user', …)` path (mounted by the overlay's `connectedCallback`); the overlay must
+  be opened first so its element mounts and registers the approval handler.
+- **Remaining P1 gaps need data, not just cells**: conversation layouts (`chronological-flow`,
+  `semantic-map`, `artifact-map`, `source-view`) need chat turns in the workspace graph — there is no
+  chat-seeding scenario yet; view shapes (`graph/series/tree/text/code/diff`) need a `<s-view>` host
+  cell with a real `ViewSpec` dataset. Reasoning layouts could be added hash-first
+  (`#layout=<id>`) against `basic-derivation`/`conflicting-evidence`.
+- **Improvement opportunities**: (a) expose scenario-level chat seeding so conversation-layout and
+  richer overlay cells become possible; (b) generate `docs/readme/ui-gallery.md` per P1.5 (the gallery
+  today is only `tests/visual/gallery/index.html`); (c) the engine pause could be a per-cell opt-out
+  rather than global once motion captures (O8) land.

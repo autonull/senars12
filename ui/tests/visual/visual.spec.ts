@@ -49,6 +49,9 @@ for (const cell of VISUAL_CELLS) {
 
     const ctx: VisualContext = { page, control: testControl, settle };
     await settle();
+    // Freeze the engine before capture: the self-analyzer keeps deriving while a
+    // test runs, so an unfrozen graph grows between runs and the snapshot drifts.
+    await testControl.pause();
     await cell.prepare?.(ctx);
     await page.waitForTimeout(300);
 
