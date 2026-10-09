@@ -17,7 +17,7 @@ import { isFaithfulDecomposition } from './input-decomposition.js';
 import { NAL_VOCABULARY } from './nars-backend.js';
 import type { ReasoningBackend, BackendNode, BackendVocabulary } from './reasoning-backend.js';
 import { segmentText } from './segmentation.js';
-import { taskTypeForPunctuation } from '@senars/core';
+import { taskTypeForPunctuation } from '@senars/core/schemas';
 import type {
   BlockKind,
   CreatedBy,

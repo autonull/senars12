@@ -1,4 +1,4 @@
-import { IncomingFromServer, type IncomingFromServer as IncomingMessage } from '@senars/core';
+import { IncomingFromServer, type IncomingFromServer as IncomingMessage } from '@senars/core/protocol';
 import { $connectionState, $lastSeqId, atom } from './store.js';
 import { applyServerMessage } from './store-bindings.js';
 

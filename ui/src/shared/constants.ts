@@ -13,4 +13,4 @@ export {
   LENS_FIELDS,
   LENS_LABELS,
   type LensFieldDescriptor,
-} from '@senars/core';
+} from '@senars/core/protocol';

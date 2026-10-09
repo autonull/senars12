@@ -1,4 +1,4 @@
-export type { ConfigFieldType, GraphNodeData, GraphOpType } from '@senars/core';
+export type { ConfigFieldType, GraphNodeData, GraphOpType } from '@senars/core/protocol';
 export {
   AgentCapabilities,
   ChatMessage,
@@ -8,6 +8,6 @@ export {
   IncomingFromClient,
   IncomingFromServer,
   Lens,
-} from '@senars/core';
+} from '@senars/core/protocol';
 export { edgeKey, estimateTokens, extractTerm } from '@senars/util';
 export * from './constants.js';

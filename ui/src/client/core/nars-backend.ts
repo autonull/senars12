@@ -29,7 +29,7 @@ import type {
 } from './reasoning-backend.js';
 import { $graphEdges, $graphNodes } from './store.js';
 import { send } from './ws-client.js';
-import { VERIFIER_TRUTH_TABLE } from '@senars/core';
+import { VERIFIER_TRUTH_TABLE } from '@senars/core/verify-derivation';
 import type { Ref, SemanticLinkKind } from './workspace-graph.js';
 
 /** The uncertainty vocabulary NAL truth values are labelled with. */
