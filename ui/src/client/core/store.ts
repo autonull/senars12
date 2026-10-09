@@ -111,6 +111,18 @@ export function pushServerError(code: string, message: string): void {
   ]);
 }
 
+// --- Cognitive Events ---
+export const $cognitiveEvents = atom<CognitiveEvent[]>([]);
+
+const COGNITIVE_EVENTS_CAP = 500;
+export function pushCognitiveEvents(events: CognitiveEvent[]): void {
+  $cognitiveEvents.set([...$cognitiveEvents.get().slice(-(COGNITIVE_EVENTS_CAP - events.length)), ...events]);
+}
+
+export function clearCognitiveEvents(): void {
+  $cognitiveEvents.set([]);
+}
+
 // --- WebLLM ---
 export const $webllmAvailable = atom<boolean>(false);
 export const $webllmActive = atom<boolean>(false);
@@ -151,6 +163,11 @@ export const $graphShape = atom<Shape>('graph');
 export const $workspaceGraph = atom<WorkspaceGraph>(emptyWorkspaceGraph());
 /** The active `WorkspaceRenderer` id — URL-addressable, palette-switchable, agent-settable. */
 export const $activeRenderer = atom<string>('graph');
+
+/** Switch the active workspace renderer. */
+export function setActiveRenderer(id: string): void {
+  $activeRenderer.set(id);
+}
 
 /** Point the workspace focus at a block (session state; survives re-projection). */
 export function setWorkspaceFocus(ref?: string): void {

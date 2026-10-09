@@ -32,6 +32,9 @@ export interface ToolSpec {
 /** Tools that need approval are handled via the overlay; others execute directly. */
 const registry = new Map<string, ToolSpec>();
 
+/** Access the internal tool registry (for debugging/inspection). */
+export const toolRegistry = registry;
+
 export let onApprovalRequired: ((call: ToolCall, spec: ToolSpec) => Promise<unknown>) | undefined;
 
 /** Register a tool. Call during app init. */

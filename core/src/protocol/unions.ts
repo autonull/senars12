@@ -29,6 +29,7 @@ import {
   ReasoningControlResponse,
 } from './reasoning-control.js';
 import {
+  CognitiveEventsMsg,
   FocusSet,
   LensSet,
   StateSnapshot,
@@ -64,6 +65,7 @@ export const IncomingFromServer = z.discriminatedUnion('type', [
   ChatAgentStream,
   ChatAgentComplete,
   CognitiveDelta,
+  CognitiveEventsMsg,
   ConfigSchemaMsg,
   StateSnapshot,
   TelemetryMsg,

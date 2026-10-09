@@ -1,3 +1,4 @@
+export { generateId, makeId, truncate } from '@senars/util';
 export { Announcer } from './announcer.js';
 export { BaseComponent } from './base-component.js';
 export { BLOCK_KIND_LABEL } from './block-labels.js';
@@ -158,6 +159,7 @@ export {
   $capabilityFilter,
   $chatMessages,
   $collapsedBlocks,
+  $cognitiveEvents,
   $cognitiveMetrics,
   $config,
   $connectionState,
@@ -204,11 +206,14 @@ export {
   hydrateFromUrl,
   mountTestApi,
   type PanelState,
+  pushCognitiveEvents,
+  clearCognitiveEvents,
   type RevisionEntry,
   registerLens,
   removeLens,
   revealBlock,
   setActiveLayout,
+  setActiveRenderer,
   setWorkspaceFocus,
   setWorkspaceSelection,
   setGraphLayer,

@@ -223,6 +223,7 @@ export {
 /** The one cognitive event union, and the two runtime guards over it. @public */
 export type { CognitiveEvent } from './schemas/cognitive-events.js';
 export { isEventType, isNarEvent } from './schemas/cognitive-events.js';
+export { taskTypeForPunctuation } from './schemas/task.js';
 /** Budget/truth value types the UI field catalog is keyed against. @public */
 export type { ConsumedBudget, ReasoningBudget, TruthValue } from './schemas/index.js';
 /** Derivation verification — the trusted boundary's proof checker. @public */

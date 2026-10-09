@@ -56,6 +56,7 @@ export { NodeHistoryMsg, NodeHistoryRequestMsg } from './history.js';
 export { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './lens-msgs.js';
 export { NodeSetMsg, ObjectSetMsg } from './object-patch.js';
 export {
+  CognitiveEventsMsg,
   CognitiveMetrics,
   FocusSet,
   LensSet,

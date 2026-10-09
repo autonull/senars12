@@ -208,6 +208,13 @@ export class OverlayManager {
 /** Global singleton instance — lazy-initialized on first access. */
 let _overlayManager: OverlayManager | undefined;
 
+export const overlayManager = new Proxy({} as OverlayManager, {
+  get(_target, prop, receiver) {
+    if (!_overlayManager) _overlayManager = new OverlayManager(document);
+    return Reflect.get(_overlayManager, prop, receiver);
+  },
+});
+
 export function getOverlayManager(doc?: Document): OverlayManager {
   if (!_overlayManager) _overlayManager = new OverlayManager(doc);
   return _overlayManager;

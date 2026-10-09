@@ -11,16 +11,23 @@
 
 import { narsBackend } from './nars-backend.js';
 import { mettaBackend } from './metta-backend.js';
-import { $chatMessages, $graphEdges, $graphNodes, $workspaceGraph, $config } from './store.js';
+import { $chatMessages, $cognitiveEvents, $graphEdges, $graphNodes, $workspaceGraph, $config } from './store.js';
 import { projectWorkspace } from './workspace-projection.js';
 import { initConfigChangeProducer } from './config-change-producer.js';
 import { registerBuiltinTools, initToolApproval } from './tool-registry.js';
 import type { WorkspaceGraph } from './workspace-graph.js';
 
+/** Re-export initConfigChangeProducer for the core index. */
+export { initConfigChangeProducer } from './config-change-producer.js';
+
 /** Re-project current client state into `$workspaceGraph`, preserving session state. */
 export function syncWorkspaceGraph(): WorkspaceGraph {
   const previous = $workspaceGraph.get();
-  const next = projectWorkspace({ messages: $chatMessages.get(), backends: [narsBackend, mettaBackend] });
+  const next = projectWorkspace({
+    messages: $chatMessages.get(),
+    backends: [narsBackend, mettaBackend],
+    cognitiveEvents: $cognitiveEvents.get(),
+  });
   next.focus = previous.focus;
   next.selection = previous.selection;
   next.timeCursor = previous.timeCursor;
@@ -45,6 +52,7 @@ export function mountWorkspaceProjection(): () => void {
     $chatMessages.subscribe(syncWorkspaceGraph),
     $graphNodes.subscribe(syncWorkspaceGraph),
     $graphEdges.subscribe(syncWorkspaceGraph),
+    $cognitiveEvents.subscribe(syncWorkspaceGraph),
   ];
   syncWorkspaceGraph();
   return () => {

@@ -1,4 +1,4 @@
-import type { ChatMessage, GraphNodeData, GraphOp, IncomingFromServer } from '@senars/core';
+import type { ChatMessage, CognitiveEvent, GraphNodeData, GraphOp, IncomingFromServer } from '@senars/core';
 import { generateId, makeId, truncate } from '@senars/util';
 import type { Core } from 'cytoscape';
 import { edgeKey, extractTerm } from '../../shared/index.js';
@@ -8,6 +8,7 @@ import type { CognitiveMetricsData } from './store.js';
 import {
   $activeLens,
   $chatMessages,
+  $cognitiveEvents,
   $cognitiveMetrics,
   $config,
   $graphEdges,
@@ -19,6 +20,7 @@ import {
   $streamingDelta,
   $telemetry,
   $workingMemory,
+  pushCognitiveEvents,
   pushServerError,
   registerLens,
 } from './store.js';
@@ -169,6 +171,10 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
       if (!dispatchCommand(msg.command, msg.args ?? {})) {
         console.warn('[UI] Unknown ui.command:', msg.command);
       }
+      break;
+
+    case 'cognitive.events':
+      pushCognitiveEvents(msg.events);
       break;
 
     case 'server.error':

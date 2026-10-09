@@ -6,10 +6,10 @@
  */
 
 import { generateId } from '@senars/util';
-import { $config } from './store.js';
+import { $config, $workspaceGraph } from './store.js';
 import { projectWorkspace } from './workspace-projection.js';
 import { narsBackend } from './nars-backend.js';
-import { $workspaceGraph, applyWorkspaceOp } from './workspace-graph.js';
+import { applyWorkspaceOp } from './workspace-graph.js';
 import type { ConfigChangeData, SemanticBlock, WorkspaceOp } from './workspace-graph.js';
 
 let previousConfig: Record<string, unknown> = {};

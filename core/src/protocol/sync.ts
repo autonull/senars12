@@ -1,12 +1,17 @@
 /**
- * Synchronization, viewport, telemetry, focus schemas
+ * Synchronization, viewport, telemetry, focus, cognitive events schemas
  */
 import { z } from 'zod';
 import { ConfigField } from './config.js';
 import { msg } from './envelope.js';
 import { Lens } from './graph-view.js';
+import type { CognitiveEvent } from '../schemas/cognitive-events.js';
 
 export const SyncRequest = msg('sync.request', { lastSeqId: z.number().nullable() });
+
+export const CognitiveEventsMsg = msg('cognitive.events', {
+  events: z.array(z.any()), // CognitiveEventSchema - using z.any() to avoid circular deps
+});
 export const StateSnapshot = msg('state.snapshot', {
   seqId: z.number(),
   data: z.object({

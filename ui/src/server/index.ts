@@ -360,6 +360,7 @@ function createServerWithProjection(agent?: Agent): {
     agent.on('*', (event: CognitiveEvent) => {
       if (event.type === 'derivation.made') derivationsWindow++;
       dispatchGraphEvent(event, reducerCtx);
+      broadcastCognitiveEvent(event);
     });
   }
 
@@ -445,6 +446,15 @@ function createServerWithProjection(agent?: Agent): {
         },
       })
     );
+  }
+
+  function broadcastCognitiveEvent(event: CognitiveEvent): void {
+    const msg = JSON.stringify({ type: 'cognitive.events', events: [event] });
+    for (const client of wss.clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(msg);
+      }
+    }
   }
 
   function sendNodeHistory(ws: WebSocket, term: string): void {

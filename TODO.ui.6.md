@@ -30,7 +30,7 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 | 3 | **`ops sequencing`** — carry engine `seq`/`eventRefs` on `WorkspaceOp` | M | `core/workspace-graph.ts`, `core/workspace-projection.ts` | **Done** — added optional `seq?: number` and `eventRefs?: Ref[]` to all `WorkspaceOp` variants; 3.6 steer/author producer ready |
 | 4 | **`3.2 formalization`** — claim → candidate → gate → belief/goal/question | L | `core/segmentation.ts`, `core/workspace-projection.ts`, `components/input-hud.ts` | **Done** — `input-hud.ts` routes `believe`/`goal` modes through `narsBackend.control.submit()`; claims decomposed via `decomposeForMode` submitted as `belief`/`goal`; chat history preserved |
 | 5 | **`3.7 MeTTa`** — second `ReasoningBackend` adapter | M | `core/metta-backend.ts`, `core/workspace-bindings.ts`, `core/workspace-projection.ts` | **Done** — `metta-backend.ts` implements `ReasoningBackend` with MeTTa vocabulary (`metta:atom`→`claim`, `metta:skill`→`tool-call`); `projectWorkspace` accepts `backends[]` array; both NARS and MeTTa projected; limited control surface (query-oriented) |
-| 6 | **`3.1 projection` (event-stream half)** — `budget.exhausted` → `budget` blocks, `policy.violation`/`egress.gate.rejected`/`shadow.validation.dropped`/`judgment.resolved` → `gate-decision` blocks | M | `core/workspace-projection.ts`, `core/graph-projection.ts` | **Done** — added `projectCognitiveEvents()` in `workspace-projection.ts`; projects budget/policy/egress/shadow/judgment events to `budget`/`gate-decision` blocks; optional `cognitiveEvents` param on `projectWorkspace()` |
+| 6 | **`3.1 projection` (event-stream half)** — `budget.exhausted` → `budget` blocks, `policy.violation`/`egress.gate.rejected`/`shadow.validation.dropped`/`judgment.resolved` → `gate-decision` blocks | M | `core/workspace-projection.ts`, `core/graph-projection.ts` | **Done** — added `projectCognitiveEvents()` in `workspace-projection.ts`; projects budget/policy/egress/shadow/judgment events to `budget`/`gate-decision` blocks; optional `cognitiveEvents` param on `projectWorkspace()`; server→client `cognitive.events` wire protocol; `$cognitiveEvents` atom + `pushCognitiveEvents()` in store; broadcast from server on every engine event |
 | 7 | **`2.3 node ops`** — "Ask as question" / "Assert as claim" → `WorkspaceOp.block.add` | M | `core/workspace-projection.ts`, `components/renderers/graph.ts` | **Done** — added in `node-detail-drawer.ts` Actions tab; creates `question`/`claim` blocks with `sourceRefs` to engine node; `revealBlock` opens in Notebook |
 | 8 | **`4.3 affordances` (edge half)** — edge popover Open-in-Notebook / Open View | M | `components/overlays/inspector.ts`, `components/node-detail-drawer.ts`, `core/workspace-projection.ts` | **Done** — `linkRefFor` already implemented; added edge actions in `node-detail-drawer.ts` renderEdge() for Open in Notebook / Open View via `linkRefFor(narsBackend, edgeId)` |
 | 9 | **`1.4 rich text`** — inline full tables, view-barrel ownership | S | `core/inline-text.ts`, `components/renderers/notebook.ts` | **Done** — inline tokenizer (code, links, bold, emphasis, citations); tables rendered via `artifactViewSpec` → view barrel (table-view); view barrel registered in `components/views/index.ts` and imported in `entry.ts` |
@@ -83,7 +83,7 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 | Item | Status | Notes |
 |------|--------|-------|
 | `3.1 projection` (graph) | `[x]` | NAR vocab from `VERIFIER_TRUTH_TABLE`; punctuation → block kinds |
-| `3.1 projection` (events) | `[~]` | Budget/gate blocks from cognitive event log |
+| `3.1 projection` (events) | `[x]` | Budget/gate blocks from cognitive event log; server→client `cognitive.events` wire; `$cognitiveEvents` atom |
 | `3.2 formalization` | `[ ]` | Claim → candidate → gate admission |
 | `3.3 provenance` | `[~]` | `derivation-record` + `s-tree`; needs evidence lineage (engine derivation recorder) |
 | `3.4 layouts` | `[x]` | `reasoning-provenance`, `gate-pipeline`, `contradiction-neighborhood`, `budget-resource` |
@@ -133,6 +133,7 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 - ✅ **Section model** — landed (`core/sections.ts`)
 - ✅ **Node→workspace-block mapping** (node half) — landed (`blockRefFor` in `workspace-projection.ts`)
 - ✅ **`config-change` producer** — landed (`core/config-change-producer.ts`)
+- ✅ **Cognitive events wire** — server→client `cognitive.events` protocol + `$cognitiveEvents` atom + projection integration
 
 ---
 
@@ -169,6 +170,7 @@ Overlays, Views, Inline text, Block payloads, Block bodies, Reaching a block, Em
 - **WP1 `0.5 tool approval + prompt_user tool`** — `tool-approval.ts` modal overlay with dynamic form rendering for `prompt_user` tool (question/confirm/form/select); `tool-registry.ts` with approval callback + `executeToolCall()`; `promptUserTool` spec with JSON Schema; auto-initialized in `workspace-bindings.ts`
 - **WP2 `2.6 context`** — `WorkspaceContext` in `workspace-renderer.ts` gains `renderer` (getter), `setRenderer()`, `overlays()`, `hasOverlays()`; `WORKSPACE_CONTEXT` in `workspace-host.ts` binds to `$activeRenderer` and `overlayManager`; renderers can now query/switch renderer and inspect overlay stack
 - **WP3 `4.5 overlay-header`** — shared `overlay-header` component in `components/overlays/overlay-header.ts` with drag-handle, resize grip, pin, close; 9 overlays migrated (inspector, timeline, explain, artifact, settings, toc, telemetry, related, provider, tool-approval); `overlayManager` singleton via `getOverlayManager()`/`resetOverlayManager()`
+- **WP5 `3.1 projection` (events full)** — server→client `cognitive.events` wire protocol (`sync.ts`, `unions.ts`); `$cognitiveEvents` atom + `pushCognitiveEvents()`/`clearCognitiveEvents()` in `store.ts`; handler in `store-bindings.ts`; `projectWorkspace` accepts `cognitiveEvents` array; `workspace-bindings.ts` subscribes to cognitive events for re-projection; broadcast from server on every agent event via `broadcastCognitiveEvent()` in `server/index.ts`; all 422 UI tests pass
 
 ## Planned — Overlay system evolution
 
