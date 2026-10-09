@@ -29,11 +29,16 @@ export class TelemetryView extends SurfaceComponent {
   protected override renderBody() {
     return html`
       <div class="panel" role="dialog" aria-label="Telemetry">
-        <header>
-          <span class="title">Telemetry</span>
-          <button class="pin-btn" aria-label="Pin telemetry" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
-          <button class="close" title="Close" aria-label="Close telemetry" @click=${this.close}>&times;</button>
-        </header>
+        <overlay-header
+          overlay-id="telemetry"
+          title="Telemetry"
+          .draggable=${true}
+          .resizable=${true}
+          .pinnable=${true}
+          .closeable=${true}
+          @header-close=${this.close}
+          @header-pin=${this.onPinChange}
+        ></overlay-header>
         <telemetry-panel></telemetry-panel>
       </div>
     `;
@@ -41,9 +46,8 @@ export class TelemetryView extends SurfaceComponent {
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'telemetry' });
 
-  private readonly togglePin = () => {
-    const pinned = this.hasAttribute('data-pinned');
-    overlayManager.setPinned('telemetry', !pinned);
+  private onPinChange = (event: CustomEvent<{ id: string; pinned: boolean }>): void => {
+    this.toggleAttribute('data-pinned', event.detail.pinned);
   };
 }
 

@@ -60,12 +60,19 @@ export class ProviderView extends SurfaceComponent {
     const { id, model, available, providers, pending, stale } = $lmProvider.get();
     return html`
       <div class="panel" role="dialog" aria-label="Provider">
-        <header>
-          <span class="title">Provider</span>
+        <overlay-header
+          overlay-id="provider"
+          title="Provider"
+          .draggable=${true}
+          .resizable=${true}
+          .pinnable=${true}
+          .closeable=${true}
+          @header-close=${this.close}
+          @header-pin=${this.onPinChange}
+        ></overlay-header>
+        <div style="display:flex;align-items:center;gap:var(--spacing-scale-2);padding:var(--spacing-scale-2) var(--spacing-scale-3);border-bottom:1px solid var(--colors-semantic-border-subtle);">
           <button class="action" @click=${() => refreshLmStatus()}>Refresh</button>
-          <button class="pin-btn" aria-label="Pin provider" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
-          <button class="close" title="Close" aria-label="Close provider" @click=${this.close}>&times;</button>
-        </header>
+        </div>
         <div class="active">
           <span class="dot ${available ? 'ok' : 'down'}"></span>
           <span class="name">${providerLabel(id)}</span>

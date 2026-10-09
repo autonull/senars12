@@ -74,24 +74,29 @@ export class RelatedView extends SurfaceComponent {
     }
     return html`
       <div class="panel" role="dialog" aria-label="Related blocks">
-        <header>
-          <span class="kind">${BLOCK_KIND_LABEL[model.block.kind]}</span>
-          <span class="title">${model.block.title ?? model.block.id}</span>
-          <span class="depth" role="group" aria-label="Traversal depth">
-            <span>hops</span>
-            ${DEPTHS.map(
-              (hops) => html`<button
-                data-depth=${hops}
-                aria-pressed=${depth === hops}
-                @click=${() => setNeighborhoodDepth(hops)}
-              >
-                ${hops}
-              </button>`
-            )}
-          </span>
-          <button class="pin-btn" aria-label="Pin related" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
-          <button class="close" title="Close" aria-label="Close related" @click=${this.close}>&times;</button>
-        </header>
+        <overlay-header
+          overlay-id="related"
+          .kind=${BLOCK_KIND_LABEL[model.block.kind]}
+          .title=${model.block.title ?? model.block.id}
+          .draggable=${true}
+          .resizable=${true}
+          .pinnable=${true}
+          .closeable=${true}
+          @header-close=${this.close}
+          @header-pin=${this.onPinChange}
+        ></overlay-header>
+        <div class="depth" role="group" aria-label="Traversal depth" style="display:flex;align-items:center;gap:var(--spacing-scale-1);padding:var(--spacing-scale-2) var(--spacing-scale-3);border-bottom:1px solid var(--colors-semantic-border-subtle);">
+          <span style="font-size:var(--typography-scale-xs);text-transform:uppercase;letter-spacing:0.06em;color:var(--colors-semantic-text-muted);">hops</span>
+          ${DEPTHS.map(
+            (hops) => html`<button
+              data-depth=${hops}
+              aria-pressed=${depth === hops}
+              @click=${() => setNeighborhoodDepth(hops)}
+            >
+              ${hops}
+            </button>`
+          )}
+        </div>
         <div class="body">
           ${
             model.neighbors.length === 0
@@ -113,16 +118,10 @@ export class RelatedView extends SurfaceComponent {
     `;
   }
 
-  private go(ref: string): void {
-    setWorkspaceFocus(ref);
-    eventBus.emit('overlay:close', { id: 'related' });
-  }
-
   private readonly close = () => eventBus.emit('overlay:close', { id: 'related' });
 
-  private readonly togglePin = () => {
-    const pinned = this.hasAttribute('data-pinned');
-    overlayManager.setPinned('related', !pinned);
+  private onPinChange = (event: CustomEvent<{ id: string; pinned: boolean }>): void => {
+    this.toggleAttribute('data-pinned', event.detail.pinned);
   };
 }
 

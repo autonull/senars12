@@ -53,15 +53,22 @@ export class ArtifactView extends SurfaceComponent {
     const { image, spec } = this.resolve(block);
     return html`
       <div class="panel" role="dialog" aria-label="Artifact">
-        <header>
-          <span class="kind">${block.kind}</span>
-          <span class="title">${block.title ?? block.id}</span>
-          <button class="action" data-action="copy" title="Copy" aria-label="Copy artifact" @click=${this.copy}>Copy</button>
-          <button class="action" data-action="graph" title="Open in graph" aria-label="Open in graph" @click=${this.openInGraph}>Graph</button>
-          <button class="pin-btn" aria-label="Pin artifact" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
-          <button class="close" title="Close" aria-label="Close artifact" @click=${this.close}>&times;</button>
-        </header>
+        <overlay-header
+          overlay-id="artifact"
+          .kind=${block.kind}
+          .title=${block.title ?? block.id}
+          .draggable=${true}
+          .resizable=${true}
+          .pinnable=${true}
+          .closeable=${true}
+          @header-close=${this.close}
+          @header-pin=${this.onPinChange}
+        ></overlay-header>
         <div class="body">
+          <div class="artifact-actions" style="display:flex;gap:var(--spacing-scale-2);margin-bottom:var(--spacing-scale-2);padding-bottom:var(--spacing-scale-2);border-bottom:1px solid var(--colors-semantic-border-subtle);">
+            <button class="action" data-action="copy" title="Copy" aria-label="Copy artifact" @click=${this.copy}>Copy</button>
+            <button class="action" data-action="graph" title="Open in graph" aria-label="Open in graph" @click=${this.openInGraph}>Graph</button>
+          </div>
           ${
             image
               ? html`<img class="image" src=${image.src} alt=${image.alt} />`
@@ -102,9 +109,8 @@ export class ArtifactView extends SurfaceComponent {
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'artifact' });
 
-  private readonly togglePin = () => {
-    const pinned = this.hasAttribute('data-pinned');
-    overlayManager.setPinned('artifact', !pinned);
+  private onPinChange = (event: CustomEvent<{ id: string; pinned: boolean }>): void => {
+    this.toggleAttribute('data-pinned', event.detail.pinned);
   };
 }
 

@@ -80,28 +80,33 @@ export class TocView extends SurfaceComponent {
     };
     return html`
       <div class="panel" role="dialog" aria-label="Table of contents">
-        <header>
-          <div class="bar">
-            <span class="title">Contents</span>
-            ${
-              folded.size > 0
-                ? html`<button
-                    class="folds"
-                    title="Fold/unfold all sections"
-                    @click=${() => dispatchCommand('view.fold-all')}
-                  >${folded.size} folded</button>`
-                : ''
-            }
-            <button class="pin-btn" aria-label="Pin contents" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
-            <button class="close" title="Close" aria-label="Close contents" @click=${this.close}>&times;</button>
-          </div>
-          <label class="sr-only" for="toc-search">Search contents</label>
-          <input id="toc-search" type="search" placeholder="Search contents…" .value=${this.query} @input=${this.onQuery} />
-          <div class="filters" role="group" aria-label="Filter by kind">
-            ${this.chip('all', 'All')}
-            ${present.map((kind) => this.chip(kind, BLOCK_KIND_LABEL[kind]))}
-          </div>
-        </header>
+        <overlay-header
+          overlay-id="toc"
+          title="Contents"
+          .draggable=${true}
+          .resizable=${true}
+          .pinnable=${true}
+          .closeable=${true}
+          @header-close=${this.close}
+          @header-pin=${this.onPinChange}
+        ></overlay-header>
+        <div class="bar" style="display:flex;align-items:center;gap:var(--spacing-scale-2);padding:var(--spacing-scale-2) var(--spacing-scale-3);border-bottom:1px solid var(--colors-semantic-border-subtle);">
+          ${
+            folded.size > 0
+              ? html`<button
+                  class="folds"
+                  title="Fold/unfold all sections"
+                  @click=${() => dispatchCommand('view.fold-all')}
+                >${folded.size} folded</button>`
+              : ''
+          }
+        </div>
+        <label class="sr-only" for="toc-search">Search contents</label>
+        <input id="toc-search" type="search" placeholder="Search contents…" .value=${this.query} @input=${this.onQuery} />
+        <div class="filters" role="group" aria-label="Filter by kind">
+          ${this.chip('all', 'All')}
+          ${present.map((kind) => this.chip(kind, BLOCK_KIND_LABEL[kind]))}
+        </div>
         ${
           shown.length > 0
             ? html`<ul>${shown.map((entry) => this.row(entry, graph.focus === entry.ref, hasArtifact(entry.ref)))}</ul>`
@@ -110,6 +115,10 @@ export class TocView extends SurfaceComponent {
       </div>
     `;
   }
+
+  private onPinChange = (event: CustomEvent<{ id: string; pinned: boolean }>): void => {
+    this.toggleAttribute('data-pinned', event.detail.pinned);
+  };
 
   private chip(kind: Filter, label: string) {
     return html`<button
@@ -182,11 +191,6 @@ export class TocView extends SurfaceComponent {
   }
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'toc' });
-
-  private readonly togglePin = () => {
-    const pinned = this.hasAttribute('data-pinned');
-    overlayManager.setPinned('toc', !pinned);
-  };
 }
 
 const TOC_SURFACE = { id: 'toc', title: 'Table of contents', group: 'overlay' } as const;

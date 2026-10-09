@@ -79,7 +79,8 @@ describe('inspector overlay', () => {
 
     const closed: string[] = [];
     const unsubscribe = eventBus.on('overlay:close', ({ id }) => id && closed.push(id));
-    query<HTMLButtonElement>(el.shadowRoot, '.close').click();
+    const header = query(el.shadowRoot, 'overlay-header');
+    query<HTMLButtonElement>(header.shadowRoot, '.close').click();
     unsubscribe();
 
     expect($selectedNodeId.get()).toBeNull();

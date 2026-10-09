@@ -29,20 +29,25 @@ export class SettingsView extends SurfaceComponent {
 protected override renderBody() {
     return html`
       <div class="panel" role="dialog" aria-label="Settings">
-        <header style="display:flex;align-items:center;gap:var(--spacing-scale-2);padding:var(--spacing-scale-2) var(--spacing-scale-3);border-bottom:1px solid var(--colors-semantic-border-subtle);">
-          <span class="title" style="flex:1;font-family:var(--typography-fontFamilies-ui);font-size:var(--typography-scale-sm);font-weight:var(--typography-fontWeights-semibold);color:var(--colors-semantic-text-primary);">Configuration</span>
-          <button class="pin-btn" aria-label="Pin settings" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
-          <button class="close" style="border:none;background:transparent;color:var(--colors-semantic-text-muted);cursor:pointer;font-size:var(--typography-scale-base);" title="Close" aria-label="Close settings" @click=${this.close}>&times;</button>
-        </header>
+        <overlay-header
+          overlay-id="settings"
+          kind="Settings"
+          title="Configuration"
+          .draggable=${true}
+          .resizable=${true}
+          .pinnable=${true}
+          .closeable=${true}
+          @header-close=${this.close}
+          @header-pin=${this.onPinChange}
+        ></overlay-header>
         <config-hud @s-close=${this.close}></config-hud>
       </div>`;
   }
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'settings' });
 
-  private readonly togglePin = () => {
-    const pinned = this.hasAttribute('data-pinned');
-    overlayManager.setPinned('settings', !pinned);
+  private onPinChange = (event: CustomEvent<{ id: string; pinned: boolean }>): void => {
+    this.toggleAttribute('data-pinned', event.detail.pinned);
   };
 }
 

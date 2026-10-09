@@ -204,3 +204,17 @@ export class OverlayManager {
     this.close(top.id);
   }
 }
+
+/** Global singleton instance — lazy-initialized on first access. */
+let _overlayManager: OverlayManager | undefined;
+
+export function getOverlayManager(doc?: Document): OverlayManager {
+  if (!_overlayManager) _overlayManager = new OverlayManager(doc);
+  return _overlayManager;
+}
+
+/** Reset the singleton (for testing). */
+export function resetOverlayManager(): void {
+  _overlayManager?.dispose();
+  _overlayManager = undefined;
+}

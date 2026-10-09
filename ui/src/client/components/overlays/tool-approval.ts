@@ -116,40 +116,50 @@ export class ToolApprovalView extends SurfaceComponent {
       message?: string;
       schema?: Record<string, unknown>;
       required?: boolean;
+      choices?: Array<{ value: string; label: string }>;
     };
 
+    const promptContent = this.renderPromptContent(formArgs, props, args);
     return html`
       <div class="tool-info">
         <span class="tool-name">${formArgs.title ?? 'Prompt'}</span>
         <span class="tool-desc">${formArgs.message}</span>
       </div>
       <div class="args">
-        ${formArgs.promptType === 'confirm'
-          ? html`<p class="arg-value">Confirm?</p>`
-          : formArgs.promptType === 'question'
-            ? html`
-              <div class="form-field">
-                <label>Answer</label>
-                <input type="text" .value=${String(args.answer ?? '')} @input=${(e: Event) => this.updateFormArg('answer', (e.target as HTMLInputElement).value)} />
-              </div>
-            `
-            : formArgs.promptType === 'select'
-              ? html`
-                <div class="form-field">
-                  <label>Choose</label>
-                  <select .value=${String(args.choice ?? '')} @change=${(e: Event) => this.updateFormArg('choice', (e.target as HTMLSelectElement).value)}>
-                    <option value="">Select…</option>
-                    ${(props.choices as Array<{ value: string; label: string }> ?? []).map((c) => html`
-                      <option value=${c.value}>${c.label}</option>
-                    `)}
-                  </select>
-                </div>
-              `
-              : formArgs.promptType === 'form' && args.schema
-                ? this.renderFormFields(args.schema as Record<string, unknown>, args)
-                : html`<pre class="arg-value">${JSON.stringify(args, null, 2)}</pre>`
+        ${promptContent}
       </div>
     `;
+  }
+
+  private renderPromptContent(formArgs: { promptType?: string; choices?: Array<{ value: string; label: string }> }, props: Record<string, unknown>, args: Record<string, unknown>): TemplateResult {
+    switch (formArgs.promptType) {
+      case 'confirm':
+        return html`<p class="arg-value">Confirm?</p>`;
+      case 'question':
+        return html`
+          <div class="form-field">
+            <label>Answer</label>
+            <input type="text" .value=${String(args.answer ?? '')} @input=${(e: Event) => this.updateFormArg('answer', (e.target as HTMLInputElement).value)} />
+          </div>
+        `;
+      case 'select':
+        return html`
+          <div class="form-field">
+            <label>Choose</label>
+            <select .value=${String(args.choice ?? '')} @change=${(e: Event) => this.updateFormArg('choice', (e.target as HTMLSelectElement).value)}>
+              <option value="">Select…</option>
+              ${(formArgs.choices ?? []).map((c) => html`<option value=${c.value}>${c.label}</option>`)}
+            </select>
+          </div>
+        `;
+      case 'form':
+        if (args.schema) {
+          return this.renderFormFields(args.schema as Record<string, unknown>, args);
+        }
+        return html`<pre class="arg-value">${JSON.stringify(args, null, 2)}</pre>`;
+      default:
+        return html`<pre class="arg-value">${JSON.stringify(args, null, 2)}</pre>`;
+    }
   }
 
   private renderFormFields(schema: Record<string, unknown>, currentValues: Record<string, unknown>): TemplateResult {
@@ -217,11 +227,17 @@ export class ToolApprovalView extends SurfaceComponent {
 
     return html`
       <div class="panel" role="dialog" aria-modal="true" aria-label="Tool approval">
-        <header>
-          <span class="icon">${this.current.name === 'prompt_user' ? '❓' : '🔧'}</span>
-          <span class="title">${this.current.spec.title ?? this.current.name}</span>
-          <button class="close" title="Cancel" aria-label="Cancel" @click=${this.onReject}>&times;</button>
-        </header>
+        <overlay-header
+          overlay-id="tool-approval"
+          .kind=${this.current.name === 'prompt_user' ? '❓' : '🔧'}
+          .title=${this.current.spec.title ?? this.current.name}
+          .draggable=${true}
+          .resizable=${true}
+          .pinnable=${false}
+          .closeable=${true}
+          @header-close=${this.onReject}
+          @header-pin=${this.onPinChange}
+        ></overlay-header>
         <div class="body">
           ${this.renderArgs(this.current.args, this.current.spec)}
           <div class="actions">
@@ -232,6 +248,10 @@ export class ToolApprovalView extends SurfaceComponent {
       </div>
     `;
   }
+
+  private onPinChange = (event: CustomEvent<{ id: string; pinned: boolean }>): void => {
+    this.toggleAttribute('data-pinned', event.detail.pinned);
+  };
 
   private onApprove = (): void => {
     if (!this.current) return;

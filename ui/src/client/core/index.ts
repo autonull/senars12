@@ -134,7 +134,7 @@ export {
   isFaithfulDecomposition,
 } from './input-decomposition.js';
 export { type InlineToken, tokenizeInline } from './inline-text.js';
-export { type OverlayEntry, OverlayManager } from './overlay-manager.js';
+export { type OverlayEntry, OverlayManager, getOverlayManager, resetOverlayManager } from './overlay-manager.js';
 export { OverlayHost, type OpenOverlayOptions } from './overlay-host.js';
 export {
   overlayDescriptor,
@@ -350,3 +350,4 @@ export {
   callTool,
   initToolApproval,
 } from './tool-registry.js';
+export { OverlayHeader } from '../components/overlays/overlay-header.js';

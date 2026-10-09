@@ -14,6 +14,7 @@ import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
 import '../timeline-scrubber.js';
+import '../overlays/overlay-header.js';
 
 @customElement('s-timeline')
 export class TimelineView extends SurfaceComponent {
@@ -30,19 +31,24 @@ export class TimelineView extends SurfaceComponent {
   protected override renderBody() {
     return html`
       <div class="panel" role="dialog" aria-label="Timeline">
-        <header>
-          <span class="title">Timeline</span>
-          <button class="pin-btn" aria-label="Pin timeline" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
-          <button class="close" title="Close" aria-label="Close timeline" @click=${this.close}>&times;</button>
-        </header>
+        <overlay-header
+          overlay-id="timeline"
+          kind="Timeline"
+          title="Timeline"
+          .draggable=${true}
+          .resizable=${true}
+          .pinnable=${true}
+          .closeable=${true}
+          @header-close=${this.close}
+          @header-pin=${this.onPinChange}
+        ></overlay-header>
         <timeline-scrubber></timeline-scrubber>
       </div>
     `;
   }
 
-  private readonly togglePin = () => {
-    const pinned = this.hasAttribute('data-pinned');
-    overlayManager.setPinned('timeline', !pinned);
+  private onPinChange = (event: CustomEvent<{ id: string; pinned: boolean }>): void => {
+    this.toggleAttribute('data-pinned', event.detail.pinned);
   };
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'timeline' });

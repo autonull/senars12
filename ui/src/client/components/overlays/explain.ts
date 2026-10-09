@@ -107,12 +107,18 @@ export class ExplainView extends SurfaceComponent {
     const { kind, title } = this.heading(subject);
     return html`
       <div class="panel" role="dialog" aria-modal="true" aria-label="Explanation">
-        <header>
-          <span class="kind">${kind}</span>
-          <span class="title">${title}</span>
-          <button class="pin-btn" aria-label="Pin explanation" aria-pressed=${this.hasAttribute('data-pinned')} @click=${this.togglePin}>📌</button>
-          <button class="close" title="Close" aria-label="Close explanation" @click=${this.close}>&times;</button>
-        </header>
+        <overlay-header
+          overlay-id="explain"
+          .kind=${kind}
+          .title=${title}
+          .draggable=${true}
+          .resizable=${true}
+          .pinnable=${true}
+          .closeable=${true}
+          @header-close=${this.close}
+          @header-pin=${this.onPinChange}
+        ></overlay-header>
+        <span class="kind" style="display:none">${kind}</span>
         <div class="levels" role="group" aria-label="Disclosure level">
           ${LEVELS.map(
             (level) => html`<button
@@ -238,9 +244,8 @@ export class ExplainView extends SurfaceComponent {
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'explain' });
 
-  private readonly togglePin = () => {
-    const pinned = this.hasAttribute('data-pinned');
-    overlayManager.setPinned('explain', !pinned);
+  private onPinChange = (event: CustomEvent<{ id: string; pinned: boolean }>): void => {
+    this.toggleAttribute('data-pinned', event.detail.pinned);
   };
 }
 
