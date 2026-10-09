@@ -144,4 +144,56 @@ describe('overlay manager', () => {
     manager.close();
     expect(manager.hasModal()).toBe(false);
   });
+
+  describe('modal scrim', () => {
+    const scrim = () => document.querySelector<HTMLElement>('.overlay-scrim');
+
+    it('paints beneath a modal, above everything it covers', () => {
+      const manager = makeManager();
+      const below = makeOverlay();
+      const modal = makeOverlay();
+      manager.open({ id: 'popover', element: below });
+      manager.open({ id: 'settings', element: modal, modal: true });
+
+      expect(scrim()).toBeTruthy();
+      const scrimZ = Number(scrim()!.style.zIndex);
+      expect(scrimZ).toBeGreaterThan(Number(below.style.zIndex));
+      expect(scrimZ).toBeLessThan(Number(modal.style.zIndex));
+    });
+
+    it('captures pointer input so the workspace behind cannot be driven', () => {
+      const manager = makeManager();
+      const background = vi.fn();
+      const behind = document.createElement('button');
+      behind.addEventListener('mousedown', background);
+      document.body.appendChild(behind);
+      manager.open({ id: 'settings', element: makeOverlay(), modal: true });
+
+      scrim()!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      expect(background).not.toHaveBeenCalled();
+      // a modal is not dismissed by its backdrop
+      expect(manager.isOpen('settings')).toBe(true);
+    });
+
+    it('leaves non-modal overlays without one, and takes it away with the modal', () => {
+      const manager = makeManager();
+      manager.open({ id: 'toc', element: makeOverlay() });
+      expect(scrim()).toBeFalsy();
+
+      manager.open({ id: 'settings', element: makeOverlay(), modal: true });
+      expect(scrim()).toBeTruthy();
+      manager.close('settings');
+      expect(scrim()).toBeFalsy();
+    });
+
+    it('keeps the scrim while any modal is open, and disposes it', () => {
+      const manager = makeManager();
+      manager.open({ id: 'settings', element: makeOverlay(), modal: true });
+      manager.open({ id: 'approval', element: makeOverlay(), modal: true });
+      manager.close('approval');
+      expect(scrim()).toBeTruthy();
+      manager.dispose();
+      expect(scrim()).toBeFalsy();
+    });
+  });
 });

@@ -1,4 +1,18 @@
 @layer primitives {
   /* Shared primitive component base styles */
   /* Feature components that use primitives should import their own styles */
+
+  /*
+   * The modal scrim the overlay manager paints beneath the lowest open modal. It
+   * captures pointer input so the workspace behind a dialog cannot be driven, and
+   * deliberately does nothing itself: a modal closes through its own controls or
+   * `Esc`. `z-index` is assigned inline by the manager, between the layers below
+   * and the modal.
+   */
+  .overlay-scrim {
+    position: fixed;
+    inset: 0;
+    pointer-events: auto;
+    background: var(--colors-semantic-bg-scrim);
+  }
 }

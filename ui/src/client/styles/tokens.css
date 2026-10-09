@@ -6,6 +6,7 @@
   --colors-primitive-panel: #0d0d0d;
   --colors-primitive-panel-solid: #0a0a0a;
   --colors-primitive-panel-hover: #141414;
+  --colors-primitive-scrim: rgba(0, 0, 0, 0.6);
   --colors-primitive-border-dim: #1a1a1a;
   --colors-primitive-border-default: #2a2a2a;
   --colors-primitive-border-bright: #3a3a3a;
@@ -29,6 +30,7 @@
   --colors-semantic-bg-panel: #0d0d0d;
   --colors-semantic-bg-panel-solid: #0a0a0a;
   --colors-semantic-bg-panel-hover: #141414;
+  --colors-semantic-bg-scrim: rgba(0, 0, 0, 0.6);
   --colors-semantic-bg-elevated: #0a0a0a;
   --colors-semantic-border-subtle: #1a1a1a;
   --colors-semantic-border-default: #2a2a2a;
@@ -151,6 +153,7 @@
   --colors-primitive-panel: #f7f7f7;
   --colors-primitive-panel-solid: #ffffff;
   --colors-primitive-panel-hover: #efefef;
+  --colors-primitive-scrim: rgba(0, 0, 0, 0.35);
   --colors-primitive-border-dim: #e0e0e0;
   --colors-primitive-border-default: #c4c4c4;
   --colors-primitive-border-bright: #a8a8a8;
@@ -174,6 +177,7 @@
   --colors-semantic-bg-panel: #f7f7f7;
   --colors-semantic-bg-panel-solid: #ffffff;
   --colors-semantic-bg-panel-hover: #efefef;
+  --colors-semantic-bg-scrim: rgba(0, 0, 0, 0.35);
   --colors-semantic-bg-elevated: #f5f5f5;
   --colors-semantic-border-subtle: #e0e0e0;
   --colors-semantic-border-default: #c4c4c4;
@@ -296,6 +300,7 @@
   --colors-primitive-panel: #0d0d0d;
   --colors-primitive-panel-solid: #0a0a0a;
   --colors-primitive-panel-hover: #141414;
+  --colors-primitive-scrim: rgba(0, 0, 0, 0.6);
   --colors-primitive-border-dim: #444444;
   --colors-primitive-border-default: #6a6a6a;
   --colors-primitive-border-bright: #8a8a8a;
@@ -319,6 +324,7 @@
   --colors-semantic-bg-panel: #0d0d0d;
   --colors-semantic-bg-panel-solid: #0a0a0a;
   --colors-semantic-bg-panel-hover: #141414;
+  --colors-semantic-bg-scrim: rgba(0, 0, 0, 0.6);
   --colors-semantic-bg-elevated: #0a0a0a;
   --colors-semantic-border-subtle: #444444;
   --colors-semantic-border-default: #6a6a6a;

@@ -64,9 +64,14 @@ containment, fold-aware `j`/`k`, `view.fold-all`), the `4.3 typing` payload cont
 
 Cross-cutting constraints that gate multiple items — each is a work order: first step + done-when.
 
-- **Modal scrim** — blocks **`0.5`**. *First step:* paint a scrim element in
+- **Modal scrim** — ~~blocks **`0.5`**~~ — **landed.** *First step:* paint a scrim element in
   `core/overlay-manager.ts` and set `pointer-events` capture so background clicks are swallowed.
   *Done when:* a `modal` overlay traps focus and blocks interaction behind it, with a manager test.
+  The manager owns one scrim, painted beneath the lowest open modal and removed when none is left
+  (`.overlay-scrim` in `styles/primitives.css`, `colors.primitive/semantic.bg-scrim` tokens); it
+  swallows pointer input and deliberately does nothing else, since a modal closes through its own
+  controls or `Esc`. **Settings** is a real modal, so this is visible immediately; the `0.5`
+  tool-approval dialog can now be built — but see the note there about its missing producer.
 - **`LmProvider` façade** — the `0.6` contract; blocks WP1 sweep + **WP5**. *First step:* define the
   backend/provider interface and adapt the real `lm.status`/`lm.switch`. *Done when:* provider
   switching, the Provider/Config split, and `config-hud` `embedded` are wired against the façade.
@@ -172,8 +177,13 @@ Landed extension points — wire features here instead of re-deriving them.
 
 *Outcome: no standing panels; overlay primitives complete; backend seam landed. No deps.*
 
-- [ ] **0.5 tool approval** — build the tool-approval dialog overlay; needs the **modal scrim**
-  blocker. `→ overlays/tool-approval.ts` (new), `core/overlay-manager.ts`. `(b)`,`(aa)`
+- [~] **0.5 tool approval** — the modal-scrim blocker is **cleared** (see §Blockers), so the dialog
+  itself is unblocked. It still has no input: nothing produces a *pending* tool call — the wire
+  (`IncomingFromServer`) carries no tool-approval message, and a `tool-call` block is a finished
+  record, not a request — so a dialog today would be the silent no-op this plan refuses. Next step is
+  the producer half (a `tool.approval.request` message + an approve/deny reply that the tool loop
+  waits on), then `→ overlays/tool-approval.ts` (new) on the existing modal/scrim/trap contract.
+  `(b)`,`(aa)`
 - [~] **4.5 pinning** — overlays pinnable as floating cards (manager seam `setPinned`/`pinned` exists);
   decide session-only vs URL-addressable. Landed: **session-only** pinning through the manager —
   `setPinned` reflects `data-pinned` on the element and announces; `overlay:pin {id,pinned}` and
@@ -768,3 +778,27 @@ in v3 Appendix D). Rolled up:
   Suite **408 green** (new: nested/cyclic derivation trees, category-vs-lens filtering, live dataset +
   spec memoization, embed toggles hidden when empty and reflected when on, notebook embedding end to
   end through `s-view`/`s-tree`, edge popover derivation tree).
+- **Modal scrim (WP1 `0.5` blocker)** — a `modal` overlay used to mean "outside-click does not
+  dismiss me"; everything else about capturing the screen was up to each dialog, so a click landed on
+  the graph *behind* the Settings dialog and drove it. `OverlayManager` now owns one scrim: it paints
+  `.overlay-scrim` beneath the **lowest** open modal (overlays are spaced two z-steps apart so there is
+  a layer for it to sit in), takes it away when the last modal closes, and swallows pointer input on it
+  — `pointer-events: auto` over the viewport plus a `mousedown` `stopPropagation`, and deliberately no
+  behaviour of its own, because a modal is dismissed by its own controls or `Esc`, not by a click that
+  landed on its backdrop. Focus was already trapped by `FocusTrap`, so the blocker's done-when ("a
+  `modal` overlay traps focus and blocks interaction behind it") now holds for every modal. Colours are
+  tokens, not literals: `colors.primitive.scrim` / `colors.semantic.bg-scrim` in `design-tokens.json`
+  (regenerated through `pnpm build:tokens`), darker on the dark theme, lighter on light. Four manager
+  tests: layering (above what it covers, below the modal), pointer capture (a background button's
+  `mousedown` never fires, the modal stays open), absence for non-modals and after close, and disposal.
+
+  **Notes:** `0.5`'s dialog is now unblocked but has no input — nothing produces a *pending* tool call
+  (the wire carries no tool-approval message; a `tool-call` block is a finished record), so the honest
+  next step is the producer, not the dialog. Worth taking while in this code: `aria-modal`/`role` still
+  come from each dialog's own markup rather than the manager, so a modal that forgets it is silently
+  announced as ordinary content — the manager could assert it once for every `modal` entry; and the
+  background is captured for *pointer* and *focus* but not for screen-reader browsing, which wants
+  `inert` on the workspace root while a modal is open (one line in `#syncScrim`, gated on whether the
+  host can spare re-enabling it).
+
+  Suite **412 green** (new: the four scrim tests above).

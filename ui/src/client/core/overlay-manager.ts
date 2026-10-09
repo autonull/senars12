@@ -4,7 +4,9 @@
  * viewer, dialogs — is an overlay on it. This owns the rules that are easy to
  * get wrong when each caller improvises: a stacking order, `Esc` closing the
  * topmost overlay, focus returning to the anchor, outside-click dismissing
- * non-modals, and a focus trap on every overlay. Pinning is a seam: a pinned
+ * non-modals, and a focus trap on every overlay. A `modal` additionally paints a
+ * **scrim** below it, which captures pointer input so the workspace behind
+ * cannot be driven while a dialog owns the screen. Pinning is a seam: a pinned
  * overlay is a floating card that `Esc`/outside-click leave alone.
  */
 
@@ -30,10 +32,13 @@ interface OpenOverlay extends OverlayEntry {
 }
 
 const BASE_Z = 1000;
+/** Overlays are spaced two apart so the scrim has a layer to sit in beneath a modal. */
+const Z_STRIDE = 2;
 
 export class OverlayManager {
   readonly #doc?: Document;
   readonly #stack: OpenOverlay[] = [];
+  #scrim?: HTMLElement;
   #onKeyDown = (event: KeyboardEvent): void => this.#handleKeyDown(event);
   #onPointerDown = (event: Event): void => this.#handlePointerDown(event);
 
@@ -140,6 +145,7 @@ export class OverlayManager {
     for (const overlay of [...this.#stack].reverse()) this.close(overlay.id);
     this.#doc?.removeEventListener('keydown', this.#onKeyDown, true);
     this.#doc?.removeEventListener('mousedown', this.#onPointerDown, true);
+    this.#scrim = undefined;
   }
 
   #top(): OpenOverlay | undefined {
@@ -148,8 +154,36 @@ export class OverlayManager {
 
   #restack(): void {
     this.#stack.forEach((overlay, index) => {
-      overlay.element.style.zIndex = String(BASE_Z + index);
+      overlay.element.style.zIndex = String(BASE_Z + index * Z_STRIDE);
     });
+    this.#syncScrim();
+  }
+
+  /**
+   * Paint the scrim beneath the lowest open modal, and take it away when none is
+   * left. It swallows pointer input (`pointer-events: auto` over the whole
+   * viewport) rather than reacting to it: a modal is dismissed by its own
+   * controls or `Esc`, never by a click that happened to land on its backdrop.
+   */
+  #syncScrim(): void {
+    const index = this.#stack.findIndex((overlay) => overlay.modal === true);
+    if (index < 0) {
+      this.#scrim?.remove();
+      this.#scrim = undefined;
+      return;
+    }
+    const doc = this.#doc;
+    if (!doc?.body) return;
+    let scrim = this.#scrim;
+    if (!scrim) {
+      scrim = doc.createElement('div');
+      this.#scrim = scrim;
+      scrim.className = 'overlay-scrim';
+      scrim.setAttribute('aria-hidden', 'true');
+      scrim.onmousedown = (event) => event.stopPropagation();
+    }
+    scrim.style.zIndex = String(BASE_Z + index * Z_STRIDE - 1);
+    if (!scrim.isConnected) doc.body.appendChild(scrim);
   }
 
   #handleKeyDown(event: KeyboardEvent): void {
