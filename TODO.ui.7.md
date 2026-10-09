@@ -183,6 +183,11 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
   event → modal), `state-wide` (1920×1080). `reduced-motion` and `light` are **N/A**: motion is
   invisible in a still and the theme is dark-only; `loading` is covered by `connecting`. `narrow`
   was already covered.
+- `[x]` **P1.5 gallery as artifact** — new generated `docs/readme/ui-gallery.md` section (wired into
+  `docs/readme/ORDER`; `pnpm readme` regenerates `README.md`) describing the contract, its three
+  source files and how to run/update it; root `ui:gallery` alias added. The contact sheet itself is
+  intentionally local (O2): `ui/tests/visual/gallery/index.html` is gitignored, so the section
+  explains generation rather than linking a committed image set.
 - `[x]` **P1.6 local verification entry** — root `ui:verify` = `pnpm --dir ui verify`
   (typecheck + unit incl. `visual-coverage` + `test:visual:ci` incl. `ui:gallery`). CI/GitHub stays
   off (O4); `ui:gate` remains the fast type+unit gate.

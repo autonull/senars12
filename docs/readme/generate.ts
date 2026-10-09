@@ -81,6 +81,7 @@ const ORDER = [
   'multi-transport-agent-the-bot.md',
   'api-layer.md',
   'web-ui-visualization.md',
+  'ui-gallery.md',
   'safety-observability-governance.md',
   'configuration-reference.md',
   'proof-obligations-benchmark-plan.md',
