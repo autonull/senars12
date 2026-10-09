@@ -134,11 +134,11 @@ commands). v8 closes the loop from **registration → contract → docs** so ext
 
 ## Newly surfaced (this session) — do early, they unblock cleanly
 
-| # | Item | Why | Acceptance |
-|---|------|-----|------------|
-| N.1 | **Drain the derivation recorder in `/test/pause`** | The server's 2s recorder timer outlives `pause()`, forcing a 2.2s "quiet window" in every engine-free cell (`matrix.ts:203`). | quiet-window removed from `matrix.ts`; suite still green; `waitForTimeout(2200)` eliminated. |
-| N.2 | **Replace fixtures with real scenarios** | `metta`/`budget-gate` and the view cells are seeded from client stores; make the block kinds seedable server-side. | cells load through the real engine path; higher fidelity; fixtures removed. |
-| N.3 | **Codegen the base cells** (see X.2) | `VISUAL_CELLS` is hand-curated; registration should imply a cell. | coverage grows with registration; `scripts/generate-visual-cells.ts` creates base cells from `getSurfaces()`. |
+| # | Item | Why | Acceptance | Status |
+|---|------|-----|------------|--------|
+| N.1 | **Drain the derivation recorder in `/test/pause`** | The server's 2s recorder timer outlives `pause()`, forcing a 2.2s "quiet window" in every engine-free cell (`matrix.ts:203`). | quiet-window removed from `matrix.ts`; suite still green; `waitForTimeout(2200)` eliminated. | ✅ Done |
+| N.2 | **Replace fixtures with real scenarios** | `metta`/`budget-gate` and the view cells are seeded from client stores; make the block kinds seedable server-side. | cells load through the real engine path; higher fidelity; fixtures removed. | ✅ Done (metta/budget-gate) |
+| N.3 | **Codegen the base cells** (see X.2) | `VISUAL_CELLS` is hand-curated; registration should imply a cell. | coverage grows with registration; `scripts/generate-visual-cells.ts` creates base cells from `getSurfaces()`. | ⏳ Pending |
 
 ---
 
@@ -186,18 +186,11 @@ These are implementation patterns to follow, not separate TODO items:
 
 ## Immediate Next Steps (Priority Order)
 
-### P0 — Unblock Harness (Do First)
-1. **N.1 Drain derivation recorder** (`tests/visual/matrix.ts:203`)
-   - Remove `waitForTimeout(2200)` from `inQuietWindow`
-   - Fix server `/test/pause` to drain recorder synchronously
-   - Verify suite still green
+### P0 — Unblock Harness (Do First) ✅ COMPLETE
+1. **N.1 Drain derivation recorder** — Done: `/test/pause` now drains recorder synchronously; `waitForTimeout(2200)` removed from `inQuietWindow`, `seedConversation`, and `selection-node-detail` cells.
+2. **N.2 Replace fixtures with real scenarios** — Done: Added `/test/seed-metta` and `/test/seed-gates` endpoints; `scenario-metta` and `scenario-budget-gate` cells now load through server-side endpoints instead of client-store fixtures. Baselines updated.
 
-2. **N.2 Replace fixtures with real scenarios** (`tests/visual/matrix.ts:209-280`, `370-386`)
-   - Seed `metta`/`budget-gate`/view cells through real engine path
-   - Make block kinds seedable server-side
-   - Remove client-store-only fixtures
-
-### P1 — Live Graph + Codegen Loop
+### P1 — Live Graph + Codegen Loop (Next)
 3. **P2.1 Incremental growth** (`components/renderers/graph.ts:84-92`, `core/workspace-renderer.ts:82-84`)
    - `present(blocks, links)` → compute diff → emit enter/exit/move ops
    - `apply(ops)` → animate each op (GSAP/FLIP) → commit
@@ -296,7 +289,7 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 
 | Priority | Actions | Rationale |
 |---|---|---|
-| **P0** | N.1 (drain recorder) + N.2 (real scenarios) | Unblocks visual test harness; removes test-only fixtures |
+| **P0** | N.1 (drain recorder) + N.2 (real scenarios) ✅ **DONE** | Unblocks visual test harness; removes test-only fixtures |
 | **P1** | P2.1 (incremental growth) + X.2 (codegen cells) | Most improves feel + maintainability; all later P2 items build on this |
 | **P2** | P2.3 (floating composer) + P3.1/P3.2 (command execution + args) | Enables agent-driven UI; the functional leap |
 | **P3** | C.1–C.4 (config system) + A.1–A.3 (adaptability) | Productization backbone; enables standalone + profiles |
@@ -306,16 +299,14 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 
 ## Session Start Checklist
 
-- [ ] `pnpm --dir ui typecheck` — green
-- [ ] `pnpm --dir ui test:unit` — 425 passing
-- [ ] `pnpm --dir ui test:visual:ci` — 44 cells, all passing
-- [ ] `pnpm --dir ui ui:verify` — green
-- [ ] Review `TODO.ui.8.md` for current priority (starts at N.1)
+- [x] `pnpm --dir ui typecheck` — green
+- [x] `pnpm --dir ui test:unit` — 425 passing
+- [x] `pnpm --dir ui test:visual:ci` — 44 cells, all passing
+- [x] `pnpm --dir ui ui:verify` — green
+- [ ] Review `TODO.ui.8.md` for current priority (now at P2.1 + X.2)
 
 ---
 
 ## First move
 
-Start with **N.1 + N.2** (small, unblock the harness and remove test-only fixtures), then **P2.1 + X.2**
-(the live graph and the codegen loop) — the pair that most improves feel *and* maintainability, and the
-one all later P2 items build on.
+**N.1 + N.2 complete.** Next: **P2.1 + X.2** (the live graph and the codegen loop) — the pair that most improves feel *and* maintainability, and the one all later P2 items build on.

@@ -190,9 +190,8 @@ const raiseAppError: VisualCell['prepare'] = async ({ page }) => {
 };
 
 /**
- * Apply a fixture, let the server's 2s derivation-recorder tick fire, then apply
- * it again so the capture lands in the quiet window before the next tick — the
- * same discipline `seedConversation` uses; otherwise late records drift the frame.
+ * Apply a fixture, then settle — the server's `/test/pause` now drains
+ * the derivation recorder synchronously, so no quiet-window wait is needed.
  */
 const inQuietWindow = async (
   page: Page,
@@ -200,84 +199,20 @@ const inQuietWindow = async (
   apply: () => Promise<void>
 ): Promise<void> => {
   await apply();
-  await page.waitForTimeout(2200);
-  await apply();
   await settle();
 };
 
-/** Seed the MeTTa substrate (atoms/skills + rewrite edges) the engine would emit. */
-const seedMetta: VisualCell['prepare'] = ({ page, settle }) =>
-  inQuietWindow(page, settle, () =>
-    page.evaluate(() => {
-      const api = (window as Record<string, unknown>).__testApi as {
-        store?: { setState?: (path: string, value: unknown) => void };
-      };
-      api?.store?.setState?.('cognitiveEvents', []);
-      api?.store?.setState?.('chatMessages', []);
-      api?.store?.setState?.(
-        'graphNodes',
-        new Map([
-          [
-            'metta:atom:animal',
-            { id: 'metta:atom:animal', nodeType: 'metta:atom', label: '(animal $x)', atom: '(animal $x)', confidence: 0.9 },
-          ],
-          [
-            'metta:atom:robin',
-            { id: 'metta:atom:robin', nodeType: 'metta:atom', label: '(robin)', atom: '(robin)', confidence: 0.95 },
-          ],
-          [
-            'metta:skill:match',
-            { id: 'metta:skill:match', nodeType: 'metta:skill', label: 'match', skill: 'match', confidence: 1 },
-          ],
-        ])
-      );
-      api?.store?.setState?.(
-        'graphEdges',
-        new Map([
-          [
-            'metta:edge:1',
-            { id: 'metta:edge:1', source: 'metta:atom:robin', target: 'metta:atom:animal', type: 'metta:pattern-match', confidence: 0.9 },
-          ],
-          [
-            'metta:edge:2',
-            { id: 'metta:edge:2', source: 'metta:skill:match', target: 'metta:atom:animal', type: 'metta:skill-execution' },
-          ],
-        ])
-      );
-    })
-  );
+/** Seed the MeTTa substrate (atoms/skills + rewrite edges) via the server. */
+const seedMetta: VisualCell['prepare'] = async ({ control, settle }) => {
+  await control.seedMetta();
+  await settle();
+};
 
-/** Seed the budget/gate cognitive events the projection turns into blocks. */
-const seedGates: VisualCell['prepare'] = ({ page, settle }) =>
-  inQuietWindow(page, settle, async () => {
-    await isolateGraph(page);
-    await page.evaluate(() => {
-      const api = (window as Record<string, unknown>).__testApi as {
-        store?: { setState?: (path: string, value: unknown) => void };
-      };
-      const t = 1_700_000_000_000;
-      api?.store?.setState?.('cognitiveEvents', [
-        {
-          type: 'budget.exhausted',
-          timestamp: t,
-          correlationId: 'budget-1',
-          payload: { budgetType: 'inference', remaining: 0, limit: 1000, terminationReason: 'exhausted' },
-        },
-        {
-          type: 'egress.gate.rejected',
-          timestamp: t + 1,
-          correlationId: 'gate-1',
-          payload: { gate: 'answer-quality', score: 0.42, detail: 'below threshold' },
-        },
-        {
-          type: 'policy.violation',
-          timestamp: t + 2,
-          correlationId: 'policy-1',
-          payload: { policyId: 'safety', violationType: 'unsafe-content', severity: 'high', detail: 'blocked' },
-        },
-      ]);
-    });
-  });
+/** Seed the budget/gate cognitive events via the server. */
+const seedGates: VisualCell['prepare'] = async ({ control, settle }) => {
+  await control.seedGates();
+  await settle();
+};
 
 /** Open a registered overlay through the shell's own test seam. */
 const openOverlay = (id: string): VisualCell['prepare'] => async ({ page }) => {
@@ -363,9 +298,8 @@ const chatMessages = (turns: readonly SeedTurn[]) => {
  *
  * The engine graph is isolated first (see `isolateGraph`): conversation layouts
  * arrange the conversation, so leaving the reasoning layer in would swamp the
- * frame. The server drains derivation records on a 2s timer that outlives
- * `pause()`, so after one interval we isolate again and capture in the quiet
- * window before the next tick — otherwise those records drift the frame.
+ * frame. The server's `/test/pause` now drains the derivation recorder
+ * synchronously, so no quiet-window wait is needed.
  */
 const seedConversation =
   (layout?: string, isolate = true): VisualCell['prepare'] =>
@@ -379,7 +313,6 @@ const seedConversation =
     }, chatMessages(CHAT_TURNS));
     await settle(layout);
     if (isolate) {
-      await page.waitForTimeout(2200);
       await isolateGraph(page);
       await settle(layout);
     }
@@ -811,10 +744,6 @@ export const VISUAL_CELLS: VisualCell[] = [
     surface: 'overlay:inspector',
     hash: '#panels=none',
     prepare: async ({ page, settle }) => {
-      await isolateGraph(page);
-      // Let the derivation-recorder timer fire, then isolate into the quiet
-      // window so a late record cannot repopulate the graph mid-capture.
-      await page.waitForTimeout(2200);
       await isolateGraph(page);
       await settle();
       await page.evaluate((nodeId) => {

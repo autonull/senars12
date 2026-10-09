@@ -19,9 +19,9 @@ export default defineConfig({
   reporter: [['./reporter.ts'], ['list']],
 
   webServer: {
-    command: 'NODE_NO_WARNINGS=1 tsx scripts/agent-server.ts 3456',
+    command: 'NODE_ENV=test NODE_NO_WARNINGS=1 tsx scripts/agent-server.ts 3456',
     port: 3456,
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     cwd: process.cwd(),
     stdout: 'pipe',
     stderr: 'pipe',

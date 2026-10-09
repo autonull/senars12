@@ -26,7 +26,7 @@ import {
   scenarioIds,
   type Scenario,
 } from './scenarios.js';
-import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
+import { UnifiedGraphProjection, type GraphEdge } from './UnifiedGraphProjection.js';
 import { dispatchGraphEvent, type ReducerContext } from './event-reducers.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -192,6 +192,9 @@ async function handleTestEndpoints(
 
     if (url === '/test/pause' && req.method === 'POST') {
       narOf(agent)?.getSelfAnalyzer?.()?.stop?.();
+      const processor = narOf(agent)?.getProcessor?.();
+      const recorder = processor?.getRecorder?.();
+      if (recorder) recorder.drain();
       sendJson(res, 200, { success: true, paused: true });
       return true;
     }
@@ -326,6 +329,65 @@ async function handleTestEndpoints(
         beliefs: beliefs.map((b) => ({ term: b.term.toString(), truth: asBeliefTruth(b.truth) })),
         count: beliefs.length,
       });
+      return true;
+    }
+
+    if (url === '/test/seed-metta' && req.method === 'POST') {
+      if (!projection) {
+        sendJson(res, 200, { success: false, error: 'No projection available' });
+        return true;
+      }
+      // Clear existing state
+      projection.applyDelta({ nodes: [], edges: [] });
+      // Seed MeTTa atoms and skills as graph nodes
+      const nodes: GraphNodeData[] = [
+        { id: 'metta:atom:animal', nodeType: 'metta:atom', label: '(animal $x)', term: '(animal $x)', priority: 0.5, confidence: 0.9 },
+        { id: 'metta:atom:robin', nodeType: 'metta:atom', label: '(robin)', term: '(robin)', priority: 0.5, confidence: 0.95 },
+        { id: 'metta:skill:match', nodeType: 'metta:skill', label: 'match', term: 'match', priority: 0.5, confidence: 1 },
+      ];
+      const edges: GraphEdge[] = [
+        { source: 'metta:atom:robin', target: 'metta:atom:animal', type: 'metta:pattern-match', confidence: 0.9 },
+        { source: 'metta:skill:match', target: 'metta:atom:animal', type: 'metta:skill-execution', confidence: 1 },
+      ];
+      projection.applyDelta({ nodes, edges });
+      sendJson(res, 200, { success: true, nodes: nodes.length, edges: edges.length });
+      return true;
+    }
+
+    if (url === '/test/seed-gates' && req.method === 'POST') {
+      if (!agent) {
+        sendJson(res, 200, { success: false, error: 'No agent available' });
+        return true;
+      }
+      // Emit budget/gate cognitive events through the real agent
+      const t = Date.now();
+      const events: CognitiveEvent[] = [
+        {
+          type: 'budget.exhausted',
+          timestamp: t,
+          correlationId: 'budget-1',
+          engine: 'nar',
+          payload: { budgetType: 'memory', remaining: 0, limit: 1000, terminationReason: 'memory-budget' },
+        },
+        {
+          type: 'egress.gate.rejected',
+          timestamp: t + 1,
+          correlationId: 'gate-1',
+          engine: 'nar',
+          payload: { gate: 'risk', score: 0.42, detail: 'below threshold' },
+        },
+        {
+          type: 'policy.violation',
+          timestamp: t + 2,
+          correlationId: 'policy-1',
+          engine: 'nar',
+          payload: { policyId: 'safety', violationType: 'unauthorized-tool', severity: 'block', detail: 'blocked' },
+        },
+      ];
+      for (const event of events) {
+        agent.emitCognitive(event);
+      }
+      sendJson(res, 200, { success: true, events: events.length });
       return true;
     }
   } catch (e: unknown) {

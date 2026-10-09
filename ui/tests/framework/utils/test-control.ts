@@ -37,6 +37,16 @@ export class TestControl {
     return response.json();
   }
 
+  async seedMetta() {
+    const response = await this.context.post(`${this.baseUrl}/test/seed-metta`);
+    return response.json();
+  }
+
+  async seedGates() {
+    const response = await this.context.post(`${this.baseUrl}/test/seed-gates`);
+    return response.json();
+  }
+
   async getState() {
     const response = await this.context.get(`${this.baseUrl}/test/state`);
     return response.json();
