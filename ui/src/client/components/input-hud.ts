@@ -11,12 +11,14 @@ import {
   BaseComponent,
   BLOCK_KIND_LABEL,
   availableComposerModes,
+  capabilityGate,
   COMPOSER_MODE_CATALOG,
   type ComposerMode,
   decomposeForMode,
   DEFAULT_COMPOSER_MODE,
   eventBus,
   type InputSegment,
+  narsBackend,
   registerCommand,
   send,
 } from '../core/index.js';
@@ -332,14 +334,34 @@ export class InputHUD extends BaseComponent {
     this.decomposition = decomposeForMode(this.textareaValue, mode);
   }
 
-  private sendMessage() {
+  private async sendMessage() {
     const content = this.textareaValue.trim();
     if (!content) return;
     inputHistory.push(content);
     if (inputHistory.length > MAX_HISTORY) inputHistory.shift();
     historyIndex = inputHistory.length;
-    addUserMessage(content, this.mode, this.contextRefs);
-    send({ type: 'chat.user', content, mode: this.mode, contexts: this.contextRefs });
+
+    // Structured modes (believe, goal) route through the reasoning backend
+    const isStructured = this.mode === 'believe' || this.mode === 'goal';
+    const hasReasoning = capabilityGate('reasoning') && narsBackend.control?.submit;
+
+    if (isStructured && hasReasoning) {
+      const segments = this.decomposition.filter((s) => s.kind === 'claim');
+      for (const segment of segments) {
+        await narsBackend.control.submit({
+          term: segment.text,
+          mode: this.mode === 'believe' ? 'belief' : 'goal',
+        });
+      }
+      // Also add to chat for history
+      addUserMessage(content, this.mode, this.contextRefs);
+      send({ type: 'chat.user', content, mode: this.mode, contexts: this.contextRefs });
+    } else {
+      // Language modes: regular chat path
+      addUserMessage(content, this.mode, this.contextRefs);
+      send({ type: 'chat.user', content, mode: this.mode, contexts: this.contextRefs });
+    }
+
     this.textareaValue = '';
     this.contextRefs = [];
     this.decomposition = [];
