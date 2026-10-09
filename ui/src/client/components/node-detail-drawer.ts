@@ -3,7 +3,9 @@ import { debounce } from '@senars/util';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { EDGE_TYPES } from '../../shared/constants.js';
+import { artifactViewSpec } from '../core/artifacts.js';
 import {
+  $activeRenderer,
   $focusTerm,
   $graphEdges,
   $graphNodes,
@@ -12,9 +14,14 @@ import {
   $selectedNodeId,
   $selectedNodeIds,
   $view,
+  $workspaceGraph,
   BaseComponent,
+  blockRefFor,
+  eventBus,
+  narsBackend,
   type RevisionEntry,
   send,
+  setWorkspaceFocus,
   setWorkspaceSelection,
   updateEdgeData,
   updateNodeData,
@@ -431,10 +438,55 @@ export class NodeDetailDrawer extends BaseComponent {
     `;
   }
 
+  /**
+   * The block this node projects to (§2.4's node→block mapping), resolved through
+   * the reasoning backend rather than assumed — a node the backend does not carry
+   * has no block, and the affordances that need one then stay hidden.
+   */
+  private get blockRef(): string | undefined {
+    const id = this.node?.id;
+    return id ? blockRefFor(narsBackend, id) : undefined;
+  }
+
+  /** The projected block's artifact spec, when it has one (`4.3` affordances). */
+  private get blockViewSpec() {
+    const ref = this.blockRef;
+    const block = ref ? $workspaceGraph.get().blocks.get(ref) : undefined;
+    return block ? artifactViewSpec(block) : undefined;
+  }
+
+  private openInNotebook = () => {
+    const ref = this.blockRef;
+    if (!ref) return;
+    $activeRenderer.set('notebook');
+    setWorkspaceFocus(ref);
+  };
+
+  private openBlockView = () => {
+    const ref = this.blockRef;
+    if (!ref) return;
+    eventBus.emit('overlay:open', { id: 'artifact', ref });
+  };
+
   private renderActions() {
+    const ref = this.blockRef;
     return html`
       <div class="section-title">Node Actions</div>
       <button class="action-btn" @click=${this.focusOnNode}>Focus Term</button>
+      ${
+        ref
+          ? html`<button class="action-btn" data-action="open-block" @click=${this.openInNotebook}>
+            Open in Notebook
+          </button>`
+          : ''
+      }
+      ${
+        this.blockViewSpec
+          ? html`<button class="action-btn" data-action="open-view" @click=${this.openBlockView}>
+            Open View
+          </button>`
+          : ''
+      }
       <button class="action-btn" @click=${this.pinNode}>Pin to Selection</button>
       <button class="action-btn" @click=${this.copyTerm}>Copy Term</button>
       <button class="action-btn" @click=${this.hideNode}>Hide from Graph</button>

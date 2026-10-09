@@ -52,8 +52,8 @@ containment, fold-aware `j`/`k`, `view.fold-all`), the `4.3 typing` payload cont
 `citations model` bibliography rendering — see §Landed (v5). The three small state wins `2.5 defaults`,
 `2.5 selection atom` and `2.5 focus react` were landed earlier.)*
 
-**Gated** (see §Blockers): `0.5`; the inspector half of `4.3 affordances`; WP5 `3.3` →
-`4.3 derivation-record`; WP5 `3.6` → the `config-change` producer.
+**Gated** (see §Blockers): `0.5`; WP5 `3.3` → `4.3 derivation-record`; WP5 `3.6` → the
+`config-change` producer.
 
 ## Blockers / prerequisites
 
@@ -76,8 +76,15 @@ Cross-cutting constraints that gate multiple items — each is a work order: fir
   itself URL-addressable (`1.5 page`) and settle the turn/page boundary policy (auto-page per turn
   pair with agent/user overrides).
 - **Node→workspace-block mapping** — blocks the inspector half of **`4.3 affordances`** and richer
-  **`2.4`**. *First step:* decide where a selected engine node/edge resolves to a block `ref`. *Done
-  when:* the inspector can open an artifact for the selected node.
+  **`2.4`**. **Landed (node half):** `blockRefFor(backend, id)` in `core/workspace-projection.ts` — the
+  projection is the one place that derives a block ref from an engine id, so it resolves through the
+  attached backend (`undefined` when the backend does not carry the node) instead of prefixing ids at
+  the call site; the inspector's Actions tab uses it for **Open in Notebook** (renderer + focus) and
+  **Open View** (the artifact overlay, when the projected block has a spec). *Remaining:* the **edge**
+  half — a selected engine edge resolves to the `link:` ref `projectReasoning` mints — which the edge
+  popovers and the derivation tree in **`2.4`** wait on. **Open View** is honest but nearly always
+  closed today: an engine claim's payload is the raw record and `claim` is deliberately not in
+  `JSON_KINDS`, so it stays hidden until a reasoning producer emits a block kind with a view.
 - **`DerivationRecord` payload** — defined by WP5 **`3.3`**; blocks **`4.3 derivation-record`**.
 - **`config-change` producer** — nothing emits `config-change` yet (segmentation/**`3.6`**); the diff
   view reads `{ before, after, language?, from?, to? }` (JSON fallback meanwhile).
@@ -270,12 +277,18 @@ Landed extension points — wire features here instead of re-deriving them.
   neighborhood depth; ⌥-click a row to explain instead of navigate. Plus: Notebook embedded graph block
   (derivation/contradiction/topic neighborhood); Graph node popover notebook card; graph edge popover
   derivation tree; wire the block-menu "embed" affordance; reuse `conversationPositions` and
-  `projectWorkspaceGraph` in embedded graph shapes. `→ core/explain.ts`, `core/neighborhood.ts`,
+  `projectWorkspaceGraph` in embedded graph shapes. The **node→block mapping** blocker is cleared for
+  nodes (`blockRefFor`), so the inspector can reach a block today; the **edge** half is what the edge
+  popovers still wait on. `→ core/explain.ts`, `core/neighborhood.ts`, `core/workspace-projection.ts`,
   `components/overlays/{inspector,block-menu,related}.ts`, `components/node-detail-drawer.ts`,
   `components/views/graph-*.ts`. `(r)`,`(n)`,`(y)`,`(e)`
 - [~] **4.3 affordances** — the artifact overlay **Copy** / **Open in graph** and the ToC per-row
-  artifact button are done. Remaining: inspector reach — needs the **node→block mapping** blocker.
-  `→ components/overlays/inspector.ts`, `components/node-detail-drawer.ts`. `(j)`,`(ad)`
+  artifact button are done. Inspector reach landed once the **node→block mapping** blocker cleared: the
+  drawer's Actions tab gained **Open in Notebook** (switch renderer, focus the projected block) and
+  **Open View** (the artifact overlay, gated on the block actually having a `ViewSpec`). Remaining: the
+  edge half of the mapping, and the spec-gated path becoming reachable for engine claims.
+  `→ components/overlays/inspector.ts`, `components/node-detail-drawer.ts`,
+  `core/workspace-projection.ts`. `(j)`,`(ad)`
 - [~] **1.4 rich text** — inline tokenizer for paragraphs (links/emphasis/code spans), unified with the
   landed `tokenizeCode` seam where possible; image intrinsic size `{width?,height?}`; optional inline
   full tables (`budget="full"`); ensure the view barrel is imported standalone / owned by
@@ -561,4 +574,10 @@ in v3 Appendix D). Rolled up:
   graph.focus)` by a `mirrorAtom`, so it can never disagree with the focus, and it elides itself when
   the focus *is* the page so a page-only link stays a single `focus=`. Hydration takes a page-only
   link and lets an explicit `focus` win as the more specific half. Suite **365 green**.
+- **Node→block mapping blocker (node half)** — `blockRefFor(backend, id)` in
+  `core/workspace-projection.ts`: the projection is the one place that derives a block ref from an
+  engine id, and it answers through the *attached* backend, so a second engine maps its own ids and an
+  id the backend does not carry resolves to `undefined` rather than to a block that does not exist.
+  Consumers: the inspector's Actions tab gains **Open in Notebook** (renderer + focus) and **Open
+  View** (artifact overlay, gated on a real `ViewSpec`). Suite **369 green**.
 

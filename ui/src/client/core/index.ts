@@ -269,6 +269,7 @@ export {
   type WorkspaceOp,
 } from './workspace-graph.js';
 export {
+  blockRefFor,
   childId,
   claimId,
   linkId,

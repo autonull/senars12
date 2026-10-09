@@ -7,7 +7,11 @@ import type {
   ReasoningBackend,
 } from '../../src/client/core/reasoning-backend.js';
 import { $graphEdges, $graphNodes } from '../../src/client/core/store.js';
-import { claimId, projectReasoning } from '../../src/client/core/workspace-projection.js';
+import {
+  blockRefFor,
+  claimId,
+  projectReasoning,
+} from '../../src/client/core/workspace-projection.js';
 
 const engine = (
   nodes: GraphNodeData[] = [],
@@ -89,6 +93,22 @@ describe('nars adapter', () => {
     expect(narsBackend.snapshot()).toBe(first);
     engine([node('a'), node('b')]);
     expect(narsBackend.snapshot()).not.toBe(first);
+  });
+});
+
+describe('node→block mapping', () => {
+  it('resolves a carried node and refuses one the backend does not have', () => {
+    engine([node('bird')]);
+    expect(blockRefFor(narsBackend, 'bird')).toBe(claimId('bird'));
+    expect(blockRefFor(narsBackend, 'ghost')).toBeUndefined();
+  });
+
+  it('follows whichever backend is passed', () => {
+    const backend = mettaBackend([backendNode('p', 'proposition')]);
+    expect(projectReasoning(backend).blocks.map((block) => block.id)).toEqual([
+      blockRefFor(backend, 'p'),
+    ]);
+    expect(blockRefFor(narsBackend, 'p')).toBeUndefined();
   });
 });
 

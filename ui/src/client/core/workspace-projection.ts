@@ -249,3 +249,13 @@ export function projectWorkspace(state: {
   const messageIds = new Set(state.messages.map((message) => message.id));
   return merge([projectChat(state.messages), projectReasoning(state.backend, messageIds)]);
 }
+
+/**
+ * The block a reasoning node id projects to, or `undefined` when the backend
+ * does not carry that node. This is the **node→block mapping** (§2.4): the engine
+ * speaks node ids, the substrate speaks block refs, and the projection is the one
+ * place that derives one from the other — so the inspector, the graph menu and the
+ * ToC resolve a selection through it instead of inventing ids of their own.
+ */
+export const blockRefFor = (backend: ReasoningBackend, id: Ref): Ref | undefined =>
+  backend.snapshot().nodes.has(id) ? claimId(id) : undefined;
