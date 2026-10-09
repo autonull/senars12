@@ -18,15 +18,17 @@ for (const cell of VISUAL_CELLS) {
     await page.reload();
 
     const settle = async (layout?: string) => {
+      // Ready when the active renderer has data: the graph renderer exposes a
+      // cytoscape count, the notebook/3D renderers only the shared store.
       await page.waitForFunction(
-        () =>
-          Number(
-            (
-              (window as Record<string, unknown>).__testApi as {
-                graph?: { getNodeCount?: () => number };
-              }
-            )?.graph?.getNodeCount?.() ?? 0
-          ) > 0,
+        () => {
+          const api = (window as Record<string, unknown>).__testApi as {
+            graph?: { getNodeCount?: () => number };
+            store?: { getState?: (path: string) => { size?: number } | undefined };
+          };
+          if (Number(api?.graph?.getNodeCount?.() ?? 0) > 0) return true;
+          return Number(api?.store?.getState?.('graphNodes')?.size ?? 0) > 0;
+        },
         { timeout: 15000 }
       );
       // Text metrics (and therefore node sizing / layout bounds) must not race

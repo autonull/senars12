@@ -54,6 +54,7 @@
     "test:visual": "pnpm build:client:test && playwright test --config tests/visual/playwright.config.ts",
     "test:visual:update": "pnpm build:client:test && playwright test --config tests/visual/playwright.config.ts --update-snapshots",
     "test:visual:ci": "pnpm build:client:test && playwright test --config tests/visual/playwright.config.ts; STATUS=$?; pnpm ui:gallery; exit $STATUS",
+    "verify": "pnpm typecheck && pnpm test:unit && pnpm test:visual:ci",
     "ui:gallery": "tsx scripts/build-gallery.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
