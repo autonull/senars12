@@ -339,3 +339,14 @@ export {
   workspaceRendererIds,
   workspaceRenderers,
 } from './workspace-renderer.js';
+export {
+  type ToolSpec,
+  registerTool,
+  getTool,
+  allTools,
+  executeToolCall,
+  promptUserTool,
+  registerBuiltinTools,
+  callTool,
+  initToolApproval,
+} from './tool-registry.js';

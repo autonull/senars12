@@ -14,6 +14,7 @@ import { mettaBackend } from './metta-backend.js';
 import { $chatMessages, $graphEdges, $graphNodes, $workspaceGraph, $config } from './store.js';
 import { projectWorkspace } from './workspace-projection.js';
 import { initConfigChangeProducer } from './config-change-producer.js';
+import { registerBuiltinTools, initToolApproval } from './tool-registry.js';
 import type { WorkspaceGraph } from './workspace-graph.js';
 
 /** Re-project current client state into `$workspaceGraph`, preserving session state. */
@@ -29,6 +30,10 @@ export function syncWorkspaceGraph(): WorkspaceGraph {
 
 /** Keep `$workspaceGraph` in sync with chat and the engine graph; returns an unsubscribe. */
 export function mountWorkspaceProjection(): () => void {
+  // Initialize built-in tools and approval flow
+  registerBuiltinTools();
+  initToolApproval();
+
   // Initialize config change tracking after config is hydrated from server
   const configUnsub = $config.subscribe(() => {
     // Config is hydrated; start tracking changes
