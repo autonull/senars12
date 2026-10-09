@@ -120,6 +120,11 @@ export class RelatedView extends SurfaceComponent {
 
   private readonly close = () => eventBus.emit('overlay:close', { id: 'related' });
 
+  private readonly go = (id: string): void => {
+    setWorkspaceFocus(id);
+    this.close();
+  };
+
   private onPinChange = (event: CustomEvent<{ id: string; pinned: boolean }>): void => {
     this.toggleAttribute('data-pinned', event.detail.pinned);
   };

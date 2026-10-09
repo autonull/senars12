@@ -30,13 +30,13 @@ import type {
 import { $graphEdges, $graphNodes } from './store.js';
 import { send } from './ws-client.js';
 import { VERIFIER_TRUTH_TABLE } from '@senars/core';
-import type { Ref } from './workspace-graph.js';
+import type { Ref, SemanticLinkKind } from './workspace-graph.js';
 
 /** The uncertainty vocabulary NAL truth values are labelled with. */
 export const NAL_VOCABULARY = 'nal';
 
 /** NAR rule names → semantic link kinds, derived from the single-source-of-truth verifier table. */
-function makeNarEdgeVocab(): Readonly<Record<string, string>> {
+function makeNarEdgeVocab(): Readonly<Record<string, SemanticLinkKind>> {
   const binary = Object.keys(VERIFIER_TRUTH_TABLE.BINARY_TRUTH);
   const unary = Object.keys(VERIFIER_TRUTH_TABLE.UNARY_TRUTH);
   // Structural rules that appear in the engine but have no truth function
@@ -44,7 +44,7 @@ function makeNarEdgeVocab(): Readonly<Record<string, string>> {
   // Explicit provenance edges
   const provenance = ['support', 'contradiction', 'reference'];
 
-  const edgeMap: Record<string, string> = {};
+  const edgeMap: Record<string, SemanticLinkKind> = {};
 
   // Logical inference rules → derived-from
   for (const rule of binary) edgeMap[rule] = 'derived-from';

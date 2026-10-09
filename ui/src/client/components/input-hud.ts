@@ -343,12 +343,12 @@ export class InputHUD extends BaseComponent {
 
     // Structured modes (believe, goal) route through the reasoning backend
     const isStructured = this.mode === 'believe' || this.mode === 'goal';
-    const hasReasoning = capabilityGate('reasoning') && narsBackend.control?.submit;
+    const control = capabilityGate('reasoning') ? narsBackend.control : undefined;
 
-    if (isStructured && hasReasoning) {
+    if (isStructured && control) {
       const segments = this.decomposition.filter((s) => s.kind === 'claim');
       for (const segment of segments) {
-        await narsBackend.control.submit({
+        await control.submit({
           term: segment.text,
           mode: this.mode === 'believe' ? 'belief' : 'goal',
         });

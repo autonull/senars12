@@ -18,17 +18,17 @@ import type {
   ControlResult,
 } from './reasoning-backend.js';
 import { $graphNodes, $graphEdges } from './store.js';
-import type { Ref } from './workspace-graph.js';
+import type { Ref, SemanticLinkKind } from './workspace-graph.js';
 
 /** The uncertainty vocabulary MeTTa uses (probabilistic/confidence-based). */
 export const METTA_VOCABULARY = 'metta';
 
 /** MeTTa edge kinds → semantic link kinds. */
-const METTA_EDGE_VOCAB: Readonly<Record<string, string>> = {
+const METTA_EDGE_VOCAB: Readonly<Record<string, SemanticLinkKind>> = {
   'metta:rewrite': 'derived-from',
   'metta:query': 'references',
   'metta:pattern-match': 'references',
-  'metta:skill-execution': 'tool-call',
+  'metta:skill-execution': 'uses-tool',
   'metta:space': 'contains',
 };
 

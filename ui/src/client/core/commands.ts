@@ -43,7 +43,7 @@ export interface Command {
   readonly group: string;
   /** Extra search terms (never shown). */
   readonly keywords?: string;
-  run(args?: CommandArgs): void;
+  run(args: CommandArgs): void;
   /** Validate/coerce the caller's args (agent `ui.command`); throw to reject. */
   parse?(args: CommandArgs): CommandArgs;
   /** A command that only makes sense in some state can hide itself. */

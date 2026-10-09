@@ -6,7 +6,7 @@
  * unsupported block returns `undefined` rather than a wrong view.
  */
 
-import type { ChartData, ConfigChangeData, DerivationRecordData } from './block-payload.js';
+import type { ChartData, ConfigChangeData, DerivationData, DerivationRecordData } from './block-payload.js';
 import { payloadOf } from './block-payload.js';
 import { linkMeta, LINK_KINDS } from '../utils/link-catalog.js';
 import { diffLines } from './diff.js';
@@ -51,7 +51,7 @@ const json = (value: unknown): string => JSON.stringify(value, null, 2) ?? Strin
  * what it concluded under them. Refs the producer could not resolve keep their
  * ref, so a step never silently loses a premise.
  */
-function derivationTree(record: DerivationRecordData): TreeDataset {
+function derivationTree(record: DerivationData): TreeDataset {
   const rule = record.rule as SemanticLinkKind;
   return {
     kind: 'tree',
@@ -145,7 +145,7 @@ export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
   // the substrate can express more than this mapping knows how to name.
   if (block.spec) return block.spec;
   if (block.kind === 'derivation') {
-    const record: DerivationRecordData | undefined = payloadOf(block.data, 'derivation');
+    const record: DerivationData | undefined = payloadOf(block.data, 'derivation');
     return record && {
       id: `artifact:${block.id}`,
       title: block.title ?? 'Derivation',

@@ -6,14 +6,13 @@ import { fileURLToPath } from 'node:url';
 import type {
   Agent,
   CognitiveEvent,
-  DerivationRecord,
   GraphNodeData,
   IncomingFromClient,
   IncomingFromServer,
   LensSpec,
 } from '@senars/core';
 import { IncomingFromClient as IncomingFromClientSchema } from '@senars/core';
-import { mintCognitiveEvent } from '@senars/core/schemas';
+import { mintCognitiveEvent, type DerivationRecord } from '@senars/core/schemas';
 import { DEFAULT_CONFIG, termParser } from '@senars/nar';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 import { handleMetricsRequest } from '@senars/nar/metrics';

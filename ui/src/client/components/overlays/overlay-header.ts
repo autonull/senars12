@@ -134,8 +134,8 @@ export class OverlayHeader extends BaseComponent {
 
   @property({ type: String, attribute: 'overlay-id' }) overlayId = '';
   @property({ type: String }) kind = '';
-  @property({ type: String }) title = '';
-  @property({ type: Boolean, attribute: 'draggable' }) draggable = false;
+  @property({ type: String }) override title = '';
+  @property({ type: Boolean, attribute: 'draggable' }) override draggable = false;
   @property({ type: Boolean, attribute: 'resizable' }) resizable = false;
   @property({ type: Boolean, attribute: 'pinnable' }) pinnable = true;
   @property({ type: Boolean, attribute: 'closeable' }) closeable = true;

@@ -1,4 +1,4 @@
-import type { ChatMessage, GraphNodeData, Lens, LensFieldDescriptor } from '@senars/core';
+import type { ChatMessage, CognitiveEvent, GraphNodeData, Lens, LensFieldDescriptor } from '@senars/core';
 import { debounce } from '@senars/util';
 import type { LensSpec } from '../../shared/lens-schema.js';
 import { isBuiltinLens } from '../../shared/lens-schema.js';

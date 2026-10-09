@@ -7,20 +7,25 @@
 import type { ToolCall } from '@senars/util';
 import { eventBus } from './events.js';
 
+/** A JSON-schema-shaped parameter descriptor; nested objects are allowed. */
+type ToolParamSchema = {
+  type: string;
+  title?: string;
+  description?: string;
+  enum?: string[];
+  format?: string;
+  items?: unknown;
+  properties?: Record<string, ToolParamSchema>;
+  additionalProperties?: boolean;
+};
+
 export interface ToolSpec {
   readonly name: string;
   readonly title: string;
   readonly description: string;
   readonly parameters: {
     type: 'object';
-    properties: Record<string, {
-      type: string;
-      title?: string;
-      description?: string;
-      enum?: string[];
-      format?: string;
-      items?: unknown;
-    }>;
+    properties: Record<string, ToolParamSchema>;
     required?: string[];
   };
   /** Whether this tool requires user approval before execution. */
@@ -36,6 +41,13 @@ const registry = new Map<string, ToolSpec>();
 export const toolRegistry = registry;
 
 export let onApprovalRequired: ((call: ToolCall, spec: ToolSpec) => Promise<unknown>) | undefined;
+
+/** Install the handler the approval overlay registers for gated tools. */
+export function setApprovalHandler(
+  handler?: (call: ToolCall, spec: ToolSpec) => Promise<unknown>
+): void {
+  onApprovalRequired = handler;
+}
 
 /** Register a tool. Call during app init. */
 export function registerTool(spec: ToolSpec): void {

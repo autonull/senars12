@@ -337,8 +337,9 @@ export class NodeDetailDrawer extends BaseComponent {
     const edgeId = `${ed.source}->${ed.target}`;
     const linkRef = linkRefFor(narsBackend, edgeId);
     const graph = $workspaceGraph.get();
-    const linkBlock = linkRef ? graph.links.get(linkRef) : undefined;
-    const linkViewSpec = linkBlock?.artifact ? artifactViewSpec(linkBlock) : undefined;
+    const targetRef = resolveBlockRef(graph, narsBackend, String(ed.target));
+    const targetBlock = targetRef ? graph.blocks.get(targetRef) : undefined;
+    const linkViewSpec = targetBlock ? artifactViewSpec(targetBlock) : undefined;
     return html`
       <div class="section-title">Edge Details</div>
       <div class="field"><span class="field-label">Source</span><span class="field-value">${sourceLabel}</span></div>
@@ -385,8 +386,8 @@ export class NodeDetailDrawer extends BaseComponent {
           : ''
       }
       ${
-        linkViewSpec
-          ? html`<button class="action-btn" data-action="open-view" @click=${() => eventBus.emit('overlay:open', { id: 'artifact', ref: linkRef })}>
+        linkViewSpec && targetRef
+          ? html`<button class="action-btn" data-action="open-view" @click=${() => eventBus.emit('overlay:open', { id: 'artifact', ref: targetRef })}>
             Open View
           </button>`
           : ''

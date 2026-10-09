@@ -15,7 +15,7 @@ import { linkMeta } from '../utils/link-catalog.js';
 import { decomposeForMode, DEFAULT_COMPOSER_MODE, isComposerMode } from './composer-modes.js';
 import { isFaithfulDecomposition } from './input-decomposition.js';
 import { NAL_VOCABULARY } from './nars-backend.js';
-import type { ReasoningBackend } from './reasoning-backend.js';
+import type { ReasoningBackend, BackendNode, BackendVocabulary } from './reasoning-backend.js';
 import { segmentText } from './segmentation.js';
 import { taskTypeForPunctuation } from '@senars/core';
 import type {

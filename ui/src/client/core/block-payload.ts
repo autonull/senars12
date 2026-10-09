@@ -44,6 +44,16 @@ export interface ConfigChangeData {
   to?: string;
 }
 
+/** The `derivation` step payload: one rule, its premises and its conclusion. */
+export interface DerivationData {
+  rule: string;
+  premises: string[];
+  conclusion: string;
+  confidence?: number;
+  events?: string[];
+  raw?: unknown;
+}
+
 /**
  * A single derivation step with full provenance.
  */
@@ -100,7 +110,7 @@ export interface BlockPayloads {
   citation: CitationData;
   chart: ChartData;
   'config-change': ConfigChangeData;
-  derivation: DerivationRecordData;
+  derivation: DerivationData;
   'derivation-record': DerivationRecordData;
 }
 
@@ -233,7 +243,17 @@ const NORMALIZERS: { [K in ArtifactKind]: Normalizer<K> } = {
     data.kind === 'series' && Array.isArray(data.series)
       ? { kind: 'series', series: data.series as SeriesDataset['series'] }
       : undefined,
-  derivation: (data) => normalizeDerivationRecord(data),
+  derivation: (data) =>
+    typeof data.rule === 'string' && Array.isArray(data.premises) && typeof data.conclusion === 'string'
+      ? {
+          rule: data.rule,
+          premises: stringArray(data.premises) ?? [],
+          conclusion: data.conclusion,
+          confidence: optionalNumber(data.confidence),
+          events: stringArray(data.events),
+          raw: data.raw,
+        }
+      : undefined,
   'derivation-record': (data) => normalizeDerivationRecord(data),
   'config-change': (data) =>
     typeof data.before === 'string' && typeof data.after === 'string'

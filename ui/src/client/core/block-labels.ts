@@ -25,6 +25,7 @@ export const BLOCK_KIND_LABEL = {
   'tool-call': 'Tool call',
   'tool-result': 'Tool result',
   derivation: 'Derivation',
+  'derivation-record': 'Derivation record',
   'gate-decision': 'Gate decision',
   budget: 'Budget',
   command: 'Command',

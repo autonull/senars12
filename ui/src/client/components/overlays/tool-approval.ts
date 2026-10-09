@@ -3,13 +3,14 @@
  * including the `prompt_user` tool for system-initiated questions/forms.
  */
 
-import { css, html } from 'lit';
+import { css, html, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import type { ToolCall } from '@senars/util';
 import { eventBus } from '../../core/events.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { toolRegistry, type ToolCall, type ToolSpec } from '../../core/tool-registry.js';
+import { setApprovalHandler, type ToolSpec } from '../../core/tool-registry.js';
 
 interface PendingCall {
   id: string;
@@ -57,12 +58,12 @@ export class ToolApprovalView extends SurfaceComponent {
 
   override connectedCallback(): void {
     super.connectedCallback();
-    toolRegistry.onApprovalRequired = this.handleApprovalRequired.bind(this);
+    setApprovalHandler(this.handleApprovalRequired.bind(this));
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
-    toolRegistry.onApprovalRequired = undefined;
+    setApprovalHandler(undefined);
   }
 
   private handleApprovalRequired(call: ToolCall, spec: ToolSpec): Promise<unknown> {
@@ -255,9 +256,9 @@ export class ToolApprovalView extends SurfaceComponent {
 
   private onApprove = (): void => {
     if (!this.current) return;
-    const { resolve } = this.current;
+    const { resolve, args } = this.current;
     this.current = null;
-    resolve(this.current?.args ?? {});
+    resolve(args);
     this.next();
     this.requestUpdate();
   };

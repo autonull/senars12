@@ -125,6 +125,10 @@ export class ProviderView extends SurfaceComponent {
     const pinned = this.hasAttribute('data-pinned');
     overlayManager.setPinned('provider', !pinned);
   };
+
+  private onPinChange = (event: CustomEvent<{ id: string; pinned: boolean }>): void => {
+    this.toggleAttribute('data-pinned', event.detail.pinned);
+  };
 }
 
 const PROVIDER_SURFACE = { id: 'provider', title: 'Provider', group: 'overlay' } as const;
