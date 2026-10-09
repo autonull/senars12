@@ -148,7 +148,14 @@ rich text; `4.4` controls; `0.5` tool approval + `prompt_user`; `4.5` pinning; `
 
 ## Progress (v7)
 
-- `[~]` P0.2 parity WIP landed (uncommitted): `rendererParity`/`declareParity`/`rendererParityFor`
-  added to `workspace-renderer.ts`; `rendererKind` mapping needs correction (O-see P0.2). No gating
-  consumer yet. `renderer-parity.test.ts` exists but does not yet exercise the data table.
-- `[ ]` all else.
+- `[x]` **P0.1 green typecheck** — fixed 24 pre-existing errors: `derivation-record` label;
+  `ConfigChangeData`/new `DerivationData` payloads; `CognitiveEvent` import; `BackendNode`/
+  `BackendVocabulary` import; recursive `ToolParamSchema`; `SemanticLinkKind` vocab typing (NARS +
+  MeTTa `uses-tool`); `run(args)` required; `DerivationRecord` via `@senars/core/schemas`; plus
+  overlay/related/provider/tool-approval wiring (`override`, `onPinChange`, `go`, `setApprovalHandler`).
+  `pnpm --dir ui typecheck` clean; 422/422 units.
+- `[x]` **P0.2 §10 parity** — `rendererParity`/`rendererParityFor`/`declareParity` are the data view;
+  `rendererSupports`/`rendererHasControl` read the table (single gating source); `rendererKind` is the
+  declared `surface` (`s-notebook`/`graph-surface`/`spacegraph-viewport`). Canonical loop + ordered-pair
+  round-trips tested. 423/423 units.
+- `[ ]` everything else.
