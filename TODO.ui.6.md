@@ -33,7 +33,7 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 | 8 | **`4.3 affordances` (edge half)** — edge popover Open-in-Notebook / Open View | M | `components/overlays/inspector.ts`, `components/node-detail-drawer.ts`, `core/workspace-projection.ts` | Node half landed; edge half needs `linkRefFor` |
 | 9 | **`1.4 rich text`** — inline full tables, view-barrel ownership | S | `core/inline-text.ts`, `components/renderers/notebook.ts` | Tokenizer + rendering landed; only tables + barrel remain |
 | 10 | **`4.4 controls`** — explicit prospective control, announce in overlay header | S | `components/timeline-scrubber.ts` | Live/past done; prospective + header announce remain |
-| 11 | **`0.5 tool approval`** — dialog overlay (needs producer: `tool.approval.request`) | S | `overlays/tool-approval.ts` (new) | Modal scrim landed; wire needs producer |
+| 11 | **`0.5 tool approval + prompt_user tool`** — modal dialog + `prompt_user` tool for system-initiated questions/forms/wizards | M | `overlays/tool-approval.ts` (new), `core/lm-provider.ts`, `core/tool-registry.ts` (new), `components/input-hud.ts` | Modal scrim landed; adds producer for `tool.approval.request`; registers `prompt_user` tool (question/confirm/form/select) with JSON Schema; composer prefill on response; reuses `tool-call`/`tool-result` blocks |
 | 12 | **`4.5 pinning`** — per-overlay pin button + `[data-pinned]` CSS | S | `core/overlay-manager.ts`, `core/events.ts`, `core/commands.ts`, `components/app-layout.ts` | Manager seam + session-only pinning landed |
 
 ---
@@ -45,6 +45,18 @@ Size: **S** ≈ half day · **M** ≈ day · **L** ≈ multi-day
 | **`4.3 derivation-record`** (`s-tree` view) | WP5 `3.3` `DerivationRecord` payload | — |
 | **`1.5 page`** (turn/page boundary policy) | Section model `pageOf` exists; needs auto-page producer | — |
 | **`1.4 block-level streaming`** | Backend partial assistant text in `$chatMessages` | — |
+
+## Synergies unlocked by `0.5 tool approval + prompt_user`
+
+| Capability | How it's achieved |
+|------------|-------------------|
+| **System prompts user** | `prompt_user` tool → approval dialog → user response → `tool-result` block → system continues |
+| **Wizard/flow engine** | Multi-step `prompt_user` calls with `schema` + `required`; state in `tool-call` block `data` |
+| **Human-in-the-loop steering** | Reasoner emits `tool-call` for `prompt_user` with `confirm` type before critical actions (retract, revise, budget adjust) |
+| **Form-driven data entry** | `form` type with JSON Schema → structured `tool-result` → parsed into workspace blocks |
+| **Interactive clarification** | `question`/`select` types for disambiguation during formalization (`3.2`) |
+| **Audit trail** | All prompts/responses visible as `tool-call`/`tool-result` blocks in workspace |
+| **Composer integration** | `composer:focus` event with `prefill` from `tool-result` for seamless follow-up |
 
 ---
 
