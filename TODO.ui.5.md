@@ -45,7 +45,8 @@ Ordered by leverage on the critical path; `→` files are the likely edit surfac
 3. **`2.4 inspection & embedded views`** (L) — node *and* edge popovers landed; the popover's notebook
    card, the drawer's Links tab and the embedded-view cluster remain. (`4.3 affordances` and `4.5 pinning` partial —
    inspector reach landed; manager/command pinning. `1.4 rich text` partial — inline tokenizer.)
-4. **`4.4 anchor`** (M) · **`ops sequencing`** (M) — timeline/ops, independent of WP3 completion.
+4. **`ops sequencing`** (M) — deferred until something emits `WorkspaceOp`; the cursor half of
+   **`4.4`** landed (one cursor, real `createdAt`, admission in the notebook).
    (`4.4 controls` is partially landed — live reset + readout; see WP4.)
 
 *(Landed from this queue: the `2.4` node hover popover (and with it the `innerHTML` sink), the
@@ -120,7 +121,8 @@ Landed extension points — wire features here instead of re-deriving them.
   provider state, never the `lm.status` payload; request a switch through the transport, never a raw
   `lm.switch`.
 - **Section model** — `core/sections.ts` (`sectionTree`, `SectionNode`/`SectionTree`, `pageOf`,
-  `foldableSections`): the one recursive, fold-aware reading of containment. The notebook, the ToC,
+  `foldableSections`, `isAdmitted`/`admittedRoots`): the one recursive, fold-aware reading of
+  containment, and the present-anchored admission rule the scrub cursor is applied through. The notebook, the ToC,
   `j`/`k` and the breadcrumb all walk it, so a new nesting depth needs no new walker — and
   `1.5 page` gets its model for free. `parentMap` and `rootBlocks` are gone; `navigation.ts` no
   longer re-derives the tree.
@@ -343,16 +345,32 @@ Landed extension points — wire features here instead of re-deriving them.
   now renders the present as `maxTime` instead of the invalid `Infinity`, so the default live state is
   usable. Remaining: an explicit *prospective* control (the temporal gate has no future term today) and
   moving the announce region to the overlay header. `→ components/timeline-scrubber.ts`. `(ag)`
-- [ ] **4.4 anchor** — present-anchored cursor fading newly admitted blocks; thread `createdAt`/event
-  time through `projectGraph`/projection. `→ core/workspace-graph.ts`,
-  `core/workspace-projection.ts`, `components/overlays/timeline.ts`. `(ag)`,`(y)`
+- [x] **4.4 anchor** — present-anchored cursor fading newly admitted blocks; thread `createdAt`/event
+  time through `projectGraph`/projection. Landed: `BackendNode.occurredAt` carries the engine's own
+  `occurrenceTime` (the field name is the adapter's business, the slot is the contract's), so
+  `projectReasoning` stamps a real `createdAt` instead of the hardcoded `0` that made every reasoning
+  block claim epoch 0. **The cursor was two sources:** `$view.timeline.t` is what the modulation gate
+  reads, while `$workspaceGraph.timeCursor` was written by nobody and read by nobody. It is now
+  derived — a store subscription mirrors the scrub cursor onto the substrate, storing the present
+  (`Infinity`) as `undefined` — and `isAdmitted(block, cursor)` / `admittedRoots(tree, cursor)` in
+  `core/sections.ts` decide admission, which is the first thing the scrub actually *does* to the
+  workspace: a page admitted after the cursor is not rendered, a block inside an admitted page is
+  marked `data-admitted="false"` and fades. A block with no event time is **not** judged — a producer
+  that does not thread one is not claiming to be from the future. Remaining: fading is the notebook's
+  only consumer; the graph and the ToC do not yet admit by the cursor.
+  `→ core/reasoning-backend.ts`, `core/nars-backend.ts`, `core/workspace-projection.ts`,
+  `core/sections.ts`, `core/store.ts`, `components/renderers/notebook.ts`. `(ag)`,`(y)`
 - [x] **4.4 gating** — gate the `⏱` HUD control on temporal availability (node with `occurrenceTime`
   or a capability flag). Landed as `hasTemporalData()` in `core/store.ts` (any `$graphNodes` entry with
   `occurrenceTime`); the HUD watches `$graphNodes` and only paints `⏱` when true. The capability-flag
   alternative is unused — engine nodes are the honest signal today.
   `→ components/workspace-hud.ts`, `core/store.ts`. `(ag)`
 - [ ] **ops sequencing** — carry engine `seq`/`eventRefs` on `WorkspaceOp` for ordering/provenance.
-  `→ core/workspace-graph.ts`, `core/workspace-projection.ts`. `(Phase 0.1–0.3)`
+  Deferred for the same reason as `2.6 context`: `WorkspaceOp` has **no producer** — the projection
+  returns a graph, not ops — so a `seq` field would be read by nobody, and `$lastSeqId` already holds
+  the engine sequence. Land it with the first thing that actually emits ops (a live `applyWorkspaceOps`
+  path, most likely `3.6` steer/author). `→ core/workspace-graph.ts`, `core/workspace-projection.ts`.
+  `(Phase 0.1–0.3)`
 
 ## WP5 — Reasoning vertical slice
 
@@ -606,6 +624,12 @@ in v3 Appendix D). Rolled up:
   id the backend does not carry resolves to `undefined` rather than to a block that does not exist.
   Consumers: the inspector's Actions tab gains **Open in Notebook** (renderer + focus) and **Open
   View** (artifact overlay, gated on a real `ViewSpec`). Suite **369 green**.
+- **WP4 `4.4 anchor`** — the substrate had no time and the scrub had no effect. `BackendNode.occurredAt`
+  carries `occurrenceTime` so reasoning blocks get a real `createdAt` (they were all `0`); the two
+  cursors collapse into one — `$workspaceGraph.timeCursor` is derived from `$view.timeline.t`, the
+  number the modulation gate already reads — and `isAdmitted`/`admittedRoots` apply it: a page
+  admitted after the cursor is not rendered at all, a block inside an admitted page fades via
+  `data-admitted="false"`. A block with no event time is not judged. Suite **383 green**.
 - **WP3 `2.4` edge popover + edge half of the mapping** — `explainLinkModel(graph, ref)` in
   `core/explain.ts`: a link is explained by both endpoints *plus* the explanation of the block it
   lands on, because that is what an edge is for; `ExplainLink` gained `confidence` and `eventRefs`.
@@ -622,5 +646,6 @@ in v3 Appendix D). Rolled up:
   testable without a canvas. The viewport keeps only hit-testing and placement, resolves elements via
   one `blockRefOf`, and its context menu gained **Open in Notebook**. Suite **374 green**, including a
   test that an engine term containing markup renders as text.
+
 
 
