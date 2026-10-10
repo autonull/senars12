@@ -47,6 +47,10 @@ export type UiSignals = {
   'composer:focus': { refs?: string[]; mode?: string };
   /** Open the floating composer at a position. */
   'composer:open': { position?: { x: number; y: number }; anchor?: string };
+  /** Set the composer mode from palette/command. */
+  'composer:mode': { mode: string };
+  /** Prefill the composer with content (e.g., from tool result). */
+  'composer:prefill': { content: string; mode?: string; refs?: string[] };
   /** Reset all test state. */
   'test:reset-all': void;
   /** Single engine step. */

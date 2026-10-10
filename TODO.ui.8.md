@@ -61,7 +61,7 @@ P2 ─▶ P3 ─▶ P4
 | 2.1 | **Incremental growth** — animate new workspace blocks in (replace today's replace-by-diff), no full relayout. **Implemented**: `GraphRenderer.present()` computes diff via `workspace-diff.ts` and emits `WorkspaceOp` stream; `applyWorkspaceOps` in `graph-viewport.ts:778` animates enter/exit/move. | ✅ Done | `core/workspace-diff.ts`, `components/renderers/graph.ts:78-97`, `components/graph-viewport.ts:778-859` | `present` computes diff → emits enter/exit/move ops; `apply` animates each op; still cell stable; motion cell shows FLIP/GSAP |
 | 2.2 | **Chat clusters** — compound clusters from `contains`/headings; set `children` on turns. **Implemented**: `isContainer` in `graph-projection.ts` treats `turn` blocks with children as compound parents; `syncWorkspaceLayer` in `graph-viewport.ts` handles fold state via `$collapsedBlocks`; block menu has Collapse/Expand action; double-click on cluster node toggles fold. | ✅ Done | `core/graph-projection.ts:49-50`, `components/graph-viewport.ts:884-940`, `components/overlays/block-menu.ts:68-78` | multi-turn chat collapses into cluster cell; fold/unfold in notebook; graph shows cluster as single node with expand affordance |
 | 2.3 | **Floating composer** — anchored to block/node/subgraph; summoned, not persistent; cy→DOM handoff; capability-gated modes. **Implemented** in `composer-focus.ts`. | ✅ Done | `components/composer-focus.ts`, `core/composer-modes.ts`, `core/events.ts` | composer opens anchored to selection; mode bar reflects `availableComposerModes($capabilities)`; prefill from `tool-result`; cell in gallery |
-| 2.4 | **Composer sweep** — mode bar ↔ palette share one action source; `composer.prefill`; per-segment preview; guard `decomposeInput` over-splitting; `ComposerFocus` extracted. | 🟡 Partial | `components/composer-focus.ts`, `components/input-hud.ts`, `core/input-decomposition.ts:30-47`, `core/commands.ts` | one action source (mode bar = palette subset); prefill from `tool-result` block; decimal/abbrev safe in `isFaithfulDecomposition` |
+| 2.4 | **Composer sweep** — mode bar ↔ palette share one action source; `composer.prefill`; per-segment preview; guard `decomposeInput` over-splitting; `ComposerFocus` extracted. **Implemented**: added `composer.mode.*` commands to registry (palette now lists mode switching); added `composer:mode` and `composer:prefill` events; both `ComposerFocus` and `InputHUD` listen for them; palette can switch modes; agent/tool-result can prefill via `dispatchCommand('composer.prefill', ...)`. | ✅ Done | `components/composer-focus.ts`, `components/input-hud.ts`, `core/commands.ts:181-195`, `core/events.ts:50-53` | mode bar = palette subset (commands derive from `availableComposerModes`); `composer.prefill` via command/event; decimal/abbrev safe in `isFaithfulDecomposition` |
 | 2.5 | **Graph polish** — unify lens/capability styling; exclude hidden layer from `fit`; bind `graph.ask-selection` (`a`); HUD/palette layout group + `graph.layout.cycle`; register `chronological-flow`/`source-view` SpaceGraph surfaces. | ⬜ Not started | `components/renderers/graph.ts`, `core/graph-layer.ts`, `core/workspace-renderer.ts` | hidden layer not fitted; layout cycle reachable via palette; `graph.ask-selection` (`a`) opens composer with selection refs; new surfaces get cells |
 | 2.6 | **Motion capture support** (O8) — let the harness snapshot a settled frame of an interaction (or a storyboard strip), so animation is contract-tested. | ⬜ Not started (O8) | `tests/visual/reporter.ts`, `tests/visual/matrix.ts`, `scripts/build-gallery.ts` | one motion item captured deterministically; storyboard strip support; gallery shows motion cells |
 
@@ -175,7 +175,7 @@ These are implementation patterns to follow, not separate TODO items:
 - **Extensibility**: `surface-codegen` → `VISUAL_CELLS`, docs-as-code, plugin contribution point — `core/surface-codegen.ts`, `core/plugins.ts`
 
 ### What's Partial (Yellow)
-- **Composer sweep**: `ComposerFocus` extracted; mode bar ↔ palette don't share single action source; no `composer.prefill` from tool-result (P2.4)
+- (none — P2.4 complete)
 
 ### What's Deferred (Red)
 - **Graph3D**: `renderer:graph3d` — last `KNOWN_GAPS` entry (O6)
@@ -207,11 +207,13 @@ These are implementation patterns to follow, not separate TODO items:
 10. **P4.4 Performance budgets** — Done: `PerformanceBudgetTracker` with assertions in projections.
 11. **P4.5 Error taxonomy** — Done: 16 typed error classes with recovery affordances in error boundary.
 
-### P4 — **NEXT: P2.4 Composer Sweep** 🎯
+### P5 — **NEXT: P2.5 Graph Polish** 🎯
 13. **P2.1 Incremental growth** — **Done**: `GraphRenderer.present()` computes diff via `workspace-diff.ts` and emits `WorkspaceOp` stream; `applyWorkspaceOps` in `graph-viewport.ts:778` animates enter/exit/move.
 14. **P2.2 Chat clusters** — **Done**: `isContainer` in `graph-projection.ts` treats `turn` blocks with children as compound parents; `syncWorkspaceLayer` handles fold state; block menu has Collapse/Expand; double-click toggles fold.
-14. **P2.4 Composer sweep** — Unify mode bar ↔ palette action source; add `composer.prefill` from tool-result.
-15. **P2.5 Graph polish** — Hidden layer fit exclusion, `graph.ask-selection` binding, layout cycle command, storyboard surfaces.
+15. **P2.4 Composer sweep** — **Done**: mode bar ↔ palette share action source via `composer.mode.*` commands; `composer.prefill` via `dispatchCommand('composer.prefill', ...)` or `composer:prefill` event; `ComposerFocus` extracted.
+
+### P5 — Polish & Ergonomics
+16. **P2.5 Graph polish** — Hidden layer fit exclusion, `graph.ask-selection` binding, layout cycle command, storyboard surfaces.
 
 ### P5 — Engine-Driven UI (Functional Leap)
 16. **P3.3 Control mode** — HUD toggle, stop button → engine abort, budget/stop visible.
@@ -330,9 +332,9 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 
 ## First move
 
-**P0, P1, P2, P3, P2.2 complete.** Cross-cutting (X, C, A) complete. P4 (productization) complete except P4.3 Graph3D (deferred O6).
+**P0, P1, P2, P3, P2.2, P2.4 complete.** Cross-cutting (X, C, A) complete. P4 (productization) complete except P4.3 Graph3D (deferred O6).
 
-**Next: P4 — P2.4 Composer Sweep** — unify mode bar ↔ palette action source; add `composer.prefill` from tool-result.
+**Next: P5 — P2.5 Graph Polish** — hidden layer fit exclusion, `graph.ask-selection` binding, layout cycle command, storyboard surfaces.
 
 Remaining work:
 
@@ -341,7 +343,7 @@ Remaining work:
 | **P2.1** | Incremental growth | ✅ **Done** | `present()` computes diff via `workspace-diff.ts`; `applyWorkspaceOps` animates |
 | **P2.2** | Chat clusters | ✅ **Done** | `turn` blocks with children are compound parents; fold/unfold via double-click + block menu |
 | **P2.3** | Floating composer | ✅ **Done** | `composer-focus.ts`: anchor resolution, capability-gated modes, prefill |
-| **P2.4** | Composer sweep | 🟡 Partial | `ComposerFocus` extracted; mode bar ↔ palette action source not unified |
+| **P2.4** | Composer sweep | ✅ **Done** | mode bar ↔ palette share action source via commands; `composer.prefill` via command/event |
 | **P2.5** | Graph polish | ⬜ Not started | hidden layer fit exclusion, `graph.ask-selection`, layout cycle, storyboard surfaces |
 | **P2.6** | Motion capture | ⬜ Not started | storyboard strip support (O8) |
 | **P3.1** | Command execution | ✅ **Done** | `dispatchCommand` in `commands.ts:293` |

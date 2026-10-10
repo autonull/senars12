@@ -129,6 +129,8 @@ export class InputHUD extends BaseComponent {
       }
     });
     this.#unsubscribeFocus = eventBus.on('composer:focus', this.onComposerFocus);
+    eventBus.on('composer:mode', this.onComposerMode);
+    eventBus.on('composer:prefill', this.onComposerPrefill);
     this.observeComposerHeight();
   }
 
@@ -162,6 +164,23 @@ export class InputHUD extends BaseComponent {
     if (mode && availableComposerModes($capabilities.get()).some((m) => m.id === mode)) {
       this.mode = mode as ComposerMode;
     }
+    this.focusInput();
+  };
+
+  private onComposerMode = ({ mode }: { mode: string }) => {
+    if (availableComposerModes($capabilities.get()).some((m) => m.id === mode)) {
+      this.mode = mode as ComposerMode;
+      this.decomposition = decomposeForMode(this.textareaValue, this.mode);
+    }
+  };
+
+  private onComposerPrefill = ({ content, mode, refs }: { content: string; mode?: string; refs?: string[] }) => {
+    if (content) this.textareaValue = content;
+    if (mode && availableComposerModes($capabilities.get()).some((m) => m.id === mode)) {
+      this.mode = mode as ComposerMode;
+    }
+    if (refs?.length) this.contextRefs = [...new Set(refs)];
+    this.decomposition = decomposeForMode(this.textareaValue, this.mode);
     this.focusInput();
   };
 

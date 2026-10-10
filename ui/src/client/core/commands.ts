@@ -12,13 +12,9 @@ import { eventBus } from './events.js';
 import { overlays } from './overlay-registry.js';
 import { foldableSections, sectionTree } from './sections.js';
 import { narsBackend } from './nars-backend.js';
-import {
-  $activeRenderer,
-  $collapsedBlocks,
-  $panels,
-  $workspaceGraph,
-  setCollapsed,
-} from './store.js';
+import { $activeRenderer, $capabilities, $collapsedBlocks, $panels, $workspaceGraph } from './index.js';
+import { setCollapsed } from './store.js';
+import { availableComposerModes, type ComposerMode } from './composer-modes.js';
 import { workspaceRenderers } from './workspace-renderer.js';
 import { validateCommandArgs } from './command-schemas.js';
 
@@ -170,6 +166,23 @@ const derivedCommands = (): Command[] => [
     group: 'View',
     keywords: 'overlay window tile arrange grid',
     run: () => eventBus.emit('overlay:tile'),
+  },
+  ...availableComposerModes($capabilities.get()).map((mode): Command => ({
+    id: `composer.mode.${mode.id}`,
+    title: `Composer: ${mode.label}`,
+    group: 'Compose',
+    keywords: `composer mode ${mode.id} ${mode.label}`,
+    run: () => eventBus.emit('composer:mode', { mode: mode.id }),
+    available: () => availableComposerModes($capabilities.get()).some((m) => m.id === mode.id),
+  })),
+  {
+    id: 'composer.prefill',
+    title: 'Prefill composer',
+    group: 'Compose',
+    keywords: 'composer prefill tool result seed',
+    run: (args) => eventBus.emit('composer:prefill', { content: String(args.content ?? ''), mode: String(args.mode ?? ''), refs: (args.refs as string[] | undefined) ?? [] }),
+    parse: (args) => ({ content: String(args.content ?? ''), mode: String(args.mode ?? ''), refs: (args.refs as string[] | undefined) ?? [] }),
+    paletteHidden: true,
   },
 ];
 
