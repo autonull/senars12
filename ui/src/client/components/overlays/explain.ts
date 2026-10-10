@@ -25,6 +25,7 @@ import {
   type ExplainModel,
   type ExplainSubject,
 } from '../../core/explain.js';
+import { Capability } from '../../core/capabilities.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
 import { $nodeHistory, $workspaceGraph } from '../../core/store.js';
 import { surfaceTag } from '../../core/surface-registry.js';
@@ -258,6 +259,7 @@ registerOverlay({
   id: EXPLAIN_SURFACE.id,
   title: EXPLAIN_SURFACE.title,
   tag: surfaceTag(EXPLAIN_SURFACE),
+  capability: 'reasoning' as Capability,
   window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 

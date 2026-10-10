@@ -98,6 +98,27 @@ export const GENERATED_VISUAL_CELLS: VisualCell[] = [
     "hash": "#panels=none"
   },
   {
+    "id": "overlay-nodes",
+    "group": "Overlays",
+    "title": "Concepts",
+    "surface": "overlay:nodes",
+    "hash": "#panels=none"
+  },
+  {
+    "id": "overlay-events",
+    "group": "Overlays",
+    "title": "Event Log",
+    "surface": "overlay:events",
+    "hash": "#panels=none"
+  },
+  {
+    "id": "overlay-chat",
+    "group": "Overlays",
+    "title": "Conversation",
+    "surface": "overlay:chat",
+    "hash": "#panels=none"
+  },
+  {
     "id": "contradiction-badge",
     "group": "Components",
     "title": "Contradiction badge",

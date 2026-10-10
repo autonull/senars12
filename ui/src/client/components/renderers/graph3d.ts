@@ -43,7 +43,7 @@ class Graph3DRenderer implements WorkspaceRenderer {
   private selection = new Set<Ref>();
 
   capabilities(): WorkspaceRendererCaps {
-    return { interactions: INTERACTIONS, blockKinds: 'all', parity: 'partial', surface: 'spacegraph-viewport' };
+    return { interactions: INTERACTIONS, blockKinds: 'all', parity: 'partial', surface: 'spacegraph-viewport', requiredCapability: 'reasoning' };
   }
 
   mount(host: HTMLElement, ctx: WorkspaceContext): void {

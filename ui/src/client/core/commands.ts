@@ -63,15 +63,24 @@ export const registeredCommands = (): Command[] => [...registry.values()];
 
 /** Commands whose existence derives from another registry. */
 const derivedCommands = (): Command[] => [
-  ...workspaceRenderers().map(
-    (renderer): Command => ({
-      id: `renderer.${renderer.id}`,
-      title: `Switch to ${renderer.label}`,
-      group: 'View',
-      keywords: `renderer view mode ${renderer.id}`,
-      run: () => $activeRenderer.set(renderer.id),
+  ...workspaceRenderers()
+    .filter((renderer) => {
+      const caps = renderer.capabilities();
+      return !caps.requiredCapability || capabilityGate(caps.requiredCapability);
     })
-  ),
+    .map(
+      (renderer): Command => ({
+        id: `renderer.${renderer.id}`,
+        title: `Switch to ${renderer.label}`,
+        group: 'View',
+        keywords: `renderer view mode ${renderer.id}`,
+        run: () => $activeRenderer.set(renderer.id),
+        available: () => {
+          const caps = renderer.capabilities();
+          return !caps.requiredCapability || capabilityGate(caps.requiredCapability);
+        },
+      })
+    ),
   ...overlays()
     .filter((overlay) => !overlay.hiddenInPalette)
     .map((overlay): Command => {

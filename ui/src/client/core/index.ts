@@ -401,6 +401,20 @@ export {
 } from './segmentation.js';
 export { initConfigChangeProducer, mountWorkspaceProjection, syncWorkspaceGraph } from './workspace-bindings.js';
 export {
+  validateAllContributions,
+  validateContribution,
+  type ValidationError,
+  type ValidationResult,
+} from './contribution-validator.js';
+export {
+  registerPlugin,
+  getPlugin,
+  getPlugins,
+  applyPlugins,
+  resetPlugins,
+  type PluginContribution,
+} from './plugins.js';
+export {
   declareParity,
   registerRenderer,
   rendererHasControl,

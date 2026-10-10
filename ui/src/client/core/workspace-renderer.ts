@@ -15,6 +15,7 @@ import type {
   SemanticLink,
   WorkspaceOp,
 } from './workspace-graph.js';
+import { Capability } from './capabilities.js';
 
 /** Every interaction a renderer may implement; capabilities declare the subset. */
 export const WORKSPACE_INTERACTIONS = [
@@ -49,6 +50,8 @@ export type WorkspaceRendererCaps = {
   readonly controls?: readonly WorkspaceControl[];
   /** The surface element/kind this renderer presents (e.g. `s-notebook`, `graph-surface`). */
   readonly surface?: string;
+  /** Capability required to use this renderer; if absent, always available. */
+  readonly requiredCapability?: Capability;
 };
 
 /** Viewport/scroll/camera plus focus/selection — what a renderer switch preserves. */

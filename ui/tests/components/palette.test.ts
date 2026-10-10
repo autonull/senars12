@@ -7,6 +7,7 @@ import { resetCommandHistory } from '../../src/client/core/command-history.js';
 import { dispatchCommand } from '../../src/client/core/commands.js';
 import { eventBus } from '../../src/client/core/events.js';
 import { $activeRenderer } from '../../src/client/core/store.js';
+import { setCapability } from '../../src/client/core/capabilities.js';
 
 const mount = async () => {
   const el = document.createElement('s-palette');
@@ -31,6 +32,8 @@ afterEach(() => {
   document.body.innerHTML = '';
   $activeRenderer.set('graph');
   resetCommandHistory();
+  setCapability('reasoning', false);
+  setCapability('uiControl', false);
 });
 
 describe('command palette', () => {
@@ -74,6 +77,7 @@ describe('command palette', () => {
   });
 
   it('fronts a Recent group with the last-run commands, most recent first', async () => {
+    setCapability('reasoning', true);
     dispatchCommand('renderer.graph3d');
     dispatchCommand('overlay.toc');
     dispatchCommand('renderer.graph3d');

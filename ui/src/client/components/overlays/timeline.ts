@@ -9,6 +9,7 @@
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { eventBus } from '../../core/events.js';
+import { Capability } from '../../core/capabilities.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
@@ -63,6 +64,7 @@ registerOverlay({
   id: TIMELINE_SURFACE.id,
   title: TIMELINE_SURFACE.title,
   tag: surfaceTag(TIMELINE_SURFACE),
+  capability: 'reasoning' as Capability,
   window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 

@@ -31,6 +31,7 @@ export type VisualCell = {
 };
 
 const NARROW = { width: 640, height: 900 } as const;
+const MEDIUM = { width: 1024, height: 768 } as const;
 
 /** Kinds whose block carries a typed artifact, so the artifact viewer has content. */
 const ARTIFACT_KINDS = [
@@ -599,6 +600,13 @@ const HAND_CURATED_CELLS: VisualCell[] = [
     title: 'Narrow viewport — single column',
     hash: '#panels=none',
     viewport: NARROW,
+  },
+  {
+    id: 'graph-medium',
+    group: 'Responsive',
+    title: 'Medium viewport — two column',
+    hash: '#panels=none',
+    viewport: MEDIUM,
   },
 
   // Overlays — one per registered overlay surface.

@@ -1,8 +1,11 @@
 /** Importing this barrel defines and registers every overlay surface. */
 import './artifact.js';
 import './block-menu.js';
+import './chat.js';
+import './events.js';
 import './explain.js';
 import './inspector.js';
+import './nodes.js';
 import './overlay-header.js';
 import './palette.js';
 import './provider.js';

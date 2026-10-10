@@ -35,6 +35,9 @@ const SURFACES: SurfaceDescriptor[] = [
   { id: 'overlay-related', title: 'Related', group: 'overlay' },
   { id: 'overlay-block-menu', title: 'Block actions', group: 'overlay' },
   { id: 'overlay-tool-approval', title: 'Tool approval', group: 'overlay' },
+  { id: 'overlay-nodes', title: 'Concepts', group: 'overlay' },
+  { id: 'overlay-events', title: 'Event Log', group: 'overlay' },
+  { id: 'overlay-chat', title: 'Conversation', group: 'overlay' },
   // 'overlay-inspector' is covered by hand-curated 'selection-node-detail' with proper prepare
   { id: 'contradiction-badge', title: 'Contradiction badge', group: 'component', tag: 'contradiction-badge' },
 ];
@@ -63,6 +66,9 @@ const SURFACE_OVERRIDES: Partial<Record<string, Partial<VisualCell>>> = {
   'overlay-related': { surface: 'overlay:related', hash: '#panels=none' },
   'overlay-block-menu': { surface: 'overlay:block-menu', hash: '#panels=none' },
   'overlay-tool-approval': { surface: 'overlay:tool-approval', hash: '#panels=none' },
+  'overlay-nodes': { surface: 'overlay:nodes', hash: '#panels=none' },
+  'overlay-events': { surface: 'overlay:events', hash: '#panels=none' },
+  'overlay-chat': { surface: 'overlay:chat', hash: '#panels=none' },
   // 'overlay-inspector' covered by hand-curated 'selection-node-detail'
   'contradiction-badge': { surface: 'component:contradiction-badge' },
 };

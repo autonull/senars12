@@ -7,6 +7,7 @@ import './primitives/banner.js';
 const MESSAGES: Record<string, string> = {
   connecting: 'Connecting to SeNARS…',
   disconnected: 'Connection lost. Messages are queued.',
+  standalone: 'Running in standalone mode (no backend)',
   connected: '',
 };
 
@@ -34,18 +35,25 @@ export class ConnectionBanner extends BaseComponent {
 
   override render() {
     const state = $connectionState.get();
-    if (state === 'connected' || this.dismissed || !MESSAGES[state]) return '';
+    if (state === 'connected' || state === 'standalone' || this.dismissed || !MESSAGES[state]) return '';
+
+    // After the early return, TypeScript narrows the type. Cast to full union to avoid narrowing issues.
+    const fullState = state as 'connecting' | 'disconnected' | 'reconnecting' | 'standalone';
+    const isConnecting = fullState === 'connecting';
+    const isStandalone = fullState === 'standalone';
+    const isReconnecting = fullState === 'reconnecting';
+    const isDisconnected = fullState === 'disconnected';
 
     const message =
-      state === 'reconnecting'
+      isReconnecting
         ? `Connection lost. Reconnecting (attempt ${this.reconnectAttempt})…`
-        : MESSAGES[state];
+        : MESSAGES[fullState];
 
     return html`
-      <s-banner variant=${state === 'disconnected' ? 'error' : state === 'reconnecting' ? 'warning' : 'info'} dismissible @s-dismiss=${this.handleDismiss}>
-        <span slot="icon">${state === 'connecting' ? '⟳' : '⚠'}</span>
+      <s-banner variant=${isDisconnected ? 'error' : isReconnecting ? 'warning' : 'info'} dismissible @s-dismiss=${this.handleDismiss}>
+        <span slot="icon">${isConnecting ? '⟳' : isStandalone ? '💻' : '⚠'}</span>
         ${message}
-        ${state === 'disconnected' ? html`<button class="retry-btn" @click=${this.handleRetry}>Retry</button>` : ''}
+        ${isDisconnected ? html`<button class="retry-btn" @click=${this.handleRetry}>Retry</button>` : ''}
       </s-banner>
     `;
   }

@@ -9,6 +9,7 @@ import '../../src/client/core/view-host.js';
 import { eventBus } from '../../src/client/core/events.js';
 import { $lmProvider } from '../../src/client/core/lm-provider.js';
 import { $activeRenderer, $graphLayer, $graphNodes, $telemetry } from '../../src/client/core/store.js';
+import { setCapability } from '../../src/client/core/capabilities.js';
 
 const UNKNOWN_PROVIDER = { id: 'unknown', available: false, providers: [] } as const;
 
@@ -19,6 +20,9 @@ afterEach(() => {
   $graphNodes.set(new Map());
   $lmProvider.set(UNKNOWN_PROVIDER);
   $telemetry.set({ reasoning_hz: [1, 2], tokens_per_sec: [1, 2], memory_mb: [1, 2], ws_latency_ms: [1, 2] });
+  // Reset capabilities to default
+  setCapability('reasoning', false);
+  setCapability('uiControl', false);
 });
 
 const mountHud = async () => {
@@ -36,6 +40,8 @@ const query = <T extends Element>(root: ParentNode | null | undefined, selector:
 
 describe('workspace hud', () => {
   it('lists every registered renderer and marks the active one', async () => {
+    // Enable reasoning capability to show graph/graph3d renderers
+    setCapability('reasoning', true);
     const el = await mountHud();
     const ids = [...(el.shadowRoot?.querySelectorAll('button[data-renderer]') ?? [])].map(
       (button) => button.getAttribute('data-renderer')
@@ -68,6 +74,7 @@ describe('workspace hud', () => {
   });
 
   it('derives the layer control from renderer capabilities', async () => {
+    setCapability('reasoning', true);
     const el = await mountHud();
     const layers = () =>
       [...(el.shadowRoot?.querySelectorAll('button[data-layer]') ?? [])].map((button) =>
@@ -92,6 +99,7 @@ describe('workspace hud', () => {
   });
 
   it('summons the timeline overlay from the HUD when nodes carry occurrence times', async () => {
+    setCapability('reasoning', true);
     $graphNodes.set(new Map([['n1', { id: 'n1', nodeType: 'nar:concept', occurrenceTime: 1000 }]]));
     const el = await mountHud();
     const opened: string[] = [];

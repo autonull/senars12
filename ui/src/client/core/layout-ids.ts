@@ -10,6 +10,9 @@ const registered = new Set<string>();
 /** Whether a layout arranges the reasoning graph or the semantic conversation (§5.3). */
 export type LayoutScope = 'concept' | 'conversation';
 
+/** A registered layout ID — the set of valid values grows as layouts register. */
+export type LayoutId = string & { readonly __layoutId: unique symbol };
+
 export const registerLayoutId = (id: string): void => {
   registered.add(id);
 };

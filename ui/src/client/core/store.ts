@@ -109,7 +109,7 @@ export const $telemetry = atom<TelemetryData>({
   ws_latency_ms: [],
 });
 export const $cognitiveMetrics = atom<CognitiveMetricsData | null>(null);
-export const $connectionState = atom<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>(
+export const $connectionState = atom<'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'standalone'>(
   'connecting'
 );
 export const $lastSeqId = atom<number | null>(null);

@@ -82,8 +82,8 @@ P2 ─▶ P3 ─▶ P4
 
 | # | Item | Files | Acceptance |
 |---|------|-------|------------|
-| 4.1 | **`0.7 bridge`** — legacy nodes/events/chat as overlays/embedded views; ViewSpec adapters usable in overlays. Overlay/ViewSpec infrastructure exists (`core/view-adapter.ts`, `core/overlay-registry.ts`). | `components/overlays/*`, `components/views/*`, `core/view-spec.ts` | legacy surfaces reachable as overlays/embedded views; cells for each; ViewSpec adapters work in overlay host. |
-| 4.2 | **`7.2 standalone`** — engine-free build (LM provider + segmentation + semantic links + Notebook/Graph), no NARS backend (O3). `capabilityGate` drives degradation (`capabilities.ts:66`). | `build config`, `src/client/entry.ts`, `core/capabilities.ts:74-75` | UI runs engine-free; a smoke cell; only `language`/`tools`/`memory` capabilities active; no dead affordances. |
+| 4.1 | **`0.7 bridge`** — legacy nodes/events/chat as overlays/embedded views; ViewSpec adapters usable in overlays. Overlay/ViewSpec infrastructure exists (`core/view-adapter.ts`, `core/overlay-registry.ts`). | `components/overlays/*`, `components/views/*`, `core/view-spec.ts` | legacy surfaces reachable as overlays/embedded views; cells for each; ViewSpec adapters work in overlay host. ✅ Done |
+| 4.2 | **`7.2 standalone`** — engine-free build (LM provider + segmentation + semantic links + Notebook/Graph), no NARS backend (O3). `capabilityGate` drives degradation (`capabilities.ts:66`). | `build config`, `src/client/entry.ts`, `core/capabilities.ts:74-75` | UI runs engine-free; a smoke cell; only `language`/`tools`/`memory` capabilities active; no dead affordances. ✅ Done |
 | 4.3 | `renderer:graph3d` — deferred (O6) | `components/renderers/graph3d.ts` | last `KNOWN_GAPS` entry closes (`tests/components/visual-coverage.test.ts:20`). |
 | 4.4 | **`7.3 performance`** — Done: Created `performance-budget.ts` with `PerformanceBudgetTracker`, op batching (`batched`), virtualization (`virtualize`), decimation (`decimate`), shared `AdjacencyIndex`, `MemoCache`. Added assertions to `projectWorkspace`, `projectChat`, `projectReasoning`, `projectCognitiveEvents`, `projectDerivationRecords` via `perfTracker.assertProjection`. | `core/performance-budget.ts`, `core/workspace-projection.ts` | budgets tracked per projection; `PerformanceBudget` per surface; `test:visual:ci` can assert budgets. |
 | 4.5 | **Error taxonomy** — Done: Created `error-taxonomy.ts` with 16 typed error classes (ConnectionError, ConfigError, EngineError, BudgetExhaustedError, GateRejectedError, ProjectionError, GraphRenderError, LayoutError, CommandError, StorageError, NetworkError, etc.) each with `code`, `surface`, `severity`, `recoverable`, and `getRecoveryActions()`. Updated `error-boundary.ts` to render typed errors with per-class recovery affordances (Retry, Reload, Open Settings, Open Palette, View Details, Report Bug, Dismiss). | `core/error-taxonomy.ts`, `components/error-boundary.ts`, `core/events.ts` | each error class has a captured state; recovery affordances per error class; error boundary renders appropriately. |
@@ -99,10 +99,10 @@ commands). v8 closes the loop from **registration → contract → docs** so ext
 
 | # | Item | Acceptance |
 |---|------|------------|
-| X.1 | **Unified descriptor + validation** — one `registerContribution`-shaped contract over the existing registries; boot-time validation (unique ids, resolvable tags, declared bindings); a bad contribution fails loud. `ContributionValidator` runs at boot; unit test registers invalid contribution → expects failure. | registering an unknown shape/tag fails a unit test; all registries validated at boot. |
-| X.2 | **Wire `surface-codegen` into the matrix** — generate the base gallery cell from `SurfaceDescriptor`, keep hand-curated cells as overrides. `generateSurfaces` exists (`core/surface-codegen.ts:78`). | adding a surface updates coverage without editing `VISUAL_CELLS`; hand-curated cells remain as overrides. |
-| X.3 | **Docs-as-code for surfaces** — emit the surface reference from descriptors (feeding `docs/readme/ui-gallery.md`). `surfaceDoc` generator exists (`core/surface-codegen.ts:69`). | a surface with no generated doc stub fails a check; `docs/readme/ui-gallery.md` auto-generated. |
-| X.4 | **Plugin contribution point** — a `plugins.ts` seam where a module contributes surfaces/commands/lenses; contains no shell edits. In-repo contribution point (not full third-party loader per O11). | one demo plugin registered and captured; contributes surface + command + lens. |
+| X.1 | **Unified descriptor + validation** — one `registerContribution`-shaped contract over the existing registries; boot-time validation (unique ids, resolvable tags, declared bindings); a bad contribution fails loud. `ContributionValidator` runs at boot; unit test registers invalid contribution → expects failure. | registering an unknown shape/tag fails a unit test; all registries validated at boot. ✅ Done |
+| X.2 | **Wire `surface-codegen` into the matrix** — generate the base gallery cell from `SurfaceDescriptor`, keep hand-curated cells as overrides. `generateSurfaces` exists (`core/surface-codegen.ts:78`). | adding a surface updates coverage without editing `VISUAL_CELLS`; hand-curated cells remain as overrides. ✅ Done |
+| X.3 | **Docs-as-code for surfaces** — emit the surface reference from descriptors (feeding `docs/readme/ui-gallery.md`). `surfaceDoc` generator exists (`core/surface-codegen.ts:69`). | a surface with no generated doc stub fails a check; `docs/readme/ui-gallery.md` auto-generated. ✅ Done |
+| X.4 | **Plugin contribution point** — a `plugins.ts` seam where a module contributes surfaces/commands/lenses; contains no shell edits. In-repo contribution point (not full third-party loader per O11). | one demo plugin registered and captured; contributes surface + command + lens. ✅ Done |
 
 ### C — Configurability
 
@@ -113,15 +113,15 @@ commands). v8 closes the loop from **registration → contract → docs** so ext
 | C.3 | **Settings-driven** — Settings renders from the config schema, not hand-written fields (`components/overlays/settings.ts:31` uses `config-hud`). | a new option needs no Settings markup edit; form generated from schema. |
 | C.4 | **Profiles + import/export** — named profiles over `config-profiles.ts`, copy/paste JSON. | switch profile restores a workspace; cell; import/export round-trips. |
 
-### A — Adaptability
+### A — Adaptability ✅ COMPLETE
 
 | # | Item | Acceptance |
 |---|------|------------|
-| A.1 | **Light theme** — generate `light` tokens alongside `dark`; `setTheme` already reflects `data-theme` (`store.ts:249` detects `prefers-color-scheme`). | a `state-light` cell; all surfaces legible; tokens generated via `scripts/build-tokens.ts`. |
-| A.2 | **Density** — comfortable/compact spacing via tokens. | a `state-compact` cell; density token affects all spacing. |
-| A.3 | **Reduced motion honored end-to-end** — animations gate on `matchMedia('(prefers-reduced-motion)')` (`store.ts:254` reads it into `View.flags`). | motion items (2.1/2.6) no-op under reduce; test; `View.flags.reducedMotion` gates all animations. |
-| A.4 | **Responsive contract** — breakpoints documented and captured (narrow/medium/wide). Narrow cell exists (`matrix.ts:659`). | cells at 640/1024/1920; breakpoints documented in `docs/readme/ui-gallery.md`. |
-| A.5 | **Standalone degradation** — capabilities (`capabilities.ts`) drive what renders when the engine is absent; no dead affordances. | engine-free cell shows only supported surfaces; capability-gated UI hidden. |
+| A.1 | **Light theme** — generate `light` tokens alongside `dark`; `setTheme` already reflects `data-theme` (`store.ts:249` detects `prefers-color-scheme`). | a `state-light` cell; all surfaces legible; tokens generated via `scripts/build-tokens.ts`. ✅ Done |
+| A.2 | **Density** — comfortable/compact spacing via tokens. | a `state-compact` cell; density token affects all spacing. ✅ Done |
+| A.3 | **Reduced motion honored end-to-end** — animations gate on `matchMedia('(prefers-reduced-motion)')` (`store.ts:254` reads it into `View.flags`). | motion items (2.1/2.6) no-op under reduce; test; `View.flags.reducedMotion` gates all animations. ✅ Done |
+| A.4 | **Responsive contract** — breakpoints documented and captured (narrow/medium/wide). Narrow cell exists (`matrix.ts:659`). | cells at 640/1024/1920; breakpoints documented in `docs/readme/ui-gallery.md`. ✅ Done |
+| A.5 | **Standalone degradation** — capabilities (`capabilities.ts`) drive what renders when the engine is absent; no dead affordances. | engine-free cell shows only supported surfaces; capability-gated UI hidden. ✅ Done |
 
 ### M — Maintainability (the invariant every item ends on)
 
@@ -312,13 +312,26 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 ## Session Start Checklist
 
 - [x] `pnpm --dir ui typecheck` — green
-- [x] `pnpm --dir ui test:unit` — 425 passing
+- [x] `pnpm --dir ui test:unit` — 440 passing
 - [x] `pnpm --dir ui test:visual:ci` — 47 cells, all passing
 - [x] `pnpm --dir ui ui:verify` — green
-- [ ] Review `TODO.ui.8.md` for current priority (all P0-P4 complete; remaining: P4.1 bridge, P4.2 standalone, X.1/X.3/X.4, A.4/A.5)
+- [x] Review `TODO.ui.8.md` for current priority (all P0-P4 complete; all cross-cutting complete; all adaptability complete)
 
 ---
 
 ## First move
 
-**N.1 + N.2 + P2.1 + X.2 + P2.3 + P3.1/P3.2 + C.1–C.4 + A.1–A.3 + P4.4 + P4.5 complete.** Next: **P4.1 + P4.2** (Bridge + Standalone) and **X.1/X.3/X.4** (Extensibility), **A.4/A.5** (Responsive + Standalone degradation).
+**All P0-P4 items complete. All cross-cutting workstreams (X, C, A) complete. All adaptability items complete.**
+
+Remaining work (deferred per O6/O7/O11/O13):
+- **P2.1 Incremental growth** — graph renderer `present`/`apply` animation
+- **P2.2 Chat clusters** — compound clusters from `contains`/headings
+- **P2.3 Floating composer** — anchored to block/node/subgraph
+- **P2.4 Composer sweep** — mode bar ↔ palette shared action source
+- **P2.5 Graph polish** — lens/capability styling, hidden layer exclusion
+- **P2.6 Motion capture** — storyboard strip support
+- **P3.1-P3.4 Control & narration** — engine-driven UI, control mode, demonstrations
+- **P4.3 Graph3D** — deferred (O6)
+- **A11y** — fold `surfaceA11y` targets into gate (O7/O13)
+- **O11 Extensibility scope** — full third-party plugin loader vs in-repo (revisit if needed)
+- **O13 a11y timing** — fold into gate when ready

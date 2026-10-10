@@ -65,6 +65,7 @@ class GraphRenderer implements WorkspaceRenderer {
       parity: 'full',
       controls: ['layers'],
       surface: 'graph-surface',
+      requiredCapability: 'reasoning',
     };
   }
 

@@ -1528,10 +1528,45 @@ registered without a cell. The contract is data, not a hand-kept checklist:
 Run the whole contract locally with `pnpm ui:verify` (typecheck + unit + committed baselines + the
 contact sheet); the fast type+unit gate is `pnpm ui:gate`. Update baselines with
 `pnpm --dir ui test:visual:update` and rebuild the sheet alone with `pnpm ui:gallery`.
-
-The sheet is a local artifact (`ui/tests/visual/gallery/index.html`), regenerated on every run and
-deliberately not committed — a fresh clone regenerates it rather than reading a stale image set.
 `README.md` is likewise generated; edit a section under `docs/readme/` and run `pnpm readme`.
+
+---
+
+## Registered Surfaces
+
+Auto-generated from surface descriptors. Do not edit manually.
+
+### Views
+
+| Surface | Tag | Bindings |
+|---------|-----|----------|
+| View | `s-view` | — |
+
+### Renderers
+
+| Surface | Tag | Bindings |
+|---------|-----|----------|
+| Notebook | `s-notebook` | graph |
+
+### Overlays
+
+| Surface | Tag | Bindings |
+|---------|-----|----------|
+| Artifact | `s-artifact` | — |
+| Block actions | `s-block-menu` | — |
+| Command palette | `s-palette` | — |
+| Concepts | `s-nodes` | — |
+| Configuration | `s-settings` | — |
+| Conversation | `s-chat` | — |
+| Event Log | `s-events` | — |
+| Explanation | `s-explain` | — |
+| Inspector | `s-inspector` | — |
+| Provider | `s-provider` | — |
+| Related | `s-related` | — |
+| Table of contents | `s-toc` | — |
+| Telemetry | `s-telemetry` | — |
+| Timeline | `s-timeline` | — |
+| Tool approval | `s-tool-approval` | — |
 
 ---
 

@@ -23,6 +23,7 @@ import {
   setGraphLayer,
 } from '../core/store.js';
 import type { ViewSpec } from '../core/view-spec.js';
+import { capabilityGate } from '../core/capabilities.js';
 import { rendererHasControl, workspaceRenderer, workspaceRenderers } from '../core/workspace-renderer.js';
 import {
   DEFAULT_TELEMETRY_METRICS,
@@ -158,15 +159,20 @@ export class WorkspaceHud extends BaseComponent {
           @click=${() => this.togglePanels()}
         >▾</button>
         <div class="modes">
-          ${workspaceRenderers().map(
-            (renderer) => html`
-              <button
-                data-renderer=${renderer.id}
-                aria-pressed=${renderer.id === active}
-                @click=${() => $activeRenderer.set(renderer.id)}
-              >${renderer.label}</button>
-            `
-          )}
+          ${workspaceRenderers()
+            .filter((renderer) => {
+              const caps = renderer.capabilities();
+              return !caps.requiredCapability || capabilityGate(caps.requiredCapability);
+            })
+            .map(
+              (renderer) => html`
+                <button
+                  data-renderer=${renderer.id}
+                  aria-pressed=${renderer.id === active}
+                  @click=${() => $activeRenderer.set(renderer.id)}
+                >${renderer.label}</button>
+              `
+            )}
         </div>
         ${
           activeRenderer && rendererHasControl(activeRenderer, 'layers')

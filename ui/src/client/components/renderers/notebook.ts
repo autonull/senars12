@@ -269,7 +269,7 @@ class NotebookRenderer implements WorkspaceRenderer {
   #ctx?: WorkspaceContext;
 
   capabilities(): WorkspaceRendererCaps {
-    return { interactions: WORKSPACE_INTERACTIONS, blockKinds: 'all', parity: 'full', surface: 's-notebook' };
+    return { interactions: WORKSPACE_INTERACTIONS, blockKinds: 'all', parity: 'full', surface: 's-notebook', requiredCapability: 'language' };
   }
 
   mount(host: HTMLElement, ctx: WorkspaceContext): void {

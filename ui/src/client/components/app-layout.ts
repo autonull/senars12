@@ -88,6 +88,11 @@ export class AppLayout extends BaseComponent {
       .panel-left { max-width: 280px; }
       .panel-right { max-width: 320px; }
     }
+
+    @container app (min-width: 1025px) {
+      .panel-left { max-width: 360px; }
+      .panel-right { max-width: 400px; }
+    }
   `;
 
   #overlays?: OverlayHost;
