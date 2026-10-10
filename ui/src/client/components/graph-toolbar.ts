@@ -4,7 +4,6 @@ import type { ViewportMode } from '../core/index.js';
 import {
   $activeLens,
   $capabilityFilter,
-  $connectionState,
   $conversationLayout,
   $graphNodes,
   $graphShape,
@@ -38,13 +37,6 @@ const CAPABILITY_LABELS: Record<string, string> = {
   'long-term-memory': 'ltm',
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  connected: 'var(--colors-semantic-status-connected)',
-  connecting: 'var(--colors-semantic-status-connecting)',
-  reconnecting: 'var(--colors-semantic-status-reconnecting)',
-  disconnected: 'var(--colors-semantic-status-disconnected)',
-};
-
 @customElement('graph-toolbar')
 export class GraphToolbar extends BaseComponent {
   static override styles = css`
@@ -65,8 +57,6 @@ export class GraphToolbar extends BaseComponent {
     .search-input:focus { border-color: var(--colors-semantic-border-focus); width: 200px; }
     .search-input::placeholder { color: var(--colors-semantic-text-muted); }
     .spacer { flex: 1; }
-    .status-indicator { display: flex; align-items: center; gap: var(--spacing-scale-2); }
-    .status-dot { width: 6px; height: 6px; border-radius: 50%; }
     .layout-select {
       background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle);
       border-radius: var(--borderRadius-component-input); color: var(--colors-semantic-text-secondary);
@@ -126,7 +116,6 @@ export class GraphToolbar extends BaseComponent {
   override connectedCallback() {
     super.connectedCallback();
     this.watch($activeLens);
-    this.watch($connectionState);
     this.watch($panels);
     this.watch($viewportMode);
     this.watch($graphShape);
@@ -147,7 +136,6 @@ export class GraphToolbar extends BaseComponent {
   }
 
   override render() {
-    const state = $connectionState.get();
     const lensDesignerOpen = $panels.get().get('lens-designer')?.open;
 
     return html`
@@ -167,7 +155,8 @@ export class GraphToolbar extends BaseComponent {
       )}
 
       <div class="divider"></div>
-<lens-controller></lens-controller>
+
+      <lens-controller></lens-controller>
 
       <div class="divider"></div>
 
@@ -232,20 +221,10 @@ export class GraphToolbar extends BaseComponent {
 
       <div class="spacer"></div>
 
-      <button class="toolbar-btn"
-        @click=${() => eventBus.emit('overlay:open', { id: 'settings' })} title="Open settings dialog">Config</button>
-
       <button class="toolbar-btn ${lensDesignerOpen ? 'active' : ''}"
         @click=${() => this.togglePanel('lens-designer')} title="Open Lens Designer">Design</button>
 
       <contradiction-badge></contradiction-badge>
-
-      <div class="divider"></div>
-
-      <div class="status-indicator">
-        <span class="status-dot" style="background:${STATUS_COLORS[state]}" aria-hidden="true"></span>
-        <span style="color:var(--colors-semantic-text-muted)">${state}</span>
-      </div>
     `;
   }
 

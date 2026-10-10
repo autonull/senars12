@@ -160,8 +160,8 @@ CI/GitHub stays off (O4). `pnpm ui:gate` remains the fast type+unit gate.
 
 | # | Item | Status | Files | Acceptance |
 |---|------|--------|-------|------------|
-| C.1 | **One information architecture** — collapse `graph-toolbar` (top) and `workspace-hud` (bottom) into a planned shell: **top = context** (renderer · lens · layout · layer · search · zoom), **bottom = composer + essentials** (mode · send · status), **palette = everything else**. | ⬜ | `components/app-layout.ts`, `components/graph-toolbar.ts`, `components/workspace-hud.ts` | no function lacks a home; ≤ 7 primaries per bar; before/after cells |
-| C.2 | **One bottom bar, no overlap** — merge the floating HUD into the composer strip; reserve layout space so nothing occludes content (fixes the notebook last-block overlap). | ⬜ | `components/app-layout.ts`, `components/input-hud.ts`, `components/composer-focus.ts` | no element overlaps content; composer height reserved; narrow cell |
+| C.1 | **One information architecture** — collapse `graph-toolbar` (top) and `workspace-hud` (bottom) into a planned shell: **top = context** (renderer · lens · layout · layer · search · zoom), **bottom = composer + essentials** (mode · send · status), **palette = everything else**. | ✅ | `components/app-layout.ts`, `components/graph-toolbar.ts`, `components/bottom-bar.ts` (new) | no function lacks a home; ≤ 7 primaries per bar; before/after cells |
+| C.2 | **One bottom bar, no overlap** — merge the floating HUD into the composer strip; reserve layout space so nothing occludes content (fixes the notebook last-block overlap). | ✅ | `components/app-layout.ts`, `components/bottom-bar.ts`, `components/composer-focus.ts` | no element overlaps content; composer height reserved; narrow cell |
 | C.3 | **De-duplicate entries** — one Settings entry, one palette trigger, one renderer switch; remove redundant affordances and emoji duplicates. | ⬜ | `components/*` | each action appears once in chrome; a control-count check; cells |
 | C.4 | **Panel consolidation** — Search · Chat · Lens Designer dock as **one dockable panel system** (tabbed) rather than competing left/right docks. | ⬜ | `components/app-layout.ts`, `components/primitives/panel.ts` | one dock, tabbed; panels switch in place; cells |
 | C.5 | **Status consolidation** — connection · provider · budget · streaming collapse into one status cluster (with the toast/live-region sink **R.1/I.3**), not three separate badges. | ⬜ | `components/connection-banner.ts`, `components/lm-status-panel.ts`, `components/workspace-hud.ts` | one status surface; severity routes to live regions; cells |
@@ -313,6 +313,7 @@ conditions** so provenance resolves and the ambition is not lost.
 - **Visual baselines clean**: 51/51 cells pass, no crash modal (F.2)
 - **Label legibility**: elision + hover popover shows full text (V.3)
 - **Symmetric link dedup**: `contradicts`, `same-topic` canonicalized (V.4)
+- **Consolidated chrome**: top context bar + bottom composer/status bar (C.1, C.2); floating HUD removed
 
 ### What's Partial (Yellow)
 - **Bridge**: `graph.ask-selection`, block `children`, timeline exist; cross-view sync not finished (B.1)
@@ -396,9 +397,17 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 - **V.1/V.2** — Base node style now encodes truth (frequency→color hue, confidence→opacity) and priority (size) by default in `utils/adapter-2d.ts:clearNodeStyles`. Contradictions highlighted with red border. Lens deltas layer on top.
 - **V.3** — Label elision (200 chars) in projection + full text on hover via existing `<graph-popover>` (shows complete block text, title, links).
 - **V.4** — Symmetric link deduplication in `workspace-projection.ts` (`contradicts`, `same-topic` canonicalized to single direction; `deduplicateSymmetricLinks` exported for testing).
+- **C.1** — One information architecture: top bar = context (zoom, search, lens, layout, color-by); bottom bar = composer + essentials (mode, send, status cluster).
+- **C.2** — One bottom bar, no overlap: new `<bottom-bar>` component merges composer + status cluster; removed floating HUD; composer height reserved in layout.
 
 ### In Progress
-- **C.1–C.5** — Consolidation & Chrome phase (toolbars, panels, status).
+- **C.3** — De-duplicate entries (Settings, palette trigger, renderer switch).
+- **C.4** — Panel consolidation (Search · Chat · Lens Designer as one tabbed dock).
+- **C.5** — Status consolidation (connection · provider · budget · streaming → one status cluster).
 
 ### Next Steps
-1. Begin C phase: consolidate toolbars, remove emoji chrome (C.1–C.5).
+1. C.3: De-duplicate Settings/palette/renderer entries across bars.
+2. C.4: Consolidate panels into single tabbed dock.
+3. C.5: Status cluster already in bottom-bar; remove connection-banner + lm-status-panel from top banner.
+4. D.1: Icon primitive + registry (remove emoji from chrome).
+5. D.2-D.4: Token completeness, motion vocabulary, craft gate.

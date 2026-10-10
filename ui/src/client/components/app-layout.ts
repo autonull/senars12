@@ -32,8 +32,7 @@ import '../spacegraph/spacegraph-viewport.js';
 import './graph-toolbar.js';
 import './renderers/notebook.js';
 import './workspace-host.js';
-import './workspace-hud.js';
-import './composer-focus.js';
+import './bottom-bar.js';
 import './contradiction-badge.js';
 import './connection-banner.js';
 import './lm-status-panel.js';
@@ -47,18 +46,19 @@ export class AppLayout extends BaseComponent {
   static override styles = css`
     :host {
       display: grid; height: 100vh;
-      grid-template-rows: auto 44px 1fr auto;
+      grid-template-rows: auto 1fr auto;
       grid-template-areas:
-        "banner"
-        "toolbar"
+        "top"
         "body"
         "bottom";
       container-type: inline-size;
       container-name: app;
     }
 
-    .banner-area { grid-area: banner; }
-    .toolbar-area { grid-area: toolbar; }
+    .top-area { grid-area: top; display: flex; flex-direction: column; }
+    .toolbar-area { flex: 0 0 auto; }
+    .banner-area { flex: 0 0 auto; }
+
     .body-area {
       grid-area: body; display: flex; min-height: 0;
       position: relative; overflow: hidden;
@@ -200,13 +200,15 @@ export class AppLayout extends BaseComponent {
     const notebook = $activeRenderer.get() === 'notebook';
 
     return html`
-      <div class="banner-area">
-        <connection-banner></connection-banner>
-        <lm-status-panel></lm-status-panel>
-      </div>
+      <div class="top-area">
+        <div class="banner-area">
+          <connection-banner></connection-banner>
+          <lm-status-panel></lm-status-panel>
+        </div>
 
-      <div class="toolbar-area">
-        ${notebook ? '' : html`<graph-toolbar></graph-toolbar>`}
+        <div class="toolbar-area">
+          ${notebook ? '' : html`<graph-toolbar></graph-toolbar>`}
+        </div>
       </div>
 
       <div class="body-area">
@@ -236,8 +238,6 @@ export class AppLayout extends BaseComponent {
               : ''
           }
           <workspace-host></workspace-host>
-          <workspace-hud></workspace-hud>
-          <composer-focus></composer-focus>
         </div>
 
         ${
@@ -266,7 +266,7 @@ export class AppLayout extends BaseComponent {
       </div>
 
       <div class="bottom-area">
-        <composer-focus></composer-focus>
+        <bottom-bar></bottom-bar>
       </div>
 
       <error-boundary></error-boundary>
