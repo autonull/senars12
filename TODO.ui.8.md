@@ -56,25 +56,25 @@ P2 ─▶ P3 ─▶ P4
 
 ## P2 — Interaction & rendering quality (M×5)
 
-| # | Item | Files | Acceptance |
-|---|------|-------|------------|
-| 2.1 | **Incremental growth** — animate new workspace blocks in (replace today's replace-by-diff), no full relayout. Graph renderer's `present`/`apply` are no-ops (direct Cytoscape mutations); need op-stream animation integration. | `core/workspace-projection.ts`, `components/renderers/graph.ts:84-92`, `core/workspace-renderer.ts:82-84` | a still cell shows stable topology; a motion cell (2.6) shows blocks entering via FLIP/GSAP; `present` computes diff → emits enter/exit/move ops; `apply` animates each op. |
-| 2.2 | **Chat clusters** — compound clusters from `contains`/headings; set `children` on turns. Projection already sets `children` on turn blocks (`workspace-projection.ts:128`). | `core/workspace-projection.ts:116-150`, `components/renderers/notebook.ts` | a multi-turn chat collapses into a cluster cell; fold/unfold in notebook; graph shows cluster as single node with expand affordance. |
-| 2.3 | **Floating composer** — anchored to block/node/subgraph; summoned, not persistent; cy→DOM handoff; capability-gated modes. Current composer is fixed-bottom (`input-hud.ts:76`). Need `ComposerFocus` abstraction for anchor resolution + capability-gated modes. | `components/input-hud.ts:160-166`, `core/composer-modes.ts:53-58`, `core/events.ts` | composer opens anchored to selection; mode bar reflects `availableComposerModes($capabilities)`; prefill from `tool-result`; cell in gallery. |
-| 2.4 | **Composer sweep** — mode bar ↔ palette share one action source; `composer.prefill`; per-segment preview; guard `decomposeInput` over-splitting; extract `ComposerFocus`. | `components/input-hud.ts:249-255`, `core/input-decomposition.ts:30-47`, `core/commands.ts` | one action source (mode bar = palette subset); prefill from `tool-result` block; decimal/abbrev safe in `isFaithfulDecomposition`; `ComposerFocus` component extracted. |
-| 2.5 | **Graph polish** — unify lens/capability styling in the adapter; exclude the hidden layer from `fit`; bind `graph.ask-selection` (`a`); HUD/palette layout group + `graph.layout.cycle`; register the `chronological-flow`/`source-view` SpaceGraph surfaces when the storyboard adapter exists. | `components/renderers/graph.ts:144-166`, `core/graph-layer.ts:13`, `core/workspace-renderer.ts:48-50` | hidden layer not fitted; layout cycle reachable via palette; `graph.ask-selection` (`a`) opens composer with selection refs; new surfaces get cells. |
-| 2.6 | **Motion capture support** (O8) — let the harness snapshot a settled frame of an interaction (or a storyboard strip), so animation is contract-tested. `inQuietWindow` handles 2s recorder timer (`tests/visual/matrix.ts:197`). | `tests/visual/reporter.ts`, `tests/visual/matrix.ts:197-206`, `scripts/build-gallery.ts` | one motion item captured deterministically; storyboard strip support; gallery shows motion cells. |
+| # | Item | Status | Files | Acceptance |
+|---|------|--------|-------|------------|
+| 2.1 | **Incremental growth** — animate new workspace blocks in (replace today's replace-by-diff), no full relayout. `applyWorkspaceOps` in `graph-viewport.ts:778` animates; `present()` in `graph.ts:78` still does full hydration. | 🟡 Partial | `core/workspace-diff.ts`, `components/renderers/graph.ts:78-97`, `components/graph-viewport.ts:778-859` | `present` computes diff → emits enter/exit/move ops; `apply` animates each op; still cell stable; motion cell shows FLIP/GSAP |
+| 2.2 | **Chat clusters** — compound clusters from `contains`/headings; set `children` on turns. Projection sets `children` on turn blocks (`workspace-projection.ts:130`). | ⬜ Not started | `core/workspace-projection.ts:116-150`, `components/renderers/notebook.ts` | multi-turn chat collapses into cluster cell; fold/unfold in notebook; graph shows cluster as single node with expand affordance |
+| 2.3 | **Floating composer** — anchored to block/node/subgraph; summoned, not persistent; cy→DOM handoff; capability-gated modes. **Implemented** in `composer-focus.ts`. | ✅ Done | `components/composer-focus.ts`, `core/composer-modes.ts`, `core/events.ts` | composer opens anchored to selection; mode bar reflects `availableComposerModes($capabilities)`; prefill from `tool-result`; cell in gallery |
+| 2.4 | **Composer sweep** — mode bar ↔ palette share one action source; `composer.prefill`; per-segment preview; guard `decomposeInput` over-splitting; `ComposerFocus` extracted. | 🟡 Partial | `components/composer-focus.ts`, `components/input-hud.ts`, `core/input-decomposition.ts:30-47`, `core/commands.ts` | one action source (mode bar = palette subset); prefill from `tool-result` block; decimal/abbrev safe in `isFaithfulDecomposition` |
+| 2.5 | **Graph polish** — unify lens/capability styling; exclude hidden layer from `fit`; bind `graph.ask-selection` (`a`); HUD/palette layout group + `graph.layout.cycle`; register `chronological-flow`/`source-view` SpaceGraph surfaces. | ⬜ Not started | `components/renderers/graph.ts`, `core/graph-layer.ts`, `core/workspace-renderer.ts` | hidden layer not fitted; layout cycle reachable via palette; `graph.ask-selection` (`a`) opens composer with selection refs; new surfaces get cells |
+| 2.6 | **Motion capture support** (O8) — let the harness snapshot a settled frame of an interaction (or a storyboard strip), so animation is contract-tested. | ⬜ Not started (O8) | `tests/visual/reporter.ts`, `tests/visual/matrix.ts`, `scripts/build-gallery.ts` | one motion item captured deterministically; storyboard strip support; gallery shows motion cells |
 
 ---
 
 ## P3 — Control & narration (M/L)
 
-| # | Item | Files | Acceptance |
-|---|------|-------|------------|
-| 3.1 | **`5.1 execution`** — `ui.command` over the workspace (renderer, focus, explain, highlight, ToC/search, artifact, embed, compose, narrate, scrub); round-trip through `applyServerMessage`; visible in timeline/telemetry. Seam exists: `dispatchCommand` handles `parse` + `available` (`commands.ts:282`). | `core/commands.ts:267-293`, `core/ws-client.ts:170-174`, `core/store-bindings.ts:170-174` | engine-emitted command drives UI; one round-trip test + cell; timeline shows command log. |
-| 3.2 | **`5.1 args`** — parameterised commands with a `params` descriptor; type-checked args; `available()`-aware palette badge. Unify `parse`/`available` with Zod schemas for type-safe args + automatic palette prompting. | `core/commands.ts:40-52`, `components/overlays/palette.ts`, `core/surface-codegen.ts` | palette prompts for args (Zod schema); invalid args rejected with context; badge shows `available()` state; OpenAPI-compatible descriptors for agent `ui.command`. |
-| 3.3 | **`5.2 control mode`** — off → suggestions; on → execution + visible command log + HUD **stop**; budget/stop in HUD. Toggle observable; stop button needs wiring to engine `abort` signal. | `components/workspace-hud.ts`, `core/commands.ts:189-205`, `core/nars-backend.ts:137-143` | toggle observable in HUD; stop halts an in-flight run (`reasoning.step`/`run`); budget/stop visible; cell. |
-| 3.4 | **`5.3 demonstrations`** — "show me how you got that" switches renderers, focuses refs, opens provenance, narrates. Narrative sequence scriptable via command chaining. | `core/commands.ts:172-264`, `core/workspace-renderer.ts:88-89` | one narrative sequence scripted + cell; demo command chains renderer switch → focus → explain → provenance. |
+| # | Item | Status | Files | Acceptance |
+|---|------|--------|-------|------------|
+| 3.1 | **`5.1 execution`** — `ui.command` over the workspace (renderer, focus, explain, highlight, ToC/search, artifact, embed, compose, narrate, scrub); round-trip through `applyServerMessage`; visible in timeline/telemetry. **Implemented**: `dispatchCommand` in `commands.ts:293`. | ✅ Done | `core/commands.ts:267-313`, `core/ws-client.ts:170-174`, `core/store-bindings.ts` | engine-emitted command drives UI; one round-trip test + cell; timeline shows command log |
+| 3.2 | **`5.1 args`** — parameterised commands with `params` descriptor; type-checked args; `available()`-aware palette badge. **Implemented**: Zod schemas in `command-schemas.ts`. | ✅ Done | `core/command-schemas.ts`, `core/commands.ts:49-52`, `components/overlays/palette.ts` | palette prompts for args (Zod schema); invalid args rejected with context; badge shows `available()` state; OpenAPI-compatible descriptors for agent `ui.command` |
+| 3.3 | **`5.2 control mode`** — off → suggestions; on → execution + visible command log + HUD **stop**; budget/stop in HUD. Toggle observable; stop button needs wiring to engine `abort` signal. | ⬜ Not started | `components/workspace-hud.ts`, `core/commands.ts:180-274`, `core/nars-backend.ts` | toggle observable in HUD; stop halts in-flight run (`reasoning.step`/`run`); budget/stop visible; cell |
+| 3.4 | **`5.3 demonstrations`** — "show me how you got that" switches renderers, focuses refs, opens provenance, narrates. Narrative sequence scriptable via command chaining. | ⬜ Not started | `core/commands.ts`, `core/workspace-renderer.ts:88-89` | one narrative sequence scripted + cell; demo command chains renderer switch → focus → explain → provenance |
 
 ---
 
@@ -104,14 +104,14 @@ commands). v8 closes the loop from **registration → contract → docs** so ext
 | X.3 | **Docs-as-code for surfaces** — emit the surface reference from descriptors (feeding `docs/readme/ui-gallery.md`). `surfaceDoc` generator exists (`core/surface-codegen.ts:69`). | a surface with no generated doc stub fails a check; `docs/readme/ui-gallery.md` auto-generated. ✅ Done |
 | X.4 | **Plugin contribution point** — a `plugins.ts` seam where a module contributes surfaces/commands/lenses; contains no shell edits. In-repo contribution point (not full third-party loader per O11). | one demo plugin registered and captured; contributes surface + command + lens. ✅ Done |
 
-### C — Configurability
+### C — Configurability ✅ COMPLETE
 
-| # | Item | Acceptance |
-|---|------|------------|
-| C.1 | **Typed UI config** — one Zod schema (theme, density, motion, default renderer/lens/layout, panels, provider, budgets), defaults + validation. Drives Settings + URL + Profiles. | invalid config rejected; typecheck covers it; schema is single source of truth. |
-| C.2 | **Persistence + URL** — persist to `localStorage`, mirror the URL-addressable slice, hydrate on boot (extends `hydrateFromUrl` in `store.ts:573`). | deep link restores the workspace; cell; round-trip survives reload. |
-| C.3 | **Settings-driven** — Settings renders from the config schema, not hand-written fields (`components/overlays/settings.ts:31` uses `config-hud`). | a new option needs no Settings markup edit; form generated from schema. |
-| C.4 | **Profiles + import/export** — named profiles over `config-profiles.ts`, copy/paste JSON. | switch profile restores a workspace; cell; import/export round-trips. |
+| # | Item | Status | Acceptance |
+|---|------|--------|------------|
+| C.1 | **Typed UI config** — one Zod schema (theme, density, motion, default renderer/lens/layout, panels, provider, budgets), defaults + validation. Drives Settings + URL + Profiles. | ✅ Done | invalid config rejected; typecheck covers it; schema is single source of truth |
+| C.2 | **Persistence + URL** — persist to `localStorage`, mirror the URL-addressable slice, hydrate on boot (extends `hydrateFromUrl` in `store.ts:573`). | ✅ Done | deep link restores the workspace; cell; round-trip survives reload |
+| C.3 | **Settings-driven** — Settings renders from the config schema, not hand-written fields (`components/overlays/settings.ts:31` uses `config-hud`). | ✅ Done | a new option needs no Settings markup edit; form generated from schema |
+| C.4 | **Profiles + import/export** — named profiles over `config-profiles.ts`, copy/paste JSON. | ✅ Done | switch profile restores a workspace; cell; import/export round-trips |
 
 ### A — Adaptability ✅ COMPLETE
 
@@ -164,23 +164,29 @@ These are implementation patterns to follow, not separate TODO items:
 ### What's Working (Green)
 - **Registry-driven architecture**: 7 registries (surface, overlay, renderer, command, lens, layout, view-adapter) — all data-driven, no shell edits for extensions
 - **Workspace substrate**: `WorkspaceGraph` (blocks + links + roots) — pure, deterministic projection in `core/workspace-projection.ts`
-- **Command system**: Single registry (`core/commands.ts`), palette + agent `ui.command` share source, `parse`/`available` for args
-- **Visual contract**: `VISUAL_CELLS` + coverage test (`visual-coverage.test.ts`) + gallery generator (`scripts/build-gallery.ts`) — 44/44 cells, 425/425 units
-- **Config/URL**: Typed `UrlState`, `hydrateFromUrl`, URL mirroring — `core/store.ts:480-680`
+- **Command system**: Single registry (`core/commands.ts`), palette + agent `ui.command` share source, `parse`/`available` for args + Zod schemas (`core/command-schemas.ts`)
+- **Visual contract**: `VISUAL_CELLS` + coverage test (`visual-coverage.test.ts`) + gallery generator (`scripts/build-gallery.ts`) — 51/51 cells
+- **Config/URL**: Unified `UiConfigSchema` (Zod), `localStorage` persistence, URL mirroring, Settings generated from schema, Profiles import/export — `core/config-schema.ts`, `core/store.ts`
 - **Capabilities**: 5 capabilities gate modes/overlays/commands/renderer default — `core/capabilities.ts`
 - **Testing gates**: `ui:verify` = typecheck + unit + visual:ci + gallery — all green
+- **Error taxonomy**: 16 typed error classes with recovery affordances — `core/error-taxonomy.ts`, `components/error-boundary.ts`
+- **Performance budgets**: `PerformanceBudgetTracker` with assertions in projections — `core/performance-budget.ts`
+- **Adaptability**: dark/light/auto theme, comfortable/compact density, reduced motion, responsive breakpoints — `core/store.ts`, `utils/theme.ts`
+- **Extensibility**: `surface-codegen` → `VISUAL_CELLS`, docs-as-code, plugin contribution point — `core/surface-codegen.ts`, `core/plugins.ts`
 
 ### What's Partial (Yellow)
-- **Graph renderer**: `present`/`apply` are no-ops (direct Cytoscape mutations) — blocks incremental growth (P2.1)
-- **Composer**: Fixed-bottom, not floating/anchored — needs `ComposerFocus` (P2.3)
-- **Command args**: Ad-hoc `parse` functions — need Zod schemas for type-safe args + palette prompting (P3.2)
-- **Config system**: `$config` atom + `fieldCatalog` exist — need single Zod schema driving Settings + URL + Profiles (C.1–C.4)
-- **Themes**: `prefers-color-scheme` detected — need `light` tokens + `state-light` cell (A.1)
-- **Error taxonomy**: Error boundary exists — need typed error classes per surface + recovery affordances (P4.5)
+- **Graph renderer incremental growth**: `applyWorkspaceOps` animates enter/exit/move; `present()` still does full hydration (P2.1)
+- **Composer sweep**: `ComposerFocus` extracted; mode bar ↔ palette don't share single action source; no `composer.prefill` from tool-result (P2.4)
+- **Chat clusters**: `children` set on turns in projection; notebook fold/unfold + graph cluster node not implemented (P2.2)
 
 ### What's Deferred (Red)
-- **Graph3D**: `KNOWN_GAPS` entry — last to close (O6)
-- **A11y**: Generated targets ready via `surface-codegen` — folded into gate later (O7/O13)
+- **Graph3D**: `renderer:graph3d` — last `KNOWN_GAPS` entry (O6)
+- **A11y**: Generated targets ready — fold `surfaceA11y` into gate (O7/O13)
+- **P2.6 Motion capture**: storyboard strip support (O8)
+- **P3.3 Control mode**: HUD toggle + engine abort wiring
+- **P3.4 Demonstrations**: command chaining for narratives
+- **P2.5 Graph polish**: hidden layer fit, `graph.ask-selection`, layout cycle, storyboard surfaces
+- **O11 Extensibility scope**: in-repo contribution point done; full third-party loader revisit
 
 ---
 
@@ -189,33 +195,38 @@ These are implementation patterns to follow, not separate TODO items:
 ### P0 — Unblock Harness (Do First) ✅ COMPLETE
 1. **N.1 Drain derivation recorder** — Done: `/test/pause` now drains recorder synchronously; `waitForTimeout(2200)` removed from `inQuietWindow`, `seedConversation`, and `selection-node-detail` cells.
 2. **N.2 Replace fixtures with real scenarios** — Done: Added `/test/seed-metta` and `/test/seed-gates` endpoints; `scenario-metta` and `scenario-budget-gate` cells now load through server-side endpoints instead of client-store fixtures. Baselines updated.
+3. **N.3 Codegen the base cells** — Done: `scripts/generate-visual-cells.ts` generates base cells from static surface list; hand-curated cells override by id.
 
-### P1 — Live Graph + Codegen Loop ✅ COMPLETE
-3. **P2.1 Incremental growth** (`components/renderers/graph.ts`, `core/graph-renderer.ts`, `components/graph-viewport.ts`, `core/workspace-diff.ts`)
-   - `present(blocks, links)` → compute diff → emit enter/exit/move ops
-   - `apply(ops)` → animate each op (enter/exit/move) → commit
-   - Snapshot/restore preserves animation state
-   - `workspace-diff.ts` computes minimal WorkspaceOp stream between graphs
+### P1 — Agent-Driven UI ✅ COMPLETE
+4. **P2.3 Floating composer** — Done: `composer-focus.ts` with anchor resolution, capability-gated modes, prefill, cy→DOM handoff.
+5. **P3.1 Command execution** — Done: `dispatchCommand` in `commands.ts:293` handles parse + available; engine commands drive UI.
+6. **P3.2 Command args (Zod)** — Done: `command-schemas.ts` provides type-safe validation for agent `ui.command`.
 
-4. **X.2 Wire surface-codegen → VISUAL_CELLS** (`scripts/generate-visual-cells.ts`, `tests/visual/generated-cells.ts`, `tests/visual/matrix.ts`)
-   - Generate base cells from `getSurfaces()` via static surface list
-   - Hand-curated cells remain as overrides (merged by id)
-   - Coverage grows with registration
+### P2 — Productization Backbone ✅ COMPLETE
+7. **C.1–C.4 Config system** — Done: Unified Zod schema, localStorage persistence, URL sync, Settings from schema, Profiles import/export.
+8. **A.1–A.5 Adaptability** — Done: dark/light/auto theme, comfortable/compact density, reduced motion, responsive breakpoints, standalone degradation.
+9. **X.1–X.4 Extensibility** — Done: unified descriptor validation, surface-codegen → VISUAL_CELLS, docs-as-code, plugin contribution point.
+10. **P4.4 Performance budgets** — Done: `PerformanceBudgetTracker` with assertions in projections.
+11. **P4.5 Error taxonomy** — Done: 16 typed error classes with recovery affordances in error boundary.
 
-### P3 — Config System + Adaptability ✅ COMPLETE
-7. **C.1 Typed UI config** — Done: Created `config-schema.ts` with unified Zod schema for theme, density, motion, default renderer/lens/layout, panels, provider, budgets, NARS settings.
+### P3 — **NEXT: P2.1 Incremental Growth** 🎯
+12. **P2.1 Incremental growth** — Make `GraphRenderer.present()` compute diff via `workspace-diff.ts` and emit `WorkspaceOp` stream; `applyWorkspaceOps` in `graph-viewport.ts:778` already animates enter/exit/move.
 
-8. **C.2 Persistence + URL** — Done: Config persisted to localStorage on every change; URL sync for theme, density, motion, defaultRenderer, defaultLens; `hydrateFromUrl` applies config from URL.
+### P4 — Polish & Ergonomics
+13. **P2.2 Chat clusters** — Notebook fold/unfold for `children`; graph cluster node with expand affordance.
+14. **P2.4 Composer sweep** — Unify mode bar ↔ palette action source; add `composer.prefill` from tool-result.
+15. **P2.5 Graph polish** — Hidden layer fit exclusion, `graph.ask-selection` binding, layout cycle command, storyboard surfaces.
 
-9. **C.3 Settings-driven** — Done: Rewrote `config-hud.ts` to generate form fields from `UiConfigSchema` and `FIELD_METADATA`; no hand-written fields.
+### P5 — Engine-Driven UI (Functional Leap)
+16. **P3.3 Control mode** — HUD toggle, stop button → engine abort, budget/stop visible.
+17. **P3.4 Demonstrations** — Command chaining for narrative sequences (renderer switch → focus → explain → provenance).
 
-10. **C.4 Profiles + import/export** — Done: Updated `config-profiles.ts` to work with unified config; export/import JSON round-trips.
-
-11. **A.1 Light theme** — Done: Theme system supports `dark` | `light` | `auto`; `data-theme` attribute applied to document; system preference respected in `auto` mode.
-
-12. **A.2 Density** — Done: Density system supports `comfortable` | `compact`; `data-density` attribute applied; tokens drive spacing.
-
-13. **A.3 Reduced motion** — Done: Motion system supports `reduced` | `normal`; `data-motion` attribute applied; `prefers-reduced-motion` media query listened; animations gate on `View.flags.reducedMotion`.
+### P6 — Deferred (O6/O7/O8/O13)
+18. **P2.6 Motion capture** — Storyboard strip support (O8).
+19. **P4.3 Graph3D** — Deferred (O6).
+20. **A11y** — Fold `surfaceA11y` into gate (O7/O13).
+21. **O11 Extensibility scope** — In-repo contribution point done (X.4); full third-party loader revisit.
+22. **O13 a11y timing** — Fold into gate when ready.
 
 ---
 
@@ -301,11 +312,13 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 
 | Priority | Actions | Rationale |
 |---|---|---|
-| **P0** | N.1 (drain recorder) + N.2 (real scenarios) ✅ **DONE** | Unblocks visual test harness; removes test-only fixtures |
-| **P1** | P2.1 (incremental growth) + X.2 (codegen cells) ✅ **DONE** | Most improves feel + maintainability; all later P2 items build on this |
-| **P2** | P2.3 (floating composer) + P3.1/P3.2 (command execution + args) ✅ **DONE** | Enables agent-driven UI; the functional leap |
-| **P3** | C.1–C.4 (config system) + A.1–A.3 (adaptability) ✅ **DONE** | Productization backbone; enables standalone + profiles |
-| **P4** | P4.4 (performance budgets) + P4.5 (error taxonomy) ✅ **DONE** | Maintainability invariants; gates that prevent regressions |
+| **P0** | N.1 (drain recorder) + N.2 (real scenarios) + N.3 (codegen cells) ✅ **DONE** | Unblocks visual test harness; removes test-only fixtures |
+| **P1** | P2.3 (floating composer) + P3.1/P3.2 (command execution + args) ✅ **DONE** | Enables agent-driven UI; the functional leap |
+| **P2** | C.1–C.4 (config system) + A.1–A.5 (adaptability) + X.1–X.4 (extensibility) + P4.4/P4.5 ✅ **DONE** | Productization backbone; all cross-cutting complete |
+| **P3** | P2.1 (incremental growth) — `present` computes diff, `apply` animates | Core UX: live feel for streaming updates |
+| **P4** | P2.2 (chat clusters) + P2.4 (composer sweep) + P2.5 (graph polish) | Polish & ergonomics |
+| **P5** | P3.3 (control mode) + P3.4 (demonstrations) | Engine-driven UI; the functional leap |
+| **P6** | P2.6 (motion capture) + P4.3 (Graph3D) + A11y | Deferred per O6/O7/O8/O13 |
 
 ---
 
@@ -313,25 +326,33 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 
 - [x] `pnpm --dir ui typecheck` — green
 - [x] `pnpm --dir ui test:unit` — 440 passing
-- [x] `pnpm --dir ui test:visual:ci` — 47 cells, all passing
+- [x] `pnpm --dir ui test:visual:ci` — 51 cells, all passing
 - [x] `pnpm --dir ui ui:verify` — green
-- [x] Review `TODO.ui.8.md` for current priority (all P0-P4 complete; all cross-cutting complete; all adaptability complete)
+- [x] Review `TODO.ui.8.md` for current priority
 
 ---
 
 ## First move
 
-**All P0-P4 items complete. All cross-cutting workstreams (X, C, A) complete. All adaptability items complete.**
+**P0, P1, P2 complete.** Cross-cutting (X, C, A) complete. P4 (productization) complete except P4.3 Graph3D (deferred O6).
 
-Remaining work (deferred per O6/O7/O11/O13):
-- **P2.1 Incremental growth** — graph renderer `present`/`apply` animation
-- **P2.2 Chat clusters** — compound clusters from `contains`/headings
-- **P2.3 Floating composer** — anchored to block/node/subgraph
-- **P2.4 Composer sweep** — mode bar ↔ palette shared action source
-- **P2.5 Graph polish** — lens/capability styling, hidden layer exclusion
-- **P2.6 Motion capture** — storyboard strip support
-- **P3.1-P3.4 Control & narration** — engine-driven UI, control mode, demonstrations
-- **P4.3 Graph3D** — deferred (O6)
-- **A11y** — fold `surfaceA11y` targets into gate (O7/O13)
-- **O11 Extensibility scope** — full third-party plugin loader vs in-repo (revisit if needed)
-- **O13 a11y timing** — fold into gate when ready
+**Next: P3 — P2.1 Incremental Growth** — make the graph renderer's `present()` compute diffs and emit `WorkspaceOp` stream; `apply()` already animates in `graph-viewport.ts:778`. The `workspace-diff.ts` infrastructure exists.
+
+Remaining work:
+
+| Phase | Item | Status | Notes |
+|---|---|---|---|
+| **P2.1** | Incremental growth | 🟡 Partial | `applyWorkspaceOps` animates; `present()` still does full hydration |
+| **P2.2** | Chat clusters | ⬜ Not started | `children` set on turns; need notebook fold/unfold + graph cluster node |
+| **P2.3** | Floating composer | ✅ **Done** | `composer-focus.ts`: anchor resolution, capability-gated modes, prefill |
+| **P2.4** | Composer sweep | 🟡 Partial | `ComposerFocus` extracted; mode bar ↔ palette action source not unified |
+| **P2.5** | Graph polish | ⬜ Not started | hidden layer fit exclusion, `graph.ask-selection`, layout cycle, storyboard surfaces |
+| **P2.6** | Motion capture | ⬜ Not started | storyboard strip support (O8) |
+| **P3.1** | Command execution | ✅ **Done** | `dispatchCommand` in `commands.ts:293` |
+| **P3.2** | Command args (Zod) | ✅ **Done** | `command-schemas.ts` with Zod validation |
+| **P3.3** | Control mode | ⬜ Not started | HUD toggle, stop button → engine abort |
+| **P3.4** | Demonstrations | ⬜ Not started | command chaining for narrative sequences |
+| **P4.3** | Graph3D | 🔴 Deferred (O6) | `renderer:graph3d` |
+| **A11y** | Accessibility | 🔴 Deferred (O7/O13) | fold `surfaceA11y` into gate |
+| **O11** | Extensibility scope | 🔴 Deferred | in-repo contribution point done (X.4); full loader revisit |
+| **O13** | a11y timing | 🔴 Deferred | fold into gate when ready |
