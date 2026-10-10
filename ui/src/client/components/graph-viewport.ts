@@ -48,6 +48,7 @@ import { applyWorkspaceOp, type WorkspaceGraph, type WorkspaceOp } from '../core
 import './graph-minimap.js';
 import './graph-popover.js';
 import './graph-legend.js';
+import './node-body.js';
 
 /** Registry of active GraphViewport instances for renderer communication. */
 const viewportRegistry = new Map<string, GraphViewport>();
@@ -119,6 +120,9 @@ export class GraphViewport extends BaseComponent {
     }
     .html-label .graph-message {
       transform-origin: top left;
+    }
+    .html-label.block-label {
+      overflow: visible;
     }
 
     /* Context menu */
@@ -406,8 +410,16 @@ export class GraphViewport extends BaseComponent {
       ${meta?.truncated ? html`<div class="warning">▼ ${meta.totalHidden} lower-priority concepts hidden</div>` : ''}
       ${Array.from(this.htmlLabels.values()).map(
         (d) => {
-          const style = `left:${d.x}px;top:${d.y}px;width:${d.width}px;height:${d.height}px`;
-          return html`<div class="html-label" style=${style} .innerHTML=${d.html}></div>`;
+          const isBlock = $workspaceGraph.get().blocks.has(d.id);
+          return isBlock
+            ? html`<div class="html-label block-label" style="left:${d.x}px;top:${d.y}px">
+                <s-node-body .ref=${d.id}></s-node-body>
+              </div>`
+            : html`<div
+                class="html-label"
+                style="left:${d.x}px;top:${d.y}px;width:${d.width}px;height:${d.height}px"
+                .innerHTML=${d.html ?? ''}
+              ></div>`;
         }
       )}
       ${
@@ -898,7 +910,7 @@ export class GraphViewport extends BaseComponent {
               html: undefined,
               capabilities: undefined,
             };
-            cy.add({ group: 'nodes', data, classes: 'workspace' });
+            cy.add({ group: 'nodes', data, classes: 'workspace html-enabled' });
             // Animate enter
             const node = cy.getElementById(block.id);
             node.style('opacity', 0);
@@ -1012,12 +1024,13 @@ export class GraphViewport extends BaseComponent {
       const el = existing.get(id);
       if (el) {
         el.data(nodeData);
+        if (el.isNode() && !el.hasClass('html-enabled')) el.addClass('html-enabled');
         // Update compound parent
         if (el.isNode() && data.parent !== undefined) {
           el.move({ parent: data.parent });
         }
       } else {
-        cy.add({ group: 'nodes', data: nodeData, classes: 'workspace' });
+        cy.add({ group: 'nodes', data: nodeData, classes: 'workspace html-enabled' });
       }
     }
 

@@ -2,7 +2,8 @@ import type { Core } from 'cytoscape';
 
 export interface HtmlLabelData {
   id: string;
-  html: string;
+  /** Legacy string HTML; absent for workspace blocks, which render via `<s-node-body>`. */
+  html?: string;
   x: number;
   y: number;
   width: number;
@@ -14,8 +15,7 @@ export function computeHtmlLabels(cy: Core): Map<string, HtmlLabelData> {
   if (cy.zoom() < 1.0) return labels;
 
   cy.nodes('.html-enabled').forEach((node) => {
-    const html = node.data('html');
-    if (!html) return;
+    const html = node.data('html') as string | undefined;
     const pos = node.renderedPosition();
     const w = node.renderedOuterWidth();
     const h = node.renderedOuterHeight();

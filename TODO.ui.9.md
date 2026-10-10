@@ -415,9 +415,26 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 - **D.4** — Craft gate: `tests/craft/*` (typography, focus visibility, z-index, icon/emoji lint, contrast, motion) wired via `index.test.ts`; `test:craft` green (202 tests). Line-length check removed per direction — formatting is not enforced.
 - Repo health: `pnpm --dir ui typecheck` clean; `test:unit` 642 passing; `build:client` succeeds.
 
-### Next Steps
-1. H — Help, Discoverability & Onboarding (H.1 dynamic help system first).
-2. E — Experience Architecture (see Strategic Review section).
+### In Progress — X.2 modeless "conversation as graph nodes" (◐)
+> **Direction (user):** no split, no renderer switch. One modeless surface — the **graph** — with every conversation block rendered as a node whose body is its real HTML (the "Fractal HTML & LoD" paradigm, §533). "Split" was a wrong turn and was reverted.
+
+- **Done this session (seam):**
+  - New `components/node-body.ts` — `<s-node-body .ref>` renders `renderBlockBody(block)` for a workspace block (reuses the one block renderer; Lit nodes, no `innerHTML`).
+  - `utils/html-labels.ts` — now returns `.html-enabled` nodes without requiring a string `html` (block nodes carry none).
+  - `components/graph-viewport.ts` — workspace nodes marked `html-enabled` in both `syncWorkspaceLayer` and `applyWorkspaceOps`; the HTML overlay renders `<s-node-body>` for workspace blocks and falls back to legacy `innerHTML` string html otherwise.
+- **Known gaps / next (in order):**
+  1. **Node sizing & layout** — workspace nodes are `width:'label'`; the 240px body card is anchored at the node's top-left and can overlap neighbours. Decide: fixed card size per node, or grow node to content, or hide the cytoscape shape and let the card *be* the node.
+  2. **LoD tiers** — `computeHtmlLabels` still gates at `zoom ≥ 1` (binary). Implement glyph→label→card→full by zoom (§568); only the tier's content mounts.
+  3. **Modeless shell** — remove the renderer switch (graph-toolbar / workspace-hud mode buttons) so graph is the surface; composer is the only input. Selection/focus already flow through the store.
+  4. **Legacy string-HTML path** — `store-bindings.ts` (`renderMessageHtml`, raw `innerHTML`) should fold into the block path so there is one rendering; remove the `.innerHTML` fallback.
+  5. **`renderBlockBody` sources** — pass the real bibliography (currently `[]`, so inline `[n]` citations fall back to `[key]`).
+  6. **Verification** — unit: `projectChat`→node is `html-enabled` and `<s-node-body>` renders its body; one smoke: send a message → a node shows its body inline.
+- **New opportunities:** a per-kind node-renderer registry declaring the four LoD tiers once (the plan's "extension point", §577); "ask from selection" already exists (`graph.ask-selection`) — wire selection → composer context.
+
+### Next Steps (fresh session)
+1. **X.2** — finish the modeless surface: resolve node sizing (gap 1), add LoD (gap 2), remove the renderer switch (gap 3). This is the paradigm; do it before H/R/B/P/I.
+2. Then **G** — auto-fit + min/max zoom + label LOD (fixes "too small / off-center / scattered").
+3. Do **not** resume formatting/craft polish; `D.4` is closed.
 
 ---
 
