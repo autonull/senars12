@@ -741,6 +741,7 @@ export class GraphViewport extends BaseComponent {
             nodeType: nd.nodeType,
             priority: nd.priority,
             confidence: nd.confidence,
+            truth: nd.truth,
             isContradiction: nd.isContradiction,
             label: nd.label,
             html: nd.html,

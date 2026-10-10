@@ -3,6 +3,10 @@ import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
 import { RENDERER_CAPABILITIES } from './renderer-capabilities.js';
 import { theme } from './theme.js';
 
+const truthToColor = (f: number): string => `hsl(${Math.round(f * 120)}, 70%, 50%)`;
+const priorityToSize = (p: number): number => Math.round(p * 50 + 10);
+const confidenceToOpacity = (c: number): number => 0.3 + 0.7 * c;
+
 export const SUPPORT_2D = RENDERER_CAPABILITIES['2d'].node;
 export const SUPPORT_2D_EDGES = RENDERER_CAPABILITIES['2d'].edge;
 
@@ -104,12 +108,26 @@ export function applyDelta(cy: Core, delta: Delta): void {
 export function clearNodeStyles(cy: Core): void {
   cy.batch(() => {
     for (const node of cy.nodes()) {
+      if (node.hasClass('workspace')) continue;
+      
+      const data = node.data();
+      const priority = data.priority ?? 0.5;
+      const confidence = data.confidence ?? 0.9;
+      const truth = data.truth as { frequency?: number; confidence?: number } | undefined;
+      const frequency = truth?.frequency ?? 0.5;
+      const isContradiction = data.isContradiction === true;
+      
+      const baseColor = isContradiction ? theme.colors.error : truthToColor(frequency);
+      const baseSize = priorityToSize(priority);
+      const baseOpacity = confidenceToOpacity(confidence);
+      
       node.style({
-        'background-color': theme.colors.accentCyan,
-        opacity: 0.15,
-        width: 30,
-        height: 30,
-        'border-width': 0,
+        'background-color': baseColor,
+        opacity: baseOpacity,
+        width: baseSize,
+        height: baseSize,
+        'border-width': isContradiction ? 3 : 0,
+        'border-color': isContradiction ? theme.colors.error : 'transparent',
       });
     }
   });
