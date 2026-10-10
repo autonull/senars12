@@ -29,6 +29,7 @@ import type {
   Uncertainty,
   WorkspaceGraph,
 } from './workspace-graph.js';
+import { perfTracker, DEFAULT_PERFORMANCE_BUDGET } from './performance-budget.js';
 
 /** A partial projection — blocks, links and the root order contributed by one producer. */
 export interface WorkspaceFragment {
@@ -91,45 +92,46 @@ const childBlock = (
 
 /** Project the chat log into ordered turn blocks, segmented output children, and discourse links. */
 export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment {
-  const blocks: SemanticBlock[] = [];
-  const links: SemanticLink[] = [];
-  const roots: Ref[] = [];
-  const ids = new Set(messages.map((message) => message.id));
-  let lastUser: Ref | undefined;
+  return perfTracker.assertProjection('projectChat', () => {
+    const blocks: SemanticBlock[] = [];
+    const links: SemanticLink[] = [];
+    const roots: Ref[] = [];
+    const ids = new Set(messages.map((message) => message.id));
+    let lastUser: Ref | undefined;
 
-  for (const message of messages) {
-    const id = turnId(message.id);
-    const { role, createdBy } = ROLE_MAP[message.role];
-    const block: SemanticBlock = {
-      id,
-      kind: 'turn',
-      role,
-      title: message.role,
-      text: message.content,
-      uncertainty: uncertaintyFrom(message.truth),
-      status: 'complete',
-      createdAt: message.timestamp,
-      createdBy,
-    };
+    for (const message of messages) {
+      const id = turnId(message.id);
+      const { role, createdBy } = ROLE_MAP[message.role];
+      const block: SemanticBlock = {
+        id,
+        kind: 'turn',
+        role,
+        title: message.role,
+        text: message.content,
+        uncertainty: uncertaintyFrom(message.truth),
+        status: 'complete',
+        createdAt: message.timestamp,
+        createdBy,
+      };
 
-    if (message.role === 'agent') {
-      const children: Ref[] = [];
-      segmentText(message.content).forEach((segment, index) => {
-        const blockId = childId(message.id, index);
-        children.push(blockId);
-        blocks.push(
-          childBlock(message, blockId, segment.kind, role, createdBy, segment.text, {
-            level: segment.level,
-            data: segment.data,
-          })
-        );
-        links.push(link(id, blockId, 'contains', createdBy));
-      });
-      if (children.length > 0) block.children = children;
-    }
+      if (message.role === 'agent') {
+        const children: Ref[] = [];
+        segmentText(message.content).forEach((segment, index) => {
+          const blockId = childId(message.id, index);
+          children.push(blockId);
+          blocks.push(
+            childBlock(message, blockId, segment.kind, role, createdBy, segment.text, {
+              level: segment.level,
+              data: segment.data,
+            })
+          );
+          links.push(link(id, blockId, 'contains', createdBy));
+        });
+        if (children.length > 0) block.children = children;
+      }
 
-    if (message.role === 'user') {
-      const children: Ref[] = [];
+      if (message.role === 'user') {
+        const children: Ref[] = [];
       const segments = decomposeForMode(
         message.content,
         isComposerMode(message.mode) ? message.mode : DEFAULT_COMPOSER_MODE
@@ -174,6 +176,7 @@ export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment
   }
 
   return { blocks, links, roots };
+  });
 }
 
 /** Determine the block kind for a reasoning node based on its type and punctuation. */
@@ -202,14 +205,15 @@ export function projectReasoning(
   backend: ReasoningBackend,
   exclude: ReadonlySet<Ref> = new Set()
 ): WorkspaceFragment {
-  const { nodes, edges } = backend.snapshot();
-  const { nodes: nodeKinds, edges: edgeKinds } = backend.vocab;
+  return perfTracker.assertProjection('projectReasoning', () => {
+    const { nodes, edges } = backend.snapshot();
+    const { nodes: nodeKinds, edges: edgeKinds } = backend.vocab;
 
-  const blocks: SemanticBlock[] = [];
-  const links: SemanticLink[] = [];
-  const roots: Ref[] = [];
+    const blocks: SemanticBlock[] = [];
+    const links: SemanticLink[] = [];
+    const roots: Ref[] = [];
 
-  for (const id of [...nodes.keys()].sort()) {
+    for (const id of [...nodes.keys()].sort()) {
     if (exclude.has(id)) continue;
     const node = nodes.get(id);
     if (!node) continue;
@@ -286,6 +290,7 @@ export function projectReasoning(
   });
 
   return { blocks: [...nested, ...steps], links, roots };
+  });
 }
 
 /**
@@ -295,11 +300,12 @@ export function projectReasoning(
  * - policy.violation / egress.gate.rejected / shadow.validation.dropped / judgment.resolved → gate-decision blocks
  */
 export function projectCognitiveEvents(events: readonly CognitiveEvent[]): WorkspaceFragment {
-  const blocks: SemanticBlock[] = [];
-  const links: SemanticLink[] = [];
-  const roots: Ref[] = [];
+  return perfTracker.assertProjection('projectCognitiveEvents', () => {
+    const blocks: SemanticBlock[] = [];
+    const links: SemanticLink[] = [];
+    const roots: Ref[] = [];
 
-  for (const event of events) {
+    for (const event of events) {
     switch (event.type) {
       case 'budget.exhausted': {
         const id = `event:budget:${event.correlationId ?? event.timestamp}`;
@@ -390,6 +396,7 @@ export function projectCognitiveEvents(events: readonly CognitiveEvent[]): Works
   }
 
   return { blocks, links, roots };
+  });
 }
 
 /**
@@ -398,11 +405,12 @@ export function projectCognitiveEvents(events: readonly CognitiveEvent[]): Works
  * evidence lineage, and independence tracking — rendered via the s-tree view.
  */
 export function projectDerivationRecords(events: readonly CognitiveEvent[]): WorkspaceFragment {
-  const blocks: SemanticBlock[] = [];
-  const links: SemanticLink[] = [];
-  const roots: Ref[] = [];
+  return perfTracker.assertProjection('projectDerivationRecords', () => {
+    const blocks: SemanticBlock[] = [];
+    const links: SemanticLink[] = [];
+    const roots: Ref[] = [];
 
-  for (const event of events) {
+    for (const event of events) {
     if (event.type !== 'derivation.record') continue;
     const record = event.payload as {
       derivationId: string;
@@ -471,6 +479,7 @@ export function projectDerivationRecords(events: readonly CognitiveEvent[]): Wor
   }
 
   return { blocks, links, roots };
+  });
 }
 
 const merge = (fragments: readonly WorkspaceFragment[]): WorkspaceGraph => {
@@ -489,16 +498,18 @@ export function projectWorkspace(state: {
   backends: readonly ReasoningBackend[];
   cognitiveEvents?: readonly CognitiveEvent[];
 }): WorkspaceGraph {
-  const messageIds = new Set(state.messages.map((message) => message.id));
-  const fragments = [projectChat(state.messages)];
-  for (const backend of state.backends) {
-    fragments.push(projectReasoning(backend, messageIds));
-  }
-  if (state.cognitiveEvents && state.cognitiveEvents.length > 0) {
-    fragments.push(projectCognitiveEvents(state.cognitiveEvents));
-    fragments.push(projectDerivationRecords(state.cognitiveEvents));
-  }
-  return merge(fragments);
+  return perfTracker.assertProjection('projectWorkspace', () => {
+    const messageIds = new Set(state.messages.map((message) => message.id));
+    const fragments = [projectChat(state.messages)];
+    for (const backend of state.backends) {
+      fragments.push(projectReasoning(backend, messageIds));
+    }
+    if (state.cognitiveEvents && state.cognitiveEvents.length > 0) {
+      fragments.push(projectCognitiveEvents(state.cognitiveEvents));
+      fragments.push(projectDerivationRecords(state.cognitiveEvents));
+    }
+    return merge(fragments);
+  });
 }
 
 /**

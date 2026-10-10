@@ -81,6 +81,43 @@ export {
   PROFILES_STORAGE_KEY,
   ACTIVE_PROFILE_KEY,
 } from './config-schema.js';
+export {
+  type PerformanceBudget,
+  DEFAULT_PERFORMANCE_BUDGET,
+  type PerformanceResult,
+  type PerformanceBudgetTracker,
+  perfTracker,
+  measured,
+  batched,
+  virtualize,
+  decimate,
+  AdjacencyIndex,
+  MemoCache,
+  PERF_MARKS,
+  markStart,
+  markEnd,
+} from './performance-budget.js';
+export {
+  UiError,
+  ConnectionError,
+  ReconnectionError,
+  ConfigError,
+  ConfigValidationError,
+  EngineError,
+  BudgetExhaustedError,
+  GateRejectedError,
+  ProjectionError,
+  GraphRenderError,
+  LayoutError,
+  CommandError,
+  CommandValidationError,
+  StorageError,
+  NetworkError,
+  UnknownError,
+  createError,
+  emitError,
+  type RecoveryAction,
+} from './error-taxonomy.js';
 export { activeCommands, type Command, paletteCommands, registerCommand, registeredCommands, type CommandArgs } from './commands.js';
 export { eventBus } from './events.js';
 export {

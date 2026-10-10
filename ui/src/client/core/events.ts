@@ -47,6 +47,14 @@ export type UiSignals = {
   'composer:focus': { refs?: string[]; mode?: string };
   /** Open the floating composer at a position. */
   'composer:open': { position?: { x: number; y: number }; anchor?: string };
+  /** Reset all test state. */
+  'test:reset-all': void;
+  /** Single engine step. */
+  'test:step': void;
+  /** Fit view (alias for graph:fit). */
+  'view:fit': void;
+  /** Application error for error boundary. */
+  'app-error': { message: string; detail?: string; error?: object };
 };
 
 export const eventBus = new EventBus<UiSignals>();

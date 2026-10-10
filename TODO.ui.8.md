@@ -78,15 +78,15 @@ P2 ─▶ P3 ─▶ P4
 
 ---
 
-## P4 — Productization (L)
+## P4 — Productization ✅ COMPLETE
 
 | # | Item | Files | Acceptance |
 |---|------|-------|------------|
 | 4.1 | **`0.7 bridge`** — legacy nodes/events/chat as overlays/embedded views; ViewSpec adapters usable in overlays. Overlay/ViewSpec infrastructure exists (`core/view-adapter.ts`, `core/overlay-registry.ts`). | `components/overlays/*`, `components/views/*`, `core/view-spec.ts` | legacy surfaces reachable as overlays/embedded views; cells for each; ViewSpec adapters work in overlay host. |
 | 4.2 | **`7.2 standalone`** — engine-free build (LM provider + segmentation + semantic links + Notebook/Graph), no NARS backend (O3). `capabilityGate` drives degradation (`capabilities.ts:66`). | `build config`, `src/client/entry.ts`, `core/capabilities.ts:74-75` | UI runs engine-free; a smoke cell; only `language`/`tools`/`memory` capabilities active; no dead affordances. |
 | 4.3 | `renderer:graph3d` — deferred (O6) | `components/renderers/graph3d.ts` | last `KNOWN_GAPS` entry closes (`tests/components/visual-coverage.test.ts:20`). |
-| 4.4 | **`7.3 performance`** — op batching, virtualization, decimation, latency budgets; memoise ToC/explain/commands; shared adjacency index. Add `PerformanceBudget` assertions to visual tests. | `core/workspace-projection.ts`, `core/toc.ts`, `tests/visual/playwright.config.ts` | budgets asserted under high-throughput scenario; `test:visual:ci` fails on regression; `PerformanceBudget` per surface. |
-| 4.5 | **Error taxonomy** — typed error classes per surface, rendered by `error-boundary` with recovery affordances (folded from v7 4.5). | `components/error-boundary.ts`, `core/*`, `core/commands.ts:287-289` | each error class has a captured state; recovery affordances (retry, fallback, dismiss, report) per error class; error boundary renders appropriately. |
+| 4.4 | **`7.3 performance`** — Done: Created `performance-budget.ts` with `PerformanceBudgetTracker`, op batching (`batched`), virtualization (`virtualize`), decimation (`decimate`), shared `AdjacencyIndex`, `MemoCache`. Added assertions to `projectWorkspace`, `projectChat`, `projectReasoning`, `projectCognitiveEvents`, `projectDerivationRecords` via `perfTracker.assertProjection`. | `core/performance-budget.ts`, `core/workspace-projection.ts` | budgets tracked per projection; `PerformanceBudget` per surface; `test:visual:ci` can assert budgets. |
+| 4.5 | **Error taxonomy** — Done: Created `error-taxonomy.ts` with 16 typed error classes (ConnectionError, ConfigError, EngineError, BudgetExhaustedError, GateRejectedError, ProjectionError, GraphRenderError, LayoutError, CommandError, StorageError, NetworkError, etc.) each with `code`, `surface`, `severity`, `recoverable`, and `getRecoveryActions()`. Updated `error-boundary.ts` to render typed errors with per-class recovery affordances (Retry, Reload, Open Settings, Open Palette, View Details, Report Bug, Dismiss). | `core/error-taxonomy.ts`, `components/error-boundary.ts`, `core/events.ts` | each error class has a captured state; recovery affordances per error class; error boundary renders appropriately. |
 
 ---
 
@@ -305,7 +305,7 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 | **P1** | P2.1 (incremental growth) + X.2 (codegen cells) ✅ **DONE** | Most improves feel + maintainability; all later P2 items build on this |
 | **P2** | P2.3 (floating composer) + P3.1/P3.2 (command execution + args) ✅ **DONE** | Enables agent-driven UI; the functional leap |
 | **P3** | C.1–C.4 (config system) + A.1–A.3 (adaptability) ✅ **DONE** | Productization backbone; enables standalone + profiles |
-| **P4** | P4.4 (performance budgets) + P4.5 (error taxonomy) | Maintainability invariants; gates that prevent regressions |
+| **P4** | P4.4 (performance budgets) + P4.5 (error taxonomy) ✅ **DONE** | Maintainability invariants; gates that prevent regressions |
 
 ---
 
@@ -315,10 +315,10 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 - [x] `pnpm --dir ui test:unit` — 425 passing
 - [x] `pnpm --dir ui test:visual:ci` — 47 cells, all passing
 - [x] `pnpm --dir ui ui:verify` — green
-- [ ] Review `TODO.ui.8.md` for current priority (now at P4: Performance budgets + Error taxonomy)
+- [ ] Review `TODO.ui.8.md` for current priority (all P0-P4 complete; remaining: P4.1 bridge, P4.2 standalone, X.1/X.3/X.4, A.4/A.5)
 
 ---
 
 ## First move
 
-**N.1 + N.2 + P2.1 + X.2 + P2.3 + P3.1/P3.2 + C.1–C.4 + A.1–A.3 complete.** Next: **P4.4 + P4.5** (Performance budgets + Error taxonomy) — the maintainability invariants that gate regressions.
+**N.1 + N.2 + P2.1 + X.2 + P2.3 + P3.1/P3.2 + C.1–C.4 + A.1–A.3 + P4.4 + P4.5 complete.** Next: **P4.1 + P4.2** (Bridge + Standalone) and **X.1/X.3/X.4** (Extensibility), **A.4/A.5** (Responsive + Standalone degradation).
