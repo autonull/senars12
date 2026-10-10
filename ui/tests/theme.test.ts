@@ -55,7 +55,9 @@ function expectedTokens(): Record<string, Record<string, string>> {
 function parseThemeCss(): Record<string, Record<string, string>> {
   const css = readText('../src/client/styles/tokens.css');
   const blocks = new Map<string, string>();
-  for (const match of css.matchAll(/(:root(?:\[data-theme="[^"]+"\])?)\s*\{([^}]*)\}/g)) {
+  // Match only :root or :root[data-theme="..."] blocks at the top level (not inside @media)
+  const regex = /^(:root(?:\[data-theme="[^"]+"\])?)\s*\{([^}]*)\}/gm;
+  for (const match of css.matchAll(regex)) {
     blocks.set(match[1], match[2]);
   }
   return Object.fromEntries(

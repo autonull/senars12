@@ -49,6 +49,20 @@ function cssBlock(selector: string, tokens: FlatTokens): string {
   return `${selector} {\n${body}\n}`;
 }
 
+function generateReducedMotionBlock(): string {
+  return `@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transitions-fast: 0ms;
+    --transitions-normal: 0ms;
+    --transitions-slow: 0ms;
+    --motion-durations-fast: 0ms;
+    --motion-durations-normal: 0ms;
+    --motion-durations-slow: 0ms;
+    --motion-durations-slower: 0ms;
+  }
+}`;
+}
+
 function generate(filePath: string) {
   const raw = JSON.parse(readFileSync(filePath, 'utf-8')) as TokenTree;
   const { themes, ...base } = raw;
@@ -70,7 +84,7 @@ function generate(filePath: string) {
   });
   writeFileSync(
     resolve(cssDir, 'tokens.css'),
-    `/* Auto-generated from design-tokens.json */\n${cssSections.join('\n\n')}\n`
+    `/* Auto-generated from design-tokens.json */\n${cssSections.join('\n\n')}\n\n${generateReducedMotionBlock()}\n`
   );
   console.log('-> Generated tokens.css');
 

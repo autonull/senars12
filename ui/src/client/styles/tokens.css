@@ -463,3 +463,15 @@
   --transitions-normal: 200ms cubic-bezier(0, 0, 0.2, 1);
   --transitions-slow: 300ms cubic-bezier(0, 0, 0.2, 1);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transitions-fast: 0ms;
+    --transitions-normal: 0ms;
+    --transitions-slow: 0ms;
+    --motion-durations-fast: 0ms;
+    --motion-durations-normal: 0ms;
+    --motion-durations-slow: 0ms;
+    --motion-durations-slower: 0ms;
+  }
+}
