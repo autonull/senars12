@@ -750,3 +750,124 @@ legibility assertion (G.4/T.4).
 - [ ] Then **Move 3–4 (R)**: fractal HTML + LoD registry + chat frames + content adapters.
 - [ ] Keep `pnpm --dir ui typecheck` and `test:unit` green each commit; regenerate baselines on purpose.
 - [ ] End each capability with a cell/recording + a guard.
+
+---
+
+## Neurosymbolic Synergy — NL × Symbolic, *demonstrated* (no mocks)
+
+> **The differentiator.** SeNARS is not "an LLM" and not "a reasoner" — it is the **synergy**: the
+> Language Model turns ambiguous human language into symbols, the symbolic engine (NARS/MeTTa)
+> reasons, revises, contradicts, and plans, and the Language Model turns the symbols back into
+> language a human trusts. The UI must make *this loop* the thing you see.
+
+### The loop (one pipeline, shown on screen)
+
+```
+  "Robins are usually birds;      ┌─────────────┐   <robin --> bird>. [f=0.9 c=0.6]
+   birds are animals, so          │  NL → Symbol │──────────────────────────────┐
+   robins are…? What about        │  (LM-assisted│                              ▼
+   swans — I thought white?"      │   parse)     │                    ┌──────────────────┐
+        ▲                         └─────────────┘                    │  Symbolic engine │
+        │                                                            │  NARS (NAL) ·    │
+        │  natural-language                                          │  MeTTa (rewrite) │
+        │  explanation +                                             └────────┬─────────┘
+        │  uncertainty wording                                                │
+  ┌─────┴──────────┐   derivation, revision, contradiction, plan   cognitive.delta
+  │  Symbol → NL   │◀──────────────────────────────────────────────────────┘
+  │  (LM-assisted  │
+  │   verbalize)   │
+  └────────────────┘
+```
+
+**Both directions are observable.** The produced Narsese/MeTTa is shown *before/while* it is
+submitted (and is editable), so the translation is never a black box — it is part of the graph, with
+provenance from the NL span to the symbolic term.
+
+### No mocks — use the compact offline models we already support
+
+| Provider | Where | Role in demos |
+|---|---|---|
+| **`webllm`** (WebGPU, in browser) | client | default offline NL↔symbolic translator + verbalizer |
+| **`transformers`** (Transformers.js, in browser) | client | lightweight offline fallback |
+| **`llamacpp-embedded` / `llamacpp`** | engine/server | deterministic offline LM for reproducible cells/recordings |
+| `mock` | — | **unit tests only**; never used to "demonstrate" a capability |
+
+**Policy:** every neurosymbolic **demo, cell, and recording runs a real compact model** with a fixed
+seed (reproducible), offline, no network. `mock` is confined to non-capability unit tests.
+
+### Scenario catalog (engine-backed, offline, reproducible)
+
+| # | Scenario | NL in | Symbolic work | NL out | Shows |
+|---|---|---|---|---|---|
+| NS.1 | **Grounded syllogism** | "Robins are birds; birds are animals — what about robins?" | parse → `<robin-->bird>`, `<bird-->animal>` | derive `<robin-->animal>` | verbalized conclusion + truth (`f,c`) |
+| NS.2 | **Defeasible revision** | "Swans are white… but this swan is black." | two beliefs + `contradiction` | revise with confidence | contradiction surfaced, truth revised, narrated |
+| NS.3 | **Hedged uncertainty** | "It's *probably* going to rain; the sky is *usually* grey when…" | map hedges → `f/c` | reason with uncertainty | NL hedges become truth values; output reflects them |
+| NS.4 | **Goal → plan** | "Make tea — I have leaves, water, a kettle." | goals + plan derivation | summarize the plan | NL goal → NARS goals → ordered plan |
+| NS.5 | **MeTTa rewrite** | "Refactor: rename `foo` to `bar` where safe." | MeTTa atoms + rewrite rules | explain the rewrite | NL → MeTTa → rewrite → NL, symbolically checked |
+| NS.6 | **Cross-checks** | "If A implies B and B implies C, does A imply C? Verify my logic." | proof/consistency | confirm/deny with the chain | LM proposes, symbolic *verifies*, LM explains |
+| NS.7 | **Disambiguation** | "Bank (river? money?) — which fits this sentence?" | LM → candidate atoms → context filter | state the chosen reading | LM + symbolic jointly disambiguate |
+
+Scenarios may chain (a turn can trigger several). Every scenario ends with a **visible delta** on the
+graph (new beliefs/goals/links) and, where temporal, a **recording** (T.2).
+
+### UI surfaces that make the synergy legible
+
+| Surface | What it shows |
+|---|---|
+| **Bilingual turn** | NL text ⇄ the Narsese/MeTTa it produced, side by side (the block's `full` LoD tier). |
+| **Translation trace** | anchored popover: source span → term → kind → truth; the mapping is data, inspectable. |
+| **Symbolic provenance** | NL span ↔ node links (`asserts`, `translates-to`), so clicking a claim shows the sentence it came from. |
+| **Combined graph** | NL turn-nodes + symbolic concept-nodes in one graph, distinct kinds, linked; LoD shows NL content. |
+| **Uncertainty chips** | LM-assigned priors and NARS-revised `f/c` shown together; revision is visible over time. |
+| **Reasoning HUD** | the live loop: parse → submit → derive → verbalize, with step/stop/abort (control mode exists). |
+
+### N — Neurosymbolic Synergy (proposed phase)
+
+| # | Item | Status | Files | Acceptance |
+|---|------|--------|-------|------------|
+| N.1 | **Offline LM for demos** — pin real `webllm`/`transformers`/`llamacpp-embedded`; a seeded, deterministic "demo LM" profile; `mock` forbidden in capability cells. | ⬜ | `core/lm-*.ts`, `tests/visual/*`, `core/config-schema.ts` | a cell runs end-to-end offline with a real model; deterministic; no mock |
+| N.2 | **Bilingual turn + translation trace** — every NL turn carries its symbolic form and the span→term mapping, both inspectable. | ⬜ | `core/workspace-projection.ts`, `components/renderers/*` | a turn shows NL ⇄ symbolic; trace is data; cells |
+| N.3 | **Synergy scenarios (NS.1–NS.7)** as engine-backed scenarios + cells/recordings. | ⬜ | `tests/framework/*`, `tests/visual/matrix.ts` | each scenario reproduces offline; recordings show the loop |
+| N.4 | **Combined graph** — NL turn-nodes and symbolic concept-nodes in one projection, linked, LoD-aware. | ⬜ | `core/workspace-projection.ts`, `utils/adapter-2d.ts` | one graph shows language *and* logic; cells |
+| N.5 | **Uncertainty legibility across NL↔symbolic** — hedges → `f/c`; revision visible over time; wording reflects truth. | ⬜ | `core/workspace-projection.ts`, `components/*` | hedged NL yields correct `f/c`; revision narrated; cells |
+| N.6 | **MeTTa synergy** — NL → MeTTa atoms/rewrites → NL, with the rewrite chain shown. | ⬜ | `core/metta-backend.ts`, `components/*` | a rewrite scenario runs offline; chain visible; cell |
+| N.7 | **Symbolic verification of LM output** — LM proposes, symbolic engine checks consistency/derivation, LM explains the verdict. | ⬜ | `core/*-backend.ts`, `components/*` | a false LM implication is caught symbolically and explained; cell |
+
+### Guardrails
+
+- **Determinism**: seeded demo-LM profile so NS cells/recordings are reproducible.
+- **Honesty**: never label a mock output as a model result; the provider chip always shows what ran.
+- **Time budget**: settle/download once, cache the model; a scenario declares its model + budget.
+- **Legibility**: the translation is shown, not hidden; low confidence is *shown*, not smoothed over.
+
+### Strategic takeaway
+
+This is the **headline** of SeNARS's UI: a user speaks in language, watches it become *logic*,
+watches the logic *reason*, and hears the reasoning back in language — with every step inspectable.
+Combined with the Fractal-HTML/LoD canvas (R), the synergy is not a claim in a README; it is a
+*visible, offline, reproducible loop* on screen.
+
+---
+
+## Kickoff addendum — the neurosymbolic move (fold into Move 3–4)
+
+The **N** phase (Neurosymbolic Synergy) is a first-class headline, run **alongside** the fractal
+canvas (R) because they compound: R makes rich content visible; N makes the *language↔logic loop*
+visible. Suggested insertion once Move 2 (linked workspace) lands:
+
+- **N.1 (half a day):** pin a **real compact offline model** (`webllm` / `transformers` /
+  `llamacpp-embedded`) as a seeded, deterministic "demo LM" profile; forbid `mock` in capability cells.
+- **N.2 + N.4 (1–2 days):** **Bilingual turn** (NL ⇄ symbolic) + **combined graph** (language nodes
+  and logic nodes in one projection, linked).
+- **N.3 (2–3 days):** implement **NS.1–NS.7** as engine-backed scenarios with recordings — the
+  syllogism, defeasible revision, hedged uncertainty, goal→plan, MeTTa rewrite, cross-check,
+  disambiguation.
+- **N.7 (1 day):** **symbolic verification of LM output** — the LM proposes, the engine checks, the
+  LM explains the verdict.
+
+**Definition of done:** an offline recording shows a natural-language question becoming Narsese,
+NARS/MeTTa reasoning over it, and a natural-language answer — with the translation and truth values
+inspectable at every step, and **no mock in the path**.
+
+**Standing rule added:** *capability demonstrations always run a real compact offline model; `mock`
+is for unit tests only.*
