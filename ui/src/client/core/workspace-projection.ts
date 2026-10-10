@@ -45,6 +45,33 @@ export const linkId = (source: Ref, target: Ref, kind: SemanticLinkKind): Ref =>
 /** The `derivation-record` block documenting one provenance edge (§3.3). */
 export const derivationId = (edge: Ref): Ref => `derivation:${edge}`;
 
+/** Link kinds that are symmetric — if A→B exists, B→A is redundant. */
+export const SYMMETRIC_LINK_KINDS: ReadonlySet<SemanticLinkKind> = new Set([
+  'contradicts',
+  'same-topic',
+]);
+
+/** Canonicalize a link so symmetric kinds always have source < target lexicographically. */
+export function canonicalizeLink(link: SemanticLink): SemanticLink {
+  if (!SYMMETRIC_LINK_KINDS.has(link.kind)) return link;
+  if (link.source <= link.target) return link;
+  return { ...link, source: link.target, target: link.source, id: linkId(link.target, link.source, link.kind) };
+}
+
+/** Deduplicate symmetric links — keep one per unordered pair per kind. */
+export function deduplicateSymmetricLinks(links: SemanticLink[]): SemanticLink[] {
+  const seen = new Set<string>();
+  const result: SemanticLink[] = [];
+  for (const link of links) {
+    const canon = canonicalizeLink(link);
+    const key = `${canon.kind}:${canon.source}|${canon.target}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(canon);
+  }
+  return result;
+}
+
 const ROLE_MAP = {
   user: { role: 'user', createdBy: 'user' },
   agent: { role: 'assistant', createdBy: 'lm' },
@@ -175,7 +202,7 @@ export function projectChat(messages: readonly ChatMessage[]): WorkspaceFragment
     }
   }
 
-  return { blocks, links, roots };
+  return { blocks, links: deduplicateSymmetricLinks(links), roots };
   });
 }
 
@@ -289,7 +316,7 @@ export function projectReasoning(
     return children ? { ...block, children } : block;
   });
 
-  return { blocks: [...nested, ...steps], links, roots };
+  return { blocks: [...nested, ...steps], links: deduplicateSymmetricLinks(links), roots };
   });
 }
 
@@ -395,7 +422,7 @@ export function projectCognitiveEvents(events: readonly CognitiveEvent[]): Works
     }
   }
 
-  return { blocks, links, roots };
+  return { blocks, links: deduplicateSymmetricLinks(links), roots };
   });
 }
 
@@ -478,7 +505,7 @@ export function projectDerivationRecords(events: readonly CognitiveEvent[]): Wor
     }
   }
 
-  return { blocks, links, roots };
+  return { blocks, links: deduplicateSymmetricLinks(links), roots };
   });
 }
 

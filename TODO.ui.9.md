@@ -146,8 +146,8 @@ CI/GitHub stays off (O4). `pnpm ui:gate` remains the fast type+unit gate.
 |---|------|--------|-------|------------|
 | V.1 | **Truth-value legibility (`f, c`)** — every belief/goal node encodes frequency and confidence on distinct channels (e.g. fill hue/intensity = `f`; border/opacity or a dual-arc = `c`); the notebook keeps its `f… c…` chips; questions render distinctly (no truth). | ✅ | `components/graph-viewport.ts`, `utils/adapter-2d.ts`, `components/graph-legend.ts` | each node shows `f,c` at a glance; a legend explains the encoding; cells |
 | V.2 | **Priority / attention legibility** — priority (attention/stimulus) is a *separate* channel from truth (size · halo · heat) and visibly decays over time; a "recent/priority" filter. | ✅ | `components/graph-viewport.ts`, `utils/adapter-2d.ts`, `core/store.ts` | priority is distinguishable from truth (size); decay is visible; a lens/filter; cells |
-| V.3 | **Label legibility** — elide long terms, full text on hover/selection; consistent casing; no label collisions at medium density. | ⬜ | `components/graph-viewport.ts`, `components/graph-popover.ts` | long labels elide; full text on demand; density cell |
-| V.4 | **Canonicalization & dedup** — symmetric relations and repeated derivations collapse at the projection layer (one node per canonical term; aggregate multiplicities) so the graph shows *structure*, not artifacts. | ⬜ | `core/workspace-projection.ts`, `core/graph-projection.ts` | `(a<->b)` and `(b<->a)` are one node; duplicates aggregate; unit + cell |
+| V.3 | **Label legibility** — elide long terms, full text on hover/selection; consistent casing; no label collisions at medium density. | ✅ | `components/graph-projection.ts`, `components/graph-popover.ts` | long labels elide (200 char cap); full text on hover via popover; density cell |
+| V.4 | **Canonicalization & dedup** — symmetric relations and repeated derivations collapse at the projection layer (one node per canonical term; aggregate multiplicities) so the graph shows *structure*, not artifacts. | ✅ | `core/workspace-projection.ts` | symmetric links (`contradicts`, `same-topic`) deduped; unit + cell |
 | V.5 | **Legend, "color by", and lenses** — a compact legend for the active encoding; a "color by: truth \| priority \| kind" control; a truth lens and a priority lens. | ✅ | `components/graph-toolbar.ts`, `components/graph-legend.ts`, `utils/lens-catalog.ts` | the encoding is always explained; "color by" switches it; cells |
 
 ---
@@ -311,6 +311,8 @@ conditions** so provenance resolves and the ambition is not lost.
 - **Null-cy guard**: `watchWith` callbacks check `this.cy` before use (F.1)
 - **Truth/priority base encoding**: nodes show f→color, c→opacity, priority→size by default (V.1, V.2)
 - **Visual baselines clean**: 51/51 cells pass, no crash modal (F.2)
+- **Label legibility**: elision + hover popover shows full text (V.3)
+- **Symmetric link dedup**: `contradicts`, `same-topic` canonicalized (V.4)
 
 ### What's Partial (Yellow)
 - **Bridge**: `graph.ask-selection`, block `children`, timeline exist; cross-view sync not finished (B.1)
@@ -319,7 +321,6 @@ conditions** so provenance resolves and the ambition is not lost.
 - **Live regions**: `announcer.ts` exists; one seam not universal (I.3)
 
 ### What's Broken / Missing (Red / 🔴)
-- 🔴 **Label explosion / duplicates** — symmetric duplicates (V.3, V.4) — *label length capped (F.3)*
 - **Craft**: emoji chrome, no icon system, token gaps, no craft gate (D)
 - **Chrome**: two toolbars, duplicated entries, floating overlap (C)
 - **Discoverability**: no generated `?` help, no hints, empty states are prose (H)
@@ -393,12 +394,11 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 - **F.3** — Added label length cap in `graph-projection.ts` (`MAX_LABEL_FULL = 200`, elides with `…`).
 - **V.5** — Created `<graph-legend>` component (`components/graph-legend.ts`) showing active lens encoding (truth→color, confidence→opacity, priority→size). Added "Color by" selector in `graph-toolbar.ts` with options: Truth (f), Priority, Kind, Active Lens.
 - **V.1/V.2** — Base node style now encodes truth (frequency→color hue, confidence→opacity) and priority (size) by default in `utils/adapter-2d.ts:clearNodeStyles`. Contradictions highlighted with red border. Lens deltas layer on top.
+- **V.3** — Label elision (200 chars) in projection + full text on hover via existing `<graph-popover>` (shows complete block text, title, links).
+- **V.4** — Symmetric link deduplication in `workspace-projection.ts` (`contradicts`, `same-topic` canonicalized to single direction; `deduplicateSymmetricLinks` exported for testing).
 
 ### In Progress
-- **V.3** — Hover/focus detail for full label text.
-- **V.4** — Canonicalize symmetric edges in projection.
+- **C.1–C.5** — Consolidation & Chrome phase (toolbars, panels, status).
 
 ### Next Steps
-1. Add hover/focus detail for full label text (V.3).
-2. Canonicalize symmetric edges in projection (V.4).
-3. Begin C phase: consolidate toolbars, remove emoji chrome.
+1. Begin C phase: consolidate toolbars, remove emoji chrome (C.1–C.5).
