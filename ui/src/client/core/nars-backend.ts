@@ -83,6 +83,7 @@ const CAPS: BackendCaps = {
   canAddGoal: true,
   canAdjustBudget: true,
   canAdjustProvider: true,
+  canAbort: true,
 };
 
 const nodeOf = (id: Ref, node: GraphNodeData): BackendNode => ({
@@ -140,6 +141,10 @@ function makeControl(): ReasoningControl {
     },
     async run(): Promise<ControlResult> {
       send({ type: 'reasoning.run' });
+      return { ok: true };
+    },
+    async abort(): Promise<ControlResult> {
+      send({ type: 'reasoning.abort' });
       return { ok: true };
     },
     async retract(nodeId: Ref): Promise<ControlResult> {

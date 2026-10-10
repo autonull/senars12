@@ -211,6 +211,12 @@ export const $graphLayer = atom<GraphLayer>('both');
 /** The layer each lens last chose, so switching lens restores its filter (§2.6). */
 export const $lensLayer = atom<Record<string, GraphLayer>>({});
 
+/** Control mode: off → suggestions; on → execution + visible command log + HUD stop. */
+export const $controlMode = atom<boolean>(false);
+
+/** Whether a reasoning run is currently in-flight (set by run command, cleared by abort/response). */
+export const $reasoningRunning = atom<boolean>(false);
+
 export const setGraphLayer = (layer: GraphLayer): void => {
   $lensLayer.set({ ...$lensLayer.get(), [$activeLens.get()]: layer });
   $graphLayer.set(layer);

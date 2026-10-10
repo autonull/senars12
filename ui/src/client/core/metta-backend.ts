@@ -50,6 +50,7 @@ const CAPS: BackendCaps = {
   canAddGoal: false,
   canAdjustBudget: false,
   canAdjustProvider: false,
+  canAbort: false,
 };
 
 const nodeOf = (id: Ref, node: GraphNodeData): BackendNode => ({
@@ -118,6 +119,9 @@ function makeControl(): ReasoningControl {
     },
     async run(): Promise<ControlResult> {
       return { ok: false, message: 'MeTTa backend does not support run' };
+    },
+    async abort(): Promise<ControlResult> {
+      return { ok: false, message: 'MeTTa backend does not support abort' };
     },
     async retract(_nodeId: Ref): Promise<ControlResult> {
       return { ok: false, message: 'MeTTa backend does not support retract' };

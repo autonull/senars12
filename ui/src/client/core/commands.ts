@@ -12,7 +12,7 @@ import { eventBus } from './events.js';
 import { overlays } from './overlay-registry.js';
 import { foldableSections, sectionTree } from './sections.js';
 import { narsBackend } from './nars-backend.js';
-import { $activeRenderer, $capabilities, $collapsedBlocks, $panels, $workspaceGraph } from './index.js';
+import { $activeRenderer, $capabilities, $collapsedBlocks, $controlMode, $panels, $reasoningRunning, $workspaceGraph } from './index.js';
 import { setCollapsed } from './store.js';
 import { availableComposerModes, type ComposerMode } from './composer-modes.js';
 import { workspaceRenderers } from './workspace-renderer.js';
@@ -167,6 +167,14 @@ const derivedCommands = (): Command[] => [
     keywords: 'overlay window tile arrange grid',
     run: () => eventBus.emit('overlay:tile'),
   },
+  {
+    id: 'control.mode.toggle',
+    title: 'Toggle control mode',
+    group: 'Control',
+    keywords: 'control mode toggle reasoning execute',
+    run: () => $controlMode.set(!$controlMode.get()),
+    available: () => capabilityGate('reasoning'),
+  },
   ...availableComposerModes($capabilities.get()).map((mode): Command => ({
     id: `composer.mode.${mode.id}`,
     title: `Composer: ${mode.label}`,
@@ -223,7 +231,10 @@ registerCommand({
   title: 'Run reasoner',
   group: 'Reasoning',
   keywords: 'reasoning run inference nars',
-  run: () => narsBackend.control?.run(),
+  run: () => {
+    $reasoningRunning.set(true);
+    narsBackend.control?.run();
+  },
   available: () => reasoningAvailable() && caps().canRun,
 });
 
@@ -284,6 +295,15 @@ registerCommand({
   run: (args) => narsBackend.control?.adjustProvider(String(args.provider ?? '')),
   parse: (args) => ({ provider: String(args.provider ?? '') }),
   available: () => reasoningAvailable() && caps().canAdjustProvider,
+});
+
+registerCommand({
+  id: 'reasoning.abort',
+  title: 'Abort reasoning run',
+  group: 'Reasoning',
+  keywords: 'reasoning abort stop cancel nars',
+  run: () => narsBackend.control?.abort(),
+  available: () => reasoningAvailable() && caps().canAbort && $controlMode.get() && $reasoningRunning.get(),
 });
 
 /** Every command the palette may offer right now, explicit then derived. */

@@ -16,8 +16,10 @@ import { GRAPH_LAYERS, type GraphLayer } from '../core/graph-layer.js';
 import { $lmProvider, type LmProviderState, providerLabel } from '../core/lm-provider.js';
 import {
   $activeRenderer,
+  $controlMode,
   $graphLayer,
   $graphNodes,
+  $reasoningRunning,
   $telemetry,
   hasTemporalData,
   setGraphLayer,
@@ -76,6 +78,9 @@ export class WorkspaceHud extends BaseComponent {
     }
     button:hover { background: var(--colors-semantic-bg-subtle); color: var(--colors-semantic-text-primary); }
     button[aria-pressed='true'] { background: var(--colors-semantic-accent-cyan); color: var(--colors-semantic-bg-base); }
+    button.control-on[aria-pressed='true'] { background: var(--colors-semantic-accent-amber); color: var(--colors-semantic-bg-base); }
+    button.stop-btn { background: var(--colors-semantic-accent-red); color: var(--colors-semantic-bg-base); }
+    button.stop-btn:hover { background: var(--colors-semantic-accent-red); filter: brightness(1.2); }
     .chip {
       padding: 0 var(--spacing-scale-2);
       color: var(--colors-semantic-text-muted);
@@ -110,17 +115,21 @@ export class WorkspaceHud extends BaseComponent {
   override connectedCallback(): void {
     super.connectedCallback();
     this.watch($activeRenderer);
+    this.watch($controlMode);
     this.watch($graphLayer);
     this.watch($graphNodes);
     this.watch($lmProvider);
+    this.watch($reasoningRunning);
     this.watch($telemetry);
   }
 
-  override render() {
+override render() {
     const active = $activeRenderer.get();
     const activeRenderer = workspaceRenderer(active);
     const layer = $graphLayer.get();
     const provider = $lmProvider.get();
+    const controlMode = $controlMode.get();
+    const reasoningRunning = $reasoningRunning.get();
     const data = $telemetry.get();
     return html`
       ${this.statsOpen ? this.renderStats(data) : ''}
@@ -177,18 +186,49 @@ export class WorkspaceHud extends BaseComponent {
         ${
           activeRenderer && rendererHasControl(activeRenderer, 'layers')
             ? html`
-              <div class="layers" role="group" aria-label="Graph layer">
-                ${GRAPH_LAYERS.map(
-                  (id) => html`<button
-                    data-layer=${id}
-                    aria-pressed=${id === layer}
-                    title=${`Show ${id}`}
-                    @click=${() => setGraphLayer(id)}
-                  >${LAYER_LABELS[id]}</button>`
-                )}
-              </div>
-            `
+                <div class="layers" role="group" aria-label="Graph layer">
+                  ${GRAPH_LAYERS.map(
+                    (id) => html`<button
+                      data-layer=${id}
+                      aria-pressed=${id === layer}
+                      title=${`Show ${id}`}
+                      @click=${() => setGraphLayer(id)}
+                    >${LAYER_LABELS[id]}</button>`
+                  )}
+                </div>
+              `
             : ''
+        }
+        ${
+          controlMode
+            ? html`
+                <button
+                  data-action="control-mode"
+                  title="Control mode: ON (click to disable)"
+                  aria-label="Control mode"
+                  aria-pressed=${true}
+                  @click=${() => dispatchCommand('control.mode.toggle')}
+                  class="control-on"
+                >⬢</button>
+                ${
+                  reasoningRunning
+                    ? html`<button
+                        data-action="reasoning.abort"
+                        title="Abort reasoning run"
+                        aria-label="Abort reasoning run"
+                        @click=${() => dispatchCommand('reasoning.abort')}
+                        class="stop-btn"
+                      >■</button>`
+                    : ''
+                }
+              `
+            : html`<button
+                data-action="control-mode"
+                title="Control mode: OFF (click to enable)"
+                aria-label="Control mode"
+                aria-pressed=${false}
+                @click=${() => dispatchCommand('control.mode.toggle')}
+              >⬢</button>`
         }
         <button
           data-action="settings"

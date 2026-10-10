@@ -240,6 +240,8 @@ export {
   $graphFilter,
   $graphMeta,
   $graphLayer,
+  $controlMode,
+  $reasoningRunning,
   $graphNodes,
   $graphShape,
   $conversationLayout,

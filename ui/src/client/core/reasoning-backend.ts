@@ -61,6 +61,7 @@ export interface BackendCaps {
   readonly canAddGoal: boolean;
   readonly canAdjustBudget: boolean;
   readonly canAdjustProvider: boolean;
+  readonly canAbort: boolean;
 }
 
 /** Input to a `submit` call — a NAL sentence or a structured task. */
@@ -88,6 +89,8 @@ export interface ReasoningControl {
   step(): Promise<ControlResult>;
   /** Run the reasoner until the budget is exhausted or a result is produced. */
   run(): Promise<ControlResult>;
+  /** Abort an in-flight run. */
+  abort(): Promise<ControlResult>;
   /** Retract a belief by its node id. */
   retract(nodeId: Ref): Promise<ControlResult>;
   /** Revise the truth value of a belief. */
