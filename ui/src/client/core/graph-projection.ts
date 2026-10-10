@@ -47,7 +47,8 @@ const labelFor = (block: SemanticBlock): string =>
   block.title ?? firstLine(block.text) ?? BLOCK_KIND_LABEL[block.kind] ?? block.kind;
 
 const isContainer = (block: SemanticBlock): boolean =>
-  (block.kind === 'section' || block.kind === 'heading') && (block.children?.length ?? 0) > 0;
+  ((block.kind === 'section' || block.kind === 'heading' || block.kind === 'turn') &&
+    (block.children?.length ?? 0) > 0);
 
 export function projectWorkspaceGraph(graph: WorkspaceGraph): WorkspaceProjection {
   const nodes = new Map<string, WorkspaceNodeData>();

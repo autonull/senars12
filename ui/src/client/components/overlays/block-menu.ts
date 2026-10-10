@@ -12,6 +12,7 @@ import { customElement, property } from 'lit/decorators.js';
 import { Announcer } from '../../core/announcer.js';
 import { artifactViewSpec } from '../../core/artifacts.js';
 import { capabilityGate, $capabilities } from '../../core/capabilities.js';
+import { $collapsedBlocks, $workspaceGraph, setWorkspaceFocus, toggleCollapsed } from '../../core/store.js';
 import { eventBus } from '../../core/events.js';
 import {
   $embeddedViews,
@@ -23,7 +24,7 @@ import {
 import { explainModel } from '../../core/explain.js';
 import { neighborhood } from '../../core/neighborhood.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
-import { $activeRenderer, $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
+import { $activeRenderer } from '../../core/store.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { linkMeta } from '../../utils/link-catalog.js';
@@ -41,12 +42,14 @@ export class BlockMenuView extends SurfaceComponent {
   `;
 
   @property({ type: String }) ref = '';
+  @property({ type: String }) initialAction?: 'expand' | 'collapse';
 
   override connectedCallback(): void {
     super.connectedCallback();
     this.watch($workspaceGraph);
     this.watch($embeddedViews);
     this.watch($capabilities);
+    this.watch($collapsedBlocks);
   }
 
   protected override renderBody() {
@@ -88,6 +91,19 @@ export class BlockMenuView extends SurfaceComponent {
               </button>
             `
           )
+        }
+        ${
+          (block.children?.length ?? 0) > 0
+            ? html`
+                <button
+                  role="menuitem"
+                  data-action=${$collapsedBlocks.get().has(this.ref) ? 'expand' : 'collapse'}
+                  @click=${() => toggleCollapsed(this.ref)}
+                >
+                  ${$collapsedBlocks.get().has(this.ref) ? 'Expand' : 'Collapse'} children
+                </button>
+              `
+            : ''
         }
         <button role="menuitem" data-action="open-graph" @click=${this.openInGraph}>Open in graph</button>
         ${

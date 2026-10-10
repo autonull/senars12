@@ -59,7 +59,7 @@ P2 ─▶ P3 ─▶ P4
 | # | Item | Status | Files | Acceptance |
 |---|------|--------|-------|------------|
 | 2.1 | **Incremental growth** — animate new workspace blocks in (replace today's replace-by-diff), no full relayout. **Implemented**: `GraphRenderer.present()` computes diff via `workspace-diff.ts` and emits `WorkspaceOp` stream; `applyWorkspaceOps` in `graph-viewport.ts:778` animates enter/exit/move. | ✅ Done | `core/workspace-diff.ts`, `components/renderers/graph.ts:78-97`, `components/graph-viewport.ts:778-859` | `present` computes diff → emits enter/exit/move ops; `apply` animates each op; still cell stable; motion cell shows FLIP/GSAP |
-| 2.2 | **Chat clusters** — compound clusters from `contains`/headings; set `children` on turns. Projection sets `children` on turn blocks (`workspace-projection.ts:130`). | ⬜ Not started | `core/workspace-projection.ts:116-150`, `components/renderers/notebook.ts` | multi-turn chat collapses into cluster cell; fold/unfold in notebook; graph shows cluster as single node with expand affordance |
+| 2.2 | **Chat clusters** — compound clusters from `contains`/headings; set `children` on turns. **Implemented**: `isContainer` in `graph-projection.ts` treats `turn` blocks with children as compound parents; `syncWorkspaceLayer` in `graph-viewport.ts` handles fold state via `$collapsedBlocks`; block menu has Collapse/Expand action; double-click on cluster node toggles fold. | ✅ Done | `core/graph-projection.ts:49-50`, `components/graph-viewport.ts:884-940`, `components/overlays/block-menu.ts:68-78` | multi-turn chat collapses into cluster cell; fold/unfold in notebook; graph shows cluster as single node with expand affordance |
 | 2.3 | **Floating composer** — anchored to block/node/subgraph; summoned, not persistent; cy→DOM handoff; capability-gated modes. **Implemented** in `composer-focus.ts`. | ✅ Done | `components/composer-focus.ts`, `core/composer-modes.ts`, `core/events.ts` | composer opens anchored to selection; mode bar reflects `availableComposerModes($capabilities)`; prefill from `tool-result`; cell in gallery |
 | 2.4 | **Composer sweep** — mode bar ↔ palette share one action source; `composer.prefill`; per-segment preview; guard `decomposeInput` over-splitting; `ComposerFocus` extracted. | 🟡 Partial | `components/composer-focus.ts`, `components/input-hud.ts`, `core/input-decomposition.ts:30-47`, `core/commands.ts` | one action source (mode bar = palette subset); prefill from `tool-result` block; decimal/abbrev safe in `isFaithfulDecomposition` |
 | 2.5 | **Graph polish** — unify lens/capability styling; exclude hidden layer from `fit`; bind `graph.ask-selection` (`a`); HUD/palette layout group + `graph.layout.cycle`; register `chronological-flow`/`source-view` SpaceGraph surfaces. | ⬜ Not started | `components/renderers/graph.ts`, `core/graph-layer.ts`, `core/workspace-renderer.ts` | hidden layer not fitted; layout cycle reachable via palette; `graph.ask-selection` (`a`) opens composer with selection refs; new surfaces get cells |
@@ -176,7 +176,6 @@ These are implementation patterns to follow, not separate TODO items:
 
 ### What's Partial (Yellow)
 - **Composer sweep**: `ComposerFocus` extracted; mode bar ↔ palette don't share single action source; no `composer.prefill` from tool-result (P2.4)
-- **Chat clusters**: `children` set on turns in projection; notebook fold/unfold + graph cluster node not implemented (P2.2)
 
 ### What's Deferred (Red)
 - **Graph3D**: `renderer:graph3d` — last `KNOWN_GAPS` entry (O6)
@@ -208,11 +207,9 @@ These are implementation patterns to follow, not separate TODO items:
 10. **P4.4 Performance budgets** — Done: `PerformanceBudgetTracker` with assertions in projections.
 11. **P4.5 Error taxonomy** — Done: 16 typed error classes with recovery affordances in error boundary.
 
-### P3 — **NEXT: P2.2 Chat Clusters** 🎯
-12. **P2.1 Incremental growth** — **Done**: `GraphRenderer.present()` computes diff via `workspace-diff.ts` and emits `WorkspaceOp` stream; `applyWorkspaceOps` in `graph-viewport.ts:778` animates enter/exit/move.
-
-### P4 — Polish & Ergonomics
-13. **P2.2 Chat clusters** — Notebook fold/unfold for `children`; graph cluster node with expand affordance. **Next priority**.
+### P4 — **NEXT: P2.4 Composer Sweep** 🎯
+13. **P2.1 Incremental growth** — **Done**: `GraphRenderer.present()` computes diff via `workspace-diff.ts` and emits `WorkspaceOp` stream; `applyWorkspaceOps` in `graph-viewport.ts:778` animates enter/exit/move.
+14. **P2.2 Chat clusters** — **Done**: `isContainer` in `graph-projection.ts` treats `turn` blocks with children as compound parents; `syncWorkspaceLayer` handles fold state; block menu has Collapse/Expand; double-click toggles fold.
 14. **P2.4 Composer sweep** — Unify mode bar ↔ palette action source; add `composer.prefill` from tool-result.
 15. **P2.5 Graph polish** — Hidden layer fit exclusion, `graph.ask-selection` binding, layout cycle command, storyboard surfaces.
 
@@ -333,16 +330,16 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 
 ## First move
 
-**P0, P1, P2, P3 complete.** Cross-cutting (X, C, A) complete. P4 (productization) complete except P4.3 Graph3D (deferred O6).
+**P0, P1, P2, P3, P2.2 complete.** Cross-cutting (X, C, A) complete. P4 (productization) complete except P4.3 Graph3D (deferred O6).
 
-**Next: P4 — P2.2 Chat Clusters** — notebook fold/unfold for `children`; graph cluster node with expand affordance. The projection already sets `children` on turn blocks (`workspace-projection.ts:130`).
+**Next: P4 — P2.4 Composer Sweep** — unify mode bar ↔ palette action source; add `composer.prefill` from tool-result.
 
 Remaining work:
 
 | Phase | Item | Status | Notes |
 |---|---|---|---|
 | **P2.1** | Incremental growth | ✅ **Done** | `present()` computes diff via `workspace-diff.ts`; `applyWorkspaceOps` animates |
-| **P2.2** | Chat clusters | ⬜ Not started | `children` set on turns; need notebook fold/unfold + graph cluster node |
+| **P2.2** | Chat clusters | ✅ **Done** | `turn` blocks with children are compound parents; fold/unfold via double-click + block menu |
 | **P2.3** | Floating composer | ✅ **Done** | `composer-focus.ts`: anchor resolution, capability-gated modes, prefill |
 | **P2.4** | Composer sweep | 🟡 Partial | `ComposerFocus` extracted; mode bar ↔ palette action source not unified |
 | **P2.5** | Graph polish | ⬜ Not started | hidden layer fit exclusion, `graph.ask-selection`, layout cycle, storyboard surfaces |

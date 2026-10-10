@@ -7,6 +7,7 @@ import {
   $activeLens,
   $capabilityFilter,
   $chatMessages,
+  $collapsedBlocks,
   $focusTerm,
   $graphEdges,
   $graphFilter,
@@ -33,6 +34,7 @@ import {
   send,
   setWorkspaceFocus,
   setWorkspaceSelection,
+  toggleCollapsed,
 } from '../core/index.js';
 import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
@@ -132,6 +134,7 @@ export class GraphViewport extends BaseComponent {
     renderer.connect();
     this.watchWith($workspaceGraph, () => this.syncGraph());
     this.watchWith($graphLayer, () => this.applyGraphFilter());
+    this.watchWith($collapsedBlocks, () => this.syncWorkspaceLayer(this.cy!));
     eventBus.on('graph:layout', this.layoutHandler);
     eventBus.on('graph:zoom-in', this.zoomIn);
     eventBus.on('graph:zoom-out', this.zoomOut);
@@ -253,10 +256,15 @@ export class GraphViewport extends BaseComponent {
       setWorkspaceSelection([]);
     });
 
-    // Double-click: focus term
+    // Double-click: focus term or toggle fold on workspace compound nodes
     this.cy.on('dblclick', 'node', (evt) => {
       const node = evt.target;
       if (node.hasClass('workspace')) {
+        const hasChildren = node.children?.().filter((n: any) => n.data('parent') === node.id()).length ?? 0;
+        if (hasChildren > 0) {
+          toggleCollapsed(node.id());
+          return;
+        }
         setWorkspaceFocus(node.id());
         eventBus.emit('overlay:open', { id: 'explain', ref: node.id() });
         return;
@@ -569,22 +577,31 @@ export class GraphViewport extends BaseComponent {
           'z-index': 997,
         },
       },
-      {
-        selector: 'node.workspace',
-        style: {
-          shape: 'round-rectangle',
-          'background-color': theme.colors.accentCyan,
-          'background-opacity': 0.12,
-          'border-color': theme.colors.accentCyan,
-          'border-width': 1.5,
-          width: 'label',
-          height: 'label',
-          padding: '8px',
-          opacity: 1,
+{
+          selector: 'node.workspace',
+          style: {
+            shape: 'round-rectangle',
+            'background-color': theme.colors.accentCyan,
+            'background-opacity': 0.12,
+            'border-color': theme.colors.accentCyan,
+            'border-width': 1.5,
+            width: 'label',
+            height: 'label',
+            padding: '8px',
+            opacity: 1,
+          },
         },
-      },
-      {
-        selector: 'edge.workspace',
+        {
+          selector: 'node.workspace[folded = "true"]',
+          style: {
+            'border-color': theme.colors.accentAmber,
+            'border-width': 2,
+            'border-style': 'dashed',
+            'background-opacity': 0.08,
+          },
+        },
+        {
+          selector: 'edge.workspace',
         style: {
           'line-color': theme.colors.accentCyan,
           'target-arrow-color': theme.colors.accentCyan,
@@ -876,24 +893,55 @@ export class GraphViewport extends BaseComponent {
    * Project the WorkspaceGraph (§2.1) as an additive Cytoscape layer. Concept
    * nodes/edges keep their ids and lifecycle; workspace blocks/links diff in by
    * id under the `workspace` class, so the conversation is navigable as a graph
-   * with no reasoning backend attached.
+   * with no reasoning backend attached. Section/heading/turn blocks with `children`
+   * become compound parents so containment reads as spatial clustering; folded
+   * containers hide their children.
    */
   private syncWorkspaceLayer(cy: Core) {
     const { nodes, edges } = projectWorkspaceGraph($workspaceGraph.get());
+    const folded = $collapsedBlocks.get();
+
+    // Remove styles from existing workspace nodes/edges
     cy.$('.workspace').removeStyle('background-color opacity width height border-width');
+
     const existing = new Map(
       cy.$('.workspace').map((el): [string, cytoscape.SingularElementArgument] => [el.id(), el])
     );
 
+    // Track which nodes are compound parents
+    const compoundParents = new Set<string>();
+
     for (const [id, data] of nodes) {
+      const isFolded = folded.has(id);
+      const isCompound = data.parent !== undefined || nodes.has(id) && [...nodes.values()].some(n => n.parent === id);
+      if (isCompound) compoundParents.add(id);
+
+      const nodeData = {
+        ...data,
+        // Cytoscape compound parent
+        parent: data.parent,
+        // Fold state for styling
+        folded: isFolded,
+      };
+
       const el = existing.get(id);
-      if (el) el.data(data);
-      else cy.add({ group: 'nodes', data, classes: 'workspace' });
+      if (el) {
+        el.data(nodeData);
+        // Update compound parent
+        if (el.isNode() && data.parent !== undefined) {
+          el.move({ parent: data.parent });
+        }
+      } else {
+        cy.add({ group: 'nodes', data: nodeData, classes: 'workspace' });
+      }
     }
+
+    // Remove nodes that no longer exist
     for (const [id, el] of existing) {
       if (el.isNode() && !nodes.has(id)) el.remove();
     }
 
+    // Handle edges
     const existingEdges = new Map(
       cy.$('edge.workspace').map((el): [string, cytoscape.SingularElementArgument] => [el.id(), el])
     );
@@ -904,6 +952,24 @@ export class GraphViewport extends BaseComponent {
     }
     for (const [id, el] of existingEdges) {
       if (!edges.has(id)) el.remove();
+    }
+
+    // Apply fold state: hide children of folded compound nodes
+    for (const parentId of compoundParents) {
+      const isFolded = folded.has(parentId);
+      const children = cy.nodes(`[parent="${parentId}"]`);
+      if (isFolded) {
+        children.style('display', 'none');
+        // Also hide edges connected to hidden children
+        children.connectedEdges().style('display', 'none');
+      } else {
+        children.style('display', 'element');
+        children.connectedEdges().forEach((e) => {
+          if (nodes.has(e.data('source')) && nodes.has(e.data('target'))) {
+            e.style('display', 'element');
+          }
+        });
+      }
     }
   }
 }
