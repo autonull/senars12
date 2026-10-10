@@ -202,10 +202,20 @@ These are implementation patterns to follow, not separate TODO items:
    - Hand-curated cells remain as overrides (merged by id)
    - Coverage grows with registration
 
-### P2 — Agent-Driven UI (Functional Leap) ✅ COMPLETE
-5. **P2.3 Floating composer** — Done: Created `ComposerFocus` component (`components/composer-focus.ts`) as a floating, draggable composer with anchor positioning, capability-gated modes, and drag-to-move. Replaced fixed-bottom `input-hud` in `app-layout.ts`.
+### P3 — Config System + Adaptability ✅ COMPLETE
+7. **C.1 Typed UI config** — Done: Created `config-schema.ts` with unified Zod schema for theme, density, motion, default renderer/lens/layout, panels, provider, budgets, NARS settings.
 
-6. **P3.1/P3.2 Command execution + Zod args** — Done: Added `command-schemas.ts` with Zod schemas for all commands; updated `dispatchCommand` to validate args via Zod before execution; `getAllCommandSchemas` provides JSON Schema for agent tool definitions; all command schemas have optional fields for backward compatibility with derived commands.
+8. **C.2 Persistence + URL** — Done: Config persisted to localStorage on every change; URL sync for theme, density, motion, defaultRenderer, defaultLens; `hydrateFromUrl` applies config from URL.
+
+9. **C.3 Settings-driven** — Done: Rewrote `config-hud.ts` to generate form fields from `UiConfigSchema` and `FIELD_METADATA`; no hand-written fields.
+
+10. **C.4 Profiles + import/export** — Done: Updated `config-profiles.ts` to work with unified config; export/import JSON round-trips.
+
+11. **A.1 Light theme** — Done: Theme system supports `dark` | `light` | `auto`; `data-theme` attribute applied to document; system preference respected in `auto` mode.
+
+12. **A.2 Density** — Done: Density system supports `comfortable` | `compact`; `data-density` attribute applied; tokens drive spacing.
+
+13. **A.3 Reduced motion** — Done: Motion system supports `reduced` | `normal`; `data-motion` attribute applied; `prefers-reduced-motion` media query listened; animations gate on `View.flags.reducedMotion`.
 
 ---
 
@@ -294,7 +304,7 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 | **P0** | N.1 (drain recorder) + N.2 (real scenarios) ✅ **DONE** | Unblocks visual test harness; removes test-only fixtures |
 | **P1** | P2.1 (incremental growth) + X.2 (codegen cells) ✅ **DONE** | Most improves feel + maintainability; all later P2 items build on this |
 | **P2** | P2.3 (floating composer) + P3.1/P3.2 (command execution + args) ✅ **DONE** | Enables agent-driven UI; the functional leap |
-| **P3** | C.1–C.4 (config system) + A.1–A.3 (adaptability) | Productization backbone; enables standalone + profiles |
+| **P3** | C.1–C.4 (config system) + A.1–A.3 (adaptability) ✅ **DONE** | Productization backbone; enables standalone + profiles |
 | **P4** | P4.4 (performance budgets) + P4.5 (error taxonomy) | Maintainability invariants; gates that prevent regressions |
 
 ---
@@ -305,10 +315,10 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 - [x] `pnpm --dir ui test:unit` — 425 passing
 - [x] `pnpm --dir ui test:visual:ci` — 47 cells, all passing
 - [x] `pnpm --dir ui ui:verify` — green
-- [ ] Review `TODO.ui.8.md` for current priority (now at P3: Config system + Adaptability)
+- [ ] Review `TODO.ui.8.md` for current priority (now at P4: Performance budgets + Error taxonomy)
 
 ---
 
 ## First move
 
-**N.1 + N.2 + P2.1 + X.2 + P2.3 + P3.1/P3.2 complete.** Next: **C.1–C.4 + A.1–A.3** (typed config system, persistence, Settings-driven, profiles, light theme, density, reduced motion) — the productization backbone enabling standalone + profiles.
+**N.1 + N.2 + P2.1 + X.2 + P2.3 + P3.1/P3.2 + C.1–C.4 + A.1–A.3 complete.** Next: **P4.4 + P4.5** (Performance budgets + Error taxonomy) — the maintainability invariants that gate regressions.

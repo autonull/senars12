@@ -1,59 +1,14 @@
+/**
+ * Config Profiles — Named profiles over UiConfig (§C.4).
+ */
+
 import { css, html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { $config, BaseComponent, send } from '../core/index.js';
-
-export interface ConfigProfile {
-  name: string;
-  description: string;
-  values: Record<string, unknown>;
-  builtin?: boolean;
-}
+import { $config, BaseComponent, send, type UiConfig, loadConfig, saveConfig, UiConfigSchema } from '../core/index.js';
+import { ConfigProfile, BUILTIN_PROFILES, loadProfiles, saveProfiles, loadActiveProfile, saveActiveProfile, applyProfile, exportConfig, importConfig } from '../core/config-schema.js';
 
 const STORAGE_KEY = 'senars:profiles';
 const ACTIVE_KEY = 'senars:activeProfile';
-
-const BUILTIN_PROFILES: ConfigProfile[] = [
-  { name: 'Default', description: 'Balanced configuration', values: {}, builtin: true },
-  {
-    name: 'Research',
-    description: 'High derivation throughput, low decay',
-    values: { 'nars.maxDerivationsPerStep': 2000, 'nars.activationDecayRate': 0.005 },
-    builtin: true,
-  },
-  {
-    name: 'Creative',
-    description: 'High novelty, deep reasoning',
-    values: {
-      'nars.maxDerivationDepth': 20,
-      'nars.maxConcepts': 5000,
-      'nars.consolidationInterval': 50,
-    },
-    builtin: true,
-  },
-];
-
-function loadProfiles(): ConfigProfile[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const custom: ConfigProfile[] = raw ? JSON.parse(raw) : [];
-    return [...BUILTIN_PROFILES, ...custom.filter((p) => !p.builtin)];
-  } catch {
-    return [...BUILTIN_PROFILES];
-  }
-}
-
-function saveProfiles(profiles: ConfigProfile[]): void {
-  const custom = profiles.filter((p) => !p.builtin);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(custom));
-}
-
-function loadActiveProfile(): string {
-  return localStorage.getItem(ACTIVE_KEY) ?? 'Default';
-}
-
-function saveActiveProfile(name: string): void {
-  localStorage.setItem(ACTIVE_KEY, name);
-}
 
 @customElement('config-profiles')
 export class ConfigProfiles extends BaseComponent {
@@ -68,6 +23,7 @@ export class ConfigProfiles extends BaseComponent {
     .profile-actions button:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
     .export-area { margin-top: var(--spacing-scale-2); }
   `;
+
   @state() private profiles: ConfigProfile[] = [];
   @state() private activeProfile = 'Default';
   @state() private showExport = false;
@@ -123,15 +79,13 @@ export class ConfigProfiles extends BaseComponent {
     if (!profile) return;
     this.activeProfile = name;
     saveActiveProfile(name);
-    const cfg = $config.get();
-    const updated = { ...cfg };
+    const currentConfig = $config.get();
+    const updatedConfig = applyProfile(currentConfig, profile);
+    $config.set(updatedConfig);
+    // Send config.set for each changed field
     for (const [key, value] of Object.entries(profile.values)) {
-      if (updated[key]) {
-        updated[key] = { ...updated[key], value };
-        send({ type: 'config.set', key, value });
-      }
+      send({ type: 'config.set', key, value });
     }
-    $config.set(updated);
     this.dispatchEvent(
       new CustomEvent('profile-change', { detail: { profile }, bubbles: true, composed: true })
     );
@@ -142,12 +96,23 @@ export class ConfigProfiles extends BaseComponent {
     if (!name || this.profiles.some((p) => p.name === name && p.builtin)) return;
     const cfg = $config.get();
     const values: Record<string, unknown> = {};
-    for (const [key, field] of Object.entries(cfg)) {
-      values[key] = field.value;
+    // Serialize full config
+    function flatten(obj: Record<string, unknown>, prefix = ''): Record<string, unknown> {
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        const path = prefix ? `${prefix}.${key}` : key;
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          Object.assign(result, flatten(value as Record<string, unknown>, path));
+        } else {
+          result[path] = value;
+        }
+      }
+      return result;
     }
+    Object.assign(values, flatten(cfg as Record<string, unknown>));
     this.profiles = [
       ...this.profiles.filter((p) => p.name !== name),
-      { name, description: 'Custom profile', values },
+      { name, description: 'Custom profile', values, builtin: false },
     ];
     saveProfiles(this.profiles);
     this.activeProfile = name;
@@ -165,31 +130,25 @@ export class ConfigProfiles extends BaseComponent {
 
   private handleExport() {
     const cfg = $config.get();
-    const data = JSON.stringify(
-      { profiles: this.profiles.filter((p) => !p.builtin), config: cfg },
-      null,
-      2
-    );
+    const data = exportConfig(cfg, this.profiles);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `senars-profiles-${Date.now()}.json`;
+    a.download = `senars-config-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
   private handleImport(text: string): string | null {
     try {
-      const data = JSON.parse(text);
-      if (data.profiles) {
-        this.profiles = [
-          ...BUILTIN_PROFILES,
-          ...data.profiles.filter((p: ConfigProfile) => !p.builtin),
-        ];
+      const result = importConfig(text);
+      if (!result) return 'Invalid JSON';
+      if (result.profiles.length > 0) {
+        this.profiles = [...BUILTIN_PROFILES, ...result.profiles];
         saveProfiles(this.profiles);
       }
-      if (data.config) $config.set(data.config);
+      $config.set(result.config);
       this.showExport = false;
       return null;
     } catch {
@@ -208,6 +167,7 @@ export class ExportImport extends LitElement {
     .import-row { display: flex; gap: var(--spacing-scale-2); align-items: center; margin-top: var(--spacing-scale-2); }
     .error { color: var(--colors-primitive-error); font-size: var(--typography-scale-xs); }
   `;
+
   @property({ attribute: false }) onImport?: (text: string) => string | null;
   @property({ attribute: false }) onExport?: () => void;
   @state() private text = '';
@@ -217,7 +177,7 @@ export class ExportImport extends LitElement {
     return html`
       <button @click=${() => this.onExport?.()}>Export</button>
       <textarea
-        placeholder="Paste exported profiles JSON…"
+        placeholder="Paste exported config JSON…"
         .value=${this.text}
         @input=${(e: Event) => {
           this.text = (e.target as HTMLTextAreaElement).value;

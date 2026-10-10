@@ -53,6 +53,34 @@ export {
   COMMAND_SCHEMAS,
   type InferCommandArgs,
 } from './command-schemas.js';
+export {
+  UiConfigSchema,
+  DEFAULT_UI_CONFIG,
+  type UiConfig,
+  type Theme,
+  type Density,
+  type Motion,
+  type NarsConfig,
+  type ProviderConfig,
+  type BudgetConfig,
+  type PanelConfig,
+  type LayoutConfig,
+  ConfigProfileSchema,
+  type ConfigProfile,
+  BUILTIN_PROFILES,
+  loadConfig,
+  saveConfig,
+  loadProfiles,
+  saveProfiles,
+  loadActiveProfile,
+  saveActiveProfile,
+  applyProfile,
+  exportConfig,
+  importConfig,
+  CONFIG_STORAGE_KEY,
+  PROFILES_STORAGE_KEY,
+  ACTIVE_PROFILE_KEY,
+} from './config-schema.js';
 export { activeCommands, type Command, paletteCommands, registerCommand, registeredCommands, type CommandArgs } from './commands.js';
 export { eventBus } from './events.js';
 export {

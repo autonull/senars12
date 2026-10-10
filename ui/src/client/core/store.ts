@@ -16,6 +16,9 @@ import { viewAdapters } from './view-adapter.js';
 import type { Shape, ViewSelection } from './view-spec.js';
 import { emptyWorkspaceGraph, type WorkspaceGraph } from './workspace-graph.js';
 import { workspaceRendererIds } from './workspace-renderer.js';
+import { loadConfig, saveConfig, DEFAULT_UI_CONFIG, type UiConfig, type Theme, type Density, type Motion } from './config-schema.js';
+
+export type { UiConfig };
 
 type Listener<T> = (value: T) => void;
 type Unsubscriber = () => void;
@@ -82,7 +85,23 @@ export const $streamingDelta = atom<string>('');
 export const $graphNodes = atom<Map<string, GraphNodeData>>(new Map());
 export const $graphEdges = atom<Map<string, Record<string, any>>>(new Map());
 export const $graphMeta = atom<CognitiveMeta>({ truncated: false, totalHidden: 0 });
-export const $config = atom<Record<string, any>>({});
+/** Load persisted config or use defaults. */
+const initialConfig: UiConfig = (() => {
+  try {
+    return loadConfig();
+  } catch {
+    return DEFAULT_UI_CONFIG;
+  }
+})();
+
+export const $config = atom<UiConfig>(initialConfig);
+
+/** Persist config changes to localStorage. */
+if (typeof window !== 'undefined') {
+  $config.subscribe((config) => {
+    saveConfig(config);
+  });
+}
 export const $telemetry = atom<TelemetryData>({
   reasoning_hz: [],
   tokens_per_sec: [],
@@ -492,6 +511,12 @@ export interface UrlState {
   viewport?: { x: number; y: number; zoom: number };
   search?: string;
   panels?: string[];
+  /** UI Config fields (synced to URL for shareable links). */
+  theme?: Theme;
+  density?: Density;
+  motion?: Motion;
+  defaultRenderer?: string;
+  defaultLens?: Lens;
 }
 
 export const $urlState = atom<UrlState>({ lens: 'belief' });
@@ -549,6 +574,17 @@ function parseHash(): Partial<UrlState> {
   if (panels) state.panels = panels.split(',');
   const folded = params.get('folded');
   if (folded) state.folded = folded.split(',').filter(Boolean);
+  // Config fields
+  const theme = params.get('theme');
+  if (theme && ['dark', 'light', 'auto'].includes(theme)) state.theme = theme as Theme;
+  const density = params.get('density');
+  if (density && ['comfortable', 'compact'].includes(density)) state.density = density as Density;
+  const motion = params.get('motion');
+  if (motion && ['reduced', 'normal'].includes(motion)) state.motion = motion as Motion;
+  const defaultRenderer = params.get('defaultRenderer');
+  if (defaultRenderer) state.defaultRenderer = defaultRenderer;
+  const defaultLens = params.get('defaultLens') as Lens | null;
+  if (defaultLens && ['belief', 'goal', 'contradiction'].includes(defaultLens)) state.defaultLens = defaultLens;
   return state;
 }
 
@@ -567,6 +603,12 @@ function serializeHash(state: UrlState): string {
   if (state.search) params.set('search', state.search);
   if (state.panels?.length) params.set('panels', state.panels.join(','));
   if (state.folded?.length) params.set('folded', state.folded.join(','));
+  // Config fields
+  if (state.theme) params.set('theme', state.theme);
+  if (state.density) params.set('density', state.density);
+  if (state.motion) params.set('motion', state.motion);
+  if (state.defaultRenderer) params.set('defaultRenderer', state.defaultRenderer);
+  if (state.defaultLens) params.set('defaultLens', state.defaultLens);
   return params.toString();
 }
 
@@ -604,6 +646,14 @@ export function hydrateFromUrl() {
       panel.open = parsed.panels.includes(id);
     }
     $panels.set(panels);
+  }
+  // Apply config from URL
+  if (parsed.theme) $config.set({ ...$config.get(), theme: parsed.theme });
+  if (parsed.density) $config.set({ ...$config.get(), density: parsed.density });
+  if (parsed.motion) $config.set({ ...$config.get(), motion: parsed.motion });
+  if (parsed.defaultRenderer) $config.set({ ...$config.get(), defaultRenderer: parsed.defaultRenderer });
+  if (parsed.defaultLens && ['belief', 'goal', 'contradiction'].includes(parsed.defaultLens)) {
+    $config.set({ ...$config.get(), defaultLens: parsed.defaultLens as 'belief' | 'goal' | 'contradiction' });
   }
 }
 
@@ -672,11 +722,70 @@ $conversationLayout.subscribe(mirrorLayout);
 $layoutScope.subscribe(mirrorLayout);
 $activeLens.subscribe(mirrorLayout);
 
+// Config mirroring to URL
+mirrorAtom($config, 'theme', (c) => c.theme);
+mirrorAtom($config, 'density', (c) => c.density);
+mirrorAtom($config, 'motion', (c) => c.motion);
+mirrorAtom($config, 'defaultRenderer', (c) => c.defaultRenderer);
+mirrorAtom($config, 'defaultLens', (c) => c.defaultLens);
+
 // Sync URL when urlState changes
 $urlState.subscribe(syncUrl);
 
 // Re-hydrate on back/forward or a pasted hash (replaceState writes do not fire hashchange).
 if (typeof window !== 'undefined') window.addEventListener('hashchange', hydrateFromUrl);
+
+// Apply theme, density, motion to document
+if (typeof window !== 'undefined') {
+  const hasMatchMedia = typeof window.matchMedia === 'function';
+
+  const applyTheme = (theme: Theme) => {
+    const root = document.documentElement;
+    if (theme === 'auto' && hasMatchMedia) {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    } else {
+      root.setAttribute('data-theme', theme);
+    }
+  };
+  const applyDensity = (density: Density) => {
+    document.documentElement.setAttribute('data-density', density);
+  };
+  const applyMotion = (motion: Motion) => {
+    document.documentElement.setAttribute('data-motion', motion);
+  };
+
+  // Initial application
+  applyTheme($config.get().theme);
+  applyDensity($config.get().density);
+  applyMotion($config.get().motion);
+
+  // Subscribe to changes
+  $config.subscribe((config) => {
+    applyTheme(config.theme);
+    applyDensity(config.density);
+    applyMotion(config.motion);
+  });
+
+  // Listen for system theme changes when in 'auto' mode
+  if (hasMatchMedia) {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', (e) => {
+      const config = $config.get();
+      if (config.theme === 'auto') {
+        applyTheme('auto');
+      }
+    });
+
+    // Listen for reduced motion preference changes
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    motionQuery.addEventListener('change', (e) => {
+      const config = $config.get();
+      // Only auto-apply if user hasn't explicitly set motion preference
+      // (We don't auto-change user's explicit choice)
+    });
+  }
+}
 
 // --- Phase 0: Test API ---
 type ReadableAtom<T> = { get(): T };

@@ -23,9 +23,33 @@ import {
   pushCognitiveEvents,
   pushServerError,
   registerLens,
+  type UiConfig,
 } from './store.js';
+import { UiConfigSchema, DEFAULT_UI_CONFIG } from './config-schema.js';
 
 const TELEMETRY_WINDOW = 300;
+
+/** Convert legacy server config format (Record<string, ConfigFieldType>) to UiConfig. */
+function convertLegacyConfig(legacyConfig: Record<string, any>): UiConfig {
+  const result: Partial<UiConfig> = {};
+  for (const [key, field] of Object.entries(legacyConfig)) {
+    if (field && typeof field === 'object' && 'value' in field) {
+      const value = field.value;
+      if (key.startsWith('nars.')) {
+        const narsKey = key.replace('nars.', '');
+        if (!result.nars) result.nars = {} as UiConfig['nars'];
+        (result.nars as Record<string, unknown>)[narsKey] = value;
+      } else if (key.startsWith('llm.')) {
+        // Legacy LLM config - map to provider
+        const providerKey = key.replace('llm.', '');
+        if (!result.provider) result.provider = {} as UiConfig['provider'];
+        (result.provider as Record<string, unknown>)[providerKey] = value;
+      }
+    }
+  }
+  // Fill in defaults for missing fields
+  return UiConfigSchema.parse({ ...DEFAULT_UI_CONFIG, ...result });
+}
 
 function renderMessageHtml(msg: ChatMessage): string {
   const roleClass = `msg-${msg.role}`;
@@ -132,13 +156,16 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
       break;
 
     case 'config.schema':
-      $config.set(msg.data);
-      if (cy) addConfigMetaNode(cy, msg.data);
+      $config.set(convertLegacyConfig(msg.data));
+      if (cy) addConfigMetaNode(cy, $config.get());
       break;
 
     case 'state.snapshot':
       $lastSeqId.set(msg.seqId);
-      applyFullSnapshot(msg.data, cy);
+      applyFullSnapshot({
+        ...msg.data,
+        config: convertLegacyConfig(msg.data.config),
+      }, cy);
       break;
 
     case 'telemetry':
@@ -188,7 +215,7 @@ function applyFullSnapshot(
   data: {
     graph: { nodes: GraphNodeData[]; edges: Record<string, any>[] };
     workingMemory: (string | { id: string })[];
-    config: Record<string, any>;
+    config: UiConfig;
   },
   cy?: Core
 ): void {

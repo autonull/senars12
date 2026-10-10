@@ -12,26 +12,33 @@ import { narsBackend } from './nars-backend.js';
 import { applyWorkspaceOp } from './workspace-graph.js';
 import type { ConfigChangeData } from './block-payload.js';
 import type { SemanticBlock, WorkspaceOp } from './workspace-graph.js';
+import type { UiConfig } from './config-schema.js';
 
-let previousConfig: Record<string, unknown> = {};
+let previousConfig: UiConfig;
 
 /** Record the initial config so we can diff against it. */
 export function initConfigChangeProducer(): void {
-  previousConfig = { ...$config.get() };
+  previousConfig = $config.get();
   $config.subscribe((next) => {
-    for (const key of [...new Set([...Object.keys(previousConfig), ...Object.keys(next)])]) {
-      const before = previousConfig[key];
-      const after = next[key];
+    const allKeys = new Set([...Object.keys(previousConfig), ...Object.keys(next)]);
+    for (const key of allKeys) {
+      const before = getNestedValue(previousConfig, key);
+      const after = getNestedValue(next, key);
       if (before === after) continue;
-      if (before === undefined || after === undefined) continue;
-      // Only emit for fields that have a value change (not metadata)
-      const beforeVal = (before as Record<string, unknown>)?.value;
-      const afterVal = (after as Record<string, unknown>)?.value;
-      if (beforeVal === afterVal) continue;
-      emitConfigChange(key, String(beforeVal ?? ''), String(afterVal ?? ''));
+      if (before === undefined && after === undefined) continue;
+      if (isPrimitive(before) && isPrimitive(after) && String(before) === String(after)) continue;
+      emitConfigChange(key, String(before ?? ''), String(after ?? ''));
     }
-    previousConfig = { ...next };
+    previousConfig = next;
   });
+}
+
+function getNestedValue(obj: UiConfig, path: string): unknown {
+  return path.split('.').reduce((acc: unknown, key) => (acc as Record<string, unknown>)?.[key], obj);
+}
+
+function isPrimitive(value: unknown): boolean {
+  return value === null || (typeof value !== 'object' && typeof value !== 'function');
 }
 
 function emitConfigChange(key: string, before: string, after: string): void {
