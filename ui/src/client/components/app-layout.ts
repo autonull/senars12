@@ -221,7 +221,7 @@ export class AppLayout extends BaseComponent {
             !notebook && !hasNodes
               ? html`
             <div class="empty-overlay">
-              <s-empty-state icon="🧠" heading="SeNARS Cognitive HUD" description="Send a message to start populating the knowledge graph" size="lg">
+              <s-empty-state icon="brain" heading="SeNARS Cognitive HUD" description="Send a message to start populating the knowledge graph" size="lg">
                 <s-button variant="primary" slot="action" @click=${this.focusInput}>Send a message</s-button>
               </s-empty-state>
             </div>

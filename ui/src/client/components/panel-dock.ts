@@ -111,7 +111,7 @@ export class PanelDock extends BaseComponent {
         return html`
           <s-panel heading="Search" docked="right" closable @s-close=${() => togglePanel('search')}>
             <s-input type="search" placeholder="Search concepts…"></s-input>
-            ${!hasNodes ? html`<s-empty-state icon="🔍" heading="No concepts" description="Send a message to populate the graph" size="sm"></s-empty-state>` : ''}
+            ${!hasNodes ? html`<s-empty-state icon="search" heading="No concepts" description="Send a message to populate the graph" size="sm"></s-empty-state>` : ''}
           </s-panel>`;
       }
       case 'chat': {

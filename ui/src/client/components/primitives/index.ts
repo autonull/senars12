@@ -8,12 +8,14 @@ import './empty-state.js';
 import './banner.js';
 import './spinner.js';
 import './divider.js';
+import './icon.js';
 
 export { SBadge } from './badge.js';
 export { SBanner } from './banner.js';
 export { SButton } from './button.js';
 export { SDivider } from './divider.js';
 export { SEmptyState } from './empty-state.js';
+export { SIcon } from './icon.js';
 export { SInput } from './input.js';
 export { SPanel } from './panel.js';
 export { SSpinner } from './spinner.js';

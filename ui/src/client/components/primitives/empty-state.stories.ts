@@ -34,7 +34,7 @@ export const Default: Story = {
 export const Large: Story = {
   render: () => html`
     <s-empty-state
-      icon="🧠"
+      icon="brain"
       heading="SeNARS Cognitive HUD"
       description="Send a message to start populating the knowledge graph"
       size="lg"
@@ -47,7 +47,7 @@ export const Large: Story = {
 export const Small: Story = {
   render: () => html`
     <s-empty-state
-      icon="🔍"
+      icon="search"
       heading="No concepts"
       description="Send a message to populate the graph"
       size="sm"
@@ -58,7 +58,7 @@ export const Small: Story = {
 export const WithAction: Story = {
   render: () => html`
     <s-empty-state
-      icon="⚠️"
+      icon="warning"
       heading="Connection Lost"
       description="Attempting to reconnect..."
       size="md"

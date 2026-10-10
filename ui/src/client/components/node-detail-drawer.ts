@@ -302,7 +302,7 @@ export class NodeDetailDrawer extends BaseComponent {
       <div class="field"><span class="field-label">Type</span><span class="field-value">${formatNodeType(n.nodeType)}</span></div>
       <div class="field"><span class="field-label">${fieldMeta('node.priority').label}</span><span class="field-value">${formatField('node.priority', n.priority)}</span></div>
       <div class="field"><span class="field-label">${fieldMeta('node.confidence').label}</span><span class="field-value">${formatField('node.confidence', n.confidence)}</span></div>
-      ${n.isContradiction ? html`<div class="field"><span class="field-label">Contradiction</span><span class="field-value" style="color:${theme.colors.accentAmber}">⚠ Detected</span></div>` : ''}
+      ${n.isContradiction ? html`<div class="field"><span class="field-label">Contradiction</span><span class="field-value" style="color:${theme.colors.accentAmber};display:flex;align-items:center;gap:4px"><s-icon name="warning" size="12"></s-icon>Detected</span></div>` : ''}
       <div class="section-title">Truth Value</div>
       <div class="field">
         <span class="field-label">${fieldMeta('truth.frequency').label}</span>

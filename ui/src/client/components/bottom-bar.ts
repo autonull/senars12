@@ -29,6 +29,7 @@ import {
 import { dispatchCommand } from '../core/commands.js';
 import { refreshLmStatus, switchLmProvider } from '../core/lm-transport.js';
 import './contradiction-badge.js';
+import './primitives/icon.js';
 
 const MAX_HISTORY = 50;
 const SLASH_COMMANDS = [
@@ -386,8 +387,13 @@ export class BottomBar extends BaseComponent {
                 historyIndex = Math.max(0, historyIndex - 1);
                 this.textareaValue = inputHistory[historyIndex] ?? '';
               }
-            }} ?disabled=${!canHistoryUp} title="History">▲</button>
-            <button class="send-btn" @click=${this.sendMessage} ?disabled=${!hasContent}>Send</button>
+            }} ?disabled=${!canHistoryUp} title="History">
+              <s-icon name="history" size="12"></s-icon>
+            </button>
+            <button class="send-btn" @click=${this.sendMessage} ?disabled=${!hasContent}>
+              <s-icon name="send" size="14"></s-icon>
+              <span style="margin-left:4px">Send</span>
+            </button>
           </div>
         </div>
 
@@ -403,26 +409,34 @@ export class BottomBar extends BaseComponent {
                 LM: ${providerLabel(provider.id)}
               </button>
               <span>${provider.model ?? ''}</span>
-              ${provider.stale ? html`<span>⚠</span>` : ''}
-              ${isWebLLM ? html`<span class="provider-chip">🌐 Local</span>` : ''}
-              ${showRunLocally ? html`<button class="action-btn" @click=${() => switchLmProvider('webllm')} title="Switch to local WebGPU inference">🌐 Run locally</button>` : ''}
+              ${provider.stale ? html`<s-icon name="warning" size="10"></s-icon>` : ''}
+              ${isWebLLM ? html`<span class="provider-chip"><s-icon name="globe" size="10"></s-icon> Local</span>` : ''}
+              ${showRunLocally ? html`<button class="action-btn" @click=${() => switchLmProvider('webllm')} title="Switch to local WebGPU inference"><s-icon name="globe" size="10"></s-icon> Run locally</button>` : ''}
             </div>
             <div class="status-item">
               <button class="control-mode-btn ${controlMode ? 'active' : ''}"
                 @click=${() => dispatchCommand('control.mode.toggle')}
                 title=${controlMode ? 'Control mode: ON (click to disable)' : 'Control mode: OFF (click to enable)'}>
-                ⬢
+                <s-icon name="controlMode" size="12"></s-icon>
               </button>
               ${controlMode && reasoningRunning ? html`
-                <button class="abort-btn" @click=${() => dispatchCommand('reasoning.abort')} title="Abort reasoning run">■ Abort</button>
+                <button class="abort-btn" @click=${() => dispatchCommand('reasoning.abort')} title="Abort reasoning run">
+                  <s-icon name="abort" size="12"></s-icon>
+                  <span style="margin-left:4px">Abort</span>
+                </button>
               ` : ''}
             </div>
             <contradiction-badge class="contradiction-badge-host"></contradiction-badge>
+            <s-icon name="lens" size="14"></s-icon>
           </div>
 
           <div class="status-cluster">
-            <button class="palette-btn" @click=${() => dispatchCommand('overlay.palette')} title="Command palette (⌘K)">⌘K</button>
-            <button class="settings-btn" @click=${() => dispatchCommand('overlay.settings')} title="Settings">⚙</button>
+            <button class="palette-btn" @click=${() => dispatchCommand('overlay.palette')} title="Command palette (⌘K)">
+              <s-icon name="palette" size="14"></s-icon>
+            </button>
+            <button class="settings-btn" @click=${() => dispatchCommand('overlay.settings')} title="Settings">
+              <s-icon name="settings" size="14"></s-icon>
+            </button>
           </div>
         </div>
       </div>

@@ -7,7 +7,9 @@ import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { BaseComponent } from '../core/index.js';
 import { UiError, createError, type RecoveryAction } from '../core/error-taxonomy.js';
+import { getIcon, type IconName } from '../utils/icon-registry.js';
 import './primitives/button.js';
+import './primitives/icon.js';
 
 interface ErrorEntry {
   id: number;
@@ -69,7 +71,7 @@ export class ErrorBoundary extends BaseComponent {
       <div class="overlay" role="dialog" aria-modal="true" aria-label="Error">
         <div class="modal">
           <div class="header">
-            <span class="icon">${this.getIcon(error.severity)}</span>
+            ${this.renderIcon(error.severity)}
             <span class="title">${this.getTitle(error)}</span>
             <span class="code">${error.code}</span>
           </div>
@@ -107,15 +109,20 @@ export class ErrorBoundary extends BaseComponent {
     `;
   }
 
-  private getIcon(severity: UiError['severity']): string {
+  private getIcon(severity: UiError['severity']): IconName {
     switch (severity) {
       case 'error':
-        return '✕';
+        return 'close';
       case 'warning':
-        return '⚠';
+        return 'warning';
       case 'info':
-        return 'ℹ';
+        return 'plus';
     }
+  }
+
+  private renderIcon(severity: UiError['severity']) {
+    const name = this.getIcon(severity);
+    return html`<s-icon name=${name} size="24" class="icon"></s-icon>`;
   }
 
   private getTitle(error: UiError): string {
