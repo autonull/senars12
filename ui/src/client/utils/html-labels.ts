@@ -1,4 +1,5 @@
 import type { Core } from 'cytoscape';
+import { htmlLabelVisible } from './graph-scaling.js';
 
 export interface HtmlLabelData {
   id: string;
@@ -12,7 +13,7 @@ export interface HtmlLabelData {
 
 export function computeHtmlLabels(cy: Core): Map<string, HtmlLabelData> {
   const labels = new Map<string, HtmlLabelData>();
-  if (cy.zoom() < 1.0) return labels;
+  if (!htmlLabelVisible(cy.zoom())) return labels;
 
   cy.nodes('.html-enabled').forEach((node) => {
     const html = node.data('html') as string | undefined;

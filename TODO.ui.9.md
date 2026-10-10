@@ -509,17 +509,26 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
   - `components/graph-viewport.ts` — workspace nodes marked `html-enabled` in both `syncWorkspaceLayer` and `applyWorkspaceOps`; the HTML overlay renders `<s-node-body>` for workspace blocks and falls back to legacy `innerHTML` string html otherwise.
 - **Known gaps / next (in order):**
   1. **Node sizing & layout** — workspace nodes are `width:'label'`; the 240px body card is anchored at the node's top-left and can overlap neighbours. Decide: fixed card size per node, or grow node to content, or hide the cytoscape shape and let the card *be* the node.
-  2. **LoD tiers** — `computeHtmlLabels` still gates at `zoom ≥ 1` (binary). Implement glyph→label→card→full by zoom (§568); only the tier's content mounts.
+  2. **LoD tiers** — `computeHtmlLabels` gate is now the near tier (`htmlLabelVisible(zoom)`, ≥ 1.6 by token), but the registry (glyph→label→card→full per kind) is not built; only the binary `label`/`full` split exists.
   3. **Modeless shell** — remove the renderer switch (graph-toolbar / workspace-hud mode buttons) so graph is the surface; composer is the only input. Selection/focus already flow through the store.
   4. **Legacy string-HTML path** — `store-bindings.ts` (`renderMessageHtml`, raw `innerHTML`) should fold into the block path so there is one rendering; remove the `.innerHTML` fallback.
   5. **`renderBlockBody` sources** — pass the real bibliography (currently `[]`, so inline `[n]` citations fall back to `[key]`).
   6. **Verification** — unit: `projectChat`→node is `html-enabled` and `<s-node-body>` renders its body; one smoke: send a message → a node shows its body inline.
 - **New opportunities:** a per-kind node-renderer registry declaring the four LoD tiers once (the plan's "extension point", §577); "ask from selection" already exists (`graph.ask-selection`) — wire selection → composer context.
 
+### Completed (this session — Move 0 + Move 1: trustworthy evidence & legibility)
+- **Move 0 / T.4** — Legibility assertion. New pure module `utils/graph-scaling.ts` is the single source for node size, the legible zoom window, and label LoD; asserted in `tests/components/graph-scaling.test.ts` (9 tests: the invariant that a typical node never renders below `LEGIBLE_NODE_PX` across viewports/counts, and that `clampZoom` lifts an illegible `0.1` fit onto the floor). A real-render assertion `tests/visual/legibility.spec.ts` boots the default graph and fails if `zoom < ZOOM.min` or any node renders below the threshold.
+- **Move 0 / conversation cell** — new `graph-conversation` cell (seeds the conversation, renders it as graph nodes via `chronological-flow`); appears in the gallery. (Body render still needs Move 2.)
+- **Move 1 / G.1** — Auto-scaling node size: `nodeSize(importance, count, area)` grows with viewport density (`sqrt` of count×area, bounded), wired into `clearNodeStyles` (`utils/adapter-2d.ts`); tokens `colors.legibility.*` added.
+- **Move 1 / G.2** — Zoom policy: `enforceLegibleView()` auto-fits the visible content on every `layoutstop` and on `Fit`, then clamps zoom into `[zoomFloor, ZOOM.max]` (min legible zoom `0.6`, one-node ceiling `2.5`) and re-centers. `fitGraph` now delegates to it.
+- **Move 1 / G.3** — Label LoD by importance × zoom plus a **rank budget** (`labelCutoff`) that shrinks with density, so a dense canvas cannot collide; HTML bodies (`<s-node-body>`) mount only at the near tier (`htmlLabelVisible`, zoom ≥ 1.6) — the `label` tier is the default. Also coerced node labels to strings (removed a latent `[object Object]`).
+- **Evidence** — Default `graph-belief-bootstrap` capture moved from a **10 % off-center micro-cluster** to a **centered 120 % legible** view (no crash modal, no `[object Object]`, no body clutter). Baselines regenerated on purpose (29 changed + `graph-conversation` new). `typecheck` clean; `test:unit` 651; `test:visual` 53 cells; `test:craft` 202.
+- **Residual / notes for Move 2:** the bootstrap is still a *medium-density* derivation graph, so labels sit close; G.4 (density-aware layout / spacing) is the next lever, not more LoD. `computeHtmlLabels` now reads the tier token, but `syncWorkspaceLayer` still sizes workspace nodes by `width:'label'` (zero-width when the label is blank) — this is the X.2 node-sizing gap.
+
 ### Next Steps (fresh session) — follow the ▶ Execution Plan above
-1. **Move 0** — trustworthy evidence: regenerate baselines (F.2), add the legibility assertion (T.4), add a conversation cell.
-2. **Move 1** — legibility (G.2 · G.1 · G.3): auto-fit/zoom policy, auto-scaling nodes, label LOD.
-3. **Move 2** — finish X.2 modeless (node sizing, LoD tiers, remove the renderer switch).
+1. **Move 2** — finish X.2 modeless: workspace node sizing (card-is-the-node vs grow-to-content), LoD tier registry (glyph→label→card→full), remove the renderer switch, fold `store-bindings` string-HTML into the block path, pass real citation sources.
+2. **G.4** — density-aware layout (auto layout by node count/degree) to space medium-density graphs and finish the label-collision story.
+3. **T.1/T.2/T.3** — curate the matrix (~12–15 cells), journey recordings, qualitative design gate. `graph-conversation` currently duplicates an existing `layout-*` cell's job until curation.
 4. Do **not** resume formatting/craft polish; `D.4` is closed. Do **not** build split or a renderer switch.
 
 ---
@@ -596,9 +605,9 @@ workspace** where speaking, reading, and seeing are simultaneous. This must move
 
 | # | Item | Status | Files | Acceptance |
 |---|------|--------|-------|------------|
-| G.1 | **Auto-scaling node size** — node size = `f(viewport area, visible count, importance)` from tokens, not fixed px; legible on a phone and on 4K. | ⬜ | `utils/adapter-2d.ts`, `design-tokens.json` | node size adapts; a legibility assertion at default view; cells |
-| G.2 | **Zoom policy (floor/ceiling/center)** — auto-fit on load with a **minimum legible zoom** and a **maximum "one-node" zoom**; **auto-center on content** (not origin). | ⬜ | `components/graph-viewport.ts` | default view is centered and legible; floor/ceiling honored; unit + cells |
-| G.3 | **Label LOD by importance × zoom** — labels appear by importance and zoom; the graph is legible *at rest*; no label collisions at medium density. | ⬜ | `components/graph-viewport.ts`, `utils/html-labels.ts` | labels readable at default zoom; collisions prevented; density cell |
+| G.1 | **Auto-scaling node size** — node size = `f(viewport area, visible count, importance)` from tokens, not fixed px; legible on a phone and on 4K. | ✅ | `utils/graph-scaling.ts` (new), `utils/adapter-2d.ts`, `design-tokens.json` | node size adapts; a legibility assertion at default view; cells |
+| G.2 | **Zoom policy (floor/ceiling/center)** — auto-fit on load with a **minimum legible zoom** and a **maximum "one-node" zoom**; **auto-center on content** (not origin). | ✅ | `utils/graph-scaling.ts`, `components/graph-viewport.ts` | default view is centered and legible; floor/ceiling honored; unit + cells |
+| G.3 | **Label LOD by importance × zoom** — labels appear by importance and zoom; the graph is legible *at rest*; no label collisions at medium density. | ✅ | `utils/graph-scaling.ts`, `components/graph-viewport.ts`, `utils/html-labels.ts` | labels readable at default zoom; collisions prevented; density cell |
 | G.4 | **Density-aware layout** — layout adapts to node count/degree (auto), not a manual dropdown; the default is always tidy. | ⬜ | `utils/layout-registry.ts`, `core/store.ts` | sparse and dense graphs both tidy by default; cells |
 
 ### Visual testing restructure (see also "Architectural Question")
@@ -608,7 +617,7 @@ workspace** where speaking, reading, and seeing are simultaneous. This must move
 | T.1 | **Curate to ~12–15 baseline cells** — one per shell state + projection + error state; each cell earns its place; remove redundant layout/view cells. | ⬜ | `tests/visual/matrix.ts` | ≤15 baselines; every cell shows something unique; gallery is reviewable at a glance |
 | T.2 | **Journey recordings** — video/GIF (or multi-frame) for chat⇄graph, streaming, tool approval, belief revision — what static screenshots cannot prove. | ⬜ | `tests/visual/*` | a recording shows the live loop; linked from the gallery |
 | T.3 | **`test:design` qualitative gate** — checklist: hierarchy, density, focus visibility, legibility at default zoom, paradigm visibility. | ⬜ | `tests/design/*` (new) | a human checklist runs pre-commit; regressions in *quality* are caught |
-| T.4 | **Legibility assertion cell** — fails if nodes render below a legibility threshold at default view. | ⬜ | `tests/visual/*` | an illegible default view fails CI |
+| T.4 | **Legibility assertion cell** — fails if nodes render below a legibility threshold at default view. | ✅ | `tests/visual/legibility.spec.ts` (new), `tests/components/graph-scaling.test.ts` (new) | an illegible default view fails CI |
 
 ### Revised priority order (supersedes "Priority Execution Order")
 

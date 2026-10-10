@@ -40,6 +40,7 @@ import {
   toggleCollapsed,
 } from '../core/index.js';
 import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
+import { clampZoom, labelCutoff, showsLabel } from '../utils/graph-scaling.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
 import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
@@ -175,8 +176,8 @@ export class GraphViewport extends BaseComponent {
     null;
   @state() private legendOpen = false;
   // LOD (Level of Detail) thresholds for performance
-  private readonly LOD_LABEL_ZOOM = 0.5;
   private readonly LOD_EDGE_THIN_ZOOM = 0.3;
+  private readonly FIT_PADDING = 40;
 
   override connectedCallback() {
     super.connectedCallback();
@@ -235,6 +236,14 @@ export class GraphViewport extends BaseComponent {
         if (!def) return;
         this.cy.layout(def.getLayout(this.cy, { fit: opts.fit ?? true, animate: false })).run();
       },
+      /** The live zoom + pan, for the legibility assertion (§T.4). */
+      getViewport: () => (this.cy ? { zoom: this.cy.zoom(), pan: this.cy.pan() } : null),
+      /** The on-screen edge (px) of every reasoning node, for the legibility assertion (§T.4). */
+      getRenderedNodeSizes: () =>
+        this.cy
+          ?.nodes()
+          .filter((n) => !n.hasClass('workspace'))
+          .map((n) => ({ id: n.id(), size: Math.min(n.renderedWidth(), n.renderedHeight()) })) ?? [],
     });
   }
 
@@ -270,6 +279,8 @@ export class GraphViewport extends BaseComponent {
     });
 
     this.cy.on('render', () => this.renderHtmlLabels());
+    // After any layout, settle into the legible zoom window and re-center (§G.2).
+    this.cy.on('layoutstop', this.enforceLegibleView);
     this.cy.on(
       'viewport',
       this.throttle(() => {
@@ -473,20 +484,33 @@ export class GraphViewport extends BaseComponent {
     });
   };
 
-  private fitGraph = () => {
-    if (!this.cy) return;
+  private fitGraph = () => this.enforceLegibleView();
+
+  /** Elements eligible to fit against: visible, and admitted by the active layer. */
+  private visibleElements(cy: Core) {
     const layer = $graphLayer.get();
-    // Only fit visible nodes based on active layer
-    const visibleNodes = this.cy.nodes().filter((n) => layerVisible(n.hasClass('workspace'), layer));
-    if (visibleNodes.nonempty()) {
-      this.cy.fit(visibleNodes, 50);
-      // Prevent excessive zoom-out on sparse graphs
-      if (this.cy.zoom() < 0.5) {
-        this.cy.zoom({ level: 0.5, renderedPosition: { x: this.cy.width() / 2, y: this.cy.height() / 2 } });
-      }
-    } else {
-      this.cy.fit(undefined, 50);
+    return cy
+      .elements()
+      .filter((el) => el.style('display') !== 'none' && layerVisible(el.hasClass('workspace'), layer));
+  }
+
+  /**
+   * Auto-fit to the visible content, then clamp the zoom into the legible window
+   * so the view is centered and never settles tiny (§G.2), and re-apply the label
+   * LOD for the resulting zoom. Runs after every layout and on `Fit`.
+   */
+  private enforceLegibleView = () => {
+    if (!this.cy) return;
+    const cy = this.cy;
+    const eles = this.visibleElements(cy);
+    if (eles.empty()) cy.fit(undefined, this.FIT_PADDING);
+    else cy.fit(eles, this.FIT_PADDING);
+    const count = eles.nodes().length || cy.nodes().length;
+    const zoom = clampZoom(cy.zoom(), count, cy.width() * cy.height());
+    if (Math.abs(zoom - cy.zoom()) > 1e-3) {
+      cy.zoom({ level: zoom, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
     }
+    this.applyLOD(cy.zoom());
   };
 
   private panTo = ({ x, y }: { x: number; y: number }) => {
@@ -572,19 +596,30 @@ export class GraphViewport extends BaseComponent {
     this.closeContextMenu();
   }
 
-  /** Apply Level-of-Detail based on zoom level to maintain performance. */
+  /**
+   * Label level-of-detail (§G.3): a node shows its label when its importance,
+   * amplified by zoom, clears the threshold, so a dense or zoomed-out graph shows
+   * only the labels that matter. HTML-bodied (workspace) nodes never draw a text
+   * label; edges thin out when far.
+   */
   private applyLOD(zoom: number) {
     if (!this.cy) return;
-    const showLabels = zoom >= this.LOD_LABEL_ZOOM;
-
-    this.cy.batch(() => {
-      if (showLabels) {
-        this.cy!.nodes().removeStyle('label');
-        this.cy!.edges().style('width', 1.5);
-      } else {
-        this.cy!.nodes().style('label', '');
-        this.cy!.edges().style('width', 0.5);
+    const cy = this.cy;
+    // Rank-budget the labels by importance so a dense canvas cannot collide (§G.3).
+    const labelled = cy.nodes().filter((n) => !n.hasClass('workspace') && !n.hasClass('html-enabled'));
+    const cutoff = labelCutoff(
+      labelled.map((n) => Number(n.data('priority') ?? 0.5)),
+      zoom
+    );
+    cy.batch(() => {
+      for (const node of cy.nodes()) {
+        if (node.hasClass('workspace')) continue;
+        const importance = Number(node.data('priority') ?? 0.5);
+        const show =
+          !node.hasClass('html-enabled') && showsLabel(importance, zoom) && importance >= cutoff;
+        node.style('label', show ? (node.data('label') ?? '') : '');
       }
+      cy.edges().style('width', zoom >= this.LOD_EDGE_THIN_ZOOM ? 1.5 : 0.5);
     });
   }
 
@@ -810,8 +845,9 @@ export class GraphViewport extends BaseComponent {
 
       for (const [nodeId, nd] of nodes) {
         const el = currentIds.has(nodeId) ? cy.getElementById(nodeId) : null;
+        const label = typeof nd.label === 'string' ? nd.label : (nd.term ?? nodeId);
         if (el) {
-          el.data(nd);
+          el.data({ ...nd, label });
         } else {
           const data = {
             id: nodeId,
@@ -822,7 +858,7 @@ export class GraphViewport extends BaseComponent {
             confidence: nd.confidence,
             truth: nd.truth,
             isContradiction: nd.isContradiction,
-            label: nd.label,
+            label,
             html: nd.html,
             capabilities: nd.capabilities,
           };

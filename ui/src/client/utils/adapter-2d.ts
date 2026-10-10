@@ -1,5 +1,6 @@
 import type { Core } from 'cytoscape';
 import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
+import { nodeSize } from './graph-scaling.js';
 import { RENDERER_CAPABILITIES } from './renderer-capabilities.js';
 import { theme } from './theme.js';
 import { TOKENS } from '../styles/tokens.generated.js';
@@ -12,13 +13,8 @@ const truthLightness = TOKENS.dark['colors.truth.lightness'];
 const confidenceOpacityMin = Number(TOKENS.dark['colors.confidence.opacity-min']);
 const confidenceOpacityMax = Number(TOKENS.dark['colors.confidence.opacity-max']);
 
-const prioritySizeMin = Number(TOKENS.dark['colors.priority.size-min']);
-const prioritySizeMax = Number(TOKENS.dark['colors.priority.size-max']);
-
 const truthToColor = (f: number): string =>
   `hsl(${Math.round(f * (truthHueMax - truthHueMin) + truthHueMin)}, ${truthSaturation}, ${truthLightness})`;
-const priorityToSize = (p: number): number =>
-  Math.round(p * (prioritySizeMax - prioritySizeMin) + prioritySizeMin);
 const confidenceToOpacity = (c: number): number =>
   confidenceOpacityMin + (confidenceOpacityMax - confidenceOpacityMin) * c;
 
@@ -121,6 +117,8 @@ export function applyDelta(cy: Core, delta: Delta): void {
 }
 
 export function clearNodeStyles(cy: Core): void {
+  const area = cy.width() * cy.height();
+  const count = cy.nodes().length;
   cy.batch(() => {
     for (const node of cy.nodes()) {
       if (node.hasClass('workspace')) continue;
@@ -133,7 +131,7 @@ export function clearNodeStyles(cy: Core): void {
       const isContradiction = data.isContradiction === true;
       
       const baseColor = isContradiction ? theme.colors.error : truthToColor(frequency);
-      const baseSize = priorityToSize(priority);
+      const baseSize = nodeSize(priority, count, area);
       const baseOpacity = confidenceToOpacity(confidence);
       
       node.style({

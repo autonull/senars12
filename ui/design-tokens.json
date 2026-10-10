@@ -90,6 +90,16 @@
     "priority": {
       "size-min": "10",
       "size-max": "60"
+    },
+    "legibility": {
+      "node-px": "12",
+      "min-zoom": "0.6",
+      "max-zoom": "2.5",
+      "label-lod-threshold": "0.3",
+      "label-budget": "8",
+      "html-lod-zoom": "1.6",
+      "reference-area": "907200",
+      "reference-count": "12"
     }
   },
   "spacing": {

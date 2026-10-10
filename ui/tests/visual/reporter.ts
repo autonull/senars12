@@ -7,6 +7,7 @@ import type {
   TestCase,
   TestResult,
 } from '@playwright/test/reporter';
+import { VISUAL_CELLS } from './matrix.js';
 
 /** One captured matrix cell, as consumed by the gallery generator. */
 export type VisualCellResult = {
@@ -35,6 +36,9 @@ export default class VisualReporter implements Reporter {
 
   onTestEnd(test: TestCase, result: TestResult): void {
     const id = test.title;
+    // Only matrix cells become gallery tiles; assertions (e.g. the legibility
+    // check, T.4) share this project but own no baseline.
+    if (!VISUAL_CELL_IDS.has(id)) return;
     const project = test.parent.project()?.name ?? 'chromium';
     const baseline = join('tests', 'visual', 'baselines', project, `${id}-${process.platform}.png`);
     const artifact = (kind: 'actual' | 'diff') =>
@@ -69,3 +73,6 @@ export default class VisualReporter implements Reporter {
 function cellGroup(test: TestCase): string {
   return test.annotations.find((a) => a.type === 'group')?.description ?? 'misc';
 }
+
+/** The ids of the matrix cells; anything else in the project is a plain assertion. */
+const VISUAL_CELL_IDS = new Set(VISUAL_CELLS.map((cell) => cell.id));

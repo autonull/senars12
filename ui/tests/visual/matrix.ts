@@ -405,6 +405,14 @@ const HAND_CURATED_CELLS: VisualCell[] = [
     hash: '#panels=none&lens=contradiction',
     layout: 'breadthfirst',
   },
+  {
+    id: 'graph-conversation',
+    group: 'Graph',
+    title: 'Conversation as graph — turns with bodies',
+    hash: '#panels=none&scope=conversation&layout=chronological-flow',
+    layout: 'chronological-flow',
+    prepare: seedConversation('chronological-flow'),
+  },
 
   // Conversation layouts (§5.3) — arrange the seeded conversation; concept
   // layouts (§3.4) — arrange the reasoning structure. Every registered layout
