@@ -125,6 +125,91 @@ CI/GitHub stays off (O4). `pnpm ui:gate` remains the fast type+unit gate.
 - **H Help · R Recover · B Bridge (harden) · P Portability · I Inclusivity** — the envelope.
 - **M Maintainability** — the invariant every item ends on.
 
+> **Ordering note:** the spine above is the *conceptual* dependency graph. The **authoritative
+> execution order** is the ▶ Execution Plan below (F → G → X.2 → R → N → envelope), which resolves
+> the X-vs-G conflict by putting legibility (G) first.
+
+---
+
+## ▶ Execution Plan — the authoritative path to a usable UI
+
+> **This section supersedes every other ordering in this file** (the phase tables below, the old
+> §"Next Session Kickoff", §"Priority Execution Order"). Follow it top to bottom. If anything
+> conflicts, this wins.
+
+**The one goal:** a *usable* UI, **proven by artifacts** — regenerated screenshots that are legible,
+a conversation cell that shows the modeless paradigm, and a legibility assertion that *fails* on an
+illegible default.
+
+**The paradigm (non-negotiable):** one **modeless** surface — the graph. Conversation blocks are
+graph nodes rendering their **real HTML body** (Fractal HTML + LoD). **No split, no renderer switch.**
+
+**Sequencing rule — legibility before content.** An illegible canvas invalidates everything drawn on
+it. The current default capture (1440×900) is a tiny, off-center cluster at 56% with overlapping
+labels — i.e. **not usable**. So **G leads**; X.2 content follows. (This resolves the earlier X-vs-G
+ordering conflict.)
+
+**Evidence rule — a capability is done only when an artifact proves it.** Screenshots are
+regenerated *on purpose*; an interactive loop needs a recording; an illegible default must *fail* a
+test.
+
+### Move 0 — Make the evidence trustworthy (F.2 + T.4 + a conversation cell) · ~½ day
+- **F.2**: regenerate baselines (`pnpm --dir ui test:visual:update`); confirm **no** baseline contains
+  the error-boundary modal.
+- **T.4**: add a **legibility assertion** — fail if the default view's nodes render below a
+  legibility threshold (rendered node size, or zoom below the floor).
+- **New conversation cell**: a matrix cell that seeds the conversation and renders it as a graph, so
+  X.2 is visible in an artifact.
+- **Done when:** `pnpm --dir ui test:visual:ci` is green; a conversation-cell PNG exists; the
+  legibility assertion is active (and fails when the view is illegible).
+
+### Move 1 — Legibility (G.1, G.2, G.3) · ~1 day
+- **G.2 zoom policy**: auto-fit on load; **minimum legible zoom**; **maximum "one-node" zoom**;
+  **auto-center on content** (not origin).
+- **G.1 auto-scaling node size**: size = `f(viewport area, visible count, importance)` from tokens.
+- **G.3 label LOD by importance × zoom**: labels appear by importance; no collisions at medium
+  density.
+- **Done when:** the default capture is centered, legible, uncluttered; the T.4 assertion passes.
+
+### Move 2 — Finish the modeless paradigm (X.2) · ~2 days
+Open gaps (see §"In Progress — X.2"):
+1. **Node sizing/layout** — decide fixed card vs grow-to-content vs **card-is-the-node**; cards must
+   not overlap.
+2. **LoD tiers** — `computeHtmlLabels` is still binary `zoom ≥ 1`; implement glyph→label→card→full.
+3. **Modeless shell** — remove the renderer switch (graph-toolbar / workspace-hud); graph is the
+   surface, composer the input.
+4. Fold `store-bindings.ts` string-HTML path into the block path; remove the `.innerHTML` fallback.
+5. Pass real citation sources to `renderBlockBody` (currently `[]`).
+- **Done when:** a conversation cell shows turns as legible nodes with their body; composer feeds the
+  same surface; selection is continuous; a **recording** shows it.
+
+### Move 3 — Fractal & rich frames (R.1, R.2, R.4, R.5) · ~3–5 days
+Node-renderer registry + LoD tiers; fractal HTML runtime with depth/node budgets; rich chat frames;
+conversation-as-graph.
+
+### Move 4 — Expand the substrate (R.3) · ~3–5 days
+Content adapters: files · source AST/call-flow · datasets/charts · documents → graph.
+
+### Move 5 — Neurosymbolic synergy (N.1–N.7) · ~1 week
+Pinned offline demo LM; bilingual turn + translation trace; NS.1–NS.7 scenarios with recordings;
+combined NL+symbolic graph; symbolic verification.
+
+### Move 6 — Envelope & restructure (H · R-recover · B · P · I) then T
+Help/onboarding, recover/feedback, bridge hardening, portability, inclusivity; then restructure visual
+testing to journeys + recordings.
+
+### Standing rules (violate none)
+- **No formatting / line-length / craft polish.** D is closed.
+- **No split, no renderer switch** — modeless is the paradigm.
+- **Don't pick an architecture silently.** Surface every either/or (e.g. split vs ambient) before
+  coding.
+- **Legibility (G) before content (X/R).** Every capability ends with a cell/recording **and** a
+  guard.
+- **Regenerate baselines on purpose**; never let a stale/illegible baseline count as "green".
+- Keep `pnpm --dir ui typecheck` + `test:unit` green; **commit per Move**.
+- The one-line test: *does it make the reasoning more visible, more legible, or more enjoyable —
+  without adding a control the user must learn?*
+
 ---
 
 ## F — Fix the floor (M×3) — do first
@@ -431,10 +516,11 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
   6. **Verification** — unit: `projectChat`→node is `html-enabled` and `<s-node-body>` renders its body; one smoke: send a message → a node shows its body inline.
 - **New opportunities:** a per-kind node-renderer registry declaring the four LoD tiers once (the plan's "extension point", §577); "ask from selection" already exists (`graph.ask-selection`) — wire selection → composer context.
 
-### Next Steps (fresh session)
-1. **X.2** — finish the modeless surface: resolve node sizing (gap 1), add LoD (gap 2), remove the renderer switch (gap 3). This is the paradigm; do it before H/R/B/P/I.
-2. Then **G** — auto-fit + min/max zoom + label LOD (fixes "too small / off-center / scattered").
-3. Do **not** resume formatting/craft polish; `D.4` is closed.
+### Next Steps (fresh session) — follow the ▶ Execution Plan above
+1. **Move 0** — trustworthy evidence: regenerate baselines (F.2), add the legibility assertion (T.4), add a conversation cell.
+2. **Move 1** — legibility (G.2 · G.1 · G.3): auto-fit/zoom policy, auto-scaling nodes, label LOD.
+3. **Move 2** — finish X.2 modeless (node sizing, LoD tiers, remove the renderer switch).
+4. Do **not** resume formatting/craft polish; `D.4` is closed. Do **not** build split or a renderer switch.
 
 ---
 
@@ -496,7 +582,7 @@ workspace** where speaking, reading, and seeing are simultaneous. This must move
 | # | Item | Status | Files | Acceptance |
 |---|------|--------|-------|------------|
 | X.1 | **Journeys as first-class artifacts** — name the 5 core use cases (Q&A/research · knowledge-building · goal-planning · teaching · audit) and specify each as a *flow* (steps + surfaces + transitions), not a tab. | ⬜ | `docs/ux/journeys.md` (new) | each journey has a diagram + a visual cell; a journey that can't be shown is a missing feature |
-| X.2 | **Linked workspace (the paradigm, built)** — Chat and Graph visible *together* by default (split or ambient side-canvas); selection/focus/provenance continuous; asking composes context from the selected neighborhood. | ⬜ | `components/app-layout.ts`, `components/renderers/*`, `core/store.ts` | chat + graph simultaneous; select in one → highlight in other; ask-from-selection; cells |
+| X.2 | **Modeless conversation-as-graph (the paradigm, built)** — ONE surface: the graph. Conversation blocks are nodes rendering their real HTML body (LoD); selection/focus/provenance continuous; asking composes context from the selected neighborhood. **No split, no renderer switch.** | ◐ | `components/app-layout.ts`, `components/renderers/*`, `components/graph-viewport.ts`, `components/node-body.ts`, `core/store.ts` | a conversation cell shows turns as legible nodes with their body; composer feeds the same surface; selection continuous; recording; **see ▶ Execution Plan Move 2** |
 | X.3 | **View presets + Display popover** — collapse `renderer · lens · layout · layer · shape · color-by` into **Ask · Explore · Read · Plan · Split** presets; expose the raw knobs in one "Display" popover (progressive disclosure L2). | ⬜ | `components/graph-toolbar.ts`, `core/store.ts` | ≤3 primary controls; presets set renderer+layout+lens+encoding; cells |
 | X.4 | **Progressive-disclosure ladder** — L0 composer+canvas · L1 view+search+zoom · L2 Display popover · L3 palette; advanced affordances appear only when their prerequisite exists. | ⬜ | `components/app-layout.ts`, `core/hints.ts` | a new user sees only L0; power grows on demand; cells |
 | X.5 | **First-run / empty-state design** — the default state teaches the next action and seeds a *legible* example (not a blank canvas); "first 5 minutes" is designed, not incidental. | ⬜ | `components/app-layout.ts`, `components/primitives/empty-state.ts` | empty state is a legible, actionable invitation; cells |
@@ -719,7 +805,7 @@ legibility assertion (G.4/T.4).
 
 ---
 
-## Next Session Kickoff (do these first, in order)
+## Next Session Kickoff (SUPERSEDED — see ▶ Execution Plan above)
 
 > The fresh session should **start here** and read the North Star + Strategic Review + Fractal HTML
 > sections before touching code. No more pixel-polishing until the experience is legible and the
@@ -760,7 +846,7 @@ legibility assertion (G.4/T.4).
 
 ---
 
-## Fresh-Session Checklist
+## Fresh-Session Checklist (SUPERSEDED — see ▶ Execution Plan above)
 
 - [ ] Read: North Star · Strategic Review (X/G/T) · Fractal HTML & LoD (R) · Bold commitments.
 - [ ] Confirm the revised spine: `F → X → G → R → V → C → D → H/R/B/P/I → T`.
