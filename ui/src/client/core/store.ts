@@ -479,6 +479,33 @@ export const $panels = atom<Map<string, PanelState>>(
   ])
 );
 
+export interface PanelTab {
+  id: string;
+  label: string;
+}
+
+export interface PanelTab {
+  id: string;
+  label: string;
+}
+
+export function panelTabs(): PanelTab[] {
+  return [
+    { id: 'search', label: 'Search' },
+    { id: 'chat', label: 'Chat' },
+    { id: 'lens-designer', label: 'Lenses' },
+  ];
+}
+
+export function togglePanel(id: string): void {
+  const panels = new Map($panels.get());
+  const panel = panels.get(id);
+  if (panel) {
+    panels.set(id, { ...panel, open: !panel.open });
+    $panels.set(panels);
+  }
+}
+
 /** Optimistically patch an edge's data in $graphEdges. Returns the updated edge data or undefined. */
 export function updateEdgeData(
   id: string,

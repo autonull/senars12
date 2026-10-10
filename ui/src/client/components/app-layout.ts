@@ -33,6 +33,7 @@ import './graph-toolbar.js';
 import './renderers/notebook.js';
 import './workspace-host.js';
 import './bottom-bar.js';
+import './panel-dock.js';
 import './contradiction-badge.js';
 import './error-boundary.js';
 import './chat-history-panel.js';
@@ -195,6 +196,7 @@ export class AppLayout extends BaseComponent {
     const lensDesignerPanel = panels.get('lens-designer');
     const hasNodes = $graphNodes.get().size > 0;
     const notebook = $activeRenderer.get() === 'notebook';
+    const anyPanelOpen = searchPanel?.open || chatPanel?.open || lensDesignerPanel?.open;
 
     return html`
       <div class="top-area">
@@ -205,13 +207,10 @@ export class AppLayout extends BaseComponent {
 
       <div class="body-area">
         ${
-          searchPanel?.open
+          searchPanel?.open || chatPanel?.open || lensDesignerPanel?.open
             ? html`
-          <div class="panel-left" style=${this.getPanelStyle('search')}>
-            <s-panel heading="Search" docked="left" closable @s-close=${() => this.togglePanel('search')}>
-              <s-input type="search" placeholder="Search concepts…"></s-input>
-              ${!hasNodes ? html`<s-empty-state icon="🔍" heading="No concepts" description="Send a message to populate the graph" size="sm"></s-empty-state>` : ''}
-            </s-panel>
+          <div class="panel-right" style=${anyPanelOpen ? `width:360px` : 'width:0;overflow:hidden;'}>
+            <panel-dock></panel-dock>
           </div>
         `
             : ''
@@ -231,30 +230,6 @@ export class AppLayout extends BaseComponent {
           }
           <workspace-host></workspace-host>
         </div>
-
-        ${
-          chatPanel?.open
-            ? html`
-          <div class="panel-right" style=${this.getPanelStyle('chat')}>
-            <s-panel heading="Chat History" docked="right" closable @s-close=${() => this.togglePanel('chat')}>
-              <chat-history-panel></chat-history-panel>
-            </s-panel>
-          </div>
-        `
-            : ''
-        }
-
-        ${
-          lensDesignerPanel?.open
-            ? html`
-          <div class="panel-right" style=${this.getPanelStyle('lens-designer')}>
-            <s-panel heading="Lens Designer" docked="right" closable @s-close=${() => this.togglePanel('lens-designer')}>
-              <lens-designer></lens-designer>
-            </s-panel>
-          </div>
-        `
-            : ''
-        }
       </div>
 
       <div class="bottom-area">
@@ -265,23 +240,8 @@ export class AppLayout extends BaseComponent {
     `;
   }
 
-  private getPanelStyle(id: string): string {
-    const panel = $panels.get().get(id);
-    if (!panel || !panel.open) return 'width:0;overflow:hidden;';
-    return `width:${panel.size}px;`;
-  }
-
-  private togglePanel(id: string) {
-    const panels = new Map($panels.get());
-    const panel = panels.get(id);
-    if (panel) {
-      panels.set(id, { ...panel, open: !panel.open });
-      $panels.set(panels);
-    }
-  }
-
   private focusInput() {
-    const composer = this.shadowRoot?.querySelector('composer-focus');
+    const composer = this.shadowRoot?.querySelector('bottom-bar');
     (composer as { focusInput?: () => void })?.focusInput?.();
   }
 }

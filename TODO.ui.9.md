@@ -163,7 +163,7 @@ CI/GitHub stays off (O4). `pnpm ui:gate` remains the fast type+unit gate.
 | C.1 | **One information architecture** — collapse `graph-toolbar` (top) and `workspace-hud` (bottom) into a planned shell: **top = context** (renderer · lens · layout · layer · search · zoom), **bottom = composer + essentials** (mode · send · status), **palette = everything else**. | ✅ | `components/app-layout.ts`, `components/graph-toolbar.ts`, `components/bottom-bar.ts` (new) | no function lacks a home; ≤ 7 primaries per bar; before/after cells |
 | C.2 | **One bottom bar, no overlap** — merge the floating HUD into the composer strip; reserve layout space so nothing occludes content (fixes the notebook last-block overlap). | ✅ | `components/app-layout.ts`, `components/bottom-bar.ts`, `components/composer-focus.ts` | no element overlaps content; composer height reserved; narrow cell |
 | C.3 | **De-duplicate entries** — one Settings entry, one palette trigger, one renderer switch; remove redundant affordances and emoji duplicates. | ✅ | `components/app-layout.ts`, `components/graph-toolbar.ts`, `components/bottom-bar.ts` | each action appears once in chrome; a control-count check; cells |
-| C.4 | **Panel consolidation** — Search · Chat · Lens Designer dock as **one dockable panel system** (tabbed) rather than competing left/right docks. | ⬜ | `components/app-layout.ts`, `components/primitives/panel.ts` | one dock, tabbed; panels switch in place; cells |
+| C.4 | **Panel consolidation** — Search · Chat · Lens Designer dock as **one dockable panel system** (tabbed) rather than competing left/right docks. | ✅ | `components/app-layout.ts`, `components/panel-dock.ts`, `core/store.ts` | one dock, tabbed; panels switch in place; cells |
 | C.5 | **Status consolidation** — connection · provider · budget · streaming collapse into one status cluster (with the toast/live-region sink **R.1/I.3**), not three separate badges. | ✅ | `components/bottom-bar.ts` | one status surface; severity routes to live regions; cells |
 
 ---
@@ -316,6 +316,7 @@ conditions** so provenance resolves and the ambition is not lost.
 - **Consolidated chrome**: top context bar + bottom composer/status bar (C.1, C.2); floating HUD removed
 - **De-duplicated entries**: single Settings, single Palette, lens designer in dock (C.3)
 - **Consolidated status**: connection, LM, control mode, streaming in one cluster (C.5)
+- **Panel consolidation**: Search/Chat/Lenses as single tabbed dock (C.4)
 
 ### What's Partial (Yellow)
 - **Bridge**: `graph.ask-selection`, block `children`, timeline exist; cross-view sync not finished (B.1)
@@ -402,12 +403,15 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 - **C.1** — One information architecture: top bar = context (zoom, search, lens, layout, color-by); bottom bar = composer + essentials (mode, send, status cluster).
 - **C.2** — One bottom bar, no overlap: new `<bottom-bar>` component merges composer + status cluster; removed floating HUD; composer height reserved in layout.
 - **C.3** — De-duplicate entries: single Settings (bottom-bar), single Palette (bottom-bar ⌘K), lens designer in panel dock, no duplicate renderer switch.
+- **C.4** — Panel consolidation: Search · Chat · Lens Designer as one tabbed dock (`panel-dock.ts`); removed separate left/right panels.
 - **C.5** — Status consolidation: connection, LM provider, control mode, streaming → one status cluster in bottom-bar; removed connection-banner + lm-status-panel from top.
 
 ### In Progress
-- **C.4** — Panel consolidation (Search · Chat · Lens Designer as one tabbed dock).
+- **D.1** — Icon primitive + registry (remove emoji from chrome).
+- **D.2-D.4** — Token completeness, motion vocabulary, craft gate.
 
 ### Next Steps
-1. C.4: Consolidate panels into single tabbed dock.
-2. D.1: Icon primitive + registry (remove emoji from chrome).
-3. D.2-D.4: Token completeness, motion vocabulary, craft gate.
+1. D.1: Icon primitive + registry (remove emoji from chrome).
+2. D.2: Token completeness (ensure all colors/spacing use design tokens).
+3. D.3: Motion vocabulary (enter/exit/focus animations).
+4. D.4: Craft gate (visual regression gate in CI).
