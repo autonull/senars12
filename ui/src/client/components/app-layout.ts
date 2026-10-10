@@ -34,8 +34,6 @@ import './renderers/notebook.js';
 import './workspace-host.js';
 import './bottom-bar.js';
 import './contradiction-badge.js';
-import './connection-banner.js';
-import './lm-status-panel.js';
 import './error-boundary.js';
 import './chat-history-panel.js';
 import './lens-designer.js';
@@ -132,7 +130,6 @@ export class AppLayout extends BaseComponent {
     super.connectedCallback();
     this.mountOverlays();
     window.addEventListener('keydown', this.#onGlobalKey);
-    this.watch($connectionState);
     this.watch($panels);
     this.watch($graphNodes);
     this.watch($activeRenderer);
@@ -201,11 +198,6 @@ export class AppLayout extends BaseComponent {
 
     return html`
       <div class="top-area">
-        <div class="banner-area">
-          <connection-banner></connection-banner>
-          <lm-status-panel></lm-status-panel>
-        </div>
-
         <div class="toolbar-area">
           ${notebook ? '' : html`<graph-toolbar></graph-toolbar>`}
         </div>
