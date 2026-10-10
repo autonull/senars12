@@ -310,6 +310,7 @@ conditions** so provenance resolves and the ambition is not lost.
 - **Label length guard**: projection caps labels at 200 chars (F.3)
 - **Null-cy guard**: `watchWith` callbacks check `this.cy` before use (F.1)
 - **Truth/priority base encoding**: nodes show f→color, c→opacity, priority→size by default (V.1, V.2)
+- **Visual baselines clean**: 51/51 cells pass, no crash modal (F.2)
 
 ### What's Partial (Yellow)
 - **Bridge**: `graph.ask-selection`, block `children`, timeline exist; cross-view sync not finished (B.1)
@@ -318,7 +319,6 @@ conditions** so provenance resolves and the ambition is not lost.
 - **Live regions**: `announcer.ts` exists; one seam not universal (I.3)
 
 ### What's Broken / Missing (Red / 🔴)
-- 🔴 **Baseline hygiene** — regenerate baselines to clear crash modal (F.2)
 - 🔴 **Label explosion / duplicates** — symmetric duplicates (V.3, V.4) — *label length capped (F.3)*
 - **Craft**: emoji chrome, no icon system, token gaps, no craft gate (D)
 - **Chrome**: two toolbars, duplicated entries, floating overlap (C)
@@ -389,15 +389,16 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 
 ### Completed
 - **F.1** — Guarded null-`cy` in `graph-viewport.ts:140` (`watchWith($collapsedBlocks, ...)` now checks `this.cy` before calling `syncWorkspaceLayer`).
+- **F.2** — Visual baselines regenerated (51/51 pass) — crash modal cleared.
 - **F.3** — Added label length cap in `graph-projection.ts` (`MAX_LABEL_FULL = 200`, elides with `…`).
 - **V.5** — Created `<graph-legend>` component (`components/graph-legend.ts`) showing active lens encoding (truth→color, confidence→opacity, priority→size). Added "Color by" selector in `graph-toolbar.ts` with options: Truth (f), Priority, Kind, Active Lens.
 - **V.1/V.2** — Base node style now encodes truth (frequency→color hue, confidence→opacity) and priority (size) by default in `utils/adapter-2d.ts:clearNodeStyles`. Contradictions highlighted with red border. Lens deltas layer on top.
 
 ### In Progress
-- **F.2** — Baseline regeneration pending visual test run.
+- **V.3** — Hover/focus detail for full label text.
+- **V.4** — Canonicalize symmetric edges in projection.
 
 ### Next Steps
-1. Run visual tests (`pnpm test:visual:ci`) to verify F.1/F.3 fixes and regenerate baselines (F.2).
-2. Add hover/focus detail for full label text (V.3).
-3. Canonicalize symmetric edges in projection (V.4).
-4. Begin C phase: consolidate toolbars, remove emoji chrome.
+1. Add hover/focus detail for full label text (V.3).
+2. Canonicalize symmetric edges in projection (V.4).
+3. Begin C phase: consolidate toolbars, remove emoji chrome.
