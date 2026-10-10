@@ -37,14 +37,17 @@ export interface WorkspaceProjection {
 }
 
 const MAX_LABEL = 80;
+const MAX_LABEL_FULL = 200;
 
 const firstLine = (text: string | undefined): string | undefined => {
   const line = text?.split('\n')[0]?.trim();
   return line ? line.slice(0, MAX_LABEL) : undefined;
 };
 
-const labelFor = (block: SemanticBlock): string =>
-  block.title ?? firstLine(block.text) ?? BLOCK_KIND_LABEL[block.kind] ?? block.kind;
+const labelFor = (block: SemanticBlock): string => {
+  const full = block.title ?? firstLine(block.text) ?? BLOCK_KIND_LABEL[block.kind] ?? block.kind;
+  return full.length > MAX_LABEL_FULL ? full.slice(0, MAX_LABEL_FULL - 1) + '…' : full;
+};
 
 const isContainer = (block: SemanticBlock): boolean =>
   ((block.kind === 'section' || block.kind === 'heading' || block.kind === 'turn') &&

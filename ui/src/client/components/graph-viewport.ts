@@ -47,6 +47,7 @@ import { theme } from '../utils/theme.js';
 import { applyWorkspaceOp, type WorkspaceGraph, type WorkspaceOp } from '../core/workspace-graph.js';
 import './graph-minimap.js';
 import './graph-popover.js';
+import './graph-legend.js';
 
 /** Registry of active GraphViewport instances for renderer communication. */
 const viewportRegistry = new Map<string, GraphViewport>();
@@ -137,7 +138,9 @@ export class GraphViewport extends BaseComponent {
     renderer.connect();
     this.watchWith($workspaceGraph, () => this.syncGraph());
     this.watchWith($graphLayer, () => this.applyGraphFilter());
-    this.watchWith($collapsedBlocks, () => this.syncWorkspaceLayer(this.cy!));
+    this.watchWith($collapsedBlocks, () => {
+      if (this.cy) this.syncWorkspaceLayer(this.cy);
+    });
     eventBus.on('graph:layout', this.layoutHandler);
     eventBus.on('graph:zoom-in', this.zoomIn);
     eventBus.on('graph:zoom-out', this.zoomOut);
@@ -374,6 +377,7 @@ export class GraphViewport extends BaseComponent {
           : ''
       }
       <graph-minimap></graph-minimap>
+      <graph-legend></graph-legend>
     `;
   }
 

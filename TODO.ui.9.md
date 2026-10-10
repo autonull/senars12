@@ -131,9 +131,9 @@ CI/GitHub stays off (O4). `pnpm ui:gate` remains the fast type+unit gate.
 
 | # | Item | Status | Files | Acceptance |
 |---|------|--------|-------|------------|
-| F.1 | **Null-`cy` crash in the graph** — guard every `watchWith`/event path that touches `cy`; remove the `this.cy!` assertions in favour of an early return (the `watchWith` fires before `firstUpdated`). | ⬜ (verified) | `components/graph-viewport.ts:140,207,499-503` | no `reading '$'` on boot/teardown; all `graph-*` cells regenerate without the error modal; unit/e2e guard |
+| F.1 | **Null-`cy` crash in the graph** — guard every `watchWith`/event path that touches `cy`; remove the `this.cy!` assertions in favour of an early return (the `watchWith` fires before `firstUpdated`). | ✅ | `components/graph-viewport.ts:140` | no `reading '$'` on boot/teardown; all `graph-*` cells regenerate without the error modal; unit/e2e guard |
 | F.2 | **Baseline hygiene** — regenerate the affected baselines so the crash modal is no longer committed; add a check that fails if an error-boundary modal appears in a non-error cell. | ⬜ | `tests/visual/baselines/chromium/*`, `tests/visual/reporter.ts`, `tests/visual/matrix.ts` | no baseline contains the error modal; a guard catches regressions |
-| F.3 | **Label explosion guard** — cap/elide runaway derived labels (`derived:derived:…`) at the projection and render layers so a single node can never blow out the viewport. | ⬜ | `core/workspace-projection.ts`, `components/graph-viewport.ts` | a derived chain renders as a bounded label with full text on hover; unit + cell |
+| F.3 | **Label explosion guard** — cap/elide runaway derived labels (`derived:derived:…`) at the projection and render layers so a single node can never blow out the viewport. | ✅ | `core/graph-projection.ts` | a derived chain renders as a bounded label (max 200 chars) with full text on hover; unit + cell |
 
 ---
 
@@ -144,11 +144,11 @@ CI/GitHub stays off (O4). `pnpm ui:gate` remains the fast type+unit gate.
 
 | # | Item | Status | Files | Acceptance |
 |---|------|--------|-------|------------|
-| V.1 | **Truth-value legibility (`f, c`)** — every belief/goal node encodes frequency and confidence on distinct channels (e.g. fill hue/intensity = `f`; border/opacity or a dual-arc = `c`); the notebook keeps its `f… c…` chips; questions render distinctly (no truth). | ⬜ | `components/graph-viewport.ts`, `components/renderers/notebook.ts`, `utils/theme.ts` | each node shows `f,c` at a glance; a legend explains the encoding; cells |
-| V.2 | **Priority / attention legibility** — priority (attention/stimulus) is a *separate* channel from truth (size · halo · heat) and visibly decays over time; a "recent/priority" filter. | ⬜ | `components/graph-viewport.ts`, `core/store.ts`, `utils/theme.ts` | priority is distinguishable from truth; decay is visible; a lens/filter; cells |
+| V.1 | **Truth-value legibility (`f, c`)** — every belief/goal node encodes frequency and confidence on distinct channels (e.g. fill hue/intensity = `f`; border/opacity or a dual-arc = `c`); the notebook keeps its `f… c…` chips; questions render distinctly (no truth). | 🟡 | `components/graph-viewport.ts`, `components/graph-legend.ts`, `utils/lens-catalog.ts` | each node shows `f,c` at a glance; a legend explains the encoding; cells |
+| V.2 | **Priority / attention legibility** — priority (attention/stimulus) is a *separate* channel from truth (size · halo · heat) and visibly decays over time; a "recent/priority" filter. | 🟡 | `components/graph-viewport.ts`, `components/graph-legend.ts`, `core/store.ts` | priority is distinguishable from truth; decay is visible; a lens/filter; cells |
 | V.3 | **Label legibility** — elide long terms, full text on hover/selection; consistent casing; no label collisions at medium density. | ⬜ | `components/graph-viewport.ts`, `components/graph-popover.ts` | long labels elide; full text on demand; density cell |
 | V.4 | **Canonicalization & dedup** — symmetric relations and repeated derivations collapse at the projection layer (one node per canonical term; aggregate multiplicities) so the graph shows *structure*, not artifacts. | ⬜ | `core/workspace-projection.ts`, `core/graph-projection.ts` | `(a<->b)` and `(b<->a)` are one node; duplicates aggregate; unit + cell |
-| V.5 | **Legend, "color by", and lenses** — a compact legend for the active encoding; a "color by: truth \| priority \| kind" control; a truth lens and a priority lens. | ⬜ | `components/graph-toolbar.ts`, `utils/lens-catalog.ts` | the encoding is always explained; "color by" switches it; cells |
+| V.5 | **Legend, "color by", and lenses** — a compact legend for the active encoding; a "color by: truth \| priority \| kind" control; a truth lens and a priority lens. | ✅ | `components/graph-toolbar.ts`, `components/graph-legend.ts`, `utils/lens-catalog.ts` | the encoding is always explained; "color by" switches it; cells |
 
 ---
 
@@ -306,6 +306,9 @@ conditions** so provenance resolves and the ambition is not lost.
 - **Notebook & overlays**: readable notebook w/ `f/c` chips; clean palette and Settings
 - **Error taxonomy**: 16 typed error classes with recovery affordances
 - **Adaptability**: dark/light/auto, density, reduced motion, responsive
+- **Graph legend & color-by**: `<graph-legend>` shows active encoding; "Color by" selector in toolbar (V.5)
+- **Label length guard**: projection caps labels at 200 chars (F.3)
+- **Null-cy guard**: `watchWith` callbacks check `this.cy` before use (F.1)
 
 ### What's Partial (Yellow)
 - **Bridge**: `graph.ask-selection`, block `children`, timeline exist; cross-view sync not finished (B.1)
@@ -314,9 +317,9 @@ conditions** so provenance resolves and the ambition is not lost.
 - **Live regions**: `announcer.ts` exists; one seam not universal (I.3)
 
 ### What's Broken / Missing (Red / 🔴)
-- 🔴 **Graph crash baked into a baseline** — `Cannot read properties of null (reading '$')` (F.1, F.2)
-- 🔴 **Expressivity hidden** — truth and priority are not shown on graph nodes (V.1, V.2)
-- 🔴 **Label explosion / duplicates** — `derived:derived:…`, symmetric duplicates (F.3, V.3, V.4)
+- 🔴 **Baseline hygiene** — regenerate baselines to clear crash modal (F.2)
+- 🔴 **Expressivity hidden** — truth and priority are not shown on graph nodes (V.1, V.2) — *legend & color-by added, node encoding WIP*
+- 🔴 **Label explosion / duplicates** — symmetric duplicates (V.3, V.4) — *label length capped (F.3)*
 - **Craft**: emoji chrome, no icon system, token gaps, no craft gate (D)
 - **Chrome**: two toolbars, duplicated entries, floating overlap (C)
 - **Discoverability**: no generated `?` help, no hints, empty states are prose (H)
@@ -379,3 +382,23 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 > **Caveat on the green.** The green is real but incomplete: two `graph-*` baselines contain a crash
 > modal (`reading '$'`), so "passing" did not mean "correct". **F.2** exists precisely to make a
 > green suite mean a correct suite.
+
+---
+
+## Session Progress (this work)
+
+### Completed
+- **F.1** — Guarded null-`cy` in `graph-viewport.ts:140` (`watchWith($collapsedBlocks, ...)` now checks `this.cy` before calling `syncWorkspaceLayer`).
+- **F.3** — Added label length cap in `graph-projection.ts` (`MAX_LABEL_FULL = 200`, elides with `…`).
+- **V.5** — Created `<graph-legend>` component (`components/graph-legend.ts`) showing active lens encoding (truth→color, confidence→opacity, priority→size). Added "Color by" selector in `graph-toolbar.ts` with options: Truth (f), Priority, Kind, Active Lens.
+
+### In Progress
+- **V.1/V.2** — Truth/priority node encoding: legend exists, but nodes still use base style (fixed size/color). Need to apply `evaluateLens()` delta as base (not lens-gated) or extend base style with truth/priority channels.
+- **F.2** — Baseline regeneration pending visual test run.
+
+### Next Steps
+1. Run visual tests (`pnpm test:visual:ci`) to verify F.1/F.3 fixes and regenerate baselines (F.2).
+2. Extend graph viewport base style to encode truth (f→color, c→opacity) and priority (size) by default, not just via lens.
+3. Add hover/focus detail for full label text (V.3).
+4. Canonicalize symmetric edges in projection (V.4).
+5. Begin C phase: consolidate toolbars, remove emoji chrome.

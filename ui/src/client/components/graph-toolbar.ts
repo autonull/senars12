@@ -22,6 +22,7 @@ import {
   setWorkspaceSelection,
 } from '../core/index.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
+import { LENS_CATALOG, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 import { renderField } from '../utils/render-field.js';
 import './contradiction-badge.js';
 import './lens-controller.js';
@@ -116,6 +117,7 @@ export class GraphToolbar extends BaseComponent {
   @state() private multiSelectCount = 0;
   @state() private viewportMode: ViewportMode = '2d';
   @state() private activeCapabilities: string[] = [];
+  @state() private colorBy = 'lens';
 
   private get activeLayoutName(): string {
     return layoutRegistry.getForScope($layoutScope.get());
@@ -165,8 +167,17 @@ export class GraphToolbar extends BaseComponent {
       )}
 
       <div class="divider"></div>
+<lens-controller></lens-controller>
 
-      <lens-controller></lens-controller>
+      <div class="divider"></div>
+
+      <select class="layout-select" @change=${this.selectColorBy} title="Color encoding" aria-label="Color encoding"
+        .value=${this.colorBy}>
+        <option value="truth">Color by: Truth (f)</option>
+        <option value="priority">Color by: Priority</option>
+        <option value="kind">Color by: Kind</option>
+        <option value="lens">Color by: Active Lens</option>
+      </select>
 
       ${
         this.activeCapabilities.length > 0
@@ -292,6 +303,20 @@ export class GraphToolbar extends BaseComponent {
     const id = (e.target as HTMLSelectElement).value;
     setActiveLayout(id);
     eventBus.emit('graph:layout', id);
+  }
+
+  private selectColorBy(e: Event) {
+    this.colorBy = (e.target as HTMLSelectElement).value;
+    // TODO: Apply color encoding based on selection
+    // For now, switch the active lens to match
+    if (this.colorBy === 'truth') {
+      $activeLens.set('belief');
+    } else if (this.colorBy === 'priority') {
+      $activeLens.set('goal');
+    } else if (this.colorBy === 'kind') {
+      // Could add a kind-based lens
+    }
+    // 'lens' uses the current active lens
   }
 
   private toggleMinimap() {
