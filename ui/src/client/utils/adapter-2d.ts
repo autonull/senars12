@@ -2,10 +2,22 @@ import type { Core } from 'cytoscape';
 import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
 import { RENDERER_CAPABILITIES } from './renderer-capabilities.js';
 import { theme } from './theme.js';
+import { TOKENS } from '../styles/tokens.generated.js';
 
-const truthToColor = (f: number): string => `hsl(${Math.round(f * 120)}, 70%, 50%)`;
-const priorityToSize = (p: number): number => Math.round(p * 50 + 10);
-const confidenceToOpacity = (c: number): number => 0.3 + 0.7 * c;
+const truthHueMin = Number(TOKENS.dark['colors.truth.hue-min']);
+const truthHueMax = Number(TOKENS.dark['colors.truth.hue-max']);
+const truthSaturation = TOKENS.dark['colors.truth.saturation'];
+const truthLightness = TOKENS.dark['colors.truth.lightness'];
+
+const confidenceOpacityMin = Number(TOKENS.dark['colors.confidence.opacity-min']);
+const confidenceOpacityMax = Number(TOKENS.dark['colors.confidence.opacity-max']);
+
+const prioritySizeMin = Number(TOKENS.dark['colors.priority.size-min']);
+const prioritySizeMax = Number(TOKENS.dark['colors.priority.size-max']);
+
+const truthToColor = (f: number): string => `hsl(${Math.round(f * (truthHueMax - truthHueMin) + truthHueMin)}, ${truthSaturation}, ${truthLightness})`;
+const priorityToSize = (p: number): number => Math.round(p * (prioritySizeMax - prioritySizeMin) + prioritySizeMin);
+const confidenceToOpacity = (c: number): number => confidenceOpacityMin + (confidenceOpacityMax - confidenceOpacityMin) * c;
 
 export const SUPPORT_2D = RENDERER_CAPABILITIES['2d'].node;
 export const SUPPORT_2D_EDGES = RENDERER_CAPABILITIES['2d'].edge;

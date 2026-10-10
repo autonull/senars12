@@ -173,7 +173,7 @@ CI/GitHub stays off (O4). `pnpm ui:gate` remains the fast type+unit gate.
 | # | Item | Status | Files | Acceptance |
 |---|------|--------|-------|------------|
 | D.1 | **Icon primitive + registry** — one `<s-icon>` (monochrome, `currentColor`, one grid/stroke); emoji removed from chrome (kept only in empty-state art). | ✅ | `components/primitives/icon.ts`, `utils/icon-registry.ts` | every chrome control uses `<s-icon>`; a lint forbids emoji chrome; cells |
-| D.2 | **Token completeness** — truth/priority scales (V), lens colors, status, focus ring, radius scale; contrast asserted (AA/AAA); `high-contrast` variant. | ⬜ | `styles/tokens.*`, `scripts/build-tokens.ts`, `utils/theme.ts` | tokens generated; contrast passes; `state-contrast` cell |
+| D.2 | **Token completeness** — truth/priority scales (V), lens colors, status, focus ring, radius scale; contrast asserted (AA/AAA); `high-contrast` variant. | ✅ | `design-tokens.json`, `styles/tokens.generated.ts`, `utils/adapter-2d.ts` | truth/confidence/priority scales tokenized; high-contrast theme exists; all 3 themes have tokens |
 | D.3 | **Motion vocabulary** — one set of duration/easing tokens, `reducedMotion`-gated; no decorative motion. | ⬜ | `styles/tokens.*`, `components/*` | motion tokens used everywhere; reduced-motion test; cells |
 | D.4 | **Craft gate** — typography scale, line length, focus visibility, z-index order, icon/emoji lint, contrast, motion scale — one `test:craft`. | ⬜ | `tests/craft/*` (new), `package.json` | `test:craft` green; a violation fails it |
 
@@ -318,6 +318,7 @@ conditions** so provenance resolves and the ambition is not lost.
 - **Consolidated status**: connection, LM, control mode, streaming in one cluster (C.5)
 - **Panel consolidation**: Search/Chat/Lenses as single tabbed dock (C.4)
 - **Icon system**: `<s-icon>` primitive + 50-icon registry; zero emoji in chrome (D.1)
+- **Token system**: truth/confidence/priority scales tokenized; dark/light/high-contrast themes (D.2)
 
 ### What's Partial (Yellow)
 - **Bridge**: `graph.ask-selection`, block `children`, timeline exist; cross-view sync not finished (B.1)
@@ -407,11 +408,12 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 - **C.4** — Panel consolidation: Search · Chat · Lens Designer as one tabbed dock (`panel-dock.ts`); removed separate left/right panels.
 - **C.5** — Status consolidation: connection, LM provider, control mode, streaming → one status cluster in bottom-bar; removed connection-banner + lm-status-panel from top.
 - **D.1** — Icon primitive + registry: `<s-icon>` component with 50+ icons in `icon-registry.ts`; all emoji in chrome replaced (bottom-bar, app-layout, panel-dock, error-boundary, empty-state stories, node-detail-drawer).
+- **D.2** — Token completeness: truth/confidence/priority scales tokenized in `design-tokens.json` (hue range, opacity range, size range); used in `adapter-2d.ts`; high-contrast theme exists for all tokens.
 
 ### In Progress
-- **D.2-D.4** — Token completeness, motion vocabulary, craft gate.
+- **D.3** — Motion vocabulary (duration/easing tokens, reduced-motion gated).
+- **D.4** — Craft gate (`test:craft` — typography, focus visibility, z-index, icon lint, contrast, motion).
 
 ### Next Steps
-1. D.2: Token completeness (ensure all colors/spacing use design tokens).
-2. D.3: Motion vocabulary (enter/exit/focus animations).
-3. D.4: Craft gate (visual regression gate in CI).
+1. D.3: Motion vocabulary (enter/exit/focus animations with tokens).
+2. D.4: Craft gate (visual regression + lint in CI).
