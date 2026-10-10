@@ -138,7 +138,7 @@ commands). v8 closes the loop from **registration → contract → docs** so ext
 |---|------|-----|------------|--------|
 | N.1 | **Drain the derivation recorder in `/test/pause`** | The server's 2s recorder timer outlives `pause()`, forcing a 2.2s "quiet window" in every engine-free cell (`matrix.ts:203`). | quiet-window removed from `matrix.ts`; suite still green; `waitForTimeout(2200)` eliminated. | ✅ Done |
 | N.2 | **Replace fixtures with real scenarios** | `metta`/`budget-gate` and the view cells are seeded from client stores; make the block kinds seedable server-side. | cells load through the real engine path; higher fidelity; fixtures removed. | ✅ Done (metta/budget-gate) |
-| N.3 | **Codegen the base cells** (see X.2) | `VISUAL_CELLS` is hand-curated; registration should imply a cell. | coverage grows with registration; `scripts/generate-visual-cells.ts` creates base cells from `getSurfaces()`. | ⏳ Pending |
+| N.3 | **Codegen the base cells** (see X.2) | `VISUAL_CELLS` is hand-curated; registration should imply a cell. | coverage grows with registration; `scripts/generate-visual-cells.ts` creates base cells from `getSurfaces()`. | ✅ Done |
 
 ---
 
@@ -190,15 +190,16 @@ These are implementation patterns to follow, not separate TODO items:
 1. **N.1 Drain derivation recorder** — Done: `/test/pause` now drains recorder synchronously; `waitForTimeout(2200)` removed from `inQuietWindow`, `seedConversation`, and `selection-node-detail` cells.
 2. **N.2 Replace fixtures with real scenarios** — Done: Added `/test/seed-metta` and `/test/seed-gates` endpoints; `scenario-metta` and `scenario-budget-gate` cells now load through server-side endpoints instead of client-store fixtures. Baselines updated.
 
-### P1 — Live Graph + Codegen Loop (Next)
-3. **P2.1 Incremental growth** (`components/renderers/graph.ts:84-92`, `core/workspace-renderer.ts:82-84`)
+### P1 — Live Graph + Codegen Loop ✅ COMPLETE
+3. **P2.1 Incremental growth** (`components/renderers/graph.ts`, `core/graph-renderer.ts`, `components/graph-viewport.ts`, `core/workspace-diff.ts`)
    - `present(blocks, links)` → compute diff → emit enter/exit/move ops
-   - `apply(ops)` → animate each op (GSAP/FLIP) → commit
+   - `apply(ops)` → animate each op (enter/exit/move) → commit
    - Snapshot/restore preserves animation state
+   - `workspace-diff.ts` computes minimal WorkspaceOp stream between graphs
 
-4. **X.2 Wire surface-codegen → VISUAL_CELLS** (`core/surface-codegen.ts:78`, `scripts/generate-visual-cells.ts` new)
-   - Generate base cells from `getSurfaces()` via `generateSurfaces()`
-   - Hand-curated cells remain as overrides
+4. **X.2 Wire surface-codegen → VISUAL_CELLS** (`scripts/generate-visual-cells.ts`, `tests/visual/generated-cells.ts`, `tests/visual/matrix.ts`)
+   - Generate base cells from `getSurfaces()` via static surface list
+   - Hand-curated cells remain as overrides (merged by id)
    - Coverage grows with registration
 
 ### P2 — Agent-Driven UI (Functional Leap)
@@ -301,12 +302,12 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 
 - [x] `pnpm --dir ui typecheck` — green
 - [x] `pnpm --dir ui test:unit` — 425 passing
-- [x] `pnpm --dir ui test:visual:ci` — 44 cells, all passing
+- [x] `pnpm --dir ui test:visual:ci` — 47 cells, all passing
 - [x] `pnpm --dir ui ui:verify` — green
-- [ ] Review `TODO.ui.8.md` for current priority (now at P2.1 + X.2)
+- [ ] Review `TODO.ui.8.md` for current priority (now at P2.3 + P3.1/P3.2)
 
 ---
 
 ## First move
 
-**N.1 + N.2 complete.** Next: **P2.1 + X.2** (the live graph and the codegen loop) — the pair that most improves feel *and* maintainability, and the one all later P2 items build on.
+**N.1 + N.2 + P2.1 + X.2 complete.** Next: **P2.3 + P3.1/P3.2** (floating composer and type-safe command execution) — the functional leap enabling agent-driven UI.

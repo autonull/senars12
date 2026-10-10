@@ -308,6 +308,7 @@ export {
   type WorkspaceGraph,
   type WorkspaceOp,
 } from './workspace-graph.js';
+export { diffWorkspaceGraph } from './workspace-diff.js';
 export {
   blockRefFor,
   childId,
@@ -316,10 +317,10 @@ export {
   linkRefFor,
   projectChat,
   projectCognitiveEvents,
+  projectDerivationRecords,
   projectReasoning,
   projectWorkspace,
   resolveBlockRef,
-  turnId,
   type WorkspaceFragment,
 } from './workspace-projection.js';
 export {

@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import type { TestControl } from '../framework/utils/test-control.js';
+import { GENERATED_VISUAL_CELLS } from './generated-cells.js';
 
 export type VisualContext = {
   page: Page;
@@ -341,8 +342,11 @@ const openOverlayWithRef =
  * real boot path, `surface` keys the §P1 coverage contract (see
  * `visual-coverage.test.ts`), and layouts are forced deterministic because
  * cytoscape `cose` seeds positions from `Math.random`.
+ *
+ * Base cells are generated from the surface registry (see `generate-visual-cells.ts`);
+ * hand-curated cells below override/extend by `id`.
  */
-export const VISUAL_CELLS: VisualCell[] = [
+const HAND_CURATED_CELLS: VisualCell[] = [
   // Renderers — one per registered WorkspaceRenderer.
   {
     id: 'graph-belief-bootstrap',
@@ -756,4 +760,13 @@ export const VISUAL_CELLS: VisualCell[] = [
       await page.waitForTimeout(400);
     },
   },
+];
+
+/** Merge generated base cells with hand-curated overrides (by id). */
+const generatedById = new Map(GENERATED_VISUAL_CELLS.map((c) => [c.id, c]));
+const curatedById = new Map(HAND_CURATED_CELLS.map((c) => [c.id, c]));
+
+export const VISUAL_CELLS: VisualCell[] = [
+  ...GENERATED_VISUAL_CELLS.filter((c) => !curatedById.has(c.id)),
+  ...HAND_CURATED_CELLS.map((c) => ({ ...generatedById.get(c.id), ...c })),
 ];

@@ -1,27 +1,14 @@
 /**
  * The Graph workspace renderer adapter (§3.1). The Cytoscape viewport already
- * exists; this only wires it into the `WorkspaceRenderer` contract so the
- * registry, mode switcher and shell treat Notebook and Graph uniformly. It reads
- * the same store the viewport does, so `present`/`apply` are no-ops by design —
- * the op stream is already applied to `$graphNodes`/`$graphEdges` before it
- * reaches the workspace substrate. Focus/selection round-trip through the shared
- * session state for a renderer switch.
+ * exists; this wires it into the `WorkspaceRenderer` contract so the
+ * registry, mode switcher and shell treat Notebook and Graph uniformly.
+ * Implements incremental `present`/`apply` with animation (§P2.1).
  */
 
 import type { BlockKind, Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
-import {
-  $activeRenderer,
-  $selectedNodeId,
-  $selectedNodeIds,
-  $workspaceGraph,
-  CONVERSATION_LAYOUT_CATALOG,
-  CONVERSATION_LAYOUT_IDS,
-  registerCommand,
-  setGraphLayer,
-  setWorkspaceFocus,
-  setWorkspaceSelection,
-} from '../../core/index.js';
+import { $activeRenderer, $selectedNodeId, $selectedNodeIds, $workspaceGraph, CONVERSATION_LAYOUT_CATALOG, CONVERSATION_LAYOUT_IDS, registerCommand, setGraphLayer, setWorkspaceFocus, setWorkspaceSelection } from '../../core/index.js';
 import { eventBus } from '../../core/events.js';
+import { getViewportInstance } from '../graph-viewport.js';
 import {
   registerRenderer,
   WORKSPACE_INTERACTIONS,
@@ -87,9 +74,26 @@ class GraphRenderer implements WorkspaceRenderer {
     host.appendChild(this.#element);
   }
 
-  present(_blocks: readonly SemanticBlock[], _links: readonly SemanticLink[]): void {}
+  present(blocks: readonly SemanticBlock[], links: readonly SemanticLink[]): void {
+    const viewport = getViewportInstance();
+    if (viewport) {
+      // Full hydration: replace the workspace graph and let viewport sync
+      const graph = $workspaceGraph.get();
+      graph.blocks.clear();
+      graph.links.clear();
+      for (const block of blocks) graph.blocks.set(block.id, block);
+      for (const link of links) graph.links.set(link.id, link);
+      graph.roots = blocks.map((b) => b.id);
+      $workspaceGraph.set({ ...graph });
+    }
+  }
 
-  apply(_ops: readonly WorkspaceOp[]): void {}
+  apply(ops: readonly WorkspaceOp[]): void {
+    const viewport = getViewportInstance();
+    if (viewport) {
+      viewport.applyWorkspaceOps(ops);
+    }
+  }
 
   focus(ref: Ref): void {
     setWorkspaceFocus(ref);

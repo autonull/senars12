@@ -39,8 +39,21 @@ import { layoutConversationThread } from '../utils/graph-layout.js';
 import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
 import { theme } from '../utils/theme.js';
+import { applyWorkspaceOp, type WorkspaceGraph, type WorkspaceOp } from '../core/workspace-graph.js';
 import './graph-minimap.js';
 import './graph-popover.js';
+
+/** Registry of active GraphViewport instances for renderer communication. */
+const viewportRegistry = new Map<string, GraphViewport>();
+
+export function getViewportInstance(key = 'default'): GraphViewport | undefined {
+  return viewportRegistry.get(key);
+}
+
+export function registerViewportInstance(instance: GraphViewport, key = 'default'): () => void {
+  viewportRegistry.set(key, instance);
+  return () => viewportRegistry.delete(key);
+}
 
 /** The surface-agnostic shape of a cytoscape element, for block resolution. */
 type CyElement = { id(): string };
@@ -90,6 +103,7 @@ export class GraphViewport extends BaseComponent {
   private contextTarget: string | null = null;
   private prevNodeCount = 0;
   private focusedRef?: string;
+  #unregisterViewport?: () => void;
   @state() private htmlLabels = new Map<string, HtmlLabelData>();
   @state() private nodePopover: { x: number; y: number; ref?: string; link?: string } | null = null;
   @state() private contextMenu: { x: number; y: number; nodeId: string; blockRef?: string } | null =
@@ -100,6 +114,7 @@ export class GraphViewport extends BaseComponent {
 
   override connectedCallback() {
     super.connectedCallback();
+    this.#unregisterViewport = registerViewportInstance(this);
     const renderer = new GraphRenderer(this.watchWith.bind(this), {
       syncGraph: () => this.syncGraph(),
       applyLens: () => {
@@ -112,6 +127,7 @@ export class GraphViewport extends BaseComponent {
       applyGraphFilter: () => this.applyGraphFilter(),
       restoreViewport: (vp) => this.restoreViewport(vp),
       centerOnNode: (id) => this.centerOnNode(id),
+      applyWorkspaceOps: (ops) => this.applyWorkspaceOps(ops),
     });
     renderer.connect();
     this.watchWith($workspaceGraph, () => this.syncGraph());
@@ -154,6 +170,7 @@ export class GraphViewport extends BaseComponent {
 
   override disconnectedCallback() {
     super.disconnectedCallback();
+    this.#unregisterViewport?.();
     eventBus.off('graph:layout', this.layoutHandler);
     eventBus.off('graph:zoom-in', this.zoomIn);
     eventBus.off('graph:zoom-out', this.zoomOut);
@@ -752,6 +769,93 @@ export class GraphViewport extends BaseComponent {
     }
 
     this.reactToFocus();
+  }
+
+  /**
+   * Apply incremental WorkspaceOps with animation (§P2.1).
+   * Each op is applied to Cytoscape with enter/exit/move animations.
+   */
+  applyWorkspaceOps(ops: readonly WorkspaceOp[]): void {
+    if (!this.cy || ops.length === 0) return;
+
+    const cy = this.cy;
+    cy.batch(() => {
+      for (const op of ops) {
+        switch (op.op) {
+          case 'block.add': {
+            const block = op.block;
+            const data = {
+              id: block.id,
+              color: theme.colors.accentCyan,
+              term: block.text ?? block.title ?? block.id,
+              nodeType: 'workspace',
+              priority: 0.5,
+              confidence: 1,
+              isContradiction: false,
+              label: block.title ?? block.kind,
+              html: undefined,
+              capabilities: undefined,
+            };
+            cy.add({ group: 'nodes', data, classes: 'workspace' });
+            // Animate enter
+            const node = cy.getElementById(block.id);
+            node.style('opacity', 0);
+            node.animate({ style: { opacity: 1 } }, { duration: 300, easing: 'ease-out' });
+            break;
+          }
+          case 'block.patch': {
+            const node = cy.getElementById(op.id);
+            if (node.length) {
+              node.data(op.patch);
+              // Visual feedback for patch
+              node.flashClass('patched', 200);
+            }
+            break;
+          }
+          case 'block.remove': {
+            const node = cy.getElementById(op.id);
+            if (node.length) {
+              // Animate exit
+              node.animate({ style: { opacity: 0 } }, { duration: 200, easing: 'ease-in' });
+              setTimeout(() => node.remove(), 200);
+            }
+            break;
+          }
+          case 'link.add': {
+            const link = op.link;
+            if (cy.getElementById(link.source).length && cy.getElementById(link.target).length) {
+              cy.add({ group: 'edges', data: { ...link } });
+              const edge = cy.edges(`[source="${link.source}"][target="${link.target}"]`).last();
+              edge.style('opacity', 0);
+              edge.animate({ style: { opacity: 0.45 } }, { duration: 300, easing: 'ease-out' });
+            }
+            break;
+          }
+          case 'link.remove': {
+            const parts = op.id.split('->');
+            const source = parts[0];
+            const target = parts[1]?.split(':')[0];
+            if (source && target) {
+              const edge = cy.edges(`[source="${source}"][target="${target}"]`);
+              if (edge.length) {
+                edge.animate({ style: { opacity: 0 } }, { duration: 200, easing: 'ease-in' });
+                setTimeout(() => edge.remove(), 200);
+              }
+            }
+            break;
+          }
+          case 'roots.set':
+            // Roots order change - trigger relayout
+            layoutRegistry.runLayout(cy, layoutRegistry.getForScope($layoutScope.get()), {
+              fit: false,
+              animate: true,
+              animationDuration: 500,
+            });
+            break;
+        }
+      }
+      this.syncWorkspaceLayer(cy);
+    });
   }
 
   /**

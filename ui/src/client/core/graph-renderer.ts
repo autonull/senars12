@@ -10,6 +10,7 @@ import {
   $viewport,
   evaluateLens,
 } from './index.js';
+import type { WorkspaceOp } from './workspace-graph.js';
 
 export interface RendererApi {
   syncGraph(): void;
@@ -21,7 +22,20 @@ export interface RendererApi {
   restoreViewport(vp: { x: number; y: number; zoom: number }): void;
 
   centerOnNode(id: string | null): void;
+
+  /** Apply incremental WorkspaceOps with animation. */
+  applyWorkspaceOps(ops: readonly WorkspaceOp[]): void;
 }
+
+function noopApplyWorkspaceOps(_ops: readonly WorkspaceOp[]): void {}
+const DEFAULT_API: RendererApi = {
+  syncGraph: () => {},
+  applyLens: () => {},
+  applyGraphFilter: () => {},
+  restoreViewport: () => {},
+  centerOnNode: () => {},
+  applyWorkspaceOps: noopApplyWorkspaceOps,
+};
 
 type WatchFn = <T>(
   source: { subscribe(fn: (v: T) => void): () => void; get(): T },
@@ -37,7 +51,7 @@ export class GraphRenderer {
 
   constructor(
     protected watch: WatchFn,
-    protected api: RendererApi
+    protected api: RendererApi = DEFAULT_API
   ) {}
 
   connect(): void {
