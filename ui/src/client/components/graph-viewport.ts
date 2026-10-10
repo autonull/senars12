@@ -8,6 +8,7 @@ import {
   $capabilityFilter,
   $chatMessages,
   $collapsedBlocks,
+  $conversationLayout,
   $focusTerm,
   $graphEdges,
   $graphFilter,
@@ -32,6 +33,8 @@ import {
   resolveBlockRef,
   revealBlock,
   send,
+  setConversationLayout,
+  setGraphLayer,
   setWorkspaceFocus,
   setWorkspaceSelection,
   toggleCollapsed,
@@ -391,7 +394,17 @@ export class GraphViewport extends BaseComponent {
     });
   };
 
-  private fitGraph = () => this.cy?.fit(undefined, 50);
+  private fitGraph = () => {
+    if (!this.cy) return;
+    const layer = $graphLayer.get();
+    // Only fit visible nodes based on active layer
+    const visibleNodes = this.cy.nodes().filter((n) => layerVisible(n.hasClass('workspace'), layer));
+    if (visibleNodes.nonempty()) {
+      this.cy.fit(visibleNodes, 50);
+    } else {
+      this.cy.fit(undefined, 50);
+    }
+  };
 
   private panTo = ({ x, y }: { x: number; y: number }) => {
     if (!this.cy) return;

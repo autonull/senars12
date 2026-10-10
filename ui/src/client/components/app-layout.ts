@@ -19,6 +19,7 @@ import {
   setWorkspaceFocus,
 } from '../core/index.js';
 import { dispatchCommand } from '../core/commands.js';
+import { $activeLens } from '../core/index.js';
 import './overlays/index.js';
 
 const isEditableTarget = (event: KeyboardEvent): boolean =>
@@ -108,7 +109,19 @@ export class AppLayout extends BaseComponent {
     const overlays = this.#overlays?.manager;
     if (event.altKey || overlays?.hasModal() || overlays?.containsFocus()) return;
     if (isEditableTarget(event)) return;
+
+    // Graph-specific shortcuts (no modifiers)
     const graph = $workspaceGraph.get();
+    if ($activeRenderer.get() === 'graph') {
+      switch (event.key.toLowerCase()) {
+        case 'a': {
+          event.preventDefault();
+          dispatchCommand('graph.ask-selection');
+          return;
+        }
+      }
+    }
+
     const target = navigationForKey(graph, event.key, graph.focus, $collapsedBlocks.get());
     if (target === undefined) return;
     event.preventDefault();

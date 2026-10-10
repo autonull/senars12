@@ -440,6 +440,12 @@ export const $layoutScope = atom<LayoutScope>('concept');
 /** The one saved conversation layout (the conversation scope's slot). */
 export const $conversationLayout = atom<string>(CONVERSATION_LAYOUT_IDS[0]);
 
+export const setConversationLayout = (id: string): void => {
+  if ((CONVERSATION_LAYOUT_IDS as readonly string[]).includes(id)) {
+    $conversationLayout.set(id);
+  }
+};
+
 /** Route a chosen layout to its scope's slot; the scope is the layout's own substrate (§2.6). */
 export function setActiveLayout(id: string): void {
   const scope: LayoutScope = (CONVERSATION_LAYOUT_IDS as readonly string[]).includes(id)

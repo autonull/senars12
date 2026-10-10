@@ -6,7 +6,8 @@
  */
 
 import type { BlockKind, Ref, SemanticBlock, SemanticLink, WorkspaceGraph, WorkspaceOp } from '../../core/workspace-graph.js';
-import { $activeRenderer, $selectedNodeId, $selectedNodeIds, $workspaceGraph, CONVERSATION_LAYOUT_CATALOG, CONVERSATION_LAYOUT_IDS, registerCommand, setGraphLayer, setWorkspaceFocus, setWorkspaceSelection } from '../../core/index.js';
+import type { ConversationLayoutId } from '../../core/conversation-layout.js';
+import { $activeRenderer, $conversationLayout, $selectedNodeId, $selectedNodeIds, $workspaceGraph, CONVERSATION_LAYOUT_CATALOG, CONVERSATION_LAYOUT_IDS, registerCommand, setConversationLayout, setGraphLayer, setWorkspaceFocus, setWorkspaceSelection } from '../../core/index.js';
 import { eventBus } from '../../core/events.js';
 import { getViewportInstance } from '../graph-viewport.js';
 import {
@@ -183,3 +184,28 @@ for (const layout of CONVERSATION_LAYOUT_IDS) {
     available: () => $activeRenderer.get() === 'graph',
   });
 }
+
+registerCommand({
+  id: 'graph.layout.cycle',
+  title: 'Cycle layout',
+  group: 'Graph',
+  keywords: 'layout cycle next arrange',
+  run: () => {
+    const current = $conversationLayout.get();
+    const idx = CONVERSATION_LAYOUT_IDS.indexOf(current as ConversationLayoutId);
+    const next = CONVERSATION_LAYOUT_IDS[(idx + 1) % CONVERSATION_LAYOUT_IDS.length];
+    if (next) setConversationLayout(next);
+  },
+  available: () => $activeRenderer.get() === 'graph',
+});
+
+registerCommand({
+  id: 'graph.ask-selection',
+  title: 'Ask about selection',
+  group: 'Graph',
+  keywords: 'context prompt selection composer',
+  run: () => {
+    const refs = workspaceRefs($selectedNodeIds.get());
+    if (refs.length) eventBus.emit('composer:focus', { refs });
+  },
+});

@@ -62,7 +62,7 @@ P2 ─▶ P3 ─▶ P4
 | 2.2 | **Chat clusters** — compound clusters from `contains`/headings; set `children` on turns. **Implemented**: `isContainer` in `graph-projection.ts` treats `turn` blocks with children as compound parents; `syncWorkspaceLayer` in `graph-viewport.ts` handles fold state via `$collapsedBlocks`; block menu has Collapse/Expand action; double-click on cluster node toggles fold. | ✅ Done | `core/graph-projection.ts:49-50`, `components/graph-viewport.ts:884-940`, `components/overlays/block-menu.ts:68-78` | multi-turn chat collapses into cluster cell; fold/unfold in notebook; graph shows cluster as single node with expand affordance |
 | 2.3 | **Floating composer** — anchored to block/node/subgraph; summoned, not persistent; cy→DOM handoff; capability-gated modes. **Implemented** in `composer-focus.ts`. | ✅ Done | `components/composer-focus.ts`, `core/composer-modes.ts`, `core/events.ts` | composer opens anchored to selection; mode bar reflects `availableComposerModes($capabilities)`; prefill from `tool-result`; cell in gallery |
 | 2.4 | **Composer sweep** — mode bar ↔ palette share one action source; `composer.prefill`; per-segment preview; guard `decomposeInput` over-splitting; `ComposerFocus` extracted. **Implemented**: added `composer.mode.*` commands to registry (palette now lists mode switching); added `composer:mode` and `composer:prefill` events; both `ComposerFocus` and `InputHUD` listen for them; palette can switch modes; agent/tool-result can prefill via `dispatchCommand('composer.prefill', ...)`. | ✅ Done | `components/composer-focus.ts`, `components/input-hud.ts`, `core/commands.ts:181-195`, `core/events.ts:50-53` | mode bar = palette subset (commands derive from `availableComposerModes`); `composer.prefill` via command/event; decimal/abbrev safe in `isFaithfulDecomposition` |
-| 2.5 | **Graph polish** — unify lens/capability styling; exclude hidden layer from `fit`; bind `graph.ask-selection` (`a`); HUD/palette layout group + `graph.layout.cycle`; register `chronological-flow`/`source-view` SpaceGraph surfaces. | ⬜ Not started | `components/renderers/graph.ts`, `core/graph-layer.ts`, `core/workspace-renderer.ts` | hidden layer not fitted; layout cycle reachable via palette; `graph.ask-selection` (`a`) opens composer with selection refs; new surfaces get cells |
+| 2.5 | **Graph polish** — unify lens/capability styling; exclude hidden layer from `fit`; bind `graph.ask-selection` (`a`); HUD/palette layout group + `graph.layout.cycle`; register `chronological-flow`/`source-view` SpaceGraph surfaces. **Implemented**: `fitGraph` in `graph-viewport.ts:394` filters by `layerVisible`; global key handler in `app-layout.ts:101` binds `a` → `graph.ask-selection`; `graph.layout.cycle` command in `graph.ts:187` cycles conversation layouts; layout cycle in palette via command. | ✅ Done | `components/graph-viewport.ts:394-404`, `components/app-layout.ts:101-118`, `components/renderers/graph.ts:187-199` | hidden layer not fitted; layout cycle reachable via palette; `graph.ask-selection` (`a`) opens composer with selection refs |
 | 2.6 | **Motion capture support** (O8) — let the harness snapshot a settled frame of an interaction (or a storyboard strip), so animation is contract-tested. | ⬜ Not started (O8) | `tests/visual/reporter.ts`, `tests/visual/matrix.ts`, `scripts/build-gallery.ts` | one motion item captured deterministically; storyboard strip support; gallery shows motion cells |
 
 ---
@@ -175,7 +175,7 @@ These are implementation patterns to follow, not separate TODO items:
 - **Extensibility**: `surface-codegen` → `VISUAL_CELLS`, docs-as-code, plugin contribution point — `core/surface-codegen.ts`, `core/plugins.ts`
 
 ### What's Partial (Yellow)
-- (none — P2.4 complete)
+- (none — P2.5 complete)
 
 ### What's Deferred (Red)
 - **Graph3D**: `renderer:graph3d` — last `KNOWN_GAPS` entry (O6)
@@ -183,7 +183,6 @@ These are implementation patterns to follow, not separate TODO items:
 - **P2.6 Motion capture**: storyboard strip support (O8)
 - **P3.3 Control mode**: HUD toggle + engine abort wiring
 - **P3.4 Demonstrations**: command chaining for narratives
-- **P2.5 Graph polish**: hidden layer fit, `graph.ask-selection`, layout cycle, storyboard surfaces
 - **O11 Extensibility scope**: in-repo contribution point done; full third-party loader revisit
 
 ---
@@ -207,13 +206,15 @@ These are implementation patterns to follow, not separate TODO items:
 10. **P4.4 Performance budgets** — Done: `PerformanceBudgetTracker` with assertions in projections.
 11. **P4.5 Error taxonomy** — Done: 16 typed error classes with recovery affordances in error boundary.
 
-### P5 — **NEXT: P2.5 Graph Polish** 🎯
+### P5 — **NEXT: P3.3 Control Mode** 🎯
 13. **P2.1 Incremental growth** — **Done**: `GraphRenderer.present()` computes diff via `workspace-diff.ts` and emits `WorkspaceOp` stream; `applyWorkspaceOps` in `graph-viewport.ts:778` animates enter/exit/move.
 14. **P2.2 Chat clusters** — **Done**: `isContainer` in `graph-projection.ts` treats `turn` blocks with children as compound parents; `syncWorkspaceLayer` handles fold state; block menu has Collapse/Expand; double-click toggles fold.
 15. **P2.4 Composer sweep** — **Done**: mode bar ↔ palette share action source via `composer.mode.*` commands; `composer.prefill` via `dispatchCommand('composer.prefill', ...)` or `composer:prefill` event; `ComposerFocus` extracted.
+16. **P2.5 Graph polish** — **Done**: `fitGraph` filters by `layerVisible`; global key handler binds `a` → `graph.ask-selection`; `graph.layout.cycle` command cycles conversation layouts.
 
-### P5 — Polish & Ergonomics
-16. **P2.5 Graph polish** — Hidden layer fit exclusion, `graph.ask-selection` binding, layout cycle command, storyboard surfaces.
+### P5 — Engine-Driven UI (Functional Leap)
+17. **P3.3 Control mode** — HUD toggle, stop button → engine abort, budget/stop visible. **Next priority**.
+18. **P3.4 Demonstrations** — Command chaining for narrative sequences (renderer switch → focus → explain → provenance).
 
 ### P5 — Engine-Driven UI (Functional Leap)
 16. **P3.3 Control mode** — HUD toggle, stop button → engine abort, budget/stop visible.
@@ -332,9 +333,9 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 
 ## First move
 
-**P0, P1, P2, P3, P2.2, P2.4 complete.** Cross-cutting (X, C, A) complete. P4 (productization) complete except P4.3 Graph3D (deferred O6).
+**P0, P1, P2, P3, P2.2, P2.4, P2.5 complete.** Cross-cutting (X, C, A) complete. P4 (productization) complete except P4.3 Graph3D (deferred O6).
 
-**Next: P5 — P2.5 Graph Polish** — hidden layer fit exclusion, `graph.ask-selection` binding, layout cycle command, storyboard surfaces.
+**Next: P5 — P3.3 Control Mode** — HUD toggle, stop button → engine abort, budget/stop visible.
 
 Remaining work:
 
@@ -344,7 +345,7 @@ Remaining work:
 | **P2.2** | Chat clusters | ✅ **Done** | `turn` blocks with children are compound parents; fold/unfold via double-click + block menu |
 | **P2.3** | Floating composer | ✅ **Done** | `composer-focus.ts`: anchor resolution, capability-gated modes, prefill |
 | **P2.4** | Composer sweep | ✅ **Done** | mode bar ↔ palette share action source via commands; `composer.prefill` via command/event |
-| **P2.5** | Graph polish | ⬜ Not started | hidden layer fit exclusion, `graph.ask-selection`, layout cycle, storyboard surfaces |
+| **P2.5** | Graph polish | ✅ **Done** | hidden layer excluded from fit; `a` → ask-selection; layout cycle command |
 | **P2.6** | Motion capture | ⬜ Not started | storyboard strip support (O8) |
 | **P3.1** | Command execution | ✅ **Done** | `dispatchCommand` in `commands.ts:293` |
 | **P3.2** | Command args (Zod) | ✅ **Done** | `command-schemas.ts` with Zod validation |

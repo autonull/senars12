@@ -286,6 +286,7 @@ export {
   revealBlock,
   setActiveLayout,
   setActiveRenderer,
+  setConversationLayout,
   setWorkspaceFocus,
   setWorkspaceSelection,
   setGraphLayer,
