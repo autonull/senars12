@@ -30,7 +30,11 @@ export class LMStatusPanel extends BaseComponent {
       padding: 2px 6px;
       font-size: var(--typography-scale-xxs);
     }
-    .webllm-badge.local { background: color-mix(in srgb, var(--colors-primitive-success) 14%, transparent); border-color: var(--colors-primitive-success); color: var(--colors-primitive-success); }
+    .webllm-badge.local {
+      background: color-mix(in srgb, var(--colors-primitive-success) 14%, transparent);
+      border-color: var(--colors-primitive-success);
+      color: var(--colors-primitive-success);
+    }
     .run-locally-btn {
       background: var(--colors-semantic-bg-emphasis);
       border: 1px solid var(--colors-semantic-border-subtle);
@@ -76,7 +80,14 @@ export class LMStatusPanel extends BaseComponent {
         </button>
         <span class="muted">${model ?? ''}</span>
         ${stale ? html`<span class="muted">switch not applied</span>` : ''}
-        ${isWebLLM ? html`<span class="webllm-badge local">🌐 Running locally (WebLLM)</span>` : ''}
+        ${isWebLLM
+          ? html`
+              <span class="webllm-badge local">
+                <s-icon name="globeWeb" size="10"></s-icon>
+                Running locally (WebLLM)
+              </span>
+            `
+          : ''}
         ${
           showRunLocally
             ? html`<button
@@ -85,7 +96,7 @@ export class LMStatusPanel extends BaseComponent {
               @click=${this.switchToWebLLM}
               title="Switch to local WebGPU inference"
             >
-              🌐 Run locally
+              <s-icon name="globeWeb" size="10"></s-icon> Run locally
             </button>`
             : ''
         }

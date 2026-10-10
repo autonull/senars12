@@ -458,9 +458,13 @@ export class ComposerFocus extends BaseComponent {
     return html`
       <div class="composer ${this.isDragging ? 'dragging' : ''}">
         <div class="composer-header">
-          <div class="drag-handle" title="Drag to move" @mousedown=${this.#onDragStart}>⋮⋮</div>
+          <div class="drag-handle" title="Drag to move" @mousedown=${this.#onDragStart}>
+            <s-icon name="more" size="14"></s-icon>
+          </div>
           <span class="composer-title">Composer</span>
-          <button class="composer-close" @click=${this.close} aria-label="Close composer">✕</button>
+          <button class="composer-close" @click=${this.close} aria-label="Close composer">
+            <s-icon name="closeX" size="14"></s-icon>
+          </button>
         </div>
         <div class="input-wrapper">
           ${this.showSuggestions ? html`

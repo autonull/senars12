@@ -17,23 +17,112 @@ import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 @customElement('s-nodes')
 export class NodesView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; top: 14vh; left: 50%; transform: translateX(-50%); width: min(800px, 94vw); height: min(600px, 70vh); z-index: 1; }
-    :host([hidden]) { display: none; }
-    :host([data-pinned]) { position: fixed; top: var(--nodes-y, 14vh); left: var(--nodes-x, 50%); transform: var(--nodes-transform, translateX(-50%)); width: var(--nodes-w, min(800px, 94vw)); height: var(--nodes-h, min(600px, 70vh)); z-index: 1; }
-    .panel { display: flex; flex-direction: column; height: 100%; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
-    .header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .title { font-weight: var(--typography-fontWeights-semibold); }
-    .count { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
-    .toolbar { display: flex; gap: var(--spacing-scale-1); margin-left: auto; }
-    .search { padding: var(--spacing-scale-1) var(--spacing-scale-2); border: 1px solid var(--colors-semantic-border-default); border-radius: var(--borderRadius-component-input); background: var(--colors-semantic-bg-base); color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); width: 200px; }
-    .search:focus { outline: none; border-color: var(--colors-semantic-accent-primary); }
-    .filter { display: flex; gap: var(--spacing-scale-1); padding: var(--spacing-scale-1) var(--spacing-scale-2); border-bottom: 1px solid var(--colors-semantic-border-subtle); flex-wrap: wrap; }
-    .filter-btn { padding: 2px 8px; border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-button); background: transparent; color: var(--colors-semantic-text-secondary); cursor: pointer; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); transition: var(--transitions-fast); }
-    .filter-btn.active { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); background: var(--colors-semantic-accent-subtle); }
-    .filter-btn:hover:not(.active) { border-color: var(--colors-semantic-border-default); color: var(--colors-semantic-text-primary); }
-    .content { flex: 1; overflow: auto; }
-    .empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--colors-semantic-text-muted); }
-    s-view { height: 100%; }
+    :host {
+      position: fixed;
+      top: 14vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(800px, 94vw);
+      height: min(600px, 70vh);
+      z-index: 1;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    :host([data-pinned]) {
+      position: fixed;
+      top: var(--nodes-y, 14vh);
+      left: var(--nodes-x, 50%);
+      transform: var(--nodes-transform, translateX(-50%));
+      width: var(--nodes-w, min(800px, 94vw));
+      height: var(--nodes-h, min(600px, 70vh));
+      z-index: 1;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .title {
+      font-weight: var(--typography-fontWeights-semibold);
+    }
+    .count {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+    }
+    .toolbar {
+      display: flex;
+      gap: var(--spacing-scale-1);
+      margin-left: auto;
+    }
+    .search {
+      padding: var(--spacing-scale-1) var(--spacing-scale-2);
+      border: 1px solid var(--colors-semantic-border-default);
+      border-radius: var(--borderRadius-component-input);
+      background: var(--colors-semantic-bg-base);
+      color: var(--colors-semantic-text-primary);
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+      width: 200px;
+    }
+    .search:focus {
+      outline: none;
+      border-color: var(--colors-semantic-accent-primary);
+    }
+    .filter {
+      display: flex;
+      gap: var(--spacing-scale-1);
+      padding: var(--spacing-scale-1) var(--spacing-scale-2);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 2px 8px;
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-button);
+      background: transparent;
+      color: var(--colors-semantic-text-secondary);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-xs);
+      transition: var(--transitions-fast);
+    }
+    .filter-btn.active {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+      background: var(--colors-semantic-accent-subtle);
+    }
+    .filter-btn:hover:not(.active) {
+      border-color: var(--colors-semantic-border-default);
+      color: var(--colors-semantic-text-primary);
+    }
+    .content {
+      flex: 1;
+      overflow: auto;
+    }
+    .empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--colors-semantic-text-muted);
+    }
+    s-view {
+      height: 100%;
+    }
   `;
 
   @state() private search = '';
@@ -145,14 +234,32 @@ export class NodesView extends SurfaceComponent {
           <span class="title">Concepts</span>
           <span class="count">${nodes.length} / ${$graphNodes.get().size}</span>
           <div class="toolbar">
-            <input class="search" type="search" placeholder="Filter concepts…" .value=${this.search} @input=${this.handleSearch} />
+            <input
+              class="search"
+              type="search"
+              placeholder="Filter concepts…"
+              .value=${this.search}
+              @input=${this.handleSearch}
+            />
           </div>
         </div>
         <div class="filter">
-          <button class="filter-btn ${this.filterKind === 'all' ? 'active' : ''}" @click=${() => this.setFilter('all')}>All</button>
-          ${kinds.map((kind) => html`
-            <button class="filter-btn ${this.filterKind === kind ? 'active' : ''}" @click=${() => this.setFilter(kind)}>${kind}</button>
-          `)}
+          <button
+            class="filter-btn ${this.filterKind === 'all' ? 'active' : ''}"
+            @click=${() => this.setFilter('all')}
+          >
+            All
+          </button>
+          ${kinds.map(
+            (kind) => html`
+              <button
+                class="filter-btn ${this.filterKind === kind ? 'active' : ''}"
+                @click=${() => this.setFilter(kind)}
+              >
+                ${kind}
+              </button>
+            `
+          )}
         </div>
         <div class="content">
           ${

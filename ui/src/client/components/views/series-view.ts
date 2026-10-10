@@ -12,19 +12,49 @@ const HEIGHT = 60;
 @customElement('s-series')
 export class SeriesView extends BaseComponent {
   static override styles = css`
-    :host { display: block; }
-    .chart { display: block; width: 100%; height: 100%; min-height: 24px; }
-    .empty { padding: var(--spacing-scale-3); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
+    :host {
+      display: block;
+    }
+    .chart {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 24px;
+    }
+    .empty {
+      padding: var(--spacing-scale-3);
+      color: var(--colors-semantic-text-muted);
+      font-size: var(--typography-scale-xs);
+    }
     .legend {
-      display: flex; flex-wrap: wrap; gap: var(--spacing-scale-3); list-style: none;
-      margin: var(--spacing-scale-1) 0 0; padding: 0;
-      font-family: var(--typography-fontFamilies-data); font-size: 0.6rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-scale-3);
+      list-style: none;
+      margin: var(--spacing-scale-1) 0 0;
+      padding: 0;
+      font-family: var(--typography-fontFamilies-data);
+      font-size: 0.6rem;
       color: var(--colors-semantic-text-secondary);
     }
-    .legend li { display: flex; align-items: center; gap: 4px; }
-    .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-    .grid { stroke: var(--colors-semantic-border-subtle); stroke-width: 0.5; }
-    .fill { opacity: 0.1; }
+    .legend li {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .grid {
+      stroke: var(--colors-semantic-border-subtle);
+      stroke-width: 0.5;
+    }
+    .fill {
+      opacity: 0.1;
+    }
   `;
   @property({ attribute: false }) data: SeriesDataset | null = null;
   @property({ attribute: false }) budget: Budget = 'full';

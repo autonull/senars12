@@ -26,16 +26,80 @@ interface Row {
 @customElement('s-palette')
 export class PaletteView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; top: 12vh; left: 50%; transform: translateX(-50%); width: min(620px, 92vw); z-index: 1; }
-    :host([hidden]) { display: none; }
-    .palette { display: flex; flex-direction: column; max-height: 66vh; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
-    input { border: none; outline: none; padding: var(--spacing-scale-3); background: transparent; color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-base); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    ul { list-style: none; margin: 0; padding: var(--spacing-scale-1); overflow: auto; }
-    .group { padding: var(--spacing-scale-2) var(--spacing-scale-2) var(--spacing-scale-1); text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
-    .command { display: block; width: 100%; text-align: left; border: none; border-radius: 4px; padding: var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-primary); cursor: pointer; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); }
-    .command[aria-selected='true'] { background: var(--colors-semantic-bg-subtle); outline: 1px solid var(--colors-semantic-accent-cyan); }
-    .empty { padding: var(--spacing-scale-4); text-align: center; color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-sm); }
-    footer { padding: var(--spacing-scale-1) var(--spacing-scale-3); border-top: 1px solid var(--colors-semantic-border-subtle); color: var(--colors-semantic-text-muted); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); }
+    :host {
+      position: fixed;
+      top: 12vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(620px, 92vw);
+      z-index: 1;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    .palette {
+      display: flex;
+      flex-direction: column;
+      max-height: 66vh;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+      overflow: hidden;
+    }
+    input {
+      border: none;
+      outline: none;
+      padding: var(--spacing-scale-3);
+      background: transparent;
+      color: var(--colors-semantic-text-primary);
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-base);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: var(--spacing-scale-1);
+      overflow: auto;
+    }
+    .group {
+      padding: var(--spacing-scale-2) var(--spacing-scale-2) var(--spacing-scale-1);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+    }
+    .command {
+      display: block;
+      width: 100%;
+      text-align: left;
+      border: none;
+      border-radius: 4px;
+      padding: var(--spacing-scale-2);
+      background: transparent;
+      color: var(--colors-semantic-text-primary);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+    }
+    .command[aria-selected='true'] {
+      background: var(--colors-semantic-bg-subtle);
+      outline: 1px solid var(--colors-semantic-accent-cyan);
+    }
+    .empty {
+      padding: var(--spacing-scale-4);
+      text-align: center;
+      color: var(--colors-semantic-text-muted);
+      font-size: var(--typography-scale-sm);
+    }
+    footer {
+      padding: var(--spacing-scale-1) var(--spacing-scale-3);
+      border-top: 1px solid var(--colors-semantic-border-subtle);
+      color: var(--colors-semantic-text-muted);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+    }
   `;
 
   @state() private query = '';

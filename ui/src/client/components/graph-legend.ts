@@ -149,14 +149,31 @@ export class GraphLegend extends BaseComponent {
           } else if (channel === 'size' && field === 'priority' && map === 'priority-to-size') {
             rows.push(this.renderPrioritySizeScale());
           } else if (channel === 'color' && field === 'truth' && !map) {
-            rows.push(html`<div class="legend-row"><div class="legend-swatch" style="background:${theme.colors.accentCyan}"></div><span class="legend-label">Truth (belief lens)</span></div>`);
+            const label = 'Truth (belief lens)';
+            rows.push(html`
+              <div class="legend-row">
+                <div class="legend-swatch" style="background:${theme.colors.accentCyan}"></div>
+                <span class="legend-label">${label}</span>
+              </div>`);
           }
         } else if (grandChild.op === 'const') {
           const channel = child.channel;
           if (channel === 'color') {
-            rows.push(html`<div class="legend-row"><div class="legend-swatch" style="background:${grandChild.value}"></div><span class="legend-label">${lens.label} (fixed)</span></div>`);
+            const color = grandChild.value;
+            const label = `${lens.label} (fixed)`;
+            rows.push(html`
+              <div class="legend-row">
+                <div class="legend-swatch" style="background:${color}"></div>
+                <span class="legend-label">${label}</span>
+              </div>`);
           } else if (channel === 'size') {
-            rows.push(html`<div class="legend-row"><div class="legend-swatch rect" style="background:${theme.colors.accentCyan};width:${grandChild.value}px;height:${grandChild.value}px"></div><span class="legend-label">Size: ${grandChild.value}px</span></div>`);
+            const size = grandChild.value;
+            const style = `background:${theme.colors.accentCyan};width:${size}px;height:${size}px`;
+            rows.push(html`
+              <div class="legend-row">
+                <div class="legend-swatch rect" style=${style}></div>
+                <span class="legend-label">Size: ${size}px</span>
+              </div>`);
           }
         }
       } else if (child.op === 'when' && child.child.op === 'channel') {
@@ -165,7 +182,12 @@ export class GraphLegend extends BaseComponent {
         const whenChild = child.child.child;
 
         if (predicate === 'isContradiction' && whenChannel === 'color' && whenChild.op === 'const') {
-          rows.push(html`<div class="legend-row"><div class="legend-swatch" style="background:${whenChild.value}"></div><span class="legend-label">Contradiction</span></div>`);
+          const color = whenChild.value;
+          rows.push(html`
+            <div class="legend-row">
+              <div class="legend-swatch" style="background:${color}"></div>
+              <span class="legend-label">Contradiction</span>
+            </div>`);
         }
       }
     }
@@ -202,13 +224,14 @@ export class GraphLegend extends BaseComponent {
   }
 
   private renderConfidenceOpacityScale() {
+    const gradient = `linear-gradient(90deg, ${theme.colors.accentCyan}33, ${theme.colors.accentCyan})`;
     return html`
       <div class="legend-row">
         <div class="legend-swatch" style="background:${theme.colors.accentCyan};opacity:0.3"></div>
         <span class="legend-label">Confidence (c) → Opacity</span>
       </div>
       <div class="legend-scale">
-        <div class="legend-gradient" style="background:linear-gradient(90deg, ${theme.colors.accentCyan}33, ${theme.colors.accentCyan})"></div>
+        <div class="legend-gradient" style="background:${gradient}"></div>
       </div>
       <div class="legend-scale-labels">
         <span>Low (0.3)</span>
@@ -218,13 +241,15 @@ export class GraphLegend extends BaseComponent {
   }
 
   private renderPrioritySizeScale() {
+    const gradient = `linear-gradient(90deg, ${theme.colors.accentCyan}33, ${theme.colors.accentCyan})`;
+    const swatchStyle = `background:${theme.colors.accentCyan};width:10px;height:10px`;
     return html`
       <div class="legend-row">
-        <div class="legend-swatch rect" style="background:${theme.colors.accentCyan};width:10px;height:10px"></div>
+        <div class="legend-swatch rect" style=${swatchStyle}></div>
         <span class="legend-label">Priority → Size</span>
       </div>
       <div class="legend-scale">
-        <div class="legend-gradient" style="background:linear-gradient(90deg, ${theme.colors.accentCyan}33, ${theme.colors.accentCyan})"></div>
+        <div class="legend-gradient" style="background:${gradient}"></div>
       </div>
       <div class="legend-scale-labels">
         <span>Low (10px)</span>

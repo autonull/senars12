@@ -26,44 +26,157 @@ const SECTION_LABELS: Record<ConfigSection, string> = {
 
 const SECTION_ORDER: ConfigSection[] = ['appearance', 'defaults', 'panels', 'provider', 'budgets', 'nars', 'advanced'];
 
-const FIELD_METADATA: Record<string, { label: string; description?: string; section: ConfigSection; options?: string[] }> = {
+const FIELD_METADATA: Record<
+  string,
+  { label: string; description?: string; section: ConfigSection; options?: string[] }
+> = {
   // Appearance
-  theme: { label: 'Theme', description: 'UI color theme', section: 'appearance', options: ['auto', 'dark', 'light'] },
-  density: { label: 'Density', description: 'Spacing density', section: 'appearance', options: ['comfortable', 'compact'] },
-  motion: { label: 'Motion', description: 'Animation preference', section: 'appearance', options: ['normal', 'reduced'] },
+  theme: {
+    label: 'Theme',
+    description: 'UI color theme',
+    section: 'appearance',
+    options: ['auto', 'dark', 'light'],
+  },
+  density: {
+    label: 'Density',
+    description: 'Spacing density',
+    section: 'appearance',
+    options: ['comfortable', 'compact'],
+  },
+  motion: {
+    label: 'Motion',
+    description: 'Animation preference',
+    section: 'appearance',
+    options: ['normal', 'reduced'],
+  },
 
   // Defaults
-  defaultRenderer: { label: 'Default Renderer', description: 'Renderer on boot', section: 'defaults' },
-  defaultLens: { label: 'Default Lens', description: 'Cognitive lens on boot', section: 'defaults', options: ['belief', 'goal', 'contradiction'] },
-  'defaultLayout.concept': { label: 'Concept Layout', description: 'Layout for concept scope', section: 'defaults' },
-  'defaultLayout.conversation': { label: 'Conversation Layout', description: 'Layout for conversation scope', section: 'defaults' },
+  defaultRenderer: {
+    label: 'Default Renderer',
+    description: 'Renderer on boot',
+    section: 'defaults',
+  },
+  defaultLens: {
+    label: 'Default Lens',
+    description: 'Cognitive lens on boot',
+    section: 'defaults',
+    options: ['belief', 'goal', 'contradiction'],
+  },
+  'defaultLayout.concept': {
+    label: 'Concept Layout',
+    description: 'Layout for concept scope',
+    section: 'defaults',
+  },
+  'defaultLayout.conversation': {
+    label: 'Conversation Layout',
+    description: 'Layout for conversation scope',
+    section: 'defaults',
+  },
 
   // Provider
-  'provider.name': { label: 'Provider', description: 'LLM provider', section: 'provider', options: ['webllm', 'ollama', 'openai', 'anthropic'] },
-  'provider.model': { label: 'Model', description: 'Model identifier', section: 'provider' },
-  'provider.temperature': { label: 'Temperature', description: 'Sampling temperature', section: 'provider', options: undefined },
-  'provider.maxTokens': { label: 'Max Tokens', description: 'Maximum response tokens', section: 'provider' },
-  'provider.baseUrl': { label: 'Base URL', description: 'Custom API base URL', section: 'provider' },
-  'provider.apiKey': { label: 'API Key', description: 'API key (stored locally)', section: 'provider' },
+  'provider.name': {
+    label: 'Provider',
+    description: 'LLM provider',
+    section: 'provider',
+    options: ['webllm', 'ollama', 'openai', 'anthropic'],
+  },
+  'provider.model': {
+    label: 'Model',
+    description: 'Model identifier',
+    section: 'provider',
+  },
+  'provider.temperature': {
+    label: 'Temperature',
+    description: 'Sampling temperature',
+    section: 'provider',
+    options: undefined,
+  },
+  'provider.maxTokens': {
+    label: 'Max Tokens',
+    description: 'Maximum response tokens',
+    section: 'provider',
+  },
+  'provider.baseUrl': {
+    label: 'Base URL',
+    description: 'Custom API base URL',
+    section: 'provider',
+  },
+  'provider.apiKey': {
+    label: 'API Key',
+    description: 'API key (stored locally)',
+    section: 'provider',
+  },
 
   // Budgets
-  'budgets.inference': { label: 'Inference Budget', description: 'Inference operations budget', section: 'budgets' },
-  'budgets.memory': { label: 'Memory Budget', description: 'Memory operations budget', section: 'budgets' },
-  'budgets.tools': { label: 'Tools Budget', description: 'Tool invocations budget', section: 'budgets' },
+  'budgets.inference': {
+    label: 'Inference Budget',
+    description: 'Inference operations budget',
+    section: 'budgets',
+  },
+  'budgets.memory': {
+    label: 'Memory Budget',
+    description: 'Memory operations budget',
+    section: 'budgets',
+  },
+  'budgets.tools': {
+    label: 'Tools Budget',
+    description: 'Tool invocations budget',
+    section: 'budgets',
+  },
 
   // NARS
-  'nars.maxConcepts': { label: 'Max Concepts', description: 'Maximum concepts in working memory', section: 'nars' },
-  'nars.activationDecayRate': { label: 'Decay Rate', description: 'Priority decay per cycle', section: 'nars' },
-  'nars.consolidationInterval': { label: 'Consolidation Interval', description: 'Cycles between consolidation', section: 'nars' },
-  'nars.cpuThrottleMs': { label: 'CPU Throttle (ms)', description: 'Minimum pause between cycle bursts', section: 'nars' },
-  'nars.maxDerivationDepth': { label: 'Max Derivation Depth', description: 'Maximum inference chain depth', section: 'nars' },
-  'nars.maxDerivationsPerStep': { label: 'Max Derivations/Step', description: 'Max derivations per inference step', section: 'nars' },
+  'nars.maxConcepts': {
+    label: 'Max Concepts',
+    description: 'Maximum concepts in working memory',
+    section: 'nars',
+  },
+  'nars.activationDecayRate': {
+    label: 'Decay Rate',
+    description: 'Priority decay per cycle',
+    section: 'nars',
+  },
+  'nars.consolidationInterval': {
+    label: 'Consolidation Interval',
+    description: 'Cycles between consolidation',
+    section: 'nars',
+  },
+  'nars.cpuThrottleMs': {
+    label: 'CPU Throttle (ms)',
+    description: 'Minimum pause between cycle bursts',
+    section: 'nars',
+  },
+  'nars.maxDerivationDepth': {
+    label: 'Max Derivation Depth',
+    description: 'Maximum inference chain depth',
+    section: 'nars',
+  },
+  'nars.maxDerivationsPerStep': {
+    label: 'Max Derivations/Step',
+    description: 'Max derivations per inference step',
+    section: 'nars',
+  },
 
   // Advanced
-  showTelemetry: { label: 'Show Telemetry', description: 'Display telemetry overlay', section: 'advanced' },
-  showMinimap: { label: 'Show Minimap', description: 'Display graph minimap', section: 'advanced' },
-  autoConnect: { label: 'Auto Connect', description: 'Auto-connect to server on load', section: 'advanced' },
-  debugMode: { label: 'Debug Mode', description: 'Enable debug logging', section: 'advanced' },
+  showTelemetry: {
+    label: 'Show Telemetry',
+    description: 'Display telemetry overlay',
+    section: 'advanced',
+  },
+  showMinimap: {
+    label: 'Show Minimap',
+    description: 'Display graph minimap',
+    section: 'advanced',
+  },
+  autoConnect: {
+    label: 'Auto Connect',
+    description: 'Auto-connect to server on load',
+    section: 'advanced',
+  },
+  debugMode: {
+    label: 'Debug Mode',
+    description: 'Enable debug logging',
+    section: 'advanced',
+  },
 };
 
 function getNestedValue(obj: UiConfig, path: string): unknown {
@@ -130,44 +243,191 @@ function validateValue(path: string, value: unknown): { valid: boolean; message?
 @customElement('config-hud')
 export class ConfigHUD extends BaseComponent {
   static override styles = css`
-    :host { display: block; }
-    .hud-config { display: flex; flex-direction: column; height: 100%; }
-    .config-scroll { flex: 1; overflow-y: auto; padding: var(--spacing-scale-3); }
-    .config-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-scale-2); }
-    .config-header h3 { font-family: var(--typography-fontFamilies-data); color: var(--colors-cognitiveLens-contradiction-primary); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 2px; margin: 0; }
-    .config-header-actions { display: flex; gap: var(--spacing-scale-1); }
-    .icon-btn { background: transparent; border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-button); padding: 2px 8px; cursor: pointer; color: var(--colors-semantic-text-muted); font-size: 0.75rem; font-family: var(--typography-fontFamilies-ui); transition: var(--transitions-fast); }
-    .icon-btn:hover { color: var(--colors-semantic-accent-primary); border-color: var(--colors-semantic-accent-primary); }
-    .dirty-indicator { color: var(--colors-cognitiveLens-contradiction-primary); font-size: var(--typography-scale-xs); padding: 2px 0; }
+    :host {
+      display: block;
+    }
+    .hud-config {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .config-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--spacing-scale-3);
+    }
+    .config-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-scale-2);
+    }
+    .config-header h3 {
+      font-family: var(--typography-fontFamilies-data);
+      color: var(--colors-cognitiveLens-contradiction-primary);
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      margin: 0;
+    }
+    .config-header-actions {
+      display: flex;
+      gap: var(--spacing-scale-1);
+    }
+    .icon-btn {
+      background: transparent;
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-button);
+      padding: 2px 8px;
+      cursor: pointer;
+      color: var(--colors-semantic-text-muted);
+      font-size: 0.75rem;
+      font-family: var(--typography-fontFamilies-ui);
+      transition: var(--transitions-fast);
+    }
+    .icon-btn:hover {
+      color: var(--colors-semantic-accent-primary);
+      border-color: var(--colors-semantic-accent-primary);
+    }
+    .dirty-indicator {
+      color: var(--colors-cognitiveLens-contradiction-primary);
+      font-size: var(--typography-scale-xs);
+      padding: 2px 0;
+    }
 
-    .section { margin-bottom: var(--spacing-scale-3); }
-    .section-header { display: flex; align-items: center; gap: var(--spacing-scale-2); cursor: pointer; padding: var(--spacing-scale-2) 0; user-select: none; border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .section-header:hover { opacity: 0.8; }
-    .section-header h4 { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); text-transform: uppercase; letter-spacing: 1px; color: var(--colors-semantic-text-secondary); margin: 0; flex: 1; }
-    .section-fields { display: flex; flex-direction: column; gap: var(--spacing-scale-2); padding-top: var(--spacing-scale-2); }
-    .section-fields.collapsed { display: none; }
+    .section {
+      margin-bottom: var(--spacing-scale-3);
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      cursor: pointer;
+      padding: var(--spacing-scale-2) 0;
+      user-select: none;
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .section-header:hover {
+      opacity: 0.8;
+    }
+    .section-header h4 {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--colors-semantic-text-secondary);
+      margin: 0;
+      flex: 1;
+    }
+    .section-fields {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-2);
+      padding-top: var(--spacing-scale-2);
+    }
+    .section-fields.collapsed {
+      display: none;
+    }
 
-    .field { display: flex; flex-direction: column; gap: 2px; }
-    .field-header { display: flex; align-items: center; justify-content: space-between; }
-    .field label { font-size: 0.7rem; color: var(--colors-semantic-text-muted); font-family: var(--typography-fontFamilies-data); text-transform: uppercase; letter-spacing: 0.05em; }
-    .field-description { font-size: 0.65rem; color: var(--colors-semantic-text-muted); line-height: 1.4; }
-    .field.dirty label { color: var(--colors-cognitiveLens-contradiction-primary); }
-    .field.dirty .field-value { outline: 1px solid var(--colors-cognitiveLens-contradiction-primary); outline-offset: 1px; border-radius: 2px; }
-    .field.error label { color: var(--colors-primitive-error); }
-    .field-error { font-size: 0.65rem; color: var(--colors-primitive-error); }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .field-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .field label {
+      font-size: 0.7rem;
+      color: var(--colors-semantic-text-muted);
+      font-family: var(--typography-fontFamilies-data);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .field-description {
+      font-size: 0.65rem;
+      color: var(--colors-semantic-text-muted);
+      line-height: 1.4;
+    }
+    .field.dirty label {
+      color: var(--colors-cognitiveLens-contradiction-primary);
+    }
+    .field.dirty .field-value {
+      outline: 1px solid var(--colors-cognitiveLens-contradiction-primary);
+      outline-offset: 1px;
+      border-radius: 2px;
+    }
+    .field.error label {
+      color: var(--colors-primitive-error);
+    }
+    .field-error {
+      font-size: 0.65rem;
+      color: var(--colors-primitive-error);
+    }
 
-    input[type=range] { width: 100%; accent-color: var(--colors-semantic-accent-primary); }
-    select, input[type=text], input[type=number] { width: 100%; background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle); color: var(--colors-semantic-text-primary); padding: var(--spacing-scale-2) var(--spacing-scale-3); font-family: var(--typography-fontFamilies-data); font-size: 0.7rem; outline: none; border-radius: var(--borderRadius-component-input); box-sizing: border-box; }
-    select:focus, input:focus { border-color: var(--colors-semantic-border-focus); }
+    input[type='range'] {
+      width: 100%;
+      accent-color: var(--colors-semantic-accent-primary);
+    }
+    select,
+    input[type='text'],
+    input[type='number'] {
+      width: 100%;
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      color: var(--colors-semantic-text-primary);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: 0.7rem;
+      outline: none;
+      border-radius: var(--borderRadius-component-input);
+      box-sizing: border-box;
+    }
+    select:focus,
+    input:focus {
+      border-color: var(--colors-semantic-border-focus);
+    }
 
-    .field-value { display: flex; align-items: center; gap: var(--spacing-scale-2); }
-    .field-value .val { font-size: 0.7rem; color: var(--colors-semantic-text-secondary); font-family: var(--typography-fontFamilies-data); min-width: 24px; text-align: right; }
+    .field-value {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+    }
+    .field-value .val {
+      font-size: 0.7rem;
+      color: var(--colors-semantic-text-secondary);
+      font-family: var(--typography-fontFamilies-data);
+      min-width: 24px;
+      text-align: right;
+    }
 
-    .reset-all { text-align: right; padding: var(--spacing-scale-2) 0; border-top: 1px solid var(--colors-semantic-border-subtle); margin-top: var(--spacing-scale-2); }
-    .reset-all button { background: transparent; border: none; color: var(--colors-semantic-text-muted); font-size: 0.7rem; cursor: pointer; font-family: var(--typography-fontFamilies-ui); }
-    .reset-all button:hover { color: var(--colors-primitive-error); }
+    .reset-all {
+      text-align: right;
+      padding: var(--spacing-scale-2) 0;
+      border-top: 1px solid var(--colors-semantic-border-subtle);
+      margin-top: var(--spacing-scale-2);
+    }
+    .reset-all button {
+      background: transparent;
+      border: none;
+      color: var(--colors-semantic-text-muted);
+      font-size: 0.7rem;
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+    }
+    .reset-all button:hover {
+      color: var(--colors-primitive-error);
+    }
 
-    .dirty-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--colors-cognitiveLens-contradiction-primary); display: inline-block; }
+    .dirty-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--colors-cognitiveLens-contradiction-primary);
+      display: inline-block;
+    }
   `;
 
   @state() private dirtyFields = new Set<string>();
@@ -193,9 +453,19 @@ export class ConfigHUD extends BaseComponent {
         <div class="config-header">
           <h3>Configuration</h3>
           <div class="config-header-actions">
-            ${this.dirtyFields.size > 0 ? html`<span class="dirty-indicator">${this.dirtyFields.size} unsaved</span>` : ''}
-            <button class="icon-btn" @click=${() => (this.profileSelector = !this.profileSelector)} title="Profiles">Profiles</button>
-            <button class="icon-btn" @click=${this.closePanel} title="Close">✕</button>
+            ${this.dirtyFields.size > 0
+              ? html`<span class="dirty-indicator">${this.dirtyFields.size} unsaved</span>`
+              : ''}
+            <button
+              class="icon-btn"
+              @click=${() => (this.profileSelector = !this.profileSelector)}
+              title="Profiles"
+            >
+              Profiles
+            </button>
+            <button class="icon-btn" @click=${this.closePanel} title="Close">
+              <s-icon name="closeX" size="14"></s-icon>
+            </button>
           </div>
         </div>
 
@@ -378,10 +648,13 @@ export class ConfigHUD extends BaseComponent {
       }
       case 'zodboolean':
       case 'boolean':
-        return html`<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
-          ${renderField({ type: 'toggle' }, Boolean(value), change)}
-          <span style="color:var(--colors-semantic-text-primary);font-size:0.75rem;">${value ? 'Enabled' : 'Disabled'}</span>
-        </label>`;
+        return html`
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+            ${renderField({ type: 'toggle' }, Boolean(value), change)}
+            <span style="color:var(--colors-semantic-text-primary);font-size:0.75rem;">
+              ${value ? 'Enabled' : 'Disabled'}
+            </span>
+          </label>`;
       default:
         return renderField({ type: 'text' }, String(value ?? ''), change);
     }

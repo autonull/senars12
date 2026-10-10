@@ -32,13 +32,56 @@ import { linkMeta } from '../../utils/link-catalog.js';
 @customElement('s-block-menu')
 export class BlockMenuView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; left: 50%; bottom: calc(var(--spacing-scale-4) + 64px); transform: translateX(-50%); width: min(320px, 92vw); z-index: 1; }
-    :host([hidden]) { display: none; }
-    .menu { display: flex; flex-direction: column; padding: var(--spacing-scale-1); gap: 2px; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); }
-    .menu button { display: flex; align-items: center; gap: var(--spacing-scale-2); width: 100%; text-align: left; border: none; border-radius: 4px; padding: var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-primary); cursor: pointer; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); }
-    .menu button:hover { background: var(--colors-semantic-bg-subtle); }
-    .menu .hint { padding: var(--spacing-scale-2); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
-    .empty { padding: var(--spacing-scale-3); text-align: center; color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-sm); }
+    :host {
+      position: fixed;
+      left: 50%;
+      bottom: calc(var(--spacing-scale-4) + 64px);
+      transform: translateX(-50%);
+      width: min(320px, 92vw);
+      z-index: 1;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    .menu {
+      display: flex;
+      flex-direction: column;
+      padding: var(--spacing-scale-1);
+      gap: 2px;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+    }
+    .menu button {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      width: 100%;
+      text-align: left;
+      border: none;
+      border-radius: 4px;
+      padding: var(--spacing-scale-2);
+      background: transparent;
+      color: var(--colors-semantic-text-primary);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+    }
+    .menu button:hover {
+      background: var(--colors-semantic-bg-subtle);
+    }
+    .menu .hint {
+      padding: var(--spacing-scale-2);
+      color: var(--colors-semantic-text-muted);
+      font-size: var(--typography-scale-xs);
+    }
+    .empty {
+      padding: var(--spacing-scale-3);
+      text-align: center;
+      color: var(--colors-semantic-text-muted);
+      font-size: var(--typography-scale-sm);
+    }
   `;
 
   @property({ type: String }) ref = '';
@@ -113,8 +156,22 @@ export class BlockMenuView extends SurfaceComponent {
         }
         ${
           reasoning
-            ? html`<button role="menuitem" data-action="belief" @click=${this.formalizeBelief}>Formalize as belief</button>
-              <button role="menuitem" data-action="goal" @click=${this.formalizeGoal}>Formalize as goal</button>`
+            ? html`
+                <button
+                  role="menuitem"
+                  data-action="belief"
+                  @click=${this.formalizeBelief}
+                >
+                  Formalize as belief
+                </button>
+                <button
+                  role="menuitem"
+                  data-action="goal"
+                  @click=${this.formalizeGoal}
+                >
+                  Formalize as goal
+                </button>
+              `
             : ''
         }
         <button role="menuitem" data-action="copy" @click=${this.copy}>Copy text</button>

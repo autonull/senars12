@@ -50,26 +50,144 @@ function formatNodeType(nodeType: string): string {
 @customElement('node-detail-drawer')
 export class NodeDetailDrawer extends BaseComponent {
   static override styles = css`
-    :host { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
-    .tabs { display: flex; border-bottom: 1px solid var(--colors-semantic-border-subtle); flex-shrink: 0; }
-    .tab { flex: 1; padding: var(--spacing-scale-2) var(--spacing-scale-3); border: none; background: transparent; color: var(--colors-semantic-text-muted); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: var(--transitions-fast); }
-    .tab:hover { color: var(--colors-semantic-text-primary); background: var(--colors-semantic-bg-panel); }
-    .tab.active { color: var(--colors-semantic-accent-primary); border-bottom: 2px solid var(--colors-semantic-accent-primary); }
-    .content { flex: 1; overflow-y: auto; padding: var(--spacing-scale-3); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); }
-    .field { display: flex; justify-content: space-between; padding: var(--spacing-scale-2) 0; border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .field-label { color: var(--colors-semantic-text-muted); }
-    .field-value { color: var(--colors-semantic-text-primary); font-variant-numeric: tabular-nums; }
-    .section-title { font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); text-transform: uppercase; letter-spacing: 1px; margin: var(--spacing-scale-3) 0 var(--spacing-scale-2); }
-    .link-item { display: flex; align-items: baseline; gap: var(--spacing-scale-2); width: 100%; padding: var(--spacing-scale-2) 0; border: none; border-bottom: 1px solid var(--colors-semantic-border-subtle); background: transparent; color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); text-align: left; cursor: pointer; transition: var(--transitions-fast); }
-    .link-item:hover { color: var(--colors-semantic-accent-primary); }
-    .link-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .chip { flex-shrink: 0; color: var(--colors-semantic-text-muted); font-variant-numeric: tabular-nums; }
-    .link-type { font-size: 0.6rem; color: var(--colors-semantic-text-muted); background: var(--colors-semantic-bg-panel); padding: 1px 4px; border-radius: 2px; text-transform: uppercase; }
-    .action-btn { display: flex; align-items: center; gap: var(--spacing-scale-2); width: 100%; padding: var(--spacing-scale-2) var(--spacing-scale-3); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-button); background: transparent; color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); cursor: pointer; margin-bottom: var(--spacing-scale-2); transition: var(--transitions-fast); }
-    .action-btn:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
-    .link-filter { width: 100%; background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-input); color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); padding: var(--spacing-scale-1) var(--spacing-scale-2); outline: none; margin-bottom: var(--spacing-scale-2); }
-    .link-filter:focus { border-color: var(--colors-semantic-border-focus); }
-    .empty { color: var(--colors-semantic-text-muted); text-align: center; padding: var(--spacing-scale-4); font-style: italic; }
+    :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+      flex-shrink: 0;
+    }
+    .tab {
+      flex: 1;
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: var(--transitions-fast);
+    }
+    .tab:hover {
+      color: var(--colors-semantic-text-primary);
+      background: var(--colors-semantic-bg-panel);
+    }
+    .tab.active {
+      color: var(--colors-semantic-accent-primary);
+      border-bottom: 2px solid var(--colors-semantic-accent-primary);
+    }
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--spacing-scale-3);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+    }
+    .field {
+      display: flex;
+      justify-content: space-between;
+      padding: var(--spacing-scale-2) 0;
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .field-label {
+      color: var(--colors-semantic-text-muted);
+    }
+    .field-value {
+      color: var(--colors-semantic-text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+    .section-title {
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: var(--spacing-scale-3) 0 var(--spacing-scale-2);
+    }
+    .link-item {
+      display: flex;
+      align-items: baseline;
+      gap: var(--spacing-scale-2);
+      width: 100%;
+      padding: var(--spacing-scale-2) 0;
+      border: none;
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+      background: transparent;
+      color: var(--colors-semantic-text-primary);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      text-align: left;
+      cursor: pointer;
+      transition: var(--transitions-fast);
+    }
+    .link-item:hover {
+      color: var(--colors-semantic-accent-primary);
+    }
+    .link-label {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .chip {
+      flex-shrink: 0;
+      color: var(--colors-semantic-text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .link-type {
+      font-size: 0.6rem;
+      color: var(--colors-semantic-text-muted);
+      background: var(--colors-semantic-bg-panel);
+      padding: 1px 4px;
+      border-radius: 2px;
+      text-transform: uppercase;
+    }
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      width: 100%;
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-button);
+      background: transparent;
+      color: var(--colors-semantic-text-primary);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      cursor: pointer;
+      margin-bottom: var(--spacing-scale-2);
+      transition: var(--transitions-fast);
+    }
+    .action-btn:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
+    .link-filter {
+      width: 100%;
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-input);
+      color: var(--colors-semantic-text-primary);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      padding: var(--spacing-scale-1) var(--spacing-scale-2);
+      outline: none;
+      margin-bottom: var(--spacing-scale-2);
+    }
+    .link-filter:focus {
+      border-color: var(--colors-semantic-border-focus);
+    }
+    .empty {
+      color: var(--colors-semantic-text-muted);
+      text-align: center;
+      padding: var(--spacing-scale-4);
+      font-style: italic;
+    }
   `;
   @state() private activeTab: TabId = 'overview';
   @state() private node: GraphNodeData | null = null;
@@ -298,11 +416,36 @@ export class NodeDetailDrawer extends BaseComponent {
     const truthColor = this.truthToColor(this.truthFrequency);
     return html`
       <div class="section-title">Node Details</div>
-      <div class="field"><span class="field-label">Term</span><span class="field-value">${n.term ?? n.label ?? nodeId}</span></div>
-      <div class="field"><span class="field-label">Type</span><span class="field-value">${formatNodeType(n.nodeType)}</span></div>
-      <div class="field"><span class="field-label">${fieldMeta('node.priority').label}</span><span class="field-value">${formatField('node.priority', n.priority)}</span></div>
-      <div class="field"><span class="field-label">${fieldMeta('node.confidence').label}</span><span class="field-value">${formatField('node.confidence', n.confidence)}</span></div>
-      ${n.isContradiction ? html`<div class="field"><span class="field-label">Contradiction</span><span class="field-value" style="color:${theme.colors.accentAmber};display:flex;align-items:center;gap:4px"><s-icon name="warning" size="12"></s-icon>Detected</span></div>` : ''}
+      <div class="field">
+        <span class="field-label">Term</span>
+        <span class="field-value">${n.term ?? n.label ?? nodeId}</span>
+      </div>
+      <div class="field">
+        <span class="field-label">Type</span>
+        <span class="field-value">${formatNodeType(n.nodeType)}</span>
+      </div>
+      <div class="field">
+        <span class="field-label">${fieldMeta('node.priority').label}</span>
+        <span class="field-value">${formatField('node.priority', n.priority)}</span>
+      </div>
+      <div class="field">
+        <span class="field-label">${fieldMeta('node.confidence').label}</span>
+        <span class="field-value">${formatField('node.confidence', n.confidence)}</span>
+      </div>
+      ${n.isContradiction
+        ? html`
+            <div class="field">
+              <span class="field-label">Contradiction</span>
+              <span
+                class="field-value"
+                style="color:${theme.colors.accentAmber};display:flex;align-items:center;gap:4px"
+              >
+                <s-icon name="warning" size="12"></s-icon>
+                Detected
+              </span>
+            </div>
+          `
+        : ''}
       <div class="section-title">Truth Value</div>
       <div class="field">
         <span class="field-label">${fieldMeta('truth.frequency').label}</span>
@@ -318,12 +461,28 @@ export class NodeDetailDrawer extends BaseComponent {
             this.truthFrequency,
             (v) => this.onTruthInput(Number(v))
           )}
-          <span style="color:${truthColor};font-weight:bold">${formatField('truth.frequency', this.truthFrequency)}</span>
-          <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${truthColor}"></span>
-        </span>
+            <span
+              style="color:${truthColor};font-weight:bold"
+            >
+              ${formatField('truth.frequency', this.truthFrequency)}
+            </span>
+            <span
+              style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${truthColor}"
+            ></span>
+          </span>
+        </div>
+      <div class="field">
+        <span class="field-label">${fieldMeta('truth.confidence').label}</span>
+        <span class="field-value">${formatField('truth.confidence', this.truthConfidence)}</span>
       </div>
-      <div class="field"><span class="field-label">${fieldMeta('truth.confidence').label}</span><span class="field-value">${formatField('truth.confidence', this.truthConfidence)}</span></div>
-      ${n.punctuation ? html`<div class="field"><span class="field-label">Punctuation</span><span class="field-value">${n.punctuation}</span></div>` : ''}
+      ${n.punctuation
+        ? html`
+            <div class="field">
+              <span class="field-label">Punctuation</span>
+              <span class="field-value">${n.punctuation}</span>
+            </div>
+          `
+        : ''}
     `;
   }
 
@@ -350,8 +509,15 @@ export class NodeDetailDrawer extends BaseComponent {
           ${renderField(
             {
               type: 'dropdown',
-              style:
-                'background:var(--colors-semantic-bg-base);color:var(--colors-semantic-text-primary);border:1px solid var(--colors-semantic-border-subtle);border-radius:var(--borderRadius-component-input);font-family:var(--typography-fontFamilies-data);font-size:var(--typography-scale-xs);padding:var(--spacing-scale-1)',
+              style: `
+                background:var(--colors-semantic-bg-base);
+                color:var(--colors-semantic-text-primary);
+                border:1px solid var(--colors-semantic-border-subtle);
+                border-radius:var(--borderRadius-component-input);
+                font-family:var(--typography-fontFamilies-data);
+                font-size:var(--typography-scale-xs);
+                padding:var(--spacing-scale-1);
+              `,
               options: Object.entries(EDGE_TYPES).map(([value, label]) => ({ value, label })),
             },
             this.edgeType,
@@ -387,9 +553,15 @@ export class NodeDetailDrawer extends BaseComponent {
       }
       ${
         linkViewSpec && targetRef
-          ? html`<button class="action-btn" data-action="open-view" @click=${() => eventBus.emit('overlay:open', { id: 'artifact', ref: targetRef })}>
-            Open View
-          </button>`
+          ? html`
+              <button
+                class="action-btn"
+                data-action="open-view"
+                @click=${() => eventBus.emit('overlay:open', { id: 'artifact', ref: targetRef })}
+              >
+                Open View
+              </button>
+            `
           : ''
       }
     `;

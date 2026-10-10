@@ -15,9 +15,12 @@ const confidenceOpacityMax = Number(TOKENS.dark['colors.confidence.opacity-max']
 const prioritySizeMin = Number(TOKENS.dark['colors.priority.size-min']);
 const prioritySizeMax = Number(TOKENS.dark['colors.priority.size-max']);
 
-const truthToColor = (f: number): string => `hsl(${Math.round(f * (truthHueMax - truthHueMin) + truthHueMin)}, ${truthSaturation}, ${truthLightness})`;
-const priorityToSize = (p: number): number => Math.round(p * (prioritySizeMax - prioritySizeMin) + prioritySizeMin);
-const confidenceToOpacity = (c: number): number => confidenceOpacityMin + (confidenceOpacityMax - confidenceOpacityMin) * c;
+const truthToColor = (f: number): string =>
+  `hsl(${Math.round(f * (truthHueMax - truthHueMin) + truthHueMin)}, ${truthSaturation}, ${truthLightness})`;
+const priorityToSize = (p: number): number =>
+  Math.round(p * (prioritySizeMax - prioritySizeMin) + prioritySizeMin);
+const confidenceToOpacity = (c: number): number =>
+  confidenceOpacityMin + (confidenceOpacityMax - confidenceOpacityMin) * c;
 
 export const SUPPORT_2D = RENDERER_CAPABILITIES['2d'].node;
 export const SUPPORT_2D_EDGES = RENDERER_CAPABILITIES['2d'].edge;

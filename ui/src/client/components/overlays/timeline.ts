@@ -20,13 +20,45 @@ import '../overlays/overlay-header.js';
 @customElement('s-timeline')
 export class TimelineView extends SurfaceComponent {
   static override styles = css`
-    :host { display: block; }
-    :host([hidden]) { display: none; }
-    .panel { display: flex; flex-direction: column; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
-    header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .title { flex: 1; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); font-weight: var(--typography-fontWeights-semibold); color: var(--colors-semantic-text-primary); }
-    .close { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); }
-    timeline-scrubber { border-top: none; }
+    :host {
+      display: block;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .title {
+      flex: 1;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+      font-weight: var(--typography-fontWeights-semibold);
+      color: var(--colors-semantic-text-primary);
+    }
+    .close {
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-base);
+    }
+    timeline-scrubber {
+      border-top: none;
+    }
   `;
 
   protected override renderBody() {

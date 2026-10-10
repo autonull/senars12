@@ -23,11 +23,43 @@ function hashPosition(id: string): number {
 @customElement('graph-minimap')
 export class GraphMinimap extends BaseComponent {
   static override styles = css`
-    :host { display: block; position: absolute; bottom: var(--spacing-scale-3); right: var(--spacing-scale-3); z-index: var(--zIndex-layers-popover); }
-    .minimap-container { position: relative; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-default); border-radius: var(--borderRadius-component-panel); box-shadow: 0 4px 12px rgba(0,0,0,0.3); overflow: hidden; }
-    .minimap-toggle { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-button); color: var(--colors-semantic-text-muted); cursor: pointer; font-size: 0.7rem; transition: var(--transitions-fast); }
-    .minimap-toggle:hover { color: var(--colors-semantic-accent-primary); border-color: var(--colors-semantic-accent-primary); }
-    canvas { display: block; cursor: crosshair; }
+    :host {
+      display: block;
+      position: absolute;
+      bottom: var(--spacing-scale-3);
+      right: var(--spacing-scale-3);
+      z-index: var(--zIndex-layers-popover);
+    }
+    .minimap-container {
+      position: relative;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-default);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .minimap-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-button);
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: 0.7rem;
+      transition: var(--transitions-fast);
+    }
+    .minimap-toggle:hover {
+      color: var(--colors-semantic-accent-primary);
+      border-color: var(--colors-semantic-accent-primary);
+    }
+    canvas {
+      display: block;
+      cursor: crosshair;
+    }
   `;
   @state() private visible = false;
   private canvas: HTMLCanvasElement | null = null;
@@ -69,7 +101,9 @@ export class GraphMinimap extends BaseComponent {
         <button class="minimap-toggle" @click=${() => {
           this.visible = true;
           this.scheduleDraw();
-        }} title="Show minimap">🗺</button>
+        }} title="Show minimap">
+          <s-icon name="map" size="14"></s-icon>
+        </button>
       `
       }
     `;

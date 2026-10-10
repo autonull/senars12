@@ -51,20 +51,44 @@ export class TelemetryPanel extends BaseComponent {
       font-family: inherit; font-size: inherit;
       transition: var(--transitions-fast);
     }
-    .range-btn:hover, .action-btn:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-text-primary); }
-    .range-btn.active { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); background: var(--colors-semantic-accent-primary-subtle); }
+    .range-btn:hover,
+    .action-btn:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-text-primary);
+    }
+    .range-btn.active {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+      background: var(--colors-semantic-accent-primary-subtle);
+    }
 
     /* Metric toggles */
     .metric-toggle {
-      display: flex; align-items: center; gap: 3px; padding: 1px 6px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 6px;
       border: 1px solid var(--colors-semantic-border-subtle);
-      border-radius: var(--borderRadius-scale-sm); background: transparent;
-      cursor: pointer; font-family: inherit; font-size: inherit;
-      transition: var(--transitions-fast); white-space: nowrap;
+      border-radius: var(--borderRadius-scale-sm);
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: inherit;
+      transition: var(--transitions-fast);
+      white-space: nowrap;
     }
-    .metric-toggle .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-    .metric-toggle.on { color: var(--colors-semantic-text-primary); }
-    .metric-toggle.off { opacity: 0.35; }
+    .metric-toggle .dot {
+      width: 6px;
+      height: 6px,
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .metric-toggle.on {
+      color: var(--colors-semantic-text-primary);
+    }
+    .metric-toggle.off {
+      opacity: 0.35;
+    }
 
     /* Hover tooltip */
     .hover-tooltip {
@@ -147,8 +171,13 @@ export class TelemetryPanel extends BaseComponent {
         <div class="toolbar-group">
           ${TELEMETRY_RANGES.map(
             (r) => html`
-            <button class="range-btn ${classMap({ active: this.range === r })}" @click=${() => this.setRange(r)}>${r}</button>
-          `
+              <button
+                class="range-btn ${classMap({ active: this.range === r })}"
+                @click=${() => this.setRange(r)}
+              >
+                ${r}
+              </button>
+            `
           )}
         </div>
 
@@ -159,7 +188,10 @@ export class TelemetryPanel extends BaseComponent {
           ${TELEMETRY_FIELDS.map((id) => {
             const d = fieldMeta(id);
             return html`
-              <button class="metric-toggle ${this.visibleMetrics.has(fieldKey(id)) ? 'on' : 'off'}" @click=${() => this.toggleMetric(fieldKey(id))}>
+              <button
+                class="metric-toggle ${this.visibleMetrics.has(fieldKey(id)) ? 'on' : 'off'}"
+                @click=${() => this.toggleMetric(fieldKey(id))}
+              >
                 <span class="dot" style="background:${theme.colors[d.color ?? 'info']}"></span>
                 ${d.short ?? d.label}
               </button>
@@ -268,7 +300,9 @@ export class TelemetryPanel extends BaseComponent {
     let csv = 'index,' + TELEMETRY_METRIC_KEYS.join(',') + '\n';
     for (let i = 0; i < len; i++) {
       const idx = start + i;
-      csv += `${i},${TELEMETRY_METRIC_KEYS.map((k) => (data[k as keyof typeof data] as number[])?.[idx] ?? '').join(',')}\n`;
+      csv += `${i},${TELEMETRY_METRIC_KEYS.map((k) =>
+        (data[k as keyof typeof data] as number[])?.[idx] ?? ''
+      ).join(',')}\n`;
     }
     this.downloadFile(csv, 'telemetry.csv', 'text/csv');
     this.showExportMenu = false;

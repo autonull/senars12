@@ -13,15 +13,58 @@ const ACTIVE_KEY = 'senars:activeProfile';
 @customElement('config-profiles')
 export class ConfigProfiles extends BaseComponent {
   static override styles = css`
-    :host { display: block; }
-    .profile-bar { display: flex; align-items: center; gap: var(--spacing-scale-2); margin-bottom: var(--spacing-scale-3); flex-wrap: wrap; }
-    .profile-bar label { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); text-transform: uppercase; }
-    select { background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-default); color: var(--colors-semantic-text-primary); padding: var(--spacing-scale-1) var(--spacing-scale-3); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); border-radius: var(--borderRadius-component-input); outline: none; cursor: pointer; }
-    select:focus { border-color: var(--colors-semantic-border-focus); }
-    .profile-actions { display: flex; gap: var(--spacing-scale-1); }
-    .profile-actions button { background: transparent; border: 1px solid var(--colors-semantic-border-default); color: var(--colors-semantic-text-secondary); padding: 2px 8px; font-size: var(--typography-scale-xs); border-radius: var(--borderRadius-component-button); cursor: pointer; font-family: var(--typography-fontFamilies-ui); transition: var(--transitions-fast); }
-    .profile-actions button:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
-    .export-area { margin-top: var(--spacing-scale-2); }
+    :host {
+      display: block;
+    }
+    .profile-bar {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      margin-bottom: var(--spacing-scale-3);
+      flex-wrap: wrap;
+    }
+    .profile-bar label {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+      text-transform: uppercase;
+    }
+    select {
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-default);
+      color: var(--colors-semantic-text-primary);
+      padding: var(--spacing-scale-1) var(--spacing-scale-3);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      border-radius: var(--borderRadius-component-input);
+      outline: none;
+      cursor: pointer;
+    }
+    select:focus {
+      border-color: var(--colors-semantic-border-focus);
+    }
+    .profile-actions {
+      display: flex;
+      gap: var(--spacing-scale-1);
+    }
+    .profile-actions button {
+      background: transparent;
+      border: 1px solid var(--colors-semantic-border-default);
+      color: var(--colors-semantic-text-secondary);
+      padding: 2px 8px;
+      font-size: var(--typography-scale-xs);
+      border-radius: var(--borderRadius-component-button);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      transition: var(--transitions-fast);
+    }
+    .profile-actions button:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
+    .export-area {
+      margin-top: var(--spacing-scale-2);
+    }
   `;
 
   @state() private profiles: ConfigProfile[] = [];
@@ -46,16 +89,20 @@ export class ConfigProfiles extends BaseComponent {
           )}
         </select>
         <div class="profile-actions">
-          <button @click=${this.saveAsProfile} title="Save current config as profile">+ Save</button>
+          <button @click=${this.saveAsProfile} title="Save current config as profile">
+            <s-icon name="plus" size="14"></s-icon> Save
+          </button>
           <button @click=${() => {
             this.showExport = !this.showExport;
           }} title="Export/Import profiles">
-            ${this.showExport ? '✕' : '⇅'}
+            <s-icon name=${this.showExport ? 'closeX' : 'rotate'} size="14"></s-icon>
           </button>
           ${
             this.profiles.find((p) => p.name === this.activeProfile && !p.builtin)
               ? html`
-            <button @click=${() => this.deleteProfile(this.activeProfile)} title="Delete profile">🗑</button>
+            <button @click=${() => this.deleteProfile(this.activeProfile)} title="Delete profile">
+              <s-icon name="trash" size="14"></s-icon>
+            </button>
           `
               : ''
           }
@@ -64,11 +111,13 @@ export class ConfigProfiles extends BaseComponent {
       ${
         this.showExport
           ? html`
-        <div class="export-area">
-          <s-divider></s-divider>
-          <export-import .onImport=${(t: string) => this.handleImport(t)} .onExport=${() => this.handleExport()}></export-import>
-        </div>
-      `
+              <div class="export-area">
+                <s-divider></s-divider>
+                <export-import
+                  .onImport=${(t: string) => this.handleImport(t)}
+                  .onExport=${() => this.handleExport()}
+                ></export-import>
+              </div>`
           : ''
       }
     `;
@@ -160,12 +209,47 @@ export class ConfigProfiles extends BaseComponent {
 @customElement('export-import')
 export class ExportImport extends LitElement {
   static override styles = css`
-    :host { display: block; }
-    button { background: transparent; border: 1px solid var(--colors-semantic-border-default); color: var(--colors-semantic-text-secondary); padding: 2px 8px; font-size: var(--typography-scale-xs); border-radius: var(--borderRadius-component-button); cursor: pointer; font-family: var(--typography-fontFamilies-ui); transition: var(--transitions-fast); }
-    button:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
-    textarea { width: 100%; min-height: 80px; box-sizing: border-box; background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle); color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); padding: var(--spacing-scale-2); border-radius: var(--borderRadius-component-input); resize: vertical; }
-    .import-row { display: flex; gap: var(--spacing-scale-2); align-items: center; margin-top: var(--spacing-scale-2); }
-    .error { color: var(--colors-primitive-error); font-size: var(--typography-scale-xs); }
+    :host {
+      display: block;
+    }
+    button {
+      background: transparent;
+      border: 1px solid var(--colors-semantic-border-default);
+      color: var(--colors-semantic-text-secondary);
+      padding: 2px 8px;
+      font-size: var(--typography-scale-xs);
+      border-radius: var(--borderRadius-component-button);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      transition: var(--transitions-fast);
+    }
+    button:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      box-sizing: border-box;
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      color: var(--colors-semantic-text-primary);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      padding: var(--spacing-scale-2);
+      border-radius: var(--borderRadius-component-input);
+      resize: vertical;
+    }
+    .import-row {
+      display: flex;
+      gap: var(--spacing-scale-2);
+      align-items: center;
+      margin-top: var(--spacing-scale-2);
+    }
+    .error {
+      color: var(--colors-primitive-error);
+      font-size: var(--typography-scale-xs);
+    }
   `;
 
   @property({ attribute: false }) onImport?: (text: string) => string | null;

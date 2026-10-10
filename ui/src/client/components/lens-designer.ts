@@ -87,39 +87,193 @@ function buildLensSpec(name: string, description: string, mappings: Mapping[]): 
 @customElement('lens-designer')
 export class LensDesigner extends BaseComponent {
   static override styles = css`
-    :host { display: flex; flex-direction: column; height: 100%; font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); }
-    .scroll { flex: 1; overflow-y: auto; padding: var(--spacing-scale-3); }
-    .section-title { font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); text-transform: uppercase; letter-spacing: 1px; margin: var(--spacing-scale-3) 0 var(--spacing-scale-2); }
-    .field-row { display: flex; align-items: center; gap: var(--spacing-scale-2); margin-bottom: var(--spacing-scale-2); padding: var(--spacing-scale-2); background: var(--colors-semantic-bg-panel); border-radius: var(--borderRadius-component-panel); border: 1px solid var(--colors-semantic-border-subtle); }
-    .field-row select, .field-row input { background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-input); color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); padding: var(--spacing-scale-1) var(--spacing-scale-2); outline: none; }
-    .field-row select:focus, .field-row input:focus { border-color: var(--colors-semantic-border-focus); }
-    .field-row .remove-btn { background: none; border: none; color: var(--colors-primitive-error); cursor: pointer; font-size: 1rem; padding: 2px 4px; line-height: 1; }
-    .field-row .remove-btn:hover { opacity: 0.7; }
-    .add-btn { display: flex; align-items: center; gap: var(--spacing-scale-1); width: 100%; padding: var(--spacing-scale-2); border: 1px dashed var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-button); background: transparent; color: var(--colors-semantic-text-muted); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); cursor: pointer; transition: var(--transitions-fast); justify-content: center; }
-    .add-btn:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
+    :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+    }
+    .scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--spacing-scale-3);
+    }
+    .section-title {
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: var(--spacing-scale-3) 0 var(--spacing-scale-2);
+    }
+    .field-row {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      margin-bottom: var(--spacing-scale-2);
+      padding: var(--spacing-scale-2);
+      background: var(--colors-semantic-bg-panel);
+      border-radius: var(--borderRadius-component-panel);
+      border: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .field-row select,
+    .field-row input {
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-input);
+      color: var(--colors-semantic-text-primary);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      padding: var(--spacing-scale-1) var(--spacing-scale-2);
+      outline: none;
+    }
+    .field-row select:focus,
+    .field-row input:focus {
+      border-color: var(--colors-semantic-border-focus);
+    }
+    .field-row .remove-btn {
+      background: none;
+      border: none;
+      color: var(--colors-primitive-error);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 2px 4px;
+      line-height: 1;
+    }
+    .field-row .remove-btn:hover {
+      opacity: 0.7;
+    }
+    .add-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-1);
+      width: 100%;
+      padding: var(--spacing-scale-2);
+      border: 1px dashed var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-button);
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      cursor: pointer;
+      transition: var(--transitions-fast);
+      justify-content: center;
+    }
+    .add-btn:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
 
-    .meta-row { display: flex; gap: var(--spacing-scale-2); margin-bottom: var(--spacing-scale-3); }
-    .meta-row input { flex: 1; background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-input); color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); padding: var(--spacing-scale-1) var(--spacing-scale-2); outline: none; }
-    .meta-row input:focus { border-color: var(--colors-semantic-border-focus); }
+    .meta-row {
+      display: flex;
+      gap: var(--spacing-scale-2);
+      margin-bottom: var(--spacing-scale-3);
+    }
+    .meta-row input {
+      flex: 1;
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-input);
+      color: var(--colors-semantic-text-primary);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      padding: var(--spacing-scale-1) var(--spacing-scale-2);
+      outline: none;
+    }
+    .meta-row input:focus {
+      border-color: var(--colors-semantic-border-focus);
+    }
 
-    .preview-box { background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); padding: var(--spacing-scale-2); margin-bottom: var(--spacing-scale-3); font-family: monospace; font-size: 0.65rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto; color: var(--colors-semantic-text-secondary); }
-    .preview-box.error { border-color: var(--colors-primitive-error); color: var(--colors-primitive-error); }
+    .preview-box {
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      padding: var(--spacing-scale-2);
+      margin-bottom: var(--spacing-scale-3);
+      font-family: monospace;
+      font-size: 0.65rem;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+      color: var(--colors-semantic-text-secondary);
+    }
+    .preview-box.error {
+      border-color: var(--colors-primitive-error);
+      color: var(--colors-primitive-error);
+    }
 
-    .validation-error { color: var(--colors-primitive-error); font-size: 0.65rem; padding: var(--spacing-scale-2); border: 1px solid var(--colors-primitive-error); border-radius: var(--borderRadius-component-panel); margin-bottom: var(--spacing-scale-2); }
+    .validation-error {
+      color: var(--colors-primitive-error);
+      font-size: 0.65rem;
+      padding: var(--spacing-scale-2);
+      border: 1px solid var(--colors-primitive-error);
+      border-radius: var(--borderRadius-component-panel);
+      margin-bottom: var(--spacing-scale-2);
+    }
 
-    .actions { display: flex; gap: var(--spacing-scale-2); padding: var(--spacing-scale-3); border-top: 1px solid var(--colors-semantic-border-subtle); }
-    .commit-btn { flex: 1; padding: var(--spacing-scale-2); border: none; border-radius: var(--borderRadius-component-button); background: var(--colors-semantic-accent-primary); color: var(--colors-semantic-text-on-accent); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); cursor: pointer; font-weight: var(--typography-fontWeights-semibold); transition: var(--transitions-fast); }
-    .commit-btn:hover { opacity: 0.9; }
-    .commit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .actions {
+      display: flex;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-3);
+      border-top: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .commit-btn {
+      flex: 1;
+      padding: var(--spacing-scale-2);
+      border: none;
+      border-radius: var(--borderRadius-component-button);
+      background: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-text-on-accent);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      cursor: pointer;
+      font-weight: var(--typography-fontWeights-semibold);
+      transition: var(--transitions-fast);
+    }
+    .commit-btn:hover {
+      opacity: 0.9;
+    }
+    .commit-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
 
-    .op-toggle { display: flex; align-items: center; gap: var(--spacing-scale-1); }
-    .op-toggle label { font-size: 0.6rem; color: var(--colors-semantic-text-muted); cursor: pointer; }
-    .op-toggle input[type=checkbox] { accent-color: var(--colors-semantic-accent-primary); }
+    .op-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-1);
+    }
+    .op-toggle label {
+      font-size: 0.6rem;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+    }
+    .op-toggle input[type='checkbox'] {
+      accent-color: var(--colors-semantic-accent-primary);
+    }
 
-    .preview-stats { display: flex; gap: var(--spacing-scale-3); padding: var(--spacing-scale-2); background: var(--colors-semantic-bg-panel); border-radius: var(--borderRadius-component-panel); margin-bottom: var(--spacing-scale-2); }
-    .preview-stat { display: flex; flex-direction: column; }
-    .preview-stat-label { font-size: 0.6rem; color: var(--colors-semantic-text-muted); text-transform: uppercase; }
-    .preview-stat-value { font-size: 0.75rem; color: var(--colors-semantic-text-primary); font-weight: var(--typography-fontWeights-semibold); }
+    .preview-stats {
+      display: flex;
+      gap: var(--spacing-scale-3);
+      padding: var(--spacing-scale-2);
+      background: var(--colors-semantic-bg-panel);
+      border-radius: var(--borderRadius-component-panel);
+      margin-bottom: var(--spacing-scale-2);
+    }
+    .preview-stat {
+      display: flex;
+      flex-direction: column;
+    }
+    .preview-stat-label {
+      font-size: 0.6rem;
+      color: var(--colors-semantic-text-muted);
+      text-transform: uppercase;
+    }
+    .preview-stat-value {
+      font-size: 0.75rem;
+      color: var(--colors-semantic-text-primary);
+      font-weight: var(--typography-fontWeights-semibold);
+    }
   `;
 
   @state() private name = '';
@@ -170,7 +324,9 @@ export class LensDesigner extends BaseComponent {
 
         <div class="section-title">Live Preview</div>
         ${this.renderPreview()}
-        <div class="preview-box ${this.validationError ? 'error' : ''}">${this.previewJson || 'Adjust mappings to see preview'}</div>
+        <div class="preview-box ${this.validationError ? 'error' : ''}">
+          ${this.previewJson || 'Adjust mappings to see preview'}
+        </div>
       </div>
 
       <div class="actions">
@@ -185,7 +341,14 @@ export class LensDesigner extends BaseComponent {
     return html`
       <div class="field-row">
         ${renderField(
-          { type: 'dropdown', style: 'width:60px', options: [{ value: 'field', label: 'Field' }, { value: 'const', label: 'Const' }] },
+          {
+            type: 'dropdown',
+            style: 'width:60px',
+            options: [
+              { value: 'field', label: 'Field' },
+              { value: 'const', label: 'Const' },
+            ],
+          },
           m.op,
           (v) => this.updateMapping(i, 'op', String(v))
         )}
@@ -193,7 +356,14 @@ export class LensDesigner extends BaseComponent {
         ${
           m.op === 'field'
             ? renderField(
-                { type: 'dropdown', style: 'flex:1', options: this.fieldOptions.map((f) => ({ value: f.key, label: f.label })) },
+                {
+                  type: 'dropdown',
+                  style: 'flex:1',
+                  options: this.fieldOptions.map((f) => ({
+                    value: f.key,
+                    label: f.label,
+                  })),
+                },
                 m.field,
                 (v) => this.updateMapping(i, 'field', String(v))
               )
@@ -233,7 +403,9 @@ export class LensDesigner extends BaseComponent {
         ${
           this.mappings.length > 1
             ? html`
-          <button class="remove-btn" @click=${() => this.removeMapping(i)} title="Remove">✕</button>
+          <button class="remove-btn" @click=${() => this.removeMapping(i)} title="Remove">
+            <s-icon name="closeX" size="12"></s-icon>
+          </button>
         `
             : ''
         }
@@ -243,8 +415,15 @@ export class LensDesigner extends BaseComponent {
 
   private renderPreview() {
     const stats = this.computePreviewStats();
-    if (!stats)
-      return html`<div style="color:var(--colors-semantic-text-muted);padding:var(--spacing-scale-2)">No nodes to preview (send a message first)</div>`;
+    if (!stats) {
+      return html`
+        <div
+          style="color:var(--colors-semantic-text-muted);padding:var(--spacing-scale-2)"
+        >
+          No nodes to preview (send a message first)
+        </div>
+      `;
+    }
 
     return html`
       <div class="preview-stats">
@@ -261,7 +440,16 @@ export class LensDesigner extends BaseComponent {
             ? html`
         <div class="preview-stat">
           <span class="preview-stat-label">Sample Color</span>
-          <span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:${stats.colorSample};border:1px solid var(--colors-semantic-border-subtle)"></span>
+          <span
+            style="
+              display:inline-block;
+              width:16px;
+              height:16px;
+              border-radius:50%;
+              background:${stats.colorSample};
+              border:1px solid var(--colors-semantic-border-subtle)
+            "
+          ></span>
         </div>`
             : ''
         }

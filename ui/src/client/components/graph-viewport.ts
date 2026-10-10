@@ -82,26 +82,81 @@ const CHAT_NODE_STYLE = {
 @customElement('graph-viewport')
 export class GraphViewport extends BaseComponent {
   static override styles = css`
-    :host { display: block; position: relative; flex: 1; background: var(--colors-semantic-bg-base); min-height: 0; }
-    #cy-container { width: 100%; height: 100%; position: relative; }
-    #cy-container:focus-visible { outline: 2px solid var(--colors-semantic-accent-cyan); outline-offset: -2px; }
-    .warning { position: absolute; bottom: 8px; left: 8px; background: rgba(255, 176, 0, 0.1); border-left: 2px solid var(--colors-primitive-warning); padding: 4px 8px; font-family: var(--typography-fontFamilies-data); font-size: 0.65rem; color: var(--colors-primitive-warning); pointer-events: none; }
-    .html-label { position: absolute; pointer-events: auto; overflow: hidden; background: transparent; z-index: 100; }
-    .html-label .graph-message { transform-origin: top left; }
+    :host {
+      display: block;
+      position: relative;
+      flex: 1;
+      background: var(--colors-semantic-bg-base);
+      min-height: 0;
+    }
+    #cy-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    #cy-container:focus-visible {
+      outline: 2px solid var(--colors-semantic-accent-cyan);
+      outline-offset: -2px;
+    }
+    .warning {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(255, 176, 0, 0.1);
+      border-left: 2px solid var(--colors-primitive-warning);
+      padding: 4px 8px;
+      font-family: var(--typography-fontFamilies-data);
+      font-size: 0.65rem;
+      color: var(--colors-primitive-warning);
+      pointer-events: none;
+    }
+    .html-label {
+      position: absolute;
+      pointer-events: auto;
+      overflow: hidden;
+      background: transparent;
+      z-index: 100;
+    }
+    .html-label .graph-message {
+      transform-origin: top left;
+    }
 
     /* Context menu */
     .context-menu {
-      position: absolute; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-default);
-      border-radius: var(--borderRadius-component-panel); padding: var(--spacing-scale-1);
-      font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs);
-      z-index: var(--zIndex-layers-popover); box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 140px;
+      position: absolute;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-default);
+      border-radius: var(--borderRadius-component-panel);
+      padding: var(--spacing-scale-1);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      z-index: var(--zIndex-layers-popover);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      min-width: 140px;
     }
     .context-item {
-      display: flex; align-items: center; gap: var(--spacing-scale-2); width: 100%; padding: var(--spacing-scale-2) var(--spacing-scale-3);
-      border: none; background: transparent; color: var(--colors-semantic-text-primary); cursor: pointer; transition: var(--transitions-fast); text-align: left; border-radius: var(--borderRadius-component-input);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      width: 100%;
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-primary);
+      cursor: pointer;
+      transition: var(--transitions-fast);
+      text-align: left;
+      border-radius: var(--borderRadius-component-input);
     }
-    .context-item:hover { background: var(--colors-semantic-bg-panel-hover); color: var(--colors-semantic-accent-primary); }
-    .context-divider { height: 1px; background: var(--colors-semantic-border-subtle); margin: var(--spacing-scale-1) 0; }
+    .context-item:hover {
+      background: var(--colors-semantic-bg-panel-hover);
+      color: var(--colors-semantic-accent-primary);
+    }
+    .context-divider {
+      height: 1px;
+      background: var(--colors-semantic-border-subtle);
+      margin: var(--spacing-scale-1) 0;
+    }
   `;
   private cy: Core | null = null;
   private mounted = false;
@@ -350,9 +405,10 @@ export class GraphViewport extends BaseComponent {
       <div id="cy-container" tabindex="0" @click=${this.closeContextMenu}></div>
       ${meta?.truncated ? html`<div class="warning">▼ ${meta.totalHidden} lower-priority concepts hidden</div>` : ''}
       ${Array.from(this.htmlLabels.values()).map(
-        (d) => html`
-        <div class="html-label" style="left:${d.x}px;top:${d.y}px;width:${d.width}px;height:${d.height}px" .innerHTML=${d.html}></div>
-      `
+        (d) => {
+          const style = `left:${d.x}px;top:${d.y}px;width:${d.width}px;height:${d.height}px`;
+          return html`<div class="html-label" style=${style} .innerHTML=${d.html}></div>`;
+        }
       )}
       ${
         this.nodePopover

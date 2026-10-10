@@ -35,20 +35,93 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
 @customElement('s-events')
 export class EventsView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; top: 14vh; left: 50%; transform: translateX(-50%); width: min(800px, 94vw); height: min(600px, 70vh); z-index: 1; }
-    :host([hidden]) { display: none; }
-    :host([data-pinned]) { position: fixed; top: var(--events-y, 14vh); left: var(--events-x, 50%); transform: var(--events-transform, translateX(-50%)); width: var(--events-w, min(800px, 94vw)); height: var(--events-h, min(600px, 70vh)); z-index: 1; }
-    .panel { display: flex; flex-direction: column; height: 100%; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
-    .header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .title { font-weight: var(--typography-fontWeights-semibold); }
-    .count { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
-    .filter { display: flex; gap: var(--spacing-scale-1); padding: var(--spacing-scale-1) var(--spacing-scale-2); border-bottom: 1px solid var(--colors-semantic-border-subtle); flex-wrap: wrap; }
-    .filter-btn { padding: 2px 8px; border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-button); background: transparent; color: var(--colors-semantic-text-secondary); cursor: pointer; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); transition: var(--transitions-fast); }
-    .filter-btn.active { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); background: var(--colors-semantic-accent-subtle); }
-    .filter-btn:hover:not(.active) { border-color: var(--colors-semantic-border-default); color: var(--colors-semantic-text-primary); }
-    .content { flex: 1; overflow: auto; }
-    .empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--colors-semantic-text-muted); }
-    s-view { height: 100%; }
+    :host {
+      position: fixed;
+      top: 14vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(800px, 94vw);
+      height: min(600px, 70vh);
+      z-index: 1;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    :host([data-pinned]) {
+      position: fixed;
+      top: var(--events-y, 14vh);
+      left: var(--events-x, 50%);
+      transform: var(--events-transform, translateX(-50%));
+      width: var(--events-w, min(800px, 94vw));
+      height: var(--events-h, min(600px, 70vh));
+      z-index: 1;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .title {
+      font-weight: var(--typography-fontWeights-semibold);
+    }
+    .count {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+    }
+    .filter {
+      display: flex;
+      gap: var(--spacing-scale-1);
+      padding: var(--spacing-scale-1) var(--spacing-scale-2);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 2px 8px;
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-button);
+      background: transparent;
+      color: var(--colors-semantic-text-secondary);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-xs);
+      transition: var(--transitions-fast);
+    }
+    .filter-btn.active {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+      background: var(--colors-semantic-accent-subtle);
+    }
+    .filter-btn:hover:not(.active) {
+      border-color: var(--colors-semantic-border-default);
+      color: var(--colors-semantic-text-primary);
+    }
+    .content {
+      flex: 1;
+      overflow: auto;
+    }
+    .empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--colors-semantic-text-muted);
+    }
+    s-view {
+      height: 100%;
+    }
   `;
 
   @state() private filterType: string | 'all' = 'all';
@@ -153,15 +226,34 @@ export class EventsView extends SurfaceComponent {
           <span class="count">${events.length} / ${$cognitiveEvents.get().length}</span>
         </div>
         <div class="filter">
-          <button class="filter-btn ${this.filterType === 'all' ? 'active' : ''}" @click=${() => this.setFilter('all')}>All</button>
-          ${types.map((type) => html`
-            <button class="filter-btn ${this.filterType === type ? 'active' : ''}" @click=${() => this.setFilter(type)}>${EVENT_TYPE_LABELS[type] ?? type}</button>
-          `)}
+          <button
+            class="filter-btn ${this.filterType === 'all' ? 'active' : ''}"
+            @click=${() => this.setFilter('all')}
+          >
+            All
+          </button>
+          ${types.map(
+            (type) => html`
+              <button
+                class="filter-btn ${this.filterType === type ? 'active' : ''}"
+                @click=${() => this.setFilter(type)}
+              >
+                ${EVENT_TYPE_LABELS[type] ?? type}
+              </button>
+            `
+          )}
         </div>
         <div class="content">
           ${
             events.length === 0
-              ? html`<div class="empty">No events${this.filterType !== 'all' ? ` of type ${EVENT_TYPE_LABELS[this.filterType] ?? this.filterType}` : ''}</div>`
+              ? html`
+                  <div class="empty">
+                    No events
+                    ${this.filterType !== 'all'
+                      ? ` of type ${EVENT_TYPE_LABELS[this.filterType] ?? this.filterType}`
+                      : ''}
+                  </div>
+                `
               : html`<s-view .spec=${this.getViewSpec()} .budget=${'full'} .chrome=${true}></s-view>`
           }
         </div>

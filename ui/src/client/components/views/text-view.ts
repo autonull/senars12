@@ -10,13 +10,24 @@ const EMBEDDED_LINES = 6;
 @customElement('s-text')
 export class TextView extends BaseComponent {
   static override styles = css`
-    :host { display: block; overflow: auto; }
-    pre {
-      margin: 0; padding: var(--spacing-scale-2) var(--spacing-scale-3);
-      font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs);
-      color: var(--colors-semantic-text-secondary); white-space: pre-wrap; word-break: break-word;
+    :host {
+      display: block;
+      overflow: auto;
     }
-    .empty { padding: var(--spacing-scale-3); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
+    pre {
+      margin: 0;
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-secondary);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .empty {
+      padding: var(--spacing-scale-3);
+      color: var(--colors-semantic-text-muted);
+      font-size: var(--typography-scale-xs);
+    }
   `;
   @property({ attribute: false }) data: TextDataset | null = null;
   @property({ attribute: false }) budget: Budget = 'full';

@@ -28,31 +28,179 @@ type Filter = 'all' | BlockKind;
 @customElement('s-toc')
 export class TocView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; top: 0; right: 0; height: 100vh; width: min(380px, 92vw); z-index: 1; }
-    :host([hidden]) { display: none; }
-    .panel { display: flex; flex-direction: column; height: 100%; background: var(--colors-semantic-bg-panel-solid); border-left: 1px solid var(--colors-semantic-border-subtle); box-shadow: var(--shadows-panel); }
-    header { display: flex; flex-direction: column; gap: var(--spacing-scale-2); padding: var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .bar { display: flex; align-items: center; gap: var(--spacing-scale-2); }
-    .title { flex: 1; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); font-weight: var(--typography-fontWeights-semibold); color: var(--colors-semantic-text-primary); }
-    .close { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); }
-    input { width: 100%; box-sizing: border-box; padding: var(--spacing-scale-1) var(--spacing-scale-2); border: 1px solid var(--colors-semantic-border-subtle); border-radius: 4px; background: var(--colors-semantic-bg-base); color: var(--colors-semantic-text-primary); font-size: var(--typography-scale-sm); }
-    .filters { display: flex; flex-wrap: wrap; gap: var(--spacing-scale-1); }
-    .filters button { border: 1px solid var(--colors-semantic-border-subtle); border-radius: 999px; padding: 2px var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-secondary); cursor: pointer; font-size: var(--typography-scale-xs); }
-    .filters button[aria-pressed='true'] { background: var(--colors-semantic-accent-cyan); color: var(--colors-semantic-bg-base); border-color: transparent; }
-    ul { list-style: none; margin: 0; padding: var(--spacing-scale-2); overflow: auto; display: flex; flex-direction: column; gap: 2px; }
-    .row { display: flex; align-items: stretch; gap: 2px; }
-    .entry { display: flex; flex: 1; min-width: 0; align-items: baseline; gap: var(--spacing-scale-2); text-align: left; border: none; border-radius: 4px; padding: var(--spacing-scale-1) var(--spacing-scale-2) var(--spacing-scale-1) calc(var(--spacing-scale-2) + var(--depth, 0) * var(--spacing-scale-3)); background: transparent; color: var(--colors-semantic-text-primary); cursor: pointer; }
-    .folds { border: 1px solid var(--colors-semantic-border-subtle); border-radius: 999px; padding: 2px var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-xs); }
-    .folds:hover { color: var(--colors-semantic-text-primary); }
-    .entry:hover { background: var(--colors-semantic-bg-subtle); }
-    .entry[aria-current='true'] { background: var(--colors-semantic-bg-subtle); outline: 1px solid var(--colors-semantic-accent-cyan); }
-    .entry .kind { flex-shrink: 0; width: 6.5rem; text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
-    .entry .label { font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); }
-    .artifact { flex-shrink: 0; border: none; border-radius: 4px; padding: 0 var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-sm); }
-    .artifact:hover, .related:hover { background: var(--colors-semantic-bg-subtle); color: var(--colors-semantic-accent-primary); }
-    .related { flex-shrink: 0; border: none; border-radius: 4px; padding: 0 var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-sm); }
-    .empty { padding: var(--spacing-scale-4); text-align: center; color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-sm); }
-    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    :host {
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100vh;
+      width: min(380px, 92vw);
+      z-index: 1;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: var(--colors-semantic-bg-panel-solid);
+      border-left: 1px solid var(--colors-semantic-border-subtle);
+      box-shadow: var(--shadows-panel);
+    }
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .bar {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+    }
+    .title {
+      flex: 1;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+      font-weight: var(--typography-fontWeights-semibold);
+      color: var(--colors-semantic-text-primary);
+    }
+    .close {
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-base);
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: var(--spacing-scale-1) var(--spacing-scale-2);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: 4px;
+      background: var(--colors-semantic-bg-base);
+      color: var(--colors-semantic-text-primary);
+      font-size: var(--typography-scale-sm);
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-scale-1);
+    }
+    .filters button {
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: 999px;
+      padding: 2px var(--spacing-scale-2);
+      background: transparent;
+      color: var(--colors-semantic-text-secondary);
+      cursor: pointer;
+      font-size: var(--typography-scale-xs);
+    }
+    .filters button[aria-pressed='true'] {
+      background: var(--colors-semantic-accent-cyan);
+      color: var(--colors-semantic-bg-base);
+      border-color: transparent;
+    }
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: var(--spacing-scale-2);
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .row {
+      display: flex;
+      align-items: stretch;
+      gap: 2px;
+    }
+    .entry {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      align-items: baseline;
+      gap: var(--spacing-scale-2);
+      text-align: left;
+      border: none;
+      border-radius: 4px;
+      padding: var(--spacing-scale-1) var(--spacing-scale-2)
+        var(--spacing-scale-1)
+        calc(var(--spacing-scale-2) + var(--depth, 0) * var(--spacing-scale-3));
+      background: transparent;
+      color: var(--colors-semantic-text-primary);
+      cursor: pointer;
+    }
+    .folds {
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: 999px;
+      padding: 2px var(--spacing-scale-2);
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-xs);
+    }
+    .folds:hover {
+      color: var(--colors-semantic-text-primary);
+    }
+    .entry:hover {
+      background: var(--colors-semantic-bg-subtle);
+    }
+    .entry[aria-current='true'] {
+      background: var(--colors-semantic-bg-subtle);
+      outline: 1px solid var(--colors-semantic-accent-cyan);
+    }
+    .entry .kind {
+      flex-shrink: 0;
+      width: 6.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+    }
+    .entry .label {
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+    }
+    .artifact {
+      flex-shrink: 0;
+      border: none;
+      border-radius: 4px;
+      padding: 0 var(--spacing-scale-2);
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-sm);
+    }
+    .artifact:hover,
+    .related:hover {
+      background: var(--colors-semantic-bg-subtle);
+      color: var(--colors-semantic-accent-primary);
+    }
+    .related {
+      flex-shrink: 0;
+      border: none;
+      border-radius: 4px;
+      padding: 0 var(--spacing-scale-2);
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-sm);
+    }
+    .empty {
+      padding: var(--spacing-scale-4);
+      text-align: center;
+      color: var(--colors-semantic-text-muted);
+      font-size: var(--typography-scale-sm);
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
   `;
 
   @state() private filter: Filter = 'all';
@@ -90,7 +238,16 @@ export class TocView extends SurfaceComponent {
           @header-close=${this.close}
           @header-pin=${this.onPinChange}
         ></overlay-header>
-        <div class="bar" style="display:flex;align-items:center;gap:var(--spacing-scale-2);padding:var(--spacing-scale-2) var(--spacing-scale-3);border-bottom:1px solid var(--colors-semantic-border-subtle);">
+        <div
+          class="bar"
+          style="
+            display:flex;
+            align-items:center;
+            gap:var(--spacing-scale-2);
+            padding:var(--spacing-scale-2) var(--spacing-scale-3);
+            border-bottom:1px solid var(--colors-semantic-border-subtle);
+          "
+        >
           ${
             folded.size > 0
               ? html`<button
@@ -102,7 +259,13 @@ export class TocView extends SurfaceComponent {
           }
         </div>
         <label class="sr-only" for="toc-search">Search contents</label>
-        <input id="toc-search" type="search" placeholder="Search contents…" .value=${this.query} @input=${this.onQuery} />
+        <input
+          id="toc-search"
+          type="search"
+          placeholder="Search contents…"
+          .value=${this.query}
+          @input=${this.onQuery}
+        />
         <div class="filters" role="group" aria-label="Filter by kind">
           ${this.chip('all', 'All')}
           ${present.map((kind) => this.chip(kind, BLOCK_KIND_LABEL[kind]))}

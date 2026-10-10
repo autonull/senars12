@@ -20,13 +20,47 @@ import '../overlays/overlay-header.js';
 @customElement('s-inspector')
 export class InspectorView extends SurfaceComponent {
   static override styles = css`
-    :host { display: block; }
-    :host([hidden]) { display: none; }
-    .panel { display: flex; flex-direction: column; max-height: 80vh; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
-    header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .title { flex: 1; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); font-weight: var(--typography-fontWeights-semibold); color: var(--colors-semantic-text-primary); }
-    .close { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); }
-    node-detail-drawer { flex: 1; min-height: 0; }
+    :host {
+      display: block;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      max-height: 80vh;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .title {
+      flex: 1;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+      font-weight: var(--typography-fontWeights-semibold);
+      color: var(--colors-semantic-text-primary);
+    }
+    .close {
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-base);
+    }
+    node-detail-drawer {
+      flex: 1;
+      min-height: 0;
+    }
   `;
 
   protected override renderBody() {

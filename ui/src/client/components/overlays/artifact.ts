@@ -26,18 +26,75 @@ const imageOf = (block: SemanticBlock): { alt: string; src: string } | undefined
 @customElement('s-artifact')
 export class ArtifactView extends SurfaceComponent {
   static override styles = css`
-    :host { display: block; }
-    :host([hidden]) { display: none; }
-    .panel { display: flex; flex-direction: column; max-height: 80vh; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
-    header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .kind { text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
-    .title { flex: 1; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); color: var(--colors-semantic-text-primary); }
-    .action { border: 1px solid var(--colors-semantic-border-subtle); border-radius: 4px; padding: 2px var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-secondary); cursor: pointer; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); }
-    .action:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
-    .close { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); }
-    .body { overflow: auto; padding: var(--spacing-scale-2); }
-    .image { max-width: 100%; }
-    .empty { padding: var(--spacing-scale-4); text-align: center; color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-sm); }
+    :host {
+      display: block;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      max-height: 80vh;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .kind {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+    }
+    .title {
+      flex: 1;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+      color: var(--colors-semantic-text-primary);
+    }
+    .action {
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: 4px;
+      padding: 2px var(--spacing-scale-2);
+      background: transparent;
+      color: var(--colors-semantic-text-secondary);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-xs);
+    }
+    .action:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
+    .close {
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-base);
+    }
+    .body {
+      overflow: auto;
+      padding: var(--spacing-scale-2);
+    }
+    .image {
+      max-width: 100%;
+    }
+    .empty {
+      padding: var(--spacing-scale-4);
+      text-align: center;
+      color: var(--colors-semantic-text-muted);
+      font-size: var(--typography-scale-sm);
+    }
   `;
 
   @property({ type: String }) ref = '';
@@ -67,9 +124,34 @@ export class ArtifactView extends SurfaceComponent {
           @header-pin=${this.onPinChange}
         ></overlay-header>
         <div class="body">
-          <div class="artifact-actions" style="display:flex;gap:var(--spacing-scale-2);margin-bottom:var(--spacing-scale-2);padding-bottom:var(--spacing-scale-2);border-bottom:1px solid var(--colors-semantic-border-subtle);">
-            <button class="action" data-action="copy" title="Copy" aria-label="Copy artifact" @click=${this.copy}>Copy</button>
-            <button class="action" data-action="graph" title="Open in graph" aria-label="Open in graph" @click=${this.openInGraph}>Graph</button>
+          <div
+            class="artifact-actions"
+            style="
+              display:flex;
+              gap:var(--spacing-scale-2);
+              margin-bottom:var(--spacing-scale-2);
+              padding-bottom:var(--spacing-scale-2);
+              border-bottom:1px solid var(--colors-semantic-border-subtle);
+            "
+          >
+            <button
+              class="action"
+              data-action="copy"
+              title="Copy"
+              aria-label="Copy artifact"
+              @click=${this.copy}
+            >
+              Copy
+            </button>
+            <button
+              class="action"
+              data-action="graph"
+              title="Open in graph"
+              aria-label="Open in graph"
+              @click=${this.openInGraph}
+            >
+              Graph
+            </button>
           </div>
           ${
             image

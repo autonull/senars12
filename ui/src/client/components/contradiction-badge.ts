@@ -52,7 +52,7 @@ export class ContradictionBadge extends SurfaceComponent {
       <div class="badge ${this.pulsing ? 'pulse' : ''} ${filterActive ? 'filter-active' : ''}"
         title="${filterActive ? 'Show all nodes' : `Filter to ${count} contradiction(s)`}"
         @click=${this.handleClick} role="button" tabindex="0">
-        <span>⚡</span>
+        <s-icon name="lightning" size="12"></s-icon>
         <span>${count}</span>
       </div>
     `;

@@ -33,24 +33,102 @@ const labelOf = (neighbor: Neighbor): string =>
 @customElement('s-related')
 export class RelatedView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; top: 12vh; left: 50%; transform: translateX(-50%); width: min(480px, 92vw); max-height: 70vh; z-index: 1; }
-    :host([hidden]) { display: none; }
-    .panel { display: flex; flex-direction: column; max-height: 70vh; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
-    header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .kind { text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
-    .title { flex: 1; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); font-weight: var(--typography-fontWeights-semibold); color: var(--colors-semantic-text-primary); }
-    .close { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); }
-    .body { padding: var(--spacing-scale-2); overflow: auto; display: flex; flex-direction: column; gap: 2px; }
-    .group { margin: var(--spacing-scale-1) var(--spacing-scale-2) 0; font-size: var(--typography-scale-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--colors-semantic-text-muted); }
-    button.row { display: flex; align-items: center; gap: var(--spacing-scale-2); width: 100%; text-align: left; border: none; background: transparent; color: var(--colors-semantic-text-secondary); cursor: pointer; padding: var(--spacing-scale-1) var(--spacing-scale-2); border-radius: 4px; font-size: var(--typography-scale-sm); }
-    button.row:hover { background: var(--colors-semantic-bg-subtle); color: var(--colors-semantic-text-primary); }
-    .dir { color: var(--colors-semantic-accent-cyan); font-family: var(--typography-fontFamilies-data); }
-    .label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-    .empty { padding: var(--spacing-scale-4); text-align: center; color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-sm); }
-    .depth { display: flex; align-items: center; gap: var(--spacing-scale-1); }
-    .depth > span { font-size: var(--typography-scale-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--colors-semantic-text-muted); }
-    .depth button { border: 1px solid var(--colors-semantic-border-subtle); border-radius: 999px; padding: 1px var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-xs); }
-    .depth button[aria-pressed='true'] { background: var(--colors-semantic-accent-cyan); color: var(--colors-semantic-bg-base); border-color: transparent; }
+    :host {
+      position: fixed;
+      top: 12vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(480px, 92vw);
+      max-height: 70vh;
+      z-index: 1;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      max-height: 70vh;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .kind {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+    }
+    .title {
+      flex: 1;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+      font-weight: var(--typography-fontWeights-semibold);
+      color: var(--colors-semantic-text-primary);
+    }
+    .close {
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-base);
+    }
+    .body {
+      padding: var(--spacing-scale-2);
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .group {
+      margin: var(--spacing-scale-1) var(--spacing-scale-2) 0;
+      font-size: var(--typography-scale-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--colors-semantic-text-muted);
+    }
+    button.row {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      width: 100%;
+      text-align: left;
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-secondary);
+      cursor: pointer;
+      padding: var(--spacing-scale-1) var(--spacing-scale-2);
+      border-radius: 4px;
+      font-size: var(--typography-scale-sm);
+    }
+    button.row:hover {
+      background: var(--colors-semantic-bg-subtle);
+      color: var(--colors-semantic-text-primary);
+    }
+    .dir {
+      color: var(--colors-semantic-accent-cyan);
+      font-family: var(--typography-fontFamilies-data);
+    }
+    .label {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .empty {
+      padding: var(--spacing-scale-4);
+      text-align: center;
+      color: var(--colors-semantic-text-muted);
+      font-size: var(--typography-scale-sm);
+    }
   `;
 
   @property({ type: String }) ref = '';
@@ -85,8 +163,28 @@ export class RelatedView extends SurfaceComponent {
           @header-close=${this.close}
           @header-pin=${this.onPinChange}
         ></overlay-header>
-        <div class="depth" role="group" aria-label="Traversal depth" style="display:flex;align-items:center;gap:var(--spacing-scale-1);padding:var(--spacing-scale-2) var(--spacing-scale-3);border-bottom:1px solid var(--colors-semantic-border-subtle);">
-          <span style="font-size:var(--typography-scale-xs);text-transform:uppercase;letter-spacing:0.06em;color:var(--colors-semantic-text-muted);">hops</span>
+        <div
+          class="depth"
+          role="group"
+          aria-label="Traversal depth"
+          style="
+            display:flex;
+            align-items:center;
+            gap:var(--spacing-scale-1);
+            padding:var(--spacing-scale-2) var(--spacing-scale-3);
+            border-bottom:1px solid var(--colors-semantic-border-subtle);
+          "
+        >
+          <span
+            style="
+              font-size:var(--typography-scale-xs);
+              text-transform:uppercase;
+              letter-spacing:0.06em;
+              color:var(--colors-semantic-text-muted);
+            "
+          >
+            hops
+          </span>
           ${DEPTHS.map(
             (hops) => html`<button
               data-depth=${hops}
@@ -105,11 +203,17 @@ export class RelatedView extends SurfaceComponent {
                   ([group, neighbors]) => html`
                     <span class="group">${group}</span>
                     ${neighbors.map(
-                      (neighbor) => html`<button class="row" data-related=${neighbor.block.id} @click=${() => this.go(neighbor.block.id)}>
-                        <span class="dir">${neighbor.direction === 'out' ? '→' : '←'}</span>
-                        <span class="label">${labelOf(neighbor)}</span>
-                      </button>`
-                    )}
+                        (neighbor) => html`
+                          <button
+                            class="row"
+                            data-related=${neighbor.block.id}
+                            @click=${() => this.go(neighbor.block.id)}
+                          >
+                            <span class="dir">${neighbor.direction === 'out' ? '→' : '←'}</span>
+                            <span class="label">${labelOf(neighbor)}</span>
+                          </button>
+                        `
+                      )}
                   `
                 )
           }

@@ -7,29 +7,96 @@ import { type LensDescriptor, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 @customElement('lens-controller')
 export class LensController extends BaseComponent {
   static override styles = css`
-    :host { display: contents; }
-    .lens-group { display: flex; gap: 1px; border-radius: var(--borderRadius-component-button); overflow: visible; border: 1px solid var(--colors-semantic-border-subtle); }
-    .lens-btn { padding: 2px 8px; border: none; background: transparent; color: var(--colors-semantic-text-muted); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); cursor: pointer; transition: var(--transitions-fast); position: relative; }
-    .lens-btn:hover { color: var(--colors-semantic-text-primary); background: var(--colors-semantic-bg-panel); }
-    .lens-btn.active { color: var(--colors-semantic-text-primary); background: var(--colors-semantic-bg-panel-hover); }
-    .lens-btn.belief.active { color: var(--colors-cognitiveLens-belief-primary); }
-    .lens-btn.goal.active { color: var(--colors-cognitiveLens-goal-primary); }
-    .lens-btn.contradiction.active { color: var(--colors-cognitiveLens-contradiction-primary); }
+    :host {
+      display: contents;
+    }
+    .lens-group {
+      display: flex;
+      gap: 1px;
+      border-radius: var(--borderRadius-component-button);
+      overflow: visible;
+      border: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .lens-btn {
+      padding: 2px 8px;
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      cursor: pointer;
+      transition: var(--transitions-fast);
+      position: relative;
+    }
+    .lens-btn:hover {
+      color: var(--colors-semantic-text-primary);
+      background: var(--colors-semantic-bg-panel);
+    }
+    .lens-btn.active {
+      color: var(--colors-semantic-text-primary);
+      background: var(--colors-semantic-bg-panel-hover);
+    }
+    .lens-btn.belief.active {
+      color: var(--colors-cognitiveLens-belief-primary);
+    }
+    .lens-btn.goal.active {
+      color: var(--colors-cognitiveLens-goal-primary);
+    }
+    .lens-btn.contradiction.active {
+      color: var(--colors-cognitiveLens-contradiction-primary);
+    }
     .popover {
-      position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-      margin-top: 4px; background: var(--colors-semantic-bg-panel-solid);
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: 4px;
+      background: var(--colors-semantic-bg-panel-solid);
       border: 1px solid var(--colors-semantic-border-default);
       border-radius: var(--borderRadius-component-panel);
-      padding: var(--spacing-scale-3); min-width: 200px;
-      z-index: var(--zIndex-layers-popover); box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      pointer-events: auto; white-space: nowrap;
+      padding: var(--spacing-scale-3);
+      min-width: 200px;
+      z-index: var(--zIndex-layers-popover);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      pointer-events: auto;
+      white-space: nowrap;
     }
-    .popover-header { display: flex; align-items: center; gap: var(--spacing-scale-2); margin-bottom: var(--spacing-scale-2); }
-    .popover-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-    .popover-title { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-sm); color: var(--colors-semantic-text-primary); font-weight: var(--typography-fontWeights-semibold); }
-    .popover-desc { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); margin-bottom: var(--spacing-scale-2); }
-    .popover-count { font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-secondary); display: flex; justify-content: space-between; gap: var(--spacing-scale-4); }
-    .popover-count span:first-child { color: var(--colors-semantic-text-muted); }
+    .popover-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      margin-bottom: var(--spacing-scale-2);
+    }
+    .popover-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .popover-title {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-sm);
+      color: var(--colors-semantic-text-primary);
+      font-weight: var(--typography-fontWeights-semibold);
+    }
+    .popover-desc {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+      margin-bottom: var(--spacing-scale-2);
+    }
+    .popover-count {
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-secondary);
+      display: flex;
+      justify-content: space-between;
+      gap: var(--spacing-scale-4);
+    }
+    .popover-count span:first-child {
+      color: var(--colors-semantic-text-muted);
+    }
   `;
   @state() private activePopover: string | null = null;
   @state() private nodeCounts: Record<string, number> = {};
@@ -55,12 +122,19 @@ export class LensController extends BaseComponent {
       <div class="lens-group" role="tablist" aria-label="Cognitive lens">
         ${lenses.map(
           (def) => html`
-          <div style="position:relative;display:inline-block" @mouseenter=${() => this.onEnter(def.id)} @mouseleave=${this.onLeave}>
-            <button class="lens-btn ${def.id} ${def.id === activeLens ? 'active' : ''}"
-              role="tab" aria-selected=${def.id === activeLens}
-              @click=${() => this.selectLens(def.id)}>
-              ${def.label}
-            </button>
+            <div
+              style="position:relative;display:inline-block"
+              @mouseenter=${() => this.onEnter(def.id)}
+              @mouseleave=${this.onLeave}
+            >
+              <button
+                class="lens-btn ${def.id} ${def.id === activeLens ? 'active' : ''}"
+                role="tab"
+                aria-selected=${def.id === activeLens}
+                @click=${() => this.selectLens(def.id)}
+              >
+                ${def.label}
+              </button>
             ${
               this.activePopover === def.id
                 ? html`

@@ -87,7 +87,9 @@ function renderBlock(
     >
       <header class="block-head">
         <span class="kind">${BLOCK_KIND_LABEL[block.kind]}</span>
-        ${block.title && !isSection(block) && block.title !== BLOCK_KIND_LABEL[block.kind] ? html`<span class="title">${block.title}</span>` : ''}
+        ${block.title && !isSection(block) && block.title !== BLOCK_KIND_LABEL[block.kind]
+          ? html`<span class="title">${block.title}</span>`
+          : ''}
         <span class="meta">
           ${uncertaintyChip(block)}
           ${
@@ -125,35 +127,161 @@ export class NotebookView extends SurfaceComponent {
   static override styles = [
     blockBodyStyles,
     css`
-    :host { display: block; overflow: auto; padding: var(--spacing-scale-4); }
-    .pages { display: flex; flex-direction: column; gap: var(--spacing-scale-4); max-width: 72ch; margin: 0 auto; }
-    .page { display: flex; flex-direction: column; gap: var(--spacing-scale-2); }
-    .page:not(:first-child) { border-top: 1px solid var(--colors-semantic-border-subtle); padding-top: var(--spacing-scale-4); }
-    .node { display: flex; flex-direction: column; gap: var(--spacing-scale-2); margin-left: var(--spacing-scale-4); padding-left: var(--spacing-scale-3); border-left: 1px solid var(--colors-semantic-border-subtle); }
-    .block { display: flex; flex-direction: column; gap: var(--spacing-scale-1); padding: var(--spacing-scale-3); border-radius: 6px; background: var(--colors-semantic-bg-subtle); }
-    .block[data-role='user'] { border-left: 3px solid var(--colors-semantic-accent-cyan); }
-    .block[data-role='assistant'] { border-left: 3px solid var(--colors-semantic-accent-violet); }
-    .block[data-status='streaming'] { opacity: 0.85; }
-    .block[data-admitted='false'] { opacity: 0.35; }
-    .block-head { display: flex; align-items: center; gap: var(--spacing-scale-2); font-size: var(--typography-scale-xs); }
-    .kind { text-transform: uppercase; letter-spacing: 0.06em; color: var(--colors-semantic-text-muted); }
-    .title { color: var(--colors-semantic-text-secondary); font-weight: var(--typography-fontWeights-medium); }
-    .meta { display: flex; align-items: center; gap: var(--spacing-scale-2); margin-left: auto; }
-    .breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-scale-1); max-width: 72ch; margin: 0 auto var(--spacing-scale-3); font-size: var(--typography-scale-xs); }
-    .breadcrumb .crumb { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; padding: 0; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); }
-    .breadcrumb .crumb:hover { color: var(--colors-semantic-text-primary); }
-    .breadcrumb .crumb[aria-current='true'] { color: var(--colors-semantic-text-secondary); }
-    .breadcrumb .sep { color: var(--colors-semantic-text-muted); }
-    .more { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); line-height: 1; padding: 0 var(--spacing-scale-1); }
-    .more:hover { color: var(--colors-semantic-text-primary); }
-    .fold { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-xs); line-height: 1; padding: 0 var(--spacing-scale-1); }
-    .fold:hover { color: var(--colors-semantic-text-primary); }
-    [data-folded='true'] { background: var(--colors-semantic-bg-subtle); border-radius: 6px; }
-    .block[data-focused='true'] { outline: 1px solid var(--colors-semantic-accent-cyan); }
-    .embed { margin-top: var(--spacing-scale-2); border: 1px solid var(--colors-semantic-border-subtle); border-radius: 6px; overflow: hidden; }
-    .embed-label { display: block; padding: var(--spacing-scale-1) var(--spacing-scale-2); border-bottom: 1px solid var(--colors-semantic-border-subtle); color: var(--colors-semantic-text-muted); font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); text-transform: uppercase; letter-spacing: 0.06em; }
-    .embed s-view { max-height: 16rem; padding: var(--spacing-scale-2); }
-    .chip { padding: 0 var(--spacing-scale-1); border-radius: 4px; background: var(--colors-semantic-bg-overlay); color: var(--colors-semantic-text-secondary); font-family: var(--typography-fontFamilies-data); }
+    :host {
+      display: block;
+      overflow: auto;
+      padding: var(--spacing-scale-4);
+    }
+    .pages {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-4);
+      max-width: 72ch;
+      margin: 0 auto;
+    }
+    .page {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-2);
+    }
+    .page:not(:first-child) {
+      border-top: 1px solid var(--colors-semantic-border-subtle);
+      padding-top: var(--spacing-scale-4);
+    }
+    .node {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-2);
+      margin-left: var(--spacing-scale-4);
+      padding-left: var(--spacing-scale-3);
+      border-left: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .block {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-1);
+      padding: var(--spacing-scale-3);
+      border-radius: 6px;
+      background: var(--colors-semantic-bg-subtle);
+    }
+    .block[data-role='user'] {
+      border-left: 3px solid var(--colors-semantic-accent-cyan);
+    }
+    .block[data-role='assistant'] {
+      border-left: 3px solid var(--colors-semantic-accent-violet);
+    }
+    .block[data-status='streaming'] {
+      opacity: 0.85;
+    }
+    .block[data-admitted='false'] {
+      opacity: 0.35;
+    }
+    .block-head {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      font-size: var(--typography-scale-xs);
+    }
+    .kind {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--colors-semantic-text-muted);
+    }
+    .title {
+      color: var(--colors-semantic-text-secondary);
+      font-weight: var(--typography-fontWeights-medium);
+    }
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      margin-left: auto;
+    }
+    .breadcrumb {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--spacing-scale-1);
+      max-width: 72ch;
+      margin: 0 auto var(--spacing-scale-3);
+      font-size: var(--typography-scale-xs);
+    }
+    .breadcrumb .crumb {
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      padding: 0;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-xs);
+    }
+    .breadcrumb .crumb:hover {
+      color: var(--colors-semantic-text-primary);
+    }
+    .breadcrumb .crumb[aria-current='true'] {
+      color: var(--colors-semantic-text-secondary);
+    }
+    .breadcrumb .sep {
+      color: var(--colors-semantic-text-muted);
+    }
+    .more {
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-base);
+      line-height: 1;
+      padding: 0 var(--spacing-scale-1);
+    }
+    .more:hover {
+      color: var(--colors-semantic-text-primary);
+    }
+    .fold {
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-xs);
+      line-height: 1;
+      padding: 0 var(--spacing-scale-1);
+    }
+    .fold:hover {
+      color: var(--colors-semantic-text-primary);
+    }
+    [data-folded='true'] {
+      background: var(--colors-semantic-bg-subtle);
+      border-radius: 6px;
+    }
+    .block[data-focused='true'] {
+      outline: 1px solid var(--colors-semantic-accent-cyan);
+    }
+    .embed {
+      margin-top: var(--spacing-scale-2);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .embed-label {
+      display: block;
+      padding: var(--spacing-scale-1) var(--spacing-scale-2);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+      color: var(--colors-semantic-text-muted);
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .embed s-view {
+      max-height: 16rem;
+      padding: var(--spacing-scale-2);
+    }
+    .chip {
+      padding: 0 var(--spacing-scale-1);
+      border-radius: 4px;
+      background: var(--colors-semantic-bg-overlay);
+      color: var(--colors-semantic-text-secondary);
+      font-family: var(--typography-fontFamilies-data);
+    }
     `,
   ];
 
@@ -163,7 +291,7 @@ export class NotebookView extends SurfaceComponent {
 
   protected override renderEmpty() {
     return html`<s-empty-state
-      icon="📓"
+      icon="notebook"
       heading="Empty notebook"
       description="Send a message to start the semantic notebook"
       size="lg"
@@ -269,7 +397,13 @@ class NotebookRenderer implements WorkspaceRenderer {
   #ctx?: WorkspaceContext;
 
   capabilities(): WorkspaceRendererCaps {
-    return { interactions: WORKSPACE_INTERACTIONS, blockKinds: 'all', parity: 'full', surface: 's-notebook', requiredCapability: 'language' };
+    return {
+      interactions: WORKSPACE_INTERACTIONS,
+      blockKinds: 'all',
+      parity: 'full',
+      surface: 's-notebook',
+      requiredCapability: 'language',
+    };
   }
 
   mount(host: HTMLElement, ctx: WorkspaceContext): void {

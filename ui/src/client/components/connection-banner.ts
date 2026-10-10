@@ -49,9 +49,17 @@ export class ConnectionBanner extends BaseComponent {
         ? `Connection lost. Reconnecting (attempt ${this.reconnectAttempt})…`
         : MESSAGES[fullState];
 
+    const variant = isDisconnected ? 'error' : isReconnecting ? 'warning' : 'info';
+
     return html`
-      <s-banner variant=${isDisconnected ? 'error' : isReconnecting ? 'warning' : 'info'} dismissible @s-dismiss=${this.handleDismiss}>
-        <span slot="icon">${isConnecting ? '⟳' : isStandalone ? '💻' : '⚠'}</span>
+      <s-banner variant=${variant} dismissible @s-dismiss=${this.handleDismiss}>
+        <span slot="icon">
+          ${isConnecting
+            ? html`<s-icon name="sync" size="16"></s-icon>`
+            : isStandalone
+            ? html`<s-icon name="desktop" size="16"></s-icon>`
+            : html`<s-icon name="warningTriangle" size="16"></s-icon>`
+        }
         ${message}
         ${isDisconnected ? html`<button class="retry-btn" @click=${this.handleRetry}>Retry</button>` : ''}
       </s-banner>

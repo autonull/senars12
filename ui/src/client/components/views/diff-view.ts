@@ -35,8 +35,16 @@ export class DiffView extends BaseComponent {
       .sign { user-select: none; color: var(--colors-semantic-text-muted); }
       .row.add .sign { color: var(--colors-semantic-status-connected); }
       .row.del .sign { color: var(--colors-semantic-status-disconnected); }
-      .more { padding: var(--spacing-scale-1) var(--spacing-scale-3); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
-      .empty { padding: var(--spacing-scale-3); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
+      .more {
+        padding: var(--spacing-scale-1) var(--spacing-scale-3);
+        color: var(--colors-semantic-text-muted);
+        font-size: var(--typography-scale-xs);
+      }
+      .empty {
+        padding: var(--spacing-scale-3);
+        color: var(--colors-semantic-text-muted);
+        font-size: var(--typography-scale-xs);
+      }
     `,
   ];
   @property({ attribute: false }) data: DiffDataset | null = null;

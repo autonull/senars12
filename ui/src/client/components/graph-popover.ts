@@ -35,27 +35,98 @@ export class GraphPopover extends LitElement {
     blockBodyStyles,
     css`
     :host {
-      position: absolute; min-width: 15rem; max-width: 24rem; background: var(--colors-semantic-bg-panel-solid);
-      border: 1px solid var(--colors-semantic-border-default); border-radius: var(--borderRadius-component-panel);
-      padding: var(--spacing-scale-2) var(--spacing-scale-3); font-family: var(--typography-fontFamilies-data);
-      font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-primary);
-      z-index: var(--zIndex-layers-popover); box-shadow: var(--shadows-panel);
-      transform: translate(-50%, -100%); margin-top: -8px;
+      position: absolute;
+      min-width: 15rem;
+      max-width: 24rem;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-default);
+      border-radius: var(--borderRadius-component-panel);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-primary);
+      z-index: var(--zIndex-layers-popover);
+      box-shadow: var(--shadows-panel);
+      transform: translate(-50%, -100%);
+      margin-top: -8px;
     }
-    .head { display: flex; align-items: baseline; gap: var(--spacing-scale-2); }
-    .kind { text-transform: uppercase; letter-spacing: 0.06em; color: var(--colors-semantic-text-muted); }
-    .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--typography-fontWeights-medium); }
-    .chip { color: var(--colors-semantic-text-secondary); font-variant-numeric: tabular-nums; }
-    .card { max-height: 14rem; overflow: auto; margin: var(--spacing-scale-2) 0; font-size: var(--typography-scale-sm); }
-    .embed { margin: var(--spacing-scale-2) 0; padding: var(--spacing-scale-2) 0; border-top: 1px solid var(--colors-semantic-border-subtle); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .embed s-view { max-height: 12rem; }
-    .divider { height: 1px; background: var(--colors-semantic-border-subtle); margin: var(--spacing-scale-2) 0; }
-    .row { display: flex; align-items: baseline; gap: var(--spacing-scale-2); width: 100%; border: none; border-radius: var(--borderRadius-component-input); padding: var(--spacing-scale-1); background: transparent; color: inherit; cursor: pointer; text-align: left; font: inherit; }
-    .row:hover { background: var(--colors-semantic-bg-panel-hover); }
-    .link { flex-shrink: 0; min-width: 5.5rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--colors-semantic-text-muted); }
-    .other { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .empty { color: var(--colors-semantic-text-muted); }
-    .events { color: var(--colors-semantic-text-muted); }
+    .head {
+      display: flex;
+      align-items: baseline;
+      gap: var(--spacing-scale-2);
+    }
+    .kind {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--colors-semantic-text-muted);
+    }
+    .label {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: var(--typography-fontWeights-medium);
+    }
+    .chip {
+      color: var(--colors-semantic-text-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+    .card {
+      max-height: 14rem;
+      overflow: auto;
+      margin: var(--spacing-scale-2) 0;
+      font-size: var(--typography-scale-sm);
+    }
+    .embed {
+      margin: var(--spacing-scale-2) 0;
+      padding: var(--spacing-scale-2) 0;
+      border-top: 1px solid var(--colors-semantic-border-subtle);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .embed s-view {
+      max-height: 12rem;
+    }
+    .divider {
+      height: 1px;
+      background: var(--colors-semantic-border-subtle);
+      margin: var(--spacing-scale-2) 0;
+    }
+    .row {
+      display: flex;
+      align-items: baseline;
+      gap: var(--spacing-scale-2);
+      width: 100%;
+      border: none;
+      border-radius: var(--borderRadius-component-input);
+      padding: var(--spacing-scale-1);
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+    }
+    .row:hover {
+      background: var(--colors-semantic-bg-panel-hover);
+    }
+    .link {
+      flex-shrink: 0;
+      min-width: 5.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--colors-semantic-text-muted);
+    }
+    .other {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .empty {
+      color: var(--colors-semantic-text-muted);
+    }
+    .events {
+      color: var(--colors-semantic-text-muted);
+    }
     `,
   ];
 

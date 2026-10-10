@@ -71,25 +71,121 @@ export class ExplainView extends SurfaceComponent {
   static override styles = [
     blockBodyStyles,
     css`
-    :host { display: block; }
-    :host([hidden]) { display: none; }
-    .panel { display: flex; flex-direction: column; max-height: 76vh; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
-    header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .kind { text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
-    .title { flex: 1; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); font-weight: var(--typography-fontWeights-semibold); color: var(--colors-semantic-text-primary); }
-    .close { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); }
-    .levels { display: flex; gap: var(--spacing-scale-1); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .levels button { border: 1px solid var(--colors-semantic-border-subtle); border-radius: 999px; padding: 2px var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-secondary); cursor: pointer; font-size: var(--typography-scale-xs); text-transform: capitalize; }
-    .levels button[aria-pressed='true'] { background: var(--colors-semantic-accent-violet); color: var(--colors-semantic-bg-base); border-color: transparent; }
-    .body { padding: var(--spacing-scale-3); overflow: auto; display: flex; flex-direction: column; gap: var(--spacing-scale-2); }
-    dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 2px var(--spacing-scale-3); font-size: var(--typography-scale-sm); }
-    dt { color: var(--colors-semantic-text-muted); }
-    dd { margin: 0; color: var(--colors-semantic-text-primary); }
-    pre { margin: 0; padding: var(--spacing-scale-2); border-radius: 4px; background: var(--colors-semantic-bg-base); overflow: auto; font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-secondary); }
-    .links { display: flex; flex-direction: column; gap: 2px; }
-    .link { display: flex; gap: var(--spacing-scale-2); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-secondary); }
-    .link .dir { color: var(--colors-semantic-text-muted); }
-    .empty { padding: var(--spacing-scale-4); text-align: center; color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-sm); }
+    :host {
+      display: block;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      max-height: 76vh;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .kind {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+    }
+    .title {
+      flex: 1;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+      font-weight: var(--typography-fontWeights-semibold);
+      color: var(--colors-semantic-text-primary);
+    }
+    .close {
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-base);
+    }
+    .levels {
+      display: flex;
+      gap: var(--spacing-scale-1);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .levels button {
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: 999px;
+      padding: 2px var(--spacing-scale-2);
+      background: transparent;
+      color: var(--colors-semantic-text-secondary);
+      cursor: pointer;
+      font-size: var(--typography-scale-xs);
+      text-transform: capitalize;
+    }
+    .levels button[aria-pressed='true'] {
+      background: var(--colors-semantic-accent-violet);
+      color: var(--colors-semantic-bg-base);
+      border-color: transparent;
+    }
+    .body {
+      padding: var(--spacing-scale-3);
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-2);
+    }
+    dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 2px var(--spacing-scale-3);
+      font-size: var(--typography-scale-sm);
+    }
+    dt {
+      color: var(--colors-semantic-text-muted);
+    }
+    dd {
+      margin: 0;
+      color: var(--colors-semantic-text-primary);
+    }
+    pre {
+      margin: 0;
+      padding: var(--spacing-scale-2);
+      border-radius: 4px;
+      background: var(--colors-semantic-bg-base);
+      overflow: auto;
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-secondary);
+    }
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .link {
+      display: flex;
+      gap: var(--spacing-scale-2);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-secondary);
+    }
+    .link .dir {
+      color: var(--colors-semantic-text-muted);
+    }
+    .empty {
+      padding: var(--spacing-scale-4);
+      text-align: center;
+      color: var(--colors-semantic-text-muted);
+      font-size: var(--typography-scale-sm);
+    }
   `,
   ];
 

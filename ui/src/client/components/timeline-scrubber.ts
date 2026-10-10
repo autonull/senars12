@@ -177,7 +177,7 @@ export class TimelineScrubber extends BaseComponent {
           Now
         </button>
         <button class="play" @click="${() => this.onPlayPause()}">
-          ${this.playing ? '❚❚' : '▶'}
+          <s-icon name=${this.playing ? 'pause' : 'play'} size="14"></s-icon>
         </button>
         <span class="status-announce" aria-live="assertive" aria-atomic="true">
           ${this.lastAnnouncement}

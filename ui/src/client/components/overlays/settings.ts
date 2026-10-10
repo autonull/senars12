@@ -20,10 +20,31 @@ import '../config-hud.js';
 @customElement('s-settings')
 export class SettingsView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; top: 8vh; left: 50%; transform: translateX(-50%); width: min(520px, 94vw); z-index: 1; }
-    :host([hidden]) { display: none; }
-    .panel { display: flex; flex-direction: column; height: 84vh; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
-    config-hud { flex: 1; min-height: 0; }
+    :host {
+      position: fixed;
+      top: 8vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(520px, 94vw);
+      z-index: 1;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      height: 84vh;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+      overflow: hidden;
+    }
+    config-hud {
+      flex: 1;
+      min-height: 0;
+    }
   `;
 
 protected override renderBody() {

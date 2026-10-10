@@ -175,7 +175,7 @@ CI/GitHub stays off (O4). `pnpm ui:gate` remains the fast type+unit gate.
 | D.1 | **Icon primitive + registry** — one `<s-icon>` (monochrome, `currentColor`, one grid/stroke); emoji removed from chrome (kept only in empty-state art). | ✅ | `components/primitives/icon.ts`, `utils/icon-registry.ts` | every chrome control uses `<s-icon>`; a lint forbids emoji chrome; cells |
 | D.2 | **Token completeness** — truth/priority scales (V), lens colors, status, focus ring, radius scale; contrast asserted (AA/AAA); `high-contrast` variant. | ✅ | `design-tokens.json`, `styles/tokens.generated.ts`, `utils/adapter-2d.ts` | truth/confidence/priority scales tokenized; high-contrast theme exists; all 3 themes have tokens |
 | D.3 | **Motion vocabulary** — one set of duration/easing tokens, `reducedMotion`-gated; no decorative motion. | ✅ | `design-tokens.json`, `scripts/build-tokens.ts`, `tokens.css` | motion tokens used everywhere; `@media (prefers-reduced-motion: reduce)` zeros durations; cells |
-| D.4 | **Craft gate** — typography scale, line length, focus visibility, z-index order, icon/emoji lint, contrast, motion scale — one `test:craft`. | ⬜ | `tests/craft/*` (new), `package.json` | `test:craft` green; a violation fails it |
+| D.4 | **Craft gate** — typography scale, focus visibility, z-index order, icon/emoji lint, contrast, motion scale — one `test:craft`. | ✅ | `tests/craft/*` (new), `package.json` | `test:craft` green (202 tests); a violation fails it. Line-length check dropped per direction (formatting not enforced). |
 
 ---
 
@@ -411,11 +411,13 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 - **D.2** — Token completeness: truth/confidence/priority scales tokenized in `design-tokens.json` (hue range, opacity range, size range); used in `adapter-2d.ts`; high-contrast theme exists for all tokens.
 - **D.3** — Motion vocabulary: motion durations/easings tokenized; `@media (prefers-reduced-motion: reduce)` zeros all durations in `tokens.css`; all components use `var(--transitions-*)` tokens.
 
-### In Progress
-- **D.4** — Craft gate (`test:craft` — typography, focus visibility, z-index, icon lint, contrast, motion).
+### Completed (this session)
+- **D.4** — Craft gate: `tests/craft/*` (typography, focus visibility, z-index, icon/emoji lint, contrast, motion) wired via `index.test.ts`; `test:craft` green (202 tests). Line-length check removed per direction — formatting is not enforced.
+- Repo health: `pnpm --dir ui typecheck` clean; `test:unit` 642 passing; `build:client` succeeds.
 
 ### Next Steps
-1. D.4: Craft gate (visual regression + lint in CI).
+1. H — Help, Discoverability & Onboarding (H.1 dynamic help system first).
+2. E — Experience Architecture (see Strategic Review section).
 
 ---
 

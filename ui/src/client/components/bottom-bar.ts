@@ -246,8 +246,15 @@ export class BottomBar extends BaseComponent {
       background: transparent; color: var(--colors-semantic-text-secondary);
       transition: var(--transitions-fast);
     }
-    .control-mode-btn:hover { background: var(--colors-semantic-bg-subtle); color: var(--colors-semantic-text-primary); }
-    .control-mode-btn.active { background: var(--colors-semantic-accent-amber); color: var(--colors-semantic-bg-base); border-color: var(--colors-semantic-accent-amber); }
+    .control-mode-btn:hover {
+      background: var(--colors-semantic-bg-subtle);
+      color: var(--colors-semantic-text-primary);
+    }
+    .control-mode-btn.active {
+      background: var(--colors-semantic-accent-amber);
+      color: var(--colors-semantic-bg-base);
+      border-color: var(--colors-semantic-accent-amber);
+    }
     .abort-btn {
       padding: var(--spacing-scale-1) var(--spacing-scale-3); border-radius: var(--borderRadius-component-button);
       font-size: var(--typography-scale-xs); font-family: var(--typography-fontFamilies-ui);
@@ -256,19 +263,35 @@ export class BottomBar extends BaseComponent {
     }
     .abort-btn:hover { filter: brightness(1.2); }
     .palette-btn {
-      background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle);
-      color: var(--colors-semantic-text-secondary); padding: var(--spacing-scale-1) var(--spacing-scale-3);
-      font-size: var(--typography-scale-xs); font-family: var(--typography-fontFamilies-ui);
-      border-radius: var(--borderRadius-component-button); cursor: pointer; transition: var(--transitions-fast);
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      color: var(--colors-semantic-text-secondary);
+      padding: var(--spacing-scale-1) var(--spacing-scale-3);
+      font-size: var(--typography-scale-xs);
+      font-family: var(--typography-fontFamilies-ui);
+      border-radius: var(--borderRadius-component-button);
+      cursor: pointer;
+      transition: var(--transitions-fast);
     }
-    .palette-btn:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
+    .palette-btn:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
     .settings-btn {
-      background: transparent; border: 1px solid var(--colors-semantic-border-subtle);
-      color: var(--colors-semantic-text-secondary); padding: var(--spacing-scale-1) var(--spacing-scale-3);
-      font-size: var(--typography-scale-xs); font-family: var(--typography-fontFamilies-ui);
-      border-radius: var(--borderRadius-component-button); cursor: pointer; transition: var(--transitions-fast);
+      background: transparent;
+      border: 1px solid var(--colors-semantic-border-subtle);
+      color: var(--colors-semantic-text-secondary);
+      padding: var(--spacing-scale-1) var(--spacing-scale-3);
+      font-size: var(--typography-scale-xs);
+      font-family: var(--typography-fontFamilies-ui);
+      border-radius: var(--borderRadius-component-button);
+      cursor: pointer;
+      transition: var(--transitions-fast);
     }
-    .settings-btn:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
+    .settings-btn:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
     .contradiction-badge-host { flex-shrink: 0; }
   `;
 
@@ -314,6 +337,17 @@ export class BottomBar extends BaseComponent {
     const provider = $lmProvider.get();
     const isWebLLM = provider.id === 'webllm';
     const showRunLocally = this.webllmAvailable && !$webllmActive.get() && !isWebLLM;
+
+    const runLocallyBtn = showRunLocally
+      ? html`
+          <button
+            class="action-btn"
+            @click=${() => switchLmProvider('webllm')}
+            title="Switch to local WebGPU inference"
+          >
+            <s-icon name="globe" size="10"></s-icon> Run locally
+          </button>`
+      : '';
 
     return html`
       <div class="bar">
@@ -411,7 +445,7 @@ export class BottomBar extends BaseComponent {
               <span>${provider.model ?? ''}</span>
               ${provider.stale ? html`<s-icon name="warning" size="10"></s-icon>` : ''}
               ${isWebLLM ? html`<span class="provider-chip"><s-icon name="globe" size="10"></s-icon> Local</span>` : ''}
-              ${showRunLocally ? html`<button class="action-btn" @click=${() => switchLmProvider('webllm')} title="Switch to local WebGPU inference"><s-icon name="globe" size="10"></s-icon> Run locally</button>` : ''}
+              ${runLocallyBtn}
             </div>
             <div class="status-item">
               <button class="control-mode-btn ${controlMode ? 'active' : ''}"
@@ -419,12 +453,17 @@ export class BottomBar extends BaseComponent {
                 title=${controlMode ? 'Control mode: ON (click to disable)' : 'Control mode: OFF (click to enable)'}>
                 <s-icon name="controlMode" size="12"></s-icon>
               </button>
-              ${controlMode && reasoningRunning ? html`
-                <button class="abort-btn" @click=${() => dispatchCommand('reasoning.abort')} title="Abort reasoning run">
-                  <s-icon name="abort" size="12"></s-icon>
-                  <span style="margin-left:4px">Abort</span>
-                </button>
-              ` : ''}
+              ${controlMode && reasoningRunning
+              ? html`
+                  <button
+                    class="abort-btn"
+                    @click=${() => dispatchCommand('reasoning.abort')}
+                    title="Abort reasoning run"
+                  >
+                    <s-icon name="abort" size="12"></s-icon>
+                    <span style="margin-left:4px">Abort</span>
+                  </button>`
+              : ''}
             </div>
             <contradiction-badge class="contradiction-badge-host"></contradiction-badge>
             <s-icon name="lens" size="14"></s-icon>
@@ -543,8 +582,16 @@ export class BottomBar extends BaseComponent {
       ta.blur(); return;
     }
     if (this.showSuggestions) {
-      if (e.key === 'ArrowDown') { e.preventDefault(); this.suggestionIndex = Math.min(this.suggestionIndex + 1, this.suggestions.length - 1); return; }
-      if (e.key === 'ArrowUp') { e.preventDefault(); this.suggestionIndex = Math.max(this.suggestionIndex - 1, -1); return; }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        this.suggestionIndex = Math.min(this.suggestionIndex + 1, this.suggestions.length - 1);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.suggestionIndex = Math.max(this.suggestionIndex - 1, -1);
+        return;
+      }
       if (e.key === 'Tab' || e.key === 'Enter') {
         e.preventDefault();
         if (this.suggestionIndex >= 0 && this.suggestionIndex < this.suggestions.length) {

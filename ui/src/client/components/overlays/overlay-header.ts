@@ -210,7 +210,7 @@ export class OverlayHeader extends BaseComponent {
               @mousedown=${this.onDragStart}
               tabindex="-1"
             >
-              ⋮⋮
+              <s-icon name="more" size="14"></s-icon>
             </button>
           `
         : ''}
@@ -226,7 +226,7 @@ export class OverlayHeader extends BaseComponent {
                 @click=${this.onToggleMinimize}
                 ?disabled=${this.maximized}
               >
-                ${this.minimized ? '⬜' : '➖'}
+                <s-icon name=${this.minimized ? 'maximize' : 'minimize'} size="14"></s-icon>
               </button>
             `
           : ''}
@@ -239,7 +239,7 @@ export class OverlayHeader extends BaseComponent {
                 @click=${this.onToggleMaximize}
                 ?disabled=${this.minimized}
               >
-                ${this.maximized ? '⛶' : '⬜'}
+                <s-icon name=${this.maximized ? 'minimize' : 'maximize'} size="14"></s-icon>
               </button>
             `
           : ''}
@@ -251,7 +251,7 @@ export class OverlayHeader extends BaseComponent {
                 aria-pressed=${this.pinned}
                 @click=${this.onTogglePin}
               >
-                📌
+                <s-icon name="pin" size="14"></s-icon>
               </button>
             `
           : ''}
@@ -262,11 +262,21 @@ export class OverlayHeader extends BaseComponent {
                 aria-label="Close"
                 @click=${this.onClose}
               >
-                ×
+                <s-icon name="closeX" size="14"></s-icon>
               </button>
             `
           : ''}
-        ${this.resizable ? html`<div class="resize-grip" @mousedown=${this.onResizeStart} aria-label="Resize" role="slider" aria-orientation="horizontal"></div>` : ''}
+        ${this.resizable
+            ? html`
+                <div
+                  class="resize-grip"
+                  @mousedown=${this.onResizeStart}
+                  aria-label="Resize"
+                  role="slider"
+                  aria-orientation="horizontal"
+                ></div>
+              `
+            : ''}
       </div>
     `;
   }

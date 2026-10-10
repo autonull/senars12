@@ -19,41 +19,207 @@ import { marked } from 'marked';
 @customElement('s-chat')
 export class ChatView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; top: 14vh; left: 50%; transform: translateX(-50%); width: min(700px, 94vw); height: min(600px, 70vh); z-index: 1; }
-    :host([hidden]) { display: none; }
-    :host([data-pinned]) { position: fixed; top: var(--chat-y, 14vh); left: var(--chat-x, 50%); transform: var(--chat-transform, translateX(-50%)); width: var(--chat-w, min(700px, 94vw)); height: var(--chat-h, min(600px, 70vh)); z-index: 1; }
-    .panel { display: flex; flex-direction: column; height: 100%; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
-    .header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .title { font-weight: var(--typography-fontWeights-semibold); }
-    .count { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
-    .toolbar { display: flex; gap: var(--spacing-scale-1); margin-left: auto; }
-    .filter { display: flex; gap: var(--spacing-scale-1); padding: var(--spacing-scale-1) var(--spacing-scale-2); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .filter-btn { padding: 2px 8px; border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-button); background: transparent; color: var(--colors-semantic-text-secondary); cursor: pointer; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); transition: var(--transitions-fast); }
-    .filter-btn.active { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); background: var(--colors-semantic-accent-subtle); }
-    .filter-btn:hover:not(.active) { border-color: var(--colors-semantic-border-default); color: var(--colors-semantic-text-primary); }
-    .content { flex: 1; overflow: auto; }
-    .empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--colors-semantic-text-muted); }
-    .message { display: flex; flex-direction: column; gap: var(--spacing-scale-1); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); animation: fadeIn 0.2s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-    .msg-header { display: flex; align-items: center; gap: var(--spacing-scale-2); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
-    .msg-role { font-family: var(--typography-fontFamilies-data); text-transform: uppercase; font-weight: var(--typography-fontWeights-semibold); letter-spacing: 0.05em; }
-    .msg-role.user { color: var(--colors-semantic-accent-cyan); }
-    .msg-role.agent { color: var(--colors-semantic-accent-violet); }
-    .msg-time { font-family: var(--typography-fontFamilies-data); font-size: 0.6rem; }
-    .msg-body { font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); line-height: 1.6; color: var(--colors-semantic-text-primary); white-space: pre-wrap; word-break: break-word; }
-    .msg-body.agent { background: var(--colors-semantic-bg-panel); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); padding: var(--spacing-scale-3); }
-    .msg-body.agent :first-child { margin-top: 0; }
-    .msg-body.agent :last-child { margin-bottom: 0; }
-    .msg-body.agent code { background: var(--colors-semantic-bg-base); padding: 1px 4px; border-radius: 3px; font-family: var(--typography-fontFamilies-data); font-size: 0.75rem; }
-    .msg-body.agent pre code { display: block; padding: var(--spacing-scale-3); overflow-x: auto; }
-    .streaming { position: relative; }
-    .streaming::after { content: '▊'; animation: blink 0.8s step-end infinite; color: var(--colors-semantic-accent-primary); }
-    @keyframes blink { 50% { opacity: 0; } }
-    .actions { display: flex; gap: var(--spacing-scale-1); opacity: 0; transition: var(--transitions-fast); }
-    .message:hover .actions { opacity: 1; }
-    .action-btn { background: transparent; border: 1px solid var(--colors-semantic-border-subtle); color: var(--colors-semantic-text-muted); padding: 1px 6px; font-size: var(--typography-scale-xs); border-radius: var(--borderRadius-component-button); cursor: pointer; font-family: var(--typography-fontFamilies-ui); transition: var(--transitions-fast); }
-    .action-btn:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
-    s-view { height: 100%; }
+    :host {
+      position: fixed;
+      top: 14vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(700px, 94vw);
+      height: min(600px, 70vh);
+      z-index: 1;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    :host([data-pinned]) {
+      position: fixed;
+      top: var(--chat-y, 14vh);
+      left: var(--chat-x, 50%);
+      transform: var(--chat-transform, translateX(-50%));
+      width: var(--chat-w, min(700px, 94vw));
+      height: var(--chat-h, min(600px, 70vh));
+      z-index: 1;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .title {
+      font-weight: var(--typography-fontWeights-semibold);
+    }
+    .count {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+    }
+    .toolbar {
+      display: flex;
+      gap: var(--spacing-scale-1);
+      margin-left: auto;
+    }
+    .filter {
+      display: flex;
+      gap: var(--spacing-scale-1);
+      padding: var(--spacing-scale-1) var(--spacing-scale-2);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .filter-btn {
+      padding: 2px 8px;
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-button);
+      background: transparent;
+      color: var(--colors-semantic-text-secondary);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-xs);
+      transition: var(--transitions-fast);
+    }
+    .filter-btn.active {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+      background: var(--colors-semantic-accent-subtle);
+    }
+    .filter-btn:hover:not(.active) {
+      border-color: var(--colors-semantic-border-default);
+      color: var(--colors-semantic-text-primary);
+    }
+    .content {
+      flex: 1;
+      overflow: auto;
+    }
+    .empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--colors-semantic-text-muted);
+    }
+    .message {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-1);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .msg-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+    }
+    .msg-role {
+      font-family: var(--typography-fontFamilies-data);
+      text-transform: uppercase;
+      font-weight: var(--typography-fontWeights-semibold);
+      letter-spacing: 0.05em;
+    }
+    .msg-role.user {
+      color: var(--colors-semantic-accent-cyan);
+    }
+    .msg-role.agent {
+      color: var(--colors-semantic-accent-violet);
+    }
+    .msg-time {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: 0.6rem;
+    }
+    .msg-body {
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+      line-height: 1.6;
+      color: var(--colors-semantic-text-primary);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .msg-body.agent {
+      background: var(--colors-semantic-bg-panel);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      padding: var(--spacing-scale-3);
+    }
+    .msg-body.agent :first-child {
+      margin-top: 0;
+    }
+    .msg-body.agent :last-child {
+      margin-bottom: 0;
+    }
+    .msg-body.agent code {
+      background: var(--colors-semantic-bg-base);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-family: var(--typography-fontFamilies-data);
+      font-size: 0.75rem;
+    }
+    .msg-body.agent pre code {
+      display: block;
+      padding: var(--spacing-scale-3);
+      overflow-x: auto;
+    }
+    .streaming {
+      position: relative;
+    }
+    .streaming::after {
+      content: '▊';
+      animation: blink 0.8s step-end infinite;
+      color: var(--colors-semantic-accent-primary);
+    }
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+    .actions {
+      display: flex;
+      gap: var(--spacing-scale-1);
+      opacity: 0;
+      transition: var(--transitions-fast);
+    }
+    .message:hover .actions {
+      opacity: 1;
+    }
+    .action-btn {
+      background: transparent;
+      border: 1px solid var(--colors-semantic-border-subtle);
+      color: var(--colors-semantic-text-muted);
+      padding: 1px 6px;
+      font-size: var(--typography-scale-xs);
+      border-radius: var(--borderRadius-component-button);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      transition: var(--transitions-fast);
+    }
+    .action-btn:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
+    s-view {
+      height: 100%;
+    }
   `;
 
   @state() private filterRole: 'all' | 'user' | 'agent' = 'all';
@@ -164,16 +330,46 @@ export class ChatView extends SurfaceComponent {
           <span class="title">Conversation</span>
           <span class="count">${messages.length}</span>
           <div class="toolbar">
-            <button class="filter-btn ${this.filterRole === 'all' ? 'active' : ''}" @click=${() => this.setFilter('all')}>All</button>
-            <button class="filter-btn ${this.filterRole === 'user' ? 'active' : ''}" @click=${() => this.setFilter('user')}>User</button>
-            <button class="filter-btn ${this.filterRole === 'agent' ? 'active' : ''}" @click=${() => this.setFilter('agent')}>Agent</button>
+            <button
+              class="filter-btn ${this.filterRole === 'all' ? 'active' : ''}"
+              @click=${() => this.setFilter('all')}
+            >
+              All
+            </button>
+            <button
+              class="filter-btn ${this.filterRole === 'user' ? 'active' : ''}"
+              @click=${() => this.setFilter('user')}
+            >
+              User
+            </button>
+            <button
+              class="filter-btn ${this.filterRole === 'agent' ? 'active' : ''}"
+              @click=${() => this.setFilter('agent')}
+            >
+              Agent
+            </button>
           </div>
         </div>
         <div class="filter">
-          <button class="filter-btn ${this.viewShape === 'tree' ? 'active' : ''}" @click=${() => this.setShape('tree')}>Tree</button>
-          <button class="filter-btn ${this.viewShape === 'text' ? 'active' : ''}" @click=${() => this.setShape('text')}>Text</button>
-          <button class="filter-btn ${this.viewShape === 'table' ? 'active' : ''}" @click=${() => this.setShape('table')}>Table</button>
-        </div>
+            <button
+              class="filter-btn ${this.viewShape === 'tree' ? 'active' : ''}"
+              @click=${() => this.setShape('tree')}
+            >
+              Tree
+            </button>
+            <button
+              class="filter-btn ${this.viewShape === 'text' ? 'active' : ''}"
+              @click=${() => this.setShape('text')}
+            >
+              Text
+            </button>
+            <button
+              class="filter-btn ${this.viewShape === 'table' ? 'active' : ''}"
+              @click=${() => this.setShape('table')}
+            >
+              Table
+            </button>
+          </div>
         <div class="content" @scroll=${(e: Event) => {
           const el = e.target as HTMLElement;
           this.autoScroll = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
@@ -196,14 +392,37 @@ export class ChatView extends SurfaceComponent {
                               <span class="msg-time">${this.formatTime(msg.timestamp)}</span>
                               ${
                                 msg.term
-                                  ? html`<span class="focus-btn" @click=${() => this.focusTerm(msg.term!)}>@${msg.term}</span>`
+                                  ? html`
+                                      <span
+                                        class="focus-btn"
+                                        @click=${() => this.focusTerm(msg.term!)}
+                                      >
+                                        @${msg.term}
+                                      </span>
+                                    `
                                   : ''
                               }
                             </div>
                             <div class="msg-body ${msg.role}">${isAgent ? html`${content}` : content}</div>
                             <div class="actions">
-                              <button class="action-btn" @click=${() => this.copyMessage(msg)} title="Copy">Copy</button>
-                              ${isAgent ? html`<button class="action-btn" @click=${() => this.regenerate(msg)} title="Regenerate">Regenerate</button>` : ''}
+                              <button
+                                class="action-btn"
+                                @click=${() => this.copyMessage(msg)}
+                                title="Copy"
+                              >
+                                Copy
+                              </button>
+                              ${isAgent
+                                ? html`
+                                    <button
+                                      class="action-btn"
+                                      @click=${() => this.regenerate(msg)}
+                                      title="Regenerate"
+                                    >
+                                      Regenerate
+                                    </button>
+                                  `
+                                : ''}
                             </div>
                           </div>
                         `;

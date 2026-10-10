@@ -22,26 +22,100 @@ let errorId = 0;
 @customElement('error-boundary')
 export class ErrorBoundary extends BaseComponent {
   static override styles = css`
-    :host { display: contents; }
+    :host {
+      display: contents;
+    }
     .overlay {
-      position: fixed; inset: 0; z-index: var(--zIndex-layers-modal);
-      background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center;
+      position: fixed;
+      inset: 0;
+      z-index: var(--zIndex-layers-modal);
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .modal {
-      background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-default);
-      border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-modal);
-      max-width: 520px; width: 90%; padding: var(--spacing-scale-6);
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-default);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-modal);
+      max-width: 520px;
+      width: 90%;
+      padding: var(--spacing-scale-6);
     }
-    .header { display: flex; align-items: center; gap: var(--spacing-scale-3); margin-bottom: var(--spacing-scale-4); }
-    .icon { font-size: 1.5rem; }
-    .title { font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-lg); font-weight: var(--typography-fontWeights-semibold); color: var(--colors-primitive-error); flex: 1; }
-    .code { font-family: var(--typography-fontFamilies-mono); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); background: var(--colors-semantic-bg-base); padding: 1px 6px; border-radius: var(--borderRadius-component-input); }
-    .surface { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-    .message { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-sm); color: var(--colors-semantic-text-secondary); margin-bottom: var(--spacing-scale-4); line-height: var(--typography-lineHeights-relaxed); }
-    .detail-toggle { background: none; border: none; color: var(--colors-semantic-accent-primary); cursor: pointer; font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); padding: 0; }
-    .detail { margin-top: var(--spacing-scale-3); padding: var(--spacing-scale-3); background: var(--colors-semantic-bg-base); border-radius: var(--borderRadius-component-input); font-family: var(--typography-fontFamilies-mono); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow: auto; }
-    .actions { display: flex; flex-wrap: wrap; gap: var(--spacing-scale-2); margin-top: var(--spacing-scale-5); }
-    .recoverable-badge { font-size: var(--typography-scale-xs); color: var(--colors-semantic-success); background: var(--colors-semantic-bg-success); padding: 1px 6px; border-radius: var(--borderRadius-component-input); }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-3);
+      margin-bottom: var(--spacing-scale-4);
+    }
+    .icon {
+      font-size: 1.5rem;
+    }
+    .title {
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-lg);
+      font-weight: var(--typography-fontWeights-semibold);
+      color: var(--colors-primitive-error);
+      flex: 1;
+    }
+    .code {
+      font-family: var(--typography-fontFamilies-mono);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+      background: var(--colors-semantic-bg-base);
+      padding: 1px 6px;
+      border-radius: var(--borderRadius-component-input);
+    }
+    .surface {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .message {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-sm);
+      color: var(--colors-semantic-text-secondary);
+      margin-bottom: var(--spacing-scale-4);
+      line-height: var(--typography-lineHeights-relaxed);
+    }
+    .detail-toggle {
+      background: none;
+      border: none;
+      color: var(--colors-semantic-accent-primary);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      padding: 0;
+    }
+    .detail {
+      margin-top: var(--spacing-scale-3);
+      padding: var(--spacing-scale-3);
+      background: var(--colors-semantic-bg-base);
+      border-radius: var(--borderRadius-component-input);
+      font-family: var(--typography-fontFamilies-mono);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 200px;
+      overflow: auto;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-scale-2);
+      margin-top: var(--spacing-scale-5);
+    }
+    .recoverable-badge {
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-success);
+      background: var(--colors-semantic-bg-success);
+      padding: 1px 6px;
+      border-radius: var(--borderRadius-component-input);
+    }
   `;
 
   @state() private errors: ErrorEntry[] = [];
@@ -152,7 +226,9 @@ export class ErrorBoundary extends BaseComponent {
   };
 
   private handleRejection = (e: PromiseRejectionEvent) => {
-    this.addError(createError({ message: String(e.reason ?? 'Unhandled Promise rejection'), detail: e.reason?.stack, surface: 'global' }));
+    const message = String(e.reason ?? 'Unhandled Promise rejection');
+    const detail = e.reason?.stack;
+    this.addError(createError({ message, detail, surface: 'global' }));
     e.preventDefault();
   };
 
@@ -161,7 +237,9 @@ export class ErrorBoundary extends BaseComponent {
     if (detail?.error && typeof detail.error === 'object' && 'code' in detail.error) {
       this.addError(createError(detail.error as { message: string; detail?: string; code?: string; surface?: string }));
     } else {
-      this.addError(createError({ message: detail?.message ?? 'Application error', detail: detail?.detail, surface: 'app' }));
+      const message = detail?.message ?? 'Application error';
+      const detailText = detail?.detail;
+      this.addError(createError({ message, detail: detailText, surface: 'app' }));
     }
   };
 

@@ -25,33 +25,168 @@ interface PendingCall {
 @customElement('s-tool-approval')
 export class ToolApprovalView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(560px, 94vw); z-index: 1; }
-    :host([hidden]) { display: none; }
-    .panel { display: flex; flex-direction: column; max-height: 80vh; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
-    header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .icon { font-size: var(--typography-scale-xl); }
-    .title { flex: 1; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); font-weight: var(--typography-fontWeights-semibold); color: var(--colors-semantic-text-primary); }
-    .close { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); }
-    .body { padding: var(--spacing-scale-3); overflow: auto; display: flex; flex-direction: column; gap: var(--spacing-scale-3); }
-    .tool-info { display: flex; flex-direction: column; gap: var(--spacing-scale-1); }
-    .tool-name { font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-lg); font-weight: var(--typography-fontWeights-semibold); color: var(--colors-semantic-text-primary); }
-    .tool-desc { color: var(--colors-semantic-text-secondary); font-size: var(--typography-scale-sm); }
-    .args { display: flex; flex-direction: column; gap: var(--spacing-scale-2); }
-    .arg { display: flex; flex-direction: column; gap: var(--spacing-scale-1); }
-    .arg-label { font-size: var(--typography-scale-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--colors-semantic-text-muted); }
-    .arg-value { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-sm); color: var(--colors-semantic-text-primary); background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-input); padding: var(--spacing-scale-2); overflow: auto; max-height: 200px; }
-    .form-field { display: flex; flex-direction: column; gap: var(--spacing-scale-1); }
-    .form-field label { font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-secondary); }
-    .form-field input, .form-field select, .form-field textarea { padding: var(--spacing-scale-2); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-input); background: var(--colors-semantic-bg-base); color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); }
-    .form-field input:focus, .form-field select:focus, .form-field textarea:focus { outline: none; border-color: var(--colors-semantic-border-focus); }
-    .actions { display: flex; gap: var(--spacing-scale-2); justify-content: flex-end; padding-top: var(--spacing-scale-2); border-top: 1px solid var(--colors-semantic-border-subtle); }
-    .btn { padding: var(--spacing-scale-2) var(--spacing-scale-3); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-button); background: transparent; color: var(--colors-semantic-text-primary); cursor: pointer; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); }
-    .btn:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
-    .btn.primary { background: var(--colors-semantic-accent-primary); color: var(--colors-semantic-bg-base); border-color: transparent; }
-    .btn.primary:hover { background: var(--colors-semantic-accent-primary-hover); }
-    .btn.danger { border-color: var(--colors-primitive-error); color: var(--colors-primitive-error); }
-    .btn.danger:hover { background: var(--colors-primitive-error); color: var(--colors-semantic-bg-base); }
-    .empty { color: var(--colors-semantic-text-muted); text-align: center; padding: var(--spacing-scale-4); }
+    :host {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(560px, 94vw);
+      z-index: 1;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      max-height: 80vh;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .icon {
+      font-size: var(--typography-scale-xl);
+    }
+    .title {
+      flex: 1;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+      font-weight: var(--typography-fontWeights-semibold);
+      color: var(--colors-semantic-text-primary);
+    }
+    .close {
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-base);
+    }
+    .body {
+      padding: var(--spacing-scale-3);
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-3);
+    }
+    .tool-info {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-1);
+    }
+    .tool-name {
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-lg);
+      font-weight: var(--typography-fontWeights-semibold);
+      color: var(--colors-semantic-text-primary);
+    }
+    .tool-desc {
+      color: var(--colors-semantic-text-secondary);
+      font-size: var(--typography-scale-sm);
+    }
+    .args {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-2);
+    }
+    .arg {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-1);
+    }
+    .arg-label {
+      font-size: var(--typography-scale-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--colors-semantic-text-muted);
+    }
+    .arg-value {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-sm);
+      color: var(--colors-semantic-text-primary);
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-input);
+      padding: var(--spacing-scale-2);
+      overflow: auto;
+      max-height: 200px;
+    }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-1);
+    }
+    .form-field label {
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-secondary);
+    }
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+      padding: var(--spacing-scale-2);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-input);
+      background: var(--colors-semantic-bg-base);
+      color: var(--colors-semantic-text-primary);
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+    }
+    .form-field input:focus,
+    .form-field select:focus,
+    .form-field textarea:focus {
+      outline: none;
+      border-color: var(--colors-semantic-border-focus);
+    }
+    .actions {
+      display: flex;
+      gap: var(--spacing-scale-2);
+      justify-content: flex-end;
+      padding-top: var(--spacing-scale-2);
+      border-top: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .btn {
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-button);
+      background: transparent;
+      color: var(--colors-semantic-text-primary);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+    }
+    .btn:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
+    .btn.primary {
+      background: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-bg-base);
+      border-color: transparent;
+    }
+    .btn.primary:hover {
+      background: var(--colors-semantic-accent-primary-hover);
+    }
+    .btn.danger {
+      border-color: var(--colors-primitive-error);
+      color: var(--colors-primitive-error);
+    }
+    .btn.danger:hover {
+      background: var(--colors-primitive-error);
+      color: var(--colors-semantic-bg-base);
+    }
+    .empty {
+      color: var(--colors-semantic-text-muted);
+      text-align: center;
+      padding: var(--spacing-scale-4);
+    }
   `;
 
   @state() private queue: PendingCall[] = [];
@@ -136,7 +271,11 @@ export class ToolApprovalView extends SurfaceComponent {
     `;
   }
 
-  private renderPromptContent(formArgs: { promptType?: string; choices?: Array<{ value: string; label: string }> }, props: Record<string, unknown>, args: Record<string, unknown>): TemplateResult {
+  private renderPromptContent(
+    formArgs: { promptType?: string; choices?: Array<{ value: string; label: string }> },
+    props: Record<string, unknown>,
+    args: Record<string, unknown>
+  ): TemplateResult {
     switch (formArgs.promptType) {
       case 'confirm':
         return html`<p class="arg-value">Confirm?</p>`;
@@ -144,14 +283,21 @@ export class ToolApprovalView extends SurfaceComponent {
         return html`
           <div class="form-field">
             <label>Answer</label>
-            <input type="text" .value=${String(args.answer ?? '')} @input=${(e: Event) => this.updateFormArg('answer', (e.target as HTMLInputElement).value)} />
+            <input
+              type="text"
+              .value=${String(args.answer ?? '')}
+              @input=${(e: Event) => this.updateFormArg('answer', (e.target as HTMLInputElement).value)}
+            />
           </div>
         `;
       case 'select':
         return html`
           <div class="form-field">
             <label>Choose</label>
-            <select .value=${String(args.choice ?? '')} @change=${(e: Event) => this.updateFormArg('choice', (e.target as HTMLSelectElement).value)}>
+            <select
+              .value=${String(args.choice ?? '')}
+              @change=${(e: Event) => this.updateFormArg('choice', (e.target as HTMLSelectElement).value)}
+            >
               <option value="">Select…</option>
               ${(formArgs.choices ?? []).map((c) => html`<option value=${c.value}>${c.label}</option>`)}
             </select>
@@ -172,17 +318,33 @@ export class ToolApprovalView extends SurfaceComponent {
     const required = (schema.required as string[]) ?? [];
 
     return html`
-      ${Object.entries(props).map(([key, prop]) => this.renderFormField(key, prop as { type: string; title?: string; enum?: string[]; format?: string }, required.includes(key), currentValues[key]))}
+      ${Object.entries(props).map(([key, prop]) =>
+        this.renderFormField(
+          key,
+          prop as { type: string; title?: string; enum?: string[]; format?: string },
+          required.includes(key),
+          currentValues[key]
+        )
+      )}
     `;
   }
 
-  private renderFormField(key: string, propDef: { type: string; title?: string; enum?: string[]; format?: string }, isRequired: boolean, currentValue: unknown): TemplateResult {
+  private renderFormField(
+    key: string,
+    propDef: { type: string; title?: string; enum?: string[]; format?: string },
+    isRequired: boolean,
+    currentValue: unknown
+  ): TemplateResult {
     const label = `${propDef.title ?? key}${isRequired ? ' *' : ''}`;
     if (propDef.enum) {
       return html`
         <div class="form-field">
           <label>${label}</label>
-          <select .value=${String(currentValue ?? '')} @change=${(e: Event) => this.updateFormArg(key, (e.target as HTMLSelectElement).value)}>
+          <select
+            .value=${String(currentValue ?? '')}
+            @change=${(e: Event) =>
+              this.updateFormArg(key, (e.target as HTMLSelectElement).value)}
+          >
             <option value="">Select…</option>
             ${propDef.enum.map((v) => html`<option value=${v}>${v}</option>`)}
           </select>
@@ -193,7 +355,12 @@ export class ToolApprovalView extends SurfaceComponent {
       return html`
         <div class="form-field">
           <label>${label}</label>
-          <textarea .value=${String(currentValue ?? '')} @input=${(e: Event) => this.updateFormArg(key, (e.target as HTMLTextAreaElement).value)} rows="3"></textarea>
+          <textarea
+            .value=${String(currentValue ?? '')}
+            @input=${(e: Event) =>
+              this.updateFormArg(key, (e.target as HTMLTextAreaElement).value)}
+            rows="3"
+          ></textarea>
         </div>
       `;
     }
@@ -201,7 +368,12 @@ export class ToolApprovalView extends SurfaceComponent {
       return html`
         <div class="form-field">
           <label>${label}</label>
-          <input type="number" .value=${String(currentValue ?? '')} @input=${(e: Event) => this.updateFormArg(key, Number((e.target as HTMLInputElement).value))} />
+          <input
+            type="number"
+            .value=${String(currentValue ?? '')}
+            @input=${(e: Event) =>
+              this.updateFormArg(key, Number((e.target as HTMLInputElement).value))}
+          />
         </div>
       `;
     }
@@ -209,14 +381,24 @@ export class ToolApprovalView extends SurfaceComponent {
       return html`
         <div class="form-field">
           <label>${label}</label>
-          <input type="checkbox" .checked=${Boolean(currentValue)} @change=${(e: Event) => this.updateFormArg(key, (e.target as HTMLInputElement).checked)} />
+          <input
+            type="checkbox"
+            .checked=${Boolean(currentValue)}
+            @change=${(e: Event) =>
+              this.updateFormArg(key, (e.target as HTMLInputElement).checked)}
+          />
         </div>
       `;
     }
     return html`
       <div class="form-field">
         <label>${label}</label>
-        <input type="text" .value=${String(currentValue ?? '')} @input=${(e: Event) => this.updateFormArg(key, (e.target as HTMLInputElement).value)} />
+        <input
+          type="text"
+          .value=${String(currentValue ?? '')}
+          @input=${(e: Event) =>
+            this.updateFormArg(key, (e.target as HTMLInputElement).value)}
+        />
       </div>
     `;
   }
@@ -234,7 +416,7 @@ export class ToolApprovalView extends SurfaceComponent {
       <div class="panel" role="dialog" aria-modal="true" aria-label="Tool approval">
         <overlay-header
           overlay-id="tool-approval"
-          .kind=${this.current.name === 'prompt_user' ? '❓' : '🔧'}
+          .kind=${this.current.name === 'prompt_user' ? 'help' : 'tool'}
           .title=${this.current.spec.title ?? this.current.name}
           .draggable=${true}
           .resizable=${true}

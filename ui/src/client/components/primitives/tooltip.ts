@@ -7,12 +7,46 @@ type TooltipTrigger = 'hover' | 'focus' | 'delayed';
 @customElement('s-tooltip')
 export class STooltip extends LitElement {
   static override styles = css`
-    :host { display: inline-flex; position: relative; }
-    .trigger { display: inline-flex; cursor: pointer; }
-    .tooltip { position: absolute; bottom: calc(100% + var(--spacing-component-tooltip-gap)); left: 50%; transform: translateX(-50%); padding: var(--spacing-scale-2) var(--spacing-scale-3); background: var(--colors-semantic-bg-elevated); border: 1px solid var(--colors-semantic-border-default); border-radius: var(--borderRadius-component-tooltip); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-secondary); white-space: nowrap; pointer-events: none; z-index: var(--zIndex-layers-tooltip); box-shadow: var(--shadows-tooltip); }
-    .tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: var(--colors-semantic-border-default); }
-    .hidden { display: none; }
-    .visible { display: block; }
+    :host {
+      display: inline-flex;
+      position: relative;
+    }
+    .trigger {
+      display: inline-flex;
+      cursor: pointer;
+    }
+    .tooltip {
+      position: absolute;
+      bottom: calc(100% + var(--spacing-component-tooltip-gap));
+      left: 50%;
+      transform: translateX(-50%);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      background: var(--colors-semantic-bg-elevated);
+      border: 1px solid var(--colors-semantic-border-default);
+      border-radius: var(--borderRadius-component-tooltip);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-secondary);
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: var(--zIndex-layers-tooltip);
+      box-shadow: var(--shadows-tooltip);
+    }
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-top-color: var(--colors-semantic-border-default);
+    }
+    .hidden {
+      display: none;
+    }
+    .visible {
+      display: block;
+    }
   `;
 
   @property({ type: String }) text = '';

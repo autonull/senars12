@@ -41,66 +41,153 @@ const CAPABILITY_LABELS: Record<string, string> = {
 export class GraphToolbar extends BaseComponent {
   static override styles = css`
     :host {
-      display: flex; align-items: center; height: 44px; padding: 0 var(--spacing-scale-3);
-      gap: var(--spacing-scale-2); background: var(--colors-semantic-bg-panel-solid);
+      display: flex;
+      align-items: center;
+      height: 44px;
+      padding: 0 var(--spacing-scale-3);
+      gap: var(--spacing-scale-2);
+      background: var(--colors-semantic-bg-panel-solid);
       border-bottom: 1px solid var(--colors-semantic-border-subtle);
-      font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
     }
-    .zoom-group { display: flex; align-items: center; gap: 2px; }
-    .zoom-pct { min-width: 32px; text-align: center; color: var(--colors-semantic-text-muted); font-variant-numeric: tabular-nums; }
+    .zoom-group {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .zoom-pct {
+      min-width: 32px;
+      text-align: center;
+      color: var(--colors-semantic-text-muted);
+      font-variant-numeric: tabular-nums;
+    }
     .search-input {
-      background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle);
-      border-radius: var(--borderRadius-component-input); color: var(--colors-semantic-text-primary);
-      font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs);
-      padding: 2px 6px; width: 140px; outline: none; transition: var(--transitions-fast);
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-input);
+      color: var(--colors-semantic-text-primary);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      padding: 2px 6px;
+      width: 140px;
+      outline: none;
+      transition: var(--transitions-fast);
     }
-    .search-input:focus { border-color: var(--colors-semantic-border-focus); width: 200px; }
-    .search-input::placeholder { color: var(--colors-semantic-text-muted); }
-    .spacer { flex: 1; }
+    .search-input:focus {
+      border-color: var(--colors-semantic-border-focus);
+      width: 200px;
+    }
+    .search-input::placeholder {
+      color: var(--colors-semantic-text-muted);
+    }
+    .spacer {
+      flex: 1;
+    }
     .layout-select {
-      background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle);
-      border-radius: var(--borderRadius-component-input); color: var(--colors-semantic-text-secondary);
-      font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs);
-      padding: 2px 4px; outline: none; cursor: pointer;
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-input);
+      color: var(--colors-semantic-text-secondary);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      padding: 2px 4px;
+      outline: none;
+      cursor: pointer;
     }
     .toolbar-btn {
-      display: flex; align-items: center; justify-content: center;
-      background: none; border: 1px solid transparent; border-radius: var(--borderRadius-component-button);
-      color: var(--colors-semantic-text-muted); font-family: var(--typography-fontFamilies-data);
-      font-size: var(--typography-scale-xs); padding: 2px 6px; cursor: pointer;
-      transition: var(--transitions-fast); white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: 1px solid transparent;
+      border-radius: var(--borderRadius-component-button);
+      color: var(--colors-semantic-text-muted);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      padding: 2px 6px;
+      cursor: pointer;
+      transition: var(--transitions-fast);
+      white-space: nowrap;
     }
-    .toolbar-btn:hover { color: var(--colors-semantic-text-primary); border-color: var(--colors-semantic-border-default); background: var(--colors-semantic-bg-panel); }
-    .toolbar-btn.active { color: var(--colors-semantic-accent-primary); border-color: var(--colors-semantic-accent-primary); }
-    .toolbar-btn.icon { padding: 2px 4px; min-width: 22px; }
-    .divider { width: 1px; height: 18px; background: var(--colors-semantic-border-subtle); margin: 0 var(--spacing-scale-1); }
+    .toolbar-btn:hover {
+      color: var(--colors-semantic-text-primary);
+      border-color: var(--colors-semantic-border-default);
+      background: var(--colors-semantic-bg-panel);
+    }
+    .toolbar-btn.active {
+      color: var(--colors-semantic-accent-primary);
+      border-color: var(--colors-semantic-accent-primary);
+    }
+    .toolbar-btn.icon {
+      padding: 2px 4px;
+      min-width: 22px;
+    }
+    .divider {
+      width: 1px;
+      height: 18px;
+      background: var(--colors-semantic-border-subtle);
+      margin: 0 var(--spacing-scale-1);
+    }
 
     /* Multi-select bulk actions */
     .multi-select-bar {
-      display: flex; align-items: center; gap: var(--spacing-scale-2);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
       background: var(--colors-semantic-accent-primary-subtle);
-      padding: 2px var(--spacing-scale-3); border-radius: var(--borderRadius-component-button);
+      padding: 2px var(--spacing-scale-3);
+      border-radius: var(--borderRadius-component-button);
     }
-    .multi-select-count { color: var(--colors-semantic-accent-primary); font-weight: var(--typography-fontWeights-semibold); }
+    .multi-select-count {
+      color: var(--colors-semantic-accent-primary);
+      font-weight: var(--typography-fontWeights-semibold);
+    }
     .multi-select-btn {
-      background: transparent; border: 1px solid var(--colors-semantic-accent-primary);
-      color: var(--colors-semantic-accent-primary); font-family: var(--typography-fontFamilies-data);
-      font-size: var(--typography-scale-xs); padding: 1px 6px; border-radius: var(--borderRadius-component-button);
-      cursor: pointer; transition: var(--transitions-fast);
-    }
-    .multi-select-btn:hover { background: var(--colors-semantic-accent-primary); color: var(--colors-semantic-text-on-accent); }
-
-    /* Capability badges */
-    .capability-badges { display: flex; align-items: center; gap: 3px; }
-    .cap-badge {
-      display: inline-block; padding: 1px 5px; border-radius: 3px;
-      background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle);
-      color: var(--colors-semantic-text-secondary); font-family: var(--typography-fontFamilies-data);
-      font-size: 10px; line-height: 1.4; white-space: nowrap; cursor: pointer;
+      background: transparent;
+      border: 1px solid var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      padding: 1px 6px;
+      border-radius: var(--borderRadius-component-button);
+      cursor: pointer;
       transition: var(--transitions-fast);
     }
-    .cap-badge:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
-    .cap-badge.active { background: var(--colors-semantic-accent-primary-subtle); border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
+    .multi-select-btn:hover {
+      background: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-text-on-accent);
+    }
+
+    /* Capability badges */
+    .capability-badges {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .cap-badge {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      color: var(--colors-semantic-text-secondary);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: 10px;
+      line-height: 1.4;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: var(--transitions-fast);
+    }
+    .cap-badge:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
+    .cap-badge.active {
+      background: var(--colors-semantic-accent-primary-subtle);
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
   `;
   @state() private zoom = 1;
   @state() private searchQuery = '';

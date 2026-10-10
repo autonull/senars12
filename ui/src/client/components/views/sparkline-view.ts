@@ -12,9 +12,20 @@ const HEIGHT = 24;
 @customElement('s-sparkline')
 export class SparklineView extends BaseComponent {
   static override styles = css`
-    :host { display: block; }
-    .chart { display: block; width: 100%; height: 100%; min-height: 16px; }
-    .empty { padding: 0 var(--spacing-scale-2); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
+    :host {
+      display: block;
+    }
+    .chart {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 16px;
+    }
+    .empty {
+      padding: 0 var(--spacing-scale-2);
+      color: var(--colors-semantic-text-muted);
+      font-size: var(--typography-scale-xs);
+    }
   `;
   @property({ attribute: false }) data: SeriesDataset | null = null;
   @property({ attribute: false }) selection: ViewSelection | null = null;

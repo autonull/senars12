@@ -8,11 +8,30 @@ import type { TreeDataset, TreeNode } from '../../core/view-spec.js';
 @customElement('s-tree')
 export class TreeView extends BaseComponent {
   static override styles = css`
-    :host { display: block; overflow: auto; }
-    ul { list-style: none; margin: 0; padding-left: var(--spacing-scale-3); }
-    :host > ul { padding-left: 0; }
-    li > span { display: block; padding: 1px 0; font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-secondary); }
-    .empty { padding: var(--spacing-scale-3); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
+    :host {
+      display: block;
+      overflow: auto;
+    }
+    ul {
+      list-style: none;
+      margin: 0;
+      padding-left: var(--spacing-scale-3);
+    }
+    :host > ul {
+      padding-left: 0;
+    }
+    li > span {
+      display: block;
+      padding: 1px 0;
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-secondary);
+    }
+    .empty {
+      padding: var(--spacing-scale-3);
+      color: var(--colors-semantic-text-muted);
+      font-size: var(--typography-scale-xs);
+    }
   `;
   @property({ attribute: false }) data: TreeDataset | null = null;
 

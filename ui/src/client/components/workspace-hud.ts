@@ -53,14 +53,25 @@ const providerChip = (provider: LmProviderState) =>
           : 'Language model provider'}
         @click=${(event: Event) =>
           dispatchCommand('overlay.provider', { anchor: event.currentTarget as HTMLElement })}
-      >${providerLabel(provider.id)}${provider.stale ? ' ⚠' : ''}</button>`;
+      >${providerLabel(provider.id)}
+          ${provider.stale
+            ? html`<s-icon name="warningTriangle" size="10"></s-icon>`
+            : ''}</button>`;
 
 @customElement('workspace-hud')
 export class WorkspaceHud extends BaseComponent {
   static override styles = css`
-    :host { position: absolute; bottom: calc(var(--composer-height, 0px) + var(--spacing-scale-4)); left: 50%; transform: translateX(-50%); z-index: var(--zIndex-layers-panel); }
+    :host {
+      position: absolute;
+      bottom: calc(var(--composer-height, 0px) + var(--spacing-scale-4));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: var(--zIndex-layers-panel);
+    }
     .hud {
-      display: flex; align-items: center; gap: var(--spacing-scale-2);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
       padding: var(--spacing-scale-1) var(--spacing-scale-2);
       border: 1px solid var(--colors-semantic-border-subtle);
       border-radius: 999px;
@@ -68,19 +79,45 @@ export class WorkspaceHud extends BaseComponent {
       backdrop-filter: blur(8px);
       box-shadow: var(--shadows-md, 0 2px 12px rgb(0 0 0 / 0.3));
     }
-    .modes, .layers { display: flex; gap: 2px; }
-    .layers { border-left: 1px solid var(--colors-semantic-border-subtle); padding-left: var(--spacing-scale-2); }
-    button {
-      border: none; border-radius: 999px; cursor: pointer;
-      padding: var(--spacing-scale-1) var(--spacing-scale-3);
-      background: transparent; color: var(--colors-semantic-text-secondary);
-      font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs);
+    .modes,
+    .layers {
+      display: flex;
+      gap: 2px;
     }
-    button:hover { background: var(--colors-semantic-bg-subtle); color: var(--colors-semantic-text-primary); }
-    button[aria-pressed='true'] { background: var(--colors-semantic-accent-cyan); color: var(--colors-semantic-bg-base); }
-    button.control-on[aria-pressed='true'] { background: var(--colors-semantic-accent-amber); color: var(--colors-semantic-bg-base); }
-    button.stop-btn { background: var(--colors-semantic-accent-red); color: var(--colors-semantic-bg-base); }
-    button.stop-btn:hover { background: var(--colors-semantic-accent-red); filter: brightness(1.2); }
+    .layers {
+      border-left: 1px solid var(--colors-semantic-border-subtle);
+      padding-left: var(--spacing-scale-2);
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      padding: var(--spacing-scale-1) var(--spacing-scale-3);
+      background: transparent;
+      color: var(--colors-semantic-text-secondary);
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-xs);
+    }
+    button:hover {
+      background: var(--colors-semantic-bg-subtle);
+      color: var(--colors-semantic-text-primary);
+    }
+    button[aria-pressed='true'] {
+      background: var(--colors-semantic-accent-cyan);
+      color: var(--colors-semantic-bg-base);
+    }
+    button.control-on[aria-pressed='true'] {
+      background: var(--colors-semantic-accent-amber);
+      color: var(--colors-semantic-bg-base);
+    }
+    button.stop-btn {
+      background: var(--colors-semantic-accent-red);
+      color: var(--colors-semantic-bg-base);
+    }
+    button.stop-btn:hover {
+      background: var(--colors-semantic-accent-red);
+      filter: brightness(1.2);
+    }
     .chip {
       padding: 0 var(--spacing-scale-2);
       color: var(--colors-semantic-text-muted);
@@ -95,16 +132,55 @@ export class WorkspaceHud extends BaseComponent {
       box-shadow: var(--shadows-panel);
       overflow: hidden;
     }
-    .stats { left: 50%; transform: translateX(-50%); width: min(340px, 92vw); }
-    .stats header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-1) var(--spacing-scale-2); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .stats .title { flex: 1; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); font-weight: var(--typography-fontWeights-semibold); color: var(--colors-semantic-text-primary); }
-    .ranges { display: flex; gap: 2px; }
-    .ranges button { padding: 0 var(--spacing-scale-2); font-size: var(--typography-scale-xs); }
-    .ranges button[aria-pressed='true'] { color: var(--colors-semantic-accent-primary); }
-    .spark { height: 28px; padding: var(--spacing-scale-1) 0; }
-    .snapshot { max-height: 132px; overflow: auto; }
-    .panels { right: 0; display: flex; flex-direction: column; padding: var(--spacing-scale-1); min-width: 160px; }
-    .panels button { text-align: left; border-radius: var(--borderRadius-scale-sm); }
+    .stats {
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(340px, 92vw);
+    }
+    .stats header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-1) var(--spacing-scale-2);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .stats .title {
+      flex: 1;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-xs);
+      font-weight: var(--typography-fontWeights-semibold);
+      color: var(--colors-semantic-text-primary);
+    }
+    .ranges {
+      display: flex;
+      gap: 2px;
+    }
+    .ranges button {
+      padding: 0 var(--spacing-scale-2);
+      font-size: var(--typography-scale-xs);
+    }
+    .ranges button[aria-pressed='true'] {
+      color: var(--colors-semantic-accent-primary);
+    }
+    .spark {
+      height: 28px;
+      padding: var(--spacing-scale-1) 0;
+    }
+    .snapshot {
+      max-height: 132px;
+      overflow: auto;
+    }
+    .panels {
+      right: 0;
+      display: flex;
+      flex-direction: column;
+      padding: var(--spacing-scale-1);
+      min-width: 160px;
+    }
+    .panels button {
+      text-align: left;
+      border-radius: var(--borderRadius-scale-sm);
+    }
   `;
 
   @state() private statsOpen = false;
@@ -141,7 +217,9 @@ override render() {
           aria-label="Table of contents"
           @click=${(event: Event) =>
             dispatchCommand('overlay.toc', { anchor: event.currentTarget as HTMLElement })}
-        >☰</button>
+        >
+          <s-icon name="menu" size="14"></s-icon>
+        </button>
         ${
           hasTemporalData()
             ? html`<button
@@ -150,7 +228,9 @@ override render() {
                 aria-label="Timeline"
                 @click=${(event: Event) =>
                   dispatchCommand('overlay.timeline', { anchor: event.currentTarget as HTMLElement })}
-              >⏱</button>`
+              >
+                <s-icon name="history" size="14"></s-icon>
+              </button>`
             : ''
         }
         <button
@@ -159,14 +239,18 @@ override render() {
           aria-label="Telemetry"
           aria-pressed=${this.statsOpen}
           @click=${() => this.toggleStats()}
-        >📈</button>
+        >
+          <s-icon name="chart" size="14"></s-icon>
+        </button>
         <button
           data-action="panels"
           title="Panels"
           aria-label="Panels"
           aria-pressed=${this.panelsOpen}
           @click=${() => this.togglePanels()}
-        >▾</button>
+        >
+          <s-icon name="chevronDown" size="14"></s-icon>
+        </button>
         <div class="modes">
           ${workspaceRenderers()
             .filter((renderer) => {
@@ -209,7 +293,9 @@ override render() {
                   aria-pressed=${true}
                   @click=${() => dispatchCommand('control.mode.toggle')}
                   class="control-on"
-                >⬢</button>
+                >
+                  <s-icon name="focus" size="14"></s-icon>
+                </button>
                 ${
                   reasoningRunning
                     ? html`<button
@@ -218,7 +304,9 @@ override render() {
                         aria-label="Abort reasoning run"
                         @click=${() => dispatchCommand('reasoning.abort')}
                         class="stop-btn"
-                      >■</button>`
+                      >
+                        <s-icon name="abort" size="14"></s-icon>
+                      </button>`
                     : ''
                 }
               `
@@ -228,7 +316,9 @@ override render() {
                 aria-label="Control mode"
                 aria-pressed=${false}
                 @click=${() => dispatchCommand('control.mode.toggle')}
-              >⬢</button>`
+              >
+                <s-icon name="focus" size="14"></s-icon>
+              </button>`
         }
         <button
           data-action="settings"
@@ -236,14 +326,18 @@ override render() {
           aria-label="Settings"
           @click=${(event: Event) =>
             dispatchCommand('overlay.settings', { anchor: event.currentTarget as HTMLElement })}
-        >⚙</button>
+        >
+          <s-icon name="settingsGear" size="14"></s-icon>
+        </button>
         <button
           data-action="palette"
           title="Command palette (⌘K)"
           aria-label="Command palette"
           @click=${(event: Event) =>
             dispatchCommand('overlay.palette', { anchor: event.currentTarget as HTMLElement })}
-        >⌘K</button>
+        >
+          <kbd style="font-size:0.7rem;opacity:0.7">⌘K</kbd>
+        </button>
         ${providerChip(provider)}
       </div>
     `;

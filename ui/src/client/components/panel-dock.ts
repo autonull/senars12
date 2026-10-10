@@ -30,7 +30,10 @@ export class PanelDock extends BaseComponent {
       transition: var(--transitions-fast); white-space: nowrap;
     }
     .tab:hover { color: var(--colors-semantic-text-primary); background: var(--colors-semantic-bg-panel-hover); }
-    .tab.active { color: var(--colors-semantic-accent-primary); border-bottom-color: var(--colors-semantic-accent-primary); }
+    .tab.active {
+      color: var(--colors-semantic-accent-primary);
+      border-bottom-color: var(--colors-semantic-accent-primary);
+    }
     .tab-close {
       margin-left: var(--spacing-scale-1); padding: 0; line-height: 1;
       background: none; border: none; color: var(--colors-semantic-text-muted); cursor: pointer;
@@ -84,13 +87,25 @@ export class PanelDock extends BaseComponent {
         <div class="tabs" role="tablist">
           ${tabs.map(
             (tab) => html`
-            <button
-              class="tab ${this.activeTab === tab.id ? 'active' : ''}"
-              role="tab" aria-selected=${this.activeTab === tab.id}
-              @click=${() => (this.activeTab = tab.id)}>
-              ${tab.label}
-              <button class="tab-close" @click=${(e: Event) => { e.stopPropagation(); togglePanel(tab.id); }} aria-label="Close ${tab.label}">×</button>
-            </button>`
+              <button
+                class="tab ${this.activeTab === tab.id ? 'active' : ''}"
+                role="tab"
+                aria-selected=${this.activeTab === tab.id}
+                @click=${() => (this.activeTab = tab.id)}
+              >
+                ${tab.label}
+                <button
+                  class="tab-close"
+                  @click=${(e: Event) => {
+                    e.stopPropagation();
+                    togglePanel(tab.id);
+                  }}
+                  aria-label="Close ${tab.label}"
+                >
+                  ×
+                </button>
+              </button>
+            `
           )}
         </div>
         <div class="panel-content" role="tabpanel">
@@ -109,10 +124,25 @@ export class PanelDock extends BaseComponent {
       case 'search': {
         const hasNodes = $graphNodes.get().size > 0;
         return html`
-          <s-panel heading="Search" docked="right" closable @s-close=${() => togglePanel('search')}>
+          <s-panel
+            heading="Search"
+            docked="right"
+            closable
+            @s-close=${() => togglePanel('search')}
+          >
             <s-input type="search" placeholder="Search concepts…"></s-input>
-            ${!hasNodes ? html`<s-empty-state icon="search" heading="No concepts" description="Send a message to populate the graph" size="sm"></s-empty-state>` : ''}
-          </s-panel>`;
+            ${!hasNodes
+              ? html`
+                  <s-empty-state
+                    icon="search"
+                    heading="No concepts"
+                    description="Send a message to populate the graph"
+                    size="sm"
+                  ></s-empty-state>
+                `
+              : ''}
+          </s-panel>
+        `;
       }
       case 'chat': {
         return html`<chat-history-panel></chat-history-panel>`;

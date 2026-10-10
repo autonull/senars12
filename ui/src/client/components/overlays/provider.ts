@@ -22,29 +22,148 @@ import { $webllmActive, $webllmAvailable } from '../../core/store.js';
 @customElement('s-provider')
 export class ProviderView extends SurfaceComponent {
   static override styles = css`
-    :host { position: fixed; top: 8vh; left: 50%; transform: translateX(-50%); width: min(460px, 94vw); z-index: 1; }
-    :host([hidden]) { display: none; }
-    .panel { display: flex; flex-direction: column; max-height: 72vh; background: var(--colors-semantic-bg-panel-solid); border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-panel); box-shadow: var(--shadows-panel); overflow: hidden; }
-    header { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); }
-    .title { flex: 1; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); font-weight: var(--typography-fontWeights-semibold); color: var(--colors-semantic-text-primary); }
-    .action { border: 1px solid var(--colors-semantic-border-subtle); border-radius: 4px; padding: 2px var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-secondary); cursor: pointer; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); }
-    .action:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
-    .close { border: none; background: transparent; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: var(--typography-scale-base); }
-    .active { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border-bottom: 1px solid var(--colors-semantic-border-subtle); font-size: var(--typography-scale-xs); }
-    .dot { border-radius: 50%; height: 6px; width: 6px; }
-    .ok { background: var(--colors-primitive-success); } .down { background: var(--colors-primitive-error); }
-    .active .name { color: var(--colors-semantic-text-primary); font-family: var(--typography-fontFamilies-ui); }
-    .active .model { color: var(--colors-semantic-text-muted); font-family: var(--typography-fontFamilies-data); }
-    .notice { padding: var(--spacing-scale-2) var(--spacing-scale-3); color: var(--colors-primitive-error); font-size: var(--typography-scale-xs); }
-    ul { list-style: none; margin: 0; padding: var(--spacing-scale-2); overflow: auto; display: flex; flex-direction: column; gap: 2px; }
-    .provider { display: flex; align-items: baseline; gap: var(--spacing-scale-2); width: 100%; text-align: left; border: none; border-radius: 4px; padding: var(--spacing-scale-2); background: transparent; color: var(--colors-semantic-text-primary); cursor: pointer; }
-    .provider:hover:not(:disabled) { background: var(--colors-semantic-bg-subtle); }
-    .provider[aria-current='true'] { background: var(--colors-semantic-bg-subtle); outline: 1px solid var(--colors-semantic-accent-cyan); }
-    .provider:disabled { opacity: 0.5; cursor: not-allowed; }
-    .provider .label { flex: 1; font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); }
-    .provider .kind { text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
-    .provider .state { font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-muted); }
-    .empty { padding: var(--spacing-scale-4); text-align: center; color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-sm); }
+    :host {
+      position: fixed;
+      top: 8vh;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(460px, 94vw);
+      z-index: 1;
+    }
+    :host([hidden]) {
+      display: none;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      max-height: 72vh;
+      background: var(--colors-semantic-bg-panel-solid);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: var(--borderRadius-component-panel);
+      box-shadow: var(--shadows-panel);
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+    }
+    .title {
+      flex: 1;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+      font-weight: var(--typography-fontWeights-semibold);
+      color: var(--colors-semantic-text-primary);
+    }
+    .action {
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: 4px;
+      padding: 2px var(--spacing-scale-2);
+      background: transparent;
+      color: var(--colors-semantic-text-secondary);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-xs);
+    }
+    .action:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
+    .close {
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: var(--typography-scale-base);
+    }
+    .active {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+      font-size: var(--typography-scale-xs);
+    }
+    .dot {
+      border-radius: 50%;
+      height: 6px;
+      width: 6px;
+    }
+    .ok {
+      background: var(--colors-primitive-success);
+    }
+    .down {
+      background: var(--colors-primitive-error);
+    }
+    .active .name {
+      color: var(--colors-semantic-text-primary);
+      font-family: var(--typography-fontFamilies-ui);
+    }
+    .active .model {
+      color: var(--colors-semantic-text-muted);
+      font-family: var(--typography-fontFamilies-data);
+    }
+    .notice {
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      color: var(--colors-primitive-error);
+      font-size: var(--typography-scale-xs);
+    }
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: var(--spacing-scale-2);
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .provider {
+      display: flex;
+      align-items: baseline;
+      gap: var(--spacing-scale-2);
+      width: 100%;
+      text-align: left;
+      border: none;
+      border-radius: 4px;
+      padding: var(--spacing-scale-2);
+      background: transparent;
+      color: var(--colors-semantic-text-primary);
+      cursor: pointer;
+    }
+    .provider:hover:not(:disabled) {
+      background: var(--colors-semantic-bg-subtle);
+    }
+    .provider[aria-current='true'] {
+      background: var(--colors-semantic-bg-subtle);
+      outline: 1px solid var(--colors-semantic-accent-cyan);
+    }
+    .provider:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .provider .label {
+      flex: 1;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+    }
+    .provider .kind {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+    }
+    .provider .state {
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-text-muted);
+    }
+    .empty {
+      padding: var(--spacing-scale-4);
+      text-align: center;
+      color: var(--colors-semantic-text-muted);
+      font-size: var(--typography-scale-sm);
+    }
   `;
 
   override connectedCallback(): void {
@@ -70,7 +189,15 @@ export class ProviderView extends SurfaceComponent {
           @header-close=${this.close}
           @header-pin=${this.onPinChange}
         ></overlay-header>
-        <div style="display:flex;align-items:center;gap:var(--spacing-scale-2);padding:var(--spacing-scale-2) var(--spacing-scale-3);border-bottom:1px solid var(--colors-semantic-border-subtle);">
+        <div
+          style="
+            display:flex;
+            align-items:center;
+            gap:var(--spacing-scale-2);
+            padding:var(--spacing-scale-2) var(--spacing-scale-3);
+            border-bottom:1px solid var(--colors-semantic-border-subtle);
+          "
+        >
           <button class="action" @click=${() => refreshLmStatus()}>Refresh</button>
         </div>
         <div class="active">

@@ -73,38 +73,231 @@ let historyIndex = -1;
 @customElement('input-hud')
 export class InputHUD extends BaseComponent {
   static override styles = css`
-    :host { display: block; position: fixed; bottom: 0; left: 0; right: 0; z-index: var(--zIndex-layers-panel); pointer-events: none; }
-    .hud-input { pointer-events: auto; background: var(--colors-semantic-bg-panel-solid); border-top: 1px solid var(--colors-semantic-border-subtle); padding: var(--spacing-scale-2) var(--spacing-scale-4); display: flex; gap: var(--spacing-scale-3); align-items: flex-end; max-width: 900px; margin: 0 auto; }
-    .input-wrapper { flex: 1; display: flex; flex-direction: column; gap: var(--spacing-scale-1); position: relative; }
-    textarea { background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle); color: var(--colors-semantic-text-primary); padding: var(--spacing-scale-3) var(--spacing-scale-4); font-family: var(--typography-fontFamilies-ui); font-size: 0.85rem; line-height: 1.5; border-radius: 6px; resize: none; outline: none; transition: var(--transitions-fast); min-height: 44px; max-height: 200px; overflow-y: auto; }
-    textarea:focus { border-color: var(--colors-semantic-border-focus); box-shadow: 0 0 0 1px var(--colors-semantic-border-focus); }
+    :host {
+      display: block;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: var(--zIndex-layers-panel);
+      pointer-events: none;
+    }
+    .hud-input {
+      pointer-events: auto;
+      background: var(--colors-semantic-bg-panel-solid);
+      border-top: 1px solid var(--colors-semantic-border-subtle);
+      padding: var(--spacing-scale-2) var(--spacing-scale-4);
+      display: flex;
+      gap: var(--spacing-scale-3);
+      align-items: flex-end;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .input-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-scale-1);
+      position: relative;
+    }
+    textarea {
+      background: var(--colors-semantic-bg-base);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      color: var(--colors-semantic-text-primary);
+      padding: var(--spacing-scale-3) var(--spacing-scale-4);
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: 0.85rem;
+      line-height: 1.5;
+      border-radius: 6px;
+      resize: none;
+      outline: none;
+      transition: var(--transitions-fast);
+      min-height: 44px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    textarea:focus {
+      border-color: var(--colors-semantic-border-focus);
+      box-shadow: 0 0 0 1px var(--colors-semantic-border-focus);
+    }
 
-    .hud-footer { display: flex; justify-content: space-between; align-items: center; padding: 0 2px; }
-    .modes { display: flex; gap: var(--spacing-scale-1); flex-wrap: wrap; }
-    .modes button { background: transparent; border: 1px solid var(--colors-semantic-border-subtle); color: var(--colors-semantic-text-secondary); padding: 1px var(--spacing-scale-2); font-family: var(--typography-fontFamilies-data); font-size: 0.6rem; border-radius: 999px; cursor: pointer; transition: var(--transitions-fast); }
-    .modes button[aria-pressed='true'] { background: var(--colors-semantic-accent-primary); color: var(--colors-semantic-text-on-accent); border-color: transparent; }
-    .token-count { font-family: var(--typography-fontFamilies-data); font-size: 0.6rem; color: var(--colors-semantic-text-muted); }
+    .hud-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 2px;
+    }
+    .modes {
+      display: flex;
+      gap: var(--spacing-scale-1);
+      flex-wrap: wrap;
+    }
+    .modes button {
+      background: transparent;
+      border: 1px solid var(--colors-semantic-border-subtle);
+      color: var(--colors-semantic-text-secondary);
+      padding: 1px var(--spacing-scale-2);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: 0.6rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: var(--transitions-fast);
+    }
+    .modes button[aria-pressed='true'] {
+      background: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-text-on-accent);
+      border-color: transparent;
+    }
+    .token-count {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: 0.6rem;
+      color: var(--colors-semantic-text-muted);
+    }
 
-    .actions { display: flex; gap: var(--spacing-scale-2); align-items: center; }
-    .actions button { background: transparent; border: 1px solid var(--colors-semantic-border-subtle); color: var(--colors-semantic-text-secondary); padding: var(--spacing-scale-2) var(--spacing-scale-3); font-size: 0.7rem; border-radius: var(--borderRadius-component-button); cursor: pointer; font-family: var(--typography-fontFamilies-ui); transition: var(--transitions-fast); white-space: nowrap; }
-    .actions button:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
-    .send-btn { background: var(--colors-semantic-accent-primary); color: var(--colors-semantic-text-on-accent); border: none; padding: var(--spacing-scale-3) var(--spacing-scale-5); font-weight: var(--typography-fontWeights-semibold); cursor: pointer; font-family: var(--typography-fontFamilies-ui); font-size: 0.8rem; border-radius: var(--borderRadius-component-button); transition: var(--transitions-fast); }
-    .send-btn:hover { background: var(--colors-semantic-accent-primary-dim); }
-    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .actions {
+      display: flex;
+      gap: var(--spacing-scale-2);
+      align-items: center;
+    }
+    .actions button {
+      background: transparent;
+      border: 1px solid var(--colors-semantic-border-subtle);
+      color: var(--colors-semantic-text-secondary);
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      font-size: 0.7rem;
+      border-radius: var(--borderRadius-component-button);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      transition: var(--transitions-fast);
+      white-space: nowrap;
+    }
+    .actions button:hover {
+      border-color: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-accent-primary);
+    }
+    .send-btn {
+      background: var(--colors-semantic-accent-primary);
+      color: var(--colors-semantic-text-on-accent);
+      border: none;
+      padding: var(--spacing-scale-3) var(--spacing-scale-5);
+      font-weight: var(--typography-fontWeights-semibold);
+      cursor: pointer;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: 0.8rem;
+      border-radius: var(--borderRadius-component-button);
+      transition: var(--transitions-fast);
+    }
+    .send-btn:hover {
+      background: var(--colors-semantic-accent-primary-dim);
+    }
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
-    .suggestions { position: absolute; bottom: 100%; left: 0; right: 0; background: var(--colors-semantic-bg-elevated); border: 1px solid var(--colors-semantic-border-default); border-radius: 6px 6px 0 0; box-shadow: 0 -4px 12px rgba(0,0,0,0.3); max-height: 160px; overflow-y: auto; z-index: var(--zIndex-layers-tooltip); }
-    .suggestion { padding: var(--spacing-scale-2) var(--spacing-scale-3); font-family: var(--typography-fontFamilies-data); font-size: 0.7rem; color: var(--colors-semantic-text-primary); cursor: pointer; display: flex; align-items: center; gap: var(--spacing-scale-2); }
-    .suggestion:hover, .suggestion.selected { background: var(--colors-semantic-bg-panel-hover); }
-    .suggestion-type { font-size: 0.55rem; color: var(--colors-semantic-text-muted); text-transform: uppercase; padding: 1px 4px; border: 1px solid var(--colors-semantic-border-subtle); border-radius: 3px; }
-    .decomposition { display: flex; flex-wrap: wrap; gap: var(--spacing-scale-1); }
-    .segment { display: inline-flex; align-items: center; gap: var(--spacing-scale-1); max-width: 100%; padding: 1px var(--spacing-scale-2); border: 1px solid var(--colors-semantic-border-subtle); border-radius: 999px; font-family: var(--typography-fontFamilies-data); font-size: 0.6rem; color: var(--colors-semantic-text-secondary); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-    .segment-kind { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.55rem; color: var(--colors-semantic-text-muted); }
-    .contexts { display: flex; align-items: center; gap: var(--spacing-scale-2); flex-wrap: wrap; padding: 2px 2px 0; }
-    .context-label { color: var(--colors-semantic-text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.55rem; }
-    .context { display: inline-flex; align-items: center; gap: 4px; padding: 0 var(--spacing-scale-2); border-radius: 999px; border: 1px solid var(--colors-semantic-accent-primary); font-family: var(--typography-fontFamilies-data); font-size: 0.65rem; color: var(--colors-semantic-text-secondary); }
-    .context-title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 32ch; }
-    .context-clear { background: transparent; border: none; color: var(--colors-semantic-text-muted); cursor: pointer; font-size: 0.85rem; line-height: 1; padding: 0; }
-    .context-clear:hover { color: var(--colors-semantic-accent-primary); }
+    .suggestions {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      right: 0;
+      background: var(--colors-semantic-bg-elevated);
+      border: 1px solid var(--colors-semantic-border-default);
+      border-radius: 6px 6px 0 0;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+      max-height: 160px;
+      overflow-y: auto;
+      z-index: var(--zIndex-layers-tooltip);
+    }
+    .suggestion {
+      padding: var(--spacing-scale-2) var(--spacing-scale-3);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: 0.7rem;
+      color: var(--colors-semantic-text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+    }
+    .suggestion:hover,
+    .suggestion.selected {
+      background: var(--colors-semantic-bg-panel-hover);
+    }
+    .suggestion-type {
+      font-size: 0.55rem;
+      color: var(--colors-semantic-text-muted);
+      text-transform: uppercase;
+      padding: 1px 4px;
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: 3px;
+    }
+    .decomposition {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-scale-1);
+    }
+    .segment {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-scale-1);
+      max-width: 100%;
+      padding: 1px var(--spacing-scale-2);
+      border: 1px solid var(--colors-semantic-border-subtle);
+      border-radius: 999px;
+      font-family: var(--typography-fontFamilies-data);
+      font-size: 0.6rem;
+      color: var(--colors-semantic-text-secondary);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .segment-kind {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.55rem;
+      color: var(--colors-semantic-text-muted);
+    }
+    .contexts {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-2);
+      flex-wrap: wrap;
+      padding: 2px 2px 0;
+    }
+    .context-label {
+      color: var(--colors-semantic-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.55rem;
+    }
+    .context {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 var(--spacing-scale-2);
+      border-radius: 999px;
+      border: 1px solid var(--colors-semantic-accent-primary);
+      font-family: var(--typography-fontFamilies-data);
+      font-size: 0.65rem;
+      color: var(--colors-semantic-text-secondary);
+    }
+    .context-title {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      max-width: 32ch;
+    }
+    .context-clear {
+      background: transparent;
+      border: none;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      line-height: 1;
+      padding: 0;
+    }
+    .context-clear:hover {
+      color: var(--colors-semantic-accent-primary);
+    }
   `;
   @state() private composing = false;
   @state() private textareaValue = '';

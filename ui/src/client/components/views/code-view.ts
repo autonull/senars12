@@ -27,12 +27,25 @@ export class CodeView extends BaseComponent {
         border-right: 1px solid var(--colors-semantic-border-subtle);
       }
       .body {
-        display: flex; flex-direction: column; padding: var(--spacing-scale-2) var(--spacing-scale-3);
+        display: flex;
+        flex-direction: column;
+        padding: var(--spacing-scale-2) var(--spacing-scale-3);
         overflow-x: auto;
       }
-      .line { white-space: pre; min-height: 1.5em; }
-      .more { padding: var(--spacing-scale-1) var(--spacing-scale-3); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
-      .empty { padding: var(--spacing-scale-3); color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
+      .line {
+        white-space: pre;
+        min-height: 1.5em;
+      }
+      .more {
+        padding: var(--spacing-scale-1) var(--spacing-scale-3);
+        color: var(--colors-semantic-text-muted);
+        font-size: var(--typography-scale-xs);
+      }
+      .empty {
+        padding: var(--spacing-scale-3);
+        color: var(--colors-semantic-text-muted);
+        font-size: var(--typography-scale-xs);
+      }
     `,
   ];
   @property({ attribute: false }) data: CodeDataset | null = null;
