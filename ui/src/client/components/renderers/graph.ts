@@ -5,7 +5,7 @@
  * Implements incremental `present`/`apply` with animation (§P2.1).
  */
 
-import type { BlockKind, Ref, SemanticBlock, SemanticLink, WorkspaceOp } from '../../core/workspace-graph.js';
+import type { BlockKind, Ref, SemanticBlock, SemanticLink, WorkspaceGraph, WorkspaceOp } from '../../core/workspace-graph.js';
 import { $activeRenderer, $selectedNodeId, $selectedNodeIds, $workspaceGraph, CONVERSATION_LAYOUT_CATALOG, CONVERSATION_LAYOUT_IDS, registerCommand, setGraphLayer, setWorkspaceFocus, setWorkspaceSelection } from '../../core/index.js';
 import { eventBus } from '../../core/events.js';
 import { getViewportInstance } from '../graph-viewport.js';
@@ -17,6 +17,8 @@ import {
   type WorkspaceRenderer,
   type WorkspaceRendererCaps,
 } from '../../core/workspace-renderer.js';
+import { diffWorkspaceGraph } from '../../core/workspace-diff.js';
+import { applyWorkspaceOps } from '../../core/workspace-graph.js';
 import './graph-surface.js';
 
 const workspaceRefs = (ids: Iterable<Ref>): Ref[] => {
@@ -77,16 +79,27 @@ class GraphRenderer implements WorkspaceRenderer {
 
   present(blocks: readonly SemanticBlock[], links: readonly SemanticLink[]): void {
     const viewport = getViewportInstance();
-    if (viewport) {
-      // Full hydration: replace the workspace graph and let viewport sync
-      const graph = $workspaceGraph.get();
-      graph.blocks.clear();
-      graph.links.clear();
-      for (const block of blocks) graph.blocks.set(block.id, block);
-      for (const link of links) graph.links.set(link.id, link);
-      graph.roots = blocks.map((b) => b.id);
-      $workspaceGraph.set({ ...graph });
+    if (!viewport) return;
+
+    // Build new graph from incoming blocks/links
+    const newGraph: WorkspaceGraph = {
+      blocks: new Map(blocks.map((b) => [b.id, b])),
+      links: new Map(links.map((l) => [l.id, l])),
+      roots: blocks.map((b) => b.id),
+      selection: new Set(),
+    };
+
+    // Diff against current graph
+    const currentGraph = $workspaceGraph.get();
+    const ops = diffWorkspaceGraph(currentGraph, newGraph);
+
+    // Apply ops with animation
+    if (ops.length > 0) {
+      viewport.applyWorkspaceOps(ops);
     }
+
+    // Update store to new graph state
+    $workspaceGraph.set(newGraph);
   }
 
   apply(ops: readonly WorkspaceOp[]): void {
