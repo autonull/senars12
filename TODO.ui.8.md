@@ -74,7 +74,7 @@ P2 ─▶ P3 ─▶ P4
 | 3.1 | **`5.1 execution`** — `ui.command` over the workspace (renderer, focus, explain, highlight, ToC/search, artifact, embed, compose, narrate, scrub); round-trip through `applyServerMessage`; visible in timeline/telemetry. **Implemented**: `dispatchCommand` in `commands.ts:293`. | ✅ Done | `core/commands.ts:267-313`, `core/ws-client.ts:170-174`, `core/store-bindings.ts` | engine-emitted command drives UI; one round-trip test + cell; timeline shows command log |
 | 3.2 | **`5.1 args`** — parameterised commands with `params` descriptor; type-checked args; `available()`-aware palette badge. **Implemented**: Zod schemas in `command-schemas.ts`. | ✅ Done | `core/command-schemas.ts`, `core/commands.ts:49-52`, `components/overlays/palette.ts` | palette prompts for args (Zod schema); invalid args rejected with context; badge shows `available()` state; OpenAPI-compatible descriptors for agent `ui.command` |
 | 3.3 | **`5.2 control mode`** — off → suggestions; on → execution + visible command log + HUD **stop**; budget/stop in HUD. **Implemented**: `$controlMode` atom in `store.ts`; `control.mode.toggle` command; HUD shows amber toggle when on, red stop button when run in-flight; `reasoning.abort` command wired to NARS backend `abort()` sending `reasoning.abort` WS message. | ✅ Done | `core/reasoning-backend.ts:90,100`, `core/nars-backend.ts:86,147`, `core/commands.ts:178-186,289-295`, `components/workspace-hud.ts:122-140`, `core/store.ts:215-218` | toggle observable in HUD; stop halts in-flight run (`reasoning.step`/`run`); budget/stop visible; cell |
-| 3.4 | **`5.3 demonstrations`** — "show me how you got that" switches renderers, focuses refs, opens provenance, narrates. Narrative sequence scriptable via command chaining. | ⬜ Not started | `core/commands.ts`, `core/workspace-renderer.ts:88-89` | one narrative sequence scripted + cell; demo command chains renderer switch → focus → explain → provenance |
+| 3.4 | **`5.3 demonstrations`** — "show me how you got that" switches renderers, focuses refs, opens provenance, narrates. Narrative sequence scriptable via command chaining. **Implemented**: `demo.play`/`demo.stop`/`demo.list` commands; `DEMOS` registry with `nars-intro`, `graph-tour`, `composer-modes` sequences; async step runner with sleep between commands. | ✅ Done | `core/commands.ts:319-420` | one narrative sequence scripted + cell; demo command chains renderer switch → focus → explain → provenance |
 
 ---
 
@@ -181,7 +181,6 @@ These are implementation patterns to follow, not separate TODO items:
 - **Graph3D**: `renderer:graph3d` — last `KNOWN_GAPS` entry (O6)
 - **A11y**: Generated targets ready — fold `surfaceA11y` into gate (O7/O13)
 - **P2.6 Motion capture**: storyboard strip support (O8)
-- **P3.4 Demonstrations**: command chaining for narratives
 - **O11 Extensibility scope**: in-repo contribution point done; full third-party loader revisit
 
 ---
@@ -205,15 +204,20 @@ These are implementation patterns to follow, not separate TODO items:
 10. **P4.4 Performance budgets** — Done: `PerformanceBudgetTracker` with assertions in projections.
 11. **P4.5 Error taxonomy** — Done: 16 typed error classes with recovery affordances in error boundary.
 
-### P5 — **NEXT: P3.4 Demonstrations** 🎯
+### P5 — **All P3 items complete** 🎯
 13. **P2.1 Incremental growth** — **Done**: `GraphRenderer.present()` computes diff via `workspace-diff.ts` and emits `WorkspaceOp` stream; `applyWorkspaceOps` in `graph-viewport.ts:778` animates enter/exit/move.
 14. **P2.2 Chat clusters** — **Done**: `isContainer` in `graph-projection.ts` treats `turn` blocks with children as compound parents; `syncWorkspaceLayer` handles fold state; block menu has Collapse/Expand; double-click toggles fold.
 15. **P2.4 Composer sweep** — **Done**: mode bar ↔ palette share action source via `composer.mode.*` commands; `composer.prefill` via `dispatchCommand('composer.prefill', ...)` or `composer:prefill` event; `ComposerFocus` extracted.
 16. **P2.5 Graph polish** — **Done**: `fitGraph` filters by `layerVisible`; global key handler binds `a` → `graph.ask-selection`; `graph.layout.cycle` command cycles conversation layouts.
 17. **P3.3 Control mode** — **Done**: `$controlMode` atom in `store.ts`; `control.mode.toggle` command; HUD shows amber toggle when on, red stop button when run in-flight; `reasoning.abort` command wired to NARS backend `abort()` sending `reasoning.abort` WS message.
+18. **P3.4 Demonstrations** — **Done**: `demo.play`/`demo.stop`/`demo.list` commands; `DEMOS` registry with `nars-intro`, `graph-tour`, `composer-modes` sequences; async step runner with sleep between commands.
 
-### P5 — Engine-Driven UI (Functional Leap)
-18. **P3.4 Demonstrations** — Command chaining for narrative sequences (renderer switch → focus → explain → provenance). **Next priority**.
+### P6 — Deferred (O6/O7/O8/O13)
+19. **P2.6 Motion capture** — Storyboard strip support (O8).
+20. **P4.3 Graph3D** — Deferred (O6).
+21. **A11y** — Fold `surfaceA11y` into gate (O7/O13).
+22. **O11 Extensibility scope** — In-repo contribution point done (X.4); full third-party loader revisit.
+23. **O13 a11y timing** — Fold into gate when ready.
 
 ### P5 — Engine-Driven UI (Functional Leap)
 16. **P3.3 Control mode** — HUD toggle, stop button → engine abort, budget/stop visible.
@@ -332,9 +336,9 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 
 ## First move
 
-**P0, P1, P2, P3, P2.2, P2.4, P2.5, P3.3 complete.** Cross-cutting (X, C, A) complete. P4 (productization) complete except P4.3 Graph3D (deferred O6).
+**P0, P1, P2, P3, P2.2, P2.4, P2.5, P3.3, P3.4 complete.** Cross-cutting (X, C, A) complete. P4 (productization) complete except P4.3 Graph3D (deferred O6).
 
-**Next: P5 — P3.4 Demonstrations** — Command chaining for narrative sequences (renderer switch → focus → explain → provenance).
+**All P2/P3 items complete.** Only deferred items remain.
 
 Remaining work:
 
@@ -349,7 +353,7 @@ Remaining work:
 | **P3.1** | Command execution | ✅ **Done** | `dispatchCommand` in `commands.ts:293` |
 | **P3.2** | Command args (Zod) | ✅ **Done** | `command-schemas.ts` with Zod validation |
 | **P3.3** | Control mode | ✅ **Done** | HUD toggle (amber when on), stop button (red) → engine abort |
-| **P3.4** | Demonstrations | ⬜ Not started | command chaining for narrative sequences |
+| **P3.4** | Demonstrations | ✅ **Done** | `demo.play`/`demo.stop`/`demo.list` commands with chained sequences |
 | **P4.3** | Graph3D | 🔴 Deferred (O6) | `renderer:graph3d` |
 | **A11y** | Accessibility | 🔴 Deferred (O7/O13) | fold `surfaceA11y` into gate |
 | **O11** | Extensibility scope | 🔴 Deferred | in-repo contribution point done (X.4); full loader revisit |

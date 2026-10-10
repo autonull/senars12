@@ -12,8 +12,18 @@ import { eventBus } from './events.js';
 import { overlays } from './overlay-registry.js';
 import { foldableSections, sectionTree } from './sections.js';
 import { narsBackend } from './nars-backend.js';
-import { $activeRenderer, $capabilities, $collapsedBlocks, $controlMode, $panels, $reasoningRunning, $workspaceGraph } from './index.js';
-import { setCollapsed } from './store.js';
+import {
+  $activeRenderer,
+  $capabilities,
+  $collapsedBlocks,
+  $controlMode,
+  $panels,
+  $reasoningRunning,
+  $workspaceGraph,
+  $conversationLayout,
+  $selectedNodeIds,
+} from './index.js';
+import { setConversationLayout, setCollapsed } from './store.js';
 import { availableComposerModes, type ComposerMode } from './composer-modes.js';
 import { workspaceRenderers } from './workspace-renderer.js';
 import { validateCommandArgs } from './command-schemas.js';
@@ -305,6 +315,108 @@ registerCommand({
   run: () => narsBackend.control?.abort(),
   available: () => reasoningAvailable() && caps().canAbort && $controlMode.get() && $reasoningRunning.get(),
 });
+
+/** Demonstration: chain commands into a narrative sequence. */
+registerCommand({
+  id: 'demo.play',
+  title: 'Play demonstration',
+  group: 'Demos',
+  keywords: 'demo demonstration narrative sequence',
+  run: (args) => playDemo(String(args.demo ?? '')),
+  parse: (args) => ({ demo: String(args.demo ?? '') }),
+  available: () => true,
+});
+
+/** Stop a running demonstration. */
+registerCommand({
+  id: 'demo.stop',
+  title: 'Stop demonstration',
+  group: 'Demos',
+  keywords: 'demo demonstration stop cancel',
+  run: () => stopDemo(),
+  available: () => demoRunning.get(),
+});
+
+/** List available demonstrations. */
+registerCommand({
+  id: 'demo.list',
+  title: 'List demonstrations',
+  group: 'Demos',
+  keywords: 'demo demonstration list available',
+  run: () => {
+    const demos = Object.keys(DEMOS);
+    eventBus.emit('overlay:open', { id: 'demo-list', ref: demos.join(', ') });
+  },
+  available: () => true,
+});
+
+/** Demo state. */
+import { atom } from './store.js';
+const demoRunning = atom<boolean>(false);
+const demoQueue = atom<Array<() => Promise<void>>>([]);
+
+/** Built-in demonstration sequences. */
+const DEMOS: Record<string, (() => Promise<void>)[]> = {
+  'nars-intro': [
+    async () => { dispatchCommand('overlay.palette'); },
+    async () => { await sleep(500); dispatchCommand('graph.layout.chronological-flow'); },
+    async () => { await sleep(500); dispatchCommand('overlay.toc'); },
+    async () => { await sleep(500); dispatchCommand('overlay.toc'); },
+    async () => { await sleep(500); dispatchCommand('reasoning.run'); },
+    async () => { await sleep(2000); dispatchCommand('reasoning.abort'); },
+  ],
+  'graph-tour': [
+    async () => { dispatchCommand('overlay.palette'); },
+    async () => { await sleep(500); dispatchCommand('graph.layout.chronological-flow'); },
+    async () => { await sleep(500); dispatchCommand('graph.layout.semantic-map'); },
+    async () => { await sleep(500); dispatchCommand('graph.layout.artifact-map'); },
+    async () => { await sleep(500); dispatchCommand('graph.layout.source-view'); },
+    async () => { await sleep(500); dispatchCommand('graph.layout.cycle'); },
+  ],
+  'composer-modes': [
+    async () => { dispatchCommand('overlay.palette'); },
+    async () => { await sleep(500); dispatchCommand('composer.mode.chat'); },
+    async () => { await sleep(500); dispatchCommand('composer.mode.code'); },
+    async () => { await sleep(500); dispatchCommand('composer.mode.nal'); },
+    async () => { await sleep(500); dispatchCommand('composer.mode.reason'); },
+  ],
+};
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function playDemo(name: string): Promise<void> {
+  const steps = DEMOS[name];
+  if (!steps) {
+    console.warn(`[demo] Unknown demo: ${name}`);
+    return;
+  }
+  demoRunning.set(true);
+  demoQueue.set([...steps]);
+  await runDemoSteps();
+}
+
+function stopDemo(): void {
+  demoRunning.set(false);
+  demoQueue.set([]);
+}
+
+async function runDemoSteps(): Promise<void> {
+  while (demoRunning.get() && demoQueue.get().length > 0) {
+    const step = demoQueue.get().shift();
+    if (step) {
+      demoQueue.set([...demoQueue.get()]);
+      try {
+        await step();
+      } catch (e) {
+        console.error('[demo] Step failed:', e);
+      }
+    }
+    await sleep(100);
+  }
+  demoRunning.set(false);
+}
 
 /** Every command the palette may offer right now, explicit then derived. */
 export const activeCommands = (): Command[] =>
