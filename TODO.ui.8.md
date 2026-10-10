@@ -202,9 +202,10 @@ These are implementation patterns to follow, not separate TODO items:
    - Hand-curated cells remain as overrides (merged by id)
    - Coverage grows with registration
 
-### P2 — Agent-Driven UI (Functional Leap)
-5. **P2.3 Floating composer** → extract `ComposerFocus` component
-6. **P3.1/P3.2 Command execution + Zod args** → type-safe `ui.command` round-trip
+### P2 — Agent-Driven UI (Functional Leap) ✅ COMPLETE
+5. **P2.3 Floating composer** — Done: Created `ComposerFocus` component (`components/composer-focus.ts`) as a floating, draggable composer with anchor positioning, capability-gated modes, and drag-to-move. Replaced fixed-bottom `input-hud` in `app-layout.ts`.
+
+6. **P3.1/P3.2 Command execution + Zod args** — Done: Added `command-schemas.ts` with Zod schemas for all commands; updated `dispatchCommand` to validate args via Zod before execution; `getAllCommandSchemas` provides JSON Schema for agent tool definitions; all command schemas have optional fields for backward compatibility with derived commands.
 
 ---
 
@@ -291,8 +292,8 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 | Priority | Actions | Rationale |
 |---|---|---|
 | **P0** | N.1 (drain recorder) + N.2 (real scenarios) ✅ **DONE** | Unblocks visual test harness; removes test-only fixtures |
-| **P1** | P2.1 (incremental growth) + X.2 (codegen cells) | Most improves feel + maintainability; all later P2 items build on this |
-| **P2** | P2.3 (floating composer) + P3.1/P3.2 (command execution + args) | Enables agent-driven UI; the functional leap |
+| **P1** | P2.1 (incremental growth) + X.2 (codegen cells) ✅ **DONE** | Most improves feel + maintainability; all later P2 items build on this |
+| **P2** | P2.3 (floating composer) + P3.1/P3.2 (command execution + args) ✅ **DONE** | Enables agent-driven UI; the functional leap |
 | **P3** | C.1–C.4 (config system) + A.1–A.3 (adaptability) | Productization backbone; enables standalone + profiles |
 | **P4** | P4.4 (performance budgets) + P4.5 (error taxonomy) | Maintainability invariants; gates that prevent regressions |
 
@@ -304,10 +305,10 @@ quiet-window); generated `docs/readme/ui-gallery.md`; `ui:verify`. 44/44 cells, 
 - [x] `pnpm --dir ui test:unit` — 425 passing
 - [x] `pnpm --dir ui test:visual:ci` — 47 cells, all passing
 - [x] `pnpm --dir ui ui:verify` — green
-- [ ] Review `TODO.ui.8.md` for current priority (now at P2.3 + P3.1/P3.2)
+- [ ] Review `TODO.ui.8.md` for current priority (now at P3: Config system + Adaptability)
 
 ---
 
 ## First move
 
-**N.1 + N.2 + P2.1 + X.2 complete.** Next: **P2.3 + P3.1/P3.2** (floating composer and type-safe command execution) — the functional leap enabling agent-driven UI.
+**N.1 + N.2 + P2.1 + X.2 + P2.3 + P3.1/P3.2 complete.** Next: **C.1–C.4 + A.1–A.3** (typed config system, persistence, Settings-driven, profiles, light theme, density, reduced motion) — the productization backbone enabling standalone + profiles.

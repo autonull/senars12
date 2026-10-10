@@ -20,6 +20,7 @@ import {
   setCollapsed,
 } from './store.js';
 import { workspaceRenderers } from './workspace-renderer.js';
+import { validateCommandArgs } from './command-schemas.js';
 
 export type CommandArgs = Record<string, unknown>;
 
@@ -278,12 +279,22 @@ export const paletteCommands = (): Command[] =>
  * is the seam the agent `ui.command` (§3.6) and any programmatic caller use, so
  * every palette command is agent-settable without a second registry. A command
  * may declare `parse` to validate/coerce args; a rejection is reported, not thrown.
+ * Zod schemas from `command-schemas.ts` provide type-safe validation for agent calls.
  */
 export const dispatchCommand = (id: string, args: CommandArgs = {}): boolean => {
   const command = activeCommands().find((candidate) => candidate.id === id);
   if (!command) return false;
+
+  // First validate with Zod schema (for agent calls)
+  const validation = validateCommandArgs(id, args);
+  if (!validation.success) {
+    console.warn(`[command] ${id} rejected: ${validation.error}`);
+    return false;
+  }
+
   try {
-    command.run(command.parse ? command.parse(args) : args);
+    const parsedArgs = (validation.data ?? args) as CommandArgs;
+    command.run(command.parse ? command.parse(parsedArgs) : parsedArgs);
   } catch (error) {
     console.warn(`[command] ${id} rejected its args`, error);
     return false;

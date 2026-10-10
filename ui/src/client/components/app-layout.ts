@@ -11,7 +11,6 @@ import {
   $selectedNodeId,
   $viewSelection,
   $workspaceGraph,
-  dispatchCommand,
   eventBus,
   mountTestApi,
   navigationForKey,
@@ -19,6 +18,7 @@ import {
   overlays,
   setWorkspaceFocus,
 } from '../core/index.js';
+import { dispatchCommand } from '../core/commands.js';
 import './overlays/index.js';
 
 const isEditableTarget = (event: KeyboardEvent): boolean =>
@@ -32,7 +32,7 @@ import './graph-toolbar.js';
 import './renderers/notebook.js';
 import './workspace-host.js';
 import './workspace-hud.js';
-import './input-hud.js';
+import './composer-focus.js';
 import './contradiction-badge.js';
 import './connection-banner.js';
 import './lm-status-panel.js';
@@ -219,6 +219,7 @@ export class AppLayout extends BaseComponent {
           }
           <workspace-host></workspace-host>
           <workspace-hud></workspace-hud>
+          <composer-focus></composer-focus>
         </div>
 
         ${
@@ -247,7 +248,7 @@ export class AppLayout extends BaseComponent {
       </div>
 
       <div class="bottom-area">
-        <input-hud></input-hud>
+        <composer-focus></composer-focus>
       </div>
 
       <error-boundary></error-boundary>
@@ -270,7 +271,7 @@ export class AppLayout extends BaseComponent {
   }
 
   private focusInput() {
-    const hud = this.shadowRoot?.querySelector('input-hud');
-    (hud as { focusInput?: () => void })?.focusInput?.();
+    const composer = this.shadowRoot?.querySelector('composer-focus');
+    (composer as { focusInput?: () => void })?.focusInput?.();
   }
 }

@@ -45,6 +45,8 @@ export type UiSignals = {
   'tool.approval.request': { call: ToolCall; spec: import('./tool-registry.js').ToolSpec };
   /** Focus the universal composer (§8.1) — palette/selection-launched, renderer-agnostic. */
   'composer:focus': { refs?: string[]; mode?: string };
+  /** Open the floating composer at a position. */
+  'composer:open': { position?: { x: number; y: number }; anchor?: string };
 };
 
 export const eventBus = new EventBus<UiSignals>();

@@ -46,7 +46,14 @@ export {
 } from './composer-modes.js';
 export { artifactViewSpec, tableFromColumns } from './artifacts.js';
 export { matchCommands } from './command-match.js';
-export { activeCommands, type Command, paletteCommands, registerCommand, registeredCommands } from './commands.js';
+export {
+  validateCommandArgs,
+  getCommandSchema,
+  getAllCommandSchemas,
+  COMMAND_SCHEMAS,
+  type InferCommandArgs,
+} from './command-schemas.js';
+export { activeCommands, type Command, paletteCommands, registerCommand, registeredCommands, type CommandArgs } from './commands.js';
 export { eventBus } from './events.js';
 export {
   explain,
@@ -226,7 +233,7 @@ export {
   type ViewportMode,
 } from './store.js';
 export { addUserMessage, applyServerMessage } from './store-bindings.js';
-export { dispatchCommand } from './commands.js';
+
 export { connect, disconnect, send } from './ws-client.js';
 export {
   defineSurface,
