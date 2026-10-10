@@ -114,6 +114,7 @@ export class GraphViewport extends BaseComponent {
   @state() private nodePopover: { x: number; y: number; ref?: string; link?: string } | null = null;
   @state() private contextMenu: { x: number; y: number; nodeId: string; blockRef?: string } | null =
     null;
+  @state() private legendOpen = false;
   // LOD (Level of Detail) thresholds for performance
   private readonly LOD_LABEL_ZOOM = 0.5;
   private readonly LOD_EDGE_THIN_ZOOM = 0.3;
@@ -147,6 +148,7 @@ export class GraphViewport extends BaseComponent {
     eventBus.on('graph:fit', this.fitGraph);
     eventBus.on('graph:search', this.searchGraph);
     eventBus.on('graph:pan-to', this.panTo);
+    eventBus.on('graph:legend-toggle', this.toggleLegend);
     mountTestApi('graph', {
       getNodeCount: () => this.cy?.nodes().length ?? 0,
       getEdgeCount: () => this.cy?.edges().length ?? 0,
@@ -186,8 +188,13 @@ export class GraphViewport extends BaseComponent {
     eventBus.off('graph:fit', this.fitGraph);
     eventBus.off('graph:search', this.searchGraph);
     eventBus.off('graph:pan-to', this.panTo);
+    eventBus.off('graph:legend-toggle', this.toggleLegend);
     this.cy?.destroy();
   }
+
+  private toggleLegend = () => {
+    this.legendOpen = !this.legendOpen;
+  };
 
   override firstUpdated() {
     const container = this.shadowRoot?.getElementById('cy-container');
@@ -377,7 +384,7 @@ export class GraphViewport extends BaseComponent {
           : ''
       }
       <graph-minimap></graph-minimap>
-      <graph-legend></graph-legend>
+      ${this.legendOpen ? html`<graph-legend></graph-legend>` : ''}
     `;
   }
 
@@ -405,6 +412,10 @@ export class GraphViewport extends BaseComponent {
     const visibleNodes = this.cy.nodes().filter((n) => layerVisible(n.hasClass('workspace'), layer));
     if (visibleNodes.nonempty()) {
       this.cy.fit(visibleNodes, 50);
+      // Prevent excessive zoom-out on sparse graphs
+      if (this.cy.zoom() < 0.5) {
+        this.cy.zoom({ level: 0.5, renderedPosition: { x: this.cy.width() / 2, y: this.cy.height() / 2 } });
+      }
     } else {
       this.cy.fit(undefined, 50);
     }

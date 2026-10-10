@@ -100,7 +100,7 @@ export class GraphLegend extends BaseComponent {
     }
   `;
 
-  @state() private open = true;
+  @state() private open = false;
 
   override connectedCallback() {
     super.connectedCallback();

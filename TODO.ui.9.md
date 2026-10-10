@@ -416,3 +416,337 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 
 ### Next Steps
 1. D.4: Craft gate (visual regression + lint in CI).
+
+---
+
+## Visual Review Findings (post-v9 implementation)
+
+> The generated gallery at `ui/tests/visual/gallery/index.html` shows all v9 changes are present in baselines, but the **review itself revealed fundamental UX gaps** that v9 did not address:
+
+| Finding | Evidence | Action Required |
+|---|---|---|
+| **Legend defaults on** — colorful legend always visible, adds visual noise | All `graph-*` cells show legend by default | Already fixed: legend now defaults closed (`graph-legend.ts: open=false`), toggled via toolbar "Legend" button |
+| **Graph legibility / zoom** — screenshots are extremely zoomed out, nodes tiny, labels unreadable | All `graph-*`, `graph-medium`, `graph-narrow` cells | Need default zoom policy: fit-to-content with minimum zoom floor; increase base node sizes; ensure labels visible at default zoom |
+| **Layout disorganization** — chrome feels scattered; panels, toolbars, graph area lack visual hierarchy | `overlay-*`, `panel-*`, `graph-*` cells | Re-evaluate information density; consider more whitespace, clearer grouping, consistent alignment |
+| **Missing Chat–Graph blend** — no cells demonstrate the *unique SeNARS paradigm*: chat dialogue embedded with live graph context | No cell shows chat + graph simultaneously with shared focus | Add visual cells: `chat-graph-split`, `chat-with-graph-context`, `anchored-inquiry` showing LM chat + graph neighborhood |
+| **Redundant cells** — many cells show nearly identical content (e.g., multiple layout cells with same conversation) | `layout-*` cells 413–483; `view-*` cells 486–533 | Curate matrix: one representative per projection type; remove duplicates; add missing paradigm demonstrations |
+| **Pixel comparison limits** — baseline diffs catch regressions but don't validate *design quality* | `test:visual:ci` passes but UX feels broken | Add **qualitative review gates**: design review checklist, heuristic evaluation, not just pixel parity |
+| **No LM interaction visible** — screenshots show static state, not the chat→reasoning→graph loop | No cell captures streaming, tool use, or belief/goal revision | Add scenario cells: `chat-streaming`, `chat-tool-approval`, `chat-belief-revision` with live indicators |
+
+### Revised Next Steps (post-review)
+
+| Priority | Action | Rationale |
+|---|---|---|
+| **Graph UX** | Default zoom fit with floor; base node sizes from tokens; label visibility at default zoom | Legibility is the #1 blocker to "usable and intuitive" |
+| **Chat–Graph cells** | Add 3–4 visual matrix cells: chat+graph split, anchored inquiry, streaming chat, tool approval | Demonstrate the *actual product differentiation* (paradigm §19) |
+| **Cell curation** | Audit `VISUAL_CELLS`; collapse redundant layout/view cells; keep one per projection type | Reduce gallery noise; each cell must earn its place |
+| **Design review gate** | Add `test:design` — manual checklist run pre-commit (typography, hierarchy, focus, density, paradigm visibility) | Pixel tests ≠ design quality; need human gate |
+| **Scenario richness** | Seed scenarios with multi-turn chat + active reasoning (beliefs, goals, contradictions) | Static graphs don't show the system working |
+
+---
+
+## Architectural Question for Next Session
+
+> **Should the visual testing strategy be restructured?**
+> - Current: 51 pixel-diff cells, many redundant, none showing the *live* SeNARS loop
+> - Alternative: Fewer baseline cells (10–15) covering shell + projections + error states, plus **scenario recordings** (video/GIF) for chat–graph interaction, streaming, tool use
+> - The "blend/embed" paradigm (§19) cannot be verified by static screenshots alone
+
+---
+
+## Strategic Review: from feature-complete to experience-complete
+
+> This section supersedes the phase *ordering* below. v9 as written is a strong reliability + craft
+> plan (F/V/C/D). It is **component-complete, not experience-complete**: it never states what a user
+> does or how the interface makes the system's genius obvious. The screenshot review is a symptom of
+> that gap. Before continuing to polish, v9 must be front-loaded with **experience architecture** and
+> a **viewport/scaling policy**, and its visual testing must become **journey-oriented**.
+
+### The core contradiction to resolve
+
+The paradigm (§19) says Chat, Notebook, Graph are **one substance**. The implementation exposes them
+as a **mutually exclusive `renderer` switch** — "switch to graph." That *contradicts the thesis*.
+
+**The ultimate SeNARS UI does not make you leave the conversation to see the knowledge; it shows the
+knowledge *through* the conversation.** The headline feature is not "a graph tab" — it is a **linked
+workspace** where speaking, reading, and seeing are simultaneous. This must move from B.1–B.3
+(yellow, "harden") to a **first-class phase**.
+
+### X — Experience Architecture (do before more polish)
+
+| # | Item | Status | Files | Acceptance |
+|---|------|--------|-------|------------|
+| X.1 | **Journeys as first-class artifacts** — name the 5 core use cases (Q&A/research · knowledge-building · goal-planning · teaching · audit) and specify each as a *flow* (steps + surfaces + transitions), not a tab. | ⬜ | `docs/ux/journeys.md` (new) | each journey has a diagram + a visual cell; a journey that can't be shown is a missing feature |
+| X.2 | **Linked workspace (the paradigm, built)** — Chat and Graph visible *together* by default (split or ambient side-canvas); selection/focus/provenance continuous; asking composes context from the selected neighborhood. | ⬜ | `components/app-layout.ts`, `components/renderers/*`, `core/store.ts` | chat + graph simultaneous; select in one → highlight in other; ask-from-selection; cells |
+| X.3 | **View presets + Display popover** — collapse `renderer · lens · layout · layer · shape · color-by` into **Ask · Explore · Read · Plan · Split** presets; expose the raw knobs in one "Display" popover (progressive disclosure L2). | ⬜ | `components/graph-toolbar.ts`, `core/store.ts` | ≤3 primary controls; presets set renderer+layout+lens+encoding; cells |
+| X.4 | **Progressive-disclosure ladder** — L0 composer+canvas · L1 view+search+zoom · L2 Display popover · L3 palette; advanced affordances appear only when their prerequisite exists. | ⬜ | `components/app-layout.ts`, `core/hints.ts` | a new user sees only L0; power grows on demand; cells |
+| X.5 | **First-run / empty-state design** — the default state teaches the next action and seeds a *legible* example (not a blank canvas); "first 5 minutes" is designed, not incidental. | ⬜ | `components/app-layout.ts`, `components/primitives/empty-state.ts` | empty state is a legible, actionable invitation; cells |
+| X.6 | **Delight / moments of insight** — one purposeful motion vocabulary for: derivation forming, contradiction surfacing, graph responding to a new turn, truth revising. Motion conveys state, never decorates. | ⬜ | `styles/*`, `components/renderers/*` | a derivation forming is *visible*; reduced-motion gated; cells/recording |
+
+### G — Viewport, Auto-Scaling & Legibility (the missing phase)
+
+> The screenshots are "too small / off-center / scattered" because there is **no scaling policy**.
+> This is a design-system concern (belongs with D) and a graph concern (belongs with V), but it is
+> currently owned by neither. It gets its own phase because *nothing above an illegible view counts*.
+
+| # | Item | Status | Files | Acceptance |
+|---|------|--------|-------|------------|
+| G.1 | **Auto-scaling node size** — node size = `f(viewport area, visible count, importance)` from tokens, not fixed px; legible on a phone and on 4K. | ⬜ | `utils/adapter-2d.ts`, `design-tokens.json` | node size adapts; a legibility assertion at default view; cells |
+| G.2 | **Zoom policy (floor/ceiling/center)** — auto-fit on load with a **minimum legible zoom** and a **maximum "one-node" zoom**; **auto-center on content** (not origin). | ⬜ | `components/graph-viewport.ts` | default view is centered and legible; floor/ceiling honored; unit + cells |
+| G.3 | **Label LOD by importance × zoom** — labels appear by importance and zoom; the graph is legible *at rest*; no label collisions at medium density. | ⬜ | `components/graph-viewport.ts`, `utils/html-labels.ts` | labels readable at default zoom; collisions prevented; density cell |
+| G.4 | **Density-aware layout** — layout adapts to node count/degree (auto), not a manual dropdown; the default is always tidy. | ⬜ | `utils/layout-registry.ts`, `core/store.ts` | sparse and dense graphs both tidy by default; cells |
+
+### Visual testing restructure (see also "Architectural Question")
+
+| # | Item | Status | Files | Acceptance |
+|---|------|--------|-------|------------|
+| T.1 | **Curate to ~12–15 baseline cells** — one per shell state + projection + error state; each cell earns its place; remove redundant layout/view cells. | ⬜ | `tests/visual/matrix.ts` | ≤15 baselines; every cell shows something unique; gallery is reviewable at a glance |
+| T.2 | **Journey recordings** — video/GIF (or multi-frame) for chat⇄graph, streaming, tool approval, belief revision — what static screenshots cannot prove. | ⬜ | `tests/visual/*` | a recording shows the live loop; linked from the gallery |
+| T.3 | **`test:design` qualitative gate** — checklist: hierarchy, density, focus visibility, legibility at default zoom, paradigm visibility. | ⬜ | `tests/design/*` (new) | a human checklist runs pre-commit; regressions in *quality* are caught |
+| T.4 | **Legibility assertion cell** — fails if nodes render below a legibility threshold at default view. | ⬜ | `tests/visual/*` | an illegible default view fails CI |
+
+### Revised priority order (supersedes "Priority Execution Order")
+
+```
+F (floor) ─▶ X (experience architecture) ─▶ G (scaling/legibility) ─▶ V (encoding) ─▶ C (chrome)
+          ─▶ D (craft) ─▶ H/R/B/P/I (envelope) ─▶ T (visual-testing restructure)
+```
+
+Rationale: **fix the floor (F)**, then decide *what the experience is* (X) and *make it legible* (G)
+before adding more encoding (V) or consolidating chrome (C). Polish (D) and the envelope (H/R/B/P/I)
+follow. Visual testing (T) is restructured once the experience stabilizes, so baselines stop churning.
+
+### Simplification ledger (capability kept, complexity removed)
+
+| Remove / merge | Keep capability via |
+|---|---|
+| 6 view selectors (renderer/lens/layout/layer/shape/color-by) | **View presets** (X.3) + Display popover |
+| Mutually-exclusive renderer switch | **Linked workspace / Split** (X.2) |
+| Always-on legend | Legend toggle, default **off** (done) |
+| 51 component cells | ~12–15 **journey/state** cells + recordings (T.1/T.2) |
+| Manual "Fit" as the only scaling | **Auto-scaling policy** (G.1/G.2) |
+
+---
+
+## Fractal HTML & LoD — the recursive content paradigm
+
+> **The insight.** We can already render arbitrary HTML inside graph nodes (`html-enabled`,
+> `utils/html-labels.ts`, and the SpaceGraph 3D nodes). That is not a detail — it is the enabler of a
+> **recursive** paradigm. A node can render a `<s-view>`, which renders a projection, whose nodes
+> render HTML, and so on. Combined with **Level-of-Detail**, the graph becomes a *fractal, zoomable
+> canvas of rich content* — and the "one substrate, many projections" thesis becomes *recursive*.
+
+### The recursive projection diagram (supersedes §19's flat diagram)
+
+```
+External content                    ┌───────────────────────────────┐
+(files · source · control-flow ·    │  Content Adapters             │
+ charts · docs · datasets)  ──────▶ │  (AST→graph · tree→graph ·    │
+                                    │   series→graph · doc→graph)   │
+                                    └───────────────┬───────────────┘
+                                                    ▼
+                              ┌──────────────────────────────────────┐
+                              │            WorkspaceGraph             │
+                              └───────────────────┬──────────────────┘
+          ┌────────────────────┬────────┴────────┬────────────────────┐
+          ▼                    ▼                 ▼                    ▼
+    ┌───────────┐        ┌───────────┐     ┌───────────┐
+    │   Chat    │ ⇄⇄⇄⇄⇄  │ Notebook  │ ⇄⇄  │   Graph   │
+    └─────┬─────┘        └─────┬─────┘     └─────┬─────┘
+          │ rich frames        │                 │  LoD: glyph→label→card→full
+          │                    │                 ▼
+          │                    │          ┌──────────────────┐   fractal:
+          └────────────────────┴────────▶ │  HTML-in-node    │──┐ a node may embed
+                                          │  (text · table · │◀─┘ a projection (or
+                                          │  code · chart ·  │     another graph),
+                                          │  form · <s-view>)│     to a bounded depth
+                                          └──────────────────┘
+```
+
+### LoD — one tier vocabulary, one renderer registry
+
+| Tier | Trigger | Renders |
+|---|---|---|
+| **glyph** | far | kind icon + truth/priority dot |
+| **label** | mid | label + `f/c` chips |
+| **card** | near | compact fields (title · type · truth · links) |
+| **full** | closest | the block's HTML — text · table · code · chart · form · **or an embedded projection** |
+
+**A node-renderer registry**: each block *kind* declares its four tiers in one place; every renderer
+(2D Cytoscape, 3D SpaceGraph, chat, notebook) reads the same descriptors. This is the extension point
+that makes rich content *scale* without bespoke per-kind code.
+
+### Fractal guards (this can explode — treat it like any budget)
+
+- **Max depth** (a projection inside a projection inside … stops at N).
+- **Max rendered HTML nodes** (a global cap; beyond it, a node shows a `card` + "expand" affordance).
+- **Interaction mode**: HTML nodes are inert until focused, so pan/zoom never fights the content;
+  an explicit "engage" affordance enters interaction.
+- **Reduced-motion + reduced-detail** honored from the same tokens.
+
+### What this unlocks (capability inventory)
+
+| Direction | Examples | Where it lives |
+|---|---|---|
+| **Content-as-graph** | filesystem trees · source AST · call graph · control-flow graph · dependency graph · data series/charts · document structure | Content adapters → WorkspaceGraph (view-adapter registry) |
+| **Rich chat frames** | rendered Markdown · forms/wizards (generalize tool-approval) · realtime charts/plots · **embedded mini-graphs** · inline artifact viewers | Chat projection (block `full` tier) |
+| **Chat-dialog *as* graph** | the conversation's turn/responds-to structure shown as a graph; discourse edges; thread roots | Conversation layouts (exist) + LoD |
+| **Embedded graph in chat, chat in graph** | a turn whose `full` tier is a live neighborhood; a node whose `full` tier is the originating dialogue | Fractal HTML (X.2 + R) |
+
+### Overlays, popups & menus *as* information architecture
+
+Overlays are not just modals — they are the **progressive-disclosure surface**. One overlay system
+should support: anchored popovers, drill-down panels, inline expanders, and a focus stack with
+breadcrumbs — so detail appears *near* its anchor, never as a full-screen context switch.
+
+| Pattern | Use |
+|---|---|
+| **Anchored popover** | node detail, truth editor, link inspector (at the node) |
+| **Drill-down panel** | provenance walk, related blocks (breadcrumbed) |
+| **Inline expander** | reveal a nested projection in place (fractal) |
+| **Wizard** | multi-step input (tool approval, import, goal definition) |
+
+### R — Rich Content & Fractal HTML (proposed phase)
+
+| # | Item | Status | Files | Acceptance |
+|---|------|--------|-------|------------|
+| R.1 | **Node-renderer registry + LoD tiers** — glyph/label/card/full per kind; one descriptor source; wired into 2D + 3D + chat + notebook. | ⬜ | `core/node-renderers.ts` (new), `utils/adapter-2d.ts`, `spacegraph/*` | every kind has four tiers; zoom changes tier; cells |
+| R.2 | **Fractal HTML runtime** — HTML-in-node with depth/node budgets, inert-until-focused interaction, expand affordance. | ⬜ | `utils/html-labels.ts`, `components/graph-viewport.ts` | nested projection renders to a bounded depth; pan/zoom unaffected; cell |
+| R.3 | **Content adapters** — filesystem · source AST · call/control-flow · series/chart · document → WorkspaceGraph. | ⬜ | `core/adapters/*` (new), `view-adapter` registry | a source file or dataset becomes a navigable graph; cells |
+| R.4 | **Rich chat frames** — Markdown (exists) + forms/wizards + charts + **embedded mini-graphs** + artifact viewers as the `full` tier of a turn. | ⬜ | `components/renderers/*`, `components/*-frame.ts` (new) | a turn can embed a live graph/chart/form; cells |
+| R.5 | **Conversation-as-graph** — surface the dialogue structure (turns · responds-to · threads) as a first-class graph view with LoD. | ⬜ | `components/renderers/graph.ts`, `utils/graph-layout.ts` | the chat's structure is a graph; cell |
+| R.6 | **Overlay-as-IA** — anchored popovers, drill-down panels, inline expanders, wizards; focus stack + breadcrumbs. | ⬜ | `core/overlay-manager.ts`, `components/overlays/*` | detail appears near its anchor; breadcrumbed drill-down; cells |
+
+### v9 vs v10 split for this direction
+
+| v9 (tractable, high-leverage) | v10 (research) |
+|---|---|
+| LoD **node rendering** (glyph→label→card→full) | Semantic-zoom **morph** (continuous interpolation between projections) — E.1 |
+| Fractal HTML with **budgets** | Unbounded nesting / arbitrary composition |
+| Content adapters for **static** content (files, AST, charts) | **Live** code execution / editing graphs |
+| Embedded mini-graphs in chat (bounded) | Full bidirectional inline editing |
+
+### Risks & guards
+
+| Risk | Guard |
+|---|---|
+| Performance (HTML in many nodes) | node budget + `card` fallback + virtualization research (v10 E.5) |
+| Interaction conflict (pan vs. content) | inert-until-focused + explicit engage |
+| Visual noise (too much detail at once) | LoD means detail is *earned* by zoom; default is `label` |
+| Fractal explosion | depth cap + node cap + expand affordance |
+| Coherence loss (many content types) | one node-renderer registry; one LoD vocabulary |
+
+### Strategic takeaway
+
+The paradigm should be restated as: **one substrate · many projections · *recursively embeddable* ·
+LoD-scaled**. This is SeNARS's differentiator versus a chatbot (forgets), a graph tool (inert), or a
+document (flat): **a living, zoomable, reasoning canvas** where any cell can reveal its content, its
+provenance, or another projection — to a depth you control.
+
+---
+
+## North Star (restated for the fresh session)
+
+> **SeNARS UI is not a chat app with a graph tab. It is a *living, zoomable, reasoning canvas* — one
+> substrate, many projections, recursively embeddable, LoD-scaled.** Any cell can reveal its content,
+> its provenance, or another projection, to a depth the user controls. Chat is where you speak;
+> projections are how you see; the canvas is where the knowledge lives; and every surface is a
+> doorway into every other.
+
+**The one-line test for every decision:** *does it make the system's reasoning more visible, more
+legible, or more enjoyable — without adding a control the user must learn?*
+
+This restatement **supersedes** the flatter framing in §19 and upgrades the deliverable from
+"polish what exists" to "**realize the paradigm**." Bold exploration is in scope; the guards are
+budgets and progressive disclosure, not timidity.
+
+---
+
+## Bold commitments (v9.x — explore AND implement)
+
+These move from "proposal" / "v10 backlog" into the committed arc. Each is a headline capability,
+not a nice-to-have.
+
+| # | Capability | Why it is bold | First proof |
+|---|-----------|----------------|-------------|
+| **B-1** | **Fractal HTML nodes with real budgets** — a node's `full` tier renders rich HTML, including a nested `<s-view>`. | Turns nodes into living cells; no competitor does recursive projections. | A graph node that contains a mini-graph, bounded to depth 2. |
+| **B-2** | **LoD node rendering** as a first-class system (`glyph→label→card→full`, one registry, all renderers). | Makes fractal detail survive scale; "overview first, detail on demand" becomes literal. | One block kind with four tiers, zoom-driven. |
+| **B-3** | **Content adapters** — files · source AST · call/control-flow · datasets/charts · documents → graph. | Expands the substrate beyond conversation; SeNARS reasons over *any* structure. | A source file rendered as a navigable call graph. |
+| **B-4** | **Rich chat frames** — Markdown · forms/wizards · charts · **embedded live graphs** · artifacts. | The chat becomes a workspace, not a transcript. | A turn embedding a live graph neighborhood. |
+| **B-5** | **Conversation-as-graph** — dialogue structure (turns · responds-to · threads) as a first-class graph. | Proves chat and graph are one substrate, visibly. | The seeded conversation laid out as a discourse graph. |
+| **B-6** | **Linked workspace (Split)** — chat + graph simultaneous by default; selection/focus/provenance continuous. | Resolves the plan's core contradiction; the paradigm is *built*, not asserted. | Select a claim in chat → it highlights in the graph beside it. |
+| **B-7** | **Overlay-as-IA** — anchored popovers · drill-down panels w/ breadcrumbs · inline expanders · wizards. | Detail appears *at its anchor*; no context-switching. | Provenance walk as a breadcrumbed drill-down. |
+| **B-8** | **Semantic-zoom morph (spike then build)** — continuous interpolation Chat⇄Notebook⇄Graph. | The endgame of "one substance." | A design spike proving a shared coordinate space. |
+
+**Guardrails, not brakes:** node/depth budgets (fractal), inert-until-focused (interaction),
+one registry per concern (coherence), reduced-motion + reduced-detail (accessibility), and the
+legibility assertion (G.4/T.4).
+
+---
+
+## Updated backlog (promotions & what truly stays deferred)
+
+| Item | Was | Now | Note |
+|---|---|---|---|
+| **E.2 Inline micro-visualizations in chat** | v10 | **v9 (B-4)** | Promoted; rich chat frames are core. |
+| **E.5 Graph LOD / virtualization** | v10 | **v9 node-LoD (B-2); node-count virtualization stays v10** | Detail-LoD is tractable now; 10k-node virtualization is not. |
+| **E.3 Provenance walk** | v10 | **v9 (B-7)** | Promoted; it is an overlay-as-IA drill-down. |
+| **E.4 Graph as editor** | v10 | **v9 partial (forms/wizards via B-4/B-7)** | Structured input lands; free-form editing stays v10. |
+| **E.1 Semantic-zoom morph** | v10 | **v9 spike (B-8)** | Spike now; full build gated on B-6. |
+| **E.6 Worker offload** | v10 | v10 | Needs a new engine. |
+| **E.7 Undo/redo journal** | v10 | v10 (unblocked by B-4/B-7 input) | Revisit once editing input lands. |
+| **E.8 Touch & mobile** | v10 | v10 | Auto-scaling (G) makes it cheaper later. |
+| **O6 `renderer:graph3d`** | v10 | **v9 candidate** | 3D + fractal HTML + LoD is a *reason* 3D does something 2D cannot. |
+
+---
+
+## Next Session Kickoff (do these first, in order)
+
+> The fresh session should **start here** and read the North Star + Strategic Review + Fractal HTML
+> sections before touching code. No more pixel-polishing until the experience is legible and the
+> paradigm is visible.
+
+**Move 1 — See the truth (G + T, half a day).**
+- Make the default view **auto-fit with a zoom floor/ceiling and auto-center** (G.2).
+- Make **node size auto-scale** to viewport/count (G.1) and ensure labels are legible at rest (G.3).
+- Curate the matrix to **~12–15 cells** and add a **legibility assertion** (T.1, T.4).
+- *Definition of done:* the default graph screenshot is legible, centered, and pleasant.
+
+**Move 2 — Build the paradigm (X, 2–3 days).**
+- **Linked workspace / Split** (B-6/X.2): chat + graph side by side, shared selection/focus.
+- **View presets + Display popover** (X.3): collapse the six selectors to Ask/Explore/Read/Plan/Split.
+- **Progressive-disclosure ladder** (X.4) and **first-run design** (X.5).
+- *Definition of done:* a cell shows chat *and* graph reacting to one another; ≤3 primary controls.
+
+**Move 3 — Make it fractal (R, 3–5 days).**
+- **Node-renderer registry + LoD tiers** (B-2/R.1).
+- **Fractal HTML runtime with budgets** (B-1/R.2): one node embedding a mini-graph.
+- **Conversation-as-graph** (B-5/R.5) and **rich chat frames** (B-4/R.4).
+- *Definition of done:* a recording shows a node zooming from glyph → full, embedding a live projection.
+
+**Move 4 — Expand the substrate (R.3, 3–5 days).**
+- **Content adapters**: filesystem → graph; source AST/call-graph → graph; dataset/chart → graph.
+- *Definition of done:* a source file becomes a navigable, LoD-aware graph.
+
+**Move 5 — Envelope & polish (V/C/D/H/R/B/P/I + T).**
+- Return to the existing V/C/D items with the new legible/fractal foundation, then the envelope.
+- Restructure visual testing to journeys + recordings (T.2/T.3).
+
+**Standing rules for the fresh session**
+- Read North Star first; every change is judged by the one-line test.
+- **No pixel polishing before legibility**; no new chrome without removing one.
+- Every new capability ends with a **cell or recording** and a **budget/guard**.
+- Prefer **one registry** per concern (renderers, adapters, overlays, tokens) so it scales.
+- Commit after each Move; keep `typecheck` + `unit` green; regenerate baselines deliberately.
+
+---
+
+## Fresh-Session Checklist
+
+- [ ] Read: North Star · Strategic Review (X/G/T) · Fractal HTML & LoD (R) · Bold commitments.
+- [ ] Confirm the revised spine: `F → X → G → R → V → C → D → H/R/B/P/I → T`.
+- [ ] Start with **Move 1 (G+T)**: auto-scale, zoom policy, legible default view, curated cells.
+- [ ] Then **Move 2 (X)**: linked workspace + view presets + disclosure ladder + first-run.
+- [ ] Then **Move 3–4 (R)**: fractal HTML + LoD registry + chat frames + content adapters.
+- [ ] Keep `pnpm --dir ui typecheck` and `test:unit` green each commit; regenerate baselines on purpose.
+- [ ] End each capability with a cell/recording + a guard.

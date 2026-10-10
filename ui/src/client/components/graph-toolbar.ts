@@ -225,6 +225,8 @@ export class GraphToolbar extends BaseComponent {
         @click=${() => this.togglePanel('lens-designer')} title="Open Lens Designer">Design</button>
 
       <contradiction-badge></contradiction-badge>
+
+      <button class="toolbar-btn" @click=${this.toggleLegend} title="Toggle legend">Legend</button>
     `;
   }
 
@@ -302,13 +304,17 @@ export class GraphToolbar extends BaseComponent {
     eventBus.emit('graph:minimap-toggle');
   }
 
-  private togglePanel(id: string) {
+private togglePanel(id: string) {
     const panels = new Map($panels.get());
     const panel = panels.get(id);
     if (panel) {
       panels.set(id, { ...panel, open: !panel.open });
       $panels.set(panels);
     }
+  }
+
+  private toggleLegend() {
+    eventBus.emit('graph:legend-toggle');
   }
 
   // Multi-select bulk actions
