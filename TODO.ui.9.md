@@ -252,14 +252,14 @@ conditions** so provenance resolves and the ambition is not lost.
 
 | # | Item | Why deferred | Revisit when |
 |---|------|--------------|--------------|
-| X.1 | **Semantic-zoom morph** (Chat ⇄ Notebook ⇄ Graph) | Needs a shared coordinate space and layout interpolation across three layout engines; no prior art. | B.1 sync is solid and a design spike proves convergence. |
-| X.2 | **Inline micro-visualizations in chat** (mini-graphs, sparklines) | Novel components; marginal utility at current densities. | The chat is the primary projection for a real workflow. |
-| X.3 | **Provenance walk** (full derivation scrubber) | Needs engine cooperation for step-level traces in the UI. | Derivation records are exposed to the client. |
-| X.4 | **Graph as editor** (revise truth, draw links, merge/split) | Changes the trust model (user edits vs engine derivations) and needs an edit-provenance model. | Editing is a user requirement. |
-| X.5 | **Graph LOD / virtualization** (10k nodes) | Cytoscape doesn't virtualize; needs clustering research or an engine swap. | A real workload exceeds ~2k nodes. |
-| X.6 | **Worker offload** (layout/decimation) | Layout is main-thread Cytoscape; offload means a new engine. | X.5 is taken. |
-| X.7 | **Undo/redo journal** | The atom store isn't transactional; needs a bounded action journal. | Editing (X.4) lands. |
-| X.8 | **Touch & mobile** (gestures, mobile composer, swipe panels) | No mobile requirement. | A touch/mobile target is set. |
+| E.1 | **Semantic-zoom morph** (Chat ⇄ Notebook ⇄ Graph) | Needs a shared coordinate space and layout interpolation across three layout engines; no prior art. | B.1 sync is solid and a design spike proves convergence. |
+| E.2 | **Inline micro-visualizations in chat** (mini-graphs, sparklines) | Novel components; marginal utility at current densities. | The chat is the primary projection for a real workflow. |
+| E.3 | **Provenance walk** (full derivation scrubber) | Needs engine cooperation for step-level traces in the UI. | Derivation records are exposed to the client. |
+| E.4 | **Graph as editor** (revise truth, draw links, merge/split) | Changes the trust model (user edits vs engine derivations) and needs an edit-provenance model. | Editing is a user requirement. |
+| E.5 | **Graph LOD / virtualization** (10k nodes) | Cytoscape doesn't virtualize; needs clustering research or an engine swap. | A real workload exceeds ~2k nodes. |
+| E.6 | **Worker offload** (layout/decimation) | Layout is main-thread Cytoscape; offload means a new engine. | E.5 is taken. |
+| E.7 | **Undo/redo journal** | The atom store isn't transactional; needs a bounded action journal. | Editing (E.4) lands. |
+| E.8 | **Touch & mobile** (gestures, mobile composer, swipe panels) | No mobile requirement. | A touch/mobile target is set. |
 | O6 | **`renderer:graph3d`** | 2D + LOD covers scale; adds cost without a gap. | A 3D affordance does something 2D cannot. |
 | O11 | **External plugin loader** | The in-repo contribution point (X.4 of v8) covers extensibility. | A third-party consumer exists. |
 | O12 | **User token overrides** | dark/light/high-contrast covers inclusivity. | A validated theme editor is justified. |
@@ -338,7 +338,7 @@ conditions** so provenance resolves and the ambition is not lost.
 | **B** | B.1 sync · B.2 anchored inquiry · B.3 timeline | Harden the bridge that already half-works |
 | **P** | P.1 session · P.2 deep links | Portability |
 | **I** | I.1 a11y gate · I.2 focus · I.3 announce | Inclusivity, folded into the shell |
-| **v10** | X.1–X.8, O6/O11/O12/O13 | Research; revisit conditions above |
+| **v10** | E.1–E.8, O6/O11/O12/O13 | Research; revisit conditions above |
 
 **Estimated v9 scope: ~8–10 weeks** (F 1w · V 2w · C 2w · D 2w · H 1w · R 1w · B/P/I 1w). v10 is
 open-ended and scheduled only when a revert condition is met.
