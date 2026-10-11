@@ -260,6 +260,13 @@ not exist, so the node floats unlinked.
 - **`embedded-view` is an orphan block kind.** *Removed (Move 2.8).*
 - **`HTML_BODY_BUDGET` is per-viewport.** If a second live graph viewport is ever
   mounted, the budget is per-canvas rather than global.
+- **Two demo cells still write `$workspaceGraph` straight.** `manyBodiesDemo`
+  (the budget cell) and any future fixture do the same direct write Move 2.6
+  removed from `embedded-view-demo`. It is a pragmatic way to get *N* bodies
+  without fabricating *N* chat turns, but it means the cell does not exercise the
+  projection — so a budget regression at the projection layer would not be caught
+  visually. Prefer a shared `seedBlocks` helper that documents the bypass, or feed
+  the budget cell a synthetic projection.
 
 ---
 
