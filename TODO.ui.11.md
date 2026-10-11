@@ -629,6 +629,127 @@ view cheaper to add. A layer that no domain instantiates is deferred, not built.
 
 ---
 
+## Track F — Type-Model Utilization (derive, don't declare)
+
+> **One principle:** *every vocabulary has exactly one source; every union, array,
+> map and schema derives from it.* The codebase already does this well in places —
+> `field-catalog.ts` (template literals), `block-payload.ts` (`PayloadOf<K>`),
+> `composer-modes.ts`/`graph-layer.ts` (`as const` + `(typeof X)[number]`),
+> `lens-catalog.ts` (`as const satisfies`). Track F applies that discipline to the
+> remaining hand-written unions and **fixes three drift bugs the duplication hid**.
+> It is the type-level twin of Track D (data SSOT) and Track E (ingredient library).
+
+### The five derivation patterns (with the codebase's own good examples)
+
+| # | Pattern | Source → derived | Good example already in-tree |
+|---|---|---|---|
+| P1 | **`as const` tuple → union + list** | `const SHAPES = [...] as const` → `type Shape = (typeof SHAPES)[number]`; export the tuple for iteration | `composer-modes.ts:12`, `graph-layer.ts:8` |
+| P2 | **catalog object → union** | `const CATALOG = {…} as const` → `type K = keyof typeof CATALOG` | `link-catalog.ts:204`, `block-payload.ts:117` |
+| P3 | **`as const satisfies Record<Union, V>`** | exhaustive **and** literal values (no widening) | `block-labels.ts:35`, `lens-catalog.ts:124` |
+| P4 | **mapped type `{ [K in Union]: V }`** | one entry per key, compiler-enforced | `block-payload.ts:215` (`NORMALIZERS`) |
+| P5 | **conditional + template-literal types** | `PayloadOf<K>`, `FieldId = \`telemetry.${Field}\`` | `block-payload.ts:123`, `field-catalog.ts:47` |
+
+### The three drift bugs the duplication hid
+
+- **`PanelTab` declared twice verbatim** (`store.ts:482` **and** `:487`) — TS
+  *merges* the two interfaces silently, so the duplicate is invisible and
+  harmless until one is edited. **Fix (P2):** delete one; derive the shape from
+  `panelTabs()`'s return or a `PANEL_DEFS` catalog.
+- **Two `Theme` vocabularies** — `config-schema.ts:9` (`'dark'|'light'|'auto'`) vs
+  `tokens.generated.ts:2` / `theme.ts:8` (`'dark'|'light'|'high-contrast'`).
+  `high-contrast` is unreachable from config; `auto` is unknown to the token
+  facade — a live runtime/type mismatch. **Fix (P1):** one `THEMES` tuple;
+  `z.enum(THEMES)`; `ThemeName` derives from it.
+- **`ArtifactKind ⊄ BlockKind` is unenforced** — `BlockPayloads`
+  (`block-payload.ts:105`) keys must be a subset of `BlockKind`, but nothing
+  checks it. **Fix (F5):** a compile-time assertion.
+
+### The "one source" table (what derives from what)
+
+| Vocabulary | Today | One source (fix) |
+|---|---|---|
+| `Shape`/`Budget`/`Disclosure`/`Interaction` | 4 hand unions; `Shape` re-listed (`view-projection.ts:134`), `Disclosure` re-listed (`explain.ts:38`) | `SHAPES`/`BUDGETS`/`DISCLOSURES`/`INTERACTIONS` tuples (P1) |
+| `BlockKind` | hand union (`workspace-graph.ts:34`) + re-spelled in `BLOCK_KIND_LABEL` | `keyof typeof BLOCK_DESCRIPTORS` (P2, rides **D1**) |
+| `ConversationLayoutId`/`ReasoningLayoutId` | union + `_IDS` array + `_CATALOG` keys (3×) | catalog keys (P2, rides **D4**) |
+| `LinkCategory`/`EventCategory` | union + `as const` array (2×) | the array is the source (P1) |
+| `TelemetryRange`/`LoDTier`/`PanelDock` | union + `Record` + `as` cast | `keyof typeof MAP` (P2) |
+| built-in lens (`'belief'\|'goal'\|'contradiction'`) | literal ×3 + array ×1 (`store.ts:577`, `:625`, `:693`) | `PRIMARY_LENSES` ids (P1) |
+| reasoning mode (`'belief'\|'goal'\|'question'`) | ×4 (`reasoning-backend.ts:70`, `commands.ts:221`/`:225`, `command-schemas.ts:72`) | `REASONING_MODES` tuple (P1) |
+| panel ids/labels | ×3 (`$panels` seed, `panelTabs()`, `PANEL_LABELS`) | `PANEL_DEFS` catalog (P2, rides **E9**) |
+| lens-keyed maps (`$lensViewport`, `$lensLayer`, `$lensLayout`, `LENS_MODULATION_MAP`) | `Record<string, …>` | `Partial<Record<BuiltinLens, …>>` (P4) |
+| `COMMAND_SCHEMAS` | `Record<string, Zod>` | `Partial<Record<CommandId, Zod>>` (P4) |
+| `RendererParity` | re-declares `parity`/`interactions`/`controls` | `Pick<WorkspaceRendererCaps, …>` (utility type) |
+| `FIELD_CATALOG` | `satisfies` but not `as const` (values widen) | `as const satisfies` (P3) |
+
+### F1. `as const` tuples for the view unions (rides D1/E1)
+
+`Shape`/`Budget`/`Disclosure`/`Interaction` (`view-spec.ts:10–19`) are four hand
+unions; `Shape` is re-listed in `view-projection.ts:134` and `Disclosure` in
+`explain.ts:38`. Declare one tuple each, derive the union, export the tuple so
+iteration and the switcher read the same list.
+
+### F2. Derive domain unions from catalogs (rides D1/D4/E9)
+
+Make the catalog the source and delete the parallel union: `BlockKind = keyof
+typeof BLOCK_DESCRIPTORS`, `ConversationLayoutId = keyof typeof CATALOG`, panel
+ids from `PANEL_DEFS`, `LinkCategory`/`EventCategory` from their `as const`
+arrays. Each union loses one hand-maintained copy.
+
+### F3. Key every map to its vocabulary (mapped types)
+
+`$lensViewport`/`$lensLayer`/`$lensLayout`/`LENS_MODULATION_MAP` (`store.ts:164`,
+`:212`, `:424`, `:441`) are `Record<string, …>` though conceptually lens-keyed;
+`COMMAND_SCHEMAS` (`command-schemas.ts:107`) is `Record<string, Zod>`. Type them
+`Partial<Record<BuiltinLens, …>>` / `Partial<Record<CommandId, …>>` so indexing is
+checked and the `as` casts at `store.ts:747`/`:757` disappear.
+
+### F4. Generic `Command<Args>` + typed command ids (biggest cast cleanup)
+
+`CommandArgs = Record<string, unknown>` (`commands.ts:31`) forces every command to
+re-cast inside `run`/`parse` (`:201`, `:221`, `:256`, `:266`) while
+`command-schemas.ts` already has a typed Zod schema per id. Make `Command<A>` 
+generic and derive `CommandArgs<K extends CommandId> = z.infer<(typeof
+COMMAND_SCHEMAS)[K]>`; a mapped `{ [K in CommandId]: Command<CommandArgs<K>> }`
+removes most `String(args.x ?? '')` guards. Also fix `ComposerFocusSchema`
+(`command-schemas.ts:14`) to `z.enum(COMPOSER_MODE_IDS)` — it hand-lists a
+*different* vocabulary than `composer-modes.ts`.
+
+### F5. Compile-time assertions + exhaustive `match`
+
+Add a zero-runtime helper to relate two unions and to exhaust a switch:
+```ts
+type Assert<T extends true> = T;
+type _ArtifactKindsAreBlockKinds = Assert<ArtifactKind extends BlockKind ? true : false>;
+const assertNever = (x: never): never => { throw new Error(`unreachable: ${x}`); };
+```
+Use `assertNever` in the discriminated-union switches (`render-block.ts:142`,
+`artifacts.ts:143`, `workspace-graph.ts:196`) so a new variant fails the build
+instead of falling through — the runtime twin of `satisfies`.
+
+### F6. Resolve the dead `LayoutId` brand; fix `Theme`/`ArtifactKind`
+
+`LayoutId` (`layout-ids.ts:14`) is branded but every consumer takes plain
+`string`; it is dead abstraction. Either **commit** (thread it through
+`LayoutDefinition`, `UrlState.layout`, `$lensLayout`) or **drop** it. Same
+"commit or drop" test for the `Theme` and `ArtifactKind` drift above.
+
+### Track F — the payoff
+
+| Goal | Mechanism |
+|---|---|
+| **Elegance** | `satisfies`, `as const`, `assertNever` — intent visible, drift impossible |
+| **Flexibility** | generics (`Command<Args>`, `PayloadOf<K>`) + mapped types |
+| **Code sharing** | one source per vocabulary; template-literal namespaces (`FieldId`) |
+| **Less redundancy** | the "one source" table removes ~15 hand-maintained copies |
+| **Correctness** | the three drift bugs above become compile errors |
+
+**Track F's guard:** a derivation must not lose type-safety. `as const satisfies`
+is the gold standard — it keeps literal values *and* proves exhaustiveness. If a
+derivation widens a type (e.g. `Object.keys()` → `string[]`), add the one cast
+back and document why.
+
+---
+
 ## Standing Rules (carry forward from v10)
 
 - **No new subsystem without a visible payoff.** A registry that changes no pixels fails the one-line test.
@@ -669,9 +790,16 @@ view cheaper to add. A layer that no domain instantiates is deferred, not built.
 - [ ] **Track E7**: style factory (`styles` + typed token helper; D5's fix)
 - [ ] **Track E8**: mixins (`withStore`/`withCapability`/`withCommands`)
 - [ ] **Track E9**: `PanelDescriptor` + registry (fill the one gap)
+- [ ] **Track F1**: `as const` tuples for `Shape`/`Budget`/`Disclosure`/`Interaction`
+- [ ] **Track F2**: derive domain unions from catalogs (`BlockKind`, layout ids, panel ids, categories)
+- [ ] **Track F3**: key every map to its vocabulary (lens maps, `COMMAND_SCHEMAS`)
+- [ ] **Track F4**: generic `Command<Args>` + typed command ids (biggest cast cleanup)
+- [ ] **Track F5**: compile-time assertions + `assertNever` in union switches
+- [ ] **Track F6**: resolve dead `LayoutId` brand; fix `Theme`/`ArtifactKind` drift
 - [ ] Do **not** implement Track C items unless spike passes gate
-- [ ] Do **not** land a Track D/E refactor without the feature it enables (except D5)
+- [ ] Do **not** land a Track D/E/F refactor without the feature it enables (except D5)
 - [ ] Do **not** build an E layer no domain instantiates (defer it)
+- [ ] Do **not** derive a type if it widens safety (keep the one cast, document why)
 - [ ] Commit per Track; regenerate baselines deliberately; keep `verify` green
 
 ---
@@ -703,6 +831,10 @@ view cheaper to add. A layer that no domain instantiates is deferred, not built.
 | inline `var(--…)` style strings | `styles` + typed token helper (E7) |
 | hand-wired cross-cutting concerns | `withStore`/`withCapability`/`withCommands` (E8) |
 | panel labels hardcoded in `commands.ts` | `PanelDescriptor` + registry (E9) |
+| `PanelTab` declared twice; 2 `Theme` vocabularies; `ArtifactKind⊄BlockKind` | derive from one source + compile-time assert (F1/F5/F6) |
+| `Shape`/`Disclosure`/lens/panel/category unions hand-copied | `as const` tuple / catalog is the source (F1/F2) |
+| lens-keyed maps + `COMMAND_SCHEMAS` typed `Record<string, …>` | `Partial<Record<Vocabulary, …>>` (F3) |
+| `CommandArgs = Record<string, unknown>` + per-command casts | generic `Command<Args>` (F4) |
 
 ---
 
@@ -768,6 +900,26 @@ ingredients — no forking `app-layout`, no copy-pasted overlays. The paradigm
 "one substrate, many projections" generalizes from *data* projections to *UI*
 projections.
 
+### Track F — key insight
+The codebase already contains the **gold-standard pattern** in `lens-catalog.ts`
+and `block-labels.ts`: `as const satisfies Record<Union, V>`. It simultaneously
+(a) proves every key is present, (b) keeps each value's literal type, and
+(c) lets the union be derived back with `keyof typeof`. Every Track F fix is
+"apply this pattern where a union is still hand-written." The three drift bugs
+(`PanelTab` double-declare, two `Theme` vocabularies, `ArtifactKind ⊄ BlockKind`)
+are the *evidence* that hand-written duplication is not free — each is a latent
+runtime bug the type system was told to ignore.
+
+### Track F ↔ Track D/E — the third axis
+The plan now has three orthogonal axes over the same substrate:
+- **D** — data SSOT (one *value* per vocabulary)
+- **E** — ingredient library (one *shape* per contribution)
+- **F** — type SSOT (one *type* per vocabulary)
+
+They converge: D1's `BLOCK_DESCRIPTORS` **is** F2's `keyof typeof` source; E1's
+`Contribution` **is** F5's `Assert`-guarded base; E5's `derived` **is** F3's
+mapped type made runtime. Land the shared source once, and D/E/F all read it.
+
 ---
 
-*Generated from v10 completion. All Track A items are bugs in the current paradigm; Track B deepens legibility; Track C evaluates v11 gates honestly; Track D consolidates the descriptor surface as enablers of A/B/C; Track E abstracts the ingredients into a reusable OOP library.*
+*Generated from v10 completion. All Track A items are bugs in the current paradigm; Track B deepens legibility; Track C evaluates v11 gates honestly; Track D consolidates the descriptor surface as enablers of A/B/C; Track E abstracts the ingredients into a reusable OOP library; Track F derives the type model from those same sources.*
