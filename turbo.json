@@ -10,6 +10,24 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "test:unit": {
+      "cache": false
+    },
+    "test:visual": {
+      "cache": false
+    },
+    "test:visual:update": {
+      "cache": false
+    },
+    "test:visual:ci": {
+      "cache": false
+    },
+    "test:craft": {
+      "cache": false
+    },
+    "verify": {
+      "cache": false
     }
   }
 }
