@@ -11,6 +11,7 @@ import { customElement, property } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
 import { $workspaceGraph } from '../core/store.js';
 import { blockBodyStyles, renderBlockBody } from '../utils/render-block.js';
+import { collectSources } from '../core/citations.js';
 
 type NodeTier = 'card' | 'full';
 
@@ -50,11 +51,13 @@ export class SNodeBody extends BaseComponent {
   }
 
   override render() {
-    const block = $workspaceGraph.get().blocks.get(this.ref);
+    const graph = $workspaceGraph.get();
+    const block = graph.blocks.get(this.ref);
     if (!block) return nothing;
     // For card tier, we could truncate the body - for now render full body
     // The max-height CSS handles visual truncation
-    return html`${renderBlockBody(block, [])}`;
+    const sources = collectSources(graph);
+    return html`${renderBlockBody(block, sources)}`;
   }
 }
 

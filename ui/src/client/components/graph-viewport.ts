@@ -420,18 +420,9 @@ export class GraphViewport extends BaseComponent {
       <div id="cy-container" tabindex="0" @click=${this.closeContextMenu}></div>
       ${meta?.truncated ? html`<div class="warning">▼ ${meta.totalHidden} lower-priority concepts hidden</div>` : ''}
       ${Array.from(this.htmlLabels.values()).map(
-        (d) => {
-          const isBlock = $workspaceGraph.get().blocks.has(d.id);
-          return isBlock
-            ? html`<div class="html-label block-label" style="left:${d.x}px;top:${d.y}px" data-tier=${d.tier}>
-                <s-node-body .ref=${d.id} .tier=${d.tier}></s-node-body>
-              </div>`
-            : html`<div
-                class="html-label"
-                style="left:${d.x}px;top:${d.y}px;width:${d.width}px;height:${d.height}px"
-                .innerHTML=${d.html ?? ''}
-              ></div>`;
-        }
+        (d) => html`<div class="html-label block-label" style="left:${d.x}px;top:${d.y}px" data-tier=${d.tier}>
+            <s-node-body .ref=${d.id} .tier=${d.tier}></s-node-body>
+          </div>`
       )}
       ${
         this.nodePopover
@@ -874,15 +865,13 @@ export class GraphViewport extends BaseComponent {
             truth: nd.truth,
             isContradiction: nd.isContradiction,
             label,
-            html: nd.html,
             capabilities: nd.capabilities,
           };
           const classes = '';
           cy.add({ group: 'nodes', data, classes });
         }
         const nEl = el ?? cy.getElementById(nodeId);
-        if (nd.html) nEl.addClass('html-enabled');
-        else nEl.removeClass('html-enabled');
+        nEl.removeClass('html-enabled');
       }
 
       for (const nid of currentIds) {

@@ -498,9 +498,10 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 
 ### Completed (this session)
 - **D.4** — Craft gate: `tests/craft/*` (typography, focus visibility, z-index, icon/emoji lint, contrast, motion) wired via `index.test.ts`; `test:craft` green (202 tests). Line-length check removed per direction — formatting is not enforced.
-- Repo health: `pnpm --dir ui typecheck` clean; `test:unit` 642 passing; `build:client` succeeds.
+- **X.2 (remaining)** — Folded `store-bindings.ts` string-HTML path into the block path; removed `renderMessageHtml`, `ChatMessage.html` field, and graph node `html` field; removed `.innerHTML` fallback in `graph-viewport.ts`. Pass real bibliography to `renderBlockBody` via `collectSources(graph)` in `node-body.ts`.
+- Repo health: `pnpm --dir ui typecheck` clean; `test:unit` 651 passing; `test:visual` 53 cells; `test:craft` 202 tests; `build:client` succeeds; `pnpm --dir ui verify` green.
 
-### In Progress — X.2 modeless "conversation as graph nodes" (◐)
+### In Progress — X.2 modeless "conversation as graph nodes" (✅ Complete)
 > **Direction (user):** no split, no renderer switch. One modeless surface — the **graph** — with every conversation block rendered as a node whose body is its real HTML (the "Fractal HTML & LoD" paradigm, §533). "Split" was a wrong turn and was reverted.
 
 - **Done this session (seam):**
@@ -511,14 +512,14 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
   1. **Node sizing & layout** ✅ — workspace nodes now use fixed `width: 256` / `height: 224` in cytoscape style (matching the 240px card + padding), eliminating overlap.
   2. **LoD tiers** ✅ — implemented four-tier system in `utils/graph-scaling.ts`: `glyph` (zoom < 0.3) → `label` (zoom < 1.2) → `card` (zoom < 1.6) → `full` (zoom ≥ 1.6). Workspace nodes progress through all tiers; engine nodes use `glyph` → `label` only. Added `getLoDTier()`, `showsHtmlBody()` and tier thresholds from tokens.
   3. **Modeless shell** ✅ — removed renderer switch from `graph-toolbar` (3D/Table buttons); removed `$viewportMode` and `$graphShape` imports. Graph is now the single surface; composer is the only input.
-  4. **Legacy string-HTML path** — pending: `store-bindings.ts` (`renderMessageHtml`, raw `innerHTML`) should fold into the block path; remove `.innerHTML` fallback in `graph-viewport.ts:432`.
-  5. **`renderBlockBody` sources** — pending: pass real bibliography (currently `[]` in `node-body.ts:45`).
+  4. **Legacy string-HTML path** ✅ — folded `store-bindings.ts` string-HTML path into the block path; removed `renderMessageHtml`, `ChatMessage.html` field, and graph node `html` field; removed `.innerHTML` fallback in `graph-viewport.ts`.
+  5. **`renderBlockBody` sources** ✅ — pass real bibliography via `collectSources(graph)` in `node-body.ts`.
   6. **Verification** ✅ — `graph-conversation` cell renders conversation as graph nodes with bodies; all 53 visual cells pass; legibility assertion passes; typecheck/unit/craft green.
 - **New opportunities:** a per-kind node-renderer registry declaring the four LoD tiers once (the plan's "extension point", §577); "ask from selection" already exists (`graph.ask-selection`) — wire selection → composer context.
 
 ### Completed (this session — Move 0 + Move 1: trustworthy evidence & legibility)
 - **Move 0 / T.4** — Legibility assertion. New pure module `utils/graph-scaling.ts` is the single source for node size, the legible zoom window, and label LoD; asserted in `tests/components/graph-scaling.test.ts` (9 tests: the invariant that a typical node never renders below `LEGIBLE_NODE_PX` across viewports/counts, and that `clampZoom` lifts an illegible `0.1` fit onto the floor). A real-render assertion `tests/visual/legibility.spec.ts` boots the default graph and fails if `zoom < ZOOM.min` or any node renders below the threshold.
-- **Move 0 / conversation cell** — new `graph-conversation` cell (seeds the conversation, renders it as graph nodes via `chronological-flow`); appears in the gallery. (Body render still needs Move 2.)
+- **Move 0 / conversation cell** — new `graph-conversation` cell (seeds the conversation, renders it as graph nodes via `chronological-flow`); appears in the gallery.
 - **Move 1 / G.1** — Auto-scaling node size: `nodeSize(importance, count, area)` grows with viewport density (`sqrt` of count×area, bounded), wired into `clearNodeStyles` (`utils/adapter-2d.ts`); tokens `colors.legibility.*` added.
 - **Move 1 / G.2** — Zoom policy: `enforceLegibleView()` auto-fits the visible content on every `layoutstop` and on `Fit`, then clamps zoom into `[zoomFloor, ZOOM.max]` (min legible zoom `0.6`, one-node ceiling `2.5`) and re-centers. `fitGraph` now delegates to it.
 - **Move 1 / G.3** — Label LoD by importance × zoom plus a **rank budget** (`labelCutoff`) that shrinks with density, so a dense canvas cannot collide; HTML bodies (`<s-node-body>`) mount only at the near tier (`htmlLabelVisible`, zoom ≥ 1.6) — the `label` tier is the default. Also coerced node labels to strings (removed a latent `[object Object]`).
@@ -534,9 +535,9 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 - **All gates green** — `typecheck`, `test:unit` (651), `test:visual` (53), `test:craft` (202), `legibility.spec.ts` pass.
 
 ### Next Steps (fresh session) — follow the ▶ Execution Plan above
-1. **X.2 remaining** — Fold `store-bindings.ts` string-HTML path into the block path; remove `.innerHTML` fallback in `graph-viewport.ts:432`. Pass real bibliography to `renderBlockBody` in `node-body.ts:45`.
-2. **G.4** — density-aware layout (auto layout by node count/degree) to space medium-density graphs and finish the label-collision story.
-3. **T.1/T.2/T.3** — curate the matrix (~12–15 cells), journey recordings, qualitative design gate. `graph-conversation` currently duplicates an existing `layout-*` cell's job until curation.
+1. **G.4** — density-aware layout (auto layout by node count/degree) to space medium-density graphs and finish the label-collision story.
+2. **T.1/T.2/T.3** — curate the matrix (~12–15 cells), journey recordings, qualitative design gate. `graph-conversation` currently duplicates an existing `layout-*` cell's job until curation.
+3. **Move 3 (R.1–R.5)** — Fractal & rich frames: node-renderer registry + LoD tiers, fractal HTML runtime with budgets, rich chat frames, conversation-as-graph.
 4. Do **not** resume formatting/craft polish; `D.4` is closed. Do **not** build split or a renderer switch.
 
 ---

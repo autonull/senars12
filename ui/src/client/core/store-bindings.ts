@@ -51,12 +51,6 @@ function convertLegacyConfig(legacyConfig: Record<string, any>): UiConfig {
   return UiConfigSchema.parse({ ...DEFAULT_UI_CONFIG, ...result });
 }
 
-function renderMessageHtml(msg: ChatMessage): string {
-  const roleClass = `msg-${msg.role}`;
-  const content = msg.html ?? msg.content;
-  return `<div class="graph-message ${roleClass}" data-id="${msg.id}">${content}</div>`;
-}
-
 /** Adds a user chat message to the store and triggers graph update. */
 export function addUserMessage(content: string, mode?: string, contexts?: string[]): void {
   const chat: ChatMessage = {
@@ -65,17 +59,6 @@ export function addUserMessage(content: string, mode?: string, contexts?: string
     content,
     mode,
     contexts,
-    html: renderMessageHtml({
-      id: '',
-      role: 'user',
-      content,
-      timestamp: Date.now(),
-      parentId: null,
-      threadRootId: '',
-      supports: [],
-      contradicts: [],
-      derivesFrom: [],
-    }),
     timestamp: Date.now(),
     term: extractTerm(content),
     parentId: null,
@@ -96,24 +79,10 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
 
     case 'chat.agent.complete': {
       const id = msg.messageId ?? generateId('agent');
-      const html =
-        msg.html ??
-        renderMessageHtml({
-          id,
-          role: 'agent',
-          content: msg.content,
-          timestamp: Date.now(),
-          parentId: null,
-          threadRootId: id,
-          supports: [],
-          contradicts: [],
-          derivesFrom: [],
-        });
       const chatMsg: ChatMessage = {
         id,
         role: 'agent',
         content: msg.content,
-        html,
         timestamp: Date.now(),
         term: extractTerm(msg.content),
         parentId: null,
@@ -123,23 +92,6 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
         derivesFrom: [],
       };
       $chatMessages.set([...$chatMessages.get(), chatMsg]);
-
-      if (cy) {
-        cy.add({
-          group: 'nodes',
-          data: {
-            id,
-            label: truncate(msg.content, 40),
-            html: chatMsg.html,
-            term: extractTerm(msg.content),
-            priority: 0.8,
-            confidence: 1.0,
-            nodeType: 'message',
-            layout: { threadIndex: $chatMessages.get().length },
-          },
-          classes: 'chat-message-node',
-        });
-      }
       $streamingDelta.set('');
       break;
     }

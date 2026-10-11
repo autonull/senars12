@@ -1,10 +1,8 @@
 import type { Core } from 'cytoscape';
-import { htmlLabelVisible, getLoDTier, showsHtmlBody } from './graph-scaling.js';
+import { getLoDTier, showsHtmlBody } from './graph-scaling.js';
 
 export interface HtmlLabelData {
   id: string;
-  /** Legacy string HTML; absent for workspace blocks, which render via `<s-node-body>`. */
-  html?: string;
   x: number;
   y: number;
   width: number;
@@ -16,20 +14,17 @@ export interface HtmlLabelData {
 export function computeHtmlLabels(cy: Core): Map<string, HtmlLabelData> {
   const labels = new Map<string, HtmlLabelData>();
 
-  cy.nodes('.html-enabled').forEach((node) => {
-    const html = node.data('html') as string | undefined;
+  cy.nodes('.workspace.html-enabled').forEach((node) => {
     const importance = Number(node.data('priority') ?? 0.5);
-    const isWorkspace = node.hasClass('workspace');
-    const tier = getLoDTier(cy.zoom(), importance, isWorkspace) as 'card' | 'full' | 'label' | 'glyph';
+    const tier = getLoDTier(cy.zoom(), importance, true) as 'card' | 'full' | 'label' | 'glyph';
 
-    if (!showsHtmlBody(cy.zoom(), importance, isWorkspace)) return;
+    if (!showsHtmlBody(cy.zoom(), importance, true)) return;
 
     const pos = node.renderedPosition();
     const w = node.renderedOuterWidth();
     const h = node.renderedOuterHeight();
     labels.set(node.id(), {
       id: node.id(),
-      html,
       x: pos.x - w / 2,
       y: pos.y - h / 2,
       width: w,
