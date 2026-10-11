@@ -109,7 +109,6 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
 
     case 'config.schema':
       $config.set(convertLegacyConfig(msg.data));
-      if (cy) addConfigMetaNode(cy, $config.get());
       break;
 
     case 'state.snapshot':
@@ -252,20 +251,4 @@ function appendTelemetry(msg: {
     ws_latency_ms: pushWindow(t.ws_latency_ms, msg.metrics.ws_latency_ms),
   });
   if (msg.cognitive) $cognitiveMetrics.set(msg.cognitive);
-}
-
-function addConfigMetaNode(cy: Core, config: Record<string, any>): void {
-  const nodeData: GraphNodeData = {
-    id: 'meta:config',
-    label: '⚙ Config',
-    html: '<div class="graph-message msg-system">Configuration</div>',
-    nodeType: 'nar:concept',
-    priority: 1.0,
-    confidence: 1.0,
-    layout: { x: 500, y: -500 },
-  };
-  const nodes = new Map($graphNodes.get());
-  nodes.set('meta:config', nodeData);
-  $graphNodes.set(nodes);
-  cy.add({ group: 'nodes', data: nodeData, classes: 'chat-message-node' });
 }

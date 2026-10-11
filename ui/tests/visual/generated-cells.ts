@@ -1,6 +1,6 @@
 /**
  * Generated visual cells from surface registry.
- * DO NOT EDIT DIRECTLY — run `pnpm --dir ui generate:visual-cells` to regenerate.
+ * DO NOT EDIT DIRECTLY — run `pnpm generate:visual-cells` to regenerate.
  * Hand-curated cells in matrix.ts override/extend these.
  */
 import type { VisualCell } from './matrix.js';
@@ -125,4 +125,3 @@ export const GENERATED_VISUAL_CELLS: VisualCell[] = [
     "surface": "component:contradiction-badge"
   }
 ];
-

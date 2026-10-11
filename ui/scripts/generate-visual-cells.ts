@@ -1,15 +1,17 @@
 #!/usr/bin/env tsx
 /**
  * Generate base visual cells from the surface registry.
- * Run with: pnpm --dir ui generate:visual-cells
- * Outputs to stdout (redirect to ui/tests/visual/generated-cells.ts)
+ * Run with: pnpm generate:visual-cells (from ui/)
+ * Writes ui/tests/visual/generated-cells.ts.
  * Hand-curated cells in matrix.ts override/extend these.
- * 
+ *
  * This script defines surfaces statically to avoid importing Lit components
  * which require a browser environment. The surface definitions mirror those
  * in the source files.
  */
 
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { VisualCell } from '../tests/visual/matrix.js';
 
 interface SurfaceDescriptor {
@@ -94,7 +96,7 @@ function main(): void {
 
   const output = `/**
  * Generated visual cells from surface registry.
- * DO NOT EDIT DIRECTLY — run \`pnpm --dir ui generate:visual-cells\` to regenerate.
+ * DO NOT EDIT DIRECTLY — run \`pnpm generate:visual-cells\` to regenerate.
  * Hand-curated cells in matrix.ts override/extend these.
  */
 import type { VisualCell } from './matrix.js';
@@ -102,7 +104,9 @@ import type { VisualCell } from './matrix.js';
 export const GENERATED_VISUAL_CELLS: VisualCell[] = ${JSON.stringify(cells, null, 2)};
 `;
 
-  console.log(output);
+  const out = join(process.cwd(), 'tests', 'visual', 'generated-cells.ts');
+  writeFileSync(out, output);
+  console.log(`Generated ${cells.length} base visual cells → ${out}`);
 }
 
 main();

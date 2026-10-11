@@ -37,6 +37,27 @@ for (const cell of VISUAL_CELLS) {
         },
         { timeout: 15000 }
       );
+      // The engine nodes land first; the workspace projection (conversation and
+      // derived blocks) arrives after, and a late topology change re-runs the
+      // scope's own layout over the one we force below — the source of the
+      // `graph-conflict-lens` drift. Wait until the node count stops changing.
+      await page.waitForFunction(
+        () => {
+          const api = (window as Record<string, unknown>).__testApi as {
+            graph?: { getNodeCount?: () => number };
+            store?: { getState?: (path: string) => { size?: number } | undefined };
+          };
+          const w = window as unknown as { __settleCount?: number; __settleStable?: number };
+          const count = Math.max(
+            Number(api?.graph?.getNodeCount?.() ?? 0),
+            Number(api?.store?.getState?.('graphNodes')?.size ?? 0)
+          );
+          w.__settleStable = w.__settleCount === count ? (w.__settleStable ?? 0) + 1 : 0;
+          w.__settleCount = count;
+          return count > 0 && (w.__settleStable ?? 0) >= 4;
+        },
+        { polling: 100, timeout: 15000 }
+      );
       // Text metrics (and therefore node sizing / layout bounds) must not race
       // font loading, or the fit shifts between runs.
       await page.evaluate(() => document.fonts.ready);

@@ -15,6 +15,8 @@ export type VisualCellResult = {
   group: string;
   title: string;
   status: TestResult['status'];
+  /** Led in the gallery's Journeys strip. */
+  journey?: boolean;
   baseline?: string;
   actual?: string;
   diff?: string;
@@ -49,6 +51,7 @@ export default class VisualReporter implements Reporter {
       group: cellGroup(test),
       title: id,
       status: result.status,
+      journey: JOURNEY_IDS.has(id),
       baseline,
       actual: artifact('actual'),
       diff: artifact('diff'),
@@ -76,3 +79,6 @@ function cellGroup(test: TestCase): string {
 
 /** The ids of the matrix cells; anything else in the project is a plain assertion. */
 const VISUAL_CELL_IDS = new Set(VISUAL_CELLS.map((cell) => cell.id));
+
+/** The led journey cells — the paradigm proved, not just covered. */
+const JOURNEY_IDS = new Set(VISUAL_CELLS.filter((cell) => cell.journey).map((cell) => cell.id));

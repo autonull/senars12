@@ -71,20 +71,29 @@ function escapeHtml(text: string): string {
 }
 
 function render(report: VisualReport): string {
-  const groups = new Map<string, VisualCellResult[]>();
-  for (const cell of report.cells) {
-    groups.set(cell.group, [...(groups.get(cell.group) ?? []), cell]);
-  }
-  const sections = [...groups.entries()]
-    .map(
-      ([group, cells]) =>
-        `<section><h2>${group} <small>${cells.length}</small></h2><div class="grid">${cells
-          .map(renderTile)
-          .join('\n')}</div></section>`
-    )
-    .join('\n');
+  const byGroup = (cells: VisualCellResult[]): string => {
+    const groups = new Map<string, VisualCellResult[]>();
+    for (const cell of cells) {
+      groups.set(cell.group, [...(groups.get(cell.group) ?? []), cell]);
+    }
+    return [...groups.entries()]
+      .map(
+        ([group, list]) =>
+          `<section><h2>${group} <small>${list.length}</small></h2><div class="grid">${list
+            .map(renderTile)
+            .join('\n')}</div></section>`
+      )
+      .join('\n');
+  };
 
+  const journeys = report.cells.filter((c) => c.journey);
+  const coverage = report.cells.filter((c) => !c.journey);
   const failed = report.cells.filter((c) => c.status !== 'passed').length;
+  const led = `<p class="led">One substrate · many projections · recursively embeddable · LoD-scaled.
+    These ${journeys.length} journeys prove the paradigm end-to-end: the live chat⇄graph loop,
+    the fractal node body, and the overlays that carry reasoning. Everything else is the coverage
+    contract, collapsed below.</p>`;
+
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><title>SeNARS visual gallery</title>
 <style>
@@ -98,6 +107,9 @@ function render(report: VisualReport): string {
   .summary { color: #7f8798; }
   .summary .bad { color: #ff6b6b; }
   .summary .ok { color: #4ade80; }
+  .led { color: #aab2c4; max-width: 70ch; }
+  details.coverage { margin-top: 2rem; border-top: 1px solid #262b36; padding-top: .5rem; }
+  details.coverage > summary { cursor: pointer; color: #7f8798; font-size: .95rem; padding: .3rem 0; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
   .tile { margin: 0; border: 1px solid #262b36; border-radius: 6px; overflow: hidden; background: #12141a; }
   .tile.bad { border-color: #ff6b6b; }
@@ -118,7 +130,15 @@ function render(report: VisualReport): string {
   <span class="summary">status <b class="${failed ? 'bad' : 'ok'}">${report.status}</b> ·
   ${report.cells.length} cells · ${failed} failed · ${report.platform}</span>
 </header>
-${sections}
+<section class="journeys">
+  <h2>Journeys <small>${journeys.length}</small></h2>
+  ${led}
+  <div class="grid">${journeys.map(renderTile).join('\n')}</div>
+</section>
+<details class="coverage">
+  <summary>Coverage — ${coverage.length} contract cells</summary>
+  ${byGroup(coverage)}
+</details>
 </body></html>`;
 }
 

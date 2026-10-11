@@ -79,6 +79,8 @@
   --colors-legibility-html-lod-zoom: 1.6;
   --colors-legibility-reference-area: 907200;
   --colors-legibility-reference-count: 12;
+  --colors-legibility-fit-padding: 32;
+  --colors-legibility-node-gutter: 16;
   --spacing-scale-0: 0;
   --spacing-scale-1: 2px;
   --spacing-scale-2: 4px;
@@ -242,6 +244,8 @@
   --colors-legibility-html-lod-zoom: 1.6;
   --colors-legibility-reference-area: 907200;
   --colors-legibility-reference-count: 12;
+  --colors-legibility-fit-padding: 32;
+  --colors-legibility-node-gutter: 16;
   --spacing-scale-0: 0;
   --spacing-scale-1: 2px;
   --spacing-scale-2: 4px;
@@ -405,6 +409,8 @@
   --colors-legibility-html-lod-zoom: 1.6;
   --colors-legibility-reference-area: 907200;
   --colors-legibility-reference-count: 12;
+  --colors-legibility-fit-padding: 32;
+  --colors-legibility-node-gutter: 16;
   --spacing-scale-0: 0;
   --spacing-scale-1: 2px;
   --spacing-scale-2: 4px;

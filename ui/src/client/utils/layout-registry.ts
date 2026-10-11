@@ -23,7 +23,7 @@ import {
 } from '../core/index.js';
 import { type LayoutScope, registerLayoutId } from '../core/layout-ids.js';
 import { lensMeta } from './lens-catalog.js';
-import { densityFactor } from './graph-scaling.js';
+import { densityFactor, NODE_GUTTER } from './graph-scaling.js';
 
 const clamp = (value: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, value));
 
@@ -136,7 +136,7 @@ layoutRegistry.register({
     const nodeRepulsion = Math.round(8000 * density);
     const idealEdgeLength = Math.round(120 * density);
     const gravity = clamp(0.25 / density, 0.05, 0.5);
-    const padding = Math.round(20 * (1 + density * 0.5));
+    const padding = Math.round(NODE_GUTTER * (1 + density * 0.5));
     return {
       name: 'cose',
       animate: true,
@@ -161,7 +161,7 @@ layoutRegistry.register({
     animate: true,
     animationDuration: 300,
     fit: (opts?.fit as boolean) ?? false,
-    padding: 20,
+    padding: NODE_GUTTER,
     concentric: (node: { data: (key: string) => number }) => node.data('priority') ?? 0,
     levelWidth: () => 2,
     ...opts,
@@ -178,7 +178,7 @@ layoutRegistry.register({
     animate: true,
     animationDuration: 300,
     fit: (opts?.fit as boolean) ?? false,
-    padding: 20,
+    padding: NODE_GUTTER,
     directed: true,
     spacingFactor: 1.5,
     ...opts,
@@ -206,7 +206,7 @@ layoutRegistry.register({
     animate: true,
     animationDuration: 300,
     fit: (opts?.fit as boolean) ?? false,
-    padding: 20,
+    padding: NODE_GUTTER,
     concentric: (node: any) => {
       return node.data('priority') ?? node.data('confidence') ?? 0;
     },

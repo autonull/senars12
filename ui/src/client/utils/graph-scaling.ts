@@ -25,6 +25,12 @@ export const ZOOM = {
 /** The smallest rendered node edge (px) that still reads as a node. */
 export const LEGIBLE_NODE_PX = token('colors.legibility.node-px');
 
+/** Padding (px) around the fit, so content never touches the viewport edge. */
+export const FIT_PADDING = token('colors.legibility.fit-padding');
+
+/** World-space gutter between nodes the layout aims to keep (§Move 1.3). */
+export const NODE_GUTTER = token('colors.legibility.node-gutter');
+
 const LABEL_LOD = token('colors.legibility.label-lod-threshold');
 const LABEL_BUDGET = token('colors.legibility.label-budget');
 const HTML_LOD_ZOOM = token('colors.legibility.html-lod-zoom');

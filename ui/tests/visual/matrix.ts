@@ -17,6 +17,8 @@ export type VisualCell = {
   title: string;
   /** The §P1 coverage key this cell satisfies: `overlay:<id>` | `renderer:<id>` | … */
   surface?: string;
+  /** Led in the gallery's Journeys strip (≤6) — proves the paradigm, not just coverage. */
+  journey?: boolean;
   /** Scenario loaded through the real engine before the page boots. */
   scenario?: string;
   /** URL hash applied through the real boot-hydration path. */
@@ -320,6 +322,70 @@ const seedConversation =
     }
   };
 
+/**
+ * Select one workspace block in the graph, through the viewport's own selection
+ * seam, after seeding the conversation in a deterministic layout — the chat⇄graph
+ * selection loop (§Move 1.4). The conversation layout supplies the positions, so
+ * the highlight lands on a stable frame.
+ */
+const selectConversationBlock =
+  (prefer: readonly string[] = []): VisualCell['prepare'] =>
+  async (ctx) => {
+    await seedConversation('chronological-flow')(ctx);
+    const ref = await resolveBlockRef(ctx.page, prefer);
+    await ctx.page.evaluate((id) => {
+      (
+        (window as Record<string, unknown>).__testApi as {
+          graph?: { selectBlock?: (id: string) => void };
+        }
+      )?.graph?.selectBlock?.(id);
+    }, ref);
+    await ctx.page.waitForTimeout(400);
+  };
+
+/** Show a live agent reply mid-stream in the chat surface. */
+const streamReply: VisualCell['prepare'] = async ({ page, settle }) => {
+  await page.evaluate((messages) => {
+    const api = (window as Record<string, unknown>).__testApi as {
+      store?: { setState?: (path: string, value: unknown) => void };
+    };
+    api?.store?.setState?.('chatMessages', messages);
+  }, chatMessages(CHAT_TURNS));
+  await settle();
+  await page.evaluate(() => {
+    const api = (window as Record<string, unknown>).__testApi as {
+      store?: { setState?: (path: string, value: unknown) => void };
+    };
+    api?.store?.setState?.(
+      'streamingDelta',
+      'A robin is a bird; a bird is an animal, so by deduction a robin is an anim'
+    );
+  });
+  await page.waitForTimeout(400);
+};
+
+/** Open the tool-approval prompt the chat loop raises before a tool runs. */
+const requestToolApproval: VisualCell['prepare'] = async ({ page }) => {
+  await page.evaluate(() => {
+    (
+      (window as Record<string, unknown>).__testApi as { overlays?: { open?: (id: string) => void } }
+    )?.overlays?.open?.('tool-approval');
+  });
+  await page.waitForTimeout(150);
+  await page.evaluate(() => {
+    (
+      (window as Record<string, unknown>).__testApi as {
+        toolApproval?: { request?: (args: Record<string, unknown>) => void };
+      }
+    )?.toolApproval?.request?.({
+      promptType: 'confirm',
+      title: 'Approve deployment',
+      message: 'Deploy the revised belief set to the live knowledge base?',
+    });
+  });
+  await page.waitForTimeout(400);
+};
+
 /** Open a ref-bearing overlay through the shell test seam, with a real block. */
 const openOverlayWithRef =
   (id: string, prefer?: readonly string[]): VisualCell['prepare'] =>
@@ -409,9 +475,37 @@ const HAND_CURATED_CELLS: VisualCell[] = [
     id: 'graph-conversation',
     group: 'Graph',
     title: 'Conversation as graph — turns with bodies',
+    journey: true,
     hash: '#panels=none&scope=conversation&layout=chronological-flow',
     layout: 'chronological-flow',
     prepare: seedConversation('chronological-flow'),
+  },
+
+  // Proving cells (Move 1.4): the live chat⇄graph loop, not a static graph.
+  {
+    id: 'chat-graph-context',
+    group: 'Journeys',
+    title: 'Chat ⇄ graph — selecting a turn highlights its node',
+    journey: true,
+    hash: '#panels=none&scope=conversation&layout=chronological-flow',
+    layout: 'chronological-flow',
+    prepare: selectConversationBlock(['turn', 'claim', 'paragraph']),
+  },
+  {
+    id: 'chat-streaming',
+    group: 'Journeys',
+    title: 'Chat — agent reply mid-stream',
+    journey: true,
+    hash: '#panels=chat',
+    prepare: streamReply,
+  },
+  {
+    id: 'chat-tool-approval',
+    group: 'Journeys',
+    title: 'Chat — tool approval before a tool runs',
+    journey: true,
+    hash: '#panels=chat',
+    prepare: requestToolApproval,
   },
 
   // Conversation layouts (§5.3) — arrange the seeded conversation; concept
@@ -673,6 +767,7 @@ const HAND_CURATED_CELLS: VisualCell[] = [
     group: 'Overlays',
     title: 'Explanation overlay — block with links',
     surface: 'overlay:explain',
+    journey: true,
     scenario: 'basic-derivation',
     hash: '#panels=none',
     prepare: openOverlayWithRef('explain', ['derivation', 'claim']),
@@ -764,6 +859,7 @@ const HAND_CURATED_CELLS: VisualCell[] = [
     group: 'Selection',
     title: 'Node detail drawer — inspector follows selection',
     surface: 'overlay:inspector',
+    journey: true,
     hash: '#panels=none',
     prepare: async ({ page, settle }) => {
       await isolateGraph(page);

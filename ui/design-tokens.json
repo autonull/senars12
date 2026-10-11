@@ -99,7 +99,9 @@
       "label-budget": "8",
       "html-lod-zoom": "1.6",
       "reference-area": "907200",
-      "reference-count": "12"
+      "reference-count": "12",
+      "fit-padding": "32",
+      "node-gutter": "16"
     }
   },
   "spacing": {

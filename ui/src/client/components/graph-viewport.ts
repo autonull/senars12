@@ -40,7 +40,7 @@ import {
   toggleCollapsed,
 } from '../core/index.js';
 import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
-import { clampZoom, labelCutoff, showsLabel, getLoDTier, showsHtmlBody } from '../utils/graph-scaling.js';
+import { clampZoom, FIT_PADDING, labelCutoff, showsLabel, getLoDTier, showsHtmlBody } from '../utils/graph-scaling.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
 import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
@@ -177,7 +177,6 @@ export class GraphViewport extends BaseComponent {
   @state() private legendOpen = false;
   // LOD (Level of Detail) thresholds for performance
   private readonly LOD_EDGE_THIN_ZOOM = 0.3;
-  private readonly FIT_PADDING = 40;
 
   override connectedCallback() {
     super.connectedCallback();
@@ -221,6 +220,8 @@ export class GraphViewport extends BaseComponent {
       getAllEdgeIds: () =>
         this.cy?.edges().map((e) => `${e.data('source')}->${e.data('target')}`) ?? [],
       clickNode: (id: string) => this.cy?.getElementById(id).emit('tap'),
+      /** Select a workspace block without the tap path's focus/center animation. */
+      selectBlock: (id: string) => setWorkspaceSelection([id]),
       clickEdge: (source: string, target: string) => {
         const edge = this.cy?.edges(`[source="${source}"][target="${target}"]`);
         if (edge?.length) edge.emit('tap');
@@ -494,8 +495,8 @@ export class GraphViewport extends BaseComponent {
     if (!this.cy) return;
     const cy = this.cy;
     const eles = this.visibleElements(cy);
-    if (eles.empty()) cy.fit(undefined, this.FIT_PADDING);
-    else cy.fit(eles, this.FIT_PADDING);
+    if (eles.empty()) cy.fit(undefined, FIT_PADDING);
+    else cy.fit(eles, FIT_PADDING);
     const count = eles.nodes().length || cy.nodes().length;
     const zoom = clampZoom(cy.zoom(), count, cy.width() * cy.height());
     if (Math.abs(zoom - cy.zoom()) > 1e-3) {
