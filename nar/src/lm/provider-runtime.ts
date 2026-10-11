@@ -137,6 +137,13 @@ export class ProviderRuntime {
   healthProbeInterval: (() => void) | null = null;
 
   private fileSettings: LMSettingsInput | undefined;
+  /**
+   * Runtime provider selection (lm.switch). Beats env/file at read time, so a
+   * switch is instant and needs no registry rebuild — every configured provider
+   * is already built (see `createSeNARSRegistry`), this only picks the default
+   * chain. Cleared by `setActiveProvider(undefined)`.
+   */
+  private activeProviderOverride: { provider: LMProviderName; model?: string } | undefined;
   private webllmRuntime: WebLLMRuntime | undefined;
   private builtinProgressCallback: ((progress: number) => void) | undefined;
   readonly #routingLedger: Ledger<RoutingTelemetryLedgerEntry> | null = null;
@@ -152,7 +159,23 @@ export class ProviderRuntime {
 
   /** Active settings, lazily resolved from env (+ anything installed via configureLM). */
   getLMSettings(): LMSettings {
-    return resolveLMSettings(this.fileSettings);
+    const base = resolveLMSettings(this.fileSettings);
+    const override = this.activeProviderOverride;
+    if (!override) return base;
+    return {
+      ...base,
+      provider: override.provider,
+      ...(override.model !== undefined ? { model: override.model } : {}),
+    };
+  }
+
+  /** Select the runtime-active provider (and optional model). Undefined clears it. */
+  setActiveProvider(provider: LMProviderName | undefined, model?: string): void {
+    this.activeProviderOverride = provider ? { provider, ...(model ? { model } : {}) } : undefined;
+  }
+
+  getActiveProvider(): { provider: LMProviderName; model?: string } | undefined {
+    return this.activeProviderOverride;
   }
 
   /** UI layer installs the WebLLM runtime at startup (browser only). */

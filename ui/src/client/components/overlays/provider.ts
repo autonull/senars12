@@ -208,8 +208,8 @@ export class ProviderView extends SurfaceComponent {
         ${
           stale
             ? html`<p class="notice">
-              The engine kept ${providerLabel(id)} after a request for
-              ${providerLabel(pending ?? '')} — restart it to pick the new provider up.
+              ${providerLabel(pending ?? '')} did not take effect — the engine still reports
+              ${providerLabel(id)}.
             </p>`
             : ''
         }
@@ -220,18 +220,28 @@ export class ProviderView extends SurfaceComponent {
               ${providers.map((provider) => {
                 const usable = providerUsable(provider);
                 const current = provider.id === id;
+                const unavailableReason =
+                  provider.kind === 'browser' ? `${provider.label} needs WebGPU` : `${provider.label} unavailable`;
                 return html`<li>
                   <button
                     class="provider"
                     data-provider=${provider.id}
                     aria-current=${current}
                     ?disabled=${!usable}
-                    title=${usable ? provider.id : `${provider.label} needs WebGPU`}
+                    title=${usable ? provider.id : unavailableReason}
                     @click=${() => this.select(provider.id)}
                   >
                     <span class="label">${provider.label}</span>
                     <span class="kind">${provider.kind}</span>
-                    <span class="state">${current ? 'active' : pending === provider.id ? 'pending' : ''}</span>
+                    <span class="state">${
+                      current
+                        ? 'active'
+                        : pending === provider.id
+                          ? 'pending'
+                          : usable
+                            ? ''
+                            : 'unavailable'
+                    }</span>
                   </button>
                 </li>`;
               })}

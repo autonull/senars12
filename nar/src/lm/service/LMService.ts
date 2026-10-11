@@ -11,6 +11,7 @@ import { withSpan } from '../../otel/index.js';
 import type { ILMService } from '../interfaces.js';
 import { toCachedJsonSchema } from '../json.js';
 import { getProviderRuntime, type ProviderRuntime } from '../provider-runtime.js';
+import { LM_PROVIDER_NAMES } from '../env-config.js';
 import type {
   LMProviderName,
   ModelDownloadProgressCallback,
@@ -42,6 +43,28 @@ const PROVIDER_ALIASES: Readonly<Record<string, LMProviderName>> = Object.freeze
 
 /** Per-call structured-generation options — the one generation option bag. */
 type ObjectOptions = LMGenerateOptions;
+
+/**
+ * Provider id → the `createSeNARSRegistry` key its models live under. Several
+ * chameleon providers share one registry namespace (`builtin`, `cloud`), which
+ * is also why availability is probed per provider id below.
+ */
+const REGISTRY_KEY: Readonly<Record<LMProviderName, string>> = Object.freeze({
+  transformers: 'builtin',
+  mock: 'builtin',
+  anthropic: 'cloud',
+  openai: 'cloud',
+  'openai-compatible': 'cloud',
+  llamacpp: 'llamacpp',
+  'llamacpp-embedded': 'llamacpp-embedded',
+  webllm: 'webllm',
+});
+
+/** One provider's availability, as the UI picker and `lm.status` read it. */
+export interface ProviderAvailability {
+  readonly id: LMProviderName;
+  readonly available: boolean;
+}
 
 /** Cached form of a structured result. */
 const jsonCodec = {
@@ -94,6 +117,37 @@ export class LMService implements ILMService {
 
   get available(): boolean {
     return this.hasModel();
+  }
+
+  /** The runtime-active provider selection, or undefined when env/config decides. */
+  getActiveProvider(): { provider: LMProviderName; model?: string } | undefined {
+    return this.accounting.runtime.getActiveProvider();
+  }
+
+  /**
+   * Switch the runtime-active provider (and optional model). Instant: every
+   * configured provider is already in the registry, so this only re-points the
+   * default chain — no rebuild, and other providers stay usable concurrently
+   * via a per-call model id.
+   */
+  selectProvider(provider: string, model?: string): void {
+    this.accounting.runtime.setActiveProvider(provider as LMProviderName, model);
+    this.reprobeDone = false;
+  }
+
+  /** Which providers the registry can answer for, keyed by provider id. */
+  getCatalog(): ProviderAvailability[] {
+    return LM_PROVIDER_NAMES.map((id) => {
+      const key = REGISTRY_KEY[id];
+      let available = false;
+      try {
+        this.registry.languageModel(`${key}:fast` as Parameters<SeNARSRegistry['languageModel']>[0]);
+        available = true;
+      } catch {
+        available = false;
+      }
+      return { id, available };
+    });
   }
 
   getModel(task: LMTask, modelOverride?: string): LanguageModel | undefined {

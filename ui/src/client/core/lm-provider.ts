@@ -20,6 +20,8 @@ export interface ProviderDescriptor {
   readonly id: string;
   readonly label: string;
   readonly kind: ProviderKind;
+  /** Whether the engine/registry can answer for it right now (`undefined` if unreported). */
+  readonly available?: boolean;
 }
 
 export interface LmProviderState {
@@ -66,6 +68,7 @@ const providerOf = (value: unknown): ProviderDescriptor | undefined => {
     id,
     label: optionalString(value.label) ?? providerLabel(id),
     kind: value.kind === 'browser' ? 'browser' : 'engine',
+    ...(typeof value.available === 'boolean' ? { available: value.available } : {}),
   };
 };
 
@@ -88,9 +91,12 @@ export const $lmProvider = atom<LmProviderState>({
   providers: [],
 });
 
-/** Whether a provider can run *here*: browser providers need WebGPU. */
+/** Whether a provider can run *here*: browser providers need WebGPU, engine
+ *  providers must be reported available (or unjudged) by the engine. */
 export const providerUsable = (provider: ProviderDescriptor): boolean =>
-  provider.kind === 'browser' ? $webllmAvailable.get() || $webllmActive.get() : true;
+  provider.kind === 'browser'
+    ? $webllmAvailable.get() || $webllmActive.get()
+    : provider.available !== false;
 
 /**
  * Absorb an `lm.status` frame. The active provider is always in the list even

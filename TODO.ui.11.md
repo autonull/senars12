@@ -175,6 +175,71 @@ make CI red — so it stays out.
 
 ---
 
+## Progress Log — LM provider flexibility (user directive)
+
+> New goal: the best, most flexible LM provider system — multiple configured
+> providers/models, instant switching, concurrent use — with a working **offline**
+> model first ($1–4 GB local GGUF), WebLLM later.
+
+### Offline-first multi-provider registry ✅
+
+**The gap.** WebLLM (`ui/src/webllm.ts`) was fully written but unreachable: the
+nar model factory consumed it only in the *engine process* (the Node server), and
+`configureWebLLM` was never called. Separately, the dev/test engine was
+`new NAR(DEFAULT_CONFIG)` with **no `providerRegistry`**, so `LM: None` and no
+model was ever used — the config's `lm.provider: 'llamacpp-embedded'` was ignored
+because the registry gated embedded on the **env** var only
+(`embeddedLlamaConfigured()`), not the config `llamacppModelPath`.
+
+**What landed.**
+- `createSeNARSRegistry` now builds **every configured provider**, not just the
+  active one (`nar/src/lm/providers/model-factory.ts`): cloud when a key/base URL
+  exists, llamacpp when a host is set, embedded when `s.llamacppModelPath` exists
+  on disk, webllm when the runtime is installed. `provider` now only selects the
+  default chain — so switching needs no rebuild and distinct providers coexist.
+- Runtime selection: `ProviderRuntime.setActiveProvider`/`getActiveProvider` (an
+  override applied on top of `resolveLMSettings`), surfaced as `setActiveProvider`
+  in the provider API; `LMService.selectProvider(provider, model?)` +
+  `LMService.getCatalog()` (per-provider availability). `lm.switch` now *applies*
+  (`server/index.ts`), and `lm.status` carries `available` per provider.
+- Offline live: `ui/scripts/agent-server.ts` builds the NAR with
+  `providerRegistry` + `lmService` and defaults to the repo GGUF
+  (`.models/Qwen3.5-0.8B-Q4_0.gguf`) when env is unset. `senars.config.json` sets
+  `provider: llamacpp-embedded` + `llamacppModelPath`; `lmSettingsShape`
+  (`util/src/config/lm-schema.ts`) gained the embedded-llama fields so the config
+  can actually name a GGUF.
+- UI: provider descriptors carry `available` (`core/lm-provider.ts`),
+  `providerUsable` disables engine providers the engine reports unavailable, and
+  the `s-provider` overlay shows an `unavailable` state (the stale "restart"
+  notice was reworded — switching is instant now). Removed the **dead, unmounted**
+  `lm-status-panel` (also fixes its scenario's stale selector → composer status).
+
+**Verified.** `createLMService().generateText(...)` against the embedded GGUF
+returns text (~4.8 s incl. load); `selectProvider('mock'|'transformers'|
+'llamacpp-embedded')` flips instantly with a correct catalog; the dev server shows
+`LM: llama.cpp embedded` and runs ~15 model calls per chat turn. Gates: typecheck,
+workspace **3402**, ui unit **678**, design **11**, craft **202**, visual **60**
+(3 baselines regenerated for the now-live LM chip; `productionLOC` ledger
+ratcheted 72689 → 72758).
+
+**Known gap / next.**
+- **WebLLM browser bridge.** WebLLM still cannot run: the engine is Node-side and
+  there is no in-browser NAR engine. To make it work, add a server↔browser
+  generation bridge (server sends `lm.generate.request`, the browser runs WebLLM
+  and returns; a proxy `LanguageModel` in nar), with the server-side providers as
+  fallback. The `kind: 'browser'` catalog entry is the seam.
+- **Chat narration.** The bare dev/test `Agent` isn't built with a conversation
+  service (production does it via `NARBuilder.withConversation`), so its `chat`
+  emits the `[agent] <input>` fallback even though the LM runs the NL pipeline.
+  Wire the dev agent's narration or point the chat path at the engine's LM.
+- **Model downloader/comparer.** A tool to fetch GGUFs and compare (quality/
+  latency/size) so users can choose; the two local models are Qwen3.5-0.8B
+  (fast, 0.56 GB) and gemma-4-E2B (quality, 3.35 GB).
+- Runtime switching across *cloud* variants shares one `cloud` registry entry, so
+  its base URL is fixed at boot — revisit if cloud multi-select is needed.
+
+---
+
 ## Verification — does this plan reach the two goals?
 
 **Goal 1 — a working, useful, robust SeNARS UI.**

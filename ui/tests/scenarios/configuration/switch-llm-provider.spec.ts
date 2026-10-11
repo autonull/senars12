@@ -1,12 +1,11 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 import { waitConnected } from '../../framework/utils/interactions';
 
-test('the LM status strip names the active provider @critical', async ({ page, testApi }) => {
+test('the composer status names the active LM provider @critical', async ({ page, testApi }) => {
   await waitConnected(testApi);
-  const panel = page.locator('lm-status-panel');
-  await expect(panel).toBeVisible();
-  await expect(panel.locator('.panel')).toBeVisible();
-  await expect(panel.locator('.dot')).toBeVisible();
-  // Renders a provider line even when no LM is configured; real switching lands in Phase 9.2.
-  await expect(panel.locator('.panel')).toContainText('LM:');
+  // The LM provider lives in the composer status strip (the old top-bar panel was
+  // folded into `bottom-bar`); it names the provider even before a model answers.
+  const composer = page.locator('bottom-bar');
+  await expect(composer).toBeVisible();
+  await expect(composer).toContainText('LM:');
 });

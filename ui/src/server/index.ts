@@ -55,7 +55,14 @@ type NarLike = {
   run?: (cycles: number) => unknown;
   getBeliefs?: () => NarBelief[];
   getRevisionHistory?: (term: unknown) => RevisionEntry[];
-  getLMClient?: () => { provider?: string; model?: string; available?: boolean; getStats?: () => unknown };
+  getLMClient?: () => {
+    provider?: string;
+    model?: string;
+    available?: boolean;
+    getStats?: () => unknown;
+    getCatalog?: () => Array<{ id: string; available: boolean }>;
+    selectProvider?: (provider: string, model?: string) => void;
+  };
   getLMClientStats?: () => unknown;
   getSelfAnalyzer?: () => { start?: () => void; stop?: () => void } | undefined;
   clearMemory?: () => void;
@@ -558,11 +565,14 @@ function createServerWithProjection(agent?: Agent): {
  */
 const BROWSER_PROVIDERS = new Set(['webllm']);
 
-const providerCatalog = () =>
-  LM_PROVIDER_NAMES.map((id) => ({
+const providerCatalog = () => {
+  const availability = nar()?.getLMClient?.()?.getCatalog?.() ?? [];
+  return LM_PROVIDER_NAMES.map((id) => ({
     id,
     kind: BROWSER_PROVIDERS.has(id) ? 'browser' : 'engine',
+    available: availability.find((entry) => entry.id === id)?.available ?? false,
   }));
+};
 
 function sendLmStatus(ws: WebSocket): void {
   const lm = nar()?.getLMClient?.() ?? {};
@@ -587,7 +597,7 @@ function sendLmStatus(ws: WebSocket): void {
  * request it cannot honour shows up as an unchanged provider rather than as a
  * silent success.
  */
-function applyLmSwitch(ws: WebSocket, provider: string): void {
+function applyLmSwitch(ws: WebSocket, provider: string, model?: string): void {
   const known = LM_PROVIDER_NAMES.includes(provider as (typeof LM_PROVIDER_NAMES)[number]);
   if (!known) {
     ws.send(
@@ -600,7 +610,11 @@ function applyLmSwitch(ws: WebSocket, provider: string): void {
     );
     return;
   }
-  nar()?.setConfig?.({ lm: { provider } });
+  // Every configured provider is already built, so this re-points the default
+  // chain in place — no rebuild, and other providers stay concurrently usable.
+  const lm = nar()?.getLMClient?.();
+  if (lm?.selectProvider) lm.selectProvider(provider, model);
+  else nar()?.setConfig?.({ lm: { provider } });
   sendLmStatus(ws);
 }
 
@@ -672,7 +686,7 @@ function broadcastConfigSchema(): void {
         sendLmStatus(ws);
         return;
       case 'lm.switch':
-        applyLmSwitch(ws, msg.provider);
+        applyLmSwitch(ws, msg.provider, msg.model);
         return;
     }
   }

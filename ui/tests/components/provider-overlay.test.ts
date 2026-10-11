@@ -71,6 +71,23 @@ describe('provider overlay', () => {
     const el = document.createElement('s-provider');
     document.body.appendChild(el);
     await el.updateComplete;
-    expect(el.shadowRoot?.querySelector('.notice')?.textContent).toContain('restart');
+    expect(el.shadowRoot?.querySelector('.notice')?.textContent).toContain('did not take effect');
+  });
+
+  it('disables a provider the engine reports unavailable', async () => {
+    $lmProvider.set({
+      id: 'mock',
+      available: true,
+      providers: [
+        { id: 'mock', label: 'Mock (no model)', kind: 'engine', available: true },
+        { id: 'llamacpp', label: 'llama.cpp server', kind: 'engine', available: false },
+      ],
+    });
+    const el = document.createElement('s-provider');
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const row = el.shadowRoot?.querySelector<HTMLButtonElement>('[data-provider="llamacpp"]');
+    expect(row?.disabled).toBe(true);
+    expect(row?.textContent).toContain('unavailable');
   });
 });

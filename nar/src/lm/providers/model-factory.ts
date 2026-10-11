@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { LanguageModelV3, LanguageModelV3CallOptions } from '@ai-sdk/provider';
 import { transformersJS } from '@browser-ai/transformers-js';
@@ -12,7 +13,6 @@ import {
   builtinModels,
   cloudApiKey,
   defaultModelFor,
-  embeddedLlamaConfigured,
   type LMSettings,
 } from '../env-config.js';
 
@@ -68,20 +68,23 @@ export function createSeNARSRegistry(settings?: LMSettings) {
   const { provider, model: modelOverride, fastModel, structuredModel, compactModel, baseUrl } = s;
 
   const hasCloudKey = Boolean(cloudApiKey(s.apiKeyEnv));
-  // anthropic/openai need a credential to be usable; openai-compatible is the
-  // generic OpenAI-shaped lane (local daemons like ollama included — no key).
-  const useCloud =
-    provider === 'openai-compatible' ||
-    ((provider === 'anthropic' || provider === 'openai') && hasCloudKey);
+  // Every *configured* provider is built, not just the active one, so a runtime
+  // switch (lm.switch) needs no rebuild and distinct providers can be used at the
+  // same time (each call may name its model id). `provider` only picks the
+  // default chain; availability is decided per provider, independently.
+  // - cloud/anthropic/openai/openai-compatible: a credential or a base URL.
+  // - llamacpp: an external llama-server host.
+  // - llamacpp-embedded: a GGUF on disk (lazy; loads on first call).
+  // - webllm: the browser runtime is installed (WebGPU present).
+  const useCloud = hasCloudKey || provider === 'openai-compatible' || Boolean(baseUrl);
   const useWebLLM =
-    provider === 'webllm' &&
     typeof getWebLLMRuntime() !== 'undefined' &&
     typeof navigator !== 'undefined' &&
     'gpu' in navigator;
-  const useLlamaCpp = provider === 'llamacpp';
-  // GGUF must be configured AND on disk — otherwise the slots are omitted so
-  // routing failover skips them (defaults degrade to builtin transformers).
-  const useEmbeddedLlamaCpp = provider === 'llamacpp-embedded' && embeddedLlamaConfigured();
+  const useLlamaCpp = Boolean(s.llamacppHost) || provider === 'llamacpp';
+  // Settings-based (env OR config file), not env-only: the app config carries
+  // `llamacppModelPath`, so a configured GGUF is built even without the env var.
+  const useEmbeddedLlamaCpp = Boolean(s.llamacppModelPath && existsSync(s.llamacppModelPath));
 
   const llamacpp = createOpenAICompatible({
     name: 'llamacpp',

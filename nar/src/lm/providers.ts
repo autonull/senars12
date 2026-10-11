@@ -84,5 +84,11 @@ export {
   resolveOfflineTier,
   setRouting,
 } from './providers/routing.js';
-export { configureLM, getLMSettings, getLmProvider } from './providers/settings.js';
+export {
+  configureLM,
+  getActiveProvider,
+  getLMSettings,
+  getLmProvider,
+  setActiveProvider,
+} from './providers/settings.js';
 export { configureWebLLM, detectDevice, getWebLLMRuntime } from './providers/webllm.js';

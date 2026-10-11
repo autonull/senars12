@@ -99,6 +99,7 @@ export {
   demoteModel,
   disableRoutingTelemetry,
   enableRoutingTelemetry,
+  getActiveProvider,
   getCircuitBreaker,
   getEffectiveCircuitConfig,
   getLMSettings,
@@ -121,6 +122,7 @@ export {
   resolveActiveProvider,
   resolveOfflineModel,
   resolveOfflineTier,
+  setActiveProvider,
   setRouting,
 } from './providers.js';
 export type {

@@ -16,6 +16,26 @@ export const lmSettingsShape = {
   baseUrl: z.string().optional(),
   ollamaHost: z.string().optional(),
   apiKeyEnv: z.string().optional(),
+  /** llama.cpp server host (llama-server native API). */
+  llamacppHost: z.string().optional(),
+  /** Embedded llama.cpp: path to a GGUF model file. */
+  llamacppModelPath: z.string().optional(),
+  /** Embedded llama.cpp: GPU backend (`auto` | `cuda` | `metal` | `vulkan` | `false`). */
+  llamacppGpu: z.union([z.enum(['auto', 'cuda', 'metal', 'vulkan']), z.literal(false)]).optional(),
+  /** Embedded llama.cpp: layers to offload (`max` or a count). */
+  llamacppGpuLayers: z.union([z.number(), z.literal('max')]).optional(),
+  /** Embedded llama.cpp: context window size. */
+  llamacppContextSize: z.number().optional(),
+  /** Embedded llama.cpp: batch size. */
+  llamacppBatchSize: z.number().optional(),
+  /** Embedded llama.cpp: parallel sequences. */
+  llamacppSequences: z.number().optional(),
+  /** Embedded llama.cpp: flash attention. */
+  llamacppFlashAttention: z.boolean().optional(),
+  /** Hard offline switch — never probe or reach the network. */
+  offline: z.boolean().optional(),
+  /** Disable thinking-model reasoning traces (Qwen3 etc.). */
+  disableThinking: z.boolean().optional(),
   quantized: z.boolean().optional(),
   cacheDir: z.string().optional(),
   /** Per-provider circuit breaker settings. */
