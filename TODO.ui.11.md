@@ -1,0 +1,773 @@
+# TODO.ui.11.md — Deepen the Paradigm, Don't Widen It
+
+> **North Star:** *One substrate · many projections · recursively embeddable · LoD-scaled.*
+>
+> **One-line test for every decision:** *Does it make the system's reasoning more visible, more legible, or more enjoyable — without adding a control the user must learn?*
+
+---
+
+## Where We Are (v10 verified)
+
+| Capability | Lives in | State |
+|---|---|---|
+| One substrate (WorkspaceGraph + projections) | `core/workspace-graph.ts`, `core/*-projection.ts` | ✅ |
+| Conversation as graph nodes with real HTML bodies | `components/node-body.ts`, `utils/render-block.ts` | ✅ |
+| 4-tier LoD (glyph→label→card→full) | `utils/graph-scaling.ts` | ✅ |
+| Density-aware layout | `utils/layout-registry.ts` | ✅ |
+| Fractal: block's `full` tier renders nested `<s-view>` | `utils/render-block.ts:54` (`embedded`) | ✅ (depth guard at 2) |
+| Overlay system (popovers, registry, host, windows) | `core/overlay-*.ts` | ✅ (no drill-down breadcrumbs) |
+| Conversation layouts (5) + reasoning layouts (4) | `core/conversation-layout.ts`, `core/reasoning-layout.ts` | ✅ |
+| Depth budget + node budget + inert-until-engaged | `utils/render-block.ts`, `components/graph-viewport.ts`, `components/node-body.ts` | ✅ |
+| Two demo cells proving the paradigm | `tests/visual/matrix.ts` | ✅ (`embedded-view-demo`, `derivation-record-demo`) |
+
+**v10 is complete. All `verify` gates green (typecheck, unit 673, design 11, visual 59, craft 202).**
+
+### Known consolidation debt (the substrate is under-abstracted)
+
+The paradigm is proven but its **descriptor surface has drifted**: a `BlockKind` is
+spread across 6+ partial maps and 3 if-chains, and they disagree. Two are live
+bugs, not just DRY smells:
+
+- `GRAPH_BLOCK_KINDS` (`components/renderers/graph.ts:30`) **omits `derivation-record`
+  and `command`**, so those blocks are not advertised to the graph renderer.
+- `graph-scaling.ts:10` and `adapter-2d.ts:8` read `TOKENS.dark[...]` directly,
+  **hardcoding the dark theme** — light/high-contrast are silently broken.
+- `EVENT_TYPE_LABELS` (`components/overlays/events.ts:17`) keys do not match the
+  `EVENT_CATALOG` discriminants (stale duplicate).
+
+**Track D** below consolidates this, but only as *enablers* of Tracks A/B — each
+refactor lands in the same commit as the feature that needs it (per the standing
+rule "no new subsystem without a visible payoff"). The one exception is D5, which
+is a correctness fix and may land standalone.
+
+---
+
+## Track A — Fix Broken Things (do first, highest payoff)
+
+### A1. Config-change audit trail → dedicated log/HUD surface
+
+**Problem:** `config-change-producer.ts:65` writes `config-change` blocks directly to `$workspaceGraph`. The next `syncWorkspaceGraph()` (triggered by any chat/engine change) calls `projectWorkspace()` which creates a **new** `WorkspaceGraph`, wiping the audit blocks. A projection-based fix was attempted and reverted — two traps: (1) server config hydration bursts 5 `Config:` nodes on load; (2) projecting as graph roots perturbs auto-fit of 4 timed cells non-deterministically (`panel-search`, `overlay-toc`, `panel-lens-designer`, `layout-budget-resource`).
+
+**Files:**
+- `ui/src/client/core/config-change-producer.ts` — direct write to `$workspaceGraph`
+- `ui/src/client/core/workspace-bindings.ts:24` — `syncWorkspaceGraph` replaces entire graph
+- `ui/src/client/core/workspace-projection.ts:523` — `projectWorkspace` merges fragments
+
+**Solution:** Keep config diffs **out of the graph root set**. Options:
+- Dedicated `$configChanges` store + HUD overlay (not a graph projection)
+- Audit blocks with `role: 'audit'` that are filtered from `roots` in `projectWorkspace` (but still queryable)
+- Log panel in bottom bar (like a console for config)
+
+**Acceptance:**
+- Config changes persist across `syncWorkspaceGraph` calls
+- No graph perturbation (visual baselines stable)
+- Config hydration on load does not burst 5 nodes
+- User can view history in a dedicated surface (overlay or panel)
+
+---
+
+### A2. Derivation-record provenance links float unlinked
+
+**Problem:** `workspace-projection.ts:484–505` creates `derived-from` links from derivation-record steps to `claim:<term>` refs. Those claim blocks **may not exist** (the terms aren't in the current engine snapshot), so the derivation-record node floats with invisible provenance edges.
+
+**Files:**
+- `ui/src/client/core/workspace-projection.ts:484–505` — `projectDerivationRecords` creates links to `claim:${premise}` / `claim:${conclusion}`
+
+**Solution:** Two paths, pick one:
+1. **Wire premises to real blocks:** In `projectDerivationRecords`, resolve each premise/conclusion term to an existing block in the merged graph (from `projectChat` + `projectReasoning`). If found, link to that block; if not, drop the link (don't create dangling refs).
+2. **Embed provenance in the block:** Store the term strings in `provenanceRefs` (already done at line 479) and render them in the derivation-record body via `renderBlockBody` — no graph links needed.
+
+**Acceptance:**
+- `derivation-record-demo` cell shows visible provenance (either graph edges or rendered in body)
+- No `derived-from` links to non-existent `claim:<term>` refs
+- `projectDerivationRecords` unit test asserts link targets exist in merged graph
+
+---
+
+### A3. Demo cells bypass projection (`manyBodiesDemo`)
+
+**Problem:** `tests/visual/matrix.ts:435–472` (`manyBodiesDemo`) seeds `$workspaceGraph` directly with synthetic blocks. It does not exercise the projection pipeline (`$chatMessages → syncWorkspaceGraph → projectChat → ...`), so a budget regression at the projection layer would not be caught visually.
+
+**Files:**
+- `ui/tests/visual/matrix.ts:435` — `manyBodiesDemo` prepare function
+- `ui/tests/visual/matrix.ts:667` — cell registration
+
+**Solution:** Create a shared `seedBlocks` helper that:
+- Documents the bypass (explicit comment: "Direct write for test density; does not exercise projection")
+- Or better: feeds the budget cell a synthetic projection via `projectWorkspace` with fabricated `ChatMessage[]` that segment into many blocks
+
+**Acceptance:**
+- `html-body-budget` cell still captures the budget badge
+- Cell either uses `seedBlocks` helper (documented bypass) or exercises real projection
+- If synthetic projection: `typecheck` + repeat capture confirms determinism
+
+---
+
+## Track B — Deeper Legibility (compound payoff)
+
+### B1. Overlay drill-down breadcrumbs
+
+**Problem:** Overlay system (`overlay-manager.ts`, `overlay-host.ts`, `overlay-registry.ts`) supports stacking, pinning, windowing — but no way to navigate "back" from a nested overlay (e.g., artifact viewer → explanation popover → related blocks). User loses context.
+
+**Files:**
+- `ui/src/client/core/overlay-manager.ts` — `OverlayManager` class, `#stack`, `open()`, `close()`, `stack()`
+- `ui/src/client/core/overlay-host.ts` — `OverlayHost` component
+- `ui/src/client/components/overlays/overlay-header.ts` — header with minimize/maximize/close
+
+**Solution:** Add a breadcrumb trail to `overlay-header` (or a dedicated breadcrumb bar):
+- Read `overlayManager.stack()` (bottom → top)
+- Render as clickable segments: `Graph → Artifact → Explanation → Related`
+- Clicking a segment closes all overlays above it (focus returns to that level)
+- Only show when stack depth > 1
+
+**Acceptance:**
+- Nested overlay stack shows breadcrumb trail in header
+- Clicking a crumb closes overlays above it, restores focus to that overlay
+- `Esc` still closes topmost; breadcrumb is an additional affordance
+- No new global state — reads existing `#stack`
+
+---
+
+### B2. LoD transition polish
+
+**Problem:** Glyph→label→card→full works (`graph-scaling.ts:119–135`, `getLoDTier`) but transitions feel mechanical — no visual continuity, no easing, no "intention" feel.
+
+**Files:**
+- `ui/src/client/utils/graph-scaling.ts:119–135` — `getLoDTier` thresholds
+- `ui/src/client/components/node-body.ts` — `tier` property, `card`/`full` styles
+- `ui/src/client/utils/render-block.ts` — `cappedEmbed` vs `embedded`
+- Cytoscape style updates in `adapter-2d.ts` / graph renderer
+
+**Solution:** Add transition affordances:
+- CSS `transition` on node size/label opacity in Cytoscape styles (`adapter-2d.ts`)
+- `s-node-body` tier change uses `animation` (slide/fade) instead of instant swap
+- `embedded` ↔ `cappedEmbed` cross-fade (not pop)
+- Respect `prefers-reduced-motion`
+
+**Acceptance:**
+- Zooming through LoD tiers feels smooth, not jarring
+- Node size/label opacity animates (150–200ms)
+- Tier change in `s-node-body` animates
+- `prefers-reduced-motion` disables animations
+- No layout thrashing during transition
+
+---
+
+### B3. Per-layout empty/loading/error states
+
+**Problem:** Only the graph has an empty state (`app-layout.ts:222–238` — `<s-empty-state>`). Conversation layouts (`conversation-layout.ts`) and reasoning layouts (`reasoning-layout.ts`) render through `<s-view>` which has generic `renderEmpty()`/`renderError()` in `view-host.ts:65–71` ("No data", "No view adapter for this shape").
+
+**Files:**
+- `ui/src/client/components/app-layout.ts:222–238` — graph empty state
+- `ui/src/client/core/view-host.ts:65–71` — generic empty/error slots
+- `ui/src/client/core/conversation-layout.ts` — 5 conversation layouts
+- `ui/src/client/core/reasoning-layout.ts` — 4 reasoning layouts
+- `ui/src/client/primitives/empty-state.ts` — `<s-empty-state>` component
+
+**Solution:** Each layout registers its own empty/loading/error template via the layout registry or view spec:
+- Conversation layouts: "No conversation yet — send a message", "Loading turns…", "Failed to load"
+- Reasoning layouts: "No reasoning trace", "Engine disconnected", "Budget exhausted"
+- Graph: keep existing (works)
+- Use `<s-empty-state>` with layout-specific icon/heading/description/action
+
+**Acceptance:**
+- Every layout (9 total) shows meaningful empty/loading/error state
+- States use shared `<s-empty-state>` component (consistent style)
+- Loading state shows while projection is in-flight (subscribe to source)
+- Error state surfaces projection errors (not just "no adapter")
+
+---
+
+## Track C — Move 3 Gate Evaluation (spikes only, ≤1 day each)
+
+> **Rule:** A spike that fails its gate is documented and closed. No implementation without a proven payoff.
+
+### C1. Content adapter spike (fs · AST · call-graph · series · doc → graph)
+
+**Question:** Can we demo **one** non-conversation source (e.g., file tree → graph) in <1 day?
+
+**Spike:**
+- Pick simplest source: filesystem tree (no parsing)
+- Write `projectFiles` in `workspace-projection.ts` style: `readonly FileNode[] → WorkspaceFragment`
+- Register as a backend in `workspace-bindings.ts` (like `narsBackend`/`mettaBackend`)
+- Visual cell: `file-tree-demo` showing directory as graph
+
+**Go/No-Go:**
+- ✅ Go if: spike works in <1 day, cell renders, projection is pure/deterministic
+- ❌ No-Go if: requires new substrate, or projection is not pure, or >1 day
+
+---
+
+### C2. Semantic-zoom morph spike (Chat⇄Notebook⇄Graph interpolation)
+
+**Question:** Is there a shared coordinate space between Chat/Notebook/Graph?
+
+**Spike:**
+- Investigate: Do all three projections share a stable node ID space? (Yes: `turn:<msgId>`, `claim:<nodeId>`, `blk:<msgId>:<idx>`)
+- Can a zoom gesture in Graph morph to Notebook column position? (Notebook is flex-column, not zoomable)
+- Can a selection in Chat highlight in Graph? (Already works: `notebook.ts:424` calls `setWorkspaceSelection`)
+
+**Go/No-Go:**
+- ✅ Go if: shared coordinate space proven + concrete morph affordance designed
+- ❌ No-Go if: coordinate spaces are fundamentally different (likely)
+
+---
+
+### C3. Node-renderer registry needfinding
+
+**Question:** Does a 5th renderer (timeline, chat, 3D) need the shared descriptor?
+
+**Spike:**
+- Inventory current renderers: `graph` (cytoscape), `series`, `tree`, `text`, `code`, `diff` (6 shapes in `view-adapter.ts`)
+- Check: Does any surface need to *dynamically* register a renderer? (No — all known at build)
+- Check: Would a timeline renderer share the `ViewSpec` descriptor? (Yes, but doesn't need a registry)
+
+**Go/No-Go:**
+- ✅ Go if: a concrete 5th renderer is requested and needs dynamic registration
+- ❌ No-Go if: current 4-tier `renderBlockBody` + `embedded` covers all cases (likely)
+
+---
+
+### C4. `graph3d` spike (3D-only affordance for fractal depth)
+
+**Question:** Does 3D do something 2D *cannot* for fractal depth (z-axis embedding)?
+
+**Spike:**
+- Current: fractal depth = nested `<s-view>` in node body (2D, works)
+- 3D idea: embed depth → z-axis position, so you "fly into" a node
+- Check: Does `spacegraph` (three.js) support this? (`spacegraph-viewport.ts` exists)
+- Check: Is there a user need for spatial fractal navigation?
+
+**Go/No-Go:**
+- ✅ Go if: concrete 3D-only affordance designed (e.g., "fly into node" = z-zoom)
+- ❌ No-Go if: 2D nested view already solves it (likely)
+
+---
+
+## Track D — Consolidation & SSOT (ride along with A/B/C; each lands with its enabler)
+
+> **Rule:** every refactor below is *justified by a feature it enables* — no pure
+> cleanup for its own sake. Each lands in the same commit as the track that needs
+> it, so `verify` stays green and the diff stays legible. The payoff is the
+> paradigm's own rule generalised: **one descriptor, many consumers.**
+
+### D1. `BLOCK_DESCRIPTORS` — one record per `BlockKind` (highest leverage)
+
+A `BlockKind`'s facets live in 6+ partial maps and 3 if-chains that drift:
+`BLOCK_KIND_LABEL` (`core/block-labels.ts:9`, the only exhaustive one),
+`ARTIFACT_KINDS` (`core/conversation-layout.ts:78`), `GRAPH_BLOCK_KINDS`
+(`components/renderers/graph.ts:30` — **stale**), `JSON_KINDS`
+(`core/artifacts.ts:134`), `TOC_KINDS` (`core/toc.ts:16`),
+`BlockPayloads`/`NORMALIZERS` (`core/block-payload.ts:105`/`:215`),
+`isContainer` (`core/graph-projection.ts:52`), `isSection`
+(`components/renderers/notebook.ts:42`), and the render if-chains
+(`utils/render-block.ts:142`, `core/artifacts.ts:143`).
+
+**Refactor — `core/block-descriptors.ts`:**
+```ts
+interface BlockDescriptor {
+  label: string;
+  artifact: boolean;        // ARTIFACT_KINDS
+  navigable: boolean;       // TOC_KINDS
+  jsonPanel: boolean;       // JSON_KINDS
+  graphRenderable: boolean; // GRAPH_BLOCK_KINDS
+  container: boolean;       // isContainer
+  section: boolean;         // isSection
+  payload: PayloadDescriptor;              // BlockPayloads + NORMALIZERS
+  renderBody?: (block: SemanticBlock, ctx: BodyContext) => unknown; // render-block chain
+  artifactSpec?: (block: SemanticBlock) => ViewSpec;               // artifacts chain
+  icon?: string;
+}
+export const BLOCK_DESCRIPTORS = { turn: {…}, … } satisfies Record<BlockKind, BlockDescriptor>;
+export const blockDescriptor = (kind: BlockKind): BlockDescriptor => BLOCK_DESCRIPTORS[kind];
+```
+`satisfies Record<BlockKind, …>` makes the **compiler the guard**: a new kind
+cannot land with a facet missing. Every consumer becomes
+`blockDescriptor(kind).artifact` / `.renderBody(block)` — the if-chains become
+table lookups (table-driven dispatch).
+
+**Enables:** Track B3 (a layout's empty state reads `descriptor.icon`), the "one
+rendering" rule generalised (body and artifact are two fields of one descriptor),
+and it **deletes the `GRAPH_BLOCK_KINDS` staleness bug**.
+
+### D2. Extend `LINK_CATALOG` — link facets join the one catalog
+
+`utils/link-catalog.ts:33` is already the SSOT for link label/category/style, but
+two facet maps sit outside it and drift: `SYMMETRIC_LINK_KINDS`
+(`core/workspace-projection.ts:49`) and `GATE_STAGES`
+(`core/reasoning-layout.ts:108`). `graph-viewport.ts:704` also hardcodes
+`edge[type="derivation"]` styling, bypassing `linkMeta(kind).edgeStyle`.
+
+**Refactor:** add `symmetric: boolean` and `layoutStage?: number` to `LinkMeta`;
+delete both partial maps; `canonicalizeLink`/`deduplicateSymmetricLinks` read
+`linkMeta(kind).symmetric`; route the derivation edge style through the catalog.
+
+**Enables:** Track A2 (provenance links resolve through one catalog), edge-style
+correctness.
+
+### D3. `defineOverlay` + `WINDOW_DEFAULTS` — one registration tail
+
+16 overlay components repeat the same 4-step tail — `defineSurface` +
+`registerOverlay` with an `id/title/tag` triple + a global tag map (e.g.
+`overlays/nodes.ts:276–289`) — and 8 repeat the identical
+`window: { draggable, resizable, minimize, persist }` literal.
+
+**Refactor — `core/overlay.ts`:**
+```ts
+const WINDOW_DEFAULTS = { draggable: true, resizable: true, minimize: true, persist: true } as const;
+export function defineOverlay(
+  descriptor: SurfaceDescriptor & { window?: OverlayWindowOptions | 'standard' },
+  ctor: CustomElementConstructor
+): void {
+  defineSurface(descriptor, ctor);
+  registerOverlay({
+    ...descriptor,
+    tag: surfaceTag(descriptor),
+    window: descriptor.window === 'standard' ? WINDOW_DEFAULTS : descriptor.window,
+  });
+}
+```
+Each overlay collapses to one `defineOverlay({ id, title, window: 'standard' }, XView)`.
+
+**Enables:** Track B1 — the breadcrumb trail lands **once** in `defineOverlay`'s
+generated header, not 16×.
+
+### D4. One layout descriptor registry (merge conversation + reasoning)
+
+`layout-registry.ts:225–243` and `:257–275` are near-identical registration
+loops; `COLUMN`/`ROW` are duplicated (`conversation-layout.ts:74`,
+`reasoning-layout.ts:56`); `SOURCE_ORDER`/`CREATED_BY_ORDER` are byte-identical;
+`sourceView`/`budgetResource` are the same lane algorithm; each id is written 3×
+(union, IDS array, catalog key).
+
+**Refactor:** one `LayoutDescriptor { id, label, description, scope,
+recommendedFor, positions, surface, states }`; a single registry loop; a shared
+`placeInLanes(blocks, { COLUMN, ROW, order })`; derive ID arrays from catalog
+keys. `validateLayoutId` (`core/contribution-validator.ts:164`, currently
+**never called**) is wired into `validateAllContributions`.
+
+**Enables:** Track B3 — the descriptor carries `states` (empty/loading/error
+templates), so per-layout states are **data, not code**.
+
+### D5. Token SSOT — remove the `TOKENS.dark` bypass (correctness bug)
+
+`utils/graph-scaling.ts:10` and `utils/adapter-2d.ts:8–13` read `TOKENS.dark[…]`
+directly instead of `utils/theme.ts:token()`, **hardcoding the dark theme**. The
+truth-hue scale `hsl(…)` is reimplemented in 3 files (`adapter-2d.ts:17`,
+`node-detail-drawer.ts:357`, `modulation/compile.ts:22`).
+
+**Refactor:** `theme.ts` exposes `numericToken(path)`; both files import it. Add
+one `truthColor(frequency)` helper shared by all three. `theme.colors` getters
+generated from the token table.
+
+**Enables:** Track B2 (LoD transition colors must be theme-aware). **This is the
+one Track D item that may land standalone** — it is a live correctness bug.
+
+### D6. `createRegistry<K, V>` — one registry shape (metaprogramming seam)
+
+`surface-registry.ts:34`, `overlay-registry.ts:42`, `view-adapter.ts:17` and the
+renderer registry are four structurally identical `Map` + `register`/`get`/`all`
+closures with divergent getter names.
+
+**Refactor — `core/registry.ts`:** `createRegistry(keyOf)` returning
+`{ register, get, all, byKey }`; each domain instantiates it. The
+descriptor→registration boilerplate half is already covered by D3.
+
+**Enables:** D3; makes every registry enumerable for tests **without mocks**
+(per AGENTS.md).
+
+### D7. Projection `fragment()` builder + `systemEventBlock()`
+
+`core/workspace-projection.ts` repeats the `{ blocks, links, roots }` skeleton 4×
+(`:123`, `:239`, `:331`, `:436`), the `deduplicateSymmetricLinks` return 4×
+(`:205`, `:319`, `:425`, `:508`), and `projectCognitiveEvents` repeats a
+near-identical block literal 5× (`:339–418`). `projectDerivationRecords`
+re-types `DerivationRecordData` inline (`:442–464`) instead of importing it from
+`core/block-payload.ts`.
+
+**Refactor:** a `fragment()` accumulator (`.block()/.link()/.root()/.finish()`)
+and `systemEventBlock(event, { id, kind, title, text })`; import the payload
+types from `block-payload.ts`.
+
+**Enables:** Track A2 (provenance is built through the accumulator) and Track C1
+(a new content adapter reuses the builder).
+
+### D8. Stale duplicates to fold while nearby (verify, then delete)
+
+- `EVENT_TYPE_LABELS` (`components/overlays/events.ts:17`) — **stale**: keys do
+  not match `EVENT_CATALOG` discriminants; read the catalog instead.
+- `SIGN` (`components/views/diff-view.ts:9`) vs `DIFF_SIGN`
+  (`core/view-projection.ts:86`) — same map, two copies.
+- error titles: `components/error-boundary.ts:203` re-lists the error-class-name
+  key set that `core/error-taxonomy.ts:334` already owns; add a `title` field to
+  the taxonomy's error descriptors and read it from the boundary.
+- `projectDataset`/`datasetIsEmpty` (`core/view-projection.ts:111`/`:143`) — two
+  switches over `ViewDataset`; fold into one per-kind descriptor.
+
+---
+
+## Track E — The Ingredient Library (parameterized OOP primitives for any UI)
+
+> **Vision:** *A UI is a bundle of contributions over a small set of parameterized
+> ingredients.* The ingredients already exist, but each domain hand-rolls them.
+> Track E extracts the **six reusable layers** so a new surface/overlay/view/
+> panel/command is *a descriptor + a body*, and a new product UI is *a bundle*.
+
+### The taxonomy (what an ingredient is)
+
+```
+Layer 0  Reactive atoms      atom · derived · eventBus
+Layer 1  Descriptors (data)  Contribution → Surface│Overlay│Panel│Command│
+                             ViewAdapter│Renderer│Layout│Capability│Tool
+Layer 2  Registries          createRegistry(keyOf)        (one factory, N domains)
+Layer 3  Definitions (HOC)   defineContribution → defineSurface│defineOverlay│
+                             definePanel│defineView│defineCommand│defineRenderer
+Layer 4  Components          BaseComponent → SurfaceComponent (universal)
+                             + mixins: withStore · withCapability · withCommands
+Layer 5  Primitives (bricks) s-button · s-input · s-panel · s-toolbar · s-tooltip
+                             s-badge · s-empty-state · s-banner · s-spinner ·
+                             s-divider · s-icon
+Layer 6  Bundles             defineBundle / applyBundle    (ingredients → a UI)
+```
+
+Every layer reads only from the layer below; every domain descriptor narrows the
+one `Contribution` base. That is the library: **N domains, one shape.** Track D is
+the *first consumer* of this — D6 is E2's first instance, D3 is E3's first
+instance, D4 is E1+E3 applied to layouts. Track E names the general ingredients.
+
+### E1. `Contribution` base descriptor (SSOT for the common fields)
+
+Nine descriptors each re-declare `id`, `title|label`, `tag?`, `group?`,
+`capability?`: `SurfaceDescriptor` (`surface-registry.ts:18`), `OverlayDescriptor`
+(`overlay-registry.ts:25`), `Command` (`commands.ts:47`), `WorkspaceRenderer`
+(`workspace-renderer.ts:79`), `CapabilityDescriptor` (`capabilities.ts:15`),
+`ViewAdapter` (`view-adapter.ts:9`), `LayoutDefinition`
+(`layout-registry.ts:32`), `ToolSpec` (`tool-registry.ts:22`),
+`PluginContribution` (`plugins.ts:24`).
+
+**Refactor:**
+```ts
+interface Contribution {
+  readonly id: string;
+  readonly title: string;   // `label` unified onto `title`
+  readonly tag?: string;    // derived from id when absent
+  readonly group?: string;
+  readonly capability?: Capability;
+}
+```
+Each domain descriptor `extends Contribution` and adds only its behavior
+(`run`, `getLayout`, `present`, `budgets`…). `label` collapses to `title`; `tag`
+derives via `surfaceTag`.
+
+**Payoff:** one validation shape — kills the duplicated `checkUniqueId` +
+per-type validators (`contribution-validator.ts:28`, `:41–175`) — one
+palette/registry enumerator, one doc generator (`surface-codegen.ts` already
+generates from descriptors).
+
+### E2. `createRegistry(keyOf)` — one registry, N domains (metaprogramming core)
+
+Nine hand-rolled `Map` + `register`/`get`/`all` closures with divergent getter
+names (`registerSurface`/`surfaceFor`, `registerOverlay`/`overlayDescriptor`,
+`registerViewAdapter`/`viewAdapterFor`, `registerRenderer`/`workspaceRenderer`,
+`registerTool`/`getTool`, `layoutRegistry`, …). No shared factory exists.
+
+**Refactor — `core/registry.ts`:**
+```ts
+interface Registry<K, V> {
+  register(value: V): void;
+  get(key: K): V | undefined;
+  all(): readonly V[];
+  readonly byKey: ReadonlyMap<K, V>;
+}
+function createRegistry<K, V>(keyOf: (value: V) => K, opts?: { unique?: boolean }): Registry<K, V>;
+```
+Each domain is `createRegistry<Shape, ViewAdapter>(a => a.shape)`. A
+`createMultiRegistry` covers the one `Map<Shape, V[]>` case (`view-adapter.ts:17`).
+
+**Payoff:** **subsumes D6**; every registry becomes enumerable for tests without
+mocks (AGENTS.md); the uniqueness guard lives in one place.
+
+### E3. `defineContribution` + the `defineX` family (one registration HOC)
+
+Every domain repeats the tail: build descriptor → register → derive tag →
+`customElements.define` → declare the global tag map. `defineSurface`
+(`surface.ts:102`) is the only one that exists.
+
+**Refactor:**
+```ts
+function defineContribution<T extends Contribution>(
+  registry: Registry<string, T>,
+  descriptor: T,
+  ctor: CustomElementConstructor,
+  options?: { bindings?: boolean; window?: 'standard' | OverlayWindowOptions }
+): void;
+```
+`defineSurface`, `defineOverlay` (**D3**), `definePanel`, `defineView`,
+`defineCommand`, `defineRenderer` become one-line wrappers. The 16 overlay tails,
+9 view-adapter tails and every `@customElement` + `declare global` collapse to
+one call each.
+
+**Payoff:** **subsumes D3**; a new ingredient is a descriptor + a body, nothing else.
+
+### E4. Universal `SurfaceComponent` — one component base for every element
+
+Two bases split the codebase: `BaseComponent` (cleanup + `watch`, 27 lines) for
+primitives/views, `SurfaceComponent` (state slots + bindings + test API,
+`surface.ts:33`) for overlays/renderers/`ViewHost`. The state-slot machinery is
+useful for **any** data-backed component.
+
+**Refactor:**
+- Promote `SurfaceComponent` to the one base; fold `BaseComponent.watch` in.
+- Parameterize `surfaceState()` with an optional descriptor field
+  `state?: (self) => SurfaceState`, so a component is data-driven **without
+  overriding a method**; replace the `switch` (`surface.ts:62`) with a
+  `renderState` dispatch table keyed by `SurfaceState` (table-driven, per D1).
+- Primitives opt in for free empty/loading/error slots (e.g. `s-panel` shows a
+  spinner while its source loads).
+
+**Payoff:** one lifecycle, one test API, one slot contract for every element;
+B3's per-layout states ride the same slots.
+
+### E5. `derived` — a reactive derived atom
+
+`Atom<T>` (`store.ts:36`) has no first-class derived store; three derivations are
+ad-hoc subscriptions: `$selectedNodeIds` from `$workspaceGraph.selection`
+(`store.ts:239`), `$graphLayer` from `$activeLens` (`store.ts:224`),
+`$workspaceGraph.timeCursor` from `$view.timeline.t` (`store.ts:298`).
+
+**Refactor — `store.ts`:**
+```ts
+function derived<D extends readonly Readable<unknown>[], T>(
+  deps: D,
+  project: (...values: { [K in keyof D]: D[K] extends Readable<infer U> ? U : never }) => T
+): Readable<T>;
+```
+Parameterized by the projection; value-compared like `$selectedNodeIds` already is.
+
+**Payoff:** reactivity is a *parameter*, not a pattern; fewer manual
+subscribe/unsubscribe pairs (a leak source).
+
+### E6. `defineBundle` / `applyBundle` — package any ingredients into a UI
+
+`PluginContribution` (`plugins.ts:24`) already bundles seven domains and fans them
+out (`applyPlugins`, `:67`), but the interface and the fan-out are hand-written per
+domain.
+
+**Refactor:** generalize over **any** registry:
+```ts
+interface Bundle {
+  readonly id: string;
+  readonly name: string;
+  readonly contributions: ReadonlyArray<{
+    registry: Registry<string, Contribution>;
+    values: readonly Contribution[];
+  }>;
+}
+function defineBundle(bundle: Bundle): void;
+function applyBundle(id: string): void;   // fans out through defineContribution
+```
+`PluginContribution` becomes typed sugar over `defineBundle`. A product UI =
+`applyBundle('core')` + `applyBundle('reasoning')` + …
+
+**Payoff:** the "any potential UI" seam — ingredients compose into products with
+no shell edits (the existing plugin goal, generalized).
+
+### E7. Style factory — tokens by name, composition over duplication
+
+Component styles are inline `css\`…\`` with hand-written `var(--…)` strings;
+`blockBodyStyles` (`render-block.ts:22`) is the only shared fragment. Tokens are
+read via `TOKENS.dark[…]` in two places (**D5 bug**) and `cssVar()` in
+`theme.ts:27`.
+
+**Refactor:** a `styles(...fragments)` composer + `t('colors.semantic.accent-primary')`
+helper emitting `var(--colors-semantic-accent-primary)`, typed from the `TOKENS`
+key union, so a token typo is a compile error. Shared fragments (`panelChrome`,
+`stateSlots`, `overlayHeader`) compose like `blockBodyStyles`.
+
+**Payoff:** theming is parameterized; **D5's fix is the same helper**.
+
+### E8. Mixins — cross-cutting concerns without inheritance
+
+Capability gating, store bindings and command registration recur across
+components and are wired by hand.
+
+**Refactor:** composable mixins (functions over a class):
+`withStore(Class, bindings)`, `withCapability(Class, cap)`,
+`withCommands(Class, commands)`. Composition over inheritance (AGENTS.md); a
+primitive gains store-watching without joining a base hierarchy.
+
+**Payoff:** concerns compose; the base stays thin.
+
+### E9. Panel descriptor + registry (fill the one gap)
+
+Panels are the only domain with no descriptor registry: `PanelState` lives in
+`$panels` (`store.ts:466`), labels are hardcoded (`commands.ts:33`), and
+`panel-dock.ts:7` switches on tab id.
+
+**Refactor:** `PanelDescriptor extends Contribution { icon; scope; tag }` +
+`createRegistry`, so panels join the palette, the doc generator and the bundle
+fan-out like every other ingredient.
+
+**Payoff:** the taxonomy is complete — no domain is special-cased.
+
+### Track E — parameterization levers (the summary)
+
+| Lever | Today | Parameterized by |
+|---|---|---|
+| Registry | 9 hand-rolled closures | `keyOf` (E2) |
+| Descriptor | 9 overlapping interfaces | `Contribution` base (E1) |
+| Definition | 1 `defineSurface` + 15 hand-tails | `defineContribution` (E3) |
+| Component | 2 bases | one `SurfaceComponent` + `state` field (E4) |
+| Reactivity | ad-hoc subscriptions | `derived(deps, project)` (E5) |
+| Product | bespoke `PluginContribution` | `Bundle` (E6) |
+| Style | inline `var(--…)` strings | `styles`/`t` (E7) |
+| Concern | hand-wired | mixins (E8) |
+| Panel | no registry | `PanelDescriptor` (E9) |
+
+**Track E's one-line test:** each ingredient must make a *real* surface/overlay/
+view cheaper to add. A layer that no domain instantiates is deferred, not built.
+
+---
+
+## Standing Rules (carry forward from v10)
+
+- **No new subsystem without a visible payoff.** A registry that changes no pixels fails the one-line test.
+- **Legibility before content.** Every capability ends with a cell/recording **and** a guard.
+- **No formatting / line-length / craft polish.** D is closed.
+- **No split, no renderer switch** — modeless is the paradigm.
+- **Keep `typecheck` + `test:unit` green; commit per Track.**
+- **If a spike fails its gate → document why, close it.**
+
+---
+
+## Fresh-Session Checklist (v11)
+
+- [ ] **Track A1**: Config-change audit → dedicated log/HUD (no graph perturbation)
+- [ ] **Track A2**: Derivation-record provenance → wire to real blocks or embed in body
+- [ ] **Track A3**: Demo cells → shared `seedBlocks` helper or synthetic projection
+- [ ] **Track B1**: Overlay breadcrumbs in header (read `overlayManager.stack()`)
+- [ ] **Track B2**: LoD transition animations (CSS transitions, respect reduced-motion)
+- [ ] **Track B3**: Per-layout empty/loading/error states (9 layouts, use `<s-empty-state>`)
+- [ ] **Track C1**: Content adapter spike (filesystem → graph, <1 day)
+- [ ] **Track C2**: Semantic-zoom coordinate space spike
+- [ ] **Track C3**: Node-renderer registry needfinding
+- [ ] **Track C4**: `graph3d` z-axis fractal spike
+- [ ] **Track D1**: `BLOCK_DESCRIPTORS` registry (folds 6 maps + 3 if-chains; fixes `GRAPH_BLOCK_KINDS`)
+- [ ] **Track D2**: extend `LINK_CATALOG` (`symmetric`, `layoutStage`); delete the two partial maps
+- [ ] **Track D3**: `defineOverlay` + `WINDOW_DEFAULTS` (16 overlays + 8 window literals)
+- [ ] **Track D4**: one layout descriptor registry (merge conversation + reasoning; wire `validateLayoutId`)
+- [ ] **Track D5**: token SSOT — remove `TOKENS.dark` bypass (**correctness bug**, may land standalone)
+- [ ] **Track D6**: `createRegistry<K, V>` shared registry factory
+- [ ] **Track D7**: projection `fragment()` builder + `systemEventBlock()`
+- [ ] **Track D8**: fold stale duplicates (`EVENT_TYPE_LABELS`, `SIGN`/`DIFF_SIGN`, error titles, `ViewDataset` switches)
+- [ ] **Track E1**: `Contribution` base descriptor (unify 9 descriptor interfaces)
+- [ ] **Track E2**: `createRegistry(keyOf)` (subsumes D6; 9 domains)
+- [ ] **Track E3**: `defineContribution` + `defineX` family (subsumes D3)
+- [ ] **Track E4**: universal `SurfaceComponent` (one base; `state` field; `renderState` table)
+- [ ] **Track E5**: `derived(deps, project)` reactive atom (absorbs 3 ad-hoc derivations)
+- [ ] **Track E6**: `defineBundle`/`applyBundle` (generalize `PluginContribution`)
+- [ ] **Track E7**: style factory (`styles` + typed token helper; D5's fix)
+- [ ] **Track E8**: mixins (`withStore`/`withCapability`/`withCommands`)
+- [ ] **Track E9**: `PanelDescriptor` + registry (fill the one gap)
+- [ ] Do **not** implement Track C items unless spike passes gate
+- [ ] Do **not** land a Track D/E refactor without the feature it enables (except D5)
+- [ ] Do **not** build an E layer no domain instantiates (defer it)
+- [ ] Commit per Track; regenerate baselines deliberately; keep `verify` green
+
+---
+
+## Delete List (capability kept, complexity removed)
+
+| Remove | Keep capability via |
+|---|---|
+| Direct `$workspaceGraph` writes in producers | Projection pipeline (`$chatMessages → syncWorkspaceGraph → projectWorkspace`) |
+| Dangling `derived-from` links to non-existent refs | Resolved links or embedded provenance in block body |
+| Demo cells that bypass projection | `seedBlocks` helper (documented) or synthetic projection |
+| Generic "No data" / "No adapter" empty states | Layout-specific `<s-empty-state>` with action |
+| Mechanical LoD transitions | Animated transitions (size, opacity, tier) |
+| Overlay stack with no back-navigation | Breadcrumb trail in overlay header |
+| `BLOCK_KIND_LABEL` + `ARTIFACT_KINDS` + `GRAPH_BLOCK_KINDS` + `JSON_KINDS` + `TOC_KINDS` + `isContainer` + `isSection` | `BLOCK_DESCRIPTORS: Record<BlockKind, BlockDescriptor>` (D1) |
+| `SYMMETRIC_LINK_KINDS` + `GATE_STAGES` | `linkMeta(kind).symmetric` / `.layoutStage` (D2) |
+| 16 overlay registration tails + 8 `window` literals | `defineOverlay` + `WINDOW_DEFAULTS` (D3) |
+| Two layout registration loops + duplicated `COLUMN`/`ROW`/`SOURCE_ORDER` | one `LayoutDescriptor` registry + `placeInLanes` (D4) |
+| `TOKENS.dark[…]` direct reads + 3 truth-hue copies | `numericToken` + one `truthColor` (D5) |
+| 4 near-identical registry closures | `createRegistry<K, V>` (D6) |
+| 4× projection skeleton + 5× event block literal | `fragment()` + `systemEventBlock()` (D7) |
+| `EVENT_TYPE_LABELS`, `SIGN`/`DIFF_SIGN`, error-title map | read `EVENT_CATALOG`, one `DIFF_SIGN`, `error-taxonomy` (D8) |
+| 9 overlapping descriptor interfaces | `Contribution` base (E1) |
+| 9 hand-rolled registry closures | `createRegistry(keyOf)` (E2) |
+| 15 hand-written registration tails | `defineContribution` (E3) |
+| 2 component bases (`BaseComponent`/`SurfaceComponent`) | one universal `SurfaceComponent` (E4) |
+| 3 ad-hoc derived-store subscriptions | `derived(deps, project)` (E5) |
+| bespoke `PluginContribution` fan-out | `Bundle` / `applyBundle` (E6) |
+| inline `var(--…)` style strings | `styles` + typed token helper (E7) |
+| hand-wired cross-cutting concerns | `withStore`/`withCapability`/`withCommands` (E8) |
+| panel labels hardcoded in `commands.ts` | `PanelDescriptor` + registry (E9) |
+
+---
+
+## Notes for Implementation
+
+### Config-change audit (A1) — key insight
+The projection `projectWorkspace` is **pure** and creates a new graph every call. Any direct write to `$workspaceGraph` is inherently ephemeral. The fix **must not** write to the graph root set. A `$configChanges` store subscribed by a dedicated overlay/panel is the cleanest path — it sidesteps both traps (hydration burst + fit perturbation).
+
+### Derivation-record provenance (A2) — key insight
+The `provenanceRefs` array (line 479) already captures the evidence lineage as term strings. The cleanest fix: **render `provenanceRefs` in the derivation-record body** via `renderBlockBody` (which already handles `derivation-record` kind). No graph links needed — the tree viewer shows the step-by-step proof; the terms are displayed as evidence. This matches Move 2.7/2.9 intent.
+
+### Overlay breadcrumbs (B1) — key insight
+`OverlayManager.stack()` already returns `string[]` (ids bottom→top). The header (`overlay-header.ts`) receives the overlay entry; it can read `overlayManager.stack()` and render crumbs. Click handler: `stack.slice(index + 1).forEach(id => overlayManager.close(id))`.
+
+### LoD transitions (B2) — key insight
+The tier thresholds are pure (`graph-scaling.ts:112–117`). The visual change happens in:
+- Cytoscape: node size/label opacity (in `adapter-2d.ts` style updates)
+- `s-node-body`: `tier` attribute flip (CSS `max-height` change)
+- `renderBlockBody`: `embedded` vs `cappedEmbed` branch
+Add CSS `transition: all 150ms ease-out` on the changing properties; guard with `@media (prefers-reduced-motion: reduce)`.
+
+### Per-layout states (B3) — key insight
+`ViewHost.surfaceState()` (line 57–63) already computes `empty`/`error`/`ready`. Each layout's `ViewSpec` can carry `emptyTemplate`/`loadingTemplate`/`errorTemplate` (optional). `ViewHost.renderEmpty()`/`renderError()` delegates to spec if present, else falls back to generic.
+
+### Block descriptors (D1) — key insight
+`BLOCK_KIND_LABEL` is already exhaustive via `satisfies Record<BlockKind, string>` (`block-labels.ts:35`) — the pattern works. D1 is simply *widening that one record* to carry every facet and deleting the partial maps. The render if-chains (`render-block.ts:142`, `artifacts.ts:143`) become `descriptor.renderBody` / `descriptor.artifactSpec` fields, so `renderBlockBody` collapses to a lookup + fallback. **`satisfies` is the guard** — no test needed to prove exhaustiveness.
+
+### Registry factory (D6) — key insight
+All four registries (`surface`, `overlay`, `view-adapter`, renderer) are `Map<K, V>` + three closures. `createRegistry(keyOf)` is the metaprogramming seam: instantiate once, reuse everywhere, and the descriptor→registration helpers (`defineSurface`, `defineOverlay`) sit on top. This is composition over inheritance (AGENTS.md) — no base class, one factory.
+
+### Sequencing — which refactor rides with which track
+| Feature track | Lands with | Why |
+|---|---|---|
+| A2 (provenance) | D7 (`fragment()`), D2 (`linkMeta.symmetric`) | provenance links are built through the accumulator and resolve via the catalog |
+| B1 (breadcrumbs) | D3 (`defineOverlay`), D6 (registry) | the breadcrumb is generated once in the overlay header |
+| B2 (LoD transitions) | D5 (`numericToken`, `truthColor`) | transition colors must be theme-aware |
+| B3 (per-layout states) | D4 (layout descriptor `states`), D1 (`descriptor.icon`) | states are descriptor data |
+| C1 (content adapter) | D7 (`fragment()`) | the new adapter reuses the builder |
+
+### Track D — the one-line test
+Every D item must still pass: *does it make reasoning more visible/legible/enjoyable without a new control?* D1–D8 do not add controls — they remove drift and make the descriptor surface legible to **developers** (which is what keeps the paradigm's pixels honest). The one-line test applies to the **feature** each refactor enables; the refactor is the price of the feature, paid in the same commit.
+
+### Track D ↔ Track E — consolidation vs. library
+D and E overlap by design; E is the general form, D is the first consumer:
+| Track D item | Is the first instance of |
+|---|---|
+| D3 `defineOverlay` | E3 `defineContribution` |
+| D4 layout descriptor registry | E1 `Contribution` + E3 `defineContribution` applied to layouts |
+| D6 `createRegistry` | E2 `createRegistry(keyOf)` |
+| D5 `numericToken`/`truthColor` | E7 style factory + E5 `derived` (theme is a store) |
+
+**Sequencing:** land E1+E2+E3 first (they are pure infrastructure, ~1 day), then D3/D4/D6 collapse to wrappers, then the remaining D items and E4–E9 proceed. If E proves too abstract for a domain, that domain keeps its hand-rolled form — the library grows by *absorption*, never by mandate.
+
+### Track E — the ingredient checklist (is a domain "in" the library?)
+A domain is fully an ingredient when it has: (1) a descriptor extending `Contribution`, (2) a `createRegistry` instance, (3) a `defineX` wrapper over `defineContribution`, (4) a `declare global` tag map, (5) a `surface-codegen` entry, (6) a bundle slot. Nine domains → nine rows; the checklist is the library's table of contents.
+
+### Why this grows "versatile applicability"
+The current substrate proves *one* UI (the cognitive HUD). The ingredient library
+makes the *substrate itself* portable: because a UI is `applyBundle(...)` over
+registries of `Contribution`s, a second product (a graph-only explorer, an
+event-log-only console, a docs site) is a different bundle over the same
+ingredients — no forking `app-layout`, no copy-pasted overlays. The paradigm
+"one substrate, many projections" generalizes from *data* projections to *UI*
+projections.
+
+---
+
+*Generated from v10 completion. All Track A items are bugs in the current paradigm; Track B deepens legibility; Track C evaluates v11 gates honestly; Track D consolidates the descriptor surface as enablers of A/B/C; Track E abstracts the ingredients into a reusable OOP library.*
