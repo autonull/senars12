@@ -11,6 +11,13 @@ export interface HtmlLabelData {
   tier: 'card' | 'full';
 }
 
+/** The bodies that earned a mount, and how many were held back by the budget. */
+export interface HtmlLabelBudget {
+  labels: Map<string, HtmlLabelData>;
+  /** Candidates that would have mounted but lost to the cap — surfaced, not silent (§Move 2.2). */
+  hidden: number;
+}
+
 /** One node that could mount an HTML body, ranked against the others. */
 export interface HtmlLabelCandidate {
   id: string;
@@ -37,7 +44,7 @@ export function selectHtmlLabels(
     .map((candidate) => candidate.id);
 }
 
-export function computeHtmlLabels(cy: Core, budget: number = HTML_BODY_BUDGET): Map<string, HtmlLabelData> {
+export function computeHtmlLabels(cy: Core, budget: number = HTML_BODY_BUDGET): HtmlLabelBudget {
   const candidates: HtmlLabelCandidate[] = [];
   const geometry = new Map<string, { x: number; y: number; width: number; height: number; tier: 'card' | 'full' }>();
 
@@ -58,10 +65,11 @@ export function computeHtmlLabels(cy: Core, budget: number = HTML_BODY_BUDGET): 
     });
   });
 
+  const chosen = selectHtmlLabels(candidates, budget);
   const labels = new Map<string, HtmlLabelData>();
-  for (const id of selectHtmlLabels(candidates, budget)) {
+  for (const id of chosen) {
     const box = geometry.get(id);
     if (box) labels.set(id, { id, ...box });
   }
-  return labels;
+  return { labels, hidden: candidates.length - labels.size };
 }

@@ -391,12 +391,11 @@ const requestToolApproval: VisualCell['prepare'] = async ({ page }) => {
  * the `full` tier so the node mounts it — the fractal made visible (§Move 2.4).
  */
 const embeddedViewDemo: VisualCell['prepare'] = async ({ page, settle }) => {
+  await isolateGraph(page);
   await page.evaluate(() => {
     const api = (window as Record<string, unknown>).__testApi as {
       store?: { setState?: (path: string, value: unknown) => void };
     };
-    api?.store?.setState?.('graphNodes', new Map());
-    api?.store?.setState?.('graphEdges', new Map());
     const spec = {
       id: 'spec:demo',
       title: 'Nested projection',
@@ -443,6 +442,49 @@ const embeddedViewDemo: VisualCell['prepare'] = async ({ page, settle }) => {
   });
   await page.waitForTimeout(600);
 };
+
+/**
+ * Seed `count` workspace blocks and zoom to the `full` tier, so the node-body
+ * budget caps the mounted HTML and surfaces the held-back remainder (§Move 2.2).
+ */
+const manyBodiesDemo =
+  (count: number): VisualCell['prepare'] =>
+  async ({ page, settle }) => {
+    await isolateGraph(page);
+    await page.evaluate((n) => {
+      const api = (window as Record<string, unknown>).__testApi as {
+        store?: { setState?: (path: string, value: unknown) => void };
+      };
+      const blocks = new Map<string, unknown>();
+      const roots: string[] = [];
+      for (let index = 0; index < n; index++) {
+        const id = `budget-${index}`;
+        blocks.set(id, {
+          id,
+          kind: 'paragraph',
+          role: 'assistant',
+          text: `Derived belief ${index}: (robin-->animal) holds.`,
+          status: 'complete',
+          createdAt: index,
+          createdBy: 'system',
+        });
+        roots.push(id);
+      }
+      api?.store?.setState?.('workspaceGraph', {
+        blocks,
+        links: new Map(),
+        roots,
+        selection: new Set(),
+      });
+    }, count);
+    await settle('concentric');
+    await page.evaluate(() => {
+      (
+        (window as Record<string, unknown>).__testApi as { graph?: { setZoom?: (level: number) => void } }
+      )?.graph?.setZoom?.(2);
+    });
+    await page.waitForTimeout(600);
+  };
 
 /** Open a ref-bearing overlay through the shell test seam, with a real block. */
 const openOverlayWithRef =
@@ -573,6 +615,13 @@ const HAND_CURATED_CELLS: VisualCell[] = [
     title: 'Fractal — node full tier embeds a nested projection',
     hash: '#panels=none',
     prepare: embeddedViewDemo,
+  },
+  {
+    id: 'html-body-budget',
+    group: 'Fractal',
+    title: 'Node budget — over-budget bodies are surfaced, not silent',
+    hash: '#panels=none',
+    prepare: manyBodiesDemo(30),
   },
 
   // Conversation layouts (§5.3) — arrange the seeded conversation; concept

@@ -112,6 +112,12 @@ export class GraphViewport extends BaseComponent {
       color: var(--colors-primitive-warning);
       pointer-events: none;
     }
+    .warning.budget {
+      bottom: 36px;
+      color: var(--colors-semantic-text-secondary);
+      border-left-color: var(--colors-semantic-border-subtle);
+      background: var(--colors-semantic-bg-panel);
+    }
     .html-label {
       position: absolute;
       pointer-events: none;
@@ -173,6 +179,8 @@ export class GraphViewport extends BaseComponent {
   /** How many projections this viewport is nested inside, when embedded (§Move 2.1). */
   @property({ type: Number }) embedDepth = 0;
   @state() private htmlLabels = new Map<string, HtmlLabelData>();
+  /** Bodies the node budget held back — surfaced so the cap is never silent (§Move 2.2). */
+  @state() private hiddenBodies = 0;
   @state() private nodePopover: { x: number; y: number; ref?: string; link?: string } | null = null;
   @state() private contextMenu: { x: number; y: number; nodeId: string; blockRef?: string } | null =
     null;
@@ -241,6 +249,8 @@ export class GraphViewport extends BaseComponent {
       },
       /** The live zoom + pan, for the legibility assertion (§T.4). */
       getViewport: () => (this.cy ? { zoom: this.cy.zoom(), pan: this.cy.pan() } : null),
+      /** Mounted HTML bodies and the held-back remainder (§Move 2.2). */
+      getHtmlBodyBudget: () => ({ mounted: this.htmlLabels.size, hidden: this.hiddenBodies }),
       /** Set a deterministic zoom, centred — for LoD captures (§Move 2.4). */
       setZoom: (level: number) => {
         if (!this.cy) return;
@@ -428,6 +438,7 @@ export class GraphViewport extends BaseComponent {
     return html`
       <div id="cy-container" tabindex="0" @click=${this.closeContextMenu}></div>
       ${meta?.truncated ? html`<div class="warning">▼ ${meta.totalHidden} lower-priority concepts hidden</div>` : ''}
+      ${this.hiddenBodies > 0 ? html`<div class="warning budget">▼ ${this.hiddenBodies} node bodies over budget — zoom for detail</div>` : ''}
       ${Array.from(this.htmlLabels.values()).map(
         (d) => html`<div class="html-label block-label" style="left:${d.x}px;top:${d.y}px" data-tier=${d.tier}>
             <s-node-body .ref=${d.id} .tier=${d.tier} .depth=${this.embedDepth + 1}></s-node-body>
@@ -760,7 +771,9 @@ export class GraphViewport extends BaseComponent {
 
   private renderHtmlLabels() {
     if (!this.cy) return;
-    this.htmlLabels = computeHtmlLabels(this.cy);
+    const { labels, hidden } = computeHtmlLabels(this.cy);
+    this.htmlLabels = labels;
+    this.hiddenBodies = hidden;
     this.requestUpdate();
   }
 

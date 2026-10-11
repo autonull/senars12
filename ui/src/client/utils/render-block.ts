@@ -36,6 +36,7 @@ export const blockBodyStyles = css`
   table.data th { color: var(--colors-semantic-text-secondary); font-weight: var(--typography-fontWeights-medium); }
   .embed-capped { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border: 1px dashed var(--colors-semantic-border-subtle); border-radius: 6px; color: var(--colors-semantic-text-secondary); font-size: var(--typography-scale-sm); }
   .embed-capped-label { flex: 1; }
+  .embed-capped-note { color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
   .embed-expand { padding: 1px 6px; border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-scale-sm); background: transparent; color: var(--colors-semantic-accent-primary); cursor: pointer; font-family: inherit; font-size: inherit; }
 `;
 
@@ -55,8 +56,9 @@ const embedded = (spec: ViewSpec, depth: number): TemplateResult =>
 
 /** The bounded stand-in for a projection too deep to mount: a card, and an expand. */
 const cappedEmbed = (block: SemanticBlock, spec: ViewSpec): TemplateResult => html`
-  <div class="embed-capped">
+  <div class="embed-capped" title="Nested projections stop at depth ${MAX_EMBED_DEPTH}">
     <span class="embed-capped-label">${spec.title ?? 'Nested view'}</span>
+    <span class="embed-capped-note">depth limit</span>
     <button class="embed-expand" @click=${() => eventBus.emit('overlay:open', { id: 'artifact', ref: block.id })}>
       Expand
     </button>

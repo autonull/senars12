@@ -72,7 +72,24 @@ export class SNodeBody extends BaseComponent {
   override connectedCallback(): void {
     super.connectedCallback();
     this.watch($workspaceGraph);
+    document.addEventListener('pointerdown', this.#releaseOnOutside, true);
+    document.addEventListener('keydown', this.#releaseOnEscape);
   }
+
+  override disconnectedCallback(): void {
+    document.removeEventListener('pointerdown', this.#releaseOnOutside, true);
+    document.removeEventListener('keydown', this.#releaseOnEscape);
+    super.disconnectedCallback();
+  }
+
+  /** A press on the canvas — anywhere outside this body — hands interaction back. */
+  #releaseOnOutside = (event: PointerEvent): void => {
+    if (this.engaged && !event.composedPath().includes(this)) this.engaged = false;
+  };
+
+  #releaseOnEscape = (event: KeyboardEvent): void => {
+    if (this.engaged && event.key === 'Escape') this.engaged = false;
+  };
 
   override render() {
     const graph = $workspaceGraph.get();
@@ -80,7 +97,9 @@ export class SNodeBody extends BaseComponent {
     if (!block) return nothing;
     const sources = collectSources(graph);
     return html`
-      ${this.engaged ? nothing : html`<button class="engage" @click=${() => (this.engaged = true)}>Engage</button>`}
+      <button class="engage" @click=${() => (this.engaged = !this.engaged)}>
+        ${this.engaged ? 'Release' : 'Engage'}
+      </button>
       ${renderBlockBody(block, sources, this.depth)}
     `;
   }

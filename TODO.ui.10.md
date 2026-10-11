@@ -109,6 +109,28 @@ These are **not** in v10. Each needs a visible payoff before it earns a slot.
 
 ---
 
+## Move 2.5 — Make the guards legible & safe (landed)
+
+Picked from the opportunities below — the ones with a *visible* payoff, per the
+fresh-session rule. Committed separately after Moves 1 & 2.
+
+- **Engage is now two-way.** `s-node-body` toggles **Engage ⇄ Release**, and a
+  press anywhere outside the body (or `Escape`) releases it, so an embedded body
+  can never trap the pointer.
+- **The cap card carries the reason.** `.embed-capped` shows a `depth limit` note
+  (and a title explaining `MAX_EMBED_DEPTH`).
+- **The node budget is observable.** `computeHtmlLabels` now returns
+  `{ labels, hidden }`; the viewport surfaces `▼ N node bodies over budget — zoom
+  for detail`, so a dense graph never silently drops bodies.
+- **The budget is covered against a real `Core`.** New
+  `tests/components/html-labels.test.ts` mounts a headless cytoscape graph and
+  asserts the cap, the held-back count and the rendered geometry.
+- **New cell `html-body-budget`** seeds 30 workspace blocks at the `full` tier and
+  captures the surfaced remainder. It seeds a stub engine node (`isolateGraph`) so
+  the graph's empty state does not overlay the badge.
+
+---
+
 ## Notes Facilitating Remaining Work
 
 - **Where the depth guard lives.** The embed depth is *threaded through the DOM*,
@@ -135,20 +157,20 @@ These are **not** in v10. Each needs a visible payoff before it earns a slot.
 
 ## New Improvement Opportunities
 
-- **Engage is one-way.** `s-node-body` engages but never disengages; a click on
-  the canvas could release it (or engage-on-focus, release-on-blur), so a stray
-  engaged body cannot trap the pointer.
-- **The cap card could carry the reason.** `.embed-capped` says nothing about
-  *why* it stopped; a one-line "depth limit" hint would make the budget legible.
-- **Node budget has no visible signal.** Nodes dropped from the HTML budget simply
-  lose their body; a "N more bodies hidden" affordance (like the existing
-  `truncated` warning) would make the budget observable.
-- **`selectHtmlLabels` is pure but untested against a real `Core`.** The ranking
-  is unit-tested; `computeHtmlLabels`' geometry mapping is only covered by the
-  visual cells.
+- [x] ~~Engage is one-way~~ — now toggles and releases on outside-press / `Escape` (Move 2.5).
+- [x] ~~The cap card could carry the reason~~ — shows a `depth limit` note (Move 2.5).
+- [x] ~~Node budget has no visible signal~~ — `hidden` is surfaced as a badge (Move 2.5).
+- [x] ~~`selectHtmlLabels` untested against a real `Core`~~ — `html-labels.test.ts` (Move 2.5).
+- **The graph empty state overlays workspace nodes.** With engine nodes empty but
+  workspace blocks present, the "brain / Send a message" empty state still paints
+  over the canvas (it is keyed on `$graphNodes`, not on any node). It hid the
+  budget badge until the demo seeded a stub. Fix: show the empty state only when
+  *both* layers are empty.
 - **`embedded-view-demo` is a static seed.** It sets `$workspaceGraph` directly
   rather than through the projection, so it does not exercise the real path a
   substrate block takes to reach a node body; a server-side seed would.
+- **`HTML_BODY_BUDGET` is per-viewport.** If a second live graph viewport is ever
+  mounted, the budget is per-canvas rather than global.
 
 ---
 
@@ -169,6 +191,7 @@ These are **not** in v10. Each needs a visible payoff before it earns a slot.
 - [x] Read "Where We Actually Are" — do not rebuild what exists
 - [x] **Move 1**: split gallery IA (Journeys ≤6 / Coverage) · fix the dead `html` path · tighten default view · 3 proving cells · `test:design` · fix the flake · wire `generate:visual-cells`
 - [x] **Move 2**: depth budget · node budget · inert-until-focused · demo cell
+- [x] **Move 2.5**: two-way engage · cap reason · budget signal · real-`Core` budget test · budget cell
 - [ ] Do **not** start Move 3 items (see entry criteria above)
 - [x] Commit per Move; regenerate baselines deliberately; keep `typecheck` + `unit` green
-- [ ] Next session: pick a *visible* payoff (see New Improvement Opportunities) before touching Move 3
+- [ ] Next session: the graph empty state overlays workspace nodes (see opportunities) — a *visible* bug worth fixing before Move 3
