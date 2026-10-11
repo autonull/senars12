@@ -31,6 +31,9 @@ export const FIT_PADDING = token('colors.legibility.fit-padding');
 /** World-space gutter between nodes the layout aims to keep (§Move 1.3). */
 export const NODE_GUTTER = token('colors.legibility.node-gutter');
 
+/** The most `<s-node-body>` elements that may mount at once (§Move 2.2). */
+export const HTML_BODY_BUDGET = token('colors.legibility.html-body-budget');
+
 const LABEL_LOD = token('colors.legibility.label-lod-threshold');
 const LABEL_BUDGET = token('colors.legibility.label-budget');
 const HTML_LOD_ZOOM = token('colors.legibility.html-lod-zoom');

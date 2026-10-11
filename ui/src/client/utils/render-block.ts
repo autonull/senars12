@@ -13,6 +13,7 @@ import { css, html, nothing, type TemplateResult } from 'lit';
 import { artifactViewSpec } from '../core/artifacts.js';
 import { payloadOf, type TableData } from '../core/block-payload.js';
 import { resolveSource, type Source } from '../core/citations.js';
+import { eventBus } from '../core/events.js';
 import { tokenizeInline } from '../core/inline-text.js';
 import type { ViewSpec } from '../core/view-spec.js';
 import type { SemanticBlock } from '../core/workspace-graph.js';
@@ -33,11 +34,38 @@ export const blockBodyStyles = css`
   table.data { border-collapse: collapse; width: 100%; font-size: var(--typography-scale-sm); color: var(--colors-semantic-text-primary); }
   table.data th, table.data td { border: 1px solid var(--colors-semantic-border-subtle); padding: var(--spacing-scale-1) var(--spacing-scale-2); text-align: left; }
   table.data th { color: var(--colors-semantic-text-secondary); font-weight: var(--typography-fontWeights-medium); }
+  .embed-capped { display: flex; align-items: center; gap: var(--spacing-scale-2); padding: var(--spacing-scale-2) var(--spacing-scale-3); border: 1px dashed var(--colors-semantic-border-subtle); border-radius: 6px; color: var(--colors-semantic-text-secondary); font-size: var(--typography-scale-sm); }
+  .embed-capped-label { flex: 1; }
+  .embed-expand { padding: 1px 6px; border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-scale-sm); background: transparent; color: var(--colors-semantic-accent-primary); cursor: pointer; font-family: inherit; font-size: inherit; }
 `;
 
+/**
+ * How deep a projection may nest: a projection inside a projection renders live;
+ * one more level is a `card` with an expand affordance (§Move 2.1). Bounds the
+ * fractal so a block whose body is a graph of blocks cannot recurse without end.
+ */
+export const MAX_EMBED_DEPTH = 2;
+
+/** Whether a body at this embed depth has spent its nesting budget. */
+export const embedDepthExceeded = (depth: number): boolean => depth >= MAX_EMBED_DEPTH;
+
 /** The one way a block renders through the view system: its own instruction, or its artifact's. */
-const embedded = (spec: ViewSpec): TemplateResult =>
-  html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'}></s-view>`;
+const embedded = (spec: ViewSpec, depth: number): TemplateResult =>
+  html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'} .depth=${depth}></s-view>`;
+
+/** The bounded stand-in for a projection too deep to mount: a card, and an expand. */
+const cappedEmbed = (block: SemanticBlock, spec: ViewSpec): TemplateResult => html`
+  <div class="embed-capped">
+    <span class="embed-capped-label">${spec.title ?? 'Nested view'}</span>
+    <button class="embed-expand" @click=${() => eventBus.emit('overlay:open', { id: 'artifact', ref: block.id })}>
+      Expand
+    </button>
+  </div>
+`;
+
+/** A block's artifact: rendered live while within the depth budget, capped beyond it. */
+const embed = (block: SemanticBlock, spec: ViewSpec, depth: number): TemplateResult =>
+  embedDepthExceeded(depth) ? cappedEmbed(block, spec) : embedded(spec, depth);
 
 const renderTable = (data: TableData): TemplateResult => html`
   <table class="data">
@@ -101,13 +129,16 @@ function renderHeading(block: SemanticBlock, sources: readonly Source[]): Templa
  * A block's body: its artifact through the view contract when it declares a spec,
  * the typed payload otherwise, and inline text as the fallback. `sources` is the
  * bibliography inline `[n]` references and citation entries resolve against.
+ * `depth` counts the projections this body is nested inside, so a fractal body
+ * stops at `MAX_EMBED_DEPTH` instead of recursing without end.
  */
 export function renderBlockBody(
   block: SemanticBlock,
-  sources: readonly Source[]
+  sources: readonly Source[],
+  depth = 0
 ): TemplateResult | typeof nothing {
   if (block.kind === 'heading') return renderHeading(block, sources);
-  if (block.spec) return embedded(block.spec);
+  if (block.spec) return embed(block, block.spec, depth);
   if (block.kind === 'image' && block.data) {
     const image = payloadOf(block.data, 'image');
     if (image)
@@ -134,22 +165,22 @@ export function renderBlockBody(
   if (block.kind === 'code') {
     const spec = artifactViewSpec(block);
     return spec
-      ? embedded(spec)
+      ? embed(block, spec, depth)
       : html`<pre class="code"><code>${block.text}</code></pre>`;
   }
   if (block.kind === 'table' && block.data) {
     const spec = artifactViewSpec(block);
-    if (spec) return embedded(spec);
+    if (spec) return embed(block, spec, depth);
     const data = payloadOf(block.data, 'table');
     if (data) return renderTable(data);
   }
   if (block.kind === 'config-change') {
     const spec = artifactViewSpec(block);
-    if (spec) return embedded(spec);
+    if (spec) return embed(block, spec, depth);
   }
   if (block.kind === 'derivation' && block.data) {
     const spec = artifactViewSpec(block);
-    if (spec) return embedded(spec);
+    if (spec) return embed(block, spec, depth);
   }
   if (block.kind === 'list' && block.data) {
     const items = payloadOf(block.data, 'list')?.items;

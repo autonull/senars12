@@ -101,7 +101,8 @@
       "reference-area": "907200",
       "reference-count": "12",
       "fit-padding": "32",
-      "node-gutter": "16"
+      "node-gutter": "16",
+      "html-body-budget": "24"
     }
   },
   "spacing": {

@@ -81,6 +81,7 @@
   --colors-legibility-reference-count: 12;
   --colors-legibility-fit-padding: 32;
   --colors-legibility-node-gutter: 16;
+  --colors-legibility-html-body-budget: 24;
   --spacing-scale-0: 0;
   --spacing-scale-1: 2px;
   --spacing-scale-2: 4px;
@@ -246,6 +247,7 @@
   --colors-legibility-reference-count: 12;
   --colors-legibility-fit-padding: 32;
   --colors-legibility-node-gutter: 16;
+  --colors-legibility-html-body-budget: 24;
   --spacing-scale-0: 0;
   --spacing-scale-1: 2px;
   --spacing-scale-2: 4px;
@@ -411,6 +413,7 @@
   --colors-legibility-reference-count: 12;
   --colors-legibility-fit-padding: 32;
   --colors-legibility-node-gutter: 16;
+  --colors-legibility-html-body-budget: 24;
   --spacing-scale-0: 0;
   --spacing-scale-1: 2px;
   --spacing-scale-2: 4px;

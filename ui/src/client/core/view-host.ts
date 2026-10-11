@@ -46,6 +46,8 @@ export class ViewHost extends SurfaceComponent {
   `;
   @property({ attribute: false }) spec?: ViewSpec;
   @property({ type: String }) budget: Budget = 'full';
+  /** How many projections this one is nested inside (§Move 2.1) — threaded to an embedding adapter. */
+  @property({ type: Number }) depth = 0;
   /** `false` drops the chrome — for a view embedded in a surface that owns its own header. */
   @property({ attribute: false }) chrome = true;
   @state() private shape?: Shape;
@@ -91,7 +93,7 @@ export class ViewHost extends SurfaceComponent {
         }
         <div class="body" @view-select=${this.handleSelect}>
           ${staticHtml`<${tag} class="adapter" .data=${data}
-            .selection=${$viewSelection.get()} .budget=${this.budget}></${tag}>`}
+            .selection=${$viewSelection.get()} .budget=${this.budget} .embedDepth=${this.depth}></${tag}>`}
         </div>
       </div>
     `;

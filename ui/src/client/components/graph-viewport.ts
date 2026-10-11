@@ -1,6 +1,6 @@
 import cytoscape, { type Core } from 'cytoscape';
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import { edgeKey } from '../../shared/index.js';
 import { GraphRenderer } from '../core/graph-renderer.js';
 import {
@@ -114,7 +114,7 @@ export class GraphViewport extends BaseComponent {
     }
     .html-label {
       position: absolute;
-      pointer-events: auto;
+      pointer-events: none;
       overflow: hidden;
       background: transparent;
       z-index: 100;
@@ -170,6 +170,8 @@ export class GraphViewport extends BaseComponent {
   private prevNodeCount = 0;
   private focusedRef?: string;
   #unregisterViewport?: () => void;
+  /** How many projections this viewport is nested inside, when embedded (§Move 2.1). */
+  @property({ type: Number }) embedDepth = 0;
   @state() private htmlLabels = new Map<string, HtmlLabelData>();
   @state() private nodePopover: { x: number; y: number; ref?: string; link?: string } | null = null;
   @state() private contextMenu: { x: number; y: number; nodeId: string; blockRef?: string } | null =
@@ -239,6 +241,12 @@ export class GraphViewport extends BaseComponent {
       },
       /** The live zoom + pan, for the legibility assertion (§T.4). */
       getViewport: () => (this.cy ? { zoom: this.cy.zoom(), pan: this.cy.pan() } : null),
+      /** Set a deterministic zoom, centred — for LoD captures (§Move 2.4). */
+      setZoom: (level: number) => {
+        if (!this.cy) return;
+        this.cy.zoom({ level, renderedPosition: { x: this.cy.width() / 2, y: this.cy.height() / 2 } });
+        this.applyLOD(level);
+      },
       /** The on-screen edge (px) of every reasoning node, for the legibility assertion (§T.4). */
       getRenderedNodeSizes: () =>
         this.cy
@@ -422,7 +430,7 @@ export class GraphViewport extends BaseComponent {
       ${meta?.truncated ? html`<div class="warning">▼ ${meta.totalHidden} lower-priority concepts hidden</div>` : ''}
       ${Array.from(this.htmlLabels.values()).map(
         (d) => html`<div class="html-label block-label" style="left:${d.x}px;top:${d.y}px" data-tier=${d.tier}>
-            <s-node-body .ref=${d.id} .tier=${d.tier}></s-node-body>
+            <s-node-body .ref=${d.id} .tier=${d.tier} .depth=${this.embedDepth + 1}></s-node-body>
           </div>`
       )}
       ${

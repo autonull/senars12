@@ -386,6 +386,64 @@ const requestToolApproval: VisualCell['prepare'] = async ({ page }) => {
   await page.waitForTimeout(400);
 };
 
+/**
+ * Seed one `embedded-view` block whose body is a nested projection, then zoom to
+ * the `full` tier so the node mounts it — the fractal made visible (§Move 2.4).
+ */
+const embeddedViewDemo: VisualCell['prepare'] = async ({ page, settle }) => {
+  await page.evaluate(() => {
+    const api = (window as Record<string, unknown>).__testApi as {
+      store?: { setState?: (path: string, value: unknown) => void };
+    };
+    api?.store?.setState?.('graphNodes', new Map());
+    api?.store?.setState?.('graphEdges', new Map());
+    const spec = {
+      id: 'spec:demo',
+      title: 'Nested projection',
+      shape: 'tree',
+      shapes: ['tree', 'text'],
+      source: {
+        get: () => ({
+          kind: 'tree',
+          roots: [
+            {
+              id: 'root',
+              label: '(robin-->animal)',
+              children: [
+                { id: 'p1', label: '(robin-->bird)' },
+                { id: 'p2', label: '(bird-->animal)' },
+              ],
+            },
+          ],
+        }),
+      },
+    };
+    const block = {
+      id: 'embedded-view-demo',
+      kind: 'embedded-view',
+      role: 'assistant',
+      title: 'Nested projection',
+      spec,
+      status: 'complete',
+      createdAt: 0,
+      createdBy: 'system',
+    };
+    api?.store?.setState?.('workspaceGraph', {
+      blocks: new Map([[block.id, block]]),
+      links: new Map(),
+      roots: [block.id],
+      selection: new Set(),
+    });
+  });
+  await settle('breadthfirst');
+  await page.evaluate(() => {
+    (
+      (window as Record<string, unknown>).__testApi as { graph?: { setZoom?: (level: number) => void } }
+    )?.graph?.setZoom?.(2);
+  });
+  await page.waitForTimeout(600);
+};
+
 /** Open a ref-bearing overlay through the shell test seam, with a real block. */
 const openOverlayWithRef =
   (id: string, prefer?: readonly string[]): VisualCell['prepare'] =>
@@ -506,6 +564,15 @@ const HAND_CURATED_CELLS: VisualCell[] = [
     journey: true,
     hash: '#panels=chat',
     prepare: requestToolApproval,
+  },
+
+  // Fractal (Move 2): a node's full tier embeds a live projection.
+  {
+    id: 'embedded-view-demo',
+    group: 'Fractal',
+    title: 'Fractal — node full tier embeds a nested projection',
+    hash: '#panels=none',
+    prepare: embeddedViewDemo,
   },
 
   // Conversation layouts (§5.3) — arrange the seeded conversation; concept
