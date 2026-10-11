@@ -24,6 +24,33 @@ The paradigm is **~80% built**. Verify before extending:
 
 ---
 
+## Progress (v10 — Moves 1 & 2 landed)
+
+Both moves are implemented, verified, and committed. `pnpm typecheck` + `test:unit`
+(667) + `test:design` (11) + `test:craft` (202) + `test:visual` (57 cells) are green.
+
+| Commit | Move | What landed |
+|---|---|---|
+| `a9b87b93` | 1 | Gallery IA (Journeys ≤6 / collapsed Coverage), 3 proving cells, `addConfigMetaNode` dropped, `generate:visual-cells` wired, `test:design` gate + checklist, token-driven fit padding/gutter, flake fix, baselines |
+| `15a1b90b` | 2 | `MAX_EMBED_DEPTH` depth budget + capped card, `HTML_BODY_BUDGET` node budget, inert-until-engaged node bodies, `embedded-view-demo` cell, unit test |
+
+**Move 1 status — all 7 items ✅.** 1.1–1.7 done. Notable: the flake fix was
+*not* a threshold raise — the forced test layout raced the workspace projection's
+late topology change; the harness now waits for the node count to stabilize first
+(`tests/visual/visual.spec.ts`). The 3 proving cells are `chat-graph-context`,
+`chat-streaming`, `chat-tool-approval`; the journey set is exactly 6
+(`graph-conversation`, `selection-node-detail`, `overlay-explain` + the 3).
+
+**Move 2 status — all 4 items ✅.** Depth is threaded explicitly
+(`s-view.depth → graph-viewport.embedDepth → s-node-body.depth → renderBlockBody`),
+so the guard is data-flow, not a global. The node budget lives in
+`selectHtmlLabels` (pure, unit-tested). The demo cell (`embedded-view-demo`) shows
+a node's `full` tier embedding a live tree projection at 200% zoom, with the
+**Engage** affordance proving the inert-until-focused rule. New baselines:
+`embedded-view-demo`, and `selection-node-detail` (the node body now shows Engage).
+
+---
+
 ## Standing Rules
 - **No formatting / line-length / craft polish.** D is closed.
 - **No split, no renderer switch** — modeless is the paradigm. *(Delete every "Split" item.)*
@@ -82,6 +109,49 @@ These are **not** in v10. Each needs a visible payoff before it earns a slot.
 
 ---
 
+## Notes Facilitating Remaining Work
+
+- **Where the depth guard lives.** The embed depth is *threaded through the DOM*,
+  not held in a module global: `renderBlockBody(block, sources, depth)` renders
+  `<s-view .depth=${depth}>`, the host forwards `.embedDepth` to the adapter, and
+  `graph-viewport` passes `.depth=${embedDepth + 1}` to each `s-node-body`, which
+  feeds it back into `renderBlockBody`. Only the **graph** adapter recurses (it is
+  the only one that renders node bodies); the tree/table/code adapters render
+  datasets and terminate on their own. If a second embedding adapter is ever added
+  it must forward `.embedDepth` the same way or the budget is bypassed.
+- **The cap is a `card`, not a mount.** `MAX_EMBED_DEPTH` renders `.embed-capped`
+  (a dashed card with an **Expand** button that opens the artifact overlay), so a
+  runaway fractal degrades to one clickable row instead of an unbounded tree.
+- **Node budget is per viewport, ranked by importance then rendered area.** It is
+  a policy constant (`HTML_BODY_BUDGET`), not a global counter across viewports —
+  if a second live graph viewport is ever mounted, the budget is per-canvas.
+- **`test:design` is now in `verify`.** It encodes hierarchy/density/focus/
+  legibility/paradigm where measurable; `tests/design/CHECKLIST.md` is the human
+  half. `generate:visual-cells` writes the file directly (no shell redirect), so
+  regenerating is idempotent.
+- **Baselines.** A Move that changes pixels changes baselines *deliberately*.
+  `embedded-view-demo` is new; `selection-node-detail` moved because every mounted
+  node body now carries the **Engage** affordance.
+
+## New Improvement Opportunities
+
+- **Engage is one-way.** `s-node-body` engages but never disengages; a click on
+  the canvas could release it (or engage-on-focus, release-on-blur), so a stray
+  engaged body cannot trap the pointer.
+- **The cap card could carry the reason.** `.embed-capped` says nothing about
+  *why* it stopped; a one-line "depth limit" hint would make the budget legible.
+- **Node budget has no visible signal.** Nodes dropped from the HTML budget simply
+  lose their body; a "N more bodies hidden" affordance (like the existing
+  `truncated` warning) would make the budget observable.
+- **`selectHtmlLabels` is pure but untested against a real `Core`.** The ranking
+  is unit-tested; `computeHtmlLabels`' geometry mapping is only covered by the
+  visual cells.
+- **`embedded-view-demo` is a static seed.** It sets `$workspaceGraph` directly
+  rather than through the projection, so it does not exercise the real path a
+  substrate block takes to reach a node body; a server-side seed would.
+
+---
+
 ## Delete List (capability kept, complexity removed)
 
 | Remove | Keep capability via |
@@ -91,12 +161,14 @@ These are **not** in v10. Each needs a visible payoff before it earns a slot.
 | Manual "Fit" as the only scaling | Auto-scale + zoom policy (done) |
 | Per-kind bespoke renderers | One `renderBlockBody` + `embedded` |
 | New registries with no visible payoff | Extend the existing functions |
+| `addConfigMetaNode` phantom config node | The workspace substrate owns chrome; no dead `html` writes |
 
 ---
 
 ## Fresh-Session Checklist
-- [ ] Read "Where We Actually Are" — do not rebuild what exists
-- [ ] **Move 1**: split gallery IA (Journeys ≤6 / Coverage) · fix the dead `html` path · tighten default view · 3 proving cells · `test:design` · fix the flake · wire `generate:visual-cells`
-- [ ] **Move 2**: depth budget · node budget · inert-until-focused · demo recording
-- [ ] Do **not** start Move 3 items
-- [ ] Commit per Move; regenerate baselines deliberately; keep `typecheck` + `unit` green
+- [x] Read "Where We Actually Are" — do not rebuild what exists
+- [x] **Move 1**: split gallery IA (Journeys ≤6 / Coverage) · fix the dead `html` path · tighten default view · 3 proving cells · `test:design` · fix the flake · wire `generate:visual-cells`
+- [x] **Move 2**: depth budget · node budget · inert-until-focused · demo cell
+- [ ] Do **not** start Move 3 items (see entry criteria above)
+- [x] Commit per Move; regenerate baselines deliberately; keep `typecheck` + `unit` green
+- [ ] Next session: pick a *visible* payoff (see New Improvement Opportunities) before touching Move 3
