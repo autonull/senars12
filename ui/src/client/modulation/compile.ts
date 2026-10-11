@@ -1,5 +1,6 @@
 import { clamp } from '@senars/util';
 import { builtinLensSpecs } from '../../shared/lens-schema.js';
+import { truthColor } from '../utils/theme.js';
 import type { ScaleMapId } from '../utils/lens-catalog.js';
 import { channel, field, konst, union, when } from './operators.js';
 import type { ChannelValue, Item, Modulation, View } from './types.js';
@@ -19,10 +20,7 @@ export type ModulationSpec =
   | { op: 'union'; children: ModulationSpec[] };
 
 const SCALE_MAP_NAMES = {
-  'truth-to-color': (v: unknown) => {
-    const f = (v as { frequency?: number })?.frequency ?? 0.5;
-    return `hsl(${Math.round(f * 120)}, 70%, 50%)`;
-  },
+  'truth-to-color': (v: unknown) => truthColor((v as { frequency?: number })?.frequency ?? 0.5),
   'priority-to-size': (v: unknown) => clamp((v as number) * 50 + 10, 10, 60),
   'confidence-to-opacity': (v: unknown) => 0.3 + 0.7 * (v as number),
   'time-to-depth': (v: unknown) => {

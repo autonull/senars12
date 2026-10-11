@@ -7,7 +7,7 @@ import {
   THEME_NAMES,
   TOKENS,
 } from '../src/client/styles/tokens.generated.js';
-import { cssVar, getTheme, setTheme, theme, token } from '../src/client/utils/theme.js';
+import { cssVar, getTheme, numericToken, setTheme, theme, token, truthColor } from '../src/client/utils/theme.js';
 
 type Tree = Record<string, unknown>;
 
@@ -98,6 +98,14 @@ describe('theme facade', () => {
 
   it('falls back to the default theme for an unknown path', () => {
     expect(token('does.not.exist', 'fallback')).toBe('fallback');
+  });
+
+  it('reads numeric tokens with a fallback, and the shared truth-hue scale', () => {
+    expect(numericToken('colors.truth.hue-max')).toBe(120);
+    expect(numericToken('does.not.exist', 7)).toBe(7);
+    expect(truthColor(0)).toBe('hsl(0, 70%, 50%)');
+    expect(truthColor(0.5)).toBe('hsl(60, 70%, 50%)');
+    expect(truthColor(1)).toBe('hsl(120, 70%, 50%)');
   });
 
   it('switches theme values and the document attribute', () => {

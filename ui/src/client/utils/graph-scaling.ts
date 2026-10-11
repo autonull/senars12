@@ -5,10 +5,7 @@
  * T.4) share one definition and the tokens are the only source of the numbers.
  */
 
-import { TOKENS } from '../styles/tokens.generated.js';
-
-const token = (key: string) => Number(TOKENS.dark[key]);
-const clamp = (value: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, value));
+import { numericToken as token } from './theme.js';const clamp = (value: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, value));
 
 /** World-space node-size window, from the priority (importance) scale. */
 export const NODE_SIZE = {

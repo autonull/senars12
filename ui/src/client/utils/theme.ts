@@ -31,6 +31,26 @@ export function token(path: string, fallback = ''): string {
   return TOKENS[active]?.[path] ?? TOKENS[DEFAULT_THEME][path] ?? fallback;
 }
 
+/** Resolved numeric value of a token in the active theme — the reader for size/zoom scales. */
+export function numericToken(path: string, fallback = 0): number {
+  const raw = token(path);
+  if (raw === '') return fallback;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+/**
+ * The one truth-hue color scale (frequency ∈ [0,1] → `hsl(…)`), shared by the 2D
+ * adapter, the modulation compiler and the node drawer so the three cannot drift
+ * and all three track the active theme.
+ */
+export function truthColor(frequency: number): string {
+  const hueMin = numericToken('colors.truth.hue-min');
+  const hueMax = numericToken('colors.truth.hue-max', 120);
+  const hue = Math.round(frequency * (hueMax - hueMin) + hueMin);
+  return `hsl(${hue}, ${token('colors.truth.saturation', '70%')}, ${token('colors.truth.lightness', '50%')})`;
+}
+
 /**
  * Read a live CSS custom property from the document root — for canvas consumers
  * that need whatever stylesheet overrides are in effect. Falls back to `fallback`.

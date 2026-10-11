@@ -2,19 +2,11 @@ import type { Core } from 'cytoscape';
 import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
 import { nodeSize } from './graph-scaling.js';
 import { RENDERER_CAPABILITIES } from './renderer-capabilities.js';
-import { theme } from './theme.js';
-import { TOKENS } from '../styles/tokens.generated.js';
+import { numericToken, theme, truthColor } from './theme.js';
 
-const truthHueMin = Number(TOKENS.dark['colors.truth.hue-min']);
-const truthHueMax = Number(TOKENS.dark['colors.truth.hue-max']);
-const truthSaturation = TOKENS.dark['colors.truth.saturation'];
-const truthLightness = TOKENS.dark['colors.truth.lightness'];
+const confidenceOpacityMin = numericToken('colors.confidence.opacity-min', 0.3);
+const confidenceOpacityMax = numericToken('colors.confidence.opacity-max', 1);
 
-const confidenceOpacityMin = Number(TOKENS.dark['colors.confidence.opacity-min']);
-const confidenceOpacityMax = Number(TOKENS.dark['colors.confidence.opacity-max']);
-
-const truthToColor = (f: number): string =>
-  `hsl(${Math.round(f * (truthHueMax - truthHueMin) + truthHueMin)}, ${truthSaturation}, ${truthLightness})`;
 const confidenceToOpacity = (c: number): number =>
   confidenceOpacityMin + (confidenceOpacityMax - confidenceOpacityMin) * c;
 
@@ -130,7 +122,7 @@ export function clearNodeStyles(cy: Core): void {
       const frequency = truth?.frequency ?? 0.5;
       const isContradiction = data.isContradiction === true;
       
-      const baseColor = isContradiction ? theme.colors.error : truthToColor(frequency);
+      const baseColor = isContradiction ? theme.colors.error : truthColor(frequency);
       const baseSize = nodeSize(priority, count, area);
       const baseOpacity = confidenceToOpacity(confidence);
       

@@ -34,8 +34,9 @@ bugs, not just DRY smells:
 
 - `GRAPH_BLOCK_KINDS` (`components/renderers/graph.ts:30`) **omits `derivation-record`
   and `command`**, so those blocks are not advertised to the graph renderer.
-- `graph-scaling.ts:10` and `adapter-2d.ts:8` read `TOKENS.dark[...]` directly,
-  **hardcoding the dark theme** — light/high-contrast are silently broken.
+- ~~`graph-scaling.ts:10` and `adapter-2d.ts:8` read `TOKENS.dark[...]` directly,
+  **hardcoding the dark theme** — light/high-contrast are silently broken.~~
+  **Fixed (D5):** both read `numericToken`; one `truthColor` replaces the 3 copies.
 - `EVENT_TYPE_LABELS` (`components/overlays/events.ts:17`) keys do not match the
   `EVENT_CATALOG` discriminants (stale duplicate).
 
@@ -109,6 +110,27 @@ surfaces, which the modeless paradigm explicitly rejects — so B3 is complete a
   glyph (see the `view-empty` baseline: "brain"), not an `<s-icon>`. Either wire
   it to the icon primitive or rename it `glyph`/`emoji` — a small legibility
   bug worth a cell.
+
+### D5 — token SSOT, remove the `TOKENS.dark` bypass ✅ (standalone correctness fix)
+
+**What landed.** `utils/theme.ts` now exports `numericToken(path, fallback?)` and
+one `truthColor(frequency)`. `utils/graph-scaling.ts` and `utils/adapter-2d.ts`
+read every numeric token through `numericToken` (no more `TOKENS.dark[…]
+hardcoding dark); the three duplicated truth-hue scales — `adapter-2d`,
+`components/node-detail-drawer.ts`, `modulation/compile.ts` — all call
+`truthColor`. No `TOKENS.dark` read remains outside `theme.ts`.
+
+**Guard.** `tests/theme.test.ts` (+1): `numericToken` reads a token and honours a
+fallback for an unknown path; `truthColor(0|0.5|1)` → `hsl(0|60|120, 70%, 50%)`.
+
+**No baseline moves.** The token values are theme-invariant today (`0/120/70%/50%`),
+so the emitted strings are byte-identical; graph + node-detail cells verified.
+
+**Note for whoever continues D5/E7.** `NODE_SIZE`/`ZOOM`/… are still `const`s
+folded at *module import*, so a later `setTheme` does not re-read them. The
+`numericToken` fix removes the hardcoded-dark choice; making the scales truly live
+is E7's job (or a `derived` atom, E5). This is why D5 is a *correctness* fix, not
+yet a theming feature.
 
 ---
 
@@ -1040,7 +1062,7 @@ control the user must learn.
 - [ ] **Track D2**: extend `LINK_CATALOG` (`symmetric`, `layoutStage`); delete the two partial maps
 - [ ] **Track D3**: `defineOverlay` + `WINDOW_DEFAULTS` (16 overlays + 8 window literals)
 - [ ] **Track D4**: one layout descriptor registry (merge conversation + reasoning; wire `validateLayoutId`)
-- [ ] **Track D5**: token SSOT — remove `TOKENS.dark` bypass (**correctness bug**, may land standalone)
+- [x] **Track D5**: token SSOT — remove `TOKENS.dark` bypass (**correctness bug**, may land standalone)
 - [ ] **Track D6**: `createRegistry<K, V>` shared registry factory
 - [ ] **Track D7**: projection `fragment()` builder + `systemEventBlock()`
 - [ ] **Track D8**: fold stale duplicates (`EVENT_TYPE_LABELS`, `SIGN`/`DIFF_SIGN`, error titles, `ViewDataset` switches)

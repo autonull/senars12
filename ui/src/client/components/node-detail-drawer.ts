@@ -33,7 +33,7 @@ import {
 } from '../core/index.js';
 import { fieldMeta, formatField } from '../utils/field-catalog.js';
 import { renderField } from '../utils/render-field.js';
-import { theme } from '../utils/theme.js';
+import { theme, truthColor } from '../utils/theme.js';
 
 type TabId = 'overview' | 'links' | 'actions' | 'edge' | 'history';
 
@@ -352,11 +352,6 @@ export class NodeDetailDrawer extends BaseComponent {
     }
   }
 
-  private truthToColor(f: number): string {
-    const hue = Math.round(f * 120);
-    return `hsl(${hue}, 70%, 50%)`;
-  }
-
   private onTruthInput(value: number) {
     this.truthFrequency = value;
     const node = this.node;
@@ -413,7 +408,7 @@ export class NodeDetailDrawer extends BaseComponent {
     const n = this.node;
     if (!n) return html``;
     const nodeId = n.id ?? '';
-    const truthColor = this.truthToColor(this.truthFrequency);
+    const truthFill = truthColor(this.truthFrequency);
     return html`
       <div class="section-title">Node Details</div>
       <div class="field">
@@ -456,18 +451,18 @@ export class NodeDetailDrawer extends BaseComponent {
               min: 0,
               max: 1,
               step: 0.01,
-              style: `width:80px;accent-color:${truthColor}`,
+              style: `width:80px;accent-color:${truthFill}`,
             },
             this.truthFrequency,
             (v) => this.onTruthInput(Number(v))
           )}
             <span
-              style="color:${truthColor};font-weight:bold"
+              style="color:${truthFill};font-weight:bold"
             >
               ${formatField('truth.frequency', this.truthFrequency)}
             </span>
             <span
-              style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${truthColor}"
+              style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${truthFill}"
             ></span>
           </span>
         </div>
