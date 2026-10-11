@@ -19,6 +19,7 @@ const noopApi = {
   restoreViewport() {},
   centerOnNode() {},
   onLayout() {},
+  applyWorkspaceOps() {},
 };
 
 const renderer = new GraphRenderer(() => {}, noopApi);
