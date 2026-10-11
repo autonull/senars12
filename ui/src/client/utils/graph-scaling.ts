@@ -95,3 +95,37 @@ export function labelCutoff(importances: readonly number[], zoom: number): numbe
 
 /** Whether the `full` HTML body may mount: a near (`card`/`full`) tier only (§G.3/R.1). */
 export const htmlLabelVisible = (zoom: number): boolean => zoom >= HTML_LOD_ZOOM;
+
+/** Level-of-detail tiers for node rendering. */
+export type LoDTier = 'glyph' | 'label' | 'card' | 'full';
+
+/** Zoom thresholds for each LoD tier (increasing zoom = more detail). */
+export const LOD_ZOOM_THRESHOLDS: Record<LoDTier, number> = {
+  glyph: 0,
+  label: LABEL_LOD,
+  card: HTML_LOD_ZOOM * 0.75,
+  full: HTML_LOD_ZOOM,
+} as const;
+
+/** Determine the active LoD tier for a node at a given zoom and importance. */
+export function getLoDTier(
+  zoom: number,
+  importance: number,
+  isWorkspace: boolean
+): LoDTier {
+  if (!isWorkspace) {
+    // Engine nodes: glyph → label only
+    if (zoom < LOD_ZOOM_THRESHOLDS.label) return 'glyph';
+    return 'label';
+  }
+  // Workspace nodes: glyph → label → card → full
+  if (zoom < LOD_ZOOM_THRESHOLDS.label) return 'glyph';
+  if (zoom < LOD_ZOOM_THRESHOLDS.card) return 'label';
+  if (zoom < LOD_ZOOM_THRESHOLDS.full) return 'card';
+  return 'full';
+}
+
+/** Whether a node should show its HTML body (card or full tier). */
+export const showsHtmlBody = (zoom: number, importance: number, isWorkspace: boolean): boolean =>
+  getLoDTier(zoom, importance, isWorkspace) !== 'glyph' &&
+  getLoDTier(zoom, importance, isWorkspace) !== 'label';

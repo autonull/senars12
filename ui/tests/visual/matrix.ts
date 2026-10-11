@@ -599,6 +599,8 @@ const HAND_CURATED_CELLS: VisualCell[] = [
     scenario: 'basic-derivation',
     hash: '#panels=none',
     viewport: { width: 1920, height: 1080 },
+    layout: 'breadthfirst',
+    prepare: async ({ settle }) => { await settle('breadthfirst'); },
   },
 
   // Responsive.

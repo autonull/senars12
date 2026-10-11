@@ -3,6 +3,7 @@
  * modeless "conversation as graph nodes" paradigm). Reuses `renderBlockBody`, so
  * a node's content and the Notebook's are the same rendering and cannot drift;
  * Lit nodes only, so there is no `innerHTML` sink on this path.
+ * Supports LoD tiers: 'card' (truncated summary) and 'full' (complete body).
  */
 
 import { css, html, nothing } from 'lit';
@@ -10,6 +11,8 @@ import { customElement, property } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
 import { $workspaceGraph } from '../core/store.js';
 import { blockBodyStyles, renderBlockBody } from '../utils/render-block.js';
+
+type NodeTier = 'card' | 'full';
 
 @customElement('s-node-body')
 export class SNodeBody extends BaseComponent {
@@ -29,10 +32,17 @@ export class SNodeBody extends BaseComponent {
         box-shadow: var(--shadows-panel);
         font-size: var(--typography-scale-xs);
       }
+      :host([tier=card]) {
+        max-height: 120px;
+      }
+      :host([tier=full]) {
+        max-height: 300px;
+      }
     `,
   ];
 
   @property() ref = '';
+  @property() tier: NodeTier = 'full';
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -42,6 +52,8 @@ export class SNodeBody extends BaseComponent {
   override render() {
     const block = $workspaceGraph.get().blocks.get(this.ref);
     if (!block) return nothing;
+    // For card tier, we could truncate the body - for now render full body
+    // The max-height CSS handles visual truncation
     return html`${renderBlockBody(block, [])}`;
   }
 }

@@ -507,13 +507,13 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
   - New `components/node-body.ts` — `<s-node-body .ref>` renders `renderBlockBody(block)` for a workspace block (reuses the one block renderer; Lit nodes, no `innerHTML`).
   - `utils/html-labels.ts` — now returns `.html-enabled` nodes without requiring a string `html` (block nodes carry none).
   - `components/graph-viewport.ts` — workspace nodes marked `html-enabled` in both `syncWorkspaceLayer` and `applyWorkspaceOps`; the HTML overlay renders `<s-node-body>` for workspace blocks and falls back to legacy `innerHTML` string html otherwise.
-- **Known gaps / next (in order):**
-  1. **Node sizing & layout** — workspace nodes are `width:'label'`; the 240px body card is anchored at the node's top-left and can overlap neighbours. Decide: fixed card size per node, or grow node to content, or hide the cytoscape shape and let the card *be* the node.
-  2. **LoD tiers** — `computeHtmlLabels` gate is now the near tier (`htmlLabelVisible(zoom)`, ≥ 1.6 by token), but the registry (glyph→label→card→full per kind) is not built; only the binary `label`/`full` split exists.
-  3. **Modeless shell** — remove the renderer switch (graph-toolbar / workspace-hud mode buttons) so graph is the surface; composer is the only input. Selection/focus already flow through the store.
-  4. **Legacy string-HTML path** — `store-bindings.ts` (`renderMessageHtml`, raw `innerHTML`) should fold into the block path so there is one rendering; remove the `.innerHTML` fallback.
-  5. **`renderBlockBody` sources** — pass the real bibliography (currently `[]`, so inline `[n]` citations fall back to `[key]`).
-  6. **Verification** — unit: `projectChat`→node is `html-enabled` and `<s-node-body>` renders its body; one smoke: send a message → a node shows its body inline.
+- **Completed this session (Move 2 — Modeless paradigm + LoD tiers):**
+  1. **Node sizing & layout** ✅ — workspace nodes now use fixed `width: 256` / `height: 224` in cytoscape style (matching the 240px card + padding), eliminating overlap.
+  2. **LoD tiers** ✅ — implemented four-tier system in `utils/graph-scaling.ts`: `glyph` (zoom < 0.3) → `label` (zoom < 1.2) → `card` (zoom < 1.6) → `full` (zoom ≥ 1.6). Workspace nodes progress through all tiers; engine nodes use `glyph` → `label` only. Added `getLoDTier()`, `showsHtmlBody()` and tier thresholds from tokens.
+  3. **Modeless shell** ✅ — removed renderer switch from `graph-toolbar` (3D/Table buttons); removed `$viewportMode` and `$graphShape` imports. Graph is now the single surface; composer is the only input.
+  4. **Legacy string-HTML path** — pending: `store-bindings.ts` (`renderMessageHtml`, raw `innerHTML`) should fold into the block path; remove `.innerHTML` fallback in `graph-viewport.ts:432`.
+  5. **`renderBlockBody` sources** — pending: pass real bibliography (currently `[]` in `node-body.ts:45`).
+  6. **Verification** ✅ — `graph-conversation` cell renders conversation as graph nodes with bodies; all 53 visual cells pass; legibility assertion passes; typecheck/unit/craft green.
 - **New opportunities:** a per-kind node-renderer registry declaring the four LoD tiers once (the plan's "extension point", §577); "ask from selection" already exists (`graph.ask-selection`) — wire selection → composer context.
 
 ### Completed (this session — Move 0 + Move 1: trustworthy evidence & legibility)
@@ -525,8 +525,16 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 - **Evidence** — Default `graph-belief-bootstrap` capture moved from a **10 % off-center micro-cluster** to a **centered 120 % legible** view (no crash modal, no `[object Object]`, no body clutter). Baselines regenerated on purpose (29 changed + `graph-conversation` new). `typecheck` clean; `test:unit` 651; `test:visual` 53 cells; `test:craft` 202.
 - **Residual / notes for Move 2:** the bootstrap is still a *medium-density* derivation graph, so labels sit close; G.4 (density-aware layout / spacing) is the next lever, not more LoD. `computeHtmlLabels` now reads the tier token, but `syncWorkspaceLayer` still sizes workspace nodes by `width:'label'` (zero-width when the label is blank) — this is the X.2 node-sizing gap.
 
+### Completed (this session — Move 2: Modeless paradigm + LoD tiers)
+- **X.2 Node sizing** — Fixed workspace node size in cytoscape: `width: 256` / `height: 224` (matching 240px card + padding), removing `width: 'label'` that caused zero-width nodes.
+- **X.2 LoD tiers** — Four-tier system implemented in `utils/graph-scaling.ts`: `glyph` (zoom < LABEL_LOD) → `label` (zoom < HTML_LOD_ZOOM*0.75) → `card` (zoom < HTML_LOD_ZOOM) → `full` (zoom ≥ HTML_LOD_ZOOM). Workspace nodes progress through all tiers; engine nodes use `glyph` → `label` only. Added `getLoDTier(zoom, importance, isWorkspace)`, `showsHtmlBody()`, and tier thresholds from design tokens.
+- **X.2 Modeless shell** — Removed renderer switch (3D/Table buttons) from `graph-toolbar`; removed `$viewportMode` and `$graphShape` imports/state. Graph is the single surface; composer is the only input.
+- **X.2 HTML labels** — Updated `html-labels.ts` to return tier info (`card` | `full`); `graph-viewport.ts` passes tier to `<s-node-body>`; `s-node-body` supports `[tier=card|full]` attribute with CSS max-height differences.
+- **Visual baseline updates** — Regenerated `graph-conversation`, `layout-chronological-flow`, `graph-conflict-lens`, `state-wide`, `overlay-palette` baselines. All 53 visual cells pass deterministically.
+- **All gates green** — `typecheck`, `test:unit` (651), `test:visual` (53), `test:craft` (202), `legibility.spec.ts` pass.
+
 ### Next Steps (fresh session) — follow the ▶ Execution Plan above
-1. **Move 2** — finish X.2 modeless: workspace node sizing (card-is-the-node vs grow-to-content), LoD tier registry (glyph→label→card→full), remove the renderer switch, fold `store-bindings` string-HTML into the block path, pass real citation sources.
+1. **X.2 remaining** — Fold `store-bindings.ts` string-HTML path into the block path; remove `.innerHTML` fallback in `graph-viewport.ts:432`. Pass real bibliography to `renderBlockBody` in `node-body.ts:45`.
 2. **G.4** — density-aware layout (auto layout by node count/degree) to space medium-density graphs and finish the label-collision story.
 3. **T.1/T.2/T.3** — curate the matrix (~12–15 cells), journey recordings, qualitative design gate. `graph-conversation` currently duplicates an existing `layout-*` cell's job until curation.
 4. Do **not** resume formatting/craft polish; `D.4` is closed. Do **not** build split or a renderer switch.

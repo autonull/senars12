@@ -1,19 +1,16 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import type { ViewportMode } from '../core/index.js';
 import {
   $activeLens,
   $capabilityFilter,
   $conversationLayout,
   $graphNodes,
-  $graphShape,
   $layoutScope,
   $lensLayout,
   $panels,
   $selectedNodeIds,
   $urlState,
   $viewport,
-  $viewportMode,
   BaseComponent,
   eventBus,
   send,
@@ -192,7 +189,6 @@ export class GraphToolbar extends BaseComponent {
   @state() private zoom = 1;
   @state() private searchQuery = '';
   @state() private multiSelectCount = 0;
-  @state() private viewportMode: ViewportMode = '2d';
   @state() private activeCapabilities: string[] = [];
   @state() private colorBy = 'lens';
 
@@ -204,8 +200,6 @@ export class GraphToolbar extends BaseComponent {
     super.connectedCallback();
     this.watch($activeLens);
     this.watch($panels);
-    this.watch($viewportMode);
-    this.watch($graphShape);
     this.watch($layoutScope);
     this.watch($conversationLayout);
     this.watch($lensLayout);
@@ -214,9 +208,6 @@ export class GraphToolbar extends BaseComponent {
     });
     this.watchWith($selectedNodeIds, (ids) => {
       this.multiSelectCount = ids.size;
-    });
-    this.watchWith($viewportMode, (mode) => {
-      this.viewportMode = mode;
     });
     this.watchWith($graphNodes, () => this.updateCapabilities());
     this.updateCapabilities();
@@ -286,11 +277,7 @@ export class GraphToolbar extends BaseComponent {
 
       <button class="toolbar-btn" @click=${this.toggleMinimap} title="Toggle minimap">Minimap</button>
 
-      <button class="toolbar-btn ${this.viewportMode === '3d' ? 'active' : ''}"
-        @click=${this.toggleViewportMode} title="Toggle 2D/3D viewport">3D</button>
-
-      <button class="toolbar-btn ${$graphShape.get() === 'table' ? 'active' : ''}"
-        @click=${this.toggleGraphShape} title="Toggle graph/table view">Table</button>
+      <!-- Renderer switches removed per modeless paradigm: graph is the surface -->
 
       ${
         this.multiSelectCount > 0
@@ -337,15 +324,6 @@ export class GraphToolbar extends BaseComponent {
   private toggleCapabilityFilter(cap: string) {
     const current = $capabilityFilter.get();
     $capabilityFilter.set(current === cap ? 'all' : cap);
-  }
-
-  private toggleViewportMode() {
-    const current = $viewportMode.get();
-    $viewportMode.set(current === '2d' ? '3d' : '2d');
-  }
-
-  private toggleGraphShape() {
-    $graphShape.set($graphShape.get() === 'table' ? 'graph' : 'table');
   }
 
   private handleSearch(value: string) {

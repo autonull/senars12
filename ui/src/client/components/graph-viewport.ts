@@ -40,7 +40,7 @@ import {
   toggleCollapsed,
 } from '../core/index.js';
 import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
-import { clampZoom, labelCutoff, showsLabel } from '../utils/graph-scaling.js';
+import { clampZoom, labelCutoff, showsLabel, getLoDTier, showsHtmlBody } from '../utils/graph-scaling.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
 import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
@@ -423,8 +423,8 @@ export class GraphViewport extends BaseComponent {
         (d) => {
           const isBlock = $workspaceGraph.get().blocks.has(d.id);
           return isBlock
-            ? html`<div class="html-label block-label" style="left:${d.x}px;top:${d.y}px">
-                <s-node-body .ref=${d.id}></s-node-body>
+            ? html`<div class="html-label block-label" style="left:${d.x}px;top:${d.y}px" data-tier=${d.tier}>
+                <s-node-body .ref=${d.id} .tier=${d.tier}></s-node-body>
               </div>`
             : html`<div
                 class="html-label"
@@ -599,25 +599,40 @@ export class GraphViewport extends BaseComponent {
   /**
    * Label level-of-detail (§G.3): a node shows its label when its importance,
    * amplified by zoom, clears the threshold, so a dense or zoomed-out graph shows
-   * only the labels that matter. HTML-bodied (workspace) nodes never draw a text
-   * label; edges thin out when far.
+   * only the labels that matter. Workspace nodes progress through glyph → label →
+   * card → full tiers; engine nodes use glyph → label. Edges thin out when far.
    */
   private applyLOD(zoom: number) {
     if (!this.cy) return;
     const cy = this.cy;
     // Rank-budget the labels by importance so a dense canvas cannot collide (§G.3).
-    const labelled = cy.nodes().filter((n) => !n.hasClass('workspace') && !n.hasClass('html-enabled'));
+    const engineNodes = cy.nodes().filter((n) => !n.hasClass('workspace') && !n.hasClass('html-enabled'));
     const cutoff = labelCutoff(
-      labelled.map((n) => Number(n.data('priority') ?? 0.5)),
+      engineNodes.map((n) => Number(n.data('priority') ?? 0.5)),
       zoom
     );
     cy.batch(() => {
       for (const node of cy.nodes()) {
-        if (node.hasClass('workspace')) continue;
         const importance = Number(node.data('priority') ?? 0.5);
-        const show =
-          !node.hasClass('html-enabled') && showsLabel(importance, zoom) && importance >= cutoff;
-        node.style('label', show ? (node.data('label') ?? '') : '');
+        const isWorkspace = node.hasClass('workspace');
+        const tier = getLoDTier(zoom, importance, isWorkspace);
+
+        if (isWorkspace) {
+          // Workspace nodes: manage label visibility and HTML body via tier
+          const showLabel = tier === 'label' || tier === 'card';
+          node.style('label', showLabel ? (node.data('label') ?? '') : '');
+          // Toggle html-enabled class for card/full tiers
+          if (showsHtmlBody(zoom, importance, true)) {
+            if (!node.hasClass('html-enabled')) node.addClass('html-enabled');
+          } else {
+            if (node.hasClass('html-enabled')) node.removeClass('html-enabled');
+          }
+        } else {
+          // Engine nodes: glyph → label only
+          const show =
+            !node.hasClass('html-enabled') && showsLabel(importance, zoom) && importance >= cutoff;
+          node.style('label', show ? (node.data('label') ?? '') : '');
+        }
       }
       cy.edges().style('width', zoom >= this.LOD_EDGE_THIN_ZOOM ? 1.5 : 0.5);
     });
@@ -716,8 +731,8 @@ export class GraphViewport extends BaseComponent {
             'background-opacity': 0.12,
             'border-color': theme.colors.accentCyan,
             'border-width': 1.5,
-            width: 'label',
-            height: 'label',
+            width: 256,
+            height: 224,
             padding: '8px',
             opacity: 1,
           },
