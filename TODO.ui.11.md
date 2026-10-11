@@ -42,6 +42,70 @@ is a correctness fix and may land standalone.
 
 ---
 
+## Verification — does this plan reach the two goals?
+
+**Goal 1 — a working, useful, robust SeNARS UI.**
+**Goal 2 — an abstract, flexible foundation for growth into any application domain.**
+
+### Evidence of the current state (v10, all green)
+
+- `pnpm --dir ui verify`: typecheck + **673** unit + **11** design + **59** visual
+  cells + **202** craft — green.
+- **24 e2e scenario specs** exist: cognitive (7), configuration (3), conversations
+  (3), resilience (3), relational (2), accessibility, security, spatial-parity,
+  smoke, metta, full-bot, impressive-demo.
+- The UI is wired to the real engine: `state.snapshot`, `node.history`, streaming
+  chat, tool approval, and a real `derivation.record` projection (Move 2.9).
+
+So the product is **substantially built** — well past the master plan
+`TODO.ui.md`'s stale Phase 4.6 checkboxes.
+
+### Coverage matrix — v11 tracks × goals
+
+| Goal | A (bugs) | B (legibility) | C (spikes) | D/E/F (substrate) |
+|---|---|---|---|---|
+| Working | ✅ fixes 3 bugs | ✅ B1/B3 add affordances | ⚠️ deferred | ✅ enables |
+| Useful | ✅ A2 makes provenance visible | ✅ B1/B3 | ⚠️ | — |
+| Robust | ✅ A1/A3 | — | — | ✅ F5 compile guards |
+| Any-domain foundation | — | — | ⚠️ all no-Go-likely | ✅✅ |
+
+### The three gaps that block the goals
+
+**G1 — the behavioral tests do not gate.** `ui:verify` runs
+typecheck/unit/design/visual/craft but **not `test:e2e`**; the CI `ui:gate` is
+typecheck + unit only (`scripts/lib/gates.ts:120`). The 24 e2e specs — resilience,
+security, accessibility, spatial parity — can rot. Master-plan **11.4** ("scenario
+seeds + visual regression in `pnpm gates`") is unchecked. *A UI that passes
+`verify` can still be broken.*
+
+**G2 — the performance harness is inert.** `PerfMonitor.assertWithinBudget`
+(`tests/framework/utils/perf.ts`) exists but **no spec calls it**; the
+`high-throughput` spec asserts only `nodeCount > 0` + no errors. The store clones
+whole `Map`s per patch (`store.ts:510`, `:524`). No frame-budget assertion runs
+anywhere. Master-plan **11.1** is unstarted and absent from v11.
+
+**G3 — "any domain" is asserted, not proven.** Tracks C1–C4 are all "≤1 day,
+likely no-Go"; **no second domain** (a non-cognitive bundle) is built. E6 (bundles)
+enables product *variants*, but every ingredient still reads the cognitive stores.
+The claim is architectural, not demonstrated.
+
+### Verdict
+
+| Goal | Verdict |
+|---|---|
+| Working | ✅ already true; v11 preserves it (D5 fixes a real theme bug) |
+| Useful | ✅ already true; v11 adds B1/B3 marginally |
+| Robust | ⚠️ **partial** — A fixes 3 bugs, F5 adds compile guards, but perf/a11y/gating gaps remain (G1/G2) |
+| Any-domain foundation | ⚠️ **plausible, unproven** — D/E/F build the seams; no second domain demonstrates them (G3) |
+
+**Conclusion: v11 is necessary but not sufficient.** It deepens the substrate
+(D/E/F) and fixes known bugs (A), but it is **not** a robustness plan (no
+perf/a11y/gating) and **not** a proof of domain-generality (no second bundle). To
+*ultimately achieve* both goals, add **Track G** and promote **G1** to a standing
+rule.
+
+---
+
 ## Track A — Fix Broken Things (do first, highest payoff)
 
 ### A1. Config-change audit trail → dedicated log/HUD surface
@@ -750,10 +814,87 @@ back and document why.
 
 ---
 
+## Track G — Product & Robustness Completion (closes the verification gaps)
+
+> The verification above found v11 necessary but not sufficient. Track G closes
+> G1–G3. Unlike D/E/F, these are *not* refactors — they are the product work the
+> two goals require. Mapped to the master plan's phases so nothing is re-invented.
+
+### G1. Wire the behavioral tests into the gate (master-plan 11.4)
+
+`ui:verify` omits `test:e2e`; `ui:gate` is typecheck+unit. The 24 scenario specs
+(resilience, security, a11y, parity) exist but gate nothing.
+
+**Refactor:** add a fast scenario subset (`@smoke`/`@critical`) to `ui:verify`;
+make `ui:gate` = typecheck + unit + that subset; add the full e2e to the
+pre-merge `ui:verify`. A capability is not done until a gate fails when it
+regresses.
+
+**Acceptance:** breaking a resilience/security scenario fails `ui:gate`.
+
+### G2. Performance budgets (master-plan 11.1)
+
+`PerfMonitor.assertWithinBudget` is dead; `high-throughput` asserts nothing
+performance-shaped; the store clones whole `Map`s per patch (`store.ts:510`,
+`:524`).
+
+**Refactor:** call `assertWithinBudget` from a dense-graph spec; patch-in-place
+(or structural share) in `updateNodeData`/`updateEdgeData`; virtualize the event
+log / large tables; add a frame-budget baseline.
+
+**Acceptance:** a dense-graph spec asserts a frame budget and passes; no
+whole-`Map` clone remains in a hot store patch.
+
+### G3. Automated accessibility (master-plan 7.7)
+
+A keyboard spec exists (`scenarios/accessibility/keyboard-navigation.spec.ts`) but
+no automated a11y checks derived from descriptor metadata, and it is not gated.
+
+**Refactor:** derive a11y checks from the descriptor `a11y` metadata (the
+`surface-codegen.ts` seam already sketches it); add the keyboard walkthrough to
+G1's gate.
+
+**Acceptance:** a surface without a label/keyboard path fails the gate.
+
+### G4. Error-taxonomy surfacing (master-plan 11.2)
+
+`error-taxonomy.ts` is rich but the boundary re-lists titles (D8 de-dupes the
+map). Wire the taxonomy's `title`/recovery into the boundary + log with context.
+
+**Acceptance:** each error class surfaces its title + recovery action; no
+hand-listed title map remains.
+
+### G5. A second bundle proves Goal 2 (master-plan 10.5)
+
+**The falsifiable test of the foundation.** Build the smallest non-default
+product — e.g. an **event-log console** or **graph explorer** — as
+`applyBundle(...)` over the same ingredients, with **no cognitive-chat store**.
+
+**Acceptance:** the second product runs from a bundle with zero forked
+components; if it needs a fork, E is not yet a library and the gap is named.
+
+### G6. Demo/scenario productization (master-plan 10.2/10.6)
+
+Surface the scenario runner as a Run view; each beat sets a `ViewSpec` so demos
+reuse the live UI, not a separate player.
+
+**Acceptance:** a canonical scenario replays in-app through live views, seeded and
+deterministic.
+
+### Track G — the one-line test
+
+Each G item makes the product **more trustworthy**, not larger: a gate that
+catches regressions, a budget that catches jank, a check that catches an
+inaccessible control, a second product that proves the library. None adds a
+control the user must learn.
+
+---
+
 ## Standing Rules (carry forward from v10)
 
 - **No new subsystem without a visible payoff.** A registry that changes no pixels fails the one-line test.
 - **Legibility before content.** Every capability ends with a cell/recording **and** a guard.
+- **A track is not done until its behavior gates.** A cell proves it *renders*; a gate proves it *cannot regress*. Promote v10's rule from "a cell" to "a cell in `verify`".
 - **No formatting / line-length / craft polish.** D is closed.
 - **No split, no renderer switch** — modeless is the paradigm.
 - **Keep `typecheck` + `test:unit` green; commit per Track.**
@@ -796,6 +937,12 @@ back and document why.
 - [ ] **Track F4**: generic `Command<Args>` + typed command ids (biggest cast cleanup)
 - [ ] **Track F5**: compile-time assertions + `assertNever` in union switches
 - [ ] **Track F6**: resolve dead `LayoutId` brand; fix `Theme`/`ArtifactKind` drift
+- [ ] **Track G1**: wire `test:e2e` scenario subset into `ui:verify` / `ui:gate` (master-plan 11.4)
+- [ ] **Track G2**: performance budgets — call `assertWithinBudget`; stop whole-`Map` clones (11.1)
+- [ ] **Track G3**: automated a11y checks from descriptor metadata + keyboard walkthrough in the gate (7.7)
+- [ ] **Track G4**: error-taxonomy surfacing (title + recovery) in boundary + log (11.2)
+- [ ] **Track G5**: a second bundle (event-log console / graph explorer) proves Goal 2 (10.5)
+- [ ] **Track G6**: demo/scenario productization — Run view, ViewSpec-native beats (10.2/10.6)
 - [ ] Do **not** implement Track C items unless spike passes gate
 - [ ] Do **not** land a Track D/E/F refactor without the feature it enables (except D5)
 - [ ] Do **not** build an E layer no domain instantiates (defer it)
@@ -835,6 +982,9 @@ back and document why.
 | `Shape`/`Disclosure`/lens/panel/category unions hand-copied | `as const` tuple / catalog is the source (F1/F2) |
 | lens-keyed maps + `COMMAND_SCHEMAS` typed `Record<string, …>` | `Partial<Record<Vocabulary, …>>` (F3) |
 | `CommandArgs = Record<string, unknown>` + per-command casts | generic `Command<Args>` (F4) |
+| e2e scenarios that gate nothing | `ui:verify` includes the scenario subset (G1) |
+| dead `PerfMonitor.assertWithinBudget`; whole-`Map` clones | frame-budget spec + patch-in-place (G2) |
+| hand-listed error-title map in the boundary | `error-taxonomy` title + recovery (G4) |
 
 ---
 
@@ -900,6 +1050,19 @@ ingredients — no forking `app-layout`, no copy-pasted overlays. The paradigm
 "one substrate, many projections" generalizes from *data* projections to *UI*
 projections.
 
+### Verification ↔ Tracks — the honest accounting
+The verification section found the two goals are **not yet reached by v11 alone**:
+- **Goal 1 (working/useful/robust)** — *working* and *useful* are already true
+  (the product is built and 24 e2e scenarios pass); *robust* is partial because
+  the behavioral tests don't gate (G1) and the perf harness is inert (G2).
+- **Goal 2 (any-domain foundation)** — *plausible but unproven*: D/E/F build the
+  seams, but no second bundle demonstrates them (G3/G5).
+
+So the plan's own success criterion is: **A + B + G land the product goals; D + E
++ F land the foundation goal; C is evaluated honestly.** The one-line test still
+holds — every track must make the system more visible, more legible, or more
+trustworthy without a control the user must learn.
+
 ### Track F — key insight
 The codebase already contains the **gold-standard pattern** in `lens-catalog.ts`
 and `block-labels.ts`: `as const satisfies Record<Union, V>`. It simultaneously
@@ -922,4 +1085,4 @@ mapped type made runtime. Land the shared source once, and D/E/F all read it.
 
 ---
 
-*Generated from v10 completion. All Track A items are bugs in the current paradigm; Track B deepens legibility; Track C evaluates v11 gates honestly; Track D consolidates the descriptor surface as enablers of A/B/C; Track E abstracts the ingredients into a reusable OOP library; Track F derives the type model from those same sources.*
+*Generated from v10 completion. Track A fixes bugs in the current paradigm; Track B deepens legibility; Track C evaluates v11 gates honestly; Track D consolidates the descriptor surface as enablers of A/B/C; Track E abstracts the ingredients into a reusable OOP library; Track F derives the type model from those same sources; Track G closes the verification gaps so the plan reaches both the product and the foundation goals.*
