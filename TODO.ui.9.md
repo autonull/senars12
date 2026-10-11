@@ -500,6 +500,7 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 - **D.4** — Craft gate: `tests/craft/*` (typography, focus visibility, z-index, icon/emoji lint, contrast, motion) wired via `index.test.ts`; `test:craft` green (202 tests). Line-length check removed per direction — formatting is not enforced.
 - **X.2 (remaining)** — Folded `store-bindings.ts` string-HTML path into the block path; removed `renderMessageHtml`, `ChatMessage.html` field, and graph node `html` field; removed `.innerHTML` fallback in `graph-viewport.ts`. Pass real bibliography to `renderBlockBody` via `collectSources(graph)` in `node-body.ts`.
 - **G.4** — Density-aware layout: cose layout parameters (`nodeRepulsion`, `idealEdgeLength`, `gravity`, `padding`) now scale with `densityFactor(count, area)` from `graph-scaling.ts`. Denser graphs get more repulsion, longer edges, less gravity, more padding — spacing medium-density graphs and reducing label collisions.
+- Visual test stability: increased settle wait from 300ms to 500ms to eliminate flakiness from test ordering.
 - Repo health: `pnpm --dir ui typecheck` clean; `test:unit` 651 passing; `test:visual` 53 cells; `test:craft` 202 tests; `build:client` succeeds; `pnpm --dir ui verify` green.
 
 ### In Progress — X.2 modeless "conversation as graph nodes" (✅ Complete)
