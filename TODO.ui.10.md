@@ -220,15 +220,26 @@ render through `s-tree` (`TODO.ui.5.md §3.3`).
   `renderBlockBody` now routes both derivation kinds through `artifactViewSpec`
   (Move 2.7). Remaining: no visual cell mounts a `derivation-record` body; a
   recorder-driven cell would prove it end to end.
+- **The config-change audit trail is volatile, and the obvious fix is not a
+  drop-in.** `config-change-producer` writes a `config-change` block straight
+  into `$workspaceGraph`, so the next `syncWorkspaceGraph` (on any chat/engine
+  change) erases it — the same direct-write anti-pattern Move 1.2/2.6 removed
+  elsewhere. A projection-based fix (a `$configChanges` store projected in
+  `projectWorkspace`) was attempted this session and reverted, because it has two
+  traps: (1) it surfaces *server config hydration* as a burst of audit blocks
+  (five `Config:` nodes on load), which needs a `withoutConfigRecording` gate
+  around the `config.schema` / `state.snapshot` `$config.set`s; and (2) even with
+  that gate, projecting the blocks as graph roots perturbs the auto-fit of four
+  timed cells non-deterministically (`panel-search`, `overlay-toc`,
+  `panel-lens-designer`, `layout-budget-resource`). So the real fix must keep
+  config diffs **out of the graph root set** — a dedicated log/HUD surface, or
+  audit blocks that are not roots — not just re-route the write. Trap (2) is
+  entirely unexplained (no `[config-change]` records fired there), so treat it as
+  a timing-sensitive coupling to pin before retrying.
 - **`embedded-view` is an orphan block kind.** The projection never produces it
   and `renderBlockBody` has no case for it (it rendered only through a hand-set
   `block.spec`). Either give it a producer + body case or fold it into the
   artifact path; today it is dead type surface kept alive by the old demo.
-- **The config-change audit trail is volatile.** `config-change-producer` writes
-  a `config-change` block straight into `$workspaceGraph`, so the next
-  `syncWorkspaceGraph` (on any chat/engine change) erases it — the same
-  direct-write anti-pattern Move 1.2/2.6 removed elsewhere. Feed config changes
-  into the projection instead.
 - **`HTML_BODY_BUDGET` is per-viewport.** If a second live graph viewport is ever
   mounted, the budget is per-canvas rather than global.
 
