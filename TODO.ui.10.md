@@ -24,12 +24,12 @@ The paradigm is **~80% built**. Verify before extending:
 
 ---
 
-## Progress (v10 — Moves 1, 2, 2.5 & 2.6 landed)
+## Progress (v10 — Moves 1, 2, 2.5, 2.6 & 2.7 landed)
 
-Moves 1 & 2 are verified and committed; 2.5 and 2.6 extend the guards. On the
-Move 2.6 change `pnpm typecheck`, `test:unit` (671), `test:design`, the
-`visual-coverage` contract and the `embedded-view-demo` capture were re-run
-green; the other suites are unchanged (no `src/` edit).
+Moves 1 & 2 are verified and committed; 2.5, 2.6 and 2.7 extend the guards. On
+the 2.6/2.7 changes `pnpm typecheck`, `test:unit` (673), `test:design`, the
+`visual-coverage` contract, the full `test:visual` suite (58 cells) and the
+`embedded-view-demo` capture were re-run green.
 
 | Commit | Move | What landed |
 |---|---|---|
@@ -162,6 +162,26 @@ so it never exercised the path a substrate block actually takes to a node body.
   `renderBlockBody` embeds an `<s-view>` (not a capped card) — so the
   chat→projection→node-body path is checked without a browser.
 
+## Move 2.7 — One rendering for every artifact kind (landed)
+
+`renderBlockBody` is "the one rendering of a block's body", and it routed the
+`derivation` kind through `artifactViewSpec` but not its richer sibling
+`derivation-record` — so the same block showed a tree in the artifact viewer and
+only its one-line summary in a node body / notebook. Both kinds were meant to
+render through `s-tree` (`TODO.ui.5.md §3.3`).
+
+- **Collapsed the two derivation branches into one** (`render-block.ts`): both
+  `derivation` and `derivation-record` now embed their `artifactViewSpec` when
+  present, so body and artifact cannot drift. A derivation record keeps its
+  step-by-step tree with truth/lineage/independence, not just a synopsis.
+- **Guarded by unit tests** (`fractal-budget.test.ts`): a `derivation-record`
+  block renders an `<s-view>` (tree), not `.text`, and reaches the same `tree`
+  shape through `artifactViewSpec`.
+- **No baseline churn** — the full `test:visual` suite is green (58 cells); no
+  cell had a mounted derivation-record body. `derivation-record` remains a
+  standalone root block reachable from engine claims; there is still no dedicated
+  visual cell for it (see opportunities).
+
 ## Notes Facilitating Remaining Work
 
 - **Where the depth guard lives.** The embed depth is *threaded through the DOM*,
@@ -196,12 +216,10 @@ so it never exercised the path a substrate block actually takes to a node body.
   workspace blocks too (Move 2.5). The `embedded-view-demo` baseline confirms it.
 - [x] ~~`embedded-view-demo` is a static seed~~ — now seeded through the real
   chat projection (Move 2.6). No `$workspaceGraph` write remains in the cell.
-- **`derivation-record` never reaches a node body as a tree.** `artifactViewSpec`
-  maps a `derivation-record` block to a tree (line 158), but `renderBlockBody`
-  only routes `derivation` (not `derivation-record`) through `artifactViewSpec`,
-  so a node body degrades it to text while the artifact viewer shows the tree —
-  the same block renders two ways. Wire `derivation-record` into the
-  `renderBlockBody` artifact cases for one rendering.
+- [x] ~~**`derivation-record` never reaches a node body as a tree.**~~ —
+  `renderBlockBody` now routes both derivation kinds through `artifactViewSpec`
+  (Move 2.7). Remaining: no visual cell mounts a `derivation-record` body; a
+  recorder-driven cell would prove it end to end.
 - **`embedded-view` is an orphan block kind.** The projection never produces it
   and `renderBlockBody` has no case for it (it rendered only through a hand-set
   `block.spec`). Either give it a producer + body case or fold it into the
@@ -235,6 +253,7 @@ so it never exercised the path a substrate block actually takes to a node body.
 - [x] **Move 2**: depth budget · node budget · inert-until-focused · demo cell
 - [x] **Move 2.5**: two-way engage · cap reason · budget signal · real-`Core` budget test · budget cell
 - [x] **Move 2.6**: seed `embedded-view-demo` through the real chat projection
+- [x] **Move 2.7**: one rendering for every artifact kind (`derivation-record` tree in the body)
 - [x] Fix the graph empty-state overlay (counts workspace blocks now)
 - [ ] Do **not** start Move 3 items (see entry criteria above)
 - [x] Commit per Move; regenerate baselines deliberately; keep `typecheck` + `unit` green

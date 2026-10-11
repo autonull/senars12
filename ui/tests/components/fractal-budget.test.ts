@@ -1,6 +1,7 @@
 import { render } from 'lit';
 import { describe, expect, it } from 'vitest';
 import type { ChatMessage } from '@senars/core';
+import { artifactViewSpec } from '../../src/client/core/artifacts.js';
 import { projectChat } from '../../src/client/core/workspace-projection.js';
 import { HTML_BODY_BUDGET } from '../../src/client/utils/graph-scaling.js';
 import { selectHtmlLabels } from '../../src/client/utils/html-labels.js';
@@ -73,6 +74,53 @@ describe('the fractal rides the real projection (§Move 2.6)', () => {
     await tick();
     expect(host.querySelector('s-view')).not.toBeNull();
     expect(host.querySelector('.embed-capped')).toBeNull();
+  });
+});
+
+describe('derivation bodies render the tree (§Move 2.6)', () => {
+  const step = {
+    stepId: 's1',
+    ruleId: 'deduction',
+    ruleCategory: 'structural',
+    premises: ['(robin-->bird)', '(bird-->animal)'],
+    conclusion: '(robin-->animal)',
+    truth: { frequency: 0.9, confidence: 0.8 },
+    evidenceLineage: ['e1'],
+    independence: 'independent',
+  } as const;
+
+  const derivationRecord = (): SemanticBlock => ({
+    id: 'dr-1',
+    kind: 'derivation-record',
+    role: 'reasoner',
+    title: 'Derivation: (robin-->animal)',
+    text: '1 steps → (robin-->animal) (0.90, 0.80)',
+    data: {
+      derivationId: 'd1',
+      taskId: 't1',
+      goalTerm: '(robin-->animal)',
+      steps: [step],
+      finalTruth: { frequency: 0.9, confidence: 0.8 },
+      totalCycles: 3,
+      maxDepthReached: 2,
+      timestamp: 0,
+      engine: 'nar',
+      raw: null,
+    },
+    createdAt: 0,
+    createdBy: 'reasoner',
+  });
+
+  it('embeds a derivation-record block as a tree, not its summary text', async () => {
+    const host = document.createElement('div');
+    render(renderBlockBody(derivationRecord(), [], 0), host);
+    await tick();
+    expect(host.querySelector('s-view')).not.toBeNull();
+    expect(host.querySelector('.text')).toBeNull();
+  });
+
+  it('reaches the same tree through the artifact contract', () => {
+    expect(artifactViewSpec(derivationRecord())?.shape).toBe('tree');
   });
 });
 

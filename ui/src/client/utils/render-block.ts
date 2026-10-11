@@ -180,7 +180,7 @@ export function renderBlockBody(
     const spec = artifactViewSpec(block);
     if (spec) return embed(block, spec, depth);
   }
-  if (block.kind === 'derivation' && block.data) {
+  if ((block.kind === 'derivation' || block.kind === 'derivation-record') && block.data) {
     const spec = artifactViewSpec(block);
     if (spec) return embed(block, spec, depth);
   }
