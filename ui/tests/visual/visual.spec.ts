@@ -56,7 +56,7 @@ for (const cell of VISUAL_CELLS) {
     const ctx: VisualContext = { page, control: testControl, settle };
     await settle();
     await cell.prepare?.(ctx);
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
 
     await expect(page).toHaveScreenshot(`${cell.id}.png`, {
       mask: (cell.mask ?? []).map((selector) => page.locator(selector)),
