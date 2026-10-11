@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { mintCognitiveEvent } from '@senars/core/schemas';
 import type { TestControl } from '../framework/utils/test-control.js';
 import { GENERATED_VISUAL_CELLS } from './generated-cells.js';
 
@@ -470,6 +471,57 @@ const manyBodiesDemo =
     await page.waitForTimeout(600);
   };
 
+/**
+ * Seed a `derivation.record` event through the real projection (§3.3): the block
+ * is a standalone root whose node body embeds the step-by-step proof tree
+ * (Move 2.7), the same tree the artifact viewer shows.
+ */
+const DERIVATION_RECORD_EVENT = mintCognitiveEvent('derivation.record', {
+  engine: 'nar',
+  timestamp: 0,
+  correlationId: 'derivation-record-demo',
+  payload: {
+    derivationId: '00000000-0000-4000-8000-000000000001',
+    taskId: '00000000-0000-4000-8000-000000000002',
+    goalTerm: '(robin-->animal)',
+    steps: [
+      {
+        stepId: '00000000-0000-4000-8000-000000000003',
+        ruleId: 'deduction',
+        ruleCategory: 'structural',
+        premises: ['(robin-->bird)', '(bird-->animal)'],
+        conclusion: '(robin-->animal)',
+        truth: { frequency: 0.81, confidence: 0.36 },
+        evidenceLineage: ['00000000-0000-4000-8000-000000000004'],
+        independence: 'independent',
+      },
+    ],
+    finalTruth: { frequency: 0.81, confidence: 0.36 },
+    totalCycles: 3,
+    maxDepthReached: 1,
+    timestamp: 0,
+    engine: 'nar',
+  },
+});
+
+const derivationRecordDemo: VisualCell['prepare'] = async ({ page, settle }) => {
+  await page.evaluate((event) => {
+    const api = (window as Record<string, unknown>).__testApi as {
+      store?: { setState?: (path: string, value: unknown) => void };
+    };
+    api?.store?.setState?.('graphNodes', new Map());
+    api?.store?.setState?.('graphEdges', new Map());
+    api?.store?.setState?.('cognitiveEvents', [event]);
+  }, DERIVATION_RECORD_EVENT);
+  await settle('breadthfirst');
+  await page.evaluate(() => {
+    (
+      (window as Record<string, unknown>).__testApi as { graph?: { setZoom?: (level: number) => void } }
+    )?.graph?.setZoom?.(2);
+  });
+  await page.waitForTimeout(600);
+};
+
 /** Open a ref-bearing overlay through the shell test seam, with a real block. */
 const openOverlayWithRef =
   (id: string, prefer?: readonly string[]): VisualCell['prepare'] =>
@@ -599,6 +651,13 @@ const HAND_CURATED_CELLS: VisualCell[] = [
     title: 'Fractal — node full tier embeds a nested projection',
     hash: '#panels=none&scope=conversation&layout=chronological-flow',
     prepare: embeddedViewDemo,
+  },
+  {
+    id: 'derivation-record-demo',
+    group: 'Fractal',
+    title: 'Fractal — a derivation record embeds its proof tree in the node body',
+    hash: '#panels=none',
+    prepare: derivationRecordDemo,
   },
   {
     id: 'html-body-budget',

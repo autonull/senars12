@@ -24,12 +24,12 @@ The paradigm is **~80% built**. Verify before extending:
 
 ---
 
-## Progress (v10 — Moves 1, 2, 2.5–2.8 landed)
+## Progress (v10 — Moves 1, 2, 2.5–2.9 landed)
 
-Moves 1 & 2 are verified and committed; 2.5–2.8 extend the guards. On the
-2.6–2.8 changes `pnpm typecheck`, `test:unit` (673), `test:design` (11),
-`test:craft` (202), the full `test:visual` suite (58 cells) and the
-`embedded-view-demo` capture were re-run green.
+Moves 1 & 2 are verified and committed; 2.5–2.9 extend the guards. On the
+2.6–2.9 changes `pnpm typecheck`, `test:unit` (673), `test:design` (11),
+`test:craft` (202), the full `test:visual` suite and the two new demo captures
+were re-run green (59 cells after 2.9).
 
 | Commit | Move | What landed |
 |---|---|---|
@@ -177,10 +177,8 @@ render through `s-tree` (`TODO.ui.5.md §3.3`).
 - **Guarded by unit tests** (`fractal-budget.test.ts`): a `derivation-record`
   block renders an `<s-view>` (tree), not `.text`, and reaches the same `tree`
   shape through `artifactViewSpec`.
-- **No baseline churn** — the full `test:visual` suite is green (58 cells); no
-  cell had a mounted derivation-record body. `derivation-record` remains a
-  standalone root block reachable from engine claims; there is still no dedicated
-  visual cell for it (see opportunities).
+- **No baseline churn at the time** — the full `test:visual` suite was green (58
+  cells) and no cell mounted a derivation-record body (2.9 adds one).
 
 ## Move 2.8 — drop the orphan `embedded-view` block kind (landed)
 
@@ -190,6 +188,18 @@ work. Removed it from the `BlockKind` union and its three maps
 (`block-labels`, `conversation-layout`'s `ARTIFACT_KINDS`, the graph renderer's
 `GRAPH_BLOCK_KINDS`). Nothing else referenced it — `tsc` is the proof. No
 baseline churn.
+
+## Move 2.9 — a derivation-record cell proves 2.7 end to end (landed)
+
+Added `derivation-record-demo`: it seeds a `derivation.record` **cognitive event**
+through `$cognitiveEvents` (the real projection path, deterministic — no engine
+timing), so the projected block is a standalone root whose node body embeds the
+step-by-step proof tree at the `full` tier. The capture shows `deduction
+(structural)`, both premises, the conclusion, and the evidence lineage inside the
+node — **the tree, not the summary line** — closing the 2.7 loop. No `surface`
+key (a demo, like `embedded-view-demo`); coverage contract still green. Caveat
+noted below: the record's provenance links target `claim:<term>` refs that need
+not exist, so the node floats unlinked.
 
 ## Notes Facilitating Remaining Work
 
@@ -227,8 +237,10 @@ baseline churn.
   chat projection (Move 2.6). No `$workspaceGraph` write remains in the cell.
 - [x] ~~**`derivation-record` never reaches a node body as a tree.**~~ —
   `renderBlockBody` now routes both derivation kinds through `artifactViewSpec`
-  (Move 2.7). Remaining: no visual cell mounts a `derivation-record` body; a
-  recorder-driven cell would prove it end to end.
+  (Move 2.7), and `derivation-record-demo` proves it visually (Move 2.9). New
+  caveat: the record's `derived-from` links all target `claim:<term>` refs that
+  need not exist, so the record node floats unlinked — wire the premises to real
+  claim blocks (or drop the links) so the provenance is visible in the graph.
 - **The config-change audit trail is volatile, and the obvious fix is not a
   drop-in.** `config-change-producer` writes a `config-change` block straight
   into `$workspaceGraph`, so the next `syncWorkspaceGraph` (on any chat/engine
@@ -272,6 +284,7 @@ baseline churn.
 - [x] **Move 2.6**: seed `embedded-view-demo` through the real chat projection
 - [x] **Move 2.7**: one rendering for every artifact kind (`derivation-record` tree in the body)
 - [x] **Move 2.8**: remove the orphan `embedded-view` block kind
+- [x] **Move 2.9**: `derivation-record-demo` proves the proof-tree body end to end
 - [x] Fix the graph empty-state overlay (counts workspace blocks now)
 - [ ] Do **not** start Move 3 items (see entry criteria above)
 - [x] Commit per Move; regenerate baselines deliberately; keep `typecheck` + `unit` green
