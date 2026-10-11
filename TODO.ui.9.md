@@ -499,6 +499,7 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 ### Completed (this session)
 - **D.4** — Craft gate: `tests/craft/*` (typography, focus visibility, z-index, icon/emoji lint, contrast, motion) wired via `index.test.ts`; `test:craft` green (202 tests). Line-length check removed per direction — formatting is not enforced.
 - **X.2 (remaining)** — Folded `store-bindings.ts` string-HTML path into the block path; removed `renderMessageHtml`, `ChatMessage.html` field, and graph node `html` field; removed `.innerHTML` fallback in `graph-viewport.ts`. Pass real bibliography to `renderBlockBody` via `collectSources(graph)` in `node-body.ts`.
+- **G.4** — Density-aware layout: cose layout parameters (`nodeRepulsion`, `idealEdgeLength`, `gravity`, `padding`) now scale with `densityFactor(count, area)` from `graph-scaling.ts`. Denser graphs get more repulsion, longer edges, less gravity, more padding — spacing medium-density graphs and reducing label collisions.
 - Repo health: `pnpm --dir ui typecheck` clean; `test:unit` 651 passing; `test:visual` 53 cells; `test:craft` 202 tests; `build:client` succeeds; `pnpm --dir ui verify` green.
 
 ### In Progress — X.2 modeless "conversation as graph nodes" (✅ Complete)
@@ -535,10 +536,9 @@ configurability · **A** adaptability. 51/51 cells, 440/440 units, `ui:verify` g
 - **All gates green** — `typecheck`, `test:unit` (651), `test:visual` (53), `test:craft` (202), `legibility.spec.ts` pass.
 
 ### Next Steps (fresh session) — follow the ▶ Execution Plan above
-1. **G.4** — density-aware layout (auto layout by node count/degree) to space medium-density graphs and finish the label-collision story.
-2. **T.1/T.2/T.3** — curate the matrix (~12–15 cells), journey recordings, qualitative design gate. `graph-conversation` currently duplicates an existing `layout-*` cell's job until curation.
-3. **Move 3 (R.1–R.5)** — Fractal & rich frames: node-renderer registry + LoD tiers, fractal HTML runtime with budgets, rich chat frames, conversation-as-graph.
-4. Do **not** resume formatting/craft polish; `D.4` is closed. Do **not** build split or a renderer switch.
+1. **T.1/T.2/T.3** — curate the matrix (~12–15 cells), journey recordings, qualitative design gate. `graph-conversation` currently duplicates an existing `layout-*` cell's job until curation.
+2. **Move 3 (R.1–R.5)** — Fractal & rich frames: node-renderer registry + LoD tiers, fractal HTML runtime with budgets, rich chat frames, conversation-as-graph.
+3. Do **not** resume formatting/craft polish; `D.4` is closed. Do **not** build split or a renderer switch.
 
 ---
 

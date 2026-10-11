@@ -23,6 +23,9 @@ import {
 } from '../core/index.js';
 import { type LayoutScope, registerLayoutId } from '../core/layout-ids.js';
 import { lensMeta } from './lens-catalog.js';
+import { densityFactor } from './graph-scaling.js';
+
+const clamp = (value: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, value));
 
 export type { LayoutScope };
 
@@ -125,17 +128,27 @@ export const layoutRegistry = new LayoutRegistryImpl();
 layoutRegistry.register({
   id: 'cose',
   label: 'Cose',
-  getLayout: (cy, opts) => ({
-    name: 'cose',
-    animate: true,
-    animationDuration: 300,
-    fit: (opts?.fit as boolean) ?? false,
-    padding: 20,
-    nodeRepulsion: () => 8000,
-    idealEdgeLength: () => 120,
-    gravity: 0.25,
-    ...opts,
-  }),
+  getLayout: (cy, opts) => {
+    const count = cy.nodes().length;
+    const area = cy.width() * cy.height();
+    const density = densityFactor(count, area);
+    // Density-aware parameters: denser graphs need more repulsion, longer edges, less gravity
+    const nodeRepulsion = Math.round(8000 * density);
+    const idealEdgeLength = Math.round(120 * density);
+    const gravity = clamp(0.25 / density, 0.05, 0.5);
+    const padding = Math.round(20 * (1 + density * 0.5));
+    return {
+      name: 'cose',
+      animate: true,
+      animationDuration: 300,
+      fit: (opts?.fit as boolean) ?? false,
+      padding,
+      nodeRepulsion: () => nodeRepulsion,
+      idealEdgeLength: () => idealEdgeLength,
+      gravity,
+      ...opts,
+    };
+  },
   surface: 'ForceLayout',
 });
 
