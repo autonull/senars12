@@ -24,10 +24,12 @@ The paradigm is **~80% built**. Verify before extending:
 
 ---
 
-## Progress (v10 — Moves 1 & 2 landed)
+## Progress (v10 — Moves 1, 2, 2.5 & 2.6 landed)
 
-Both moves are implemented, verified, and committed. `pnpm typecheck` + `test:unit`
-(667) + `test:design` (11) + `test:craft` (202) + `test:visual` (57 cells) are green.
+Moves 1 & 2 are verified and committed; 2.5 and 2.6 extend the guards. On the
+Move 2.6 change `pnpm typecheck`, `test:unit` (671), `test:design`, the
+`visual-coverage` contract and the `embedded-view-demo` capture were re-run
+green; the other suites are unchanged (no `src/` edit).
 
 | Commit | Move | What landed |
 |---|---|---|
@@ -44,9 +46,10 @@ late topology change; the harness now waits for the node count to stabilize firs
 **Move 2 status — all 4 items ✅.** Depth is threaded explicitly
 (`s-view.depth → graph-viewport.embedDepth → s-node-body.depth → renderBlockBody`),
 so the guard is data-flow, not a global. The node budget lives in
-`selectHtmlLabels` (pure, unit-tested). The demo cell (`embedded-view-demo`) shows
-a node's `full` tier embedding a live tree projection at 200% zoom, with the
-**Engage** affordance proving the inert-until-focused rule. New baselines:
+`selectHtmlLabels` (pure, unit-tested). The demo cell (`embedded-view-demo`)
+shows a node's `full` tier embedding a live projection, with the **Engage**
+affordance proving the inert-until-focused rule; Move 2.6 later re-seeded it
+through the real chat projection (see below). New baselines:
 `embedded-view-demo`, and `selection-node-detail` (the node body now shows Engage).
 
 ---
@@ -136,6 +139,29 @@ fresh-session rule. Committed separately after Moves 1 & 2.
 
 ---
 
+## Move 2.6 — The fractal demo rides the real projection (landed)
+
+The last unproven item: `embedded-view-demo` seeded `$workspaceGraph` directly,
+so it never exercised the path a substrate block actually takes to a node body.
+
+- **The demo now seeds the chat store, not the graph.** `embeddedViewDemo` writes
+  `$chatMessages` (an agent turn whose body segments into a `table`), and the
+  real pipeline builds the block: `$chatMessages → syncWorkspaceGraph →
+  projectChat → projectWorkspace → $workspaceGraph → projectWorkspaceGraph →
+  html-enabled node → s-node-body → renderBlockBody → artifactViewSpec →
+  embedded <s-view>`. No `$workspaceGraph` write remains.
+- **The cell rides the conversation layout.** `hash`/`layout` moved to
+  `scope=conversation&layout=chronological-flow` so the turn and its artifact
+  child arrange as the conversation they are; the captured zoom (`1.6`, the
+  `full` LoD threshold) is the smallest that mounts the body.
+- **`embedded-view-demo` baseline regenerated** deliberately (the render is now a
+  real conversation turn + its table-artifact child instead of one synthetic
+  node). `typecheck` + a repeat capture confirm it is deterministic.
+- **A unit guard ties the two halves.** `fractal-budget.test.ts` projects a chat
+  turn via `projectChat`, takes the `table` block it produces, and asserts
+  `renderBlockBody` embeds an `<s-view>` (not a capped card) — so the
+  chat→projection→node-body path is checked without a browser.
+
 ## Notes Facilitating Remaining Work
 
 - **Where the depth guard lives.** The embed depth is *threaded through the DOM*,
@@ -168,9 +194,23 @@ fresh-session rule. Committed separately after Moves 1 & 2.
 - [x] ~~`selectHtmlLabels` untested against a real `Core`~~ — `html-labels.test.ts` (Move 2.5).
 - [x] ~~The graph empty state overlays workspace nodes~~ — `hasNodes` now counts
   workspace blocks too (Move 2.5). The `embedded-view-demo` baseline confirms it.
-- **`embedded-view-demo` is a static seed.** It sets `$workspaceGraph` directly
-  rather than through the projection, so it does not exercise the real path a
-  substrate block takes to reach a node body; a server-side seed would.
+- [x] ~~`embedded-view-demo` is a static seed~~ — now seeded through the real
+  chat projection (Move 2.6). No `$workspaceGraph` write remains in the cell.
+- **`derivation-record` never reaches a node body as a tree.** `artifactViewSpec`
+  maps a `derivation-record` block to a tree (line 158), but `renderBlockBody`
+  only routes `derivation` (not `derivation-record`) through `artifactViewSpec`,
+  so a node body degrades it to text while the artifact viewer shows the tree —
+  the same block renders two ways. Wire `derivation-record` into the
+  `renderBlockBody` artifact cases for one rendering.
+- **`embedded-view` is an orphan block kind.** The projection never produces it
+  and `renderBlockBody` has no case for it (it rendered only through a hand-set
+  `block.spec`). Either give it a producer + body case or fold it into the
+  artifact path; today it is dead type surface kept alive by the old demo.
+- **The config-change audit trail is volatile.** `config-change-producer` writes
+  a `config-change` block straight into `$workspaceGraph`, so the next
+  `syncWorkspaceGraph` (on any chat/engine change) erases it — the same
+  direct-write anti-pattern Move 1.2/2.6 removed elsewhere. Feed config changes
+  into the projection instead.
 - **`HTML_BODY_BUDGET` is per-viewport.** If a second live graph viewport is ever
   mounted, the budget is per-canvas rather than global.
 
@@ -194,7 +234,7 @@ fresh-session rule. Committed separately after Moves 1 & 2.
 - [x] **Move 1**: split gallery IA (Journeys ≤6 / Coverage) · fix the dead `html` path · tighten default view · 3 proving cells · `test:design` · fix the flake · wire `generate:visual-cells`
 - [x] **Move 2**: depth budget · node budget · inert-until-focused · demo cell
 - [x] **Move 2.5**: two-way engage · cap reason · budget signal · real-`Core` budget test · budget cell
+- [x] **Move 2.6**: seed `embedded-view-demo` through the real chat projection
 - [x] Fix the graph empty-state overlay (counts workspace blocks now)
 - [ ] Do **not** start Move 3 items (see entry criteria above)
 - [x] Commit per Move; regenerate baselines deliberately; keep `typecheck` + `unit` green
-- [ ] Next session: seed `embedded-view-demo` through the real projection, not a direct `$workspaceGraph` write (see opportunities)

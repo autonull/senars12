@@ -386,9 +386,23 @@ const requestToolApproval: VisualCell['prepare'] = async ({ page }) => {
   await page.waitForTimeout(400);
 };
 
+/** A single agent turn whose body segments into a `table` artifact (§Move 2.6). */
+const EMBED_TURNS: readonly SeedTurn[] = [
+  {
+    id: 'turn-embed',
+    role: 'agent',
+    content: ['| Premise | Relation |', '| --- | --- |', '| robin | bird |', '| bird | animal |'].join(
+      '\n'
+    ),
+  },
+];
+
 /**
- * Seed one `embedded-view` block whose body is a nested projection, then zoom to
- * the `full` tier so the node mounts it — the fractal made visible (§Move 2.4).
+ * Seed one agent turn through the real chat projection, then zoom to the `full`
+ * tier so the node mounts its body — the fractal made visible on the real
+ * substrate path (§Move 2.6): `$chatMessages` → `projectChat` → a `table` block
+ * whose node body embeds the live artifact view through `<s-view>`, never a
+ * direct `$workspaceGraph` write.
  */
 const embeddedViewDemo: VisualCell['prepare'] = async ({ page, settle }) => {
   await page.evaluate(() => {
@@ -397,49 +411,18 @@ const embeddedViewDemo: VisualCell['prepare'] = async ({ page, settle }) => {
     };
     api?.store?.setState?.('graphNodes', new Map());
     api?.store?.setState?.('graphEdges', new Map());
-    const spec = {
-      id: 'spec:demo',
-      title: 'Nested projection',
-      shape: 'tree',
-      shapes: ['tree', 'text'],
-      source: {
-        get: () => ({
-          kind: 'tree',
-          roots: [
-            {
-              id: 'root',
-              label: '(robin-->animal)',
-              children: [
-                { id: 'p1', label: '(robin-->bird)' },
-                { id: 'p2', label: '(bird-->animal)' },
-              ],
-            },
-          ],
-        }),
-      },
-    };
-    const block = {
-      id: 'embedded-view-demo',
-      kind: 'embedded-view',
-      role: 'assistant',
-      title: 'Nested projection',
-      spec,
-      status: 'complete',
-      createdAt: 0,
-      createdBy: 'system',
-    };
-    api?.store?.setState?.('workspaceGraph', {
-      blocks: new Map([[block.id, block]]),
-      links: new Map(),
-      roots: [block.id],
-      selection: new Set(),
-    });
   });
-  await settle('breadthfirst');
+  await page.evaluate((messages) => {
+    const api = (window as Record<string, unknown>).__testApi as {
+      store?: { setState?: (path: string, value: unknown) => void };
+    };
+    api?.store?.setState?.('chatMessages', messages);
+  }, chatMessages(EMBED_TURNS));
+  await settle('chronological-flow');
   await page.evaluate(() => {
     (
       (window as Record<string, unknown>).__testApi as { graph?: { setZoom?: (level: number) => void } }
-    )?.graph?.setZoom?.(2);
+    )?.graph?.setZoom?.(1.6);
   });
   await page.waitForTimeout(600);
 };
@@ -614,7 +597,7 @@ const HAND_CURATED_CELLS: VisualCell[] = [
     id: 'embedded-view-demo',
     group: 'Fractal',
     title: 'Fractal — node full tier embeds a nested projection',
-    hash: '#panels=none',
+    hash: '#panels=none&scope=conversation&layout=chronological-flow',
     prepare: embeddedViewDemo,
   },
   {
