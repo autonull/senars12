@@ -24,11 +24,11 @@ The paradigm is **~80% built**. Verify before extending:
 
 ---
 
-## Progress (v10 — Moves 1, 2, 2.5, 2.6 & 2.7 landed)
+## Progress (v10 — Moves 1, 2, 2.5–2.8 landed)
 
-Moves 1 & 2 are verified and committed; 2.5, 2.6 and 2.7 extend the guards. On
-the 2.6/2.7 changes `pnpm typecheck`, `test:unit` (673), `test:design`, the
-`visual-coverage` contract, the full `test:visual` suite (58 cells) and the
+Moves 1 & 2 are verified and committed; 2.5–2.8 extend the guards. On the
+2.6–2.8 changes `pnpm typecheck`, `test:unit` (673), `test:design` (11),
+`test:craft` (202), the full `test:visual` suite (58 cells) and the
 `embedded-view-demo` capture were re-run green.
 
 | Commit | Move | What landed |
@@ -182,6 +182,15 @@ render through `s-tree` (`TODO.ui.5.md §3.3`).
   standalone root block reachable from engine claims; there is still no dedicated
   visual cell for it (see opportunities).
 
+## Move 2.8 — drop the orphan `embedded-view` block kind (landed)
+
+Move 2.6 removed the demo that was the last (and only) producer of the
+`embedded-view` `BlockKind`, so the kind became dead surface created by this
+work. Removed it from the `BlockKind` union and its three maps
+(`block-labels`, `conversation-layout`'s `ARTIFACT_KINDS`, the graph renderer's
+`GRAPH_BLOCK_KINDS`). Nothing else referenced it — `tsc` is the proof. No
+baseline churn.
+
 ## Notes Facilitating Remaining Work
 
 - **Where the depth guard lives.** The embed depth is *threaded through the DOM*,
@@ -236,10 +245,7 @@ render through `s-tree` (`TODO.ui.5.md §3.3`).
   audit blocks that are not roots — not just re-route the write. Trap (2) is
   entirely unexplained (no `[config-change]` records fired there), so treat it as
   a timing-sensitive coupling to pin before retrying.
-- **`embedded-view` is an orphan block kind.** The projection never produces it
-  and `renderBlockBody` has no case for it (it rendered only through a hand-set
-  `block.spec`). Either give it a producer + body case or fold it into the
-  artifact path; today it is dead type surface kept alive by the old demo.
+- **`embedded-view` is an orphan block kind.** *Removed (Move 2.8).*
 - **`HTML_BODY_BUDGET` is per-viewport.** If a second live graph viewport is ever
   mounted, the budget is per-canvas rather than global.
 
@@ -265,6 +271,7 @@ render through `s-tree` (`TODO.ui.5.md §3.3`).
 - [x] **Move 2.5**: two-way engage · cap reason · budget signal · real-`Core` budget test · budget cell
 - [x] **Move 2.6**: seed `embedded-view-demo` through the real chat projection
 - [x] **Move 2.7**: one rendering for every artifact kind (`derivation-record` tree in the body)
+- [x] **Move 2.8**: remove the orphan `embedded-view` block kind
 - [x] Fix the graph empty-state overlay (counts workspace blocks now)
 - [ ] Do **not** start Move 3 items (see entry criteria above)
 - [x] Commit per Move; regenerate baselines deliberately; keep `typecheck` + `unit` green

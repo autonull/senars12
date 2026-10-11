@@ -85,7 +85,6 @@ const ARTIFACT_KINDS: ReadonlySet<BlockKind> = new Set<BlockKind>([
   'citation',
   'tool-result',
   'derivation',
-  'embedded-view',
 ]);
 
 const SOURCE_ORDER: readonly CreatedBy[] = ['user', 'lm', 'reasoner', 'tool', 'system'];

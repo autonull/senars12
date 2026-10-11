@@ -56,7 +56,6 @@ export type BlockKind =
   | 'command'
   | 'config-change'
   | 'error'
-  | 'embedded-view'
   | 'raw';
 
 /** Who a block speaks as. */

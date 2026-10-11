@@ -31,7 +31,6 @@ export const BLOCK_KIND_LABEL = {
   command: 'Command',
   'config-change': 'Config change',
   error: 'Error',
-  'embedded-view': 'Embedded view',
   raw: 'Raw',
 } satisfies Record<BlockKind, string>;
 

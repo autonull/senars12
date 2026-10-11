@@ -50,7 +50,6 @@ const GRAPH_BLOCK_KINDS: readonly BlockKind[] = [
   'budget',
   'config-change',
   'error',
-  'embedded-view',
   'raw',
 ];
 
