@@ -13,4 +13,10 @@ export const GRAPH_VIEW_SPEC: ViewSpec = {
   title: 'Graph',
   shapes: ['table'],
   source: viewSource($graphNodes, graphTable),
+  states: {
+    empty: {
+      heading: 'No nodes yet',
+      description: 'Send a message to start populating the knowledge graph',
+    },
+  },
 };

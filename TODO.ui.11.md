@@ -46,6 +46,72 @@ is a correctness fix and may land standalone.
 
 ---
 
+## Progress Log (v11 implementation)
+
+> Durable record of what has landed since v10. One entry per completed item; the
+> Fresh-Session Checklist below is the live to-do.
+
+### B3 — descriptor-driven view states ✅ (`states: ViewStates` + `ViewSource.loading`)
+
+**What landed.** The view system now carries its own non-ready slots as *data*:
+
+- `core/view-spec.ts` — `ViewSpec.states?: ViewStates` (`empty` / `loading` /
+  `error`), each a `ViewStateSpec { icon?, heading, description? }`; plus
+  `ViewSource.loading?(): boolean`.
+- `core/view-sources.ts` — `viewSource(readable, project, loading?)` forwards an
+  optional loading readable (subscribes to both, unsubscribes both).
+- `core/view-host.ts` — `surfaceState()` returns `loading` first when
+  `source.loading?.()`; `renderLoading`/`renderEmpty`/`renderError` delegate to a
+  private `renderState(template, fallback, role)`: a named slot renders
+  `<s-empty-state>` inside the existing `.slot` wrapper (so `role="status" |
+  "alert"` is preserved), an unnamed slot keeps the previous generic text — **so
+  no existing baseline moves**.
+- States attached to the real specs: `EMBEDDED_VIEWS` (derivation /
+  contradiction / topic), `GRAPH_VIEW_SPEC`, telemetry panel + HUD popovers,
+  `overlay:events`, `overlay:nodes`, `cognitive-metrics`.
+
+**Guard.** `tests/components/view-host.test.ts` (+3): named empty state renders
+through `<s-empty-state>`; loading slot renders while `source.loading()` is true;
+generic fallback when a slot has no template.
+
+**Cell.** `view-empty` (`tests/visual/matrix.ts`, `mountEmptyView`) captures a
+real `<s-view>` in its named empty state; baseline committed. Visual suite is now
+**60** cells (was 59), all green.
+
+**Reinterpretation (important for whoever continues B3).** The plan's "9 layouts"
+(5 conversation + 4 reasoning) are **graph layouts** — they arrange the shared
+graph viewport (`utils/layout-registry.ts` runs `preset`/`cytoscape` layouts over
+`$workspaceGraph`); they are **not** independent `<s-view>` surfaces. Their
+empty/loading/error experience is therefore the *graph surface's*, delivered by
+the shell's `app-layout` empty overlay plus `GRAPH_VIEW_SPEC.states`. Giving each
+layout a *distinct* state would require rendering layouts as separate view
+surfaces, which the modeless paradigm explicitly rejects — so B3 is complete as
+"the view system owns its states as descriptor data", not as 9 separate screens.
+
+**Remaining (facilitating the rest of B3's intent).**
+- No producer emits `ViewSource.loading` yet, so the loading slot is reachable
+  but inert at runtime. The natural first consumer is the events overlay (or the
+  graph surface): derive a boolean from `$connectionState` (`'connecting'` /
+  `'reconnecting'`) and pass it as `viewSource`'s third argument. Guard on the
+  `connected` states in the visual cells so baselines do not move.
+- `graph-surface.ts` renders `GRAPH_VIEW_SPEC` with `chrome=false`; it could pass
+  shape-appropriate `states` (e.g. the graph shape's "engine disconnected").
+
+**New improvement opportunities (found while landing B3).**
+- **`ViewStateSpec` wants an action.** Every real empty state ends with a verb
+  ("Send a message"). The shell hardcodes that button in `app-layout`; a
+  `ViewStateSpec.action?: { label; command }` would let a spec name its own
+  recovery (and reuse the command registry), so the empty experience is data too.
+- **`datasetIsEmpty` is a switch over `ViewDataset`** (`core/view-projection.ts`)
+  — fold it into a per-kind descriptor (already on the D8 list) so adding a shape
+  cannot forget its emptiness rule.
+- **The `s-empty-state` `icon` is literal text.** It renders the string as a big
+  glyph (see the `view-empty` baseline: "brain"), not an `<s-icon>`. Either wire
+  it to the icon primitive or rename it `glyph`/`emoji` — a small legibility
+  bug worth a cell.
+
+---
+
 ## Verification — does this plan reach the two goals?
 
 **Goal 1 — a working, useful, robust SeNARS UI.**
@@ -965,7 +1031,7 @@ control the user must learn.
 - [ ] **Track A3**: Demo cells → shared `seedBlocks` helper or synthetic projection
 - [ ] **Track B1**: Overlay breadcrumbs in header (read `overlayManager.stack()`)
 - [ ] **Track B2**: LoD transition animations (CSS transitions, respect reduced-motion)
-- [ ] **Track B3**: Per-layout empty/loading/error states (9 layouts, use `<s-empty-state>`)
+- [x] **Track B3**: Per-layout empty/loading/error states (9 layouts, use `<s-empty-state>`)
 - [ ] **Track C1**: Content adapter spike (filesystem → graph, <1 day)
 - [ ] **Track C2**: Semantic-zoom coordinate space spike
 - [ ] **Track C3**: Node-renderer registry needfinding
@@ -1062,8 +1128,15 @@ The tier thresholds are pure (`graph-scaling.ts:112–117`). The visual change h
 - `renderBlockBody`: `embedded` vs `cappedEmbed` branch
 Add CSS `transition: all 150ms ease-out` on the changing properties; guard with `@media (prefers-reduced-motion: reduce)`.
 
-### Per-layout states (B3) — key insight
-`ViewHost.surfaceState()` (line 57–63) already computes `empty`/`error`/`ready`. Each layout's `ViewSpec` can carry `emptyTemplate`/`loadingTemplate`/`errorTemplate` (optional). `ViewHost.renderEmpty()`/`renderError()` delegates to spec if present, else falls back to generic.
+### Per-layout states (B3) — key insight (delivered as `states`)
+
+`ViewHost.surfaceState()` computes `empty`/`loading`/`error`/`ready`. The slots
+now come from `ViewSpec.states` (a `ViewStates` of `ViewStateSpec`), and
+`ViewHost.renderState` renders a named slot through `<s-empty-state>` while an
+unnamed slot keeps the generic text — so adding states never moves an unrelated
+baseline. `ViewSource.loading?()` is the loading seam
+(`viewSource(readable, project, loading?)`). Conversation/reasoning layouts are
+graph layouts, not view surfaces — see the Progress Log note.
 
 ### Block descriptors (D1) — key insight
 `BLOCK_KIND_LABEL` is already exhaustive via `satisfies Record<BlockKind, string>` (`block-labels.ts:35`) — the pattern works. D1 is simply *widening that one record* to carry every facet and deleting the partial maps. The render if-chains (`render-block.ts:142`, `artifacts.ts:143`) become `descriptor.renderBody` / `descriptor.artifactSpec` fields, so `renderBlockBody` collapses to a lookup + fallback. **`satisfies` is the guard** — no test needed to prove exhaustiveness.

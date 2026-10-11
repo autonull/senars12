@@ -22,6 +22,8 @@ export type Interaction = 'select' | 'multi-select' | 'filter' | 'zoom' | 'link'
 export interface ViewSource<T = ViewDataset> {
   get(): T;
   subscribe?(fn: () => void): () => void;
+  /** While true the host shows its loading slot instead of the body (§B3). */
+  loading?(): boolean;
 }
 
 export interface SeriesDatum {
@@ -102,6 +104,22 @@ export interface ViewSpec {
   readonly budget?: Budget;
   readonly shape?: Shape;
   readonly interactions?: readonly Interaction[];
+  /** What each non-ready slot shows; a slot with no template falls back to the host's generic text (§B3). */
+  readonly states?: ViewStates;
+}
+
+/** One non-ready slot's content, rendered through `<s-empty-state>`. */
+export interface ViewStateSpec {
+  readonly icon?: string;
+  readonly heading: string;
+  readonly description?: string;
+}
+
+/** The three non-ready slots a view may name — empty, loading, error. */
+export interface ViewStates {
+  readonly empty?: ViewStateSpec;
+  readonly loading?: ViewStateSpec;
+  readonly error?: ViewStateSpec;
 }
 
 /** The one selection model, shared through the store across every shape (§4.5). */

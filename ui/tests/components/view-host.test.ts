@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import '../../src/client/components/views/index.js';
+import '../../src/client/components/primitives/empty-state.js';
 import { $viewSelection } from '../../src/client/core/store.js';
 import { ViewHost } from '../../src/client/core/view-host.js';
 import { surfaceFor } from '../../src/client/core/surface-registry.js';
@@ -113,6 +114,44 @@ describe('view host', () => {
       source: source({ kind: 'series', series: [] }),
     });
     expect(el.shadowRoot?.querySelector('.slot')?.getAttribute('role')).toBe('status');
+    expect(el.shadowRoot?.querySelector('.slot')?.textContent).toContain('No data');
+  });
+
+  it('renders a named empty state through s-empty-state', async () => {
+    const el = await mount({
+      id: 't',
+      title: 'Test',
+      shapes: ['series'],
+      source: source({ kind: 'series', series: [] }),
+      states: { empty: { icon: 'brain', heading: 'Nothing here', description: 'Send a message' } },
+    });
+    const state = el.shadowRoot?.querySelector('s-empty-state');
+    expect(el.shadowRoot?.querySelector('.slot')?.getAttribute('role')).toBe('status');
+    expect(state?.getAttribute('heading')).toBe('Nothing here');
+    expect(state?.getAttribute('description')).toBe('Send a message');
+  });
+
+  it('renders the loading slot while the source reports loading', async () => {
+    const el = await mount({
+      id: 't',
+      title: 'Test',
+      shapes: ['series'],
+      source: { get: () => series, loading: () => true },
+      states: { loading: { heading: 'Loading…' } },
+    });
+    expect(el.shadowRoot?.querySelector('.slot')?.getAttribute('role')).toBe('status');
+    expect(el.shadowRoot?.querySelector('s-empty-state')?.getAttribute('heading')).toBe('Loading…');
+  });
+
+  it('falls back to generic text when a slot has no template', async () => {
+    const el = await mount({
+      id: 't',
+      title: 'Test',
+      shapes: ['series'],
+      source: { get: () => series, loading: () => true },
+    });
+    expect(el.shadowRoot?.querySelector('s-empty-state')).toBeNull();
+    expect(el.shadowRoot?.querySelector('.slot')?.textContent).toContain('Loading…');
   });
 
   it('stores an adapter row selection in the shared selection atom', async () => {

@@ -151,6 +151,47 @@ const mountView =
     await page.waitForTimeout(400);
   };
 
+/**
+ * Mount a real `<s-view>` in its empty slot, proving the descriptor-driven
+ * `states.empty` renders through `<s-empty-state>` rather than the generic text.
+ */
+const mountEmptyView: VisualCell['prepare'] = async ({ page }) => {
+  await page.evaluate(() => {
+    const frame = document.createElement('section');
+    frame.setAttribute('data-view-fixture', 'empty');
+    frame.style.cssText =
+      'position:fixed;inset:3.5rem 1.5rem 5.5rem 1.5rem;z-index:100000;' +
+      'background:var(--colors-semantic-bg-base);' +
+      'border:1px solid var(--colors-semantic-border-subtle);';
+    const host = document.createElement('s-view') as HTMLElement & {
+      spec?: unknown;
+      budget?: string;
+      chrome?: boolean;
+    };
+    host.spec = {
+      id: 'view-empty-fixture',
+      title: 'Empty view',
+      shapes: ['table'],
+      source: {
+        get: () => ({ kind: 'table', columns: [{ id: 'term', label: 'Term' }], rows: [] }),
+      },
+      states: {
+        empty: {
+          icon: 'brain',
+          heading: 'No concepts yet',
+          description: 'Send a message to start populating the knowledge graph',
+        },
+      },
+    };
+    host.budget = 'full';
+    host.chrome = true;
+    host.setAttribute('style', 'height:100%');
+    frame.append(host);
+    document.body.append(frame);
+  });
+  await page.waitForTimeout(400);
+};
+
 /** Drive the shell into a connection state through the real store. */
 const setConnection =
   (state: string): VisualCell['prepare'] =>
@@ -791,6 +832,14 @@ const HAND_CURATED_CELLS: VisualCell[] = [
     surface: 'view:diff',
     hash: '#panels=none',
     prepare: mountView('diff'),
+  },
+  {
+    id: 'view-empty',
+    group: 'Views',
+    title: 'View — empty state',
+    surface: 'view:empty',
+    hash: '#panels=none',
+    prepare: mountEmptyView,
   },
 
   // Scenarios (§P1.3) — canonical engine states with committed baselines.

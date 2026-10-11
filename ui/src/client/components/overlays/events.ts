@@ -170,6 +170,12 @@ export class EventsView extends SurfaceComponent {
       shapes: ['table', 'tree', 'text'],
       shape: this.viewShape,
       source: viewSource($cognitiveEvents, () => tableData),
+      states: {
+        empty: {
+          heading: 'No events',
+          description: 'Cognitive events stream in as the engine reasons',
+        },
+      },
     };
   }
 

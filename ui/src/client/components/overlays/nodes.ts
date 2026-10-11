@@ -189,6 +189,12 @@ export class NodesView extends SurfaceComponent {
       shapes: ['table', 'tree', 'text'],
       shape: this.viewShape,
       source: viewSource($graphNodes, () => tableData),
+      states: {
+        empty: {
+          heading: 'No concepts',
+          description: 'Nodes appear as the engine builds the knowledge graph',
+        },
+      },
     };
   }
 

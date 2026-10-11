@@ -32,6 +32,12 @@ export class CognitiveMetrics extends BaseComponent {
     title: 'Cognitive metrics',
     shapes: ['table'],
     source: viewSource($cognitiveMetrics, metricsTable),
+    states: {
+      empty: {
+        heading: 'No metrics yet',
+        description: 'Cognitive metrics appear once the engine reports',
+      },
+    },
   };
 
   override connectedCallback() {

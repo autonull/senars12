@@ -20,7 +20,7 @@ import { neighborhood } from './neighborhood.js';
 import { atom, $neighborhoodDepth, $workspaceGraph } from './store.js';
 import { datasetIsEmpty } from './view-projection.js';
 import { viewSource } from './view-sources.js';
-import type { Shape, TableDataset, TreeDataset, TreeNode, ViewDataset, ViewSpec } from './view-spec.js';
+import type { Shape, TableDataset, TreeDataset, TreeNode, ViewDataset, ViewSpec, ViewStates } from './view-spec.js';
 import { linksTouching, type Ref, type SemanticBlock, type WorkspaceGraph } from './workspace-graph.js';
 
 /** The derived views a block can embed. */
@@ -35,6 +35,8 @@ interface EmbeddedViewMeta {
   /** Link categories the view draws from, unless it names a lens instead. */
   readonly categories?: readonly LinkCategory[];
   readonly lens?: BuiltinLens;
+  /** What the view shows when its dataset has nothing to render (§B3). */
+  readonly states: ViewStates;
 }
 
 export const EMBEDDED_VIEWS: Record<EmbeddedViewId, EmbeddedViewMeta> = {
@@ -44,6 +46,12 @@ export const EMBEDDED_VIEWS: Record<EmbeddedViewId, EmbeddedViewMeta> = {
     shape: 'tree',
     shapes: ['tree', 'text'],
     categories: ['provenance'],
+    states: {
+      empty: {
+        heading: 'Nothing derived this yet',
+        description: 'This block has no provenance links in the current snapshot',
+      },
+    },
   },
   contradiction: {
     id: 'contradiction',
@@ -51,6 +59,12 @@ export const EMBEDDED_VIEWS: Record<EmbeddedViewId, EmbeddedViewMeta> = {
     shape: 'table',
     shapes: ['table', 'text'],
     lens: 'contradiction',
+    states: {
+      empty: {
+        heading: 'No contradictions',
+        description: 'The engine reports no blocks in tension with this one',
+      },
+    },
   },
   topic: {
     id: 'topic',
@@ -58,6 +72,12 @@ export const EMBEDDED_VIEWS: Record<EmbeddedViewId, EmbeddedViewMeta> = {
     shape: 'table',
     shapes: ['table', 'text'],
     categories: ['discourse', 'structure', 'action', 'evidence'],
+    states: {
+      empty: {
+        heading: 'No related blocks',
+        description: 'Nothing in the current graph is near this topic',
+      },
+    },
   },
 };
 
@@ -203,6 +223,7 @@ export function embeddedViewSpec(block: SemanticBlock, id: EmbeddedViewId): View
     shapes: meta.shapes,
     shape: meta.shape,
     interactions: ['select'],
+    states: meta.states,
     source: viewSource($workspaceGraph, (graph) =>
       embeddedDataset(graph, block.id, id, $neighborhoodDepth.get())
     ),

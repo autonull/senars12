@@ -147,6 +147,12 @@ export class TelemetryPanel extends BaseComponent {
     title: 'Telemetry',
     shapes: ['series', 'table'],
     source: this.chartSource,
+    states: {
+      empty: {
+        heading: 'No telemetry yet',
+        description: 'Metrics appear once the engine reports',
+      },
+    },
   };
 
   override connectedCallback() {

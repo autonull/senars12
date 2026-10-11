@@ -5,7 +5,7 @@ import { defineSurface, SurfaceComponent, type SurfaceState } from './surface.js
 import { $viewSelection } from './store.js';
 import { viewAdapterFor } from './view-adapter.js';
 import { datasetIsEmpty, projectDataset } from './view-projection.js';
-import type { Budget, Shape, ViewSpec } from './view-spec.js';
+import type { Budget, Shape, ViewSpec, ViewStateSpec } from './view-spec.js';
 
 /**
  * `<s-view>` — the one host every dataset renders through. It resolves an adapter
@@ -57,17 +57,39 @@ export class ViewHost extends SurfaceComponent {
   protected override surfaceState(): SurfaceState {
     const spec = this.spec;
     if (!spec) return 'empty';
+    if (spec.source.loading?.()) return 'loading';
     if (!viewAdapterFor(this.activeShape(), this.budget)) return 'error';
     if (this.activeShape() !== 'graph' && datasetIsEmpty(spec.source.get())) return 'empty';
     return 'ready';
   }
 
+  protected override renderLoading(): TemplateResult {
+    return this.renderState(this.spec?.states?.loading, 'Loading…', 'status');
+  }
+
   protected override renderEmpty(): TemplateResult {
-    return html`<div class="slot" role="status">No data</div>`;
+    return this.renderState(this.spec?.states?.empty, 'No data', 'status');
   }
 
   protected override renderError(): TemplateResult {
-    return html`<div class="slot" role="alert">No view adapter for this shape</div>`;
+    return this.renderState(this.spec?.states?.error, 'No view adapter for this shape', 'alert');
+  }
+
+  /** One non-ready slot: the spec's `<s-empty-state>` when named, else the host's generic text. */
+  private renderState(
+    template: ViewStateSpec | undefined,
+    fallback: string,
+    role: 'status' | 'alert'
+  ): TemplateResult {
+    return html`<div class="slot" role=${role}>${
+      template
+        ? html`<s-empty-state
+              icon=${template.icon ?? ''}
+              heading=${template.heading}
+              description=${template.description ?? ''}
+            ></s-empty-state>`
+        : fallback
+    }</div>`;
   }
 
   protected override renderBody(): TemplateResult {

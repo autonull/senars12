@@ -349,12 +349,14 @@ override render() {
       title: 'Telemetry',
       shapes: ['series'],
       source: { get: () => ({ kind: 'series', series: telemetrySeries(data, this.metrics, this.range) }) },
+      states: { empty: { heading: 'No telemetry yet' } },
     };
     const snapshotSpec: ViewSpec = {
       id: 'hud-telemetry-snapshot',
       title: 'Latest',
       shapes: ['table'],
       source: { get: () => telemetrySnapshot(data, this.metrics) },
+      states: { empty: { heading: 'No metrics yet' } },
     };
     return html`
       <div class="popover stats" role="region" aria-label="Telemetry">
