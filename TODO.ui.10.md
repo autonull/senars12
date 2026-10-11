@@ -128,6 +128,11 @@ fresh-session rule. Committed separately after Moves 1 & 2.
 - **New cell `html-body-budget`** seeds 30 workspace blocks at the `full` tier and
   captures the surfaced remainder. It seeds a stub engine node (`isolateGraph`) so
   the graph's empty state does not overlay the badge.
+- **Empty state no longer overlays content.** `app-layout` shows the "Send a
+  message" overlay only when *both* layers are empty
+  (`$graphNodes.size > 0 || $workspaceGraph.blocks.size > 0`), so a
+  conversation-only or embedded-view graph is not mistaken for an empty one. The
+  `embedded-view-demo` baseline lost its stray overlay as a result.
 
 ---
 
@@ -161,11 +166,8 @@ fresh-session rule. Committed separately after Moves 1 & 2.
 - [x] ~~The cap card could carry the reason~~ — shows a `depth limit` note (Move 2.5).
 - [x] ~~Node budget has no visible signal~~ — `hidden` is surfaced as a badge (Move 2.5).
 - [x] ~~`selectHtmlLabels` untested against a real `Core`~~ — `html-labels.test.ts` (Move 2.5).
-- **The graph empty state overlays workspace nodes.** With engine nodes empty but
-  workspace blocks present, the "brain / Send a message" empty state still paints
-  over the canvas (it is keyed on `$graphNodes`, not on any node). It hid the
-  budget badge until the demo seeded a stub. Fix: show the empty state only when
-  *both* layers are empty.
+- [x] ~~The graph empty state overlays workspace nodes~~ — `hasNodes` now counts
+  workspace blocks too (Move 2.5). The `embedded-view-demo` baseline confirms it.
 - **`embedded-view-demo` is a static seed.** It sets `$workspaceGraph` directly
   rather than through the projection, so it does not exercise the real path a
   substrate block takes to reach a node body; a server-side seed would.
@@ -192,6 +194,7 @@ fresh-session rule. Committed separately after Moves 1 & 2.
 - [x] **Move 1**: split gallery IA (Journeys ≤6 / Coverage) · fix the dead `html` path · tighten default view · 3 proving cells · `test:design` · fix the flake · wire `generate:visual-cells`
 - [x] **Move 2**: depth budget · node budget · inert-until-focused · demo cell
 - [x] **Move 2.5**: two-way engage · cap reason · budget signal · real-`Core` budget test · budget cell
+- [x] Fix the graph empty-state overlay (counts workspace blocks now)
 - [ ] Do **not** start Move 3 items (see entry criteria above)
 - [x] Commit per Move; regenerate baselines deliberately; keep `typecheck` + `unit` green
-- [ ] Next session: the graph empty state overlays workspace nodes (see opportunities) — a *visible* bug worth fixing before Move 3
+- [ ] Next session: seed `embedded-view-demo` through the real projection, not a direct `$workspaceGraph` write (see opportunities)

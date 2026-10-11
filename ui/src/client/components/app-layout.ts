@@ -133,6 +133,7 @@ export class AppLayout extends BaseComponent {
     window.addEventListener('keydown', this.#onGlobalKey);
     this.watch($panels);
     this.watch($graphNodes);
+    this.watch($workspaceGraph);
     this.watch($activeRenderer);
     this.watchWith($selectedNodeId, () => this.syncInspector());
     this.watchWith($selectedEdgeId, () => this.syncInspector());
@@ -194,7 +195,7 @@ export class AppLayout extends BaseComponent {
     const searchPanel = panels.get('search');
     const chatPanel = panels.get('chat');
     const lensDesignerPanel = panels.get('lens-designer');
-    const hasNodes = $graphNodes.get().size > 0;
+    const hasNodes = $graphNodes.get().size > 0 || $workspaceGraph.get().blocks.size > 0;
     const notebook = $activeRenderer.get() === 'notebook';
     const anyPanelOpen = searchPanel?.open || chatPanel?.open || lensDesignerPanel?.open;
 

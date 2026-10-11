@@ -391,11 +391,12 @@ const requestToolApproval: VisualCell['prepare'] = async ({ page }) => {
  * the `full` tier so the node mounts it — the fractal made visible (§Move 2.4).
  */
 const embeddedViewDemo: VisualCell['prepare'] = async ({ page, settle }) => {
-  await isolateGraph(page);
   await page.evaluate(() => {
     const api = (window as Record<string, unknown>).__testApi as {
       store?: { setState?: (path: string, value: unknown) => void };
     };
+    api?.store?.setState?.('graphNodes', new Map());
+    api?.store?.setState?.('graphEdges', new Map());
     const spec = {
       id: 'spec:demo',
       title: 'Nested projection',
