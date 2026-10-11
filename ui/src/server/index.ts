@@ -566,11 +566,15 @@ function createServerWithProjection(agent?: Agent): {
 const BROWSER_PROVIDERS = new Set(['webllm']);
 
 const providerCatalog = () => {
-  const availability = nar()?.getLMClient?.()?.getCatalog?.() ?? [];
+  // No LM service (e.g. the test server) ⇒ no availability judgement, so the UI
+  // leaves providers selectable rather than disabling all of them.
+  const availability = nar()?.getLMClient?.()?.getCatalog?.();
   return LM_PROVIDER_NAMES.map((id) => ({
     id,
     kind: BROWSER_PROVIDERS.has(id) ? 'browser' : 'engine',
-    available: availability.find((entry) => entry.id === id)?.available ?? false,
+    ...(availability
+      ? { available: availability.find((entry) => entry.id === id)?.available ?? false }
+      : {}),
   }));
 };
 
