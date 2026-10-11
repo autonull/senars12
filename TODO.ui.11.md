@@ -4,6 +4,10 @@
 >
 > **One-line test for every decision:** *Does it make the system's reasoning more visible, more legible, or more enjoyable — without adding a control the user must learn?*
 
+> **Reading order for a fresh session:** *Where We Are* → *Verification* →
+> *Typical User Experience* → *Tracks A–G* → *Fresh-Session Handoff* (critical
+> path, commands, file map). If short on time, read the Handoff first.
+
 ---
 
 ## Where We Are (v10 verified)
@@ -103,6 +107,55 @@ The claim is architectural, not demonstrated.
 perf/a11y/gating) and **not** a proof of domain-generality (no second bundle). To
 *ultimately achieve* both goals, add **Track G** and promote **G1** to a standing
 rule.
+
+---
+
+## Typical User Experience (the acceptance target)
+
+> The plan is judged by one journey. Dana, a developer, asks *"Is the server
+> reachable?"* and must be able to **decide whether to trust the answer** — seeing
+> real state and provenance, learning no new control. Each beat names the surface
+> and the track that makes it true. This is the concrete form of the north star.
+
+| # | Beat | Surface | Delivered by |
+|---|---|---|---|
+| 0 | Arrival: connected, non-blank, plain-language status | `app-layout`, `connection-banner`, `s-empty-state`, status strip | **B3**, G3, 5.3 |
+| 1 | Ask in natural language; the manifold judges before parsing | `bottom-bar`, ingress | exists; 6.4 |
+| 2 | The turn becomes a node; the graph grows live | `graph-viewport`, projection | Move 2.6 ✅ |
+| 3 | Select a claim → highlights in the graph | one `ViewSelection` | `chat-graph-context` ✅ |
+| 4 | Zoom through LoD; the body embeds its children (bounded) | `s-node-body`, `render-block` | **B2**, Move 2.1–2.5 ✅ |
+| 5 | Inspect: truth-history, revision diff, provenance | `s-inspector` | 6.1; **B1** breadcrumbs |
+| 6 | Follow provenance; verify independently | `s-explain`, verifier | 6.2 |
+| 7 | Watch System 1→2→gates; proposal ≠ conclusion | pipeline view | 6.4 |
+| 8 | Hit a limit: explicit `TerminationReason` | resource panel | 6.5 |
+| 9 | Filterable append-only event log; export | `s-events` | 6.6 |
+| 10 | Switch shape: graph/table/tree/text/code/diff | `<s-view>` | Phase 4 (partial) |
+| 11 | ⌘K palette indexes every registry | `s-palette` | 5.2 |
+| 12 | Disconnect → reconnect → resync; specific errors | banner, `error-boundary` | exists; G4 |
+| 13 | Run a seeded scenario against the real engine | Run view | **G6** |
+| 14 | A second product from a bundle, no forks | `applyBundle` | **G5**, E6 |
+
+**The one-line test across the session:** every beat makes reasoning more visible
+and asks the user to learn **no new control** — chat, click, zoom, ⌘K are the only
+verbs.
+
+### The three experience-critical risks (from the journey)
+
+1. **Scale.** Every beat assumes tens of nodes. At thousands, whole-`Map` clones
+   (`store.ts:510`) and un-virtualized logs bite. **G2 is not optional** — it is
+   what makes beats 2/4/9 hold at real density.
+2. **The empty path.** Beat 0 is only good if **B3** lands; today the graph has a
+   state, conversation/reasoning layouts do not.
+3. **The demo claim.** Beat 13 is the only beat exercising the full loop as a user
+   would; if the e2e scenarios do not gate (**G1**), trust is verified by hope.
+
+### Coverage note
+
+Beats 2/3/4 are already true (v10); beats 5–9, 11, 13 are the master-plan Phases
+5–6/10 that v11 does **not** cover. So the experience target is **half-met**: the
+paradigm is proven, the *explorer* half (provenance, pipeline, resources, demo) is
+future work. The fresh session should decide whether v11 stays a substrate plan
+(with G as the product bridge) or folds Phases 5–6 in.
 
 ---
 
@@ -904,6 +957,9 @@ control the user must learn.
 
 ## Fresh-Session Checklist (v11)
 
+> Ordering follows the **Fresh-Session Handoff** critical path (B3+G1 first).
+> Items are grouped by track; the handoff gives the recommended sequence.
+
 - [ ] **Track A1**: Config-change audit → dedicated log/HUD (no graph perturbation)
 - [ ] **Track A2**: Derivation-record provenance → wire to real blocks or embed in body
 - [ ] **Track A3**: Demo cells → shared `seedBlocks` helper or synthetic projection
@@ -1082,6 +1138,71 @@ The plan now has three orthogonal axes over the same substrate:
 They converge: D1's `BLOCK_DESCRIPTORS` **is** F2's `keyof typeof` source; E1's
 `Contribution` **is** F5's `Assert`-guarded base; E5's `derived` **is** F3's
 mapped type made runtime. Land the shared source once, and D/E/F all read it.
+
+---
+
+## Fresh-Session Handoff
+
+**Start here.** The critical path is ordered by *user value × risk*, not by track
+number:
+
+1. **B3 + G1** — make beat 0 good (empty/loading/error for every layout) and make
+   the behavioral tests gate. Highest leverage: B3 is a visible product win; G1
+   protects everything after it.
+2. **A1–A3** — the three bugs (config audit, provenance links, demo bypass).
+3. **D5 + F1–F3** — standalone correctness/type fixes (theme bug, view unions,
+   keyed maps); cheap, no feature coupling.
+4. **E1–E3 → D1–D4, D6–D7** — land the ingredient library, then collapse the
+   consolidation items onto it.
+5. **B1 + B2** — breadcrumbs and LoD transitions (ride on E3/D1).
+6. **G2 + G3 + G4** — robustness (perf budgets, a11y, error taxonomy).
+7. **G5 + G6** — prove the foundation (second bundle) and productize demos.
+8. **C1–C4** — evaluate honestly; close what fails its gate.
+
+**Commands** (from `ui/`):
+```bash
+pnpm typecheck && pnpm test:unit        # fast gate
+pnpm test:design && pnpm test:craft     # qualitative + craft
+pnpm test:visual                        # 59 baselines
+pnpm verify                             # the whole contract
+pnpm test:visual:update                 # regenerate baselines deliberately
+```
+Root: `pnpm ui:gate` (typecheck+unit) · `pnpm ui:verify` (full).
+
+**File map — where each track lives:**
+
+| Track | Primary files |
+|---|---|
+| A1 | `core/config-change-producer.ts`, `core/workspace-bindings.ts` |
+| A2 | `core/workspace-projection.ts` (`projectDerivationRecords`) |
+| A3 | `tests/visual/matrix.ts` (`manyBodiesDemo`) |
+| B1 | `core/overlay-manager.ts`, `components/overlays/overlay-header.ts` |
+| B2 | `utils/graph-scaling.ts`, `components/node-body.ts`, `utils/render-block.ts` |
+| B3 | `core/view-host.ts`, `utils/layout-registry.ts`, `components/primitives/empty-state.ts` |
+| D1 | `core/block-descriptors.ts` (new), `core/block-labels.ts`, `components/renderers/graph.ts` |
+| D3/E3 | `core/surface.ts`, `core/overlay-registry.ts`, 16 × `components/overlays/*` |
+| D5/E7 | `utils/theme.ts`, `utils/graph-scaling.ts`, `utils/adapter-2d.ts` |
+| E1/E2 | `core/registry.ts` (new), `core/surface-registry.ts`, `core/view-adapter.ts` |
+| E4/E8 | `core/base-component.ts`, `core/surface.ts` |
+| E5/F3 | `core/store.ts` |
+| E6 | `core/plugins.ts` → `defineBundle` |
+| F1/F2 | `core/view-spec.ts`, `core/workspace-graph.ts`, `utils/link-catalog.ts` |
+| F4 | `core/commands.ts`, `core/command-schemas.ts` |
+| G1 | `ui/package.json`, `scripts/lib/gates.ts` |
+| G2 | `tests/framework/utils/perf.ts`, `core/store.ts` |
+| G4 | `components/error-boundary.ts`, `core/error-taxonomy.ts` |
+| G5 | `core/plugins.ts`, a new `bundles/` |
+| G6 | `tests/scenarios/*`, a new Run view |
+
+**Two invariants to carry in:**
+- *Derive, don't declare* (Track F) — one source per vocabulary.
+- *A track is not done until its behavior gates* (Standing Rule) — a cell proves
+  it renders; a gate proves it cannot regress.
+
+**Open decision for the fresh session:** does v11 stay a *substrate* plan (with
+Track G as the product bridge), or fold master-plan Phases 5–6 (observable
+reasoning: inspector 2.0, provenance surface, pipeline, resources, event log) into
+it? The experience table above shows beats 5–9 are the missing half of "useful."
 
 ---
 
