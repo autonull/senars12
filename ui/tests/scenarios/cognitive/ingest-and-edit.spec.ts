@@ -10,12 +10,12 @@ test.describe('Cognitive Gate: ingest and edit', () => {
     }).toPass({ timeout: 10000 });
 
     // Send Narsese directly to create a concept with truth value
-    const textarea = page.locator('input-hud textarea');
+    const textarea = page.locator('bottom-bar textarea');
     await expect(textarea).toBeVisible({ timeout: 5000 });
     await textarea.fill('<sky --> blue>. :|:');
 
     // Click send
-    const sendBtn = page.locator('input-hud .send-btn');
+    const sendBtn = page.locator('bottom-bar .send-btn');
     await sendBtn.click();
 
     // Wait for the node to appear

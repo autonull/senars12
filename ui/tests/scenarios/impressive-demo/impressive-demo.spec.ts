@@ -8,7 +8,7 @@ test.describe('impressive demo: live graph + revision history', () => {
   }) => {
     // 1. App loads and connects
     await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect(page.locator('input-hud')).toBeVisible();
+    await expect(page.locator('bottom-bar')).toBeVisible();
 
     await expect(async () => {
       const state = await testApi.getConnectionState();

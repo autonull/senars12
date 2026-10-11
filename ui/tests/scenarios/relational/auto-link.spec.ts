@@ -16,7 +16,7 @@ test.describe('Relational Gate: auto-link', () => {
 
     // Send multi-clause input that NAR can parse as Narsese
     // Use concepts NOT in bootstrap to ensure new nodes are created
-    const textarea = page.locator('input-hud textarea');
+    const textarea = page.locator('bottom-bar textarea');
     await expect(textarea).toBeVisible({ timeout: 5000 });
     // <cat --> mammal> ; <siamese --> cat> creates an inheritance chain with new concepts
     await textarea.type('<cat --> mammal>. ; <siamese --> cat>.');
@@ -53,7 +53,7 @@ test.describe('Relational Gate: auto-link', () => {
     const initialCount = await testApi.getGraphNodeCount();
 
     // Type a relational sentence
-    const textarea = page.locator('input-hud textarea');
+    const textarea = page.locator('bottom-bar textarea');
     await expect(textarea).toBeVisible({ timeout: 5000 });
     await textarea.type('cats are animals and dogs are animals');
     await page.keyboard.press('Enter');

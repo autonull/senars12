@@ -132,6 +132,47 @@ folded at *module import*, so a later `setTheme` does not re-read them. The
 is E7's job (or a `derived` atom, E5). This is why D5 is a *correctness* fix, not
 yet a theming feature.
 
+### G1 — behavioral e2e gate ⚠️ blocked (groundwork landed)
+
+**Landed.** The composer was refactored from `<input-hud>` to `<bottom-bar>`, but
+the whole scenario suite still targeted `input-hud`, so composer-driven specs
+failed on a missing locator instead of their own assertion. Retargeted the
+interaction helper (`sendMessage`) and 9 specs to `bottom-bar`. This turns those
+specs back into real behavioral checks (prerequisite for gating).
+
+**What actually runs (chromium, serial — the shared agent-server cannot isolate
+parallel tests; a 4-worker run flipped already-green specs red).** `@critical` =
+**15 passed / 16 failed**. `@smoke`: `app-loads` green, `full-bot` red.
+
+**Remaining rot — three kinds:**
+- *Stale selectors / moved UI:* `switch-llm-provider` wants `lm-status-panel`,
+  which is **defined but never mounted** (`app-layout` shows "LM: None" in the
+  composer status strip instead); `adjust-parameters` wants
+  `graph-toolbar button[title="Open settings dialog"]` (settings is now a
+  palette-launched overlay); `parity` clicks a toolbar "3D" button that no longer
+  exists (`graph-surface.ts:36` still renders `<spacegraph-viewport>` when
+  `$viewportMode === '3d'`, so the toggle just moved); `backpressure` /
+  `high-throughput` assert `error-boundary .overlay` `toHaveCount(0)`, which
+  reports `undefined`.
+- *Brittle absolute expectations:* metta `expect(count).toBeGreaterThanOrEqual(86)`
+  now receives 85; auto-link/timeline compare against hardcoded counts instead of
+  a captured `before`.
+- *Behavior/environment:* multi-clause Narsese `<nova --> star>. ; <star -->
+  celestial>.` yields **+1** node, not the +3 the test expects; NL inputs
+  (`the cat is black`, `cats are animals…`) need an LLM provider — the test server
+  runs `LM: None`; `full-bot` asserts `nars.maxConcepts` /
+  `nars.activationDecayRate` in the `config` store, which no longer matches the
+  store shape.
+
+**To promote the subset into `ui:gate` (CI prerequisites, in `.github/workflows/
+ci.yml`):** the gates job installs **no Playwright browsers** and sets **no LM
+provider**; it runs `pnpm ui:gate` only. Wiring requires (a)
+`pnpm exec playwright install --with-deps chromium`, (b) a provider for the NL
+specs **or** rewriting them to deterministic Narsese, (c) `workers: 1` for the
+scenario project (or per-test server isolation), and (d) fixing the rot above so
+the gate is green before it is added. Until then, adding e2e to `ui:gate` would
+make CI red — so it stays out.
+
 ---
 
 ## Verification — does this plan reach the two goals?
@@ -1081,7 +1122,7 @@ control the user must learn.
 - [ ] **Track F4**: generic `Command<Args>` + typed command ids (biggest cast cleanup)
 - [ ] **Track F5**: compile-time assertions + `assertNever` in union switches
 - [ ] **Track F6**: resolve dead `LayoutId` brand; fix `Theme`/`ArtifactKind` drift
-- [ ] **Track G1**: wire `test:e2e` scenario subset into `ui:verify` / `ui:gate` (master-plan 11.4)
+- [ ] **Track G1** (⚠️ blocked — composer selectors fixed; suite rot + CI browser/provider prerequisites remain, see Progress Log): wire `test:e2e` scenario subset into `ui:verify` / `ui:gate` (master-plan 11.4)
 - [ ] **Track G2**: performance budgets — call `assertWithinBudget`; stop whole-`Map` clones (11.1)
 - [ ] **Track G3**: automated a11y checks from descriptor metadata + keyboard walkthrough in the gate (7.7)
 - [ ] **Track G4**: error-taxonomy surfacing (title + recovery) in boundary + log (11.2)

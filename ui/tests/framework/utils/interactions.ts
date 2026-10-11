@@ -19,9 +19,9 @@ export async function openPanels(page: Page, ids: string[]): Promise<void> {
 
 /** Type a message into the composer and send it. */
 export async function sendMessage(page: Page, text: string): Promise<void> {
-  const textarea = page.locator('input-hud textarea');
+  const textarea = page.locator('bottom-bar textarea');
   await textarea.fill(text);
-  await page.locator('input-hud .send-btn').click();
+  await page.locator('bottom-bar .send-btn').click();
 }
 
 /** Count of messages currently held in the chat store. */

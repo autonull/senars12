@@ -14,7 +14,7 @@ test('keyboard navigation reaches the composer and controls are named @critical'
   );
   expect(unnamedControls).toHaveLength(0);
 
-  const textarea = page.locator('input-hud textarea');
+  const textarea = page.locator('bottom-bar textarea');
   await textarea.focus();
   await expect(textarea).toBeFocused();
   await textarea.press('Escape');

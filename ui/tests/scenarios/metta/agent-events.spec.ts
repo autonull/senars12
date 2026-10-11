@@ -8,10 +8,10 @@ test.describe('MettaAgent Integration Tests', () => {
     const initialCount = await testApi.getGraphNodeCount();
 
     // Submit via chat to trigger derivation
-    const textarea = page.locator('input-hud textarea');
+    const textarea = page.locator('bottom-bar textarea');
     await expect(textarea).toBeVisible({ timeout: 5000 });
     await textarea.fill('(+ 1 2)');
-    const sendBtn = page.locator('input-hud .send-btn');
+    const sendBtn = page.locator('bottom-bar .send-btn');
     await sendBtn.click();
 
     // Wait for events to process
@@ -27,9 +27,9 @@ test.describe('MettaAgent Integration Tests', () => {
     await expect.poll(() => testApi.getConnectionState()).toBe('connected');
 
     // Submit a MeTTa expression
-    const textarea = page.locator('input-hud textarea');
+    const textarea = page.locator('bottom-bar textarea');
     await textarea.fill('(+ 2 2)');
-    const sendBtn = page.locator('input-hud .send-btn');
+    const sendBtn = page.locator('bottom-bar .send-btn');
     await sendBtn.click();
 
     // Wait for processing

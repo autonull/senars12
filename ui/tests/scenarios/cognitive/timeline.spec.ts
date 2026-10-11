@@ -8,9 +8,9 @@ test.describe('Temporal Gate: timeline scrubber and revision history', () => {
     const initialCount = await testApi.getGraphNodeCount();
 
     // Type a sentence to create a node with occurrenceTime
-    const textarea = page.locator('input-hud textarea');
+    const textarea = page.locator('bottom-bar textarea');
     await textarea.fill('the cat is black');
-    const sendBtn = page.locator('input-hud .send-btn');
+    const sendBtn = page.locator('bottom-bar .send-btn');
     await sendBtn.click();
 
     // Wait for new node to appear
@@ -29,9 +29,9 @@ test.describe('Temporal Gate: timeline scrubber and revision history', () => {
     const initialCount = await testApi.getGraphNodeCount();
 
     // Create a node first
-    const textarea = page.locator('input-hud textarea');
+    const textarea = page.locator('bottom-bar textarea');
     await textarea.fill('the dog is brown');
-    const sendBtn = page.locator('input-hud .send-btn');
+    const sendBtn = page.locator('bottom-bar .send-btn');
     await sendBtn.click();
     await expect.poll(() => testApi.getGraphNodeCount()).toBeGreaterThan(initialCount);
 
