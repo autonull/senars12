@@ -380,6 +380,37 @@ unchanged.
 literals in chrome source would prevent future token bypasses (the Cytoscape
 `0.25s` was one).
 
+### G4 — error-taxonomy surfacing ✅ (folds D8's error-title map)
+
+**What landed.** `UiError` now declares an abstract `title`, and each of the 15
+error classes owns its heading (`Connection Lost`, `Budget Exhausted`, …);
+`toJSON()` carries it. The boundary no longer re-lists a `getTitle()` map — it
+reads `error.title` — so the taxonomy is the one owner of the title (D8).
+
+The boundary was also wired to the **actual** bus. It subscribed to a `window`
+`'app-error'` event that nothing ever dispatched, while errors leave on
+`eventBus` (`emitError`, `demo-plugin`) — so the modal never opened for them.
+`handleAppError` now takes `UiSignals['app-error']` through
+`eventBus.on('app-error', …)` and unsubscribes on disconnect. `addError` logs the
+class, code and surface with context.
+
+**Guard.** New `tests/components/error-boundary.test.ts` (+3): every class owns a
+non-empty, distinct title and keeps it through `createError`; and an `app-error`
+on `eventBus` renders the modal with the title, code and a recovery action.
+
+**Verified.** typecheck; ui unit **690** (was 687; craft/design included in
+`vitest run`); full visual **62/62** with no baseline moved; `complexity:budget`
+unchanged.
+
+**Note for whoever continues.** `createError` matches the code against a
+**class-name**-keyed map, so it only resolves via the `name` field (`toJSON`
+includes it); and `BudgetExhaustedError` / `GateRejectedError` have an extra first
+ctor arg, so their `createError` round-trip is lossy. Neither is on a live path
+today (nothing reconstructs them from a bare code), but a follow-up should key the
+map by `code` and build through a descriptor. The boundary also is not covered by
+any visual cell — an `error-modal` cell (seed an `app-error` through a small
+`mountTestApi('events', …)` seam) would prove the modal's pixels.
+
 ---
 
 ## Progress Log — LM provider flexibility (user directive)
@@ -1522,7 +1553,7 @@ control the user must learn.
 - [ ] **Track G1** (⚠️ blocked — composer selectors fixed; suite rot + CI browser/provider prerequisites remain, see Progress Log): wire `test:e2e` scenario subset into `ui:verify` / `ui:gate` (master-plan 11.4)
 - [ ] **Track G2**: performance budgets — call `assertWithinBudget`; stop whole-`Map` clones (11.1)
 - [ ] **Track G3**: automated a11y checks from descriptor metadata + keyboard walkthrough in the gate (7.7)
-- [ ] **Track G4**: error-taxonomy surfacing (title + recovery) in boundary + log (11.2)
+- [x] **Track G4**: error-taxonomy surfacing (title + recovery) in boundary + log (11.2)
 - [ ] **Track G5**: a second bundle (event-log console / graph explorer) proves Goal 2 (10.5)
 - [ ] **Track G6**: demo/scenario productization — Run view, ViewSpec-native beats (10.2/10.6)
 - [ ] Do **not** implement Track C items unless spike passes gate
@@ -1566,7 +1597,7 @@ control the user must learn.
 | `CommandArgs = Record<string, unknown>` + per-command casts | generic `Command<Args>` (F4) |
 | e2e scenarios that gate nothing | `ui:verify` includes the scenario subset (G1) |
 | dead `PerfMonitor.assertWithinBudget`; whole-`Map` clones | frame-budget spec + patch-in-place (G2) |
-| hand-listed error-title map in the boundary | `error-taxonomy` title + recovery (G4) |
+| hand-listed error-title map in the boundary | `error-taxonomy` title + recovery (G4) — ✅ folded |
 
 ---
 
@@ -1692,7 +1723,8 @@ number:
    consolidation items onto it.
 5. **B2** — LoD transitions (rides on D5's `numericToken`). **Done** (B1 and B2 both
    landed; the shared header meant B1 did not need D3).
-6. **G2 + G3 + G4** — robustness (perf budgets, a11y, error taxonomy).
+6. **G2 + G3** — robustness (perf budgets, a11y). **G4 done** (error taxonomy:
+   `title` on every class + boundary wired to the bus; folds D8's title map).
 7. **G5 + G6** — prove the foundation (second bundle) and productize demos.
 8. **C1–C4** — evaluate honestly; close what fails its gate.
 

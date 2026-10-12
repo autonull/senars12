@@ -15,6 +15,8 @@ export abstract class UiError extends Error {
   abstract readonly surface: string;
   abstract readonly severity: 'error' | 'warning' | 'info';
   abstract readonly recoverable: boolean;
+  /** Human-facing heading for the error modal — the taxonomy owns the title. */
+  abstract readonly title: string;
 
   constructor(message: string, public readonly detail?: string) {
     super(message);
@@ -29,6 +31,7 @@ export abstract class UiError extends Error {
     return {
       name: this.name,
       code: this.code,
+      title: this.title,
       message: this.message,
       detail: this.detail,
       surface: this.surface,
@@ -42,6 +45,7 @@ export abstract class UiError extends Error {
 /** Connection errors. */
 export class ConnectionError extends UiError {
   readonly code = 'CONNECTION_ERROR';
+  readonly title = 'Connection Lost';
   readonly surface = 'ws-client';
   readonly severity = 'error' as const;
   readonly recoverable = true;
@@ -61,6 +65,7 @@ export class ConnectionError extends UiError {
 
 export class ReconnectionError extends UiError {
   readonly code = 'RECONNECTION_FAILED';
+  readonly title = 'Reconnection Failed';
   readonly surface = 'ws-client';
   readonly severity = 'error' as const;
   readonly recoverable = true;
@@ -80,6 +85,7 @@ export class ReconnectionError extends UiError {
 /** Configuration errors. */
 export class ConfigError extends UiError {
   readonly code = 'CONFIG_ERROR';
+  readonly title = 'Configuration Error';
   readonly surface = 'config';
   readonly severity = 'error' as const;
   readonly recoverable = true;
@@ -99,6 +105,7 @@ export class ConfigError extends UiError {
 
 export class ConfigValidationError extends UiError {
   readonly code = 'CONFIG_VALIDATION_ERROR';
+  readonly title = 'Configuration Invalid';
   readonly surface = 'config';
   readonly severity = 'warning' as const;
   readonly recoverable = true;
@@ -119,6 +126,7 @@ export class ConfigValidationError extends UiError {
 /** Engine/Reasoning errors. */
 export class EngineError extends UiError {
   readonly code = 'ENGINE_ERROR';
+  readonly title = 'Reasoning Engine Error';
   readonly surface = 'nars-backend';
   readonly severity = 'error' as const;
   readonly recoverable = true;
@@ -138,6 +146,7 @@ export class EngineError extends UiError {
 
 export class BudgetExhaustedError extends UiError {
   readonly code = 'BUDGET_EXHAUSTED';
+  readonly title = 'Budget Exhausted';
   readonly surface = 'nars-backend';
   readonly severity = 'warning' as const;
   readonly recoverable = true;
@@ -157,6 +166,7 @@ export class BudgetExhaustedError extends UiError {
 
 export class GateRejectedError extends UiError {
   readonly code = 'GATE_REJECTED';
+  readonly title = 'Gate Rejected';
   readonly surface = 'nars-backend';
   readonly severity = 'warning' as const;
   readonly recoverable = true;
@@ -177,6 +187,7 @@ export class GateRejectedError extends UiError {
 /** Projection/Rendering errors. */
 export class ProjectionError extends UiError {
   readonly code = 'PROJECTION_ERROR';
+  readonly title = 'Projection Failed';
   readonly surface = 'workspace-projection';
   readonly severity = 'error' as const;
   readonly recoverable = true;
@@ -196,6 +207,7 @@ export class ProjectionError extends UiError {
 
 export class GraphRenderError extends UiError {
   readonly code = 'GRAPH_RENDER_ERROR';
+  readonly title = 'Graph Rendering Failed';
   readonly surface = 'graph-viewport';
   readonly severity = 'error' as const;
   readonly recoverable = true;
@@ -215,6 +227,7 @@ export class GraphRenderError extends UiError {
 
 export class LayoutError extends UiError {
   readonly code = 'LAYOUT_ERROR';
+  readonly title = 'Layout Computation Failed';
   readonly surface = 'graph-layout';
   readonly severity = 'warning' as const;
   readonly recoverable = true;
@@ -235,6 +248,7 @@ export class LayoutError extends UiError {
 /** Command/Input errors. */
 export class CommandError extends UiError {
   readonly code = 'COMMAND_ERROR';
+  readonly title = 'Command Failed';
   readonly surface = 'commands';
   readonly severity = 'error' as const;
   readonly recoverable = true;
@@ -253,6 +267,7 @@ export class CommandError extends UiError {
 
 export class CommandValidationError extends UiError {
   readonly code = 'COMMAND_VALIDATION_ERROR';
+  readonly title = 'Invalid Command';
   readonly surface = 'commands';
   readonly severity = 'warning' as const;
   readonly recoverable = true;
@@ -272,6 +287,7 @@ export class CommandValidationError extends UiError {
 /** Data/Storage errors. */
 export class StorageError extends UiError {
   readonly code = 'STORAGE_ERROR';
+  readonly title = 'Storage Error';
   readonly surface = 'storage';
   readonly severity = 'error' as const;
   readonly recoverable = true;
@@ -292,6 +308,7 @@ export class StorageError extends UiError {
 /** Network/API errors. */
 export class NetworkError extends UiError {
   readonly code = 'NETWORK_ERROR';
+  readonly title = 'Network Error';
   readonly surface = 'network';
   readonly severity = 'error' as const;
   readonly recoverable = true;
@@ -312,6 +329,7 @@ export class NetworkError extends UiError {
 /** Generic/Unknown errors. */
 export class UnknownError extends UiError {
   readonly code = 'UNKNOWN_ERROR';
+  readonly title = 'Unknown Error';
   readonly surface = 'unknown';
   readonly severity = 'error' as const;
   readonly recoverable = true;

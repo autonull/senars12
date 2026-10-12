@@ -7,6 +7,7 @@ import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { BaseComponent } from '../core/index.js';
 import { UiError, createError, type RecoveryAction } from '../core/error-taxonomy.js';
+import { eventBus, type UiSignals } from '../core/events.js';
 import { getIcon, type IconName } from '../utils/icon-registry.js';
 import './primitives/button.js';
 import './primitives/icon.js';
@@ -120,19 +121,21 @@ export class ErrorBoundary extends BaseComponent {
 
   @state() private errors: ErrorEntry[] = [];
   @state() private showDetail: number | null = null;
+  private unsubscribeAppError?: () => void;
 
   override connectedCallback() {
     super.connectedCallback();
     window.addEventListener('error', this.handleError);
     window.addEventListener('unhandledrejection', this.handleRejection);
-    window.addEventListener('app-error', this.handleAppError as EventListener);
+    this.unsubscribeAppError = eventBus.on('app-error', this.handleAppError);
   }
 
   override disconnectedCallback() {
+    this.unsubscribeAppError?.();
+    this.unsubscribeAppError = undefined;
     super.disconnectedCallback();
     window.removeEventListener('error', this.handleError);
     window.removeEventListener('unhandledrejection', this.handleRejection);
-    window.removeEventListener('app-error', this.handleAppError as EventListener);
   }
 
   override render() {
@@ -146,7 +149,7 @@ export class ErrorBoundary extends BaseComponent {
         <div class="modal">
           <div class="header">
             ${this.renderIcon(error.severity)}
-            <span class="title">${this.getTitle(error)}</span>
+            <span class="title">${error.title}</span>
             <span class="code">${error.code}</span>
           </div>
           <div class="surface">${error.surface}</div>
@@ -199,27 +202,6 @@ export class ErrorBoundary extends BaseComponent {
     return html`<s-icon name=${name} size="24" class="icon"></s-icon>`;
   }
 
-  private getTitle(error: UiError): string {
-    const titles: Record<string, string> = {
-      ConnectionError: 'Connection Lost',
-      ReconnectionError: 'Reconnection Failed',
-      ConfigError: 'Configuration Error',
-      ConfigValidationError: 'Configuration Invalid',
-      EngineError: 'Reasoning Engine Error',
-      BudgetExhaustedError: 'Budget Exhausted',
-      GateRejectedError: 'Gate Rejected',
-      ProjectionError: 'Projection Failed',
-      GraphRenderError: 'Graph Rendering Failed',
-      LayoutError: 'Layout Computation Failed',
-      CommandError: 'Command Failed',
-      CommandValidationError: 'Invalid Command',
-      StorageError: 'Storage Error',
-      NetworkError: 'Network Error',
-      UnknownError: 'Unknown Error',
-    };
-    return titles[error.constructor.name] ?? 'Something Went Wrong';
-  }
-
   private handleError = (e: ErrorEvent) => {
     this.addError(createError({ message: e.message, detail: e.error?.stack, surface: 'global' }));
     e.preventDefault();
@@ -232,18 +214,16 @@ export class ErrorBoundary extends BaseComponent {
     e.preventDefault();
   };
 
-  private handleAppError = (e: CustomEvent) => {
-    const detail = e.detail;
-    if (detail?.error && typeof detail.error === 'object' && 'code' in detail.error) {
+  private handleAppError = (detail: UiSignals['app-error']): void => {
+    if (detail.error && typeof detail.error === 'object' && 'code' in detail.error) {
       this.addError(createError(detail.error as { message: string; detail?: string; code?: string; surface?: string }));
     } else {
-      const message = detail?.message ?? 'Application error';
-      const detailText = detail?.detail;
-      this.addError(createError({ message, detail: detailText, surface: 'app' }));
+      this.addError(createError({ message: detail.message ?? 'Application error', detail: detail.detail, surface: 'app' }));
     }
   };
 
   private addError(error: UiError) {
+    console.error(`[error-boundary] ${error.title} (${error.code} @ ${error.surface})`, error.detail ?? error.message);
     this.errors = [...this.errors, { id: ++errorId, error, timestamp: Date.now() }];
   }
 
