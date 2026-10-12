@@ -143,9 +143,11 @@ function pathOf(req: IncomingMessage): string {
 async function serveStatic(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const url = pathOf(req);
   const rel = url === '/' ? 'index.html' : decodeURIComponent(url.slice(1));
-  const filePath = resolve(DIST_DIR, rel);
+  let filePath = resolve(DIST_DIR, rel);
   // A resolved path that escapes the dist root is a traversal attempt, not a file.
   if (relative(DIST_DIR, filePath).startsWith('..')) return false;
+  // A path with no extension is a directory: serve its `index.html` (app entry).
+  if (extname(filePath) === '') filePath = resolve(filePath, 'index.html');
   const ext = extname(filePath);
   try {
     const content = await readFile(filePath);

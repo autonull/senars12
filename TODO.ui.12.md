@@ -9,6 +9,44 @@
 
 ---
 
+## ▶ PIVOT — several thin apps over one kernel
+
+> **Decision:** the single maximalist HUD is **not** a usable product for ordinary users.
+> Stop polishing it. **Aggressively refactor the UI into a shared kernel + several thin
+> apps (prototypes)**, each a distinct hypothesis for how an ordinary person experiences
+> SeNARS's full capabilities. The remaining v12 slices are *polish on the old surface* —
+> they do not matter until the product is usable. They stay below as a **backlog**, not
+> the critical path.
+
+**North star (unchanged in spirit):** *a usable SeNARS UI that intuitively and
+ergonomically realizes the full SeNARS capabilities for ordinary users.*
+
+**Capabilities every app must eventually surface:** NL ingress → Narsese · NAL reasoning
+(deduction/induction/abduction) · truth + revision · provenance ("why?") · beliefs vs
+goals · gates/budgets/termination · MeTTa exact computation · tools (with approval) ·
+System 1 vs 2 · control (step/run/abort).
+
+**The kernel** (`ui/src/client/kernel/index.ts`) — the *only* import surface an app needs:
+transport (`ws-client`) · state atoms · the workspace graph + projections · the reasoning
+backends + control channel · the event bus · the view system · the block vocabulary ·
+capabilities · base component + commands. It renders nothing and picks no lens.
+
+**The apps** (`ui/src/client/apps/<name>/`), each a composition over the kernel:
+1. **Ask** ✅ — conversational; say something, get an answer + confidence + one-click proof.
+2. **Notebook** — write claims/questions; derivations + proofs inline.
+3. **Explore** — knowledge map; browse concepts → truth, provenance, neighbors.
+4. **Goals** — state objectives; watch planning, gates, budgets, termination.
+5. **Console** — REPL mirror of `pnpm bot`, for power users.
+
+**Harness:** vite multi-entry (`apps/<name>/index.html` + `main.ts`) + the server serves
+any directory path at its `index.html` (`/apps/<name>/`). Each app is a thin composition —
+no forking the substrate.
+
+**New critical path:** kernel boundary → harness → **Ask** (walk it as a human) →
+Notebook / Explore / Goals → demote the HUD to one app among several.
+
+---
+
 ## ▶ How to execute this plan (self-contained)
 
 **The only trigger needed is the phrase: "implement TODO.ui.12.md".** That is all the
@@ -940,6 +978,43 @@ type strings — a lying control in the observability surface.
 - The `formatEventDetail` formatter is still a manual switch; a catalog-driven
   formatter (using `provenanceRole` + payload schema) would auto-format new
   events.
+
+### PIVOT — kernel boundary + prototype harness + first app ✅ (guard + e2e)
+The UI was one maximalist HUD with no entry point for an ordinary user. This entry starts
+the refactor the rest of the plan now serves: **one kernel, many thin apps.**
+
+- **Kernel facade** (`ui/src/client/kernel/index.ts`): the single import surface an app
+  needs — transport, state atoms, the workspace graph + projections, the reasoning
+  backends + control channel, the event bus, the view system, the block vocabulary,
+  capabilities, base component + commands. It renders nothing and picks no lens.
+- **Harness**: vite gains an `ask` entry (`vite.config.ts`); the server's `serveStatic`
+  now serves a directory path at its `index.html`, so an app lives at `/apps/<name>/`.
+- **First app — Ask** (`ui/src/client/apps/ask/`): the thinnest honest loop. Plain language
+  routes through the agent ingress (`chat.user`); Narsese routes through the control path
+  (`narsBackend.control.submit`) and returns an answer + confidence + proof (from the
+  request-scoped `derivation.record`). No lenses, no layouts, no panels.
+- **Guard / proof:** `ui/tests/scenarios/prototypes/ask.spec.ts` (`@prototype`) drives the
+  real app — assert `<bird-->animal>.` + `<robin-->bird>.`, ask `<robin-->animal>?`, see the
+  answer with confidence and a `deduction` proof step. **Chromium green (745 ms).** The
+  golden-path HUD e2e still passes — the refactor is additive.
+
+**Remaining for this slice (done ≠ complete):**
+- The physical split is **not** done: `core/` still holds both substrate and the HUD's
+  chrome; `store.ts` (922 lines) mixes kernel atoms with lens/layout/panel state; 74 files
+  deep-import `core/`. The kernel facade is the *seam*, not the *move*. Next: move chrome
+  under `apps/hud/`, split `store.ts`, and route `/` to **Ask** (demote the HUD to `/hud`).
+- Ask handles the structured path fully; the NL path relies on the ingress being wired (no
+  LM in the test server → NL returns the agent's fallback). A `chat.user` reply carries no
+  structured confidence/proof yet.
+- No steering controls in Ask yet (step/run/abort); no MeTTa/tools/goals surface yet.
+
+**New improvement opportunities (found while building):**
+- The other apps (Notebook, Explore, Goals, Console) are the next hypotheses — each should
+  be a day's composition over the kernel, not a new subsystem.
+- A shared `apps/_shared/` for common bits (connection dot, confidence bar, proof view)
+  once a second app needs them (DRY, but not before).
+- The `answer` block kind is still produced nowhere (Flow A); Ask renders the proof directly
+  from the derivation record, which is the honest source.
 
 ---
 
