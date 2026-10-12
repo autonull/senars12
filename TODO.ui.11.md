@@ -241,6 +241,130 @@ visual **60** (no baseline moves). `productionLOC` ledger ratcheted 72689 → 72
 
 ---
 
+## Future Sessions — LM Provider Roadmap (planned, not started)
+
+> Sequenced so each session ends with a green gate and a usable increment.
+> Groundwork already landed: coexistence registry, `setActiveProvider` override,
+> `LMService.selectProvider`/`getCatalog`, `lm.switch`/`lm.status` with
+> availability, `s-provider` overlay, offline GGUF in `senars.config.json`.
+
+### F-LM-1. WebLLM browser bridge (in-browser inference)
+
+**Why it can't run today.** `ui/src/webllm.ts` is complete, and
+`nar/src/lm/providers/model-factory.ts` consumes a runtime from
+`ProviderRuntime.getWebLLMRuntime()` — but that factory runs in the **engine
+process (Node)**, where there is no `navigator`/WebGPU, and no in-browser NAR
+engine exists (`entry-standalone` is engine-free). `configureWebLLM` is never
+called. The `kind: 'browser'` catalog entry (`ui/src/server/index.ts`) is the seam.
+
+**Design — a server↔browser generation bridge.**
+1. **Protocol** (`core/src/protocol/`, alongside `LMSwitchMsg`):
+   `lm.generate.request { id, model, messages, temperature?, maxOutputTokens?,
+   responseFormat? }` (server→client); `lm.generate.response { id, text, usage?,
+   error? }` and (streaming) `lm.generate.delta { id, delta }` +
+   `lm.generate.end { id, finishReason?, usage? }` (client→server).
+2. **nar port** — mirror the `WebLLMRuntime` seam with a `BrowserLmDelegate`:
+   `{ generate(req): Promise<{text,usage?}>; stream?(req): AsyncIterable<string> }`.
+   Add `ProviderRuntime.configureBrowserDelegate(delegate)` /
+   `getBrowserDelegate()` (and a delegated module API like `providers/webllm.ts`).
+   Build `webllm:quality|fast|structured|compact` as a **proxy `LanguageModelV3`**
+   that forwards to the delegate (not to `createWebLLMModel`, which is browser-only).
+3. **ui/server** — on `lm.switch webllm` from a socket, register that socket as the
+   host delegate (single-host: the opt-in socket; clear on close/disconnect, then
+   the chain falls through to builtin/mock). Correlate by `id`; time out (~60 s) →
+   error → circuit breaker.
+4. **ui/client** — handle `lm.generate.request` by running
+   `webllmRuntime.createModel(model)` (`doGenerate`/`doStream`), replying with
+   response/deltas. The existing "Run locally" affordance already signals intent;
+   surface load progress via the model progress callback.
+5. **Fallback** — no host / no WebGPU ⇒ `getBrowserDelegate()` undefined ⇒ the
+   webllm rungs are omitted and the chain degrades to `builtin`/`mock` (already).
+
+**Acceptance.** With a fake delegate installed server-side, a webllm-model call
+routes through the delegate and returns its text (unit test; no GPU). In a
+WebGPU browser, `lm.switch webllm` makes a chat answer come from WebLLM; killing
+the tab falls back to the server provider without wedging the cycle. A gate that
+fails when the proxy is bypassed.
+
+**Risks.** No WebGPU in CI → gate the protocol/proxy with a fake delegate; mind
+per-socket ownership vs the process-global LM service; streaming back-pressure;
+reconnect mid-generation.
+
+**Files.** `core/src/protocol/chat.ts`, `core/src/protocol/unions.ts`,
+`nar/src/lm/provider-runtime.ts`, `nar/src/lm/providers/model-factory.ts`,
+`nar/src/lm/providers/` (new `browser-delegate.ts`), `ui/src/server/index.ts`,
+`ui/src/client/core/lm-transport.ts` + a new client delegate handler,
+`ui/src/webllm.ts` (reuse).
+
+### F-LM-2. Model downloader / comparer tool
+
+**Goal.** Fetch compact GGUFs on demand and compare them (quality / latency /
+size) so users choose well; eventually expose a picker in the UI.
+
+**Design.**
+- **Fetch** — `scripts/model-tool.ts`: `list` (a small recommended catalog:
+  Qwen3.5-0.8B ~0.56 GB, gemma-4-E2B ~3.35 GB, and 1–4 GB alternates),
+  `pull <repo>:<file>` → download from the HF resolve URL into `.models/` with
+  progress (learn from `scripts/fetch-model.ts` if present).
+- **Bench/compare** — for each model: `configureLM({ provider:
+  'llamacpp-embedded', llamacppModelPath })` (or `setActiveProvider`), run a fixed
+  prompt set, read `LMService.getStats()` + `getSpend()` + the routing ledger,
+  print a table (tokens/s, p50/p95 latency, pass@N on a small Narsese/NL set).
+- **Select** — write the chosen `llamacppModelPath` (optionally per task) into
+  `senars.config.json`; the UI picker (F-LM-3) can call the same list.
+
+**Acceptance.** `pnpm model:pull <repo>:<file>` fetches to `.models/`;
+`pnpm model:compare` prints a deterministic table; a model listed as available
+in `getCatalog()` answers `generateText`.
+
+**Risks.** Network in CI (gate offline with a fixture); disk/size; license.
+
+**Files.** `scripts/model-tool.ts` (+ a `model:*` script in `package.json`),
+reuse `nar/src/lm/providers/embedded-llamacpp.ts` (`probeEmbeddedLlama`).
+
+### F-LM-3. Per-task / concurrent model selection in the UI
+
+**Goal.** Pin different providers/models per LM task and use several at once —
+the "ideal" the directive asked for. nar already supports this: `getModelForTask`
+accepts `modelOverride`, and `setRouting({ candidates, objectives, offlineLadder })`
+exists; the registry now holds every provider.
+
+**Design.**
+1. **nar** — `LMService.setModelForTask(task, modelId | undefined)` (persist via
+   `configureLM`/routing; the process-global default `ProviderRuntime` already
+   carries routing). Expose assignments in `getRoutingStatus()` →
+   `{ policy, perTask, demoted, lastDecision }`.
+2. **Protocol** — `lm.status` carries `perTask: Record<LMTask, modelId>`;
+   add `lm.route.set { task?, modelId }` (and keep `lm.switch` for the default).
+3. **UI** — extend `s-provider` (or a sibling "Routing" surface) with a
+   task→model map: rows for `quality|fast|structured|compact`, each a select over
+   the catalog's available `provider:slot` ids, plus "default". Read
+   `$lmProvider.perTask`; write via `lm.route.set`.
+4. **Concurrency** — per-call `modelOverride` already lets one cycle's tasks use
+   different providers simultaneously; document the pattern and, if desired, add
+   a "pin model" control on individual views.
+
+**Acceptance.** A unit test pins `fast → builtin:mock`, `quality → builtin:quality`
+and asserts `getModelForTask(registry, 'fast'|'quality')` resolves each; the
+overlay renders and edits the map, and `lm.status` round-trips it.
+
+**Risks.** Persisting per-task choices across restarts; conflict with routing
+policy candidates (define precedence: per-task pin > routing policy > chain).
+
+**Files.** `nar/src/lm/service/LMService.ts`, `nar/src/lm/providers/routing.ts`,
+`core/src/protocol/chat.ts`, `ui/src/server/index.ts`,
+`ui/src/client/core/lm-provider.ts` + `lm-transport.ts`, `s-provider` overlay.
+
+### Cross-cutting (worth doing alongside)
+
+- **Engine LM is on the cycle's critical path.** NL understanding issues ~15
+  blocking calls per chat turn; a CPU GGUF stalls a single-threaded server.
+  Off-thread/streaming execution (or a smaller model + caching) is the real fix.
+- **Cloud multi-select.** One `cloud` registry entry fixes its base URL at boot;
+  split per cloud variant if cloud + local concurrency is needed.
+
+---
+
 ## Verification — does this plan reach the two goals?
 
 **Goal 1 — a working, useful, robust SeNARS UI.**
