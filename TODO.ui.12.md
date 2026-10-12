@@ -705,9 +705,8 @@ end-to-end against the live engine, and two invariants were repaired on the way.
   97/97 files green** (+2: the ask protocol + the answer correlation).
 
 **Remaining for P2 (done ≠ complete):**
-- **`terminationReason` is still not first-class.** It rides `budget.exhausted` and
-  renders as a `budget` block, but a run result does not name *why* it halted. Wire
-  it onto the run response (`nar.getExecution()`/spend summary) in a follow-up.
+- ~~**`terminationReason` is still not first-class.**~~ **Done** — wired onto the run
+  response as `termination` (see the follow-up entry below).
 - **Question→answer linkage is implicit.** The answer node is the derived belief; the
   question node and answer node are not explicitly linked (`derivation.made` carries no
   question id). An `answer` block kind is still declared but produced nowhere.
@@ -731,6 +730,46 @@ end-to-end against the live engine, and two invariants were repaired on the way.
   consume) would keep every proof.
 - `ui/src/client/components/workspace-hud.ts` is still unmounted (Advanced); its
   controls are now honest but unreachable. Retire into the toolbar or mount it.
+
+### P2 follow-up — `TerminationReason` first-class on the run response ✅ (guard + e2e)
+The plan's last named P2 gap: a run result did not name *why* it halted. Now it does.
+
+- **Engine accessor.** `NARExecution.getSpendSummary()` exposes the declared
+  control-budget spend (`ControlBudgets.getSpendSummary`, §5.7) — each scope's
+  `ceiling`, `spent` and raised `terminationReason`. Facade-only addition; the
+  substrate is untouched.
+- **A run response names the reason.** `ReasoningControlResponse` gains
+  `termination: Array<{ scope, reason }>` (`core/src/protocol/reasoning-control.ts`).
+  `runCycles` reads it after the last cycle via the new pure helper
+  `spendTerminations()` (`ui/src/server/spend-terminations.ts`), keeping only the
+  scopes that actually refused work (`reason !== 'none'`); an aborted run also
+  reports `message: 'aborted'`.
+- **Client surfaces it.** `ControlResult.termination` carries it; the `reasoning.step`
+  / `reasoning.run` commands publish it to `$runTerminations` (cleared at the start of
+  each run), and `bottom-bar` renders a low-key chip in the control cluster — so the
+  verdict is visible in the default chrome (Flow D: "see the gate verdict and
+  TerminationReason") rather than only as a `budget` block in the event stream.
+- Guards: `ui/tests/server/spend-terminations.test.ts` (keeps refused scopes with
+  their reasons; ignores `none`/absent) + a termination case in
+  `reasoning-control-protocol.test.ts`. Unit **762 → 765**. `ui:golden` chromium specs
+  (operate-reasoner, scenario-replay) still pass; firefox/webkit fail only for missing
+  browser binaries (pre-existing env gap, unrelated).
+
+**Remaining for this follow-up (done ≠ proven):**
+- The summary is **per-cycle-reset** (`budgets.beginCycle()` at the top of every cycle),
+  so a multi-cycle run reports only the *last* cycle's exhausted scopes. The full
+  history still rides `budget.exhausted` events (rendered as `budget` blocks). A
+  run-scoped accumulation (subscribe to the gate during `run`) would report every
+  bound the run hit.
+- `getSpendSummary` is read only on the run/step response; telemetry could also project
+  it (Advanced).
+
+**New improvement opportunities (found while wiring):**
+- `spendTerminations` is a pure, reusable projection — the `budget`-block reducer in
+  `workspace-projection.ts` could read the same helper instead of re-deriving the
+  reason layout.
+- The `s-icon name="warning"` chip truncates to the first scope; a popover listing all
+  scopes would be the L2 form if a run ever exhausts several.
 
 ---
 

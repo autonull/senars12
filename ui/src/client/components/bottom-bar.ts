@@ -9,6 +9,7 @@ import {
   $graphNodes,
   $lmProvider,
   $reasoningRunning,
+  $runTerminations,
   $streamingDelta,
   $webllmActive,
   $webllmAvailable,
@@ -276,6 +277,13 @@ export class BottomBar extends BaseComponent {
       border: none; cursor: pointer; transition: var(--transitions-fast);
     }
     .abort-btn:hover { filter: brightness(1.2); }
+    .run-termination {
+      display: inline-flex; align-items: center; gap: var(--spacing-scale-1);
+      padding: var(--spacing-scale-1) var(--spacing-scale-2); border-radius: 999px;
+      font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-accent-amber);
+      border: 1px solid var(--colors-semantic-accent-amber);
+    }
     .palette-btn {
       background: var(--colors-semantic-bg-base);
       border: 1px solid var(--colors-semantic-border-subtle);
@@ -327,6 +335,7 @@ export class BottomBar extends BaseComponent {
     this.watch($connectionState);
     this.watch($controlMode);
     this.watch($reasoningRunning);
+    this.watch($runTerminations);
     this.watch($lmProvider);
     this.watch($webllmAvailable);
     this.watchWith($capabilities, (capabilities) => {
@@ -351,6 +360,7 @@ export class BottomBar extends BaseComponent {
     const connectionState = $connectionState.get();
     const controlMode = $controlMode.get();
     const reasoningRunning = $reasoningRunning.get();
+    const terminations = $runTerminations.get();
     const provider = $lmProvider.get();
     const isWebLLM = provider.id === 'webllm';
     const showRunLocally = this.webllmAvailable && !$webllmActive.get() && !isWebLLM;
@@ -502,6 +512,17 @@ export class BottomBar extends BaseComponent {
                           <s-icon name="abort" size="12"></s-icon>
                           <span style="margin-left:4px">Abort</span>
                         </button>`
+                      : ''}
+                    ${terminations.length
+                      ? html`<span
+                          class="run-termination"
+                          title=${terminations
+                            .map((t) => `${t.scope}: ${t.reason}`)
+                            .join(' · ')}
+                        >
+                          <s-icon name="warning" size="10"></s-icon>
+                          ${terminations[0]?.scope}
+                        </span>`
                       : ''}
                   `
                 : ''}

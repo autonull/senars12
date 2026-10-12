@@ -85,6 +85,11 @@ export interface ControlResult {
   readonly seqId?: number;
   /** Present on a successful `submit` in `question` mode (i.e. an ask). */
   readonly answer?: SubmittedAnswer;
+  /**
+   * The control-budget scopes that refused work during a run, with the reason
+   * each raised (the run's `TerminationReason`, §5.7). Empty when every bound held.
+   */
+  readonly termination?: ReadonlyArray<{ readonly scope: string; readonly reason: string }>;
 }
 
 /**

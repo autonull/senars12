@@ -608,6 +608,11 @@ export class NARExecution {
     return this._cycleCount;
   }
 
+  /** The live control-budget spend, with each scope's `terminationReason` (§5.7). */
+  getSpendSummary(): Record<string, { ceiling: number; spent: number; terminationReason: string }> {
+    return this.budgets.getSpendSummary();
+  }
+
   /** Emit cognitive state summary for observability */
   private emitCognitiveStateSummary(): void {
     if (!this.systemEventBus) return;

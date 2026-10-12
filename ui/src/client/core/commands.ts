@@ -19,6 +19,7 @@ import {
   $controlMode,
   $panels,
   $reasoningRunning,
+  $runTerminations,
   $workspaceGraph,
   $conversationLayout,
   $selectedNodeIds,
@@ -227,7 +228,12 @@ registerCommand({
   title: 'Step reasoner',
   group: 'Reasoning',
   keywords: 'reasoning step inference nars',
-  run: () => narsBackend.control?.step(),
+  run: () => {
+    $runTerminations.set([]);
+    void narsBackend.control
+      ?.step()
+      .then((result) => $runTerminations.set(result.termination ?? []));
+  },
   available: () => reasoningAvailable() && caps().canStep,
 });
 
@@ -238,9 +244,13 @@ registerCommand({
   keywords: 'reasoning run inference nars',
   run: () => {
     $reasoningRunning.set(true);
+    $runTerminations.set([]);
     // The engine settles this only when the run actually stops (or aborts), so
     // the running state — and thus the Abort affordance — is never left on.
-    void narsBackend.control?.run().finally(() => $reasoningRunning.set(false));
+    void narsBackend.control
+      ?.run()
+      .then((result) => $runTerminations.set(result.termination ?? []))
+      .finally(() => $reasoningRunning.set(false));
   },
   available: () => reasoningAvailable() && caps().canRun,
 });

@@ -19,6 +19,7 @@ import { handleMetricsRequest } from '@senars/nar/metrics';
 import { asBeliefTruth, envBool, envPositive, makeId, splitLines } from '@senars/util';
 import { type RawData, WebSocket, WebSocketServer } from 'ws';
 import { applyConfigField, buildConfigSchema } from './config-schema.js';
+import { spendTerminations, type SpendSummary } from './spend-terminations.js';
 import {
   BOOTSTRAP_SCENARIO,
   loadScenario,
@@ -78,6 +79,8 @@ type NarLike = {
   setConfig?: (updates: Record<string, unknown>) => void;
   attentionReport?: () => { total: number };
   getProcessor?: () => NarProcessorLike;
+  /** The execution layer, for the live control-budget spend (§5.7, TerminationReason). */
+  getExecution?: () => { getSpendSummary?: () => SpendSummary };
 };
 
 const mimeTypes: Record<string, string> = {
@@ -662,11 +665,14 @@ function broadcastConfigSchema(): void {
     ok: boolean,
     message?: string,
     seqId?: number,
-    answer?: {
-      answer?: string;
-      frequency?: number;
-      confidence?: number;
-      hasDerivation?: boolean;
+    extra?: {
+      answer?: {
+        answer?: string;
+        frequency?: number;
+        confidence?: number;
+        hasDerivation?: boolean;
+      };
+      termination?: Array<{ scope: string; reason: string }>;
     }
   ): void {
     if (ws.readyState !== WebSocket.OPEN) return;
@@ -675,7 +681,8 @@ function broadcastConfigSchema(): void {
       ok,
       message,
       seqId,
-      answer,
+      answer: extra?.answer,
+      termination: extra?.termination,
     };
     ws.send(JSON.stringify(response));
   }
@@ -690,7 +697,14 @@ function broadcastConfigSchema(): void {
     const controller = new AbortController();
     activeRun = controller;
     Promise.resolve(engine.run(cycles, controller.signal))
-      .then(() => respondReasoning(ws, true, undefined, seqId))
+      .then(() =>
+        respondReasoning(ws, true, controller.signal.aborted ? 'aborted' : undefined, seqId, {
+          // The run's TerminationReason, read after the last cycle: which bound, if
+          // any, refused work. Naming it makes "why did this stop" answerable
+          // rather than inferred from a budget block in the event stream.
+          termination: spendTerminations(engine.getExecution?.()?.getSpendSummary?.()),
+        })
+      )
       .catch((e: unknown) => respondReasoning(ws, false, (e as Error).message, seqId))
       .finally(() => {
         if (activeRun === controller) activeRun = undefined;
@@ -781,10 +795,12 @@ function broadcastConfigSchema(): void {
               );
             }
             respondReasoning(ws, true, undefined, msg.seqId, {
-              answer: answer?.answer,
-              frequency: answer?.truth?.f,
-              confidence: answer?.truth?.c,
-              hasDerivation: !!answer?.derivation,
+              answer: {
+                answer: answer?.answer,
+                frequency: answer?.truth?.f,
+                confidence: answer?.truth?.c,
+                hasDerivation: !!answer?.derivation,
+              },
             });
           } catch (e: unknown) {
             respondReasoning(ws, false, (e as Error).message, msg.seqId);

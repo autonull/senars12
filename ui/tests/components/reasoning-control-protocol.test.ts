@@ -46,6 +46,18 @@ describe('reasoning control protocol', () => {
     expect(response.success && response.data.seqId).toBe(42);
   });
 
+  it('carries the run termination reasons on the response', () => {
+    const response = IncomingFromServer.safeParse({
+      type: 'reasoning.control.response',
+      ok: true,
+      seqId: 9,
+      termination: [{ scope: 'derivations', reason: 'derivations-budget' }],
+    });
+    expect(response.success && response.data.termination).toEqual([
+      { scope: 'derivations', reason: 'derivations-budget' },
+    ]);
+  });
+
   it('carries an ask answer (truth + whether a proof exists) on the response', () => {
     const response = IncomingFromServer.safeParse({
       type: 'reasoning.control.response',

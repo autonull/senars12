@@ -64,6 +64,12 @@ export const ReasoningControlResponse = msg('reasoning.control.response', {
       hasDerivation: z.boolean().optional(),
     })
     .optional(),
+  /**
+   * The control-budget scopes that refused work during a run, each with the
+   * reason it raised (`terminationReason`, §5.7). Empty when every bound held;
+   * absent when the op is not a run.
+   */
+  termination: z.array(z.object({ scope: z.string(), reason: z.string() })).optional(),
   ...correlation,
 });
 

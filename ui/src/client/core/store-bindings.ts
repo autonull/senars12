@@ -171,6 +171,7 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
         message: msg.message,
         seqId: msg.seqId,
         answer: msg.answer,
+        termination: msg.termination,
       });
       break;
 

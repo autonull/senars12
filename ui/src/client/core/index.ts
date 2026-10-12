@@ -271,6 +271,7 @@ export {
   $graphLayer,
   $controlMode,
   $reasoningRunning,
+  $runTerminations,
   $graphNodes,
   $graphShape,
   $conversationLayout,

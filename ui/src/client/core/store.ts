@@ -230,6 +230,9 @@ export const $controlMode = atom<boolean>(false);
 /** Whether a reasoning run is currently in-flight (set by run command, cleared by abort/response). */
 export const $reasoningRunning = atom<boolean>(false);
 
+/** The budget scopes that refused work during the last run/step, with their reasons (§5.7). */
+export const $runTerminations = atom<ReadonlyArray<{ scope: string; reason: string }>>([]);
+
 export const setGraphLayer = (layer: GraphLayer): void => {
   $lensLayer.set({ ...$lensLayer.get(), [$activeLens.get()]: layer });
   $graphLayer.set(layer);
