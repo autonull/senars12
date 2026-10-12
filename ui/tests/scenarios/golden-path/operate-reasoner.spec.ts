@@ -51,4 +51,12 @@ test('the operator can assert, ask, see why, and steer — on the real app @gold
   await expect(page.locator('bottom-bar .step-btn')).toBeVisible();
   await page.locator('bottom-bar .step-btn').click();
   await expect.poll(() => testApi.getGraphNodeCount()).toBeGreaterThan(0);
+
+  // RESOLVE — retract the asserted premise from the same surface (Flow C).
+  await testApi.clickNode('(finch-->bird)');
+  await page.locator('node-detail-drawer .tab', { hasText: 'actions' }).click();
+  await page.locator('node-detail-drawer [data-action="retract"]').click();
+  await expect
+    .poll(() => testApi.getAllNodeIds(), { timeout: 30000 })
+    .not.toContain('(finch-->bird)');
 });

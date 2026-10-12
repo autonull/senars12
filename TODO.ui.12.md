@@ -430,6 +430,8 @@ deleting, everything that distracts from it.*
       duplicate composers (reachability removed, files kept) ✅ done
 - [x] **P2 golden-path** — gated real-app e2e (assert → ask → answer → why → observe → steer) +
       scenario replay (G6); `nar.askWithDerivation` over WS; ask→answer in one op
+- [x] **Flow C retract** — `nar.retract` + `reasoning.retract` route + drawer **Retract belief**
+      affordance; engine emits `concept:removed` (reason `retracted`); golden-path e2e retracts a premise
 
 ### P0.1 — control path wired server-side ✅ (guard added)
 The single defect the audit found is fixed at the source: the engine can now be steered.
@@ -770,6 +772,55 @@ The plan's last named P2 gap: a run result did not name *why* it halted. Now it 
   reason layout.
 - The `s-icon name="warning"` chip truncates to the first scope; a popover listing all
   scopes would be the L2 form if a run ever exhausts several.
+
+### Flow C retract — act on a contradiction from the same surface ✅ (guard + e2e)
+Flow C was "you can *see* it but not *act*." Retracting a claim now reaches the engine and
+the graph follows, from the node you selected.
+
+- **Engine accessor.** `NAR.retract(input)` (`nar/src/nar.ts`) parses the term, removes the
+  concept (`memory.removeConcept`), and emits `concept:removed { reason: 'retracted' }` on
+  the bus — the bridge turns that into `belief.retracted`, so the graph node leaves via the
+  normal event path. It returns `false` when nothing was there, which is how a caller learns
+  the retract did not happen instead of assuming it.
+- **The reason union tells the truth.** `concept:removed` gains `'retracted'`
+  (`nar/src/types/events.ts`) so the event stream distinguishes a user retraction from
+  forgetting/archiving — the one substrate pull this Flow needed.
+- **Routed, not facaded.** `reasoning.retract` now routes to `nar.retract` and replies with
+  the real outcome (`ui/src/server/index.ts`; `NarLike.retract?` added). It left the
+  "not yet wired" group.
+- **Advertised honestly.** `canRetract: true` (`ui/src/client/core/nars-backend.ts`); the
+  palette command and the new drawer affordance both derive from it.
+- **The same surface.** `node-detail-drawer`'s Actions tab gains a **Retract belief** button,
+  shown only when `caps.canRetract` and a node is selected, dispatching `reasoning.retract`.
+- Guards: `tests/nar/retract.test.ts` (removes the concept and announces it; honest `false`
+  when absent) + `facade-honesty.test.ts` ("control caps match the wired control path" — the
+  command list offers `reasoning.retract` but not the operations the server refuses). Unit
+  **765 → 766**.
+- **Proven on the real app.** `operate-reasoner.spec.ts` gains a RESOLVE step: select the
+  asserted premise `(finch-->bird)` → Actions tab → Retract → the node disappears. Chromium
+  `@golden` green.
+
+**Remaining for this slice (done ≠ complete):**
+- **`revise` is still disabled.** `reasoning.revise` replies `ok:false`. The route is trivial
+  (`engine.believe(term, { f, c })` — `believe` already accepts a truth and revises with
+  existing evidence), but it needs a *real* affordance first: the drawer's truth slider sends
+  `object.set` (a projection edit, not an engine write), so pointing that slider at the engine
+  — or adding an f/c form — must land with the route, or `canRevise` would advertise a control
+  whose only entry is a form-less palette command.
+- **Retract removes the whole concept** (beliefs + goals + questions), not one belief — the
+  engine's only removal primitive is `removeConcept`. A per-belief retract needs concept-level
+  API work.
+- The drawer keeps the selection after the node vanishes; the graph delta clears it implicitly.
+  An explicit post-retract focus change would be tidier.
+
+**New improvement opportunities (found while wiring):**
+- The truth slider (`node-detail-drawer`) edits the *view* (`object.set`), not the engine —
+  wiring it to `reasoning.revise` would make "revise truth" real and is the natural partner of
+  this slice.
+- Forgetting/archiving/eviction still remove concepts **silently** (no `concept:removed`
+  emitter); retraction is now the first — and only — emitter. Unifying them would make the
+  event stream a complete record of why concepts leave.
+- A contradiction-badge → retract shortcut would make Flow C a single step from the graph.
 
 ---
 

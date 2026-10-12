@@ -400,6 +400,20 @@ export class NAR extends BaseComponent {
     return this.io.question(input, correlationId);
   }
 
+  /**
+   * Retract a concept (Flow C): remove it from memory and announce the removal
+   * on the bus so the graph follows. The reason names the cause — a user
+   * retraction, not forgetting — so the event stream tells the truth about why
+   * a concept left the store. Returns `false` when there was nothing to remove,
+   * which is how a caller learns a retract did not happen rather than assuming it.
+   */
+  retract(input: string | Term): boolean {
+    const term = typeof input === 'string' ? fromNarsese(input) : input;
+    if (!term || !this.memory.removeConcept(term)) return false;
+    this.getEventBus().emit('concept:removed', { term, reason: 'retracted' });
+    return true;
+  }
+
   async run(steps = 1, signal?: AbortSignal, correlationId?: string): Promise<number> {
     return this.execution.run(steps, signal, correlationId);
   }

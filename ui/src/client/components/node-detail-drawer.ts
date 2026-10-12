@@ -4,6 +4,7 @@ import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { EDGE_TYPES } from '../../shared/constants.js';
 import { artifactViewSpec } from '../core/artifacts.js';
+import { dispatchCommand } from '../core/commands.js';
 import { type ExplainLink, explainModel } from '../core/explain.js';
 import { generateId } from '../core/index.js';
 import {
@@ -664,6 +665,11 @@ export class NodeDetailDrawer extends BaseComponent {
     eventBus.emit('overlay:open', { id: 'artifact', ref });
   };
 
+  private retractNode = (): void => {
+    const node = this.node;
+    if (node) dispatchCommand('reasoning.retract', { nodeId: node.id ?? '' });
+  };
+
   private renderActions() {
     const ref = this.blockRef;
     const node = this.node;
@@ -688,6 +694,14 @@ export class NodeDetailDrawer extends BaseComponent {
       <button class="action-btn" @click=${this.copyTerm}>Copy Term</button>
       <button class="action-btn" @click=${this.hideNode}>Hide from Graph</button>
       <button class="action-btn" @click=${this.exportSubgraph}>Export Subgraph</button>
+      ${narsBackend.caps.canRetract && node?.nodeType === 'nar:concept'
+        ? html`
+            <div class="section-title">Resolve</div>
+            <button class="action-btn" data-action="retract" @click=${this.retractNode}>
+              Retract belief
+            </button>
+          `
+        : ''}
       ${node ? html`
         <div class="section-title">Formalize</div>
         <button class="action-btn" @click=${() => this.createBlockFromNode('question')}>

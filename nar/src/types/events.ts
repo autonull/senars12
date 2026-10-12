@@ -103,7 +103,7 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
     lmTokens?: number;
   };
   'concept:created': { term: Term; priority: number };
-  'concept:removed': { term: Term; reason: 'forgotten' | 'archived' | 'evicted' };
+  'concept:removed': { term: Term; reason: 'forgotten' | 'archived' | 'evicted' | 'retracted' };
   'memory:pressure': { level: number; utilization: number };
   'memory:consolidated': { conceptsRemoved: number; conceptsArchived: number };
   'lm:call': { modelId: string; inputTokens: number; outputTokens: number; duration: number };

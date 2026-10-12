@@ -60,6 +60,8 @@ type NarLike = {
   believe?: (statement: string) => Promise<void>;
   goal?: (statement: string) => Promise<void>;
   question?: (statement: string) => Promise<void>;
+  /** Remove a concept and announce it (Flow C). `false` when nothing was there. */
+  retract?: (term: string) => boolean;
   run?: (cycles: number, signal?: AbortSignal) => unknown;
   /** Ask + verified derivation (M8). The answer's proof tree travels with it. */
   askWithDerivation?: (question: string) => Promise<NarAnswer>;
@@ -830,7 +832,16 @@ function broadcastConfigSchema(): void {
         activeRun = undefined;
         respondReasoning(ws, true, undefined, msg.seqId);
         return;
-      case 'reasoning.retract':
+      case 'reasoning.retract': {
+        const removed = nar()?.retract?.(msg.nodeId);
+        respondReasoning(
+          ws,
+          !!removed,
+          removed ? undefined : 'No such belief to retract',
+          msg.seqId
+        );
+        return;
+      }
       case 'reasoning.revise':
       case 'reasoning.adjust-budget':
       case 'reasoning.adjust-provider':

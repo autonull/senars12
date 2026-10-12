@@ -8,7 +8,8 @@ import {
   rejectCurrent,
 } from '../../src/client/core/tool-registry.js';
 import { overlayDescriptor } from '../../src/client/core/overlay-registry.js';
-import { paletteCommands } from '../../src/client/core/commands.js';
+import { activeCommands, paletteCommands } from '../../src/client/core/commands.js';
+import { setCapability } from '../../src/client/core/capabilities.js';
 // Registering the overlay modules is what the palette derives from.
 import '../../src/client/components/overlays/index.js';
 
@@ -76,5 +77,16 @@ describe('ref-dependent overlays are not bare palette entries', () => {
     for (const id of REF_DEPENDENT) {
       expect(ids.has(`overlay.${id}`), `overlay.${id} should not be a palette command`).toBe(false);
     }
+  });
+});
+
+describe('control caps match the wired control path', () => {
+  it('offers retract (routed to the engine) but not the operations the server refuses', () => {
+    setCapability('reasoning', true);
+    const ids = new Set(activeCommands().map((command) => command.id));
+    expect(ids.has('reasoning.retract')).toBe(true);
+    expect(ids.has('reasoning.revise')).toBe(false);
+    expect(ids.has('reasoning.adjust-budget')).toBe(false);
+    expect(ids.has('reasoning.adjust-provider')).toBe(false);
   });
 });

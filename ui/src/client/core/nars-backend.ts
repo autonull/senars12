@@ -79,9 +79,10 @@ const CAPS: BackendCaps = {
   canSubmit: true,
   canStep: true,
   canRun: true,
+  // Routed to the engine (`nar.retract`); the server replies with the real outcome.
+  canRetract: true,
   // Not yet routed to the engine (the server replies `ok:false`); advertised false
   // so no affordance lies until the engine facade supports them.
-  canRetract: false,
   canRevise: false,
   canAddGoal: true,
   canAdjustBudget: false,
