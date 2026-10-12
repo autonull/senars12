@@ -413,3 +413,106 @@ The single defect the audit found is fixed at the source: the engine can now be 
   (`nars-backend.ts:77-87`) so the UI stops advertising them.
 - The real proof is the golden-path e2e (P2): submit → node appears; step/run advances;
   abort cancels.
+
+---
+
+## 10. Capstone — certainty, guardrails, and the handoff
+
+### 10.1 Is this the way to a working product? (calibrated)
+
+**Certain — the architecture and the ordering.**
+
+The architecture *is already the expansion and customization story*, in present-tense,
+concrete terms:
+
+- **One substrate:** `WorkspaceGraph` + pure projections (`core/workspace-graph.ts`,
+  `core/*-projection.ts`). Every capability is a new projection over the same data.
+- **One descriptor + registry per domain:** `Contribution` + `createRegistry(keyOf)` +
+  `defineContribution` (`core/contribution.ts`, `core/registry.ts`,
+  `core/define-contribution.ts`). A new surface/overlay/panel is **a descriptor + a body**.
+- **One view system:** `ViewSpec` → `<s-view>` + adapters (`core/view-spec.ts`,
+  `core/view-host.ts`, `core/view-adapter.ts`). One dataset, many shapes, one place.
+- **One overlay manager** (`core/overlay-manager.ts`) with breadcrumbs; **LoD + fractal**
+  embedding (`utils/graph-scaling.ts`, `utils/render-block.ts`); **modeless** canvas.
+- **A product is a bundle** (E6, parked): `applyBundle(...)` over the same ingredients.
+
+That is why the future is cheap: **every future feature is a new projection/adapter/
+descriptor over the substrate — not a new subsystem.** The v11 substrate work (catalogs,
+type derivations, ingredient library) genuinely *is* the customization seam; it was only
+the *mistake* to treat it as the product.
+
+The ordering — **make the loop work → hide (never delete) → prove on the real app** — is
+the only ordering that yields a usable product. That is what P0/P1/P2 encode.
+
+**Not certain — scope and time.** Mitigation: slices small enough to walk end-to-end, and
+the tripwires in §10.2. "Ideal architecture" is not a claim about perfection; it is a
+claim that the paradigm *is* the extensibility model, and it is already built.
+
+### 10.2 The mistakes we must not repeat (tripwires — stop if any fires)
+
+| Driver / mistake | Tripwire |
+|---|---|
+| **Refactor with no feature consumer** (the vortex) | the slice is not tied to a Flow in §4 → stop |
+| **Another audit / new top-level plan** instead of shipping | you are editing a *new* plan doc → put it in v12's Progress Log |
+| **Green gates as progress** | no real-app walkthrough for the slice → not done |
+| **Re-deriving the substrate** (D/E/F again) | touching registry/type catalogs → substrate is **frozen**; pull one item only if a Flow needs it |
+| **Facade controls** (lie) | a visible control does nothing, or `CAPS` ≠ wired ops → fix or hide |
+| **Chrome / mode creep** | adding a bar/mode, or >7 primaries → modeless; hide via the L0–L3 ladder |
+| **Deleting** | removing a file outright → **archive first** (`docs/archive/ui-dead-artifacts/` + INDEX) |
+| **Registered-but-unmounted** | a surface/overlay exists but has no reachable entry → make it reachable or gate it |
+
+### 10.3 Instructions for you (the human)
+
+- **Open the fresh session with:** *"Read `TODO.ui.12.md` (§0, §0.5, §2–§4, §10). Continue
+  at P0.1 client, then P0 facade. One slice at a time; prove each on the real app."*
+- **For every slice, require three things:** the change, a guard, and a **real-app proof**
+  (a screenshot or a walkthrough) — not a green cell.
+- **Judge with the walkthrough checklist**, not the gate output:
+  - **Flow A** — I submit Narsese; it becomes a node.
+  - **Flow B** — I click an answer and see *why* in one click, no modifier.
+  - **Flow C** — I can see a contradiction and act on it.
+  - **Flow D** — I can set a goal and see gates/termination.
+  - **Flow E** — I can step/run/abort and watch state update.
+- **Refuse any §10.2 tripwire.** If a slice spans many files with no user-visible effect,
+  stop it.
+- **Do not ask for a new plan.** Ask for the next slice, or to fix a failed walkthrough.
+
+### 10.4 Instructions for the plan / the fresh session
+
+**Read order:** §0 → §0.5 → §2 (Law) → §3 (ladder) → §4 (Flows) → §9 → §10.
+
+**Critical path:** **P0.1 client → P0 facade → P1 why → P1 state → P1 hide → P2 golden-path.**
+
+**Per-slice definition of done:** change + guard + **real-app proof**; `typecheck` + `unit`
++ the golden-path e2e green; **commit per slice** (Conventional Commits, per the repo).
+
+**Commands** (`ui/`): `pnpm typecheck` · `pnpm test:unit` · `pnpm test:visual` (regression
+only — *not* the measure) · `pnpm test:scenarios` (once green). Root: `pnpm ui:gate`.
+
+**Evolution:** append to the **Progress Log**; never spawn a new plan document. If a Flow
+needs a parked item, pull **that one item** and record why.
+
+### 10.5 What to expect when complete
+
+**A working product, not a demo.** When this plan is done:
+
+- **The essential loop works on a live engine:** submit (Narsese/NL) → answer → *why*
+  (one click) → steer (step/run/abort) → observe (truth, revision, evidence, gates,
+  budget, termination, events). Flows A–E all pass a human walkthrough.
+- **It is modeless and quiet by default:** one canvas, ≤7 primaries per bar, advanced
+  capability present but hidden behind the L0–L3 ladder; **expressivity (truth/priority)
+  always visible**; no control that lies.
+- **It is expansion-ready:** a new surface/view/product is a descriptor + a bundle over the
+  same substrate — no forked shell, no new chrome.
+- **What remains parked — by design, not by neglect:** `graph3d`/3D parity, bundles/E6,
+  the LM-provider roadmap (F-LM), large-scale virtualization, the C-spikes. These are
+  *optional*; the product is complete without them.
+
+**Effort:** on the order of **~6–10 focused slices**; each ends usable and is committed. If
+it balloons past that without a shippable increment, the *tripwire* fired — stop and
+re-read §10.2.
+
+**Honest caveat:** "complete" means the essential loop is trustworthy and the explorer is
+legible. It will **not** be the E.1 "semantic-zoom morph" endgame or a 10k-node explorer —
+those stay parked on purpose. That restraint is the point: a small, trustworthy, elegant
+product beats an unbounded, impressive-looking facade.
