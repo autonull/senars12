@@ -1,4 +1,4 @@
-import type { ChatMessage, CognitiveEvent, GraphNodeData, Lens, LensFieldDescriptor } from '@senars/core';
+import type { Lens, LensFieldDescriptor } from '@senars/core';
 import { debounce } from '@senars/util';
 import type { LensSpec } from '../../shared/lens-schema.js';
 import { isBuiltinLens, type BuiltinLens } from '../../shared/lens-schema.js';
@@ -14,151 +14,144 @@ import { pageOf, sectionTree } from './sections.js';
 import { getSurfaces } from './surface-registry.js';
 import { viewAdapters } from './view-adapter.js';
 import type { Shape, ViewSelection } from './view-spec.js';
-import { emptyWorkspaceGraph, type SemanticBlock, type WorkspaceGraph } from './workspace-graph.js';
+import { PANEL_DEFS, panelDef, PANEL_KINDS, type PanelKind } from './panel-defs.js';
 import { workspaceRendererIds } from './workspace-renderer.js';
 import { loadConfig, saveConfig, DEFAULT_UI_CONFIG, type UiConfig, type Theme, type Density, type Motion } from './config-schema.js';
-import { PANEL_DEFS, panelDef, PANEL_KINDS, type PanelKind } from './panel-defs.js';
+
+// Import kernel atoms and types from kernel/state.ts
+import {
+  atom,
+  type Readable,
+  type Writable,
+  type GraphNodeData,
+  $chatMessages,
+  $streamingDelta,
+  $graphNodes,
+  $graphEdges,
+  $graphMeta,
+  $config,
+  $telemetry,
+  $cognitiveMetrics,
+  $connectionState,
+  $lastSeqId,
+  $serverErrors,
+  pushServerError,
+  $cognitiveEvents,
+  pushCognitiveEvents,
+  clearCognitiveEvents,
+  $configChanges,
+  pushConfigChange,
+  clearConfigChanges,
+  $webllmAvailable,
+  $webllmActive,
+  $webllmModel,
+  $controlMode,
+  $reasoningRunning,
+  $runTerminations,
+  $workspaceGraph,
+  $activeRenderer,
+  setActiveRenderer,
+  setWorkspaceFocus,
+  revealBlock,
+  setWorkspaceSelection,
+  $collapsedBlocks,
+  $neighborhoodDepth,
+  setNeighborhoodDepth,
+  toggleCollapsed,
+  setCollapsed,
+  $capabilityFilter,
+  emptyWorkspaceGraph,
+  type WorkspaceGraph,
+  type SemanticBlock,
+  type TelemetryData,
+  type CognitiveMetricsData,
+  type CognitiveMeta,
+  type ServerErrorRecord,
+  type RevisionEntry,
+  exposeKernelTestApi as exposeKernelTestApi,
+} from '../kernel/state.js';
 
 export type { UiConfig };
 
-type Listener<T> = (value: T) => void;
-type Unsubscriber = () => void;
+// Re-export kernel atoms and types
+export {
+  atom,
+  type Readable,
+  type Writable,
+  type GraphNodeData,
+  $chatMessages,
+  $streamingDelta,
+  $graphNodes,
+  $graphEdges,
+  $graphMeta,
+  $config,
+  $telemetry,
+  $cognitiveMetrics,
+  $connectionState,
+  $lastSeqId,
+  $serverErrors,
+  pushServerError,
+  $cognitiveEvents,
+  pushCognitiveEvents,
+  clearCognitiveEvents,
+  $configChanges,
+  pushConfigChange,
+  clearConfigChanges,
+  $webllmAvailable,
+  $webllmActive,
+  $webllmModel,
+  $controlMode,
+  $reasoningRunning,
+  $runTerminations,
+  $workspaceGraph,
+  $activeRenderer,
+  setActiveRenderer,
+  setWorkspaceFocus,
+  revealBlock,
+  setWorkspaceSelection,
+  $collapsedBlocks,
+  $neighborhoodDepth,
+  setNeighborhoodDepth,
+  toggleCollapsed,
+  setCollapsed,
+  $capabilityFilter,
+  emptyWorkspaceGraph,
+  type WorkspaceGraph,
+  type SemanticBlock,
+  type TelemetryData,
+  type CognitiveMetricsData,
+  type CognitiveMeta,
+  type ServerErrorRecord,
+  type RevisionEntry,
+};
 
-interface Readable<T> {
-  get(): T;
-
-  subscribe(fn: Listener<T>): Unsubscriber;
+export function updateEdgeData(
+  id: string,
+  patch: Record<string, unknown>
+): Record<string, unknown> | undefined {
+  const edges = $graphEdges.get();
+  const existing = edges.get(id);
+  if (!existing) return undefined;
+  const updated = { ...existing, ...patch };
+  edges.set(id, updated);
+  $graphEdges.set(edges);
+  return updated;
 }
 
-interface Writable<T> extends Readable<T> {
-  set(value: T): void;
+export function updateNodeData(
+  id: string,
+  patch: Partial<GraphNodeData>
+): GraphNodeData | undefined {
+  const nodes = $graphNodes.get();
+  const existing = nodes.get(id);
+  if (!existing) return undefined;
+  const updated = { ...existing, ...patch } as GraphNodeData;
+  nodes.set(id, updated);
+  $graphNodes.set(nodes);
+  return updated;
 }
 
-class Atom<T> implements Writable<T> {
-  private _value: T;
-  private listeners = new Set<Listener<T>>();
-
-  constructor(initial: T) {
-    this._value = initial;
-  }
-
-  get() {
-    return this._value;
-  }
-
-  set(value: T) {
-    this._value = value;
-    for (const fn of this.listeners) fn(value);
-  }
-
-  subscribe(fn: Listener<T>): Unsubscriber {
-    this.listeners.add(fn);
-    return () => this.listeners.delete(fn);
-  }
-}
-
-export const atom = <T>(initial: T) => new Atom(initial);
-
-export interface TelemetryData {
-  reasoning_hz: number[];
-  tokens_per_sec: number[];
-  memory_mb: number[];
-  ws_latency_ms: number[];
-}
-
-export interface CognitiveMetricsData {
-  activeConcepts: number;
-  totalConcepts: number;
-  derivationsPerSec: number;
-  contradictionCount: number;
-  workingMemorySize: number;
-  goalUrgencyDistribution?: Record<string, number>;
-}
-
-export interface CognitiveMeta {
-  truncated: boolean;
-  totalHidden: number;
-}
-
-// --- Existing atoms ---
-export const $chatMessages = atom<ChatMessage[]>([]);
-export const $streamingDelta = atom<string>('');
-export const $graphNodes = atom<Map<string, GraphNodeData>>(new Map());
-export const $graphEdges = atom<Map<string, Record<string, any>>>(new Map());
-export const $graphMeta = atom<CognitiveMeta>({ truncated: false, totalHidden: 0 });
-/** Load persisted config or use defaults. */
-const initialConfig: UiConfig = (() => {
-  try {
-    return loadConfig();
-  } catch {
-    return DEFAULT_UI_CONFIG;
-  }
-})();
-
-export const $config = atom<UiConfig>(initialConfig);
-
-/** Persist config changes to localStorage. */
-if (typeof window !== 'undefined') {
-  $config.subscribe((config) => {
-    saveConfig(config);
-  });
-}
-export const $telemetry = atom<TelemetryData>({
-  reasoning_hz: [],
-  tokens_per_sec: [],
-  memory_mb: [],
-  ws_latency_ms: [],
-});
-export const $cognitiveMetrics = atom<CognitiveMetricsData | null>(null);
-export const $connectionState = atom<'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'standalone'>(
-  'connecting'
-);
-export const $lastSeqId = atom<number | null>(null);
-
-export interface ServerErrorRecord {
-  code: string;
-  message: string;
-  at: number;
-}
-
-const SERVER_ERROR_CAP = 20;
-export const $serverErrors = atom<ServerErrorRecord[]>([]);
-
-export function pushServerError(code: string, message: string): void {
-  $serverErrors.set([
-    ...$serverErrors.get().slice(-(SERVER_ERROR_CAP - 1)),
-    { code, message, at: Date.now() },
-  ]);
-}
-
-// --- Cognitive Events ---
-export const $cognitiveEvents = atom<CognitiveEvent[]>([]);
-
-const COGNITIVE_EVENTS_CAP = 500;
-export function pushCognitiveEvents(events: CognitiveEvent[]): void {
-  $cognitiveEvents.set([...$cognitiveEvents.get().slice(-(COGNITIVE_EVENTS_CAP - events.length)), ...events]);
-}
-
-export function clearCognitiveEvents(): void {
-  $cognitiveEvents.set([]);
-}
-
-// --- Config change audit trail (durable; independent of the workspace graph) ---
-const CONFIG_CHANGES_CAP = 100;
-export const $configChanges = atom<SemanticBlock<'config-change'>[]>([]);
-
-export function pushConfigChange(block: SemanticBlock<'config-change'>): void {
-  $configChanges.set([...$configChanges.get().slice(-(CONFIG_CHANGES_CAP - 1)), block]);
-}
-
-export function clearConfigChanges(): void {
-  $configChanges.set([]);
-}
-
-// --- WebLLM ---
-export const $webllmAvailable = atom<boolean>(false);
-export const $webllmActive = atom<boolean>(false);
-export const $webllmModel = atom<string>('');
+export type ViewportMode = '2d' | '3d';
 
 export const $activeLens = atom<Lens>('belief');
 export const $focusTerm = atom<string | null>(null);
@@ -167,299 +160,43 @@ export const $selectedEdgeId = atom<string | null>(null);
 export const $viewport = atom<{ x: number; y: number; zoom: number }>({ x: 0, y: 0, zoom: 1 });
 export const $workingMemory = atom<string[]>([]);
 
-// --- Phase 2: Multi-select ---
 export const $selectedNodeIds = atom<Set<string>>(new Set());
 
-// --- Phase 4: The one cross-shape selection model ---
-export const $viewSelection = atom<ViewSelection>({ nodes: new Set(), edges: new Set() });
-
-// --- Phase 2: Per-lens viewport persistence ---
-export const $lensViewport = atom<Record<string, { x: number; y: number; zoom: number }>>({
-  belief: { x: 0, y: 0, zoom: 1 },
-  goal: { x: 0, y: 0, zoom: 1 },
-  contradiction: { x: 0, y: 0, zoom: 1 },
-});
-
-// --- Phase 2: Graph filter (contradiction badge → filter graph) ---
-export const $graphFilter = atom<string | null>(null);
-
-// --- Phase 6: Viewport mode (2D/3D toggle) ---
-export type ViewportMode = '2d' | '3d';
-export const $viewportMode = atom<ViewportMode>('2d');
-
-/** The shape the graph surface renders as: the viewport or its tabular alternative. */
-export const $graphShape = atom<Shape>('graph');
-
-// --- Phase 0.1: One workspace, many renderers ---
-/** The one semantic substrate every workspace renderer projects. */
-export const $workspaceGraph = atom<WorkspaceGraph>(emptyWorkspaceGraph());
-/** The active `WorkspaceRenderer` id — URL-addressable, palette-switchable, agent-settable. */
-export const $activeRenderer = atom<string>('graph');
-
-/** Switch the active workspace renderer. */
-export function setActiveRenderer(id: string): void {
-  $activeRenderer.set(id);
-}
-
-/** Point the workspace focus at a block (session state; survives re-projection). */
-export function setWorkspaceFocus(ref?: string): void {
-  const current = $workspaceGraph.get();
-  if (current.focus === ref) return;
-  $workspaceGraph.set({ ...current, focus: ref });
-}
-
-/**
- * Take the reader to a block: the Notebook is the renderer that shows one, so
- * reaching a ref from a graph surface (hover popover, context menu, inspector)
- * means switching to it as well. One seam, so every surface gets there the same way.
- */
-export function revealBlock(ref?: string): void {
-  $activeRenderer.set('notebook');
-  setWorkspaceFocus(ref);
-}
-
-/** Which Graph-mode layer(s) to show: the engine concepts, the conversation, or both (§2.1). */
-export const $graphLayer = atom<GraphLayer>('both');
-
-/** The layer each lens last chose, so switching lens restores its filter (§2.6). */
-export const $lensLayer = atom<Record<string, GraphLayer>>({});
-
-/** Control mode: off → suggestions; on → execution + visible command log + HUD stop. */
-export const $controlMode = atom<boolean>(false);
-
-/** Whether a reasoning run is currently in-flight (set by run command, cleared by abort/response). */
-export const $reasoningRunning = atom<boolean>(false);
-
-/** The budget scopes that refused work during the last run/step, with their reasons (§5.7). */
-export const $runTerminations = atom<ReadonlyArray<{ scope: string; reason: string }>>([]);
-
-export const setGraphLayer = (layer: GraphLayer): void => {
-  $lensLayer.set({ ...$lensLayer.get(), [$activeLens.get()]: layer });
-  $graphLayer.set(layer);
-};
-$activeLens.subscribe((lens) => {
-  $graphLayer.set($lensLayer.get()[lens] ?? 'both');
-});
-
-/** Replace the workspace selection set (session state; survives re-projection). */
-export function setWorkspaceSelection(refs: Iterable<string>): void {
-  $workspaceGraph.set({ ...$workspaceGraph.get(), selection: new Set(refs) });
-}
-
-/**
- * `$selectedNodeIds` is derived, not a second source: `$workspaceGraph.selection`
- * is authoritative and this projection keeps the two in step for the renderers
- * that read the flat set (§2.5). Compares by value so a re-projection that
- * carries the same selection over does not churn subscribers.
- */
 $workspaceGraph.subscribe(({ selection }) => {
   const current = $selectedNodeIds.get();
   if (current.size === selection.size && [...selection].every((id) => current.has(id))) return;
   $selectedNodeIds.set(new Set(selection));
 });
 
-/** Blocks whose children are folded in the workspace renderers (§1.1; session state). */
-export const $collapsedBlocks = atom<ReadonlySet<string>>(new Set());
+export const $viewSelection = atom<ViewSelection>({ nodes: new Set(), edges: new Set() });
 
-/** How many link hops "Open related" walks (1–3; session state, URL-owned). */
-export const $neighborhoodDepth = atom(2);
+export const $lensViewport = atom<Record<string, { x: number; y: number; zoom: number }>>({
+  belief: { x: 0, y: 0, zoom: 1 },
+  goal: { x: 0, y: 0, zoom: 1 },
+  contradiction: { x: 0, y: 0, zoom: 1 },
+});
 
-export function setNeighborhoodDepth(depth: number): void {
-  $neighborhoodDepth.set(Math.min(Math.max(Math.round(depth), 1), 3));
-}
+export const $graphFilter = atom<string | null>(null);
 
-/** Fold/unfold a block's children in place, preserved across renderer switches. */
-export function toggleCollapsed(ref: string): void {
-  const next = new Set($collapsedBlocks.get());
-  if (next.has(ref)) next.delete(ref);
-  else next.add(ref);
-  $collapsedBlocks.set(next);
-}
+export const $viewportMode = atom<ViewportMode>('2d');
 
-/** Fold exactly `refs` — the bulk counterpart of `toggleCollapsed` (§1.5 fold-all). */
-export function setCollapsed(refs: ReadonlySet<string>): void {
-  const current = $collapsedBlocks.get();
-  if (refs.size === current.size && [...refs].every((ref) => current.has(ref))) return;
-  $collapsedBlocks.set(new Set(refs));
-}
+export const $graphShape = atom<Shape>('graph');
 
-// --- Batch 4: Capability-based filtering ---
-export const $capabilityFilter = atom<string | 'all'>('all');
+export const $graphLayer = atom<GraphLayer>('both');
 
-// --- Phase 2: Modulation engine atoms ---
-function detectViewFlags(): View['flags'] {
-  if (typeof window === 'undefined' || !window.matchMedia) {
-    return { reducedMotion: false, highContrast: false, prefersColorScheme: 'dark' };
-  }
-  return {
-    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    highContrast: window.matchMedia('(prefers-contrast: more)').matches,
-    prefersColorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light',
-  };
-}
+export const $lensLayer = atom<Record<string, GraphLayer>>({});
 
 export const $view = atom<View>({
   flags: detectViewFlags(),
   timeline: { t: Number.POSITIVE_INFINITY },
 });
 
-/**
- * `$workspaceGraph.timeCursor` is derived, not a second source: the scrub cursor
- * is `$view.timeline.t` (that is what the modulation gate already reads), and this
- * puts it on the substrate so the workspace renderers can admit blocks by the
- * same number (§4.4). `Infinity` is the present and is stored as `undefined`.
- */
-$view.subscribe(({ timeline }) => {
-  const cursor = Number.isFinite(timeline.t) ? timeline.t : undefined;
-  if ($workspaceGraph.get().timeCursor === cursor) return;
-  const graph = $workspaceGraph.get();
-  $workspaceGraph.set(
-    cursor === undefined ? { ...graph, timeCursor: undefined } : { ...graph, timeCursor: cursor }
-  );
-});
-
-/** Dynamic lens fields received from server (fallback to hardcoded). */
-export const $lensFields = atom<LensFieldDescriptor[]>([]);
-
-export interface RevisionEntry {
-  truth: { frequency: number; confidence: number };
-  stampId: string;
-  timestamp: number;
-  source: 'input' | 'derivation' | 'revision' | 'inference';
-}
-
-export const $nodeHistory = atom<RevisionEntry[]>([]);
-
-// Derive $items from $graphNodes (convert GraphNodeData → Item)
-function graphNodeToItem(id: string, nd: GraphNodeData): Item {
-  return {
-    id,
-    priority: nd.priority ?? 0.5,
-    confidence: nd.confidence ?? 0.9,
-    nodeType: nd.nodeType,
-    isContradiction: nd.isContradiction,
-    truth: nd.truth
-      ? { frequency: nd.truth.frequency, confidence: nd.truth.confidence }
-      : undefined,
-    occurrenceTime: nd.occurrenceTime,
-    goalRelevance: nd.goalRelevance,
-  };
-}
-
-function graphEdgeToItem(id: string, ed: Record<string, any>): Item {
-  return {
-    id,
-    priority: ed.priority ?? 0.5,
-    confidence: ed.confidence ?? 0.9,
-    nodeType: 'edge',
-    truth: ed.truth
-      ? { frequency: ed.truth.frequency, confidence: ed.truth.confidence }
-      : undefined,
-    edgeType: ed.type,
-    weight: ed.weight,
-    source: ed.source,
-    target: ed.target,
-    directed: ed.directed,
-  };
-}
-
-export function getItems(): Item[] {
-  const items: Item[] = [];
-  for (const [id, nd] of $graphNodes.get()) {
-    items.push(graphNodeToItem(id, nd));
-  }
-  for (const [id, ed] of $graphEdges.get()) {
-    items.push(graphEdgeToItem(id, ed));
-  }
-  return items;
-}
-
-/** Whether any engine node carries a temporal anchor — the timeline control gates on this (§4.4). */
-export const hasTemporalData = (): boolean => {
-  for (const node of $graphNodes.get().values()) {
-    if (node.occurrenceTime !== undefined) return true;
-  }
-  return false;
-};
-
-// --- Phase 4: Lens Registry ---
 export const $lensRegistry = atom<Map<string, LensSpec>>(new Map());
 
-function compileLensSpec(spec: LensSpec): Modulation {
-  try {
-    return compile(spec as Parameters<typeof compile>[0]);
-  } catch {
-    return beliefLens();
-  }
-}
-
-/** Register or update a lens in the registry. Returns the compiled modulation. */
-export function registerLens(spec: LensSpec): Modulation {
-  const registry = new Map($lensRegistry.get());
-  registry.set(spec.id, spec);
-  $lensRegistry.set(registry);
-  return compileLensSpec(spec);
-}
-
-/** Remove a user-defined lens from the registry. */
-export function removeLens(id: string): void {
-  if (isBuiltinLens(id)) return;
-  const registry = new Map($lensRegistry.get());
-  registry.delete(id);
-  $lensRegistry.set(registry);
-}
-
-/** Get all registered lens IDs (builtins + user-defined). */
-export function getLensIds(): string[] {
-  const ids: string[] = PRIMARY_LENSES.map((lens) => lens.id);
-  for (const id of $lensRegistry.get().keys()) {
-    if (!ids.includes(id)) ids.push(id);
-  }
-  return ids;
-}
-
-/** Get the full LensSpec for a given lens ID, including builtins. */
-export function getLensSpec(id: string): LensSpec | undefined {
-  return $lensRegistry.get().get(id) ?? builtinLensSpec(id);
-}
-
-export function getActiveLensModulation(): Modulation {
-  const lensId = $activeLens.get();
-  if (isBuiltinLens(lensId)) {
-    return LENS_MODULATION_MAP[lensId] ?? beliefLens();
-  }
-  const spec = $lensRegistry.get().get(lensId);
-  if (spec) {
-    return compileLensSpec(spec);
-  }
-  return beliefLens();
-}
-
-const LENS_MODULATION_MAP: Partial<Record<BuiltinLens, Modulation>> = builtinLensModulations();
-
-export function evaluateLens(): Delta {
-  const items = getItems();
-  const lensId = $activeLens.get();
-  const baseMod = getActiveLensModulation();
-  const mod = timeGate(baseMod);
-  const lens: ModulationLens = {
-    id: lensId,
-    label: '',
-    description: '',
-    modulation: mod,
-  };
-  return evaluate(items, lens, $view.get());
-}
-
-// --- Phase 3: Per-lens layout selection ---
 export const $lensLayout = atom<Record<string, string>>({ ...LENS_DEFAULT_LAYOUTS });
 
-/** Which layout substrate is active — concept layouts are per-lens, conversation has one slot (§2.6). */
 export const $layoutScope = atom<LayoutScope>('concept');
 
-/** The one saved conversation layout (the conversation scope's slot). */
 export const $conversationLayout = atom<string>(CONVERSATION_LAYOUT_IDS[0]!);
 
 export const setConversationLayout = (id: string): void => {
@@ -468,7 +205,6 @@ export const setConversationLayout = (id: string): void => {
   }
 };
 
-/** Route a chosen layout to its scope's slot; the scope is the layout's own substrate (§2.6). */
 export function setActiveLayout(id: string): void {
   const scope: LayoutScope = (CONVERSATION_LAYOUT_IDS as readonly string[]).includes(id)
     ? 'conversation'
@@ -478,7 +214,14 @@ export function setActiveLayout(id: string): void {
   else $lensLayout.set({ ...$lensLayout.get(), [$activeLens.get()]: id });
 }
 
-// --- Phase 0: Panel Registry ---
+export function setGraphLayer(layer: GraphLayer): void {
+  $lensLayer.set({ ...$lensLayer.get(), [$activeLens.get()]: layer });
+  $graphLayer.set(layer);
+}
+$activeLens.subscribe((lens) => {
+  $graphLayer.set($lensLayer.get()[lens] ?? 'both');
+});
+
 export interface PanelState {
   id: string;
   open: boolean;
@@ -526,35 +269,150 @@ export function togglePanel(id: string): void {
   }
 }
 
-/** Optimistically patch an edge's data in $graphEdges. Returns the updated edge data or undefined. */
-export function updateEdgeData(
-  id: string,
-  patch: Record<string, unknown>
-): Record<string, unknown> | undefined {
-  const edges = $graphEdges.get();
-  const existing = edges.get(id);
-  if (!existing) return undefined;
-  const updated = { ...existing, ...patch };
-  edges.set(id, updated);
-  $graphEdges.set(edges);
-  return updated;
+function detectViewFlags(): View['flags'] {
+  if (typeof window === 'undefined' || !window.matchMedia) {
+    return { reducedMotion: false, highContrast: false, prefersColorScheme: 'dark' };
+  }
+  return {
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    highContrast: window.matchMedia('(prefers-contrast: more)').matches,
+    prefersColorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light',
+  };
 }
 
-/** Optimistically patch a node's data in $graphNodes. Returns the updated node or undefined. */
-export function updateNodeData(
-  id: string,
-  patch: Partial<GraphNodeData>
-): GraphNodeData | undefined {
-  const nodes = $graphNodes.get();
-  const existing = nodes.get(id);
-  if (!existing) return undefined;
-  const updated = { ...existing, ...patch } as GraphNodeData;
-  nodes.set(id, updated);
-  $graphNodes.set(nodes);
-  return updated;
+/**
+ * `$workspaceGraph.timeCursor` is derived, not a second source: the scrub cursor
+ * is `$view.timeline.t` (that is what the modulation gate already reads), and this
+ * puts it on the substrate so the workspace renderers can admit blocks by the
+ * same number (§4.4). `Infinity` is the present and is stored as `undefined`.
+ */
+$view.subscribe(({ timeline }) => {
+  const cursor = Number.isFinite(timeline.t) ? timeline.t : undefined;
+  if ($workspaceGraph.get().timeCursor === cursor) return;
+  const graph = $workspaceGraph.get();
+  $workspaceGraph.set(
+    cursor === undefined ? { ...graph, timeCursor: undefined } : { ...graph, timeCursor: cursor }
+  );
+});
+
+export const $lensFields = atom<LensFieldDescriptor[]>([]);
+
+export const $nodeHistory = atom<RevisionEntry[]>([]);
+
+function graphNodeToItem(id: string, nd: GraphNodeData): Item {
+  return {
+    id,
+    priority: nd.priority ?? 0.5,
+    confidence: nd.confidence ?? 0.9,
+    nodeType: nd.nodeType,
+    isContradiction: nd.isContradiction,
+    truth: nd.truth
+      ? { frequency: nd.truth.frequency, confidence: nd.truth.confidence }
+      : undefined,
+    occurrenceTime: nd.occurrenceTime,
+    goalRelevance: nd.goalRelevance,
+  };
 }
 
-// --- Phase 0: URL State ---
+function graphEdgeToItem(id: string, ed: Record<string, any>): Item {
+  return {
+    id,
+    priority: ed.priority ?? 0.5,
+    confidence: ed.confidence ?? 0.9,
+    nodeType: 'edge',
+    truth: ed.truth
+      ? { frequency: ed.truth.frequency, confidence: ed.truth.confidence }
+      : undefined,
+    edgeType: ed.type,
+    weight: ed.weight,
+    source: ed.source,
+    target: ed.target,
+    directed: ed.directed,
+  };
+}
+
+export function getItems(): Item[] {
+  const items: Item[] = [];
+  for (const [id, nd] of $graphNodes.get()) {
+    items.push(graphNodeToItem(id, nd));
+  }
+  for (const [id, ed] of $graphEdges.get()) {
+    items.push(graphEdgeToItem(id, ed));
+  }
+  return items;
+}
+
+export const hasTemporalData = (): boolean => {
+  for (const node of $graphNodes.get().values()) {
+    if (node.occurrenceTime !== undefined) return true;
+  }
+  return false;
+}
+
+function compileLensSpec(spec: LensSpec): Modulation {
+  try {
+    return compile(spec as Parameters<typeof compile>[0]);
+  } catch {
+    return beliefLens();
+  }
+}
+
+export function registerLens(spec: LensSpec): Modulation {
+  const registry = new Map($lensRegistry.get());
+  registry.set(spec.id, spec);
+  $lensRegistry.set(registry);
+  return compileLensSpec(spec);
+}
+
+export function removeLens(id: string): void {
+  if (isBuiltinLens(id)) return;
+  const registry = new Map($lensRegistry.get());
+  registry.delete(id);
+  $lensRegistry.set(registry);
+}
+
+export function getLensIds(): string[] {
+  const ids: string[] = PRIMARY_LENSES.map((lens) => lens.id);
+  for (const id of $lensRegistry.get().keys()) {
+    if (!ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
+export function getLensSpec(id: string): LensSpec | undefined {
+  return $lensRegistry.get().get(id) ?? builtinLensSpec(id);
+}
+
+export function getActiveLensModulation(): Modulation {
+  const lensId = $activeLens.get();
+  if (isBuiltinLens(lensId)) {
+    return LENS_MODULATION_MAP[lensId] ?? beliefLens();
+  }
+  const spec = $lensRegistry.get().get(lensId);
+  if (spec) {
+    return compileLensSpec(spec);
+  }
+  return beliefLens();
+}
+
+const LENS_MODULATION_MAP: Partial<Record<BuiltinLens, Modulation>> = builtinLensModulations();
+
+export function evaluateLens(): Delta {
+  const items = getItems();
+  const lensId = $activeLens.get();
+  const baseMod = getActiveLensModulation();
+  const mod = timeGate(baseMod);
+  const lens: ModulationLens = {
+    id: lensId,
+    label: '',
+    description: '',
+    modulation: mod,
+  };
+  return evaluate(items, lens, $view.get());
+}
+
 export interface UrlState {
   lens: Lens;
   renderer?: string;
@@ -562,15 +420,12 @@ export interface UrlState {
   layout?: string;
   scope?: LayoutScope;
   focus?: string;
-  /** The page (root section) holding `focus`; omitted when focus *is* the page. */
   page?: string;
-  /** Link hops the neighborhood traversal walks. */
   depth?: number;
   folded?: string[];
   viewport?: { x: number; y: number; zoom: number };
   search?: string;
   panels?: string[];
-  /** UI Config fields (synced to URL for shareable links). */
   theme?: Theme;
   density?: Density;
   motion?: Motion;
@@ -580,7 +435,6 @@ export interface UrlState {
 
 export const $urlState = atom<UrlState>({ lens: 'belief' });
 
-// URL synchronization
 const syncUrl = debounce((state: UrlState) => {
   const hash = serializeHash(state);
   const current = window.location.hash.replace(/^#/, '');
@@ -613,17 +467,8 @@ function parseHash(): Partial<UrlState> {
   const vp = params.get('viewport');
   if (vp) {
     const parts = vp.split(',').map(Number);
-    const x = parts[0],
-      y = parts[1],
-      z = parts[2];
-    if (
-      typeof x === 'number' &&
-      typeof y === 'number' &&
-      typeof z === 'number' &&
-      !isNaN(x) &&
-      !isNaN(y) &&
-      !isNaN(z)
-    ) {
+    const x = parts[0], y = parts[1], z = parts[2];
+    if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number' && !isNaN(x) && !isNaN(y) && !isNaN(z)) {
       state.viewport = { x, y, zoom: z };
     }
   }
@@ -633,7 +478,6 @@ function parseHash(): Partial<UrlState> {
   if (panels) state.panels = panels.split(',');
   const folded = params.get('folded');
   if (folded) state.folded = folded.split(',').filter(Boolean);
-  // Config fields
   const theme = params.get('theme');
   if (theme && ['dark', 'light', 'auto'].includes(theme)) state.theme = theme as Theme;
   const density = params.get('density');
@@ -657,12 +501,10 @@ function serializeHash(state: UrlState): string {
   if (state.focus) params.set('focus', state.focus);
   if (state.page) params.set('page', state.page);
   if (state.depth) params.set('depth', String(state.depth));
-  if (state.viewport)
-    params.set('viewport', `${state.viewport.x},${state.viewport.y},${state.viewport.zoom}`);
+  if (state.viewport) params.set('viewport', `${state.viewport.x},${state.viewport.y},${state.viewport.zoom}`);
   if (state.search) params.set('search', state.search);
   if (state.panels?.length) params.set('panels', state.panels.join(','));
   if (state.folded?.length) params.set('folded', state.folded.join(','));
-  // Config fields
   if (state.theme) params.set('theme', state.theme);
   if (state.density) params.set('density', state.density);
   if (state.motion) params.set('motion', state.motion);
@@ -673,11 +515,9 @@ function serializeHash(state: UrlState): string {
 
 export function hydrateFromUrl() {
   const parsed = parseHash();
-  // An address that names no registered renderer is dropped rather than adopted (§2.6).
   if (parsed.renderer && !workspaceRendererIds().includes(parsed.renderer)) {
     delete parsed.renderer;
   }
-  // Likewise a layout the registry does not know, so a stale link cannot seed `$lensLayout`.
   if (parsed.layout && !isRegisteredLayoutId(parsed.layout)) {
     delete parsed.layout;
   }
@@ -695,7 +535,6 @@ export function hydrateFromUrl() {
     if (scope === 'conversation') $conversationLayout.set(parsed.layout);
     else $lensLayout.set({ ...$lensLayout.get(), [$activeLens.get()]: parsed.layout });
   }
-  // A page link focuses the page; an explicit block ref is the more specific half of the tuple.
   if (parsed.focus ?? parsed.page) setWorkspaceFocus(parsed.focus ?? parsed.page);
   if (parsed.folded) $collapsedBlocks.set(new Set(parsed.folded));
   if (parsed.depth !== undefined) setNeighborhoodDepth(parsed.depth);
@@ -706,7 +545,6 @@ export function hydrateFromUrl() {
     }
     $panels.set(panels);
   }
-  // Apply config from URL
   if (parsed.theme) $config.set({ ...$config.get(), theme: parsed.theme });
   if (parsed.density) $config.set({ ...$config.get(), density: parsed.density });
   if (parsed.motion) $config.set({ ...$config.get(), motion: parsed.motion });
@@ -716,14 +554,12 @@ export function hydrateFromUrl() {
   }
 }
 
-// Keep the URL-addressable slice of session state in step with the atoms it mirrors (§2.6).
 const sameNumber = (a: number | undefined, b: number | undefined): boolean => a === b;
 const sameStringList = (
   a: readonly string[] | undefined,
   b: readonly string[] | undefined
 ): boolean => (a && b ? a.length === b.length && a.every((id) => b.includes(id)) : a === b);
 
-/** Write one URL-owned key, skipping a no-op write. The one mirror primitive. */
 function setUrlState<K extends keyof UrlState>(
   key: K,
   value: UrlState[K],
@@ -734,7 +570,6 @@ function setUrlState<K extends keyof UrlState>(
   }
 }
 
-/** Keep one URL-owned key in step with an atom's projection of it. */
 function mirrorAtom<K extends keyof UrlState, T>(
   source: Readable<T>,
   key: K,
@@ -747,8 +582,6 @@ function mirrorAtom<K extends keyof UrlState, T>(
 mirrorAtom($activeRenderer, 'renderer', (renderer) => renderer);
 mirrorAtom($activeLens, 'lens', (lens) => lens);
 mirrorAtom($workspaceGraph, 'focus', (graph) => graph.focus);
-// The page half of the URL tuple (§1.5): derived from focus through the section model, and
-// elided when the focus is the page itself, so a page link stays a single `focus`.
 mirrorAtom($workspaceGraph, 'page', (graph) => {
   const page = pageOf(sectionTree(graph), graph.focus);
   return page === graph.focus ? undefined : page;
@@ -763,7 +596,6 @@ mirrorAtom(
   sameStringList
 );
 
-// Layout is scope-aware: the conversation slot stands alone, concept layouts are per-lens (§2.6).
 const DEFAULT_LAYOUTS = LENS_DEFAULT_LAYOUTS as Record<string, string>;
 const mirrorLayout = (): void => {
   const scope = $layoutScope.get();
@@ -781,20 +613,16 @@ $conversationLayout.subscribe(mirrorLayout);
 $layoutScope.subscribe(mirrorLayout);
 $activeLens.subscribe(mirrorLayout);
 
-// Config mirroring to URL
 mirrorAtom($config, 'theme', (c) => c.theme);
 mirrorAtom($config, 'density', (c) => c.density);
 mirrorAtom($config, 'motion', (c) => c.motion);
 mirrorAtom($config, 'defaultRenderer', (c) => c.defaultRenderer);
 mirrorAtom($config, 'defaultLens', (c) => c.defaultLens);
 
-// Sync URL when urlState changes
 $urlState.subscribe(syncUrl);
 
-// Re-hydrate on back/forward or a pasted hash (replaceState writes do not fire hashchange).
 if (typeof window !== 'undefined') window.addEventListener('hashchange', hydrateFromUrl);
 
-// Apply theme, density, motion to document
 if (typeof window !== 'undefined') {
   const hasMatchMedia = typeof window.matchMedia === 'function';
 
@@ -814,19 +642,16 @@ if (typeof window !== 'undefined') {
     document.documentElement.setAttribute('data-motion', motion);
   };
 
-  // Initial application
   applyTheme($config.get().theme);
   applyDensity($config.get().density);
   applyMotion($config.get().motion);
 
-  // Subscribe to changes
   $config.subscribe((config) => {
     applyTheme(config.theme);
     applyDensity(config.density);
     applyMotion(config.motion);
   });
 
-  // Listen for system theme changes when in 'auto' mode
   if (hasMatchMedia) {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     mediaQuery.addEventListener('change', (e) => {
@@ -836,55 +661,12 @@ if (typeof window !== 'undefined') {
       }
     });
 
-    // Listen for reduced motion preference changes
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     motionQuery.addEventListener('change', (e) => {
       const config = $config.get();
-      // Only auto-apply if user hasn't explicitly set motion preference
-      // (We don't auto-change user's explicit choice)
     });
   }
 }
-
-// --- Phase 0: Test API ---
-type ReadableAtom<T> = { get(): T };
-const storeAtoms = {
-  chatMessages: $chatMessages,
-  streamingDelta: $streamingDelta,
-  graphNodes: $graphNodes,
-  graphEdges: $graphEdges,
-  graphMeta: $graphMeta,
-  config: $config,
-  telemetry: $telemetry,
-  cognitiveMetrics: $cognitiveMetrics,
-  connectionState: $connectionState,
-  lastSeqId: $lastSeqId,
-  activeLens: $activeLens,
-  focusTerm: $focusTerm,
-  selectedNodeId: $selectedNodeId,
-  selectedEdgeId: $selectedEdgeId,
-  viewport: $viewport,
-  workingMemory: $workingMemory,
-  panels: $panels,
-  urlState: $urlState,
-  selectedNodeIds: $selectedNodeIds,
-  viewSelection: $viewSelection,
-  lensViewport: $lensViewport,
-  graphFilter: $graphFilter,
-  capabilityFilter: $capabilityFilter,
-  lensLayout: $lensLayout,
-  lensRegistry: $lensRegistry,
-  lensFields: $lensFields,
-  nodeHistory: $nodeHistory,
-  viewportMode: $viewportMode,
-  graphShape: $graphShape,
-  workspaceGraph: $workspaceGraph,
-  activeRenderer: $activeRenderer,
-  cognitiveEvents: $cognitiveEvents,
-  configChanges: $configChanges,
-} satisfies Record<string, ReadableAtom<unknown>>;
-
-export type TestApiStorePath = keyof typeof storeAtoms;
 
 export function mountTestApi<T>(namespace: string, api: T): void {
   const w = window as unknown as { __testApi?: Record<string, unknown> };
@@ -918,5 +700,44 @@ export function exposeTestApi(): void {
   w.__testApiExposed = true;
 }
 
-// Auto-expose test API when store module is evaluated (browser only)
+type ReadableAtom<T> = { get(): T };
+const storeAtoms = {
+  chatMessages: $chatMessages,
+  streamingDelta: $streamingDelta,
+  graphNodes: $graphNodes,
+  graphEdges: $graphEdges,
+  graphMeta: $graphMeta,
+  config: $config,
+  telemetry: $telemetry,
+  cognitiveMetrics: $cognitiveMetrics,
+  connectionState: $connectionState,
+  lastSeqId: $lastSeqId,
+  serverErrors: $serverErrors,
+  activeLens: $activeLens,
+  focusTerm: $focusTerm,
+  selectedNodeId: $selectedNodeId,
+  selectedEdgeId: $selectedEdgeId,
+  viewport: $viewport,
+  workingMemory: $workingMemory,
+  panels: $panels,
+  urlState: $urlState,
+  selectedNodeIds: $selectedNodeIds,
+  viewSelection: $viewSelection,
+  lensViewport: $lensViewport,
+  graphFilter: $graphFilter,
+  capabilityFilter: $capabilityFilter,
+  lensLayout: $lensLayout,
+  lensRegistry: $lensRegistry,
+  lensFields: $lensFields,
+  nodeHistory: $nodeHistory,
+  viewportMode: $viewportMode,
+  graphShape: $graphShape,
+  workspaceGraph: $workspaceGraph,
+  activeRenderer: $activeRenderer,
+  cognitiveEvents: $cognitiveEvents,
+  configChanges: $configChanges,
+} satisfies Record<string, ReadableAtom<unknown>>;
+
+export type TestApiStorePath = keyof typeof storeAtoms;
+
 if (typeof window !== 'undefined') exposeTestApi();

@@ -1,0 +1,1 @@
+export { eventBus } from '../core/events.js';
