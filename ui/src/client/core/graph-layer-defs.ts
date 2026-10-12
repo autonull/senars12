@@ -4,64 +4,45 @@
  * on one record. The catalog is the source of the `GraphLayer` union:
  * `keyof typeof GRAPH_LAYER_DEFS`, so adding a layer is one entry and no hand
  * tuple to edit.
- *
- * `d()` defaults every facet, so a new layer names only what it is; an unknown
- * facet key is an excess-property error against `GraphLayerDef`.
  */
 
 import type { SemanticBlock, SemanticLink } from '../core/workspace-graph.js';
+import { defineCatalog } from '../framework/catalog.js';
 
-export interface GraphLayerDef {
-  /** Human label for toolbar and palette. */
-  readonly label: string;
-  /** Icon name (matches `s-icon` names). */
-  readonly icon: string;
-  /** Short description for tooltips. */
-  readonly description: string;
-  /** Whether a node/edge of the given workspace-kind is visible under this layer. */
-  readonly visible: (isWorkspace: boolean) => boolean;
-}
-
-const d = (
-  label: string,
-  facets: Partial<Omit<GraphLayerDef, 'label'>> = {}
-): GraphLayerDef => ({
-  label,
-  icon: 'layer',
-  description: '',
-  visible: () => true,
-  ...facets,
-});
-
-export const GRAPH_LAYER_DEFS = {
-  both: d('Both', {
+export const GRAPH_LAYER_DEFS = defineCatalog({
+  both: {
+    label: 'Both',
     icon: 'layers',
     description: 'Concept graph and conversation workspace together.',
-    visible: () => true,
-  }),
-  conversation: d('Conversation', {
+    visible: (isWorkspace: boolean) => true,
+  },
+  conversation: {
+    label: 'Conversation',
     icon: 'chat',
     description: 'Conversation workspace only (semantic blocks).',
-    visible: (isWorkspace) => isWorkspace,
-  }),
-  concepts: d('Concepts', {
+    visible: (isWorkspace: boolean) => isWorkspace,
+  },
+  concepts: {
+    label: 'Concepts',
     icon: 'graph',
     description: 'Concept graph only (engine nodes/edges).',
-    visible: (isWorkspace) => !isWorkspace,
-  }),
-} as const satisfies Record<string, GraphLayerDef>;
+    visible: (isWorkspace: boolean) => !isWorkspace,
+  },
+} as const);
 
 /** The semantic kind of a graph layer — the catalog keys are its source (D6). */
-export type GraphLayer = keyof typeof GRAPH_LAYER_DEFS;
+export type GraphLayer = keyof typeof GRAPH_LAYER_DEFS.definition;
 
 /** Every layer kind, in catalog order. */
-export const GRAPH_LAYERS = Object.keys(GRAPH_LAYER_DEFS) as readonly GraphLayer[];
+export const GRAPH_LAYERS = GRAPH_LAYER_DEFS.ids;
 
-export const graphLayerDef = (kind: GraphLayer): GraphLayerDef => GRAPH_LAYER_DEFS[kind];
+export type GraphLayerEntry = typeof GRAPH_LAYER_DEFS.definition[GraphLayer];
+
+export const graphLayerDef = (kind: GraphLayer): GraphLayerEntry => GRAPH_LAYER_DEFS.get(kind);
 
 /** The layer kinds a facet selects, in catalog order — the one way a partial set is read. */
-export const graphLayerKindsWhere = (facet: (def: GraphLayerDef) => boolean): GraphLayer[] =>
-  GRAPH_LAYERS.filter((kind) => facet(GRAPH_LAYER_DEFS[kind]));
+export const graphLayerKindsWhere = (facet: (def: GraphLayerEntry) => boolean): GraphLayer[] =>
+  GRAPH_LAYER_DEFS.where(facet);
 
 /** Back-compat: `layerVisible(isWorkspace, layer)` delegates to the catalog. */
 export const layerVisible = (isWorkspace: boolean, layer: GraphLayer): boolean =>

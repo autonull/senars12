@@ -24,7 +24,7 @@ describe('panel definitions', () => {
     expect(sorted(PANEL_KINDS)).toEqual(
       sorted(['search', 'chat', 'lens-designer', 'split'])
     );
-    expect(PANEL_KINDS).toEqual(Object.keys(PANEL_DEFS));
+    expect(PANEL_KINDS).toEqual(Object.keys(PANEL_DEFS.definition));
   });
 
   it('reads a definition by kind with a non-empty, distinct label', () => {

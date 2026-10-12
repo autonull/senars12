@@ -1,10 +1,10 @@
 export { generateId, makeId, truncate } from '@senars/util';
 export { Announcer } from './announcer.js';
 export { BaseComponent } from './base-component.js';
-export { BLOCK_KINDS, BLOCK_DESCRIPTORS, blockDescriptor, type BlockDescriptor, kindsWhere } from './block-descriptors.js';
+export { BLOCK_KINDS, BLOCK_DESCRIPTORS, blockDescriptor, type BlockEntry, kindsWhere } from './block-descriptors.js';
 export { blockLabel } from './block-labels.js';
-export { PANEL_KINDS, PANEL_DEFS, panelDef, type PanelDef, panelKindsWhere } from './panel-defs.js';
-export { RENDERER_IDS, RENDERER_DEFS, rendererDef, type RendererDef, rendererIdsWhere } from './renderer-defs.js';
+export { PANEL_KINDS, PANEL_DEFS, panelDef, type PanelEntry, panelKindsWhere } from './panel-defs.js';
+export { RENDERER_IDS, RENDERER_DEFS, rendererDef, type RendererEntry, rendererIdsWhere } from './renderer-defs.js';
 export { GRAPH_LAYERS, GRAPH_LAYER_DEFS, graphLayerDef, type GraphLayer, graphLayerKindsWhere, layerVisible } from './graph-layer-defs.js';
 export {
   type ArtifactKind,
@@ -40,9 +40,10 @@ export {
 export {
   availableComposerModes,
   COMPOSER_MODE_CATALOG,
+  COMPOSER_MODE_DEFS,
   COMPOSER_MODE_IDS,
   type ComposerMode,
-  type ComposerModeDescriptor,
+  type ComposerModeEntry,
   composerModes,
   decomposeForMode,
   DEFAULT_COMPOSER_MODE,
@@ -162,7 +163,7 @@ export {
   CONVERSATION_LAYOUT_DEFS,
   CONVERSATION_LAYOUT_IDS,
   conversationLayoutDef,
-  type ConversationLayoutDescriptor,
+  type ConversationLayoutEntry,
   type ConversationLayoutId,
   conversationLayoutIdsWhere,
   type ConversationPositions,

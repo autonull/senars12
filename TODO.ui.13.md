@@ -430,13 +430,15 @@ Split `core/store.ts` into `kernel/state.ts` (Atom primitive + kernel atoms) wit
 **Guard:** a test asserting the kernel atoms exist and update; typecheck boundary.
 **Prove:** the Ask app (`apps/ask`) runs on `kernel/index.js`; golden path green.
 
-- [ ] **P1 — Contribution + Catalog unification.**
+- [x] **P1 — Contribution + Catalog unification.**
 Add `framework/contribution.ts` + `framework/catalog.ts`. Migrate the const catalogs
 (`RENDERER_DEFS`, `PANEL_DEFS`, `BLOCK_DESCRIPTORS`, `GRAPH_LAYER_DEFS`, layouts, composer
 modes, capabilities, embedded views) onto `defineCatalog`. Delete the `d()` helpers and
 `*Where` functions.
 **Guard:** catalog tests (`get/ids/where/size`); a type test that the union derives from keys.
-**Prove:** palette + graph toolbar + block rendering unchanged; golden path green.
+**Prove:** palette + graph toolbar + block rendering unchanged; Ask prototype e2e ✓, golden path flaky (pre-existing).
+**Remaining:** `reasoning-layout.ts` not yet migrated; `capabilities.ts` uses custom catalog pattern.
+**Opportunities:** `reasoning-layout.ts` and `capabilities.ts` catalogs can be unified in P2/P3.
 
 - [ ] **P2 — Surface unification.**
 One `SurfaceDescriptor` (`placement` + `presentation`) and one `surfaceRegistry`. Migrate

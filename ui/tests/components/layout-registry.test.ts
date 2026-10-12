@@ -5,7 +5,7 @@ import { LINK_CATALOG } from '../../src/client/utils/link-catalog.js';
 
 describe('layout registry (§2.6)', () => {
   it('registers every layout the link catalog references', () => {
-    const referenced = new Set(Object.values(LINK_CATALOG).flatMap((meta) => meta.layouts));
+    const referenced = new Set(Object.values(LINK_CATALOG.definition).flatMap((meta) => meta.layouts));
     const missing = [...referenced].filter((id) => !layoutRegistry.get(id));
     expect(missing).toEqual([]);
   });

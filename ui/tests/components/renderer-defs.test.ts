@@ -11,7 +11,7 @@ const sorted = (ids: readonly string[]): string[] => [...ids].sort();
 describe('renderer definitions (D4)', () => {
   it('derives RendererId from the catalog keys (one source)', () => {
     expect(sorted(RENDERER_IDS)).toEqual(sorted(['2d', '3d']));
-    expect(RENDERER_IDS).toEqual(Object.keys(RENDERER_DEFS));
+    expect(RENDERER_IDS).toEqual(Object.keys(RENDERER_DEFS.definition));
   });
 
   it('reads a definition by id with a non-empty, distinct label', () => {

@@ -11,63 +11,103 @@
 
 import type { Capability } from './capabilities.js';
 import { decomposeInput, type InputSegment } from './input-decomposition.js';
+import { defineCatalog } from '../framework/catalog.js';
 
-export interface ComposerModeDescriptor {
-  /** The mode id (key in the catalog). */
-  readonly id: string;
-  /** The capability that makes the mode do real work. */
-  readonly capability: Capability;
-  /** Human label for palette and placeholder. */
-  readonly label: string;
-  /** Placeholder hint text. */
-  readonly hint: string;
-  /** A structured mode is a formalization seam, not yet an NL request. */
-  readonly structured: boolean;
-}
-
-const d = (
-  label: string,
-  facets: Partial<Omit<ComposerModeDescriptor, 'label' | 'capability'>> & { id: string; capability: Capability }
-): ComposerModeDescriptor => ({
-  label,
-  hint: '',
-  structured: false,
-  ...facets,
-});
-
-export const COMPOSER_MODE_DEFS = {
-  ask: d('Ask', { id: 'ask', capability: 'language', hint: 'Ask SeNARS…' }),
-  reply: d('Reply', { id: 'reply', capability: 'language', hint: 'Continue the conversation…' }),
-  question: d('Question', { id: 'question', capability: 'language', hint: 'Pose a question…' }),
-  command: d('Command', { id: 'command', capability: 'language', hint: '/command …' }),
-  explain: d('Explain', { id: 'explain', capability: 'language', hint: 'Ask for an explanation…' }),
-  demonstrate: d('Demonstrate', { id: 'demonstrate', capability: 'language', hint: 'Show the work in the workspace…' }),
-  transform: d('Transform', { id: 'transform', capability: 'language', hint: 'Transform the selected content…' }),
-  believe: d('Believe', { id: 'believe', capability: 'reasoning', hint: 'Admit a belief…', structured: true }),
-  goal: d('Goal', { id: 'goal', capability: 'reasoning', hint: 'Set a goal…', structured: true }),
-  tool: d('Tool', { id: 'tool', capability: 'tools', hint: 'Invoke a tool…', structured: true }),
-} as const satisfies Record<string, ComposerModeDescriptor>;
+export const COMPOSER_MODE_DEFS = defineCatalog({
+  ask: {
+    label: 'Ask',
+    id: 'ask',
+    capability: 'language',
+    hint: 'Ask SeNARS…',
+    structured: false,
+  },
+  reply: {
+    label: 'Reply',
+    id: 'reply',
+    capability: 'language',
+    hint: 'Continue the conversation…',
+    structured: false,
+  },
+  question: {
+    label: 'Question',
+    id: 'question',
+    capability: 'language',
+    hint: 'Pose a question…',
+    structured: false,
+  },
+  command: {
+    label: 'Command',
+    id: 'command',
+    capability: 'language',
+    hint: '/command …',
+    structured: false,
+  },
+  explain: {
+    label: 'Explain',
+    id: 'explain',
+    capability: 'language',
+    hint: 'Ask for an explanation…',
+    structured: false,
+  },
+  demonstrate: {
+    label: 'Demonstrate',
+    id: 'demonstrate',
+    capability: 'language',
+    hint: 'Show the work in the workspace…',
+    structured: false,
+  },
+  transform: {
+    label: 'Transform',
+    id: 'transform',
+    capability: 'language',
+    hint: 'Transform the selected content…',
+    structured: false,
+  },
+  believe: {
+    label: 'Believe',
+    id: 'believe',
+    capability: 'reasoning',
+    hint: 'Admit a belief…',
+    structured: true,
+  },
+  goal: {
+    label: 'Goal',
+    id: 'goal',
+    capability: 'reasoning',
+    hint: 'Set a goal…',
+    structured: true,
+  },
+  tool: {
+    label: 'Tool',
+    id: 'tool',
+    capability: 'tools',
+    hint: 'Invoke a tool…',
+    structured: true,
+  },
+} as const);
 
 /** The semantic id of a composer mode — the catalog keys are its source (D7). */
-export type ComposerMode = keyof typeof COMPOSER_MODE_DEFS;
+export type ComposerMode = keyof typeof COMPOSER_MODE_DEFS.definition;
 
 /** Every mode id, in catalog order. */
-export const COMPOSER_MODE_IDS = Object.keys(COMPOSER_MODE_DEFS) as readonly ComposerMode[];
+export const COMPOSER_MODE_IDS = COMPOSER_MODE_DEFS.ids;
 
-export const composerModeDef = (id: ComposerMode): ComposerModeDescriptor => COMPOSER_MODE_DEFS[id];
+export type ComposerModeEntry = typeof COMPOSER_MODE_DEFS.definition[ComposerMode];
+
+export const composerModeDef = (id: ComposerMode): ComposerModeEntry => COMPOSER_MODE_DEFS.get(id)!;
 
 /** The mode ids a facet selects, in catalog order — the one way a partial set is read. */
-export const composerModeIdsWhere = (facet: (def: ComposerModeDescriptor) => boolean): ComposerMode[] =>
-  COMPOSER_MODE_IDS.filter((id) => facet(COMPOSER_MODE_DEFS[id]));
+export const composerModeIdsWhere = (facet: (def: ComposerModeEntry) => boolean): ComposerMode[] =>
+  COMPOSER_MODE_DEFS.where(facet);
 
 /** Every mode as a descriptor array. */
-export const composerModes = (): ComposerModeDescriptor[] =>
-  COMPOSER_MODE_IDS.map((id) => COMPOSER_MODE_DEFS[id]);
+export const composerModes = (): ComposerModeEntry[] =>
+  COMPOSER_MODE_IDS.map((id) => COMPOSER_MODE_DEFS.get(id)!);
 
 /** Modes available under the given capabilities. */
 export const availableComposerModes = (
   capabilities: ReadonlySet<Capability>
-): ComposerModeDescriptor[] => composerModes().filter((mode) => capabilities.has(mode.capability));
+): ComposerModeEntry[] => composerModes().filter((mode) => capabilities.has(mode.capability));
 
 /** The mode the composer starts in; available in every composition with `language`. */
 export const DEFAULT_COMPOSER_MODE: ComposerMode = 'ask';
@@ -94,4 +134,4 @@ export function decomposeForMode(text: string, mode: ComposerMode): InputSegment
 }
 
 /** Back-compat alias. */
-export const COMPOSER_MODE_CATALOG = COMPOSER_MODE_DEFS;
+export const COMPOSER_MODE_CATALOG = COMPOSER_MODE_DEFS.definition;

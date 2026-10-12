@@ -21,6 +21,7 @@ import type {
   TruthValue,
 } from '@senars/core';
 import type { theme } from './theme.js';
+import { defineCatalog } from '../framework/catalog.js';
 
 /** The numeric/serialisable shapes a field can take, for input + axis selection. */
 export type FieldKind = 'number' | 'integer' | 'unit' | 'boolean' | 'string' | 'enum';
@@ -29,20 +30,6 @@ export type FieldKind = 'number' | 'integer' | 'unit' | 'boolean' | 'string' | '
 export type FieldCategory = 'telemetry' | 'cognitive' | 'node' | 'truth' | 'budget' | 'consumed';
 
 export type ThemeColor = keyof typeof theme.colors;
-
-export type FieldDescriptor = {
-  readonly label: string;
-  readonly kind: FieldKind;
-  /** Compact label for dense chrome (toolbars, legends); falls back to `label`. */
-  readonly short?: string;
-  readonly unit?: string;
-  readonly range?: readonly [number, number];
-  readonly precision?: number;
-  readonly description?: string;
-  /** Chart/series stroke color, as a `theme.colors` key. */
-  readonly color?: ThemeColor;
-  readonly options?: readonly string[];
-};
 
 type TelemetryField = keyof TelemetryMetrics;
 type CognitiveField = Exclude<keyof CognitiveMetricsData, 'goalUrgencyDistribution'>;
@@ -64,11 +51,11 @@ export type FieldId =
   | `budget.${BudgetScalarField}`
   | `node.${NodeMetricField}`;
 
-export const FIELD_CATALOG = {
+export const FIELD_CATALOG = defineCatalog({
   'telemetry.reasoning_hz': {
     label: 'Reasoning rate',
-    short: 'Hz',
     kind: 'number',
+    short: 'Hz',
     unit: 'Hz',
     precision: 1,
     description: 'Derivations produced per second',
@@ -76,8 +63,8 @@ export const FIELD_CATALOG = {
   },
   'telemetry.tokens_per_sec': {
     label: 'Tokens per second',
-    short: 'TPS',
     kind: 'number',
+    short: 'TPS',
     unit: 'tps',
     precision: 1,
     description: 'Language-model tokens produced per second',
@@ -85,8 +72,8 @@ export const FIELD_CATALOG = {
   },
   'telemetry.memory_mb': {
     label: 'Memory',
-    short: 'Mem',
     kind: 'number',
+    short: 'Mem',
     unit: 'MB',
     precision: 1,
     description: 'Resident memory in megabytes',
@@ -94,8 +81,8 @@ export const FIELD_CATALOG = {
   },
   'telemetry.ws_latency_ms': {
     label: 'Socket latency',
-    short: 'Lat',
     kind: 'number',
+    short: 'Lat',
     unit: 'ms',
     precision: 1,
     description: 'WebSocket round-trip latency in milliseconds',
@@ -135,14 +122,14 @@ export const FIELD_CATALOG = {
   'truth.frequency': {
     label: 'Frequency',
     kind: 'unit',
-    range: [0, 1],
+    range: [0, 1] as const,
     precision: 2,
     description: 'How often the belief holds, in NAL terms',
   },
   'truth.confidence': {
     label: 'Confidence',
     kind: 'unit',
-    range: [0, 1],
+    range: [0, 1] as const,
     precision: 3,
     description: 'How much evidence supports the belief, in NAL terms',
   },
@@ -220,15 +207,19 @@ export const FIELD_CATALOG = {
   'node.goalRelevance': {
     label: 'Goal Relevance',
     kind: 'unit',
-    range: [0, 1],
+    range: [0, 1] as const,
     precision: 2,
     description: 'How relevant the term is to active goals',
   },
-} satisfies Record<FieldId, FieldDescriptor>;
+} as const satisfies Record<FieldId, { label: string; kind: FieldKind; short?: string; unit?: string; range?: readonly [number, number]; precision?: number; description?: string; color?: ThemeColor }>);
 
-export const FIELD_IDS = Object.entries(FIELD_CATALOG).map(([id]) => id as FieldId);
+export const FIELD_IDS = FIELD_CATALOG.ids;
 
-export const fieldMeta = (id: FieldId): FieldDescriptor => FIELD_CATALOG[id];
+export type FieldEntry = typeof FIELD_CATALOG.definition[FieldId];
+
+export function fieldMeta<K extends FieldId>(id: K): typeof FIELD_CATALOG.definition[K] {
+  return FIELD_CATALOG.get(id)!;
+}
 
 export const fieldCategory = (id: FieldId): FieldCategory =>
   id.slice(0, id.indexOf('.')) as FieldCategory;
@@ -236,7 +227,7 @@ export const fieldCategory = (id: FieldId): FieldCategory =>
 export const fieldKey = (id: FieldId): string => id.slice(id.indexOf('.') + 1);
 
 export const fieldsByCategory = (category: FieldCategory): FieldId[] =>
-  FIELD_IDS.filter((id) => fieldCategory(id) === category);
+  FIELD_CATALOG.ids.filter((id) => fieldCategory(id) === category);
 
 export const TELEMETRY_FIELDS = fieldsByCategory('telemetry');
 export const COGNITIVE_FIELDS = fieldsByCategory('cognitive');
@@ -248,7 +239,8 @@ export const COGNITIVE_FIELDS = fieldsByCategory('cognitive');
  */
 export function formatField(id: FieldId, value: unknown): string {
   if (value === undefined || value === null) return '—';
-  const { kind, precision, unit } = fieldMeta(id);
+  const meta = fieldMeta(id) as FieldEntry & { precision?: number; unit?: string; kind: FieldKind };
+  const { kind, precision, unit } = meta;
   if (typeof value === 'number') {
     const decimals = precision ?? (kind === 'integer' ? 0 : 2);
     const text = value.toFixed(decimals);

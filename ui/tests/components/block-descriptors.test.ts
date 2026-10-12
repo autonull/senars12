@@ -31,7 +31,7 @@ describe('block descriptors', () => {
         'command', 'config-change', 'error', 'raw',
       ])
     );
-    expect(BLOCK_KINDS).toEqual(Object.keys(BLOCK_DESCRIPTORS));
+    expect(BLOCK_KINDS).toEqual(Object.keys(BLOCK_DESCRIPTORS.definition));
   });
 
   it('reads a descriptor by kind with a non-empty, distinct label', () => {

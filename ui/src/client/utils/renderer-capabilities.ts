@@ -24,8 +24,8 @@ export type RendererCapability = {
 
 /** The capability matrix, keyed by `RendererId` (derived from the catalog). */
 export const RENDERER_CAPABILITIES = {
-  '2d': RENDERER_DEFS['2d'].capabilities,
-  '3d': RENDERER_DEFS['3d'].capabilities,
+  '2d': RENDERER_DEFS.definition['2d'].capabilities,
+  '3d': RENDERER_DEFS.definition['3d'].capabilities,
 } as const satisfies Record<RendererId, RendererCapability>;
 
 export const supportsChannel = (

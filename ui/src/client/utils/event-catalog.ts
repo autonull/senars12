@@ -11,6 +11,7 @@
 
 import type { CognitiveEvent } from '@senars/core';
 import type { Shape } from '../core/view-spec.js';
+import { defineCatalog } from '../framework/catalog.js';
 
 /** Coarse grouping for filtering, narration tone and gallery/report sections. */
 export const EVENT_CATEGORIES = [
@@ -54,15 +55,7 @@ export type ProvenanceRole =
 /** Presentation shapes (§3.3). The view system owns the union; this is its event-side alias. */
 export type ViewShape = Shape;
 
-export type EventMeta = {
-  readonly label: string;
-  readonly category: EventCategory;
-  readonly severity: EventSeverity;
-  readonly provenanceRole: ProvenanceRole;
-  readonly shapes: readonly Shape[];
-};
-
-export const EVENT_CATALOG = {
+export const EVENT_CATALOG = defineCatalog({
   'input.user': {
     label: 'User input',
     category: 'input',
@@ -308,19 +301,21 @@ export const EVENT_CATALOG = {
     provenanceRole: 'verdict',
     shapes: ['graph', 'table', 'tree'],
   },
-} satisfies Record<CognitiveEvent['type'], EventMeta>;
+} as const satisfies Record<CognitiveEvent['type'], { label: string; category: EventCategory; severity: EventSeverity; provenanceRole: ProvenanceRole; shapes: readonly Shape[] }>);
 
-export type EventType = keyof typeof EVENT_CATALOG;
+export type EventType = keyof typeof EVENT_CATALOG.definition;
 
-export const EVENT_TYPES = Object.keys(EVENT_CATALOG) as EventType[];
+export const EVENT_TYPES = EVENT_CATALOG.ids;
 
-export const eventMeta = (type: EventType): EventMeta => EVENT_CATALOG[type];
+export type EventEntry = typeof EVENT_CATALOG.definition[EventType];
+
+export const eventMeta = (type: EventType): EventEntry => EVENT_CATALOG.get(type)!;
 
 export const eventsByCategory = (category: EventCategory): EventType[] =>
-  EVENT_TYPES.filter((type) => EVENT_CATALOG[type].category === category);
+  EVENT_CATALOG.ids.filter((id) => EVENT_CATALOG.get(id)!.category === category);
 
 export const eventsByShape = (shape: Shape): EventType[] =>
-  EVENT_TYPES.filter((type) => EVENT_CATALOG[type].shapes.some((candidate) => candidate === shape));
+  EVENT_CATALOG.ids.filter((id) => EVENT_CATALOG.get(id)!.shapes.some((candidate) => candidate === shape));
 
 export const eventsBySeverity = (severity: EventSeverity): EventType[] =>
-  EVENT_TYPES.filter((type) => EVENT_CATALOG[type].severity === severity);
+  EVENT_CATALOG.ids.filter((id) => EVENT_CATALOG.get(id)!.severity === severity);

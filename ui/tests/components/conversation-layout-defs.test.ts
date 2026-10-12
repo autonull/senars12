@@ -13,7 +13,7 @@ describe('conversation layout definitions (D2)', () => {
     expect(sorted(CONVERSATION_LAYOUT_IDS)).toEqual(
       sorted(['chronological-flow', 'semantic-map', 'artifact-map', 'source-view'])
     );
-    expect(CONVERSATION_LAYOUT_IDS).toEqual(Object.keys(CONVERSATION_LAYOUT_DEFS));
+    expect(CONVERSATION_LAYOUT_IDS).toEqual(Object.keys(CONVERSATION_LAYOUT_DEFS.definition));
   });
 
   it('reads a definition by id with a non-empty, distinct label', () => {

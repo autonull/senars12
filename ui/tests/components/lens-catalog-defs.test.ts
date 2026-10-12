@@ -11,7 +11,7 @@ const sorted = (ids: readonly string[]): string[] => [...ids].sort();
 describe('lens definitions (D3)', () => {
   it('derives LensId from the catalog keys (one source)', () => {
     expect(sorted(LENS_IDS)).toEqual(sorted(['belief', 'goal', 'contradiction', 'temporal']));
-    expect(LENS_IDS).toEqual(Object.keys(LENS_DEFS));
+    expect(LENS_IDS).toEqual(Object.keys(LENS_DEFS.definition));
   });
 
   it('reads a definition by id with a non-empty, distinct label', () => {

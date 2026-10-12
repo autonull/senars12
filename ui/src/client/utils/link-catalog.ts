@@ -9,6 +9,7 @@
 
 import type { BuiltinLens } from '../../shared/lens-schema.js';
 import type { SemanticLinkKind } from '../core/workspace-graph.js';
+import { defineCatalog } from '../framework/catalog.js';
 
 /** Coarse grouping for filtering, narration tone and gallery/report sections. */
 export const LINK_CATEGORIES = ['structure', 'discourse', 'evidence', 'action', 'provenance'] as const;
@@ -20,18 +21,7 @@ export type EdgeStyle = 'solid' | 'dashed' | 'dotted';
 /** How the notebook renders the relationship beside a block. */
 export type NotebookLinkStyle = 'inline' | 'chip' | 'trace' | 'reference';
 
-export type LinkMeta = {
-  readonly label: string;
-  readonly category: LinkCategory;
-  readonly edgeStyle: EdgeStyle;
-  readonly notebookStyle: NotebookLinkStyle;
-  /** `layoutRegistry` ids that feature this relationship (Phase 2/3 layouts). */
-  readonly layouts: readonly string[];
-  /** Built-in lenses that feature this relationship. */
-  readonly lenses: readonly BuiltinLens[];
-};
-
-export const LINK_CATALOG = {
+export const LINK_CATALOG = defineCatalog({
   contains: {
     label: 'contains',
     category: 'structure',
@@ -200,19 +190,39 @@ export const LINK_CATALOG = {
     layouts: ['semantic-map'],
     lenses: ['belief'],
   },
-} satisfies Record<SemanticLinkKind, LinkMeta>;
+} as const satisfies Record<SemanticLinkKind, { label: string; category: LinkCategory; edgeStyle: EdgeStyle; notebookStyle: NotebookLinkStyle; layouts: readonly string[]; lenses: readonly BuiltinLens[] }>);
 
-export type LinkKind = keyof typeof LINK_CATALOG;
+export type LinkKind = keyof typeof LINK_CATALOG.definition;
 
-export const LINK_KINDS = Object.keys(LINK_CATALOG) as SemanticLinkKind[];
+export const LINK_KINDS = LINK_CATALOG.ids;
 
-export const linkMeta = (kind: SemanticLinkKind): LinkMeta => LINK_CATALOG[kind];
+export type LinkEntry = typeof LINK_CATALOG.definition[LinkKind];
 
-export const linksByCategory = (category: LinkCategory): SemanticLinkKind[] =>
-  LINK_KINDS.filter((kind) => LINK_CATALOG[kind].category === category);
+export const linkMeta = (kind: SemanticLinkKind): LinkEntry => LINK_CATALOG.get(kind)!;
 
-export const linksByLayout = (layout: string): SemanticLinkKind[] =>
-  LINK_KINDS.filter((kind) => (LINK_CATALOG[kind] as LinkMeta).layouts.includes(layout));
+const getLinkEntry = (id: SemanticLinkKind): { category: LinkCategory; layouts: readonly string[]; lenses: readonly BuiltinLens[] } =>
+  LINK_CATALOG.get(id)! as { category: LinkCategory; layouts: readonly string[]; lenses: readonly BuiltinLens[] };
 
-export const linksByLens = (lens: BuiltinLens): SemanticLinkKind[] =>
-  LINK_KINDS.filter((kind) => (LINK_CATALOG[kind] as LinkMeta).lenses.includes(lens));
+export const linksByCategory = (category: LinkCategory): SemanticLinkKind[] => {
+  const result: SemanticLinkKind[] = [];
+  for (const id of LINK_CATALOG.ids) {
+    if (getLinkEntry(id).category === category) result.push(id);
+  }
+  return result;
+};
+
+export const linksByLayout = (layout: string): SemanticLinkKind[] => {
+  const result: SemanticLinkKind[] = [];
+  for (const id of LINK_CATALOG.ids) {
+    if (getLinkEntry(id).layouts.includes(layout)) result.push(id);
+  }
+  return result;
+};
+
+export const linksByLens = (lens: BuiltinLens): SemanticLinkKind[] => {
+  const result: SemanticLinkKind[] = [];
+  for (const id of LINK_CATALOG.ids) {
+    if (getLinkEntry(id).lenses.includes(lens)) result.push(id);
+  }
+  return result;
+};

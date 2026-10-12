@@ -16,7 +16,7 @@ describe('composer mode definitions (D7)', () => {
     expect(sorted(COMPOSER_MODE_IDS)).toEqual(
       sorted(['ask', 'reply', 'question', 'command', 'explain', 'demonstrate', 'transform', 'believe', 'goal', 'tool'])
     );
-    expect(COMPOSER_MODE_IDS).toEqual(Object.keys(COMPOSER_MODE_DEFS));
+    expect(COMPOSER_MODE_IDS).toEqual(Object.keys(COMPOSER_MODE_DEFS.definition));
   });
 
   it('reads a definition by id with a non-empty, distinct label', () => {

@@ -7,7 +7,7 @@
 
 import type { TelemetryData } from '../core/store.js';
 import type { SeriesDatum, TableDataset } from '../core/view-spec.js';
-import { fieldKey, fieldMeta, formatField, TELEMETRY_FIELDS } from './field-catalog.js';
+import { fieldKey, fieldMeta, formatField, TELEMETRY_FIELDS, type FieldEntry } from './field-catalog.js';
 import { theme } from './theme.js';
 
 export type TelemetryRange = '1m' | '5m' | '15m' | '1h';
@@ -42,10 +42,13 @@ export function telemetrySeries(
   const points = TELEMETRY_RANGE_POINTS[range];
   return TELEMETRY_FIELDS.filter((id) => visible.has(fieldKey(id))).map((id) => {
     const meta = fieldMeta(id);
+    // Type assertion needed because id is a union type from the array
+    const m = meta as FieldEntry & { short?: string; color?: keyof typeof theme.colors };
+    const colorKey = m.color ?? 'info';
     return {
       id,
-      label: meta.short ?? meta.label,
-      color: theme.colors[meta.color ?? 'info'],
+      label: m.short ?? m.label,
+      color: theme.colors[colorKey],
       values: slice(metricValues(data, fieldKey(id)), points),
     };
   });

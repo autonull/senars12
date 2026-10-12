@@ -20,56 +20,54 @@ import type {
   SemanticBlock,
   WorkspaceGraph,
 } from './workspace-graph.js';
+import { defineCatalog } from '../framework/catalog.js';
 
-export interface ConversationLayoutDescriptor {
-  /** Human label for palette and toolbar. */
-  readonly label: string;
+export interface ConversationLayoutFacets {
   /** Short description for tooltips. */
   readonly description: string;
   /** Per-layout UI state keys (B3) — future: which blocks are selected, etc. */
   readonly states?: readonly string[];
 }
 
-const d = (
-  label: string,
-  facets: Partial<Omit<ConversationLayoutDescriptor, 'label'>> = {}
-): ConversationLayoutDescriptor => ({
-  label,
-  description: '',
-  ...facets,
-});
+export type ConversationLayoutEntry = {
+  readonly label: string;
+} & ConversationLayoutFacets;
 
-export const CONVERSATION_LAYOUT_DEFS = {
-  'chronological-flow': d('Chronological flow', {
+export const CONVERSATION_LAYOUT_DEFS = defineCatalog({
+  'chronological-flow': {
+    label: 'Chronological flow',
     description: 'Conversation and events in document order, flowing column by column.',
-  }),
-  'semantic-map': d('Semantic map', {
+  },
+  'semantic-map': {
+    label: 'Semantic map',
     description: 'Claims clustered by same-topic links, remaining blocks grouped by kind.',
-  }),
-  'artifact-map': d('Artifact map', {
+  },
+  'artifact-map': {
+    label: 'Artifact map',
     description: 'Typed outputs at the centre, their conversational context around them.',
-  }),
-  'source-view': d('Source view', {
+  },
+  'source-view': {
+    label: 'Source view',
     description: 'One lane per source: user, LM, reasoner, tool, system.',
-  }),
-} as const satisfies Record<string, ConversationLayoutDescriptor>;
+  },
+} as const);
 
 /** The semantic id of a conversation layout — the catalog keys are its source (D2). */
-export type ConversationLayoutId = keyof typeof CONVERSATION_LAYOUT_DEFS;
+export type ConversationLayoutId = keyof typeof CONVERSATION_LAYOUT_DEFS.definition;
 
 /** Every layout id, in catalog order. */
-export const CONVERSATION_LAYOUT_IDS = Object.keys(CONVERSATION_LAYOUT_DEFS) as readonly ConversationLayoutId[];
+export const CONVERSATION_LAYOUT_IDS = CONVERSATION_LAYOUT_DEFS.ids;
 
-export const conversationLayoutDef = (id: ConversationLayoutId): ConversationLayoutDescriptor =>
-  CONVERSATION_LAYOUT_DEFS[id];
+export const conversationLayoutDef = (id: ConversationLayoutId): ConversationLayoutEntry =>
+  CONVERSATION_LAYOUT_DEFS.get(id)!;
 
 /** The layout ids a facet selects, in catalog order — the one way a partial set is read. */
 export const conversationLayoutIdsWhere = (
-  facet: (def: ConversationLayoutDescriptor) => boolean
-): ConversationLayoutId[] => CONVERSATION_LAYOUT_IDS.filter((id) => facet(CONVERSATION_LAYOUT_DEFS[id]));
+  facet: (def: ConversationLayoutEntry) => boolean
+): ConversationLayoutId[] => CONVERSATION_LAYOUT_DEFS.where(facet);
 
 /** Back-compat alias. */
-export const CONVERSATION_LAYOUT_CATALOG = CONVERSATION_LAYOUT_DEFS;
+export const CONVERSATION_LAYOUT_CATALOG = CONVERSATION_LAYOUT_DEFS.definition;
 
 export interface Point {
   x: number;

@@ -12,7 +12,7 @@
  * menu toggles; the Notebook renders; the substrate stays the authority.
  */
 
-import { linkMeta, type LinkCategory } from '../utils/link-catalog.js';
+import { linkMeta, type LinkCategory, type LinkEntry } from '../utils/link-catalog.js';
 import type { BuiltinLens } from '../../shared/lens-schema.js';
 import { tableFromColumns } from './artifacts.js';
 import { blockLabel } from './block-labels.js';
@@ -22,30 +22,17 @@ import { datasetIsEmpty } from './view-projection.js';
 import { viewSource } from './view-sources.js';
 import type { Shape, TableDataset, TreeDataset, TreeNode, ViewDataset, ViewSpec, ViewStates } from './view-spec.js';
 import { linksTouching, type Ref, type SemanticBlock, type WorkspaceGraph } from './workspace-graph.js';
+import { defineCatalog } from '../framework/catalog.js';
 
 /** The derived views a block can embed. */
 export type EmbeddedViewId = 'derivation' | 'contradiction' | 'topic';
 
-interface EmbeddedViewMeta {
-  readonly id: EmbeddedViewId;
-  readonly label: string;
-  /** The shape the dataset is native to, plus the alternates the host may offer. */
-  readonly shape: Shape;
-  readonly shapes: readonly Shape[];
-  /** Link categories the view draws from, unless it names a lens instead. */
-  readonly categories?: readonly LinkCategory[];
-  readonly lens?: BuiltinLens;
-  /** What the view shows when its dataset has nothing to render (§B3). */
-  readonly states: ViewStates;
-}
-
-export const EMBEDDED_VIEWS: Record<EmbeddedViewId, EmbeddedViewMeta> = {
+export const EMBEDDED_VIEWS = defineCatalog({
   derivation: {
-    id: 'derivation',
     label: 'Derivation',
-    shape: 'tree',
-    shapes: ['tree', 'text'],
-    categories: ['provenance'],
+    shape: 'tree' as Shape,
+    shapes: ['tree', 'text'] as const,
+    categories: ['provenance'] as const,
     states: {
       empty: {
         heading: 'Nothing derived this yet',
@@ -54,11 +41,10 @@ export const EMBEDDED_VIEWS: Record<EmbeddedViewId, EmbeddedViewMeta> = {
     },
   },
   contradiction: {
-    id: 'contradiction',
     label: 'Contradictions',
-    shape: 'table',
-    shapes: ['table', 'text'],
-    lens: 'contradiction',
+    shape: 'table' as Shape,
+    shapes: ['table', 'text'] as const,
+    lens: 'contradiction' as BuiltinLens,
     states: {
       empty: {
         heading: 'No contradictions',
@@ -67,11 +53,10 @@ export const EMBEDDED_VIEWS: Record<EmbeddedViewId, EmbeddedViewMeta> = {
     },
   },
   topic: {
-    id: 'topic',
     label: 'Topic neighborhood',
-    shape: 'table',
-    shapes: ['table', 'text'],
-    categories: ['discourse', 'structure', 'action', 'evidence'],
+    shape: 'table' as Shape,
+    shapes: ['table', 'text'] as const,
+    categories: ['discourse', 'structure', 'action', 'evidence'] as const,
     states: {
       empty: {
         heading: 'No related blocks',
@@ -79,18 +64,22 @@ export const EMBEDDED_VIEWS: Record<EmbeddedViewId, EmbeddedViewMeta> = {
       },
     },
   },
-};
+} as const);
 
-export const EMBEDDED_VIEW_IDS = Object.keys(EMBEDDED_VIEWS) as EmbeddedViewId[];
+export const EMBEDDED_VIEW_IDS = EMBEDDED_VIEWS.ids;
 
-export const embeddedViewMeta = (id: EmbeddedViewId): EmbeddedViewMeta => EMBEDDED_VIEWS[id];
+export type EmbeddedViewEntry = typeof EMBEDDED_VIEWS.definition[EmbeddedViewId];
+
+export const embeddedViewMeta = (id: EmbeddedViewId): EmbeddedViewEntry => EMBEDDED_VIEWS.get(id)!;
 
 /** Whether a link carries a view's relationship — through its lens, or its category. */
 const carries = (id: EmbeddedViewId, kind: Parameters<typeof linkMeta>[0]): boolean => {
-  const meta = EMBEDDED_VIEWS[id];
-  return meta.lens
-    ? linkMeta(kind).lenses.includes(meta.lens)
-    : (meta.categories ?? []).includes(linkMeta(kind).category);
+  const meta = EMBEDDED_VIEWS.get(id)!;
+  const m = meta as EmbeddedViewEntry & { lens?: BuiltinLens; categories?: readonly LinkCategory[] };
+  const link = linkMeta(kind) as LinkEntry & { lenses: readonly BuiltinLens[]; category: LinkCategory };
+  return m.lens
+    ? link.lenses.includes(m.lens)
+    : (m.categories ?? []).includes(link.category);
 };
 
 const labelOf = (graph: WorkspaceGraph, ref: Ref): string => {
@@ -216,7 +205,7 @@ export function embeddedViewSpec(block: SemanticBlock, id: EmbeddedViewId): View
   const specs = SPECS.get(block);
   const cached = specs?.get(id);
   if (cached) return cached;
-  const meta = EMBEDDED_VIEWS[id];
+  const meta = EMBEDDED_VIEWS.get(id)!;
   const spec: ViewSpec = {
     id: `embedded:${id}:${block.id}`,
     title: meta.label,

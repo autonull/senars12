@@ -12,13 +12,13 @@ import {
 describe('semantic link catalog', () => {
   it('gives every link kind exactly one complete row', () => {
     for (const kind of LINK_KINDS) {
-      const meta = LINK_CATALOG[kind];
+      const meta = LINK_CATALOG.definition[kind];
       expect(meta.label).toBeTruthy();
       expect(LINK_CATEGORIES).toContain(meta.category);
       expect(['solid', 'dashed', 'dotted']).toContain(meta.edgeStyle);
       expect(['inline', 'chip', 'trace', 'reference']).toContain(meta.notebookStyle);
     }
-    expect(Object.keys(LINK_CATALOG)).toHaveLength(LINK_KINDS.length);
+    expect(Object.keys(LINK_CATALOG.definition)).toHaveLength(LINK_KINDS.length);
   });
 
   it('partitions every kind into exactly one category', () => {

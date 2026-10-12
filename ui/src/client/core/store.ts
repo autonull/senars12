@@ -6,7 +6,7 @@ import { beliefLens, builtinLensModulations, compile } from '../modulation/compi
 import { timeGate } from '../modulation/composition.js';
 import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
-import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
+import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, LENS_DEFS, LENS_IDS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 import { CONVERSATION_LAYOUT_IDS } from './conversation-layout.js';
 import { GRAPH_LAYERS, type GraphLayer } from './graph-layer.js';
 import { isRegisteredLayoutId, type LayoutScope } from './layout-ids.js';
@@ -374,7 +374,7 @@ export function removeLens(id: string): void {
 }
 
 export function getLensIds(): string[] {
-  const ids: string[] = PRIMARY_LENSES.map((lens) => lens.id);
+  const ids: string[] = LENS_IDS.filter((id) => LENS_DEFS.get(id)?.primary ?? false);
   for (const id of $lensRegistry.get().keys()) {
     if (!ids.includes(id)) ids.push(id);
   }

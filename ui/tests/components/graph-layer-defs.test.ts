@@ -12,7 +12,7 @@ const sorted = (ids: readonly string[]): string[] => [...ids].sort();
 describe('graph layer definitions (D6)', () => {
   it('derives GraphLayer from the catalog keys (one source)', () => {
     expect(sorted(GRAPH_LAYERS)).toEqual(sorted(['both', 'conversation', 'concepts']));
-    expect(GRAPH_LAYERS).toEqual(Object.keys(GRAPH_LAYER_DEFS));
+    expect(GRAPH_LAYERS).toEqual(Object.keys(GRAPH_LAYER_DEFS.definition));
   });
 
   it('reads a definition by kind with a non-empty, distinct label', () => {
