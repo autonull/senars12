@@ -387,3 +387,29 @@ Root: `pnpm ui:gate` · `pnpm ui:verify`.
 *Successor to `TODO.ui.11.md`. v11 deepened the substrate; v12 makes the product usable
 by fixing the one thing v11 never built — the interaction loop — and by hiding, not
 deleting, everything that distracts from it.*
+
+---
+
+## Progress Log
+
+### P0.1 — control path wired server-side ✅ (guard added)
+The single defect the audit found is fixed at the source: the engine can now be steered.
+
+- `reasoning.submit | add-goal | step | run | abort` route to the engine in
+  `handleClientMessage` (`ui/src/server/index.ts`): submit → `believe | goal | question`
+  by mode; step → `run(1)`; run → `run(20)`; abort → `AbortController.abort()`.
+- `reasoning.abort` added to the wire protocol (`core/src/protocol/reasoning-control.ts`,
+  `unions.ts`) — it was previously rejected as `invalid_message`.
+- Every op replies with `reasoning.control.response { ok, message?, seqId }`.
+- `retract | revise | adjust-budget | adjust-provider` reply **honestly** `ok:false`
+  ("not yet wired") instead of pretending — the **no-lying-controls** rule.
+- Guard: `ui/tests/components/reasoning-control-protocol.test.ts` (every client control
+  message parses; the response is in the server union). Unit **745 → 747**.
+
+**Remaining for P0.1 (next):**
+- Client `makeControl` (`nars-backend.ts`) still returns optimistic `{ ok:true }`; await
+  the response.
+- Wire `retract | revise | adjust-budget | adjust-provider`, or set their `CAPS` false
+  (`nars-backend.ts:77-87`) so the UI stops advertising them.
+- The real proof is the golden-path e2e (P2): submit → node appears; step/run advances;
+  abort cancels.

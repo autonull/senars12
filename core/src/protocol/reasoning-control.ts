@@ -14,6 +14,7 @@ export const ReasoningSubmitMsg = msg('reasoning.submit', {
 });
 export const ReasoningStepMsg = msg('reasoning.step', {});
 export const ReasoningRunMsg = msg('reasoning.run', {});
+export const ReasoningAbortMsg = msg('reasoning.abort', {});
 export const ReasoningRetractMsg = msg('reasoning.retract', { nodeId: nonEmptyString });
 export const ReasoningReviseMsg = msg('reasoning.revise', {
   nodeId: nonEmptyString,
@@ -37,6 +38,7 @@ export const ReasoningControlResponse = msg('reasoning.control.response', {
 export type ReasoningSubmit = z.infer<typeof ReasoningSubmitMsg>;
 export type ReasoningStep = z.infer<typeof ReasoningStepMsg>;
 export type ReasoningRun = z.infer<typeof ReasoningRunMsg>;
+export type ReasoningAbort = z.infer<typeof ReasoningAbortMsg>;
 export type ReasoningRetract = z.infer<typeof ReasoningRetractMsg>;
 export type ReasoningRevise = z.infer<typeof ReasoningReviseMsg>;
 export type ReasoningAddGoal = z.infer<typeof ReasoningAddGoalMsg>;

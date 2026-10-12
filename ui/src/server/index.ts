@@ -52,7 +52,8 @@ type NarProcessorLike = {
 type NarLike = {
   believe?: (statement: string) => Promise<void>;
   goal?: (statement: string) => Promise<void>;
-  run?: (cycles: number) => unknown;
+  question?: (statement: string) => Promise<void>;
+  run?: (cycles: number, signal?: AbortSignal) => unknown;
   getBeliefs?: () => NarBelief[];
   getRevisionHistory?: (term: unknown) => RevisionEntry[];
   getLMClient?: () => {
@@ -81,6 +82,9 @@ const mimeTypes: Record<string, string> = {
   '.svg': 'image/svg+xml',
   '.wasm': 'application/wasm',
 };
+
+/** Bounded default for `reasoning.run` (the message carries no cycle count). */
+const DEFAULT_RUN_CYCLES = 20;
 
 const testState = {
   concepts: [] as Array<{ term: string; f: number; c: number }>,
@@ -639,6 +643,37 @@ function broadcastConfigSchema(): void {
     broadcastConfigSchema();
   }
 
+  /** The in-flight `reasoning.run`; a new run or an abort cancels it. */
+  let activeRun: AbortController | undefined;
+
+  function respondReasoning(ws: WebSocket, ok: boolean, message?: string): void {
+    if (ws.readyState !== WebSocket.OPEN) return;
+    const response: IncomingFromServer = {
+      type: 'reasoning.control.response',
+      ok,
+      message,
+      seqId: projection?.seq,
+    };
+    ws.send(JSON.stringify(response));
+  }
+
+  function runCycles(ws: WebSocket, cycles: number): void {
+    const engine = nar();
+    if (!engine?.run) {
+      respondReasoning(ws, false, 'Engine cannot run cycles');
+      return;
+    }
+    activeRun?.abort();
+    const controller = new AbortController();
+    activeRun = controller;
+    Promise.resolve(engine.run(cycles, controller.signal))
+      .then(() => respondReasoning(ws, true))
+      .catch((e: unknown) => respondReasoning(ws, false, (e as Error).message))
+      .finally(() => {
+        if (activeRun === controller) activeRun = undefined;
+      });
+  }
+
   function handleClientMessage(ws: WebSocket, msg: IncomingFromClient): void {
     switch (msg.type) {
       case 'chat.user':
@@ -691,6 +726,46 @@ function broadcastConfigSchema(): void {
         return;
       case 'lm.switch':
         applyLmSwitch(ws, msg.provider, msg.model);
+        return;
+      case 'reasoning.submit': {
+        const engine = nar();
+        const mode = msg.mode ?? 'belief';
+        const handler =
+          mode === 'goal' ? engine?.goal : mode === 'question' ? engine?.question : engine?.believe;
+        if (!engine || !handler) {
+          respondReasoning(ws, false, `Engine cannot accept ${mode} statements`);
+          return;
+        }
+        void handler.call(engine, msg.term);
+        respondReasoning(ws, true);
+        return;
+      }
+      case 'reasoning.add-goal': {
+        const engine = nar();
+        if (!engine?.goal) {
+          respondReasoning(ws, false, 'Engine cannot accept goals');
+          return;
+        }
+        void engine.goal(msg.term);
+        respondReasoning(ws, true);
+        return;
+      }
+      case 'reasoning.step':
+        runCycles(ws, 1);
+        return;
+      case 'reasoning.run':
+        runCycles(ws, DEFAULT_RUN_CYCLES);
+        return;
+      case 'reasoning.abort':
+        activeRun?.abort();
+        activeRun = undefined;
+        respondReasoning(ws, true);
+        return;
+      case 'reasoning.retract':
+      case 'reasoning.revise':
+      case 'reasoning.adjust-budget':
+      case 'reasoning.adjust-provider':
+        respondReasoning(ws, false, `${msg.type} is not yet wired to the engine`);
         return;
     }
   }
