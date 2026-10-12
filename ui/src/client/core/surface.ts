@@ -96,5 +96,19 @@ function snapshot(bindings: Readonly<Record<string, SurfaceSource>>): Record<str
  * descriptor, so a new surface is a descriptor + `renderBody`.
  *
  * Now built on `defineContribution` (E3) — the one registration HOC.
+ * 
+ * Backward compatible: if `placement` is omitted, defaults to 'overlay'.
  */
-export const defineSurface = createDefineTagged<SurfaceDescriptor>(surfaceRegistry, BaseComponent);
+function defineSurfaceImpl<T extends SurfaceDescriptor>(
+  descriptor: T,
+  ctor: DescribedClass
+): DescribedClass {
+  // Default placement to 'overlay' for backward compatibility
+  const fullDescriptor = {
+    ...descriptor,
+    placement: descriptor.placement ?? 'overlay',
+  } as T & { placement: SurfaceDescriptor['placement'] };
+  return createDefineTagged<SurfaceDescriptor>(surfaceRegistry, BaseComponent)(fullDescriptor, ctor);
+}
+
+export const defineSurface = defineSurfaceImpl;

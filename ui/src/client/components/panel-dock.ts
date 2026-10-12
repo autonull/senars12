@@ -3,6 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
 import { $panels, panelTabs, togglePanel, type PanelTab } from '../core/index.js';
 import { panelDef, type PanelKind } from '../core/panel-defs.js';
+import { panelSurface, panelSurfaces } from '../core/panel-defs.js';
 
 @customElement('panel-dock')
 export class PanelDock extends BaseComponent {
@@ -121,9 +122,12 @@ export class PanelDock extends BaseComponent {
     const panel = panels.get(tabId);
     if (!panel) return html``;
 
-    const def = panelDef(tabId as PanelKind);
+    // Try unified surface registry first, fall back to legacy panelDef
+    const surface = panelSurface(tabId);
+    const def = surface ? surface : panelDef(tabId as PanelKind);
     if (def) {
-      return html`<${def.component}></${def.component}>`;
+      const component = 'component' in def ? (def as any).component : (def as any).tag;
+      return html`<${component}></${component}>`;
     }
     return html``;
   }

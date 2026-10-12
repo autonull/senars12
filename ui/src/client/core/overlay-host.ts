@@ -5,11 +5,14 @@
  * Keeping creation here — not in each caller — is what lets every overlay share
  * the stacking/focus/dismissal contract and lets the shell be the only module
  * that touches overlay elements.
+ *
+ * Now reads from the unified surface registry (P2).
  */
 
 import { capabilityGate } from './capabilities.js';
 import { getOverlayManager, OverlayManager } from './overlay-manager.js';
 import { overlayDescriptor, type OverlayDescriptor } from './overlay-registry.js';
+import { surfaceFor, type SurfaceDescriptor, resolvedPresentation } from '../framework/surface.js';
 
 export interface OpenOverlayOptions {
   /** Element focus returns to when the overlay closes. */
@@ -30,9 +33,11 @@ export class OverlayHost {
 
   /** Open a registered overlay by id. Returns whether the id was known. */
   open(id: string, { anchor, ref }: OpenOverlayOptions = {}): boolean {
-    const descriptor = overlayDescriptor(id);
+    // Try unified registry first, fall back to legacy
+    const surface = surfaceFor(id);
+    const descriptor = surface ? toOverlayDescriptor(surface) : overlayDescriptor(id);
     if (!descriptor) return false;
-    if (descriptor.capability && !capabilityGate(descriptor.capability)) return false;
+    if (descriptor.capability && !capabilityGate(descriptor.capability as any)) return false;
     const element = this.#element(descriptor);
     if (ref !== undefined) (element as { ref?: string }).ref = ref;
     const focused = this.#container.ownerDocument.activeElement as HTMLElement | null;
@@ -40,9 +45,6 @@ export class OverlayHost {
       id,
       element,
       title: descriptor.title,
-      // Callers may name an anchor (a HUD button); otherwise return focus to
-      // whatever held it when the overlay opened, so graph/shortcut triggers
-      // restore correctly without each caller knowing the focused element.
       anchor: anchor ?? focused ?? undefined,
       modal: descriptor.modal,
       autoFocus: descriptor.autoFocus,
@@ -123,4 +125,22 @@ export class OverlayHost {
     this.#elements.set(descriptor.id, element);
     return element;
   }
+}
+
+/** Convert a unified SurfaceDescriptor to a legacy OverlayDescriptor. */
+function toOverlayDescriptor(surface: SurfaceDescriptor): OverlayDescriptor {
+  const p = resolvedPresentation(surface);
+  return {
+    id: surface.id,
+    label: surface.label,
+    icon: surface.icon,
+    title: surface.title,
+    tag: surface.tag ?? `s-${surface.id}`,
+    modal: p.modal,
+    autoFocus: p.autoFocus,
+    hiddenInPalette: p.hiddenInPalette,
+    capability: (surface as SurfaceDescriptor & { capability?: OverlayDescriptor['capability'] }).capability as OverlayDescriptor['capability'],
+    window: p.window as OverlayDescriptor['window'] | undefined,
+    group: surface.group,
+  };
 }

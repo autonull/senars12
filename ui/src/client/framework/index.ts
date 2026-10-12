@@ -1,7 +1,7 @@
 /**
  * Framework — the shared substrate every app composes from.
  *
- * This re-exports the contribution + catalog primitives. Individual
+ * This re-exports the contribution + catalog + surface primitives. Individual
  * catalogs live in their domain modules (renderers, panels, blocks,
  * layers, lenses, events, fields, links, composer modes, embedded views).
  */
@@ -21,6 +21,15 @@ export type {
   FacetsOf,
 } from './catalog.js';
 
+export type {
+  SurfaceDescriptor,
+  Placement,
+  Presentation,
+  SurfaceBinding,
+  SurfaceSource,
+  SurfaceA11y,
+} from './surface.js';
+
 export {
   createContribution,
   registerContribution,
@@ -31,3 +40,17 @@ export {
   defineCatalog,
   catalogFromContributions,
 } from './catalog.js';
+
+export {
+  surfaceRegistry,
+  registerSurface,
+  surfaceFor,
+  getSurfaces,
+  surfacesWhere,
+  surfaceIdsWhere,
+  surfacesByPlacement,
+  surfaceIdsByPlacement,
+  surfaceTag,
+  defaultPresentation,
+  resolvedPresentation,
+} from './surface.js';

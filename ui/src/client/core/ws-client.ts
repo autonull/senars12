@@ -1,6 +1,7 @@
 import { IncomingFromServer, type IncomingFromServer as IncomingMessage } from '@senars/core/protocol';
 import { $connectionState, $lastSeqId, atom } from './store.js';
 import { applyServerMessage } from './store-bindings.js';
+import { registerAllSurfaces } from './surface-registration.js';
 
 function resolveWsUrl(): string {
   if (typeof location === 'undefined') return 'ws://localhost/ws';
@@ -35,7 +36,13 @@ function dropExpired(now: number): void {
   pendingMessages = pendingMessages.filter((entry) => now - entry.at < PENDING_TTL_MS);
 }
 
+let surfacesRegistered = false;
+
 export function connect(): void {
+  if (!surfacesRegistered) {
+    registerAllSurfaces();
+    surfacesRegistered = true;
+  }
   $connectionState.set(socket ? 'reconnecting' : 'connecting');
   const ws = new WebSocket(resolveWsUrl());
   socket = ws;

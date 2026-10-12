@@ -384,7 +384,7 @@ export class NotebookView extends SurfaceComponent {
 }
 
 defineSurface(
-  { id: 'notebook', title: 'Notebook', group: 'workspace', bindings: { graph: $workspaceGraph } },
+  { id: 'notebook', title: 'Notebook', group: 'workspace', placement: 'viewport', bindings: { graph: $workspaceGraph } },
   NotebookView
 );
 

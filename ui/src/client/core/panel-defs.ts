@@ -1,16 +1,64 @@
 /**
- * The one definition per `PanelKind` (Tracks E1–E3): every facet a panel kind
- * carries — its label, icon, default dock/size/order, and the custom-element tag
- * that renders it — lives on one record, so a kind cannot drift across the
- * hardcoded switch in `panel-dock.ts`, the command palette, the graph toolbar,
- * and the default state map in `store.ts`. The catalog is the source of the
- * `PanelKind` union (E1): `keyof typeof PANEL_DEFS`, so adding a panel is one
- * entry and no hand union to edit.
+ * Panel definitions — now a view onto the unified surface registry (P2).
+ *
+ * A panel is a surface with `placement: 'panel'`. This module provides
+ * backward-compatible APIs while the unified registry is the single source.
  */
 
+import {
+  surfaceRegistry,
+  registerSurface,
+  surfaceFor,
+  getSurfaces,
+  surfacesByPlacement,
+  surfaceIdsByPlacement,
+  type SurfaceDescriptor,
+  type Placement,
+  type Presentation,
+} from '../framework/surface.js';
 import { defineCatalog } from '../framework/catalog.js';
 
-export const PANEL_DEFS = defineCatalog({
+/** Panel-specific presentation options (subset of unified Presentation). */
+export interface PanelPresentation extends Presentation {
+  readonly dock: 'left' | 'right' | 'bottom' | 'float';
+  readonly size: number;
+  readonly order: number;
+  readonly defaultOpen?: boolean;
+  readonly component: string;
+}
+
+/** Backward-compatible panel entry. */
+export interface PanelEntry {
+  readonly label: string;
+  readonly icon: string;
+  readonly defaultDock: 'left' | 'right' | 'bottom' | 'float';
+  readonly defaultSize: number;
+  readonly order: number;
+  readonly component: string;
+  readonly defaultOpen?: boolean;
+}
+
+/** Convert a legacy PanelEntry to a unified SurfaceDescriptor. */
+function toSurfaceDescriptor(id: string, entry: PanelEntry): SurfaceDescriptor {
+  return {
+    id,
+    title: entry.label,
+    label: entry.label,
+    icon: entry.icon,
+    tag: entry.component,
+    placement: 'panel' as Placement,
+    presentation: {
+      dock: entry.defaultDock,
+      size: entry.defaultSize,
+      order: entry.order,
+      defaultOpen: entry.defaultOpen,
+      component: entry.component,
+    } as PanelPresentation,
+  };
+}
+
+/** The panel catalog definition (backward-compatible shape). */
+const PANEL_CATALOG_DEFINITION = {
   search: {
     label: 'Search',
     icon: 'search',
@@ -47,18 +95,43 @@ export const PANEL_DEFS = defineCatalog({
     component: 'split-panel',
     defaultOpen: false,
   },
-} as const);
+} as const;
 
-/** The semantic kind of a panel — the catalog keys are its source (E1). */
+/** Backward-compatible catalog using defineCatalog. */
+export const PANEL_DEFS = defineCatalog(PANEL_CATALOG_DEFINITION);
+
+/** The semantic kind of a panel — the catalog keys are its source. */
 export type PanelKind = keyof typeof PANEL_DEFS.definition;
 
 /** Every panel kind, in catalog order. */
 export const PANEL_KINDS = PANEL_DEFS.ids;
 
-export type PanelEntry = typeof PANEL_DEFS.definition[PanelKind];
+export type PanelEntryType = typeof PANEL_DEFS.definition[PanelKind];
 
-export const panelDef = (kind: PanelKind): PanelEntry => PANEL_DEFS.get(kind);
+export const panelDef = (kind: PanelKind): PanelEntryType => PANEL_DEFS.get(kind);
 
 /** The kinds a facet selects, in catalog order — the one way a partial set is read. */
-export const panelKindsWhere = (facet: (def: PanelEntry) => boolean): PanelKind[] =>
+export const panelKindsWhere = (facet: (def: PanelEntryType) => boolean): PanelKind[] =>
   PANEL_DEFS.where(facet);
+
+/** Register all panels into the unified surface registry. */
+export function registerPanels(): void {
+  for (const [id, entry] of Object.entries(PANEL_CATALOG_DEFINITION)) {
+    registerSurface(toSurfaceDescriptor(id, entry));
+  }
+}
+
+/** Get a panel as a unified surface descriptor. */
+export const panelSurface = (id: string): SurfaceDescriptor | undefined => {
+  const surface = surfaceFor(id);
+  if (!surface || surface.placement !== 'panel') return undefined;
+  return surface;
+};
+
+/** All panel surfaces from the unified registry. */
+export const panelSurfaces = (): readonly SurfaceDescriptor[] =>
+  surfacesByPlacement('panel');
+
+/** Re-export the unified registry for new code. */
+export { surfaceRegistry, registerSurface, surfaceFor, getSurfaces, surfacesByPlacement, surfaceIdsByPlacement };
+export type { SurfaceDescriptor, Placement, Presentation };

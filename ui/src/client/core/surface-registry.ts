@@ -4,64 +4,54 @@
  * gallery cells, a11y targets, docs) without importing a `LitElement`. The
  * component half (`surface.ts`) registers here when `defineSurface` runs.
  *
- * Now built on `createRegistry` (E2) — the generic registry shape.
+ * Re-exports from the unified framework surface (P2) while maintaining
+ * backward compatibility with the existing descriptor shape.
  */
 
-import { createIdRegistry, type Registry } from './registry.js';
-import type { Contribution } from './contribution.js';
+import {
+  surfaceRegistry,
+  registerSurface,
+  surfaceFor,
+  getSurfaces,
+  surfacesWhere,
+  surfaceIdsWhere,
+  surfacesByPlacement,
+  surfaceIdsByPlacement,
+  surfaceTag,
+  defaultPresentation,
+  resolvedPresentation,
+  type SurfaceDescriptor as FrameworkSurfaceDescriptor,
+  type Placement,
+  type Presentation,
+  type SurfaceBinding,
+  type SurfaceSource,
+  type SurfaceA11y,
+  type SurfaceBase,
+} from '../framework/surface.js';
 
-/** A readable the surface renders. */
-export interface SurfaceSource {
-  get(): unknown;
-}
+/** @deprecated Use the unified Placement from framework/surface.ts */
+export type { Placement, Presentation, SurfaceBinding, SurfaceSource, SurfaceA11y, SurfaceBase };
 
-/** A readable that also notifies on change — what the surface lifecycle watches. */
-export interface SurfaceBinding extends SurfaceSource {
-  subscribe(fn: () => void): () => void;
-}
+/** Backward-compatible surface descriptor with placement + presentation. */
+export interface SurfaceDescriptor extends FrameworkSurfaceDescriptor {}
 
-/** The accessibility a surface declares, so the codegen/story/gate read one source. */
-export interface SurfaceA11y {
-  /** ARIA role of the surface root (default `region`). */
-  role?: string;
-  /** Accessible name (default the descriptor label). */
-  label?: string;
-  /** Whether the surface is reachable by keyboard; opting out needs a reason. */
-  keyboard?: boolean;
-  /** Why keyboard access is not provided, when `keyboard` is false. */
-  keyboardReason?: string;
-}
-
-export interface SurfaceDescriptor {
-  /** Stable flat id: the test-API namespace and, by default, the element suffix. */
-  id: string;
-  /** Human label for palettes, toolbar. */
-  label?: string;
-  /** Icon name for tabs, toolbar (matches `s-icon` names). */
-  icon?: string;
-  /** Human title for palettes, stories and docs. */
-  title: string;
-  /** Explicit custom-element tag when the surface predates this contract. */
-  tag?: string;
-  /** Contact-sheet / palette grouping. */
-  group?: string;
-  /** The data the surface renders: watched on change and snapshotted by its reflective API. */
-  bindings?: Readonly<Record<string, SurfaceBinding>>;
-  /** The surface's accessibility contract (role, name, keyboard path). */
-  a11y?: SurfaceA11y;
-}
-
-/** The generic surface registry. */
-export const surfaceRegistry: Registry<string, SurfaceDescriptor> = createIdRegistry();
-
-export const registerSurface = (descriptor: SurfaceDescriptor): void => {
-  surfaceRegistry.register(descriptor);
-};
+/** The generic surface registry (unified). */
+export { surfaceRegistry, registerSurface, surfaceFor };
 
 /** Every registered surface, in registration order. */
-export const getSurfaces = (): readonly SurfaceDescriptor[] => surfaceRegistry.all();
+export { getSurfaces };
 
-export const surfaceFor = (id: string): SurfaceDescriptor | undefined => surfaceRegistry.get(id);
+/** Filter surfaces by a predicate on the descriptor. */
+export { surfacesWhere, surfaceIdsWhere };
 
-export const surfaceTag = (descriptor: SurfaceDescriptor): string =>
-  descriptor.tag ?? `s-${descriptor.id}`;
+/** Get surfaces by placement. */
+export { surfacesByPlacement, surfaceIdsByPlacement };
+
+/** Compute the custom-element tag for a surface. */
+export { surfaceTag };
+
+/** Default presentation for a placement. */
+export { defaultPresentation };
+
+/** Merge a descriptor's presentation with placement defaults. */
+export { resolvedPresentation };

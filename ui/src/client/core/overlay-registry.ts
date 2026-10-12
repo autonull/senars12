@@ -1,19 +1,26 @@
 /**
- * The overlay registry (§1, Phase 1.5). An overlay is an ordinary surface
- * (descriptor + element) the shell mounts lazily into the overlay host and opens
- * through the one `OverlayManager`. The registry is data, so the palette,
- * shortcuts and tests can enumerate overlays without importing their elements;
- * `modal` marks the ones that capture the background.
+ * The overlay registry — now a view onto the unified surface registry (P2).
  *
- * Window options (§overlay-windows): opt-in window chrome — draggable header,
- * resizable grip, minimize/maximize buttons, sessionStorage persistence of bounds.
- *
- * Now built on `createRegistry` (E2) — the generic registry shape.
+ * An overlay is a surface with `placement: 'overlay'`. This module provides
+ * backward-compatible APIs while the unified registry is the single source.
  */
 
-import { createIdRegistry, type Registry } from './registry.js';
 import type { Capability } from './capabilities.js';
+import {
+  surfaceRegistry,
+  registerSurface,
+  surfaceFor,
+  getSurfaces,
+  surfacesByPlacement,
+  surfaceIdsByPlacement,
+  type SurfaceDescriptor,
+  type Presentation,
+  type Placement,
+  type SurfaceA11y,
+} from '../framework/surface.js';
+import { createIdRegistry, type Registry } from './registry.js';
 
+/** Window chrome options for overlay placement. */
 export interface OverlayWindowOptions {
   /** Enable drag-to-reposition via header drag-handle. */
   readonly draggable?: boolean;
@@ -25,6 +32,15 @@ export interface OverlayWindowOptions {
   readonly persist?: boolean;
 }
 
+/** Overlay-specific presentation options (subset of unified Presentation). */
+export interface OverlayPresentation extends Presentation {
+  readonly modal?: boolean;
+  readonly autoFocus?: boolean;
+  readonly hiddenInPalette?: boolean;
+  readonly window?: OverlayWindowOptions;
+}
+
+/** Backward-compatible overlay descriptor. */
 export interface OverlayDescriptor {
   /** Stable flat id. */
   readonly id: string;
@@ -36,27 +52,95 @@ export interface OverlayDescriptor {
   readonly title: string;
   /** Custom-element tag that implements the overlay. */
   readonly tag: string;
-  /** A modal captures the background: outside-click is ignored. */
+  /** @deprecated Use presentation.modal */
   readonly modal?: boolean;
-  /** Focus the first focusable on open. Off for popovers that follow live selection. */
+  /** @deprecated Use presentation.autoFocus */
   readonly autoFocus?: boolean;
-  /** Keep the overlay out of the command palette (e.g. the palette itself). */
+  /** @deprecated Use presentation.hiddenInPalette */
   readonly hiddenInPalette?: boolean;
   /** Capability required to offer or open the overlay; unmet => hidden/refused. */
   readonly capability?: Capability;
-  /** Window chrome options: draggable, resizable, minimize, persist. */
+  /** @deprecated Use presentation.window */
   readonly window?: OverlayWindowOptions;
   /** Contact-sheet / palette grouping. */
   readonly group?: string;
+  /** Accessibility contract (role, name, keyboard path). */
+  readonly a11y?: SurfaceA11y;
 }
 
-/** The generic overlay registry. */
-export const overlayRegistry: Registry<string, OverlayDescriptor> = createIdRegistry();
+/** Convert a legacy OverlayDescriptor to a unified SurfaceDescriptor. */
+function toSurfaceDescriptor(descriptor: OverlayDescriptor): SurfaceDescriptor {
+  // Preserve a11y from existing surface if already registered (e.g. via defineSurface)
+  const existing = surfaceFor(descriptor.id);
+  const { modal, autoFocus, hiddenInPalette, window, tag, ...rest } = descriptor;
+  return {
+    ...rest,
+    id: descriptor.id,
+    title: descriptor.title,
+    tag: descriptor.tag,
+    placement: 'overlay' as Placement,
+    a11y: descriptor.a11y ?? existing?.a11y,
+    presentation: {
+      modal,
+      autoFocus,
+      hiddenInPalette,
+      window,
+    } as OverlayPresentation,
+  };
+}
 
+/** Register an overlay (stores as a surface with placement='overlay'). */
 export const registerOverlay = (descriptor: OverlayDescriptor): void => {
-  overlayRegistry.register(descriptor);
+  const existing = surfaceFor(descriptor.id);
+  const surfaceDescriptor = toSurfaceDescriptor(descriptor);
+  // Merge presentation with existing surface if it exists
+  if (existing) {
+    registerSurface({
+      ...existing,
+      ...surfaceDescriptor,
+      presentation: {
+        ...existing.presentation,
+        ...surfaceDescriptor.presentation,
+      },
+      a11y: existing.a11y ?? surfaceDescriptor.a11y,
+    });
+  } else {
+    registerSurface(surfaceDescriptor);
+  }
 };
 
-export const overlayDescriptor = (id: string): OverlayDescriptor | undefined => overlayRegistry.get(id);
+/** Get an overlay descriptor by id (converted from surface). */
+export const overlayDescriptor = (id: string): OverlayDescriptor | undefined => {
+  const surface = surfaceFor(id);
+  if (!surface || surface.placement !== 'overlay') return undefined;
+  return fromSurfaceDescriptor(surface);
+};
 
-export const overlays = (): readonly OverlayDescriptor[] => overlayRegistry.all();
+/** All overlay descriptors (filtered from unified registry). */
+export const overlays = (): readonly OverlayDescriptor[] =>
+  surfacesByPlacement('overlay').map(fromSurfaceDescriptor);
+
+/** Convert a unified SurfaceDescriptor to a legacy OverlayDescriptor. */
+function fromSurfaceDescriptor(surface: SurfaceDescriptor): OverlayDescriptor {
+  const p = surface.presentation as OverlayPresentation | undefined;
+  return {
+    id: surface.id,
+    label: surface.label,
+    icon: surface.icon,
+    title: surface.title,
+    tag: surface.tag ?? `s-${surface.id}`,
+    modal: p?.modal,
+    autoFocus: p?.autoFocus,
+    hiddenInPalette: p?.hiddenInPalette,
+    capability: (surface as SurfaceDescriptor & { capability?: Capability }).capability,
+    window: p?.window as OverlayWindowOptions | undefined,
+    group: surface.group,
+  };
+}
+
+/** Backward-compatible overlay registry (wraps unified surface registry). */
+export const overlayRegistry: Registry<string, OverlayDescriptor> = createIdRegistry();
+
+/** Re-export the unified registry for new code. */
+export { surfaceRegistry, registerSurface, surfaceFor, getSurfaces, surfacesByPlacement, surfaceIdsByPlacement };
+export type { SurfaceDescriptor, Placement, Presentation };

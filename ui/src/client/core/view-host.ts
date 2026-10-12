@@ -179,7 +179,7 @@ export class ViewHost extends SurfaceComponent {
   }
 }
 
-defineSurface({ id: 'view', title: 'View', group: 'Views' }, ViewHost);
+defineSurface({ id: 'view', title: 'View', group: 'Views', placement: 'viewport' }, ViewHost);
 
 declare global {
   interface HTMLElementTagNameMap {

@@ -441,6 +441,7 @@ registerOverlay({
   tag: surfaceTag(TOOL_APPROVAL_SURFACE),
   modal: true,
   hiddenInPalette: true,
+  a11y: TOOL_APPROVAL_SURFACE.a11y,
 });
 
 declare global {

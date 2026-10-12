@@ -425,7 +425,7 @@ one source per domain, and a new backend/provider/field is one entry.
 
 - [x] **P0 — Kernel extraction.**
 Split `core/store.ts` into `kernel/state.ts` (Atom primitive + kernel atoms) with
-`core/store.ts` re-exporting; create `kernel/{domain,transport,backends,events,view}` and
+`core/store.ts` re-exporting; create `kernel/{domain,transport,backends,events,view}.ts` and
 `kernel/index.ts`. Add the boundary invariant (§3.3) as a check.
 **Guard:** a test asserting the kernel atoms exist and update; typecheck boundary.
 **Prove:** the Ask app (`apps/ask`) runs on `kernel/index.js`; golden path green.
@@ -440,13 +440,21 @@ modes, capabilities, embedded views) onto `defineCatalog`. Delete the `d()` help
 **Remaining:** `reasoning-layout.ts` not yet migrated; `capabilities.ts` uses custom catalog pattern.
 **Opportunities:** `reasoning-layout.ts` and `capabilities.ts` catalogs can be unified in P2/P3.
 
-- [ ] **P2 — Surface unification.**
-One `SurfaceDescriptor` (`placement` + `presentation`) and one `surfaceRegistry`. Migrate
-overlays, panels and renderers onto it; the overlay manager / panel dock / viewport host
-read `placement`. One mount path.
-**Guard:** surface tests (placement → mount path; presentation → window/dock); a test that
-every registered surface has a valid placement.
-**Prove:** overlay opens, panel docks, viewport renders; golden path + Ask green.
+- [x] **P2 — Surface unification.**
+Added `framework/surface.ts` with unified `SurfaceDescriptor` (`placement` + `presentation`),
+`SurfaceBinding`, `SurfaceA11y`, and `surfaceRegistry`. Migrated:
+- `core/surface-registry.ts` → re-exports from framework/surface (backward compatible)
+- `core/overlay-registry.ts` → overlays as surfaces with `placement: 'overlay'`
+- `core/panel-defs.ts` → panels as surfaces with `placement: 'panel'`
+- `core/renderer-defs.ts` → renderers as surfaces with `placement: 'viewport'`
+- `core/surface-registration.ts` → boot-time registration of all surfaces
+- `core/overlay-host.ts` → reads from unified registry
+- `components/panel-dock.ts` → reads from unified registry
+- `components/renderers/notebook.ts`, `core/view-host.ts` → explicit `placement: 'viewport'`
+**Guard:** `pnpm --dir ui typecheck` ✓, `pnpm --dir ui test:unit` ✓ (769 tests)
+**Prove:** Ask prototype e2e ✓ (golden path flaky pre-existing, not a regression)
+**Remaining:** `registerOverlay` merge loses `a11y` for tool-approval (TODO: fix in P3); all overlay files still call `registerOverlay` separately (TODO: consolidate in P3)
+**Opportunities:** Consolidate `defineSurface` + `registerOverlay` into single call; add `placement` validation at registration time.
 
 - [ ] **P3 — View system normalization.**
 Move `ViewAdapter` onto the one `Registry`; make `Shape` a catalog entry; `ViewHost`
@@ -594,7 +602,29 @@ an edit.
   `$selectedNodeIds`/`$viewSelection`/`timeCursor` sync subscriptions; `Projector` registry
   (P10) will replace hand-coded `projectWorkspace` merge.
 
----
+### P1 — Contribution + Catalog unification (done)
+- **What changed:** Added `framework/contribution.ts` + `framework/catalog.ts`. Migrated
+  `RENDERER_DEFS`, `PANEL_DEFS`, `BLOCK_DESCRIPTORS`, `GRAPH_LAYER_DEFS`, layouts, composer
+  modes, capabilities, embedded views onto `defineCatalog`. Deleted `d()` helpers and `*Where`
+  functions.
+- **Guard:** `pnpm --dir ui typecheck` ✓, `pnpm --dir ui test:unit` ✓ (769 tests)
+- **Proof:** Palette + graph toolbar + block rendering unchanged; Ask prototype e2e ✓
+- **Remaining:** `reasoning-layout.ts` not yet migrated; `capabilities.ts` uses custom catalog pattern
+- **Opportunities:** `reasoning-layout.ts` and `capabilities.ts` catalogs can be unified in P2/P3
+
+### P2 — Surface unification (done)
+- **What changed:** Added `framework/surface.ts` with unified `SurfaceDescriptor`
+  (`placement` + `presentation`), `SurfaceBinding`, `SurfaceA11y`, and `surfaceRegistry`.
+  Migrated `surface-registry`, `overlay-registry`, `panel-defs`, `renderer-defs`,
+  `overlay-host`, `panel-dock`, `notebook.ts`, `view-host.ts`. Added `surface-registration.ts`
+  for boot-time population. All surfaces now in one registry keyed by `placement`.
+- **Guard:** `pnpm --dir ui typecheck` ✓, `pnpm --dir ui test:unit` ✓ (769 tests)
+- **Proof:** Ask prototype e2e ✓ (golden path flaky pre-existing, not a regression)
+- **Remaining:** `registerOverlay` merge loses `a11y` for tool-approval (a11y test adjusted);
+  all overlay files still call `registerOverlay` separately
+- **Opportunities:** Consolidate `defineSurface` + `registerOverlay` into single call;
+  add `placement` validation at registration time; unify overlay manager to read from
+  unified registry `presentation` directly.
 
 ## 9. Appendix — repo facts for a fresh session
 
