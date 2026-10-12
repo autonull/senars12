@@ -421,8 +421,9 @@ deleting, everything that distracts from it.*
 - [x] **P0 facade** — mount `connection-banner`; fix composer CTA (`bottom-bar.focusInput`);
       wire `s-tool-approval`; palette honesty (no-ref entries); fix `graph-legend`;
       drop no-op messages (`viewport.set`, `node.set`, `config.reset`)
-- [ ] **P1 why** — expose `askWithDerivation`/`derivation.record`; a **"Why?"** on every
-      answer (one click, no modifier); `terminationReason` as a first-class field
+- [ ] **P1 why** — **"Why?"** on every answered claim (one click, no modifier) ✅ (guard added);
+      still to do: expose `nar.askWithDerivation` over WS (question → answer + proof in one
+      op) and surface `terminationReason` as a first-class field
 - [ ] **P1 state** — goals/questions surface; gate verdicts surface; run/step/pause/abort in chrome
 - [ ] **P1 hide** — the L0–L3 disclosure ladder + view presets; disclose advanced; collapse
       duplicate composers (reachability removed, files kept)
@@ -540,6 +541,43 @@ Every visible affordance now works or is gone; the dead wiring is cut.
   `config.reset`; remove it or make one reset-category control use it.
 - Viewport is now purely client-local (no `viewport.set`); re-add a message deliberately
   if per-client viewport persistence to the server is ever wanted.
+
+### P1 why — one-click "Why?" on an answer ✅ (guard added)
+The proof tree is now one click from any answered claim — no dblclick, no ⌥, no ref.
+
+- **The data was already exposed over WS.** The `derivation.record` proof tree (rule,
+  premises, premise truths, `evidenceLineage`, `independence`, `finalTruth`) rides
+  `cognitive.events` (server drains the recorder every 2 s → `projectDerivationRecords`
+  mints `derivation-record` blocks with `derived-from` links to premise/conclusion
+  blocks). What was missing was the *lookup* and a *primary* affordance.
+- **`derivationsFor(graph, ref)`** (`workspace-projection.ts`): the pure "why" lookup —
+  the `derivation-record` blocks a `derived-from` link reaches from a block. Empty when
+  no derivation was recorded, so the affordance can hide rather than lie.
+- **"Why?" button** in `node-detail-drawer` Overview, shown only when `derivationsFor`
+  is non-empty. It opens the existing `explain` overlay on the derivation-record ref,
+  whose body renders the full proof tree (`renderBlockBody` → `derivationRecordTree`).
+- Guard: `ui/tests/components/why-affordance.test.ts` (finds the record; hides when
+  none; ignores a non-record target; ignores a non-`derived-from` kind). Unit
+  **755 → 759**.
+
+**Remaining for P1 why (done ≠ complete):**
+- **`nar.askWithDerivation` over WS is not wired.** The trust flow works from records the
+  engine already emits, but there is no single op that asks a question and returns the
+  answer *with its verified derivation linked back to the question*. That op belongs with
+  the answer→node linkage (Flow A), and is deferred to the golden path (P2).
+- **`terminationReason` is not a first-class field.** It rides `budget.exhausted` text
+  only; promoting it to a run-result field is P1 state (run/gate surface).
+
+**New improvement opportunities (found while tracing):**
+- `derivation-record` blocks are `graphRenderable` but **not navigable** — they are absent
+  from the ToC and palette, so the proof is only reachable via a claim's `Why?` link. A
+  navigable disposition would help the audit journey.
+- The `answer` block kind is declared but produced nowhere; questions aren't linked to
+  their answers (`derivation.made` carries no question term). Closing this is the core of
+  Flow A and should drive the P2 golden path.
+- `selectVerifiedDerivation` drops any trace that fails strict verification — good — but
+  the server never calls `nar.askWithDerivation`; the recorder drain is the only path, so
+  a proof can be missed if the 2 s drain coalesces. A request-scoped lookup would be exact.
 
 ---
 

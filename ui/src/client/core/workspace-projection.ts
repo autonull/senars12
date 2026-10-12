@@ -45,6 +45,26 @@ export const linkId = (source: Ref, target: Ref, kind: SemanticLinkKind): Ref =>
 /** The `derivation-record` block documenting one provenance edge (§3.3). */
 export const derivationId = (edge: Ref): Ref => `derivation:${edge}`;
 
+/**
+ * The recorded proofs behind a block: every `derivation-record` block a
+ * `derived-from` link reaches from `ref`. This is the one-click "why" lookup —
+ * empty when the engine recorded no derivation, so the affordance can hide
+ * rather than lie.
+ */
+export const derivationsFor = (graph: WorkspaceGraph, ref: Ref): Ref[] => {
+  const derivations: Ref[] = [];
+  for (const link of graph.links.values()) {
+    if (
+      link.source === ref &&
+      link.kind === 'derived-from' &&
+      graph.blocks.get(link.target)?.kind === 'derivation-record'
+    ) {
+      derivations.push(link.target);
+    }
+  }
+  return derivations;
+};
+
 /** Link kinds that are symmetric — if A→B exists, B→A is redundant. */
 export const SYMMETRIC_LINK_KINDS: ReadonlySet<SemanticLinkKind> = new Set([
   'contradicts',

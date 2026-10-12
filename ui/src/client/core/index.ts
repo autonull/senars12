@@ -422,6 +422,7 @@ export {
   blockRefFor,
   childId,
   claimId,
+  derivationsFor,
   linkId,
   linkRefFor,
   projectChat,

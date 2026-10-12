@@ -17,6 +17,7 @@ import {
   $view,
   $workspaceGraph,
   BaseComponent,
+  derivationsFor,
   eventBus,
   narsBackend,
   type RevisionEntry,
@@ -470,6 +471,14 @@ export class NodeDetailDrawer extends BaseComponent {
         <span class="field-label">${fieldMeta('truth.confidence').label}</span>
         <span class="field-value">${formatField('truth.confidence', this.truthConfidence)}</span>
       </div>
+      ${this.derivations.length > 0
+        ? html`
+            <div class="section-title">Explanation</div>
+            <button class="action-btn" data-action="why" @click=${this.openWhy}>
+              Why? — see the proof
+            </button>
+          `
+        : ''}
       ${n.punctuation
         ? html`
             <div class="field">
@@ -623,6 +632,17 @@ export class NodeDetailDrawer extends BaseComponent {
     const id = this.node?.id;
     return id ? resolveBlockRef($workspaceGraph.get(), narsBackend, id) : undefined;
   }
+
+  /** The recorded proofs behind the selected block — the answer's "why". */
+  private get derivations(): string[] {
+    const ref = this.blockRef;
+    return ref ? derivationsFor($workspaceGraph.get(), ref) : [];
+  }
+
+  private openWhy = (): void => {
+    const [derivation] = this.derivations;
+    if (derivation) eventBus.emit('overlay:open', { id: 'explain', ref: derivation });
+  };
 
   /** The projected block's artifact spec, when it has one (`4.3` affordances). */
   private get blockViewSpec() {
