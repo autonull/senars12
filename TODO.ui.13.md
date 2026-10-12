@@ -423,7 +423,7 @@ one source per domain, and a new backend/provider/field is one entry.
 
 > Each slice: implement → guard (unit) → prove (real app + golden e2e) → commit + log.
 
-- [ ] **P0 — Kernel extraction.**
+- [x] **P0 — Kernel extraction.**
 Split `core/store.ts` into `kernel/state.ts` (Atom primitive + kernel atoms) with
 `core/store.ts` re-exporting; create `kernel/{domain,transport,backends,events,view}` and
 `kernel/index.ts`. Add the boundary invariant (§3.3) as a check.
@@ -576,6 +576,21 @@ an edit.
 - `ui/src/client/apps/ask/` — the first app, proven by
   `ui/tests/scenarios/prototypes/ask.spec.ts` (`@prototype`, chromium green). Built on
   `kernel/index.js`. Committed as `bbcadd4d`.
+
+### P0 — Kernel extraction (done)
+- **What changed:** Split `core/store.ts` (922 lines) into `kernel/state.ts` (Atom primitive +
+  kernel atoms: chat, graph, workspace, connection, config, telemetry, cognitive events,
+  backends control, renderer) + `kernel/{domain,transport,backends,events,view}.ts` for
+  kernel subsystems. `kernel/index.ts` now re-exports from these modules. `core/store.ts`
+  re-exports kernel atoms and retains chrome atoms (lenses, layouts, panels, URL state,
+  selections, view system).
+- **Guard:** `pnpm --dir ui typecheck` ✓, `pnpm --dir ui test:unit` ✓ (769 tests)
+- **Proof:** Ask prototype e2e ✓, golden-path e2e (chromium) ✓
+- **Remaining:** Boundary invariant (§3.3) lint check not yet added; chrome atoms still in
+  `core/store.ts` (by design for P0)
+- **Opportunities:** `derived()` primitive (P10) will replace the manual
+  `$selectedNodeIds`/`$viewSelection`/`timeCursor` sync subscriptions; `Projector` registry
+  (P10) will replace hand-coded `projectWorkspace` merge.
 
 ---
 
