@@ -2,6 +2,7 @@
 import './artifact.js';
 import './block-menu.js';
 import './chat.js';
+import './config-log.js';
 import './events.js';
 import './explain.js';
 import './inspector.js';

@@ -14,7 +14,7 @@ import { pageOf, sectionTree } from './sections.js';
 import { getSurfaces } from './surface-registry.js';
 import { viewAdapters } from './view-adapter.js';
 import type { Shape, ViewSelection } from './view-spec.js';
-import { emptyWorkspaceGraph, type WorkspaceGraph } from './workspace-graph.js';
+import { emptyWorkspaceGraph, type SemanticBlock, type WorkspaceGraph } from './workspace-graph.js';
 import { workspaceRendererIds } from './workspace-renderer.js';
 import { loadConfig, saveConfig, DEFAULT_UI_CONFIG, type UiConfig, type Theme, type Density, type Motion } from './config-schema.js';
 
@@ -140,6 +140,18 @@ export function pushCognitiveEvents(events: CognitiveEvent[]): void {
 
 export function clearCognitiveEvents(): void {
   $cognitiveEvents.set([]);
+}
+
+// --- Config change audit trail (durable; independent of the workspace graph) ---
+const CONFIG_CHANGES_CAP = 100;
+export const $configChanges = atom<SemanticBlock<'config-change'>[]>([]);
+
+export function pushConfigChange(block: SemanticBlock<'config-change'>): void {
+  $configChanges.set([...$configChanges.get().slice(-(CONFIG_CHANGES_CAP - 1)), block]);
+}
+
+export function clearConfigChanges(): void {
+  $configChanges.set([]);
 }
 
 // --- WebLLM ---
@@ -861,6 +873,7 @@ const storeAtoms = {
   workspaceGraph: $workspaceGraph,
   activeRenderer: $activeRenderer,
   cognitiveEvents: $cognitiveEvents,
+  configChanges: $configChanges,
 } satisfies Record<string, ReadableAtom<unknown>>;
 
 export type TestApiStorePath = keyof typeof storeAtoms;

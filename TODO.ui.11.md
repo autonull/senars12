@@ -52,6 +52,49 @@ is a correctness fix and may land standalone.
 > Durable record of what has landed since v10. One entry per completed item; the
 > Fresh-Session Checklist below is the live to-do.
 
+### A1 — config-change audit → durable store + dedicated overlay ✅
+
+**What changed.** `$configChanges` (a capped `SemanticBlock<'config-change'>[]`
+atom in `store.ts`, exported through `core/index.ts` and the test API) is now the
+durable audit trail. `config-change-producer` pushes each diff there; the new
+`config-log` overlay (`components/overlays/config-log.ts`, surface
+`overlay:config-log`, tag `s-config-log`) renders the trail as a ViewSpec table
+(time / key / before→after) with an empty state. It ships with a generated
+coverage cell, a curated `overlay-config-log` visual cell seeded through the
+store, and its baseline.
+
+**Why the graph write stays (important).** The producer *also* mirrors the block
+into `$workspaceGraph`, exactly as before. Dropping that write is **not**
+behavior-neutral: `graph-viewport` re-syncs on every `$workspaceGraph` change
+(`graph-viewport.ts:209`), and config hydrates in **5 separate `$config.set`
+calls at boot** (runtime probe: `$configChanges` = 5), so those five writes drive
+extra layout runs that four auto-fit cells were calibrated to
+(`panel-search`, `overlay-toc`, `panel-lens-designer`, `layout-budget-resource`).
+A store-only producer renders `panel-search` as the workspace layer instead of the
+concept graph and is run-to-run flaky. Keeping the mirror keeps all 61 baselines
+stable; the durable trail no longer depends on it — it survives
+`syncWorkspaceGraph`, which replaces the graph wholesale.
+
+**Guard.** `tests/components/config-change-producer.test.ts` (+2): an adjustment
+lands in `$configChanges` *and* the live graph; the durable trail survives a graph
+replacement.
+
+**Verified.** typecheck; ui unit **682** (was 680); design **11**; full visual
+**61/61** — no baseline move except the new `overlay-config-log`.
+
+**Findings → new opportunities.**
+- **Boot config churn is the root coupling.** Config hydrates in five separate
+  `$config.set` calls, producing five audit entries *and* five graph writes. Batch
+  hydration to one set: the hydration burst and the four-cell coupling both
+  disappear, and then A1's graph mirror can be dropped entirely (config truly out
+  of the graph).
+- **The four auto-fit cells depend on incidental graph writes.** They should be
+  made deterministic independent of config — e.g. force a settle/layout in their
+  `prepare` — so removing the mirror no longer perturbs them.
+- **`scripts/generate-surface-docs.ts` is stale** vs the committed
+  `docs/readme/ui-gallery.md`: regenerating clobbers the Journeys/`test:design`
+  prose paragraph. Realign the template; the surface row itself was added by hand.
+
 ### A2 + A3 — provenance links resolve; demo density through one helper ✅
 
 **A2 — derivation-record provenance.** `projectDerivationRecords` minted
@@ -80,13 +123,9 @@ viewport already filtered dangling edges (`graph-viewport.ts:1110`), so A2
 changes no pixels and A3 emits byte-identical blocks.
 
 **Remaining (A1) + notes.**
-- **A1 (config-change audit) is the last Track A item and the largest.** The
-  clean path in `Notes for Implementation` still holds: a dedicated
-  `$configChanges` store (not a graph projection) subscribed by a HUD
-  overlay/panel. The events overlay (`components/overlays/events.ts`) is the
-  closest template — a `defineSurface` + `registerOverlay` tail, a table view
-  over a `$configChanges` atom, and a visual cell (`surface: 'overlay:<id>'`) to
-  satisfy the coverage contract.
+- **A1 landed** — see the entry above: a dedicated `$configChanges` store plus a
+  `config-log` overlay, with the live graph write retained so the four auto-fit
+  cells' baselines stay stable.
 - **A2's resolver is per-call.** A general `merge()` invariant — drop any link
   whose endpoints are not blocks in the merged graph — would protect every
   future producer, not just `projectDerivationRecords`. Deferred: only this one
@@ -1324,7 +1363,7 @@ control the user must learn.
 > Ordering follows the **Fresh-Session Handoff** critical path (B3+G1 first).
 > Items are grouped by track; the handoff gives the recommended sequence.
 
-- [ ] **Track A1**: Config-change audit → dedicated log/HUD (no graph perturbation)
+- [x] **Track A1**: Config-change audit → dedicated log/HUD (no graph perturbation)
 - [x] **Track A2**: Derivation-record provenance → wire to real blocks or embed in body
 - [x] **Track A3**: Demo cells → shared `seedBlocks` helper or synthetic projection
 - [ ] **Track B1**: Overlay breadcrumbs in header (read `overlayManager.stack()`)
@@ -1412,6 +1451,8 @@ control the user must learn.
 
 ### Config-change audit (A1) — key insight
 The projection `projectWorkspace` is **pure** and creates a new graph every call. Any direct write to `$workspaceGraph` is inherently ephemeral. The fix **must not** write to the graph root set. A `$configChanges` store subscribed by a dedicated overlay/panel is the cleanest path — it sidesteps both traps (hydration burst + fit perturbation).
+
+**Revised after implementation (see Progress Log A1).** A store alone is *not* enough to keep the four auto-fit cells stable: config hydrates in **5 separate `$config.set` calls at boot**, and those five writes were driving extra layout runs the cells were calibrated to. The landed fix keeps the store (durable trail + overlay) **and** mirrors the block into the graph so baselines stay put. The clean removal is blocked on (a) batching boot config hydration to one set and (b) making the four cells deterministic without incidental graph writes.
 
 ### Derivation-record provenance (A2) — key insight
 The `provenanceRefs` array (line 479) already captures the evidence lineage as term strings. The cleanest fix: **render `provenanceRefs` in the derivation-record body** via `renderBlockBody` (which already handles `derivation-record` kind). No graph links needed — the tree viewer shows the step-by-step proof; the terms are displayed as evidence. This matches Move 2.7/2.9 intent.
@@ -1520,7 +1561,7 @@ number:
 1. **B3 + G1** — make beat 0 good (empty/loading/error for every layout) and make
    the behavioral tests gate. Highest leverage: B3 is a visible product win; G1
    protects everything after it.
-2. **A1–A3** — the three bugs (config audit, provenance links, demo bypass).
+2. **A1–A3** — the three bugs (config audit, provenance links, demo bypass). **Done.**
 3. **D5 + F1–F3** — standalone correctness/type fixes (theme bug, view unions,
    keyed maps); cheap, no feature coupling.
 4. **E1–E3 → D1–D4, D6–D7** — land the ingredient library, then collapse the

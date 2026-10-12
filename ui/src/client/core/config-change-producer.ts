@@ -1,14 +1,14 @@
 /**
- * The `config-change` producer (§3.6). Emits a `config-change` block whenever
- * a configuration value changes, so the workspace has a visible audit trail of
- * what was adjusted. The diff payload is the same one the artifact viewer
- * renders.
+ * The `config-change` producer (§3.6). Emits a `config-change` block whenever a
+ * configuration value changes. The durable audit trail lives in `$configChanges`
+ * (rendered by the Config Changes overlay), independent of the workspace graph,
+ * which `syncWorkspaceGraph` replaces wholesale; the same block is also added to
+ * the live graph so the existing in-graph affordance and its render timing are
+ * preserved. The diff payload is the same one the artifact viewer renders.
  */
 
 import { generateId } from '@senars/util';
-import { $config, $workspaceGraph } from './store.js';
-import { projectWorkspace } from './workspace-projection.js';
-import { narsBackend } from './nars-backend.js';
+import { $config, $workspaceGraph, pushConfigChange } from './store.js';
 import { applyWorkspaceOp } from './workspace-graph.js';
 import type { ConfigChangeData } from './block-payload.js';
 import type { SemanticBlock, WorkspaceOp } from './workspace-graph.js';
@@ -42,7 +42,7 @@ function isPrimitive(value: unknown): boolean {
 }
 
 function emitConfigChange(key: string, before: string, after: string): void {
-  const block: SemanticBlock = {
+  const block: SemanticBlock<'config-change'> = {
     id: generateId('config-change'),
     kind: 'config-change',
     role: 'system',
@@ -60,7 +60,8 @@ function emitConfigChange(key: string, before: string, after: string): void {
     createdBy: 'system',
   };
 
+  pushConfigChange(block);
+
   const op: WorkspaceOp = { op: 'block.add', block };
-  const graph = $workspaceGraph.get();
-  $workspaceGraph.set(applyWorkspaceOp(graph, op));
+  $workspaceGraph.set(applyWorkspaceOp($workspaceGraph.get(), op));
 }

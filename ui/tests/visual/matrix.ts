@@ -296,6 +296,56 @@ const openOverlay = (id: string): VisualCell['prepare'] => async ({ page }) => {
   await page.waitForTimeout(300);
 };
 
+/** Deterministic config-change audit entries, seeded before opening the log overlay. */
+const CONFIG_CHANGE_SEEDS = [
+  {
+    id: 'config-change-1',
+    kind: 'config-change',
+    role: 'system',
+    title: 'Config: density',
+    text: 'density: comfortable → compact',
+    data: { before: 'comfortable', after: 'compact', language: 'json', from: 'density', to: 'density' },
+    status: 'complete',
+    createdAt: 1_700_000_000_000,
+    createdBy: 'system',
+  },
+  {
+    id: 'config-change-2',
+    kind: 'config-change',
+    role: 'system',
+    title: 'Config: theme',
+    text: 'theme: auto → dark',
+    data: { before: 'auto', after: 'dark', language: 'json', from: 'theme', to: 'theme' },
+    status: 'complete',
+    createdAt: 1_700_000_060_000,
+    createdBy: 'system',
+  },
+  {
+    id: 'config-change-3',
+    kind: 'config-change',
+    role: 'system',
+    title: 'Config: showMinimap',
+    text: 'showMinimap: true → false',
+    data: { before: 'true', after: 'false', language: 'json', from: 'showMinimap', to: 'showMinimap' },
+    status: 'complete',
+    createdAt: 1_700_000_120_000,
+    createdBy: 'system',
+  },
+];
+
+/** Seed the config-change store, then open its overlay through the shell's test seam. */
+const openConfigLog: VisualCell['prepare'] = async ({ page }) => {
+  await page.evaluate((blocks) => {
+    const api = (window as Record<string, unknown>).__testApi as {
+      store?: { setState?: (path: string, value: unknown) => void };
+      overlays?: { open?: (id: string) => void };
+    };
+    api?.store?.setState?.('configChanges', blocks);
+    api?.overlays?.open?.('config-log');
+  }, CONFIG_CHANGE_SEEDS);
+  await page.waitForTimeout(300);
+};
+
 /**
  * Resolve the first workspace block ref, preferring the given kinds, so overlays
  * that require a `Ref` (explain/artifact/related/block-menu) render real content.
@@ -1047,6 +1097,14 @@ const HAND_CURATED_CELLS: VisualCell[] = [
       });
       await page.waitForTimeout(400);
     },
+  },
+  {
+    id: 'overlay-config-log',
+    group: 'Overlays',
+    title: 'Config changes — audit trail',
+    surface: 'overlay:config-log',
+    hash: '#panels=none',
+    prepare: openConfigLog,
   },
 
   // Panels.

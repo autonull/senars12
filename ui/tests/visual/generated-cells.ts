@@ -119,6 +119,13 @@ export const GENERATED_VISUAL_CELLS: VisualCell[] = [
     "hash": "#panels=none"
   },
   {
+    "id": "overlay-config-log",
+    "group": "Overlays",
+    "title": "Config Changes",
+    "surface": "overlay:config-log",
+    "hash": "#panels=none"
+  },
+  {
     "id": "contradiction-badge",
     "group": "Components",
     "title": "Contradiction badge",

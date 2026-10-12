@@ -40,6 +40,7 @@ const SURFACES: SurfaceDescriptor[] = [
   { id: 'overlay-nodes', title: 'Concepts', group: 'overlay' },
   { id: 'overlay-events', title: 'Event Log', group: 'overlay' },
   { id: 'overlay-chat', title: 'Conversation', group: 'overlay' },
+  { id: 'overlay-config-log', title: 'Config Changes', group: 'overlay' },
   // 'overlay-inspector' is covered by hand-curated 'selection-node-detail' with proper prepare
   { id: 'contradiction-badge', title: 'Contradiction badge', group: 'component', tag: 'contradiction-badge' },
 ];
@@ -71,6 +72,7 @@ const SURFACE_OVERRIDES: Partial<Record<string, Partial<VisualCell>>> = {
   'overlay-nodes': { surface: 'overlay:nodes', hash: '#panels=none' },
   'overlay-events': { surface: 'overlay:events', hash: '#panels=none' },
   'overlay-chat': { surface: 'overlay:chat', hash: '#panels=none' },
+  'overlay-config-log': { surface: 'overlay:config-log', hash: '#panels=none' },
   // 'overlay-inspector' covered by hand-curated 'selection-node-detail'
   'contradiction-badge': { surface: 'component:contradiction-badge' },
 };

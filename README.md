@@ -1565,6 +1565,7 @@ Auto-generated from surface descriptors. Do not edit manually.
 | Block actions | `s-block-menu` | — |
 | Command palette | `s-palette` | — |
 | Concepts | `s-nodes` | — |
+| Config Changes | `s-config-log` | — |
 | Configuration | `s-settings` | — |
 | Conversation | `s-chat` | — |
 | Event Log | `s-events` | — |
