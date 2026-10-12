@@ -5,8 +5,9 @@
  * Implements incremental `present`/`apply` with animation (§P2.1).
  */
 
-import type { BlockKind, Ref, SemanticBlock, SemanticLink, WorkspaceGraph, WorkspaceOp } from '../../core/workspace-graph.js';
+import type { Ref, SemanticBlock, SemanticLink, WorkspaceGraph, WorkspaceOp } from '../../core/workspace-graph.js';
 import type { ConversationLayoutId } from '../../core/conversation-layout.js';
+import { kindsWhere } from '../../core/block-descriptors.js';
 import { $activeRenderer, $conversationLayout, $selectedNodeId, $selectedNodeIds, $workspaceGraph, CONVERSATION_LAYOUT_CATALOG, CONVERSATION_LAYOUT_IDS, registerCommand, setConversationLayout, setGraphLayer, setWorkspaceFocus, setWorkspaceSelection } from '../../core/index.js';
 import { eventBus } from '../../core/events.js';
 import { getViewportInstance } from '../graph-viewport.js';
@@ -27,31 +28,7 @@ const workspaceRefs = (ids: Iterable<Ref>): Ref[] => {
   return [...ids].filter((id) => blocks.has(id));
 };
 
-const GRAPH_BLOCK_KINDS: readonly BlockKind[] = [
-  'turn',
-  'section',
-  'heading',
-  'paragraph',
-  'claim',
-  'question',
-  'answer',
-  'list',
-  'table',
-  'code',
-  'math',
-  'image',
-  'diagram',
-  'chart',
-  'citation',
-  'tool-call',
-  'tool-result',
-  'derivation',
-  'gate-decision',
-  'budget',
-  'config-change',
-  'error',
-  'raw',
-];
+const GRAPH_BLOCK_KINDS = kindsWhere((descriptor) => descriptor.graphRenderable);
 
 class GraphRenderer implements WorkspaceRenderer {
   readonly id = 'graph';

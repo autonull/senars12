@@ -15,7 +15,8 @@
 
 import { css, html, LitElement, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { BLOCK_KIND_LABEL, blockLabel } from '../core/block-labels.js';
+import { blockDescriptor } from '../core/block-descriptors.js';
+import { blockLabel } from '../core/block-labels.js';
 import { collectSources } from '../core/citations.js';
 import { embeddedViewSpec, hasEmbeddedView } from '../core/embedded-views.js';
 import { type ExplainLink, type ExplainModel, explainLinkModel, explainModel } from '../core/explain.js';
@@ -206,7 +207,7 @@ export class GraphPopover extends LitElement {
     const { uncertainty } = block;
     return html`
       <div class="head">
-        <span class="kind">${BLOCK_KIND_LABEL[block.kind]}</span>
+        <span class="kind">${blockDescriptor(block.kind).label}</span>
         <span class="label">${blockLabel(block)}</span>
         ${
           uncertainty

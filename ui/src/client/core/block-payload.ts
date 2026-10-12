@@ -6,6 +6,7 @@
  * untrusted, so payloads are normalized here instead of cast at each consumer.
  */
 
+import type { BlockKind } from './block-descriptors.js';
 import type { SeriesDataset } from './view-spec.js';
 
 export interface TableData {
@@ -115,6 +116,10 @@ export interface BlockPayloads {
 }
 
 export type ArtifactKind = keyof BlockPayloads;
+
+/** F5: the payload catalog cannot name a kind the descriptors do not declare. */
+type Assert<T extends true> = T;
+type _ArtifactKindsAreBlockKinds = Assert<ArtifactKind extends BlockKind ? true : false>;
 
 /** Every payload a block may carry — the union `SemanticBlock.data` narrows into. */
 export type ArtifactPayload = BlockPayloads[ArtifactKind];

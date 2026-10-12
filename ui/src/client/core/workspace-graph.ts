@@ -8,8 +8,11 @@
  * overlays and embedded views.
  */
 
+import type { BlockKind } from './block-descriptors.js';
 import type { PayloadOf } from './block-payload.js';
 import type { ViewSpec } from './view-spec.js';
+
+export type { BlockKind };
 
 /** One id namespace: a block's `Ref` is a graph node id, a popover anchor, a citation target and an engine `Ref`. */
 export type Ref = string;
@@ -31,32 +34,6 @@ export interface Artifact<T = unknown> {
 }
 
 /** The semantic kind of a content block (§2.1). */
-export type BlockKind =
-  | 'turn'
-  | 'section'
-  | 'heading'
-  | 'paragraph'
-  | 'claim'
-  | 'question'
-  | 'answer'
-  | 'list'
-  | 'table'
-  | 'code'
-  | 'math'
-  | 'image'
-  | 'diagram'
-  | 'chart'
-  | 'citation'
-  | 'tool-call'
-  | 'tool-result'
-  | 'derivation'
-  | 'derivation-record'
-  | 'gate-decision'
-  | 'budget'
-  | 'command'
-  | 'config-change'
-  | 'error'
-  | 'raw';
 
 /** Who a block speaks as. */
 export type SemanticRole = 'user' | 'assistant' | 'system' | 'tool' | 'reasoner';

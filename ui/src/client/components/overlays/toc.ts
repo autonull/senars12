@@ -12,7 +12,7 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { artifactViewSpec } from '../../core/artifacts.js';
-import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
+import { blockDescriptor } from '../../core/block-descriptors.js';
 import { dispatchCommand } from '../../core/commands.js';
 import { eventBus } from '../../core/events.js';
 import { $collapsedBlocks, $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
@@ -268,7 +268,7 @@ export class TocView extends SurfaceComponent {
         />
         <div class="filters" role="group" aria-label="Filter by kind">
           ${this.chip('all', 'All')}
-          ${present.map((kind) => this.chip(kind, BLOCK_KIND_LABEL[kind]))}
+          ${present.map((kind) => this.chip(kind, blockDescriptor(kind).label))}
         </div>
         ${
           shown.length > 0
@@ -305,7 +305,7 @@ export class TocView extends SurfaceComponent {
           @click=${(event: MouseEvent) =>
             event.altKey ? this.explain(entry.ref) : this.navigate(entry.ref)}
         >
-          <span class="kind">${BLOCK_KIND_LABEL[entry.kind]}</span>
+          <span class="kind">${blockDescriptor(entry.kind).label}</span>
           <span class="label">${entry.label}</span>
         </button>
         <button

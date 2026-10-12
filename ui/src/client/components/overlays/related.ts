@@ -10,7 +10,7 @@
 
 import { css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
+import { blockDescriptor } from '../../core/block-descriptors.js';
 import { eventBus } from '../../core/events.js';
 import { type Neighbor, neighborhood } from '../../core/neighborhood.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
@@ -28,7 +28,7 @@ import { overlayManager } from '../../core/overlay-manager.js';
 const DEPTHS = [1, 2, 3] as const;
 
 const labelOf = (neighbor: Neighbor): string =>
-  neighbor.block.title ?? neighbor.block.text?.split('\n')[0]?.trim() ?? BLOCK_KIND_LABEL[neighbor.block.kind];
+  neighbor.block.title ?? neighbor.block.text?.split('\n')[0]?.trim() ?? blockDescriptor(neighbor.block.kind).label;
 
 @customElement('s-related')
 export class RelatedView extends SurfaceComponent {
@@ -154,7 +154,7 @@ export class RelatedView extends SurfaceComponent {
       <div class="panel" role="dialog" aria-label="Related blocks">
         <overlay-header
           overlay-id="related"
-          .kind=${BLOCK_KIND_LABEL[model.block.kind]}
+          .kind=${blockDescriptor(model.block.kind).label}
           .title=${model.block.title ?? model.block.id}
           .draggable=${true}
           .resizable=${true}

@@ -1,7 +1,8 @@
 export { generateId, makeId, truncate } from '@senars/util';
 export { Announcer } from './announcer.js';
 export { BaseComponent } from './base-component.js';
-export { BLOCK_KIND_LABEL } from './block-labels.js';
+export { BLOCK_KINDS, BLOCK_DESCRIPTORS, blockDescriptor, type BlockDescriptor, kindsWhere } from './block-descriptors.js';
+export { blockLabel } from './block-labels.js';
 export {
   type ArtifactKind,
   type ArtifactPayload,

@@ -32,8 +32,9 @@ The paradigm is proven but its **descriptor surface has drifted**: a `BlockKind`
 spread across 6+ partial maps and 3 if-chains, and they disagree. Two are live
 bugs, not just DRY smells:
 
-- `GRAPH_BLOCK_KINDS` (`components/renderers/graph.ts:30`) **omits `derivation-record`
-  and `command`**, so those blocks are not advertised to the graph renderer.
+- ~~`GRAPH_BLOCK_KINDS` (`components/renderers/graph.ts:30`) **omits `derivation-record`
+  and `command`**, so those blocks are not advertised to the graph renderer.~~
+  **Fixed (D1):** `BLOCK_DESCRIPTORS` is the SSOT; all 25 kinds are graph-renderable.
 - ~~`graph-scaling.ts:10` and `adapter-2d.ts:8` read `TOKENS.dark[...]` directly,
   **hardcoding the dark theme** — light/high-contrast are silently broken.~~
   **Fixed (D5):** both read `numericToken`; one `truthColor` replaces the 3 copies.
@@ -65,7 +66,8 @@ tuple.
 `ConversationLayoutId` derives from the `CONVERSATION_LAYOUT_IDS` tuple; the
 parallel hand unions are deleted. `BlockKind` (needs a `BLOCK_DESCRIPTORS`
 catalog) and panel ids (needs `PANEL_DEFS`) are **deferred** — those catalogs land
-with D1.
+with D1. **Landed: `BlockKind` now derives from `BLOCK_DESCRIPTORS` (see D1);
+panel ids still need `PANEL_DEFS` (E9).**
 
 **F3 (ready half).** `LENS_MODULATION_MAP` is now
 `Partial<Record<BuiltinLens, Modulation>>`, so the lookup after `isBuiltinLens`
@@ -466,6 +468,58 @@ so baselines are untouched — visual not rerun.
 - The a11y test deliberately does **not** import `renderers/graph*` (they pull in
   `graph-viewport`/cytoscape, which is jsdom-hostile); widen the import set if the
   gate should also span those renderer surfaces.
+
+### D1 — `BLOCK_DESCRIPTORS`: one record per `BlockKind` ✅ (folds 6 maps + 3 if-chains; fixes `GRAPH_BLOCK_KINDS`)
+
+**What landed.** New `core/block-descriptors.ts` owns one `BlockDescriptor` per
+kind — `label`, `artifact`, `navigable`, `jsonPanel`, `graphRenderable`,
+`container`, `section` — with a `d()` helper defaulting every facet to `false`, so
+a new kind names only what it is (an unknown facet key is an excess-property
+error). `BlockKind` now derives as `keyof typeof BLOCK_DESCRIPTORS` (F2);
+`workspace-graph.ts` re-exports it, so every existing import keeps working.
+`BLOCK_KINDS` (catalog order) and `kindsWhere(facet)` are the one way a partial
+set is read.
+
+Deleted the drifting copies and wired the consumers to the facet:
+`BLOCK_KIND_LABEL` (removed; `block-labels.ts` + ~10 call sites read
+`blockDescriptor(kind).label`), `ARTIFACT_KINDS` (`conversation-layout.ts`),
+the `TOC_KINDS_TYPE` literal (`toc.ts`, now `kindsWhere(d => d.navigable)`),
+`JSON_KINDS` (`artifacts.ts`), `isContainer` (`graph-projection.ts`),
+`isSection` (`notebook.ts`) and `GRAPH_BLOCK_KINDS` (`renderers/graph.ts`, now
+`kindsWhere(d => d.graphRenderable)`).
+
+**Bug fixed.** `GRAPH_BLOCK_KINDS` omitted `derivation-record` and `command`; both
+are now graph-renderable, so all 25 kinds are advertised. No pixel moved —
+`renderersForKind` has no production caller today; the change only corrects the
+renderer capability data.
+
+**F5 seeded.** `block-payload.ts` now asserts at compile time that
+`ArtifactKind extends BlockKind` — the payload catalog cannot name a kind the
+descriptors do not declare.
+
+**Guard.** New `tests/components/block-descriptors.test.ts` (+4): `BlockKind`
+equals the catalog keys; every descriptor has a non-empty, distinct label; each
+facet selects **exactly** its former map's set; and `graphRenderable` covers every
+kind (pins the stale-map fix).
+
+**Verified.** typecheck; ui unit **704** (was 700); design **14**; craft **204**;
+full visual **62/62** — **no baseline moved**.
+
+**Remaining / notes.**
+- The plan's `renderBody`/`artifactSpec` descriptor fields were **not** added:
+  they would pull `lit` + `artifacts.ts` into `core/block-descriptors.ts` and risk
+  a cycle for no current drift — the render/artifact if-chains are behavior, not
+  duplicated facets. Fold them only if a second consumer appears.
+- `payload` stays in `block-payload.ts`: it is already a single source
+  (`BlockPayloads` + `NORMALIZERS`); moving it onto the descriptor adds coupling
+  without removing a duplicate.
+- F2 remainder unchanged: panel ids still need a `PANEL_DEFS` catalog (E9).
+- `tests/visual/matrix.ts` has a local `ARTIFACT_KINDS` fixture used only to pick
+  a ref for the `overlay-artifact` cell; left as-is because its ordering is
+  deliberate (the baseline depends on the chosen ref).
+- **New opportunity.** `icon` on the descriptor — B3's `s-empty-state` renders a
+  literal glyph; when that is wired to the icon primitive, the per-kind icon
+  belongs on `BLOCK_DESCRIPTORS` (no consumer today, so deferred).
 
 ---
 
@@ -1583,7 +1637,7 @@ control the user must learn.
 - [ ] **Track C2**: Semantic-zoom coordinate space spike
 - [ ] **Track C3**: Node-renderer registry needfinding
 - [ ] **Track C4**: `graph3d` z-axis fractal spike
-- [ ] **Track D1**: `BLOCK_DESCRIPTORS` registry (folds 6 maps + 3 if-chains; fixes `GRAPH_BLOCK_KINDS`)
+- [x] **Track D1**: `BLOCK_DESCRIPTORS` registry (folds 6 maps + 3 if-chains; fixes `GRAPH_BLOCK_KINDS`)
 - [ ] **Track D2**: extend `LINK_CATALOG` (`symmetric`, `layoutStage`); delete the two partial maps
 - [ ] **Track D3**: `defineOverlay` + `WINDOW_DEFAULTS` (16 overlays + 8 window literals)
 - [ ] **Track D4**: one layout descriptor registry (merge conversation + reasoning; wire `validateLayoutId`)
@@ -1601,10 +1655,10 @@ control the user must learn.
 - [ ] **Track E8**: mixins (`withStore`/`withCapability`/`withCommands`)
 - [ ] **Track E9**: `PanelDescriptor` + registry (fill the one gap)
 - [x] **Track F1**: `as const` tuples for `Shape`/`Budget`/`Disclosure`/`Interaction`
-- [~] **Track F2**: derive domain unions from catalogs (`BlockKind`, layout ids, panel ids, categories) — categories + layout ids done; `BlockKind`/panel ids need D1 catalogs
+- [~] **Track F2**: derive domain unions from catalogs (`BlockKind`, layout ids, panel ids, categories) — `BlockKind` (D1), categories + layout ids done; panel ids need `PANEL_DEFS` (E9)
 - [~] **Track F3**: key every map to its vocabulary (lens maps, `COMMAND_SCHEMAS`) — `LENS_MODULATION_MAP` done; the `$lens*` maps are custom-lens-keyed (see Progress Log)
 - [ ] **Track F4**: generic `Command<Args>` + typed command ids (biggest cast cleanup)
-- [ ] **Track F5**: compile-time assertions + `assertNever` in union switches
+- [~] **Track F5**: compile-time assertions + `assertNever` in union switches — `ArtifactKind extends BlockKind` assert landed with D1; `assertNever` switches remain
 - [ ] **Track F6**: resolve dead `LayoutId` brand; fix `Theme`/`ArtifactKind` drift
 - [ ] **Track G1** (⚠️ blocked — composer selectors fixed; suite rot + CI browser/provider prerequisites remain, see Progress Log): wire `test:e2e` scenario subset into `ui:verify` / `ui:gate` (master-plan 11.4)
 - [x] **Track G2**: performance budgets — call `assertWithinBudget`; stop whole-`Map` clones (11.1)
@@ -1630,7 +1684,7 @@ control the user must learn.
 | Generic "No data" / "No adapter" empty states | Layout-specific `<s-empty-state>` with action |
 | Mechanical LoD transitions | Animated transitions (size, opacity, tier) |
 | Overlay stack with no back-navigation | Breadcrumb trail in overlay header |
-| `BLOCK_KIND_LABEL` + `ARTIFACT_KINDS` + `GRAPH_BLOCK_KINDS` + `JSON_KINDS` + `TOC_KINDS` + `isContainer` + `isSection` | `BLOCK_DESCRIPTORS: Record<BlockKind, BlockDescriptor>` (D1) |
+| `BLOCK_KIND_LABEL` + `ARTIFACT_KINDS` + `GRAPH_BLOCK_KINDS` + `JSON_KINDS` + `TOC_KINDS` + `isContainer` + `isSection` | `BLOCK_DESCRIPTORS: Record<BlockKind, BlockDescriptor>` (D1) — ✅ folded |
 | `SYMMETRIC_LINK_KINDS` + `GATE_STAGES` | `linkMeta(kind).symmetric` / `.layoutStage` (D2) |
 | 16 overlay registration tails + 8 `window` literals | `defineOverlay` + `WINDOW_DEFAULTS` (D3) |
 | Two layout registration loops + duplicated `COLUMN`/`ROW`/`SOURCE_ORDER` | one `LayoutDescriptor` registry + `placeInLanes` (D4) |
@@ -1776,7 +1830,8 @@ number:
    keyed maps); cheap, no feature coupling. **D5 done; F1 done, F2/F3 partly
    done (remainders gated on D1 catalogs / F4 `CommandId`).**
 4. **E1–E3 → D1–D4, D6–D7** — land the ingredient library, then collapse the
-   consolidation items onto it.
+   consolidation items onto it. **D1 done standalone** (`BLOCK_DESCRIPTORS`; did
+   not need E — it is the data SSOT D/E/F all read); D2–D4, D6–D7 remain.
 5. **B2** — LoD transitions (rides on D5's `numericToken`). **Done** (B1 and B2 both
    landed; the shared header meant B1 did not need D3).
 6. **G3** — a11y from descriptor metadata + keyboard walkthrough in the gate.

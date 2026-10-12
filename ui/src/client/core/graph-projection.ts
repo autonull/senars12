@@ -8,7 +8,7 @@
  * containment reads as spatial clustering.
  */
 
-import { BLOCK_KIND_LABEL } from './block-labels.js';
+import { blockDescriptor } from './block-descriptors.js';
 import type { SemanticBlock, WorkspaceGraph } from './workspace-graph.js';
 
 export interface WorkspaceNodeData {
@@ -45,13 +45,12 @@ const firstLine = (text: string | undefined): string | undefined => {
 };
 
 const labelFor = (block: SemanticBlock): string => {
-  const full = block.title ?? firstLine(block.text) ?? BLOCK_KIND_LABEL[block.kind] ?? block.kind;
+  const full = block.title ?? firstLine(block.text) ?? blockDescriptor(block.kind).label;
   return full.length > MAX_LABEL_FULL ? full.slice(0, MAX_LABEL_FULL - 1) + '…' : full;
 };
 
 const isContainer = (block: SemanticBlock): boolean =>
-  ((block.kind === 'section' || block.kind === 'heading' || block.kind === 'turn') &&
-    (block.children?.length ?? 0) > 0);
+  blockDescriptor(block.kind).container && (block.children?.length ?? 0) > 0;
 
 export function projectWorkspaceGraph(graph: WorkspaceGraph): WorkspaceProjection {
   const nodes = new Map<string, WorkspaceNodeData>();

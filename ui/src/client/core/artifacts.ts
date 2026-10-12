@@ -8,6 +8,7 @@
 
 import type { ChartData, ConfigChangeData, DerivationData, DerivationRecordData } from './block-payload.js';
 import { payloadOf } from './block-payload.js';
+import { blockDescriptor } from './block-descriptors.js';
 import { linkMeta, LINK_KINDS } from '../utils/link-catalog.js';
 import { diffLines } from './diff.js';
 import type {
@@ -22,7 +23,7 @@ import type {
   ViewSource,
   ViewSpec,
 } from './view-spec.js';
-import type { BlockKind, SemanticBlock, SemanticLinkKind } from './workspace-graph.js';
+import type { SemanticBlock, SemanticLinkKind } from './workspace-graph.js';
 
 /** Build a `TableDataset` from a header row and a matrix of cell values. */
 export function tableFromColumns(
@@ -130,15 +131,6 @@ const specOf = (
   interactions: ['select'],
 });
 
-/** Kinds whose payload is best inspected as structured JSON until a bespoke view lands. */
-const JSON_KINDS = new Set<BlockKind>([
-  'gate-decision',
-  'budget',
-  'config-change',
-  'tool-call',
-  'tool-result',
-]);
-
 /** The `ViewSpec` for a block's artifact, or `undefined` when it has none. */
 export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
   // A block that arrived with its own instruction renders through it verbatim —
@@ -218,7 +210,7 @@ export function artifactViewSpec(block: SemanticBlock): ViewSpec | undefined {
       };
     }
   }
-  if (block.data !== undefined && (block.kind === 'chart' || JSON_KINDS.has(block.kind))) {
+  if (block.data !== undefined && (block.kind === 'chart' || blockDescriptor(block.kind).jsonPanel)) {
     const dataset: TextDataset = { kind: 'text', lines: json(block.data).split('\n') };
     return specOf(block, dataset, ['text'], 'text');
   }

@@ -8,9 +8,9 @@
  * source, reusing the same substrate.
  */
 
+import { blockDescriptor } from './block-descriptors.js';
 import { blockOrder } from './navigation.js';
 import type {
-  BlockKind,
   CreatedBy,
   Ref,
   SemanticBlock,
@@ -71,17 +71,7 @@ const COLUMN = 260;
 const ROW = 150;
 const FLOW_ROWS = 8;
 
-const ARTIFACT_KINDS: ReadonlySet<BlockKind> = new Set<BlockKind>([
-  'table',
-  'code',
-  'math',
-  'chart',
-  'image',
-  'diagram',
-  'citation',
-  'tool-result',
-  'derivation',
-]);
+const isArtifact = (block: SemanticBlock): boolean => blockDescriptor(block.kind).artifact;
 
 const SOURCE_ORDER: readonly CreatedBy[] = ['user', 'lm', 'reasoner', 'tool', 'system'];
 
@@ -169,8 +159,8 @@ const semanticMap = (
 };
 
 const artifactMap = (blocks: readonly SemanticBlock[]): ConversationPositions => {
-  const artifacts = blocks.filter((block) => ARTIFACT_KINDS.has(block.kind));
-  const others = blocks.filter((block) => !ARTIFACT_KINDS.has(block.kind));
+  const artifacts = blocks.filter(isArtifact);
+  const others = blocks.filter((block) => !isArtifact(block));
   const positions: ConversationPositions = new Map();
   const columns = Math.max(1, Math.ceil(Math.sqrt(artifacts.length || 1)));
   const rows = Math.max(1, Math.ceil(artifacts.length / columns));

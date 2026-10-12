@@ -13,7 +13,8 @@
 
 import { css, html } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { BLOCK_KIND_LABEL, blockLabel } from '../../core/block-labels.js';
+import { blockDescriptor } from '../../core/block-descriptors.js';
+import { blockLabel } from '../../core/block-labels.js';
 import { collectSources } from '../../core/citations.js';
 import { eventBus } from '../../core/events.js';
 import {
@@ -237,7 +238,7 @@ export class ExplainView extends SurfaceComponent {
     switch (subject.kind) {
       case 'block':
         return {
-          kind: BLOCK_KIND_LABEL[subject.model.block.kind],
+          kind: blockDescriptor(subject.model.block.kind).label,
           title: subject.model.block.title ?? subject.model.block.id,
         };
       case 'link': {

@@ -8,25 +8,13 @@
  * than from a re-derived parent map.
  */
 
-import { BLOCK_KIND_LABEL, blockLabel } from './block-labels.js';
+import { blockDescriptor, kindsWhere } from './block-descriptors.js';
+import { blockLabel } from './block-labels.js';
 import { sectionTree } from './sections.js';
 import type { BlockKind, Ref, WorkspaceGraph } from './workspace-graph.js';
 
 /** The block kinds worth a ToC row (paragraphs and raw payloads stay out). */
-export const TOC_KINDS_TYPE: readonly BlockKind[] = [
-  'heading',
-  'claim',
-  'question',
-  'answer',
-  'table',
-  'code',
-  'tool-call',
-  'tool-result',
-  'derivation',
-  'gate-decision',
-  'budget',
-  'error',
-];
+export const TOC_KINDS_TYPE = kindsWhere((descriptor) => descriptor.navigable);
 
 const TOC_KINDS = new Set<BlockKind>(TOC_KINDS_TYPE);
 
@@ -53,7 +41,7 @@ export function tocEntries(graph: WorkspaceGraph, folded?: ReadonlySet<Ref>): To
     out.push({
       ref: block.id,
       kind: block.kind,
-      label: blockLabel(block).slice(0, 120) || BLOCK_KIND_LABEL[block.kind],
+      label: blockLabel(block).slice(0, 120) || blockDescriptor(block.kind).label,
       level: block.level,
       pageRef: node.ancestors[0] ?? node.ref,
       depth: node.depth,

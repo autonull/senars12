@@ -9,7 +9,7 @@ import {
   $workspaceGraph,
   addUserMessage,
   BaseComponent,
-  BLOCK_KIND_LABEL,
+  blockDescriptor,
   availableComposerModes,
   capabilityGate,
   COMPOSER_MODE_CATALOG,
@@ -450,7 +450,7 @@ export class InputHUD extends BaseComponent {
               ? html`<div class="decomposition" aria-label="Extracted input structure">
                   ${this.decomposition.map(
                     (segment) => html`<span class="segment" data-kind=${segment.kind}>
-                      <span class="segment-kind">${BLOCK_KIND_LABEL[segment.kind]}</span>${segment.text}
+                      <span class="segment-kind">${blockDescriptor(segment.kind).label}</span>${segment.text}
                     </span>`
                   )}
                 </div>`

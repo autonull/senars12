@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BLOCK_KIND_LABEL } from '../../src/client/core/block-labels.js';
+import { blockDescriptor } from '../../src/client/core/block-descriptors.js';
 import { projectWorkspaceGraph } from '../../src/client/core/graph-projection.js';
 import {
   applyWorkspaceOps,
@@ -49,7 +49,7 @@ describe('workspace graph projection', () => {
       graphOf([block('a', { text: 'First line\nsecond' }), block('b', { kind: 'answer' })])
     );
     expect(nodes.get('a')?.label).toBe('First line');
-    expect(nodes.get('b')?.label).toBe(BLOCK_KIND_LABEL.answer);
+    expect(nodes.get('b')?.label).toBe(blockDescriptor('answer').label);
   });
 
   it('makes a section with children a compound parent', () => {

@@ -13,7 +13,7 @@
 import type { TemplateResult } from 'lit';
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { BLOCK_KIND_LABEL } from '../../core/block-labels.js';
+import { blockDescriptor } from '../../core/block-descriptors.js';
 import { collectSources } from '../../core/citations.js';
 import { eventBus } from '../../core/events.js';
 import { embeddedViewMeta, embeddedViewSpec, $embeddedViews } from '../../core/embedded-views.js';
@@ -39,8 +39,7 @@ import {
 import { blockBodyStyles, renderBlockBody } from '../../utils/render-block.js';
 import '../primitives/empty-state.js';
 
-const isSection = (block: SemanticBlock): boolean =>
-  block.kind === 'turn' || block.kind === 'section';
+const isSection = (block: SemanticBlock): boolean => blockDescriptor(block.kind).section;
 
 function uncertaintyChip(block: SemanticBlock): TemplateResult {
   const { uncertainty } = block;
@@ -86,8 +85,8 @@ function renderBlock(
       @click=${() => setWorkspaceFocus(block.id)}
     >
       <header class="block-head">
-        <span class="kind">${BLOCK_KIND_LABEL[block.kind]}</span>
-        ${block.title && !isSection(block) && block.title !== BLOCK_KIND_LABEL[block.kind]
+        <span class="kind">${blockDescriptor(block.kind).label}</span>
+        ${block.title && !isSection(block) && block.title !== blockDescriptor(block.kind).label
           ? html`<span class="title">${block.title}</span>`
           : ''}
         <span class="meta">
@@ -373,7 +372,7 @@ export class NotebookView extends SurfaceComponent {
                     data-ref=${crumb.ref}
                     aria-current=${index === crumbs.length - 1}
                     @click=${() => setWorkspaceFocus(crumb.ref)}
-                  >${BLOCK_KIND_LABEL[crumb.kind]} · ${crumb.label}</button>
+                  >${blockDescriptor(crumb.kind).label} · ${crumb.label}</button>
                 `
               )}
             </nav>`
