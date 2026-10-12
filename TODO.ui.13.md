@@ -14,6 +14,35 @@
 
 ---
 
+## ▶ START HERE (fresh session)
+
+**Baseline.** Nothing in P0–P12 is done. `ui/src/client/framework/` does **not** exist.
+The last commits are the pivot foundation this plan builds on:
+- `bbcadd4d` — kernel facade (`ui/src/client/kernel/index.ts`, re-exporting from `core/`),
+  harness (vite `ask` entry + server directory-index), and `apps/ask/` proven by
+  `ui/tests/scenarios/prototypes/ask.spec.ts`.
+- `4af9e781`, `cf02b3bf` — this plan.
+The committed `ui/src/client/core/` is the **un-normalized** substrate (see §0).
+
+**First slice: P0 — Kernel extraction** (§4). First action: split `core/store.ts` (922
+lines) into `kernel/state.ts` (the `Atom` primitive + the kernel atoms) with
+`core/store.ts` re-exporting, then add `kernel/{domain,transport,backends,events,view}.ts`
+and point `kernel/index.ts` at them. Guard with a kernel-state test; prove by running the
+Ask app + the golden path.
+
+**Commands** (repo root unless noted):
+- typecheck: `pnpm --dir ui typecheck`
+- unit: `pnpm --dir ui test:unit`
+- golden e2e (real HUD): `cd ui && pnpm exec playwright test --config tests/playwright.config.ts tests/scenarios/golden-path/operate-reasoner.spec.ts --project=chromium --workers=1`
+- Ask prototype e2e: `cd ui && pnpm build:client:test && pnpm exec playwright test --config tests/playwright.config.ts tests/scenarios/prototypes/ask.spec.ts --project=chromium --workers=1`
+- full contract: `pnpm ui:gate` (= typecheck + unit + golden e2e)
+- build the client: `pnpm --dir ui build:client:test`
+
+**Record progress** in §8 — append one entry per slice (what changed, guard, proof,
+remaining work, new opportunities).
+
+---
+
 ## ▶ How to execute this plan (self-contained)
 
 **The only trigger needed is the phrase: "implement TODO.ui.13.md".**
@@ -547,3 +576,47 @@ an edit.
 - `ui/src/client/apps/ask/` — the first app, proven by
   `ui/tests/scenarios/prototypes/ask.spec.ts` (`@prototype`, chromium green). Built on
   `kernel/index.js`. Committed as `bbcadd4d`.
+
+---
+
+## 9. Appendix — repo facts for a fresh session
+
+### Layout
+- `ui/src/client/kernel/index.ts` — the kernel facade (the only import surface an app needs).
+- `ui/src/client/core/` — the **un-normalized** substrate + HUD chrome (~70 files, 10.8k lines).
+- `ui/src/client/components/` — HUD chrome (~30 files, 17k lines) + `overlays/` (18 files).
+- `ui/src/client/apps/ask/` — the first app (`index.html`, `main.ts`, `ask-app.ts`).
+- `ui/src/client/{modulation,styles,utils,spacegraph,plugins,bundles}/` — HUD subsystems.
+- `ui/src/server/index.ts` — the monolithic server (~1090 lines; `handleClientMessage` switch).
+- `ui/src/shared/` — client/server shared bits (lens-schema, constants).
+- `core/src/protocol/` — the zod protocol; `unions.ts` holds `IncomingFromClient/Server`.
+
+### Key files per slice (starting points, not exhaustive)
+- **P0:** `core/store.ts`; new `kernel/{state,domain,transport,backends,events,view}.ts`; `kernel/index.ts`.
+- **P1:** new `framework/{contribution,catalog}.ts`; migrate `core/{block-descriptors,panel-defs,renderer-defs,graph-layer-defs,conversation-layout,reasoning-layout,composer-modes,capabilities,embedded-views}.ts`.
+- **P2:** `core/{surface,surface-registry,overlay-registry,panel-defs,renderer-defs}.ts`, `core/{overlay-manager,overlay-host}.ts`.
+- **P3:** `core/{view-adapter,view-host,view-spec}.ts`.
+- **P4:** `core/store.ts` (lens/layer/filter state), `modulation/`, `core/composer-modes.ts`.
+- **P5:** new `framework/app.ts`; `components/app-layout.ts`, `apps/ask/`.
+- **P6:** `ui/src/server/index.ts` (`handleClientMessage`).
+- **P7:** `apps/*`; move `components/` → `apps/hud/`.
+- **P8:** `core/{events,commands}.ts`.
+- **P9:** `core/src/protocol/`, `ui/src/server/index.ts`, `core/store-bindings.ts`.
+- **P10:** `core/workspace-projection.ts`, `core/{sections,toc,navigation}.ts`, `core/store.ts`.
+- **P11:** `core/plugins.ts`, `bundles/`, `framework/app.ts`.
+- **P12:** `core/{config-schema,capabilities,lm-provider}.ts`, `ui/src/server/config-schema.ts`, `core/contribution-validator.ts`.
+
+### The slice loop (repeat verbatim)
+implement (substrate + ≥1 real consumer) → guard (unit, no mocks) → prove (run an app +
+golden e2e) → `pnpm --dir ui typecheck && pnpm --dir ui test:unit` → commit + §8 entry.
+
+### Guards that must stay green
+- `ui/tests/scenarios/golden-path/operate-reasoner.spec.ts` (`@golden`) — the real HUD loop.
+- `ui/tests/scenarios/prototypes/ask.spec.ts` (`@prototype`) — the first app.
+- `ui/tests/components/*` (facade-honesty, reasoning-control-protocol, …).
+- `ui/tests/visual/` cells — the presentation contract.
+
+### Conventions (from `AGENTS.md`)
+- Terse, self-documenting code; no comments beyond essential JSDoc.
+- `pnpm`/`pnpx`, never `npm`/`npx`. No `pkill`. Do not edit `README.md` (generated).
+- Unit tests: no mocks; test objects directly; deterministic; behavior over implementation.
