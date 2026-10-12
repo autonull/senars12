@@ -122,7 +122,7 @@ export class EventsView extends SurfaceComponent {
     return events.filter((e) => e.type === this.filterType);
   }
 
-  private getEventTypes(): EventType[] {
+  private getEventTypes(): readonly EventType[] {
     return EVENT_TYPES;
   }
 

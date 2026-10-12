@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { $activeLens, BaseComponent, eventBus } from '../core/index.js';
-import { LENS_CATALOG, type LensDescriptor } from '../utils/lens-catalog.js';
+import { LENS_CATALOG, type LensEntry } from '../utils/lens-catalog.js';
 import { theme } from '../utils/theme.js';
 import type { BuiltinLens, ModulationSpec } from '../../shared/lens-schema.js';
 
@@ -123,7 +123,7 @@ export class GraphLegend extends BaseComponent {
     `;
   }
 
-  private renderLegendContent(lens: LensDescriptor) {
+  private renderLegendContent(lens: LensEntry) {
     const spec = lens.spec;
     const modulation = spec.modulation;
     const children = this.getModulationChildren(modulation);

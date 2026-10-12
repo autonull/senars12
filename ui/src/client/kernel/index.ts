@@ -141,7 +141,7 @@ export type {
 export { blockDescriptor, kindsWhere } from '../core/block-descriptors.js';
 export { blockLabel } from '../core/block-labels.js';
 export { payloadOf } from '../core/block-payload.js';
-export type { BlockDescriptor } from '../core/block-descriptors.js';
+export type { BlockEntry as BlockDescriptor } from '../core/block-descriptors.js';
 export type { BlockPayloads, TableData, CodeData, ChartData } from '../core/block-payload.js';
 
 // ── Capabilities: honest gating ──────────────────────────────────────────────

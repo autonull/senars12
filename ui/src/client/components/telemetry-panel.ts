@@ -11,7 +11,7 @@ import {
   type ViewSpec,
   type ViewSource,
 } from '../core/index.js';
-import { type FieldId, fieldKey, fieldMeta, formatField, TELEMETRY_FIELDS } from '../utils/field-catalog.js';
+import { type FieldId, type FieldEntry, fieldKey, fieldMeta, formatField, TELEMETRY_FIELDS } from '../utils/field-catalog.js';
 import { theme } from '../utils/theme.js';
 import {
   TELEMETRY_METRIC_KEYS,
@@ -192,7 +192,7 @@ export class TelemetryPanel extends BaseComponent {
         <span class="toolbar-label">Metrics</span>
         <div class="toolbar-group">
           ${TELEMETRY_FIELDS.map((id) => {
-            const d = fieldMeta(id);
+            const d = fieldMeta(id) as FieldEntry & { short?: string; color?: keyof typeof theme.colors };
             return html`
               <button
                 class="metric-toggle ${this.visibleMetrics.has(fieldKey(id)) ? 'on' : 'off'}"

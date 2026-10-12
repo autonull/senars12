@@ -2,7 +2,7 @@ import type { Lens } from '@senars/core';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { $activeLens, $graphNodes, BaseComponent, send } from '../core/index.js';
-import { type LensDescriptor, PRIMARY_LENSES } from '../utils/lens-catalog.js';
+import { type LensEntry, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 
 @customElement('lens-controller')
 export class LensController extends BaseComponent {
@@ -100,7 +100,7 @@ export class LensController extends BaseComponent {
   `;
   @state() private activePopover: string | null = null;
   @state() private nodeCounts: Record<string, number> = {};
-  @state() private applicableLenses: LensDescriptor[] = [];
+  @state() private applicableLenses: LensEntry[] = [];
   private popoverTimer: ReturnType<typeof setTimeout> | null = null;
 
   override connectedCallback() {
