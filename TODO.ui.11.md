@@ -411,6 +411,33 @@ map by `code` and build through a descriptor. The boundary also is not covered b
 any visual cell — an `error-modal` cell (seed an `app-error` through a small
 `mountTestApi('events', …)` seam) would prove the modal's pixels.
 
+### G2 — performance budgets ✅ (store patch-in-place; the fixture asserts)
+
+**What landed.** `updateNodeData` / `updateEdgeData` now patch **in place**: they
+mutate the live `Map` and `set` it (the atom notifies unconditionally), instead of
+`new Map($graphNodes.get())` on every call — so a dense graph stops allocating a
+full copy per node/edge edit. `PerfMonitor.assertWithinBudget` is no longer inert:
+the `perfMonitor` fixture already asserts in teardown, so the dense
+`high-throughput` spec just requests it and the frame-budget check runs.
+
+**Guard.** New `tests/components/store-patch.test.ts` (+3): a node/edge patch keeps
+the same `Map` identity (no clone), replaces the entry while the old entry is
+untouched, and notifies subscribers once; a miss neither clones nor notifies.
+
+**Verified.** typecheck; ui unit **693** (was 690; craft/design included); full
+visual **62/62** (store patches are not on a boot path — no baseline moved);
+`complexity:budget` unchanged.
+
+**Blocked / notes.**
+- The dense-graph **e2e** spec (`high-throughput`, now requesting `perfMonitor`)
+  cannot be exercised here: the `bootstrap` scenario yields no nodes in this
+  environment, so the spec already times out at `getGraphNodeCount() > 0` — the
+  same G1 blocker. The perf assertion is wired and will run once the e2e gate is
+  green; it is not part of `ui:verify`.
+- Deferred (larger): virtualizing the event log / large tables and a standalone
+  frame-budget baseline. `togglePanel` still clones its 3-entry map — harmless,
+  left for consistency with a future `$panels` catalog (E9).
+
 ---
 
 ## Progress Log — LM provider flexibility (user directive)
@@ -1551,7 +1578,7 @@ control the user must learn.
 - [ ] **Track F5**: compile-time assertions + `assertNever` in union switches
 - [ ] **Track F6**: resolve dead `LayoutId` brand; fix `Theme`/`ArtifactKind` drift
 - [ ] **Track G1** (⚠️ blocked — composer selectors fixed; suite rot + CI browser/provider prerequisites remain, see Progress Log): wire `test:e2e` scenario subset into `ui:verify` / `ui:gate` (master-plan 11.4)
-- [ ] **Track G2**: performance budgets — call `assertWithinBudget`; stop whole-`Map` clones (11.1)
+- [x] **Track G2**: performance budgets — call `assertWithinBudget`; stop whole-`Map` clones (11.1)
 - [ ] **Track G3**: automated a11y checks from descriptor metadata + keyboard walkthrough in the gate (7.7)
 - [x] **Track G4**: error-taxonomy surfacing (title + recovery) in boundary + log (11.2)
 - [ ] **Track G5**: a second bundle (event-log console / graph explorer) proves Goal 2 (10.5)
@@ -1596,7 +1623,7 @@ control the user must learn.
 | lens-keyed maps + `COMMAND_SCHEMAS` typed `Record<string, …>` | `Partial<Record<Vocabulary, …>>` (F3) |
 | `CommandArgs = Record<string, unknown>` + per-command casts | generic `Command<Args>` (F4) |
 | e2e scenarios that gate nothing | `ui:verify` includes the scenario subset (G1) |
-| dead `PerfMonitor.assertWithinBudget`; whole-`Map` clones | frame-budget spec + patch-in-place (G2) |
+| dead `PerfMonitor.assertWithinBudget`; whole-`Map` clones | frame-budget spec + patch-in-place (G2) — ✅ patch-in-place done; spec wired (e2e) |
 | hand-listed error-title map in the boundary | `error-taxonomy` title + recovery (G4) — ✅ folded |
 
 ---
@@ -1723,8 +1750,10 @@ number:
    consolidation items onto it.
 5. **B2** — LoD transitions (rides on D5's `numericToken`). **Done** (B1 and B2 both
    landed; the shared header meant B1 did not need D3).
-6. **G2 + G3** — robustness (perf budgets, a11y). **G4 done** (error taxonomy:
-   `title` on every class + boundary wired to the bus; folds D8's title map).
+6. **G3** — a11y from descriptor metadata + keyboard walkthrough in the gate.
+   **G4 done** (error taxonomy; folds D8's title map). **G2 done** (store
+   patch-in-place + the `perfMonitor` fixture asserting in the dense spec; the
+   e2e half rides the blocked G1 gate).
 7. **G5 + G6** — prove the foundation (second bundle) and productize demos.
 8. **C1–C4** — evaluate honestly; close what fails its gate.
 

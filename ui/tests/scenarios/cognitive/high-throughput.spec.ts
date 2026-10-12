@@ -5,6 +5,7 @@ test('sustained engine cycles keep the graph live without errors @critical', asy
   page,
   testApi,
   testControl,
+  perfMonitor,
 }) => {
   await testControl.loadScenario('bootstrap');
   await waitConnected(testApi);
@@ -14,4 +15,5 @@ test('sustained engine cycles keep the graph live without errors @critical', asy
   await expect.poll(() => testApi.getGraphNodeCount()).toBeGreaterThan(0);
   expect(await testApi.getConnectionState()).toBe('connected');
   await expect(page.locator('error-boundary .overlay')).toHaveCount(0);
+  await perfMonitor.assertWithinBudget();
 });

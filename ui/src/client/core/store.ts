@@ -523,7 +523,7 @@ export function updateEdgeData(
   id: string,
   patch: Record<string, unknown>
 ): Record<string, unknown> | undefined {
-  const edges = new Map($graphEdges.get());
+  const edges = $graphEdges.get();
   const existing = edges.get(id);
   if (!existing) return undefined;
   const updated = { ...existing, ...patch };
@@ -537,7 +537,7 @@ export function updateNodeData(
   id: string,
   patch: Partial<GraphNodeData>
 ): GraphNodeData | undefined {
-  const nodes = new Map($graphNodes.get());
+  const nodes = $graphNodes.get();
   const existing = nodes.get(id);
   if (!existing) return undefined;
   const updated = { ...existing, ...patch } as GraphNodeData;
