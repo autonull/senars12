@@ -37,6 +37,7 @@ export class SNodeBody extends BaseComponent {
         box-shadow: var(--shadows-panel);
         font-size: var(--typography-scale-xs);
         pointer-events: none;
+        transition: max-height var(--transitions-normal);
       }
       :host([engaged]) { pointer-events: auto; }
       :host([tier=card]) {

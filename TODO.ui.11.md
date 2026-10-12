@@ -16,7 +16,7 @@
 |---|---|---|
 | One substrate (WorkspaceGraph + projections) | `core/workspace-graph.ts`, `core/*-projection.ts` | ✅ |
 | Conversation as graph nodes with real HTML bodies | `components/node-body.ts`, `utils/render-block.ts` | ✅ |
-| 4-tier LoD (glyph→label→card→full) | `utils/graph-scaling.ts` | ✅ |
+| 4-tier LoD (glyph→label→card→full) | `utils/graph-scaling.ts` | ✅ (+ token-driven transitions, B2) |
 | Density-aware layout | `utils/layout-registry.ts` | ✅ |
 | Fractal: block's `full` tier renders nested `<s-view>` | `utils/render-block.ts:54` (`embedded`) | ✅ (depth guard at 2) |
 | Overlay system (popovers, registry, host, windows) | `core/overlay-*.ts` | ✅ (+ drill-down breadcrumbs, B1) |
@@ -340,6 +340,45 @@ then `related` over `basic-derivation`) + its baseline.
   `data-surface`), so `updateWindowState` and the minimize/maximize host-attribute
   sync are no-ops. Setting `element.id = descriptor.id` in `OverlayHost.#element`
   (and matching the header's lookup) would make the header's host identity real.
+
+### B2 — LoD transition polish ✅
+
+**What landed.** The LoD motion is now one token-driven policy. `graph-scaling.ts`
+exports `LOD_TRANSITION` (`property`, `duration`, `easing`) read from `motion.*`
+tokens, and every LoD surface draws from it:
+- **Cytoscape** (`graph-viewport.ts`): the node selector's `transition-*` now comes
+  from `LOD_TRANSITION`, replacing the magic `0.25s` with
+  `motion.durations.normal` (200 ms) + `motion.easings.ease-out`.
+- **Node body** (`node-body.ts`): `:host` transitions `max-height` at
+  `var(--transitions-normal)`, so a `card`↔`full` tier flip slides instead of
+  snapping.
+- **Embedded views** (`render-block.ts`): `embedded` / `cappedEmbed` fade in
+  (`lod-enter`, `var(--transitions-fast)`), so a projection appears rather than pops.
+- **Reduced motion:** `base.css` zeroes durations globally, but that reaches only the
+  light DOM — shadow-DOM animation needs its own guard, so `blockBodyStyles` carries
+  `@media (prefers-reduced-motion: reduce)`. The host transition (`node-body`) is
+  covered by the global rule (the host is light DOM).
+
+**Guard.** `tests/craft/motion.test.ts` (+1): `LOD_TRANSITION.duration` is the
+`motion.durations.normal` token, the easing is `motion.easings.ease-out`, the
+duration lands in the 150–200 ms band, and the property list covers `width` +
+`opacity`. Motion is not statically capturable, so this is the guard (a cell /
+recording is not applicable).
+
+**Verified.** typecheck; ui unit **687**; craft **204**; design **11**; full visual
+**62/62** vs the existing baselines (**no baseline moved**); `complexity:budget`
+unchanged.
+
+**Notes.**
+- Motion lives behind the `motion.*` / `transitions.*` tokens. The global
+  reduced-motion block does **not** pierce shadow DOM, so any future component
+  animation needs its own `@media (prefers-reduced-motion: reduce)` guard.
+- `LOD_TRANSITION` is read at module import (like the other scales), so a live
+  `setTheme` will not re-read it — same E7/E5 caveat as D5.
+
+**New improvement opportunity.** A craft rule forbidding raw `\d+ms` / `\d+s` time
+literals in chrome source would prevent future token bypasses (the Cytoscape
+`0.25s` was one).
 
 ---
 
@@ -1451,7 +1490,7 @@ control the user must learn.
 - [x] **Track A2**: Derivation-record provenance → wire to real blocks or embed in body
 - [x] **Track A3**: Demo cells → shared `seedBlocks` helper or synthetic projection
 - [x] **Track B1**: Overlay breadcrumbs in header (read `overlayManager.stack()`)
-- [ ] **Track B2**: LoD transition animations (CSS transitions, respect reduced-motion)
+- [x] **Track B2**: LoD transition animations (CSS transitions, respect reduced-motion)
 - [x] **Track B3**: Per-layout empty/loading/error states (9 layouts, use `<s-empty-state>`)
 - [ ] **Track C1**: Content adapter spike (filesystem → graph, <1 day)
 - [ ] **Track C2**: Semantic-zoom coordinate space spike
@@ -1651,8 +1690,8 @@ number:
    done (remainders gated on D1 catalogs / F4 `CommandId`).**
 4. **E1–E3 → D1–D4, D6–D7** — land the ingredient library, then collapse the
    consolidation items onto it.
-5. **B2** — LoD transitions (rides on D5's `numericToken`). **B1 done** (breadcrumbs;
-   landed standalone — the shared header meant D3 was not a prerequisite).
+5. **B2** — LoD transitions (rides on D5's `numericToken`). **Done** (B1 and B2 both
+   landed; the shared header meant B1 did not need D3).
 6. **G2 + G3 + G4** — robustness (perf budgets, a11y, error taxonomy).
 7. **G5 + G6** — prove the foundation (second bundle) and productize demos.
 8. **C1–C4** — evaluate honestly; close what fails its gate.

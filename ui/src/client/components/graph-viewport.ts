@@ -40,7 +40,7 @@ import {
   toggleCollapsed,
 } from '../core/index.js';
 import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
-import { clampZoom, FIT_PADDING, labelCutoff, showsLabel, getLoDTier, showsHtmlBody } from '../utils/graph-scaling.js';
+import { clampZoom, FIT_PADDING, labelCutoff, showsLabel, getLoDTier, showsHtmlBody, LOD_TRANSITION } from '../utils/graph-scaling.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
 import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
@@ -673,9 +673,9 @@ export class GraphViewport extends BaseComponent {
           'text-outline-color': theme.colors.void,
           'font-size': '11px',
           'font-family': 'JetBrains Mono, monospace',
-          'transition-property':
-            'background-color, width, height, opacity, border-color, border-width',
-          'transition-duration': '0.25s',
+          'transition-property': LOD_TRANSITION.property,
+          'transition-duration': LOD_TRANSITION.duration,
+          'transition-timing-function': LOD_TRANSITION.easing,
         },
       },
       { selector: 'node.html-enabled', style: { label: '' } },

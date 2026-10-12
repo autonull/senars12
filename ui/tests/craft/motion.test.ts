@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TOKENS, THEME_NAMES } from '../../src/client/styles/tokens.generated.js';
+import { LOD_TRANSITION } from '../../src/client/utils/graph-scaling.js';
 
 const DURATION_KEYS = [
   'motion.durations.instant',
@@ -84,5 +85,17 @@ describe('craft: motion', () => {
         expect(tokens[key]).toBe(baseTheme[key]);
       }
     }
+  });
+});
+
+describe('craft: LoD transition', () => {
+  it('is token-driven, in the 150–200ms alive band, and covers size + opacity', () => {
+    const ms = Number.parseInt(LOD_TRANSITION.duration, 10);
+    expect(ms).toBeGreaterThanOrEqual(150);
+    expect(ms).toBeLessThanOrEqual(200);
+    expect(LOD_TRANSITION.duration).toBe(TOKENS.dark['motion.durations.normal']);
+    expect(LOD_TRANSITION.easing).toBe(TOKENS.dark['motion.easings.ease-out']);
+    expect(LOD_TRANSITION.property).toContain('width');
+    expect(LOD_TRANSITION.property).toContain('opacity');
   });
 });

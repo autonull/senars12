@@ -5,37 +5,39 @@
  * T.4) share one definition and the tokens are the only source of the numbers.
  */
 
-import { numericToken as token } from './theme.js';const clamp = (value: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, value));
+import { numericToken, token } from './theme.js';
+
+const clamp = (value: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, value));
 
 /** World-space node-size window, from the priority (importance) scale. */
 export const NODE_SIZE = {
-  min: token('colors.priority.size-min'),
-  max: token('colors.priority.size-max'),
+  min: numericToken('colors.priority.size-min'),
+  max: numericToken('colors.priority.size-max'),
 } as const;
 
 /** The floor and ceiling of the zoom window the viewport settles in. */
 export const ZOOM = {
-  min: token('colors.legibility.min-zoom'),
-  max: token('colors.legibility.max-zoom'),
+  min: numericToken('colors.legibility.min-zoom'),
+  max: numericToken('colors.legibility.max-zoom'),
 } as const;
 
 /** The smallest rendered node edge (px) that still reads as a node. */
-export const LEGIBLE_NODE_PX = token('colors.legibility.node-px');
+export const LEGIBLE_NODE_PX = numericToken('colors.legibility.node-px');
 
 /** Padding (px) around the fit, so content never touches the viewport edge. */
-export const FIT_PADDING = token('colors.legibility.fit-padding');
+export const FIT_PADDING = numericToken('colors.legibility.fit-padding');
 
 /** World-space gutter between nodes the layout aims to keep (§Move 1.3). */
-export const NODE_GUTTER = token('colors.legibility.node-gutter');
+export const NODE_GUTTER = numericToken('colors.legibility.node-gutter');
 
 /** The most `<s-node-body>` elements that may mount at once (§Move 2.2). */
-export const HTML_BODY_BUDGET = token('colors.legibility.html-body-budget');
+export const HTML_BODY_BUDGET = numericToken('colors.legibility.html-body-budget');
 
-const LABEL_LOD = token('colors.legibility.label-lod-threshold');
-const LABEL_BUDGET = token('colors.legibility.label-budget');
-const HTML_LOD_ZOOM = token('colors.legibility.html-lod-zoom');
-const REFERENCE_AREA = token('colors.legibility.reference-area');
-const REFERENCE_COUNT = token('colors.legibility.reference-count');
+const LABEL_LOD = numericToken('colors.legibility.label-lod-threshold');
+const LABEL_BUDGET = numericToken('colors.legibility.label-budget');
+const HTML_LOD_ZOOM = numericToken('colors.legibility.html-lod-zoom');
+const REFERENCE_AREA = numericToken('colors.legibility.reference-area');
+const REFERENCE_COUNT = numericToken('colors.legibility.reference-count');
 
 /**
  * Viewport-density factor: a denser graph or a larger viewport pushes node size
@@ -111,6 +113,19 @@ export const LOD_ZOOM_THRESHOLDS: Record<LoDTier, number> = {
   label: LABEL_LOD,
   card: HTML_LOD_ZOOM * 0.75,
   full: HTML_LOD_ZOOM,
+} as const;
+
+/**
+ * The motion of a LoD transition — the properties that change as a node crosses a
+ * tier, and the tempo they change at, both from motion tokens so the canvas, the
+ * node body and the embedded views all breathe at one rhythm (§Move 2 aliveness).
+ * The duration lives in the 150–200 ms "alive, not laggy" band; reduced motion is
+ * handled globally in `base.css`.
+ */
+export const LOD_TRANSITION = {
+  property: 'background-color, width, height, opacity, border-color, border-width',
+  duration: token('motion.durations.normal'),
+  easing: token('motion.easings.ease-out'),
 } as const;
 
 /** Determine the active LoD tier for a node at a given zoom and importance. */

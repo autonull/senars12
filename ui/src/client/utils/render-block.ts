@@ -38,6 +38,9 @@ export const blockBodyStyles = css`
   .embed-capped-label { flex: 1; }
   .embed-capped-note { color: var(--colors-semantic-text-muted); font-size: var(--typography-scale-xs); }
   .embed-expand { padding: 1px 6px; border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-scale-sm); background: transparent; color: var(--colors-semantic-accent-primary); cursor: pointer; font-family: inherit; font-size: inherit; }
+  .embed-live, .embed-capped { animation: lod-enter var(--transitions-fast); }
+  @keyframes lod-enter { from { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .embed-live, .embed-capped { animation: none; } }
 `;
 
 /**
@@ -52,7 +55,13 @@ export const embedDepthExceeded = (depth: number): boolean => depth >= MAX_EMBED
 
 /** The one way a block renders through the view system: its own instruction, or its artifact's. */
 const embedded = (spec: ViewSpec, depth: number): TemplateResult =>
-  html`<s-view .spec=${spec} .chrome=${false} .budget=${'embedded'} .depth=${depth}></s-view>`;
+  html`<s-view
+    class="embed-live"
+    .spec=${spec}
+    .chrome=${false}
+    .budget=${'embedded'}
+    .depth=${depth}
+  ></s-view>`;
 
 /** The bounded stand-in for a projection too deep to mount: a card, and an expand. */
 const cappedEmbed = (block: SemanticBlock, spec: ViewSpec): TemplateResult => html`
