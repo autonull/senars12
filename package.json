@@ -84,7 +84,7 @@
     "fuzz": "tsx scripts/fuzz-narsese.ts",
     "fuzz:ci": "tsx scripts/fuzz-narsese.ts 10000",
     "web": "pnpm --dir ui dev",
-    "ui:gate": "pnpm --dir ui typecheck && pnpm --dir ui test:unit",
+    "ui:gate": "pnpm --dir ui typecheck && pnpm --dir ui test:unit && pnpm --dir ui test:e2e:golden",
     "ui:gallery": "pnpm --dir ui ui:gallery",
     "ui:golden": "pnpm --dir ui test:e2e:golden",
     "ui:verify": "pnpm --dir ui verify",

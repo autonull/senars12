@@ -15,6 +15,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: npx playwright install chromium
       - run: pnpm typecheck
       # The bin/ composition root is a separate tsconfig and its own failure mode.
       - run: pnpm typecheck:bin

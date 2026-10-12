@@ -437,6 +437,8 @@ deleting, everything that distracts from it.*
 - [x] **Flow D run-scoped terminations** — `runCycles` loops `engine.run(1)` per cycle,
       accumulates `spendTerminations` via `mergeSpendSummaries`; a bound hit in any cycle
       is reported in the run's termination payload
+- [x] **§7 contract — golden e2e folded into `ui:gate`** — `ui:gate = typecheck + unit + golden e2e`;
+      CI installs chromium and runs the @golden suite (playwright config already limits to chromium in CI)
 
 ### P0.1 — control path wired server-side ✅ (guard added)
 The single defect the audit found is fixed at the source: the engine can now be steered.
@@ -883,6 +885,28 @@ in the run's termination payload**.
 - The budget-block reducer in `workspace-projection.ts` re-derives the reason layout
   instead of reusing `spendTerminations` — DRY it.
 - A run-scoped "total spent vs ceiling" summary would be a nice L2 display.
+
+### §7 contract — golden e2e folded into `ui:gate` ✅ (CI)
+The plan's §7 declared `ui:gate = typecheck + unit + golden e2e`. The golden e2e was green
+but not in the gate. Now:
+
+- **`ui:gate` updated** (`package.json`) to run `pnpm --dir ui test:e2e:golden` after
+  typecheck + unit.
+- **CI installs chromium** (`.github/workflows/ci.yml`): `npx playwright install chromium`
+  before the gates job. The playwright config already detects `CI` and limits projects to
+  chromium only — no firefox/webkit flakes.
+- **No new test** — the existing `@golden` suite (`operate-reasoner`, `scenario-replay`)
+  is the gate's e2e proof. Workers=1 (serial) as the plan specified.
+
+**Remaining for this slice:**
+- The `ui:gate` now takes ~1m (chromium build + test). If latency becomes a concern,
+  a separate `ui:golden` gate (parallel) could be split out — but the plan's contract
+  is satisfied.
+
+**New improvement opportunities:**
+- `ui:golden` as a standalone fast-feedback gate for PRs (parallel to `ui:gate`).
+- The `scenario-replay` @golden test has a known race with derivation-record drain —
+  hardening it would make the gate more reliable.
 
 ---
 
