@@ -1,6 +1,6 @@
 import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { $activeLens, BaseComponent } from '../core/index.js';
+import { customElement } from 'lit/decorators.js';
+import { $activeLens, BaseComponent, eventBus } from '../core/index.js';
 import { LENS_CATALOG, type LensDescriptor } from '../utils/lens-catalog.js';
 import { theme } from '../utils/theme.js';
 import type { BuiltinLens, ModulationSpec } from '../../shared/lens-schema.js';
@@ -100,8 +100,6 @@ export class GraphLegend extends BaseComponent {
     }
   `;
 
-  @state() private open = false;
-
   override connectedCallback() {
     super.connectedCallback();
     this.watch($activeLens);
@@ -111,13 +109,13 @@ export class GraphLegend extends BaseComponent {
     const lensId = $activeLens.get() as BuiltinLens;
     const lens = LENS_CATALOG[lensId];
 
-    if (!lens || !this.open) return html``;
+    if (!lens) return html``;
 
     return html`
       <div class="legend">
         <div class="legend-header">
           <span class="legend-title">Legend: ${lens.label}</span>
-          <button class="legend-close" @click=${() => (this.open = false)} aria-label="Close legend">×</button>
+          <button class="legend-close" @click=${() => eventBus.emit('graph:legend-toggle')} aria-label="Close legend">×</button>
         </div>
 
         ${this.renderLegendContent(lens)}

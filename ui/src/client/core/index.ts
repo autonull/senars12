@@ -474,14 +474,17 @@ export {
 } from './workspace-renderer.js';
 export {
   type ToolSpec,
+  type PendingApproval,
   registerTool,
   getTool,
   allTools,
   executeToolCall,
-  setApprovalHandler,
+  currentApproval,
+  onApprovalChange,
+  approveCurrent,
+  rejectCurrent,
   promptUserTool,
   registerBuiltinTools,
   callTool,
-  initToolApproval,
 } from './tool-registry.js';
 export { OverlayHeader } from '../components/overlays/overlay-header.js';

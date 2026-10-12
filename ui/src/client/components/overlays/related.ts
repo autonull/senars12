@@ -241,6 +241,7 @@ registerOverlay({
   id: RELATED_SURFACE.id,
   title: RELATED_SURFACE.title,
   tag: surfaceTag(RELATED_SURFACE),
+  hiddenInPalette: true,
 });
 
 declare global {

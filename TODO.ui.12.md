@@ -418,8 +418,9 @@ deleting, everything that distracts from it.*
 - [x] **P0.1 server** — wire `reasoning.*` control path + `reasoning.abort` protocol + guard
 - [x] **P0.1 client** — `makeControl` awaits `reasoning.control.response`; `retract | revise |
       adjust-budget | adjust-provider` disabled (`CAPS`) until wired; `reasoningRunning` resets
-- [ ] **P0 facade** — mount `connection-banner`; fix composer CTA (`bottom-bar.focusInput`);
-      wire `s-tool-approval`; palette honesty (no-ref entries); fix `graph-legend`
+- [x] **P0 facade** — mount `connection-banner`; fix composer CTA (`bottom-bar.focusInput`);
+      wire `s-tool-approval`; palette honesty (no-ref entries); fix `graph-legend`;
+      drop no-op messages (`viewport.set`, `node.set`, `config.reset`)
 - [ ] **P1 why** — expose `askWithDerivation`/`derivation.record`; a **"Why?"** on every
       answer (one click, no modifier); `terminationReason` as a first-class field
 - [ ] **P1 state** — goals/questions surface; gate verdicts surface; run/step/pause/abort in chrome
@@ -488,6 +489,57 @@ The client no longer lies about control outcomes; it awaits the engine's answer.
   worst case while offline.
 - `reasoning.control.response` carries no result payload. Returning the created node id(s)
   would let the UI select/focus the new answer directly (strengthens Flow A → Flow B).
+
+### P0 facade — no lying controls ✅ (guard added)
+Every visible affordance now works or is gone; the dead wiring is cut.
+
+- **Connection status:** `connection-banner` is mounted in `app-layout` (`.banner-area`) —
+  it was imported but never in the DOM, so the app had *no* connection state. It renders
+  connecting/reconnecting/disconnected, with Retry.
+- **Composer CTA:** `bottom-bar.focusInput()` added; the empty-state "Send a message"
+  button (`app-layout.focusInput`) was calling a method that did not exist.
+- **Gated tools now actually await approval.** The approval queue moved from the
+  `s-tool-approval` element into `tool-registry.ts` (boot-time, layout-independent).
+  `executeToolCall` enqueues, opens the overlay, awaits the decision, then executes with
+  the approved args; `rejectCurrent` rejects without executing. Previously the handler was
+  installed only when the overlay first mounted — which nothing did before a call — so
+  gated tools **bypassed approval** and ran directly. Removed the now-dead
+  `setApprovalHandler` / `onApprovalRequired` / `initToolApproval` / `tool.approval.request`.
+- **Palette honesty:** `overlay.explain | related | block-menu` are `hiddenInPalette`
+  (artifact already was). They need a `ref` and previously rendered "Nothing to
+  explain"/"Block not found" as bare entries; they stay registered and openable
+  *contextually* (`overlay:open { id, ref }` from a block/graph/ToC affordance).
+- **Legend fixed:** `graph-legend` gated its own render behind a private `open` that no
+  one set, so it could *never* render; the viewport already owns visibility. It now
+  renders when mounted and its close button emits `graph:legend-toggle`.
+- **Color-by removed:** the `graph-toolbar` "Color by" select lied ("Kind" was a no-op) and
+  duplicated the lens-controller, which is the real color mechanism. Removed (chrome
+  reduced; expressivity unchanged, owned by the lens).
+- **No-op messages dropped:** `viewport.set` (silent `return`), `node.set` (redundant with
+  `object.set`, never sent) and `config.reset` (reset already done per-field via
+  `config.set`, never sent) are removed from the protocol + server — no declared message
+  without a real handler.
+- Guard: `ui/tests/components/facade-honesty.test.ts` (gated tool can't run before
+  approval; approved args reach execute; reject never executes; ref-dependent overlays are
+  registered but palette-hidden). Unit **751 → 755**. Visual baselines for `graph-narrow`
+  and `overlay-toc` regenerated (toolbar churn); the rest unchanged.
+
+**Remaining for P0 facade (done ≠ proven):**
+- The banner mount can't be *proven* by the visual suite: the state cells set
+  `connectionState` but the live socket immediately reconnects and overrides it back to
+  `connected`. The P2 golden-path e2e (or a socket-blocked harness) must prove it.
+- Gated tools now run `spec.execute(approvedArgs)` after approval; before, the approved
+  args were returned but `execute` was never called (the `prompt_user` comment described
+  intent the code did not honour).
+
+**New improvement opportunities (found while wiring):**
+- The visual state cells (`state-loading/disconnected/reconnecting`) are inert: the test
+  harness's `setConnection` is defeated by the always-on agent socket. A harness that
+  can hold the socket closed would make those cells meaningful.
+- `resetConfigFields` (`ui/src/server/config-schema.ts`) is now unused after dropping
+  `config.reset`; remove it or make one reset-category control use it.
+- Viewport is now purely client-local (no `viewport.set`); re-add a message deliberately
+  if per-client viewport persistence to the server is ever wanted.
 
 ---
 

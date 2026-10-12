@@ -43,13 +43,75 @@ export const toolRegistry: Registry<string, ToolSpec> = createRegistry(
   (spec) => spec.name
 );
 
-export let onApprovalRequired: ((call: ToolCall, spec: ToolSpec) => Promise<unknown>) | undefined;
+/**
+ * A gated call awaiting the user's decision. The registry owns it (not a view),
+ * so a gated tool can never run before the user decides even when the approval
+ * overlay has never been mounted.
+ */
+export interface PendingApproval {
+  readonly id: string;
+  readonly name: string;
+  readonly args: Record<string, unknown>;
+  readonly spec: ToolSpec;
+  readonly resolve: (result: unknown) => void;
+  readonly reject: (error: Error) => void;
+}
 
-/** Install the handler the approval overlay registers for gated tools. */
-export function setApprovalHandler(
-  handler?: (call: ToolCall, spec: ToolSpec) => Promise<unknown>
-): void {
-  onApprovalRequired = handler;
+const approvalQueue: PendingApproval[] = [];
+let activeApproval: PendingApproval | null = null;
+const approvalWatchers = new Set<() => void>();
+
+/** The approval the user must decide on now, or `null`. */
+export const currentApproval = (): PendingApproval | null => activeApproval;
+
+/** Observe approval changes; returns the unsubscribe. */
+export function onApprovalChange(watcher: () => void): () => void {
+  approvalWatchers.add(watcher);
+  return () => approvalWatchers.delete(watcher);
+}
+
+function notifyApproval(): void {
+  for (const watcher of approvalWatchers) watcher();
+}
+
+function advanceApproval(): void {
+  activeApproval = approvalQueue.shift() ?? null;
+  notifyApproval();
+}
+
+/** Enqueue a gated call, open the approval overlay, and await the decision. */
+function requestApproval(call: ToolCall, spec: ToolSpec): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    approvalQueue.push({
+      id: call.toolCallId,
+      name: call.toolName,
+      args: call.args as Record<string, unknown>,
+      spec,
+      resolve,
+      reject,
+    });
+    if (activeApproval) notifyApproval();
+    else advanceApproval();
+    eventBus.emit('overlay:open', { id: 'tool-approval' });
+  });
+}
+
+/** Approve the current call with its (possibly edited) args and advance the queue. */
+export function approveCurrent(args: Record<string, unknown>): void {
+  const pending = activeApproval;
+  if (!pending) return;
+  activeApproval = null;
+  pending.resolve(args);
+  advanceApproval();
+}
+
+/** Reject the current call and advance the queue. */
+export function rejectCurrent(): void {
+  const pending = activeApproval;
+  if (!pending) return;
+  activeApproval = null;
+  pending.reject(new Error('User cancelled'));
+  advanceApproval();
 }
 
 /** Register a tool. Call during app init. */
@@ -67,16 +129,14 @@ export function allTools(): readonly ToolSpec[] {
   return toolRegistry.all();
 }
 
-/** Execute a tool call, handling approval if needed. */
+/** Execute a tool call; a gated tool runs only after the user approves it. */
 export async function executeToolCall(call: ToolCall): Promise<unknown> {
   const spec = toolRegistry.get(call.toolName);
   if (!spec) throw new Error(`Tool not found: ${call.toolName}`);
+  if (!spec.approval) return spec.execute(call.args as Record<string, unknown>);
 
-  if (spec.approval && onApprovalRequired) {
-    return onApprovalRequired(call, spec);
-  }
-
-  return spec.execute(call.args as Record<string, unknown>);
+  const approved = await requestApproval(call, spec);
+  return spec.execute(approved as Record<string, unknown>);
 }
 
 /** The `prompt_user` tool — system asks user a question/form/confirm/select. */
@@ -156,13 +216,4 @@ export async function callTool(name: string, args: Record<string, unknown>): Pro
   };
 
   return executeToolCall(call);
-}
-
-/** Initialize the approval overlay listener. */
-export function initToolApproval(): void {
-  eventBus.on('tool.approval.request', async ({ call, spec }: { call: ToolCall; spec: ToolSpec }) => {
-    if (onApprovalRequired) {
-      await onApprovalRequired(call, spec);
-    }
-  });
 }

@@ -10,13 +10,12 @@ import {
   LMStatusMsg,
   LMStatusRequest,
 } from './chat.js';
-import { type ConfigField, ConfigResetMsg, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
+import { type ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
 import { ServerError } from './error.js';
 import { CognitiveDelta } from './graph-ops.js';
 import { NodeHistoryMsg, NodeHistoryRequestMsg } from './history.js';
 import { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './lens-msgs.js';
-import { NodeSetMsg, ObjectSetMsg } from './object-patch.js';
-import { UiCommandMsg } from './ui-command.js';
+import { ObjectSetMsg } from './object-patch.js';import { UiCommandMsg } from './ui-command.js';
 import {
   ReasoningSubmitMsg,
   ReasoningStepMsg,
@@ -36,19 +35,15 @@ import {
   StateSnapshot,
   SyncRequest,
   TelemetryMsg,
-  ViewportSet,
 } from './sync.js';
 
 export const IncomingFromClient = z.discriminatedUnion('type', [
   ChatUserMsg,
   ConfigSetMsg,
-  ConfigResetMsg,
   SyncRequest,
   LensSet,
   FocusSet,
-  ViewportSet,
   ObjectSetMsg,
-  NodeSetMsg,
   LensDefineMsg,
   NodeHistoryRequestMsg,
   LMStatusRequest,

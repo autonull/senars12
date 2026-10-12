@@ -54,7 +54,7 @@ export { CognitiveDelta, GraphOp } from './graph-ops.js';
 export { GraphNodeData, GraphNodeDataView, Lens } from './graph-view.js';
 export { NodeHistoryMsg, NodeHistoryRequestMsg } from './history.js';
 export { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './lens-msgs.js';
-export { NodeSetMsg, ObjectSetMsg } from './object-patch.js';
+export { ObjectSetMsg } from './object-patch.js';
 export {
   CognitiveEventsMsg,
   CognitiveMetrics,
@@ -63,7 +63,6 @@ export {
   StateSnapshot,
   SyncRequest,
   TelemetryMsg,
-  ViewportSet,
 } from './sync.js';
 export type { CognitiveMetricsData, TelemetryMetrics } from './sync.js';
 export type { ConfigFieldType } from './unions.js';

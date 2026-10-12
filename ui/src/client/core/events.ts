@@ -10,7 +10,6 @@
  * error rather than a dead control.
  */
 import { EventBus } from '@senars/util';
-import type { ToolCall } from '@senars/util';
 
 /**
  * Payload per signal. `void` marks a signal that carries nothing, and is emitted
@@ -42,8 +41,6 @@ export type UiSignals = {
   'overlay:cascade': { offset?: number };
   /** Tile open windows in a grid (§overlay-windows). */
   'overlay:tile': void;
-  /** Tool approval request (§0.5). */
-  'tool.approval.request': { call: ToolCall; spec: import('./tool-registry.js').ToolSpec };
   /** Focus the universal composer (§8.1) — palette/selection-launched, renderer-agnostic. */
   'composer:focus': { refs?: string[]; mode?: string };
   /** Open the floating composer at a position. */

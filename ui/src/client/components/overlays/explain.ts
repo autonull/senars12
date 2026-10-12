@@ -357,6 +357,7 @@ registerOverlay({
   title: EXPLAIN_SURFACE.title,
   tag: surfaceTag(EXPLAIN_SURFACE),
   capability: 'reasoning' as Capability,
+  hiddenInPalette: true,
   window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 

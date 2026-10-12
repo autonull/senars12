@@ -14,7 +14,7 @@ import { mettaBackend } from './metta-backend.js';
 import { $chatMessages, $cognitiveEvents, $graphEdges, $graphNodes, $workspaceGraph, $config } from './store.js';
 import { projectWorkspace } from './workspace-projection.js';
 import { initConfigChangeProducer } from './config-change-producer.js';
-import { registerBuiltinTools, initToolApproval } from './tool-registry.js';
+import { registerBuiltinTools } from './tool-registry.js';
 import type { WorkspaceGraph } from './workspace-graph.js';
 
 /** Re-export initConfigChangeProducer for the core index. */
@@ -37,9 +37,8 @@ export function syncWorkspaceGraph(): WorkspaceGraph {
 
 /** Keep `$workspaceGraph` in sync with chat and the engine graph; returns an unsubscribe. */
 export function mountWorkspaceProjection(): () => void {
-  // Initialize built-in tools and approval flow
+  // Initialize built-in tools; approval is intrinsic to the registry.
   registerBuiltinTools();
-  initToolApproval();
 
   // Initialize config change tracking after config is hydrated from server
   const configUnsub = $config.subscribe(() => {

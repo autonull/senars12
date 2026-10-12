@@ -21,8 +21,6 @@ export const StateSnapshot = msg('state.snapshot', {
   }),
 });
 
-export const ViewportSet = msg('viewport.set', { x: z.number(), y: z.number(), zoom: z.number() });
-
 export const CognitiveMetrics = z.object({
   activeConcepts: z.number(),
   totalConcepts: z.number(),

@@ -482,6 +482,11 @@ export class BottomBar extends BaseComponent {
     `;
   }
 
+  /** Focus the composer; the app-layout empty-state CTA reaches it through this. */
+  focusInput(): void {
+    this.shadowRoot?.querySelector<HTMLTextAreaElement>('textarea')?.focus();
+  }
+
   private autoResize(ta: HTMLTextAreaElement) {
     ta.style.height = '44px';
     ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;

@@ -38,6 +38,7 @@ import './contradiction-badge.js';
 import './error-boundary.js';
 import './chat-history-panel.js';
 import './lens-designer.js';
+import './connection-banner.js';
 import './primitives/empty-state.js';
 
 @customElement('app-layout')
@@ -204,6 +205,7 @@ export class AppLayout extends BaseComponent {
         <div class="toolbar-area">
           ${notebook ? '' : html`<graph-toolbar></graph-toolbar>`}
         </div>
+        <div class="banner-area"><connection-banner></connection-banner></div>
       </div>
 
       <div class="body-area">

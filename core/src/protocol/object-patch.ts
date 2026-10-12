@@ -17,12 +17,3 @@ export const ObjectSetMsg = msg('object.set', {
     confidence: unitInterval.optional(),
   }),
 });
-
-export const NodeSetMsg = msg('node.set', {
-  id: z.string(),
-  patch: z.object({
-    truth: TruthValueSchema.optional(),
-    priority: unitInterval.optional(),
-    confidence: unitInterval.optional(),
-  }),
-});

@@ -18,7 +18,7 @@ import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 import { handleMetricsRequest } from '@senars/nar/metrics';
 import { asBeliefTruth, envBool, envPositive, makeId, splitLines } from '@senars/util';
 import { type RawData, WebSocket, WebSocketServer } from 'ws';
-import { applyConfigField, buildConfigSchema, resetConfigFields } from './config-schema.js';
+import { applyConfigField, buildConfigSchema } from './config-schema.js';
 import {
   BOOTSTRAP_SCENARIO,
   loadScenario,
@@ -695,9 +695,6 @@ function broadcastConfigSchema(): void {
         if (updates) applyConfigUpdates(updates);
         return;
       }
-      case 'config.reset':
-        applyConfigUpdates(resetConfigFields(msg.category));
-        return;
       case 'sync.request':
         sendStateSnapshot(ws);
         return;
@@ -707,13 +704,8 @@ function broadcastConfigSchema(): void {
       case 'focus.set':
         projection?.setFocus(msg.term);
         return;
-      case 'viewport.set':
-        return;
       case 'object.set':
         projection?.applyObjectPatch(msg.kind, msg.id, msg.patch);
-        return;
-      case 'node.set':
-        projection?.applyObjectPatch('node', msg.id, msg.patch);
         return;
       case 'lens.define':
         projection?.defineLens(msg.lens as LensSpec);

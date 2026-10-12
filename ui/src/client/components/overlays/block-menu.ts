@@ -221,6 +221,7 @@ registerOverlay({
   id: BLOCK_MENU_SURFACE.id,
   title: BLOCK_MENU_SURFACE.title,
   tag: surfaceTag(BLOCK_MENU_SURFACE),
+  hiddenInPalette: true,
 });
 
 declare global {

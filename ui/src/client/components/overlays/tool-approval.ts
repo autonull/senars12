@@ -4,23 +4,20 @@
  */
 
 import { css, html, type TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import type { ToolCall } from '@senars/util';
-import { eventBus } from '../../core/events.js';
+import { customElement } from 'lit/decorators.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { mountTestApi } from '../../core/store.js';
-import { callTool, setApprovalHandler, type ToolSpec } from '../../core/tool-registry.js';
-
-interface PendingCall {
-  id: string;
-  name: string;
-  args: Record<string, unknown>;
-  spec: ToolSpec;
-  resolve: (result: unknown) => void;
-  reject: (error: Error) => void;
-}
+import {
+  approveCurrent,
+  callTool,
+  currentApproval,
+  onApprovalChange,
+  rejectCurrent,
+  type PendingApproval,
+  type ToolSpec,
+} from '../../core/tool-registry.js';
 
 @customElement('s-tool-approval')
 export class ToolApprovalView extends SurfaceComponent {
@@ -189,41 +186,23 @@ export class ToolApprovalView extends SurfaceComponent {
     }
   `;
 
-  @state() private queue: PendingCall[] = [];
-  @state() private current: PendingCall | null = null;
+  #unsubscribeApproval?: () => void;
+
+  private get current(): PendingApproval | null {
+    return currentApproval();
+  }
 
   override connectedCallback(): void {
     super.connectedCallback();
-    setApprovalHandler(this.handleApprovalRequired.bind(this));
+    this.#unsubscribeApproval = onApprovalChange(() => this.requestUpdate());
     mountTestApi('toolApproval', {
       request: (args: Record<string, unknown>) => callTool('prompt_user', args),
     });
   }
 
   override disconnectedCallback(): void {
+    this.#unsubscribeApproval?.();
     super.disconnectedCallback();
-    setApprovalHandler(undefined);
-  }
-
-  private handleApprovalRequired(call: ToolCall, spec: ToolSpec): Promise<unknown> {
-    return new Promise((resolve, reject) => {
-      const pending: PendingCall = {
-        id: call.toolCallId,
-        name: call.toolName,
-        args: call.args as Record<string, unknown>,
-        spec,
-        resolve,
-        reject,
-      };
-      this.queue.push(pending);
-      if (!this.current) this.next();
-      this.requestUpdate();
-    });
-  }
-
-  private next(): void {
-    this.current = this.queue.shift() ?? null;
-    this.requestUpdate();
   }
 
   private renderArgs(args: Record<string, unknown>, spec: ToolSpec): TemplateResult {
@@ -404,8 +383,9 @@ export class ToolApprovalView extends SurfaceComponent {
   }
 
   private updateFormArg(key: string, value: unknown): void {
-    if (!this.current) return;
-    this.current.args[key] = value;
+    const pending = this.current;
+    if (!pending) return;
+    pending.args[key] = value;
     this.requestUpdate();
   }
 
@@ -441,21 +421,14 @@ export class ToolApprovalView extends SurfaceComponent {
   };
 
   private onApprove = (): void => {
-    if (!this.current) return;
-    const { resolve, args } = this.current;
-    this.current = null;
-    resolve(args);
-    this.next();
-    this.requestUpdate();
+    const pending = this.current;
+    if (!pending) return;
+    approveCurrent(pending.args);
   };
 
   private onReject = (): void => {
     if (!this.current) return;
-    const { reject } = this.current;
-    this.current = null;
-    reject(new Error('User cancelled'));
-    this.next();
-    this.requestUpdate();
+    rejectCurrent();
   };
 }
 
