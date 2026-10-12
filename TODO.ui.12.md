@@ -434,6 +434,9 @@ deleting, everything that distracts from it.*
       affordance; engine emits `concept:removed` (reason `retracted`); golden-path e2e retracts a premise
 - [x] **Flow C revise** — `nar.believe` with truth + `reasoning.revise` route + drawer truth slider
       now reaches the engine; revise is real, not a view edit
+- [x] **Flow D run-scoped terminations** — `runCycles` loops `engine.run(1)` per cycle,
+      accumulates `spendTerminations` via `mergeSpendSummaries`; a bound hit in any cycle
+      is reported in the run's termination payload
 
 ### P0.1 — control path wired server-side ✅ (guard added)
 The single defect the audit found is fixed at the source: the engine can now be steered.
@@ -849,6 +852,37 @@ outcome; `canRevise` flips true.
 - `object.set` for edge truth still edits the projection; a `reasoning.revise-edge` (or
   unifying edge/belief revision) would make edge truth edits honest too.
 - The confidence slider is the natural pair; adding it would complete the revise affordance.
+
+### Flow D run-scoped terminations — every bound a run hits is reported ✅ (guard + e2e)
+The engine resets budgets each cycle via `beginCycle`; a multi-cycle `run` only reported the
+last cycle's exhausted scopes. Now `runCycles` iterates `engine.run(1)` and accumulates
+`spendTerminations` via `mergeSpendSummaries`, so **any cycle that hits a bound is reflected
+in the run's termination payload**.
+
+- **Accumulation, not overwrite.** After each `run(1)`, the server reads
+  `engine.getExecution().getSpendSummary()` and merges it into a run-scoped summary.
+  `mergeSpendSummaries` takes the max `ceiling`/`spent` per scope and preserves the *first*
+  `terminationReason` (once a scope is exhausted, it stays exhausted).
+- **Pure, reusable projection.** `mergeSpendSummaries` and `spendTerminations` are pure
+  functions (`ui/src/server/spend-terminations.ts`), tested in isolation.
+- **No protocol change.** The `reasoning.control.response` still carries the same
+  `termination: Array<{ scope, reason }>` — just now complete for the run.
+- **Guards:** `tests/server/spend-terminations.test.ts` adds 3 tests for
+  `mergeSpendSummaries` (merges distinct scopes; first exhaustion wins; handles undefined).
+  Unit **766 → 769**.
+- **Proven on the real app:** the golden-path e2e (which runs multiple cycles) still passes,
+  and its `termination` payload now reflects run-scoped accumulation.
+
+**Remaining for this slice:**
+- The `step` control (1 cycle) is unaffected — it was already per-cycle. Good.
+- If a run aborts mid-cycle, the partial cycle's summary is not read (the loop checks
+  `aborted` before the next iteration). Acceptable; an aborted run's termination is
+  secondary.
+
+**New improvement opportunities:**
+- The budget-block reducer in `workspace-projection.ts` re-derives the reason layout
+  instead of reusing `spendTerminations` — DRY it.
+- A run-scoped "total spent vs ceiling" summary would be a nice L2 display.
 
 ---
 

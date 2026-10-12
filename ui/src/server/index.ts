@@ -19,7 +19,7 @@ import { handleMetricsRequest } from '@senars/nar/metrics';
 import { asBeliefTruth, envBool, envPositive, makeId, splitLines } from '@senars/util';
 import { type RawData, WebSocket, WebSocketServer } from 'ws';
 import { applyConfigField, buildConfigSchema } from './config-schema.js';
-import { spendTerminations, type SpendSummary } from './spend-terminations.js';
+import { spendTerminations, type SpendSummary, mergeSpendSummaries } from './spend-terminations.js';
 import {
   BOOTSTRAP_SCENARIO,
   loadScenario,
@@ -694,20 +694,31 @@ function broadcastConfigSchema(): void {
 
   function runCycles(ws: WebSocket, cycles: number, seqId?: number): void {
     const engine = nar();
-    if (!engine?.run) {
+    const run = engine?.run;
+    if (!run) {
       respondReasoning(ws, false, 'Engine cannot run cycles', seqId);
       return;
     }
     activeRun?.abort();
     const controller = new AbortController();
     activeRun = controller;
-    Promise.resolve(engine.run(cycles, controller.signal))
+
+    let accumulatedSummary: SpendSummary = {};
+    const runOne = async (): Promise<void> => {
+      for (let i = 0; i < cycles; i++) {
+        if (controller.signal.aborted) return;
+        await run(1, controller.signal);
+        // Accumulate after each cycle so a bound hit in any cycle is reported.
+        const exec = engine.getExecution?.();
+        const summary = exec?.getSpendSummary?.();
+        if (summary) accumulatedSummary = mergeSpendSummaries(accumulatedSummary, summary);
+      }
+    };
+
+    Promise.resolve(runOne())
       .then(() =>
         respondReasoning(ws, true, controller.signal.aborted ? 'aborted' : undefined, seqId, {
-          // The run's TerminationReason, read after the last cycle: which bound, if
-          // any, refused work. Naming it makes "why did this stop" answerable
-          // rather than inferred from a budget block in the event stream.
-          termination: spendTerminations(engine.getExecution?.()?.getSpendSummary?.()),
+          termination: spendTerminations(accumulatedSummary),
         })
       )
       .catch((e: unknown) => respondReasoning(ws, false, (e as Error).message, seqId))
