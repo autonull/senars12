@@ -2,8 +2,12 @@
  * Tool registry (§0.5). Client-side tool definitions + approval flow.
  * Tools that require user confirmation register their `approval: true` and
  * the registry opens the `tool-approval` overlay, awaiting user decision.
+ *
+ * The tool storage now uses `createRegistry` (E2) — the generic registry shape.
+ * Execution and approval logic remain tool-specific.
  */
 
+import { createRegistry, type Registry } from './registry.js';
 import type { ToolCall } from '@senars/util';
 import { eventBus } from './events.js';
 
@@ -34,11 +38,10 @@ export interface ToolSpec {
   readonly execute: (args: Record<string, unknown>) => Promise<unknown>;
 }
 
-/** Tools that need approval are handled via the overlay; others execute directly. */
-const registry = new Map<string, ToolSpec>();
-
-/** Access the internal tool registry (for debugging/inspection). */
-export const toolRegistry = registry;
+/** The generic tool registry. */
+export const toolRegistry: Registry<string, ToolSpec> = createRegistry(
+  (spec) => spec.name
+);
 
 export let onApprovalRequired: ((call: ToolCall, spec: ToolSpec) => Promise<unknown>) | undefined;
 
@@ -51,22 +54,22 @@ export function setApprovalHandler(
 
 /** Register a tool. Call during app init. */
 export function registerTool(spec: ToolSpec): void {
-  registry.set(spec.name, spec);
+  toolRegistry.register(spec);
 }
 
 /** Get a tool by name. */
 export function getTool(name: string): ToolSpec | undefined {
-  return registry.get(name);
+  return toolRegistry.get(name);
 }
 
 /** All registered tools. */
-export function allTools(): ToolSpec[] {
-  return [...registry.values()];
+export function allTools(): readonly ToolSpec[] {
+  return toolRegistry.all();
 }
 
 /** Execute a tool call, handling approval if needed. */
 export async function executeToolCall(call: ToolCall): Promise<unknown> {
-  const spec = registry.get(call.toolName);
+  const spec = toolRegistry.get(call.toolName);
   if (!spec) throw new Error(`Tool not found: ${call.toolName}`);
 
   if (spec.approval && onApprovalRequired) {
@@ -143,7 +146,7 @@ export function registerBuiltinTools(): void {
 
 /** Helper to emit a tool-call that goes through the approval flow. */
 export async function callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
-  const spec = registry.get(name);
+  const spec = toolRegistry.get(name);
   if (!spec) throw new Error(`Tool not found: ${name}`);
 
   const call: ToolCall = {

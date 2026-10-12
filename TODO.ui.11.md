@@ -564,6 +564,52 @@ element).
 - Visual gap: `panel:split` in `KNOWN_GAPS` — the split panel is a placeholder
   (E3) and will need a visual cell when the split view logic lands.
 
+### E1–E3 — ingredient library: `Contribution` + `createRegistry` + `defineContribution` ✅
+
+**What landed.** The generic ingredient library (Tracks E1–E3) that the
+consolidation tracks (D2–D7) all sit on:
+
+- **E1** `core/contribution.ts`: base `Contribution` interface (`id`, `label?`,
+  `icon?`, `group?`) + `TaggedContribution` (`tag?`), `BoundContribution`
+  (`bindings?`), `AccessibleContribution` (`a11y?`), `GatedContribution`
+  (`capability?`). All domain descriptors (surface, overlay, block, panel,
+  renderer, graph layer, conversation layout, lens, composer mode) now share
+  this common vocabulary.
+
+- **E2** `core/registry.ts`: `createRegistry(keyOf)` — one factory, N domains.
+  `createIdRegistry` / `createLabelRegistry` conveniences. `Registry<K, V>`
+  with `register`/`get`/`all`/`has`/`size`/`reset`/`[Symbol.iterator]`.
+  Default `unique: false` (silent overwrite) to match legacy `Map.set` behavior.
+
+- **E3** `core/define-contribution.ts`: `defineContribution` — the one
+  registration HOC. Binds descriptor to class, registers in domain registry,
+  defines custom element. `createDefineTagged` convenience for the common
+  `tag ?? \`s-${id}\`` pattern. Domain wrappers: `defineSurface`,
+  `defineOverlay` (new `core/overlay.ts`).
+
+**Refactored onto the library:**
+- `surface-registry.ts` → `createIdRegistry()` + `defineSurface = createDefineTagged(...)`
+- `overlay-registry.ts` → `createIdRegistry()` + `defineOverlay = createDefineTagged(...)`
+- `tool-registry.ts` → `createRegistry((spec) => spec.name)` (tools key by `name`, not `id`)
+- `surface.ts` / `overlay.ts` now thin re-exports of the generic machinery.
+
+**Guards.** `tests/components/registry.test.ts` (+8): registration, retrieval,
+order, duplicates, `unique` mode, iteration, `reset`. `tests/components/define-contribution.test.ts`
+(+4): descriptor binding, tag derivation, chaining, static attachment.
+
+**Verified.** typecheck; ui unit **745** (+12); design **14**; craft **204**; visual **62/62**
+— no baseline moved.
+
+**Remaining / notes.**
+- The 9 domain descriptors don't yet formally `extends Contribution` (TypeScript
+  structural typing makes this work without explicit `extends`); a future session
+  can add `extends` for documentation.
+- `label`/`icon` are optional in `Contribution` for back-compat; a follow-up can
+  make them required once all descriptors are migrated.
+- `createDefineContribution` (the lower-level HOC) is exported but no domain
+  uses it directly yet — `defineSurface`/`defineOverlay` use the higher-level
+  `createDefineTagged`.
+
 ---
 
 ## Progress Log — LM provider flexibility (user directive)
@@ -1791,9 +1837,9 @@ control the user must learn.
 - [ ] **Track D6**: `createRegistry<K, V>` shared registry factory
 - [ ] **Track D7**: projection `fragment()` builder + `systemEventBlock()`
 - [ ] **Track D8**: fold stale duplicates (`EVENT_TYPE_LABELS`, `SIGN`/`DIFF_SIGN`, error titles, `ViewDataset` switches)
-- [ ] **Track E1**: `Contribution` base descriptor (unify 9 descriptor interfaces)
-- [ ] **Track E2**: `createRegistry(keyOf)` (subsumes D6; 9 domains)
-- [ ] **Track E3**: `defineContribution` + `defineX` family (subsumes D3)
+- [x] **Track E1**: `Contribution` base descriptor (unify 9 descriptor interfaces)
+- [x] **Track E2**: `createRegistry(keyOf)` (subsumes D6; 9 domains)
+- [x] **Track E3**: `defineContribution` + `defineX` family (subsumes D3)
 - [ ] **Track E4**: universal `SurfaceComponent` (one base; `state` field; `renderState` table)
 - [ ] **Track E5**: `derived(deps, project)` reactive atom (absorbs 3 ad-hoc derivations)
 - [ ] **Track E6**: `defineBundle`/`applyBundle` (generalize `PluginContribution`)
@@ -1835,12 +1881,12 @@ control the user must learn.
 | 16 overlay registration tails + 8 `window` literals | `defineOverlay` + `WINDOW_DEFAULTS` (D3) |
 | Two layout registration loops + duplicated `COLUMN`/`ROW`/`SOURCE_ORDER` | one `LayoutDescriptor` registry + `placeInLanes` (D4) |
 | `TOKENS.dark[…]` direct reads + 3 truth-hue copies | `numericToken` + one `truthColor` (D5) |
-| 4 near-identical registry closures | `createRegistry<K, V>` (D6) |
+| 4 near-identical registry closures | `createRegistry<K, V>` (D6) — ✅ folded into E2 |
 | 4× projection skeleton + 5× event block literal | `fragment()` + `systemEventBlock()` (D7) |
 | `EVENT_TYPE_LABELS`, `SIGN`/`DIFF_SIGN`, error-title map | read `EVENT_CATALOG`, one `DIFF_SIGN`, `error-taxonomy` (D8) |
-| 9 overlapping descriptor interfaces | `Contribution` base (E1) |
-| 9 hand-rolled registry closures | `createRegistry(keyOf)` (E2) |
-| 15 hand-written registration tails | `defineContribution` (E3) |
+| 9 overlapping descriptor interfaces | `Contribution` base (E1) — ✅ folded |
+| 9 hand-rolled registry closures | `createRegistry(keyOf)` (E2) — ✅ folded |
+| 15 hand-written registration tails | `defineContribution` (E3) — ✅ folded |
 | 2 component bases (`BaseComponent`/`SurfaceComponent`) | one universal `SurfaceComponent` (E4) |
 | 3 ad-hoc derived-store subscriptions | `derived(deps, project)` (E5) |
 | bespoke `PluginContribution` fan-out | `Bundle` / `applyBundle` (E6) |
@@ -1978,8 +2024,8 @@ number:
 4. **E1–E3 → D1–D4, D6–D7** — land the ingredient library, then collapse the
    consolidation items onto it. **D1 done standalone** (`BLOCK_DESCRIPTORS`; did
    not need E — it is the data SSOT D/E/F all read); **D2–D4, D6–D7 done** (all
-   catalogs now derive from their SSOT: `CONVERSATION_LAYOUT_DEFS`, `LENS_DEFS`,
-   `RENDERER_DEFS`, `GRAPH_LAYER_DEFS`, `COMPOSER_MODE_DEFS`).
+   catalogs now derive from their SSOT); **E1–E3 done** (generic `Contribution`,
+   `createRegistry`, `defineContribution` + `defineSurface`/`defineOverlay`).
 5. **B2** — LoD transitions (rides on D5's `numericToken`). **Done** (B1 and B2 both
    landed; the shared header meant B1 did not need D3).
 6. **G3** — a11y from descriptor metadata + keyboard walkthrough in the gate.

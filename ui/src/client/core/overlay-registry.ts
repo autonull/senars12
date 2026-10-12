@@ -7,8 +7,11 @@
  *
  * Window options (§overlay-windows): opt-in window chrome — draggable header,
  * resizable grip, minimize/maximize buttons, sessionStorage persistence of bounds.
+ *
+ * Now built on `createRegistry` (E2) — the generic registry shape.
  */
 
+import { createIdRegistry, type Registry } from './registry.js';
 import type { Capability } from './capabilities.js';
 
 export interface OverlayWindowOptions {
@@ -23,7 +26,13 @@ export interface OverlayWindowOptions {
 }
 
 export interface OverlayDescriptor {
+  /** Stable flat id. */
   readonly id: string;
+  /** Human label for palettes, toolbar. */
+  readonly label?: string;
+  /** Icon name for tabs, toolbar (matches `s-icon` names). */
+  readonly icon?: string;
+  /** Human title for palettes, stories and docs. */
   readonly title: string;
   /** Custom-element tag that implements the overlay. */
   readonly tag: string;
@@ -37,14 +46,17 @@ export interface OverlayDescriptor {
   readonly capability?: Capability;
   /** Window chrome options: draggable, resizable, minimize, persist. */
   readonly window?: OverlayWindowOptions;
+  /** Contact-sheet / palette grouping. */
+  readonly group?: string;
 }
 
-const registry = new Map<string, OverlayDescriptor>();
+/** The generic overlay registry. */
+export const overlayRegistry: Registry<string, OverlayDescriptor> = createIdRegistry();
 
 export const registerOverlay = (descriptor: OverlayDescriptor): void => {
-  registry.set(descriptor.id, descriptor);
+  overlayRegistry.register(descriptor);
 };
 
-export const overlayDescriptor = (id: string): OverlayDescriptor | undefined => registry.get(id);
+export const overlayDescriptor = (id: string): OverlayDescriptor | undefined => overlayRegistry.get(id);
 
-export const overlays = (): OverlayDescriptor[] => [...registry.values()];
+export const overlays = (): readonly OverlayDescriptor[] => overlayRegistry.all();

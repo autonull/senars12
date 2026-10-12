@@ -48,6 +48,27 @@ export {
   DEFAULT_COMPOSER_MODE,
   isComposerMode,
 } from './composer-modes.js';
+export type {
+  Contribution,
+  TaggedContribution,
+  BoundContribution,
+  AccessibleContribution,
+  GatedContribution,
+} from './contribution.js';
+export {
+  createRegistry,
+  createIdRegistry,
+  createLabelRegistry,
+  type Registry,
+  type RegistryOptions,
+} from './registry.js';
+export {
+  defineContribution,
+  createDefineContribution,
+  createDefineTagged,
+  type DefineContributionOptions,
+  type DescribedClass,
+} from './define-contribution.js';
 export { artifactViewSpec, tableFromColumns } from './artifacts.js';
 export { matchCommands } from './command-match.js';
 export {
@@ -221,6 +242,7 @@ export {
   overlays,
   registerOverlay,
 } from './overlay-registry.js';
+export { defineOverlay, type OverlayClass } from './overlay.js';
 export {
   admittedRoots,
   foldableSections,

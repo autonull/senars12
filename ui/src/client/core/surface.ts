@@ -1,8 +1,9 @@
 import type { TemplateResult } from 'lit';
 import { html } from 'lit';
 import { BaseComponent } from './base-component.js';
-import { registerSurface, surfaceTag, type SurfaceDescriptor, type SurfaceSource } from './surface-registry.js';
+import { surfaceRegistry, surfaceTag, type SurfaceDescriptor, type SurfaceSource } from './surface-registry.js';
 import { mountTestApi } from './store.js';
+import { createDefineTagged, type DescribedClass } from './define-contribution.js';
 
 export type {
   SurfaceBinding,
@@ -19,7 +20,6 @@ export type {
  * read the same contract instead of each surface hand-wiring six files.
  */
 
-/** The honest lifecycle of a data-backed surface. */
 export type SurfaceState = 'loading' | 'empty' | 'error' | 'ready';
 
 export type SurfaceTestApi = Record<string, unknown>;
@@ -90,24 +90,11 @@ function snapshot(bindings: Readonly<Record<string, SurfaceSource>>): Record<str
   return Object.fromEntries(Object.entries(bindings).map(([key, source]) => [key, source.get()]));
 }
 
-export type SurfaceClass<T extends SurfaceComponent = SurfaceComponent> = (new () => T) & {
-  descriptor?: SurfaceDescriptor;
-};
-
 /**
  * Bind a descriptor to a surface class and define its custom element once.
  * Registration, store bindings and the reflective API all derive from the
  * descriptor, so a new surface is a descriptor + `renderBody`.
+ *
+ * Now built on `defineContribution` (E3) — the one registration HOC.
  */
-export function defineSurface<T extends SurfaceComponent>(
-  descriptor: SurfaceDescriptor,
-  ctor: SurfaceClass<T>
-): SurfaceClass<T> {
-  ctor.descriptor = descriptor;
-  registerSurface(descriptor);
-  const tag = surfaceTag(descriptor);
-  if (typeof customElements !== 'undefined' && !customElements.get(tag)) {
-    customElements.define(tag, ctor);
-  }
-  return ctor;
-}
+export const defineSurface = createDefineTagged<SurfaceDescriptor>(surfaceRegistry, BaseComponent);
