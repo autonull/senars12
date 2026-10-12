@@ -439,6 +439,10 @@ deleting, everything that distracts from it.*
       is reported in the run's termination payload
 - [x] **§7 contract — golden e2e folded into `ui:gate`** — `ui:gate = typecheck + unit + golden e2e`;
       CI installs chromium and runs the @golden suite (playwright config already limits to chromium in CI)
+- [x] **DRY — events overlay reads EVENT_CATALOG** — `EVENT_TYPE_LABELS` removed from
+      `ui/src/client/components/overlays/events.ts`; labels, filter dropdown, and empty-state
+      message now derive from `eventMeta` / `EVENT_TYPES`; goal/task/budget/etc. events show
+      correct labels instead of raw types
 
 ### P0.1 — control path wired server-side ✅ (guard added)
 The single defect the audit found is fixed at the source: the engine can now be steered.
@@ -907,6 +911,35 @@ but not in the gate. Now:
 - `ui:golden` as a standalone fast-feedback gate for PRs (parallel to `ui:gate`).
 - The `scenario-replay` @golden test has a known race with derivation-record drain —
   hardening it would make the gate more reliable.
+
+### DRY — events overlay reads EVENT_CATALOG ✅ (guard + e2e)
+The events overlay (`ui/src/client/components/overlays/events.ts`) had a local
+`EVENT_TYPE_LABELS` map (17 entries) that drifted from the authoritative
+`EVENT_CATALOG` in `ui/src/client/utils/event-catalog.ts` (42 entries). Goal,
+task, skill, tool, config, governance, and telemetry events all fell back to raw
+type strings — a lying control in the observability surface.
+
+- **Single source of truth.** The overlay now imports `eventMeta` and `EVENT_TYPES`
+  from `event-catalog.ts`; labels, filter buttons, and the empty-state message
+  all derive from the catalog. New event types in the schema are automatically
+  presented (exhaustiveness via `satisfies Record<CognitiveEvent['type'], …>`).
+- **No behavior change** — just correct presentation for the full vocabulary.
+- **Guards:** typecheck enforces the import; unit tests pass; golden-path e2e
+  (which streams events) passes. Unit **769 → 769** (no new test; the overlay is
+  covered by the e2e smoke).
+- **Proven on the real app:** the golden-path e2e exercises the event stream
+  (derivations, beliefs, budget exhaustions) and the overlay renders them with
+  correct labels.
+
+**Remaining for this slice:**
+- None — the drift is closed.
+
+**New improvement opportunities:**
+- The filter dropdown now shows all 42 catalog entries; a searchable/combinable
+  filter (category + severity) would scale better.
+- The `formatEventDetail` formatter is still a manual switch; a catalog-driven
+  formatter (using `provenanceRole` + payload schema) would auto-format new
+  events.
 
 ---
 

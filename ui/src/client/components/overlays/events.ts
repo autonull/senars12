@@ -13,24 +13,7 @@ import type { Shape, ViewSpec } from '../../core/view-spec.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  'derivation.made': 'Derivation',
-  'derivation.record': 'Derivation Record',
-  'belief.revised': 'Belief Revised',
-  'contradiction.detected': 'Contradiction',
-  'budget.exhausted': 'Budget Exhausted',
-  'egress.gate.rejected': 'Gate Rejected',
-  'policy.violation': 'Policy Violation',
-  'tool.executed': 'Tool Executed',
-  'tool.approved': 'Tool Approved',
-  'tool.rejected': 'Tool Rejected',
-  'lm.call': 'LM Call',
-  'lm.stream': 'LM Stream',
-  'config.changed': 'Config Changed',
-  'session.saved': 'Session Saved',
-  'session.loaded': 'Session Loaded',
-};
+import { eventMeta, EVENT_TYPES, type EventType } from '../../utils/event-catalog.js';
 
 @customElement('s-events')
 export class EventsView extends SurfaceComponent {
@@ -124,7 +107,7 @@ export class EventsView extends SurfaceComponent {
     }
   `;
 
-  @state() private filterType: string | 'all' = 'all';
+  @state() private filterType: EventType | 'all' = 'all';
   @state() private viewShape: Shape = 'table';
   @property({ type: Boolean }) embedded = false;
 
@@ -139,12 +122,8 @@ export class EventsView extends SurfaceComponent {
     return events.filter((e) => e.type === this.filterType);
   }
 
-  private getEventTypes(): string[] {
-    const types = new Set<string>();
-    for (const event of $cognitiveEvents.get()) {
-      types.add(event.type);
-    }
-    return [...types].sort();
+  private getEventTypes(): EventType[] {
+    return EVENT_TYPES;
   }
 
   private getViewSpec(): ViewSpec {
@@ -158,7 +137,7 @@ export class EventsView extends SurfaceComponent {
       ],
       rows: events.map((e, i) => ({
         time: new Date(e.timestamp).toLocaleTimeString(),
-        type: EVENT_TYPE_LABELS[e.type] ?? e.type,
+        type: eventMeta(e.type as EventType).label,
         detail: this.formatEventDetail(e),
         _id: `event-${i}`,
       })),
@@ -193,7 +172,7 @@ export class EventsView extends SurfaceComponent {
     return parts.join(' · ') || JSON.stringify(payload);
   }
 
-  private setFilter(type: string | 'all') {
+  private setFilter(type: EventType | 'all') {
     this.filterType = type;
   }
 
@@ -238,13 +217,13 @@ export class EventsView extends SurfaceComponent {
           >
             All
           </button>
-          ${types.map(
+          ${EVENT_TYPES.map(
             (type) => html`
               <button
                 class="filter-btn ${this.filterType === type ? 'active' : ''}"
                 @click=${() => this.setFilter(type)}
               >
-                ${EVENT_TYPE_LABELS[type] ?? type}
+                ${eventMeta(type).label}
               </button>
             `
           )}
@@ -256,7 +235,7 @@ export class EventsView extends SurfaceComponent {
                   <div class="empty">
                     No events
                     ${this.filterType !== 'all'
-                      ? ` of type ${EVENT_TYPE_LABELS[this.filterType] ?? this.filterType}`
+                      ? ` of type ${eventMeta(this.filterType).label}`
                       : ''}
                   </div>
                 `
