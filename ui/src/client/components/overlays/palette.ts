@@ -226,7 +226,7 @@ export class PaletteView extends SurfaceComponent {
   };
 }
 
-const PALETTE_SURFACE = { id: 'palette', title: 'Command palette', group: 'overlay' } as const;
+const PALETTE_SURFACE = { id: 'palette', title: 'Command palette', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(PALETTE_SURFACE, PaletteView);
 registerOverlay({

@@ -89,7 +89,7 @@ export class TimelineView extends SurfaceComponent {
   private readonly close = () => eventBus.emit('overlay:close', { id: 'timeline' });
 }
 
-const TIMELINE_SURFACE = { id: 'timeline', title: 'Timeline', group: 'overlay' } as const;
+const TIMELINE_SURFACE = { id: 'timeline', title: 'Timeline', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(TIMELINE_SURFACE, TimelineView);
 registerOverlay({

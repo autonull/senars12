@@ -95,7 +95,7 @@ export class InspectorView extends SurfaceComponent {
   };
 }
 
-const INSPECTOR_SURFACE = { id: 'inspector', title: 'Inspector', group: 'overlay' } as const;
+const INSPECTOR_SURFACE = { id: 'inspector', title: 'Inspector', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(INSPECTOR_SURFACE, InspectorView);
 registerOverlay({

@@ -86,7 +86,7 @@ export class TelemetryView extends SurfaceComponent {
   };
 }
 
-const TELEMETRY_SURFACE = { id: 'telemetry', title: 'Telemetry', group: 'overlay' } as const;
+const TELEMETRY_SURFACE = { id: 'telemetry', title: 'Telemetry', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(TELEMETRY_SURFACE, TelemetryView);
 registerOverlay({

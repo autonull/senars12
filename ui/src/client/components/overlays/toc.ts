@@ -356,7 +356,7 @@ export class TocView extends SurfaceComponent {
   private readonly close = () => eventBus.emit('overlay:close', { id: 'toc' });
 }
 
-const TOC_SURFACE = { id: 'toc', title: 'Table of contents', group: 'overlay' } as const;
+const TOC_SURFACE = { id: 'toc', title: 'Table of contents', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(TOC_SURFACE, TocView);
 registerOverlay({ id: TOC_SURFACE.id, title: TOC_SURFACE.title, tag: surfaceTag(TOC_SURFACE) });

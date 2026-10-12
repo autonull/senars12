@@ -15,6 +15,18 @@ export interface SurfaceBinding extends SurfaceSource {
   subscribe(fn: () => void): () => void;
 }
 
+/** The accessibility a surface declares, so the codegen/story/gate read one source. */
+export interface SurfaceA11y {
+  /** ARIA role of the surface root (default `region`). */
+  role?: string;
+  /** Accessible name (default the descriptor title). */
+  label?: string;
+  /** Whether the surface is reachable by keyboard; opting out needs a reason. */
+  keyboard?: boolean;
+  /** Why keyboard access is not provided, when `keyboard` is false. */
+  keyboardReason?: string;
+}
+
 export interface SurfaceDescriptor {
   /** Stable flat id: the test-API namespace and, by default, the element suffix. */
   id: string;
@@ -26,6 +38,8 @@ export interface SurfaceDescriptor {
   group?: string;
   /** The data the surface renders: watched on change and snapshotted by its reflective API. */
   bindings?: Readonly<Record<string, SurfaceBinding>>;
+  /** The surface's accessibility contract (role, name, keyboard path). */
+  a11y?: SurfaceA11y;
 }
 
 export const surfaceTag = (descriptor: SurfaceDescriptor): string =>

@@ -348,7 +348,7 @@ export class ExplainView extends SurfaceComponent {
   };
 }
 
-const EXPLAIN_SURFACE = { id: 'explain', title: 'Explanation', group: 'overlay' } as const;
+const EXPLAIN_SURFACE = { id: 'explain', title: 'Explanation', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(EXPLAIN_SURFACE, ExplainView);
 registerOverlay({

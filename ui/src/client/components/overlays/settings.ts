@@ -72,7 +72,7 @@ protected override renderBody() {
   };
 }
 
-const SETTINGS_SURFACE = { id: 'settings', title: 'Configuration', group: 'overlay' } as const;
+const SETTINGS_SURFACE = { id: 'settings', title: 'Configuration', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(SETTINGS_SURFACE, SettingsView);
 registerOverlay({

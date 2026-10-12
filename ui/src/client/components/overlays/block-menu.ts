@@ -214,7 +214,7 @@ export class BlockMenuView extends SurfaceComponent {
   };
 }
 
-const BLOCK_MENU_SURFACE = { id: 'block-menu', title: 'Block actions', group: 'overlay' } as const;
+const BLOCK_MENU_SURFACE = { id: 'block-menu', title: 'Block actions', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(BLOCK_MENU_SURFACE, BlockMenuView);
 registerOverlay({

@@ -198,7 +198,7 @@ export class ArtifactView extends SurfaceComponent {
   };
 }
 
-const ARTIFACT_SURFACE = { id: 'artifact', title: 'Artifact', group: 'overlay' } as const;
+const ARTIFACT_SURFACE = { id: 'artifact', title: 'Artifact', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(ARTIFACT_SURFACE, ArtifactView);
 registerOverlay({

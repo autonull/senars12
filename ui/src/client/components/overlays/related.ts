@@ -234,7 +234,7 @@ export class RelatedView extends SurfaceComponent {
   };
 }
 
-const RELATED_SURFACE = { id: 'related', title: 'Related', group: 'overlay' } as const;
+const RELATED_SURFACE = { id: 'related', title: 'Related', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(RELATED_SURFACE, RelatedView);
 registerOverlay({

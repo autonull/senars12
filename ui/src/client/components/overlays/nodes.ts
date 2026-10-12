@@ -279,7 +279,7 @@ export class NodesView extends SurfaceComponent {
   }
 }
 
-const NODES_SURFACE = { id: 'nodes', title: 'Concepts', group: 'overlay' } as const;
+const NODES_SURFACE = { id: 'nodes', title: 'Concepts', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(NODES_SURFACE, NodesView);
 registerOverlay({

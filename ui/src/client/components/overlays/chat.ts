@@ -450,7 +450,7 @@ export class ChatView extends SurfaceComponent {
   }
 }
 
-const CHAT_SURFACE = { id: 'chat', title: 'Conversation', group: 'overlay' } as const;
+const CHAT_SURFACE = { id: 'chat', title: 'Conversation', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(CHAT_SURFACE, ChatView);
 registerOverlay({

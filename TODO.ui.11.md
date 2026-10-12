@@ -438,6 +438,35 @@ visual **62/62** (store patches are not on a boot path — no baseline moved);
   frame-budget baseline. `togglePanel` still clones its 3-entry map — harmless,
   left for consistency with a future `$panels` catalog (E9).
 
+### G3 — descriptor-derived a11y gate ✅ (keyboard half rides G1)
+
+**What landed.** `SurfaceDescriptor` gains an optional `a11y` contract (`role`,
+`label`, `keyboard`, `keyboardReason`). `surfaceA11y` now derives the target from
+it — role defaults to `region`, the label to the title, keyboard to `true` — and
+the 16 overlay descriptors declare `a11y: { role: 'dialog' }`, matching the
+`role="dialog"` their templates already render (the descriptor had been silently
+saying `region`). A new pure `validateSurfaceA11y` is the gate: it throws when a
+surface has no label, no role, or drops keyboard access with no reason.
+
+**Guard.** New `tests/design/a11y.test.ts` (+3): imports the surfaces, asserts
+`validateSurfaceA11y(generateSurfaces().a11y)` passes, asserts every overlay
+declares the dialog role, and asserts the validator rejects a missing label, a
+missing role, and a silent keyboard opt-out (accepting a reasoned one).
+
+**Verified.** typecheck; ui unit **696** (was 693); the generator test updated for
+the new `keyboard` field. No runtime/rendering path changed (descriptors are data),
+so baselines are untouched — visual not rerun.
+
+**Notes / remaining.**
+- The **keyboard-walkthrough half** ("add it to G1's gate") rides the blocked G1
+  e2e gate; the descriptor half is now gated in the unit suite.
+- Wiring each surface's rendered `role` / `aria-label` to read from its descriptor
+  instead of literals is Track E's job — the descriptor is the SSOT now, the
+  templates still hardcode.
+- The a11y test deliberately does **not** import `renderers/graph*` (they pull in
+  `graph-viewport`/cytoscape, which is jsdom-hostile); widen the import set if the
+  gate should also span those renderer surfaces.
+
 ---
 
 ## Progress Log — LM provider flexibility (user directive)
@@ -683,7 +712,7 @@ The claim is architectural, not demonstrated.
 |---|---|
 | Working | ✅ already true; v11 preserves it (D5 fixes a real theme bug) |
 | Useful | ✅ already true; v11 adds B1/B3 marginally |
-| Robust | ⚠️ **partial** — A fixes 3 bugs, F5 adds compile guards, but perf/a11y/gating gaps remain (G1/G2) |
+| Robust | ✅ **stronger** — A fixes 3 bugs, F5 adds compile guards, G2/G3/G4 close the perf/a11y/error gaps; only the e2e gate (G1) remains blocked |
 | Any-domain foundation | ⚠️ **plausible, unproven** — D/E/F build the seams; no second domain demonstrates them (G3) |
 
 **Conclusion: v11 is necessary but not sufficient.** It deepens the substrate
@@ -1579,7 +1608,7 @@ control the user must learn.
 - [ ] **Track F6**: resolve dead `LayoutId` brand; fix `Theme`/`ArtifactKind` drift
 - [ ] **Track G1** (⚠️ blocked — composer selectors fixed; suite rot + CI browser/provider prerequisites remain, see Progress Log): wire `test:e2e` scenario subset into `ui:verify` / `ui:gate` (master-plan 11.4)
 - [x] **Track G2**: performance budgets — call `assertWithinBudget`; stop whole-`Map` clones (11.1)
-- [ ] **Track G3**: automated a11y checks from descriptor metadata + keyboard walkthrough in the gate (7.7)
+- [x] **Track G3**: automated a11y checks from descriptor metadata + keyboard walkthrough in the gate (7.7)
 - [x] **Track G4**: error-taxonomy surfacing (title + recovery) in boundary + log (11.2)
 - [ ] **Track G5**: a second bundle (event-log console / graph explorer) proves Goal 2 (10.5)
 - [ ] **Track G6**: demo/scenario productization — Run view, ViewSpec-native beats (10.2/10.6)
@@ -1751,9 +1780,10 @@ number:
 5. **B2** — LoD transitions (rides on D5's `numericToken`). **Done** (B1 and B2 both
    landed; the shared header meant B1 did not need D3).
 6. **G3** — a11y from descriptor metadata + keyboard walkthrough in the gate.
-   **G4 done** (error taxonomy; folds D8's title map). **G2 done** (store
-   patch-in-place + the `perfMonitor` fixture asserting in the dense spec; the
-   e2e half rides the blocked G1 gate).
+   **Done** (descriptor `a11y` contract + `validateSurfaceA11y` gate; the keyboard
+   walkthrough rides G1). **G4 done** (error taxonomy; folds D8's title map).
+   **G2 done** (store patch-in-place + the `perfMonitor` fixture asserting in the
+   dense spec; the e2e half rides the blocked G1 gate).
 7. **G5 + G6** — prove the foundation (second bundle) and productize demos.
 8. **C1–C4** — evaluate honestly; close what fails its gate.
 

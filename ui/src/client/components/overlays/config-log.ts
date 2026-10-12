@@ -139,7 +139,7 @@ export class ConfigLogView extends SurfaceComponent {
   }
 }
 
-const CONFIG_LOG_SURFACE = { id: 'config-log', title: 'Config Changes', group: 'overlay' } as const;
+const CONFIG_LOG_SURFACE = { id: 'config-log', title: 'Config Changes', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(CONFIG_LOG_SURFACE, ConfigLogView);
 registerOverlay({

@@ -51,6 +51,7 @@ describe('surface registry + generators', () => {
       tag: 's-probe',
       role: 'region',
       label: 'Probe',
+      keyboard: true,
     });
     expect(surfaceDoc(descriptor)).toEqual({
       id: 'probe',

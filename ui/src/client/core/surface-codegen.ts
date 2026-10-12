@@ -26,6 +26,8 @@ export interface SurfaceA11yTarget {
   tag: string;
   role: string;
   label: string;
+  keyboard: boolean;
+  keyboardReason?: string;
 }
 
 export interface SurfaceDoc {
@@ -62,9 +64,26 @@ export const surfaceGalleryCell = (descriptor: SurfaceDescriptor): SurfaceGaller
 export const surfaceA11y = (descriptor: SurfaceDescriptor): SurfaceA11yTarget => ({
   surface: descriptor.id,
   tag: surfaceTag(descriptor),
-  role: 'region',
-  label: descriptor.title,
+  role: descriptor.a11y?.role ?? 'region',
+  label: descriptor.a11y?.label ?? descriptor.title,
+  keyboard: descriptor.a11y?.keyboard ?? true,
+  ...(descriptor.a11y?.keyboardReason ? { keyboardReason: descriptor.a11y.keyboardReason } : {}),
 });
+
+/**
+ * The a11y gate: every surface must expose a role and an accessible name, and
+ * either a keyboard path or a stated reason it has none. A surface that omits a
+ * label, forgets a role, or silently drops keyboard access fails here.
+ */
+export const validateSurfaceA11y = (targets: readonly SurfaceA11yTarget[]): void => {
+  for (const target of targets) {
+    if (!target.label.trim()) throw new Error(`surface "${target.surface}" has no accessible label`);
+    if (!target.role.trim()) throw new Error(`surface "${target.surface}" has no ARIA role`);
+    if (!target.keyboard && !target.keyboardReason?.trim()) {
+      throw new Error(`surface "${target.surface}" has no keyboard path and no reason`);
+    }
+  }
+};
 
 export const surfaceDoc = (descriptor: SurfaceDescriptor): SurfaceDoc => ({
   id: descriptor.id,

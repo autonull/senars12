@@ -268,7 +268,7 @@ export class ProviderView extends SurfaceComponent {
   };
 }
 
-const PROVIDER_SURFACE = { id: 'provider', title: 'Provider', group: 'overlay' } as const;
+const PROVIDER_SURFACE = { id: 'provider', title: 'Provider', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(PROVIDER_SURFACE, ProviderView);
 registerOverlay({

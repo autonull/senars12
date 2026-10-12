@@ -459,7 +459,7 @@ export class ToolApprovalView extends SurfaceComponent {
   };
 }
 
-const TOOL_APPROVAL_SURFACE = { id: 'tool-approval', title: 'Tool approval', group: 'overlay' } as const;
+const TOOL_APPROVAL_SURFACE = { id: 'tool-approval', title: 'Tool approval', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(TOOL_APPROVAL_SURFACE, ToolApprovalView);
 registerOverlay({

@@ -268,7 +268,7 @@ export class EventsView extends SurfaceComponent {
   }
 }
 
-const EVENTS_SURFACE = { id: 'events', title: 'Event Log', group: 'overlay' } as const;
+const EVENTS_SURFACE = { id: 'events', title: 'Event Log', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(EVENTS_SURFACE, EventsView);
 registerOverlay({
