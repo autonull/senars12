@@ -286,6 +286,8 @@ registerOverlay({
   id: NODES_SURFACE.id,
   title: NODES_SURFACE.title,
   tag: surfaceTag(NODES_SURFACE),
+  capability: 'reasoning' as const,
+  hiddenInPalette: true,
   window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 

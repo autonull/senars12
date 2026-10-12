@@ -359,7 +359,14 @@ export class TocView extends SurfaceComponent {
 const TOC_SURFACE = { id: 'toc', title: 'Table of contents', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
 defineSurface(TOC_SURFACE, TocView);
-registerOverlay({ id: TOC_SURFACE.id, title: TOC_SURFACE.title, tag: surfaceTag(TOC_SURFACE) });
+registerOverlay({
+  id: TOC_SURFACE.id,
+  title: TOC_SURFACE.title,
+  tag: surfaceTag(TOC_SURFACE),
+  capability: 'reasoning' as const,
+  hiddenInPalette: true,
+  window: { draggable: true, resizable: true, minimize: true, persist: true },
+});
 
 declare global {
   interface HTMLElementTagNameMap {

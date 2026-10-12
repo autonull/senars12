@@ -146,6 +146,8 @@ registerOverlay({
   id: CONFIG_LOG_SURFACE.id,
   title: CONFIG_LOG_SURFACE.title,
   tag: surfaceTag(CONFIG_LOG_SURFACE),
+  capability: 'uiControl' as const,
+  hiddenInPalette: true,
   window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 

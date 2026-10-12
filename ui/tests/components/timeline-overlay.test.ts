@@ -14,11 +14,10 @@ const query = <T extends Element>(root: ParentNode | null | undefined, selector:
 };
 
 describe('timeline overlay', () => {
-  it('registers a palette-visible, non-modal timeline overlay', () => {
+  it('registers an Advanced (palette-hidden) timeline overlay', () => {
     const descriptor = overlayDescriptor('timeline');
-    expect(descriptor).toMatchObject({ id: 'timeline', title: 'Timeline', tag: 's-timeline' });
+    expect(descriptor).toMatchObject({ id: 'timeline', title: 'Timeline', tag: 's-timeline', capability: 'reasoning', hiddenInPalette: true });
     expect(descriptor?.modal).toBeUndefined();
-    expect(descriptor?.hiddenInPalette).toBeUndefined();
   });
 
   it('hosts the scrubber and closes through the overlay host', async () => {

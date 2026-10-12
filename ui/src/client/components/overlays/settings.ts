@@ -79,7 +79,10 @@ registerOverlay({
   id: SETTINGS_SURFACE.id,
   title: SETTINGS_SURFACE.title,
   tag: surfaceTag(SETTINGS_SURFACE),
+  capability: 'uiControl' as const,
+  hiddenInPalette: true,
   modal: true,
+  window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 
 declare global {

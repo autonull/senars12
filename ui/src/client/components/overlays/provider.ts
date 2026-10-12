@@ -275,6 +275,8 @@ registerOverlay({
   id: PROVIDER_SURFACE.id,
   title: PROVIDER_SURFACE.title,
   tag: surfaceTag(PROVIDER_SURFACE),
+  hiddenInPalette: true,
+  window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 
 declare global {

@@ -21,7 +21,7 @@ import { layoutRegistry } from '../utils/layout-registry.js';
 import { LENS_CATALOG, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 import { renderField } from '../utils/render-field.js';
 import './contradiction-badge.js';
-import './lens-controller.js';
+// lens-controller moved to L2/Display popover; no longer in default toolbar
 
 /** Capability display labels (short names for UI badges). */
 const CAPABILITY_LABELS: Record<string, string> = {
@@ -233,7 +233,7 @@ export class GraphToolbar extends BaseComponent {
 
       <div class="divider"></div>
 
-      <lens-controller></lens-controller>
+      <button class="toolbar-btn" @click=${this.openDisplay} title="Display presets (Ask · Explore · Read · Plan)">Display</button>
 
       <div class="divider"></div>
 
@@ -357,6 +357,10 @@ private togglePanel(id: string) {
 
   private toggleLegend() {
     eventBus.emit('graph:legend-toggle');
+  }
+
+  private openDisplay() {
+    eventBus.emit('overlay:open', { id: 'display' });
   }
 
   // Multi-select bulk actions

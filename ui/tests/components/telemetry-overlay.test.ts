@@ -14,13 +14,14 @@ const query = <T extends Element>(root: ParentNode | null | undefined, selector:
 };
 
 describe('telemetry overlay (0.4)', () => {
-  it('registers a palette-reachable overlay', () => {
+  it('registers an Advanced (palette-hidden) telemetry overlay', () => {
     expect(overlayDescriptor('telemetry')).toMatchObject({
       id: 'telemetry',
       title: 'Telemetry',
       tag: 's-telemetry',
+      capability: 'reasoning',
+      hiddenInPalette: true,
     });
-    expect(overlayDescriptor('telemetry')?.hiddenInPalette).toBeUndefined();
   });
 
   it('hosts the full telemetry panel', async () => {

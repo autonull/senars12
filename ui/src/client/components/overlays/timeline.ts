@@ -96,7 +96,8 @@ registerOverlay({
   id: TIMELINE_SURFACE.id,
   title: TIMELINE_SURFACE.title,
   tag: surfaceTag(TIMELINE_SURFACE),
-  capability: 'reasoning' as Capability,
+  capability: 'reasoning' as const,
+  hiddenInPalette: true,
   window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 

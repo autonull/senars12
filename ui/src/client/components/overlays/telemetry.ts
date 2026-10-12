@@ -93,6 +93,9 @@ registerOverlay({
   id: TELEMETRY_SURFACE.id,
   title: TELEMETRY_SURFACE.title,
   tag: surfaceTag(TELEMETRY_SURFACE),
+  capability: 'reasoning' as const,
+  hiddenInPalette: true,
+  window: { draggable: true, resizable: true, minimize: true, persist: true },
 });
 
 declare global {

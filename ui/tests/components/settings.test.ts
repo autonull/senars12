@@ -8,10 +8,9 @@ afterEach(() => {
 });
 
 describe('settings overlay', () => {
-  it('registers a modal, palette-visible configuration overlay', () => {
+  it('registers a modal, palette-hidden (Advanced) configuration overlay', () => {
     const descriptor = overlayDescriptor('settings');
-    expect(descriptor).toMatchObject({ id: 'settings', title: 'Configuration', modal: true });
-    expect(descriptor?.hiddenInPalette).toBeUndefined();
+    expect(descriptor).toMatchObject({ id: 'settings', title: 'Configuration', modal: true, capability: 'uiControl', hiddenInPalette: true });
     expect(descriptor?.tag).toBe('s-settings');
   });
 
