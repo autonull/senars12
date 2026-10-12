@@ -38,7 +38,8 @@
    missing; or a test fails **>3 times**. Never loop.
 
 **Critical path:** P0 kernel → P1 contribution+catalog → P2 surface → P3 view → P4 facet →
-P5 app+harness → P6 server registry → P7 rebuild apps.
+P5 app+harness → P6 server registry → P7 rebuild apps → P8 intent → P9 protocol → P10
+projection+derived → P11 bundle/app → P12 domain catalogs.
 
 ---
 
@@ -106,6 +107,46 @@ without copying `entry.ts`. (`bundles/` is an empty directory — the idea was p
 Every new capability UI re-decides: which registry, which defaults helper, which placement
 mechanism, which mount path, which state atoms, which server case. That is the "messy
 confusion" this plan removes.
+
+### 0.7 More duplication (found while normalizing)
+
+The same disease appears outside the descriptor layer:
+
+- **Two hand-coded protocol dispatchers.** `core/src/protocol/unions.ts` defines the zod
+  discriminated unions, but the server (`handleClientMessage`, a 30-case `switch`) and the
+  client (`applyServerMessage`, a 15-case `switch`) both hand-write dispatch, and neither
+  validates the wire payload with the schema it already has. One message shape, three
+  places (schema, two switches).
+- **An intent bus *and* a command registry.** `core/events.ts` (`UiSignals`, e.g.
+  `graph:fit`, `overlay:open`, `composer:focus`) and `core/commands.ts` (e.g. `view.fit`,
+  `overlay.*`) express the same thing — a named intent — through two dispatch paths. Some
+  actions exist as both.
+- **A hardcoded projection pipeline.** `projectWorkspace` (`workspace-projection.ts:542`)
+  hardcodes its producers (`projectChat`, `projectReasoning` per backend,
+  `projectCognitiveEvents`, `projectDerivationRecords`) and merges fragments by hand. A new
+  capability adds a producer by editing this function.
+- **231 lines of per-registry validators.** `contribution-validator.ts` re-implements
+  "title required / tag required / unique id" once per registry. With one `Contribution`
+  and one catalog, validation is generic.
+- **A plugin system that is an app system.** `plugins.ts` (`PluginContribution`) gathers
+  surfaces, overlays, adapters, renderers, commands, lenses and layouts, then
+  `applyPlugins()` fans them out — the same shape as the target `App`/bundle. `bundles/` is
+  an empty directory with the same intent.
+- **A reading model split three ways.** `sections.ts`, `navigation.ts` and `toc.ts` each
+  traverse the workspace graph for reading/outline/breadcrumbs. One `outline` projection
+  would serve all three.
+- **Config fields duplicated across the wire.** `ui/src/server/config-schema.ts` (119) and
+  `ui/src/client/core/config-schema.ts` (287) both describe the same config; the
+  `config-change-producer`/`config-log` add a third view.
+- **Backends and providers hardcoded.** `nars-backend`/`metta-backend` are fixed exports;
+  LM providers live in `lm-provider.ts`. A new engine or provider needs an edit, not a
+  registration.
+- **Derived state by side-effect.** `$selectedNodeIds`, `$viewSelection` and
+  `workspaceGraph.timeCursor` are kept in sync by ad-hoc `subscribe` callbacks that mutate
+  a second atom — easy to churn or desync.
+- **Rendering split by surface.** `components/renderers/*` (graph, notebook, graph3d) and
+  `components/views/*` (table, tree, series…) and `node-body`/`render-block` are three
+  paths; a block should render through the view system regardless of surface.
 
 ---
 
@@ -250,6 +291,60 @@ commands, connection status). A product is a directory + a descriptor + its own 
 Adding a message is registering a handler — the same "descriptor + body" discipline as the
 client.
 
+### 1.8 `Protocol` — one message shape, both ends
+
+A protocol registry keyed by message `type`, carrying the zod schema, the direction, and the
+handler. The server validates inbound frames with the schema it already has; the client
+routes inbound frames the same way. One definition, two dispatchers derived.
+
+```ts
+interface Message<K extends string> extends Contribution<K> {
+  readonly direction: 'toServer' | 'toClient';
+  readonly schema: ZodType;
+  readonly handle: (ctx: HandlerContext, msg: unknown) => void | Promise<void>;
+}
+declare function defineMessage<K extends string, S extends ZodType>(spec: {
+  type: K; direction: 'toServer' | 'toClient'; schema: S;
+  handle: (ctx: HandlerContext, msg: z.infer<S>) => void | Promise<void>;
+}): Message<K>;
+```
+
+### 1.9 `Intent` — signals and commands are one thing
+
+One `Intent` catalog replaces `UiSignals` + `Command`: a named action with an optional
+`run`, `available`, `args` schema and palette metadata. `dispatch(intent, args)` is the one
+entry; the event bus becomes the intent dispatcher, and the palette is a filtered view of
+the same catalog.
+
+### 1.10 `Projector` — one projection pipeline
+
+A registry of `Projector { id, project(state) → WorkspaceFragment }`; `projectWorkspace`
+merges the registered projectors. A new capability adds a projector instead of editing the
+merge.
+
+### 1.11 `derived` — one selector primitive
+
+`derived(source, fn, equal?)` builds a read-only atom from one or more sources, with value
+equality to prevent churn. `$selectedNodeIds`, `$viewSelection`, `timeCursor` and
+`$runTerminations` become derived, not side-effect-synced.
+
+### 1.12 `Bundle`/`App` — one composition descriptor
+
+`defineBundle({ id, contributions: { surfaces, overlays, adapters, intents, facets, projectors, backends } })`
+absorbs `PluginContribution` and `bundles/`. `defineApp` is a bundle plus a shell and a
+default surface. The shell's regions are data (`Layout`), so an app composes regions.
+
+### 1.13 Catalogs for config, backends, providers, design
+
+Config fields, reasoning backends, LM providers and design primitives each become a catalog
+of `Contribution` — so the settings UI, the change log, the docs and the gallery derive from
+one source per domain, and a new backend/provider/field is one entry.
+
+### 1.14 One `outline` projection
+
+`sections`, `toc` and `navigation` derive from a single `outline(graph)` projection
+(sections, pages, breadcrumbs, ToC rows) — computed once, read everywhere.
+
 ---
 
 ## 2. Unification map (before → after)
@@ -265,6 +360,15 @@ client.
 | lens/layer/filter/composerMode bespoke selection | `Facet` catalog |
 | `handleClientMessage` switch | `registerHandler(type, fn)` |
 | one `entry.ts` importing ~40 components | `defineApp` + `app-shell` |
+| `UiSignals` event bus **+** `Command` registry | one `Intent` catalog |
+| server switch **+** client `applyServerMessage` switch | one `Protocol` registry (schema + handler) |
+| hardcoded `projectWorkspace` producers | `Projector` registry |
+| `contribution-validator.ts` (per-registry) | one generic validator over `Contribution` |
+| `PluginContribution` + empty `bundles/` | `Bundle`/`App` |
+| `sections` + `toc` + `navigation` | one `outline` projection |
+| `$selectedNodeIds`/`$viewSelection`/`timeCursor` side-effects | `derived(...)` |
+| client config-schema **+** server config-schema | one config catalog |
+| hardcoded backends/providers | backend/provider catalogs |
 
 ---
 
@@ -342,6 +446,44 @@ Console), each a thin composition. Demote the HUD to `apps/hud/` (kept, not the 
 **Guard:** an e2e per app; the app-composition contract.
 **Prove:** `/` is the primary app; the HUD is reachable but not default.
 
+- [ ] **P8 — Intent unification.**
+One `Intent` catalog replaces `UiSignals` (`core/events.ts`) and the `Command` registry
+(`core/commands.ts`); `dispatch(intent, args)` is the one entry; the palette is a filtered
+view of the catalog.
+**Guard:** an intent test (dispatch + availability + palette projection); a test that an
+action is not reachable through two paths.
+**Prove:** every existing palette command and `eventBus` signal still fires; golden path green.
+
+- [ ] **P9 — Protocol registry.**
+One `Protocol` registry keyed by message `type` (schema + direction + handler). The server
+validates inbound frames with the schema; the client routes inbound frames through the same
+registry. Delete both hand-written switches.
+**Guard:** a protocol test (every union member has a handler; an invalid frame is rejected).
+**Prove:** all apps + golden path green; a malformed frame returns an error frame.
+
+- [ ] **P10 — Projection pipeline + derived state.**
+A `Projector` registry; `projectWorkspace` merges registered projectors. One `outline`
+projection for sections/ToC/navigation. `derived(source, fn, equal?)` for
+`$selectedNodeIds`, `$viewSelection`, `timeCursor`, `$runTerminations`.
+**Guard:** projector merge tests; `derived` equality tests (no churn on equal value).
+**Prove:** the graph, ToC and breadcrumbs unchanged; golden path green.
+
+- [ ] **P11 — Bundle/App composition.**
+`defineBundle` absorbs `PluginContribution` and `bundles/`; `defineApp` = bundle + shell +
+default surface; the shell's regions are a `Layout` descriptor.
+**Guard:** a bundle test (contributions land in the right catalogs); an app-composition test.
+**Prove:** an app built as a bundle runs; the shell composes regions from data.
+
+- [ ] **P12 — Domain catalogs + generic validation.**
+Config fields, reasoning backends, LM providers and design primitives become catalogs of
+`Contribution`; the one config schema is shared across the wire. Replace
+`contribution-validator.ts` with one generic validator over `Contribution` + catalog
+uniqueness.
+**Guard:** a config-catalog test (client/server agree); a generic-validator test (missing
+title/tag/duplicate id rejected uniformly).
+**Prove:** settings UI + change log derive from the catalog; a new backend registers without
+an edit.
+
 ---
 
 ## 5. Tripwires (stop if any fires)
@@ -366,8 +508,11 @@ Console), each a thin composition. Demote the HUD to `apps/hud/` (kept, not the 
   - *a new surface:* `defineSurface({ id, title, placement, bindings }, class { renderBody() })`.
   - *a new catalogued thing:* one `defineCatalog({ … })` entry.
   - *a new shape:* one catalog entry + one adapter.
-  - *a new message:* one `registerHandler(type, fn)`.
-  - *a new app:* a directory + `defineApp(...)` + its surfaces.
+  - *a new message:* one `defineMessage({ type, direction, schema, handle })`.
+  - *a new intent:* one `Intent` catalog entry (palette + shortcut + agent-dispatchable at once).
+  - *a new producer:* one `Projector` entry; *a derived value:* one `derived(...)`.
+  - *a new backend/provider/field:* one catalog entry.
+  - *a new app:* a directory + `defineApp(...)` (a bundle + a shell) + its surfaces.
 - **The type system catches drift:** every catalog is `satisfies Record<K, D>`; a missing
   row or a typo fails the build.
 - **A second app exists and shares 100% of the substrate** — no copy of `entry.ts`.
