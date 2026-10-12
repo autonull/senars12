@@ -16,10 +16,7 @@ human provides. Everything required to proceed is in this file.
 
 **The agent's mandate — execute autonomously, one slice at a time:**
 
-1. **Read this file top to bottom.** Everything operative is here: requirements (§1),
-   rules (§2–§3), acceptance Flows (§4), tracks (§5), disposition (§6), verification (§7),
-   parked toolbox (§8), file map (§9), guardrails (§10), and the Progress Log (the
-   **resume point**, after §9). You do **not** need `TODO.ui.md`, `TODO.ui.9.md`, or
+1. **Read this file top to bottom.** You do **not** need `TODO.ui.md`, `TODO.ui.9.md`, or
    `TODO.ui.11.md` to proceed — they are *provenance, not instructions* (background is
    summarized in §0.5).
 2. **Resume at the first unchecked slice in the Progress Log** (after §9; currently
@@ -30,7 +27,8 @@ human provides. Everything required to proceed is in this file.
    - **Prove it on the real app** — run it, capture a screenshot/walkthrough, and check the
      Flow checklist (§10.3). A green cell is **not** proof.
    - Run `pnpm --dir ui typecheck` + `pnpm --dir ui test:unit` (and `pnpm --dir core
-     typecheck` if `core/` changed). Keep them green.
+     typecheck` if `core/` changed). Keep them green. Full contract: `pnpm ui:verify`;
+     regression only — *not the measure*.
    - **Commit** the slice (Conventional Commits, per repo) and append a Progress Log entry.
 4. **Then take the next slice.** Do not batch slices; do not create a new plan document; do
    not re-derive the substrate; do not ask the human to choose — proceed down the critical
@@ -38,9 +36,8 @@ human provides. Everything required to proceed is in this file.
 5. **Stop and report only when:** a **tripwire** fires (§10.2); a required command/tool is
    missing (ask the human to add it to `AGENTS.md`); or a test fails **>3 times**. Never loop.
 
-**Critical path:** `P0.1 client → P0 facade → P1 why → P1 state → P1 hide → P2 golden-path`.
-
-**Reading order:** §1 → … → §9 → **Progress Log (resume here)** → §10 (guardrails).
+**Critical path (the only statement of it):** P0 control-path client → P0 facade → P1 why
+→ P1 state → P1 hide → P2 golden-path.
 
 ---
 
@@ -390,17 +387,7 @@ library) — valuable, but not the product.
 
 ---
 
-## 9. Fresh-Session Handoff
-
-**Critical path:** P0 control path → P0 facade → P1 why → P1 state → P1 hide → P2 golden path.
-
-**Commands** (from `ui/`):
-```bash
-pnpm typecheck && pnpm test:unit        # fast gate
-pnpm test:visual                        # regression (not the measure)
-pnpm test:scenarios                     # e2e (currently rotted — see P2)
-```
-Root: `pnpm ui:gate` · `pnpm ui:verify`.
+## 9. File map & invariants
 
 **File map:**
 | Track | Primary files |
@@ -531,23 +518,7 @@ checks these); the human may spot-check at any time:
 
 If a §10.2 tripwire fires, the agent stops and reports; the human then decides.
 
-### 10.4 Instructions for the plan / the fresh session
-
-**Read order:** §1 → … → §9; **resume at the Progress Log** (first unchecked slice); §10
-are the guardrails. (§0/§0.5 are background.)
-
-**Critical path:** **P0.1 client → P0 facade → P1 why → P1 state → P1 hide → P2 golden-path.**
-
-**Per-slice definition of done:** change + guard + **real-app proof**; `typecheck` + `unit`
-+ the golden-path e2e green; **commit per slice** (Conventional Commits, per the repo).
-
-**Commands** (`ui/`): `pnpm typecheck` · `pnpm test:unit` · `pnpm test:visual` (regression
-only — *not* the measure) · `pnpm test:scenarios` (once green). Root: `pnpm ui:gate`.
-
-**Evolution:** append to the **Progress Log**; never spawn a new plan document. If a Flow
-needs a parked item, pull **that one item** and record why.
-
-### 10.5 What to expect when complete
+### 10.4 What to expect when complete
 
 **A working product, not a demo.** When this plan is done:
 
