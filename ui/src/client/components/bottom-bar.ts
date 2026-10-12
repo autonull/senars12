@@ -13,6 +13,7 @@ import {
   $webllmActive,
   $webllmAvailable,
   $workspaceGraph,
+  addAgentMessage,
   addUserMessage,
   availableComposerModes,
   capabilityGate,
@@ -332,6 +333,9 @@ export class BottomBar extends BaseComponent {
       if (!availableComposerModes(capabilities).some((m) => m.id === this.mode)) {
         this.mode = DEFAULT_COMPOSER_MODE;
       }
+      // The mode set is derived from the composition; a capability change must
+      // reveal the modes it unlocks (no hidden expressivity).
+      this.requestUpdate();
     });
     this.webllmAvailable = 'gpu' in navigator;
     refreshLmStatus();
@@ -579,16 +583,29 @@ export class BottomBar extends BaseComponent {
     if (inputHistory.length > MAX_HISTORY) inputHistory.shift();
     historyIndex = inputHistory.length;
 
-    const isStructured = this.mode === 'believe' || this.mode === 'goal';
+    const isStructured = this.mode === 'believe' || this.mode === 'goal' || this.mode === 'question';
     const control = capabilityGate('reasoning') ? narsBackend.control : undefined;
 
     if (isStructured && control) {
-      const segments = this.decomposition.filter((s) => s.kind === 'claim');
+      const segments = this.decomposition.filter(
+        (s) => s.kind === 'claim' || s.kind === 'question'
+      );
+      const controlMode =
+        this.mode === 'believe' ? 'belief' : this.mode === 'question' ? 'question' : 'goal';
       for (const segment of segments) {
-        await control.submit({ term: segment.text, mode: this.mode === 'believe' ? 'belief' : 'goal' });
+        const result = await control.submit({ term: segment.text, mode: controlMode });
+        // A question is an ask: surface the engine's answer, when it has one.
+        if (result.answer?.answer) {
+          const { frequency, confidence } = result.answer;
+          const truth = frequency !== undefined && confidence !== undefined
+            ? ` (f=${frequency.toFixed(2)}, c=${confidence.toFixed(2)})`
+            : '';
+          addAgentMessage(`${result.answer.answer}${truth}`, this.mode);
+        }
       }
+      // A structured mode is already on the reasoning control path; sending it
+      // again as `chat.user` would double-admit it through the NL route.
       addUserMessage(content, this.mode, this.contextRefs);
-      send({ type: 'chat.user', content, mode: this.mode, contexts: this.contextRefs });
     } else {
       addUserMessage(content, this.mode, this.contextRefs);
       send({ type: 'chat.user', content, mode: this.mode, contexts: this.contextRefs });

@@ -276,6 +276,9 @@ export class NodeDetailDrawer extends BaseComponent {
     this.watchWith($nodeHistory, (history) => {
       this.history = history;
     });
+    // The proof can arrive after the selection (a derivation record streams in);
+    // re-render so the "Why?" affordance appears when its prerequisite exists.
+    this.watch($workspaceGraph);
   }
 
   override render() {

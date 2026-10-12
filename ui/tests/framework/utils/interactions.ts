@@ -24,6 +24,11 @@ export async function sendMessage(page: Page, text: string): Promise<void> {
   await page.locator('bottom-bar .send-btn').click();
 }
 
+/** Switch the composer's declared intent (the mode pill in the footer). */
+export async function setComposerMode(page: Page, mode: string): Promise<void> {
+  await page.locator(`bottom-bar .modes button[data-mode="${mode}"]`).click();
+}
+
 /** Count of messages currently held in the chat store. */
 export async function chatMessageCount(api: TestApiClient): Promise<number> {
   return JSON.parse((await api.getStoreState('chatMessages')) || '[]').length;

@@ -142,8 +142,12 @@ function makeControl(): ReasoningControl {
   };
 
   return {
+    // A `question` is an ask: the engine admits it, reasons, and returns the
+    // answer with its verified derivation in one round-trip (Flow B).
     submit: (input: SubmitInput) =>
-      request({ type: 'reasoning.submit', term: input.term, mode: input.mode }),
+      input.mode === 'question'
+        ? request({ type: 'reasoning.ask', term: input.term })
+        : request({ type: 'reasoning.submit', term: input.term, mode: input.mode }),
     step: () => request({ type: 'reasoning.step' }),
     run: () => request({ type: 'reasoning.run' }),
     abort: () => request({ type: 'reasoning.abort' }),

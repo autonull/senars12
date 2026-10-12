@@ -334,7 +334,7 @@ export {
   updateNodeData,
   type ViewportMode,
 } from './store.js';
-export { addUserMessage, applyServerMessage } from './store-bindings.js';
+export { addAgentMessage, addUserMessage, applyServerMessage } from './store-bindings.js';
 
 export { connect, disconnect, send } from './ws-client.js';
 export {

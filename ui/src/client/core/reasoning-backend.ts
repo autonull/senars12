@@ -70,11 +70,21 @@ export interface SubmitInput {
   readonly mode?: 'belief' | 'goal' | 'question';
 }
 
+/** The answer an `ask` control op produced; the proof rides a cognitive event. */
+export interface SubmittedAnswer {
+  readonly answer?: string;
+  readonly frequency?: number;
+  readonly confidence?: number;
+  readonly hasDerivation?: boolean;
+}
+
 /** Result of a control operation. */
 export interface ControlResult {
   readonly ok: boolean;
   readonly message?: string;
   readonly seqId?: number;
+  /** Present on a successful `submit` in `question` mode (i.e. an ask). */
+  readonly answer?: SubmittedAnswer;
 }
 
 /**

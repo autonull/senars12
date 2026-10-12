@@ -4,6 +4,8 @@ import { IncomingFromClient, IncomingFromServer } from '@senars/core';
 /** Every control message the client can send. If one is missing, the server drops it silently. */
 const CLIENT_MESSAGES = [
   { type: 'reasoning.submit', term: '(cat --> animal).', mode: 'belief' },
+  { type: 'reasoning.ask', term: '(cat --> animal)?' },
+  { type: 'reasoning.ask', term: '(cat --> animal)?', runs: 5 },
   { type: 'reasoning.step' },
   { type: 'reasoning.run' },
   { type: 'reasoning.abort' },
@@ -42,5 +44,20 @@ describe('reasoning control protocol', () => {
       seqId: 42,
     });
     expect(response.success && response.data.seqId).toBe(42);
+  });
+
+  it('carries an ask answer (truth + whether a proof exists) on the response', () => {
+    const response = IncomingFromServer.safeParse({
+      type: 'reasoning.control.response',
+      ok: true,
+      seqId: 7,
+      answer: { answer: '(robin-->animal)', frequency: 1, confidence: 0.9, hasDerivation: true },
+    });
+    expect(response.success && response.data.answer).toEqual({
+      answer: '(robin-->animal)',
+      frequency: 1,
+      confidence: 0.9,
+      hasDerivation: true,
+    });
   });
 });

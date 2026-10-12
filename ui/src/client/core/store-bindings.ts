@@ -71,6 +71,25 @@ export function addUserMessage(content: string, mode?: string, contexts?: string
   $chatMessages.set([...$chatMessages.get(), chat]);
 }
 
+/** Adds an agent chat message to the store — the visible half of a control answer. */
+export function addAgentMessage(content: string, mode?: string): void {
+  const id = generateId('agent');
+  const chat: ChatMessage = {
+    id,
+    role: 'agent',
+    content,
+    mode,
+    timestamp: Date.now(),
+    term: extractTerm(content),
+    parentId: null,
+    threadRootId: id,
+    supports: [],
+    contradicts: [],
+    derivesFrom: [],
+  };
+  $chatMessages.set([...$chatMessages.get(), chat]);
+}
+
 /** Applies an incoming server message to the client state and optionally updates the graph. */
 export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
   switch (msg.type) {
@@ -147,7 +166,12 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
       break;
 
     case 'reasoning.control.response':
-      settleControl(msg.seqId, { ok: msg.ok, message: msg.message, seqId: msg.seqId });
+      settleControl(msg.seqId, {
+        ok: msg.ok,
+        message: msg.message,
+        seqId: msg.seqId,
+        answer: msg.answer,
+      });
       break;
 
     case 'ui.command':

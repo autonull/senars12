@@ -29,4 +29,16 @@ describe('control channel', () => {
     await vi.advanceTimersByTimeAsync(15_000);
     await expect(result).resolves.toMatchObject({ ok: false });
   });
+
+  it('carries an ask answer through to the caller', async () => {
+    const { seqId, result } = awaitControl();
+    settleControl(seqId, {
+      ok: true,
+      answer: { answer: '(robin-->animal)', frequency: 1, confidence: 0.9, hasDerivation: true },
+    });
+    await expect(result).resolves.toMatchObject({
+      ok: true,
+      answer: { answer: '(robin-->animal)', hasDerivation: true },
+    });
+  });
 });

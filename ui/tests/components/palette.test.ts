@@ -39,7 +39,7 @@ afterEach(() => {
 describe('command palette', () => {
   it('lists commands derived from the renderer and overlay registries', async () => {
     const el = await mount();
-    expect(ids(el)).toEqual(expect.arrayContaining(['renderer.notebook', 'overlay.toc']));
+    expect(ids(el)).toEqual(expect.arrayContaining(['renderer.notebook', 'overlay.events']));
     expect(ids(el)).not.toContain('overlay.palette');
   });
 
@@ -79,10 +79,10 @@ describe('command palette', () => {
   it('fronts a Recent group with the last-run commands, most recent first', async () => {
     setCapability('reasoning', true);
     dispatchCommand('renderer.graph3d');
-    dispatchCommand('overlay.toc');
+    dispatchCommand('overlay.events');
     dispatchCommand('renderer.graph3d');
     const el = await mount();
     expect(el.shadowRoot?.querySelector('.group')?.textContent).toBe('Recent');
-    expect(ids(el).slice(0, 2)).toEqual(['renderer.graph3d', 'overlay.toc']);
+    expect(ids(el).slice(0, 2)).toEqual(['renderer.graph3d', 'overlay.events']);
   });
 });

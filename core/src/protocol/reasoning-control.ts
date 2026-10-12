@@ -20,6 +20,17 @@ export const ReasoningSubmitMsg = msg('reasoning.submit', {
   mode: z.enum(['belief', 'goal', 'question']).optional(),
   ...correlation,
 });
+/**
+ * Ask the engine a question and get the answer *with* its verified derivation
+ * (M8, Flow B). The server admits the question, reasons, then joins the recorder
+ * to the answer, so the proof is one round-trip rather than a 2s drain away.
+ */
+export const ReasoningAskMsg = msg('reasoning.ask', {
+  term: nonEmptyString,
+  /** Reasoning cycles to run after admitting the question; bounded server-side. */
+  runs: z.number().int().positive().max(200).optional(),
+  ...correlation,
+});
 export const ReasoningStepMsg = msg('reasoning.step', { ...correlation });
 export const ReasoningRunMsg = msg('reasoning.run', { ...correlation });
 export const ReasoningAbortMsg = msg('reasoning.abort', { ...correlation });
@@ -43,10 +54,21 @@ export const ReasoningAdjustProviderMsg = msg('reasoning.adjust-provider', {
 export const ReasoningControlResponse = msg('reasoning.control.response', {
   ok: z.boolean(),
   message: z.string().optional(),
+  /** The answer an `reasoning.ask` produced, when one exists. The proof itself
+   * arrives as a `derivation.record` cognitive event, not on this envelope. */
+  answer: z
+    .object({
+      answer: z.string().optional(),
+      frequency: z.number().optional(),
+      confidence: z.number().optional(),
+      hasDerivation: z.boolean().optional(),
+    })
+    .optional(),
   ...correlation,
 });
 
 export type ReasoningSubmit = z.infer<typeof ReasoningSubmitMsg>;
+export type ReasoningAsk = z.infer<typeof ReasoningAskMsg>;
 export type ReasoningStep = z.infer<typeof ReasoningStepMsg>;
 export type ReasoningRun = z.infer<typeof ReasoningRunMsg>;
 export type ReasoningAbort = z.infer<typeof ReasoningAbortMsg>;

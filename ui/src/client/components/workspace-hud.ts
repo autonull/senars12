@@ -35,7 +35,13 @@ import {
   type TelemetryRange,
 } from '../utils/telemetry-view.js';
 
-
+/**
+ * Open a registered overlay by id. The palette filters hidden overlays out of
+ * its command list, but the HUD's own controls still reach them; the OverlayHost
+ * enforces each descriptor's capability gate, so this never opens a locked one.
+ */
+const openOverlay = (id: string, event: Event): void =>
+  eventBus.emit('overlay:open', { id, anchor: event.currentTarget as HTMLElement });
 
 /** The provider chip is the provider switcher: it opens the Provider overlay. */
 const providerChip = (provider: LmProviderState) =>
@@ -47,8 +53,7 @@ const providerChip = (provider: LmProviderState) =>
         title=${provider.stale
           ? `Requested ${provider.pending} — the engine kept ${providerLabel(provider.id)}`
           : 'Language model provider'}
-        @click=${(event: Event) =>
-          dispatchCommand('overlay.provider', { anchor: event.currentTarget as HTMLElement })}
+        @click=${(event: Event) => openOverlay('provider', event)}
       >${providerLabel(provider.id)}
           ${provider.stale
             ? html`<s-icon name="warningTriangle" size="10"></s-icon>`
@@ -211,8 +216,7 @@ override render() {
           data-action="toc"
           title="Table of contents"
           aria-label="Table of contents"
-          @click=${(event: Event) =>
-            dispatchCommand('overlay.toc', { anchor: event.currentTarget as HTMLElement })}
+          @click=${(event: Event) => openOverlay('toc', event)}
         >
           <s-icon name="menu" size="14"></s-icon>
         </button>
@@ -222,8 +226,7 @@ override render() {
                 data-action="timeline"
                 title="Timeline"
                 aria-label="Timeline"
-                @click=${(event: Event) =>
-                  dispatchCommand('overlay.timeline', { anchor: event.currentTarget as HTMLElement })}
+                @click=${(event: Event) => openOverlay('timeline', event)}
               >
                 <s-icon name="history" size="14"></s-icon>
               </button>`
@@ -320,8 +323,7 @@ override render() {
           data-action="settings"
           title="Settings"
           aria-label="Settings"
-          @click=${(event: Event) =>
-            dispatchCommand('overlay.settings', { anchor: event.currentTarget as HTMLElement })}
+          @click=${(event: Event) => openOverlay('settings', event)}
         >
           <s-icon name="settingsGear" size="14"></s-icon>
         </button>
@@ -370,8 +372,7 @@ override render() {
           <button
             data-action="telemetry-full"
             title="Open full telemetry"
-            @click=${(event: Event) =>
-              dispatchCommand('overlay.telemetry', { anchor: event.currentTarget as HTMLElement })}
+              @click=${(event: Event) => openOverlay('telemetry', event)}
           >Full</button>
         </header>
         <div class="spark"><s-view .spec=${seriesSpec} budget="embedded" .chrome=${false}></s-view></div>

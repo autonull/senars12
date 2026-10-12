@@ -42,6 +42,12 @@ type RevisionEntry = {
   source: 'input' | 'derivation' | 'revision' | 'inference';
 };
 type NarBelief = { term: { toString(): string }; truth: { f: number; c: number } };
+/** The slice of a NAR `Answer` the control response needs (nar/src/query/api.ts). */
+type NarAnswer = {
+  answer?: string;
+  truth?: { f: number; c: number };
+  derivation?: { record: DerivationRecord };
+};
 type DerivationRecorderLike = {
   drain(): DerivationRecord[];
   pending(): number;
@@ -54,6 +60,8 @@ type NarLike = {
   goal?: (statement: string) => Promise<void>;
   question?: (statement: string) => Promise<void>;
   run?: (cycles: number, signal?: AbortSignal) => unknown;
+  /** Ask + verified derivation (M8). The answer's proof tree travels with it. */
+  askWithDerivation?: (question: string) => Promise<NarAnswer>;
   getBeliefs?: () => NarBelief[];
   getRevisionHistory?: (term: unknown) => RevisionEntry[];
   getLMClient?: () => {
@@ -85,6 +93,9 @@ const mimeTypes: Record<string, string> = {
 
 /** Bounded default for `reasoning.run` (the message carries no cycle count). */
 const DEFAULT_RUN_CYCLES = 20;
+
+/** Cycles a single `reasoning.ask` runs to produce an answer before reading it. */
+const ASK_RUN_CYCLES = 3;
 
 const testState = {
   concepts: [] as Array<{ term: string; f: number; c: number }>,
@@ -646,13 +657,25 @@ function broadcastConfigSchema(): void {
   /** The in-flight `reasoning.run`; a new run or an abort cancels it. */
   let activeRun: AbortController | undefined;
 
-  function respondReasoning(ws: WebSocket, ok: boolean, message?: string, seqId?: number): void {
+  function respondReasoning(
+    ws: WebSocket,
+    ok: boolean,
+    message?: string,
+    seqId?: number,
+    answer?: {
+      answer?: string;
+      frequency?: number;
+      confidence?: number;
+      hasDerivation?: boolean;
+    }
+  ): void {
     if (ws.readyState !== WebSocket.OPEN) return;
     const response: IncomingFromServer = {
       type: 'reasoning.control.response',
       ok,
       message,
       seqId,
+      answer,
     };
     ws.send(JSON.stringify(response));
   }
@@ -728,8 +751,45 @@ function broadcastConfigSchema(): void {
           respondReasoning(ws, false, `Engine cannot accept ${mode} statements`, msg.seqId);
           return;
         }
-        void handler.call(engine, msg.term);
-        respondReasoning(ws, true, undefined, msg.seqId);
+        // Await admission so `ok` means "accepted", not merely "routed": a
+        // malformed Narsese then reports failure instead of a false success.
+        void Promise.resolve(handler.call(engine, msg.term))
+          .then(() => respondReasoning(ws, true, undefined, msg.seqId))
+          .catch((e: unknown) => respondReasoning(ws, false, (e as Error).message, msg.seqId));
+        return;
+      }
+      case 'reasoning.ask': {
+        const engine = nar();
+        if (!engine?.question || !engine.run || !engine.askWithDerivation) {
+          respondReasoning(ws, false, 'Engine cannot answer questions', msg.seqId);
+          return;
+        }
+        const runs = msg.runs ?? ASK_RUN_CYCLES;
+        void (async () => {
+          try {
+            await engine.question?.(msg.term);
+            await engine.run?.(runs, activeRun?.signal);
+            const answer = await engine.askWithDerivation?.(msg.term);
+            if (answer?.derivation) {
+              // The proof would otherwise sit in the recorder until the 2s drain;
+              // broadcasting it now makes "why" immediate and request-scoped.
+              broadcastCognitiveEvent(
+                mintCognitiveEvent('derivation.record', {
+                  engine: 'nar',
+                  payload: answer.derivation.record,
+                })
+              );
+            }
+            respondReasoning(ws, true, undefined, msg.seqId, {
+              answer: answer?.answer,
+              frequency: answer?.truth?.f,
+              confidence: answer?.truth?.c,
+              hasDerivation: !!answer?.derivation,
+            });
+          } catch (e: unknown) {
+            respondReasoning(ws, false, (e as Error).message, msg.seqId);
+          }
+        })();
         return;
       }
       case 'reasoning.add-goal': {
@@ -738,8 +798,9 @@ function broadcastConfigSchema(): void {
           respondReasoning(ws, false, 'Engine cannot accept goals', msg.seqId);
           return;
         }
-        void engine.goal(msg.term);
-        respondReasoning(ws, true, undefined, msg.seqId);
+        void Promise.resolve(engine.goal(msg.term))
+          .then(() => respondReasoning(ws, true, undefined, msg.seqId))
+          .catch((e: unknown) => respondReasoning(ws, false, (e as Error).message, msg.seqId));
         return;
       }
       case 'reasoning.step':

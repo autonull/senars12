@@ -18,6 +18,7 @@ import { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './len
 import { ObjectSetMsg } from './object-patch.js';import { UiCommandMsg } from './ui-command.js';
 import {
   ReasoningSubmitMsg,
+  ReasoningAskMsg,
   ReasoningStepMsg,
   ReasoningRunMsg,
   ReasoningAbortMsg,
@@ -49,6 +50,7 @@ export const IncomingFromClient = z.discriminatedUnion('type', [
   LMStatusRequest,
   LMSwitchMsg,
   ReasoningSubmitMsg,
+  ReasoningAskMsg,
   ReasoningStepMsg,
   ReasoningRunMsg,
   ReasoningAbortMsg,

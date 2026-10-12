@@ -421,16 +421,15 @@ deleting, everything that distracts from it.*
 - [x] **P0 facade** — mount `connection-banner`; fix composer CTA (`bottom-bar.focusInput`);
       wire `s-tool-approval`; palette honesty (no-ref entries); fix `graph-legend`;
       drop no-op messages (`viewport.set`, `node.set`, `config.reset`)
-- [ ] **P1 why** — **"Why?"** on every answered claim (one click, no modifier) ✅ (guard added);
-      still to do: expose `nar.askWithDerivation` over WS (question → answer + proof in one
-      op) and surface `terminationReason` as a first-class field
+- [x] **P1 why** — **"Why?"** on every answered claim (one click, no modifier) ✅ (guard added);
+      `nar.askWithDerivation` over WS + `terminationReason` first-class field → deferred to P2
 - [x] **P1 state** — goals/questions surface as first-class blocks; gate verdicts already
       surfaced; run/step/abort in chrome (**pause omitted** — the engine has no resumable
       pause; documented)
-- [x] **P1 hide** — Display popover with Ask/Explore/Read/Plan presets; lens-controller moved to L2; Advanced components gated; Display button in toolbar. (Test infra: custom element registration conflict in vitest vmThreads — known infra limitation, not code bug)
-      duplicate composers (reachability removed, files kept)
-- [ ] **P2 golden-path** — a gated real-app e2e (submit → answer → why → steer → observe) +
-      scenario replay (G6)
+- [x] **P1 hide** — Display popover with Ask/Explore/Read/Plan presets; lens-controller moved to L2; Advanced components gated; Display button in toolbar. (The "custom element registration conflict" was a **real bug** — `s-display` was defined twice — fixed in P2; the 6 suites that never loaded now pass.)
+      duplicate composers (reachability removed, files kept) ✅ done
+- [x] **P2 golden-path** — gated real-app e2e (assert → ask → answer → why → observe → steer) +
+      scenario replay (G6); `nar.askWithDerivation` over WS; ask→answer in one op
 
 ### P0.1 — control path wired server-side ✅ (guard added)
 The single defect the audit found is fixed at the source: the engine can now be steered.
@@ -662,6 +661,76 @@ The advanced chrome is now behind the L2 Display popover; default surface is L0�
   instead of being palette-only.
 - Capability gating on panels (`lens-designer`, `split`) not yet wired — panels use
   separate `panel-defs.ts` without capability field.
+
+### P2 golden-path — the loop runs on the real app, in CI ✅ (guard + e2e added)
+The essential loop (assert → ask → answer → why → observe → steer) is now driven
+end-to-end against the live engine, and two invariants were repaired on the way.
+
+- **`nar.askWithDerivation` over WS.** New `reasoning.ask { term, runs? }` message
+  (`core/src/protocol/reasoning-control.ts`, `unions.ts`). The server admits the
+  question, runs a bounded 3 cycles, reads the answer via `askWithDerivation`, and
+  **broadcasts the matching `derivation.record`** so the proof is immediate rather
+  than a 2 s drain away (`ui/src/server/index.ts` `reasoning.ask`). The response
+  carries `answer { answer, frequency, confidence, hasDerivation }` — the truth is
+  the answer's, the proof is a cognitive event (no fat envelope).
+- **One-action ask.** `makeControl().submit({ mode: 'question' })` now routes to
+  `reasoning.ask`; the composer treats `question` as structured (it was falling to
+  NL chat), filters `question` segments, and surfaces the answer as an agent message
+  (`bottom-bar.ts`). `ControlResult` carries the optional `answer`.
+- **`reasoning.submit` / `add-goal` await admission** — `ok` now means *accepted*,
+  not *routed* (a malformed Narsese reports failure instead of a false success).
+- **The golden path** (`ui/tests/scenarios/golden-path/`): `operate-reasoner.spec.ts`
+  drives the real app — enable Reasoning, submit `<bird-->animal>.`/`<finch-->bird>.`
+  over the control path, ask `<finch-->animal>?`, watch the deduction appear as a
+  node, select it and open its proof via the one-click **Why?**, then toggle control
+  mode and step. `scenario-replay.spec.ts` (G6) loads the `basic-derivation` scenario
+  through the real engine and walks its provenance. Scripts: `ui:golden`
+  (`playwright --grep @golden --workers=1`). **Both green** (chromium).
+- **Two real bugs the loop exposed (now fixed):**
+  - **`s-display` was defined twice** (`display-popover.ts`): the manual
+    `customElements.define('s-display-popover')` plus `defineSurface` (tag `s-display`)
+    registered the same constructor in one registry → **the whole app threw at boot**
+    and every click was intercepted by the error boundary. The manual define is gone;
+    the descriptor now carries `tag: 's-display-popover'`. This was misreported as a
+    "vitest vmThreads limitation" in P1 hide — it was a browser-fatal bug.
+  - **The composer double-admitted structured input**: it sent both the control
+    message *and* `chat.user` (NL), so every belief ran the engine twice and the
+    client hung under the derivation flood. Structured modes now stay on the control
+    path only.
+- **P1-hide test drift resolved.** With the double-define fixed, six suites that never
+  loaded now run; their stale expectations were corrected: palette uses a still-visible
+  overlay (`overlay.events`), the HUD opens hidden overlays via `overlay:open` (its
+  buttons were silently dead after `hiddenInPalette` removed their `overlay.*`
+  commands), and `overlay:display` is a declared visual gap. Unit now **762 tests,
+  97/97 files green** (+2: the ask protocol + the answer correlation).
+
+**Remaining for P2 (done ≠ complete):**
+- **`terminationReason` is still not first-class.** It rides `budget.exhausted` and
+  renders as a `budget` block, but a run result does not name *why* it halted. Wire
+  it onto the run response (`nar.getExecution()`/spend summary) in a follow-up.
+- **Question→answer linkage is implicit.** The answer node is the derived belief; the
+  question node and answer node are not explicitly linked (`derivation.made` carries no
+  question id). An `answer` block kind is still declared but produced nowhere.
+- **The golden e2e is not yet in `ui:gate`.** It is a dedicated `ui:golden` script; the
+  plan's §7 (`ui:gate = typecheck + unit + golden e2e`) needs a CI prerequisite pass
+  (chromium, `workers:1`) before folding it in.
+- `scenario-replay` relies on the client being connected while the scenario runs (the
+  derivation-record drain is fire-and-forget); a reconnect mid-run can miss records.
+  Replaying records from the state snapshot would remove the race.
+
+**New improvement opportunities (found while wiring):**
+- **`full-bot.spec.ts @smoke` fails** (asserts `nars.maxConcepts` exists on the config
+  store); unrelated to this slice, but the `config` store shape/user never agreed — one
+  of the pre-existing e2e failures the plan called out.
+- **`derivation.record` re-projection is O(events) per event** (`$cognitiveEvents`
+  grows unbounded; `syncWorkspaceGraph` re-projects all of it on each arrival). Bounded
+  to a window or incremental projection would remove the flood sensitivity.
+- **The `ask` drains the recorder** (`askWithDerivation` → `drain()` → select one),
+  discarding other pending records in that drain; the 2 s timer would have broadcast
+  them. A drain-and-rebroadcast-all pass (or a request-scoped lookup that does not
+  consume) would keep every proof.
+- `ui/src/client/components/workspace-hud.ts` is still unmounted (Advanced); its
+  controls are now honest but unreachable. Retire into the toolbar or mount it.
 
 ---
 

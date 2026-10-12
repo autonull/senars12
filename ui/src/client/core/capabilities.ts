@@ -6,7 +6,7 @@
  * from one source instead of each hardcoding a feature flag.
  */
 
-import { $activeRenderer, atom } from './store.js';
+import { $activeRenderer, atom, mountTestApi } from './store.js';
 
 export const CAPABILITY_IDS = ['language', 'reasoning', 'tools', 'memory', 'uiControl'] as const;
 
@@ -85,3 +85,13 @@ export const setCapability = (id: Capability, enabled: boolean): void => {
   // Enabling Reasoning or dropping the last Language switches to the composition's default renderer.
   if (RENDERER_CAPABILITIES.has(id)) $activeRenderer.set(defaultRendererFor(next));
 };
+
+// The composition is set through UI affordances; the E2E harness needs the same
+// seam without reaching into the store, so it drives the real setter.
+if (typeof window !== 'undefined') {
+  mountTestApi('capabilities', {
+    enable: (id: Capability) => setCapability(id, true),
+    disable: (id: Capability) => setCapability(id, false),
+    list: () => [...$capabilities.get()],
+  });
+}

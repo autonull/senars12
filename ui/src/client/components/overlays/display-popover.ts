@@ -6,7 +6,7 @@
  */
 
 import { css, html, type TemplateResult } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { state } from 'lit/decorators.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { registerOverlay } from '../../core/overlay-registry.js';
 import { eventBus } from '../../core/events.js';
@@ -204,20 +204,22 @@ class DisplayPopoverBase extends SurfaceComponent {
   }
 }
 
-// Register the custom element safely - ignore if already defined
-const tagName = 's-display-popover';
-try {
-  customElements.define(tagName, DisplayPopoverBase);
-} catch {
-  // Ignore: already defined in this jsdom environment
-}
-
-const DISPLAY_SURFACE = { id: 'display', title: 'Display', group: 'overlay', a11y: { role: 'dialog' } } as const;
-defineSurface({ id: 'display', title: 'Display', group: 'overlay', a11y: { role: 'dialog' } as const }, DisplayPopoverBase);
-registerOverlay({
+const DISPLAY_SURFACE = {
   id: 'display',
   title: 'Display',
   tag: 's-display-popover',
+  group: 'overlay',
+  a11y: { role: 'dialog' },
+} as const;
+
+// One registration owns the tag: a second `customElements.define` with the same
+// constructor throws (a constructor can be used with a registry only once), so
+// the element is defined exactly here.
+defineSurface(DISPLAY_SURFACE, DisplayPopoverBase);
+registerOverlay({
+  id: DISPLAY_SURFACE.id,
+  title: DISPLAY_SURFACE.title,
+  tag: DISPLAY_SURFACE.tag,
   capability: 'uiControl',
   window: { draggable: true, resizable: true, minimize: true, persist: true },
 });

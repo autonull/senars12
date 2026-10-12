@@ -86,6 +86,7 @@
     "web": "pnpm --dir ui dev",
     "ui:gate": "pnpm --dir ui typecheck && pnpm --dir ui test:unit",
     "ui:gallery": "pnpm --dir ui ui:gallery",
+    "ui:golden": "pnpm --dir ui test:e2e:golden",
     "ui:verify": "pnpm --dir ui verify",
     "build": "turbo run build",
     "bench:system-one": "tsx scripts/system-one-bench.ts",
