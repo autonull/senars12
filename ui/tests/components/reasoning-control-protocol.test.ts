@@ -30,4 +30,17 @@ describe('reasoning control protocol', () => {
     });
     expect(parsed.success).toBe(true);
   });
+
+  it('correlates a control request with its response by seqId', () => {
+    const request = IncomingFromClient.safeParse({ type: 'reasoning.run', seqId: 42 });
+    expect(request.success).toBe(true);
+    expect(request.success && request.data.seqId).toBe(42);
+
+    const response = IncomingFromServer.safeParse({
+      type: 'reasoning.control.response',
+      ok: true,
+      seqId: 42,
+    });
+    expect(response.success && response.data.seqId).toBe(42);
+  });
 });

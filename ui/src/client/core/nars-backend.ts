@@ -27,6 +27,7 @@ import type {
   ReasoningControl,
   SubmitInput,
 } from './reasoning-backend.js';
+import { awaitControl } from './control-channel.js';
 import { $graphEdges, $graphNodes } from './store.js';
 import { send } from './ws-client.js';
 import { VERIFIER_TRUTH_TABLE } from '@senars/core/verify-derivation';
@@ -78,11 +79,13 @@ const CAPS: BackendCaps = {
   canSubmit: true,
   canStep: true,
   canRun: true,
-  canRetract: true,
-  canRevise: true,
+  // Not yet routed to the engine (the server replies `ok:false`); advertised false
+  // so no affordance lies until the engine facade supports them.
+  canRetract: false,
+  canRevise: false,
   canAddGoal: true,
-  canAdjustBudget: true,
-  canAdjustProvider: true,
+  canAdjustBudget: false,
+  canAdjustProvider: false,
   canAbort: true,
 };
 
@@ -130,43 +133,27 @@ function snapshot(): BackendSnapshot {
 }
 
 function makeControl(): ReasoningControl {
+  // Send the request with a correlation id and settle on the engine's reply, so
+  // the caller learns the real outcome rather than an assumed one.
+  const request = (msg: Record<string, unknown>): Promise<ControlResult> => {
+    const { seqId, result } = awaitControl();
+    send({ ...msg, seqId });
+    return result;
+  };
+
   return {
-    async submit(input: SubmitInput): Promise<ControlResult> {
-      send({ type: 'reasoning.submit', term: input.term, mode: input.mode });
-      return { ok: true };
-    },
-    async step(): Promise<ControlResult> {
-      send({ type: 'reasoning.step' });
-      return { ok: true };
-    },
-    async run(): Promise<ControlResult> {
-      send({ type: 'reasoning.run' });
-      return { ok: true };
-    },
-    async abort(): Promise<ControlResult> {
-      send({ type: 'reasoning.abort' });
-      return { ok: true };
-    },
-    async retract(nodeId: Ref): Promise<ControlResult> {
-      send({ type: 'reasoning.retract', nodeId });
-      return { ok: true };
-    },
-    async revise(nodeId: Ref, frequency: number, confidence: number): Promise<ControlResult> {
-      send({ type: 'reasoning.revise', nodeId, frequency, confidence });
-      return { ok: true };
-    },
-    async addGoal(term: string): Promise<ControlResult> {
-      send({ type: 'reasoning.add-goal', term });
-      return { ok: true };
-    },
-    async adjustBudget(budget: number): Promise<ControlResult> {
-      send({ type: 'reasoning.adjust-budget', budget });
-      return { ok: true };
-    },
-    async adjustProvider(providerId: string): Promise<ControlResult> {
-      send({ type: 'reasoning.adjust-provider', provider: providerId });
-      return { ok: true };
-    },
+    submit: (input: SubmitInput) =>
+      request({ type: 'reasoning.submit', term: input.term, mode: input.mode }),
+    step: () => request({ type: 'reasoning.step' }),
+    run: () => request({ type: 'reasoning.run' }),
+    abort: () => request({ type: 'reasoning.abort' }),
+    retract: (nodeId: Ref) => request({ type: 'reasoning.retract', nodeId }),
+    revise: (nodeId: Ref, frequency: number, confidence: number) =>
+      request({ type: 'reasoning.revise', nodeId, frequency, confidence }),
+    addGoal: (term: string) => request({ type: 'reasoning.add-goal', term }),
+    adjustBudget: (budget: number) => request({ type: 'reasoning.adjust-budget', budget }),
+    adjustProvider: (providerId: string) =>
+      request({ type: 'reasoning.adjust-provider', provider: providerId }),
   };
 }
 

@@ -238,7 +238,9 @@ registerCommand({
   keywords: 'reasoning run inference nars',
   run: () => {
     $reasoningRunning.set(true);
-    narsBackend.control?.run();
+    // The engine settles this only when the run actually stops (or aborts), so
+    // the running state — and thus the Abort affordance — is never left on.
+    void narsBackend.control?.run().finally(() => $reasoningRunning.set(false));
   },
   available: () => reasoningAvailable() && caps().canRun,
 });

@@ -416,8 +416,8 @@ deleting, everything that distracts from it.*
 ### Slice checklist (resume at the first unchecked)
 
 - [x] **P0.1 server** — wire `reasoning.*` control path + `reasoning.abort` protocol + guard
-- [ ] **P0.1 client** — `makeControl` awaits `reasoning.control.response`; wire or disable
-      `retract | revise | adjust-budget | adjust-provider` (`CAPS` in `nars-backend.ts:77`)
+- [x] **P0.1 client** — `makeControl` awaits `reasoning.control.response`; `retract | revise |
+      adjust-budget | adjust-provider` disabled (`CAPS`) until wired; `reasoningRunning` resets
 - [ ] **P0 facade** — mount `connection-banner`; fix composer CTA (`bottom-bar.focusInput`);
       wire `s-tool-approval`; palette honesty (no-ref entries); fix `graph-legend`
 - [ ] **P1 why** — expose `askWithDerivation`/`derivation.record`; a **"Why?"** on every
@@ -443,12 +443,51 @@ The single defect the audit found is fixed at the source: the engine can now be 
   message parses; the response is in the server union). Unit **745 → 747**.
 
 **Remaining for P0.1 (next):**
-- Client `makeControl` (`nars-backend.ts`) still returns optimistic `{ ok:true }`; await
-  the response.
-- Wire `retract | revise | adjust-budget | adjust-provider`, or set their `CAPS` false
-  (`nars-backend.ts:77-87`) so the UI stops advertising them.
 - The real proof is the golden-path e2e (P2): submit → node appears; step/run advances;
   abort cancels.
+
+### P0.1 — control path awaited client-side ✅ (guard added)
+The client no longer lies about control outcomes; it awaits the engine's answer.
+
+- **Correlation, not order.** Every control request now carries an optional `seqId`
+  (`core/src/protocol/reasoning-control.ts`) that the engine echoes on
+  `reasoning.control.response` (`ui/src/server/index.ts` `respondReasoning`). This is
+  *required*: a `run`/`abort` race replies to the **abort first** and the aborted run
+  second, so a FIFO queue would settle the wrong promise.
+- **`control-channel.ts`** (new) reserves a `seqId`, returns the promise the response
+  settles, and settles `ok:false` on a 15s timeout — a control that never answers is a
+  dead end (v9 "no dead ends"). `store-bindings.ts` routes `reasoning.control.response`
+  to `settleControl`.
+- **`makeControl`** (`nars-backend.ts`) sends `{ ...msg, seqId }` and returns the awaited
+  result instead of optimistic `{ ok:true }`.
+- **Honesty (`CAPS`):** `canRetract`, `canRevise`, `canAdjustBudget`, `canAdjustProvider`
+  are now **false** — the server replies `ok:false` ("not yet wired"), so the UI must not
+  advertise them (no-lying-controls). `canSubmit | canStep | canRun | canAbort |
+  canAddGoal` stay true (routed).
+- **Run state resets:** `reasoning.run` command now clears `$reasoningRunning` in
+  `.finally`, so the Abort affordance disappears when the run actually stops (it was
+  previously set `true` and never cleared).
+- Guard: `ui/tests/components/control-channel.test.ts` (out-of-order settle, uncorrelated
+  id ignored, timeout → `ok:false`) + a `seqId` correlation case in
+  `reasoning-control-protocol.test.ts`. Unit **747 → 751**.
+
+**Remaining for P0.1 (done ≠ proven):**
+- The real proof is still the golden-path e2e (P2): submit → node appears; step/run
+  advances; abort cancels — walked on the real app.
+- `retract | revise | adjust-budget | adjust-provider` remain *disabled*, not *wired*. To
+  re-enable, the engine facade needs real support (see P0 §5 and `nar/src/nar.ts`), then
+  flip the matching `CAPS` back on and drop the server's `ok:false` branch.
+
+**New improvement opportunities (found while wiring):**
+- `reasoning.submit` replies `ok:true` *before* `believe/goal/question` resolves
+  (`void handler.call(...)`), so `ok` means "routed", not "accepted" — a malformed Narsese
+  still reports success. Awaiting the handler (and folding its error into `ok:false`,
+  `message`) would make the response literally true.
+- `bottom-bar.sendMessage` awaits each decomposition segment's submit **sequentially**;
+  batching them into one request (or `Promise.all`) removes N−1 round-trips and the N×15s
+  worst case while offline.
+- `reasoning.control.response` carries no result payload. Returning the created node id(s)
+  would let the UI select/focus the new answer directly (strengthens Flow A → Flow B).
 
 ---
 

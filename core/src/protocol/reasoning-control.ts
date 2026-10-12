@@ -8,31 +8,42 @@ import { msg } from './envelope.js';
 
 const nonEmptyString = z.string().min(1);
 
+/**
+ * The correlation the client stamps on every control request and the engine
+ * echoes on its response, so a reply settles the promise that asked for it
+ * rather than whichever one a run/abort race happens to reply to first.
+ */
+const correlation = { seqId: z.number().optional() };
+
 export const ReasoningSubmitMsg = msg('reasoning.submit', {
   term: nonEmptyString,
   mode: z.enum(['belief', 'goal', 'question']).optional(),
+  ...correlation,
 });
-export const ReasoningStepMsg = msg('reasoning.step', {});
-export const ReasoningRunMsg = msg('reasoning.run', {});
-export const ReasoningAbortMsg = msg('reasoning.abort', {});
-export const ReasoningRetractMsg = msg('reasoning.retract', { nodeId: nonEmptyString });
+export const ReasoningStepMsg = msg('reasoning.step', { ...correlation });
+export const ReasoningRunMsg = msg('reasoning.run', { ...correlation });
+export const ReasoningAbortMsg = msg('reasoning.abort', { ...correlation });
+export const ReasoningRetractMsg = msg('reasoning.retract', { nodeId: nonEmptyString, ...correlation });
 export const ReasoningReviseMsg = msg('reasoning.revise', {
   nodeId: nonEmptyString,
   frequency: z.number().min(0).max(1),
   confidence: z.number().min(0).max(1),
+  ...correlation,
 });
-export const ReasoningAddGoalMsg = msg('reasoning.add-goal', { term: nonEmptyString });
+export const ReasoningAddGoalMsg = msg('reasoning.add-goal', { term: nonEmptyString, ...correlation });
 export const ReasoningAdjustBudgetMsg = msg('reasoning.adjust-budget', {
   budget: z.number().positive(),
+  ...correlation,
 });
 export const ReasoningAdjustProviderMsg = msg('reasoning.adjust-provider', {
   provider: nonEmptyString,
+  ...correlation,
 });
 
 export const ReasoningControlResponse = msg('reasoning.control.response', {
   ok: z.boolean(),
   message: z.string().optional(),
-  seqId: z.number().optional(),
+  ...correlation,
 });
 
 export type ReasoningSubmit = z.infer<typeof ReasoningSubmitMsg>;

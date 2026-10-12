@@ -3,6 +3,7 @@ import { generateId, makeId, truncate } from '@senars/util';
 import type { Core } from 'cytoscape';
 import { edgeKey, extractTerm } from '../../shared/index.js';
 import { dispatchCommand } from './commands.js';
+import { settleControl } from './control-channel.js';
 import { applyLmStatus } from './lm-provider.js';
 import type { CognitiveMetricsData } from './store.js';
 import {
@@ -143,6 +144,10 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
 
     case 'lm.status':
       applyLmStatus(msg.data);
+      break;
+
+    case 'reasoning.control.response':
+      settleControl(msg.seqId, { ok: msg.ok, message: msg.message, seqId: msg.seqId });
       break;
 
     case 'ui.command':
