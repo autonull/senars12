@@ -12,7 +12,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
 import { activeCommands, dispatchCommand } from '../core/commands.js';
 import { eventBus } from '../core/events.js';
-import { GRAPH_LAYERS, type GraphLayer } from '../core/graph-layer.js';
+import { graphLayerDef, GRAPH_LAYERS, type GraphLayer } from '../core/graph-layer.js';
 import { $lmProvider, type LmProviderState, providerLabel } from '../core/lm-provider.js';
 import {
   $activeRenderer,
@@ -35,11 +35,7 @@ import {
   type TelemetryRange,
 } from '../utils/telemetry-view.js';
 
-const LAYER_LABELS: Record<GraphLayer, string> = {
-  both: 'Both',
-  conversation: 'Thread',
-  concepts: 'Concepts',
-};
+
 
 /** The provider chip is the provider switcher: it opens the Provider overlay. */
 const providerChip = (provider: LmProviderState) =>
@@ -275,9 +271,9 @@ override render() {
                     (id) => html`<button
                       data-layer=${id}
                       aria-pressed=${id === layer}
-                      title=${`Show ${id}`}
+                      title=${`Show ${graphLayerDef(id).label}`}
                       @click=${() => setGraphLayer(id)}
-                    >${LAYER_LABELS[id]}</button>`
+                    >${graphLayerDef(id).label}</button>`
                   )}
                 </div>
               `

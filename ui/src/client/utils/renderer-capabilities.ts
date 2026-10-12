@@ -6,32 +6,26 @@
  * (§3.4/§8.2) can reject a channel no active renderer supports instead of
  * silently no-op'ing it during paint.
  *
- * `satisfies Record<RendererId, …>` keeps the matrix exhaustive: a renderer
- * without a row, or an unknown renderer key, fails the build.
+ * The `RendererId` union now derives from `RENDERER_DEFS` (D4); the capability
+ * matrix is inlined there. This file re-exports the matrix for back-compat.
  */
 
 import { unique } from '@senars/util';
 import type { Channel, Delta } from '../modulation/types.js';
+import { RENDERER_DEFS, type RendererId } from '../core/renderer-defs.js';
 
-export type RendererId = '2d' | '3d';
 export type RenderTarget = 'node' | 'edge';
 
+/** The modulation channels a renderer supports, per element kind. */
 export type RendererCapability = {
   readonly node: ReadonlySet<Channel>;
   readonly edge: ReadonlySet<Channel>;
 };
 
-const channels = (...names: Channel[]): ReadonlySet<Channel> => new Set(names);
-
+/** The capability matrix, keyed by `RendererId` (derived from the catalog). */
 export const RENDERER_CAPABILITIES = {
-  '2d': {
-    node: channels('color', 'opacity', 'size', 'label', 'stroke.dash', 'stroke.width', 'z'),
-    edge: channels('color', 'edge-color', 'width', 'line-style', 'opacity'),
-  },
-  '3d': {
-    node: channels('color', 'opacity', 'size', 'label', 'z'),
-    edge: channels('color', 'edge-color', 'width', 'opacity'),
-  },
+  '2d': RENDERER_DEFS['2d'].capabilities,
+  '3d': RENDERER_DEFS['3d'].capabilities,
 } as const satisfies Record<RendererId, RendererCapability>;
 
 export const supportsChannel = (

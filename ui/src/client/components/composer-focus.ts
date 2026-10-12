@@ -524,7 +524,7 @@ export class ComposerFocus extends BaseComponent {
                 (mode) => html`<button
                   data-mode=${mode.id}
                   aria-pressed=${this.mode === mode.id}
-                  @click=${() => this.setMode(mode.id)}
+                  @click=${() => this.setMode(mode.id as ComposerMode)}
                 >${mode.label}</button>`
               )}
             </div>

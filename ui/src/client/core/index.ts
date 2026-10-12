@@ -4,6 +4,8 @@ export { BaseComponent } from './base-component.js';
 export { BLOCK_KINDS, BLOCK_DESCRIPTORS, blockDescriptor, type BlockDescriptor, kindsWhere } from './block-descriptors.js';
 export { blockLabel } from './block-labels.js';
 export { PANEL_KINDS, PANEL_DEFS, panelDef, type PanelDef, panelKindsWhere } from './panel-defs.js';
+export { RENDERER_IDS, RENDERER_DEFS, rendererDef, type RendererDef, rendererIdsWhere } from './renderer-defs.js';
+export { GRAPH_LAYERS, GRAPH_LAYER_DEFS, graphLayerDef, type GraphLayer, graphLayerKindsWhere, layerVisible } from './graph-layer-defs.js';
 export {
   type ArtifactKind,
   type ArtifactPayload,
@@ -134,12 +136,14 @@ export {
   explainLinkModel,
   explainModel,
 } from './explain.js';
-export { GRAPH_LAYERS, type GraphLayer, layerVisible } from './graph-layer.js';
 export {
   CONVERSATION_LAYOUT_CATALOG,
+  CONVERSATION_LAYOUT_DEFS,
   CONVERSATION_LAYOUT_IDS,
+  conversationLayoutDef,
   type ConversationLayoutDescriptor,
   type ConversationLayoutId,
+  conversationLayoutIdsWhere,
   type ConversationPositions,
   conversationPositions,
   type Point,

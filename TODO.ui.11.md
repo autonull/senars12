@@ -632,6 +632,109 @@ visual **60** (no baseline moves). `productionLOC` ledger ratcheted 72689 → 72
 
 ---
 
+### D4 — `RENDERER_DEFS` + `RendererId` (catalog) ✅
+
+**What landed.** New `core/renderer-defs.ts` owns one `RendererDef` per renderer —
+`label`, `icon`, `capabilities` (modulation channel matrix), `parity` (`full`/`partial`),
+`surface` (custom-element tag), `requiredCapability?`, `controls?`, `interactions?` —
+with a `d()` helper defaulting every facet. `RendererId` now derives as
+`keyof typeof RENDERER_DEFS` (Track F2). `RENDERER_IDS` and `rendererIdsWhere(facet)`
+are the one way a partial set is read.
+
+**Deleted / folded.** The hand union `RendererId = '2d' | '3d'` in
+`renderer-capabilities.ts` is gone; the capability matrix now lives in the catalog
+and `renderer-capabilities.ts` re-exports it for back-compat.
+
+**Guards.** New `tests/components/renderer-defs.test.ts` (+5): `RendererId` equals
+the catalog keys; every definition has a non-empty, distinct label; each facet
+(`parity`, `controls`, `requiredCapability`) selects exactly its former set; every
+renderer declares a non-empty capability matrix.
+
+---
+
+### D6 — `GRAPH_LAYER_DEFS` + `GraphLayer` (catalog) ✅
+
+**What landed.** New `core/graph-layer-defs.ts` owns one `GraphLayerDef` per layer —
+`label`, `icon`, `description`, `visible` predicate — with a `d()` helper.
+`GraphLayer` now derives as `keyof typeof GRAPH_LAYER_DEFS` (Track F2). `GRAPH_LAYERS`
+and `graphLayerKindsWhere(facet)` are the one way a partial set is read.
+
+**Deleted / folded.** The hand tuple `GRAPH_LAYERS = ['both', 'conversation', 'concepts']`
+and standalone `layerVisible` in `core/graph-layer.ts` are gone; `graph-layer.ts`
+now re-exports from the catalog.
+
+**Guards.** New `tests/components/graph-layer-defs.test.ts` (+4): `GraphLayer`
+equals the catalog keys; every definition has a non-empty, distinct label; each
+facet selects exactly its former set; `layerVisible` delegates to the catalog.
+
+---
+
+### D2 — `CONVERSATION_LAYOUT_DEFS` + `ConversationLayoutId` (catalog) ✅
+
+**What landed.** Refactored `core/conversation-layout.ts` to the new pattern:
+one `ConversationLayoutDescriptor` per layout (`label`, `description`, `states?`)
+with a `d()` helper. `ConversationLayoutId` now derives as `keyof typeof
+CONVERSATION_LAYOUT_DEFS` (Track F2 — was already derived from a tuple, now from
+the catalog). `CONVERSATION_LAYOUT_IDS` and `conversationLayoutIdsWhere(facet)`
+are the one way a partial set is read. Back-compat alias `CONVERSATION_LAYOUT_CATALOG`
+keeps existing imports working.
+
+**Guards.** New `tests/components/conversation-layout-defs.test.ts` (+5): `ConversationLayoutId`
+equals the catalog keys; every definition has a non-empty, distinct label; each
+facet selects exactly its former set; every layout has a description; catalog order
+matches declaration order.
+
+---
+
+### D3 — `LENS_DEFS` + `LensId` (catalog) ✅
+
+**What landed.** Refactored `utils/lens-catalog.ts` to the new pattern:
+one `LensDescriptor` per lens (`label`, `description`, `color`, `defaultLayout`,
+`primary`, `spec`) with a `d()` helper. `LensId` now derives as `keyof typeof
+LENS_DEFS` (Track F2 — was already `BuiltinLens` from shared schema, now from the
+catalog). `LENS_IDS` and `lensIdsWhere(facet)` are the one way a partial set is read.
+Back-compat aliases `LENS_CATALOG`, `PRIMARY_LENSES`, `lensMeta`, `builtinLensSpec`
+keep existing imports working.
+
+**Guards.** New `tests/components/lens-catalog-defs.test.ts` (+5): `LensId` equals
+the catalog keys; every definition has a non-empty, distinct label; each facet
+(`primary`, `defaultLayout`) selects exactly its former set; every lens has a spec
+with matching id; catalog order matches declaration order.
+
+---
+
+### D7 — `COMPOSER_MODE_DEFS` + `ComposerMode` (catalog) ✅
+
+**What landed.** Refactored `core/composer-modes.ts` to the new pattern:
+one `ComposerModeDescriptor` per mode (`id`, `capability`, `label`, `hint`,
+`structured`) with a `d()` helper. `ComposerMode` now derives as `keyof typeof
+COMPOSER_MODE_DEFS` (Track F2 — was already derived from a tuple, now from the
+catalog). `COMPOSER_MODE_IDS` and `composerModeIdsWhere(facet)` are the one way a
+partial set is read. Back-compat alias `COMPOSER_MODE_CATALOG` keeps existing
+imports working. Three call sites (`bottom-bar.ts`, `composer-focus.ts`,
+`input-hud.ts`) cast `mode.id as ComposerMode` where a string was passed to a
+`ComposerMode`-typed parameter.
+
+**Guards.** New `tests/components/composer-modes-defs.test.ts` (+5): `ComposerMode`
+equals the catalog keys; every definition has a non-empty, distinct label; each
+facet (`capability`, `structured`) selects exactly its former set;
+`availableComposerModes` filters correctly; default mode is in the catalog;
+catalog order matches declaration order.
+
+---
+
+### F2 — domain unions derived from catalogs ✅ (all done)
+
+`BlockKind` (D1), `PanelKind` (E9), `RendererId` (D4), `GraphLayer` (D6),
+`ConversationLayoutId` (D2), `LensId` (D3), `ComposerMode` (D7),
+`EventCategory`/`LinkCategory`/`ConversationLayoutId` (F1/F2) — all now derive
+from their respective catalogs. **No hand unions remain for these domains.**
+
+**Verified.** typecheck; ui unit **733** (+25 guard tests); design **14**; craft **204**;
+visual **62/62** — no baseline moved.
+
+---
+
 ## Future Sessions — LM Provider Roadmap (planned, not started)
 
 > Sequenced so each session ends with a green gate and a usable increment.
@@ -1874,7 +1977,9 @@ number:
    done (remainders gated on D1 catalogs / F4 `CommandId`).**
 4. **E1–E3 → D1–D4, D6–D7** — land the ingredient library, then collapse the
    consolidation items onto it. **D1 done standalone** (`BLOCK_DESCRIPTORS`; did
-   not need E — it is the data SSOT D/E/F all read); D2–D4, D6–D7 remain.
+   not need E — it is the data SSOT D/E/F all read); **D2–D4, D6–D7 done** (all
+   catalogs now derive from their SSOT: `CONVERSATION_LAYOUT_DEFS`, `LENS_DEFS`,
+   `RENDERER_DEFS`, `GRAPH_LAYER_DEFS`, `COMPOSER_MODE_DEFS`).
 5. **B2** — LoD transitions (rides on D5's `numericToken`). **Done** (B1 and B2 both
    landed; the shared header meant B1 did not need D3).
 6. **G3** — a11y from descriptor metadata + keyboard walkthrough in the gate.
@@ -1906,8 +2011,13 @@ Root: `pnpm ui:gate` (typecheck+unit) · `pnpm ui:verify` (full).
 | B2 | `utils/graph-scaling.ts`, `components/node-body.ts`, `utils/render-block.ts` |
 | B3 | `core/view-host.ts`, `utils/layout-registry.ts`, `components/primitives/empty-state.ts` |
 | D1 | `core/block-descriptors.ts` (new), `core/block-labels.ts`, `components/renderers/graph.ts` |
-| D3/E3 | `core/surface.ts`, `core/overlay-registry.ts`, 16 × `components/overlays/*` |
+| D2 | `core/conversation-layout.ts` (refactored), `tests/components/conversation-layout-defs.test.ts` (new) |
+| D3 | `utils/lens-catalog.ts` (refactored), `tests/components/lens-catalog-defs.test.ts` (new) |
+| D4 | `core/renderer-defs.ts` (new), `utils/renderer-capabilities.ts`, `tests/components/renderer-defs.test.ts` (new) |
 | D5/E7 | `utils/theme.ts`, `utils/graph-scaling.ts`, `utils/adapter-2d.ts` |
+| D6 | `core/graph-layer-defs.ts` (new), `core/graph-layer.ts`, `tests/components/graph-layer-defs.test.ts` (new) |
+| D7 | `core/composer-modes.ts` (refactored), `tests/components/composer-modes-defs.test.ts` (new) |
+| D3/E3 | `core/surface.ts`, `core/overlay-registry.ts`, 16 × `components/overlays/*` |
 | E1/E2 | `core/registry.ts` (new), `core/surface-registry.ts`, `core/view-adapter.ts` |
 | E4/E8 | `core/base-component.ts`, `core/surface.ts` |
 | E5/F3 | `core/store.ts` |

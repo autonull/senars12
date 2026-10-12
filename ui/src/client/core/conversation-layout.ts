@@ -6,6 +6,10 @@
  * `preset` layout. Concept layouts arrange the reasoning graph by topology —
  * these arrange the semantic conversation by sequence, topic, artifact and
  * source, reusing the same substrate.
+ *
+ * The catalog is the SSOT (D2): `ConversationLayoutId` derives from the keys
+ * of `CONVERSATION_LAYOUT_DEFS`, so adding a layout is one entry and no hand
+ * tuple to edit.
  */
 
 import { blockDescriptor } from './block-descriptors.js';
@@ -17,48 +21,55 @@ import type {
   WorkspaceGraph,
 } from './workspace-graph.js';
 
-export const CONVERSATION_LAYOUT_IDS = [
-  'chronological-flow',
-  'semantic-map',
-  'artifact-map',
-  'source-view',
-] as const;
-
-export type ConversationLayoutId = (typeof CONVERSATION_LAYOUT_IDS)[number];
-
 export interface ConversationLayoutDescriptor {
-  id: ConversationLayoutId;
-  label: string;
-  description: string;
+  /** Human label for palette and toolbar. */
+  readonly label: string;
+  /** Short description for tooltips. */
+  readonly description: string;
+  /** Per-layout UI state keys (B3) — future: which blocks are selected, etc. */
+  readonly states?: readonly string[];
 }
 
-const CATALOG = {
-  'chronological-flow': {
-    id: 'chronological-flow',
-    label: 'Chronological flow',
-    description: 'Conversation and events in document order, flowing column by column.',
-  },
-  'semantic-map': {
-    id: 'semantic-map',
-    label: 'Semantic map',
-    description: 'Claims clustered by same-topic links, remaining blocks grouped by kind.',
-  },
-  'artifact-map': {
-    id: 'artifact-map',
-    label: 'Artifact map',
-    description: 'Typed outputs at the centre, their conversational context around them.',
-  },
-  'source-view': {
-    id: 'source-view',
-    label: 'Source view',
-    description: 'One lane per source: user, LM, reasoner, tool, system.',
-  },
-} satisfies Record<ConversationLayoutId, ConversationLayoutDescriptor>;
+const d = (
+  label: string,
+  facets: Partial<Omit<ConversationLayoutDescriptor, 'label'>> = {}
+): ConversationLayoutDescriptor => ({
+  label,
+  description: '',
+  ...facets,
+});
 
-export const CONVERSATION_LAYOUT_CATALOG: Record<
-  ConversationLayoutId,
-  ConversationLayoutDescriptor
-> = CATALOG;
+export const CONVERSATION_LAYOUT_DEFS = {
+  'chronological-flow': d('Chronological flow', {
+    description: 'Conversation and events in document order, flowing column by column.',
+  }),
+  'semantic-map': d('Semantic map', {
+    description: 'Claims clustered by same-topic links, remaining blocks grouped by kind.',
+  }),
+  'artifact-map': d('Artifact map', {
+    description: 'Typed outputs at the centre, their conversational context around them.',
+  }),
+  'source-view': d('Source view', {
+    description: 'One lane per source: user, LM, reasoner, tool, system.',
+  }),
+} as const satisfies Record<string, ConversationLayoutDescriptor>;
+
+/** The semantic id of a conversation layout — the catalog keys are its source (D2). */
+export type ConversationLayoutId = keyof typeof CONVERSATION_LAYOUT_DEFS;
+
+/** Every layout id, in catalog order. */
+export const CONVERSATION_LAYOUT_IDS = Object.keys(CONVERSATION_LAYOUT_DEFS) as readonly ConversationLayoutId[];
+
+export const conversationLayoutDef = (id: ConversationLayoutId): ConversationLayoutDescriptor =>
+  CONVERSATION_LAYOUT_DEFS[id];
+
+/** The layout ids a facet selects, in catalog order — the one way a partial set is read. */
+export const conversationLayoutIdsWhere = (
+  facet: (def: ConversationLayoutDescriptor) => boolean
+): ConversationLayoutId[] => CONVERSATION_LAYOUT_IDS.filter((id) => facet(CONVERSATION_LAYOUT_DEFS[id]));
+
+/** Back-compat alias. */
+export const CONVERSATION_LAYOUT_CATALOG = CONVERSATION_LAYOUT_DEFS;
 
 export interface Point {
   x: number;

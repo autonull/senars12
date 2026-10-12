@@ -457,7 +457,7 @@ export const $lensLayout = atom<Record<string, string>>({ ...LENS_DEFAULT_LAYOUT
 export const $layoutScope = atom<LayoutScope>('concept');
 
 /** The one saved conversation layout (the conversation scope's slot). */
-export const $conversationLayout = atom<string>(CONVERSATION_LAYOUT_IDS[0]);
+export const $conversationLayout = atom<string>(CONVERSATION_LAYOUT_IDS[0]!);
 
 export const setConversationLayout = (id: string): void => {
   if ((CONVERSATION_LAYOUT_IDS as readonly string[]).includes(id)) {
