@@ -69,6 +69,32 @@ const isolateGraph = (page: Page): Promise<void> =>
     api?.store?.setState?.('graphEdges', new Map());
   }, STUB_NODE);
 
+/**
+ * Seed `$workspaceGraph` directly with synthetic blocks, **bypassing** the
+ * projection pipeline (`$chatMessages → projectChat → projectWorkspace`) on
+ * purpose: a density/budget cell needs many bodies deterministically, so it
+ * proves the *renderer* holds under load, not that a projection produces the
+ * blocks. Cells whose question is what the pipeline emits must project instead.
+ */
+const seedBlocks = (page: Page, blocks: readonly Record<string, unknown>[]): Promise<void> =>
+  page.evaluate((seeded) => {
+    const api = (window as Record<string, unknown>).__testApi as {
+      store?: { setState?: (path: string, value: unknown) => void };
+    };
+    const map = new Map<string, unknown>();
+    const roots: string[] = [];
+    for (const block of seeded) {
+      map.set(block.id as string, block);
+      roots.push(block.id as string);
+    }
+    api?.store?.setState?.('workspaceGraph', {
+      blocks: map,
+      links: new Map(),
+      roots,
+      selection: new Set(),
+    });
+  }, blocks);
+
 /** One dataset per view shape, rendered through the real `<s-view>` host. */
 const VIEW_FIXTURES: Record<string, unknown> = {
   graph: { kind: 'text', lines: ['(robin-->bird)'] },
@@ -477,32 +503,18 @@ const manyBodiesDemo =
   (count: number): VisualCell['prepare'] =>
   async ({ page, settle }) => {
     await isolateGraph(page);
-    await page.evaluate((n) => {
-      const api = (window as Record<string, unknown>).__testApi as {
-        store?: { setState?: (path: string, value: unknown) => void };
-      };
-      const blocks = new Map<string, unknown>();
-      const roots: string[] = [];
-      for (let index = 0; index < n; index++) {
-        const id = `budget-${index}`;
-        blocks.set(id, {
-          id,
-          kind: 'paragraph',
-          role: 'assistant',
-          text: `Derived belief ${index}: (robin-->animal) holds.`,
-          status: 'complete',
-          createdAt: index,
-          createdBy: 'system',
-        });
-        roots.push(id);
-      }
-      api?.store?.setState?.('workspaceGraph', {
-        blocks,
-        links: new Map(),
-        roots,
-        selection: new Set(),
-      });
-    }, count);
+    await seedBlocks(
+      page,
+      Array.from({ length: count }, (_, index) => ({
+        id: `budget-${index}`,
+        kind: 'paragraph',
+        role: 'assistant',
+        text: `Derived belief ${index}: (robin-->animal) holds.`,
+        status: 'complete',
+        createdAt: index,
+        createdBy: 'system',
+      }))
+    );
     await settle('concentric');
     await page.evaluate(() => {
       (

@@ -431,7 +431,10 @@ export function projectCognitiveEvents(events: readonly CognitiveEvent[]): Works
  * Each derivation record becomes a block with the complete step-by-step proof,
  * evidence lineage, and independence tracking — rendered via the s-tree view.
  */
-export function projectDerivationRecords(events: readonly CognitiveEvent[]): WorkspaceFragment {
+export function projectDerivationRecords(
+  events: readonly CognitiveEvent[],
+  resolveTerm: (term: string) => Ref | undefined = () => undefined
+): WorkspaceFragment {
   return perfTracker.assertProjection('projectDerivationRecords', () => {
     const blocks: SemanticBlock[] = [];
     const links: SemanticLink[] = [];
@@ -480,28 +483,24 @@ export function projectDerivationRecords(events: readonly CognitiveEvent[]): Wor
     });
     roots.push(id);
 
-    // Add links from each step's premises to the derivation record
-    for (const step of record.steps) {
-      for (const premise of step.premises) {
-        // Try to find the block that corresponds to this premise
-        // The premise is a term string; we link to the claim block if it exists
-        const premiseBlockId = `claim:${premise}`;
+    // A provenance edge is minted only for a term the merged graph resolves to a
+    // real block; an edge to a block that does not exist is provenance the user
+    // cannot follow, so it is dropped rather than drawn (Track A2). The proof
+    // tree in the block body remains the visible provenance when no block resolves.
+    const linkTerm = (term: string): void => {
+      const source = resolveTerm(term);
+      if (source)
         links.push({
-          id: linkId(premiseBlockId, id, 'derived-from'),
-          source: premiseBlockId,
+          id: linkId(source, id, 'derived-from'),
+          source,
           target: id,
           kind: 'derived-from',
           createdBy: 'reasoner',
         });
-      }
-      // Link from the conclusion to the derivation record
-      links.push({
-        id: linkId(`claim:${step.conclusion}`, id, 'derived-from'),
-        source: `claim:${step.conclusion}`,
-        target: id,
-        kind: 'derived-from',
-        createdBy: 'reasoner',
-      });
+    };
+    for (const step of record.steps) {
+      for (const premise of step.premises) linkTerm(premise);
+      linkTerm(step.conclusion);
     }
   }
 
@@ -533,7 +532,15 @@ export function projectWorkspace(state: {
     }
     if (state.cognitiveEvents && state.cognitiveEvents.length > 0) {
       fragments.push(projectCognitiveEvents(state.cognitiveEvents));
-      fragments.push(projectDerivationRecords(state.cognitiveEvents));
+      const known = new Set<Ref>(
+        fragments.flatMap((fragment) => fragment.blocks.map((block) => block.id))
+      );
+      fragments.push(
+        projectDerivationRecords(state.cognitiveEvents, (term) => {
+          const ref = claimId(term);
+          return known.has(ref) ? ref : undefined;
+        })
+      );
     }
     return merge(fragments);
   });

@@ -52,6 +52,51 @@ is a correctness fix and may land standalone.
 > Durable record of what has landed since v10. One entry per completed item; the
 > Fresh-Session Checklist below is the live to-do.
 
+### A2 + A3 — provenance links resolve; demo density through one helper ✅
+
+**A2 — derivation-record provenance.** `projectDerivationRecords` minted
+`derived-from` links to `claim:<term>` blocks that need not exist, so a record
+floated with edges to nothing. It now takes a `resolveTerm` resolver and mints a
+link **only when the term resolves to a real block**; `projectWorkspace` builds
+that resolver from the already-projected chat/reasoning block ids (a term
+resolves to `claim:<term>` iff that block exists). When nothing resolves, the
+record keeps its proof tree in the block body — the visible provenance — and no
+dangling edge is drawn.
+
+**A3 — demo density.** The `manyBodiesDemo` direct `$workspaceGraph` write is
+extracted to one `seedBlocks(page, blocks)` helper (`tests/visual/matrix.ts`)
+that documents *why* it bypasses the projection pipeline (deterministic density;
+it proves the **renderer**, not the projection). Any cell whose question is what
+the pipeline emits must project instead.
+
+**Guard.** `tests/components/workspace-projection.test.ts` (+2): every projected
+link endpoint is a block in the merged graph and phantom premise terms are
+dropped; a resolver-less `projectDerivationRecords` call keeps the block and
+drops every link.
+
+**Verified.** typecheck; ui unit **680** (was 678); the `derivation-record-demo`
+and `html-body-budget` visual cells pass with **no baseline move** — the 2d
+viewport already filtered dangling edges (`graph-viewport.ts:1110`), so A2
+changes no pixels and A3 emits byte-identical blocks.
+
+**Remaining (A1) + notes.**
+- **A1 (config-change audit) is the last Track A item and the largest.** The
+  clean path in `Notes for Implementation` still holds: a dedicated
+  `$configChanges` store (not a graph projection) subscribed by a HUD
+  overlay/panel. The events overlay (`components/overlays/events.ts`) is the
+  closest template — a `defineSurface` + `registerOverlay` tail, a table view
+  over a `$configChanges` atom, and a visual cell (`surface: 'overlay:<id>'`) to
+  satisfy the coverage contract.
+- **A2's resolver is per-call.** A general `merge()` invariant — drop any link
+  whose endpoints are not blocks in the merged graph — would protect every
+  future producer, not just `projectDerivationRecords`. Deferred: only this one
+  producer could dangle today, and a second pass over links is not yet earned.
+- **New opportunity — `provenanceRefs` are rendered only as evidence lineage.**
+  The record body's tree already lists `evidenceLineage` per step, but the
+  block's `provenanceRefs` (its declared evidence set) is never surfaced as a
+  field of its own. A small "provenance" group in the tree — or an `s-inspector`
+  row — would make the declared evidence legible without a new control.
+
 ### B3 — descriptor-driven view states ✅ (`states: ViewStates` + `ViewSource.loading`)
 
 **What landed.** The view system now carries its own non-ready slots as *data*:
@@ -1280,8 +1325,8 @@ control the user must learn.
 > Items are grouped by track; the handoff gives the recommended sequence.
 
 - [ ] **Track A1**: Config-change audit → dedicated log/HUD (no graph perturbation)
-- [ ] **Track A2**: Derivation-record provenance → wire to real blocks or embed in body
-- [ ] **Track A3**: Demo cells → shared `seedBlocks` helper or synthetic projection
+- [x] **Track A2**: Derivation-record provenance → wire to real blocks or embed in body
+- [x] **Track A3**: Demo cells → shared `seedBlocks` helper or synthetic projection
 - [ ] **Track B1**: Overlay breadcrumbs in header (read `overlayManager.stack()`)
 - [ ] **Track B2**: LoD transition animations (CSS transitions, respect reduced-motion)
 - [x] **Track B3**: Per-layout empty/loading/error states (9 layouts, use `<s-empty-state>`)

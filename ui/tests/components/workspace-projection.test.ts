@@ -1,4 +1,5 @@
-import type { ChatMessage, GraphNodeData } from '@senars/core';
+import type { ChatMessage, CognitiveEvent, GraphNodeData } from '@senars/core';
+import { mintCognitiveEvent } from '@senars/core/schemas';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { narsBackend } from '../../src/client/core/nars-backend.js';
 import { mettaBackend } from '../../src/client/core/metta-backend.js';
@@ -8,6 +9,7 @@ import {
   claimId,
   linkId,
   projectChat,
+  projectDerivationRecords,
   projectReasoning,
   projectWorkspace,
   rawChildId,
@@ -221,5 +223,63 @@ describe('workspace projection', () => {
     expect(turnId('x')).toBe('turn:x');
     expect(claimId('x')).toBe('claim:x');
     expect(linkId('a', 'b', 'supports')).toBe('link:a->b:supports');
+  });
+});
+
+describe('derivation-record provenance', () => {
+  const record = (premises: string[], conclusion: string): CognitiveEvent =>
+    mintCognitiveEvent('derivation.record', {
+      engine: 'nar',
+      timestamp: 0,
+      correlationId: 'derive',
+      payload: {
+        derivationId: 'd1',
+        taskId: 't1',
+        goalTerm: conclusion,
+        steps: [
+          {
+            stepId: 's1',
+            ruleId: 'deduction',
+            ruleCategory: 'structural',
+            premises,
+            conclusion,
+            truth: { frequency: 0.8, confidence: 0.4 },
+            evidenceLineage: [],
+            independence: 'independent',
+          },
+        ],
+        finalTruth: { frequency: 0.8, confidence: 0.4 },
+        totalCycles: 1,
+        maxDepthReached: 1,
+        timestamp: 0,
+        engine: 'nar',
+      },
+    });
+
+  it('links premises only to blocks the merged graph carries, dropping phantom terms', () => {
+    engine([node('(robin-->bird)'), node('(bird-->animal)')]);
+    const graph = projectWorkspace({
+      messages: [],
+      backends: [narsBackend],
+      cognitiveEvents: [
+        record(['(robin-->bird)', '(bird-->animal)', '(ghost-->x)'], '(robin-->animal)'),
+      ],
+    });
+    for (const link of graph.links.values()) {
+      expect(graph.blocks.has(link.source)).toBe(true);
+      expect(graph.blocks.has(link.target)).toBe(true);
+    }
+    expect(
+      [...graph.links.values()]
+        .filter((link) => link.kind === 'derived-from')
+        .map((link) => link.source)
+        .sort()
+    ).toEqual([claimId('(bird-->animal)'), claimId('(robin-->bird)')]);
+  });
+
+  it('drops every link without a resolver, keeping the record block and its proof body', () => {
+    const fragment = projectDerivationRecords([record(['(a-->b)'], '(a-->c)')]);
+    expect(fragment.links).toEqual([]);
+    expect(fragment.roots).toHaveLength(1);
   });
 });
