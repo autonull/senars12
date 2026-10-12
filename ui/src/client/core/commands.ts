@@ -27,14 +27,9 @@ import { setConversationLayout, setCollapsed } from './store.js';
 import { availableComposerModes, type ComposerMode } from './composer-modes.js';
 import { workspaceRenderers } from './workspace-renderer.js';
 import { validateCommandArgs } from './command-schemas.js';
+import { panelDef, PANEL_KINDS } from './panel-defs.js';
 
 export type CommandArgs = Record<string, unknown>;
-
-const PANEL_LABELS: Record<string, string> = {
-  chat: 'Chat History',
-  search: 'Search',
-  'lens-designer': 'Lens Designer',
-};
 
 const togglePanel = (id: string): void => {
   const panels = new Map($panels.get());
@@ -118,10 +113,10 @@ const derivedCommands = (): Command[] => [
         ...(args as { ref?: string; anchor?: HTMLElement } | undefined),
       }),
   },
-  ...[...$panels.get().keys()].map(
+  ...PANEL_KINDS.map(
     (id): Command => ({
       id: `view.panel.${id}`,
-      title: `Toggle ${PANEL_LABELS[id] ?? id}`,
+      title: `Toggle ${panelDef(id).label}`,
       group: 'View',
       keywords: `panel toggle show hide ${id}`,
       run: () => togglePanel(id),

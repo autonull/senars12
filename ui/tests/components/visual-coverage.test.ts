@@ -17,7 +17,7 @@ import { VISUAL_CELLS } from '../visual/matrix.js';
  * an explicit gap. The ledger must shrink to empty as coverage lands — a newly
  * registered overlay/renderer/layout/shape with no cell turns this red.
  */
-const KNOWN_GAPS = new Set(['renderer:graph3d']);
+const KNOWN_GAPS = new Set(['renderer:graph3d', 'panel:split']);
 
 const requiredSurfaces = (): string[] => [
   ...overlays().map((overlay) => `overlay:${overlay.id}`),

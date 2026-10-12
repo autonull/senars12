@@ -17,6 +17,7 @@ import type { Shape, ViewSelection } from './view-spec.js';
 import { emptyWorkspaceGraph, type SemanticBlock, type WorkspaceGraph } from './workspace-graph.js';
 import { workspaceRendererIds } from './workspace-renderer.js';
 import { loadConfig, saveConfig, DEFAULT_UI_CONFIG, type UiConfig, type Theme, type Density, type Motion } from './config-schema.js';
+import { PANEL_DEFS, panelDef, PANEL_KINDS, type PanelKind } from './panel-defs.js';
 
 export type { UiConfig };
 
@@ -483,18 +484,23 @@ export interface PanelState {
   order: number;
 }
 
-export const $panels = atom<Map<string, PanelState>>(
-  new Map([
-    ['chat', { id: 'chat', open: false, docked: 'right', size: 360, order: 1 }],
-    ['search', { id: 'search', open: false, docked: 'left', size: 280, order: 0 }],
-    ['lens-designer', { id: 'lens-designer', open: false, docked: 'right', size: 400, order: 2 }],
-  ])
+const defaultPanelStates = new Map<string, PanelState>(
+  PANEL_KINDS.map((kind) => {
+    const def = panelDef(kind);
+    return [
+      kind,
+      {
+        id: kind,
+        open: def.defaultOpen,
+        docked: def.defaultDock,
+        size: def.defaultSize,
+        order: def.order,
+      },
+    ];
+  })
 );
 
-export interface PanelTab {
-  id: string;
-  label: string;
-}
+export const $panels = atom<Map<string, PanelState>>(defaultPanelStates);
 
 export interface PanelTab {
   id: string;
@@ -502,11 +508,10 @@ export interface PanelTab {
 }
 
 export function panelTabs(): PanelTab[] {
-  return [
-    { id: 'search', label: 'Search' },
-    { id: 'chat', label: 'Chat' },
-    { id: 'lens-designer', label: 'Lenses' },
-  ];
+  return PANEL_KINDS.map((kind) => ({
+    id: kind,
+    label: panelDef(kind).label,
+  }));
 }
 
 export function togglePanel(id: string): void {

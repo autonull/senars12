@@ -1,7 +1,8 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
-import { $panels, $graphNodes, panelTabs, togglePanel, type PanelTab } from '../core/index.js';
+import { $panels, panelTabs, togglePanel, type PanelTab } from '../core/index.js';
+import { panelDef, type PanelKind } from '../core/panel-defs.js';
 
 @customElement('panel-dock')
 export class PanelDock extends BaseComponent {
@@ -120,39 +121,11 @@ export class PanelDock extends BaseComponent {
     const panel = panels.get(tabId);
     if (!panel) return html``;
 
-    switch (tabId) {
-      case 'search': {
-        const hasNodes = $graphNodes.get().size > 0;
-        return html`
-          <s-panel
-            heading="Search"
-            docked="right"
-            closable
-            @s-close=${() => togglePanel('search')}
-          >
-            <s-input type="search" placeholder="Search concepts…"></s-input>
-            ${!hasNodes
-              ? html`
-                  <s-empty-state
-                    icon="search"
-                    heading="No concepts"
-                    description="Send a message to populate the graph"
-                    size="sm"
-                  ></s-empty-state>
-                `
-              : ''}
-          </s-panel>
-        `;
-      }
-      case 'chat': {
-        return html`<chat-history-panel></chat-history-panel>`;
-      }
-      case 'lens-designer': {
-        return html`<lens-designer></lens-designer>`;
-      }
-      default:
-        return html``;
+    const def = panelDef(tabId as PanelKind);
+    if (def) {
+      return html`<${def.component}></${def.component}>`;
     }
+    return html``;
   }
 }
 

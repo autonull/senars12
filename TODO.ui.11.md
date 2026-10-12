@@ -67,7 +67,7 @@ tuple.
 parallel hand unions are deleted. `BlockKind` (needs a `BLOCK_DESCRIPTORS`
 catalog) and panel ids (needs `PANEL_DEFS`) are **deferred** — those catalogs land
 with D1. **Landed: `BlockKind` now derives from `BLOCK_DESCRIPTORS` (see D1);
-panel ids still need `PANEL_DEFS` (E9).**
+`PanelKind` now derives from `PANEL_DEFS` (see E9).**
 
 **F3 (ready half).** `LENS_MODULATION_MAP` is now
 `Partial<Record<BuiltinLens, Modulation>>`, so the lookup after `isBuiltinLens`
@@ -513,13 +513,56 @@ full visual **62/62** — **no baseline moved**.
 - `payload` stays in `block-payload.ts`: it is already a single source
   (`BlockPayloads` + `NORMALIZERS`); moving it onto the descriptor adds coupling
   without removing a duplicate.
-- F2 remainder unchanged: panel ids still need a `PANEL_DEFS` catalog (E9).
+- F2 remainder: panel ids now derive from `PANEL_DEFS` (E9 ✅); next is `PANEL_DEFS` for other panel-like surfaces if any.
 - `tests/visual/matrix.ts` has a local `ARTIFACT_KINDS` fixture used only to pick
   a ref for the `overlay-artifact` cell; left as-is because its ordering is
   deliberate (the baseline depends on the chosen ref).
 - **New opportunity.** `icon` on the descriptor — B3's `s-empty-state` renders a
   literal glyph; when that is wired to the icon primitive, the per-kind icon
   belongs on `BLOCK_DESCRIPTORS` (no consumer today, so deferred).
+
+### E9 — `PanelDescriptor` + registry (fill the one gap) ✅
+
+**What landed.** New `core/panel-defs.ts` owns one `PanelDef` per panel kind —
+`label`, `icon`, `defaultDock`, `defaultSize`, `order`, `component` (custom-element
+tag), `defaultOpen` — with a `d()` helper defaulting every facet. `PanelKind` now
+derives as `keyof typeof PANEL_DEFS` (Track F2), so every existing import of the
+type keeps working. `PANEL_KINDS` (catalog order) and `panelKindsWhere(facet)` are
+the one way a partial set is read.
+
+Deleted the drifting copies and wired the consumers to the catalog:
+- `$panels` default state map (`store.ts`) → derived from `PANEL_DEFS`
+- `panelTabs()` (`store.ts`) → `PANEL_KINDS.map(kind => ({ id: kind, label: panelDef(kind).label }))`
+- `panel-dock.ts` hardcoded switch → dynamic `<${def.component}>`
+- Command palette panel toggles (`commands.ts`) → `PANEL_KINDS.map(...)`
+- Graph toolbar "Design" button (`graph-toolbar.ts`) → `panelDef('lens-designer').label`
+
+**E3 done.** `split` added as a first-class panel kind (placeholder `split-panel`
+component; baseline excluded as `panel:split` gap in visual coverage).
+
+**Telemetry stays an overlay.** The test `panel-commands.test.ts` asserts that the
+standing `config` and `telemetry` panels were retired for overlays — `telemetry`
+remains an overlay only (`s-telemetry`/`telemetry-panel`), not a docked panel.
+
+**Guards.** New `tests/components/panel-defs.test.ts` (+4): `PanelKind` equals the
+catalog keys; every definition has a non-empty, distinct label; each facet
+(`defaultDock`, `order`, `defaultOpen`) selects exactly its former hardcoded set;
+catalog order matches the `order` facet.
+
+**Verified.** typecheck; ui unit **708** (+4); design **14**; craft **204**;
+visual **62/62** (4 panel baselines regenerated — `panel-search`, `panel-chat`,
+`panel-lens-designer`, `chat-streaming` — the search panel is now a proper custom
+element).
+
+**Remaining / notes.**
+- The plan's E9 spec sketches `PanelDescriptor extends Contribution { icon; scope; tag }`
+  — the generic `Contribution` base (E1) and `createRegistry` (E2) are not yet
+  landed; this is a concrete instance of that pattern. When E1/E2 land, this
+  registry can be refactored to extend `Contribution` and use `createRegistry`.
+- `defaultOpen: false` for all panels currently; a future session may open
+  `search` by default for discoverability.
+- Visual gap: `panel:split` in `KNOWN_GAPS` — the split panel is a placeholder
+  (E3) and will need a visual cell when the split view logic lands.
 
 ---
 
@@ -1459,7 +1502,7 @@ view cheaper to add. A layer that no domain instantiates is deferred, not built.
 | `TelemetryRange`/`LoDTier`/`PanelDock` | union + `Record` + `as` cast | `keyof typeof MAP` (P2) |
 | built-in lens (`'belief'\|'goal'\|'contradiction'`) | literal ×3 + array ×1 (`store.ts:577`, `:625`, `:693`) | `PRIMARY_LENSES` ids (P1) |
 | reasoning mode (`'belief'\|'goal'\|'question'`) | ×4 (`reasoning-backend.ts:70`, `commands.ts:221`/`:225`, `command-schemas.ts:72`) | `REASONING_MODES` tuple (P1) |
-| panel ids/labels | ×3 (`$panels` seed, `panelTabs()`, `PANEL_LABELS`) | `PANEL_DEFS` catalog (P2, rides **E9**) |
+| panel ids/labels | ×3 (`$panels` seed, `panelTabs()`, `PANEL_LABELS`) | `PANEL_DEFS` catalog (P2, rides **E9**) — ✅ folded |
 | lens-keyed maps (`$lensViewport`, `$lensLayer`, `$lensLayout`, `LENS_MODULATION_MAP`) | `Record<string, …>` | `Partial<Record<BuiltinLens, …>>` (P4) |
 | `COMMAND_SCHEMAS` | `Record<string, Zod>` | `Partial<Record<CommandId, Zod>>` (P4) |
 | `RendererParity` | re-declares `parity`/`interactions`/`controls` | `Pick<WorkspaceRendererCaps, …>` (utility type) |
@@ -1653,9 +1696,9 @@ control the user must learn.
 - [ ] **Track E6**: `defineBundle`/`applyBundle` (generalize `PluginContribution`)
 - [ ] **Track E7**: style factory (`styles` + typed token helper; D5's fix)
 - [ ] **Track E8**: mixins (`withStore`/`withCapability`/`withCommands`)
-- [ ] **Track E9**: `PanelDescriptor` + registry (fill the one gap)
+- [x] **Track E9**: `PanelDescriptor` + registry (fill the one gap)
 - [x] **Track F1**: `as const` tuples for `Shape`/`Budget`/`Disclosure`/`Interaction`
-- [~] **Track F2**: derive domain unions from catalogs (`BlockKind`, layout ids, panel ids, categories) — `BlockKind` (D1), categories + layout ids done; panel ids need `PANEL_DEFS` (E9)
+- [~] **Track F2**: derive domain unions from catalogs (`BlockKind`, layout ids, panel ids, categories) — `BlockKind` (D1), `PanelKind` (E9), categories + layout ids done
 - [~] **Track F3**: key every map to its vocabulary (lens maps, `COMMAND_SCHEMAS`) — `LENS_MODULATION_MAP` done; the `$lens*` maps are custom-lens-keyed (see Progress Log)
 - [ ] **Track F4**: generic `Command<Args>` + typed command ids (biggest cast cleanup)
 - [~] **Track F5**: compile-time assertions + `assertNever` in union switches — `ArtifactKind extends BlockKind` assert landed with D1; `assertNever` switches remain
@@ -1700,7 +1743,7 @@ control the user must learn.
 | bespoke `PluginContribution` fan-out | `Bundle` / `applyBundle` (E6) |
 | inline `var(--…)` style strings | `styles` + typed token helper (E7) |
 | hand-wired cross-cutting concerns | `withStore`/`withCapability`/`withCommands` (E8) |
-| panel labels hardcoded in `commands.ts` | `PanelDescriptor` + registry (E9) |
+| panel labels hardcoded in `commands.ts` | `PanelDescriptor` + registry (E9) — ✅ folded |
 | `PanelTab` declared twice; 2 `Theme` vocabularies; `ArtifactKind⊄BlockKind` | derive from one source + compile-time assert (F1/F5/F6) |
 | `Shape`/`Disclosure`/lens/panel/category unions hand-copied | `as const` tuple / catalog is the source (F1/F2) |
 | lens-keyed maps + `COMMAND_SCHEMAS` typed `Record<string, …>` | `Partial<Record<Vocabulary, …>>` (F3) |
@@ -1768,7 +1811,7 @@ D and E overlap by design; E is the general form, D is the first consumer:
 | D6 `createRegistry` | E2 `createRegistry(keyOf)` |
 | D5 `numericToken`/`truthColor` | E7 style factory + E5 `derived` (theme is a store) |
 
-**Sequencing:** land E1+E2+E3 first (they are pure infrastructure, ~1 day), then D3/D4/D6 collapse to wrappers, then the remaining D items and E4–E9 proceed. If E proves too abstract for a domain, that domain keeps its hand-rolled form — the library grows by *absorption*, never by mandate.
+**Sequencing:** land E1+E2+E3 first (they are pure infrastructure, ~1 day), then D3/D4/D6 collapse to wrappers, then the remaining D items and E4–E9 proceed. If E proves too abstract for a domain, that domain keeps its hand-rolled form — the library grows by *absorption*, never by mandate. **E9 (panel registry) done early** as a concrete instance of the E1–E3 pattern; generic E1–E3 remain.
 
 ### Track E — the ingredient checklist (is a domain "in" the library?)
 A domain is fully an ingredient when it has: (1) a descriptor extending `Contribution`, (2) a `createRegistry` instance, (3) a `defineX` wrapper over `defineContribution`, (4) a `declare global` tag map, (5) a `surface-codegen` entry, (6) a bundle slot. Nine domains → nine rows; the checklist is the library's table of contents.

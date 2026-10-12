@@ -11,6 +11,8 @@ import { $capabilities, setCapability, capabilityGate } from './core/capabilitie
 // Phase 0: Design system & primitives
 import './styles/theme.css';
 import './components/primitives/index.js';
+import './components/s-search-panel.js';
+import './components/split-panel.js';
 
 // Phase 1: Feature components
 import './components/app-layout.js';

@@ -3,6 +3,7 @@ export { Announcer } from './announcer.js';
 export { BaseComponent } from './base-component.js';
 export { BLOCK_KINDS, BLOCK_DESCRIPTORS, blockDescriptor, type BlockDescriptor, kindsWhere } from './block-descriptors.js';
 export { blockLabel } from './block-labels.js';
+export { PANEL_KINDS, PANEL_DEFS, panelDef, type PanelDef, panelKindsWhere } from './panel-defs.js';
 export {
   type ArtifactKind,
   type ArtifactPayload,

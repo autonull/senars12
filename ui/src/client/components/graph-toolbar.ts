@@ -17,6 +17,7 @@ import {
   setActiveLayout,
   setWorkspaceSelection,
 } from '../core/index.js';
+import { panelDef } from '../core/panel-defs.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
 import { LENS_CATALOG, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 import { renderField } from '../utils/render-field.js';
@@ -215,6 +216,7 @@ export class GraphToolbar extends BaseComponent {
 
   override render() {
     const lensDesignerOpen = $panels.get().get('lens-designer')?.open;
+    const lensDesignerDef = panelDef('lens-designer');
 
     return html`
       <div class="zoom-group">
@@ -296,7 +298,7 @@ export class GraphToolbar extends BaseComponent {
       <div class="spacer"></div>
 
       <button class="toolbar-btn ${lensDesignerOpen ? 'active' : ''}"
-        @click=${() => this.togglePanel('lens-designer')} title="Open Lens Designer">Design</button>
+        @click=${() => this.togglePanel('lens-designer')} title=${`Open ${lensDesignerDef.label}`}>${lensDesignerDef.label}</button>
 
       <contradiction-badge></contradiction-badge>
 
