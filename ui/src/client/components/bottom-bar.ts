@@ -255,6 +255,19 @@ export class BottomBar extends BaseComponent {
       color: var(--colors-semantic-bg-base);
       border-color: var(--colors-semantic-accent-amber);
     }
+    .run-btn, .step-btn {
+      margin-left: var(--spacing-scale-1);
+      padding: var(--spacing-scale-1) var(--spacing-scale-3); border-radius: 999px;
+      font-size: var(--typography-scale-xs); font-family: var(--typography-fontFamilies-ui);
+      cursor: pointer; border: 1px solid var(--colors-semantic-border-subtle);
+      background: transparent; color: var(--colors-semantic-text-secondary);
+      transition: var(--transitions-fast);
+    }
+    .run-btn:hover, .step-btn:hover {
+      background: var(--colors-semantic-bg-subtle);
+      color: var(--colors-semantic-text-primary);
+    }
+    .run-btn:disabled { opacity: 0.5; cursor: default; }
     .abort-btn {
       padding: var(--spacing-scale-1) var(--spacing-scale-3); border-radius: var(--borderRadius-component-button);
       font-size: var(--typography-scale-xs); font-family: var(--typography-fontFamilies-ui);
@@ -453,17 +466,41 @@ export class BottomBar extends BaseComponent {
                 title=${controlMode ? 'Control mode: ON (click to disable)' : 'Control mode: OFF (click to enable)'}>
                 <s-icon name="controlMode" size="12"></s-icon>
               </button>
-              ${controlMode && reasoningRunning
-              ? html`
-                  <button
-                    class="abort-btn"
-                    @click=${() => dispatchCommand('reasoning.abort')}
-                    title="Abort reasoning run"
-                  >
-                    <s-icon name="abort" size="12"></s-icon>
-                    <span style="margin-left:4px">Abort</span>
-                  </button>`
-              : ''}
+              ${controlMode
+                ? html`
+                    ${narsBackend.caps.canRun
+                      ? html`<button
+                          class="run-btn"
+                          ?disabled=${reasoningRunning}
+                          @click=${() => dispatchCommand('reasoning.run')}
+                          title="Run the reasoner"
+                        >
+                          <s-icon name="play" size="12"></s-icon>
+                          <span style="margin-left:4px">Run</span>
+                        </button>`
+                      : ''}
+                    ${narsBackend.caps.canStep
+                      ? html`<button
+                          class="step-btn"
+                          @click=${() => dispatchCommand('reasoning.step')}
+                          title="Step one reasoning cycle"
+                        >
+                          <s-icon name="stepForward" size="12"></s-icon>
+                          <span style="margin-left:4px">Step</span>
+                        </button>`
+                      : ''}
+                    ${reasoningRunning
+                      ? html`<button
+                          class="abort-btn"
+                          @click=${() => dispatchCommand('reasoning.abort')}
+                          title="Abort reasoning run"
+                        >
+                          <s-icon name="abort" size="12"></s-icon>
+                          <span style="margin-left:4px">Abort</span>
+                        </button>`
+                      : ''}
+                  `
+                : ''}
             </div>
             <contradiction-badge class="contradiction-badge-host"></contradiction-badge>
             <s-icon name="lens" size="14"></s-icon>

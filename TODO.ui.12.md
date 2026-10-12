@@ -424,7 +424,9 @@ deleting, everything that distracts from it.*
 - [ ] **P1 why** — **"Why?"** on every answered claim (one click, no modifier) ✅ (guard added);
       still to do: expose `nar.askWithDerivation` over WS (question → answer + proof in one
       op) and surface `terminationReason` as a first-class field
-- [ ] **P1 state** — goals/questions surface; gate verdicts surface; run/step/pause/abort in chrome
+- [x] **P1 state** — goals/questions surface as first-class blocks; gate verdicts already
+      surfaced; run/step/abort in chrome (**pause omitted** — the engine has no resumable
+      pause; documented)
 - [ ] **P1 hide** — the L0–L3 disclosure ladder + view presets; disclose advanced; collapse
       duplicate composers (reachability removed, files kept)
 - [ ] **P2 golden-path** — a gated real-app e2e (submit → answer → why → steer → observe) +
@@ -578,6 +580,46 @@ The proof tree is now one click from any answered claim — no dblclick, no ⌥,
 - `selectVerifiedDerivation` drops any trace that fails strict verification — good — but
   the server never calls `nar.askWithDerivation`; the recorder drain is the only path, so
   a proof can be missed if the 2 s drain coalesces. A request-scoped lookup would be exact.
+
+### P1 state — reasoning state visible ✅ (guard added)
+Acceptance: *a goal and a gate decision are visible in the default flow.* Both now are.
+
+- **Goals/questions surface as their own kind.** They previously collapsed to `claim`
+  ("goals render as claims with goal role"). Added a `goal` block kind
+  (`block-descriptors.ts`, navigable+graphRenderable, so it reaches the notebook and ToC),
+  propagated the sentence mark from the events (`event-reducers.ts`: `task.admitted` now
+  writes `punctuation: TASK_PUNCTUATION[taskType]`; `goal.achieved`/`goal.failed` write
+  `'!'`), and mapped goal → `'goal'` in `blockKindForNode`. No new overlay — the goal
+  surfaces where claims already do.
+- **Gate verdicts already surfaced — no change needed.** `projectCognitiveEvents` turns
+  `policy.violation` / `egress.gate.rejected` / `budget.exhausted` into `gate-decision` /
+  `budget` blocks rendered in the default notebook, and the `events` overlay lists them.
+  This half of the acceptance was already met by P0.1-era wiring.
+- **Run state in the chrome.** The bottom-bar status cluster now shows **Run** and **Step**
+  buttons whenever control mode is on (gated on `caps.canRun`/`canStep`), plus **Abort**
+  while a run is live — all bound to P0's control path via `dispatchCommand`.
+- Guard: `workspace-projection.test.ts` gains "projects goals and questions by their
+  sentence punctuation". Unit **759 → 760**.
+
+**Remaining for P1 state (done ≠ proven):**
+- **Pause omitted deliberately.** The engine exposes no resumable pause — `run` is one
+  `engine.run(cycles, signal)` call with an abort signal, and `nar.ts` has no `pause`. A
+  Pause button would be a lying control, so it is not rendered. To add it: a real
+  engine-level pause/resume, then a `reasoning.pause` message + `$reasoningPaused` atom.
+- The server-side reducer writes (`task.admitted` punctuation, `goal.*`) are not unit-
+  tested: importing `event-reducers.ts` pulls `@senars/nar`, which the ui vitest alias set
+  does not resolve. The client half is guarded; the server half is exercised by the P2 e2e.
+- Goal visibility is proven by projection unit tests, not yet walked on the real app.
+
+**New improvement opportunities (found while wiring):**
+- `events.ts` keeps a stale local `EVENT_TYPE_LABELS`; the authoritative presentation set is
+  `ui/src/client/utils/event-catalog.ts` (`EVENT_CATALOG`). Reading `eventMeta` from the
+  catalog would delete the drift (goal/`task.admitted` labels fall back to raw strings today).
+- `goal.achieved` / `goal.failed` are declared and reduced but **never minted** by the
+  engine — a goal-planning run cannot show a verdict yet (Flow D depends on this producer).
+- The ui vitest alias set omits `@senars/nar` (and `@senars/core/event-sink`), so server-side
+  reducers can't be unit-tested in `ui`. Adding the alias would let `event-reducers` be
+  tested directly instead of only through the rendered projection.
 
 ---
 

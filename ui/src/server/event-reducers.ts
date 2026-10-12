@@ -10,6 +10,7 @@
 import type { CognitiveEvent, GraphNodeData } from '@senars/core';
 import { isNarsese } from '@senars/core';
 import type { CognitiveEventOf } from '@senars/core/schemas';
+import { TASK_PUNCTUATION } from '@senars/core/schemas';
 import { parseTermToEdges, termParser } from '@senars/nar';
 import { asBeliefTruth } from '@senars/util';
 import type { GraphEdge, UnifiedGraphProjection } from './UnifiedGraphProjection.js';
@@ -128,7 +129,9 @@ const reducers = {
   'goal.achieved': (event, { projection }) => {
     const goal = event.payload.goal;
     projection.applyDelta({
-      nodes: [makeNode(`goal:${goal}`, undefined, undefined, { type: 'goal', result: 'achieved' })],
+      nodes: [
+        makeNode(`goal:${goal}`, undefined, undefined, { type: 'goal', result: 'achieved', punctuation: '!' }),
+      ],
       edges: [],
     });
   },
@@ -136,7 +139,9 @@ const reducers = {
   'goal.failed': (event, { projection }) => {
     const { goal, reason } = event.payload;
     projection.applyDelta({
-      nodes: [makeNode(`goal:${goal}`, undefined, undefined, { type: 'goal', result: reason })],
+      nodes: [
+        makeNode(`goal:${goal}`, undefined, undefined, { type: 'goal', result: reason, punctuation: '!' }),
+      ],
       edges: [],
     });
   },
@@ -186,9 +191,16 @@ const reducers = {
   },
 
   'task.admitted': (event, { projection }) => {
-    const { taskId, term } = event.payload;
+    const { taskId, term, taskType } = event.payload;
     projection.applyDelta({
-      nodes: [makeNode(`task:${taskId}`, undefined, undefined, { type: 'task', term, label: term })],
+      nodes: [
+        makeNode(`task:${taskId}`, undefined, undefined, {
+          type: 'task',
+          term,
+          label: term,
+          punctuation: TASK_PUNCTUATION[taskType],
+        }),
+      ],
       edges: [],
     });
   },

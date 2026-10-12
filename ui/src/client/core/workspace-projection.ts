@@ -234,7 +234,7 @@ function blockKindForNode(node: BackendNode, vocab: BackendVocabulary): BlockKin
     const punctuation = (node.attrs as Record<string, unknown>)?.punctuation as string | undefined;
     const taskType = punctuation ? taskTypeForPunctuation(punctuation) : null;
     if (taskType === 'question') return 'question';
-    if (taskType === 'goal') return 'claim'; // goals render as claims with goal role
+    if (taskType === 'goal') return 'goal';
     if (taskType === 'command') return 'command';
     // Default belief → claim
   }

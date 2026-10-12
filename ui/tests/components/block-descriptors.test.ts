@@ -15,7 +15,7 @@ const sorted = (kinds: readonly string[]): string[] => [...kinds].sort();
  */
 const FACETS = {
   artifact: ['table', 'code', 'math', 'image', 'diagram', 'chart', 'citation', 'tool-result', 'derivation'],
-  navigable: ['heading', 'claim', 'question', 'answer', 'table', 'code', 'tool-call', 'tool-result', 'derivation', 'gate-decision', 'budget', 'error'],
+  navigable: ['heading', 'claim', 'goal', 'question', 'answer', 'table', 'code', 'tool-call', 'tool-result', 'derivation', 'gate-decision', 'budget', 'error'],
   jsonPanel: ['gate-decision', 'budget', 'config-change', 'tool-call', 'tool-result'],
   container: ['turn', 'section', 'heading'],
   section: ['turn', 'section'],
@@ -25,7 +25,7 @@ describe('block descriptors', () => {
   it('derives BlockKind from the catalog keys (one source)', () => {
     expect(sorted(BLOCK_KINDS)).toEqual(
       sorted([
-        'turn', 'section', 'heading', 'paragraph', 'claim', 'question', 'answer', 'list',
+        'turn', 'section', 'heading', 'paragraph', 'claim', 'goal', 'question', 'answer', 'list',
         'table', 'code', 'math', 'image', 'diagram', 'chart', 'citation', 'tool-call',
         'tool-result', 'derivation', 'derivation-record', 'gate-decision', 'budget',
         'command', 'config-change', 'error', 'raw',

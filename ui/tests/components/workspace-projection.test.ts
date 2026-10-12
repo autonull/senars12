@@ -175,6 +175,18 @@ describe('reasoning projection', () => {
     expect(fragment.blocks.find((b) => b.id === claimId('skill:x'))?.kind).toBe('tool-call');
   });
 
+  it('projects goals and questions by their sentence punctuation', () => {
+    engine([
+      node('g', { punctuation: '!' }),
+      node('q', { punctuation: '?' }),
+      node('b', { punctuation: '.' }),
+    ]);
+    const fragment = projectReasoning(narsBackend);
+    expect(must(fragment.blocks.find((x) => x.id === claimId('g'))).kind).toBe('goal');
+    expect(must(fragment.blocks.find((x) => x.id === claimId('q'))).kind).toBe('question');
+    expect(must(fragment.blocks.find((x) => x.id === claimId('b'))).kind).toBe('claim');
+  });
+
   it('projects derivations, unknown edges, and skips dangling endpoints', () => {
     engine(
       [node('a'), node('b')],

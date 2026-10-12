@@ -47,6 +47,7 @@ export const BLOCK_DESCRIPTORS = {
   heading: d('Heading', { container: true, navigable: true, graphRenderable: true }),
   paragraph: d('Paragraph', { graphRenderable: true }),
   claim: d('Claim', { navigable: true, graphRenderable: true }),
+  goal: d('Goal', { navigable: true, graphRenderable: true }),
   question: d('Question', { navigable: true, graphRenderable: true }),
   answer: d('Answer', { navigable: true, graphRenderable: true }),
   list: d('List', { graphRenderable: true }),

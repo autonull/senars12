@@ -53,6 +53,10 @@ export const ICONS = {
   abort: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
     <rect x="6" y="6" width="12" height="12" rx="1"/>
   </svg>`,
+  stepForward: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <polygon points="6 5 15 12 6 19 6 5"/>
+    <line x1="18" y1="5" x2="18" y2="19"/>
+  </svg>`,
   globe: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
     <circle cx="12" cy="12" r="10"/>
     <line x1="2" y1="12" x2="22" y2="12"/>
