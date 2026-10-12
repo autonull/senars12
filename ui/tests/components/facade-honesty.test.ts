@@ -81,11 +81,11 @@ describe('ref-dependent overlays are not bare palette entries', () => {
 });
 
 describe('control caps match the wired control path', () => {
-  it('offers retract (routed to the engine) but not the operations the server refuses', () => {
+  it('offers retract and revise (both routed to the engine) but not the operations the server refuses', () => {
     setCapability('reasoning', true);
     const ids = new Set(activeCommands().map((command) => command.id));
     expect(ids.has('reasoning.retract')).toBe(true);
-    expect(ids.has('reasoning.revise')).toBe(false);
+    expect(ids.has('reasoning.revise')).toBe(true);
     expect(ids.has('reasoning.adjust-budget')).toBe(false);
     expect(ids.has('reasoning.adjust-provider')).toBe(false);
   });

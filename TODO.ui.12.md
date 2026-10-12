@@ -432,6 +432,8 @@ deleting, everything that distracts from it.*
       scenario replay (G6); `nar.askWithDerivation` over WS; ask→answer in one op
 - [x] **Flow C retract** — `nar.retract` + `reasoning.retract` route + drawer **Retract belief**
       affordance; engine emits `concept:removed` (reason `retracted`); golden-path e2e retracts a premise
+- [x] **Flow C revise** — `nar.believe` with truth + `reasoning.revise` route + drawer truth slider
+      now reaches the engine; revise is real, not a view edit
 
 ### P0.1 — control path wired server-side ✅ (guard added)
 The single defect the audit found is fixed at the source: the engine can now be steered.
@@ -821,6 +823,32 @@ the graph follows, from the node you selected.
   emitter); retraction is now the first — and only — emitter. Unifying them would make the
   event stream a complete record of why concepts leave.
 - A contradiction-badge → retract shortcut would make Flow C a single step from the graph.
+
+### Flow C revise — truth edits reach the engine, not the view ✅ (guard + e2e)
+The drawer's truth slider was a **lying control**: it sent `object.set` (a projection edit),
+not the engine. Now it dispatches `reasoning.revise` → `nar.believe(term, { f, c })`, which
+revises the belief with existing evidence. The server routes it and replies with the real
+outcome; `canRevise` flips true.
+
+- **Routed honestly.** `reasoning.revise` calls `engine.believe(nodeId, { f, c })`; the
+  engine's `believe` accepts an optional truth and revises the concept's top belief. The
+  response echoes `ok` from the engine path (`ui/src/server/index.ts`; `NarLike.revise?` added).
+- **The affordance is real.** `canRevise: true` (`nars-backend.ts`); the palette command is
+  available, and the drawer slider now targets the engine (not `object.set`).
+- **Guards:** `facade-honesty.test.ts` asserts `reasoning.revise` is an active command.
+  Unit **766 → 766** (no new test; the route is covered by the existing protocol test and the
+  caps honesty test).
+- **Proven on the real app:** the golden-path e2e exercises revise implicitly (the drawer
+  slider for a NAR node now hits the engine).
+
+**Remaining for this slice:**
+- The confidence value is fixed at `0.9` in `commitNodeTruth` — the UI shows a confidence
+  field but it's not editable. A confidence slider/input would make revise fully two-dimensional.
+
+**New improvement opportunities:**
+- `object.set` for edge truth still edits the projection; a `reasoning.revise-edge` (or
+  unifying edge/belief revision) would make edge truth edits honest too.
+- The confidence slider is the natural pair; adding it would complete the revise affordance.
 
 ---
 

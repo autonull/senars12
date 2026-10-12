@@ -81,9 +81,9 @@ const CAPS: BackendCaps = {
   canRun: true,
   // Routed to the engine (`nar.retract`); the server replies with the real outcome.
   canRetract: true,
-  // Not yet routed to the engine (the server replies `ok:false`); advertised false
-  // so no affordance lies until the engine facade supports them.
-  canRevise: false,
+  // Routed to the engine (`nar.believe` with truth); the server replies with the
+  // real outcome. The drawer's truth slider now reaches the engine.
+  canRevise: true,
   canAddGoal: true,
   canAdjustBudget: false,
   canAdjustProvider: false,

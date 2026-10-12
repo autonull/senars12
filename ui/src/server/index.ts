@@ -57,11 +57,14 @@ type NarProcessorLike = {
   getRecorder(): DerivationRecorderLike;
 };
 type NarLike = {
-  believe?: (statement: string) => Promise<void>;
+  believe?: (statement: string, truth?: { f: number; c: number }) => Promise<void>;
   goal?: (statement: string) => Promise<void>;
   question?: (statement: string) => Promise<void>;
   /** Remove a concept and announce it (Flow C). `false` when nothing was there. */
   retract?: (term: string) => boolean;
+  /** Revise a belief's truth (Flow C). Asserts the term with the given truth; the engine
+   *  revises it with existing evidence. */
+  revise?: (term: string, truth: { f: number; c: number }) => Promise<void>;
   run?: (cycles: number, signal?: AbortSignal) => unknown;
   /** Ask + verified derivation (M8). The answer's proof tree travels with it. */
   askWithDerivation?: (question: string) => Promise<NarAnswer>;
@@ -842,7 +845,19 @@ function broadcastConfigSchema(): void {
         );
         return;
       }
-      case 'reasoning.revise':
+      case 'reasoning.revise': {
+        const engine = nar();
+        if (!engine?.believe) {
+          respondReasoning(ws, false, 'Engine cannot revise beliefs', msg.seqId);
+          return;
+        }
+        void Promise.resolve(
+          engine.believe(msg.nodeId, { f: msg.frequency, c: msg.confidence })
+        )
+          .then(() => respondReasoning(ws, true, undefined, msg.seqId))
+          .catch((e: unknown) => respondReasoning(ws, false, (e as Error).message, msg.seqId));
+        return;
+      }
       case 'reasoning.adjust-budget':
       case 'reasoning.adjust-provider':
         respondReasoning(ws, false, `${msg.type} is not yet wired to the engine`, msg.seqId);

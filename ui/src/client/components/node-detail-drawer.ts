@@ -209,12 +209,19 @@ export class NodeDetailDrawer extends BaseComponent {
    */
   private readonly commitNodeTruth = debounce(
     (nodeId: string, frequency: number, confidence: number) => {
-      send({
-        type: 'object.set',
-        kind: 'node',
-        id: nodeId,
-        patch: { truth: { frequency, confidence } },
-      });
+      const node = $graphNodes.get().get(nodeId);
+      const ctrl = narsBackend.control;
+      const isNarConcept = node?.nodeType === 'nar:concept' && ctrl?.revise;
+      if (isNarConcept) {
+        ctrl!.revise(nodeId, frequency, confidence);
+      } else {
+        send({
+          type: 'object.set',
+          kind: 'node',
+          id: nodeId,
+          patch: { truth: { frequency, confidence } },
+        });
+      }
     },
     120
   );
