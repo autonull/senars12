@@ -49,6 +49,66 @@ the shark. P0 is scoped to stay small.
 
 ---
 
+## 0.5 Recovered context — what earlier plans already specified (and we forgot)
+
+The master plan `TODO.ui.md` (*the AI Reasoning Explorer*) and `TODO.ui.9.md` (*The
+Cognitive Workspace*) between them already contain the product vision, **ordered by
+value**. We drifted from them. This document is their **continuation**, not a replacement.
+
+**Why we circled (the vortex, honestly named).** Master Phases 0–4 (determinism, SSOT
+registries, unified views) were largely done. Master Phases **5–11** — IA/discoverability,
+*observable reasoning*, accessibility, chat/config, canonical scenarios, hardening — were
+**not**. v9 re-aimed at *experience-complete* (modeless paradigm, legibility, journeys,
+help, recovery, inclusivity). Then v10 and v11 **re-opened the already-done substrate**
+(re-deriving registries/types as tracks D/E/F) while the product phases stayed undone.
+**That is the circling.** The correction: execute the product phases; do not re-derive the
+substrate.
+
+### North stars (verbatim)
+- **Master:** *"observable real state and event provenance beat scripted/fake/mocked
+  animation. Transparency and inspectability are the product, not a chatbot veneer."*
+- **v9, restated:** *"a living, zoomable, reasoning canvas — one substrate, many
+  projections, recursively embeddable, LoD-scaled."*
+
+### The modeless paradigm (non-negotiable)
+*"No split, no renderer switch."* Chat blocks **are** graph nodes rendering their real
+HTML body; selection, focus, and provenance are continuous across projections. (An
+"Advanced mode" toggle would reintroduce modes — forbidden.)
+
+### HCI principles (v9 §Design principles) — acceptance tests, not decoration
+- **Progressive disclosure** — advanced affordances appear only when their prerequisite
+  exists; the default surface is quiet. (The *principled* form of "hide".)
+- **Recognition over recall**; **overview first, detail on demand**.
+- **Hide controls, never hide expressivity** — truth `(f,c)` and priority are legended at
+  a glance, never buried. *(This is the counterweight to hiding: hide controls, not the
+  system's subtlety.)*
+- **Visibility of system status**; **user control & freedom** (Esc closes; cancel every
+  long op; no dead ends).
+- **Aesthetic, minimalist**; **chunking ≤ ~7 primary controls per bar**; the rest in the
+  palette/help.
+- **Restraint:** no modal for recoverable errors; no new top-level chrome without removing
+  one; no emoji chrome; no ornamental animation; **no hidden expressivity**.
+
+### Recovered requirements that were deferred, and are now unblocked
+- **E.3 Provenance walk** ("revisit when derivation records are exposed") — they are →
+  **Flow B**.
+- **E.4 Graph as editor, revise truth** ("revisit when editing is a user requirement") —
+  it is → **Flow C / steering**.
+- **X.4 Progressive-disclosure ladder:** L0 composer+canvas · L1 view+search+zoom ·
+  L2 Display popover · L3 palette.
+- **X.3 View presets:** collapse renderer/lens/layout/layer/shape/color-by into
+  **Ask · Explore · Read · Plan**.
+- **X.1 Journeys as first-class artifacts:** Q&A · knowledge-building · goal-planning ·
+  teaching · audit — each a *flow*, not a tab.
+- **Unfinished product tracks:** **H** generated help + empty-state teaching · **R** toasts
+  + auto-retry + specific recovery · **I** focus stack + live regions · **P** session
+  export/import + deep links · **G.4** density-aware layout · **T** journey recordings.
+- **Definition of done (master §8):** no silent no-op control; no declared WS message
+  without both handlers; empty/loading/error on every surface; **archive before deleting**
+  (`docs/archive/ui-dead-artifacts/` + INDEX) — which *is* "don't discard functionality."
+
+---
+
 ## 1. Requirements
 
 > **A SeNARS UI enabling complete transparent interaction with a running SeNARS system,
@@ -81,12 +141,19 @@ Non-negotiable: the UI must never present an affordance that silently does nothi
 
 ---
 
-## 3. Essential vs Advanced
+## 3. Progressive disclosure (a ladder), not a mode toggle
 
-The divide that drives every disposition. **Essential** is default-visible and tested.
-**Advanced** is fully registered and functional but out of the way (§6).
+Hiding is the **progressive-disclosure ladder** (v9 X.4) — advanced affordances appear
+only when their prerequisite exists, and the default surface is quiet. There is **no mode
+toggle**: on/off modes would reintroduce the mode switch the modeless paradigm forbids.
 
-| | Essential (default chrome) | Advanced (hidden by default) |
+**L0** composer + canvas · **L1** view + search + zoom · **L2** Display popover (view
+presets: **Ask · Explore · Read · Plan**) · **L3** palette (everything else).
+
+> **Rule: hide controls, never hide expressivity.** Truth `(f,c)` and priority stay
+> visible and legended (v9 V) at *every* level — "no hidden expressivity" is a restraint.
+
+| Concern | Default (L0–L1) | Disclosed (L2–L3) |
 |---|---|---|
 | Input | one composer, modes wired to steering | MeTTa backend, raw task injection |
 | Control | run / step / pause / abort; budgets | per-task budget scopes, self-config |
