@@ -52,6 +52,32 @@ is a correctness fix and may land standalone.
 > Durable record of what has landed since v10. One entry per completed item; the
 > Fresh-Session Checklist below is the live to-do.
 
+### F1 + F2 (categories/layout ids) + F3 (`LENS_MODULATION_MAP`) ✅ partial
+
+**F1.** `Shape`/`Budget`/`Disclosure`/`Interaction` (`view-spec.ts`) are now each
+an `as const` tuple with the union derived from it (`SHAPES`, `BUDGETS`,
+`DISCLOSURES`, `INTERACTIONS`). The two hand copies — the `Shape[]` cast in
+`view-projection.ts` and the `Disclosure` list in `explain.ts` — now iterate the
+tuple.
+
+**F2 (ready half).** `EventCategory` and `LinkCategory` derive from their existing
+`as const` arrays (`EVENT_CATEGORIES`, `LINK_CATEGORIES`), and
+`ConversationLayoutId` derives from the `CONVERSATION_LAYOUT_IDS` tuple; the
+parallel hand unions are deleted. `BlockKind` (needs a `BLOCK_DESCRIPTORS`
+catalog) and panel ids (needs `PANEL_DEFS`) are **deferred** — those catalogs land
+with D1.
+
+**F3 (ready half).** `LENS_MODULATION_MAP` is now
+`Partial<Record<BuiltinLens, Modulation>>`, so the lookup after `isBuiltinLens`
+is checked and returns `Modulation | undefined` with no cast. The
+`$lensViewport`/`$lensLayer`/`$lensLayout` maps stay `Record<string, …>` on
+purpose: they are keyed by *custom* lens ids too (`setActiveLayout` writes
+`[$activeLens.get()]`), so `Partial<Record<BuiltinLens, …>>` would be unsound.
+`COMMAND_SCHEMAS` typing waits on F4's `CommandId`.
+
+**Verified.** typecheck; ui unit **682**; lint clean. No runtime change — the
+tuples/arrays keep identical values and order.
+
 ### A1 — config-change audit → durable store + dedicated overlay ✅
 
 **What changed.** `$configChanges` (a capped `SemanticBlock<'config-change'>[]`
@@ -1390,9 +1416,9 @@ control the user must learn.
 - [ ] **Track E7**: style factory (`styles` + typed token helper; D5's fix)
 - [ ] **Track E8**: mixins (`withStore`/`withCapability`/`withCommands`)
 - [ ] **Track E9**: `PanelDescriptor` + registry (fill the one gap)
-- [ ] **Track F1**: `as const` tuples for `Shape`/`Budget`/`Disclosure`/`Interaction`
-- [ ] **Track F2**: derive domain unions from catalogs (`BlockKind`, layout ids, panel ids, categories)
-- [ ] **Track F3**: key every map to its vocabulary (lens maps, `COMMAND_SCHEMAS`)
+- [x] **Track F1**: `as const` tuples for `Shape`/`Budget`/`Disclosure`/`Interaction`
+- [~] **Track F2**: derive domain unions from catalogs (`BlockKind`, layout ids, panel ids, categories) — categories + layout ids done; `BlockKind`/panel ids need D1 catalogs
+- [~] **Track F3**: key every map to its vocabulary (lens maps, `COMMAND_SCHEMAS`) — `LENS_MODULATION_MAP` done; the `$lens*` maps are custom-lens-keyed (see Progress Log)
 - [ ] **Track F4**: generic `Command<Args>` + typed command ids (biggest cast cleanup)
 - [ ] **Track F5**: compile-time assertions + `assertNever` in union switches
 - [ ] **Track F6**: resolve dead `LayoutId` brand; fix `Theme`/`ArtifactKind` drift
@@ -1563,7 +1589,8 @@ number:
    protects everything after it.
 2. **A1–A3** — the three bugs (config audit, provenance links, demo bypass). **Done.**
 3. **D5 + F1–F3** — standalone correctness/type fixes (theme bug, view unions,
-   keyed maps); cheap, no feature coupling.
+   keyed maps); cheap, no feature coupling. **D5 done; F1 done, F2/F3 partly
+   done (remainders gated on D1 catalogs / F4 `CommandId`).**
 4. **E1–E3 → D1–D4, D6–D7** — land the ingredient library, then collapse the
    consolidation items onto it.
 5. **B1 + B2** — breadcrumbs and LoD transitions (ride on E3/D1).

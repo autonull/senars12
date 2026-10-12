@@ -13,21 +13,23 @@ import type { CognitiveEvent } from '@senars/core';
 import type { Shape } from '../core/view-spec.js';
 
 /** Coarse grouping for filtering, narration tone and gallery/report sections. */
-export type EventCategory =
-  | 'input'
-  | 'reasoning'
-  | 'belief'
-  | 'memory'
-  | 'goal'
-  | 'skill'
-  | 'tool'
-  | 'proposal'
-  | 'judgment'
-  | 'budget'
-  | 'governance'
-  | 'config'
-  | 'system'
-  | 'telemetry';
+export const EVENT_CATEGORIES = [
+  'input',
+  'reasoning',
+  'belief',
+  'memory',
+  'goal',
+  'skill',
+  'tool',
+  'proposal',
+  'judgment',
+  'budget',
+  'governance',
+  'config',
+  'system',
+  'telemetry',
+] as const;
+export type EventCategory = (typeof EVENT_CATEGORIES)[number];
 
 /** Visual/`aria-live` weight. `error` and `warning` must never be color-only (Phase 7.5). */
 export type EventSeverity = 'info' | 'notice' | 'warning' | 'error';
@@ -311,23 +313,6 @@ export const EVENT_CATALOG = {
 export type EventType = keyof typeof EVENT_CATALOG;
 
 export const EVENT_TYPES = Object.keys(EVENT_CATALOG) as EventType[];
-
-export const EVENT_CATEGORIES = [
-  'input',
-  'reasoning',
-  'belief',
-  'memory',
-  'goal',
-  'skill',
-  'tool',
-  'proposal',
-  'judgment',
-  'budget',
-  'governance',
-  'config',
-  'system',
-  'telemetry',
-] as const satisfies readonly EventCategory[];
 
 export const eventMeta = (type: EventType): EventMeta => EVENT_CATALOG[type];
 

@@ -1,7 +1,7 @@
 import type { ChatMessage, CognitiveEvent, GraphNodeData, Lens, LensFieldDescriptor } from '@senars/core';
 import { debounce } from '@senars/util';
 import type { LensSpec } from '../../shared/lens-schema.js';
-import { isBuiltinLens } from '../../shared/lens-schema.js';
+import { isBuiltinLens, type BuiltinLens } from '../../shared/lens-schema.js';
 import { beliefLens, builtinLensModulations, compile } from '../modulation/compile.js';
 import { timeGate } from '../modulation/composition.js';
 import { evaluate } from '../modulation/evaluate.js';
@@ -433,7 +433,7 @@ export function getActiveLensModulation(): Modulation {
   return beliefLens();
 }
 
-const LENS_MODULATION_MAP: Record<string, Modulation> = builtinLensModulations();
+const LENS_MODULATION_MAP: Partial<Record<BuiltinLens, Modulation>> = builtinLensModulations();
 
 export function evaluateLens(): Delta {
   const items = getItems();

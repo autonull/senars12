@@ -1,3 +1,4 @@
+import { SHAPES } from './view-spec.js';
 import type {
   CodeDataset,
   ColumnSpec,
@@ -131,7 +132,7 @@ export function projectDataset(
 /** Shapes a dataset can become, including its own kind. */
 export function projectableShapes(dataset: ViewDataset): Shape[] {
   const shapes: Shape[] = [dataset.kind];
-  for (const shape of ['graph', 'series', 'table', 'tree', 'text', 'code', 'diff'] as Shape[]) {
+  for (const shape of SHAPES) {
     if (shape !== dataset.kind && projectDataset(dataset, shape)?.kind === shape)
       shapes.push(shape);
   }

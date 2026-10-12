@@ -17,24 +17,20 @@ import type {
   WorkspaceGraph,
 } from './workspace-graph.js';
 
-export type ConversationLayoutId =
-  | 'chronological-flow'
-  | 'semantic-map'
-  | 'artifact-map'
-  | 'source-view';
+export const CONVERSATION_LAYOUT_IDS = [
+  'chronological-flow',
+  'semantic-map',
+  'artifact-map',
+  'source-view',
+] as const;
+
+export type ConversationLayoutId = (typeof CONVERSATION_LAYOUT_IDS)[number];
 
 export interface ConversationLayoutDescriptor {
   id: ConversationLayoutId;
   label: string;
   description: string;
 }
-
-export const CONVERSATION_LAYOUT_IDS = [
-  'chronological-flow',
-  'semantic-map',
-  'artifact-map',
-  'source-view',
-] as const satisfies readonly ConversationLayoutId[];
 
 const CATALOG = {
   'chronological-flow': {

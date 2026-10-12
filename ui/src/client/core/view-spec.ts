@@ -7,16 +7,20 @@
  */
 
 /** The shapes one dataset can be rendered as (§3.3). The view system owns this union. */
-export type Shape = 'graph' | 'series' | 'table' | 'tree' | 'text' | 'code' | 'diff';
+export const SHAPES = ['graph', 'series', 'table', 'tree', 'text', 'code', 'diff'] as const;
+export type Shape = (typeof SHAPES)[number];
 
 /** Full-screen or embedded — the context a view is rendered in. */
-export type Budget = 'full' | 'embedded';
+export const BUDGETS = ['full', 'embedded'] as const;
+export type Budget = (typeof BUDGETS)[number];
 
 /** Progressive-disclosure level (§3.4). */
-export type Disclosure = 'summary' | 'card' | 'detail' | 'raw';
+export const DISCLOSURES = ['summary', 'card', 'detail', 'raw'] as const;
+export type Disclosure = (typeof DISCLOSURES)[number];
 
 /** An affordance a shape offers; adapters advertise these so the chrome offers only what exists. */
-export type Interaction = 'select' | 'multi-select' | 'filter' | 'zoom' | 'link' | 'highlight';
+export const INTERACTIONS = ['select', 'multi-select', 'filter', 'zoom', 'link', 'highlight'] as const;
+export type Interaction = (typeof INTERACTIONS)[number];
 
 /** A readable dataset — an atom or any `{ get, subscribe? }` source. */
 export interface ViewSource<T = ViewDataset> {

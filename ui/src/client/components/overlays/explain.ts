@@ -31,11 +31,11 @@ import { $nodeHistory, $workspaceGraph } from '../../core/store.js';
 import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
-import type { Disclosure } from '../../core/view-spec.js';
+import { DISCLOSURES, type Disclosure } from '../../core/view-spec.js';
 import { linkMeta } from '../../utils/link-catalog.js';
 import { blockBodyStyles, renderBlockBody } from '../../utils/render-block.js';
 
-const LEVELS: readonly Disclosure[] = ['summary', 'card', 'detail', 'raw'];
+const LEVELS: readonly Disclosure[] = DISCLOSURES;
 
 const json = (value: unknown): string => JSON.stringify(value, null, 2) ?? String(value);
 

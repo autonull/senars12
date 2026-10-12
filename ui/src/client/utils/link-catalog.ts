@@ -11,7 +11,8 @@ import type { BuiltinLens } from '../../shared/lens-schema.js';
 import type { SemanticLinkKind } from '../core/workspace-graph.js';
 
 /** Coarse grouping for filtering, narration tone and gallery/report sections. */
-export type LinkCategory = 'structure' | 'discourse' | 'evidence' | 'action' | 'provenance';
+export const LINK_CATEGORIES = ['structure', 'discourse', 'evidence', 'action', 'provenance'] as const;
+export type LinkCategory = (typeof LINK_CATEGORIES)[number];
 
 /** How an edge is drawn by the graph renderer. */
 export type EdgeStyle = 'solid' | 'dashed' | 'dotted';
@@ -204,14 +205,6 @@ export const LINK_CATALOG = {
 export type LinkKind = keyof typeof LINK_CATALOG;
 
 export const LINK_KINDS = Object.keys(LINK_CATALOG) as SemanticLinkKind[];
-
-export const LINK_CATEGORIES = [
-  'structure',
-  'discourse',
-  'evidence',
-  'action',
-  'provenance',
-] as const satisfies readonly LinkCategory[];
 
 export const linkMeta = (kind: SemanticLinkKind): LinkMeta => LINK_CATALOG[kind];
 
