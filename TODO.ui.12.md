@@ -11,6 +11,9 @@
 
 ## ▶ PIVOT — several thin apps over one kernel
 
+> **Superseded by `TODO.ui.13.md`.** The aggressive UI substrate refactor now lives there;
+> this file's remaining slices are a **backlog**, not the critical path. Execute v13.
+
 > **Decision:** the single maximalist HUD is **not** a usable product for ordinary users.
 > Stop polishing it. **Aggressively refactor the UI into a shared kernel + several thin
 > apps (prototypes)**, each a distinct hypothesis for how an ordinary person experiences
