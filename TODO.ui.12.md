@@ -4,11 +4,43 @@
 > and **observe** it — and no control ever lies.*
 
 > **The one-line test:** *Does this make the essential reasoning loop — ask, answer,
-> why, steer — work or legible?* If not, it is Advanced (hidden) or Parked (deferred).
+> why, steer — work or legible?* If not, it is **Disclosed** (hidden behind the ladder)
+> or **Parked** (deferred).
 
-> **Reading order:** *Did we jump the shark?* → *Requirements* → *The Law* →
-> *Flows (acceptance target)* → *Tracks P0–P2* → *Preserve-and-Hide inventory* →
-> *Verification* → *Fresh-Session Handoff*.
+---
+
+## ▶ How to execute this plan (self-contained)
+
+**The only trigger needed is the phrase: "implement TODO.ui.12.md".** That is all the
+human provides. Everything required to proceed is in this file.
+
+**The agent's mandate — execute autonomously, one slice at a time:**
+
+1. **Read this file top to bottom.** Everything operative is here: requirements (§1),
+   rules (§2–§3), acceptance Flows (§4), tracks (§5), disposition (§6), verification (§7),
+   parked toolbox (§8), file map (§9), guardrails (§10), and the Progress Log (the
+   **resume point**, after §9). You do **not** need `TODO.ui.md`, `TODO.ui.9.md`, or
+   `TODO.ui.11.md` to proceed — they are *provenance, not instructions* (background is
+   summarized in §0.5).
+2. **Resume at the first unchecked slice in the Progress Log** (after §9; currently
+   **P0.1 client**). If every slice is checked, the plan is complete — stop and report.
+3. For **each slice**, do exactly this, and nothing more:
+   - **Implement** the change (server + protocol + client, or the surface named in §5).
+   - **Guard** it (a focused unit test; no mocks — test objects directly, per `AGENTS.md`).
+   - **Prove it on the real app** — run it, capture a screenshot/walkthrough, and check the
+     Flow checklist (§10.3). A green cell is **not** proof.
+   - Run `pnpm --dir ui typecheck` + `pnpm --dir ui test:unit` (and `pnpm --dir core
+     typecheck` if `core/` changed). Keep them green.
+   - **Commit** the slice (Conventional Commits, per repo) and append a Progress Log entry.
+4. **Then take the next slice.** Do not batch slices; do not create a new plan document; do
+   not re-derive the substrate; do not ask the human to choose — proceed down the critical
+   path.
+5. **Stop and report only when:** a **tripwire** fires (§10.2); a required command/tool is
+   missing (ask the human to add it to `AGENTS.md`); or a test fails **>3 times**. Never loop.
+
+**Critical path:** `P0.1 client → P0 facade → P1 why → P1 state → P1 hide → P2 golden-path`.
+
+**Reading order:** §1 → … → §9 → **Progress Log (resume here)** → §10 (guardrails).
 
 ---
 
@@ -260,17 +292,19 @@ tools await approval.
 
 **Acceptance:** a goal and a gate decision are visible in the default flow.
 
-### P1 · Hide the Advanced (preserve-and-hide)
-- Introduce `$uiMode: 'simple' | 'advanced'` (a store atom; or a capability), and gate
-  Advanced surfaces through the existing `capabilityGate` / `requiredCapability` /
+### P1 · Disclose the advanced (the L0–L3 ladder — preserve-and-hide)
+- Build the **progressive-disclosure ladder** (§3): L0 composer+canvas · L1 view+search+zoom
+  · L2 Display popover (**view presets: Ask · Explore · Read · Plan**) · L3 palette. Gate
+  disclosed surfaces through the existing `capabilityGate` / `requiredCapability` /
   `hiddenInPalette` machinery (`core/capabilities.ts`, `core/overlay-registry.ts`).
-- Default chrome renders only Essential (§3). Advanced surfaces stay registered and
-  functional, disclosed via a palette "Advanced" group or a single toggle.
+- Default chrome renders only L0–L1 (§6). Disclosed surfaces stay registered and functional,
+  reached via a preset or the palette — **never a mode toggle** (that would reintroduce
+  modes).
 - Collapse the three composers to one (functionality preserved in `bottom-bar`); the
   duplicates become unreachable-from-chrome, not deleted.
 
-**Acceptance:** fresh app shows only essential chrome; Advanced is one disclosure away;
-nothing removed.
+**Acceptance:** fresh app shows only L0–L1 chrome; disclosed capability is one preset/palette
+step away; **truth/priority remain visible**; nothing removed.
 
 ### P2 · Golden-path e2e + demo
 - A gated e2e driving the **real app**: boot → assert → ask → answer → why → steer →
@@ -289,7 +323,7 @@ Every user-facing component is assigned a disposition. **Nothing is deleted.**
 | Disposition | Meaning |
 |---|---|
 | **Essential** | default-visible; tested in the golden path |
-| **Advanced** | registered + functional; hidden by default; disclosed via toggle/palette group |
+| **Advanced** | registered + functional; hidden by default; reached via the L2–L3 ladder (preset/palette) |
 | **Contextual** | shown only with a subject (a selected block/ref) — never a bare palette entry |
 | **Collapse** | duplicate functionality folded into the essential surface (code kept, unreachable) |
 
@@ -375,7 +409,7 @@ Root: `pnpm ui:gate` · `pnpm ui:verify`.
 | P0 facade | `ui/src/client/components/bottom-bar.ts`, `app-layout.ts`, `components/overlays/{palette,tool-approval}.ts`, `core/tool-registry.ts`, `components/connection-banner.ts`, `components/graph-legend.ts`, `components/graph-toolbar.ts` |
 | P1 why | `ui/src/client/components/overlays/{explain,artifact}.ts`, `node-detail-drawer.ts`, `core/workspace-projection.ts`, `nar/src/nar.ts` (`askWithDerivation`) |
 | P1 state | `ui/src/client/components/overlays/events.ts`, `core/capabilities.ts`, new goals/gates surface |
-| P1 hide | `core/capabilities.ts`, `core/overlay-registry.ts`, `core/panel-defs.ts`, `core/store.ts` (`$uiMode`) |
+| P1 hide | `components/app-layout.ts`, `components/graph-toolbar.ts` (presets), `core/hints.ts` (new), `core/capabilities.ts`, `core/overlay-registry.ts`, `core/panel-defs.ts` |
 | P2 | `ui/tests/scenarios/**`, `ui/src/server/scenarios.ts`, `ui/package.json`, `scripts/lib/gates.ts` |
 
 **Two invariants:**
@@ -391,6 +425,21 @@ deleting, everything that distracts from it.*
 ---
 
 ## Progress Log
+
+### Slice checklist (resume at the first unchecked)
+
+- [x] **P0.1 server** — wire `reasoning.*` control path + `reasoning.abort` protocol + guard
+- [ ] **P0.1 client** — `makeControl` awaits `reasoning.control.response`; wire or disable
+      `retract | revise | adjust-budget | adjust-provider` (`CAPS` in `nars-backend.ts:77`)
+- [ ] **P0 facade** — mount `connection-banner`; fix composer CTA (`bottom-bar.focusInput`);
+      wire `s-tool-approval`; palette honesty (no-ref entries); fix `graph-legend`
+- [ ] **P1 why** — expose `askWithDerivation`/`derivation.record`; a **"Why?"** on every
+      answer (one click, no modifier); `terminationReason` as a first-class field
+- [ ] **P1 state** — goals/questions surface; gate verdicts surface; run/step/pause/abort in chrome
+- [ ] **P1 hide** — the L0–L3 disclosure ladder + view presets; disclose advanced; collapse
+      duplicate composers (reachability removed, files kept)
+- [ ] **P2 golden-path** — a gated real-app e2e (submit → answer → why → steer → observe) +
+      scenario replay (G6)
 
 ### P0.1 — control path wired server-side ✅ (guard added)
 The single defect the audit found is fixed at the source: the engine can now be steered.
@@ -461,25 +510,31 @@ claim that the paradigm *is* the extensibility model, and it is already built.
 | **Deleting** | removing a file outright → **archive first** (`docs/archive/ui-dead-artifacts/` + INDEX) |
 | **Registered-but-unmounted** | a surface/overlay exists but has no reachable entry → make it reachable or gate it |
 
-### 10.3 Instructions for you (the human)
+### 10.3 The human's role
 
-- **Open the fresh session with:** *"Read `TODO.ui.12.md` (§0, §0.5, §2–§4, §10). Continue
-  at P0.1 client, then P0 facade. One slice at a time; prove each on the real app."*
-- **For every slice, require three things:** the change, a guard, and a **real-app proof**
-  (a screenshot or a walkthrough) — not a green cell.
-- **Judge with the walkthrough checklist**, not the gate output:
-  - **Flow A** — I submit Narsese; it becomes a node.
-  - **Flow B** — I click an answer and see *why* in one click, no modifier.
-  - **Flow C** — I can see a contradiction and act on it.
-  - **Flow D** — I can set a goal and see gates/termination.
-  - **Flow E** — I can step/run/abort and watch state update.
-- **Refuse any §10.2 tripwire.** If a slice spans many files with no user-visible effect,
-  stop it.
-- **Do not ask for a new plan.** Ask for the next slice, or to fix a failed walkthrough.
+**The human does exactly one thing: says "implement TODO.ui.12.md."** No other input is
+required — the agent owns execution, verification, and commits, and proceeds down the
+critical path on its own.
+
+Optional interventions (only if the human chooses to steer):
+- *"skip X"* / *"do X next"* — override the critical path.
+- *"stop"* — halt after the current slice.
+- *"explain"* — narrate the plan for the next slice before continuing.
+
+The **walkthrough checklist** is the agent's own self-verification (it runs the real app and
+checks these); the human may spot-check at any time:
+- **Flow A** — submit Narsese → it becomes a node.
+- **Flow B** — click an answer → see *why* in one click, no modifier.
+- **Flow C** — see a contradiction → act on it.
+- **Flow D** — set a goal → see gates/termination.
+- **Flow E** — step/run/abort → watch state update.
+
+If a §10.2 tripwire fires, the agent stops and reports; the human then decides.
 
 ### 10.4 Instructions for the plan / the fresh session
 
-**Read order:** §0 → §0.5 → §2 (Law) → §3 (ladder) → §4 (Flows) → §9 → §10.
+**Read order:** §1 → … → §9; **resume at the Progress Log** (first unchecked slice); §10
+are the guardrails. (§0/§0.5 are background.)
 
 **Critical path:** **P0.1 client → P0 facade → P1 why → P1 state → P1 hide → P2 golden-path.**
 
