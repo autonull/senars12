@@ -8,7 +8,7 @@
  */
 
 import { capabilityGate } from './capabilities.js';
-import { OverlayManager } from './overlay-manager.js';
+import { getOverlayManager, OverlayManager } from './overlay-manager.js';
 import { overlayDescriptor, type OverlayDescriptor } from './overlay-registry.js';
 
 export interface OpenOverlayOptions {
@@ -23,9 +23,9 @@ export class OverlayHost {
   readonly #container: HTMLElement;
   readonly #elements = new Map<string, HTMLElement>();
 
-  constructor(container: HTMLElement = document.body, doc: Document = document) {
+  constructor(container: HTMLElement = document.body, manager: OverlayManager = getOverlayManager()) {
     this.#container = container;
-    this.manager = new OverlayManager(doc);
+    this.manager = manager;
   }
 
   /** Open a registered overlay by id. Returns whether the id was known. */

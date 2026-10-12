@@ -52,6 +52,19 @@ describe('overlay manager', () => {
     expect(manager.stack()).toEqual(['explain', 'toc']);
   });
 
+  it('notifies subscribers on open, close and reorder, and stops on unsubscribe', () => {
+    const manager = makeManager();
+    const changes: string[][] = [];
+    const unsubscribe = manager.subscribe(() => changes.push(manager.stack()));
+    manager.open({ id: 'toc', element: makeOverlay() });
+    manager.open({ id: 'explain', element: makeOverlay() });
+    manager.open({ id: 'toc', element: makeOverlay() });
+    manager.close('explain');
+    unsubscribe();
+    manager.open({ id: 'settings', element: makeOverlay() });
+    expect(changes).toEqual([['toc'], ['toc', 'explain'], ['explain', 'toc'], ['toc']]);
+  });
+
   it('assigns increasing z-index by stacking order', () => {
     const manager = makeManager();
     const bottom = makeOverlay();

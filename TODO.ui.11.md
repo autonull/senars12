@@ -19,7 +19,7 @@
 | 4-tier LoD (glyph→label→card→full) | `utils/graph-scaling.ts` | ✅ |
 | Density-aware layout | `utils/layout-registry.ts` | ✅ |
 | Fractal: block's `full` tier renders nested `<s-view>` | `utils/render-block.ts:54` (`embedded`) | ✅ (depth guard at 2) |
-| Overlay system (popovers, registry, host, windows) | `core/overlay-*.ts` | ✅ (no drill-down breadcrumbs) |
+| Overlay system (popovers, registry, host, windows) | `core/overlay-*.ts` | ✅ (+ drill-down breadcrumbs, B1) |
 | Conversation layouts (5) + reasoning layouts (4) | `core/conversation-layout.ts`, `core/reasoning-layout.ts` | ✅ |
 | Depth budget + node budget + inert-until-engaged | `utils/render-block.ts`, `components/graph-viewport.ts`, `components/node-body.ts` | ✅ |
 | Two demo cells proving the paradigm | `tests/visual/matrix.ts` | ✅ (`embedded-view-demo`, `derivation-record-demo`) |
@@ -282,6 +282,64 @@ specs **or** rewriting them to deterministic Narsese, (c) `workers: 1` for the
 scenario project (or per-test server isolation), and (d) fixing the rot above so
 the gate is green before it is added. Until then, adding e2e to `ui:gate` would
 make CI red — so it stays out.
+
+### B1 — overlay drill-down breadcrumbs ✅ (with a manager-identity fix)
+
+**What landed.** `OverlayManager` gains `subscribe(listener)` and notifies on every
+stack change (open / reorder / close); the shared `overlay-header` renders a
+breadcrumb trail — e.g. `Table of contents › Related` — for any overlay above the
+bottom of the stack. Each crumb but the current one is a button; clicking it closes
+every overlay above it (`stack.slice(index + 1).reverse()` → `close`), so focus
+returns to that level via the closed overlays' own anchor restoration. A lone
+overlay has no trail and keeps its title. No new global state — the trail is read
+from the existing `#stack`.
+
+**The blocking bug B1 exposed (and fixed).** The header read `getOverlayManager()`
+(the module singleton) for `stack()`/`pinned()`, but `app-layout`'s `OverlayHost`
+constructed its **own** `new OverlayManager(doc)` — so the header,
+`workspace-host`'s `overlayManager.stack()`, and `provider.ts`'s
+`overlayManager.setPinned` all read an empty manager *distinct* from the one the
+shell opens overlays on. `OverlayHost` now defaults to the singleton
+(`getOverlayManager()`), so there is genuinely "one OverlayManager" as its own doc
+claims; a caller may still inject a manager (the host test passes a fresh one for
+isolation). This also makes pin/stack reads real — a latent correctness fix that
+moves no pixels.
+
+**Guards.** `overlay-manager.test.ts` (+1): subscribers fire on open / reorder /
+close and stop after unsubscribe. New `overlay-header.test.ts` (+2): a nested
+overlay renders the trail, a root overlay renders its title, and clicking a crumb
+closes everything above it. Visual: new `overlay-breadcrumb` cell (opens `toc`
+then `related` over `basic-derivation`) + its baseline.
+
+**Verified.** typecheck; ui unit **685** (was 682); design **11**; full visual
+**62/62** (was 61; only the new baseline added, no other moved); craft **202**;
+`pnpm complexity:budget` unchanged (it tracks the workspace `src/` roots, not
+`ui/src`).
+
+**Findings → notes for whoever continues.**
+- **B1 did not need D3.** `overlay-header` is already the *one* shared header (14
+  overlays use it), so the trail lands once regardless. D3's remaining payoff is
+  only the registration-tail collapse, not the breadcrumb.
+- **Capability-gated overlay cells capture nothing.** `overlay-explain` /
+  `overlay-timeline` open a `reasoning`-gated overlay, but `reasoning` defaults
+  **off**, so `OverlayHost.open` returns `false` and those cells snapshot the bare
+  workspace. If those cells are meant to prove the overlay, seed `$capabilities`
+  (or the scenario) to enable `reasoning` first — a follow-up.
+- **`--update-snapshots` did not overwrite the new cell's existing baseline**;
+  adding a cell worked only after `rm`-ing the stale file first. Regenerate with
+  the baseline deleted when adding a cell.
+
+**New improvement opportunities.**
+- **Focus restoration is implicit.** Clicking a crumb relies on each closed
+  overlay's `anchor`; an explicit "focus the target overlay's first focusable"
+  (the manager could expose `focus(id)`) would make the "returns focus to that
+  level" contract exact.
+- **The header's host lookups are dead.** `getHostElement()` reads
+  `document.getElementById(overlayId)` then `.closest('[data-surface]')`, but
+  `OverlayHost.#element` never sets an `id` (and overlay hosts carry no
+  `data-surface`), so `updateWindowState` and the minimize/maximize host-attribute
+  sync are no-ops. Setting `element.id = descriptor.id` in `OverlayHost.#element`
+  (and matching the header's lookup) would make the header's host identity real.
 
 ---
 
@@ -1392,7 +1450,7 @@ control the user must learn.
 - [x] **Track A1**: Config-change audit → dedicated log/HUD (no graph perturbation)
 - [x] **Track A2**: Derivation-record provenance → wire to real blocks or embed in body
 - [x] **Track A3**: Demo cells → shared `seedBlocks` helper or synthetic projection
-- [ ] **Track B1**: Overlay breadcrumbs in header (read `overlayManager.stack()`)
+- [x] **Track B1**: Overlay breadcrumbs in header (read `overlayManager.stack()`)
 - [ ] **Track B2**: LoD transition animations (CSS transitions, respect reduced-motion)
 - [x] **Track B3**: Per-layout empty/loading/error states (9 layouts, use `<s-empty-state>`)
 - [ ] **Track C1**: Content adapter spike (filesystem → graph, <1 day)
@@ -1593,7 +1651,8 @@ number:
    done (remainders gated on D1 catalogs / F4 `CommandId`).**
 4. **E1–E3 → D1–D4, D6–D7** — land the ingredient library, then collapse the
    consolidation items onto it.
-5. **B1 + B2** — breadcrumbs and LoD transitions (ride on E3/D1).
+5. **B2** — LoD transitions (rides on D5's `numericToken`). **B1 done** (breadcrumbs;
+   landed standalone — the shared header meant D3 was not a prerequisite).
 6. **G2 + G3 + G4** — robustness (perf budgets, a11y, error taxonomy).
 7. **G5 + G6** — prove the foundation (second bundle) and productize demos.
 8. **C1–C4** — evaluate honestly; close what fails its gate.

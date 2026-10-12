@@ -1106,6 +1106,24 @@ const HAND_CURATED_CELLS: VisualCell[] = [
     hash: '#panels=none',
     prepare: openConfigLog,
   },
+  {
+    id: 'overlay-breadcrumb',
+    group: 'Overlays',
+    title: 'Nested overlays — drill-down breadcrumb',
+    scenario: 'basic-derivation',
+    hash: '#panels=none',
+    prepare: async ({ page }) => {
+      const ref = await resolveBlockRef(page, ['derivation', 'claim']);
+      await page.evaluate((blockRef) => {
+        const api = (window as Record<string, unknown>).__testApi as {
+          overlays?: { open?: (id: string, ref?: string) => void };
+        };
+        api?.overlays?.open?.('toc');
+        api?.overlays?.open?.('related', blockRef);
+      }, ref);
+      await page.waitForTimeout(300);
+    },
+  },
 
   // Panels.
   {

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { activeCommands } from '../../src/client/core/commands.js';
 import { $capabilities, defaultCapabilities, setCapability } from '../../src/client/core/capabilities.js';
 import { OverlayHost } from '../../src/client/core/overlay-host.js';
+import { OverlayManager } from '../../src/client/core/overlay-manager.js';
 import {
   overlayDescriptor,
   overlays,
@@ -18,7 +19,7 @@ registerOverlay({
 
 const hosts: OverlayHost[] = [];
 const makeHost = () => {
-  const host = new OverlayHost(document.body, document);
+  const host = new OverlayHost(document.body, new OverlayManager(document));
   hosts.push(host);
   return host;
 };

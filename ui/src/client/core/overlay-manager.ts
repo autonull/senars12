@@ -88,6 +88,7 @@ export class OverlayManager {
   #bounds = loadBounds();
   #dragState: { overlay: OpenOverlay; startX: number; startY: number; startLeft: number; startTop: number } | null = null;
   #resizeState: { overlay: OpenOverlay; startX: number; startY: number; startWidth: number; startHeight: number } | null = null;
+  readonly #listeners = new Set<() => void>();
 
   constructor(doc: Document | undefined = globalThis.document) {
     this.#doc = doc;
@@ -105,6 +106,7 @@ export class OverlayManager {
       existing.element.hidden = false;
       this.#stack.push(existing);
       this.#restack();
+      this.#notify();
       return;
     }
     entry.element.hidden = false;
@@ -140,6 +142,7 @@ export class OverlayManager {
     if (overlay.autoFocus === false) {
       Announcer.getInstance().announce(`${overlay.title ?? overlay.id} opened`);
     }
+    this.#notify();
   }
 
   /** Close the overlay with `id`, or the topmost when omitted. Returns whether one closed. */
@@ -157,6 +160,7 @@ export class OverlayManager {
     if (overlay.autoFocus === false) {
       Announcer.getInstance().announce(`${overlay.title ?? overlay.id} closed`);
     }
+    this.#notify();
     return true;
   }
 
@@ -172,6 +176,12 @@ export class OverlayManager {
   /** Overlay ids from bottom to top. */
   stack(): string[] {
     return this.#stack.map((overlay) => overlay.id);
+  }
+
+  /** Observe stack changes (open, close, reorder). Returns an unsubscribe. */
+  subscribe(listener: () => void): () => void {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
   }
 
   size(): number {
@@ -349,6 +359,10 @@ export class OverlayManager {
 
   #top(): OpenOverlay | undefined {
     return this.#stack[this.#stack.length - 1];
+  }
+
+  #notify(): void {
+    for (const listener of this.#listeners) listener();
   }
 
   #restack(): void {

@@ -9,6 +9,7 @@ import { css, html, PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { BaseComponent } from '../../core/base-component.js';
 import { getOverlayManager } from '../../core/overlay-manager.js';
+import { overlayDescriptor } from '../../core/overlay-registry.js';
 
 export interface OverlayHeaderEvents {
   'header-close': { id: string };
@@ -72,6 +73,42 @@ export class OverlayHeader extends BaseComponent {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+    .crumbs {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-scale-1);
+      overflow: hidden;
+      font-family: var(--typography-fontFamilies-ui);
+      font-size: var(--typography-scale-sm);
+      white-space: nowrap;
+    }
+    .crumb {
+      border: none;
+      background: transparent;
+      color: var(--colors-semantic-text-muted);
+      cursor: pointer;
+      padding: 0;
+      font: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      transition: var(--transitions-fast);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .crumb:hover {
+      color: var(--colors-semantic-accent-primary);
+    }
+    .crumb.current {
+      color: var(--colors-semantic-text-primary);
+      font-weight: var(--typography-fontWeights-semibold);
+      text-decoration: none;
+      cursor: default;
+    }
+    .sep {
+      color: var(--colors-semantic-text-muted);
+      flex-shrink: 0;
     }
     .actions {
       display: flex;
@@ -147,16 +184,22 @@ export class OverlayHeader extends BaseComponent {
   @state() private maximized = false;
   @state() private dragging = false;
   @state() private resizing = false;
+  @state() private crumbs: { id: string; title: string }[] = [];
+  private unsubscribeStack?: () => void;
 
   override connectedCallback(): void {
     super.connectedCallback();
     this.updatePinnedState();
     this.updateWindowState();
+    this.updateCrumbs();
+    this.unsubscribeStack = getOverlayManager().subscribe(() => this.updateCrumbs());
     document.addEventListener('mousemove', this.onDocumentMouseMove);
     document.addEventListener('mouseup', this.onDocumentMouseUp);
   }
 
   override disconnectedCallback(): void {
+    this.unsubscribeStack?.();
+    this.unsubscribeStack = undefined;
     super.disconnectedCallback();
     document.removeEventListener('mousemove', this.onDocumentMouseMove);
     document.removeEventListener('mouseup', this.onDocumentMouseUp);
@@ -167,7 +210,21 @@ export class OverlayHeader extends BaseComponent {
     if (changedProperties.has('overlayId')) {
       this.updatePinnedState();
       this.updateWindowState();
+      this.updateCrumbs();
     }
+  }
+
+  /**
+   * The drill-down trail from the bottom of the stack to this overlay. A single
+   * overlay has no trail (nothing to go back to), so it renders its title instead.
+   */
+  private updateCrumbs(): void {
+    const stack = getOverlayManager().stack();
+    const index = this.overlayId ? stack.indexOf(this.overlayId) : -1;
+    this.crumbs =
+      index > 0
+        ? stack.slice(0, index + 1).map((id) => ({ id, title: overlayDescriptor(id)?.title ?? id }))
+        : [];
   }
 
   private updatePinnedState(): void {
@@ -215,7 +272,20 @@ export class OverlayHeader extends BaseComponent {
           `
         : ''}
       ${this.kind ? html`<span class="kind">${this.kind}</span>` : ''}
-      <span class="title">${this.title || this.overlayId}</span>
+      ${this.crumbs.length > 1
+        ? html`<nav class="crumbs" aria-label="Overlay path">
+            ${this.crumbs.map(
+              (crumb, index) => html`
+                ${index > 0 ? html`<span class="sep" aria-hidden="true">›</span>` : ''}
+                ${index === this.crumbs.length - 1
+                  ? html`<span class="crumb current" aria-current="page">${crumb.title}</span>`
+                  : html`<button class="crumb" @click=${() => this.onCrumb(crumb.id)}>
+                      ${crumb.title}
+                    </button>`}
+              `
+            )}
+          </nav>`
+        : html`<span class="title">${this.title || this.overlayId}</span>`}
       <div class="actions">
         ${this.minimizable
           ? html`
@@ -323,6 +393,15 @@ export class OverlayHeader extends BaseComponent {
 
   private onClose = (): void => {
     this.emit('header-close', { id: this.overlayId });
+  };
+
+  /** Clicking a crumb closes every overlay above it, returning focus to that level. */
+  private onCrumb = (id: string): void => {
+    const manager = getOverlayManager();
+    const stack = manager.stack();
+    const index = stack.indexOf(id);
+    if (index < 0) return;
+    for (const above of stack.slice(index + 1).reverse()) manager.close(above);
   };
 
   private onDragStart = (event: MouseEvent): void => {
