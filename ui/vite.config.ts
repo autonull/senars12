@@ -13,10 +13,14 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'src/client/index.html'),
+        main: resolve(__dirname, 'src/client/apps/ask/index.html'),
+        hud: resolve(__dirname, 'src/client/apps/hud/index.html'),
         spacegraph: resolve(__dirname, 'src/client/spacegraph/index.html'),
         ask: resolve(__dirname, 'src/client/apps/ask/index.html'),
         explore: resolve(__dirname, 'src/client/apps/explore/index.html'),
+        notebook: resolve(__dirname, 'src/client/apps/notebook/index.html'),
+        goals: resolve(__dirname, 'src/client/apps/goals/index.html'),
+        console: resolve(__dirname, 'src/client/apps/console/index.html'),
       },
       output: {
         manualChunks: (id) => {

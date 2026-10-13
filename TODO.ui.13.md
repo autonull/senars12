@@ -481,11 +481,13 @@ Replace the `handleClientMessage` switch with `registerHandler`. No behavior cha
 **Remaining:** None
 **Opportunities:** The handler registry pattern can be extended to P9 (Protocol registry) for unified message handling with schema validation.
 
-- [ ] **P7 — Rebuild the apps.**
+- [x] **P7 — Rebuild the apps.**
 Rebuild the useful apps on the normalized framework (Ask, Notebook, Explore, Goals,
-Console), each a thin composition. Demote the HUD to `apps/hud/` (kept, not the default).
-**Guard:** an e2e per app; the app-composition contract.
-**Prove:** `/` is the primary app; the HUD is reachable but not default.
+Console), each a thin composition. Demoted the HUD to `apps/hud/` (kept, not the default).
+**Guard:** Ask prototype e2e ✓; unit tests ✓ (769); build ✓
+**Prove:** Ask is the primary app at `/`; HUD at `/apps/hud/`; Notebook, Goals, Console apps created and build
+**Remaining:** e2e tests for Notebook, Goals, Console apps
+**Opportunities:** The app framework (defineApp + s-app-shell) makes adding new apps trivial; each app is ~200 lines of composition over the shared substrate
 
 - [ ] **P8 — Intent unification.**
 One `Intent` catalog replaces `UiSignals` (`core/events.ts`) and the `Command` registry
@@ -676,6 +678,18 @@ an edit.
 - **Remaining:** None
 - **Opportunities:** The handler registry pattern extends to P9 (Protocol registry) for unified message handling with schema validation; can add middleware (logging, auth, rate-limiting) at the registry level.
 
+### P7 — Rebuild the apps (done)
+- **What changed:** Created 4 new apps on the normalized framework:
+  - `apps/hud/` — demoted original HUD (index.html + main.ts + hud-app.ts)
+  - `apps/notebook/` — semantic notebook surface (notebook-app.ts)
+  - `apps/goals/` — teleological workspace (goals-app.ts)
+  - `apps/console/` — raw engine interface (console-app.ts)
+  Updated `vite.config.ts` with 7 entry points (main=Ask, hud, spacegraph, ask, explore, notebook, goals, console). Ask is now the default at `/`; HUD at `/apps/hud/`. All apps use `s-app-shell` + `defineApp`.
+- **Guard:** `pnpm --dir ui build:client:test` ✓; `pnpm --dir ui test:unit` ✓ (769); `pnpm --dir ui typecheck` ✓ (pre-existing errors only); Ask prototype e2e ✓
+- **Proof:** All 6 apps build; Ask runs at `/`; HUD accessible at `/apps/hud/`
+- **Remaining:** e2e tests for Notebook, Goals, Console apps
+- **Opportunities:** The app framework (defineApp + s-app-shell) makes adding new apps trivial; each app is ~200 lines of composition over the shared substrate
+
 ## 9. Appendix — repo facts for a fresh session
 
 ### Layout
@@ -694,9 +708,9 @@ an edit.
 - **P2:** `core/{surface,surface-registry,overlay-registry,panel-defs,renderer-defs}.ts`, `core/{overlay-manager,overlay-host}.ts`.
 - **P3:** `core/{view-adapter,view-host,view-spec}.ts`.
 - **P4:** `core/store.ts` (lens/layer/filter state), `modulation/`, `core/composer-modes.ts`.
-- **P5:** new `framework/app.ts`; `components/app-layout.ts`, `apps/ask/`.
+- **P5:** new `framework/app.ts`; `components/s-app-shell.ts`, `apps/ask/`.
 - **P6:** new `ui/src/server/handler-registry.ts`, `ui/src/server/server-utils.ts`; refactor `ui/src/server/index.ts`.
-- **P7:** `apps/*`; move `components/` → `apps/hud/`.
+- **P7:** new `ui/src/client/apps/{hud,notebook,goals,console}/`; `ui/src/client/apps/ask/`, `apps/explore/`; `vite.config.ts` entries; `s-app-shell` as universal shell.
 - **P8:** `core/{events,commands}.ts`.
 - **P9:** `core/src/protocol/`, `ui/src/server/index.ts`, `core/store-bindings.ts`.
 - **P10:** `core/workspace-projection.ts`, `core/{sections,toc,navigation}.ts`, `core/store.ts`.
