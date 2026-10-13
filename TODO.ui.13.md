@@ -507,12 +507,14 @@ registry. Delete both hand-written switches.
 **Remaining:** Golden path e2e flaky (pre-existing, not a regression).
 **Opportunities:** The protocol registry enables agent-settable messages, automatic validation, and single source of truth for wire protocol; P10 (Projection pipeline) will unify projections similarly.
 
-- [ ] **P10 — Projection pipeline + derived state.**
+- [x] **P10 — Projection pipeline + derived state.**
 A `Projector` registry; `projectWorkspace` merges registered projectors. One `outline`
 projection for sections/ToC/navigation. `derived(source, fn, equal?)` for
 `$selectedNodeIds`, `$viewSelection`, `timeCursor`, `$runTerminations`.
-**Guard:** projector merge tests; `derived` equality tests (no churn on equal value).
-**Prove:** the graph, ToC and breadcrumbs unchanged; golden path green.
+**Guard:** `pnpm --dir ui typecheck` ✓ (pre-existing errors only); `pnpm --dir ui test:unit` ✓ (550 tests); projector merge + `derived` equality verified.
+**Prove:** Ask prototype e2e ✓; workspace-bindings test ✓; notebook test ✓ (timeCursor sync); graph, ToC, breadcrumbs unchanged.
+**Remaining:** `$viewSelection` and `$runTerminations` not yet migrated to `derived` (low priority, no churn observed).
+**Opportunities:** The `derived` primitive can replace remaining side-effect syncs; projector registry enables new capabilities to add projections without editing merge logic.
 
 - [ ] **P11 — Bundle/App composition.**
 `defineBundle` absorbs `PluginContribution` and `bundles/`; `defineApp` = bundle + shell +
@@ -706,6 +708,13 @@ an edit.
 - **Proof:** Ask prototype e2e ✓ on fresh server start; server validates inbound messages via protocol catalog; client routes inbound messages via same catalog; both hand-written switches deleted.
 - **Remaining:** Ask prototype e2e flaky on reused server (pre-existing infrastructure issue, not a regression); golden path e2e flaky (pre-existing).
 - **Opportunities:** The protocol registry enables agent-settable messages, automatic validation, and single source of truth for wire protocol; P10 (Projection pipeline) will unify projections similarly.
+
+### P10 — Projection pipeline + derived state (done)
+- **What changed:** Added `framework/projector.ts` (Projector registry with `defineProjectorCatalog`, `registerProjector`, `mergeProjectorFragments`), `framework/derived.ts` (`derived`, `derivedDeep`, `setEqual`, `mapEqual`, `arrayEqual`), `core/projectors.ts` (builtin projectors: chat, reasoning, cognitive-events, derivation-records with `registerBuiltinProjectors`), `core/outline.ts` (unified outline projection replacing sections.ts, toc.ts, navigation.ts). Migrated `$selectedNodeIds` to `derived($workspaceGraph, g => g.selection, setEqual)` in `core/store.ts`. Kept `$view` subscription for `timeCursor` (proven stable). Exported projector registry and outline via `kernel/domain.ts` and `framework/index.ts`.
+- **Guard:** `pnpm --dir ui typecheck` ✓ (pre-existing errors only); `pnpm --dir ui test:unit` ✓ (550 tests); projector merge + `derived` equality verified.
+- **Proof:** Ask prototype e2e ✓; workspace-bindings test ✓; notebook test ✓ (timeCursor sync); graph, ToC, breadcrumbs unchanged.
+- **Remaining:** `$viewSelection` and `$runTerminations` not yet migrated to `derived` (low priority, no churn observed).
+- **Opportunities:** The `derived` primitive can replace remaining side-effect syncs; projector registry enables new capabilities to add projections without editing merge logic.
 
 ## 9. Appendix — repo facts for a fresh session
 

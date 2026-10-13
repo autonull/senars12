@@ -71,6 +71,9 @@ import {
   exposeKernelTestApi as exposeKernelTestApi,
 } from '../kernel/state.js';
 
+// Import derived from framework
+import { derived, setEqual } from '../framework/derived.js';
+
 export type { UiConfig };
 
 // Re-export kernel atoms and types
@@ -160,13 +163,7 @@ export const $selectedEdgeId = atom<string | null>(null);
 export const $viewport = atom<{ x: number; y: number; zoom: number }>({ x: 0, y: 0, zoom: 1 });
 export const $workingMemory = atom<string[]>([]);
 
-export const $selectedNodeIds = atom<Set<string>>(new Set());
-
-$workspaceGraph.subscribe(({ selection }) => {
-  const current = $selectedNodeIds.get();
-  if (current.size === selection.size && [...selection].every((id) => current.has(id))) return;
-  $selectedNodeIds.set(new Set(selection));
-});
+export const $selectedNodeIds = derived($workspaceGraph as import('../kernel/state.js').Readable<import('../core/workspace-graph.js').WorkspaceGraph>, (graph) => graph.selection, setEqual);
 
 export const $viewSelection = atom<ViewSelection>({ nodes: new Set(), edges: new Set() });
 
@@ -290,8 +287,8 @@ function detectViewFlags(): View['flags'] {
  */
 $view.subscribe(({ timeline }) => {
   const cursor = Number.isFinite(timeline.t) ? timeline.t : undefined;
-  if ($workspaceGraph.get().timeCursor === cursor) return;
   const graph = $workspaceGraph.get();
+  if (graph.timeCursor === cursor) return;
   $workspaceGraph.set(
     cursor === undefined ? { ...graph, timeCursor: undefined } : { ...graph, timeCursor: cursor }
   );

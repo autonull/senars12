@@ -36,3 +36,40 @@ export type {
   WorkspaceNodeData,
   WorkspaceProjection,
 } from '../core/graph-projection.js';
+
+// Projector registry + outline
+export {
+  registerProjector,
+  getProjector,
+  projectorIds,
+  getProjectors,
+  clearProjectors,
+  mergeProjectorFragments,
+  mergeFragments,
+  registerBuiltinProjectors,
+  chatProjector,
+  createReasoningProjector,
+  cognitiveEventsProjector,
+  derivationRecordsProjector,
+  BUILTIN_PROJECTORS,
+} from '../core/projectors.js';
+export type {
+  Projector,
+  ProjectorContext,
+  ProjectorEntry,
+} from '../framework/projector.js';
+
+export {
+  outline,
+  stepBlock,
+  stepPage,
+  pageOf,
+  breadcrumb,
+  navigationForKey,
+  isAdmitted,
+  admittedRoots,
+} from '../core/outline.js';
+export type {
+  OutlineProjection,
+  OutlineEntry,
+} from '../core/outline.js';

@@ -69,6 +69,14 @@ export type {
   ProtocolKey,
 } from './protocol.js';
 
+export type {
+  Projector,
+  ProjectorContext,
+  ProjectorEntry,
+  ProjectorCatalogDefinition,
+  ProjectorCatalog,
+} from './projector.js';
+
 export {
   createContribution,
   registerContribution,
@@ -135,3 +143,23 @@ export {
   clientMessage,
   createProtocolEntry,
 } from './protocol.js';
+
+export {
+  defineProjectorCatalog,
+  registerProjector,
+  getProjector,
+  projectorIds,
+  getProjectors,
+  clearProjectors,
+  mergeProjectorFragments,
+  mergeFragments,
+} from './projector.js';
+
+export {
+  derived,
+  derivedDeep,
+  defaultEqual,
+  setEqual,
+  mapEqual,
+  arrayEqual,
+} from './derived.js';
