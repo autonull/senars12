@@ -29,7 +29,7 @@ import {
 } from './scenarios.js';
 import { UnifiedGraphProjection, type GraphEdge } from './UnifiedGraphProjection.js';
 import { dispatchGraphEvent, type ReducerContext } from './event-reducers.js';
-import { handleClientMessage, initializeHandlers, type HandlerContext } from './handler-registry.js';
+import { handleClientMessage, initializeHandlers, getProtocolCatalog, type HandlerContext } from './handler-registry.js';
 import {
   testState,
   clearTestState,
@@ -680,19 +680,21 @@ function broadcastConfigSchema(): void {
           ws.send(JSON.stringify(errorFrame('invalid_message', 'Malformed JSON')));
           return;
         }
-        const parsed = IncomingFromClientSchema.safeParse(json);
-        if (!parsed.success) {
-          ws.send(
-            JSON.stringify(
-              errorFrame('invalid_message', 'Message failed protocol validation', {
-                issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
-              })
-            )
-          );
-          return;
+        // Validate using the protocol catalog (single source of truth)
+        const catalog = getProtocolCatalog();
+        if (catalog) {
+          const validation = catalog.validate(json);
+          if (!validation.success) {
+            ws.send(
+              JSON.stringify(
+                errorFrame('invalid_message', validation.error ?? 'Message failed protocol validation')
+              )
+            );
+            return;
+          }
         }
         handlerCtx.ws = ws;
-        handleClientMessage(handlerCtx, parsed.data);
+        handleClientMessage(handlerCtx, json as IncomingFromClient);
       });
       ws.on('close', () => {
         projection.unmount(sender);

@@ -56,6 +56,19 @@ export type {
   ConnectionConfig,
 } from './app.js';
 
+export type {
+  MessageDirection,
+  BaseMessageDescriptor,
+  ServerMessageDescriptor,
+  ClientMessageDescriptor,
+  MessageDescriptor,
+  ServerHandlerContext,
+  ProtocolEntry,
+  ProtocolDefinition,
+  ProtocolCatalog,
+  ProtocolKey,
+} from './protocol.js';
+
 export {
   createContribution,
   registerContribution,
@@ -115,3 +128,10 @@ export {
   resolveConnectionConfig,
   APP_SHELL_TAG,
 } from './app.js';
+
+export {
+  defineProtocolCatalog,
+  serverMessage,
+  clientMessage,
+  createProtocolEntry,
+} from './protocol.js';

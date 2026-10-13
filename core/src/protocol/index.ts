@@ -19,14 +19,18 @@ export {
   ChatAgentStream,
   ChatMessage,
   ChatUserMsg,
+  LMStatusRequest,
+  LMStatusMsg,
   LMSwitchMsg,
 } from './chat.js';
 export { ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
 export { UiCommandMsg } from './ui-command.js';
 export {
   ReasoningSubmitMsg,
+  ReasoningAskMsg,
   ReasoningStepMsg,
   ReasoningRunMsg,
+  ReasoningAbortMsg,
   ReasoningRetractMsg,
   ReasoningReviseMsg,
   ReasoningAddGoalMsg,
@@ -34,8 +38,10 @@ export {
   ReasoningAdjustProviderMsg,
   ReasoningControlResponse,
   type ReasoningSubmit,
+  type ReasoningAsk,
   type ReasoningStep,
   type ReasoningRun,
+  type ReasoningAbort,
   type ReasoningRetract,
   type ReasoningRevise,
   type ReasoningAddGoal,

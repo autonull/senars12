@@ -1,6 +1,6 @@
 import { IncomingFromServer, type IncomingFromServer as IncomingMessage } from '@senars/core/protocol';
 import { $connectionState, $lastSeqId, atom } from './store.js';
-import { applyServerMessage } from './store-bindings.js';
+import { getClientProtocolCatalog } from './protocol-defs.js';
 import { registerAllSurfaces } from './surface-registration.js';
 
 function resolveWsUrl(): string {
@@ -70,12 +70,17 @@ export function connect(): void {
       console.error('[WS] Dropped non-JSON frame');
       return;
     }
-    const parsed = IncomingFromServer.safeParse(json);
-    if (!parsed.success) {
-      console.error('[WS] Malformed message dropped:', parsed.error, ev.data);
-      return;
+    // Validate and dispatch using the protocol catalog
+    const catalog = getClientProtocolCatalog();
+    if (catalog) {
+      const validation = catalog.validate(json);
+      if (!validation.success) {
+        console.error('[WS] Malformed message dropped:', validation.error, ev.data);
+        return;
+      }
+      // Dispatch to handler (includes cytoscape if available)
+      catalog.handleClient(json);
     }
-    applyServerMessage(parsed.data as IncomingMessage);
   };
 
   ws.onclose = () => {
