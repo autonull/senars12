@@ -1,4 +1,12 @@
-import type { Budget, Interaction, Shape, ShapeCaps } from './view-spec.js';
+import { createRegistry, type Registry } from './registry.js';
+import {
+  viewAdapterCatalog,
+  type Budget,
+  type Interaction,
+  type Shape,
+  type ShapeCaps,
+  type ViewAdapterFacets,
+} from './view-spec.js';
 
 /**
  * The view-adapter registry. An adapter owns exactly one shape and names the
@@ -14,17 +22,21 @@ export interface ViewAdapter {
   readonly interactions: readonly Interaction[];
 }
 
-const registry = new Map<Shape, ViewAdapter[]>();
+/** Registry mapping shape -> ViewAdapter[] (multiple adapters per shape for different budgets). */
+const registry: Registry<Shape, ViewAdapter[]> = createRegistry((adapters) => adapters[0].shape);
 
 export const registerViewAdapter = (adapter: ViewAdapter): void => {
-  registry.set(adapter.shape, [...(registry.get(adapter.shape) ?? []), adapter]);
+  const existing = registry.get(adapter.shape) ?? [];
+  registry.register([...existing, adapter]);
 };
 
 /** Every registered adapter, in registration order. */
-export const viewAdapters = (): ViewAdapter[] => [...registry.values()].flat();
+export const viewAdapters = (): ViewAdapter[] =>
+  registry.all().flat();
 
 /** Every adapter registered for a shape — the full variant and its compact ones. */
-export const adaptersFor = (shape: Shape): ViewAdapter[] => registry.get(shape) ?? [];
+export const adaptersFor = (shape: Shape): ViewAdapter[] =>
+  registry.get(shape) ?? [];
 
 /**
  * The adapter for a shape that supports the requested budget. When several do,
@@ -56,3 +68,7 @@ export const supportedShapes = (budget: Budget = 'full'): Shape[] => [
       .map((adapter) => adapter.shape)
   ),
 ];
+
+/** Get the catalog entry for a shape (tag, budgets, interactions from the catalog). */
+export const viewAdapterCatalogEntry = (shape: Shape): ViewAdapterFacets | undefined =>
+  viewAdapterCatalog.has(shape) ? viewAdapterCatalog.get(shape) : undefined;

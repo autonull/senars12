@@ -6,9 +6,43 @@
  * chart/table/list renderers with one declared contract (Phase 4).
  */
 
+import { defineCatalog, type Catalog } from '../framework/catalog.js';
+
 /** The shapes one dataset can be rendered as (§3.3). The view system owns this union. */
 export const SHAPES = ['graph', 'series', 'table', 'tree', 'text', 'code', 'diff'] as const;
 export type Shape = (typeof SHAPES)[number];
+
+/** View adapter facet — metadata for a shape's rendering capabilities. */
+export interface ViewAdapterFacets {
+  /** Custom element tag that renders this shape. */
+  readonly tag: string;
+  /** Budgets this adapter supports. */
+  readonly budgets: readonly Budget[];
+  /** Interactions this adapter supports. */
+  readonly interactions: readonly Interaction[];
+}
+
+/** Catalog of view adapter entries — one per shape. */
+export type ViewAdapterCatalog = Catalog<{
+  readonly graph: { readonly label: 'Graph'; readonly tag: 'graph-viewport'; readonly budgets: readonly ['full', 'embedded']; readonly interactions: readonly ['select', 'multi-select', 'zoom', 'link', 'highlight', 'filter'] };
+  readonly series: { readonly label: 'Series'; readonly tag: 's-series'; readonly budgets: readonly ['full']; readonly interactions: readonly ['select', 'highlight'] };
+  readonly table: { readonly label: 'Table'; readonly tag: 's-table'; readonly budgets: readonly ['full']; readonly interactions: readonly ['select', 'multi-select', 'filter', 'highlight'] };
+  readonly tree: { readonly label: 'Tree'; readonly tag: 's-tree'; readonly budgets: readonly ['full', 'embedded']; readonly interactions: readonly ['select', 'link'] };
+  readonly text: { readonly label: 'Text'; readonly tag: 's-text'; readonly budgets: readonly ['full', 'embedded']; readonly interactions: readonly ['select', 'filter'] };
+  readonly code: { readonly label: 'Code'; readonly tag: 's-code'; readonly budgets: readonly ['full', 'embedded']; readonly interactions: readonly ['select'] };
+  readonly diff: { readonly label: 'Diff'; readonly tag: 's-diff'; readonly budgets: readonly ['full', 'embedded']; readonly interactions: readonly ['select'] };
+}>;
+
+/** The compiled view adapter catalog — generated from the definition above. */
+export const viewAdapterCatalog: ViewAdapterCatalog = defineCatalog({
+  graph: { label: 'Graph', tag: 'graph-viewport', budgets: ['full', 'embedded'], interactions: ['select', 'multi-select', 'zoom', 'link', 'highlight', 'filter'] },
+  series: { label: 'Series', tag: 's-series', budgets: ['full'], interactions: ['select', 'highlight'] },
+  table: { label: 'Table', tag: 's-table', budgets: ['full'], interactions: ['select', 'multi-select', 'filter', 'highlight'] },
+  tree: { label: 'Tree', tag: 's-tree', budgets: ['full', 'embedded'], interactions: ['select', 'link'] },
+  text: { label: 'Text', tag: 's-text', budgets: ['full', 'embedded'], interactions: ['select', 'filter'] },
+  code: { label: 'Code', tag: 's-code', budgets: ['full', 'embedded'], interactions: ['select'] },
+  diff: { label: 'Diff', tag: 's-diff', budgets: ['full', 'embedded'], interactions: ['select'] },
+} as const);
 
 /** Full-screen or embedded — the context a view is rendered in. */
 export const BUDGETS = ['full', 'embedded'] as const;
