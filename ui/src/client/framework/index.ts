@@ -30,6 +30,15 @@ export type {
   SurfaceA11y,
 } from './surface.js';
 
+export type {
+  FacetDescriptor,
+  FacetKind,
+  FacetGate,
+  FacetData,
+  FacetKey,
+  FacetEntryOf,
+} from './facet.js';
+
 export {
   createContribution,
   registerContribution,
@@ -54,3 +63,18 @@ export {
   defaultPresentation,
   resolvedPresentation,
 } from './surface.js';
+
+export {
+  defineFacetCatalog,
+  createLensFacet,
+  createLayerFacet,
+  createModeFacet,
+  createFilterFacet,
+  facetKeysByKind,
+  facetKeysByGate,
+  availableFacets,
+  isLensFacet,
+  isLayerFacet,
+  isModeFacet,
+  isFilterFacet,
+} from './facet.js';

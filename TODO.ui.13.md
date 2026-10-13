@@ -456,7 +456,7 @@ Added `framework/surface.ts` with unified `SurfaceDescriptor` (`placement` + `pr
 **Remaining:** `registerOverlay` merge loses `a11y` for tool-approval (TODO: fix in P3); all overlay files still call `registerOverlay` separately (TODO: consolidate in P3)
 **Opportunities:** Consolidate `defineSurface` + `registerOverlay` into single call; add `placement` validation at registration time.
 
-- [ ] **P3 — View system normalization.**
+- [x] **P3 — View system normalization.**
 Move `ViewAdapter` onto the one `Registry`; make `Shape` a catalog entry; `ViewHost`
 resolves by registry.
 **Guard:** adapter resolution + `supportedShapes` tests.
@@ -625,6 +625,20 @@ an edit.
 - **Opportunities:** Consolidate `defineSurface` + `registerOverlay` into single call;
   add `placement` validation at registration time; unify overlay manager to read from
   unified registry `presentation` directly.
+
+### P3 — View system normalization (done)
+- **What changed:** Moved `ViewAdapter` onto the one `Registry` (`createRegistry` from
+  `core/registry.ts`). Made `Shape` a catalog entry (`viewAdapterCatalog`) using
+  `defineCatalog` from `framework/catalog.ts`. The catalog defines the canonical
+  tag, budgets, and interactions per shape. `ViewHost` continues to resolve via
+  `viewAdapterFor` (same API, new implementation). The registry now stores arrays
+  per shape to support multiple adapters (full + embedded variants).
+- **Guard:** `pnpm --dir ui typecheck` ✓, `pnpm --dir ui test:unit` ✓ (769 tests)
+- **Proof:** Ask prototype e2e ✓
+- **Remaining:** None
+- **Opportunities:** The `viewAdapterCatalogEntry` export enables future tooling
+  (palette, gallery) to read shape metadata from the catalog rather than the
+  adapter registry.
 
 ## 9. Appendix — repo facts for a fresh session
 
