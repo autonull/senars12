@@ -49,7 +49,7 @@ export function initializeHandlers(
     DEFAULT_RUN_CYCLES,
     ASK_RUN_CYCLES,
   };
-  createServerProtocolCatalog(ctx);
+  getServerProtocolCatalog(ctx);
 }
 
 /** Handle a client message using the protocol catalog (validates + dispatches). */

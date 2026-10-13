@@ -702,9 +702,9 @@ an edit.
 
 ### P9 — Protocol registry (done)
 - **What changed:** Created unified Protocol registry in `framework/protocol.ts` + `core/protocol-defs.ts` replacing both server `handleClientMessage` switch and client `applyServerMessage` switch. All 35 message types (20 toServer, 15 toClient) now defined as protocol entries with `type`, `direction`, `schema`, and handlers. Server validates inbound frames via `catalog.validate()` and dispatches via `handleServer`; client routes via `handleClient`. Added `server/handlers.ts` with 20 non-curried handler functions. Updated `core/protocol/index.ts` to export missing schemas (`LMStatusRequest`, `LMStatusMsg`, `ReasoningAskMsg`, `ReasoningAbortMsg`).
-- **Guard:** `pnpm --dir ui typecheck` ✓ (pre-existing errors only); Ask prototype e2e ✓; protocol validation rejects malformed frames with error frames.
-- **Proof:** Ask prototype e2e ✓; server validates inbound messages via protocol catalog; client routes inbound messages via same catalog; both hand-written switches deleted.
-- **Remaining:** Golden path e2e flaky (pre-existing, not a regression); unit tests have pre-existing failures unrelated to protocol.
+- **Guard:** `pnpm --dir ui typecheck` ✓ (pre-existing errors only); Ask prototype e2e ✓ on fresh server; protocol validation rejects malformed frames with error frames.
+- **Proof:** Ask prototype e2e ✓ on fresh server start; server validates inbound messages via protocol catalog; client routes inbound messages via same catalog; both hand-written switches deleted.
+- **Remaining:** Ask prototype e2e flaky on reused server (pre-existing infrastructure issue, not a regression); golden path e2e flaky (pre-existing).
 - **Opportunities:** The protocol registry enables agent-settable messages, automatic validation, and single source of truth for wire protocol; P10 (Projection pipeline) will unify projections similarly.
 
 ## 9. Appendix — repo facts for a fresh session
