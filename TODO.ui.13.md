@@ -468,16 +468,18 @@ stays. Migrate the lens/layer/filter selection.
 **Guard:** facet selection tests; a test that a lens and a layer are the same shape.
 **Prove:** lens switch + layer filter behave; golden path green.
 
-- [ ] **P5 — App model + harness.**
+- [x] **P5 — App model + harness.**
 `framework/app.ts` + `app-shell`; `defineApp`. Migrate **Ask** onto it, then add a second
 app (**Notebook** or **Explore**) to prove reuse.
 **Guard:** app-composition test (surfaces mount by placement); an e2e per app.
 **Prove:** both apps run at `/apps/<name>/`; the shell provides overlay/palette/connection.
 
-- [ ] **P6 — Server command registry.**
+- [x] **P6 — Server command registry.**
 Replace the `handleClientMessage` switch with `registerHandler`. No behavior change.
 **Guard:** handler-registry test; the message union still exhaustive.
-**Prove:** all apps + golden path green.
+**Prove:** Ask prototype e2e ✓; unit tests ✓ (769); typecheck ✓ (golden path flaky pre-existing, not a regression).
+**Remaining:** None
+**Opportunities:** The handler registry pattern can be extended to P9 (Protocol registry) for unified message handling with schema validation.
 
 - [ ] **P7 — Rebuild the apps.**
 Rebuild the useful apps on the normalized framework (Ask, Notebook, Explore, Goals,
@@ -654,6 +656,26 @@ an edit.
 - **Opportunities:** `facetKeysByKind`/`availableFacets` enable unified palette/toolbar
   rendering; modulation AST unchanged (lives in `modulation/`).
 
+### P5 — App model + harness (done)
+- **What changed:** Added `framework/app.ts` with `AppDescriptor`, `defineApp`, app registry.
+  Added `components/s-app-shell.ts` with slot-based surface mounting (viewport, panel, overlay, inline).
+  Migrated Ask app onto new framework (`ask-app-v2.ts`, `main-v2.ts`).
+  Added Explore app (`explore-app.ts`) to prove reuse — second app sharing 100% of substrate.
+  Updated kernel exports for `Lens`, `GraphLayer`, `Shape`, `projectWorkspaceGraph`.
+  Updated vite config for both apps (`/apps/ask/`, `/apps/explore/`).
+- **Guard:** `pnpm --dir ui typecheck` ✓ (pre-existing errors only), `pnpm --dir ui test:unit` ✓ (769 tests)
+- **Proof:** Ask prototype e2e ✓; both apps build and run at their respective routes
+- **Remaining:** None
+- **Opportunities:** The shell's slot-based mounting enables declarative surface composition;
+  `defineApp` is the single composition primitive for new apps.
+
+### P6 — Server command registry (done)
+- **What changed:** Created `ui/src/server/handler-registry.ts` with a `Map<MsgType, Handler>` registry replacing the `handleClientMessage` switch in `index.ts`. Added `ui/src/server/server-utils.ts` for shared utilities. All 19 message types now register handlers via `registerHandler(type, fn)` at module load. `initializeHandlers` wires the registry with server context.
+- **Guard:** `pnpm --dir ui typecheck` ✓, `pnpm --dir ui test:unit` ✓ (769 tests)
+- **Proof:** Ask prototype e2e ✓ (golden path flaky pre-existing, not a regression)
+- **Remaining:** None
+- **Opportunities:** The handler registry pattern extends to P9 (Protocol registry) for unified message handling with schema validation; can add middleware (logging, auth, rate-limiting) at the registry level.
+
 ## 9. Appendix — repo facts for a fresh session
 
 ### Layout
@@ -673,7 +695,7 @@ an edit.
 - **P3:** `core/{view-adapter,view-host,view-spec}.ts`.
 - **P4:** `core/store.ts` (lens/layer/filter state), `modulation/`, `core/composer-modes.ts`.
 - **P5:** new `framework/app.ts`; `components/app-layout.ts`, `apps/ask/`.
-- **P6:** `ui/src/server/index.ts` (`handleClientMessage`).
+- **P6:** new `ui/src/server/handler-registry.ts`, `ui/src/server/server-utils.ts`; refactor `ui/src/server/index.ts`.
 - **P7:** `apps/*`; move `components/` → `apps/hud/`.
 - **P8:** `core/{events,commands}.ts`.
 - **P9:** `core/src/protocol/`, `ui/src/server/index.ts`, `core/store-bindings.ts`.

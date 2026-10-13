@@ -29,64 +29,32 @@ import {
 } from './scenarios.js';
 import { UnifiedGraphProjection, type GraphEdge } from './UnifiedGraphProjection.js';
 import { dispatchGraphEvent, type ReducerContext } from './event-reducers.js';
+import { handleClientMessage, initializeHandlers, type HandlerContext } from './handler-registry.js';
+import {
+  testState,
+  clearTestState,
+  errorFrame,
+  sendStateSnapshot,
+  broadcastCognitiveEvent,
+  sendNodeHistory,
+  providerCatalog,
+  sendLmStatus,
+  applyLmSwitch,
+  broadcastConfigSchema,
+  applyConfigUpdates,
+  respondReasoning,
+  runCycles,
+  aggregateChatResponse,
+  NarLike,
+  RevisionEntry,
+  DEFAULT_RUN_CYCLES,
+  ASK_RUN_CYCLES,
+} from './server-utils.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const DIST_DIR = resolve(__dirname, '../../dist/client');
 const DEFAULT_PORT = envPositive('PORT', 3000);
 const TEST_ENDPOINTS = envBool('SENARS_TEST_ENDPOINTS', process.env.NODE_ENV !== 'production');
-
-type Truth = { frequency: number; confidence: number };
-type RevisionEntry = {
-  truth: Truth;
-  stampId: string;
-  timestamp: number;
-  source: 'input' | 'derivation' | 'revision' | 'inference';
-};
-type NarBelief = { term: { toString(): string }; truth: { f: number; c: number } };
-/** The slice of a NAR `Answer` the control response needs (nar/src/query/api.ts). */
-type NarAnswer = {
-  answer?: string;
-  truth?: { f: number; c: number };
-  derivation?: { record: DerivationRecord };
-};
-type DerivationRecorderLike = {
-  drain(): DerivationRecord[];
-  pending(): number;
-};
-type NarProcessorLike = {
-  getRecorder(): DerivationRecorderLike;
-};
-type NarLike = {
-  believe?: (statement: string, truth?: { f: number; c: number }) => Promise<void>;
-  goal?: (statement: string) => Promise<void>;
-  question?: (statement: string) => Promise<void>;
-  /** Remove a concept and announce it (Flow C). `false` when nothing was there. */
-  retract?: (term: string) => boolean;
-  /** Revise a belief's truth (Flow C). Asserts the term with the given truth; the engine
-   *  revises it with existing evidence. */
-  revise?: (term: string, truth: { f: number; c: number }) => Promise<void>;
-  run?: (cycles: number, signal?: AbortSignal) => unknown;
-  /** Ask + verified derivation (M8). The answer's proof tree travels with it. */
-  askWithDerivation?: (question: string) => Promise<NarAnswer>;
-  getBeliefs?: () => NarBelief[];
-  getRevisionHistory?: (term: unknown) => RevisionEntry[];
-  getLMClient?: () => {
-    provider?: string;
-    model?: string;
-    available?: boolean;
-    getStats?: () => unknown;
-    getCatalog?: () => Array<{ id: string; available: boolean }>;
-    selectProvider?: (provider: string, model?: string) => void;
-  };
-  getLMClientStats?: () => unknown;
-  getSelfAnalyzer?: () => { start?: () => void; stop?: () => void } | undefined;
-  clearMemory?: () => void;
-  setConfig?: (updates: Record<string, unknown>) => void;
-  attentionReport?: () => { total: number };
-  getProcessor?: () => NarProcessorLike;
-  /** The execution layer, for the live control-budget spend (§5.7, TerminationReason). */
-  getExecution?: () => { getSpendSummary?: () => SpendSummary };
-};
 
 const mimeTypes: Record<string, string> = {
   '.html': 'text/html',
@@ -97,19 +65,6 @@ const mimeTypes: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.wasm': 'application/wasm',
-};
-
-/** Bounded default for `reasoning.run` (the message carries no cycle count). */
-const DEFAULT_RUN_CYCLES = 20;
-
-/** Cycles a single `reasoning.ask` runs to produce an answer before reading it. */
-const ASK_RUN_CYCLES = 3;
-
-const testState = {
-  concepts: [] as Array<{ term: string; f: number; c: number }>,
-  chatHistory: [] as Array<{ role: string; content: string }>,
-  derivations: [] as Array<{ conclusion: string; frequency: number; confidence: number }>,
-  connected: false,
 };
 
 function narOf(agent?: Agent): NarLike | undefined {
@@ -430,19 +385,6 @@ async function handleTestEndpoints(
   return false;
 }
 
-async function aggregateChatResponse(agent: Agent, text: string, ws?: WebSocket): Promise<string> {
-  let response = '';
-  if (typeof agent.chat !== 'function') return response;
-  for await (const evt of agent.chat(text)) {
-    if (evt.kind !== 'text-delta' || !evt.text) continue;
-    response += evt.text;
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'chat.agent.stream', delta: evt.text }));
-    }
-  }
-  return response;
-}
-
 function createServerWithProjection(agent?: Agent): {
   server: ReturnType<typeof createServer>;
   projection?: UnifiedGraphProjection;
@@ -665,7 +607,7 @@ function broadcastConfigSchema(): void {
   }
 
   /** The in-flight `reasoning.run`; a new run or an abort cancels it. */
-  let activeRun: AbortController | undefined;
+  let activeRun = { current: undefined as AbortController | undefined };
 
   function respondReasoning(
     ws: WebSocket,
@@ -694,189 +636,19 @@ function broadcastConfigSchema(): void {
     ws.send(JSON.stringify(response));
   }
 
-  function runCycles(ws: WebSocket, cycles: number, seqId?: number): void {
-    const engine = nar();
-    const run = engine?.run;
-    if (!run) {
-      respondReasoning(ws, false, 'Engine cannot run cycles', seqId);
-      return;
-    }
-    activeRun?.abort();
-    const controller = new AbortController();
-    activeRun = controller;
-
-    let accumulatedSummary: SpendSummary = {};
-    const runOne = async (): Promise<void> => {
-      for (let i = 0; i < cycles; i++) {
-        if (controller.signal.aborted) return;
-        await run(1, controller.signal);
-        // Accumulate after each cycle so a bound hit in any cycle is reported.
-        const exec = engine.getExecution?.();
-        const summary = exec?.getSpendSummary?.();
-        if (summary) accumulatedSummary = mergeSpendSummaries(accumulatedSummary, summary);
-      }
-    };
-
-    Promise.resolve(runOne())
-      .then(() =>
-        respondReasoning(ws, true, controller.signal.aborted ? 'aborted' : undefined, seqId, {
-          termination: spendTerminations(accumulatedSummary),
-        })
-      )
-      .catch((e: unknown) => respondReasoning(ws, false, (e as Error).message, seqId))
-      .finally(() => {
-        if (activeRun === controller) activeRun = undefined;
-      });
-  }
-
-  function handleClientMessage(ws: WebSocket, msg: IncomingFromClient): void {
-    switch (msg.type) {
-      case 'chat.user':
-        if (!agent) return;
-        aggregateChatResponse(agent, msg.content, ws)
-          .then((response) => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(
-                JSON.stringify({ type: 'chat.agent.complete', messageId: makeId(), content: response })
-              );
-            }
-          })
-          .catch((e: unknown) => {
-            ws.send(JSON.stringify(errorFrame('internal', (e as Error).message)));
-          });
-        return;
-      case 'config.set': {
-        const updates = applyConfigField(msg.key, msg.value);
-        if (updates) applyConfigUpdates(updates);
-        return;
-      }
-      case 'sync.request':
-        sendStateSnapshot(ws);
-        return;
-      case 'lens.set':
-        projection?.setLens(msg.lens);
-        return;
-      case 'focus.set':
-        projection?.setFocus(msg.term);
-        return;
-      case 'object.set':
-        projection?.applyObjectPatch(msg.kind, msg.id, msg.patch);
-        return;
-      case 'lens.define':
-        projection?.defineLens(msg.lens as LensSpec);
-        return;
-      case 'node.history.request':
-        sendNodeHistory(ws, msg.term);
-        return;
-      case 'lm.status.request':
-        sendLmStatus(ws);
-        return;
-      case 'lm.switch':
-        applyLmSwitch(ws, msg.provider, msg.model);
-        return;
-      case 'reasoning.submit': {
-        const engine = nar();
-        const mode = msg.mode ?? 'belief';
-        const handler =
-          mode === 'goal' ? engine?.goal : mode === 'question' ? engine?.question : engine?.believe;
-        if (!engine || !handler) {
-          respondReasoning(ws, false, `Engine cannot accept ${mode} statements`, msg.seqId);
-          return;
-        }
-        // Await admission so `ok` means "accepted", not merely "routed": a
-        // malformed Narsese then reports failure instead of a false success.
-        void Promise.resolve(handler.call(engine, msg.term))
-          .then(() => respondReasoning(ws, true, undefined, msg.seqId))
-          .catch((e: unknown) => respondReasoning(ws, false, (e as Error).message, msg.seqId));
-        return;
-      }
-      case 'reasoning.ask': {
-        const engine = nar();
-        if (!engine?.question || !engine.run || !engine.askWithDerivation) {
-          respondReasoning(ws, false, 'Engine cannot answer questions', msg.seqId);
-          return;
-        }
-        const runs = msg.runs ?? ASK_RUN_CYCLES;
-        void (async () => {
-          try {
-            await engine.question?.(msg.term);
-            await engine.run?.(runs, activeRun?.signal);
-            const answer = await engine.askWithDerivation?.(msg.term);
-            if (answer?.derivation) {
-              // The proof would otherwise sit in the recorder until the 2s drain;
-              // broadcasting it now makes "why" immediate and request-scoped.
-              broadcastCognitiveEvent(
-                mintCognitiveEvent('derivation.record', {
-                  engine: 'nar',
-                  payload: answer.derivation.record,
-                })
-              );
-            }
-            respondReasoning(ws, true, undefined, msg.seqId, {
-              answer: {
-                answer: answer?.answer,
-                frequency: answer?.truth?.f,
-                confidence: answer?.truth?.c,
-                hasDerivation: !!answer?.derivation,
-              },
-            });
-          } catch (e: unknown) {
-            respondReasoning(ws, false, (e as Error).message, msg.seqId);
-          }
-        })();
-        return;
-      }
-      case 'reasoning.add-goal': {
-        const engine = nar();
-        if (!engine?.goal) {
-          respondReasoning(ws, false, 'Engine cannot accept goals', msg.seqId);
-          return;
-        }
-        void Promise.resolve(engine.goal(msg.term))
-          .then(() => respondReasoning(ws, true, undefined, msg.seqId))
-          .catch((e: unknown) => respondReasoning(ws, false, (e as Error).message, msg.seqId));
-        return;
-      }
-      case 'reasoning.step':
-        runCycles(ws, 1, msg.seqId);
-        return;
-      case 'reasoning.run':
-        runCycles(ws, DEFAULT_RUN_CYCLES, msg.seqId);
-        return;
-      case 'reasoning.abort':
-        activeRun?.abort();
-        activeRun = undefined;
-        respondReasoning(ws, true, undefined, msg.seqId);
-        return;
-      case 'reasoning.retract': {
-        const removed = nar()?.retract?.(msg.nodeId);
-        respondReasoning(
-          ws,
-          !!removed,
-          removed ? undefined : 'No such belief to retract',
-          msg.seqId
-        );
-        return;
-      }
-      case 'reasoning.revise': {
-        const engine = nar();
-        if (!engine?.believe) {
-          respondReasoning(ws, false, 'Engine cannot revise beliefs', msg.seqId);
-          return;
-        }
-        void Promise.resolve(
-          engine.believe(msg.nodeId, { f: msg.frequency, c: msg.confidence })
-        )
-          .then(() => respondReasoning(ws, true, undefined, msg.seqId))
-          .catch((e: unknown) => respondReasoning(ws, false, (e as Error).message, msg.seqId));
-        return;
-      }
-      case 'reasoning.adjust-budget':
-      case 'reasoning.adjust-provider':
-        respondReasoning(ws, false, `${msg.type} is not yet wired to the engine`, msg.seqId);
-        return;
-    }
-  }
+  // Initialize the handler registry with the server's context
+  const handlerCtx: HandlerContext = {
+    agent,
+    projection,
+    ws: null as unknown as WebSocket, // Will be set per-message
+    nar,
+    activeRun,
+    wss,
+    currentNarConfig,
+    DEFAULT_RUN_CYCLES,
+    ASK_RUN_CYCLES,
+  };
+  initializeHandlers(agent, projection, nar, activeRun, wss, currentNarConfig, DEFAULT_RUN_CYCLES, ASK_RUN_CYCLES);
 
   wss.on('connection', (ws: WebSocket) => {
     ws.send(JSON.stringify({ type: 'config.schema', data: buildConfigSchema(currentNarConfig) }));
@@ -919,7 +691,8 @@ function broadcastConfigSchema(): void {
           );
           return;
         }
-        handleClientMessage(ws, parsed.data);
+        handlerCtx.ws = ws;
+        handleClientMessage(handlerCtx, parsed.data);
       });
       ws.on('close', () => {
         projection.unmount(sender);
