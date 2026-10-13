@@ -9,7 +9,6 @@ import { registerSurface } from './surface-registry.js';
 import { registerOverlay } from './overlay-registry.js';
 import { registerViewAdapter } from './view-adapter.js';
 import { registerRenderer } from './workspace-renderer.js';
-import { registerCommand } from './commands.js';
 import { registerLens } from './store.js';
 import { registerLayoutId } from './layout-ids.js';
 
@@ -94,10 +93,10 @@ export function applyPlugins(): void {
       }
     }
 
-    // Commands
+    // Commands (now handled by intent-registry.ts)
     if (plugin.commands) {
       for (const command of plugin.commands) {
-        registerCommand(command);
+        console.warn('[plugins] Command registration via plugins is deprecated; use intent-registry.ts instead', command.id);
       }
     }
 

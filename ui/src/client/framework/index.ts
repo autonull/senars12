@@ -40,6 +40,16 @@ export type {
 } from './facet.js';
 
 export type {
+  IntentDescriptor,
+  IntentKind,
+  IntentPayload,
+  SignalPayload,
+  CommandArgs,
+  IntentCatalog,
+  IntentDispatch,
+} from './intent.js';
+
+export type {
   AppDescriptor,
   AppLifecycle,
   AppContext,
@@ -85,6 +95,15 @@ export {
   isModeFacet,
   isFilterFacet,
 } from './facet.js';
+
+export {
+  defineIntentCatalog,
+  registerIntent,
+  createIntent,
+  signal,
+  command,
+  intent,
+} from './intent.js';
 
 export {
   defineApp,

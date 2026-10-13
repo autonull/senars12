@@ -1,45 +1,17 @@
 /**
- * The command registry (§3.5, Phase 0.5). The palette, keyboard shortcuts and
- * future agent `ui.command` all read this one source. Commands are derived from
- * the registries that already exist — renderers, overlays and graph view actions
- * — so a new renderer or overlay appears in the palette without an edit here;
- * explicit commands register themselves into the same list.
+ * Command registry — back-compat re-exports from the unified Intent catalog.
+ *
+ * The command registry is now backed by the Intent catalog. New code should import
+ * `dispatch` from `./intent-registry.js` instead of `dispatchCommand`.
  */
-
-import { capabilityGate } from './capabilities.js';
 import { recordCommandUse } from './command-history.js';
-import { eventBus } from './events.js';
-import { overlays } from './overlay-registry.js';
-import { foldableSections, sectionTree } from './sections.js';
-import { narsBackend } from './nars-backend.js';
-import {
-  $activeRenderer,
-  $capabilities,
-  $collapsedBlocks,
-  $controlMode,
-  $panels,
-  $reasoningRunning,
-  $runTerminations,
-  $workspaceGraph,
-  $conversationLayout,
-  $selectedNodeIds,
-} from './index.js';
-import { setConversationLayout, setCollapsed } from './store.js';
-import { availableComposerModes, type ComposerMode } from './composer-modes.js';
-import { workspaceRenderers } from './workspace-renderer.js';
 import { validateCommandArgs } from './command-schemas.js';
-import { panelDef, PANEL_KINDS } from './panel-defs.js';
+import { getIntentCatalog, dispatch, type IntentDescriptor } from './intent-registry.js';
 
+/** Command args are always an object. */
 export type CommandArgs = Record<string, unknown>;
 
-const togglePanel = (id: string): void => {
-  const panels = new Map($panels.get());
-  const panel = panels.get(id);
-  if (!panel) return;
-  panels.set(id, { ...panel, open: !panel.open });
-  $panels.set(panels);
-};
-
+/** Back-compat Command interface. */
 export interface Command {
   readonly id: string;
   readonly title: string;
@@ -55,391 +27,29 @@ export interface Command {
   readonly paletteHidden?: boolean;
 }
 
-const registry = new Map<string, Command>();
-
-export const registerCommand = (command: Command): void => {
-  registry.set(command.id, command);
-};
-
-export const registeredCommands = (): Command[] => [...registry.values()];
-
-/** Commands whose existence derives from another registry. */
-const derivedCommands = (): Command[] => [
-  ...workspaceRenderers()
-    .filter((renderer) => {
-      const caps = renderer.capabilities();
-      return !caps.requiredCapability || capabilityGate(caps.requiredCapability);
-    })
-    .map(
-      (renderer): Command => ({
-        id: `renderer.${renderer.id}`,
-        title: `Switch to ${renderer.label}`,
-        group: 'View',
-        keywords: `renderer view mode ${renderer.id}`,
-        run: () => $activeRenderer.set(renderer.id),
-        available: () => {
-          const caps = renderer.capabilities();
-          return !caps.requiredCapability || capabilityGate(caps.requiredCapability);
-        },
-      })
-    ),
-  ...overlays()
-    .filter((overlay) => !overlay.hiddenInPalette)
-    .map((overlay): Command => {
-      const gate = overlay.capability;
-      return {
-        id: `overlay.${overlay.id}`,
-        title: overlay.title,
-        group: 'Open',
-        keywords: `overlay panel open ${overlay.id}`,
-        run: (args) =>
-          eventBus.emit('overlay:open', {
-            id: overlay.id,
-            ...(args as { ref?: string; anchor?: HTMLElement } | undefined),
-          }),
-        available: gate ? () => capabilityGate(gate) : undefined,
-      };
-    }),
-  {
-    // The palette excludes itself from its own list, but the HUD button and the
-    // ⌘K shortcut still reach it through the same dispatch seam as every overlay.
-    id: 'overlay.palette',
-    title: 'Command palette',
-    group: 'Open',
-    keywords: 'command palette shortcut',
-    paletteHidden: true,
-    run: (args) =>
-      eventBus.emit('overlay:open', {
-        id: 'palette',
-        ...(args as { ref?: string; anchor?: HTMLElement } | undefined),
-      }),
-  },
-  ...PANEL_KINDS.map(
-    (id): Command => ({
-      id: `view.panel.${id}`,
-      title: `Toggle ${panelDef(id).label}`,
-      group: 'View',
-      keywords: `panel toggle show hide ${id}`,
-      run: () => togglePanel(id),
-    })
-  ),
-  {
-    id: 'view.fit',
-    title: 'Fit view',
-    group: 'View',
-    keywords: 'graph zoom fit',
-    run: () => eventBus.emit('graph:fit'),
-    available: () => $activeRenderer.get() === 'graph',
-  },
-  {
-    id: 'view.minimap',
-    title: 'Toggle minimap',
-    group: 'View',
-    keywords: 'graph minimap overview',
-    run: () => eventBus.emit('graph:minimap-toggle'),
-    available: () => $activeRenderer.get() === 'graph',
-  },
-  {
-    id: 'overlay.pin',
-    title: 'Pin/unpin top overlay',
-    group: 'View',
-    keywords: 'overlay pin float card stay open',
-    run: () => eventBus.emit('overlay:pin-toggle'),
-  },
-  {
-    id: 'view.fold-all',
-    title: 'Fold/unfold all sections',
-    group: 'View',
-    keywords: 'notebook fold unfold sections collapse expand',
-    run: () => {
-      const sections = new Set(foldableSections(sectionTree($workspaceGraph.get())));
-      const collapsed = $collapsedBlocks.get();
-      const allFolded = [...sections].every((ref) => collapsed.has(ref));
-      setCollapsed(allFolded ? new Set() : sections);
-    },
-    available: () => foldableSections(sectionTree($workspaceGraph.get())).length > 0,
-  },
-  {
-    id: 'overlay.cascade',
-    title: 'Cascade windows',
-    group: 'View',
-    keywords: 'overlay window cascade arrange stack',
-    run: (args = {}) => eventBus.emit('overlay:cascade', { offset: Number(args.offset ?? 30) }),
-  },
-  {
-    id: 'overlay.tile',
-    title: 'Tile windows',
-    group: 'View',
-    keywords: 'overlay window tile arrange grid',
-    run: () => eventBus.emit('overlay:tile'),
-  },
-  {
-    id: 'control.mode.toggle',
-    title: 'Toggle control mode',
-    group: 'Control',
-    keywords: 'control mode toggle reasoning execute',
-    run: () => $controlMode.set(!$controlMode.get()),
-    available: () => capabilityGate('reasoning'),
-  },
-  ...availableComposerModes($capabilities.get()).map((mode): Command => ({
-    id: `composer.mode.${mode.id}`,
-    title: `Composer: ${mode.label}`,
-    group: 'Compose',
-    keywords: `composer mode ${mode.id} ${mode.label}`,
-    run: () => eventBus.emit('composer:mode', { mode: mode.id }),
-    available: () => availableComposerModes($capabilities.get()).some((m) => m.id === mode.id),
-  })),
-  {
-    id: 'composer.prefill',
-    title: 'Prefill composer',
-    group: 'Compose',
-    keywords: 'composer prefill tool result seed',
-    run: (args) => eventBus.emit('composer:prefill', { content: String(args.content ?? ''), mode: String(args.mode ?? ''), refs: (args.refs as string[] | undefined) ?? [] }),
-    parse: (args) => ({ content: String(args.content ?? ''), mode: String(args.mode ?? ''), refs: (args.refs as string[] | undefined) ?? [] }),
-    paletteHidden: true,
-  },
-];
-
-/** Reasoning is gated on the `reasoning` capability and the backend's caps. */
-const reasoningAvailable = (): boolean => capabilityGate('reasoning');
-const caps = () => narsBackend.caps;
-
-/** Steer/author commands — only available when the reasoning capability is enabled
- * and the backend supports the specific operation. */
-registerCommand({
-  id: 'reasoning.submit',
-  title: 'Submit to reasoner',
-  group: 'Reasoning',
-  keywords: 'reasoning submit belief goal question nars',
-  run: (args) =>
-    narsBackend.control?.submit({
-      term: String(args.term ?? ''),
-      mode: (args.mode as 'belief' | 'goal' | 'question') ?? 'belief',
-    }),
-  parse: (args) => ({
-    term: String(args.term ?? ''),
-    mode: (args.mode as 'belief' | 'goal' | 'question') ?? 'belief',
-  }),
-  available: () => reasoningAvailable() && caps().canSubmit,
-});
-
-registerCommand({
-  id: 'reasoning.step',
-  title: 'Step reasoner',
-  group: 'Reasoning',
-  keywords: 'reasoning step inference nars',
-  run: () => {
-    $runTerminations.set([]);
-    void narsBackend.control
-      ?.step()
-      .then((result) => $runTerminations.set(result.termination ?? []));
-  },
-  available: () => reasoningAvailable() && caps().canStep,
-});
-
-registerCommand({
-  id: 'reasoning.run',
-  title: 'Run reasoner',
-  group: 'Reasoning',
-  keywords: 'reasoning run inference nars',
-  run: () => {
-    $reasoningRunning.set(true);
-    $runTerminations.set([]);
-    // The engine settles this only when the run actually stops (or aborts), so
-    // the running state — and thus the Abort affordance — is never left on.
-    void narsBackend.control
-      ?.run()
-      .then((result) => $runTerminations.set(result.termination ?? []))
-      .finally(() => $reasoningRunning.set(false));
-  },
-  available: () => reasoningAvailable() && caps().canRun,
-});
-
-registerCommand({
-  id: 'reasoning.retract',
-  title: 'Retract belief',
-  group: 'Reasoning',
-  keywords: 'reasoning retract belief remove nars',
-  run: (args) => narsBackend.control?.retract(String(args.nodeId ?? '')),
-  parse: (args) => ({ nodeId: String(args.nodeId ?? '') }),
-  available: () => reasoningAvailable() && caps().canRetract,
-});
-
-registerCommand({
-  id: 'reasoning.revise',
-  title: 'Revise belief',
-  group: 'Reasoning',
-  keywords: 'reasoning revise belief truth frequency confidence nars',
-  run: (args) =>
-    narsBackend.control?.revise(
-      String(args.nodeId ?? ''),
-      Number(args.frequency ?? 0),
-      Number(args.confidence ?? 0)
-    ),
-  parse: (args) => ({
-    nodeId: String(args.nodeId ?? ''),
-    frequency: Number(args.frequency ?? 0),
-    confidence: Number(args.confidence ?? 0),
-  }),
-  available: () => reasoningAvailable() && caps().canRevise,
-});
-
-registerCommand({
-  id: 'reasoning.add-goal',
-  title: 'Add goal',
-  group: 'Reasoning',
-  keywords: 'reasoning add goal nars',
-  run: (args) => narsBackend.control?.addGoal(String(args.term ?? '')),
-  parse: (args) => ({ term: String(args.term ?? '') }),
-  available: () => reasoningAvailable() && caps().canAddGoal,
-});
-
-registerCommand({
-  id: 'reasoning.adjust-budget',
-  title: 'Adjust reasoning budget',
-  group: 'Reasoning',
-  keywords: 'reasoning budget adjust nars',
-  run: (args) => narsBackend.control?.adjustBudget(Number(args.budget ?? 0)),
-  parse: (args) => ({ budget: Number(args.budget ?? 0) }),
-  available: () => reasoningAvailable() && caps().canAdjustBudget,
-});
-
-registerCommand({
-  id: 'reasoning.adjust-provider',
-  title: 'Adjust LM provider for reasoning',
-  group: 'Reasoning',
-  keywords: 'reasoning provider lm switch nars',
-  run: (args) => narsBackend.control?.adjustProvider(String(args.provider ?? '')),
-  parse: (args) => ({ provider: String(args.provider ?? '') }),
-  available: () => reasoningAvailable() && caps().canAdjustProvider,
-});
-
-registerCommand({
-  id: 'reasoning.abort',
-  title: 'Abort reasoning run',
-  group: 'Reasoning',
-  keywords: 'reasoning abort stop cancel nars',
-  run: () => narsBackend.control?.abort(),
-  available: () => reasoningAvailable() && caps().canAbort && $controlMode.get() && $reasoningRunning.get(),
-});
-
-/** Demonstration: chain commands into a narrative sequence. */
-registerCommand({
-  id: 'demo.play',
-  title: 'Play demonstration',
-  group: 'Demos',
-  keywords: 'demo demonstration narrative sequence',
-  run: (args) => playDemo(String(args.demo ?? '')),
-  parse: (args) => ({ demo: String(args.demo ?? '') }),
-  available: () => true,
-});
-
-/** Stop a running demonstration. */
-registerCommand({
-  id: 'demo.stop',
-  title: 'Stop demonstration',
-  group: 'Demos',
-  keywords: 'demo demonstration stop cancel',
-  run: () => stopDemo(),
-  available: () => demoRunning.get(),
-});
-
-/** List available demonstrations. */
-registerCommand({
-  id: 'demo.list',
-  title: 'List demonstrations',
-  group: 'Demos',
-  keywords: 'demo demonstration list available',
-  run: () => {
-    const demos = Object.keys(DEMOS);
-    eventBus.emit('overlay:open', { id: 'demo-list', ref: demos.join(', ') });
-  },
-  available: () => true,
-});
-
-/** Demo state. */
-import { atom } from './store.js';
-const demoRunning = atom<boolean>(false);
-const demoQueue = atom<Array<() => Promise<void>>>([]);
-
-/** Built-in demonstration sequences. */
-const DEMOS: Record<string, (() => Promise<void>)[]> = {
-  'nars-intro': [
-    async () => { dispatchCommand('overlay.palette'); },
-    async () => { await sleep(500); dispatchCommand('graph.layout.chronological-flow'); },
-    async () => { await sleep(500); dispatchCommand('overlay.toc'); },
-    async () => { await sleep(500); dispatchCommand('overlay.toc'); },
-    async () => { await sleep(500); dispatchCommand('reasoning.run'); },
-    async () => { await sleep(2000); dispatchCommand('reasoning.abort'); },
-  ],
-  'graph-tour': [
-    async () => { dispatchCommand('overlay.palette'); },
-    async () => { await sleep(500); dispatchCommand('graph.layout.chronological-flow'); },
-    async () => { await sleep(500); dispatchCommand('graph.layout.semantic-map'); },
-    async () => { await sleep(500); dispatchCommand('graph.layout.artifact-map'); },
-    async () => { await sleep(500); dispatchCommand('graph.layout.source-view'); },
-    async () => { await sleep(500); dispatchCommand('graph.layout.cycle'); },
-  ],
-  'composer-modes': [
-    async () => { dispatchCommand('overlay.palette'); },
-    async () => { await sleep(500); dispatchCommand('composer.mode.chat'); },
-    async () => { await sleep(500); dispatchCommand('composer.mode.code'); },
-    async () => { await sleep(500); dispatchCommand('composer.mode.nal'); },
-    async () => { await sleep(500); dispatchCommand('composer.mode.reason'); },
-  ],
-};
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function playDemo(name: string): Promise<void> {
-  const steps = DEMOS[name];
-  if (!steps) {
-    console.warn(`[demo] Unknown demo: ${name}`);
-    return;
-  }
-  demoRunning.set(true);
-  demoQueue.set([...steps]);
-  await runDemoSteps();
-}
-
-function stopDemo(): void {
-  demoRunning.set(false);
-  demoQueue.set([]);
-}
-
-async function runDemoSteps(): Promise<void> {
-  while (demoRunning.get() && demoQueue.get().length > 0) {
-    const step = demoQueue.get().shift();
-    if (step) {
-      demoQueue.set([...demoQueue.get()]);
-      try {
-        await step();
-      } catch (e) {
-        console.error('[demo] Step failed:', e);
-      }
-    }
-    await sleep(100);
-  }
-  demoRunning.set(false);
-}
-
-/** Every command the palette may offer right now, explicit then derived. */
-export const activeCommands = (): Command[] =>
-  [...registeredCommands(), ...derivedCommands()].filter(
-    (command) => command.available?.() ?? true
-  );
+/** All commands from the intent catalog (kind === 'command'). */
+export const registeredCommands = (): Command[] =>
+  getIntentCatalog()
+    .allIntents()
+    .filter((i) => i.kind === 'command') as Command[];
 
 /** Commands the palette lists (drops those that hide themselves from it). */
 export const paletteCommands = (): Command[] =>
-  activeCommands().filter((command) => !command.paletteHidden);
+  getIntentCatalog()
+    .paletteIntents()
+    .filter((i) => i.kind === 'command') as Command[];
+
+/** Every command the palette may offer right now. */
+export const activeCommands = (): Command[] =>
+  getIntentCatalog()
+    .allIntents()
+    .filter((i) => i.kind === 'command' && i.available?.() !== false) as Command[];
 
 /**
- * Run a command by id, respecting availability, and report whether it ran. This
- * is the seam the agent `ui.command` (§3.6) and any programmatic caller use, so
- * every palette command is agent-settable without a second registry. A command
- * may declare `parse` to validate/coerce args; a rejection is reported, not thrown.
+ * Run a command by id, respecting availability, and report whether it ran.
+ * This is the seam the agent `ui.command` (§3.6) and any programmatic caller use,
+ * so every palette command is agent-settable without a second registry.
+ * A command may declare `parse` to validate/coerce args; a rejection is reported, not thrown.
  * Zod schemas from `command-schemas.ts` provide type-safe validation for agent calls.
  */
 export const dispatchCommand = (id: string, args: CommandArgs = {}): boolean => {
@@ -462,4 +72,18 @@ export const dispatchCommand = (id: string, args: CommandArgs = {}): boolean => 
   }
   recordCommandUse(id);
   return true;
+}
+
+/**
+ * @deprecated Use intent-registry.ts to define intents instead.
+ * This function exists only for back-compat during migration.
+ */
+export const registerCommand = (_command: Command): void => {
+  console.warn('[command] registerCommand is deprecated; define intents in intent-registry.ts instead');
 };
+
+// Re-export the unified dispatch for new code
+export { dispatch } from './intent-registry.js';
+
+// Re-export IntentDescriptor for back-compat
+export type { IntentDescriptor } from './intent-registry.js';
