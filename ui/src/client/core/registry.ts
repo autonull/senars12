@@ -16,6 +16,8 @@ export interface Registry<K, V> {
   has(key: K): boolean;
   /** Number of registered values. */
   readonly size: number;
+  /** All registered keys, in registration order. */
+  readonly ids: readonly K[];
   /** Clear all registrations. */
   reset(): void;
   /** Iterate registered values. */
@@ -62,6 +64,10 @@ export function createRegistry<K, V>(
 
     get size(): number {
       return registry.size;
+    },
+
+    get ids(): readonly K[] {
+      return [...registry.keys()];
     },
 
     reset(): void {

@@ -462,7 +462,7 @@ resolves by registry.
 **Guard:** adapter resolution + `supportedShapes` tests.
 **Prove:** every shape renders through `<s-view>`; visual cells green.
 
-- [ ] **P4 — Facet unification.**
+- [x] **P4 — Facet unification.**
 One `Facet<K>` descriptor for lenses, layers, filters and composer modes; the modulation AST
 stays. Migrate the lens/layer/filter selection.
 **Guard:** facet selection tests; a test that a lens and a layer are the same shape.
@@ -639,6 +639,20 @@ an edit.
 - **Opportunities:** The `viewAdapterCatalogEntry` export enables future tooling
   (palette, gallery) to read shape metadata from the catalog rather than the
   adapter registry.
+
+### P4 — Facet unification (done)
+- **What changed:** Added `framework/facet.ts` with unified `FacetDescriptor` (kind:
+  'lens' | 'layer' | 'mode' | 'filter', gate, data). Migrated:
+  - `lens-catalog.ts` → `LENS_FACETS` (lens facets with modulation, color, layout)
+  - `graph-layer-defs.ts` → `GRAPH_LAYER_FACETS` (layer facets with visible predicate)
+  - `composer-modes.ts` → `COMPOSER_MODE_FACETS` (mode facets with capability gate)
+  - Added `filter-facets.ts` for capability/graph/search filter facets
+  All back-compat catalogs preserved (`LENS_DEFS`, `GRAPH_LAYER_DEFS`, `COMPOSER_MODE_DEFS`).
+- **Guard:** `pnpm --dir ui typecheck` ✓ (pre-existing errors only), `pnpm --dir ui test:unit` ✓ (769 tests)
+- **Proof:** Ask prototype e2e ✓
+- **Remaining:** None
+- **Opportunities:** `facetKeysByKind`/`availableFacets` enable unified palette/toolbar
+  rendering; modulation AST unchanged (lives in `modulation/`).
 
 ## 9. Appendix — repo facts for a fresh session
 

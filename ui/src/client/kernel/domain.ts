@@ -30,6 +30,7 @@ export {
   projectWorkspace,
   resolveBlockRef,
 } from '../core/workspace-projection.js';
+export { projectWorkspaceGraph } from '../core/graph-projection.js';
 export type {
   WorkspaceEdgeData,
   WorkspaceNodeData,

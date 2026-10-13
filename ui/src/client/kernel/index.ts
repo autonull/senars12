@@ -62,6 +62,12 @@ export {
   type TestApiStorePath,
 } from './state.js';
 
+// ── UI state (lens, layer, viewport, filter) ──────────────────────────────────
+export { $activeLens, $graphLayer, $graphShape, $viewportMode, $graphFilter } from '../core/store.js';
+export type { Lens } from '@senars/core';
+export type { GraphLayer } from '../core/graph-layer-defs.js';
+export type { ViewportMode } from '../core/store.js';
+
 // ── Domain: the workspace graph and its projections ──────────────────────────
 export {
   applyWorkspaceOp,
@@ -93,6 +99,7 @@ export {
   projectDerivationRecords,
   projectReasoning,
   projectWorkspace,
+  projectWorkspaceGraph,
   resolveBlockRef,
 } from './domain.js';
 export type {
@@ -126,7 +133,7 @@ export { viewSource } from './view.js';
 export { viewAdapterFor, viewAdapters } from './view.js';
 export { artifactViewSpec, tableFromColumns } from './view.js';
 export type {
-  Shape,
+  Shape as ViewShape,
   TableDataset,
   TextDataset,
   TreeNode,

@@ -16,6 +16,7 @@ export default defineConfig({
         main: resolve(__dirname, 'src/client/index.html'),
         spacegraph: resolve(__dirname, 'src/client/spacegraph/index.html'),
         ask: resolve(__dirname, 'src/client/apps/ask/index.html'),
+        explore: resolve(__dirname, 'src/client/apps/explore/index.html'),
       },
       output: {
         manualChunks: (id) => {
