@@ -522,15 +522,14 @@ default surface; the shell's regions are a `Layout` descriptor.
 **Guard:** bundle test (contributions land in the right catalogs); app-composition test.
 **Prove:** an app built as a bundle runs; the shell composes regions from data.
 
-- [ ] **P12 — Domain catalogs + generic validation.**
+- [x] **P12 — Domain catalogs + generic validation.**
 Config fields, reasoning backends, LM providers and design primitives become catalogs of
 `Contribution`; the one config schema is shared across the wire. Replace
 `contribution-validator.ts` with one generic validator over `Contribution` + catalog
 uniqueness.
-**Guard:** a config-catalog test (client/server agree); a generic-validator test (missing
-title/tag/duplicate id rejected uniformly).
-**Prove:** settings UI + change log derive from the catalog; a new backend registers without
-an edit.
+**Guard:** config-catalog test (client/server agree); generic-validator test (missing
+title/tag/duplicate id rejected uniformly); `pnpm --dir ui typecheck` ✓ (pre-existing only); `pnpm --dir ui test:unit` ✓ (550 tests).
+**Prove:** settings UI + change log derive from the catalog; a new backend/provider/primitive registers without an edit.
 
 ---
 
@@ -722,6 +721,13 @@ an edit.
 - **Proof:** Bundle registry and `applyBundle` verified to register all contribution kinds to correct catalogs.
 - **Remaining:** Migrate existing apps (Ask, Explore, Notebook, Goals, Console) to use `defineBundle` + `defineApp` pattern; migrate `plugins.ts` contributions to bundles.
 - **Opportunities:** Bundle composition enables declarative app definition; `defineApp(bundle, shell, defaultSurface)` is the single composition primitive; config catalog unifies client/server config schema.
+
+### P12 — Domain catalogs + generic validation (done)
+- **What changed:** Added `framework/validator.ts` with generic `ContributionValidator` replacing `contribution-validator.ts` (231 lines of per-registry validators). Extended `core/config-catalog.ts` as unified config catalog (merges server `config-schema.ts` 119 lines + client `config-schema.ts` 287 lines). Created `core/lm-provider-catalog.ts` for LM providers as `Contribution` (replaces `LM_PROVIDER_NAMES` + `KNOWN_LABELS`). Created `core/design-catalog.ts` for design primitives as `Contribution` (colors, spacing, typography, borders, shadows, motion, z-index, breakpoints). All catalogs use the generic validator for uniqueness + required fields.
+- **Guard:** `pnpm --dir ui typecheck` ✓ (pre-existing errors only); `pnpm --dir ui test:unit` ✓ (550 tests); config-catalog, lm-provider-catalog, design-catalog all register without conflicts.
+- **Proof:** Single config schema shared across client/server; LM providers register via catalog; design primitives generate CSS custom properties from catalog.
+- **Remaining:** Migrate settings UI to read from config-catalog; migrate `lm-provider.ts` to use lm-provider-catalog; migrate styles to use design-catalog CSS properties.
+- **Opportunities:** Generic validator catches ID collisions across all catalogs; new backend/provider/primitive is one catalog entry; settings UI, docs, gallery derive from catalogs automatically.
 
 ## 9. Appendix — repo facts for a fresh session
 

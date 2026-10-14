@@ -94,6 +94,12 @@ export type {
   LayoutRegion,
 } from './bundle.js';
 
+export type {
+  ValidationError,
+  ValidationResult,
+  ContributionValidator,
+} from './validator.js';
+
 export {
   createContribution,
   registerContribution,
@@ -205,3 +211,10 @@ export {
   resetBundles,
   applyBundle,
 } from './bundle.js';
+
+export {
+  createDefaultValidator,
+  validateContribution,
+  validateAllCatalogs,
+  assertValid,
+} from './validator.js';
