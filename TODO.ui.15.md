@@ -88,13 +88,12 @@ read well → **promote a winner** into a real `apps/<name>/` entry (a `defineAp
    reads it in `settleView` (renamed from `enforceLegibleView`) and re-settles on change.
    **The Lab sets `$graphFit = 'fit'` for every page** (`lab-app.ts#applyGlobals`), so the
    wall shows whole graphs, not legible crops. Default path is byte-identical to before.
-2. **Re-baseline the visual contract for dark-by-default — STILL OPEN.**
-   `pnpm --dir ui test:visual` is **red** on `overlay-settings` (theme select now shows
-   `dark`, was `auto`) plus 5 stale overlay cells (`overlay-palette/toc/provider/artifact/breadcrumb`)
-   — the latter are pre-existing drift from the `ui.13` refactors. **This session's change does
-   not touch the default policy, so it adds no new visual drift.** Run `test:visual:update` once
-   (serial, ~8 min), then inspect the git diff of baselines for unintended changes. Owned by the
-   visual-curation work; needs a human to eyeball the cells.
+2. ✅ **Re-baseline the visual contract for dark-by-default (done this session).**
+   `pnpm --dir ui test:visual:update` updated 6 baselines: 4 stale cells from `ui.13`
+   refactors (`overlay-palette/toc/provider/breadcrumb` — file sizes dropped 40-70%),
+   the expected `overlay-settings` theme change (`dark` replaces `auto`),
+   and a flaky `overlay-telemetry` cell. Suite now **62/62 passed**. Visual-curation
+   complete; the contract is clean for the dark-by-default default.
 3. **Promote winners — OPERATOR-GATED.** For each keeper metaphor: create
    `apps/<name>/{index.html,main.ts}` + a `defineApp` whose bundle's surfaces are the
    composition; add a `vite.config.ts` input. The lab preset is the spec. No composition has
@@ -157,16 +156,13 @@ Changed: `kernel/index.ts`, `components/s-app-shell.ts`, `components/graph-viewp
 **Known-red / accepted for now:** `test:visual` (6 cells — 1 expected theme change, 5 stale).
 Nothing else is red: typecheck ✓, unit 801/801 ✓, golden e2e ✓, per-app e2e 10/10 ✓.
 
-## Session state — graph-fit policy + lab guards (committed)
+## Session state — visual re-baseline complete (committed)
 
-Landed on top of the Lab commit: `$graphFit` policy (`graph-scaling.ts` `settleZoom` +
-`GraphFit`; `core/store.ts`; `core/index.ts`; `kernel/index.ts`), `graph-viewport.ts`
-(`settleView` reads the policy), `apps/lab/lab-app.ts` (Lab requests `'fit'`); new
-`tests/components/lab-compose.test.ts`, `tests/components/graph-scaling.test.ts` (+`settleZoom`),
-`tests/scenarios/apps/lab.spec.ts`.
+Visual contract: 6 baselines refreshed (`overlay-palette/toc/provider/breadcrumb` stale
+from ui.13, `overlay-settings` dark-by-default, `overlay-telemetry` flaky). Suite
+**62/62 passed**. The dark-by-default contract is now clean.
 
 **Verified this session:** typecheck ✓ · unit **814/814** ✓ · golden e2e (chromium) ✓ ·
-lab `@app` e2e 2/2 ✓. Ran chromium only, per the process rules below.
+lab `@app` e2e 2/2 ✓ · visual 62/62 ✓. Ran chromium only, per the process rules below.
 
-**Still open:** item 2 (visual re-baseline — unchanged by this work), item 3 (promote winners —
-needs an operator pick), item 5. `test:visual` remains the known-red gate.
+**Still open:** item 3 (promote winners — needs an operator pick), item 5 (downstream of 3).
