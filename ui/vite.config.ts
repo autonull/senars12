@@ -5,6 +5,15 @@ import { resolveAliases } from './vite.aliases.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const coreSrc = resolve(__dirname, '../core/src');
+const nodeBuiltinShim = resolve(__dirname, 'src/client/shims/node-builtins.ts');
+
+const nodeBuiltinAliases = [
+  { find: /^node:path$/, replacement: nodeBuiltinShim },
+  { find: /^node:fs$/, replacement: nodeBuiltinShim },
+  { find: /^node:fs\/promises$/, replacement: nodeBuiltinShim },
+  { find: /^node:crypto$/, replacement: nodeBuiltinShim },
+  { find: /^node:util$/, replacement: nodeBuiltinShim },
+];
 
 const coreSubpathMap: Record<string, string> = {
   'schemas/governance': 'schemas/governance.ts',
@@ -31,9 +40,10 @@ const coreSubpathMap: Record<string, string> = {
 };
 
 export default defineConfig({
+  root: 'src/client',
   base: '/',
   resolve: {
-    alias: resolveAliases,
+    alias: [...resolveAliases, ...nodeBuiltinAliases],
   },
   plugins: [
     {

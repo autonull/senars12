@@ -114,6 +114,50 @@ async function serveStatic(req: IncomingMessage, res: ServerResponse): Promise<b
   }
 }
 
+/** Connect-style middleware (Vite dev middleware in middleware mode). */
+type RequestMiddleware = (req: IncomingMessage, res: ServerResponse, next: (err?: unknown) => void) => void;
+
+/** Frozen production fallback: serve the built client straight off disk. */
+async function serveBuiltClient(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (await serveStatic(req, res)) return;
+  try {
+    const html = await readFile(resolve(DIST_DIR, 'index.html'));
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(html);
+  } catch {
+    res.writeHead(404);
+    res.end('Not found — build the client (`pnpm build:client`) or run without NODE_ENV=production');
+  }
+}
+
+/**
+ * Serve the client dynamically from source through Vite's dev middleware, so the
+ * test/dev server needs no `dist/` build step. Production still serves the built
+ * client from disk.
+ */
+async function createDevClient(): Promise<
+  { middleware: RequestMiddleware; close: () => Promise<void> } | undefined
+> {
+  if (process.env.NODE_ENV === 'production') return undefined;
+  try {
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+      configFile: resolve(__dirname, '../../vite.config.ts'),
+      appType: 'mpa',
+      optimizeDeps: { noDiscovery: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+        fs: { allow: [resolve(__dirname, '../../..')] },
+      },
+    });
+    return { middleware: vite.middlewares as RequestMiddleware, close: () => vite.close() };
+  } catch (err) {
+    console.warn('Vite dev middleware unavailable, falling back to built client:', (err as Error).message);
+    return undefined;
+  }
+}
+
 /** Server-side handles the deterministic test endpoints drive. */
 type TestContext = {
   projection?: UnifiedGraphProjection;
@@ -385,7 +429,10 @@ async function handleTestEndpoints(
   return false;
 }
 
-function createServerWithProjection(agent?: Agent): {
+function createServerWithProjection(
+  agent?: Agent,
+  devMiddleware?: RequestMiddleware
+): {
   server: ReturnType<typeof createServer>;
   projection?: UnifiedGraphProjection;
   wss: WebSocketServer;
@@ -417,14 +464,16 @@ function createServerWithProjection(agent?: Agent): {
       return;
     }
     if (await handleTestEndpoints(req, res, makeTestContext())) return;
-    if (await serveStatic(req, res)) return;
-    try {
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(await readFile(resolve(DIST_DIR, 'index.html')));
-    } catch {
-      res.writeHead(404);
-      res.end('Not found — run `pnpm build` first');
+    if (devMiddleware) {
+      devMiddleware(req, res, () => {
+        serveBuiltClient(req, res).catch(() => {
+          if (!res.headersSent) res.writeHead(500);
+          res.end();
+        });
+      });
+      return;
     }
+    await serveBuiltClient(req, res);
   });
 
   const wss = new WebSocketServer({ noServer: true });
@@ -830,8 +879,9 @@ export interface TestServer {
 
 export async function startUI(agent?: Agent, opts: StartUIOptions = {}): Promise<TestServer> {
   const port = opts.port ?? DEFAULT_PORT;
+  const dev = await createDevClient();
   return new Promise((resolve) => {
-    const { server, projection, wss } = createServerWithProjection(agent);
+    const { server, projection, wss } = createServerWithProjection(agent, dev?.middleware);
     const host = envBool('CI') ? '0.0.0.0' : 'localhost';
     server.listen({ port, host, reusePort: true }, () => {
       const addr = server.address();
@@ -846,6 +896,7 @@ export async function startUI(agent?: Agent, opts: StartUIOptions = {}): Promise
           for (const client of wss.clients) client.terminate();
           wss.close();
           await new Promise<void>((r) => server.close(() => r()));
+          await dev?.close();
         },
       });
     });

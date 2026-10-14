@@ -34,9 +34,9 @@ Ask app + the golden path.
 - typecheck: `pnpm --dir ui typecheck`
 - unit: `pnpm --dir ui test:unit`
 - golden e2e (real HUD): `cd ui && pnpm exec playwright test --config tests/playwright.config.ts tests/scenarios/golden-path/operate-reasoner.spec.ts --project=chromium --workers=1`
-- Ask prototype e2e: `cd ui && pnpm build:client:test && pnpm exec playwright test --config tests/playwright.config.ts tests/scenarios/prototypes/ask.spec.ts --project=chromium --workers=1`
+- Ask prototype e2e: `cd ui && pnpm exec playwright test --config tests/playwright.config.ts tests/scenarios/prototypes/ask.spec.ts --project=chromium --workers=1`
 - full contract: `pnpm ui:gate` (= typecheck + unit + golden e2e)
-- build the client: `pnpm --dir ui build:client:test`
+- build the client: `pnpm --dir ui build:client:test` → `ui/dist/client` (production only; dev/e2e serve the client dynamically)
 
 **Record progress** in §8 — append one entry per slice (what changed, guard, proof,
 remaining work, new opportunities).
@@ -734,6 +734,50 @@ title/tag/duplicate id rejected uniformly); `pnpm --dir ui typecheck` ✓ (pre-e
 - **Guard:** `pnpm --dir ui test:unit` now runs 91/99 test files passing (768/790 tests). 8 test files fail due to pre-existing issues (graph-toolbar `$selectedNodeIds` undefined, etc.).
 - **Build:** `pnpm --dir ui build:client:test` succeeds with nar package excluded from client bundle via `rollupOptions.external`.
 - **Known issues:** Ask prototype e2e fails due to pre-existing server crash (`ERR_HTTP_HEADERS_SENT` in `server/index.ts:425`). Golden path e2e is flaky (pre-existing). These are infrastructure issues, not regressions from the normalization work.
+
+### Infrastructure — Dynamic client serving + protocol boundary (this session)
+- **What changed (config error fixed):** The prior test-infra commit removed `root: 'src/client'`
+  from `ui/vite.config.ts`, which shifted the build output to `/home/me/dist/client` (**outside the
+  repo**) and nested HTML entries under `src/client/`. Restored `root: 'src/client'` so `outDir`
+  resolves to `ui/dist/client` (in-repo). Confirmed: `pnpm --dir ui build:client:test` now writes
+  `ui/dist/client/{apps,assets,spacegraph}`.
+- **What changed (no more build step):** The dev/test server now serves the client **dynamically**
+  through Vite middleware (`createDevClient` in `server/index.ts`), so the e2e harness needs no
+  `dist/` build. Production still falls back to the built `dist`. `DIST_DIR` reverted to
+  `../../dist/client`; `readFile` now runs before `writeHead` (fixes `ERR_HTTP_HEADERS_SENT`).
+  Dropped the `pnpm build:client:test &&` prefix from the e2e/visual scripts in `ui/package.json`.
+- **What changed (real defects dynamic serving exposed):**
+  - **Client→server protocol leak.** `client/core/protocol-defs.ts` statically imported
+    `server/handlers.ts` → `server-utils.ts` → `@senars/nar/lm` → `node-llama-cpp`, dragging native
+    engine deps into the browser (the static build had masked it by externalizing `@senars/nar`).
+    Rewrote it as a handler-agnostic `PROTOCOL_SPECS` table + a client-only catalog; added
+    `server/protocol-server.ts` (server catalog = specs + `handlers.ts`). One definition, two
+    dispatchers — exactly §1.8.
+  - **Server dispatch was dead.** `handler-registry.ts` dispatched via `entry.handle`, which
+    `ProtocolEntry` never defines (it is `handleServer`) → every server handler was a no-op.
+    Now dispatches via `entry.handleServer`.
+  - **`derived()` was doubly broken.** It always passed the source *array* to `fn` (so
+    `g => g.selection` read `.selection` off an array → `undefined`), and returned `get` unbound
+    (`this._value` → `undefined`). Added single/multi overloads, fixed both. `$selectedNodeIds`
+    now yields a real `Set` (no cast).
+  - **Node builtins in the client graph.** The browser evaluates `@senars/util`'s root index, which
+    re-exports node-only modules (`fs`/`hash`/`paths`). Production tree-shakes them; dynamic dev
+    cannot. Added `client/shims/node-builtins.ts` aliased for `node:path|fs|fs/promises|crypto|util`
+    in `vite.config.ts` (dev/build only, not vitest).
+  - **Type errors:** `COMPOSER_MODE_CATALOG[mode]?.hint` (bottom-bar, composer-focus, input-hud);
+    `view-adapter.ts` `adapters[0]!.shape`.
+- **Guard:** `pnpm --dir ui typecheck` ✓ (clean); `pnpm --dir ui test:unit` 769/790 pass — the 21
+  failures are the pre-existing P8/P11 cluster (`bundle-composition`, `dispatch`, `palette`,
+  `plugins`, `facade-honesty`, `app-layout`, `workspace-host`), not regressions.
+- **Proof:** Ask prototype e2e ✓ **and** golden-path e2e ✓ — both against the dynamic server with
+  **no build step**; `build:client:test` ✓ writing in-repo.
+- **Remaining:** production *static* `/` has no built `index.html` (root `src/client/index.html`
+  is not a Vite input) — only affects non-dev static serving; the P8/P11 test cluster above.
+- **Opportunities:** split `@senars/util` into a browser-safe entry so the node-builtin shims become
+  unnecessary; add `src/client/index.html` to the build inputs (or make Ask the root app) so static
+  serving matches dev; remove the committed `core/dist/*` build artifacts; the `PROTOCOL_SPECS`
+  table can drive a codegen'd client/server type test.
+
 
 ## 9. Appendix — repo facts for a fresh session
 

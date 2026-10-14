@@ -432,7 +432,7 @@ export class InputHUD extends BaseComponent {
           }
           <textarea
             class="chat-input"
-            placeholder=${COMPOSER_MODE_CATALOG[this.mode].hint}
+            placeholder=${COMPOSER_MODE_CATALOG[this.mode]?.hint}
             .value=${streamingDelta || this.textareaValue}
             @keydown=${this.onKeyDown}
             @focus=${() => (this.composing = true)}

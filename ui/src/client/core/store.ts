@@ -163,7 +163,7 @@ export const $selectedEdgeId = atom<string | null>(null);
 export const $viewport = atom<{ x: number; y: number; zoom: number }>({ x: 0, y: 0, zoom: 1 });
 export const $workingMemory = atom<string[]>([]);
 
-export const $selectedNodeIds = derived($workspaceGraph as import('../kernel/state.js').Readable<import('../core/workspace-graph.js').WorkspaceGraph>, (graph) => graph.selection, setEqual);
+export const $selectedNodeIds = derived($workspaceGraph, (graph) => graph.selection, setEqual);
 
 export const $viewSelection = atom<ViewSelection>({ nodes: new Set(), edges: new Set() });
 

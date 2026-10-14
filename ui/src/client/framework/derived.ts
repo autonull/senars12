@@ -38,32 +38,36 @@ export function arrayEqual<T>(a: readonly T[], b: readonly T[]): boolean {
   return true;
 }
 
+type Equal<T> = (a: T, b: T) => boolean;
+
 /**
- * Create a derived atom from one or more source atoms.
- *
- * @param sources — Single source atom, or array of source atoms
- * @param fn — Pure function computing the derived value from source values
- * @param equal — Optional equality function to prevent churn (default: `Object.is`)
- * @returns A read-only atom that updates when any source changes and `equal` returns false
+ * Create a derived atom from a single source. `fn` receives the source value.
+ */
+export function derived<S, T>(source: Readable<S>, fn: (value: S) => T, equal?: Equal<T>): Readable<T>;
+/**
+ * Create a derived atom from multiple sources. `fn` receives the source values.
  */
 export function derived<T>(
+  sources: readonly Readable<unknown>[],
+  fn: (values: readonly unknown[]) => T,
+  equal?: Equal<T>
+): Readable<T>;
+export function derived(
   sources: Readable<unknown> | readonly Readable<unknown>[],
-  fn: (values: unknown | readonly unknown[]) => T,
-  equal: (a: T, b: T) => boolean = defaultEqual
-): Readable<T> {
+  fn: (value: never) => unknown,
+  equal: (a: unknown, b: unknown) => boolean = defaultEqual
+): Readable<unknown> {
   const sourceArray = Array.isArray(sources) ? sources : [sources];
+  const isMulti = Array.isArray(sources);
+  const compute = (): unknown =>
+    fn((isMulti ? sourceArray.map((s) => s.get()) : sourceArray[0]?.get()) as never);
 
-  // Initial value
-  const initialValues = sourceArray.map((s) => s.get());
-  let currentValue = fn(initialValues);
+  let currentValue = compute();
+  const derivedAtom = atom<unknown>(currentValue);
 
-  const derivedAtom = atom<T>(currentValue);
-
-  // Subscribe to all sources
   for (const source of sourceArray) {
     source.subscribe(() => {
-      const nextValues = sourceArray.map((s) => s.get());
-      const nextValue = fn(nextValues);
+      const nextValue = compute();
       if (!equal(currentValue, nextValue)) {
         currentValue = nextValue;
         derivedAtom.set(nextValue);
@@ -72,24 +76,32 @@ export function derived<T>(
   }
 
   return {
-    get: derivedAtom.get,
-    subscribe: derivedAtom.subscribe.bind(derivedAtom),
-  } as Readable<T>;
+    get: () => derivedAtom.get(),
+    subscribe: (fn) => derivedAtom.subscribe(fn),
+  } as Readable<unknown>;
+}
+
+/** Equality that also compares Sets, Maps and Arrays by value. */
+function deepEqual<T>(a: T, b: T): boolean {
+  if (Object.is(a, b)) return true;
+  if (a instanceof Set && b instanceof Set) return setEqual(a, b);
+  if (a instanceof Map && b instanceof Map) return mapEqual(a, b);
+  if (Array.isArray(a) && Array.isArray(b)) return arrayEqual(a, b);
+  return false;
 }
 
 /**
  * Create a derived atom that only notifies on deep equality change.
  * Convenience for Sets, Maps, Arrays.
  */
+export function derivedDeep<S, T>(source: Readable<S>, fn: (value: S) => T): Readable<T>;
 export function derivedDeep<T>(
+  sources: readonly Readable<unknown>[],
+  fn: (values: readonly unknown[]) => T
+): Readable<T>;
+export function derivedDeep(
   sources: Readable<unknown> | readonly Readable<unknown>[],
-  fn: (values: unknown | readonly unknown[]) => T
-): Readable<T> {
-  return derived(sources, fn, (a, b) => {
-    if (Object.is(a, b)) return true;
-    if (a instanceof Set && b instanceof Set) return setEqual(a, b);
-    if (a instanceof Map && b instanceof Map) return mapEqual(a, b);
-    if (Array.isArray(a) && Array.isArray(b)) return arrayEqual(a, b);
-    return false;
-  });
+  fn: (value: never) => unknown
+): Readable<unknown> {
+  return derived(sources as Readable<unknown>, fn as (value: unknown) => unknown, deepEqual);
 }

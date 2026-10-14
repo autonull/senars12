@@ -1,18 +1,17 @@
 /**
- * Server message handler registry — now backed by the Protocol catalog.
+ * Server message handler registry — backed by the server protocol catalog.
  *
- * The protocol catalog provides:
- * - Schema validation for every message type
- * - Type-safe handler registration
- * - Single source of truth for the wire protocol
+ * The catalog provides schema validation for every message type, a single
+ * source of truth for the wire protocol, and type-safe dispatch to the
+ * `toServer` handler bodies in `handlers.ts`.
  */
 import type { IncomingFromClient } from '@senars/core';
-import { IncomingFromClient as IncomingFromClientSchema } from '@senars/core';
 import { WebSocket } from 'ws';
 import type { Agent } from '@senars/core';
 import type { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
 import { type NarLike } from './server-utils.js';
-import { getServerProtocolCatalog, createServerProtocolCatalog, type ServerHandlerContext } from '../client/core/protocol-defs.js';
+import { getServerProtocolCatalog } from './protocol-server.js';
+import type { ServerHandlerContext } from '../client/framework/protocol.js';
 import { errorFrame } from './server-utils.js';
 
 export interface HandlerContext {
@@ -27,41 +26,24 @@ export interface HandlerContext {
   ASK_RUN_CYCLES: number;
 }
 
-/** Initialize the protocol catalog with the server context. */
+/** Initialize the protocol catalog (idempotent). */
 export function initializeHandlers(
-  agent: Agent | undefined,
-  projection: UnifiedGraphProjection | undefined,
-  nar: () => NarLike | undefined,
-  activeRun: { current: AbortController | undefined },
-  wss: { clients: Set<WebSocket> },
-  currentNarConfig: Record<string, unknown>,
-  DEFAULT_RUN_CYCLES: number,
-  ASK_RUN_CYCLES: number
+  _agent: Agent | undefined,
+  _projection: UnifiedGraphProjection | undefined,
+  _nar: () => NarLike | undefined,
+  _activeRun: { current: AbortController | undefined },
+  _wss: { clients: Set<WebSocket> },
+  _currentNarConfig: Record<string, unknown>,
+  _DEFAULT_RUN_CYCLES: number,
+  _ASK_RUN_CYCLES: number
 ): void {
-  const ctx: ServerHandlerContext = {
-    agent,
-    projection,
-    ws: null as unknown as WebSocket, // Set per-message
-    nar,
-    activeRun,
-    wss,
-    currentNarConfig,
-    DEFAULT_RUN_CYCLES,
-    ASK_RUN_CYCLES,
-  };
-  getServerProtocolCatalog(ctx);
+  getServerProtocolCatalog();
 }
 
 /** Handle a client message using the protocol catalog (validates + dispatches). */
 export function handleClientMessage(ctx: HandlerContext, msg: IncomingFromClient): void {
   const catalog = getServerProtocolCatalog();
-  if (!catalog) {
-    console.warn('[handler-registry] Protocol catalog not initialized');
-    return;
-  }
-  // Set the per-message WebSocket
   const ws = ctx.ws;
-  // Validate first
   const validation = catalog.validate(msg);
   if (!validation.success) {
     if (ws.readyState === WebSocket.OPEN) {
@@ -69,11 +51,15 @@ export function handleClientMessage(ctx: HandlerContext, msg: IncomingFromClient
     }
     return;
   }
-  // Dispatch to handler
   const entry = catalog.get(validation.type as keyof typeof catalog.definition);
-  if (entry && entry.direction === 'toServer' && entry.handle) {
+  if (entry && entry.direction === 'toServer' && entry.handleServer) {
     try {
-      entry.handle(ctx as unknown as ServerHandlerContext, msg);
+      void Promise.resolve(entry.handleServer(ctx as unknown as ServerHandlerContext, msg)).catch((error: unknown) => {
+        console.error(`[handler-registry] Handler error for ${validation.type}:`, error);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(errorFrame('internal', (error as Error).message)));
+        }
+      });
     } catch (error) {
       console.error(`[handler-registry] Handler error for ${validation.type}:`, error);
       if (ws.readyState === WebSocket.OPEN) {
@@ -90,12 +76,10 @@ export function getProtocolCatalog() {
 
 /** Registered message types from the protocol catalog. */
 export function registeredMessageTypes(): IncomingFromClient['type'][] {
-  const catalog = getServerProtocolCatalog();
-  return catalog ? catalog.ids as IncomingFromClient['type'][] : [];
+  return getServerProtocolCatalog().ids as IncomingFromClient['type'][];
 }
 
 /** Check if a handler exists for a message type. */
 export function hasHandler(type: IncomingFromClient['type']): boolean {
-  const catalog = getServerProtocolCatalog();
-  return catalog ? catalog.has(type) : false;
+  return getServerProtocolCatalog().has(type);
 }

@@ -23,7 +23,7 @@ export interface ViewAdapter {
 }
 
 /** Registry mapping shape -> ViewAdapter[] (multiple adapters per shape for different budgets). */
-const registry: Registry<Shape, ViewAdapter[]> = createRegistry((adapters) => adapters[0].shape);
+const registry: Registry<Shape, ViewAdapter[]> = createRegistry((adapters) => adapters[0]!.shape);
 
 export const registerViewAdapter = (adapter: ViewAdapter): void => {
   const existing = registry.get(adapter.shape) ?? [];

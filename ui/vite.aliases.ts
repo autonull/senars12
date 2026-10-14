@@ -36,5 +36,3 @@ export const resolveAliases = [
   { find: '@senars/core/agent', replacement: resolve(coreSrc, 'agent/index.ts') },
   { find: '@senars/core', replacement: resolve(coreSrc, 'index.ts') },
 ];
-
-console.log('resolveAliases loaded:', resolveAliases.length);
