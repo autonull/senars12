@@ -11,7 +11,7 @@ import { connect, disconnect, mountWorkspaceProjection } from '../kernel/index.j
 import { BaseComponent } from '../core/base-component.js';
 import { appFor, type AppDescriptor, type ConnectionConfig, APP_SHELL_TAG } from '../framework/app.js';
 import type { Composition } from '../framework/composition.js';
-import { type Placement, type SurfaceDescriptor, surfaceTag } from '../framework/surface.js';
+import { surfaceTag } from '../framework/surface.js';
 import {
   applyGlobals,
   compositionFromUrl,
@@ -174,27 +174,24 @@ export class AppShell extends BaseComponent {
     this.composition = composition;
   };
 
+  /**
+   * Mount slotted surfaces. A composition app owns its viewport (the
+   * `composition-view` mounts cells), so only its panels/overlays/inline mount
+   * here; legacy apps still mount their viewport surfaces.
+   */
   private mountSurfaces(): void {
     if (!this.app) return;
-
-    for (const surface of this.getAllSurfaces()) {
-      const tag = surfaceTag(surface);
-      const element = document.createElement(tag);
-      element.setAttribute('slot', surface.placement ?? 'viewport');
-      this.appendChild(element);
+    const placements = this.app.composition
+      ? (['panel', 'overlay', 'inline'] as const)
+      : (['viewport', 'panel', 'overlay', 'inline'] as const);
+    for (const placement of placements) {
+      for (const surface of this.app.surfaces[placement] ?? []) {
+        const element = document.createElement(surfaceTag(surface));
+        element.setAttribute('slot', placement);
+        this.appendChild(element);
+      }
     }
-
     this.mounted = true;
-  }
-
-  private getAllSurfaces(): SurfaceDescriptor[] {
-    if (!this.app) return [];
-    const all: SurfaceDescriptor[] = [];
-    for (const placement of ['viewport', 'panel', 'overlay', 'inline'] as const) {
-      const surfaces = this.app.surfaces[placement];
-      if (surfaces) all.push(...surfaces);
-    }
-    return all;
   }
 
   private async connectApp(): Promise<void> {

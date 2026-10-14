@@ -229,7 +229,8 @@ we only relocate chrome and generalize layout. Nothing is dropped.
 - [x] `studio` renders `?preset=chat-graph` (and 3 more) end-to-end
 - [x] `s-app-shell` renders a composition; `composition-view` is the only grid code
       (the Lab still owns its *variant* grid for hand-authored presets — Phase 3)
-- [ ] `ask` and one more surface are chromeless; their apps are composition registrations
+- [x] `ask` and one more surface are chromeless; their apps are composition registrations
+      (`ask` + `console` done; `notebook`/`goals`/`explore`/`hud` pending)
 - [x] Adding a preset = one data entry (no component code)
 - [x] Nested composition renders (recursion proven — `?preset=study`)
 - [~] Lab reuses `composer-controls` + `composition-view` (no duplicate composer)
@@ -302,19 +303,27 @@ with `?preset=chat-graph`. Everything else follows from that keystone.
 - Presets: `chat-graph`, `reasoning-desk`, `graph-3d`, `dashboard`, and `study` (recursion).
 - `vite.config.ts` gained the `studio` entry; server serves `/apps/studio/` statically.
 
+**Phase 2 (in progress) — strip chrome.** `ask-surface` and `console-surface` are now chromeless
+(header/wordmark/tagline/status removed) and their apps carry a one-cell `composition`
+(`{surface:'ask-surface'}` / `{surface:'console-surface'}`); the shell supplies chrome. The shell
+now mounts only `panel`/`overlay`/`inline` surfaces for composition apps (the viewport is owned by
+`composition-view`), while legacy apps keep the viewport-slot path. `ask.spec`/`console.spec`
+selectors re-pointed at `app-chrome`.
+
 **Phase 3 (partial) — recursion: done.** `composition-view` mounts a nested composition for a
 `{ composition }` cell; `?preset=study` renders a `chat-graph` inside a cell.
 
 **Verification:** `pnpm typecheck` ✓ · `composition/lab-compose/app-composition` unit ✓ ·
-`tests/scenarios/apps/studio.spec.ts` (3/3, incl. nested + controls→URL) ✓ · `lab.spec.ts` ✓ ·
-`biome lint` ✓ on all touched files.
+`studio.spec.ts` (3/3, incl. nested + controls→URL) ✓ · `lab.spec.ts` ✓ · `ask.spec.ts` ✓ ·
+`console.spec.ts` (4/4) ✓ · `biome lint` ✓ on all touched files.
 
 ## Remaining work (facilitating notes)
 
-- **Phase 2 — strip chrome.** Do it one surface at a time behind green tests. `ask-surface`
-  first: remove its `<header>` (wordmark/tagline/status), then re-point `/apps/ask/` at an `ask`
-  composition app so `s-app-shell` supplies chrome. Update `tests/scenarios/prototypes/ask.spec.ts`
-  selectors from `ask-surface .status` → `app-chrome`/shell status (the plan's own risk mitigation).
+- **Phase 2 — strip chrome (ask + console done).** Remaining: `notebook` (keep breadcrumb +
+  blocks, relocate its `renderToolbar` into the shell `controls` slot), `goals`/`explore` (their
+  headers carry graph toolbars — move to `composer-controls`), `hud` (panel grid). Pattern each
+  time: delete the surface `<header>`/`.status`/wordmark CSS, add a one-cell `composition` to the
+  app, and re-point tests that used `header .status`/`wordmark` at `app-chrome`.
 - **Lab ↔ Studio consolidation.** The Lab's *variant* path uses hand-authored named grid areas
   (`chat`, `graph`, …) that `composition-view` does not produce. To make the Lab reuse
   `composer-controls` + `composition-view`, either (a) convert `VARIANTS` to `Composition` data

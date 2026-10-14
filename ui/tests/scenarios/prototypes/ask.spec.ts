@@ -7,9 +7,10 @@ import { expect, test } from '@playwright/test';
 test.describe('Ask prototype @prototype', () => {
   test('asserts beliefs, derives an answer, and shows its proof', async ({ page }) => {
     await page.goto('/apps/ask/');
-    // Wait for the app shell and surface to be registered
+    // Wait for the shell chrome and the composed surface to be registered
     await page.waitForSelector('ask-surface', { timeout: 20000 });
-    await expect(page.locator('ask-surface .status')).toContainText('connected', { timeout: 20000 });
+    await expect(page.locator('app-chrome')).toContainText('Ask', { timeout: 20000 });
+    await expect(page.locator('app-chrome')).toContainText('connected', { timeout: 20000 });
 
     const input = page.locator('ask-surface input');
     const submit = page.locator('ask-surface button[type="submit"]');

@@ -17,8 +17,8 @@ test('console app loads, connects, and shows welcome message @app @console', asy
   // Verify welcome messages are shown
   await expect(page.locator('console-surface .log-entry')).toHaveCount(2, { timeout: 10000 });
 
-  // Verify connection status shows connected
-  await expect(page.locator('header .status')).toContainText('connected');
+  // Verify connection status shows connected (shell chrome)
+  await expect(page.locator('app-chrome .status')).toContainText('connected');
 });
 
 test('console app accepts Narsese input and shows output @app @console', async ({ page, testApi }) => {

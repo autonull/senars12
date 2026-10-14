@@ -9,7 +9,6 @@ import { customElement, state } from 'lit/decorators.js';
 import {
   $activeLens,
   $cognitiveEvents,
-  $connectionState,
   $graphLayer,
   $workspaceGraph,
   BaseComponent,
@@ -18,6 +17,7 @@ import {
 } from '../../kernel/index.js';
 import { defineApp, type AppDescriptor } from '../../framework/app.js';
 import { defineBundle } from '../../framework/bundle.js';
+import type { Composition } from '../../framework/composition.js';
 import { type SurfaceDescriptor } from '../../framework/surface.js';
 import { LENS_FACETS } from '../../utils/lens-catalog.js';
 import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
@@ -48,42 +48,6 @@ export class ConsoleSurface extends BaseComponent {
       display: flex;
       flex-direction: column;
       height: 100%;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-scale-2, 8px);
-      padding: 8px 16px;
-      border-bottom: 1px solid #2a2a2a;
-      background: #111827;
-    }
-    .wordmark {
-      font-weight: 650;
-      letter-spacing: 0.02em;
-      color: #6ea8fe;
-    }
-    .tagline {
-      font-size: 12px;
-      color: #888;
-    }
-    .status {
-      margin-left: auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: #888;
-    }
-    .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-    .dot.connected {
-      background: #46c07a;
-    }
-    .dot.disconnected {
-      background: #e5534b;
     }
     .viewport {
       flex: 1;
@@ -172,7 +136,6 @@ export class ConsoleSurface extends BaseComponent {
 
   override connectedCallback(): void {
     super.connectedCallback();
-    this.watch($connectionState);
     this.watch($cognitiveEvents);
     this.addLog('info', 'Console ready. Type Narsese or commands.');
     this.addLog('info', 'Commands: :run <n>, :step, :abort, :beliefs, :events on|off, :clear');
@@ -273,17 +236,8 @@ export class ConsoleSurface extends BaseComponent {
   }
 
   protected override render(): TemplateResult {
-    const status = $connectionState.get();
-
     return html`
       <div class="app">
-        <header>
-          <span class="wordmark">SeNARS</span>
-          <span class="tagline">Console — raw engine interface</span>
-          <span class="status">
-            <span class="dot ${status}"></span>${status}
-          </span>
-        </header>
         <div class="viewport">
           ${this.log.map((entry) => html`
             <div class="log-entry">
@@ -329,6 +283,22 @@ const consoleSurfaces: SurfaceDescriptor[] = [
   },
 ];
 
+/** Console's default composition — one content cell; the shell supplies the chrome. */
+const consoleComposition: Composition = {
+  id: 'console',
+  name: 'Console',
+  layout: 'auto',
+  cells: [{ surface: 'console-surface' }],
+  globals: {
+    lens: 'belief',
+    layer: 'both',
+    shape: 'graph',
+    mode: '2d',
+    fit: 'legible',
+    filter: 'all',
+  },
+};
+
 /** Console app descriptor — one bundle of contributions plus the shell contract. */
 export const CONSOLE_APP: AppDescriptor<'console'> = defineApp({
   bundle: defineBundle({
@@ -340,6 +310,7 @@ export const CONSOLE_APP: AppDescriptor<'console'> = defineApp({
     },
   }),
   icon: 'terminal',
+  composition: consoleComposition,
   defaultLens: 'belief',
   defaultGraphLayer: 'both',
   defaultCapabilityFilter: 'all',

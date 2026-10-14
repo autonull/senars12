@@ -14,13 +14,13 @@ import { customElement, state } from 'lit/decorators.js';
 import {
   $chatMessages,
   $cognitiveEvents,
-  $connectionState,
   BaseComponent,
   narsBackend,
   send,
 } from '../../kernel/index.js';
 import { defineApp, type AppDescriptor } from '../../framework/app.js';
 import { defineBundle } from '../../framework/bundle.js';
+import type { Composition } from '../../framework/composition.js';
 import { type SurfaceDescriptor } from '../../framework/surface.js';
 
 type ProofStep = {
@@ -72,41 +72,6 @@ export class AskSurface extends BaseComponent {
       max-width: 780px;
       margin: 0 auto;
       height: 100%;
-    }
-    header {
-      display: flex;
-      align-items: baseline;
-      gap: var(--spacing-scale-2, 8px);
-      padding: 20px 24px 12px;
-      border-bottom: 1px solid var(--colors-semantic-border-subtle);
-    }
-    .wordmark {
-      font-weight: 650;
-      letter-spacing: 0.02em;
-    }
-    .tagline {
-      font-size: 13px;
-      color: var(--colors-semantic-text-muted);
-    }
-    .status {
-      margin-left: auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: var(--colors-semantic-text-muted);
-    }
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--colors-semantic-text-muted);
-    }
-    .dot.connected {
-      background: #46c07a;
-    }
-    .dot.disconnected {
-      background: #e5534b;
     }
     .messages {
       flex: 1;
@@ -246,7 +211,6 @@ export class AskSurface extends BaseComponent {
 
   override connectedCallback(): void {
     super.connectedCallback();
-    this.watch($connectionState);
     this.watch($cognitiveEvents);
     this.watchWith($chatMessages, () => this.collectChatReplies());
   }
@@ -402,16 +366,8 @@ export class AskSurface extends BaseComponent {
   }
 
   protected override render(): TemplateResult {
-    const status = $connectionState.get();
     return html`
       <div class="app">
-        <header>
-          <span class="wordmark">SeNARS</span>
-          <span class="tagline">reasoning you can audit</span>
-          <span class="status">
-            <span class="dot ${status}"></span>${status}
-          </span>
-        </header>
         <div class="messages">
           ${this.turns.length === 0 ? this.renderEmpty() : this.turns.map((t) => this.renderTurn(t))}
         </div>
@@ -447,6 +403,22 @@ const askSurfaces: SurfaceDescriptor[] = [
   },
 ];
 
+/** Ask's default composition — one content cell; the shell supplies the chrome. */
+const askComposition: Composition = {
+  id: 'ask',
+  name: 'Ask',
+  layout: 'auto',
+  cells: [{ surface: 'ask-surface' }],
+  globals: {
+    lens: 'belief',
+    layer: 'conversation',
+    shape: 'graph',
+    mode: '2d',
+    fit: 'legible',
+    filter: 'all',
+  },
+};
+
 /** Ask app descriptor — one bundle of contributions plus the shell contract. */
 export const ASK_APP: AppDescriptor<'ask'> = defineApp({
   bundle: defineBundle({
@@ -458,6 +430,7 @@ export const ASK_APP: AppDescriptor<'ask'> = defineApp({
     },
   }),
   icon: 'chat',
+  composition: askComposition,
   defaultLens: 'belief',
   defaultGraphLayer: 'conversation',
   defaultCapabilityFilter: 'all',
