@@ -326,7 +326,7 @@ const BUILTIN_CONFIG_FIELDS: ConfigFieldDescriptor[] = [
 
   // UI Appearance
   {
-    id: 'ui.theme',
+    id: 'theme',
     label: 'Theme',
     type: 'enum',
     default: 'auto',
@@ -336,7 +336,7 @@ const BUILTIN_CONFIG_FIELDS: ConfigFieldDescriptor[] = [
     facets: {},
   },
   {
-    id: 'ui.density',
+    id: 'density',
     label: 'Density',
     type: 'enum',
     default: 'comfortable',
@@ -346,7 +346,7 @@ const BUILTIN_CONFIG_FIELDS: ConfigFieldDescriptor[] = [
     facets: {},
   },
   {
-    id: 'ui.motion',
+    id: 'motion',
     label: 'Motion',
     type: 'enum',
     default: 'normal',
@@ -355,31 +355,9 @@ const BUILTIN_CONFIG_FIELDS: ConfigFieldDescriptor[] = [
     category: 'appearance',
     facets: {},
   },
-  {
-    id: 'ui.fontSize',
-    label: 'Font Size',
-    type: 'number',
-    default: 14,
-    description: 'Base font size in pixels',
-    category: 'appearance',
-    min: 10,
-    max: 24,
-    step: 1,
-    facets: {},
-  },
-  {
-    id: 'ui.animations',
-    label: 'Animations',
-    type: 'boolean',
-    default: true,
-    description: 'Enable UI animations and transitions',
-    category: 'appearance',
-    facets: {},
-  },
-
   // Renderer & Layout
   {
-    id: 'ui.defaultRenderer',
+    id: 'defaultRenderer',
     label: 'Default Renderer',
     type: 'string',
     default: 'graph',
@@ -388,7 +366,7 @@ const BUILTIN_CONFIG_FIELDS: ConfigFieldDescriptor[] = [
     facets: {},
   },
   {
-    id: 'ui.defaultLens',
+    id: 'defaultLens',
     label: 'Default Lens',
     type: 'enum',
     default: 'belief',
@@ -398,7 +376,7 @@ const BUILTIN_CONFIG_FIELDS: ConfigFieldDescriptor[] = [
     facets: {},
   },
   {
-    id: 'ui.layout.concept',
+    id: 'defaultLayout.concept',
     label: 'Concept Layout',
     type: 'string',
     default: 'cose',
@@ -407,7 +385,7 @@ const BUILTIN_CONFIG_FIELDS: ConfigFieldDescriptor[] = [
     facets: {},
   },
   {
-    id: 'ui.layout.conversation',
+    id: 'defaultLayout.conversation',
     label: 'Conversation Layout',
     type: 'string',
     default: 'chronological',
@@ -416,20 +394,9 @@ const BUILTIN_CONFIG_FIELDS: ConfigFieldDescriptor[] = [
     facets: {},
   },
 
-  // Panels
-  {
-    id: 'ui.panels',
-    label: 'Panel State',
-    type: 'string', // JSON array
-    default: '[]',
-    description: 'Panel open/pinned/bounds state',
-    category: 'panels',
-    facets: {},
-  },
-
   // Advanced
   {
-    id: 'advanced.showTelemetry',
+    id: 'showTelemetry',
     label: 'Show Telemetry',
     type: 'boolean',
     default: false,
@@ -438,7 +405,7 @@ const BUILTIN_CONFIG_FIELDS: ConfigFieldDescriptor[] = [
     facets: {},
   },
   {
-    id: 'advanced.showMinimap',
+    id: 'showMinimap',
     label: 'Show Minimap',
     type: 'boolean',
     default: true,
@@ -447,7 +414,7 @@ const BUILTIN_CONFIG_FIELDS: ConfigFieldDescriptor[] = [
     facets: {},
   },
   {
-    id: 'advanced.autoConnect',
+    id: 'autoConnect',
     label: 'Auto Connect',
     type: 'boolean',
     default: true,
@@ -456,35 +423,12 @@ const BUILTIN_CONFIG_FIELDS: ConfigFieldDescriptor[] = [
     facets: {},
   },
   {
-    id: 'advanced.debugMode',
+    id: 'debugMode',
     label: 'Debug Mode',
     type: 'boolean',
     default: false,
     description: 'Enable debug logging',
     category: 'advanced',
-    facets: {},
-  },
-
-  // Chat
-  {
-    id: 'chat.streaming',
-    label: 'Streaming',
-    type: 'boolean',
-    default: true,
-    description: 'Stream agent responses token by token',
-    category: 'chat',
-    facets: {},
-  },
-  {
-    id: 'chat.maxHistory',
-    label: 'Max History',
-    type: 'number',
-    default: 100,
-    description: 'Maximum chat messages to keep in history',
-    category: 'chat',
-    min: 10,
-    max: 1000,
-    step: 10,
     facets: {},
   },
 ];

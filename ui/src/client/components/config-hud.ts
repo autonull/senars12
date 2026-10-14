@@ -9,6 +9,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { type Debounced, debounce, getOrInsert } from '@senars/util';
 import { $config, BaseComponent, send, type UiConfig, UiConfigSchema, type Theme, type Density, type Motion } from '../core/index.js';
+import { configFieldFor, getConfigFields } from '../core/config-catalog.js';
 import { renderField, type FieldValue } from '../utils/render-field.js';
 import './config-profiles.js';
 
@@ -26,158 +27,40 @@ const SECTION_LABELS: Record<ConfigSection, string> = {
 
 const SECTION_ORDER: ConfigSection[] = ['appearance', 'defaults', 'panels', 'provider', 'budgets', 'nars', 'advanced'];
 
-const FIELD_METADATA: Record<
-  string,
-  { label: string; description?: string; section: ConfigSection; options?: string[] }
-> = {
-  // Appearance
-  theme: {
-    label: 'Theme',
-    description: 'UI color theme',
-    section: 'appearance',
-    options: ['auto', 'dark', 'light'],
-  },
-  density: {
-    label: 'Density',
-    description: 'Spacing density',
-    section: 'appearance',
-    options: ['comfortable', 'compact'],
-  },
-  motion: {
-    label: 'Motion',
-    description: 'Animation preference',
-    section: 'appearance',
-    options: ['normal', 'reduced'],
-  },
+type FieldMeta = { label: string; description?: string; section: ConfigSection; options?: string[] };
 
-  // Defaults
-  defaultRenderer: {
-    label: 'Default Renderer',
-    description: 'Renderer on boot',
-    section: 'defaults',
-  },
-  defaultLens: {
-    label: 'Default Lens',
-    description: 'Cognitive lens on boot',
-    section: 'defaults',
-    options: ['belief', 'goal', 'contradiction'],
-  },
-  'defaultLayout.concept': {
-    label: 'Concept Layout',
-    description: 'Layout for concept scope',
-    section: 'defaults',
-  },
-  'defaultLayout.conversation': {
-    label: 'Conversation Layout',
-    description: 'Layout for conversation scope',
-    section: 'defaults',
-  },
-
-  // Provider
-  'provider.name': {
-    label: 'Provider',
-    description: 'LLM provider',
-    section: 'provider',
-    options: ['webllm', 'ollama', 'openai', 'anthropic'],
-  },
-  'provider.model': {
-    label: 'Model',
-    description: 'Model identifier',
-    section: 'provider',
-  },
-  'provider.temperature': {
-    label: 'Temperature',
-    description: 'Sampling temperature',
-    section: 'provider',
-    options: undefined,
-  },
-  'provider.maxTokens': {
-    label: 'Max Tokens',
-    description: 'Maximum response tokens',
-    section: 'provider',
-  },
-  'provider.baseUrl': {
-    label: 'Base URL',
-    description: 'Custom API base URL',
-    section: 'provider',
-  },
-  'provider.apiKey': {
-    label: 'API Key',
-    description: 'API key (stored locally)',
-    section: 'provider',
-  },
-
-  // Budgets
-  'budgets.inference': {
-    label: 'Inference Budget',
-    description: 'Inference operations budget',
-    section: 'budgets',
-  },
-  'budgets.memory': {
-    label: 'Memory Budget',
-    description: 'Memory operations budget',
-    section: 'budgets',
-  },
-  'budgets.tools': {
-    label: 'Tools Budget',
-    description: 'Tool invocations budget',
-    section: 'budgets',
-  },
-
-  // NARS
-  'nars.maxConcepts': {
-    label: 'Max Concepts',
-    description: 'Maximum concepts in working memory',
-    section: 'nars',
-  },
-  'nars.activationDecayRate': {
-    label: 'Decay Rate',
-    description: 'Priority decay per cycle',
-    section: 'nars',
-  },
-  'nars.consolidationInterval': {
-    label: 'Consolidation Interval',
-    description: 'Cycles between consolidation',
-    section: 'nars',
-  },
-  'nars.cpuThrottleMs': {
-    label: 'CPU Throttle (ms)',
-    description: 'Minimum pause between cycle bursts',
-    section: 'nars',
-  },
-  'nars.maxDerivationDepth': {
-    label: 'Max Derivation Depth',
-    description: 'Maximum inference chain depth',
-    section: 'nars',
-  },
-  'nars.maxDerivationsPerStep': {
-    label: 'Max Derivations/Step',
-    description: 'Max derivations per inference step',
-    section: 'nars',
-  },
-
-  // Advanced
-  showTelemetry: {
-    label: 'Show Telemetry',
-    description: 'Display telemetry overlay',
-    section: 'advanced',
-  },
-  showMinimap: {
-    label: 'Show Minimap',
-    description: 'Display graph minimap',
-    section: 'advanced',
-  },
-  autoConnect: {
-    label: 'Auto Connect',
-    description: 'Auto-connect to server on load',
-    section: 'advanced',
-  },
-  debugMode: {
-    label: 'Debug Mode',
-    description: 'Enable debug logging',
-    section: 'advanced',
-  },
+/** Map catalog categories onto the settings sections. */
+const CATEGORY_TO_SECTION: Record<string, ConfigSection> = {
+  appearance: 'appearance',
+  renderer: 'defaults',
+  panels: 'panels',
+  provider: 'provider',
+  budgets: 'budgets',
+  reasoning: 'nars',
+  advanced: 'advanced',
 };
+
+const sectionOf = (category: string | undefined): ConfigSection | undefined =>
+  category ? CATEGORY_TO_SECTION[category] : undefined;
+
+/** Field metadata for a config path, derived from the config catalog. */
+const fieldMeta = (path: string): FieldMeta | undefined => {
+  const field = configFieldFor(path);
+  const section = sectionOf(field?.category);
+  if (!field || !section) return undefined;
+  return {
+    label: field.label,
+    description: field.description,
+    section,
+    options: field.enumValues ? [...field.enumValues] : undefined,
+  };
+};
+
+/** The config paths shown in a section (derived from the catalog). */
+export const fieldsForSection = (section: ConfigSection): string[] =>
+  getConfigFields()
+    .filter((field) => sectionOf(field.category) === section)
+    .map((field) => field.id);
 
 function getNestedValue(obj: UiConfig, path: string): unknown {
   return path.split('.').reduce((acc: unknown, key) => (acc as Record<string, unknown>)[key], obj);
@@ -512,9 +395,7 @@ export class ConfigHUD extends BaseComponent {
   }
 
   private getFieldsForSection(section: ConfigSection): string[] {
-    return Object.entries(FIELD_METADATA)
-      .filter(([, meta]) => meta.section === section)
-      .map(([path]) => path);
+    return fieldsForSection(section);
   }
 
   private handleChange(path: string, value: unknown) {
@@ -559,9 +440,9 @@ export class ConfigHUD extends BaseComponent {
     const defaults = UiConfigSchema.parse({});
     $config.set(defaults);
     // Send reset for all fields
-    for (const [path] of Object.entries(FIELD_METADATA)) {
-      const defaultValue = getNestedValue(defaults, path);
-      send({ type: 'config.set', key: path, value: defaultValue });
+    for (const field of getConfigFields()) {
+      const defaultValue = getNestedValue(defaults, field.id);
+      send({ type: 'config.set', key: field.id, value: defaultValue });
     }
     this.requestUpdate();
   }
@@ -578,7 +459,7 @@ export class ConfigHUD extends BaseComponent {
   }
 
   private renderField(path: string): unknown {
-    const meta = FIELD_METADATA[path];
+    const meta = fieldMeta(path);
     if (!meta) return '';
     const isDirty = this.dirtyFields.has(path);
     const error = this.validationErrors.get(path);
@@ -632,15 +513,15 @@ export class ConfigHUD extends BaseComponent {
       }
       case 'zodnumber':
       case 'number': {
-        // Check if it's a slider field based on metadata
-        const meta = FIELD_METADATA[path];
+        // A field with enum values is a dropdown; otherwise a bounded slider.
+        const meta = fieldMeta(path);
         if (meta?.options) {
           return renderField({ type: 'dropdown', options: meta.options }, String(value ?? ''), change);
         }
-        // Default to slider for known numeric fields
-        const min = (path.includes('maxConcepts') ? 100 : 0) as number;
-        const max = (path.includes('maxConcepts') ? 10000 : 100) as number;
-        const step = (path.includes('DecayRate') ? 0.001 : 1) as number;
+        const field = configFieldFor(path);
+        const min = field?.min ?? 0;
+        const max = field?.max ?? 100;
+        const step = field?.step ?? 1;
         return html`
           ${renderField({ type: 'slider', min, max, step }, Number(value) || 0, change)}
           <span class="val">${Number(value).toFixed(step < 1 ? 3 : 0)}</span>

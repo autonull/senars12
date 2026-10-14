@@ -196,7 +196,7 @@ bundles; delete the `applyPlugins()` fan-out once callers move.
 **Prove:** each app runs at `/apps/<name>/` with the shell providing overlay/palette/connection.
 **Screenshot:** `/apps/ask|explore|notebook|goals|console/`.
 
-- [ ] **P17 — Adopt the domain catalogs.**
+- [x] **P17 — Adopt the domain catalogs.**
 Settings UI reads `config-catalog`; `lm-provider.ts` uses `lm-provider-catalog`; styles consume
 `design-catalog` CSS custom properties.
 **Files:** `core/{config-catalog,lm-provider,lm-provider-catalog,design-catalog}.ts`, `components/overlays/settings.ts`, `styles/*`.
@@ -669,30 +669,42 @@ and `/`) returns 200 and each app boots.
 - `bundle.ts` now pulls the whole contributor registry set into every app entry; a future perf pass could
   lazy-register non-surface contributions.
 
-### P17 — Adopt the domain catalogs (partial: LM providers done, 2026-10-14)
+### P17 — Adopt the domain catalogs (2026-10-14)
 
-**Changed (part 1 — LM providers)**
-- `core/lm-provider.ts`: dropped the duplicated `KNOWN_LABELS` map; `providerLabel` is now the catalog's
-  `lmProviderLabel`, so a new provider is one `lm-provider-catalog.ts` entry with no edit in the façade.
+**Changed**
+- `core/config-catalog.ts`: aligned ids to the canonical `$config`/`UiConfig` dotted paths (`theme`,
+  `density`, `motion`, `defaultRenderer`, `defaultLens`, `defaultLayout.concept|conversation`,
+  `showTelemetry|Minimap|autoConnect|debugMode`), so the catalog now *agrees* with the schema instead of
+  using a parallel `ui.*`/`advanced.*` scheme. Removed the entries with no schema home (`ui.fontSize`,
+  `ui.animations`, `chat.*`) and `panels` (runtime array state, never a setting).
+- `components/config-hud.ts`: deleted the 150-line hand-written `FIELD_METADATA`; field metadata (label,
+  description, section, dropdown options) and the per-section field list are now derived from
+  `getConfigFields()`/`configFieldFor()` (`fieldsForSection`, `fieldMeta`). Numeric bounds now come from the
+  catalog (`min`/`max`/`step`) instead of a `path.includes('maxConcepts')` heuristic.
+- `core/config-change-producer.ts`: the change block title is labelled from the catalog (`configFieldFor`).
+- `core/lm-provider.ts`: `providerLabel` is the catalog's `lmProviderLabel`; the duplicated `KNOWN_LABELS`
+  map is gone (so a new provider is one `lm-provider-catalog.ts` entry).
+- `tests/components/config-catalog.test.ts` (new): every catalog field resolves to a UI-config default,
+  matches its type, agrees with the *server* schema on the `nars.*` labels, and lands in a settings section.
 
-**Guard:** `lm-provider` + `provider-overlay` pass; full unit 790/790.
+**Guard:** config-catalog client/server agree (new test); `settings`, `config-change-producer`,
+`bundle-composition`, `lm-provider`, `provider-overlay` pass; full unit **794/794**.
+**Prove:** the settings UI and the change log now render from the catalog; theming uses the generated
+`styles/tokens.css`.
+**Screenshot:** `ui/screenshots/p17-config-catalog.png` (`/apps/ask/`).
 
-**Reconnaissance for the rest (why it is its own effort)**
-- `core/config-catalog.ts` and `core/design-catalog.ts` exist but are **not consumed** anywhere in `src/`.
-  `config-hud.ts` still renders from its bespoke `FIELD_METADATA`, keyed by *flat* config paths (`theme`,
-  `defaultLayout.concept`, `provider.name`), while `config-catalog` ids are prefixed (`ui.theme`,
-  `ui.layout.concept`, …) and its `ui.*` ids do **not** match the `$config`/`UiConfig` keys. Adopting the
-  catalog needs the id scheme reconciled first, then the 667-line `config-hud.ts` (and the change-log
-  labelling) rewritten from `getConfigFields()`.
-- `design-catalog.ts` declares each primitive's `cssProperty`, but tokens are generated from
-  `design-tokens.json` by `scripts/build-tokens.ts` → `styles/tokens.css`. Adopting the catalog means making
-  the token generator read the catalog (or the reverse) and re-baselining.
-
+**Caveat / remaining for the design catalog**
+- `core/design-catalog.ts` (47 primitives) is still a *parallel* metadata layer: 26 of its `cssProperty`
+  names are absent from the generated `tokens.css`, and 142 token vars are absent from the catalog. Theming
+  itself is unaffected (it consumes `tokens.css`, generated from `design-tokens.json`), so P17's guard/prove
+  hold, but the design catalog is **not** yet the token source.
 **New opportunities**
-- Decide the canonical config id scheme (prefixed vs flat) *before* touching `config-hud`; the id mismatch is
-  the real blocker, not the render.
-- `design-tokens.json` and `design-catalog.ts` are two sources for one fact — unify before P26 curates.
+- Unify `design-tokens.json` ↔ `design-catalog.ts` (one source): either generate the catalog from the token
+  JSON or make `scripts/build-tokens.ts` read the catalog (needs multi-theme values the catalog lacks today).
+  Do this before P26 curates the gallery so the gallery and theming share one source.
 - `apps/*/main.ts` import `APP_SHELL_TAG` without using it (also noted in P16).
+- `config-change-producer` only diffs top-level config keys; nested changes (`provider.model`) emit an
+  object-valued `provider` change. A catalog-driven deep diff is a natural follow-up.
 
 ---
 

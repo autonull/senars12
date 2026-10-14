@@ -13,6 +13,7 @@ import { applyWorkspaceOp } from './workspace-graph.js';
 import type { ConfigChangeData } from './block-payload.js';
 import type { SemanticBlock, WorkspaceOp } from './workspace-graph.js';
 import type { UiConfig } from './config-schema.js';
+import { configFieldFor } from './config-catalog.js';
 
 let previousConfig: UiConfig;
 
@@ -46,7 +47,7 @@ function emitConfigChange(key: string, before: string, after: string): void {
     id: generateId('config-change'),
     kind: 'config-change',
     role: 'system',
-    title: `Config: ${key}`,
+    title: `Config: ${configFieldFor(key)?.label ?? key}`,
     text: `${key}: ${before} → ${after}`,
     data: {
       before,
