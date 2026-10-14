@@ -32,7 +32,9 @@ export interface Globals {
 }
 
 /** One slot in a composition: a surface id, or a nested composition. */
-export type Cell = { readonly surface: string } | { readonly composition: Composition };
+export type Cell =
+  | { readonly surface: string; readonly area?: string }
+  | { readonly composition: Composition; readonly area?: string };
 
 /** A named arrangement of cells under global controls. */
 export interface Composition {
@@ -41,6 +43,10 @@ export interface Composition {
   readonly cells: readonly Cell[];
   readonly layout: LayoutId;
   readonly globals?: Globals;
+  /** Custom grid template — overrides layout when present. */
+  readonly columns?: string;
+  readonly rows?: string;
+  readonly areas?: string;
 }
 
 /** The one composition registry (presets). */

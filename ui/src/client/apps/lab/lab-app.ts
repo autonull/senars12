@@ -5,28 +5,24 @@
  * `?compose=1&...`   a point in the parameter space, live and shareable.
  * (no params)        the menu.
  *
- * The composer's controls are the dimensions of the space: which widgets, how
- * they are laid out, and the global graph controls. Randomize samples the space.
+ * The Lab now reuses the shell chrome (app-chrome), the composer controls
+ * (composer-controls), and the grid renderer (composition-view) — the same
+ * components the Studio uses. The only Lab-specific code is the preset catalogue
+ * and the menu/index page.
  */
+
 import { css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { $activeLens, $graphFit, $graphLayer, $graphShape, $viewportMode } from '../../kernel/index.js';
 import { BaseComponent } from '../../core/base-component.js';
-import {
-  FIT_OPTIONS,
-  LAYERS,
-  LENSES,
-  LAYOUTS,
-  MODES,
-  SHAPES,
-  parseSpec,
-  randomSpec,
-  specToSearch,
-  specToVariant,
-  type Spec,
-  WIDGETS,
-} from './compose.js';
-import { variantById, VARIANTS, type Variant } from './variants.js';
+import { compositionFor, getCompositions, registerComposition, type Composition } from '../../framework/composition.js';
+import { layoutOf } from '../../framework/layout.js';
+import { registerLabPresets, LAB_PRESETS } from './presets.js';
+import { parseSpec, specToSearch, randomSpec, type Spec, WIDGETS, LAYOUTS, MODES, SHAPES, LENSES, LAYERS, FIT_OPTIONS } from './compose.js';
+import { applyGlobals, compositionFromUrl, compositionToSearch } from '../shared/config-sync.js';
+import '../shared/app-chrome.js';
+import '../shared/composer-controls.js';
+import '../../components/composition-view.js';
 
 @customElement('lab-surface')
 export class LabSurface extends BaseComponent {
@@ -64,57 +60,6 @@ export class LabSurface extends BaseComponent {
       border-radius: 999px;
     }
     nav a:hover { color: var(--colors-semantic-text-primary); border-color: var(--colors-semantic-accent-cyan, #4cc9f0); }
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 16px;
-      border-bottom: 1px solid var(--colors-semantic-border-subtle);
-      background: var(--colors-semantic-bg-base);
-      flex: 0 0 auto;
-      flex-wrap: wrap;
-      font-size: 12px;
-    }
-    .controls label { display: inline-flex; align-items: center; gap: 6px; color: var(--colors-semantic-text-muted); }
-    select, input.link {
-      background: var(--colors-semantic-bg-panel-solid);
-      color: var(--colors-semantic-text-primary);
-      border: 1px solid var(--colors-semantic-border-subtle);
-      border-radius: 6px;
-      padding: 4px 8px;
-      font: inherit;
-      outline: none;
-    }
-    input.link { width: 260px; color: var(--colors-semantic-text-secondary); }
-    .chips { display: flex; flex-wrap: wrap; gap: 4px; }
-    .chip {
-      border: 1px solid var(--colors-semantic-border-subtle);
-      background: transparent;
-      color: var(--colors-semantic-text-secondary);
-      border-radius: 999px;
-      padding: 3px 9px;
-      font: inherit;
-      cursor: pointer;
-    }
-    .chip[data-on='true'] { background: var(--colors-semantic-accent-cyan, #4cc9f0); color: #04121a; border-color: transparent; }
-    .chip:hover { border-color: var(--colors-semantic-accent-cyan, #4cc9f0); }
-    button.act {
-      border: 1px solid var(--colors-semantic-accent-cyan, #4cc9f0);
-      background: transparent;
-      color: var(--colors-semantic-accent-cyan, #4cc9f0);
-      border-radius: 999px;
-      padding: 4px 12px;
-      font: inherit;
-      cursor: pointer;
-    }
-    button.act:hover { background: var(--colors-semantic-accent-cyan, #4cc9f0); color: #04121a; }
-    .grid { flex: 1 1 auto; display: grid; min-height: 0; }
-    .grid > section {
-      min-width: 0; min-height: 0; overflow: hidden; position: relative;
-      display: flex; flex-direction: column;
-      border: 1px solid var(--colors-semantic-border-subtle);
-    }
-    .grid > section > * { flex: 1 1 auto; min-height: 0; }
     .index { flex: 1 1 auto; overflow: auto; padding: 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; align-content: start; }
     .card {
       display: block; padding: 14px; border: 1px solid var(--colors-semantic-border-subtle);
@@ -127,129 +72,113 @@ export class LabSurface extends BaseComponent {
     .card p { margin: 0; font-size: 12px; line-height: 1.5; color: var(--colors-semantic-text-muted); }
     .leadv { padding: 22px 22px 0; color: var(--colors-semantic-text-muted); max-width: 800px; }
     .leadv h1 { font-size: 19px; color: var(--colors-semantic-text-primary); margin: 0 0 8px; }
+    /* Composer controls slot styling */
+    .composer-bar {
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+      background: var(--colors-semantic-bg-base);
+      flex: 0 0 auto;
+    }
+    composition-view {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
   `;
 
   private readonly params = new URLSearchParams(globalThis.location?.search ?? '');
   @state() private variantId = this.params.get('v') ?? '';
   @state() private compose = this.params.has('compose');
   @state() private spec: Spec = parseSpec(this.params);
+  @state() private composition?: Composition;
   private filledFor = '';
 
   override connectedCallback(): void {
     super.connectedCallback();
+    registerLabPresets();
+    this.resolveComposition();
     this.applyGlobals();
+  }
+
+  private resolveComposition(): void {
+    if (this.compose) {
+      // Composer mode: build a composition from the spec
+      this.composition = this.specToComposition(this.spec);
+    } else if (this.variantId) {
+      // Preset mode: look up registered composition
+      this.composition = compositionFor(this.variantId);
+    }
+  }
+
+  private specToComposition(spec: Spec): Composition {
+    const widgets = spec.widgets.map((id) => WIDGETS.find((w) => w.id === id)).filter((w): w is typeof WIDGETS[0] => !!w);
+    const cells = widgets.map((w, i) => ({ surface: w.tag, area: `a${i}` })); // Use a, b, c... areas for composer
+    return {
+      id: 'compose',
+      name: widgets.length ? widgets.map((w) => w.label).join(' · ') : 'Empty',
+      layout: spec.layout,
+      cells,
+      globals: {
+        lens: spec.lens,
+        layer: spec.layer,
+        shape: spec.shape,
+        mode: spec.mode,
+        fit: spec.fit,
+      },
+    };
   }
 
   private applyGlobals(): void {
-    const variant = this.activeVariant();
-    // The Lab is a wall of small cells: show every cell's whole graph, not a
-    // legible crop (a composable metaphor is judged on what it shows, not on how
-    // far it zooms in). In the composer, respect the explicit `fit` dimension.
-    $graphFit.set(this.compose ? this.spec.fit : 'fit');
-    if (variant?.mode) $viewportMode.set(variant.mode);
-    if (variant?.shape) $graphShape.set(variant.shape);
-    if (this.compose) {
-      $activeLens.set(this.spec.lens);
-      $graphLayer.set(this.spec.layer as never);
-    }
-  }
-
-  private activeVariant(): Variant | undefined {
-    if (this.compose) return specToVariant(this.spec);
-    return variantById(this.variantId);
+    if (!this.composition) return;
+    const globals = this.composition.globals ?? {};
+    // Lab presets use 'fit' to show full graph; composer respects explicit fit
+    $graphFit.set(this.compose ? (globals.fit ?? 'legible') : 'fit');
+    if (globals.mode) $viewportMode.set(globals.mode);
+    if (globals.shape) $graphShape.set(globals.shape);
+    if (globals.lens) $activeLens.set(globals.lens);
+    if (globals.layer) $graphLayer.set(globals.layer as never);
   }
 
   private signature(): string {
-    return this.compose ? specToSearch(this.spec) : this.variantId;
+    if (this.compose) return specToSearch(this.spec);
+    return this.variantId;
   }
 
   override updated(): void {
-    const variant = this.activeVariant();
-    if (!variant || this.filledFor === this.signature()) return;
+    if (!this.composition || this.filledFor === this.signature()) return;
     this.filledFor = this.signature();
     this.applyGlobals();
-    const grid = this.renderRoot.querySelector<HTMLElement>('.grid');
-    if (!grid) return;
-    for (const [area, tags] of Object.entries(variant.regions)) {
-      const cell = grid.querySelector<HTMLElement>(`[data-area="${area}"]`);
-      if (cell) cell.replaceChildren(...tags.map((tag) => document.createElement(tag)));
-    }
   }
 
   private navigate(spec: Spec): void {
     this.spec = spec;
     globalThis.history?.replaceState(null, '', specToSearch(spec));
+    this.composition = this.specToComposition(spec);
   }
 
   private onSelect(key: keyof Spec) {
     return (event: Event) => this.navigate({ ...this.spec, [key]: (event.target as HTMLSelectElement).value });
   }
 
-  private toggleWidget = (id: string) => {
+  private toggleWidget = (id: string): void => {
     const has = this.spec.widgets.includes(id);
     const widgets = has ? this.spec.widgets.filter((x) => x !== id) : [...this.spec.widgets, id];
     this.navigate({ ...this.spec, widgets });
   };
 
-  private select(styles: readonly string[], value: string, on: (e: Event) => void, aria: string) {
-    return html`<select aria-label=${aria} @change=${on}>
-      ${styles.map((s) => html`<option value=${s} ?selected=${s === value}>${s}</option>`)}
-    </select>`;
-  }
-
-  private renderControls(): TemplateResult {
-    return html`
-      <div class="controls">
-        <label>layout ${this.select(LAYOUTS.map((l) => l.id), this.spec.layout, this.onSelect('layout'), 'Layout')}</label>
-        <label>mode ${this.select(MODES, this.spec.mode, this.onSelect('mode'), 'Graph mode')}</label>
-        <label>shape ${this.select(SHAPES, this.spec.shape, this.onSelect('shape'), 'Graph shape')}</label>
-        <label>lens ${this.select(LENSES, this.spec.lens, this.onSelect('lens'), 'Lens')}</label>
-        <label>layer ${this.select(LAYERS, this.spec.layer, this.onSelect('layer'), 'Graph layer')}</label>
-        <label>fit ${this.select(FIT_OPTIONS, this.spec.fit, this.onSelect('fit'), 'Graph fit policy')}</label>
-        <button class="act" @click=${() => this.navigate(randomSpec())}>randomize</button>
-        <button class="act" @click=${() => this.navigate({ ...this.spec, widgets: [] })}>clear</button>
-        <input class="link" readonly .value=${globalThis.location?.href ?? ''} aria-label="Permalink" />
-      </div>
-      <div class="controls">
-        <div class="chips">
-          ${WIDGETS.map(
-            (w) => html`<button class="chip" data-on=${this.spec.widgets.includes(w.id)} @click=${() => this.toggleWidget(w.id)}>
-              ${w.label}
-            </button>`
-          )}
-        </div>
-      </div>
-    `;
-  }
-
-  private renderGrid(variant: Variant): TemplateResult {
-    return html`
-      <div
-        class="grid"
-        style="grid-template-columns:${variant.columns};grid-template-rows:${variant.rows};grid-template-areas:${variant.areas}"
-      >
-        ${Object.keys(variant.regions).map(
-          (area) => html`<section data-area=${area} style="grid-area:${area}"></section>`
-        )}
-      </div>
-    `;
-  }
-
   private renderNav(variantId?: string): TemplateResult {
     if (this.compose) {
       return html`<nav>
         <a href="./">menu</a>
-        <a href="?v=${VARIANTS[0]?.id ?? ''}">presets</a>
+        <a href="?v=${LAB_PRESETS[0]?.id ?? ''}">presets</a>
       </nav>`;
     }
-    const ids = VARIANTS.map((x) => x.id);
+    const ids = LAB_PRESETS.map((x) => x.id);
     const index = variantId ? ids.indexOf(variantId) : -1;
     const prev = index > 0 ? ids[index - 1] : undefined;
     const next = index >= 0 && index < ids.length - 1 ? ids[index + 1] : undefined;
     return html`<nav>
       ${prev ? html`<a href="?v=${prev}">‹ prev</a>` : ''}
       ${next ? html`<a href="?v=${next}">next ›</a>` : ''}
-      <a href="./">all (${VARIANTS.length})</a>
+      <a href="./">all (${LAB_PRESETS.length})</a>
     </nav>`;
   }
 
@@ -258,7 +187,7 @@ export class LabSurface extends BaseComponent {
       <div class="leadv">
         <h1>SeNARS UI Lab</h1>
         <p>
-          One substrate; many widget compositions. Browse the ${VARIANTS.length} presets, or compose
+          One substrate; many widget compositions. Browse the ${LAB_PRESETS.length} presets, or compose
           your own from ${WIDGETS.length} widgets — every point is a shareable page.
         </p>
       </div>
@@ -267,7 +196,7 @@ export class LabSurface extends BaseComponent {
           <h3>Composer →</h3>
           <p>Pick widgets, layout, graph mode/shape, lens and layer. Randomize to sample the space.</p>
         </a>
-        ${VARIANTS.map(
+        ${LAB_PRESETS.map(
           (x) => html`<a class="card" href="?v=${x.id}">
             <h3>${x.name}</h3>
             <p>${x.blurb}</p>
@@ -277,9 +206,43 @@ export class LabSurface extends BaseComponent {
     `;
   }
 
+  private renderComposerControls(): TemplateResult {
+    if (!this.compose || !this.composition) return html`${nothing}`;
+    const surfaces = WIDGETS.map((w) => ({ id: w.tag, label: w.label }));
+    return html`
+      <div class="composer-bar">
+        <composer-controls
+          .composition=${this.composition}
+          .surfaces=${surfaces}
+          .showActions=${true}
+          @composition-change=${(e: CustomEvent<Composition>) => {
+            this.spec = this.compositionToSpec(e.detail);
+            globalThis.history?.replaceState(null, '', compositionToSearch(e.detail));
+          }}
+        ></composer-controls>
+      </div>
+    `;
+  }
+
+  private compositionToSpec(comp: Composition): Spec {
+    const widgetMap = new Map(WIDGETS.map((w) => [w.tag, w.id]));
+    const widgets = comp.cells
+      .filter((c): c is { surface: string } => 'surface' in c)
+      .map((c) => widgetMap.get(c.surface))
+      .filter((id): id is string => !!id);
+    return {
+      layout: comp.layout,
+      widgets,
+      mode: comp.globals?.mode ?? '2d',
+      shape: comp.globals?.shape ?? 'graph',
+      lens: comp.globals?.lens ?? 'belief',
+      layer: comp.globals?.layer ?? 'both',
+      fit: comp.globals?.fit ?? 'legible',
+    };
+  }
+
   protected override render(): TemplateResult {
-    const variant = this.activeVariant();
-    if (!variant) {
+    if (!this.composition) {
       return html`
         <header class="lab">
           <span class="wordmark">SeNARS <span>UI Lab</span></span>
@@ -288,15 +251,32 @@ export class LabSurface extends BaseComponent {
         ${this.renderIndex()}
       `;
     }
+
+    const { columns, rows, areas } = layoutOf(this.composition);
+    const hasGraph = this.composition.cells.some(
+      (c): c is { surface: string } => 'surface' in c && ['graph-surface', 'explore-surface', 'goals-surface', 'hud-surface'].includes(c.surface)
+    );
+
     return html`
-      <header class="lab">
-        <span class="wordmark">SeNARS <span>UI Lab</span></span>
-        <span class="variant-name">${variant.name}</span>
-        <span class="variant-blurb">${variant.blurb}</span>
-        ${this.renderNav(variant.id)}
-      </header>
-      ${this.compose ? this.renderControls() : nothing}
-      ${this.renderGrid(variant)}
+      <app-chrome
+        wordmark="SeNARS"
+        title="UI Lab"
+        tagline=${this.composition.name}
+      >
+        <composer-controls
+          slot="controls"
+          .composition=${this.composition}
+          .surfaces=${WIDGETS.map((w) => ({ id: w.tag, label: w.label }))}
+          .showActions=${this.compose}
+          @composition-change=${(e: CustomEvent<Composition>) => {
+            if (this.compose) {
+              this.spec = this.compositionToSpec(e.detail);
+              globalThis.history?.replaceState(null, '', compositionToSearch(e.detail));
+            }
+          }}
+        ></composer-controls>
+      </app-chrome>
+      <composition-view .composition=${this.composition}></composition-view>
     `;
   }
 }

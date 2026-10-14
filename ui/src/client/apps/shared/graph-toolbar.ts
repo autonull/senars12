@@ -119,10 +119,10 @@ export class GraphToolbar extends BaseComponent {
       ${this.showLens ? html`
         <div class="toolbar-group">
           <toolbar-select
-            .label=${'Lens'}
-            .value=${this.activeLens}
+            .selectLabel=${'Lens'}
+            .selectedValue=${this.activeLens}
             .options=${this.lensOptions}
-            .ariaLabel=${'Graph lens'}
+            .selectAriaLabel=${'Graph lens'}
             @change=${this.handleLensChange}
           ></toolbar-select>
         </div>
@@ -130,10 +130,10 @@ export class GraphToolbar extends BaseComponent {
       ${this.showLayer ? html`
         <div class="toolbar-group">
           <toolbar-select
-            .label=${'Layer'}
-            .value=${this.activeLayer}
+            .selectLabel=${'Layer'}
+            .selectedValue=${this.activeLayer}
             .options=${this.layerOptions}
-            .ariaLabel=${'Graph layer'}
+            .selectAriaLabel=${'Graph layer'}
             @change=${this.handleLayerChange}
           ></toolbar-select>
         </div>
@@ -141,10 +141,10 @@ export class GraphToolbar extends BaseComponent {
       ${this.showShape ? html`
         <div class="toolbar-group">
           <toolbar-select
-            .label=${'Shape'}
-            .value=${this.activeShape}
+            .selectLabel=${'Shape'}
+            .selectedValue=${this.activeShape}
             .options=${this.shapeOptions}
-            .ariaLabel=${'Graph shape'}
+            .selectAriaLabel=${'Graph shape'}
             @change=${this.handleShapeChange}
           ></toolbar-select>
         </div>
@@ -152,10 +152,10 @@ export class GraphToolbar extends BaseComponent {
       ${this.showMode ? html`
         <div class="toolbar-group">
           <toolbar-select
-            .label=${'Mode'}
-            .value=${this.activeMode}
+            .selectLabel=${'Mode'}
+            .selectedValue=${this.activeMode}
             .options=${this.modeOptions}
-            .ariaLabel=${'Graph mode'}
+            .selectAriaLabel=${'Graph mode'}
             @change=${this.handleModeChange}
           ></toolbar-select>
         </div>
@@ -163,10 +163,10 @@ export class GraphToolbar extends BaseComponent {
       ${this.showFilter ? html`
         <div class="toolbar-group">
           <toolbar-select
-            .label=${'Filter'}
-            .value=${this.activeFilter}
+            .selectLabel=${'Filter'}
+            .selectedValue=${this.activeFilter}
             .options=${this.filterOptions}
-            .ariaLabel=${'Graph filter'}
+            .selectAriaLabel=${'Graph filter'}
             @change=${this.handleFilterChange}
           ></toolbar-select>
         </div>

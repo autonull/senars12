@@ -11,7 +11,7 @@
 import { css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
-import { areaName, layoutOf } from '../framework/layout.js';
+import { areaName, cellAreaNames, layoutOf } from '../framework/layout.js';
 import { surfaceFor, surfaceTag } from '../framework/surface.js';
 import type { Cell, Composition } from '../framework/composition.js';
 
@@ -66,8 +66,9 @@ export class CompositionView extends BaseComponent {
   private mountCells(composition: Composition): void {
     const grid = this.renderRoot.querySelector<HTMLElement>('.grid');
     if (!grid) return;
+    const areas = cellAreaNames(composition.cells);
     composition.cells.forEach((cell, index) => {
-      const slot = grid.querySelector<HTMLElement>(`[data-area="${areaName(index)}"]`);
+      const slot = grid.querySelector<HTMLElement>(`[data-area="${areas[index]}"]`);
       if (slot) slot.replaceChildren(this.createElementFor(cell));
     });
   }
@@ -83,6 +84,7 @@ export class CompositionView extends BaseComponent {
     const composition = this.composition;
     if (!composition) return html`${nothing}`;
     const { columns, rows, areas } = layoutOf(composition);
+    const cellAreas = cellAreaNames(composition.cells);
     return html`
       <div
         class="grid"
@@ -92,8 +94,8 @@ export class CompositionView extends BaseComponent {
           (_cell, index) =>
             html`<section
               class="cell"
-              data-area=${areaName(index)}
-              style="grid-area:${areaName(index)}"
+              data-area=${cellAreas[index]}
+              style="grid-area:${cellAreas[index]}"
             ></section>`
         )}
       </div>

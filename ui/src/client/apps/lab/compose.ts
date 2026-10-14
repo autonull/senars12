@@ -86,10 +86,11 @@ export const DEFAULT_SPEC: Spec = {
 
 export function specToVariant(spec: Spec): Variant {
   const widgets = spec.widgets.map(widgetById).filter((w): w is Widget => !!w);
-  const t = layoutTemplate(spec.layout, Math.max(widgets.length, 1));
+  const areaNames = widgets.map((_, i) => AREA_LETTERS[i] ?? 'a');
+  const t = layoutTemplate(spec.layout, areaNames);
   const regions: Record<string, readonly string[]> = {};
   widgets.forEach((w, i) => {
-    const area = AREA_LETTERS[i] ?? 'a';
+    const area = areaNames[i] ?? `a${i}`;
     regions[area] = [w.tag];
   });
   const name = widgets.length ? widgets.map((w) => w.label).join(' · ') : 'Empty';
