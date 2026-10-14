@@ -158,6 +158,7 @@ export function updateNodeData(
 }
 
 export type ViewportMode = '2d' | '3d';
+export const VIEWPORT_MODES: readonly ViewportMode[] = ['2d', '3d'];
 
 export const $activeLens = atom<Lens>('belief');
 export const $focusTerm = atom<string | null>(null);

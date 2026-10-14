@@ -1,4 +1,4 @@
-import { LitElement } from 'lit';
+import { LitElement, type PropertyValues } from 'lit';
 
 type Unsubscriber = () => void;
 
@@ -24,4 +24,8 @@ export class BaseComponent extends LitElement {
     fn(source.get());
     this.unsubs.push(source.subscribe(fn));
   }
+
+  // Explicitly declare LitElement lifecycle methods so derived classes can override them
+  protected override updated(_changed: PropertyValues<this>): void {}
+  protected override render() { return; }
 }

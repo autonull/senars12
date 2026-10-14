@@ -129,7 +129,7 @@ export class ViewHost extends SurfaceComponent {
     };
   }
 
-  protected override updated(changed: PropertyValues): void {
+  protected override updated(changed: PropertyValues<this>): void {
     super.updated(changed);
     if (changed.has('spec')) this.resubscribe();
   }

@@ -114,6 +114,18 @@ mount `<graph-viewport>` directly instead of showing only stats. The HUD remains
 stat-only placeholder (it provides panels instead). The Lab presets were already
 composing `graph-surface` alongside these; now the standalone apps are usable on their
 own.
+
+**Shared app-shell components** — new `src/client/apps/shared/` module with reusable
+building blocks:
+- `BaseAppSurface` — common app layout (header, toolbar, viewport, empty state, stats)
+- `GraphViewportWrapper` — standardized `<graph-viewport>` integration
+- `createGraphProjector` — reactive workspace graph projection with kind filtering
+- `ToolbarSelect` / `GraphToolbar` — composable toolbar selects for lens/layer/shape/mode/filter
+
+**Circular import fixed** — `VIEWPORT_MODES` moved to kernel store, breaking the
+lab/compose ↔ shared component cycle. `GraphToolbar` now imports from kernel.
+
+**All gates green** — typecheck ✓ · unit 814/814 ✓ · golden e2e 2/2 ✓ · lab @app e2e 2/2 ✓ · per-app e2e 12/12 ✓.
 3. **Promote winners — OPERATOR-GATED.** For each keeper metaphor: create
    `apps/<name>/{index.html,main.ts}` + a `defineApp` whose bundle's surfaces are the
    composition; add a `vite.config.ts` input. The lab preset is the spec. No composition has

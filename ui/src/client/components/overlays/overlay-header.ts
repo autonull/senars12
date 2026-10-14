@@ -205,7 +205,7 @@ export class OverlayHeader extends BaseComponent {
     document.removeEventListener('mouseup', this.onDocumentMouseUp);
   }
 
-  override updated(changedProperties: PropertyValues): void {
+  override updated(changedProperties: PropertyValues<this>): void {
     super.updated(changedProperties);
     if (changedProperties.has('overlayId')) {
       this.updatePinnedState();

@@ -67,6 +67,7 @@ export {
 export { $activeLens, $graphLayer, $graphFit, $graphShape, $viewportMode, $graphFilter } from '../core/store.js';
 export type { Lens } from '@senars/core';
 export type { ViewportMode } from '../core/store.js';
+export { VIEWPORT_MODES } from '../core/store.js';
 
 // ── Domain: the workspace graph and its projections ──────────────────────────
 export {
