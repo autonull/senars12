@@ -274,6 +274,7 @@ export {
   $graphFilter,
   $graphMeta,
   $graphLayer,
+  $graphFit,
   $controlMode,
   $reasoningRunning,
   $runTerminations,

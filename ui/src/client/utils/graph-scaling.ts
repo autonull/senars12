@@ -70,6 +70,19 @@ export function clampZoom(zoom: number, count: number, area: number): number {
   return clamp(zoom, zoomFloor(count, area), ZOOM.max);
 }
 
+/**
+ * How a viewport settles after a fit. `legible` lifts the zoom to the node
+ * legibility floor, so a sparse graph never reads as specks; `fit` only caps at
+ * the ceiling, so a graph embedded in a small cell (the Lab wall) shows *all* of
+ * its content rather than a legible crop.
+ */
+export type GraphFit = 'legible' | 'fit';
+
+/** A fit zoom settled under the requested policy (§G.2). */
+export function settleZoom(zoom: number, count: number, area: number, fit: GraphFit): number {
+  return fit === 'fit' ? Math.min(zoom, ZOOM.max) : clampZoom(zoom, count, area);
+}
+
 /** The on-screen size of a node of the given world size at a zoom. */
 export const renderedNodeSize = (worldSize: number, zoom: number): number => worldSize * zoom;
 

@@ -7,6 +7,7 @@ import { timeGate } from '../modulation/composition.js';
 import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
 import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, LENS_DEFS, LENS_IDS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
+import { type GraphFit } from '../utils/graph-scaling.js';
 import { CONVERSATION_LAYOUT_IDS } from './conversation-layout.js';
 import { GRAPH_LAYERS, type GraphLayer } from './graph-layer.js';
 import { isRegisteredLayoutId, type LayoutScope } from './layout-ids.js';
@@ -193,6 +194,9 @@ export const $viewportMode = atom<ViewportMode>('2d');
 export const $graphShape = atom<Shape>('graph');
 
 export const $graphLayer = atom<GraphLayer>('both');
+
+/** How a graph viewport settles after a fit — see `settleZoom` (graph-scaling). */
+export const $graphFit = atom<GraphFit>('legible');
 
 export const $lensLayer = atom<Record<string, GraphLayer>>({});
 

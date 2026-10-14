@@ -12,6 +12,7 @@ import {
   $focusTerm,
   $graphEdges,
   $graphFilter,
+  $graphFit,
   $graphLayer,
   $graphMeta,
   $graphNodes,
@@ -40,7 +41,7 @@ import {
   toggleCollapsed,
 } from '../core/index.js';
 import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
-import { clampZoom, FIT_PADDING, labelCutoff, showsLabel, getLoDTier, showsHtmlBody, LOD_TRANSITION } from '../utils/graph-scaling.js';
+import { FIT_PADDING, labelCutoff, settleZoom, showsLabel, getLoDTier, showsHtmlBody, LOD_TRANSITION } from '../utils/graph-scaling.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
 import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
@@ -210,6 +211,7 @@ export class GraphViewport extends BaseComponent {
     renderer.connect();
     this.watchWith($workspaceGraph, () => this.syncGraph());
     this.watchWith($graphLayer, () => this.applyGraphFilter());
+    this.watchWith($graphFit, () => this.settleView());
     this.watchWith($collapsedBlocks, () => {
       if (this.cy) this.syncWorkspaceLayer(this.cy);
     });
@@ -302,13 +304,13 @@ export class GraphViewport extends BaseComponent {
 
     this.cy.on('render', () => this.renderHtmlLabels());
     // After any layout, settle into the legible zoom window and re-center (§G.2).
-    this.cy.on('layoutstop', this.enforceLegibleView);
+    this.cy.on('layoutstop', this.settleView);
     // A host that sizes after init (grid cell, split pane) would otherwise leave
     // the content fit to the wrong box — re-fit on every real resize.
     this.#resizeObserver = new ResizeObserver(
       this.throttle(() => {
         this.cy?.resize();
-        this.enforceLegibleView();
+        this.settleView();
       }, 120)
     );
     this.#resizeObserver.observe(container);
@@ -507,7 +509,7 @@ export class GraphViewport extends BaseComponent {
     });
   };
 
-  private fitGraph = () => this.enforceLegibleView();
+  private fitGraph = () => this.settleView();
 
   /** Elements eligible to fit against: visible, and admitted by the active layer. */
   private visibleElements(cy: Core) {
@@ -518,18 +520,19 @@ export class GraphViewport extends BaseComponent {
   }
 
   /**
-   * Auto-fit to the visible content, then clamp the zoom into the legible window
-   * so the view is centered and never settles tiny (§G.2), and re-apply the label
-   * LOD for the resulting zoom. Runs after every layout and on `Fit`.
+   * Auto-fit to the visible content, then settle the zoom under the current fit
+   * policy (default: clamp into the legible window, §G.2, so the view is centered
+   * and never settles tiny), and re-apply the label LOD for the resulting zoom.
+   * Runs after every layout, on `Fit`, and whenever the policy changes.
    */
-  private enforceLegibleView = () => {
+  private settleView = () => {
     if (!this.cy) return;
     const cy = this.cy;
     const eles = this.visibleElements(cy);
     if (eles.empty()) cy.fit(undefined, FIT_PADDING);
     else cy.fit(eles, FIT_PADDING);
     const count = eles.nodes().length || cy.nodes().length;
-    const zoom = clampZoom(cy.zoom(), count, cy.width() * cy.height());
+    const zoom = settleZoom(cy.zoom(), count, cy.width() * cy.height(), $graphFit.get());
     if (Math.abs(zoom - cy.zoom()) > 1e-3) {
       cy.zoom({ level: zoom, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
     }

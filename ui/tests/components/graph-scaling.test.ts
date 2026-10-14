@@ -9,6 +9,7 @@ import {
   NODE_SIZE,
   nodeSize,
   renderedNodeSize,
+  settleZoom,
   showsLabel,
   ZOOM,
   zoomFloor,
@@ -71,6 +72,16 @@ describe('graph scaling — legible zoom window (G.2, T.4)', () => {
     expect(lifted).toBeGreaterThan(tiny);
     expect(isLegible(nodeSize(0.5, 8, area), lifted)).toBe(true);
     expect(clampZoom(99, 8, area)).toBe(ZOOM.max);
+  });
+
+  it('settles a fit under the requested policy (G.2)', () => {
+    const area = VIEWPORTS.desktop;
+    const tiny = 0.1;
+    // `legible` is exactly clampZoom: it lifts an illegible fit to the floor.
+    expect(settleZoom(tiny, 8, area, 'legible')).toBe(clampZoom(tiny, 8, area));
+    // `fit` shows the whole graph: it never raises the fit, only caps the ceiling.
+    expect(settleZoom(tiny, 8, area, 'fit')).toBe(tiny);
+    expect(settleZoom(99, 8, area, 'fit')).toBe(ZOOM.max);
   });
 });
 

@@ -79,26 +79,49 @@ read well → **promote a winner** into a real `apps/<name>/` entry (a `defineAp
 
 ### Next (in order)
 
-1. **Fix graph legibility in small cells (the top blocker).** `graph-viewport`
-   `enforceLegibleView` fits, then `clampZoom` **raises** zoom to a legibility floor
-   (`zoomFloor`, `graph-scaling.ts:64`) — so a graph in a cell shows only a few nodes, or a
-   single edge spans the viewport (`?v=graph` misleadingly looks empty). Decide the policy:
-   either (a) a **"fit-all" mode** the lab/composer can request (fit to all nodes, accept
-   small nodes), or (b) make the floor **viewport-relative** so small cells still fit. This is
-   what makes the wall *look* compelling; do it first.
-2. **Re-baseline the visual contract for dark-by-default.** `pnpm --dir ui test:visual` is
-   **red** on `overlay-settings` (theme select now shows `dark`, was `auto`) plus 5 stale
-   overlay cells (`overlay-palette/toc/provider/artifact/breadcrumb`) — the latter are
-   pre-existing drift from the `ui.13` refactors, not this work. Run `test:visual:update` once
-   the legibility fix lands, then inspect the git diff of baselines for unintended changes.
-3. **Promote winners.** For each keeper metaphor: create `apps/<name>/{index.html,main.ts}`
-   + a `defineApp` whose bundle's surfaces are the composition; add a `vite.config.ts` input.
-   The lab preset is the spec.
-4. **Guards.** A unit test over `compose.ts` (`specToVariant`: region/template correctness;
-   `parseSpec` round-trips `specToSearch`) and a `@app` e2e that loads `/apps/lab/?v=chat-graph`
-   and asserts the grid mounts both surfaces.
+1. ✅ **Fix graph legibility in small cells (done this session).** Rather than fork a
+   view, the *policy* became data: `settleZoom(zoom, count, area, fit)` in
+   `graph-scaling.ts` selects between `'legible'` (lift to the node floor — the old
+   behaviour, kept as the *default*) and `'fit'` (cap at the ceiling only, so a graph
+   in a small cell shows *all* of it). The policy is one atom, `$graphFit`
+   (`core/store.ts`, exported via `kernel/index.ts` and `core/index.ts`); `graph-viewport`
+   reads it in `settleView` (renamed from `enforceLegibleView`) and re-settles on change.
+   **The Lab sets `$graphFit = 'fit'` for every page** (`lab-app.ts#applyGlobals`), so the
+   wall shows whole graphs, not legible crops. Default path is byte-identical to before.
+2. **Re-baseline the visual contract for dark-by-default — STILL OPEN.**
+   `pnpm --dir ui test:visual` is **red** on `overlay-settings` (theme select now shows
+   `dark`, was `auto`) plus 5 stale overlay cells (`overlay-palette/toc/provider/artifact/breadcrumb`)
+   — the latter are pre-existing drift from the `ui.13` refactors. **This session's change does
+   not touch the default policy, so it adds no new visual drift.** Run `test:visual:update` once
+   (serial, ~8 min), then inspect the git diff of baselines for unintended changes. Owned by the
+   visual-curation work; needs a human to eyeball the cells.
+3. **Promote winners — OPERATOR-GATED.** For each keeper metaphor: create
+   `apps/<name>/{index.html,main.ts}` + a `defineApp` whose bundle's surfaces are the
+   composition; add a `vite.config.ts` input. The lab preset is the spec. No composition has
+   been chosen yet, so nothing was promoted. **Note:** the promoted app should decide its own
+   fit policy — a full-page app probably wants the `'legible'` default, whereas the Lab wall
+   wants `'fit'`.
+4. ✅ **Guards (done this session).** `tests/components/lab-compose.test.ts` covers `compose.ts`
+   (`layoutTemplate` per layout incl. grid/hero/rail track counts; `specToVariant` region ↔
+   template agreement; `parseSpec` ⇄ `specToSearch` round-trip incl. unknown-dimension fallback;
+   200 `randomSpec` samples inside the space and addressable); `tests/components/graph-scaling.test.ts`
+   gained the `settleZoom` policy contract. `tests/scenarios/apps/lab.spec.ts` (`@app @lab`) loads
+   `/apps/lab/?v=chat-graph` and the composer URL and asserts the grid mounts both surfaces.
 5. **Only then** revisit `ui.14` Phase D/E (cognitive translation, chat-as-default) — each is
    now *one promoted composition*, not a phase.
+
+### New opportunities (found this session)
+
+- **The composer does not expose the fit policy.** `$graphFit` is set globally by the Lab; a
+  `fit` control in the composer toolbar (or a `?fit=` query dimension) would let a single
+  page compare legible vs fit on the same composition. Low cost, one `select`.
+- **`nodeSize`/`zoomFloor` are area-inverted for small cells.** `densityFactor` *shrinks*
+  world node size when the viewport is small (`sqrt(area/refArea)`), which *raises* the legible
+  floor — the opposite of what a small cell needs. `'fit'` sidesteps this, but the legible
+  policy would read better if the floor were bounded by the current fit zoom, so a graph that
+  genuinely cannot fit legibly settles at the best legible-and-whole compromise instead of a crop.
+- **The Lab is the natural home for a `?compose=1&fit=` matrix** — but only after (3) picks
+  keepers, so the space explored is the space that might ship.
 
 **Commands** (repo root unless noted)
 - serve: `NODE_NO_WARNINGS=1 tsx scripts/agent-server.ts 3456` (cwd `ui/`) — loads the
@@ -133,3 +156,17 @@ Changed: `kernel/index.ts`, `components/s-app-shell.ts`, `components/graph-viewp
 
 **Known-red / accepted for now:** `test:visual` (6 cells — 1 expected theme change, 5 stale).
 Nothing else is red: typecheck ✓, unit 801/801 ✓, golden e2e ✓, per-app e2e 10/10 ✓.
+
+## Session state — graph-fit policy + lab guards (committed)
+
+Landed on top of the Lab commit: `$graphFit` policy (`graph-scaling.ts` `settleZoom` +
+`GraphFit`; `core/store.ts`; `core/index.ts`; `kernel/index.ts`), `graph-viewport.ts`
+(`settleView` reads the policy), `apps/lab/lab-app.ts` (Lab requests `'fit'`); new
+`tests/components/lab-compose.test.ts`, `tests/components/graph-scaling.test.ts` (+`settleZoom`),
+`tests/scenarios/apps/lab.spec.ts`.
+
+**Verified this session:** typecheck ✓ · unit **814/814** ✓ · golden e2e (chromium) ✓ ·
+lab `@app` e2e 2/2 ✓. Ran chromium only, per the process rules below.
+
+**Still open:** item 2 (visual re-baseline — unchanged by this work), item 3 (promote winners —
+needs an operator pick), item 5. `test:visual` remains the known-red gate.

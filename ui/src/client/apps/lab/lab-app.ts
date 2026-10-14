@@ -10,7 +10,7 @@
  */
 import { css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $activeLens, $graphLayer, $graphShape, $viewportMode } from '../../kernel/index.js';
+import { $activeLens, $graphFit, $graphLayer, $graphShape, $viewportMode } from '../../kernel/index.js';
 import { BaseComponent } from '../../core/base-component.js';
 import {
   LAYERS,
@@ -141,6 +141,10 @@ export class LabSurface extends BaseComponent {
 
   private applyGlobals(): void {
     const variant = this.activeVariant();
+    // The Lab is a wall of small cells: show every cell's whole graph, not a
+    // legible crop (a composable metaphor is judged on what it shows, not on how
+    // far it zooms in).
+    $graphFit.set('fit');
     if (variant?.mode) $viewportMode.set(variant.mode);
     if (variant?.shape) $graphShape.set(variant.shape);
     if (this.compose) {

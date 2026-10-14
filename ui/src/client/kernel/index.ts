@@ -64,7 +64,7 @@ export {
 } from './state.js';
 
 // ── UI state (lens, layer, viewport, filter) ──────────────────────────────────
-export { $activeLens, $graphLayer, $graphShape, $viewportMode, $graphFilter } from '../core/store.js';
+export { $activeLens, $graphLayer, $graphFit, $graphShape, $viewportMode, $graphFilter } from '../core/store.js';
 export type { Lens } from '@senars/core';
 export type { ViewportMode } from '../core/store.js';
 
