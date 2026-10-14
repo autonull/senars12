@@ -1,15 +1,11 @@
-/**
- * Explore — the graph exploration app.
- *
- * A simple workspace viewer: the concept graph with lens/layer controls.
- * Demonstrates the app framework reuse (P5).
- */
 import { css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import {
   $activeLens,
   $connectionState,
   $graphLayer,
+  $graphShape,
+  $viewportMode,
   $workspaceGraph,
   BaseComponent,
   projectWorkspaceGraph,
@@ -20,6 +16,7 @@ import { type SurfaceDescriptor } from '../../framework/surface.js';
 import { LENS_FACETS } from '../../utils/lens-catalog.js';
 import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
 import { FILTER_FACETS } from '../../core/filter-facets.js';
+import '../../components/graph-viewport.js';
 
 /** The Explore app surface — mounted in the viewport. */
 @customElement('explore-surface')
@@ -232,6 +229,8 @@ export class ExploreSurface extends BaseComponent {
   protected override render(): TemplateResult {
     const status = $connectionState.get();
     const hasGraph = this.projection.nodes.size > 0 || this.projection.edges.size > 0;
+    const graphShape = $graphShape.get();
+    const viewportMode = $viewportMode.get();
 
     return html`
       <div class="app">
@@ -246,7 +245,14 @@ export class ExploreSurface extends BaseComponent {
         <div class="viewport">
           <div class="graph-container">
             ${hasGraph
-              ? this.renderGraphStats()
+              ? html`
+                  <graph-viewport
+                    style="width:100%;height:100%"
+                    .filter=${{ mode: this.activeLens, layer: this.activeGraphLayer, shape: graphShape }}
+                    .mode=${viewportMode}
+                  ></graph-viewport>
+                  ${this.renderGraphStats()}
+                `
               : html`
                   <div class="empty">
                     <h2>No graph data</h2>

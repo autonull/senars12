@@ -108,6 +108,12 @@ the fit zoom above what fitting needs. The floor is a *desired* minimum, but if 
 all content requires lower zoom, we obey fit (show everything, accept smaller nodes)
 instead of cropping. Small cells now compromise rather than crop; the `'fit'` policy
 behaves identically. Default path unchanged for sparse graphs (they still lift to floor).
+
+**Standalone apps now render the graph** — `goals-surface` and `explore-surface` now
+mount `<graph-viewport>` directly instead of showing only stats. The HUD remains a
+stat-only placeholder (it provides panels instead). The Lab presets were already
+composing `graph-surface` alongside these; now the standalone apps are usable on their
+own.
 3. **Promote winners — OPERATOR-GATED.** For each keeper metaphor: create
    `apps/<name>/{index.html,main.ts}` + a `defineApp` whose bundle's surfaces are the
    composition; add a `vite.config.ts` input. The lab preset is the spec. No composition has
