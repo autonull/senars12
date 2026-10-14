@@ -58,6 +58,17 @@ export type {
 } from './app.js';
 
 export type {
+  Composition,
+  Cell,
+  Globals,
+  LayoutId,
+} from './composition.js';
+
+export type {
+  LayoutTemplate,
+} from './layout.js';
+
+export type {
   MessageDirection,
   BaseMessageDescriptor,
   ServerMessageDescriptor,
@@ -167,6 +178,22 @@ export {
   resolveConnectionConfig,
   APP_SHELL_TAG,
 } from './app.js';
+
+export {
+  registerComposition,
+  compositionFor,
+  getCompositions,
+  resetCompositions,
+  cellSurface,
+} from './composition.js';
+
+export {
+  AREA_LETTERS,
+  LAYOUT_IDS,
+  layoutTemplate,
+  layoutOf,
+  areaName,
+} from './layout.js';
 
 export {
   defineProtocolCatalog,

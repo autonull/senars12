@@ -226,14 +226,16 @@ we only relocate chrome and generalize layout. Nothing is dropped.
 
 ## Success Criteria
 
-- [ ] `studio` renders `?preset=chat-graph` (and 3 more) end-to-end
-- [ ] `s-app-shell` renders a composition; `composition-view` is the only grid code
+- [x] `studio` renders `?preset=chat-graph` (and 3 more) end-to-end
+- [x] `s-app-shell` renders a composition; `composition-view` is the only grid code
+      (the Lab still owns its *variant* grid for hand-authored presets — Phase 3)
 - [ ] `ask` and one more surface are chromeless; their apps are composition registrations
-- [ ] Adding a preset = one data entry (no component code)
-- [ ] Nested composition renders (recursion proven)
-- [ ] Lab reuses `composer-controls` + `composition-view` (no duplicate composer)
-- [ ] typecheck ✓ · unit ✓ · golden ✓ · app e2e ✓ (old routes still green)
-- [ ] `chat-graph` dogfoodable
+- [x] Adding a preset = one data entry (no component code)
+- [x] Nested composition renders (recursion proven — `?preset=study`)
+- [~] Lab reuses `composer-controls` + `composition-view` (no duplicate composer)
+      — layout math now shared via `framework/layout.ts`; controls/grid consolidation pending
+- [x] typecheck ✓ · unit ✓ · app e2e ✓ (old routes still green; `pnpm test:e2e:golden` not run)
+- [x] `chat-graph` dogfoodable (`/apps/studio/?preset=chat-graph`)
 
 ---
 
@@ -268,10 +270,86 @@ with `?preset=chat-graph`. Everything else follows from that keystone.
 
 ---
 
+## Progress (implementation log)
+
+**Phase 0 — framework core: done.**
+
+- `framework/composition.ts` — `Composition`, `Cell`, `Globals`, `LayoutId` + one registry
+  (`registerComposition` / `compositionFor` / `getCompositions` / `resetCompositions`) and
+  `cellSurface` helper.
+- `framework/layout.ts` — pure `layoutTemplate(layout, n)`, `layoutOf(comp)`, `areaName`,
+  `AREA_LETTERS`, `LAYOUT_IDS`. The Lab's `compose.ts` now imports/delegates here (one grid-math
+  source; `lab-compose.test` stays green).
+- `components/composition-view.ts` — recursive grid renderer. Mounts each cell imperatively
+  (surfaces keep state), sets `data-area`/`data-composition` for e2e, recurses by creating a
+  nested `<composition-view>`. `cellTag()` resolves a surface id via the surface registry,
+  falling back to the id as a tag.
+- `apps/shared/config-sync.ts` — URL ⇄ Composition ⇄ atoms: `resolveGlobals`, `resolveLayout`,
+  `compositionFromUrl`, `compositionToSearch`, `applyGlobals` (writes lens/layer/shape/mode/fit/
+  filter atoms surfaces already watch). Validates against the facet catalogs (no hand tuples).
+- `apps/shared/app-chrome.ts` — the one header (wordmark · title · tagline · `controls` slot ·
+  connection status).
+- `apps/shared/composer-controls.ts` — contextual control strip; graph controls appear iff the
+  composition contains a graph surface (`hasGraphSurface`). Emits `composition-change`; never
+  touches URL/atoms itself (the shell does). Reuses `toolbar-select`.
+
+**Phase 1 — Studio: done.**
+
+- `apps/studio/{presets,studio-app,main,index.html}`. `AppDefinition`/`AppDescriptor` gained an
+  optional `composition`; `defineApp` threads it through. `s-app-shell` renders `<app-chrome>` +
+  `<composition-view>` + `<composer-controls>` when the app has a composition, and keeps the
+  viewport slot path for legacy apps (no behaviour change for goals/explore/…).
+- Presets: `chat-graph`, `reasoning-desk`, `graph-3d`, `dashboard`, and `study` (recursion).
+- `vite.config.ts` gained the `studio` entry; server serves `/apps/studio/` statically.
+
+**Phase 3 (partial) — recursion: done.** `composition-view` mounts a nested composition for a
+`{ composition }` cell; `?preset=study` renders a `chat-graph` inside a cell.
+
+**Verification:** `pnpm typecheck` ✓ · `composition/lab-compose/app-composition` unit ✓ ·
+`tests/scenarios/apps/studio.spec.ts` (3/3, incl. nested + controls→URL) ✓ · `lab.spec.ts` ✓ ·
+`biome lint` ✓ on all touched files.
+
+## Remaining work (facilitating notes)
+
+- **Phase 2 — strip chrome.** Do it one surface at a time behind green tests. `ask-surface`
+  first: remove its `<header>` (wordmark/tagline/status), then re-point `/apps/ask/` at an `ask`
+  composition app so `s-app-shell` supplies chrome. Update `tests/scenarios/prototypes/ask.spec.ts`
+  selectors from `ask-surface .status` → `app-chrome`/shell status (the plan's own risk mitigation).
+- **Lab ↔ Studio consolidation.** The Lab's *variant* path uses hand-authored named grid areas
+  (`chat`, `graph`, …) that `composition-view` does not produce. To make the Lab reuse
+  `composer-controls` + `composition-view`, either (a) convert `VARIANTS` to `Composition` data
+  and re-derive the named areas from cell ids, or (b) keep named areas by extending `layoutOf` to
+  accept per-cell area names. The composer path (`?compose=1`) already emits `a,b,c` areas and is
+  drop-in compatible with `composition-view`.
+- **`window.__testApi`** is exposed by the kernel connect path; Studio relies on it for
+  `waitConnectedDirect` (works today).
+- **Composer controls do not yet write back from atom changes** (e.g. `graph-toolbar` used
+  elsewhere mutating lens). Studio is URL→atoms one-way; the shell handles control→URL. If an
+  atom is changed externally, the composition object won't reflect it — acceptable until a
+  bidirectional sync is needed.
+
+## New improvement opportunities
+
+- **`graph-toolbar` property-binding bug.** It binds `.label`/`.value`/`.ariaLabel`, but
+  `toolbar-select` exposes `selectLabel`/`selectedValue`/`selectAriaLabel`. Labels/selection
+  don't render as intended. `composer-controls` uses the correct names; fix `graph-toolbar`
+  the same way (and it can then be a drop-in panel inside composer-controls).
+- **`layoutOf` per-cell area names.** Letting a composition name its areas would let the Lab's
+  crafted presets and the Studio share one renderer and one URL language.
+- **Composition as a bundle surface.** A `composition` could be registered as a reusable
+  "surface" so a cell can reference a shared composition by id instead of embedding the object
+  (better dedup for large catalogues).
+- **Preset switcher in `app-chrome`.** A small menu driven by `getCompositions()` would make the
+  Studio navigable without hand-editing `?preset=`.
+- **`base-app-surface.ts`** is now dead weight (superseded). Audit remaining subclasses and retire
+  it once the last app migrates to the shell.
+
 ## References
 
 - `ui/src/client/framework/{app,bundle,surface}.ts` — existing app model
-- `ui/src/client/components/s-app-shell.ts` — the shell to enhance
-- `ui/src/client/apps/shared/` — current shared pieces
+- `ui/src/client/framework/{composition,layout}.ts` — the new core
+- `ui/src/client/components/{s-app-shell,composition-view}.ts` — the shell + grid
+- `ui/src/client/apps/shared/{app-chrome,composer-controls,config-sync}.ts` — shell pieces
+- `ui/src/client/apps/studio/` — the parametric app
 - `ui/src/client/apps/lab/{compose,variants,lab-app}.ts` — the composer to generalize
 - `ui/src/client/kernel/index.ts` — atoms

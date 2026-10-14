@@ -4,6 +4,21 @@
 export { BaseAppSurface } from './base-app-surface.js';
 export type { BaseAppSurfaceConfig } from './base-app-surface.js';
 
+export { AppChrome } from './app-chrome.js';
+
+export {
+  DEFAULT_PRESET,
+  FILTER_ALL,
+  resolveGlobals,
+  resolveLayout,
+  compositionFromUrl,
+  compositionToSearch,
+  applyGlobals,
+} from './config-sync.js';
+
+export { ComposerControls, hasGraphSurface } from './composer-controls.js';
+export type { ComposerSurface } from './composer-controls.js';
+
 export { GraphViewportWrapper } from './graph-viewport-wrapper.js';
 export type { GraphViewportWrapperConfig } from './graph-viewport-wrapper.js';
 

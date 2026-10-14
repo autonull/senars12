@@ -10,7 +10,16 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { connect, disconnect, mountWorkspaceProjection } from '../kernel/index.js';
 import { BaseComponent } from '../core/base-component.js';
 import { appFor, type AppDescriptor, type ConnectionConfig, APP_SHELL_TAG } from '../framework/app.js';
+import type { Composition } from '../framework/composition.js';
 import { type Placement, type SurfaceDescriptor, surfaceTag } from '../framework/surface.js';
+import {
+  applyGlobals,
+  compositionFromUrl,
+  compositionToSearch,
+} from '../apps/shared/config-sync.js';
+import '../apps/shared/app-chrome.js';
+import '../apps/shared/composer-controls.js';
+import './composition-view.js';
 
 /** The workspace projection binds global atoms; mount it once per page, not per shell. */
 let workspaceProjectionMounted = false;
@@ -28,6 +37,16 @@ export class AppShell extends BaseComponent {
       width: 100%;
       height: 100%;
       position: relative;
+    }
+    .composition-app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100vh;
+    }
+    composition-view {
+      flex: 1 1 auto;
+      min-height: 0;
     }
     .panels {
       position: absolute;
@@ -97,8 +116,8 @@ export class AppShell extends BaseComponent {
 
   @state() private connectionState: 'disconnected' | 'connecting' | 'connected' = 'disconnected';
   @state() private mounted = false;
-
-  private app: AppDescriptor | undefined;
+  @state() private app: AppDescriptor | undefined;
+  @state() private composition: Composition | undefined;
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -106,10 +125,12 @@ export class AppShell extends BaseComponent {
       workspaceProjectionMounted = true;
       mountWorkspaceProjection();
     }
+    globalThis.addEventListener?.('popstate', this.resolveComposition);
     this.resolveAppWithRetry();
   }
 
   override disconnectedCallback(): void {
+    globalThis.removeEventListener?.('popstate', this.resolveComposition);
     this.disconnectApp();
     super.disconnectedCallback();
   }
@@ -130,10 +151,28 @@ export class AppShell extends BaseComponent {
       return;
     }
     this.mountSurfaces();
+    this.resolveComposition();
     if (this.autoConnect) {
       this.connectApp();
     }
   }
+
+  /** Resolve the composition a URL addresses, then apply its globals to the atoms. */
+  private resolveComposition = (): void => {
+    const base = this.app?.composition;
+    if (!base) return;
+    const params = new URLSearchParams(globalThis.location?.search ?? '');
+    this.composition = compositionFromUrl(params, base);
+    applyGlobals(this.composition?.globals);
+  };
+
+  /** A control changed the composition: reflect it in the URL, atoms and view. */
+  private onCompositionChange = (event: CustomEvent<Composition>): void => {
+    const composition = event.detail;
+    globalThis.history?.replaceState(null, '', compositionToSearch(composition));
+    applyGlobals(composition.globals);
+    this.composition = composition;
+  };
 
   private mountSurfaces(): void {
     if (!this.app) return;
@@ -180,10 +219,22 @@ export class AppShell extends BaseComponent {
   }
 
   protected override render(): TemplateResult {
+    const composition = this.composition;
     return html`
-      <div class="viewport">
-        <slot name="viewport"></slot>
-      </div>
+      ${composition
+        ? html`
+            <div class="composition-app">
+              <app-chrome .appTitle=${this.app?.name ?? ''} .tagline=${this.app?.description ?? ''}>
+                <composer-controls
+                  slot="controls"
+                  .composition=${composition}
+                  @composition-change=${this.onCompositionChange}
+                ></composer-controls>
+              </app-chrome>
+              <composition-view .composition=${composition}></composition-view>
+            </div>
+          `
+        : html`<div class="viewport"><slot name="viewport"></slot></div>`}
       <div class="panels">
         <slot name="panel"></slot>
         <div class="panel-dock left"></div>

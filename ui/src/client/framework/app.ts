@@ -13,6 +13,7 @@
 
 import { createIdRegistry, type Registry } from '../core/registry.js';
 import type { SurfaceDescriptor, Placement } from './surface.js';
+import type { Composition } from './composition.js';
 import type { Capability } from '../core/capabilities.js';
 import { applyBundle, type BundleDescriptor } from './bundle.js';
 
@@ -60,6 +61,8 @@ export interface AppDescriptor<K extends string = string> {
   readonly icon?: string;
   /** Surfaces this app mounts, keyed by placement (derived from its bundle). */
   readonly surfaces: Readonly<Partial<Record<Placement, readonly SurfaceDescriptor[]>>>;
+  /** The app's default composition; the shell renders its chrome + grid when set. */
+  readonly composition?: Composition;
   /** Default lens for this app (if viewport surfaces present). */
   readonly defaultLens?: string;
   /** Default graph layer for this app (if viewport surfaces present). */
@@ -82,6 +85,7 @@ export interface AppDescriptor<K extends string = string> {
 export interface AppDefinition<K extends string = string> {
   readonly bundle: BundleDescriptor & { readonly id: K };
   readonly icon?: string;
+  readonly composition?: Composition;
   readonly defaultLens?: string;
   readonly defaultGraphLayer?: string;
   readonly defaultCapabilityFilter?: string;
@@ -121,6 +125,7 @@ export function defineApp<K extends string>(definition: AppDefinition<K>): AppDe
     description: bundle.description,
     icon: definition.icon,
     surfaces: bundle.surfaces ?? {},
+    composition: definition.composition,
     defaultLens: definition.defaultLens,
     defaultGraphLayer: definition.defaultGraphLayer,
     defaultCapabilityFilter: definition.defaultCapabilityFilter,

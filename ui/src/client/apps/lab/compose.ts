@@ -8,6 +8,11 @@
  * named points in it. New widgets/layouts are data, not code.
  */
 import type { Variant } from './variants.js';
+import type { LayoutId } from '../../framework/composition.js';
+import { AREA_LETTERS, layoutTemplate } from '../../framework/layout.js';
+
+export type { LayoutId };
+export { layoutTemplate };
 
 export interface Widget {
   readonly id: string;
@@ -44,7 +49,6 @@ export const WIDGETS: readonly Widget[] = [
 
 export const widgetById = (id: string): Widget | undefined => WIDGETS.find((w) => w.id === id);
 
-export type LayoutId = 'auto' | 'h' | 'v' | 'grid' | 'hero' | 'rail';
 export const LAYOUTS: readonly { id: LayoutId; label: string }[] = [
   { id: 'auto', label: 'Auto' },
   { id: 'h', label: 'Columns' },
@@ -80,49 +84,12 @@ export const DEFAULT_SPEC: Spec = {
   fit: 'legible',
 };
 
-const AREA = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
-const rep = (unit: string, n: number): string => Array.from({ length: n }, () => unit).join(' ');
-const quote = (cells: readonly string[]): string => `"${cells.join(' ')}"`;
-
-interface Template {
-  columns: string;
-  rows: string;
-  areas: string;
-}
-
-export function layoutTemplate(layout: LayoutId, n: number): Template {
-  if (n <= 1) return { columns: '1fr', rows: '1fr', areas: '"a"' };
-  const ids = AREA.slice(0, n);
-  if (layout === 'h') return { columns: rep('minmax(0, 1fr)', n), rows: '1fr', areas: quote(ids) };
-  if (layout === 'v')
-    return { columns: '1fr', rows: rep('minmax(0, 1fr)', n), areas: ids.map((x) => `"${x}"`).join(' ') };
-  if (layout === 'hero' || layout === 'rail') {
-    const mainCol = layout === 'hero' ? 0 : 1;
-    const matrix = ids.slice(1).map((id) => {
-      const row = ['', ''];
-      row[mainCol] = 'a';
-      row[1 - mainCol] = id;
-      return row.join(' ');
-    });
-    return { columns: rep('minmax(0, 1fr)', 2), rows: rep('minmax(0, 1fr)', matrix.length), areas: matrix.map((r) => `"${r}"`).join(' ') };
-  }
-  const cols = layout === 'grid' ? Math.ceil(Math.sqrt(n)) : n <= 3 ? n : n === 4 ? 2 : 3;
-  const rows = Math.ceil(n / cols);
-  const matrix: string[] = [];
-  for (let r = 0; r < rows; r++) {
-    const cells: string[] = [];
-    for (let c = 0; c < cols; c++) cells.push(ids[r * cols + c] ?? ids[n - 1]!);
-    matrix.push(quote(cells));
-  }
-  return { columns: rep('minmax(0, 1fr)', cols), rows: rep('minmax(0, 1fr)', rows), areas: matrix.join(' ') };
-}
-
 export function specToVariant(spec: Spec): Variant {
   const widgets = spec.widgets.map(widgetById).filter((w): w is Widget => !!w);
   const t = layoutTemplate(spec.layout, Math.max(widgets.length, 1));
   const regions: Record<string, readonly string[]> = {};
   widgets.forEach((w, i) => {
-    const area = AREA[i] ?? 'a';
+    const area = AREA_LETTERS[i] ?? 'a';
     regions[area] = [w.tag];
   });
   const name = widgets.length ? widgets.map((w) => w.label).join(' · ') : 'Empty';
