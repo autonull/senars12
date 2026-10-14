@@ -1,14 +1,16 @@
-# TODO.ui.14.md — Finish the UI: land the migrations, green the gate
+# TODO.ui.14.md — Finish the UI: land the migrations, green the gate, then translate the substrate
 
 > **Supersedes** `TODO.ui.13.md` §4 "Phase 2 — Completion backlog". `TODO.ui.13.md` remains
 > the record of the P0–P12 refactor (the diagnosis and the normalized substrate); **this file
-> is the single execution plan for completing the UI.** Do not run both.
+> is the single execution plan for completing and then *using* the UI.** Do not run both.
 
-> **North star:** *the normalized substrate exists — now make it a usable, gate-green UI.*
-> Every remaining task is a **migration finish or a guard**, never a new subsystem.
+> **North star:** *the normalized substrate exists — make it a gate-green UI that then
+> **translates** complex cognitive states and autonomous governance into human-understandable
+> insight.* Stability first; value second; never a new subsystem to get either.
 
 > **One-line test:** *Can a fresh session resume from this file alone, land one slice, watch
-> `pnpm ui:gate` get greener, and see a screenshot proving the real app still works?*
+> `pnpm ui:gate` get greener (Phases A–C) or an operator understand the agent better
+> (Phase D), and see a screenshot proving the real app still works?*
 
 ---
 
@@ -18,6 +20,14 @@
 (`ui/src/client/framework/`), apps are built on it (`apps/{ask,explore,notebook,goals,console,hud}`),
 and the client is served **dynamically** by the dev/test server (no `dist` build — commit
 `5ca8fc8e`). **But the plan is not done by its own definition:** `pnpm ui:gate` is **red**.
+
+**Two mandates, in this order:**
+
+1. **Phases A–C (P13–P21) — stabilize.** Land the half-finished migrations and green the gate.
+   *Nothing in Phase D may begin until `pnpm ui:gate` is green.*
+2. **Phase D (P22–P26) — realize value.** Translate existing substrate into operator-usable
+   insight. This is **additive strategic scope**, requested by the operator; it does not change
+   the A–C mandate, and it is still "translation", not "new subsystems."
 
 **Current state — the resume point:**
 
@@ -29,14 +39,15 @@ and the client is served **dynamically** by the dev/test server (no `dist` build
 | `pnpm --dir ui build:client:test` | ✅ writes in-repo to `ui/dist/client` |
 | `pnpm --dir ui test:unit` | ❌ **769/790 — 21 failures in 7 files** (the intent/bundle half-migration; the gate blocker) |
 | Per-app e2e (Notebook/Goals/Console) | ❌ none exist |
+| Visual contract | ✅ exists — 74 committed baselines, a journey-led gallery, a coverage gate |
 
 **Already fixed (do not redo):** out-of-repo build output; no-build dynamic serving; the
 client→server protocol import leak (`@senars/nar`/`node-llama-cpp` into the browser); dead server
 dispatch (`entry.handle` → `entry.handleServer`); the `derived()` array-vs-value and unbound-`get`
 bugs; `node:*` browser shims; the `COMPOSER_MODE_CATALOG`/`view-adapter` type errors.
 
-**First slice: P13 — Land the intent/command migration** (§2). It is half of the unit-gate
-blocker. Then P14 (the other half) → P15 → … → P21, one at a time.
+**First slice: P13 — Land the intent/command migration** (§2, Phase A). Then P14 → … → P21
+(gate green), **then** P22 → P26 (Phase D).
 
 **Commands** (repo root unless noted):
 - typecheck: `pnpm --dir ui typecheck`
@@ -45,8 +56,11 @@ blocker. Then P14 (the other half) → P15 → … → P21, one at a time.
 - Ask prototype e2e: `cd ui && pnpm exec playwright test --config tests/playwright.config.ts tests/scenarios/prototypes/ask.spec.ts --project=chromium --workers=1`
 - full contract: `pnpm ui:gate` (= typecheck + unit + golden e2e)
 - production build: `pnpm --dir ui build:client:test` → `ui/dist/client`
-- **progress screenshot** (after e2e proof; dev server on `:3456`):
+- **progress screenshot** (forward log, after e2e proof; dev server on `:3456`):
   `mkdir -p screenshots && pnpm exec playwright screenshot --project=chromium --output=screenshots/pXX-slug.png <url>`
+- **visual contract** (existing regression system): `pnpm --dir ui test:visual` (diff vs baselines),
+  `pnpm --dir ui test:visual:update` (re-baseline), `pnpm ui:gallery` (rebuild the contact sheet),
+  `pnpm --dir ui test:design` (the qualitative gate + `ui/tests/design/CHECKLIST.md`).
 
 **Record progress** in §6 — append one entry per slice (what changed, guard, proof, screenshot
 path, remaining, new opportunities).
@@ -58,32 +72,35 @@ path, remaining, new opportunities).
 **The only trigger needed is: "implement TODO.ui.14.md".**
 
 1. **Read this file top to bottom.** §2 is the plan; §3 is the pre-mortem you must keep in mind.
-2. **Resume at the first unchecked slice in §2.** If all are checked, the plan is complete.
-3. **For each slice:** implement → guard (unit, no mocks) → prove on a real app → **capture a
-   progress screenshot** → `pnpm --dir ui typecheck && pnpm --dir ui test:unit` → confirm the
-   golden e2e → commit (Conventional Commits) → append a §6 entry.
+2. **Resume at the first unchecked slice in §2.** Finish Phase A–C before starting Phase D.
+3. **For each slice:** implement → guard (unit, no mocks; **a human-checklist item where the
+   criterion is subjective**) → prove on a real app → **capture a progress screenshot** →
+   `pnpm --dir ui typecheck && pnpm --dir ui test:unit` → confirm the golden e2e → commit
+   (Conventional Commits) → append a §6 entry.
 4. **Then take the next slice.** Do not batch. Do not invent new subsystems — every task is a
-   migration finish or a guard.
+   migration finish, a guard, or a **translation of existing substrate.**
 5. **Stop and report only when:** a **tripwire** fires (§4); a required tool is missing; or a test
    fails **>3 times**. Never loop.
 
-**Focus after each slice — the "% green" ledger:** `typecheck`, `unit pass count`, golden e2e,
-per-app e2e. The plan is winning only if `unit` climbs toward 790/790 and stays there.
+**Focus after each slice — the ledger:** `typecheck`, `unit pass count`, golden e2e, per-app e2e
+(Phases A–C); operator-legibility criteria (Phase D). The plan is winning only if `unit` climbs
+toward 790/790, stays there, and Phase D's guards hold.
 
 ---
 
 ## 1. The remaining work, in one table
 
-Every row traces to a `TODO.ui.13.md` §8 "Remaining" bullet. Nothing here is a new feature.
+Rows 1–14 trace to a `TODO.ui.13.md` §8 "Remaining" bullet. Rows 15–19 are **Phase D — additive
+strategic scope** (operator priority; not derived from UI.13).
 
-| # | Remaining item | From | Slice |
+| # | Item | From | Slice |
 |---|---|---|---|
 | 1 | `registerCommand` is a no-op; `dispatch`/`palette` tests fail | P8 | P13 |
 | 2 | Bundle reset helpers (`resetSurfaces`/`resetViewAdapters`/`resetProjectors`) missing | P11 | P14 |
 | 3 | `applyPlugins()` doesn't register commands; bundle tests fail | P11 | P14 |
 | 4 | `$viewSelection`, `$runTerminations` still side-effect synced | P10 | P15 |
 | 5 | Apps not on `defineBundle`/`defineApp`; `plugins.ts` not migrated | P11 | P16 |
-| 6 | Settings UI not from `config-catalog`; `lm-provider.ts` not from `lm-provider-catalog`; styles not from `design-catalog` | P12 | P17 |
+| 6 | Settings/LM-provider/styles not on their catalogs | P12 | P17 |
 | 7 | `reasoning-layout.ts` not on `defineCatalog`; `capabilities.ts` bespoke | P1 | P18 |
 | 8 | `registerOverlay` merge loses `a11y`; overlays not consolidated | P2 | P18 |
 | 9 | No §3.3 kernel-boundary check | P0 | P19 |
@@ -92,40 +109,44 @@ Every row traces to a `TODO.ui.13.md` §8 "Remaining" bullet. Nothing here is a 
 | 12 | `core/dist/*` committed artifacts | infra | P20 |
 | 13 | Golden-path flakiness (pre-existing) | P9 | P21 |
 | 14 | Protocol/derived/shim drift has no guard | pre-mortem | P21 |
+| 15 | Derivation history is raw; no step-through "why" story | **D** | P22 |
+| 16 | Tool approval shows approve/reject, not risk/diff/sandbox evidence | **D** | P23 |
+| 17 | Graph becomes an unreadable hairball as concepts scale | **D** | P24 |
+| 18 | Overlays (palette/inspector/settings) lack keyboard/ARIA completeness | **D** | P25 |
+| 19 | Visual gallery has redundant coverage cells; some tiles illegible | **D** | P26 |
 
 ---
 
 ## 2. Execution plan (slices)
 
-> Each slice: implement → guard (unit) → prove (real app + golden e2e) → **progress screenshot**
-> → typecheck + unit → commit + §6 entry.
+> Each slice: implement → guard (unit; human-checklist item if subjective) → prove (real app +
+> golden e2e) → **progress screenshot** → typecheck + unit → commit + §6 entry.
 
 ### Phase A — Green the unit gate (blocking)
 
 - [ ] **P13 — Land the intent/command migration.**
 Switch the command path fully onto the `Intent` catalog: `registerCommand` must register a
-`kind: 'command'` intent (or every caller/tests migrate to `registerIntent`), and
+`kind: 'command'` intent (or callers/tests migrate to `registerIntent`), and
 `dispatchCommand`/`activeCommands`/`paletteCommands` must read it. Delete the deprecated no-op.
 **Files:** `core/{commands,intent-registry}.ts`; `tests/components/{dispatch,palette}.test.ts`.
 **Guard:** `dispatch`/`palette`/`facade-honesty` tests pass; no test calls a no-op API.
-**Prove:** `pnpm --dir ui test:unit` gains these files; Ask + golden e2e still green.
+**Prove:** unit suite gains these files; Ask + golden e2e still green.
 **Screenshot:** `http://localhost:3456/apps/ask/` (palette open if practical).
 
 - [ ] **P14 — Land the bundle/plugin migration.**
-Export the catalog reset helpers the bundle tests expect (`resetSurfaces`, `resetViewAdapters`,
-`resetProjectors`, …) or migrate the tests to the registry's real reset API; make
-`applyBundle`/`applyPlugins` register **commands** (via P13's intent registry) as well as
-surfaces/adapters/facets/projectors.
+Export the catalog reset helpers the bundle tests expect (or migrate the tests to the registry's
+real reset API); make `applyBundle`/`applyPlugins` register **commands** (via P13's intent registry)
+as well as surfaces/adapters/facets/projectors.
 **Files:** `framework/{bundle,surface}.ts`, `core/plugins.ts`; `tests/components/{bundle-composition,plugins}.test.ts`.
 **Guard:** `bundle-composition` + `plugins` pass.
-**Prove:** `pnpm --dir ui test:unit` → **790/790**, so `pnpm ui:gate` is fully green.
+**Prove:** unit suite → **790/790**, so `pnpm ui:gate` is fully green.
 **Screenshot:** `http://localhost:3456/apps/ask/`.
 
 ### Phase B — Finish the substrate migrations
 
 - [ ] **P15 — Finish the `derived` migration.**
 `$viewSelection` and `$runTerminations` become `derived(...)`; remove their side-effect `subscribe`
-syncs. Confirm `setEqual`/`mapEqual` are used where the value is a Set/Map so no churn fires.
+syncs. Use `setEqual`/`mapEqual` where the value is a Set/Map so no churn fires.
 **Files:** `core/store.ts`, `core/workspace-bindings.ts`.
 **Guard:** a churn test (subscriber not called when the derived value is equal).
 **Prove:** graph multi-select + run-termination rendering unchanged on the HUD.
@@ -137,13 +158,12 @@ bundles; delete the `applyPlugins()` fan-out once callers move.
 **Files:** `framework/{app,bundle}.ts`, `core/plugins.ts`, `apps/*`, `vite.config.ts`.
 **Guard:** app-composition test (surfaces mount by placement); bundle-registry test.
 **Prove:** each app runs at `/apps/<name>/` with the shell providing overlay/palette/connection.
-**Screenshot:** all of `/apps/ask|explore|notebook|goals|console/`.
+**Screenshot:** `/apps/ask|explore|notebook|goals|console/`.
 
 - [ ] **P17 — Adopt the domain catalogs.**
 Settings UI reads `config-catalog`; `lm-provider.ts` uses `lm-provider-catalog`; styles consume
 `design-catalog` CSS custom properties.
-**Files:** `core/{config-catalog,lm-provider,lm-provider-catalog,design-catalog}.ts`, settings
-components, `styles/*`.
+**Files:** `core/{config-catalog,lm-provider,lm-provider-catalog,design-catalog}.ts`, `components/overlays/settings.ts`, `styles/*`.
 **Guard:** config-catalog client/server agree; a new provider/field needs no edit.
 **Prove:** settings UI + change log render from the catalog; theming uses generated tokens.
 **Screenshot:** `http://localhost:3456/apps/ask/` (settings panel open).
@@ -152,7 +172,7 @@ components, `styles/*`.
 Put `reasoning-layout.ts` and `capabilities.ts` on `defineCatalog`; fold `registerOverlay` into
 `defineSurface` so the tool-approval overlay keeps its `a11y`.
 **Files:** `core/{reasoning-layout,capabilities,overlay-*.ts}`, `framework/surface.ts`.
-**Guard:** catalog get/ids/where/size; overlay `a11y` preserved (the test P2 weakened).
+**Guard:** catalog get/ids/where/size; overlay `a11y` preserved (the P2 test weakened).
 **Prove:** reasoning layout + capability gating + tool-approval overlay unchanged on the HUD.
 **Screenshot:** golden-path HUD `/`.
 
@@ -162,8 +182,8 @@ Put `reasoning-layout.ts` and `capabilities.ts` on `defineCatalog`; fold `regist
 Add the §3.3 kernel-boundary check (`kernel/**` must not import lens/layout/panel/HUD); add an e2e
 per app (Notebook, Goals, Console).
 **Files:** boundary test/lint, `tests/scenarios/apps/*`.
-**Guard:** the boundary fails on a chrome import (prove with a temporary one, then revert);
-each new app e2e is deterministic (no mocks; drives the real server).
+**Guard:** the boundary fails on a chrome import (prove with a temporary one, then revert); each
+new app e2e is deterministic (no mocks; drives the real server).
 **Prove:** `pnpm ui:gate` extended with one e2e per app; all green.
 **Screenshot:** each app route.
 
@@ -186,47 +206,117 @@ direction-correct and round-trips a valid frame), a **derived single/multi** edg
 **Guard/Prove:** the new tests pass; golden path is stable across 5 runs.
 **Screenshot:** golden-path HUD `/`.
 
+### Phase D — Cognitive Translation & Usability (additive scope; **gated on Phase C**)
+
+> **Do not begin Phase D until `pnpm ui:gate` is green.** Each slice *translates existing
+> substrate* into operator insight — raw `DerivationRecord`, `PatchRiskClassifier` scores,
+> `SandboxValidator` verdicts, AIKR pressure — into things a human can read and act on. Where a
+> criterion is subjective, it is a **human checklist item** (`ui/tests/design/CHECKLIST.md`
+> precedent), not a fake test.
+
+- [ ] **P22 — Timeline translation (derivation → story).**
+Make the timeline navigable history: step forward/back through reasoning cycles, highlight which
+NAL/MeTTa rules fired per step, and let the operator inspect a concept's before/after truth values.
+Source data already streams (`derivation.record` events → the derivation projector).
+**Files:** `components/timeline-scrubber.ts`, `components/overlays/{timeline,explain}.ts`,
+`core/projectors.ts` / `core/workspace-projection.ts` (derivation fragment).
+**Guard:** mechanical — a seeded reasoning run renders ≥N rule-id steps; steps are ordered by seq.
+Human checklist — *using only the Timeline, explain why the agent retracted a belief.*
+**Prove:** the golden path's derivation is steppable in the Timeline; screenshot
+`http://localhost:3456/apps/ask/` with the timeline open.
+
+- [ ] **P23 — Governance translation (risk → decision).**
+Upgrade `components/overlays/tool-approval.ts` from approve/reject to evidence: render the
+`PatchRiskClassifier` risk tier, a readable diff of the proposed change, and the
+`SandboxValidator` verdict (e.g. "sandbox: network access refused"). Route low-risk proposals to a
+grouped auto-approve list; demand explicit confirmation only for medium/high risk.
+**Files:** `components/overlays/tool-approval.ts`, `core/tool-registry.ts`; server/wire:
+`ui/src/server/handlers.ts`, `server/protocol-server.ts`, **`client/core/protocol-defs.ts`
+(`PROTOCOL_SPECS` — this slice likely adds a `governance.proposal` toServer/`governance.verdict`
+toClient pair)**; source: `nar/src/governance/pipeline.ts` (`PatchRiskClassifier`, `SandboxValidator`,
+`ProposalRoute`).
+**Guard:** mechanical — a seeded proposal renders risk + diff + sandbox verdict; low-risk ones
+group. Human checklist — the overlay gives enough context to *make* the decision.
+**Prove:** the tool-approval journey in the gallery; screenshot with a seeded high-risk proposal.
+
+- [ ] **P24 — Scale translation (hairball → cluster).**
+Level-of-detail clustering in the graph viewport: above a node threshold, cluster related concepts
+into expandable "super-nodes".
+**Files:** `components/graph-viewport.ts`, `components/renderers/{graph,graph3d}.ts`.
+**Guard:** a headless load test seeded with 10,000 concepts renders at **≥30 FPS** and stays
+navigable (measure frame time, not just correctness).
+**Prove:** large seeded graph is navigable; screenshot of the clustered view.
+
+- [ ] **P25 — Accessibility translation (DOM → ARIA).**
+Extend `ui/tests/design/a11y.test.ts` and fix keyboard/focus trapping for the palette, inspector,
+settings and tool-approval overlays; add ARIA so screen readers announce state changes (e.g.
+"agent entered high-pressure AIKR state").
+**Files:** `components/overlays/{palette,inspector,settings,tool-approval}.ts`, `tests/design/a11y.test.ts`.
+**Guard:** Lighthouse a11y **> 95**; full keyboard navigation of the golden path (no mouse).
+**Prove:** keyboard-only golden-path run; screenshot of focused overlay.
+
+- [ ] **P26 — Visual curation (redundancy → legible journeys).**
+The visual contract already exists (74 baselines, journey-led gallery, coverage gate). **Curate**
+it: retire duplicate/illegible coverage cells, keep the coverage gate green with the minimum
+required set, and add journey tiles for the new translation surfaces (timeline, tool-approval).
+**Files:** `tests/visual/{matrix,generated-cells}.ts`, `scripts/build-gallery.ts`,
+`tests/components/visual-coverage.test.ts`.
+**Guard:** the coverage gate stays green (no required cell deleted); the gallery leads with ≤6
+legible journeys; no tile is illegible at default zoom (`test:design` legibility).
+**Prove:** `pnpm ui:gallery` renders a clean, journey-led sheet; screenshot the gallery header.
+
 ---
 
 ## 3. Pre-mortem — how this could still go wrong
 
-> Read this before each slice. Each risk names its **detecting test** — if we can't detect it,
-> the mitigations below (**P13–P21**) are what add that detection.
+> Read before each slice. Each risk names its **detecting test**; P21/Phase D make the detectors
+> mechanical. If we can't detect it, the mitigation below is what adds detection.
 
 ### Confirmed risks (we have seen the failure shape)
 
-| # | Risk | Why it bites | Detector / mitigation |
+| # | Risk | Why it bites | Detector |
 |---|---|---|---|
-| R1 | **Command path stays a no-op** | `registerCommand` currently discards; the deprecation wasn't finished. | P13 tests (`dispatch`, `palette`). |
-| R2 | **Bundle reset helpers never exported** | Tests call `resetSurfaces()` etc.; the API doesn't exist. | P14 tests (`bundle-composition`). |
-| R3 | **Plugins don't register commands** | `applyPlugins` fans out surfaces but not intents; `plugins.test` asserts `false === true`. | P14 tests (`plugins`). |
-| R4 | **`derived` equality churn** | New Set/Map identity each compute ⇒ subscribers fire every tick (jank, loops). | P15 churn test; use `setEqual`/`mapEqual`. |
-| R5 | **Dynamic vs static serving conflict** | Both want `/`; the middleware/fallback ordering can regress. | P20 guard tests both modes. |
-| R6 | **Kernel boundary lint too loose/strict** | Transitive chrome imports; false positives. | P19 boundary test with a known-bad import. |
+| R1 | **Command path stays a no-op** | `registerCommand` discards; the deprecation wasn't finished. | P13 (`dispatch`, `palette`). |
+| R2 | **Bundle reset helpers never exported** | Tests call `resetSurfaces()` etc.; the API doesn't exist. | P14 (`bundle-composition`). |
+| R3 | **Plugins don't register commands** | `applyPlugins` fans out surfaces but not intents. | P14 (`plugins`). |
+| R4 | **`derived` equality churn** | New Set/Map identity each compute ⇒ subscribers fire every tick. | P15 churn test; `setEqual`/`mapEqual`. |
+| R5 | **Dynamic vs static serving conflict** | Both want `/`; middleware/fallback ordering can regress. | P20 guard. |
+| R6 | **Kernel boundary lint too loose/strict** | Transitive chrome imports; false positives. | P19 boundary test. |
 
-### Speculative risks (not yet observed — assume they can happen)
+### Speculative risks
 
 | # | Risk | Why it might bite | Detector |
 |---|---|---|---|
 | R7 | **`derived([single], fn)` mis-typed** | A one-element array is treated as multi-source. | P21 derived edge test. |
-| R8 | **`node:*` shim gap** | A new client import of `node:os`/`node:buffer` throws only at runtime in dev. | P21 shim allow-list check. |
-| R9 | **Protocol spec drift** | A new message type added without a `PROTOCOL_SPECS` row is silently unrouted. | P21 protocol-drift test. |
-| R10 | **Per-app e2e flakiness** | Notebook/Goals/Console were scaffolded, not proven. | P19: deterministic e2e, real server. |
-| R11 | **`core/dist` untracking breaks a script** | Something imports `core/dist` instead of `core/src`. | P20 guard (`git ls-files`), CI on the PR. |
-| R12 | **`@senars/util` split breaks nar/core** | Other packages import the util root. | P20 optional — only if it lands, run full repo typecheck + their unit suites. |
+| R8 | **`node:*` shim gap** | A new client import of `node:os`/`node:buffer` throws only at runtime. | P21 shim allow-list check. |
+| R9 | **Protocol spec drift** | A new message type without a `PROTOCOL_SPECS` row is silently unrouted. | P21 protocol-drift test. |
+| R10 | **Per-app e2e flakiness** | Notebook/Goals/Console were scaffolded, not proven. | P19 deterministic e2e. |
+| R11 | **`core/dist` untracking breaks a script** | Something imports `core/dist` instead of `core/src`. | P20 guard + CI. |
+| R12 | **`@senars/util` split breaks nar/core** | Other packages import the util root. | P20 optional — run full repo typecheck + their suites. |
+| R13 | **Cognitive opacity (the black box)** | Substrate is perfect but the operator can't tell *why* an action happened — the raw timeline/derivation view is too dense. | P22 human heuristic (time-to-insight) + step-through guard. |
+| R14 | **Graph hairball at scale** | Great at 50 concepts; freezes/unreadable at 2,000+ (realistic for long-running agents). | P24 10k-concept load test + frame-time profiling. |
+| R15 | **Governance alert fatigue** | Approval demanded too often without risk context ⇒ operators blindly approve dangerous self-modifications. | P23: telemetry — approval time < 2 s for high-risk patches means the UI isn't being read. |
+| R16 | **Translation without a wire path** | P23 needs governance data the client never receives; "just a UI change" becomes a protocol+server change and stalls. | Named explicitly in P23 files — extend `PROTOCOL_SPECS` first. |
 
-### Blind spots (deliberately **out of scope** for UI.14 — park, don't forget)
+### Blind spots (deliberately **out of scope** — park, don't forget)
 
-- **No full kernel→projection→UI→kernel loop test** (e2e covers apps; not round-trip invariants).
-- **No load/stress test** (atom/listener leaks at scale are unmeasured).
-- **No systematic a11y audit** (only the tool-approval overlay is covered, in P18).
+- **No full kernel→projection→UI→kernel round-trip invariant test** (e2e covers apps, not the loop).
+- **No load/stress test outside P24's graph case** (atom/listener leaks at scale are unmeasured).
 - **No responsive/mobile pass**; viewport e2e is desktop-only.
 - **No i18n** (English literals throughout).
-- **No visual-regression baseline** — intentional: we want *progress* screenshots (§2), not a
-  baseline to diff against. Screenshots are a log, not a gate.
+- **a11y coverage exists but is partial** (`tests/design/a11y.test.ts`) — P25 extends it; it is not
+  a greenfield blind spot.
+- **Visual regression exists** (74 baselines) — the gap is *curation/legibility*, addressed by P26;
+  it is **not** "no baseline."
 
-**Rule:** a blind spot becomes a slice only when it becomes a *blocker* or a *user complaint*.
-Until then it stays parked here.
+**Two visual systems, kept distinct:**
+- **Progress screenshots** (`screenshots/`, new) — a *forward log* of what was built per slice;
+  no baseline to diff against. This is the thing that shows the GUI being built.
+- **Visual regression** (`tests/visual/`, existing) — *guards* committed cells against unintended
+  drift; the gallery leads with ≤6 Journeys. Curated/extended in P26.
+
+**Rule:** a blind spot becomes a slice only when it becomes a *blocker* or an *operator
+complaint*. Phase D is exactly that: the operator has asked for usability, so it graduates here.
 
 ---
 
@@ -234,13 +324,15 @@ Until then it stays parked here.
 
 | Mistake | Tripwire |
 |---|---|
-| **New subsystem during completion** | a slice adds a registry/catalog/descriptor that isn't a migration finish → stop |
+| **New subsystem during completion** | a slice adds a registry/catalog/descriptor that isn't a migration finish or a translation → stop |
+| **Phase D starts early** | Phase D work begins before `pnpm ui:gate` is green → stop |
 | **Weakening tests to pass** | a test's assertion is changed rather than the behavior fixed → stop |
 | **Chrome in the kernel** | `kernel/**` imports a lens/layout/panel/HUD module → stop |
 | **Reintroducing a build step** | `pnpm build:client:test` appears before an e2e command → stop |
 | **Client imports server** | client code imports `server/**` (drags `@senars/nar` into the browser) → stop |
 | **Green gates as progress** | no real-app walkthrough + screenshot for the slice → not done |
-| **Screenshot spam** | more than a handful of shots per slice, or illegible/duplicate states → curate |
+| **Screenshot spam** | more than a handful of shots per slice, or duplicate/illegible states → curate |
+| **Fake usability test** | a subjective criterion asserted as an automated unit test → make it a checklist item |
 | **Deleting by hope** | a file is removed before its callers migrate → archive first |
 | **Going in circles** | a slice is retried >3 times → stop and report (the pre-mortem likely missed a risk) |
 
@@ -248,16 +340,27 @@ Until then it stays parked here.
 
 ## 5. Definition of done
 
+**Stability (Phases A–C):**
 - **`pnpm ui:gate` green**, including **an e2e per app**.
 - **Unit suite 790/790**, and no test leans on a deprecated no-op API.
 - **One definition per fact:** no bespoke `*_IDS`/`*Where`/`d()`; `reasoning-layout` and
-  `capabilities` are on `defineCatalog`; overlays are surfaces.
+  `capabilities` on `defineCatalog`; overlays are surfaces.
 - **Every app is `defineBundle` + `defineApp`**; `plugins.ts` no longer fans out.
 - **Settings, LM providers and styles derive from their catalogs.**
 - **The §3.3 kernel boundary is enforced** by a check that fails on a chrome import.
 - **Static and dynamic serving both work**; no tracked build artifacts.
-- **A curated `screenshots/` log** shows the GUI state at each slice (progress, not baseline).
 - **The §3 pre-mortem detectors exist and pass** (P21).
+
+**Value (Phase D):**
+- **Time-to-insight:** a new operator traces a belief retraction and explains the agent's reasoning
+  in **≤3 minutes** using the Timeline (*human checklist*, not a unit test).
+- **Safe governance:** the Tool Approval UI supplies risk score + diff + sandbox verdict so a human
+  can make an informed decision on a self-modification patch.
+- **Scale resilience:** the graph viewport stays interactive (**≥30 FPS**) with **>1,000** active
+  concepts (10k in the guard test).
+- **Accessibility:** Lighthouse a11y **> 95**; the golden path is fully keyboard-navigable.
+- **A curated `screenshots/` log** shows the GUI state at each slice (progress, not baseline), and
+  the visual gallery leads with ≤6 legible journeys.
 
 ---
 
@@ -278,12 +381,18 @@ Until then it stays parked here.
   the util split (P20).
 - **Protocol.** One definition: `PROTOCOL_SPECS` in `client/core/protocol-defs.ts`. Client routes via
   `handleClient`; server via `server/protocol-server.ts` → `server/handlers.ts`. **Never import
-  server handlers from client code.**
+  server handlers from client code.** P23 may add protocol rows — do that first.
 - **`derived`.** `derived(source, fn)` passes the single value; `derived([a, b], fn)` passes the
   array; `get` is bound. A single-source selector that indexes the array is the bug fixed in `5ca8fc8e`.
+- **Existing visual contract.** `tests/visual/{matrix,generated-cells}.ts`, `visual-coverage.test.ts`,
+  `scripts/build-gallery.ts`; ≤6 Journeys (chat⇄graph, streaming, tool approval, explain, fractal
+  node body). 74 committed baselines in `tests/visual/baselines/chromium/`. Gates: `test:visual`,
+  `test:design` (+ `CHECKLIST.md`), `ui:gallery`.
+- **Governance source (for P23).** `nar/src/governance/pipeline.ts` — `PatchRiskClassifier`,
+  `SandboxValidator`, `ProposalRoute = 'auto-apply' | 'sandbox-validate' | 'human-approval'`.
 - **Layout.** `framework/` (micro-framework), `kernel/` (facade + atoms), `core/` (substrate + HUD
-  chrome), `apps/*` (products), `server/` (dynamic host + protocol-server), `shared/`, and
-  `core/src/protocol/` (the zod protocol).
+  chrome), `apps/*` (products), `components/` + `components/overlays/` (HUD chrome), `server/`
+  (dynamic host + protocol-server), `shared/`, `core/src/protocol/` (the zod protocol).
 - **Guards that must stay green:** `tests/scenarios/golden-path/operate-reasoner.spec.ts` (`@golden`),
   `tests/scenarios/prototypes/ask.spec.ts` (`@prototype`), `tests/components/*`, `tests/visual/*`.
 - **Conventions (AGENTS.md):** terse self-documenting code; `pnpm`/`pnpx`; no `pkill`; don't edit
