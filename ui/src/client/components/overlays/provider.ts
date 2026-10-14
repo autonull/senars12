@@ -13,8 +13,6 @@ import { Announcer } from '../../core/announcer.js';
 import { eventBus } from '../../core/events.js';
 import { $lmProvider, providerLabel, providerUsable } from '../../core/lm-provider.js';
 import { refreshLmStatus, switchLmProvider } from '../../core/lm-transport.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
 import { $webllmActive, $webllmAvailable } from '../../core/store.js';
@@ -270,14 +268,16 @@ export class ProviderView extends SurfaceComponent {
 
 const PROVIDER_SURFACE = { id: 'provider', title: 'Provider', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(PROVIDER_SURFACE, ProviderView);
-registerOverlay({
-  id: PROVIDER_SURFACE.id,
-  title: PROVIDER_SURFACE.title,
-  tag: surfaceTag(PROVIDER_SURFACE),
-  hiddenInPalette: true,
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...PROVIDER_SURFACE,
+    presentation: {
+      hiddenInPalette: true,
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  ProviderView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

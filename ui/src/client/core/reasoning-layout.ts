@@ -8,48 +8,52 @@
 
 import { blocksInOrder, type Point } from './conversation-layout.js';
 import type { CreatedBy, Ref, SemanticBlock, WorkspaceGraph } from './workspace-graph.js';
+import { defineCatalog } from '../framework/catalog.js';
 
-export type ReasoningLayoutId =
-  | 'reasoning-provenance'
-  | 'gate-pipeline'
-  | 'contradiction-neighborhood'
-  | 'budget-resource';
-
-export interface ReasoningLayoutDescriptor {
-  id: ReasoningLayoutId;
-  label: string;
-  description: string;
+export interface ReasoningLayoutFacets {
+  /** Short description for tooltips. */
+  readonly description: string;
 }
 
-export const REASONING_LAYOUT_IDS = [
-  'reasoning-provenance',
-  'gate-pipeline',
-  'contradiction-neighborhood',
-  'budget-resource',
-] as const satisfies readonly ReasoningLayoutId[];
+export type ReasoningLayoutDescriptor = { readonly label: string } & ReasoningLayoutFacets;
 
-export const REASONING_LAYOUT_CATALOG: Record<ReasoningLayoutId, ReasoningLayoutDescriptor> = {
+/** The one definition per reasoning layout — the id is the catalog key. */
+export const REASONING_LAYOUT_DEFS = defineCatalog({
   'reasoning-provenance': {
-    id: 'reasoning-provenance',
     label: 'Provenance',
     description: 'Derivation chains layered by `derived-from` depth.',
   },
   'gate-pipeline': {
-    id: 'gate-pipeline',
     label: 'Gate pipeline',
     description: 'Claims flowing left-to-right toward the formalization gate.',
   },
   'contradiction-neighborhood': {
-    id: 'contradiction-neighborhood',
     label: 'Contradictions',
     description: 'Contested and revised claims centred, their neighbours to the side.',
   },
   'budget-resource': {
-    id: 'budget-resource',
     label: 'Resources',
     description: 'One lane per originating party, so spend is read at a glance.',
   },
-};
+} as const);
+
+/** The semantic id of a reasoning layout — the catalog keys are its source. */
+export type ReasoningLayoutId = keyof typeof REASONING_LAYOUT_DEFS.definition;
+
+/** Every layout id, in catalog order. */
+export const REASONING_LAYOUT_IDS = REASONING_LAYOUT_DEFS.ids;
+
+/** A layout descriptor by id. */
+export const reasoningLayoutDef = (id: ReasoningLayoutId): ReasoningLayoutDescriptor =>
+  REASONING_LAYOUT_DEFS.get(id);
+
+/** The layout ids a facet selects, in catalog order. */
+export const reasoningLayoutIdsWhere = (
+  facet: (def: ReasoningLayoutDescriptor) => boolean
+): ReasoningLayoutId[] => REASONING_LAYOUT_DEFS.where(facet);
+
+/** Back-compat alias. */
+export const REASONING_LAYOUT_CATALOG = REASONING_LAYOUT_DEFS.definition;
 
 export type ReasoningPositions = Map<Ref, Point>;
 

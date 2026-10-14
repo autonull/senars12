@@ -204,7 +204,7 @@ Settings UI reads `config-catalog`; `lm-provider.ts` uses `lm-provider-catalog`;
 **Prove:** settings UI + change log render from the catalog; theming uses generated tokens.
 **Screenshot:** `http://localhost:3456/apps/ask/` (settings panel open).
 
-- [ ] **P18 — Unify the last catalogs + overlays.**
+- [x] **P18 — Unify the last catalogs + overlays.**
 Put `reasoning-layout.ts` and `capabilities.ts` on `defineCatalog`; fold `registerOverlay` into
 `defineSurface` so the tool-approval overlay keeps its `a11y`.
 **Files:** `core/{reasoning-layout,capabilities,overlay-*.ts}`, `framework/surface.ts`.
@@ -705,6 +705,38 @@ and `/`) returns 200 and each app boots.
 - `apps/*/main.ts` import `APP_SHELL_TAG` without using it (also noted in P16).
 - `config-change-producer` only diffs top-level config keys; nested changes (`provider.model`) emit an
   object-valued `provider` change. A catalog-driven deep diff is a natural follow-up.
+
+### P18 — Unify the last catalogs + overlays (2026-10-14)
+
+**Changed**
+- `core/reasoning-layout.ts`: the hand-written `ReasoningLayoutId` union + `REASONING_LAYOUT_IDS` tuple +
+  `Record` are replaced by `REASONING_LAYOUT_DEFS = defineCatalog({...})`; `ReasoningLayoutId` derives from
+  the keys, `REASONING_LAYOUT_IDS = DEFS.ids`, and `REASONING_LAYOUT_CATALOG` is the back-compat
+  `DEFS.definition`. Added `reasoningLayoutDef` / `reasoningLayoutIdsWhere` for parity.
+- `core/capabilities.ts`: `CAPABILITY_DEFS = defineCatalog({...})`; `Capability` derives from the keys,
+  `CAPABILITY_IDS = DEFS.ids`, `CAPABILITY_CATALOG` is the back-compat definition;
+  `capabilityDescriptors` / `defaultCapabilities` read the catalog. The runtime `capabilityRegistry` Map
+  (dynamic `registerCapability`) is unchanged.
+- All 17 overlay components: folded the second `registerOverlay({...})` call into the single
+  `defineSurface({ ...SURFACE, capability?, presentation: { modal | autoFocus | hiddenInPalette | window } },
+  View)` — one registration, no merge step — and dropped the now-dead `registerOverlay` / `surfaceTag`
+  imports. `registerOverlay` itself stays (overlay tests and `core/surface-registration.ts` still use it).
+- `tests/design/a11y.test.ts`: removed the stale "P2 follow-up" weakening; it now asserts every a11y-bearing
+  overlay is a `dialog` **and** that `tool-approval` keeps its a11y role through registration.
+- `tests/components/catalog-defs.test.ts` (new): both catalogs expose `get`/`ids`/`entries`/`where`/`size`/`has`.
+
+**Guard:** the catalog API test green; overlay `a11y` preserved (the weakened P2 test replaced by a hard one).
+**Prove:** unit **799/799**; golden-path HUD e2e green (reasoning layout + capability gating + the
+tool-approval overlay unchanged).
+**Screenshot:** `ui/screenshots/p18-catalogs-overlays.png` (`/`).
+
+**New opportunities**
+- `registerOverlay` is now used only by tests and `surface-registration.ts`; it can be deleted once those
+  move to `defineSurface`.
+- Remaining duplicate sources found during the P18 audit: the `SHAPES` tuple vs `viewAdapterCatalog` keys
+  (`core/view-spec.ts`), view presets defined twice (`utils/view-presets.ts` vs
+  `components/overlays/display-popover.ts`), and the theme enum drift (`config-schema.ts`,
+  `config-catalog.ts`, `store.ts`, `styles/tokens.generated.ts`).
 
 ---
 

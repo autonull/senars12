@@ -12,9 +12,7 @@ import { Announcer } from '../../core/announcer.js';
 import { artifactViewSpec } from '../../core/artifacts.js';
 import { payloadOf } from '../../core/block-payload.js';
 import { eventBus } from '../../core/events.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
 import { $activeRenderer, $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
 import { projectDataset } from '../../core/view-projection.js';
@@ -200,14 +198,16 @@ export class ArtifactView extends SurfaceComponent {
 
 const ARTIFACT_SURFACE = { id: 'artifact', title: 'Artifact', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(ARTIFACT_SURFACE, ArtifactView);
-registerOverlay({
-  id: ARTIFACT_SURFACE.id,
-  title: ARTIFACT_SURFACE.title,
-  tag: surfaceTag(ARTIFACT_SURFACE),
-  hiddenInPalette: true,
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...ARTIFACT_SURFACE,
+    presentation: {
+      hiddenInPalette: true,
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  ArtifactView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

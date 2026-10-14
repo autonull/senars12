@@ -10,8 +10,6 @@ import { $graphNodes, $workspaceGraph, BaseComponent, send } from '../../core/in
 import type { GraphNodeData } from '@senars/core';
 import { viewSource } from '../../core/view-sources.js';
 import type { Shape, ViewSpec } from '../../core/view-spec.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 
 @customElement('s-nodes')
@@ -281,15 +279,17 @@ export class NodesView extends SurfaceComponent {
 
 const NODES_SURFACE = { id: 'nodes', title: 'Concepts', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(NODES_SURFACE, NodesView);
-registerOverlay({
-  id: NODES_SURFACE.id,
-  title: NODES_SURFACE.title,
-  tag: surfaceTag(NODES_SURFACE),
-  capability: 'reasoning' as const,
-  hiddenInPalette: true,
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...NODES_SURFACE,
+    capability: 'reasoning' as const,
+    presentation: {
+      hiddenInPalette: true,
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  NodesView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

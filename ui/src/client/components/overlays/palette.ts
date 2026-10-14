@@ -12,9 +12,7 @@ import { dispatchCommand, paletteCommands, type Command } from '../../core/comma
 import { recentCommandIds } from '../../core/command-history.js';
 import { matchCommands } from '../../core/command-match.js';
 import { eventBus } from '../../core/events.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
 import { $activeRenderer } from '../../core/store.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 
 interface Row {
@@ -228,13 +226,15 @@ export class PaletteView extends SurfaceComponent {
 
 const PALETTE_SURFACE = { id: 'palette', title: 'Command palette', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(PALETTE_SURFACE, PaletteView);
-registerOverlay({
-  id: PALETTE_SURFACE.id,
-  title: PALETTE_SURFACE.title,
-  tag: surfaceTag(PALETTE_SURFACE),
-  hiddenInPalette: true,
-});
+defineSurface(
+  {
+    ...PALETTE_SURFACE,
+    presentation: {
+      hiddenInPalette: true,
+    },
+  },
+  PaletteView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

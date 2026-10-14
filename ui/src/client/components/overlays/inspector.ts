@@ -9,9 +9,7 @@
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { eventBus } from '../../core/events.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
 import { $selectedEdgeId, $selectedNodeId } from '../../core/store.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
 import '../node-detail-drawer.js';
@@ -97,14 +95,16 @@ export class InspectorView extends SurfaceComponent {
 
 const INSPECTOR_SURFACE = { id: 'inspector', title: 'Inspector', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(INSPECTOR_SURFACE, InspectorView);
-registerOverlay({
-  id: INSPECTOR_SURFACE.id,
-  title: INSPECTOR_SURFACE.title,
-  tag: surfaceTag(INSPECTOR_SURFACE),
-  autoFocus: false,
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...INSPECTOR_SURFACE,
+    presentation: {
+      autoFocus: false,
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  InspectorView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

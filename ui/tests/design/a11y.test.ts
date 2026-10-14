@@ -13,13 +13,19 @@ describe('design: surface accessibility', () => {
     expect(() => validateSurfaceA11y(targets)).not.toThrow();
   });
 
-  it('declares the dialog role for overlay surfaces', () => {
+  it('declares the dialog role for every overlay surface that opts into a11y', () => {
     const overlays = getSurfaces().filter((descriptor) => descriptor.placement === 'overlay');
     expect(overlays.length).toBeGreaterThan(0);
-    // TODO: tool-approval overlay loses a11y due to registerOverlay merge issue (P2 follow-up)
-    const overlaysWithA11y = overlays.filter((o) => o.a11y?.role);
-    expect(overlaysWithA11y.length).toBeGreaterThan(0);
-    for (const overlay of overlaysWithA11y) expect(surfaceA11y(overlay).role).toBe('dialog');
+    const withA11y = overlays.filter((overlay) => overlay.a11y?.role);
+    expect(withA11y.length).toBeGreaterThan(0);
+    for (const overlay of withA11y) expect(surfaceA11y(overlay).role).toBe('dialog');
+  });
+
+  it('preserves the tool-approval overlay a11y through registration (P2 regression)', () => {
+    const toolApproval = getSurfaces().find((descriptor) => descriptor.id === 'tool-approval');
+    expect(toolApproval).toBeDefined();
+    expect(toolApproval?.a11y?.role).toBe('dialog');
+    expect(surfaceA11y(toolApproval!).role).toBe('dialog');
   });
 
   it('rejects a missing label, a missing role, and a silent keyboard opt-out', () => {

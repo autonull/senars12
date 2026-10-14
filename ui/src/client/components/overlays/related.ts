@@ -13,14 +13,12 @@ import { customElement, property } from 'lit/decorators.js';
 import { blockDescriptor } from '../../core/block-descriptors.js';
 import { eventBus } from '../../core/events.js';
 import { type Neighbor, neighborhood } from '../../core/neighborhood.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
 import {
   $neighborhoodDepth,
   $workspaceGraph,
   setNeighborhoodDepth,
   setWorkspaceFocus,
 } from '../../core/store.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
 
@@ -236,13 +234,15 @@ export class RelatedView extends SurfaceComponent {
 
 const RELATED_SURFACE = { id: 'related', title: 'Related', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(RELATED_SURFACE, RelatedView);
-registerOverlay({
-  id: RELATED_SURFACE.id,
-  title: RELATED_SURFACE.title,
-  tag: surfaceTag(RELATED_SURFACE),
-  hiddenInPalette: true,
-});
+defineSurface(
+  {
+    ...RELATED_SURFACE,
+    presentation: {
+      hiddenInPalette: true,
+    },
+  },
+  RelatedView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

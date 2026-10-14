@@ -10,8 +10,6 @@ import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { eventBus } from '../../core/events.js';
 import { Capability } from '../../core/capabilities.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
 import '../timeline-scrubber.js';
@@ -91,15 +89,17 @@ export class TimelineView extends SurfaceComponent {
 
 const TIMELINE_SURFACE = { id: 'timeline', title: 'Timeline', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(TIMELINE_SURFACE, TimelineView);
-registerOverlay({
-  id: TIMELINE_SURFACE.id,
-  title: TIMELINE_SURFACE.title,
-  tag: surfaceTag(TIMELINE_SURFACE),
-  capability: 'reasoning' as const,
-  hiddenInPalette: true,
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...TIMELINE_SURFACE,
+    capability: 'reasoning' as const,
+    presentation: {
+      hiddenInPalette: true,
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  TimelineView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

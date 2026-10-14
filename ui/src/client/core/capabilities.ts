@@ -7,10 +7,44 @@
  */
 
 import { $activeRenderer, atom, mountTestApi } from './store.js';
+import { defineCatalog } from '../framework/catalog.js';
 
-export const CAPABILITY_IDS = ['language', 'reasoning', 'tools', 'memory', 'uiControl'] as const;
+/**
+ * The one definition per capability — the id is the catalog key, so the
+ * `Capability` union derives from the catalog and adding a capability is one
+ * entry.
+ */
+export const CAPABILITY_DEFS = defineCatalog({
+  language: {
+    label: 'Language',
+    description: 'LM conversation, segmentation and artifacts',
+    default: true,
+  },
+  reasoning: {
+    label: 'Reasoning',
+    description: 'Beliefs, derivations, gates and provenance',
+    default: false,
+  },
+  tools: {
+    label: 'Tools',
+    description: 'Tool calls and results',
+    default: false,
+  },
+  memory: {
+    label: 'Memory',
+    description: 'Persistent sessions',
+    default: false,
+  },
+  uiControl: {
+    label: 'UI control',
+    description: 'Agent-operable workspace commands',
+    default: false,
+  },
+} as const);
 
-export type Capability = (typeof CAPABILITY_IDS)[number];
+export type Capability = keyof typeof CAPABILITY_DEFS.definition;
+
+export const CAPABILITY_IDS = CAPABILITY_DEFS.ids;
 
 export interface CapabilityDescriptor {
   readonly id: Capability;
@@ -20,44 +54,14 @@ export interface CapabilityDescriptor {
   readonly default: boolean;
 }
 
-export const CAPABILITY_CATALOG = {
-  language: {
-    id: 'language',
-    label: 'Language',
-    description: 'LM conversation, segmentation and artifacts',
-    default: true,
-  },
-  reasoning: {
-    id: 'reasoning',
-    label: 'Reasoning',
-    description: 'Beliefs, derivations, gates and provenance',
-    default: false,
-  },
-  tools: {
-    id: 'tools',
-    label: 'Tools',
-    description: 'Tool calls and results',
-    default: false,
-  },
-  memory: {
-    id: 'memory',
-    label: 'Memory',
-    description: 'Persistent sessions',
-    default: false,
-  },
-  uiControl: {
-    id: 'uiControl',
-    label: 'UI control',
-    description: 'Agent-operable workspace commands',
-    default: false,
-  },
-} as const satisfies Record<Capability, CapabilityDescriptor>;
-
 export const capabilityDescriptors = (): CapabilityDescriptor[] =>
-  CAPABILITY_IDS.map((id) => CAPABILITY_CATALOG[id]);
+  CAPABILITY_DEFS.ids.map((id) => ({ id, ...CAPABILITY_DEFS.get(id) }));
 
 export const defaultCapabilities = (): Set<Capability> =>
-  new Set(CAPABILITY_IDS.filter((id) => CAPABILITY_CATALOG[id].default));
+  new Set(CAPABILITY_DEFS.ids.filter((id) => CAPABILITY_DEFS.get(id).default));
+
+/** Back-compat alias — the built-in capability definitions keyed by id. */
+export const CAPABILITY_CATALOG = CAPABILITY_DEFS.definition;
 
 /** The enabled composition — the one gate every capability-aware surface reads. */
 export const $capabilities = atom<ReadonlySet<Capability>>(defaultCapabilities());

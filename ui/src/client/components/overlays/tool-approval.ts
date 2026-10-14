@@ -5,8 +5,6 @@
 
 import { css, html, type TemplateResult } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { mountTestApi } from '../../core/store.js';
 import {
@@ -434,15 +432,16 @@ export class ToolApprovalView extends SurfaceComponent {
 
 const TOOL_APPROVAL_SURFACE = { id: 'tool-approval', title: 'Tool approval', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(TOOL_APPROVAL_SURFACE, ToolApprovalView);
-registerOverlay({
-  id: TOOL_APPROVAL_SURFACE.id,
-  title: TOOL_APPROVAL_SURFACE.title,
-  tag: surfaceTag(TOOL_APPROVAL_SURFACE),
-  modal: true,
-  hiddenInPalette: true,
-  a11y: TOOL_APPROVAL_SURFACE.a11y,
-});
+defineSurface(
+  {
+    ...TOOL_APPROVAL_SURFACE,
+    presentation: {
+      modal: true,
+      hiddenInPalette: true,
+    },
+  },
+  ToolApprovalView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

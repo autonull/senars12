@@ -27,9 +27,7 @@ import {
   type ExplainSubject,
 } from '../../core/explain.js';
 import { Capability } from '../../core/capabilities.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
 import { $nodeHistory, $workspaceGraph } from '../../core/store.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
 import { DISCLOSURES, type Disclosure } from '../../core/view-spec.js';
@@ -351,15 +349,17 @@ export class ExplainView extends SurfaceComponent {
 
 const EXPLAIN_SURFACE = { id: 'explain', title: 'Explanation', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(EXPLAIN_SURFACE, ExplainView);
-registerOverlay({
-  id: EXPLAIN_SURFACE.id,
-  title: EXPLAIN_SURFACE.title,
-  tag: surfaceTag(EXPLAIN_SURFACE),
-  capability: 'reasoning' as Capability,
-  hiddenInPalette: true,
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...EXPLAIN_SURFACE,
+    capability: 'reasoning' as Capability,
+    presentation: {
+      hiddenInPalette: true,
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  ExplainView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

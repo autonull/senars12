@@ -9,8 +9,6 @@
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { eventBus } from '../../core/events.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
 import '../telemetry-panel.js';
@@ -88,15 +86,17 @@ export class TelemetryView extends SurfaceComponent {
 
 const TELEMETRY_SURFACE = { id: 'telemetry', title: 'Telemetry', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(TELEMETRY_SURFACE, TelemetryView);
-registerOverlay({
-  id: TELEMETRY_SURFACE.id,
-  title: TELEMETRY_SURFACE.title,
-  tag: surfaceTag(TELEMETRY_SURFACE),
-  capability: 'reasoning' as const,
-  hiddenInPalette: true,
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...TELEMETRY_SURFACE,
+    capability: 'reasoning' as const,
+    presentation: {
+      hiddenInPalette: true,
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  TelemetryView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

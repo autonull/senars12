@@ -10,8 +10,6 @@ import { $cognitiveEvents, BaseComponent } from '../../core/index.js';
 import type { CognitiveEvent } from '@senars/core';
 import { viewSource } from '../../core/view-sources.js';
 import type { Shape, ViewSpec } from '../../core/view-spec.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { eventMeta, EVENT_TYPES, type EventType } from '../../utils/event-catalog.js';
 
@@ -249,13 +247,15 @@ export class EventsView extends SurfaceComponent {
 
 const EVENTS_SURFACE = { id: 'events', title: 'Event Log', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(EVENTS_SURFACE, EventsView);
-registerOverlay({
-  id: EVENTS_SURFACE.id,
-  title: EVENTS_SURFACE.title,
-  tag: surfaceTag(EVENTS_SURFACE),
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...EVENTS_SURFACE,
+    presentation: {
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  EventsView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

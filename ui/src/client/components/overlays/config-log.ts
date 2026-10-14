@@ -9,8 +9,6 @@ import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { eventBus } from '../../core/events.js';
 import { $configChanges } from '../../core/index.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { viewSource } from '../../core/view-sources.js';
 import type { ViewSpec } from '../../core/view-spec.js';
@@ -141,15 +139,17 @@ export class ConfigLogView extends SurfaceComponent {
 
 const CONFIG_LOG_SURFACE = { id: 'config-log', title: 'Config Changes', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(CONFIG_LOG_SURFACE, ConfigLogView);
-registerOverlay({
-  id: CONFIG_LOG_SURFACE.id,
-  title: CONFIG_LOG_SURFACE.title,
-  tag: surfaceTag(CONFIG_LOG_SURFACE),
-  capability: 'uiControl' as const,
-  hiddenInPalette: true,
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...CONFIG_LOG_SURFACE,
+    capability: 'uiControl' as const,
+    presentation: {
+      hiddenInPalette: true,
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  ConfigLogView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

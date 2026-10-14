@@ -23,9 +23,7 @@ import {
 } from '../../core/embedded-views.js';
 import { explainModel } from '../../core/explain.js';
 import { neighborhood } from '../../core/neighborhood.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
 import { $activeRenderer } from '../../core/store.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { linkMeta } from '../../utils/link-catalog.js';
 
@@ -216,13 +214,15 @@ export class BlockMenuView extends SurfaceComponent {
 
 const BLOCK_MENU_SURFACE = { id: 'block-menu', title: 'Block actions', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(BLOCK_MENU_SURFACE, BlockMenuView);
-registerOverlay({
-  id: BLOCK_MENU_SURFACE.id,
-  title: BLOCK_MENU_SURFACE.title,
-  tag: surfaceTag(BLOCK_MENU_SURFACE),
-  hiddenInPalette: true,
-});
+defineSurface(
+  {
+    ...BLOCK_MENU_SURFACE,
+    presentation: {
+      hiddenInPalette: true,
+    },
+  },
+  BlockMenuView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

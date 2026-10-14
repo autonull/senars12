@@ -11,8 +11,6 @@
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { eventBus } from '../../core/events.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
 import '../config-hud.js';
@@ -74,16 +72,18 @@ protected override renderBody() {
 
 const SETTINGS_SURFACE = { id: 'settings', title: 'Configuration', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(SETTINGS_SURFACE, SettingsView);
-registerOverlay({
-  id: SETTINGS_SURFACE.id,
-  title: SETTINGS_SURFACE.title,
-  tag: surfaceTag(SETTINGS_SURFACE),
-  capability: 'uiControl' as const,
-  hiddenInPalette: true,
-  modal: true,
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...SETTINGS_SURFACE,
+    capability: 'uiControl' as const,
+    presentation: {
+      modal: true,
+      hiddenInPalette: true,
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  SettingsView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

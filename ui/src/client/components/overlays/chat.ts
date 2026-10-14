@@ -10,8 +10,6 @@ import { $chatMessages, $streamingDelta, BaseComponent, send } from '../../core/
 import type { ChatMessage } from '@senars/core';
 import { viewSource } from '../../core/view-sources.js';
 import type { Shape, ViewSpec } from '../../core/view-spec.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
@@ -452,13 +450,15 @@ export class ChatView extends SurfaceComponent {
 
 const CHAT_SURFACE = { id: 'chat', title: 'Conversation', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(CHAT_SURFACE, ChatView);
-registerOverlay({
-  id: CHAT_SURFACE.id,
-  title: CHAT_SURFACE.title,
-  tag: surfaceTag(CHAT_SURFACE),
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...CHAT_SURFACE,
+    presentation: {
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  ChatView
+);
 
 declare global {
   interface HTMLElementTagNameMap {

@@ -8,7 +8,6 @@
 import { css, html, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
 import { eventBus } from '../../core/events.js';
 import { $activeLens, $activeRenderer, $lensLayout } from '../../core/store.js';
 
@@ -215,11 +214,13 @@ const DISPLAY_SURFACE = {
 // One registration owns the tag: a second `customElements.define` with the same
 // constructor throws (a constructor can be used with a registry only once), so
 // the element is defined exactly here.
-defineSurface(DISPLAY_SURFACE, DisplayPopoverBase);
-registerOverlay({
-  id: DISPLAY_SURFACE.id,
-  title: DISPLAY_SURFACE.title,
-  tag: DISPLAY_SURFACE.tag,
-  capability: 'uiControl',
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...DISPLAY_SURFACE,
+    capability: 'uiControl',
+    presentation: {
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  DisplayPopoverBase
+);

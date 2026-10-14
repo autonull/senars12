@@ -29,6 +29,7 @@ export {
 export {
   $capabilities,
   CAPABILITY_CATALOG,
+  CAPABILITY_DEFS,
   CAPABILITY_IDS,
   type Capability,
   capabilityDescriptors,
@@ -174,7 +175,10 @@ export {
   type ReasoningLayoutDescriptor,
   type ReasoningLayoutId,
   REASONING_LAYOUT_CATALOG,
+  REASONING_LAYOUT_DEFS,
   REASONING_LAYOUT_IDS,
+  reasoningLayoutDef,
+  reasoningLayoutIdsWhere,
   type ReasoningPositions,
   reasoningPositions,
 } from './reasoning-layout.js';

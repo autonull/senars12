@@ -16,8 +16,6 @@ import { blockDescriptor } from '../../core/block-descriptors.js';
 import { dispatchCommand } from '../../core/commands.js';
 import { eventBus } from '../../core/events.js';
 import { $collapsedBlocks, $workspaceGraph, setWorkspaceFocus } from '../../core/store.js';
-import { registerOverlay } from '../../core/overlay-registry.js';
-import { surfaceTag } from '../../core/surface-registry.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
 import type { BlockKind } from '../../core/workspace-graph.js';
@@ -358,15 +356,17 @@ export class TocView extends SurfaceComponent {
 
 const TOC_SURFACE = { id: 'toc', title: 'Table of contents', group: 'overlay', a11y: { role: 'dialog' } } as const;
 
-defineSurface(TOC_SURFACE, TocView);
-registerOverlay({
-  id: TOC_SURFACE.id,
-  title: TOC_SURFACE.title,
-  tag: surfaceTag(TOC_SURFACE),
-  capability: 'reasoning' as const,
-  hiddenInPalette: true,
-  window: { draggable: true, resizable: true, minimize: true, persist: true },
-});
+defineSurface(
+  {
+    ...TOC_SURFACE,
+    capability: 'reasoning' as const,
+    presentation: {
+      hiddenInPalette: true,
+      window: { draggable: true, resizable: true, minimize: true, persist: true },
+    },
+  },
+  TocView
+);
 
 declare global {
   interface HTMLElementTagNameMap {
