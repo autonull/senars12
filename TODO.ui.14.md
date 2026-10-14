@@ -1,16 +1,23 @@
-# TODO.ui.14.md — Finish the UI: land the migrations, green the gate, then translate the substrate
+# TODO.ui.14.md — Finish the UI: green the gate, translate the substrate, default to conversation
 
 > **Supersedes** `TODO.ui.13.md` §4 "Phase 2 — Completion backlog". `TODO.ui.13.md` remains
 > the record of the P0–P12 refactor (the diagnosis and the normalized substrate); **this file
-> is the single execution plan for completing and then *using* the UI.** Do not run both.
+> is the single execution plan for completing, translating, and *presenting* the UI.** Do not
+> run both.
 
-> **North star:** *the normalized substrate exists — make it a gate-green UI that then
-> **translates** complex cognitive states and autonomous governance into human-understandable
-> insight.* Stability first; value second; never a new subsystem to get either.
+> **North star:** *the normalized substrate exists — make it gate-green, then **translate**
+> complex cognitive states and autonomous governance into insight, and **present them through a
+> familiar conversational default** whose reasoning engine is revealed on demand.* Stability
+> first; value second; conversation third; never a new subsystem for any of them.
+
+> **Paradigm:** the default experience is a **Conversational Assistant** (LLM-first), not a
+> control panel. The LLM (System 1) handles language, tone and formatting; SeNARS (System 2)
+> owns memory, tools, truth values and self-correction behind it. The graph / timeline / AIKR
+> dashboards are **progressive disclosure** — one click away, never in the user's face.
 
 > **One-line test:** *Can a fresh session resume from this file alone, land one slice, watch
-> `pnpm ui:gate` get greener (Phases A–C) or an operator understand the agent better
-> (Phase D), and see a screenshot proving the real app still works?*
+> `pnpm ui:gate` get greener (Phases A–C), understand the agent better (Phase D), or get a
+> ChatGPT-grade answer from the default surface (Phase E) — and see a screenshot proving it?*
 
 ---
 
@@ -21,13 +28,15 @@
 and the client is served **dynamically** by the dev/test server (no `dist` build — commit
 `5ca8fc8e`). **But the plan is not done by its own definition:** `pnpm ui:gate` is **red**.
 
-**Two mandates, in this order:**
+**Three mandates, in this order:**
 
 1. **Phases A–C (P13–P21) — stabilize.** Land the half-finished migrations and green the gate.
-   *Nothing in Phase D may begin until `pnpm ui:gate` is green.*
-2. **Phase D (P22–P26) — realize value.** Translate existing substrate into operator-usable
-   insight. This is **additive strategic scope**, requested by the operator; it does not change
-   the A–C mandate, and it is still "translation", not "new subsystems."
+   *Nothing in Phase D or E may begin until `pnpm ui:gate` is green.*
+2. **Phase D (P22–P26) — translate.** Translate existing substrate into operator-usable insight.
+   Additive scope, still "translation", not "new subsystems."
+3. **Phase E (P27–P32) — present.** Make the **conversational assistant the default surface**,
+   with the rich reasoning views as on-demand disclosure. Additive product scope; reuses D's
+   translations rather than duplicating them.
 
 **Current state — the resume point:**
 
@@ -47,7 +56,7 @@ dispatch (`entry.handle` → `entry.handleServer`); the `derived()` array-vs-val
 bugs; `node:*` browser shims; the `COMPOSER_MODE_CATALOG`/`view-adapter` type errors.
 
 **First slice: P13 — Land the intent/command migration** (§2, Phase A). Then P14 → … → P21
-(gate green), **then** P22 → P26 (Phase D).
+(gate green), **then** P22 → P26 (Phase D), **then** P27 → P32 (Phase E).
 
 **Commands** (repo root unless noted):
 - typecheck: `pnpm --dir ui typecheck`
@@ -72,26 +81,28 @@ path, remaining, new opportunities).
 **The only trigger needed is: "implement TODO.ui.14.md".**
 
 1. **Read this file top to bottom.** §2 is the plan; §3 is the pre-mortem you must keep in mind.
-2. **Resume at the first unchecked slice in §2.** Finish Phase A–C before starting Phase D.
+2. **Resume at the first unchecked slice in §2.** Finish Phase A–C before starting Phase D; finish
+   Phase D before Phase E (E reuses D's translations).
 3. **For each slice:** implement → guard (unit, no mocks; **a human-checklist item where the
    criterion is subjective**) → prove on a real app → **capture a progress screenshot** →
    `pnpm --dir ui typecheck && pnpm --dir ui test:unit` → confirm the golden e2e → commit
    (Conventional Commits) → append a §6 entry.
 4. **Then take the next slice.** Do not batch. Do not invent new subsystems — every task is a
-   migration finish, a guard, or a **translation of existing substrate.**
+   migration finish, a guard, a **translation of existing substrate**, or its **presentation**.
 5. **Stop and report only when:** a **tripwire** fires (§4); a required tool is missing; or a test
    fails **>3 times**. Never loop.
 
 **Focus after each slice — the ledger:** `typecheck`, `unit pass count`, golden e2e, per-app e2e
 (Phases A–C); operator-legibility criteria (Phase D). The plan is winning only if `unit` climbs
-toward 790/790, stays there, and Phase D's guards hold.
+toward 790/790, stays there, and Phase D/E guards hold.
 
 ---
 
 ## 1. The remaining work, in one table
 
 Rows 1–14 trace to a `TODO.ui.13.md` §8 "Remaining" bullet. Rows 15–19 are **Phase D — additive
-strategic scope** (operator priority; not derived from UI.13).
+strategic scope** (operator priority). Rows 20–25 are **Phase E — additive product scope** (the
+conversational default; also operator priority).
 
 | # | Item | From | Slice |
 |---|---|---|---|
@@ -114,6 +125,12 @@ strategic scope** (operator priority; not derived from UI.13).
 | 17 | Graph becomes an unreadable hairball as concepts scale | **D** | P24 |
 | 18 | Overlays (palette/inspector/settings) lack keyboard/ARIA completeness | **D** | P25 |
 | 19 | Visual gallery has redundant coverage cells; some tiles illegible | **D** | P26 |
+| 20 | Default `/` is the debugger HUD, not the conversational app | **E** | P27 |
+| 21 | Chat surface lacks markdown / code blocks / copy / real streaming | **E** | P28 |
+| 22 | No inline "Show My Work" reasoning expansion in chat | **E** | P29 |
+| 23 | Tool use / self-modification interrupt chat with modal dialogs | **E** | P30 |
+| 24 | No at-a-glance "what has it learned" belief/memory sidebar | **E** | P31 |
+| 25 | No per-message jump to graph/timeline (disclosure) | **E** | P32 |
 
 ---
 
@@ -265,6 +282,69 @@ required set, and add journey tiles for the new translation surfaces (timeline, 
 legible journeys; no tile is illegible at default zoom (`test:design` legibility).
 **Prove:** `pnpm ui:gallery` renders a clean, journey-led sheet; screenshot the gallery header.
 
+### Phase E — Conversational Assistant (LLM-first default; **gated on Phase C**, reuses Phase D)
+
+> **Do not begin Phase E until `pnpm ui:gate` is green.** The paradigm: SeNARS should *feel* like a
+> modern chatbot and *reveal* a rigorous reasoning engine on demand. The LLM (System 1) is the
+> conversational cortex; SeNARS (System 2) is the reasoning core behind it. **The LLM is optional**
+> — the chat must degrade to symbolic-only (the system already has universal symbolic fallbacks),
+> because dev/test runs without an LM. Reuse Phase D: P29≈P22, P30≈P23, P32≈P24. No new plumbing —
+> the wire already multiplexes `chat.agent.stream` (text) and `cognitive.delta` (state).
+
+- [ ] **P27 — Make the chat the default surface.**
+Promote the conversational app to `/`; demote the debugger HUD to `/apps/hud/`. Root
+`src/client/index.html` becomes the chat (not `app-layout`/`entry.ts`). This realizes P20's
+"or make Ask the root app."
+**Files:** `src/client/index.html`, `apps/ask/*`, `vite.config.ts` entries; `apps/hud/*`.
+**Guard:** `/` renders the chat surface; `/apps/hud/` still renders the HUD; golden path updated
+to reach the HUD's affordances (or a new chat-first golden path added).
+**Prove:** fresh `/` shows a chat, not a graph; screenshot `/`.
+
+- [ ] **P28 — Chat parity (markdown, streaming, copy, history).**
+Give the default surface ChatGPT-grade rendering: markdown, fenced code with copy buttons, real
+token streaming, prompt history. Reuse the existing views (`components/views/{code-highlight,
+code-view,token-render}.ts`, `overlays/chat.ts`) and `$streamingDelta` (client already accumulates
+`chat.agent.stream`).
+**Files:** `apps/ask/ask-app-v2.ts` (or a shared `components/chat-view.ts`), `core/store-bindings.ts`.
+**Guard:** an assistant message renders markdown + a code block with copy; a streamed reply appends
+deltas live (assert `$streamingDelta` grows, then clears on `chat.agent.complete`).
+**Prove:** a streamed, markdown-formatted answer on `/`; screenshot mid-stream and complete.
+
+- [ ] **P29 — Inline "Show My Work" reasoning.**
+Each assistant answer carries an expandable "Reasoning Steps" disclosure fed by the derivation
+data (the same source as P22): recalled memory → fired NAL/MeTTa rule → contradiction resolved →
+response synthesized. The Ask app already has a `<details class="why">`; elevate it.
+**Files:** `apps/ask/ask-app-v2.ts`, `core/projectors.ts`; reuses P22's step model.
+**Guard:** mechanical — a seeded reasoning turn shows ordered rule-id steps. Human checklist — a
+non-expert reads the steps and explains the answer.
+**Prove:** expand "Show My Work" on `/`; screenshot expanded.
+
+- [ ] **P30 — Asynchronous governance in the stream.**
+Tool use and self-modification must not block the conversation. Render them as inline chat cards
+("I found a way to optimize my tool. [Review & Approve]") that reuse P23's risk + diff + sandbox
+evidence; approving/rejecting happens inline without leaving the chat.
+**Files:** `apps/ask/ask-app-v2.ts`, `components/overlays/tool-approval.ts`, `core/tool-registry.ts`;
+wire: P23's `governance.*` `PROTOCOL_SPECS` rows (build those first).
+**Guard:** a seeded proposal appears as a non-blocking card; the chat remains usable while it's
+pending; low-risk items group.
+**Prove:** a governance card mid-conversation; screenshot with the card present.
+
+- [ ] **P31 — Memory / belief sidebar ("what it learned").**
+A persistent, real-time panel distinguishing **durably learned beliefs** (the belief lens /
+workspace projection) from **current conversational context**. Updates as the chat progresses.
+**Files:** `apps/ask/ask-app-v2.ts`, `core/` belief projection (`lens-catalog`, workspace projection).
+**Guard:** asserting a fact in chat updates the sidebar's learned set; an ephemeral mention does not.
+**Prove:** sidebar reflects a learned belief after a chat turn; screenshot.
+
+- [ ] **P32 — Per-message progressive disclosure.**
+Each message offers "View Belief Graph" / "Open Timeline" / "Explain" buttons that open the rich
+views (P24 graph, P22 timeline, `overlays/explain.ts`) in a side drawer or split pane — keeping the
+main chat clean.
+**Files:** `apps/ask/ask-app-v2.ts`; reuses `components/graph-viewport.ts`, `timeline-scrubber.ts`,
+`overlays/{explain,timeline}.ts`.
+**Guard:** the button opens the drawer with the message's context focused; the chat stays primary.
+**Prove:** open the timeline from a chat message; screenshot split view.
+
 ---
 
 ## 3. Pre-mortem — how this could still go wrong
@@ -297,6 +377,10 @@ legible journeys; no tile is illegible at default zoom (`test:design` legibility
 | R14 | **Graph hairball at scale** | Great at 50 concepts; freezes/unreadable at 2,000+ (realistic for long-running agents). | P24 10k-concept load test + frame-time profiling. |
 | R15 | **Governance alert fatigue** | Approval demanded too often without risk context ⇒ operators blindly approve dangerous self-modifications. | P23: telemetry — approval time < 2 s for high-risk patches means the UI isn't being read. |
 | R16 | **Translation without a wire path** | P23 needs governance data the client never receives; "just a UI change" becomes a protocol+server change and stalls. | Named explicitly in P23 files — extend `PROTOCOL_SPECS` first. |
+| R17 | **Chat-first collapses without an LM** | Dev/test runs deliberately wire no LM; a "ChatGPT-like" default that assumes one feels broken. | P27/P28: chat must work symbolic-only (universal fallbacks); guard with the LM off. |
+| R18 | **Chat parity gap ("worse than ChatGPT")** | Plain-text turns, no markdown/copy/streaming ⇒ users reject the default before seeing the reasoning value. | P28 parity test (markdown + streamed deltas + copy). |
+| R19 | **Disclosure becomes concealment** | Hiding the reasoning so well that users never find the value (the whole point of SeNARS). | P29/P32: an e2e asserting "Show My Work" + disclosure buttons are reachable in ≤2 clicks from any answer. |
+| R20 | **Default-surface breakage hides regressions** | Moving `/` to chat means the old HUD golden path no longer guards the default route. | P27: update/extend the golden e2e to cover the new default and keep the HUD path. |
 
 ### Blind spots (deliberately **out of scope** — park, don't forget)
 
@@ -316,7 +400,9 @@ legible journeys; no tile is illegible at default zoom (`test:design` legibility
   drift; the gallery leads with ≤6 Journeys. Curated/extended in P26.
 
 **Rule:** a blind spot becomes a slice only when it becomes a *blocker* or an *operator
-complaint*. Phase D is exactly that: the operator has asked for usability, so it graduates here.
+complaint*. Phases D and E are exactly that: the operator has asked for usability and for a
+conversational default, so they graduate here. (Still parked: product analytics on *which*
+disclosure affordances operators actually use — worth adding once Phase E ships.)
 
 ---
 
@@ -325,7 +411,9 @@ complaint*. Phase D is exactly that: the operator has asked for usability, so it
 | Mistake | Tripwire |
 |---|---|
 | **New subsystem during completion** | a slice adds a registry/catalog/descriptor that isn't a migration finish or a translation → stop |
-| **Phase D starts early** | Phase D work begins before `pnpm ui:gate` is green → stop |
+| **Phase D/E starts early** | Phase D or E work begins before `pnpm ui:gate` is green → stop |
+| **Chat hides the engine** | the default surface makes the reasoning/timeline/governance unreachable in ≤2 clicks → stop |
+| **LM assumed** | the default chat breaks or blanks when no LM is wired → stop |
 | **Weakening tests to pass** | a test's assertion is changed rather than the behavior fixed → stop |
 | **Chrome in the kernel** | `kernel/**` imports a lens/layout/panel/HUD module → stop |
 | **Reintroducing a build step** | `pnpm build:client:test` appears before an e2e command → stop |
@@ -362,6 +450,15 @@ complaint*. Phase D is exactly that: the operator has asked for usability, so it
 - **A curated `screenshots/` log** shows the GUI state at each slice (progress, not baseline), and
   the visual gallery leads with ≤6 legible journeys.
 
+**Conversation (Phase E):**
+- **Default is chat:** `/` opens a conversational surface, not the debugger; the HUD lives at
+  `/apps/hud/`.
+- **Parity:** answers render markdown + code (copyable) and stream token-by-token.
+- **Works without an LM:** the chat is fully usable symbolic-only.
+- **Revealable engine:** "Show My Work" and per-message graph/timeline disclosure are reachable in
+  **≤2 clicks** from any answer; governance is a non-blocking inline card.
+- **Learned-vs-context:** a sidebar distinguishes durable beliefs from the current conversation.
+
 ---
 
 ## 6. Progress Log
@@ -382,6 +479,16 @@ complaint*. Phase D is exactly that: the operator has asked for usability, so it
 - **Protocol.** One definition: `PROTOCOL_SPECS` in `client/core/protocol-defs.ts`. Client routes via
   `handleClient`; server via `server/protocol-server.ts` → `server/handlers.ts`. **Never import
   server handlers from client code.** P23 may add protocol rows — do that first.
+- **Chat/streaming (for Phase E).** Text and state are **already multiplexed**: `chat.user` (toServer),
+  `chat.agent.stream` (`{delta}`, toClient) and `chat.agent.complete` (toClient) carry language;
+  `cognitive.delta` carries state. The client already accumulates `$streamingDelta` from
+  `chat.agent.stream` and clears it on `chat.agent.complete`. So P28 is rendering, not plumbing.
+- **LLM is optional.** The test/agent server deliberately wires **no** LM (deterministic). The chat
+  default must be fully usable symbolic-only (universal symbolic fallbacks). Do not assume a model.
+- **Default surface today:** `src/client/index.html` is the **debugger HUD** (`app-layout` + `entry.ts`);
+  the chat app is at `apps/ask/`. P27 swaps them.
+- **Chat seed:** `apps/ask/ask-app-v2.ts` (474 lines) already has turns, a pending "reasoning…" state,
+  a `<details class="why">` proof expansion, and the tagline "reasoning you can audit". Reuse it.
 - **`derived`.** `derived(source, fn)` passes the single value; `derived([a, b], fn)` passes the
   array; `get` is bound. A single-source selector that indexes the array is the bug fixed in `5ca8fc8e`.
 - **Existing visual contract.** `tests/visual/{matrix,generated-cells}.ts`, `visual-coverage.test.ts`,
