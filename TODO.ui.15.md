@@ -94,6 +94,20 @@ read well → **promote a winner** into a real `apps/<name>/` entry (a `defineAp
    the expected `overlay-settings` theme change (`dark` replaces `auto`),
    and a flaky `overlay-telemetry` cell. Suite now **62/62 passed**. Visual-curation
    complete; the contract is clean for the dark-by-default default.
+
+### Framework improvements (this session)
+
+**Fit policy in the composer** — `?fit=legible|fit` query param + toolbar select.
+The `fit` dimension is now part of `Spec`, round-trips through `specToSearch`/`parseSpec`,
+and `randomSpec` samples it. The Lab applies it: presets still force `'fit'` (wall shows
+whole graphs), the composer respects the explicit choice. Default remains `'legible'`
+so promoted apps inherit the legible policy unless they override.
+
+**Density-factor inversion fixed** — `settleZoom` in `'legible'` mode no longer raises
+the fit zoom above what fitting needs. The floor is a *desired* minimum, but if fitting
+all content requires lower zoom, we obey fit (show everything, accept smaller nodes)
+instead of cropping. Small cells now compromise rather than crop; the `'fit'` policy
+behaves identically. Default path unchanged for sparse graphs (they still lift to floor).
 3. **Promote winners — OPERATOR-GATED.** For each keeper metaphor: create
    `apps/<name>/{index.html,main.ts}` + a `defineApp` whose bundle's surfaces are the
    composition; add a `vite.config.ts` input. The lab preset is the spec. No composition has

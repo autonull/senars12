@@ -58,6 +58,7 @@ export const LENSES = ['belief', 'goal', 'contradiction', 'temporal'] as const;
 export const LAYERS = ['both', 'conversation', 'concepts'] as const;
 export const MODES = ['2d', '3d'] as const;
 export const SHAPES = ['graph', 'table'] as const;
+export const FIT_OPTIONS = ['legible', 'fit'] as const;
 
 export interface Spec {
   layout: LayoutId;
@@ -66,6 +67,7 @@ export interface Spec {
   shape: 'graph' | 'table';
   lens: string;
   layer: string;
+  fit: 'legible' | 'fit';
 }
 
 export const DEFAULT_SPEC: Spec = {
@@ -75,6 +77,7 @@ export const DEFAULT_SPEC: Spec = {
   shape: 'graph',
   lens: 'belief',
   layer: 'both',
+  fit: 'legible',
 };
 
 const AREA = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
@@ -150,6 +153,7 @@ export function parseSpec(params: URLSearchParams): Spec {
     shape: pick(params.get('shape'), SHAPES, DEFAULT_SPEC.shape),
     lens: pick(params.get('lens'), LENSES, DEFAULT_SPEC.lens),
     layer: pick(params.get('layer'), LAYERS, DEFAULT_SPEC.layer),
+    fit: pick(params.get('fit'), FIT_OPTIONS, DEFAULT_SPEC.fit),
   };
 }
 
@@ -162,6 +166,7 @@ export function specToSearch(spec: Spec): string {
   params.set('shape', spec.shape);
   params.set('lens', spec.lens);
   params.set('layer', spec.layer);
+  params.set('fit', spec.fit);
   return `?${params.toString()}`;
 }
 
@@ -181,5 +186,6 @@ export function randomSpec(): Spec {
     shape: pick(SHAPES),
     lens: pick(LENSES),
     layer: pick(LAYERS),
+    fit: pick(FIT_OPTIONS),
   };
 }

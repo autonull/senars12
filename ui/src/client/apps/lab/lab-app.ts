@@ -13,6 +13,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { $activeLens, $graphFit, $graphLayer, $graphShape, $viewportMode } from '../../kernel/index.js';
 import { BaseComponent } from '../../core/base-component.js';
 import {
+  FIT_OPTIONS,
   LAYERS,
   LENSES,
   LAYOUTS,
@@ -143,8 +144,8 @@ export class LabSurface extends BaseComponent {
     const variant = this.activeVariant();
     // The Lab is a wall of small cells: show every cell's whole graph, not a
     // legible crop (a composable metaphor is judged on what it shows, not on how
-    // far it zooms in).
-    $graphFit.set('fit');
+    // far it zooms in). In the composer, respect the explicit `fit` dimension.
+    $graphFit.set(this.compose ? this.spec.fit : 'fit');
     if (variant?.mode) $viewportMode.set(variant.mode);
     if (variant?.shape) $graphShape.set(variant.shape);
     if (this.compose) {
@@ -204,6 +205,7 @@ export class LabSurface extends BaseComponent {
         <label>shape ${this.select(SHAPES, this.spec.shape, this.onSelect('shape'), 'Graph shape')}</label>
         <label>lens ${this.select(LENSES, this.spec.lens, this.onSelect('lens'), 'Lens')}</label>
         <label>layer ${this.select(LAYERS, this.spec.layer, this.onSelect('layer'), 'Graph layer')}</label>
+        <label>fit ${this.select(FIT_OPTIONS, this.spec.fit, this.onSelect('fit'), 'Graph fit policy')}</label>
         <button class="act" @click=${() => this.navigate(randomSpec())}>randomize</button>
         <button class="act" @click=${() => this.navigate({ ...this.spec, widgets: [] })}>clear</button>
         <input class="link" readonly .value=${globalThis.location?.href ?? ''} aria-label="Permalink" />

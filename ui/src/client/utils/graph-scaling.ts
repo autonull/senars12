@@ -80,7 +80,12 @@ export type GraphFit = 'legible' | 'fit';
 
 /** A fit zoom settled under the requested policy (§G.2). */
 export function settleZoom(zoom: number, count: number, area: number, fit: GraphFit): number {
-  return fit === 'fit' ? Math.min(zoom, ZOOM.max) : clampZoom(zoom, count, area);
+  if (fit === 'fit') return Math.min(zoom, ZOOM.max);
+  const floor = zoomFloor(count, area);
+  // Legible policy: never raise above the fit zoom. The floor is a desired
+  // minimum, but if fitting all content requires a lower zoom, we obey fit
+  // (show everything, accept smaller nodes) rather than crop.
+  return zoom < floor ? zoom : Math.min(zoom, ZOOM.max);
 }
 
 /** The on-screen size of a node of the given world size at a zoom. */

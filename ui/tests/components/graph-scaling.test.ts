@@ -77,10 +77,13 @@ describe('graph scaling — legible zoom window (G.2, T.4)', () => {
   it('settles a fit under the requested policy (G.2)', () => {
     const area = VIEWPORTS.desktop;
     const tiny = 0.1;
-    // `legible` is exactly clampZoom: it lifts an illegible fit to the floor.
-    expect(settleZoom(tiny, 8, area, 'legible')).toBe(clampZoom(tiny, 8, area));
-    // `fit` shows the whole graph: it never raises the fit, only caps the ceiling.
+    // `legible` no longer lifts an illegible fit — it obeys fit (show all),
+    // only capping at the ceiling. The floor is a desired minimum but never
+    // raises above the fit zoom.
+    expect(settleZoom(tiny, 8, area, 'legible')).toBe(tiny);
+    // `fit` is identical for post-fit settlement: cap at ceiling only.
     expect(settleZoom(tiny, 8, area, 'fit')).toBe(tiny);
+    expect(settleZoom(99, 8, area, 'legible')).toBe(ZOOM.max);
     expect(settleZoom(99, 8, area, 'fit')).toBe(ZOOM.max);
   });
 });
