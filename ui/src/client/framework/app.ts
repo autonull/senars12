@@ -14,6 +14,7 @@
 import { createIdRegistry, type Registry } from '../core/registry.js';
 import type { SurfaceDescriptor, Placement } from './surface.js';
 import type { Capability } from '../core/capabilities.js';
+import { applyBundle, type BundleDescriptor } from './bundle.js';
 
 /** App-level lifecycle hooks. */
 export interface AppLifecycle {
@@ -47,7 +48,7 @@ export interface ConnectionConfig {
   readonly reconnect?: boolean;
 }
 
-/** App descriptor — the data that defines an app. */
+/** App descriptor — the runtime data that defines an app. */
 export interface AppDescriptor<K extends string = string> {
   /** Stable app id — used in URL path `/apps/<id>/`. */
   readonly id: K;
@@ -57,8 +58,8 @@ export interface AppDescriptor<K extends string = string> {
   readonly description?: string;
   /** Icon for the app switcher (matches `s-icon` names). */
   readonly icon?: string;
-  /** Surfaces this app mounts, keyed by placement. */
-  readonly surfaces: Readonly<Partial<Record<Placement, SurfaceDescriptor[]>>>;
+  /** Surfaces this app mounts, keyed by placement (derived from its bundle). */
+  readonly surfaces: Readonly<Partial<Record<Placement, readonly SurfaceDescriptor[]>>>;
   /** Default lens for this app (if viewport surfaces present). */
   readonly defaultLens?: string;
   /** Default graph layer for this app (if viewport surfaces present). */
@@ -73,12 +74,29 @@ export interface AppDescriptor<K extends string = string> {
   readonly capability?: Capability;
 }
 
+/**
+ * App definition — an app is a *composition*: a bundle of contributions plus
+ * the presentation/lifecycle metadata the shell needs. `defineApp` applies the
+ * bundle (registering its surfaces/intents/…) and derives the app descriptor.
+ */
+export interface AppDefinition<K extends string = string> {
+  readonly bundle: BundleDescriptor & { readonly id: K };
+  readonly icon?: string;
+  readonly defaultLens?: string;
+  readonly defaultGraphLayer?: string;
+  readonly defaultCapabilityFilter?: string;
+  readonly connection?: ConnectionConfig;
+  readonly lifecycle?: AppLifecycle;
+  readonly capability?: Capability;
+}
+
 /** The app registry — one registry for all apps. */
 const appRegistry: Registry<string, AppDescriptor> = createIdRegistry();
 
 /** Register an app descriptor. */
-export const registerApp = (descriptor: AppDescriptor): void => {
+export const registerApp = <K extends string>(descriptor: AppDescriptor<K>): AppDescriptor<K> => {
   appRegistry.register(descriptor);
+  return descriptor;
 };
 
 /** Get an app descriptor by id. */
@@ -93,10 +111,23 @@ export const appIds = (): readonly string[] => appRegistry.ids;
 /** The app shell element — mounts surfaces by placement. */
 export const APP_SHELL_TAG = 's-app-shell';
 
-/** Define an app and register it. Returns the descriptor for composition. */
-export function defineApp<K extends string>(descriptor: AppDescriptor<K>): AppDescriptor<K> {
-  registerApp(descriptor);
-  return descriptor;
+/** Define an app from a bundle and register it. Returns the descriptor. */
+export function defineApp<K extends string>(definition: AppDefinition<K>): AppDescriptor<K> {
+  const { bundle } = definition;
+  applyBundle(bundle);
+  return registerApp({
+    id: bundle.id,
+    name: bundle.name,
+    description: bundle.description,
+    icon: definition.icon,
+    surfaces: bundle.surfaces ?? {},
+    defaultLens: definition.defaultLens,
+    defaultGraphLayer: definition.defaultGraphLayer,
+    defaultCapabilityFilter: definition.defaultCapabilityFilter,
+    connection: definition.connection,
+    lifecycle: definition.lifecycle,
+    capability: definition.capability,
+  });
 }
 
 /** Get all surfaces for an app, grouped by placement. */
@@ -105,7 +136,7 @@ export function appSurfaces(app: AppDescriptor): Map<Placement, SurfaceDescripto
   for (const placement of ['viewport', 'panel', 'overlay', 'inline'] as const) {
     const surfaces = app.surfaces[placement];
     if (surfaces && surfaces.length > 0) {
-      map.set(placement, surfaces);
+      map.set(placement, [...surfaces]);
     }
   }
   return map;

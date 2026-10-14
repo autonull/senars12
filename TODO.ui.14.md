@@ -188,7 +188,7 @@ syncs. Use `setEqual`/`mapEqual` where the value is a Set/Map so no churn fires.
 **Prove:** graph multi-select + run-termination rendering unchanged on the HUD.
 **Screenshot:** `http://localhost:3456/apps/ask/` (graph viewport).
 
-- [ ] **P16 — Migrate apps + plugins to bundles.**
+- [x] **P16 — Migrate apps + plugins to bundles.**
 Each `apps/*` becomes `defineBundle(...)` + `defineApp(...)`; move `plugins.ts` contributions into
 bundles; delete the `applyPlugins()` fan-out once callers move.
 **Files:** `framework/{app,bundle}.ts`, `core/plugins.ts`, `apps/*`, `vite.config.ts`.
@@ -637,6 +637,37 @@ wrapping it in a `$runResult` atom just to call it `derived` would be ceremony, 
 - `$activeLens → $graphLayer` and `$view → $workspaceGraph.timeCursor` are the last two side-effect syncs;
   both are candidates for the same `derived` treatment.
 - `apps/hud/hud-app.ts` imports `$viewSelection`/`$selectedNodeIds` without using them — dead imports to prune.
+
+### P16 — Migrate apps + plugins to bundles (2026-10-14)
+
+**Changed**
+- `framework/app.ts`: `defineApp` now takes an `AppDefinition` — a `BundleDescriptor` plus presentation/lifecycle
+  metadata — applies the bundle (`applyBundle`) and derives the runtime `AppDescriptor` (its `surfaces` are read
+  from the bundle). Added `AppDefinition`; `registerApp` now returns the descriptor.
+- `framework/bundle.ts`: `defineBundle` preserves the id literal (`BundleDescriptor & { id: K }`); removed the
+  parked bundle-level `AppDescriptor`/`LayoutDescriptor`/`LayoutRegion`/`defineApp` (the app model lives in
+  `app.ts` now). `framework/index.ts` export list updated.
+- All six `apps/*`: each is now `defineApp({ bundle: defineBundle({ id, name, surfaces }), ...metadata })`;
+  dropped the manual `registerSurface(...)` fan-out (the bundle applies its surfaces) and the now-unused
+  `registerSurface` imports.
+- Removed the dead plugin subsystem: deleted `core/plugins.ts`, `plugins/demo-plugin.ts` (never imported) and
+  `tests/components/plugins.test.ts`; dropped the plugin exports from `core/index.ts`. `applyPlugins()` had no
+  production caller (tests only), so the fan-out is gone rather than kept.
+- `tests/components/app-composition.test.ts` (new): a composed app is registered under its bundle id, its
+  surfaces are applied globally, and `appSurfaces` groups them by placement.
+
+**Guard:** `app-composition` + `bundle-composition` (24) green; full unit 790/790.
+**Prove:** golden-path (HUD) + Ask prototype e2e green; every route (`/apps/{ask,explore,notebook,goals,console,hud}/`
+and `/`) returns 200 and each app boots.
+**Screenshots:** `ui/screenshots/p16-app-{explore,notebook,goals,console}.png`.
+
+**Remaining:** P17 (domain catalogs) → P18 (catalogs + overlays) close Phase B.
+**New opportunities**
+- Per-app metadata (icon/lens/connection) lives on `AppDefinition`, not the bundle; if a bundle should be
+  independently mountable, add a `bundle.meta` and let `defineApp` read it.
+- `apps/*/main.ts` import `APP_SHELL_TAG` without using it — dead imports to prune.
+- `bundle.ts` now pulls the whole contributor registry set into every app entry; a future perf pass could
+  lazy-register non-surface contributions.
 
 ---
 

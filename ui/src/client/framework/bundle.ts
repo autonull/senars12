@@ -2,8 +2,8 @@
  * Bundle — a composable package of contributions.
  *
  * Replaces:
- *   - `PluginContribution` (plugins.ts) — an in-repo plugin system that fans out to
- *     multiple registries manually
+ *   - the former `PluginContribution` fan-out (plugins.ts) — one descriptor that
+ *     declares contributions to all catalogs
  *   - empty `bundles/` directory — the parked idea with the same intent
  *
  * A bundle is a single descriptor that declares contributions to all catalogs.
@@ -12,7 +12,7 @@
 
 import type { Contribution } from './contribution.js';
 import type { Catalog, CatalogDefinition, CatalogEntry } from './catalog.js';
-import type { SurfaceDescriptor, Placement } from './surface.js';
+import type { SurfaceDescriptor } from './surface.js';
 import type { ViewAdapter } from '../core/view-adapter.js';
 import type { FacetDescriptor, FacetKind } from './facet.js';
 import type { IntentDescriptor } from './intent.js';
@@ -173,7 +173,9 @@ export function resetBundles(): void {
 /**
  * Define and register a bundle. Returns the descriptor for composition.
  */
-export function defineBundle(descriptor: BundleDescriptor): BundleDescriptor {
+export function defineBundle<K extends string>(
+  descriptor: Omit<BundleDescriptor, 'id'> & { readonly id: K }
+): BundleDescriptor & { readonly id: K } {
   registerBundle(descriptor);
   return descriptor;
 }
@@ -256,50 +258,4 @@ export function applyBundle(bundle: BundleDescriptor): void {
       registerConfigField(field);
     }
   }
-}
-
-/**
- * App descriptor = Bundle + shell + default surface.
- *
- * An app is a bundle with a shell (the mounting strategy) and a default
- * viewport surface. The shell's regions are a Layout descriptor.
- */
-export interface AppDescriptor {
-  /** The bundle this app is built from. */
-  readonly bundle: BundleDescriptor;
-  /** The shell custom element tag (default: 'app-shell'). */
-  readonly shell?: string;
-  /** The default viewport surface id (first viewport surface if not specified). */
-  readonly defaultSurface?: string;
-  /** Optional layout descriptor for shell regions. */
-  readonly layout?: LayoutDescriptor;
-}
-
-/** Layout descriptor — defines shell regions and their surfaces. */
-export interface LayoutDescriptor {
-  /** Regions in the shell. */
-  readonly regions: readonly LayoutRegion[];
-}
-
-/** A region in the app shell. */
-export interface LayoutRegion {
-  /** Region id (matches slot name in shell). */
-  readonly id: string;
-  /** Human-readable label. */
-  readonly label: string;
-  /** Placement type for surfaces in this region. */
-  readonly placement: Placement;
-  /** Default surface id for this region. */
-  readonly defaultSurface?: string;
-  /** Whether this region is collapsible. */
-  readonly collapsible?: boolean;
-  /** Whether this region is resizable. */
-  readonly resizable?: boolean;
-}
-
-/** Define an app from a bundle. */
-export function defineApp(descriptor: AppDescriptor): AppDescriptor {
-  // Apply the bundle's contributions
-  applyBundle(descriptor.bundle);
-  return descriptor;
 }

@@ -17,7 +17,8 @@ import {
   send,
 } from '../../kernel/index.js';
 import { defineApp, type AppDescriptor } from '../../framework/app.js';
-import { registerSurface, type SurfaceDescriptor } from '../../framework/surface.js';
+import { defineBundle } from '../../framework/bundle.js';
+import { type SurfaceDescriptor } from '../../framework/surface.js';
 import { LENS_FACETS } from '../../utils/lens-catalog.js';
 import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
 import { FILTER_FACETS } from '../../core/filter-facets.js';
@@ -328,15 +329,17 @@ const consoleSurfaces: SurfaceDescriptor[] = [
   },
 ];
 
-/** Console app descriptor — the one definition of the Console app. */
+/** Console app descriptor — one bundle of contributions plus the shell contract. */
 export const CONSOLE_APP: AppDescriptor<'console'> = defineApp({
-  id: 'console',
-  name: 'Console',
-  description: 'Raw engine interface — direct Narsese input, cycle control, belief inspection.',
+  bundle: defineBundle({
+    id: 'console',
+    name: 'Console',
+    description: 'Raw engine interface — direct Narsese input, cycle control, belief inspection.',
+    surfaces: {
+      viewport: consoleSurfaces,
+    },
+  }),
   icon: 'terminal',
-  surfaces: {
-    viewport: consoleSurfaces,
-  },
   defaultLens: 'belief',
   defaultGraphLayer: 'both',
   defaultCapabilityFilter: 'all',
@@ -349,6 +352,3 @@ export const CONSOLE_APP: AppDescriptor<'console'> = defineApp({
 
 /** The Console app id for registration and routing. */
 export const CONSOLE_APP_ID = CONSOLE_APP.id;
-
-/** Register the Console app surfaces (called at import time). */
-consoleSurfaces.forEach(registerSurface);

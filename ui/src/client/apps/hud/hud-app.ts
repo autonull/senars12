@@ -16,7 +16,8 @@ import {
   send,
 } from '../../kernel/index.js';
 import { defineApp, type AppDescriptor } from '../../framework/app.js';
-import { registerSurface, type SurfaceDescriptor } from '../../framework/surface.js';
+import { defineBundle } from '../../framework/bundle.js';
+import { type SurfaceDescriptor } from '../../framework/surface.js';
 import { LENS_FACETS } from '../../utils/lens-catalog.js';
 import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
 import { FILTER_FACETS } from '../../core/filter-facets.js';
@@ -326,16 +327,18 @@ const hudSurfaces: SurfaceDescriptor[] = [
   ...panelSurfaces(),
 ];
 
-/** HUD app descriptor — the one definition of the HUD app. */
+/** HUD app descriptor — one bundle of contributions plus the shell contract. */
 export const HUD_APP: AppDescriptor<'hud'> = defineApp({
-  id: 'hud',
-  name: 'HUD',
-  description: 'Full cognitive workspace — graph, panels, chat, lenses, renderers.',
+  bundle: defineBundle({
+    id: 'hud',
+    name: 'HUD',
+    description: 'Full cognitive workspace — graph, panels, chat, lenses, renderers.',
+    surfaces: {
+      viewport: hudSurfaces.filter((s) => s.placement === 'viewport'),
+      panel: hudSurfaces.filter((s) => s.placement === 'panel'),
+    },
+  }),
   icon: 'dashboard',
-  surfaces: {
-    viewport: hudSurfaces.filter(s => s.placement === 'viewport'),
-    panel: hudSurfaces.filter(s => s.placement === 'panel'),
-  },
   defaultLens: 'belief',
   defaultGraphLayer: 'both',
   defaultCapabilityFilter: 'all',
@@ -348,6 +351,3 @@ export const HUD_APP: AppDescriptor<'hud'> = defineApp({
 
 /** The HUD app id for registration and routing. */
 export const HUD_APP_ID = HUD_APP.id;
-
-/** Register the HUD app surfaces (called at import time). */
-hudSurfaces.forEach(registerSurface);

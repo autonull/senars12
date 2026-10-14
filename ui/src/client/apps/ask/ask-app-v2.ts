@@ -20,7 +20,8 @@ import {
   send,
 } from '../../kernel/index.js';
 import { defineApp, type AppDescriptor } from '../../framework/app.js';
-import { registerSurface, type SurfaceDescriptor } from '../../framework/surface.js';
+import { defineBundle } from '../../framework/bundle.js';
+import { type SurfaceDescriptor } from '../../framework/surface.js';
 
 type ProofStep = {
   readonly rule: string;
@@ -446,15 +447,17 @@ const askSurfaces: SurfaceDescriptor[] = [
   },
 ];
 
-/** Ask app descriptor — the one definition of the Ask app. */
+/** Ask app descriptor — one bundle of contributions plus the shell contract. */
 export const ASK_APP: AppDescriptor<'ask'> = defineApp({
-  id: 'ask',
-  name: 'Ask',
-  description: 'Conversational reasoning — ask, get an answer, see the proof.',
+  bundle: defineBundle({
+    id: 'ask',
+    name: 'Ask',
+    description: 'Conversational reasoning — ask, get an answer, see the proof.',
+    surfaces: {
+      viewport: askSurfaces,
+    },
+  }),
   icon: 'chat',
-  surfaces: {
-    viewport: askSurfaces,
-  },
   defaultLens: 'belief',
   defaultGraphLayer: 'conversation',
   defaultCapabilityFilter: 'all',
@@ -470,6 +473,3 @@ export const ASK_APP_ID = ASK_APP.id;
 
 /** Re-export for compatibility. */
 export { ASK_APP as askApp };
-
-/** Register the Ask app surfaces (called at import time). */
-askSurfaces.forEach(registerSurface);

@@ -15,7 +15,8 @@ import {
   send,
 } from '../../kernel/index.js';
 import { defineApp, type AppDescriptor } from '../../framework/app.js';
-import { registerSurface, type SurfaceDescriptor } from '../../framework/surface.js';
+import { defineBundle } from '../../framework/bundle.js';
+import { type SurfaceDescriptor } from '../../framework/surface.js';
 import { LENS_FACETS } from '../../utils/lens-catalog.js';
 import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
 import { FILTER_FACETS } from '../../core/filter-facets.js';
@@ -334,15 +335,17 @@ const goalsSurfaces: SurfaceDescriptor[] = [
   },
 ];
 
-/** Goals app descriptor — the one definition of the Goals app. */
+/** Goals app descriptor — one bundle of contributions plus the shell contract. */
 export const GOALS_APP: AppDescriptor<'goals'> = defineApp({
-  id: 'goals',
-  name: 'Goals',
-  description: 'Teleological workspace — create, track, and achieve goals.',
+  bundle: defineBundle({
+    id: 'goals',
+    name: 'Goals',
+    description: 'Teleological workspace — create, track, and achieve goals.',
+    surfaces: {
+      viewport: goalsSurfaces,
+    },
+  }),
   icon: 'target',
-  surfaces: {
-    viewport: goalsSurfaces,
-  },
   defaultLens: 'goal',
   defaultGraphLayer: 'both',
   defaultCapabilityFilter: 'all',
@@ -355,6 +358,3 @@ export const GOALS_APP: AppDescriptor<'goals'> = defineApp({
 
 /** The Goals app id for registration and routing. */
 export const GOALS_APP_ID = GOALS_APP.id;
-
-/** Register the Goals app surfaces (called at import time). */
-goalsSurfaces.forEach(registerSurface);

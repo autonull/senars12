@@ -19,7 +19,8 @@ import {
   toggleCollapsed,
 } from '../../kernel/index.js';
 import { defineApp, type AppDescriptor } from '../../framework/app.js';
-import { registerSurface, type SurfaceDescriptor } from '../../framework/surface.js';
+import { defineBundle } from '../../framework/bundle.js';
+import { type SurfaceDescriptor } from '../../framework/surface.js';
 import { LENS_FACETS } from '../../utils/lens-catalog.js';
 import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
 import { FILTER_FACETS } from '../../core/filter-facets.js';
@@ -529,15 +530,17 @@ const notebookSurfaces: SurfaceDescriptor[] = [
   },
 ];
 
-/** Notebook app descriptor — the one definition of the Notebook app. */
+/** Notebook app descriptor — one bundle of contributions plus the shell contract. */
 export const NOTEBOOK_APP: AppDescriptor<'notebook'> = defineApp({
-  id: 'notebook',
-  name: 'Notebook',
-  description: 'Semantic conversation surface — vertically sequenced pages with folding sections.',
+  bundle: defineBundle({
+    id: 'notebook',
+    name: 'Notebook',
+    description: 'Semantic conversation surface — vertically sequenced pages with folding sections.',
+    surfaces: {
+      viewport: notebookSurfaces,
+    },
+  }),
   icon: 'notebook',
-  surfaces: {
-    viewport: notebookSurfaces,
-  },
   defaultLens: 'belief',
   defaultGraphLayer: 'both',
   defaultCapabilityFilter: 'all',
@@ -550,6 +553,3 @@ export const NOTEBOOK_APP: AppDescriptor<'notebook'> = defineApp({
 
 /** The Notebook app id for registration and routing. */
 export const NOTEBOOK_APP_ID = NOTEBOOK_APP.id;
-
-/** Register the Notebook app surfaces (called at import time). */
-notebookSurfaces.forEach(registerSurface);

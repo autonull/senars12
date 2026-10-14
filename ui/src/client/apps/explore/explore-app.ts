@@ -15,7 +15,8 @@ import {
   projectWorkspaceGraph,
 } from '../../kernel/index.js';
 import { defineApp, type AppDescriptor } from '../../framework/app.js';
-import { registerSurface, type SurfaceDescriptor } from '../../framework/surface.js';
+import { defineBundle } from '../../framework/bundle.js';
+import { type SurfaceDescriptor } from '../../framework/surface.js';
 import { LENS_FACETS } from '../../utils/lens-catalog.js';
 import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
 import { FILTER_FACETS } from '../../core/filter-facets.js';
@@ -278,15 +279,17 @@ const exploreSurfaces: SurfaceDescriptor[] = [
   },
 ];
 
-/** Explore app descriptor — the one definition of the Explore app. */
+/** Explore app descriptor — one bundle of contributions plus the shell contract. */
 export const EXPLORE_APP: AppDescriptor<'explore'> = defineApp({
-  id: 'explore',
-  name: 'Explore',
-  description: 'Graph exploration — lenses, layers, and filters over the concept graph.',
+  bundle: defineBundle({
+    id: 'explore',
+    name: 'Explore',
+    description: 'Graph exploration — lenses, layers, and filters over the concept graph.',
+    surfaces: {
+      viewport: exploreSurfaces,
+    },
+  }),
   icon: 'graph',
-  surfaces: {
-    viewport: exploreSurfaces,
-  },
   defaultLens: 'belief',
   defaultGraphLayer: 'both',
   defaultCapabilityFilter: 'all',
@@ -299,6 +302,3 @@ export const EXPLORE_APP: AppDescriptor<'explore'> = defineApp({
 
 /** The Explore app id for registration and routing. */
 export const EXPLORE_APP_ID = EXPLORE_APP.id;
-
-/** Register the Explore app surfaces (called at import time). */
-exploreSurfaces.forEach(registerSurface);

@@ -51,6 +51,7 @@ export type {
 
 export type {
   AppDescriptor,
+  AppDefinition,
   AppLifecycle,
   AppContext,
   ConnectionConfig,
@@ -89,9 +90,6 @@ export type {
   BundleCapabilities,
   BundleConfigFields,
   ConfigFieldDescriptor,
-  AppDescriptor as BundleAppDescriptor,
-  LayoutDescriptor,
-  LayoutRegion,
 } from './bundle.js';
 
 export type {
