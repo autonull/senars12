@@ -45,6 +45,7 @@ entries). Then continue P14 → P15 → P16 → P17 → P18, one at a time.
 - Ask prototype e2e: `cd ui && pnpm exec playwright test --config tests/playwright.config.ts tests/scenarios/prototypes/ask.spec.ts --project=chromium --workers=1`
 - full contract: `pnpm ui:gate` (= typecheck + unit + golden e2e)
 - build the client: `pnpm --dir ui build:client:test` → `ui/dist/client` (production only; dev/e2e serve the client dynamically)
+- **progress screenshot** (after e2e proof): `mkdir -p screenshots && pnpm exec playwright screenshot --project=chromium --output=screenshots/pXX-name.png <url>` — capture the working app state at the slice's primary route.
 
 **Record progress** in §8 — append one entry per slice (what changed, guard, proof,
 remaining work, new opportunities).
@@ -561,27 +562,27 @@ reset helpers the tests call were never exported by the P11 migration); `plugins
 "applies plugin commands" asserts `false === true` (the plugin/command registration path is a
 no-op); `dispatch`/`palette` fail because `registerCommand` is a deprecated no-op.
 **Guard:** those 7 files pass; no test relies on a deprecated no-op API.
-**Prove:** `pnpm ui:gate` green; Ask + golden e2e still pass.
+**Prove:** `pnpm ui:gate` green; Ask + golden e2e still pass. **Progress screenshot:** capture `http://localhost:3456/apps/ask/` after P13 e2e.
 
 - [ ] **P14 — Finish the `derived` migration (P10 leftover).**
 `$viewSelection` and `$runTerminations` become `derived(...)` (still side-effect synced).
 Files: `core/store.ts`, `core/workspace-bindings.ts`.
 **Guard:** selection/termination churn tests (no redundant notifications).
-**Prove:** graph multi-select and run-termination rendering unchanged on the HUD.
+**Prove:** graph multi-select and run-termination rendering unchanged on the HUD. **Progress screenshot:** capture `http://localhost:3456/apps/ask/` (graph viewport) after P14 e2e.
 
 - [ ] **P15 — Migrate apps + plugins to bundles (P11 leftover).**
 Each `apps/*` becomes `defineBundle(...)` + `defineApp(...)`; `plugins.ts` contributions move
 into bundles; delete the `applyPlugins()` fan-out once callers move.
 Files: `framework/{app,bundle}.ts`, `core/plugins.ts`, `apps/*`; `vite.config.ts` if entries change.
 **Guard:** app-composition test (surfaces mount by placement); bundle-registry test.
-**Prove:** each app runs at `/apps/<name>/` with the shell providing overlay/palette/connection.
+**Prove:** each app runs at `/apps/<name>/` with the shell providing overlay/palette/connection. **Progress screenshot:** capture `http://localhost:3456/apps/ask/`, `/apps/explore/`, `/apps/notebook/`, `/apps/goals/`, `/apps/console/` after P15 e2e.
 
 - [ ] **P16 — Adopt the domain catalogs (P12 leftover).**
 Settings UI reads `config-catalog`; `lm-provider.ts` uses `lm-provider-catalog`; styles consume
 `design-catalog` CSS custom properties. Files: `core/{config-catalog,lm-provider,lm-provider-catalog,design-catalog}.ts`,
 settings/components + `styles/*`.
 **Guard:** config-catalog client/server agree; a new provider/field needs no edit.
-**Prove:** settings UI + change log render from the catalog; theming uses generated tokens.
+**Prove:** settings UI + change log render from the catalog; theming uses generated tokens. **Progress screenshot:** capture `http://localhost:3456/apps/ask/` (settings panel) after P16 e2e.
 
 - [ ] **P17 — Guardrails & app coverage (P0/P2/P7 leftovers).**
 Add the §3.3 kernel-boundary check (`kernel/**` must not import lens/layout/panel/HUD); fold
@@ -589,7 +590,7 @@ Add the §3.3 kernel-boundary check (`kernel/**` must not import lens/layout/pan
 Notebook, Goals, Console. Files: boundary lint/test, `framework/surface.ts`, `core/overlay-*.ts`,
 `tests/scenarios/apps/*`.
 **Guard:** boundary fails on a chrome import; overlay a11y test.
-**Prove:** an `apps/*` e2e per app (the §6 "e2e per app" requirement).
+**Prove:** an `apps/*` e2e per app (the §6 "e2e per app" requirement). **Progress screenshot:** capture each app route after P17 e2e.
 
 - [ ] **P18 — Build/serve hygiene (infra leftover).**
 Give static serving a root document: add `src/client/index.html` (or make Ask the root app) to
@@ -597,7 +598,7 @@ the Vite inputs so production `/` matches dev; untrack the committed `core/dist/
 Optional: split `@senars/util`'s root index into a browser-safe entry so the `node:*` shims in
 `client/shims/node-builtins.ts` become unnecessary.
 **Guard:** after `build:client:test`, a static fetch of `/` returns the app shell; `git ls-files core/dist` is empty.
-**Prove:** static server serves `/` and `/apps/ask/`; dev path unchanged.
+**Prove:** static server serves `/` and `/apps/ask/`; dev path unchanged. **Progress screenshot:** capture `http://localhost:3456/` and `http://localhost:3456/apps/ask/` after P18 `build:client:test` + static serve.
 
 ---
 
@@ -908,7 +909,8 @@ Optional: split `@senars/util`'s root index into a browser-safe entry so the `no
 
 ### The slice loop (repeat verbatim)
 implement (substrate + ≥1 real consumer) → guard (unit, no mocks) → prove (run an app +
-golden e2e) → `pnpm --dir ui typecheck && pnpm --dir ui test:unit` → commit + §8 entry.
+golden e2e) → **capture a progress screenshot** (clean shot of the working app/UI state) →
+`pnpm --dir ui typecheck && pnpm --dir ui test:unit` → commit + §8 entry.
 
 ### Guards that must stay green
 - `ui/tests/scenarios/golden-path/operate-reasoner.spec.ts` (`@golden`) — the real HUD loop.
