@@ -669,6 +669,31 @@ and `/`) returns 200 and each app boots.
 - `bundle.ts` now pulls the whole contributor registry set into every app entry; a future perf pass could
   lazy-register non-surface contributions.
 
+### P17 — Adopt the domain catalogs (partial: LM providers done, 2026-10-14)
+
+**Changed (part 1 — LM providers)**
+- `core/lm-provider.ts`: dropped the duplicated `KNOWN_LABELS` map; `providerLabel` is now the catalog's
+  `lmProviderLabel`, so a new provider is one `lm-provider-catalog.ts` entry with no edit in the façade.
+
+**Guard:** `lm-provider` + `provider-overlay` pass; full unit 790/790.
+
+**Reconnaissance for the rest (why it is its own effort)**
+- `core/config-catalog.ts` and `core/design-catalog.ts` exist but are **not consumed** anywhere in `src/`.
+  `config-hud.ts` still renders from its bespoke `FIELD_METADATA`, keyed by *flat* config paths (`theme`,
+  `defaultLayout.concept`, `provider.name`), while `config-catalog` ids are prefixed (`ui.theme`,
+  `ui.layout.concept`, …) and its `ui.*` ids do **not** match the `$config`/`UiConfig` keys. Adopting the
+  catalog needs the id scheme reconciled first, then the 667-line `config-hud.ts` (and the change-log
+  labelling) rewritten from `getConfigFields()`.
+- `design-catalog.ts` declares each primitive's `cssProperty`, but tokens are generated from
+  `design-tokens.json` by `scripts/build-tokens.ts` → `styles/tokens.css`. Adopting the catalog means making
+  the token generator read the catalog (or the reverse) and re-baselining.
+
+**New opportunities**
+- Decide the canonical config id scheme (prefixed vs flat) *before* touching `config-hud`; the id mismatch is
+  the real blocker, not the render.
+- `design-tokens.json` and `design-catalog.ts` are two sources for one fact — unify before P26 curates.
+- `apps/*/main.ts` import `APP_SHELL_TAG` without using it (also noted in P16).
+
 ---
 
 ## 7. Appendix — handoff notes & key facts

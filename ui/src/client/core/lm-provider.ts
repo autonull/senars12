@@ -12,6 +12,7 @@
  */
 
 import { $webllmActive, $webllmAvailable, atom } from './store.js';
+import { lmProviderLabel } from './lm-provider-catalog.js';
 
 /** Where a provider runs: in the engine process, or in this browser. */
 export type ProviderKind = 'engine' | 'browser';
@@ -44,20 +45,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const optionalString = (value: unknown): string | undefined =>
   typeof value === 'string' && value !== '' ? value : undefined;
 
-const KNOWN_LABELS: Record<string, string> = {
-  mock: 'Mock (no model)',
-  webllm: 'WebLLM (in browser)',
-  llamacpp: 'llama.cpp server',
-  'llamacpp-embedded': 'llama.cpp embedded',
-  transformers: 'Transformers.js',
-  anthropic: 'Anthropic',
-  openai: 'OpenAI',
-  'openai-compatible': 'OpenAI-compatible',
-};
-
 /** A readable label for any provider id, including one the engine added later. */
-export const providerLabel = (id: string): string =>
-  KNOWN_LABELS[id] ?? id.replace(/[-_]/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+export const providerLabel = lmProviderLabel;
 
 const providerOf = (value: unknown): ProviderDescriptor | undefined => {
   if (typeof value === 'string') return { id: value, label: providerLabel(value), kind: 'engine' };
