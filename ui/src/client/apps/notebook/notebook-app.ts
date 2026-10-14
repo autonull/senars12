@@ -7,9 +7,7 @@
 import { css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import {
-  $activeLens,
   $collapsedBlocks,
-  $connectionState,
   $workspaceGraph,
   BaseComponent,
   narsBackend,
@@ -20,10 +18,8 @@ import {
 } from '../../kernel/index.js';
 import { defineApp, type AppDescriptor } from '../../framework/app.js';
 import { defineBundle } from '../../framework/bundle.js';
+import type { Composition } from '../../framework/composition.js';
 import { type SurfaceDescriptor } from '../../framework/surface.js';
-import { LENS_FACETS } from '../../utils/lens-catalog.js';
-import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
-import { FILTER_FACETS } from '../../core/filter-facets.js';
 import { blockDescriptor } from '../../core/block-descriptors.js';
 import { breadcrumb } from '../../core/navigation.js';
 import { admittedRoots, isAdmitted, type SectionNode, sectionTree } from '../../core/sections.js';
@@ -111,66 +107,6 @@ export class NotebookSurface extends BaseComponent {
       flex-direction: column;
       height: 100%;
     }
-    header {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-scale-2, 8px);
-      padding: 12px 24px;
-      border-bottom: 1px solid var(--colors-semantic-border-subtle);
-      background: var(--colors-semantic-bg-panel-solid);
-    }
-    .wordmark {
-      font-weight: 650;
-      letter-spacing: 0.02em;
-    }
-    .tagline {
-      font-size: 13px;
-      color: var(--colors-semantic-text-muted);
-    }
-    .toolbar {
-      display: flex;
-      gap: 8px;
-      margin-left: auto;
-      flex-wrap: wrap;
-    }
-    .toolbar-group {
-      display: flex;
-      gap: 4px;
-      padding: 0 8px;
-      border-left: 1px solid var(--colors-semantic-border-subtle);
-    }
-    select {
-      background: var(--colors-semantic-bg-base);
-      color: var(--colors-semantic-text-primary);
-      border: 1px solid var(--colors-semantic-border-subtle);
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 13px;
-      font-family: inherit;
-      outline: none;
-    }
-    select:focus {
-      border-color: var(--colors-semantic-accent-primary, #6ea8fe);
-    }
-    .status {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: var(--colors-semantic-text-muted);
-    }
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--colors-semantic-text-muted);
-    }
-    .dot.connected {
-      background: #46c07a;
-    }
-    .dot.disconnected {
-      background: #e5534b;
-    }
     .viewport {
       flex: 1;
       overflow: auto;
@@ -225,6 +161,9 @@ export class NotebookSurface extends BaseComponent {
       display: flex;
       align-items: center;
       gap: var(--spacing-scale-2);
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--colors-semantic-border-subtle);
+      background: var(--colors-semantic-bg-panel-solid);
       font-size: var(--typography-scale-xs);
     }
     .kind {
@@ -350,14 +289,10 @@ export class NotebookSurface extends BaseComponent {
     `,
   ];
 
-  @state() private activeLens = 'belief';
-  @state() private activeGraphLayer = 'both';
-  @state() private activeFilter = 'all';
   #scrolledFocus?: string;
 
   override connectedCallback(): void {
     super.connectedCallback();
-    this.watch($activeLens);
     this.watch($collapsedBlocks);
     this.watch($embeddedViews);
     this.watchWith($workspaceGraph, () => this.requestUpdate());
@@ -371,55 +306,6 @@ export class NotebookSurface extends BaseComponent {
     this.renderRoot
       .querySelector<HTMLElement>(`[data-id="${escaped}"]`)
       ?.scrollIntoView?.({ block: 'center' });
-  }
-
-  private renderToolbar(): TemplateResult {
-    const lensOptions = LENS_FACETS.ids.map((id) => {
-      const facet = LENS_FACETS.get(id);
-      return html`<option value=${id} ?selected=${this.activeLens === id}>${facet!.label}</option>`;
-    });
-
-    const layerOptions = GRAPH_LAYER_FACETS.ids.map((id) => {
-      const facet = GRAPH_LAYER_FACETS.get(id);
-      return html`<option value=${id} ?selected=${this.activeGraphLayer === id}>${facet!.label}</option>`;
-    });
-
-    const filterOptions = FILTER_FACETS.ids.map((id) => {
-      const facet = FILTER_FACETS.get(id);
-      return html`<option value=${id} ?selected=${this.activeFilter === id}>${facet!.label}</option>`;
-    });
-
-    return html`
-      <div class="toolbar">
-        <div class="toolbar-group">
-          <select
-            @change=${(e: Event) => (this.activeLens = (e.target as HTMLSelectElement).value)}
-            .value=${this.activeLens}
-            aria-label="Lens"
-          >
-            ${lensOptions}
-          </select>
-        </div>
-        <div class="toolbar-group">
-          <select
-            @change=${(e: Event) => (this.activeGraphLayer = (e.target as HTMLSelectElement).value)}
-            .value=${this.activeGraphLayer}
-            aria-label="Graph Layer"
-          >
-            ${layerOptions}
-          </select>
-        </div>
-        <div class="toolbar-group">
-          <select
-            @change=${(e: Event) => (this.activeFilter = (e.target as HTMLSelectElement).value)}
-            .value=${this.activeFilter}
-            aria-label="Filter"
-          >
-            ${filterOptions}
-          </select>
-        </div>
-      </div>
-    `;
   }
 
   protected override render(): TemplateResult {
@@ -468,18 +354,8 @@ export class NotebookSurface extends BaseComponent {
       `;
     };
 
-    const status = $connectionState.get();
-
     return html`
       <div class="app">
-        <header>
-          <span class="wordmark">SeNARS</span>
-          <span class="tagline">Notebook — semantic conversation surface</span>
-          ${this.renderToolbar()}
-          <span class="status">
-            <span class="dot ${status}"></span>${status}
-          </span>
-        </header>
         <div class="viewport">
           ${crumbs.length > 0
             ? html`<nav class="breadcrumb" aria-label="Breadcrumb">
@@ -530,6 +406,22 @@ const notebookSurfaces: SurfaceDescriptor[] = [
   },
 ];
 
+/** Notebook's default composition — one content cell; the shell supplies the chrome. */
+const notebookComposition: Composition = {
+  id: 'notebook',
+  name: 'Notebook',
+  layout: 'auto',
+  cells: [{ surface: 'notebook-surface' }],
+  globals: {
+    lens: 'belief',
+    layer: 'both',
+    shape: 'graph',
+    mode: '2d',
+    fit: 'legible',
+    filter: 'all',
+  },
+};
+
 /** Notebook app descriptor — one bundle of contributions plus the shell contract. */
 export const NOTEBOOK_APP: AppDescriptor<'notebook'> = defineApp({
   bundle: defineBundle({
@@ -541,6 +433,7 @@ export const NOTEBOOK_APP: AppDescriptor<'notebook'> = defineApp({
     },
   }),
   icon: 'notebook',
+  composition: notebookComposition,
   defaultLens: 'belief',
   defaultGraphLayer: 'both',
   defaultCapabilityFilter: 'all',

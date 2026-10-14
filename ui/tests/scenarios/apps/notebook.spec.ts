@@ -17,8 +17,8 @@ test('notebook app loads, connects, and renders the reasoning workspace @app @no
   // The workspace projects the engine's seeded beliefs as blocks.
   await expect(page.locator('notebook-surface article.block').first()).toBeVisible({ timeout: 15000 });
 
-  // Verify connection status shows connected
-  await expect(page.locator('header .status')).toContainText('connected');
+  // Verify connection status shows connected (shell chrome)
+  await expect(page.locator('app-chrome .status')).toContainText('connected');
 });
 
 test('notebook app accepts a belief and renders its block @app @notebook', async ({ page }) => {

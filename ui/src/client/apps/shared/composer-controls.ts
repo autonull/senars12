@@ -26,7 +26,7 @@ export interface ComposerSurface {
 }
 
 /** Surfaces whose presence turns on the global graph controls. */
-const GRAPH_SURFACES = new Set(['graph-surface', 'explore-surface']);
+const GRAPH_SURFACES = new Set(['graph-surface', 'explore-surface', 'goals-surface', 'hud-surface']);
 
 const labels = (defs: { ids: readonly string[]; get(id: string): { label: string } | undefined }) =>
   defs.ids.map((id) => ({ value: id, label: defs.get(id)?.label ?? id }));

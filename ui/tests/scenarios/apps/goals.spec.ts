@@ -17,8 +17,8 @@ test('goals app loads, connects, and renders empty state @app @goals', async ({ 
   // Verify empty state is shown (no goals yet)
   await expect(page.locator('.empty h2')).toContainText('No goals yet');
 
-  // Verify connection status shows connected
-  await expect(page.locator('header .status')).toContainText('connected');
+  // Verify connection status shows connected (shell chrome)
+  await expect(page.locator('app-chrome .status')).toContainText('connected');
 });
 
 test('goals app accepts goal input and renders it @app @goals', async ({ page }) => {
@@ -49,16 +49,14 @@ test('goals app toolbar controls are functional @app @goals', async ({ page }) =
 
   await expect(page.locator('goals-surface')).toBeVisible({ timeout: 10000 });
 
-  // Verify lens selector is present and functional
-  const lensSelect = page.locator('goals-surface select[aria-label="Lens"]');
+  // Graph controls now live in the shell's composer (a graph surface is present)
+  const lensSelect = page.locator('composer-controls select[aria-label="Lens"]');
   await expect(lensSelect).toBeVisible();
 
-  // Verify graph layer selector is present
-  const layerSelect = page.locator('goals-surface select[aria-label="Graph Layer"]');
+  const layerSelect = page.locator('composer-controls select[aria-label="Layer"]');
   await expect(layerSelect).toBeVisible();
 
-  // Verify filter selector is present
-  const filterSelect = page.locator('goals-surface select[aria-label="Filter"]');
+  const filterSelect = page.locator('composer-controls select[aria-label="Filter"]');
   await expect(filterSelect).toBeVisible();
 
   // Change lens and verify it updates
