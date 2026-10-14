@@ -9,7 +9,6 @@ import {
   $panels,
   $selectedEdgeId,
   $selectedNodeId,
-  $viewSelection,
   $workspaceGraph,
   eventBus,
   mountTestApi,
@@ -138,9 +137,6 @@ export class AppLayout extends BaseComponent {
     this.watch($activeRenderer);
     this.watchWith($selectedNodeId, () => this.syncInspector());
     this.watchWith($selectedEdgeId, () => this.syncInspector());
-    this.watchWith($viewSelection, (selection) => {
-      if (selection.focus) $selectedNodeId.set(selection.focus);
-    });
   }
 
   override disconnectedCallback() {

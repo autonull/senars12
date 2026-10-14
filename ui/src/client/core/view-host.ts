@@ -2,7 +2,7 @@ import { css, html, nothing, type PropertyValues, type TemplateResult } from 'li
 import { property, state } from 'lit/decorators.js';
 import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
 import { defineSurface, SurfaceComponent, type SurfaceState } from './surface.js';
-import { $viewSelection } from './store.js';
+import { $selectedNodeId, $viewSelection } from './store.js';
 import { viewAdapterFor } from './view-adapter.js';
 import { datasetIsEmpty, projectDataset } from './view-projection.js';
 import type { Budget, Shape, ViewSpec, ViewStateSpec } from './view-spec.js';
@@ -166,7 +166,7 @@ export class ViewHost extends SurfaceComponent {
 
   private handleSelect = (event: Event): void => {
     const detail = (event as CustomEvent<{ id?: string }>).detail;
-    if (detail?.id) $viewSelection.set({ ...$viewSelection.get(), focus: detail.id });
+    if (detail?.id) $selectedNodeId.set(detail.id);
   };
 
   private resubscribe(): void {

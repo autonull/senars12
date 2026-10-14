@@ -180,7 +180,7 @@ as well as surfaces/adapters/facets/projectors.
 
 ### Phase B — Finish the substrate migrations
 
-- [ ] **P15 — Finish the `derived` migration.**
+- [x] **P15 — Finish the `derived` migration.**
 `$viewSelection` and `$runTerminations` become `derived(...)`; remove their side-effect `subscribe`
 syncs. Use `setEqual`/`mapEqual` where the value is a Set/Map so no churn fires.
 **Files:** `core/store.ts`, `core/workspace-bindings.ts`.
@@ -608,6 +608,35 @@ Phase B (P15 `derived` churn → P16 bundles → P17 catalogs → P18 catalogs/o
   should register commands via `registerIntent`, which already bumps it.
 - `renderer.notebook`'s schema exists but `renderer.graph3d`/`explore` do not (`COMMAND_SCHEMAS`) — harmless
   (unknown ids pass), but the derived renderer schemas are incomplete.
+
+### P15 — Finish the `derived` migration (2026-10-14)
+
+**Changed**
+- `core/store.ts`: `$viewSelection` is now `derived` from the one selection source — `$selectedNodeIds`
+  (nodes) + `$selectedNodeId` (focus) — with a `setEqual`-based equality, so equal selections never churn.
+- `core/view-host.ts`: an adapter row selection writes the *source* (`$selectedNodeId`), not the derived atom.
+- `core/app-layout.ts`: removed the side-effect sync `watchWith($viewSelection, s => { if (s.focus)
+  $selectedNodeId.set(s.focus) })`; the derivation replaces it, so focus can no longer desync.
+- `tests/components/derived-churn.test.ts` (new): a subscriber of `$selectedNodeIds`/`$viewSelection` is not
+  called when the source changes but the derived value is equal.
+
+**Guard:** the churn test + `view-host` (incl. row-selection → shared selection) + `app-layout` +
+`workspace-hud` pass.
+**Prove:** unit 793/793; golden e2e ✓ (graph multi-select + steering unchanged).
+**Screenshot:** `ui/screenshots/p15-derived-selection.png`.
+
+**Note / deviation:** `$runTerminations` was named in the plan but is **not** side-effect synced: it is the
+terminal output of the async engine call, written in exactly one place (`intent-registry`
+`reasoning.step`/`run`), with no second atom to derive from. It is left as that single writable atom —
+wrapping it in a `$runResult` atom just to call it `derived` would be ceremony, not dedup. The plan's
+*actual* remaining side-effect syncs are `$view.subscribe → $workspaceGraph.timeCursor` and
+`$activeLens.subscribe → $graphLayer` (both `core/store.ts`).
+
+**Remaining:** Phase B continues at P16 (apps + `plugins.ts` → bundles), then P17/P18 catalogs.
+**New opportunities**
+- `$activeLens → $graphLayer` and `$view → $workspaceGraph.timeCursor` are the last two side-effect syncs;
+  both are candidates for the same `derived` treatment.
+- `apps/hud/hud-app.ts` imports `$viewSelection`/`$selectedNodeIds` without using them — dead imports to prune.
 
 ---
 

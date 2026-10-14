@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import '../../src/client/components/views/index.js';
 import '../../src/client/components/primitives/empty-state.js';
-import { $viewSelection } from '../../src/client/core/store.js';
+import { $selectedNodeId, $viewSelection } from '../../src/client/core/store.js';
 import { ViewHost } from '../../src/client/core/view-host.js';
 import { surfaceFor } from '../../src/client/core/surface-registry.js';
 import type {
@@ -47,7 +47,7 @@ describe('view host', () => {
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    $viewSelection.set({ nodes: new Set(), edges: new Set() });
+    $selectedNodeId.set(null);
   });
 
   afterEach(() => container.remove());

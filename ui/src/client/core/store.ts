@@ -165,7 +165,18 @@ export const $workingMemory = atom<string[]>([]);
 
 export const $selectedNodeIds = derived($workspaceGraph, (graph) => graph.selection, setEqual);
 
-export const $viewSelection = atom<ViewSelection>({ nodes: new Set(), edges: new Set() });
+/**
+ * The view-system selection is a *view* of the one selection source: the
+ * workspace graph's node selection plus the focused node (`$selectedNodeId`).
+ * Derived — not a second atom kept in sync — so a view selection can never
+ * desync from the graph and equal values never churn subscribers.
+ */
+export const $viewSelection = derived(
+  [$selectedNodeIds, $selectedNodeId],
+  ([nodes, focus]) => ({ nodes, edges: new Set<string>(), focus: focus ?? undefined }) as ViewSelection,
+  (a: ViewSelection, b: ViewSelection) =>
+    a.focus === b.focus && setEqual(a.nodes, b.nodes) && setEqual(a.edges, b.edges)
+);
 
 export const $lensViewport = atom<Record<string, { x: number; y: number; zoom: number }>>({
   belief: { x: 0, y: 0, zoom: 1 },
