@@ -214,7 +214,7 @@ Put `reasoning-layout.ts` and `capabilities.ts` on `defineCatalog`; fold `regist
 
 ### Phase C — Guardrails, hygiene, hardening
 
-- [ ] **P19 — Guardrails & app coverage.**
+- [~] **P19 — Guardrails & app coverage.** (kernel boundary done; per-app e2e remaining)
 Add the §3.3 kernel-boundary check (`kernel/**` must not import lens/layout/panel/HUD); add an e2e
 per app (Notebook, Goals, Console).
 **Files:** boundary test/lint, `tests/scenarios/apps/*`.
@@ -737,6 +737,25 @@ tool-approval overlay unchanged).
   (`core/view-spec.ts`), view presets defined twice (`utils/view-presets.ts` vs
   `components/overlays/display-popover.ts`), and the theme enum drift (`config-schema.ts`,
   `config-catalog.ts`, `store.ts`, `styles/tokens.generated.ts`).
+
+### P19 — Guardrails & app coverage (partial: kernel boundary done, 2026-10-14)
+
+**Changed**
+- Removed the one kernel-boundary violation: `kernel/index.ts` no longer re-exports the `GraphLayer` type from
+  `core/graph-layer-defs` (no kernel consumed it).
+- `tests/framework/kernel-boundary.test.ts` (new): scans every `src/client/kernel/**/*.ts` for direct chrome
+  imports (`components|apps|layouts/`, `lens-catalog`, `layout-registry`, `panel-defs`, `graph-layer`,
+  `renderer-defs`, `overlay-registry`, `surface-registry`, `workspace-hud`) and fails if any appear. It also
+  self-checks that the scanner flags a chrome import and allows the substrate — proving the checker without
+  a temporary violation in the tree.
+
+**Guard:** the boundary test passes on the real kernel tree and flags a synthetic chrome import.
+**Prove:** unit **801/801**.
+
+**Remaining (the rest of P19)**
+- The per-app e2e (Notebook, Goals, Console) is not yet written. Add `tests/scenarios/apps/*.spec.ts` that
+  drive `scripts/agent-server.ts` deterministically (mount + connect + one real interaction each), tag them
+  `@app`, add a `test:e2e:apps` script, and extend `ui:gate` with it.
 
 ---
 

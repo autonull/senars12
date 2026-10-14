@@ -65,7 +65,6 @@ export {
 // ── UI state (lens, layer, viewport, filter) ──────────────────────────────────
 export { $activeLens, $graphLayer, $graphShape, $viewportMode, $graphFilter } from '../core/store.js';
 export type { Lens } from '@senars/core';
-export type { GraphLayer } from '../core/graph-layer-defs.js';
 export type { ViewportMode } from '../core/store.js';
 
 // ── Domain: the workspace graph and its projections ──────────────────────────
