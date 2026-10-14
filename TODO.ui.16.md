@@ -1,187 +1,174 @@
 # UI.16 — Graph Workspace: One Parametric App, Configurable Surfaces
 
-**Goal:** Ship a usable Graph Workspace *this week* by unifying all apps under one parametric core. The graph is the substrate; surfaces (chat, goals, console, notebook) are composable inputs. "Apps" become saved configs (URLs).
+**Goal:** Ship a usable Graph Workspace **this week** by reusing the Lab composer as the parametric core. The graph is the substrate; surfaces (chat, goals, console, notebook) are composable inputs. "Apps" = saved preset URLs.
 
 ---
 
-## Strategy: A → C → B
+## Optimized Strategy: C → A (parallel) + Reuse Lab Composer
 
 | Phase | What | Time | Deliverable |
 |-------|------|------|-------------|
-| **A** | Refactor shells → `BaseAppSurface` | 1 day | 4 apps share one shell; ~600 lines deleted |
-| **C** | Build **one** `GraphWorkspace` app | 2 days | Parametric: lens/layer/shape/mode/fit/layout + composable surfaces |
-| **B** | Presets = saved configs (URLs) | 0 days | `chat-graph`, `reasoning-desk`, `graph-3d`, `dashboard` = bookmarks |
+| **0** | Extract primitives from Lab | 0.5 day | `ComposerControls`, `SurfaceRegistry`, `LayoutEngine`, `ConfigSync` → `shared/` |
+| **1** | **GraphWorkspace** = Lab composer + preset defaults | 1 day | Working `chat-graph` URL (parametric) |
+| **1-2** | Refactor **Ask only** → `BaseAppSurface` | 0.5 day | Ask uses shared shell (only app needing it) |
+| **2** | Add presets + verify 4 configs | 0.5 day | `chat-graph`, `reasoning-desk`, `graph-3d`, `dashboard` working |
+
+**Total: ~2.5 days** (vs 4.5 sequential). Lab composer *is* the GraphWorkspace — just extract it.
 
 ---
 
-## Phase A: Shell Consolidation (1 day)
+## Key Insight
 
-Refactor 4 apps to `BaseAppSurface` + `GraphToolbar` + `createGraphProjector`:
+```
+Lab (catalogue + composer)     GraphWorkspace (presets only)
+│                                    │
+├─ Menu (index)                     ├─ Default: chat-graph
+├─ Presets (?v=...)                 ├─ Presets (?preset=...)
+└─ Composer (?compose=1&...)   →    └─ Composer (same component)
+```
 
-| App | Current | Refactored |
-|-----|---------|------------|
-| Ask | custom header, inline selects | `BaseAppSurface` + `GraphToolbar` + `ask-surface` |
-| Notebook | custom header, breadcrumb | `BaseAppSurface` + `GraphToolbar` (for embedded graphs) |
-| Console | custom header, status | `BaseAppSurface` (header/status only) |
-| HUD | custom header, panel grid | `BaseAppSurface` (standardized) |
-
-**Shared components already exist:** `ui/src/client/apps/shared/` — `BaseAppSurface`, `GraphToolbar`, `createGraphProjector`, `GraphViewportWrapper`.
-
-**Done:** Goals, Explore (already use shared). Lab (composer uses shared).
+**The Lab's composer mode (`?compose=1&...`) IS the GraphWorkspace.** Just extract it.
 
 ---
 
-## Phase C: GraphWorkspace — The One App (2 days)
+## Phase 0: Extract Primitives from Lab (Today, 0.5 day)
 
-### Single entry point: `apps/graph-workspace/`
+Move to `ui/src/client/apps/shared/`:
+
+| Primitive | From | To |
+|-----------|------|----|
+| `ComposerControls` (toolbar selects + surface chips) | `lab-app.ts` | `shared/composer-controls.ts` |
+| `SurfaceRegistry` (`SURFACE_TAGS`: `chat`→`ask-surface`, etc.) | `variants.ts`/`compose.ts` | `shared/surface-registry.ts` |
+| `LayoutEngine` (`layoutTemplate`, `specToVariant`) | `compose.ts` | `shared/layout-engine.ts` (re-export) |
+| `ConfigSync` (URL ↔ Spec ↔ atoms) | `lab-app.ts` | `shared/config-sync.ts` |
+
+**No new logic** — just factoring out what already works.
+
+---
+
+## Phase 1: GraphWorkspace App (Day 1)
+
+### Single entry: `apps/graph-workspace/`
 
 ```
 src/client/apps/graph-workspace/
-├── index.html           # Vite entry
-├── main.ts              # Boot: connect, mount GraphWorkspace
-├── graph-workspace.ts   # The parametric app component
-├── config.ts            # Default configs for presets
-└── surfaces/            # Composable surface tags (already exist)
-    ├── ask-surface
-    ├── graph-surface
-    ├── goals-surface
-    ├── console-surface
-    ├── notebook-surface
-    ├── explore-surface
-    ├── hud-surface
-    └── panels/...
+├── index.html
+├── main.ts              # Boot, connect, mount GraphWorkspace
+├── graph-workspace.ts   # Thin: BaseAppSurface + ComposerControls
+├── presets.ts           # 4 preset configs (see below)
+└── surfaces/            # Re-export existing surface tags
 ```
 
-### GraphWorkspace component (pseudocode)
+### GraphWorkspace = BaseAppSurface + ComposerControls
 
 ```ts
 @customElement('graph-workspace')
 export class GraphWorkspace extends BaseAppSurface {
-  // URL-driven config (synced to atoms)
-  @state() config: WorkspaceConfig = parseURL();
+  // URL-driven config (synced to atoms via ConfigSync)
+  private config = ConfigSync.fromURL() ?? PRESETS['chat-graph'];
 
-  // Parametric graph controls (from URL or toolbar)
-  @state() lens = $activeLens.get();
-  @state() layer = $graphLayer.get();
-  @state() shape = $graphShape.get();
-  @state() mode = $viewportMode.get();
-  @state() fit = $graphFit.get();
-  @state() filter = $graphFilter.get();
-  @state() layout = 'h'; // or 'chat-graph', 'reasoning-desk', etc.
+  protected override get appTitle() { return 'Graph Workspace'; }
+  protected override get appTagline() { return this.config.presetName; }
 
-  // Composable surfaces — which ones are mounted
-  @state() surfaces: SurfaceId[] = ['chat', 'graph'];
-
-  protected renderToolbar() {
-    return html`<graph-toolbar
-      .showLens=${true} .showLayer=${true} .showShape=${true}
-      .showMode=${true} .showFit=${true} .showFilter=${true}
-      .showLayout=${true} .showSurfaces=${true}
-    ></graph-toolbar>`;
+  protected override renderToolbar() {
+    return html`<composer-controls
+      .config=${this.config}
+      @config-change=${this.onConfigChange}
+    ></composer-controls>`;
   }
 
-  protected renderViewportContent() {
+  protected override renderViewportContent() {
+    const { columns, rows, areas } = layoutTemplate(this.config.layout, this.config.surfaces.length);
+    const regions = specToVariant(this.config).regions;
     return html`
-      <div class="grid" style="grid-template-columns:${this.layoutColumns}; grid-template-areas:${this.layoutAreas}">
-        ${this.surfaces.map(s => html`<section data-area=${s}>${this.renderSurface(s)}</section>`)}
+      <div class="grid" style="grid-template-columns:${columns}; grid-template-rows:${rows}; grid-template-areas:${areas}">
+        ${Object.entries(regions).map(([area, tags]) => html`
+          <section data-area=${area} style="grid-area:${area}">
+            ${tags.map(tag => document.createElement(tag))}
+          </section>
+        `)}
       </div>
     `;
-  }
-
-  private renderSurface(id: SurfaceId) {
-    const tags = SURFACE_TAGS[id]; // e.g. 'chat' → ['ask-surface']
-    return tags.map(tag => document.createElement(tag));
   }
 }
 ```
 
-### Config presets (URL params)
+### Presets (4, sufficient for dogfooding)
 
-| Preset | URL | Surfaces | Layout | Lens | Mode | Shape | Fit |
-|--------|-----|----------|--------|------|------|-------|-----|
-| `chat-graph` | `?preset=chat-graph` | `['chat','graph']` | `h` | belief | 2d | graph | fit |
-| `reasoning-desk` | `?preset=reasoning-desk` | `['chat','notebook','inspector']` | `h` | belief | 2d | graph | fit |
-| `graph-3d` | `?preset=graph-3d` | `['graph']` | `auto` | temporal | 3d | graph | legible |
-| `dashboard` | `?preset=dashboard` | `['metrics','graph','chat']` | `grid` | belief | 2d | graph | fit |
-| `command-deck` | `?preset=command-deck` | `['console','goals','graph']` | `h` | goal | 2d | graph | fit |
-| `study` | `?preset=study` | `['chat','notebook','graph','explore','metrics','timeline']` | `grid` | temporal | 2d | graph | fit |
+| Preset | Surfaces | Layout | Lens | Mode | Shape | Fit | Use Case |
+|--------|----------|--------|------|------|-------|-----|----------|
+| `chat-graph` | `['chat','graph']` | `h` | belief | 2d | graph | fit | Daily reasoning |
+| `reasoning-desk` | `['chat','notebook','inspector']` | `h` | belief | 2d | graph | fit | Read/ask/inspect |
+| `graph-3d` | `['graph']` | `auto` | temporal | 3d | graph | legible | Spatial exploration |
+| `dashboard` | `['metrics','graph','chat']` | `grid` | belief | 2d | graph | fit | Observability |
 
-**URL schema:**
-```
-?preset=chat-graph
-?surfaces=chat,graph&layout=h&lens=belief&mode=2d&shape=graph&fit=fit
-```
+**URL schema:** `?preset=chat-graph` or `?surfaces=chat,graph&layout=h&lens=belief&mode=2d&shape=graph&fit=fit`
 
 ---
 
-## Phase B: "Promotion" = Bookmarks (0 days)
+## Phase 1.5: Ask → BaseAppSurface (Parallel, Day 1-2)
 
-No new code. Just:
-1. Add preset configs to `config.ts`
-2. Add links in Lab index / landing page
-3. Each preset is a shareable URL — `https://app/graph-workspace/?preset=chat-graph`
+Only Ask benefits fully from `BaseAppSurface` + `GraphToolbar`:
+- Header, toolbar, connection status, empty state = identical
+- Graph viewport integration = identical
+- Unique: `ask-surface` (chat input) — keep as-is
+
+Notebook/Console/HUD have unique UIs; minimal header update only if needed.
 
 ---
 
-## Immediate Next Steps (Today)
+## Phase 2: Verify Presets (Day 2)
 
-1. **Refactor Ask → BaseAppSurface** (largest app, biggest win)
-2. **Scaffold GraphWorkspace** with:
-   - `BaseAppSurface` shell
-   - `GraphToolbar` (all controls)
-   - Surface registry + layout engine
-   - URL ↔ config sync
-3. **Verify** `chat-graph` preset works end-to-end
+| Preset | Test |
+|--------|------|
+| `chat-graph` | Assert ask-surface + graph-surface mount, graph renders |
+| `reasoning-desk` | 3 panes, inspector shows node detail |
+| `graph-3d` | 3D mode renders, temporal lens works |
+| `dashboard` | 3-pane grid, metrics + graph + chat |
+
+Add e2e tests in `tests/scenarios/apps/graph-workspace.spec.ts`.
+
+---
+
+## What NOT to Do (Deliberate Cuts)
+
+| Skip | Reason |
+|------|--------|
+| Full HUD refactor | Panel grid ≠ app shell; keep as-is |
+| Notebook breadcrumb standardization | Unique to Notebook; don't force |
+| Console full shell swap | Terminal UI is different; header/status only if needed |
+| Separate app bundles for presets | One Vite entry; presets = query params |
+| localStorage persistence | URL-only = bookmarkable, shareable, stateless |
+| Panel system unification | Layout engine handles grid; panels stay HUD-specific |
 
 ---
 
 ## Files to Create/Modify
 
-### New
-- `ui/src/client/apps/graph-workspace/` (entire app)
-- `ui/src/client/apps/shared/surface-registry.ts` (surface tag map)
-- `ui/src/client/apps/shared/layout-engine.ts` (CSS grid from layout spec)
+### New (Phase 0)
+- `ui/src/client/apps/shared/composer-controls.ts` — extracted from Lab
+- `ui/src/client/apps/shared/surface-registry.ts` — `SURFACE_TAGS` map
+- `ui/src/client/apps/shared/config-sync.ts` — URL ↔ Spec ↔ atoms
 
-### Modify
-- `ui/src/client/apps/ask/ask-app-v2.ts` → `BaseAppSurface`
-- `ui/src/client/apps/notebook/notebook-app.ts` → `BaseAppSurface`
-- `ui/src/client/apps/console/console-app.ts` → `BaseAppSurface`
-- `ui/src/client/apps/hud/hud-app.ts` → `BaseAppSurface`
-- `ui/src/client/apps/lab/lab-app.ts` → thin wrapper around GraphWorkspace composer mode
+### New (Phase 1)
+- `ui/src/client/apps/graph-workspace/` — entire app (4 files)
 
-### Delete (after refactor)
-- Per-app header/toolbar/viewport CSS (~600 lines total)
+### Modify (Phase 1.5)
+- `ui/src/client/apps/ask/ask-app-v2.ts` → `BaseAppSurface` + `GraphToolbar`
+
+### Delete (After)
+- Per-app header/toolbar CSS in Ask (~150 lines)
 
 ---
 
-## Success Criteria
+## Success Criteria (End of Week)
 
-- [ ] All 6 standalone apps use `BaseAppSurface` + `GraphToolbar`
-- [ ] `GraphWorkspace` mounts any surface combination via URL
-- [ ] 6 presets work as shareable URLs
+- [ ] `GraphWorkspace` at `/apps/graph-workspace/` loads with `?preset=chat-graph`
+- [ ] Toolbar controls (lens, layer, shape, mode, fit, layout, surfaces) all functional
+- [ ] 4 presets work as shareable URLs
+- [ ] Ask refactored to shared shell
 - [ ] Typecheck + unit + golden + app e2e all green
-- [ ] Can dogfood `chat-graph` for daily reasoning tasks
-
----
-
-## Risks & Mitigations
-
-| Risk | Mitigation |
-|------|------------|
-| GraphWorkspace too complex | Start minimal: 2 surfaces (chat+graph), 1 layout (h). Add incrementally. |
-| URL sync fragility | Use existing atom watch pattern; test with Lab composer first. |
-| Layout engine scope | Reuse `layoutTemplate` from `compose.ts` — already handles h/v/grid/hero/rail. |
-| Surface registration | Explicit `SURFACE_TAGS` map; no magic. |
-
----
-
-## Dependencies on Existing Work
-
-- ✅ `BaseAppSurface`, `GraphToolbar`, `createGraphProjector` exist
-- ✅ `GraphFit` policy (`legible`/`fit`) works
-- ✅ `settleZoom` density-factor fix in place
-- ✅ Lab composer URL schema (`?compose=1&...`) proven
-- ✅ All atoms exported via kernel/index
+- [ ] Can dogfood `chat-graph` for daily reasoning
 
 ---
 
@@ -189,20 +176,20 @@ No new code. Just:
 
 | Day | Focus |
 |-----|-------|
-| **Today** | Ask → BaseAppSurface; scaffold GraphWorkspace |
-| **+1** | GraphWorkspace: toolbar + surface registry + layout |
-| **+2** | Presets + URL sync + e2e verify `chat-graph` |
-| **+3** | Refactor Notebook, Console, HUD |
-| **+4** | Dogfood `chat-graph`; iterate |
+| **Today** | Extract primitives → scaffold GraphWorkspace → `chat-graph` works |
+| **+1** | Add 3 more presets; refactor Ask → BaseAppSurface |
+| **+2** | E2e verify all presets; dogfood `chat-graph` |
 
 ---
 
-## Open Questions
+## Dependencies (Already Done ✅)
 
-1. **State persistence** — should WorkspaceConfig persist to localStorage, or always URL-only? (Lean: URL-only, bookmarkable)
-2. **Panel system** — keep HUD's panel grid, or unify under layout engine? (Lean: layout engine handles both grid areas and panels)
-3. **Graph surface vs GraphViewportWrapper** — which is the primitive? (Lean: `graph-viewport` is primitive; `graph-surface` adds shape/mode logic)
-4. **Notebook breadcrumb** — keep as Notebook-specific, or generalize? (Lean: keep specific; not a shared pattern)
+- `BaseAppSurface`, `GraphToolbar`, `createGraphProjector` exist in `shared/`
+- `GraphFit` policy (`legible`/`fit`) works
+- `settleZoom` density-factor fix in place
+- Lab composer URL schema (`?compose=1&...`) proven
+- All atoms exported via kernel/index
+- `layoutTemplate`, `specToVariant`, `parseSpec`, `specToSearch` in `compose.ts`
 
 ---
 
@@ -212,3 +199,4 @@ No new code. Just:
 - `ui/src/client/apps/lab/compose.ts` — layoutTemplate, Spec, URL schema
 - `ui/src/client/apps/lab/variants.ts` — 21 preset definitions
 - `ui/src/client/kernel/index.ts` — atoms ($activeLens, $graphLayer, $graphFit, etc.)
+- `ui/src/client/apps/lab/lab-app.ts` — ComposerControls logic to extract

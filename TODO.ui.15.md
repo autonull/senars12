@@ -129,7 +129,7 @@ lab/compose ↔ shared component cycle. `GraphToolbar` now imports from kernel.
 
 3. **Promote winners — DEFERRED (superseded by TODO.ui.16.md).** The new strategy:
    "promotion" = save a preset URL in the **Graph Workspace** (one parametric app),
-   not copy code. See `TODO.ui.16.md` for the active plan (A → C → B).
+   not copy code. See `TODO.ui.16.md` for the active plan (C → A parallel).
 
 4. ✅ **Guards (done this session).** `tests/components/lab-compose.test.ts` covers `compose.ts`
    (`layoutTemplate` per layout incl. grid/hero/rail track counts; `specToVariant` region ↔
@@ -197,9 +197,9 @@ from ui.13, `overlay-settings` dark-by-default, `overlay-telemetry` flaky). Suit
 **Verified this session:** typecheck ✓ · unit **814/814** ✓ · golden e2e (chromium) ✓ ·
 lab `@app` e2e 2/2 ✓ · visual 62/62 ✓. Ran chromium only, per the process rules below.
 
-**Active plan:** `TODO.ui.16.md` — Graph Workspace (A → C → B).
+**Active plan:** `TODO.ui.16.md` — Graph Workspace (C → A parallel).
 - A: Refactor 4 apps → `BaseAppSurface` (today)
 - C: Build one parametric `GraphWorkspace` app (this week)
 - B: Presets = saved URLs (`chat-graph`, `reasoning-desk`, `graph-3d`, `dashboard`)
 
-**Item 3/5 from this plan:** superseded by TODO.ui.16.md.
+**Item 3/5 from this plan:** superseded by TODO.ui.16.md (C → A parallel).
