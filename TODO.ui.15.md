@@ -128,8 +128,9 @@ lab/compose ↔ shared component cycle. `GraphToolbar` now imports from kernel.
 **All gates green** — typecheck ✓ · unit 814/814 ✓ · golden e2e 2/2 ✓ · lab @app e2e 2/2 ✓ · per-app e2e 12/12 ✓.
 
 3. **Promote winners — DEFERRED (superseded by TODO.ui.16.md).** The new strategy:
-   "promotion" = save a preset URL in the **Graph Workspace** (one parametric app),
-   not copy code. See `TODO.ui.16.md` for the active plan (C → A parallel).
+   "promotion" = register a **composition** (data) rendered by the one shell. Every "app"
+   is a named composition; every surface is dumb content; the shell owns chrome.
+   See `TODO.ui.16.md` for the active plan (Composition Framework).
 
 4. ✅ **Guards (done this session).** `tests/components/lab-compose.test.ts` covers `compose.ts`
    (`layoutTemplate` per layout incl. grid/hero/rail track counts; `specToVariant` region ↔
@@ -139,7 +140,7 @@ lab/compose ↔ shared component cycle. `GraphToolbar` now imports from kernel.
    `/apps/lab/?v=chat-graph` and the composer URL and asserts the grid mounts both surfaces.
 
 5. **Only then** revisit `ui.14` Phase D/E (cognitive translation, chat-as-default) — each is
-   now *one Graph Workspace preset*, not a phase. Superseded by TODO.ui.16.md.
+   now *one composition*, not a phase. Superseded by TODO.ui.16.md.
 
 ### New opportunities (found this session)
 
@@ -197,9 +198,10 @@ from ui.13, `overlay-settings` dark-by-default, `overlay-telemetry` flaky). Suit
 **Verified this session:** typecheck ✓ · unit **814/814** ✓ · golden e2e (chromium) ✓ ·
 lab `@app` e2e 2/2 ✓ · visual 62/62 ✓. Ran chromium only, per the process rules below.
 
-**Active plan:** `TODO.ui.16.md` — Graph Workspace (C → A parallel).
-- A: Refactor 4 apps → `BaseAppSurface` (today)
-- C: Build one parametric `GraphWorkspace` app (this week)
-- B: Presets = saved URLs (`chat-graph`, `reasoning-desk`, `graph-3d`, `dashboard`)
+**Active plan:** `TODO.ui.16.md` — The Composition Framework (one shell · dumb surfaces · data-driven apps).
+- Phase 0: generalize the Lab composer into `framework/{composition,layout}.ts` + shell pieces
+- Phase 1: `apps/studio/` renders `?preset=chat-graph` (usable day 1)
+- Phase 2: strip chrome from surfaces; apps become composition registrations
+- Phase 3+: recursion + variety (mosaic/study/command-deck); Lab = studio + catalogue
 
-**Item 3/5 from this plan:** superseded by TODO.ui.16.md (C → A parallel).
+**Item 3/5 from this plan:** superseded by TODO.ui.16.md (Composition Framework).
