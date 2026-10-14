@@ -196,8 +196,14 @@ export class GoalsSurface extends BaseComponent {
   }
 
   private updateProjection(): void {
-    const graph = $workspaceGraph.get();
-    this.projection = projectWorkspaceGraph(graph);
+    const projection = projectWorkspaceGraph($workspaceGraph.get());
+    const goals = new Set(
+      [...projection.nodes].filter(([, node]) => node.kind === 'goal').map(([id]) => id)
+    );
+    this.projection = {
+      nodes: new Map([...projection.nodes].filter(([id]) => goals.has(id))),
+      edges: new Map([...projection.edges].filter(([, edge]) => goals.has(edge.source) && goals.has(edge.target))),
+    };
     this.requestUpdate();
   }
 

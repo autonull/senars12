@@ -14,6 +14,7 @@
 // ── Transport ────────────────────────────────────────────────────────────────
 export { connect, disconnect, send, reconnect } from './transport.js';
 export { addAgentMessage, addUserMessage, applyServerMessage } from '../core/store-bindings.js';
+export { mountWorkspaceProjection } from '../core/workspace-bindings.js';
 
 // ── State (the shared atoms) ─────────────────────────────────────────────────
 export { atom, setWsClient } from './state.js';

@@ -329,7 +329,7 @@ const BUILTIN_CONFIG_FIELDS: ConfigFieldDescriptor[] = [
     id: 'theme',
     label: 'Theme',
     type: 'enum',
-    default: 'auto',
+    default: 'dark',
     description: 'UI color theme',
     enumValues: ['dark', 'light', 'auto'],
     category: 'appearance',

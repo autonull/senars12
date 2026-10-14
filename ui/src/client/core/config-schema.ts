@@ -66,7 +66,7 @@ export type LayoutConfig = z.infer<typeof LayoutConfigSchema>;
 /** Full UI Config Schema. */
 export const UiConfigSchema = z.object({
   // UI Appearance
-  theme: ThemeSchema.default('auto'),
+  theme: ThemeSchema.default('dark'),
   density: DensitySchema.default('comfortable'),
   motion: MotionSchema.default('normal'),
 

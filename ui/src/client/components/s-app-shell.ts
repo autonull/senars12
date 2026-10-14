@@ -7,10 +7,13 @@
 
 import { css, html, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { connect, disconnect } from '../kernel/index.js';
+import { connect, disconnect, mountWorkspaceProjection } from '../kernel/index.js';
 import { BaseComponent } from '../core/base-component.js';
 import { appFor, type AppDescriptor, type ConnectionConfig, APP_SHELL_TAG } from '../framework/app.js';
 import { type Placement, type SurfaceDescriptor, surfaceTag } from '../framework/surface.js';
+
+/** The workspace projection binds global atoms; mount it once per page, not per shell. */
+let workspaceProjectionMounted = false;
 
 @customElement(APP_SHELL_TAG)
 export class AppShell extends BaseComponent {
@@ -99,6 +102,10 @@ export class AppShell extends BaseComponent {
 
   override connectedCallback(): void {
     super.connectedCallback();
+    if (!workspaceProjectionMounted) {
+      workspaceProjectionMounted = true;
+      mountWorkspaceProjection();
+    }
     this.resolveAppWithRetry();
   }
 
