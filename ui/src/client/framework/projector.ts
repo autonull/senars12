@@ -68,7 +68,7 @@ export function getProjectors(): readonly Projector[] {
 }
 
 /** Clear the registry (test-only). */
-export function clearProjectors(): void {
+export function resetProjectors(): void {
   projectorRegistry.clear();
 }
 

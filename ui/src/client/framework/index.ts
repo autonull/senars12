@@ -188,7 +188,7 @@ export {
   getProjector,
   projectorIds,
   getProjectors,
-  clearProjectors,
+  resetProjectors,
   mergeProjectorFragments,
   mergeFragments,
 } from './projector.js';

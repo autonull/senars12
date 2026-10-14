@@ -43,7 +43,7 @@ export {
   getProjector,
   projectorIds,
   getProjectors,
-  clearProjectors,
+  resetProjectors,
   mergeProjectorFragments,
   mergeFragments,
   registerBuiltinProjectors,

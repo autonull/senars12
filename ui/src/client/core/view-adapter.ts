@@ -23,20 +23,23 @@ export interface ViewAdapter {
 }
 
 /** Registry mapping shape -> ViewAdapter[] (multiple adapters per shape for different budgets). */
-const registry: Registry<Shape, ViewAdapter[]> = createRegistry((adapters) => adapters[0]!.shape);
+export const viewAdapterRegistry: Registry<Shape, ViewAdapter[]> = createRegistry((adapters) => adapters[0]!.shape);
 
 export const registerViewAdapter = (adapter: ViewAdapter): void => {
-  const existing = registry.get(adapter.shape) ?? [];
-  registry.register([...existing, adapter]);
+  const existing = viewAdapterRegistry.get(adapter.shape) ?? [];
+  viewAdapterRegistry.register([...existing, adapter]);
 };
+
+/** Clear the registry (test-only). */
+export const resetViewAdapters = (): void => viewAdapterRegistry.reset();
 
 /** Every registered adapter, in registration order. */
 export const viewAdapters = (): ViewAdapter[] =>
-  registry.all().flat();
+  viewAdapterRegistry.all().flat();
 
 /** Every adapter registered for a shape — the full variant and its compact ones. */
 export const adaptersFor = (shape: Shape): ViewAdapter[] =>
-  registry.get(shape) ?? [];
+  viewAdapterRegistry.get(shape) ?? [];
 
 /**
  * The adapter for a shape that supports the requested budget. When several do,

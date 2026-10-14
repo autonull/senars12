@@ -3,7 +3,7 @@
  * defineCatalog. This replaces the hardcoded producer list in projectWorkspace.
  */
 
-import { defineProjectorCatalog, type ProjectorContext, registerProjector, getProjector, projectorIds, getProjectors, clearProjectors, mergeProjectorFragments, mergeFragments } from '../framework/projector.js';
+import { defineProjectorCatalog, type ProjectorContext, registerProjector, getProjector, projectorIds, getProjectors, resetProjectors, mergeProjectorFragments, mergeFragments } from '../framework/projector.js';
 import type { WorkspaceFragment } from './workspace-projection.js';
 import type { ChatMessage, CognitiveEvent } from '@senars/core';
 import type { ReasoningBackend } from './reasoning-backend.js';
@@ -70,4 +70,4 @@ export function registerBuiltinProjectors(backends: readonly ReasoningBackend[])
 }
 
 // Re-export registry functions
-export { registerProjector, getProjector, projectorIds, getProjectors, clearProjectors, mergeProjectorFragments, mergeFragments };
+export { registerProjector, getProjector, projectorIds, getProjectors, resetProjectors, mergeProjectorFragments, mergeFragments };

@@ -11,6 +11,8 @@ import {
   intent,
   signal,
   command,
+  getIntents,
+  intentRegistryVersion,
   type IntentDescriptor,
   type IntentCatalog,
   type IntentPayload,
@@ -148,15 +150,12 @@ const togglePanel = (id: string): void => {
   $panels.set(panels);
 };
 
-// Derived renderer commands
+// Derived renderer commands. Availability is gated at dispatch time, so every
+// renderer stays in the catalog and capability changes take effect immediately.
 const rendererCommands = (): IntentDescriptor[] =>
-  workspaceRenderers()
-    .filter((renderer) => {
-      const caps = renderer.capabilities();
-      return !caps.requiredCapability || capabilityGate(caps.requiredCapability);
-    })
-    .map(
-      (renderer): IntentDescriptor => command(
+  workspaceRenderers().map(
+    (renderer): IntentDescriptor =>
+      command(
         `renderer.${renderer.id}`,
         `Switch to ${renderer.label}`,
         'View',
@@ -169,15 +168,19 @@ const rendererCommands = (): IntentDescriptor[] =>
           keywords: `renderer view mode ${renderer.id}`,
         }
       )
-    );
+  );
 
-// Derived overlay commands
+// Derived overlay commands — only surfaces actually placed as overlays.
 const overlayCommands = (): IntentDescriptor[] =>
   surfaceRegistry.ids
     .filter((id) => {
       const surface = surfaceRegistry.get(id);
-      // Exclude palette surface - it's defined in staticIntents with paletteHidden: true
-      return surface && !(surface as any).hiddenInPalette && surface.id !== 'palette';
+      return (
+        surface &&
+        surface.placement === 'overlay' &&
+        !(surface.presentation as { hiddenInPalette?: boolean } | undefined)?.hiddenInPalette &&
+        surface.id !== 'palette'
+      );
     })
     .map((id): IntentDescriptor => {
       const surface = surfaceRegistry.get(id)!;
@@ -273,6 +276,23 @@ const overlayTileCmd = command(
   () => eventBus.emit('overlay:tile'),
   {
     keywords: 'overlay window tile arrange grid',
+  }
+);
+
+// The palette excludes itself from its own list, but the HUD button, the ⌘K
+// shortcut and `openPalette()` still reach it through the same dispatch seam.
+const overlayPalette = command(
+  'overlay.palette',
+  'Command palette',
+  'Open',
+  (args: IntentPayload = {}) =>
+    eventBus.emit('overlay:open', {
+      id: 'palette',
+      ...(args as { ref?: string; anchor?: HTMLElement } | undefined),
+    }),
+  {
+    paletteHidden: true,
+    keywords: 'command palette shortcut',
   }
 );
 
@@ -582,6 +602,7 @@ const staticIntents: Record<string, IntentDescriptor> = {
   [viewFitCmd.id]: viewFitCmd,
   [viewMinimap.id]: viewMinimap,
   [overlayPinToggleCmd.id]: overlayPinToggleCmd,
+  [overlayPalette.id]: overlayPalette,
   [viewFoldAll.id]: viewFoldAll,
   [overlayCascadeCmd.id]: overlayCascadeCmd,
   [overlayTileCmd.id]: overlayTileCmd,
@@ -601,8 +622,11 @@ const staticIntents: Record<string, IntentDescriptor> = {
   [demoList.id]: demoList,
 };
 
-// Dynamic intents added at runtime
+// The catalog merges the static/derived intents with the framework's runtime
+// registry (`registerIntent`/`upsertIntent`), cached by registry version so a
+// newly registered command appears without an explicit rebuild.
 let intentCatalog: IntentCatalog<string, IntentDescriptor> | null = null;
+let cachedVersion = -1;
 
 function buildCatalog(): IntentCatalog<string, IntentDescriptor> {
   const allIntents: Record<string, IntentDescriptor> = {
@@ -611,19 +635,23 @@ function buildCatalog(): IntentCatalog<string, IntentDescriptor> {
     ...Object.fromEntries(overlayCommands().map((i) => [i.id, i])),
     ...Object.fromEntries(panelCommands.map((i) => [i.id, i])),
     ...Object.fromEntries(composerModeCommands().map((i) => [i.id, i])),
+    ...Object.fromEntries(getIntents().map((i) => [i.id, i])),
   };
   return defineIntentCatalog(allIntents);
 }
 
 export function getIntentCatalog(): IntentCatalog<string, IntentDescriptor> {
-  if (!intentCatalog) {
+  const version = intentRegistryVersion();
+  if (!intentCatalog || cachedVersion !== version) {
     intentCatalog = buildCatalog();
+    cachedVersion = version;
   }
   return intentCatalog;
 }
 
 export function rebuildIntentCatalog(): void {
   intentCatalog = buildCatalog();
+  cachedVersion = intentRegistryVersion();
 }
 
 // ===== Unified dispatch (replaces dispatchCommand + eventBus.emit) =====
@@ -640,18 +668,6 @@ function getDispatch(): (id: string, args?: IntentPayload) => boolean {
 export function dispatch(id: string, args?: IntentPayload): boolean {
   return getDispatch()(id, args);
 }
-
-// Back-compat: dispatchCommand delegates to the intent catalog
-export const dispatchCommand = (id: string, args: Record<string, unknown> = {}): boolean => {
-  return dispatch(id, args);
-};
-
-// Back-compat: activeCommands and paletteCommands
-export const activeCommands = () =>
-  getIntentCatalog().allIntents().filter((i) => i.available?.() !== false);
-
-export const paletteCommands = () =>
-  getIntentCatalog().paletteIntents();
 
 // Re-export IntentDescriptor for back-compat
 export type { IntentDescriptor } from '../framework/intent';

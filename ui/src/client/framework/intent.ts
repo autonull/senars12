@@ -188,12 +188,22 @@ export function intent<K extends string>(spec: IntentDescriptor<K>): IntentDescr
 /** Global intent registry for bundle registration. */
 const intentRegistry = new Map<string, IntentDescriptor>();
 
+/** Bumped on every registry mutation so derived catalogs can invalidate. */
+let registryVersion = 0;
+
 /** Register an intent globally (for bundle system). */
 export function registerIntent(intent: IntentDescriptor): void {
   if (intentRegistry.has(intent.id)) {
     throw new Error(`Intent with id "${intent.id}" already registered`);
   }
   intentRegistry.set(intent.id, intent);
+  registryVersion += 1;
+}
+
+/** Register or replace an intent globally (runtime command registration). */
+export function upsertIntent(intent: IntentDescriptor): void {
+  intentRegistry.set(intent.id, intent);
+  registryVersion += 1;
 }
 
 /** Get an intent by id. */
@@ -214,6 +224,12 @@ export function intentIds(): readonly string[] {
 /** Reset intent registry (for testing). */
 export function resetIntents(): void {
   intentRegistry.clear();
+  registryVersion += 1;
+}
+
+/** Monotonic version of the global intent registry. */
+export function intentRegistryVersion(): number {
+  return registryVersion;
 }
 
 /** Build an intent catalog from the global registry. */

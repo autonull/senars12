@@ -96,6 +96,9 @@ export const registerSurface = (descriptor: SurfaceDescriptor): void => {
   surfaceRegistry.register(descriptor);
 };
 
+/** Clear the registry (test-only). */
+export const resetSurfaces = (): void => surfaceRegistry.reset();
+
 /** Get a surface descriptor by id. */
 export const surfaceFor = (id: string): SurfaceDescriptor | undefined => surfaceRegistry.get(id);
 

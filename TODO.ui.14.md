@@ -160,7 +160,7 @@ conversational default; also operator priority).
 
 ### Phase A — Green the unit gate (blocking)
 
-- [ ] **P13 — Land the intent/command migration.**
+- [x] **P13 — Land the intent/command migration.**
 Switch the command path fully onto the `Intent` catalog: `registerCommand` must register a
 `kind: 'command'` intent (or callers/tests migrate to `registerIntent`), and
 `dispatchCommand`/`activeCommands`/`paletteCommands` must read it. Delete the deprecated no-op.
@@ -169,7 +169,7 @@ Switch the command path fully onto the `Intent` catalog: `registerCommand` must 
 **Prove:** unit suite gains these files; Ask + golden e2e still green.
 **Screenshot:** `http://localhost:3456/apps/ask/` (palette open if practical).
 
-- [ ] **P14 — Land the bundle/plugin migration.**
+- [x] **P14 — Land the bundle/plugin migration.**
 Export the catalog reset helpers the bundle tests expect (or migrate the tests to the registry's
 real reset API); make `applyBundle`/`applyPlugins` register **commands** (via P13's intent registry)
 as well as surfaces/adapters/facets/projectors.
@@ -562,6 +562,52 @@ Phase E ships.)
 
 > Append one entry per slice: what changed, guard, proof, screenshot path, remaining, opportunities.
 > Keep it terse and factual. (Empty at hand-off.)
+
+### P13 — Intent/command migration (2026-10-14)
+
+**Changed**
+- `core/intent-registry.ts`:
+  - removed the build-time capability `.filter` in `rendererCommands()` — availability is gated only at
+    `available()` now, so a capability flip adds/removes a renderer command without a catalog rebuild;
+  - fixed `overlayCommands()` to derive `overlay.*` **only** from `placement === 'overlay'` surfaces and to
+    read `presentation.hiddenInPalette` (it read a non-existent top-level field, leaking ref-dependent
+    overlays — `overlay.explain` etc. — into the palette and spilling `overlay.notebook` for a viewport);
+  - restored the static `overlay.palette` command (dropped in the P8 migration, breaking `openPalette()` /
+    the HUD button / ⌘K);
+  - the catalog now merges the framework's runtime intent registry and caches by `intentRegistryVersion()`;
+    removed the duplicate `dispatchCommand`/`activeCommands`/`paletteCommands` (one definition lives in
+    `commands.ts`).
+- `core/commands.ts`: `registerCommand` is no longer a no-op — it adapts a `Command` to a `kind: 'command'`
+  intent via `upsertIntent`; `dispatchCommand`/`activeCommands`/`paletteCommands`/`registeredCommands` read the
+  one catalog.
+- `framework/intent.ts`: added `upsertIntent` + `intentRegistryVersion()` (the single cache-invalidation seam).
+
+**Guard:** `dispatch`, `palette`, `facade-honesty`, `app-layout`, `workspace-host` pass; no test calls a no-op API.
+**Prove:** unit 790/790; golden e2e ✓; Ask prototype e2e ✓.
+**Screenshot:** `ui/screenshots/p13-intent-command-migration.png` (`/apps/ask/`).
+
+### P14 — Bundle/plugin migration (2026-10-14)
+
+**Changed**
+- Exported the reset helpers the bundle tests expect: `resetSurfaces` (`framework/surface.ts`),
+  `resetViewAdapters` + `viewAdapterRegistry` (`core/view-adapter.ts`), renamed `clearProjectors` →
+  `resetProjectors` (`framework/projector.ts`; `framework/index.ts`, `kernel/domain.ts`, `core/projectors.ts`
+  re-exports updated).
+- `core/plugins.ts`: `applyPlugins()` registers plugin commands through `registerCommand` instead of warning.
+
+**Guard:** `bundle-composition` (21) + `plugins` green.
+**Prove:** `pnpm ui:gate` = typecheck + unit (790/790) + golden e2e — **green**. Phase A gate blocker is cleared.
+**Screenshot:** `ui/screenshots/p13-intent-command-migration.png` (shared surface).
+
+**Remaining:** the gate is green except the per-app e2e (P19) and the build/serve hygiene (P20/P21). Next is
+Phase B (P15 `derived` churn → P16 bundles → P17 catalogs → P18 catalogs/overlays).
+**New opportunities**
+- Any capability-gated *derived* command must gate at `available()` only, never at build time — the
+  `rendererCommands` bug is a class; worth stating when P18 folds the remaining catalogs.
+- Runtime command registration now has one invalidation path (`intentRegistryVersion`); P16's bundle migration
+  should register commands via `registerIntent`, which already bumps it.
+- `renderer.notebook`'s schema exists but `renderer.graph3d`/`explore` do not (`COMMAND_SCHEMAS`) — harmless
+  (unknown ids pass), but the derived renderer schemas are incomplete.
 
 ---
 

@@ -7,6 +7,7 @@
 import { recordCommandUse } from './command-history.js';
 import { validateCommandArgs } from './command-schemas.js';
 import { getIntentCatalog, dispatch, type IntentDescriptor } from './intent-registry.js';
+import { upsertIntent, type IntentPayload } from '../framework/intent.js';
 
 /** Command args are always an object. */
 export type CommandArgs = Record<string, unknown>;
@@ -75,11 +76,23 @@ export const dispatchCommand = (id: string, args: CommandArgs = {}): boolean => 
 }
 
 /**
- * @deprecated Use intent-registry.ts to define intents instead.
- * This function exists only for back-compat during migration.
+ * Register a command at runtime by adapting it to a `kind: 'command'` intent.
+ * Kept as the back-compat seam for the plugin system; new code defines intents
+ * in `intent-registry.ts` or registers them via a bundle.
  */
-export const registerCommand = (_command: Command): void => {
-  console.warn('[command] registerCommand is deprecated; define intents in intent-registry.ts instead');
+export const registerCommand = (descriptor: Command): void => {
+  upsertIntent({
+    id: descriptor.id,
+    title: descriptor.title,
+    label: descriptor.title,
+    group: descriptor.group,
+    kind: 'command',
+    run: descriptor.run as (args: IntentPayload) => void,
+    parse: descriptor.parse,
+    available: descriptor.available,
+    paletteHidden: descriptor.paletteHidden,
+    keywords: descriptor.keywords,
+  });
 };
 
 // Re-export the unified dispatch for new code
