@@ -1,23 +1,33 @@
-# TODO.ui.14.md — Finish the UI: green the gate, translate the substrate, default to conversation
+# TODO.ui.14.md — Finish the UI: green the gate, translate the substrate, default to conversation, compose the form-factors
 
 > **Supersedes** `TODO.ui.13.md` §4 "Phase 2 — Completion backlog". `TODO.ui.13.md` remains
 > the record of the P0–P12 refactor (the diagnosis and the normalized substrate); **this file
-> is the single execution plan for completing, translating, and *presenting* the UI.** Do not
-> run both.
+> is the single execution plan for completing, translating, *presenting*, and *composing* the
+> UI.** Do not run both.
 
 > **North star:** *the normalized substrate exists — make it gate-green, then **translate**
-> complex cognitive states and autonomous governance into insight, and **present them through a
-> familiar conversational default** whose reasoning engine is revealed on demand.* Stability
-> first; value second; conversation third; never a new subsystem for any of them.
+> complex cognitive states and autonomous governance into insight, **present them through a
+> familiar conversational default** whose reasoning engine is revealed on demand, and **compose
+> every view from form-factor-agnostic parts** so alternative experiences are experiments, not
+> rewrites.* Stability first; value second; conversation third; composition always; never a new
+> subsystem for any of them.
 
 > **Paradigm:** the default experience is a **Conversational Assistant** (LLM-first), not a
 > control panel. The LLM (System 1) handles language, tone and formatting; SeNARS (System 2)
 > owns memory, tools, truth values and self-correction behind it. The graph / timeline / AIKR
 > dashboards are **progressive disclosure** — one click away, never in the user's face.
 
+> **Composability (keep options open):** a **view** (chat, timeline, governance card, belief
+> panel, graph, explain) knows *nothing* about where it is mounted. A **form-factor** (chat-first,
+> dashboard-first, notebook-first, single-pane-with-drawers, the multi-app suite) is a
+> *composition* — a `defineApp` + a bundle of surfaces. Form-factors are **data**; the same
+> components must be recomposable into a different one without copying code. The default is
+> chat-first; the others are first-class experiments.
+
 > **One-line test:** *Can a fresh session resume from this file alone, land one slice, watch
-> `pnpm ui:gate` get greener (Phases A–C), understand the agent better (Phase D), or get a
-> ChatGPT-grade answer from the default surface (Phase E) — and see a screenshot proving it?*
+> `pnpm ui:gate` get greener (Phases A–C), understand the agent better (Phase D), get a
+> ChatGPT-grade answer from the default surface (Phase E), or recompose the same views into a
+> different form-factor (Phase F) — and see a screenshot proving it?*
 
 ---
 
@@ -28,15 +38,18 @@
 and the client is served **dynamically** by the dev/test server (no `dist` build — commit
 `5ca8fc8e`). **But the plan is not done by its own definition:** `pnpm ui:gate` is **red**.
 
-**Three mandates, in this order:**
+**Four mandates, in this order:**
 
 1. **Phases A–C (P13–P21) — stabilize.** Land the half-finished migrations and green the gate.
-   *Nothing in Phase D or E may begin until `pnpm ui:gate` is green.*
+   *Nothing in Phase D, E or F may begin until `pnpm ui:gate` is green.*
 2. **Phase D (P22–P26) — translate.** Translate existing substrate into operator-usable insight.
    Additive scope, still "translation", not "new subsystems."
 3. **Phase E (P27–P32) — present.** Make the **conversational assistant the default surface**,
    with the rich reasoning views as on-demand disclosure. Additive product scope; reuses D's
    translations rather than duplicating them.
+4. **Phase F (P33–P38) — compose.** Keep the **views form-factor-agnostic** so alternative
+   form-factors are compositions (`defineApp` + bundle), not forks. Add first-run, an input-model
+   contract, persistence and a chat perf budget — each a component any form-factor can mount.
 
 **Current state — the resume point:**
 
@@ -82,7 +95,7 @@ path, remaining, new opportunities).
 
 1. **Read this file top to bottom.** §2 is the plan; §3 is the pre-mortem you must keep in mind.
 2. **Resume at the first unchecked slice in §2.** Finish Phase A–C before starting Phase D; finish
-   Phase D before Phase E (E reuses D's translations).
+   Phase D before Phase E (E reuses D's translations); Phase F last (it composes E).
 3. **For each slice:** implement → guard (unit, no mocks; **a human-checklist item where the
    criterion is subjective**) → prove on a real app → **capture a progress screenshot** →
    `pnpm --dir ui typecheck && pnpm --dir ui test:unit` → confirm the golden e2e → commit
@@ -94,7 +107,7 @@ path, remaining, new opportunities).
 
 **Focus after each slice — the ledger:** `typecheck`, `unit pass count`, golden e2e, per-app e2e
 (Phases A–C); operator-legibility criteria (Phase D). The plan is winning only if `unit` climbs
-toward 790/790, stays there, and Phase D/E guards hold.
+toward 790/790, stays there, and Phase D/E/F guards hold.
 
 ---
 
@@ -131,6 +144,12 @@ conversational default; also operator priority).
 | 23 | Tool use / self-modification interrupt chat with modal dialogs | **E** | P30 |
 | 24 | No at-a-glance "what has it learned" belief/memory sidebar | **E** | P31 |
 | 25 | No per-message jump to graph/timeline (disclosure) | **E** | P32 |
+| 26 | Views assume their mount (HUD/placement); not recomposable | **F** | P33 |
+| 27 | No way to try an alternate form-factor without forking an app | **F** | P34 |
+| 28 | Input model (English↔Narsese, LM-optional) is implicit | **F** | P35 |
+| 29 | No first-run onboarding, suggested prompts, empty/error states | **F** | P36 |
+| 30 | No conversation persistence; no chat perf budget | **F** | P37 |
+| 31 | Golden path + journey gallery assume the HUD is `/` | **F** | P38 |
 
 ---
 
@@ -345,6 +364,67 @@ main chat clean.
 **Guard:** the button opens the drawer with the message's context focused; the chat stays primary.
 **Prove:** open the timeline from a chat message; screenshot split view.
 
+### Phase F — Form-factor composability & first-run (additive; **gated on Phase C**)
+
+> **Do not begin Phase F until `pnpm ui:gate` is green.** This phase guarantees the plan's
+> *integration* and *intuitiveness* axes **without locking a single product shape.** The rule:
+> a **view** is form-factor-agnostic; a **form-factor** is a composition. We ship whitespace-first
+> as the default, but keep alternates one `defineApp` away — *experiments, not forks.*
+
+- [ ] **P33 — Decouple views from their form-factor.**
+Make each reasoning view a self-contained composable surface that assumes **nothing** about where
+it is mounted: `chat`, `timeline`, `governance card`, `belief/memory panel`, `graph`, `explain`.
+No hard-coded placement; no import of shell/HUD chrome; props/host are passed in. (The framework's
+placement-parameterized `Surface` + `defineSurface` already supports this — finish the migration.)
+**Files:** `components/s-app-shell.ts`, `components/overlays/*`, `apps/ask/*`, `framework/surface.ts`.
+**Guard:** a **recomposition test** — a minimal second `defineApp` mounts the *same* chat + belief
+panel in a different arrangement (no drawer; side-by-side) with **zero** copied view code.
+**Prove:** two form-factors render from one component set; screenshot both.
+
+- [ ] **P34 — Form-factor = composition (keep options open).**
+Express form-factors as data: the default is a chat-first `defineApp` (P27); alternates
+(dashboard-first, notebook-first, single-pane-with-drawers, the multi-app suite) are **additional
+`defineApp`s over the same surfaces**, not code forks. Provide a selector (route or config) to
+switch/experiment, and a way to compare them.
+**Files:** `framework/{app,bundle}.ts`, `apps/*`, `vite.config.ts` (entries are just form-factors).
+**Guard:** adding a form-factor adds **no** view code; a shared-surface parity test asserts each
+form-factor mounts the same component versions.
+**Prove:** switch default↔alternate without a rebuild of view logic; screenshot the selector + an
+alternate.
+
+- [ ] **P35 — Input-model contract (English ↔ Narsese, LM-optional).**
+Lift the Ask app's implicit routing (plain language → agent ingress; Narsese → reasoning;
+`looksNarsese`/`modeFor`) into a **shared, documented** component any form-factor uses. State the
+LM-optional behavior explicitly: with no LM, natural language still routes to the symbolic ingress
+with universal fallbacks; the UI never blanks or lies about understanding.
+**Files:** `apps/ask/ask-app-v2.ts` → shared `components/composer.*`, `core/` ingress binding.
+**Guard:** the same input string routes identically in every form-factor; with the LM off, a plain
+sentence still produces a symbolic result (no crash, honest status).
+**Prove:** type English and Narsese in two form-factors; screenshot both.
+
+- [ ] **P36 — First-run, empty & error states.**
+Composable onboarding: a "what can I ask?" affordance, suggested prompts, and honest empty/error
+states (engine absent, LM unavailable, malformed input) — as components any form-factor mounts.
+**Files:** `apps/ask/*`, new `components/onboarding.*` / empty-state primitives.
+**Guard:** a first-run (no history) renders the onboarding; an engine-less server renders the
+error state, not a blank chat.
+**Prove:** fresh browser shows onboarding; screenshot.
+
+- [ ] **P37 — Conversation persistence + chat performance budget.**
+Persist session history across reload (distinct from P31's belief sidebar). Set and measure a chat
+budget: time-to-first-token and stream smoothness (the chat counterpart to P24's graph FPS).
+**Files:** `core/store*` (session), server persistence, a perf test.
+**Guard:** reload restores the conversation; TTFT and frame time stay within budget under a seeded
+long transcript.
+**Prove:** reload keeps history; screenshot after reload.
+
+- [ ] **P38 — Reconcile the default (golden path + gallery).**
+Promote R20 to a real task: with `/` now the chat, update the golden-path e2e and the journey-led
+gallery so they cover the **default** experience *and* keep the HUD path — re-baseline the journeys.
+**Files:** `tests/scenarios/golden-path/*`, `tests/visual/{matrix,baselines}/*`, `scripts/build-gallery.ts`.
+**Guard:** the gate covers the default surface; no journey is lost; baselines re-committed.
+**Prove:** `pnpm ui:gate` + `test:visual` green; screenshot the regenerated journey sheet.
+
 ---
 
 ## 3. Pre-mortem — how this could still go wrong
@@ -380,7 +460,11 @@ main chat clean.
 | R17 | **Chat-first collapses without an LM** | Dev/test runs deliberately wire no LM; a "ChatGPT-like" default that assumes one feels broken. | P27/P28: chat must work symbolic-only (universal fallbacks); guard with the LM off. |
 | R18 | **Chat parity gap ("worse than ChatGPT")** | Plain-text turns, no markdown/copy/streaming ⇒ users reject the default before seeing the reasoning value. | P28 parity test (markdown + streamed deltas + copy). |
 | R19 | **Disclosure becomes concealment** | Hiding the reasoning so well that users never find the value (the whole point of SeNARS). | P29/P32: an e2e asserting "Show My Work" + disclosure buttons are reachable in ≤2 clicks from any answer. |
-| R20 | **Default-surface breakage hides regressions** | Moving `/` to chat means the old HUD golden path no longer guards the default route. | P27: update/extend the golden e2e to cover the new default and keep the HUD path. |
+| R20 | **Default-surface breakage hides regressions** | Moving `/` to chat means the old HUD golden path no longer guards the default route. | P27/P38: update/extend the golden e2e to cover the new default and keep the HUD path. |
+| R21 | **View assumes its form-factor** | Views quietly assume the shell/placement, so an alternate form-factor needs copies — the exact disease UI.13 cured, reintroduced at the product layer. | P33 recomposition test (second `defineApp`, zero copied view code). |
+| R22 | **Intuitive only with an LM** | "ChatGPT-like" implies natural language; without an LM the intuitive path may be Narsese-only, which is not intuitive to a newcomer. | P35 input-model contract: English routes to symbolic ingress when no LM; honest status. |
+| R23 | **Onboarding skipped → cold black box** | A clean chat with no prompts/help hides the system's value; users conclude it's "just a worse chatbot." | P36 first-run + suggested prompts; guard renders them on empty state. |
+| R24 | **Alternate form-factors drift apart** | Each experiment slowly re-implements a view instead of recomposing. | P34 shared-surface parity test; P33 guard. |
 
 ### Blind spots (deliberately **out of scope** — park, don't forget)
 
@@ -400,9 +484,10 @@ main chat clean.
   drift; the gallery leads with ≤6 Journeys. Curated/extended in P26.
 
 **Rule:** a blind spot becomes a slice only when it becomes a *blocker* or an *operator
-complaint*. Phases D and E are exactly that: the operator has asked for usability and for a
-conversational default, so they graduate here. (Still parked: product analytics on *which*
-disclosure affordances operators actually use — worth adding once Phase E ships.)
+complaint*. Phases D, E and F are exactly that: the operator has asked for usability, a
+conversational default, and **form-factor flexibility** — so they graduate here. (Still parked:
+product analytics on *which* disclosure affordances operators actually use — worth adding once
+Phase E ships.)
 
 ---
 
@@ -410,10 +495,11 @@ disclosure affordances operators actually use — worth adding once Phase E ship
 
 | Mistake | Tripwire |
 |---|---|
-| **New subsystem during completion** | a slice adds a registry/catalog/descriptor that isn't a migration finish or a translation → stop |
-| **Phase D/E starts early** | Phase D or E work begins before `pnpm ui:gate` is green → stop |
+| **New subsystem during completion** | a slice adds a registry/catalog/descriptor that isn't a migration finish, a translation, or a composition → stop |
+| **Phase D/E/F starts early** | Phase D, E or F work begins before `pnpm ui:gate` is green → stop |
 | **Chat hides the engine** | the default surface makes the reasoning/timeline/governance unreachable in ≤2 clicks → stop |
 | **LM assumed** | the default chat breaks or blanks when no LM is wired → stop |
+| **View forks its form-factor** | a view imports the shell or a second form-factor copies view code instead of recomposing → stop |
 | **Weakening tests to pass** | a test's assertion is changed rather than the behavior fixed → stop |
 | **Chrome in the kernel** | `kernel/**` imports a lens/layout/panel/HUD module → stop |
 | **Reintroducing a build step** | `pnpm build:client:test` appears before an e2e command → stop |
@@ -459,6 +545,17 @@ disclosure affordances operators actually use — worth adding once Phase E ship
   **≤2 clicks** from any answer; governance is a non-blocking inline card.
 - **Learned-vs-context:** a sidebar distinguishes durable beliefs from the current conversation.
 
+**Integrated & composable (Phase F) — the axis §6 previously left unstated:**
+- **One integrated default experience:** chat is the default surface, with reasoning views as
+  disclosure — *not* a suite of disconnected demos. Every view is reachable from the default.
+- **Views are form-factor-agnostic:** no view imports the shell or hard-codes its placement.
+- **Form-factors are data:** the default is one `defineApp`; alternate form-factors are additional
+  `defineApp`s over the **same** components. Adding one copies **no** view code (recomposition test).
+- **Input contract holds everywhere:** English↔Narsese routing is one shared component; with no LM
+  the chat is honest and functional, never blank.
+- **First-run is not a black box:** onboarding + suggested prompts render on empty state.
+- **Continuity:** conversations persist across reload; time-to-first-token is within budget.
+
 ---
 
 ## 6. Progress Log
@@ -489,6 +586,14 @@ disclosure affordances operators actually use — worth adding once Phase E ship
   the chat app is at `apps/ask/`. P27 swaps them.
 - **Chat seed:** `apps/ask/ask-app-v2.ts` (474 lines) already has turns, a pending "reasoning…" state,
   a `<details class="why">` proof expansion, and the tagline "reasoning you can audit". Reuse it.
+- **Input model today:** `apps/ask/ask-app-v2.ts` already routes plain language through the agent's
+  ingress and Narsese through reasoning, via a `looksNarsese`/`modeFor` heuristic. P35 lifts this into
+  a shared component — it is the plan's core intuitiveness decision, so centralize it.
+- **Form-factors today:** the 6 apps (`ask, explore, notebook, goals, console, hud`) are effectively
+  **6 form-factors over one substrate**, with **no cross-app navigation** — only a breadcrumb inside
+  notebook. That is *fine* as an experiment set; Phase F makes them composable (P33), selectable
+  (P34), and consistent (P35) **without collapsing the possibility space**. Do not "consolidate to one
+  app" unless the operator later chooses to — the substrate supports whichever shape wins.
 - **`derived`.** `derived(source, fn)` passes the single value; `derived([a, b], fn)` passes the
   array; `get` is bound. A single-source selector that indexes the array is the bug fixed in `5ca8fc8e`.
 - **Existing visual contract.** `tests/visual/{matrix,generated-cells}.ts`, `visual-coverage.test.ts`,
