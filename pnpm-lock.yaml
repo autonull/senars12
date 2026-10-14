@@ -189,6 +189,9 @@ importers:
       ts-jest:
         specifier: ^29.4.12
         version: 29.4.12(@babel/core@7.29.7)(@jest/transform@30.5.1)(@jest/types@30.5.1)(babel-jest@30.5.1(@babel/core@7.29.7))(esbuild@0.28.2)(jest-util@30.5.1)(jest@30.5.1(@types/node@26.4.1))(typescript@7.0.2)
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.28)(tsx@4.23.13)(typescript@7.0.2)(yaml@2.9.0)
       tsx:
         specifier: ^4.23.13
         version: 4.23.13
@@ -241,6 +244,9 @@ importers:
       '@types/node':
         specifier: ^26.4.1
         version: 26.4.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   io:
     dependencies:

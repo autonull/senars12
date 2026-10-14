@@ -729,6 +729,12 @@ title/tag/duplicate id rejected uniformly); `pnpm --dir ui typecheck` ✓ (pre-e
 - **Remaining:** Migrate settings UI to read from config-catalog; migrate `lm-provider.ts` to use lm-provider-catalog; migrate styles to use design-catalog CSS properties.
 - **Opportunities:** Generic validator catches ID collisions across all catalogs; new backend/provider/primitive is one catalog entry; settings UI, docs, gallery derive from catalogs automatically.
 
+### Test Infrastructure Fixes (this session)
+- **What changed:** Fixed vitest config to resolve `@senars/core` subpath imports from the nar package's source files (workspace dependency). Added a Vite plugin that rewrites `@senars/core/*` and `@senars/util` imports in nar package files to point to the core/util source files. This allows unit tests to run without requiring the nar/core packages to be pre-built.
+- **Guard:** `pnpm --dir ui test:unit` now runs 91/99 test files passing (768/790 tests). 8 test files fail due to pre-existing issues (graph-toolbar `$selectedNodeIds` undefined, etc.).
+- **Build:** `pnpm --dir ui build:client:test` succeeds with nar package excluded from client bundle via `rollupOptions.external`.
+- **Known issues:** Ask prototype e2e fails due to pre-existing server crash (`ERR_HTTP_HEADERS_SENT` in `server/index.ts:425`). Golden path e2e is flaky (pre-existing). These are infrastructure issues, not regressions from the normalization work.
+
 ## 9. Appendix — repo facts for a fresh session
 
 ### Layout

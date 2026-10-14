@@ -15,6 +15,7 @@ lerna-debug.log*
 /dist
 /build
 /coverage.vscode
+core/dist/
 .vscode/
 .kilocode/
 .idea
