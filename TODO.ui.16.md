@@ -350,8 +350,8 @@ Pre-existing failures (confirmed on baseline): `cognitive/timeline.spec.ts` and
   (better dedup for large catalogues).
 - **Preset switcher in `app-chrome`.** A small menu driven by `getCompositions()` would make the
   Studio navigable without hand-editing `?preset=`.
-- **`base-app-surface.ts`** is now dead weight (superseded). Audit remaining subclasses and retire
-  it once the last app migrates to the shell.
+- **`base-app-surface.ts` retired** — every app now uses the shell, so the deprecated base class
+  and its barrel export were removed.
 
 ## References
 

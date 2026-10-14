@@ -1,9 +1,6 @@
 /**
  * Shared app-shell components — barrel export.
  */
-export { BaseAppSurface } from './base-app-surface.js';
-export type { BaseAppSurfaceConfig } from './base-app-surface.js';
-
 export { AppChrome } from './app-chrome.js';
 
 export {
