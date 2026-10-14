@@ -16,19 +16,27 @@
 
 ## ▶ START HERE (fresh session)
 
-**Baseline.** Nothing in P0–P12 is done. `ui/src/client/framework/` does **not** exist.
-The last commits are the pivot foundation this plan builds on:
-- `bbcadd4d` — kernel facade (`ui/src/client/kernel/index.ts`, re-exporting from `core/`),
-  harness (vite `ask` entry + server directory-index), and `apps/ask/` proven by
-  `ui/tests/scenarios/prototypes/ask.spec.ts`.
-- `4af9e781`, `cf02b3bf` — this plan.
-The committed `ui/src/client/core/` is the **un-normalized** substrate (see §0).
+**Current state (post-P12 + infra — the resume point).** P0–P12 are **implemented**: the
+critical path is done. `ui/src/client/framework/` exists (`contribution, catalog, surface,
+app, command, facet, intent, protocol, projector, derived, bundle, validator`), the substrate
+is normalized, and the apps are built on it (`apps/{ask,explore,notebook,goals,console,hud}`).
 
-**First slice: P0 — Kernel extraction** (§4). First action: split `core/store.ts` (922
-lines) into `kernel/state.ts` (the `Atom` primitive + the kernel atoms) with
-`core/store.ts` re-exporting, then add `kernel/{domain,transport,backends,events,view}.ts`
-and point `kernel/index.ts` at them. Guard with a kernel-state test; prove by running the
-Ask app + the golden path.
+**But the plan is not *done* by §6 — `pnpm ui:gate` is red.** The §4 checkboxes overstate
+completion: several slices carry open "Remaining" bullets in §8. All remaining work is now
+tracked as **unchecked slices P13–P18** in §4. Do not treat P0–P12 as "everything".
+
+What is green right now:
+- `pnpm --dir ui typecheck` — clean.
+- Ask prototype e2e ✓ and golden-path e2e ✓ — both against the **dynamic** dev server, no
+  `dist` build needed (`5ca8fc8e`).
+- `pnpm --dir ui build:client:test` ✓ → `ui/dist/client` (production only).
+- `pnpm --dir ui test:unit` — **769/790 pass; 21 failures across 7 files.** These failures
+  *are* the half-landed P8/P11 migration (see P13); they are the gate blocker.
+
+**First slice: P13 — Land the intent/bundle migration and green the unit gate.** First
+action: make the 21 failing tests pass by finishing the `registerCommand`→`Intent` and
+`PluginContribution`→`Bundle` migrations they exercise (see §8 "Infrastructure" and P8/P11
+entries). Then continue P14 → P15 → P16 → P17 → P18, one at a time.
 
 **Commands** (repo root unless noted):
 - typecheck: `pnpm --dir ui typecheck`
@@ -51,8 +59,9 @@ remaining work, new opportunities).
 
 1. **Read this file top to bottom.** It is self-contained; you do not need any other
    `TODO.ui.*` to proceed.
-2. **Resume at the first unchecked slice in §4.** If every slice is checked, the plan is
-   complete — stop and report.
+2. **Resume at the first unchecked slice in §4.** P0–P12 are checked; the live backlog is
+   **P13–P18** (the "Phase 2 — Completion backlog" below). If every slice is checked, the
+   plan is complete — stop and report.
 3. For **each slice**, do exactly this and nothing more:
    - **Implement** the change (the substrate + at least one *real consumer*).
    - **Guard** it: a focused unit test (no mocks; test objects directly, per `AGENTS.md`).
@@ -66,9 +75,12 @@ remaining work, new opportunities).
 5. **Stop and report only when:** a **tripwire** fires (§5); a required command/tool is
    missing; or a test fails **>3 times**. Never loop.
 
-**Critical path:** P0 kernel → P1 contribution+catalog → P2 surface → P3 view → P4 facet →
-P5 app+harness → P6 server registry → P7 rebuild apps → P8 intent → P9 protocol → P10
+**Critical path (done):** P0 kernel → P1 contribution+catalog → P2 surface → P3 view → P4 facet
+→ P5 app+harness → P6 server registry → P7 rebuild apps → P8 intent → P9 protocol → P10
 projection+derived → P11 bundle/app → P12 domain catalogs.
+
+**Completion path (Phase 2 — live):** P13 green the gate → P14 derived → P15 bundles → P16
+catalogs → P17 guardrails → P18 hygiene. Goal: §6 definition of done, `pnpm ui:gate` green.
 
 ---
 
@@ -531,6 +543,62 @@ uniqueness.
 title/tag/duplicate id rejected uniformly); `pnpm --dir ui typecheck` ✓ (pre-existing only); `pnpm --dir ui test:unit` ✓ (550 tests).
 **Prove:** settings UI + change log derive from the catalog; a new backend/provider/primitive registers without an edit.
 
+### ▶ Phase 2 — Completion backlog (the live work)
+
+> The normalized substrate is in place; these slices finish the migrations the §8 "Remaining"
+> bullets name and turn `pnpm ui:gate` green. Execute in order — same loop each time
+> (implement → guard → prove on a real app → typecheck + unit + golden → commit + §8 entry).
+
+- [ ] **P13 — Land the intent/bundle migration; green the unit gate.**
+The 21 failing unit tests are the *half-landed* P8 (`registerCommand`→`Intent`) and P11
+(`PluginContribution`→`Bundle`) migrations, not independent bugs — land them together.
+Files: `core/{commands,intent-registry,plugins}.ts`, `framework/{intent,bundle}.ts`; tests
+`tests/components/{dispatch,palette,plugins,bundle-composition,facade-honesty,app-layout,workspace-host}.test.ts`.
+Prefer completing the migration (so the tests keep asserting behavior) over weakening tests.
+Observed symptoms (verify at start): `bundle-composition.test.ts` throws
+`TypeError: resetSurfaces/resetViewAdapters/resetProjectors is not a function` (the catalog
+reset helpers the tests call were never exported by the P11 migration); `plugins.test.ts`
+"applies plugin commands" asserts `false === true` (the plugin/command registration path is a
+no-op); `dispatch`/`palette` fail because `registerCommand` is a deprecated no-op.
+**Guard:** those 7 files pass; no test relies on a deprecated no-op API.
+**Prove:** `pnpm ui:gate` green; Ask + golden e2e still pass.
+
+- [ ] **P14 — Finish the `derived` migration (P10 leftover).**
+`$viewSelection` and `$runTerminations` become `derived(...)` (still side-effect synced).
+Files: `core/store.ts`, `core/workspace-bindings.ts`.
+**Guard:** selection/termination churn tests (no redundant notifications).
+**Prove:** graph multi-select and run-termination rendering unchanged on the HUD.
+
+- [ ] **P15 — Migrate apps + plugins to bundles (P11 leftover).**
+Each `apps/*` becomes `defineBundle(...)` + `defineApp(...)`; `plugins.ts` contributions move
+into bundles; delete the `applyPlugins()` fan-out once callers move.
+Files: `framework/{app,bundle}.ts`, `core/plugins.ts`, `apps/*`; `vite.config.ts` if entries change.
+**Guard:** app-composition test (surfaces mount by placement); bundle-registry test.
+**Prove:** each app runs at `/apps/<name>/` with the shell providing overlay/palette/connection.
+
+- [ ] **P16 — Adopt the domain catalogs (P12 leftover).**
+Settings UI reads `config-catalog`; `lm-provider.ts` uses `lm-provider-catalog`; styles consume
+`design-catalog` CSS custom properties. Files: `core/{config-catalog,lm-provider,lm-provider-catalog,design-catalog}.ts`,
+settings/components + `styles/*`.
+**Guard:** config-catalog client/server agree; a new provider/field needs no edit.
+**Prove:** settings UI + change log render from the catalog; theming uses generated tokens.
+
+- [ ] **P17 — Guardrails & app coverage (P0/P2/P7 leftovers).**
+Add the §3.3 kernel-boundary check (`kernel/**` must not import lens/layout/panel/HUD); fold
+`registerOverlay` into `defineSurface` (fixes the `a11y` loss for tool-approval); add e2e for
+Notebook, Goals, Console. Files: boundary lint/test, `framework/surface.ts`, `core/overlay-*.ts`,
+`tests/scenarios/apps/*`.
+**Guard:** boundary fails on a chrome import; overlay a11y test.
+**Prove:** an `apps/*` e2e per app (the §6 "e2e per app" requirement).
+
+- [ ] **P18 — Build/serve hygiene (infra leftover).**
+Give static serving a root document: add `src/client/index.html` (or make Ask the root app) to
+the Vite inputs so production `/` matches dev; untrack the committed `core/dist/*` artifacts.
+Optional: split `@senars/util`'s root index into a browser-safe entry so the `node:*` shims in
+`client/shims/node-builtins.ts` become unnecessary.
+**Guard:** after `build:client:test`, a static fetch of `/` returns the app shell; `git ls-files core/dist` is empty.
+**Prove:** static server serves `/` and `/apps/ask/`; dev path unchanged.
+
 ---
 
 ## 5. Tripwires (stop if any fires)
@@ -564,6 +632,9 @@ title/tag/duplicate id rejected uniformly); `pnpm --dir ui typecheck` ✓ (pre-e
   row or a typo fails the build.
 - **A second app exists and shares 100% of the substrate** — no copy of `entry.ts`.
 - **`pnpm ui:gate` green**, including an e2e per app.
+- **Phase 2 (P13–P18) is fully checked**, and the gate proves it: unit suite green (no test
+  leans on a deprecated no-op API), an e2e per app, the §3.3 kernel boundary enforced, and no
+  tracked build artifacts.
 
 ---
 
@@ -778,16 +849,41 @@ title/tag/duplicate id rejected uniformly); `pnpm --dir ui typecheck` ✓ (pre-e
   serving matches dev; remove the committed `core/dist/*` build artifacts; the `PROTOCOL_SPECS`
   table can drive a codegen'd client/server type test.
 
+### Handoff notes (read before P13)
+
+- **Serve dynamically; do not reintroduce a build.** The dev/test server serves the client
+  from source via Vite middleware (`createDevClient`). If e2e fails, run it *without* a
+  preceding build. Keep `root: 'src/client'` in `ui/vite.config.ts`; removing it silently
+  shifts `outDir` outside the repo.
+- **Node builtins.** `client/shims/node-builtins.ts` is aliased for `node:*` in
+  `vite.config.ts` only (not vitest). A new client import of a node builtin needs an alias +
+  shim entry. Splitting `@senars/util`'s browser-safe entry removes the need entirely (P18).
+- **Protocol.** One definition: `PROTOCOL_SPECS` in `client/core/protocol-defs.ts`. Client
+  routes via `handleClient`; server via `server/protocol-server.ts` → `server/handlers.ts`.
+  **Never import `server/handlers.ts` from client code** — it drags `@senars/nar` into the
+  browser (the bug fixed in `5ca8fc8e`).
+- **`derived`.** `derived(source, fn)` passes the single value; `derived([a, b], fn)` passes
+  the array. `get` is bound. A single-source selector that indexes the array is a bug.
+- **P13 target.** `pnpm --dir ui test:unit` → 21 failures in 7 files. Fix the migrations, not
+  the assertions.
 
 ## 9. Appendix — repo facts for a fresh session
 
 ### Layout
+- `ui/src/client/framework/` — the normalized micro-framework (`contribution, catalog, surface,
+  app, command, facet, intent, protocol, projector, derived, bundle, validator`).
 - `ui/src/client/kernel/index.ts` — the kernel facade (the only import surface an app needs).
-- `ui/src/client/core/` — the **un-normalized** substrate + HUD chrome (~70 files, 10.8k lines).
-- `ui/src/client/components/` — HUD chrome (~30 files, 17k lines) + `overlays/` (18 files).
-- `ui/src/client/apps/ask/` — the first app (`index.html`, `main.ts`, `ask-app.ts`).
+- `ui/src/client/core/` — substrate + HUD chrome; kernel atoms live in `kernel/state.ts`, and
+  `core/store.ts` re-exports them alongside chrome atoms.
+- `ui/src/client/shims/node-builtins.ts` — browser shims for `node:*` (dynamic dev serving).
+- `ui/src/client/components/` — HUD chrome + `overlays/`.
+- `ui/src/client/apps/{ask,explore,notebook,goals,console,hud}/` — apps (`index.html`, `main-v2.ts`,
+  `*-app.ts`); Ask is the reference app.
 - `ui/src/client/{modulation,styles,utils,spacegraph,plugins,bundles}/` — HUD subsystems.
-- `ui/src/server/index.ts` — the monolithic server (~1090 lines; `handleClientMessage` switch).
+- `ui/src/server/index.ts` — HTTP + WS server; serves the client dynamically via Vite middleware
+  and delegates messages to `handler-registry.ts` → `protocol-server.ts` → `handlers.ts`.
+- `ui/src/client/core/protocol-defs.ts` + `ui/src/server/protocol-server.ts` — the one protocol
+  definition (`PROTOCOL_SPECS`) and its two dispatchers.
 - `ui/src/shared/` — client/server shared bits (lens-schema, constants).
 - `core/src/protocol/` — the zod protocol; `unions.ts` holds `IncomingFromClient/Server`.
 
@@ -805,6 +901,10 @@ title/tag/duplicate id rejected uniformly); `pnpm --dir ui typecheck` ✓ (pre-e
 - **P10:** `core/workspace-projection.ts`, `core/{sections,toc,navigation}.ts`, `core/store.ts`.
 - **P11:** `core/plugins.ts`, `bundles/`, `framework/app.ts`.
 - **P12:** `core/{config-schema,capabilities,lm-provider}.ts`, `ui/src/server/config-schema.ts`, `core/contribution-validator.ts`.
+- **P13–P18 (Phase 2):** see the Phase 2 blocks in §4 for exact files; key touch-points are
+  `core/{commands,intent-registry,plugins,store,workspace-bindings}.ts`,
+  `framework/{intent,bundle,surface}.ts`, `core/{config-catalog,lm-provider,design-catalog}.ts`,
+  `apps/*`, `vite.config.ts`, and the failing `tests/components/*` files.
 
 ### The slice loop (repeat verbatim)
 implement (substrate + ≥1 real consumer) → guard (unit, no mocks) → prove (run an app +
