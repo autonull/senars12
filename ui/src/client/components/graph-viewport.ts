@@ -176,6 +176,8 @@ export class GraphViewport extends BaseComponent {
   private prevNodeCount = 0;
   private focusedRef?: string;
   #unregisterViewport?: () => void;
+  /** Re-fit when the host resizes (grid/split panes), so content never lands offscreen. */
+  #resizeObserver?: ResizeObserver;
   /** How many projections this viewport is nested inside, when embedded (§Move 2.1). */
   @property({ type: Number }) embedDepth = 0;
   @state() private htmlLabels = new Map<string, HtmlLabelData>();
@@ -276,6 +278,7 @@ export class GraphViewport extends BaseComponent {
     eventBus.off('graph:search', this.searchGraph);
     eventBus.off('graph:pan-to', this.panTo);
     eventBus.off('graph:legend-toggle', this.toggleLegend);
+    this.#resizeObserver?.disconnect();
     this.cy?.destroy();
   }
 
@@ -300,6 +303,15 @@ export class GraphViewport extends BaseComponent {
     this.cy.on('render', () => this.renderHtmlLabels());
     // After any layout, settle into the legible zoom window and re-center (§G.2).
     this.cy.on('layoutstop', this.enforceLegibleView);
+    // A host that sizes after init (grid cell, split pane) would otherwise leave
+    // the content fit to the wrong box — re-fit on every real resize.
+    this.#resizeObserver = new ResizeObserver(
+      this.throttle(() => {
+        this.cy?.resize();
+        this.enforceLegibleView();
+      }, 120)
+    );
+    this.#resizeObserver.observe(container);
     this.cy.on(
       'viewport',
       this.throttle(() => {

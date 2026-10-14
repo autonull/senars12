@@ -1,5 +1,9 @@
 # TODO.ui.14.md — Finish the UI: green the gate, translate the substrate, default to conversation, compose the form-factors
 
+> **Direction superseded by `TODO.ui.15.md` ("The UI Lab").** Phase A–C (green the gate) is
+> done and committed; do **not** grind Phase D–F slice-by-slice. The active strategy is to
+> generate many app compositions and let the operator pick — see `TODO.ui.15.md`.
+
 > **Supersedes** `TODO.ui.13.md` §4 "Phase 2 — Completion backlog". `TODO.ui.13.md` remains
 > the record of the P0–P12 refactor (the diagnosis and the normalized substrate); **this file
 > is the single execution plan for completing, translating, *presenting*, and *composing* the

@@ -90,6 +90,7 @@ export default defineConfig({
         notebook: resolve(__dirname, 'src/client/apps/notebook/index.html'),
         goals: resolve(__dirname, 'src/client/apps/goals/index.html'),
         console: resolve(__dirname, 'src/client/apps/console/index.html'),
+        lab: resolve(__dirname, 'src/client/apps/lab/index.html'),
       },
       output: {
         manualChunks: (id) => {
