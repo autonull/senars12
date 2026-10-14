@@ -6,6 +6,16 @@ export async function waitConnected(api: TestApiClient, timeout = 10000): Promis
   await expect.poll(() => api.getConnectionState(), { timeout }).toBe('connected');
 }
 
+/** Poll until the current page reports a live WebSocket (no testApi fixture needed). */
+export async function waitConnectedDirect(page: Page, timeout = 10000): Promise<void> {
+  await expect.poll(async () => {
+    return page.evaluate(() => {
+      const api = (window as Record<string, unknown>).__testApi as Record<string, unknown> | undefined;
+      return api?.connection?.getState?.() ?? 'disconnected';
+    });
+  }, { timeout }).toBe('connected');
+}
+
 /**
  * Open panels through the URL hash — the same hydration path the app uses, so
  * the spec exercises real navigation rather than poking the store.

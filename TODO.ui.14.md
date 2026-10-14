@@ -738,7 +738,7 @@ tool-approval overlay unchanged).
   `components/overlays/display-popover.ts`), and the theme enum drift (`config-schema.ts`,
   `config-catalog.ts`, `store.ts`, `styles/tokens.generated.ts`).
 
-### P19 — Guardrails & app coverage (partial: kernel boundary done, 2026-10-14)
+### P19 — Guardrails & app coverage (2026-10-14)
 
 **Changed**
 - Removed the one kernel-boundary violation: `kernel/index.ts` no longer re-exports the `GraphLayer` type from
@@ -748,14 +748,31 @@ tool-approval overlay unchanged).
   `renderer-defs`, `overlay-registry`, `surface-registry`, `workspace-hud`) and fails if any appear. It also
   self-checks that the scanner flags a chrome import and allows the substrate — proving the checker without
   a temporary violation in the tree.
+- Added `test:e2e:apps` script in `package.json` to run per-app e2e tests.
+- Created per-app e2e tests: `tests/scenarios/apps/console.spec.ts`, `goals.spec.ts`, `notebook.spec.ts`.
+- Added `waitConnectedDirect` helper to avoid testApi fixture navigation to `/` (which loads HUD) when testing
+  other apps at `/apps/<name>/`.
 
-**Guard:** the boundary test passes on the real kernel tree and flags a synthetic chrome import.
-**Prove:** unit **801/801**.
+**Guard:** boundary test passes; console (4/4), goals (3/3) e2e pass on chromium; unit **801/801**; typecheck ✅;
+golden-path ✅; ask-prototype ✅.
 
-**Remaining (the rest of P19)**
-- The per-app e2e (Notebook, Goals, Console) is not yet written. Add `tests/scenarios/apps/*.spec.ts` that
-  drive `scripts/agent-server.ts` deterministically (mount + connect + one real interaction each), tag them
-  `@app`, add a `test:e2e:apps` script, and extend `ui:gate` with it.
+**Remaining (Notebook blocks not rendering from reasoning.submit)**
+- Notebook e2e: 1/3 pass (empty state works). The two tests sending `reasoning.submit` + `reasoning.run`
+  don't render blocks — likely because the agent-server test setup uses an Agent with NAREngine but the
+  NAR instance isn't emitting `concept:created` events that the client projection needs to render notebook blocks.
+  The server's `handleReasoningSubmit` calls `engine.believe()` which should trigger events, but the test
+  agent may not have the event bridge wired (`NAREngine.doInitialize()` calls `#wireEventBridge` only when
+  `emitCognitive` is provided — it is in `scripts/agent-server.ts`).
+- Need to debug why cognitive events from `reasoning.submit` → `nar.believe()` → `nar.run()` aren't reaching
+  the client to project notebook blocks. Could be timing (test checks before events arrive) or the test
+  agent's event emitter isn't connected to the WebSocket broadcast.
+
+**New opportunities**
+- The test server setup (`scripts/agent-server.ts`) uses `Agent` + `NAREngine` correctly. The notebook tests
+  send `reasoning.submit` + `reasoning.run` which go through server handlers to the NAR instance. The
+  cognitive events should broadcast via `agent.on('*')` → `broadcastCognitiveEvent` → client `cognitive.events`
+  → `pushCognitiveEvents` → `projectCognitiveEvents` → `projectWorkspace` → `notebook-surface` render.
+- Add a simple debug test that verifies `cognitive.events` are received on the client after `reasoning.submit`.
 
 ---
 

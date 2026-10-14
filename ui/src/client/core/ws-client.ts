@@ -1,5 +1,5 @@
 import { IncomingFromServer, type IncomingFromServer as IncomingMessage } from '@senars/core/protocol';
-import { $connectionState, $lastSeqId, atom } from './store.js';
+import { $connectionState, $lastSeqId, atom, setWsClient } from './store.js';
 import { getClientProtocolCatalog } from './protocol-defs.js';
 import { registerAllSurfaces } from './surface-registration.js';
 
@@ -46,6 +46,7 @@ export function connect(): void {
   $connectionState.set(socket ? 'reconnecting' : 'connecting');
   const ws = new WebSocket(resolveWsUrl());
   socket = ws;
+  setWsClient(ws);
   // Handlers belong to this socket instance: a superseded socket's late
   // `onclose` (from `reconnect()`/`disconnect()`) must not schedule a reconnect
   // for the connection that replaced it.

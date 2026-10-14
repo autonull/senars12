@@ -50,6 +50,7 @@
     "test:e2e:ui": "playwright test --config tests/playwright.config.ts --ui",
     "test:e2e:debug": "playwright test --config tests/playwright.config.ts --debug",
     "test:e2e:smoke": "playwright test tests/scenarios/smoke --config tests/playwright.config.ts",
+    "test:e2e:apps": "playwright test tests/scenarios/apps --config tests/playwright.config.ts --workers=1",
     "test:e2e:critical": "playwright test --config tests/playwright.config.ts --grep @critical",
     "test:e2e:golden": "playwright test --config tests/playwright.config.ts --grep @golden --workers=1",
     "test:visual": "playwright test --config tests/visual/playwright.config.ts",

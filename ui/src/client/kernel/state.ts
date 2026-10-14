@@ -2,6 +2,16 @@ import type { ChatMessage, CognitiveEvent, GraphNodeData } from '@senars/core';
 
 export type { GraphNodeData };
 import { loadConfig, saveConfig, DEFAULT_UI_CONFIG, type UiConfig } from '../core/config-schema.js';
+
+let wsSocket: WebSocket | null = null;
+
+export function setWsClient(socket: WebSocket): void {
+  wsSocket = socket;
+}
+
+function sendMessage(msg: Record<string, unknown>): void {
+  wsSocket?.send(JSON.stringify(msg));
+}
 import { emptyWorkspaceGraph, type SemanticBlock, type WorkspaceGraph } from '../core/workspace-graph.js';
 
 type Listener<T> = (value: T) => void;
@@ -264,6 +274,7 @@ export function exposeKernelTestApi(): void {
       },
     },
     connection: { getState: () => $connectionState.get() },
+    send: (msg: Record<string, unknown>) => sendMessage(msg),
   };
   w.__testApiExposed = true;
 }

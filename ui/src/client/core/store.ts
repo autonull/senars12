@@ -69,6 +69,7 @@ import {
   type ServerErrorRecord,
   type RevisionEntry,
   exposeKernelTestApi as exposeKernelTestApi,
+  setWsClient,
 } from '../kernel/state.js';
 
 // Import derived from framework
@@ -119,6 +120,7 @@ export {
   setCollapsed,
   $capabilityFilter,
   emptyWorkspaceGraph,
+  setWsClient,
   type WorkspaceGraph,
   type SemanticBlock,
   type TelemetryData,

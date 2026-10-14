@@ -16,7 +16,7 @@ export { connect, disconnect, send, reconnect } from './transport.js';
 export { addAgentMessage, addUserMessage, applyServerMessage } from '../core/store-bindings.js';
 
 // ── State (the shared atoms) ─────────────────────────────────────────────────
-export { atom } from './state.js';
+export { atom, setWsClient } from './state.js';
 export type { Readable, Writable, GraphNodeData } from './state.js';
 export {
   $chatMessages,
