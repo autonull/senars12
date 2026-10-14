@@ -235,3 +235,34 @@ export function createProtocolEntry<K extends string, S extends ZodType>(
 export type ProtocolKey<C extends ProtocolCatalog<any>> = C extends ProtocolCatalog<infer Def>
   ? keyof Def
   : never;
+
+/** Registry of protocol entries. */
+const protocolRegistry = new Map<string, ProtocolEntry>();
+
+/** Register a protocol entry. */
+export function registerProtocol(entry: ProtocolEntry): void {
+  if (protocolRegistry.has(entry.type)) {
+    throw new Error(`Protocol entry with type "${entry.type}" already registered`);
+  }
+  protocolRegistry.set(entry.type, entry);
+}
+
+/** Get a protocol entry by type. */
+export function protocolFor(type: string): ProtocolEntry | undefined {
+  return protocolRegistry.get(type);
+}
+
+/** All registered protocol entries. */
+export function getProtocols(): readonly ProtocolEntry[] {
+  return [...protocolRegistry.values()];
+}
+
+/** All protocol types. */
+export function protocolTypes(): readonly string[] {
+  return [...protocolRegistry.keys()];
+}
+
+/** Reset protocol registry (for testing). */
+export function resetProtocols(): void {
+  protocolRegistry.clear();
+}

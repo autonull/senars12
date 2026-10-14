@@ -191,3 +191,34 @@ export function createFilterFacet<D extends FacetData>(
     data,
   };
 }
+
+/** Registry of facets. */
+const facetRegistry = new Map<string, FacetDescriptor>();
+
+/** Register a facet. */
+export function registerFacet(facet: FacetDescriptor): void {
+  if (facetRegistry.has(facet.id)) {
+    throw new Error(`Facet with id "${facet.id}" already registered`);
+  }
+  facetRegistry.set(facet.id, facet);
+}
+
+/** Get a facet by id. */
+export function facetFor(id: string): FacetDescriptor | undefined {
+  return facetRegistry.get(id);
+}
+
+/** All registered facets. */
+export function getFacets(): readonly FacetDescriptor[] {
+  return [...facetRegistry.values()];
+}
+
+/** All facet ids. */
+export function facetIds(): readonly string[] {
+  return [...facetRegistry.keys()];
+}
+
+/** Reset facet registry (for testing). */
+export function resetFacets(): void {
+  facetRegistry.clear();
+}

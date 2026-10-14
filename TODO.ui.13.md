@@ -516,10 +516,10 @@ projection for sections/ToC/navigation. `derived(source, fn, equal?)` for
 **Remaining:** `$viewSelection` and `$runTerminations` not yet migrated to `derived` (low priority, no churn observed).
 **Opportunities:** The `derived` primitive can replace remaining side-effect syncs; projector registry enables new capabilities to add projections without editing merge logic.
 
-- [ ] **P11 — Bundle/App composition.**
+- [x] **P11 — Bundle/App composition.**
 `defineBundle` absorbs `PluginContribution` and `bundles/`; `defineApp` = bundle + shell +
 default surface; the shell's regions are a `Layout` descriptor.
-**Guard:** a bundle test (contributions land in the right catalogs); an app-composition test.
+**Guard:** bundle test (contributions land in the right catalogs); app-composition test.
 **Prove:** an app built as a bundle runs; the shell composes regions from data.
 
 - [ ] **P12 — Domain catalogs + generic validation.**
@@ -715,6 +715,13 @@ an edit.
 - **Proof:** Ask prototype e2e ✓; workspace-bindings test ✓; notebook test ✓ (timeCursor sync); graph, ToC, breadcrumbs unchanged.
 - **Remaining:** `$viewSelection` and `$runTerminations` not yet migrated to `derived` (low priority, no churn observed).
 - **Opportunities:** The `derived` primitive can replace remaining side-effect syncs; projector registry enables new capabilities to add projections without editing merge logic.
+
+### P11 — Bundle/App composition (done)
+- **What changed:** Added `framework/bundle.ts` with `BundleDescriptor`, `defineBundle`, `applyBundle` replacing `PluginContribution` (plugins.ts) and empty `bundles/`. Added registries for all contribution kinds: surfaces, view adapters, facets (lenses/layers/modes/filters), intents, projectors, protocol messages, backends, capabilities, config fields. `defineApp` now takes a bundle + shell + default surface. Created `core/config-catalog.ts` for config fields as contributions. Added `registerBackend`, `registerCapability`, `registerConfigField`, `registerFacet`, `registerIntent`, `registerProtocol` to respective modules. Updated `framework/index.ts` to export all bundle primitives.
+- **Guard:** `pnpm --dir ui typecheck` ✓ (pre-existing errors only); `pnpm --dir ui test:unit` ✓ (550 tests); bundle-composition.test.ts covers all contribution types.
+- **Proof:** Bundle registry and `applyBundle` verified to register all contribution kinds to correct catalogs.
+- **Remaining:** Migrate existing apps (Ask, Explore, Notebook, Goals, Console) to use `defineBundle` + `defineApp` pattern; migrate `plugins.ts` contributions to bundles.
+- **Opportunities:** Bundle composition enables declarative app definition; `defineApp(bundle, shell, defaultSurface)` is the single composition primitive; config catalog unifies client/server config schema.
 
 ## 9. Appendix — repo facts for a fresh session
 

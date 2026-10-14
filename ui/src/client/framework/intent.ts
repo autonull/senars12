@@ -122,18 +122,6 @@ export function defineIntentCatalog<K extends string, D extends IntentDescriptor
   };
 }
 
-/** Register a single intent into an existing catalog (for boot-time registration). */
-export function registerIntent<K extends string, D extends IntentDescriptor<K>>(
-  catalog: IntentCatalog<K, D>,
-  intent: D
-): void {
-  // Cast needed because defineCatalog creates a read-only catalog
-  // In practice, we'd use a mutable registry sibling for boot-time
-  const defs = (catalog as any).definition as Record<string, D>;
-  defs[intent.id] = intent;
-  (catalog as any).definition = defs;
-}
-
 /** Type-safe intent registration helper. */
 export function createIntent<K extends string, D extends IntentDescriptor<K>>(
   spec: D
@@ -195,4 +183,41 @@ export function command<K extends string>(
 /** Combined shorthand for both kinds. */
 export function intent<K extends string>(spec: IntentDescriptor<K>): IntentDescriptor<K> {
   return spec;
+}
+
+/** Global intent registry for bundle registration. */
+const intentRegistry = new Map<string, IntentDescriptor>();
+
+/** Register an intent globally (for bundle system). */
+export function registerIntent(intent: IntentDescriptor): void {
+  if (intentRegistry.has(intent.id)) {
+    throw new Error(`Intent with id "${intent.id}" already registered`);
+  }
+  intentRegistry.set(intent.id, intent);
+}
+
+/** Get an intent by id. */
+export function intentFor(id: string): IntentDescriptor | undefined {
+  return intentRegistry.get(id);
+}
+
+/** All registered intents. */
+export function getIntents(): readonly IntentDescriptor[] {
+  return [...intentRegistry.values()];
+}
+
+/** All intent ids. */
+export function intentIds(): readonly string[] {
+  return [...intentRegistry.keys()];
+}
+
+/** Reset intent registry (for testing). */
+export function resetIntents(): void {
+  intentRegistry.clear();
+}
+
+/** Build an intent catalog from the global registry. */
+export function buildIntentCatalog(): IntentCatalog<string, IntentDescriptor> {
+  const defs = Object.fromEntries(intentRegistry) as Record<string, IntentDescriptor>;
+  return defineIntentCatalog(defs);
 }

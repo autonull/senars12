@@ -86,6 +86,41 @@ export const setCapability = (id: Capability, enabled: boolean): void => {
   if (RENDERER_CAPABILITIES.has(id)) $activeRenderer.set(defaultRendererFor(next));
 };
 
+/** Registry of capabilities. */
+const capabilityRegistry = new Map<string, CapabilityDescriptor>();
+
+/** Register a capability. */
+export function registerCapability(descriptor: CapabilityDescriptor): void {
+  if (capabilityRegistry.has(descriptor.id)) {
+    throw new Error(`Capability with id "${descriptor.id}" already registered`);
+  }
+  capabilityRegistry.set(descriptor.id, descriptor);
+}
+
+/** Get a capability by id. */
+export function capabilityFor(id: string): CapabilityDescriptor | undefined {
+  return capabilityRegistry.get(id);
+}
+
+/** All registered capabilities. */
+export function getCapabilities(): readonly CapabilityDescriptor[] {
+  return [...capabilityRegistry.values()];
+}
+
+/** All capability ids. */
+export function capabilityIds(): readonly string[] {
+  return [...capabilityRegistry.keys()];
+}
+
+/** Reset capability registry (for testing). */
+export function resetCapabilities(): void {
+  capabilityRegistry.clear();
+  // Re-register built-in capabilities
+  for (const desc of capabilityDescriptors()) {
+    capabilityRegistry.set(desc.id, desc);
+  }
+}
+
 // The composition is set through UI affordances; the E2E harness needs the same
 // seam without reaching into the store, so it drives the real setter.
 if (typeof window !== 'undefined') {

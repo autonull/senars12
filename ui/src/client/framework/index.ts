@@ -77,6 +77,23 @@ export type {
   ProjectorCatalog,
 } from './projector.js';
 
+export type {
+  BundleDescriptor,
+  BundleSurfaces,
+  BundleViewAdapters,
+  BundleFacets,
+  BundleIntents,
+  BundleProjectors,
+  BundleProtocol,
+  BundleBackends,
+  BundleCapabilities,
+  BundleConfigFields,
+  ConfigFieldDescriptor,
+  AppDescriptor as BundleAppDescriptor,
+  LayoutDescriptor,
+  LayoutRegion,
+} from './bundle.js';
+
 export {
   createContribution,
   registerContribution,
@@ -115,6 +132,11 @@ export {
   isLayerFacet,
   isModeFacet,
   isFilterFacet,
+  registerFacet,
+  facetFor,
+  getFacets,
+  facetIds,
+  resetFacets,
 } from './facet.js';
 
 export {
@@ -124,6 +146,11 @@ export {
   signal,
   command,
   intent,
+  intentFor,
+  getIntents,
+  intentIds,
+  resetIntents,
+  buildIntentCatalog,
 } from './intent.js';
 
 export {
@@ -142,6 +169,11 @@ export {
   serverMessage,
   clientMessage,
   createProtocolEntry,
+  registerProtocol,
+  protocolFor,
+  getProtocols,
+  protocolTypes,
+  resetProtocols,
 } from './protocol.js';
 
 export {
@@ -163,3 +195,13 @@ export {
   mapEqual,
   arrayEqual,
 } from './derived.js';
+
+export {
+  defineBundle,
+  registerBundle,
+  bundleFor,
+  getBundles,
+  bundleIds,
+  resetBundles,
+  applyBundle,
+} from './bundle.js';
