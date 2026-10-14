@@ -126,20 +126,20 @@ building blocks:
 lab/compose ↔ shared component cycle. `GraphToolbar` now imports from kernel.
 
 **All gates green** — typecheck ✓ · unit 814/814 ✓ · golden e2e 2/2 ✓ · lab @app e2e 2/2 ✓ · per-app e2e 12/12 ✓.
-3. **Promote winners — OPERATOR-GATED.** For each keeper metaphor: create
-   `apps/<name>/{index.html,main.ts}` + a `defineApp` whose bundle's surfaces are the
-   composition; add a `vite.config.ts` input. The lab preset is the spec. No composition has
-   been chosen yet, so nothing was promoted. **Note:** the promoted app should decide its own
-   fit policy — a full-page app probably wants the `'legible'` default, whereas the Lab wall
-   wants `'fit'`.
+
+3. **Promote winners — DEFERRED (superseded by TODO.ui.16.md).** The new strategy:
+   "promotion" = save a preset URL in the **Graph Workspace** (one parametric app),
+   not copy code. See `TODO.ui.16.md` for the active plan (A → C → B).
+
 4. ✅ **Guards (done this session).** `tests/components/lab-compose.test.ts` covers `compose.ts`
    (`layoutTemplate` per layout incl. grid/hero/rail track counts; `specToVariant` region ↔
    template agreement; `parseSpec` ⇄ `specToSearch` round-trip incl. unknown-dimension fallback;
    200 `randomSpec` samples inside the space and addressable); `tests/components/graph-scaling.test.ts`
    gained the `settleZoom` policy contract. `tests/scenarios/apps/lab.spec.ts` (`@app @lab`) loads
    `/apps/lab/?v=chat-graph` and the composer URL and asserts the grid mounts both surfaces.
+
 5. **Only then** revisit `ui.14` Phase D/E (cognitive translation, chat-as-default) — each is
-   now *one promoted composition*, not a phase.
+   now *one Graph Workspace preset*, not a phase. Superseded by TODO.ui.16.md.
 
 ### New opportunities (found this session)
 
@@ -188,7 +188,7 @@ Changed: `kernel/index.ts`, `components/s-app-shell.ts`, `components/graph-viewp
 **Known-red / accepted for now:** `test:visual` (6 cells — 1 expected theme change, 5 stale).
 Nothing else is red: typecheck ✓, unit 801/801 ✓, golden e2e ✓, per-app e2e 10/10 ✓.
 
-## Session state — visual re-baseline complete (committed)
+## Session state — Graph Workspace plan ready (committed)
 
 Visual contract: 6 baselines refreshed (`overlay-palette/toc/provider/breadcrumb` stale
 from ui.13, `overlay-settings` dark-by-default, `overlay-telemetry` flaky). Suite
@@ -197,4 +197,9 @@ from ui.13, `overlay-settings` dark-by-default, `overlay-telemetry` flaky). Suit
 **Verified this session:** typecheck ✓ · unit **814/814** ✓ · golden e2e (chromium) ✓ ·
 lab `@app` e2e 2/2 ✓ · visual 62/62 ✓. Ran chromium only, per the process rules below.
 
-**Still open:** item 3 (promote winners — needs an operator pick), item 5 (downstream of 3).
+**Active plan:** `TODO.ui.16.md` — Graph Workspace (A → C → B).
+- A: Refactor 4 apps → `BaseAppSurface` (today)
+- C: Build one parametric `GraphWorkspace` app (this week)
+- B: Presets = saved URLs (`chat-graph`, `reasoning-desk`, `graph-3d`, `dashboard`)
+
+**Item 3/5 from this plan:** superseded by TODO.ui.16.md.
