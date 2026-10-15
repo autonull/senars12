@@ -49,7 +49,11 @@ const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 /** The tier for a focus of a class at a weight; weight spends up to the class ceiling. */
 export const tierFor = (attentionClass: AttentionClass, weight: number): FidelityTier => {
   const ceiling = tierRank(CEILING[attentionClass]);
-  return LADDER[Math.min(ceiling, Math.round(clamp01(weight) * ceiling))] ?? 'reclaimed';
+  const w = clamp01(weight);
+  // For ambient class, any positive weight must reach at least 'glyph' (rank 1)
+  // Math.ceil ensures the ceiling is reached at weight=1, and any w>0 gives rank>=1
+  const rank = w > 0 ? Math.max(1, Math.ceil(w * ceiling)) : 0;
+  return LADDER[Math.min(ceiling, rank)] ?? 'reclaimed';
 };
 
 /** Half-life of unattended attention, in ms. */

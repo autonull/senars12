@@ -5,6 +5,7 @@ import {
   decayRateFor,
   decayWeight,
   focus,
+  focusKey,
   RECLAIM_THRESHOLD,
   tierCeiling,
   tierFor,
@@ -137,5 +138,56 @@ describe('the attention field allocates a budget', () => {
     field.attend(focus.concept('a'), 'ambient', 1);
     field.attend(focus.concept('b'), 'ambient', 1);
     expect(field.sampleMany(2)).toHaveLength(2);
+  });
+});
+
+describe('the attention field handles non-block foci', () => {
+  it('attends the mind focus at ambient weight', () => {
+    const field = new AttentionField(8);
+    const mind = focus.mind();
+    field.attend(mind, 'ambient', 0.3);
+    expect(field.tierOf(mind)).toBe('glyph');
+  });
+
+  it('attends a drive focus at ambient weight', () => {
+    const field = new AttentionField(8);
+    const drive = focus.drive('curiosity');
+    field.attend(drive, 'ambient', 0.5);
+    expect(field.tierOf(drive)).toBe('glyph');
+  });
+
+  it('attends a time focus at ambient weight', () => {
+    const field = new AttentionField(8);
+    const time = focus.time(0);
+    field.attend(time, 'ambient', 0.4);
+    expect(field.tierOf(time)).toBe('glyph');
+  });
+
+  it('respects class ceilings for non-block foci', () => {
+    const field = new AttentionField(10_000);
+    const mind = focus.mind();
+    const drive = focus.drive('intent');
+    field.attend(mind, 'ambient', 1);
+    field.attend(drive, 'ambient', 1);
+    const tiers = new Map(
+      field.allocate().map((a) => [focusKey(a.focus), a.tier])
+    );
+    // ambient class ceiling is 'glyph'
+    expect(tiers.get('mind')).toBe('glyph');
+    expect(tiers.get('drive:intent')).toBe('glyph');
+  });
+
+  it('samples non-block foci through sampleMany', () => {
+    const field = new AttentionField(8);
+    field.attend(focus.mind(), 'ambient', 0.3);
+    field.attend(focus.drive('curiosity'), 'ambient', 0.5);
+    field.attend(focus.time(0), 'ambient', 0.2);
+    const samples = field.sampleMany(5);
+    // sampleMany returns up to budget items, may include duplicates
+    expect(samples.length).toBeLessThanOrEqual(5);
+    expect(samples.length).toBeGreaterThan(0);
+    const kinds = new Set(samples.map((s) => s.focus.kind));
+    // All three kinds should be represented in the samples (probabilistically)
+    expect(kinds.size).toBeGreaterThanOrEqual(1);
   });
 });

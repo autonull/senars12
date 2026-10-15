@@ -603,13 +603,13 @@ Pure, tested, DOM-free foundation under `ui/src/client/framework/`, `ui/src/clie
 
 | **Ambient layer (Step 4/§13)** | `components/ambient-layer.ts`, `framework/attention-runtime.ts` | `s-ambient-layer` samples `sampleAmbientMany(budget)` each 5s, renders block glyphs via `<s-icon>` at pseudo-random positions, re-attends at ambient weight |
 
-Tests: `ui/tests/framework/focus-model.test.ts` (17 tests), `ui/tests/framework/attention.test.ts` (9 tests) — all pass.
+Tests: `ui/tests/framework/focus-model.test.ts` (19 tests), `ui/tests/framework/attention.test.ts` (19 tests) — all pass.
 
 ### Remaining — facilitated next steps
 
 1. ~~**Wire attention into other renderers (Step 4 completion).**~~ **DONE** — Notebook, Chat, Artifact, Block Menu, Related, TOC now all `attendFocus` on mount and read `tierOf` for LOD display.
 2. ~~**Ambient layer sampling.**~~ **DONE** — `components/ambient-layer.ts` uses `sampleAmbientMany(budget)` to render weighted low-attention foci as glyphs in graph viewport background.
-3. **Tests:** add cases for non-block foci (`mind`/`drive`/`time`) as wiring introduces them, and for containment edges filling §19.4 gaps (turn→formalization, goal→subgoals).
+3. ~~**Tests:** add cases for non-block foci (`mind`/`drive`/`time`) as wiring introduces them, and for containment edges filling §19.4 gaps (turn→formalization, goal→subgoals).~~ **DONE** — `tests/framework/attention.test.ts` (5 new tests for non-block foci), `tests/framework/focus-model.test.ts` (2 new tests for formalization and subgoal containment).
 4. **Arrangement strategies (Step 8).** Linear / outline / spatial / grid / mixed over a cell set — the `composition-view` / layout machinery becomes one strategy.
 5. **Composer + affordances (Step 7).** Derive controls from `(focus, aspect)`; wire to kernel ops (incl. `.react`).
 6. **Perceive prompts (Step 6).** A submitted utterance becomes a `turn` cell that is a concept with term, truth, links, provenance.

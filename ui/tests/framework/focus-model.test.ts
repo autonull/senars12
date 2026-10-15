@@ -184,4 +184,24 @@ describe('the resolver', () => {
     expect(hasSlice(resolution, 'neighborhood')).toBe(true);
     expect(hasSlice(resolution, 'ambient')).toBe(false);
   });
+
+  it('resolves formalization containment (turn → formalizes claim)', () => {
+    const g = applyWorkspaceOps(emptyWorkspaceGraph(), [
+      { op: 'block.add', block: block('turn1', { kind: 'turn', children: ['claim1'] }) },
+      { op: 'block.add', block: block('claim1', { kind: 'claim' }) },
+      { op: 'link.add', link: link('l1', 'turn1', 'claim1', 'formalizes') },
+    ]);
+    const resolution = resolveFocus(focus.turn('turn1'), { graph: g });
+    expect(resolution.content?.children.map((b) => b.id)).toContain('claim1');
+  });
+
+  it('resolves goal subgoal containment (goal → achieves subgoal)', () => {
+    const g = applyWorkspaceOps(emptyWorkspaceGraph(), [
+      { op: 'block.add', block: block('goal1', { kind: 'goal', children: ['subgoal1'] }) },
+      { op: 'block.add', block: block('subgoal1', { kind: 'goal' }) },
+      { op: 'link.add', link: link('l1', 'goal1', 'subgoal1', 'achieves') },
+    ]);
+    const resolution = resolveFocus(focus.goal('goal1'), { graph: g });
+    expect(resolution.content?.children.map((b) => b.id)).toContain('subgoal1');
+  });
 });
