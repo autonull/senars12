@@ -100,7 +100,7 @@ describe('lensCatalog — channel vocabulary', () => {
 
 describe('renderer capabilities', () => {
   it('declares node and edge support for both renderers, within the channel vocabulary', () => {
-    for (const renderer of ['2d', '3d'] as const) {
+    for (const renderer of ['graph-2d', 'graph-3d', 'notebook'] as const) {
       for (const target of ['node', 'edge'] as const) {
         const supported = RENDERER_CAPABILITIES[renderer][target];
         expect(supported.size).toBeGreaterThan(0);
@@ -110,10 +110,10 @@ describe('renderer capabilities', () => {
   });
 
   it('answers supportsChannel consistently with the matrix', () => {
-    expect(supportsChannel('2d', 'node', 'stroke.dash')).toBe(true);
-    expect(supportsChannel('3d', 'node', 'stroke.dash')).toBe(false);
-    expect(supportsChannel('3d', 'edge', 'width')).toBe(true);
-    expect(supportsChannel('2d', 'edge', 'size')).toBe(false);
+    expect(supportsChannel('graph-2d', 'node', 'stroke.dash')).toBe(true);
+    expect(supportsChannel('graph-3d', 'node', 'stroke.dash')).toBe(false);
+    expect(supportsChannel('graph-3d', 'edge', 'width')).toBe(true);
+    expect(supportsChannel('graph-2d', 'edge', 'size')).toBe(false);
   });
 
   it('reports channels a renderer cannot paint, per element kind', () => {
@@ -122,7 +122,7 @@ describe('renderer capabilities', () => {
       ['edge:b', { width: 2, 'flow.enable': true }],
     ]);
     const isEdge = (id: string) => id.startsWith('edge:');
-    expect(unsupportedChannels(delta, '3d', isEdge).sort()).toEqual(['flow.enable', 'stroke.dash']);
-    expect(unsupportedChannels(delta, '2d', isEdge)).toEqual(['flow.enable']);
+    expect(unsupportedChannels(delta, 'graph-3d', isEdge).sort()).toEqual(['flow.enable', 'stroke.dash']);
+    expect(unsupportedChannels(delta, 'graph-2d', isEdge)).toEqual(['flow.enable']);
   });
 });

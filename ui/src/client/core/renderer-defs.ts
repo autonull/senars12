@@ -3,6 +3,7 @@
  *
  * A renderer is a surface with `placement: 'viewport'`. This module provides
  * backward-compatible APIs while the unified registry is the single source.
+ * Canonical renderer ids: `graph-2d`, `graph-3d`, `notebook`.
  */
 
 import type { Capability } from './capabilities.js';
@@ -68,9 +69,9 @@ function toSurfaceDescriptor(id: string, entry: RendererEntry): SurfaceDescripto
   };
 }
 
-/** The renderer catalog definition (backward-compatible shape). */
+/** The renderer catalog definition (backward-compatible shape). Canonical ids: graph-2d, graph-3d, notebook. */
 const RENDERER_CATALOG_DEFINITION = {
-  '2d': {
+  'graph-2d': {
     label: '2D Graph',
     icon: 'graph-2d',
     capabilities: {
@@ -95,7 +96,7 @@ const RENDERER_CATALOG_DEFINITION = {
       'embed',
     ] as const,
   },
-  '3d': {
+  'graph-3d': {
     label: '3D Graph',
     icon: 'graph-3d',
     capabilities: {
@@ -111,6 +112,28 @@ const RENDERER_CATALOG_DEFINITION = {
       'select-context',
       'palette',
       'structure-nav',
+    ] as const,
+  },
+  'notebook': {
+    label: 'Notebook',
+    icon: 'notebook',
+    capabilities: {
+      node: channels('color', 'opacity', 'size', 'label', 'z'),
+      edge: channels('color', 'edge-color', 'width', 'opacity'),
+    },
+    parity: 'full' as const,
+    surface: 'notebook-surface',
+    interactions: [
+      'compose',
+      'stream',
+      'artifacts',
+      'inspect',
+      'explain',
+      'select-context',
+      'follow-up',
+      'steer',
+      'run-control',
+      'palette',
     ] as const,
   },
 } as const;
@@ -144,7 +167,7 @@ export const rendererSurface = (id: string): SurfaceDescriptor | undefined => {
   const surface = surfaceFor(id);
   if (!surface || surface.placement !== 'viewport') return undefined;
   return surface;
-};
+}
 
 /** All renderer surfaces from the unified registry. */
 export const rendererSurfaces = (): readonly SurfaceDescriptor[] =>

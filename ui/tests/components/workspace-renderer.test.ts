@@ -38,8 +38,8 @@ const must = <T>(value: T | undefined): T => {
 describe('workspace renderer registry', () => {
   it('registers renderers and exposes them in order', () => {
     registerRenderer(fakeRenderer('notebook', 'all'));
-    registerRenderer(fakeRenderer('graph', ['claim', 'derivation']));
-    expect(workspaceRendererIds()).toEqual(expect.arrayContaining(['notebook', 'graph', 'graph3d']));
+    registerRenderer(fakeRenderer('graph-2d', ['claim', 'derivation']));
+    expect(workspaceRendererIds()).toEqual(expect.arrayContaining(['notebook', 'graph-2d', 'graph-3d']));
     expect(workspaceRenderer('notebook')?.label).toBe('notebook');
     expect(workspaceRenderer('missing')).toBeUndefined();
   });
@@ -47,10 +47,10 @@ describe('workspace renderer registry', () => {
   it('selects renderers that present a block kind richly', () => {
     const claimRenderers = renderersForKind('claim').map((r) => r.id);
     expect(claimRenderers).toContain('notebook');
-    expect(claimRenderers).toContain('graph');
+    expect(claimRenderers).toContain('graph-2d');
     const chartRenderers = renderersForKind('chart').map((r) => r.id);
     expect(chartRenderers).toContain('notebook');
-    expect(chartRenderers).not.toContain('graph');
+    expect(chartRenderers).not.toContain('graph-2d');
   });
 
   it('reports interaction support from capabilities', () => {
@@ -59,16 +59,16 @@ describe('workspace renderer registry', () => {
     expect(rendererSupports(notebook, 'palette')).toBe(false);
   });
 
-  it('registers graph3d as an honest partial renderer with round-trip state', () => {
-    const graph3d = must(workspaceRenderer('graph3d'));
+  it('registers graph-3d as an honest partial renderer with round-trip state', () => {
+    const graph3d = must(workspaceRenderer('graph-3d'));
     expect(graph3d.capabilities().parity).toBe('partial');
     expect(graph3d.capabilities().blockKinds).toBe('all');
     graph3d.focus('ref-1');
     graph3d.select(['ref-1', 'ref-2']);
     const snap = graph3d.snapshot();
-    expect(snap).toMatchObject({ renderer: 'graph3d', focus: 'ref-1' });
+    expect(snap).toMatchObject({ renderer: 'graph-3d', focus: 'ref-1' });
     expect(snap.selection).toEqual(['ref-1', 'ref-2']);
-    graph3d.restore({ renderer: 'graph3d', selection: [] });
+    graph3d.restore({ renderer: 'graph-3d', selection: [] });
     expect(graph3d.snapshot().focus).toBeUndefined();
   });
 

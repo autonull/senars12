@@ -213,8 +213,6 @@ export {
   ASPECTS,
   isAspect,
   ASPECT_SURFACES,
-  ASPECT_ARRANGEMENT,
-  defaultArrangementFor,
   DEPTHS,
   MAX_DEPTH,
   clampDepth,
@@ -296,48 +294,6 @@ export {
   layoutOf,
   areaName,
 } from './layout.js';
-
-export type {
-  ArrangementKind,
-  ArrangementGlobals,
-  ArrangedCell,
-  Arrangement,
-  ArrangementStrategy,
-  LayoutResult,
-  LayoutStyle,
-} from './arrangement.js';
-
-export {
-  registerArrangement,
-  getArrangementStrategy,
-  getArrangementKinds,
-  arrangeCell,
-  linearArrangement,
-  outlineArrangement,
-  spatialArrangement,
-  gridArrangement,
-  mixedArrangement,
-  DEFAULT_ARRANGEMENT_GLOBALS,
-  workspaceArrangement,
-} from './arrangement.js';
-
-export {
-  linearStrategy,
-  outlineStrategy,
-  spatialStrategy,
-  gridStrategy,
-  mixedStrategy,
-  registerBuiltinArrangements,
-  defaultStrategyFor,
-} from './arrangement-strategies.js';
-
-export type {
-  Affordance,
-  KernelOp,
-  KernelOpType,
-} from './composer.js';
-
-export { composer, executeKernelOp } from './composer.js';
 
 export type {
   PerceivedPrompt,

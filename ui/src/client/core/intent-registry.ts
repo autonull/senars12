@@ -214,7 +214,7 @@ const viewFitCmd = command(
   'View',
   () => eventBus.emit('graph:fit'),
   {
-    available: () => $activeRenderer.get() === 'graph',
+    available: () => $activeRenderer.get() === 'graph-2d',
     keywords: 'graph zoom fit',
   }
 );
@@ -225,7 +225,7 @@ const viewMinimap = command(
   'View',
   () => eventBus.emit('graph:minimap-toggle'),
   {
-    available: () => $activeRenderer.get() === 'graph',
+    available: () => $activeRenderer.get() === 'graph-2d',
     keywords: 'graph minimap overview',
   }
 );

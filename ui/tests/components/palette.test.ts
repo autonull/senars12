@@ -78,11 +78,11 @@ describe('command palette', () => {
 
   it('fronts a Recent group with the last-run commands, most recent first', async () => {
     setCapability('reasoning', true);
-    dispatchCommand('renderer.graph3d');
+    dispatchCommand('renderer.graph-3d');
     dispatchCommand('overlay.events');
-    dispatchCommand('renderer.graph3d');
+    dispatchCommand('renderer.graph-3d');
     const el = await mount();
     expect(el.shadowRoot?.querySelector('.group')?.textContent).toBe('Recent');
-    expect(ids(el).slice(0, 2)).toEqual(['renderer.graph3d', 'overlay.events']);
+    expect(ids(el).slice(0, 2)).toEqual(['renderer.graph-3d', 'overlay.events']);
   });
 });

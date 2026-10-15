@@ -31,8 +31,8 @@ const workspaceRefs = (ids: Iterable<Ref>): Ref[] => {
 const GRAPH_BLOCK_KINDS = kindsWhere((descriptor) => descriptor.graphRenderable);
 
 class GraphRenderer implements WorkspaceRenderer {
-  readonly id = 'graph';
-  readonly label = 'Graph';
+  readonly id = 'graph-2d';
+  readonly label = '2D Graph';
 
   #element?: HTMLElement;
   #ctx?: WorkspaceContext;
@@ -157,7 +157,7 @@ for (const layout of CONVERSATION_LAYOUT_IDS) {
     group: 'Graph',
     keywords: `layout arrange conversation ${layout}`,
     run: () => eventBus.emit('graph:layout', layout),
-    available: () => $activeRenderer.get() === 'graph',
+    available: () => $activeRenderer.get() === 'graph-2d',
   });
 }
 
@@ -172,7 +172,7 @@ registerCommand({
     const next = CONVERSATION_LAYOUT_IDS[(idx + 1) % CONVERSATION_LAYOUT_IDS.length];
     if (next) setConversationLayout(next);
   },
-  available: () => $activeRenderer.get() === 'graph',
+  available: () => $activeRenderer.get() === 'graph-2d',
 });
 
 registerCommand({

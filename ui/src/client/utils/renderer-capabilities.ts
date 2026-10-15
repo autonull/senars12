@@ -8,6 +8,7 @@
  *
  * The `RendererId` union now derives from `RENDERER_DEFS` (D4); the capability
  * matrix is inlined there. This file re-exports the matrix for back-compat.
+ * Canonical renderer ids: `graph-2d`, `graph-3d`, `notebook`.
  */
 
 import { unique } from '@senars/util';
@@ -24,8 +25,9 @@ export type RendererCapability = {
 
 /** The capability matrix, keyed by `RendererId` (derived from the catalog). */
 export const RENDERER_CAPABILITIES = {
-  '2d': RENDERER_DEFS.definition['2d'].capabilities,
-  '3d': RENDERER_DEFS.definition['3d'].capabilities,
+  'graph-2d': RENDERER_DEFS.definition['graph-2d'].capabilities,
+  'graph-3d': RENDERER_DEFS.definition['graph-3d'].capabilities,
+  'notebook': RENDERER_DEFS.definition['notebook'].capabilities,
 } as const satisfies Record<RendererId, RendererCapability>;
 
 export const supportsChannel = (

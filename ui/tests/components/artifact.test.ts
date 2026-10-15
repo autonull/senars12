@@ -91,7 +91,7 @@ describe('artifact overlay', () => {
     const el = await mount('tb');
     $activeRenderer.set('notebook');
     el.shadowRoot?.querySelector<HTMLButtonElement>('[data-action="graph"]')?.click();
-    expect($activeRenderer.get()).toBe('graph');
+    expect($activeRenderer.get()).toBe('graph-2d');
     expect($workspaceGraph.get().focus).toBe('tb');
   });
 });

@@ -10,7 +10,7 @@ const sorted = (ids: readonly string[]): string[] => [...ids].sort();
 
 describe('renderer definitions (D4)', () => {
   it('derives RendererId from the catalog keys (one source)', () => {
-    expect(sorted(RENDERER_IDS)).toEqual(sorted(['2d', '3d']));
+    expect(sorted(RENDERER_IDS)).toEqual(sorted(['graph-2d', 'graph-3d', 'notebook']));
     expect(RENDERER_IDS).toEqual(Object.keys(RENDERER_DEFS.definition));
   });
 
@@ -21,9 +21,9 @@ describe('renderer definitions (D4)', () => {
   });
 
   it('selects exactly the expected renderers for each facet', () => {
-    expect(sorted(rendererIdsWhere((def) => def.parity === 'full'))).toEqual(['2d']);
-    expect(sorted(rendererIdsWhere((def) => def.parity === 'partial'))).toEqual(['3d']);
-    expect(sorted(rendererIdsWhere((def) => def.controls?.includes('layers')))).toEqual(['2d']);
+    expect(sorted(rendererIdsWhere((def) => def.parity === 'full'))).toEqual(['graph-2d', 'notebook']);
+    expect(sorted(rendererIdsWhere((def) => def.parity === 'partial'))).toEqual(['graph-3d']);
+    expect(sorted(rendererIdsWhere((def) => def.controls?.includes('layers')))).toEqual(['graph-2d']);
     expect(sorted(rendererIdsWhere((def) => def.requiredCapability === 'webgpu'))).toEqual([]);
   });
 
@@ -36,6 +36,6 @@ describe('renderer definitions (D4)', () => {
   });
 
   it('catalog order matches declaration order', () => {
-    expect(RENDERER_IDS).toEqual(['2d', '3d']);
+    expect(RENDERER_IDS).toEqual(['graph-2d', 'graph-3d', 'notebook']);
   });
 });

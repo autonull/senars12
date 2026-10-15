@@ -34,8 +34,8 @@ const INTERACTIONS: readonly WorkspaceInteraction[] = [
 ];
 
 class Graph3DRenderer implements WorkspaceRenderer {
-  readonly id = 'graph3d';
-  readonly label = 'Graph 3D';
+  readonly id = 'graph-3d';
+  readonly label = '3D Graph';
 
   private ctx?: WorkspaceContext;
   private element?: HTMLElement;

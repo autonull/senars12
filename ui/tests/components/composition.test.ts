@@ -123,11 +123,12 @@ describe('config sync', () => {
   });
 
   it('applies globals to the atoms surfaces watch', () => {
+    // shape: 'table' selects notebook renderer (viewportMode: 2d), mode: '3d' is ignored for table
     applyGlobals({ lens: 'goal', layer: 'concepts', shape: 'table', mode: '3d', fit: 'fit', filter: 'all' });
     expect($activeLens.get()).toBe('goal');
     expect($graphLayer.get()).toBe('concepts');
     expect($graphShape.get()).toBe('table');
-    expect($viewportMode.get()).toBe('3d');
+    expect($viewportMode.get()).toBe('2d'); // notebook renderer uses 2d
     expect($graphFit.get()).toBe('fit');
     expect($graphFilter.get()).toBeNull();
   });

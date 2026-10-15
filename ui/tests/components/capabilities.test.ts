@@ -11,7 +11,7 @@ import { $activeRenderer } from '../../src/client/core/store.js';
 
 afterEach(() => {
   $capabilities.set(defaultCapabilities());
-  $activeRenderer.set('graph');
+  $activeRenderer.set('graph-2d');
 });
 
 describe('capability registry', () => {
@@ -36,14 +36,14 @@ describe('capability registry', () => {
 
   it('reframes the workspace when a renderer capability toggles (§2.5)', () => {
     setCapability('reasoning', true);
-    expect($activeRenderer.get()).toBe('graph');
+    expect($activeRenderer.get()).toBe('graph-2d');
     setCapability('reasoning', false);
     expect($activeRenderer.get()).toBe('notebook');
   });
 
   it('leaves the renderer alone when an unrelated capability toggles', () => {
-    $activeRenderer.set('graph');
+    $activeRenderer.set('graph-2d');
     setCapability('tools', true);
-    expect($activeRenderer.get()).toBe('graph');
+    expect($activeRenderer.get()).toBe('graph-2d');
   });
 });

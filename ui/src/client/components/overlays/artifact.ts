@@ -193,7 +193,7 @@ export class ArtifactView extends SurfaceComponent {
   };
 
   private readonly openInGraph = () => {
-    $activeRenderer.set('graph');
+    $activeRenderer.set('graph-2d');
     setWorkspaceFocus(this.ref);
     eventBus.emit('overlay:close', { id: 'artifact' });
   };

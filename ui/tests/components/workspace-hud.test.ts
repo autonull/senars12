@@ -15,7 +15,7 @@ const UNKNOWN_PROVIDER = { id: 'unknown', available: false, providers: [] } as c
 
 afterEach(() => {
   document.body.innerHTML = '';
-  $activeRenderer.set('graph');
+  $activeRenderer.set('graph-2d');
   $graphLayer.set('both');
   $graphNodes.set(new Map());
   $lmProvider.set(UNKNOWN_PROVIDER);
@@ -40,15 +40,15 @@ const query = <T extends Element>(root: ParentNode | null | undefined, selector:
 
 describe('workspace hud', () => {
   it('lists every registered renderer and marks the active one', async () => {
-    // Enable reasoning capability to show graph/graph3d renderers
+    // Enable reasoning capability to show graph-2d/graph-3d renderers
     setCapability('reasoning', true);
     const el = await mountHud();
     const ids = [...(el.shadowRoot?.querySelectorAll('button[data-renderer]') ?? [])].map(
       (button) => button.getAttribute('data-renderer')
     );
-    expect(ids).toEqual(expect.arrayContaining(['notebook', 'graph', 'graph3d']));
+    expect(ids).toEqual(expect.arrayContaining(['notebook', 'graph-2d', 'graph-3d']));
     const active = el.shadowRoot?.querySelector('button[aria-pressed="true"]');
-    expect(active?.getAttribute('data-renderer')).toBe('graph');
+    expect(active?.getAttribute('data-renderer')).toBe('graph-2d');
   });
 
   it('switches the active renderer on click', async () => {
@@ -89,7 +89,7 @@ describe('workspace hud', () => {
       el.shadowRoot?.querySelector('button[data-layer="conversation"]')?.getAttribute('aria-pressed')
     ).toBe('true');
 
-    $activeRenderer.set('graph3d');
+    $activeRenderer.set('graph-3d');
     await el.updateComplete;
     expect(layers()).toEqual([]);
 

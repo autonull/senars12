@@ -215,7 +215,7 @@ export class BlockMenuView extends SurfaceComponent {
     eventBus.emit('overlay:open', { id: 'artifact', ref: this.ref });
 
   private readonly openInGraph = () => {
-    $activeRenderer.set('graph');
+    $activeRenderer.set('graph-2d');
     setWorkspaceFocus(this.ref);
     eventBus.emit('overlay:close', { id: 'block-menu' });
   };

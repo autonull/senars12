@@ -195,7 +195,7 @@ export function rewindCycle(targetCycle: number): void {
 }
 
 export const $workspaceGraph = atom<WorkspaceGraph>(emptyWorkspaceGraph());
-export const $activeRenderer = atom<string>('graph');
+export const $activeRenderer = atom<string>('graph-2d');
 
 /** The UI.17 focus stack — one focus, reversible navigation (§2, §16 Step 3). */
 export const $focusStack = createFocusStack(MIND_FOCUS);

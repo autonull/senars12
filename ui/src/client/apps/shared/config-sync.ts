@@ -10,6 +10,7 @@
 
 import {
   $activeLens,
+  $activeRenderer,
   $graphFilter,
   $graphFit,
   $graphLayer,
@@ -90,8 +91,13 @@ export function applyGlobals(globals: Globals = {}): void {
   if (globals.lens) $activeLens.set(globals.lens as never);
   // Lens changes cascade into the layer; set the explicit layer after so it wins.
   if (globals.layer) $graphLayer.set(globals.layer as never);
-  if (globals.shape) $graphShape.set(globals.shape);
-  if (globals.mode) $viewportMode.set(globals.mode);
+  // shape + mode determine the renderer: table -> notebook, spatial+3d -> graph-3d, else graph-2d
+  if (globals.shape || globals.mode) {
+    const shape = globals.shape ?? 'graph';
+    const mode = globals.mode ?? '2d';
+    const renderer = shape === 'table' ? 'notebook' : mode === '3d' ? 'graph-3d' : 'graph-2d';
+    $activeRenderer.set(renderer);
+  }
   if (globals.fit) $graphFit.set(globals.fit);
   if (globals.filter !== undefined)
     $graphFilter.set(globals.filter === FILTER_ALL ? null : globals.filter);

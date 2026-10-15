@@ -10,8 +10,8 @@ const confidenceOpacityMax = numericToken('colors.confidence.opacity-max', 1);
 const confidenceToOpacity = (c: number): number =>
   confidenceOpacityMin + (confidenceOpacityMax - confidenceOpacityMin) * c;
 
-export const SUPPORT_2D = RENDERER_CAPABILITIES['2d'].node;
-export const SUPPORT_2D_EDGES = RENDERER_CAPABILITIES['2d'].edge;
+export const SUPPORT_2D = RENDERER_CAPABILITIES['graph-2d'].node;
+export const SUPPORT_2D_EDGES = RENDERER_CAPABILITIES['graph-2d'].edge;
 
 interface StyleChanges {
   'background-color'?: string;

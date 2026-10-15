@@ -177,8 +177,6 @@ export const FOCUS_KINDS: readonly FocusKind[] = [
 export const isFocusKind = (kind: string): kind is FocusKind =>
   (FOCUS_KINDS as readonly string[]).includes(kind);
 
-import type { ArrangementKind } from './arrangement.js';
-
 /** How a focus is projected — the aspect *is* the intent (§7). */
 export type Aspect =
   | 'neighborhood'
@@ -205,21 +203,6 @@ export const isAspect = (aspect: string): aspect is Aspect =>
   (ASPECTS as readonly string[]).includes(aspect);
 
 /**
- * The default arrangement for an (aspect, depth) pair (§15).
- * This is the routing seam for Step 3 — one table drives both aspect projection
- * and spatial arrangement.
- */
-export const ASPECT_ARRANGEMENT: Readonly<Record<Aspect, ArrangementKind>> = {
-  neighborhood: 'spatial',
-  content: 'outline',
-  provenance: 'outline',
-  origin: 'spatial',
-  history: 'linear',
-  ambient: 'spatial',
-  direct: 'grid',
-};
-
-/**
  * The UI.16 surface each aspect absorbs (§7/§15) — where a projection is rendered
  * until it has a dedicated renderer. `undefined` means the aspect is new.
  */
@@ -232,12 +215,6 @@ export const ASPECT_SURFACES: Readonly<Record<Aspect, string | undefined>> = {
   ambient: 's-events',
   direct: 's-settings',
 };
-
-/** Get the default arrangement for an aspect (depth-aware override for content). */
-export function defaultArrangementFor(aspect: Aspect, depth: number): ArrangementKind {
-  if (aspect === 'content') return depth === 0 ? 'linear' : 'outline';
-  return ASPECT_ARRANGEMENT[aspect];
-}
 
 /** Expansion into a focus's containment — the fractal's discrete ladder (§8, §19.1). */
 export const DEPTHS = [0, 1, 2, 3] as const;

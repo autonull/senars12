@@ -226,9 +226,17 @@ export const $lensViewport = atom<Record<string, { x: number; y: number; zoom: n
 
 export const $graphFilter = atom<string | null>(null);
 
-export const $viewportMode = atom<ViewportMode>('2d');
+/** Derived from active renderer: graph-2d -> 2d, graph-3d -> 3d, notebook -> 2d (default). */
+export const $viewportMode = derived($activeRenderer, (renderer) => {
+  if (renderer === 'graph-3d') return '3d';
+  return '2d';
+});
 
-export const $graphShape = atom<Shape>('graph');
+/** Derived from active renderer: notebook -> table, graph-* -> graph. */
+export const $graphShape = derived($activeRenderer, (renderer) => {
+  if (renderer === 'notebook') return 'table';
+  return 'graph';
+});
 
 export const $graphLayer = atom<GraphLayer>('both');
 
@@ -567,7 +575,12 @@ function serializeHash(state: UrlState): string {
 export function hydrateFromUrl() {
   const parsed = parseHash();
   if (parsed.renderer && !workspaceRendererIds().includes(parsed.renderer)) {
-    delete parsed.renderer;
+    // Back-compat: map old renderer ids to canonical ones
+    const legacyMap: Record<string, string> = { graph: 'graph-2d', '2d': 'graph-2d', '3d': 'graph-3d' };
+    parsed.renderer = legacyMap[parsed.renderer] ?? parsed.renderer;
+    if (!workspaceRendererIds().includes(parsed.renderer)) {
+      delete parsed.renderer;
+    }
   }
   if (parsed.layout && !isRegisteredLayoutId(parsed.layout)) {
     delete parsed.layout;

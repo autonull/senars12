@@ -33,9 +33,9 @@ describe('renderer parity (§10, Phase 2.5)', () => {
     setWorkspaceSelection([]);
   });
 
-  it('registers notebook, graph and a declared-partial graph3d', () => {
+  it('registers notebook, graph-2d and a declared-partial graph-3d', () => {
     const ids = workspaceRenderers().map((renderer) => renderer.id);
-    expect(ids).toEqual(expect.arrayContaining(['notebook', 'graph', 'graph3d']));
+    expect(ids).toEqual(expect.arrayContaining(['notebook', 'graph-2d', 'graph-3d']));
     expect(graph3dRenderer.capabilities().parity).toBe('partial');
     for (const renderer of [notebookRenderer, graphRenderer]) {
       expect(renderer.capabilities().parity).toBe('full');
@@ -56,7 +56,7 @@ describe('renderer parity (§10, Phase 2.5)', () => {
 
   it('gates interactions and controls from the parity table', () => {
     const notebook = must(workspaceRenderer('notebook'));
-    const graph = must(workspaceRenderer('graph'));
+    const graph = must(workspaceRenderer('graph-2d'));
     expect(rendererSupports(notebook, 'compose')).toBe(true);
     expect(rendererHasControl(graph, 'layers')).toBe(true);
     expect(rendererHasControl(notebook, 'layers')).toBe(false);

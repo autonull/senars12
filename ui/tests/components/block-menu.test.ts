@@ -120,7 +120,7 @@ describe('block menu surface', () => {
     $workspaceGraph.set(build(false));
     const el = await mount('c');
     action(el, 'open-graph')?.click();
-    expect($activeRenderer.get()).toBe('graph');
+    expect($activeRenderer.get()).toBe('graph-2d');
     expect($workspaceGraph.get().focus).toBe('c');
   });
 

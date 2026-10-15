@@ -111,7 +111,7 @@ export class AppLayout extends BaseComponent {
 
     // Graph-specific shortcuts (no modifiers)
     const graph = $workspaceGraph.get();
-    if ($activeRenderer.get() === 'graph') {
+    if ($activeRenderer.get() === 'graph-2d') {
       switch (event.key.toLowerCase()) {
         case 'a': {
           event.preventDefault();

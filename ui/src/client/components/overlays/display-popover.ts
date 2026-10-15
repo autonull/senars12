@@ -142,9 +142,9 @@ class DisplayPopoverBase extends SurfaceComponent {
     const layout = $lensLayout.get()[lens];
 
     if (renderer === 'notebook' && lens === 'belief' && layout === 'conversation') return 'ask';
-    if (renderer === 'graph' && lens === 'belief' && layout === 'cose') return 'explore';
+    if (renderer === 'graph-2d' && lens === 'belief' && layout === 'cose') return 'explore';
     if (renderer === 'notebook' && lens === 'belief' && layout === 'conversation') return 'read';
-    if (renderer === 'graph' && lens === 'goal' && layout === 'concentric') return 'plan';
+    if (renderer === 'graph-2d' && lens === 'goal' && layout === 'concentric') return 'plan';
     return 'custom';
   }
 
@@ -157,9 +157,9 @@ class DisplayPopoverBase extends SurfaceComponent {
   private renderPresets(): TemplateResult {
     const presets = [
       { id: 'ask', label: 'Ask', desc: 'Chat with the LM; submit questions, get answers, steer with prose.', renderer: 'notebook', lens: 'belief', layout: 'conversation' },
-      { id: 'explore', label: 'Explore', desc: 'Navigate the concept graph; zoom, filter, trace derivations.', renderer: 'graph', lens: 'belief', layout: 'cose' },
+      { id: 'explore', label: 'Explore', desc: 'Navigate the concept graph; zoom, filter, trace derivations.', renderer: 'graph-2d', lens: 'belief', layout: 'cose' },
       { id: 'read', label: 'Read', desc: 'Read the notebook; folded sections, citations, embedded views.', renderer: 'notebook', lens: 'belief', layout: 'conversation' },
-      { id: 'plan', label: 'Plan', desc: 'Set goals, watch gates/budget/termination, steer autonomy.', renderer: 'graph', lens: 'goal', layout: 'concentric' },
+      { id: 'plan', label: 'Plan', desc: 'Set goals, watch gates/budget/termination, steer autonomy.', renderer: 'graph-2d', lens: 'goal', layout: 'concentric' },
     ] as const;
 
     return html`

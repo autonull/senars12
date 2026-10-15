@@ -2,11 +2,11 @@ import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
 import { RENDERER_CAPABILITIES, unsupportedChannels } from '../utils/renderer-capabilities.js';
 import { theme } from '../utils/theme.js';
 
-export const SUPPORT_3D = RENDERER_CAPABILITIES['3d'].node;
-export const SUPPORT_3D_EDGES = RENDERER_CAPABILITIES['3d'].edge;
+export const SUPPORT_3D = RENDERER_CAPABILITIES['graph-3d'].node;
+export const SUPPORT_3D_EDGES = RENDERER_CAPABILITIES['graph-3d'].edge;
 
 export const checkUnsupportedChannels = (delta: Delta, isEdge: (id: string) => boolean): Channel[] =>
-  unsupportedChannels(delta, '3d', isEdge);
+  unsupportedChannels(delta, 'graph-3d', isEdge);
 
 function applyNodeVisuals(
   node: {

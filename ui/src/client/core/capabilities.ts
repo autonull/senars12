@@ -76,10 +76,10 @@ export const capabilityGate = (capability: Capability): boolean =>
  * Deliberately not applied at boot, where the shell's own default holds.
  */
 export const defaultRendererFor = (caps: ReadonlySet<Capability>): string =>
-  caps.has('reasoning') ? 'graph' : 'notebook';
+  caps.has('reasoning') ? 'graph-2d' : 'notebook';
 
 /** Capabilities that carry a default-renderer opinion; toggling others never reframes the workspace. */
-const RENDERER_CAPABILITIES = new Set<Capability>(['language', 'reasoning']);
+const RENDERER_GATE_CAPABILITIES = new Set<Capability>(['language', 'reasoning']);
 
 export const setCapability = (id: Capability, enabled: boolean): void => {
   const next = new Set($capabilities.get());
@@ -87,7 +87,7 @@ export const setCapability = (id: Capability, enabled: boolean): void => {
   else next.delete(id);
   $capabilities.set(next);
   // Enabling Reasoning or dropping the last Language switches to the composition's default renderer.
-  if (RENDERER_CAPABILITIES.has(id)) $activeRenderer.set(defaultRendererFor(next));
+  if (RENDERER_GATE_CAPABILITIES.has(id)) $activeRenderer.set(defaultRendererFor(next));
 };
 
 /** Registry of capabilities. */
