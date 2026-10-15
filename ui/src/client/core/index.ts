@@ -308,6 +308,12 @@ export {
   // UI.17 focus model
   $focusStack,
   $focus,
+  $aspect,
+  setAspect,
+  $depth,
+  setDepth,
+  $time,
+  setTime,
   // UI.17 attention runtime
   attendFocus,
   tierOf,

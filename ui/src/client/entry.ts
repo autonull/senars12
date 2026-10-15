@@ -19,6 +19,12 @@ import './components/input-hud.js';
 import './components/config-hud.js';
 import './components/telemetry-panel.js';
 import './components/contradiction-badge.js';
+import './components/aspect-panel.js';
+
+// Phase 1: Instrument components
+import './components/instrument/cycle-controls.js';
+import './components/instrument/trace-viewer.js';
+import './components/instrument/gate-inspector.js';
 
 // Phase 2: Graph interaction components
 import './components/lens-controller.js';

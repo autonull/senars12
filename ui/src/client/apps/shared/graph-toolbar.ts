@@ -1,5 +1,5 @@
 /**
- * GraphToolbar — composite toolbar for lens/layer/filter/mode controls.
+ * GraphToolbar — composite toolbar for lens/layer/filter/mode/aspect controls.
  *
  * Used by apps that need standard graph controls.
  */
@@ -9,12 +9,15 @@ import { BaseComponent } from '../../core/base-component.js';
 import {
   $activeLens,
   $activeRenderer,
+  $aspect,
   $graphLayer,
   setActiveRenderer,
+  setAspect,
 } from '../../kernel/index.js';
 import { LENS_FACETS } from '../../utils/lens-catalog.js';
 import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
 import { FILTER_FACETS } from '../../core/filter-facets.js';
+import { ASPECTS, ASPECT_LABELS, ASPECT_ICONS } from '../../framework/coordinates.js';
 import './toolbar-select.js';
 
 export interface GraphToolbarConfig {
@@ -23,6 +26,7 @@ export interface GraphToolbarConfig {
   showShape?: boolean;
   showMode?: boolean;
   showFilter?: boolean;
+  showAspect?: boolean;
   defaultLens?: string;
   defaultLayer?: string;
 }
@@ -49,6 +53,7 @@ export class GraphToolbar extends BaseComponent {
   @property({ type: Boolean }) showShape = true;
   @property({ type: Boolean }) showMode = true;
   @property({ type: Boolean }) showFilter = true;
+  @property({ type: Boolean }) showAspect = true;
   @property({ type: String }) defaultLens = 'belief';
   @property({ type: String }) defaultLayer = 'both';
 
@@ -56,6 +61,7 @@ export class GraphToolbar extends BaseComponent {
   @state() private activeLayer = 'both';
   @state() private activeRenderer = 'graph-2d';
   @state() private activeFilter = 'all';
+  @state() private activeAspect = 'content';
 
   private get activeShape(): 'graph' | 'table' {
     return this.activeRenderer === 'notebook' ? 'table' : 'graph';
@@ -70,9 +76,11 @@ export class GraphToolbar extends BaseComponent {
     this.watchWith($activeLens, (v) => (this.activeLens = v));
     this.watchWith($activeRenderer, (v) => (this.activeRenderer = v));
     this.watchWith($graphLayer, (v) => (this.activeLayer = v));
+    this.watchWith($aspect, (v) => (this.activeAspect = v));
     this.activeLens = $activeLens.get();
     this.activeRenderer = $activeRenderer.get();
     this.activeLayer = $graphLayer.get();
+    this.activeAspect = $aspect.get();
   }
 
   private handleLensChange = (e: CustomEvent): void => {
@@ -100,6 +108,10 @@ export class GraphToolbar extends BaseComponent {
     this.dispatchEvent(new CustomEvent('filter-change', { detail: { value: e.detail.value }, bubbles: true }));
   };
 
+  private handleAspectChange = (e: CustomEvent): void => {
+    setAspect(e.detail.value);
+  };
+
   private lensOptions = LENS_FACETS.ids.map((id) => {
     const facet = LENS_FACETS.get(id);
     return { value: id, label: facet!.label };
@@ -124,6 +136,11 @@ export class GraphToolbar extends BaseComponent {
     const facet = FILTER_FACETS.get(id);
     return { value: id, label: facet!.label };
   });
+
+  private aspectOptions = ASPECTS.map((aspect) => ({
+    value: aspect,
+    label: ASPECT_LABELS[aspect],
+  }));
 
   protected override render(): TemplateResult {
     return html`
@@ -168,6 +185,17 @@ export class GraphToolbar extends BaseComponent {
             .options=${this.modeOptions}
             .selectAriaLabel=${'Graph mode'}
             @change=${this.handleModeChange}
+          ></toolbar-select>
+        </div>
+      ` : nothing}
+      ${this.showAspect ? html`
+        <div class="toolbar-group">
+          <toolbar-select
+            .selectLabel=${'Aspect'}
+            .selectedValue=${this.activeAspect}
+            .options=${this.aspectOptions}
+            .selectAriaLabel=${'Focus aspect'}
+            @change=${this.handleAspectChange}
           ></toolbar-select>
         </div>
       ` : nothing}

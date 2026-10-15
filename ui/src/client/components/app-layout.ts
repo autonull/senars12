@@ -3,6 +3,7 @@ import { customElement } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
 import {
   $activeRenderer,
+  $aspect,
   $collapsedBlocks,
   $connectionState,
   $graphNodes,
@@ -15,10 +16,12 @@ import {
   navigationForKey,
   OverlayHost,
   overlays,
+  setAspect,
   setWorkspaceFocus,
 } from '../core/index.js';
 import { dispatchCommand } from '../core/commands.js';
 import { $activeLens } from '../core/index.js';
+import { ASPECTS, ASPECT_LABELS, ASPECT_ICONS, type Aspect } from '../framework/coordinates.js';
 import './overlays/index.js';
 
 const isEditableTarget = (event: KeyboardEvent): boolean =>
@@ -108,6 +111,23 @@ export class AppLayout extends BaseComponent {
     const overlays = this.#overlays?.manager;
     if (event.altKey || overlays?.hasModal() || overlays?.containsFocus()) return;
     if (isEditableTarget(event)) return;
+
+    // Aspect switching shortcuts (no modifiers) — 1-7 for the 7 aspects
+    const aspectKeys: Record<string, Aspect> = {
+      '1': 'neighborhood',
+      '2': 'content',
+      '3': 'provenance',
+      '4': 'origin',
+      '5': 'history',
+      '6': 'ambient',
+      '7': 'direct',
+    };
+    const aspectKey = aspectKeys[event.key];
+    if (aspectKey) {
+      event.preventDefault();
+      setAspect(aspectKey);
+      return;
+    }
 
     // Graph-specific shortcuts (no modifiers)
     const graph = $workspaceGraph.get();

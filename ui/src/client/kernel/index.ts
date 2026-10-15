@@ -58,6 +58,12 @@ export {
   // UI.17 focus model
   $focusStack,
   $focus,
+  $aspect,
+  setAspect,
+  $depth,
+  setDepth,
+  $time,
+  setTime,
   type FocusRef,
   type FocusStack,
 } from './state.js';

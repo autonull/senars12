@@ -216,6 +216,28 @@ export const ASPECT_SURFACES: Readonly<Record<Aspect, string | undefined>> = {
   direct: 's-settings',
 };
 
+/** Human-readable labels for aspects. */
+export const ASPECT_LABELS: Record<Aspect, string> = {
+  neighborhood: 'Neighborhood',
+  content: 'Content',
+  provenance: 'Provenance',
+  origin: 'Origin',
+  history: 'History',
+  ambient: 'Ambient',
+  direct: 'Direct',
+};
+
+/** Icon names for aspects. */
+export const ASPECT_ICONS: Record<Aspect, string> = {
+  neighborhood: 'gitBranch',
+  content: 'fileText',
+  provenance: 'gitFork',
+  origin: 'source',
+  history: 'history',
+  ambient: 'radio',
+  direct: 'settings',
+};
+
 /** Expansion into a focus's containment — the fractal's discrete ladder (§8, §19.1). */
 export const DEPTHS = [0, 1, 2, 3] as const;
 

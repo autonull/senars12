@@ -68,6 +68,21 @@ const study: Composition = {
   globals: GRAPH_GLOBALS,
 };
 
+/** Instrument — the vivisection bench (UI.18 Phase 1). */
+const instrument: Composition = {
+  id: 'instrument',
+  name: 'Instrument',
+  layout: 'rail',
+  cells: [
+    { surface: 'graph-surface', area: 'main' },
+    { surface: 's-cycle-controls', area: 'rail' },
+    { surface: 's-trace-viewer', area: 'rail' },
+    { surface: 's-gate-inspector', area: 'rail' },
+    { surface: 's-aspect-panel', area: 'rail' },
+  ],
+  globals: { ...GRAPH_GLOBALS, layer: 'concepts' },
+};
+
 /** Every Studio preset. */
 export const STUDIO_PRESETS: readonly Composition[] = [
   chatGraph,
@@ -75,6 +90,7 @@ export const STUDIO_PRESETS: readonly Composition[] = [
   graph3d,
   dashboard,
   study,
+  instrument,
 ];
 
 /** The composition the Studio opens on when the URL names none. */

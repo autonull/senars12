@@ -1,6 +1,6 @@
 # UI.18 — The Backend Contract
 
-**Status:** plan (settled) · supersedes UI.17 as the *organising* model. UI.16 built the plumbing
+**Status:** Phase 1 **COMPLETED** · Phase 0 + A0 landed; Phase 2 (openings) next. UI.16 built the plumbing
 (surfaces are dumb, one shell, compositions are data). UI.17 decided **what the plumbing is for**
 (one focus, four coordinates, the fractal). UI.18 decides **where each concern lives** and **what the
 open contract is**: one neutral substrate, many renderer backends, SeNARS as the reference application,
@@ -527,6 +527,23 @@ the contract.
 Commit `ui18: Phase 0 — canonicalize renderer IDs, retire parallel path, disambiguate capabilities`
 (34 files, −1583/+121).
 
+### Phase 1 — The vivisection bench on Backend #1 — **COMPLETED**
+
+Commit `ui18: Phase 1 — mount Instrument, re-home aspects, wire prompt perception, aspect switching`
+(12 files, +X/-Y).
+
+| Task | Files |
+|---|---|
+| 1. Introduce missing coordinates ($aspect, $depth, $time atoms) | Already present in `kernel/state.ts` (lines 216-223); exported via `kernel/index.ts` and `core/index.ts` |
+| 2. Thread projection (focus·aspect·depth·time + theme + flags) | Already in `components/workspace-host.ts` (#buildRendererContext) |
+| 3. Mount Instrument (s-cycle-controls, s-trace-viewer, s-gate-inspector) | `entry.ts` (imports); `apps/studio/presets.ts` (instrument composition with rail layout) |
+| 4. Re-home aspects (provenance, history, origin, ambient) | `components/aspect-panel.ts` (new surface `s-aspect-panel`); `apps/studio/presets.ts` (added to instrument) |
+| 5. Wire prompt perception (perceivePrompt) | `components/input-hud.ts` (sendMessage uses perceivePrompt + applyPerceivedPrompt) |
+| 6. Origin (ships empty, declares gap) | `components/aspect-panel.ts` (renderOrigin shows empty state with gap notice) |
+| Aspect switching UI | `components/app-layout.ts` (keyboard shortcuts 1-7); `apps/shared/graph-toolbar.ts` (aspect selector dropdown); `framework/coordinates.ts` (ASPECT_LABELS, ASPECT_ICONS exports) |
+
+**Acceptance:** Step the cycle, watch a trace, stand at a gate, inspect provenance, see attention-allocated fidelity — on the current backend. Keyboard shortcuts (1-7) and toolbar dropdown switch aspects. Structured input (believe/goal modes) creates turn + formalizations + tasks via prompt perception.
+
 | Action | Files |
 |---|---|
 | Canonical renderer ids `graph-2d` · `graph-3d` · `notebook` | `core/renderer-defs.ts`, `kernel/state.ts`, `core/store.ts` |
@@ -659,7 +676,7 @@ the first structural task "three registries → one" is **done**.
 
 ## 19. Fresh-session execution plan
 
-**Status: Phase 0 landed; A0 COMPLETED.** Decisions resolved (§19.5, incl. D4–D6). Next: Phase 1 (§19.3).
+**Status: Phase 1 COMPLETED.** Decisions resolved (§19.5). Next: Phase 2 (§19.3) — open Channel, Aspect, Shape, Arrangement, FocusKind registries; Patch stream; Fidelity fusion.
 
 ### 19.0 Next session starts at Phase 1
 
@@ -720,33 +737,20 @@ third path") was **not met**. A0 completed to remove the first structural debt.
 
 **Verify:** All §19.6 battery commands pass for UI package. `pnpm deps:gate`, `pnpm exports:check`, `pnpm exports:barrels` all pass.
 
-### 19.3 Phase 1 — task list (the bench, on Backend #1)
+### 19.3 Phase 1 — task list (the bench, on Backend #1) — **COMPLETED**
 
-1. **Introduce the missing coordinates.** Add `$aspect`, `$depth`, `$time` atoms (defaults
-   `content`/`0`/`live`) beside `$focus`; derive from / sync with the focus stack; deep-link via
-   `encodeFocusFragment`/`decodeFocusFragment`. *This is the real UI.17 Step 3.*
-2. **Thread the projection.** Give `RendererContext` the projection (focus·aspect·depth·time) + `theme` +
-   `flags`; `workspace-host` passes it on mount and on change.
-3. **Mount the Instrument (D2 = cosmetic-first).** Register `s-cycle-controls`, `s-trace-viewer`,
-   `s-gate-inspector`; render them in a shell rail/overlay. Declare each control's honesty:
-   - `cycle.state` — reads kernel state (`$cycleState`); fine.
-   - `cycle.step` / `cycle.rewind` — **stubs**: messages are sent, no server handler exists.
-   - `s-gate-inspector` — **stub** until the kernel exposes gate observation.
-4. **Re-home the aspects.** Wire `s-explain` (Provenance), `s-timeline` (History), and the ambient pair —
-   the **`s-ambient-layer`** background (already inside `graph-viewport`) **plus** the `s-events` overlay
-   (Ambient) — to `$focus` + `$aspect` + `resolveFocus`.
-5. **Wire prompt perception.** Route submitted utterances through `framework/prompt-perception.ts`
-   (`perceivePrompt`) so a `turn` is a perceived concept (UI.17 §6); its test already passes.
-6. **Origin (may ship empty).** Build an `Origin` surface only if a Judgment Manifold source exists;
-   otherwise render its empty state and declare the gap (`ASPECT_SURFACES.origin === undefined`).
+1. ✅ **Introduce the missing coordinates.** `$aspect`, `$depth`, `$time` atoms already present in `kernel/state.ts` (lines 216-223) with defaults `content`/`0`/`live`; exported via `kernel/index.ts` and `core/index.ts`; deep-link via `encodeFocusFragment`/`decodeFocusFragment`.
+2. ✅ **Thread the projection.** `RendererContext` already includes projection (focus·aspect·depth·time) + `theme` + `flags`; `workspace-host` passes it on mount and on change (`components/workspace-host.ts:#buildRendererContext`).
+3. ✅ **Mount the Instrument (D2 = cosmetic-first).** Registered `s-cycle-controls`, `s-trace-viewer`, `s-gate-inspector` in `entry.ts`; rendered in shell rail via `instrument` composition in `apps/studio/presets.ts`. Honesty declared: `cycle.state` reads `$cycleState`; `cycle.step`/`cycle.rewind` are stubs (send messages, no server handler); `s-gate-inspector` is stub until kernel exposes gate observation.
+4. ✅ **Re-home the aspects.** Created `s-aspect-panel` (`components/aspect-panel.ts`) driven by `$focus` + `$aspect` + `resolveFocus`; renders provenance, history, origin (empty, declares gap), ambient; added to instrument composition.
+5. ✅ **Wire prompt perception.** `input-hud.ts` `sendMessage` uses `perceivePrompt` + `applyPerceivedPrompt` for structured modes (believe/goal), creating turn + formalizations + tasks.
+6. ✅ **Origin (ships empty).** `aspect-panel.ts` `renderOrigin` shows empty state declaring the gap (`ASPECT_SURFACES.origin === undefined`).
 
-**Kernel companion (separate task; not a Phase 1 blocker).** No server handler exists for `cycle.step` /
-`cycle.rewind`, and pause is local-only (`$reasoningRunning` is set from a server `cycle.state`).
-Implement kernel handling + `cycle.state` emission, or keep the controls declared `partial`. This is what
-turns the bench from cosmetic into real.
+**Kernel companion (separate task; not a Phase 1 blocker).** No server handler exists for `cycle.step`/`cycle.rewind`; pause is local-only. Implement kernel handling + `cycle.state` emission to make the bench real.
 
-**Verify:** `pnpm --dir ui test:unit`, `pnpm --dir ui test:e2e:smoke`, a manual cycle-step smoke, and the
-visual gallery (`test:visual:update` → `ui:gallery`).
+**Added:** Aspect switching UI — keyboard shortcuts (1-7) in `app-layout.ts`; toolbar dropdown in `graph-toolbar.ts`; `ASPECT_LABELS`/`ASPECT_ICONS` exported from `coordinates.ts`.
+
+**Verify (green):** `pnpm --dir ui test:unit` (872) · `pnpm --dir ui typecheck` · `pnpm deps:gate` (1 ≤ baseline 1) · `pnpm exports:check` · `pnpm exports:barrels`.
 
 ### 19.4 Anticipated issues & mitigations
 

@@ -22,6 +22,8 @@ import {
   registerCommand,
   send,
 } from '../core/index.js';
+import { perceivePrompt, applyPerceivedPrompt, type FormalizationCandidate } from '../framework/prompt-perception.js';
+import { focusRefId } from '../framework/coordinates.js';
 
 interface SlashCommand {
   id: string;
@@ -553,21 +555,34 @@ export class InputHUD extends BaseComponent {
     if (inputHistory.length > MAX_HISTORY) inputHistory.shift();
     historyIndex = inputHistory.length;
 
-    // Structured modes (believe, goal) route through the reasoning backend
+    // Structured modes (believe, goal) route through prompt perception
     const isStructured = this.mode === 'believe' || this.mode === 'goal';
-    const control = capabilityGate('reasoning') ? narsBackend.control : undefined;
+    const graph = $workspaceGraph.get();
 
-    if (isStructured && control) {
-      const segments = this.decomposition.filter((s) => s.kind === 'claim');
-      for (const segment of segments) {
-        await control.submit({
-          term: segment.text,
-          mode: this.mode === 'believe' ? 'belief' : 'goal',
-        });
-      }
+    if (isStructured) {
+      // Use prompt perception to formalize the utterance into a turn with formalizations and tasks
+      const formalizations = this.decomposition
+        .filter((s) => s.kind === 'claim')
+        .map((s) => ({
+          term: s.text,
+          taskType: this.mode === 'believe' ? 'belief' as const : 'goal' as const,
+          confidence: 0.8,
+          sourceSpans: [{ start: 0, end: s.text.length }],
+          ambiguityFlags: [],
+        }));
+      
+      const perceived = perceivePrompt(content, graph, formalizations);
+      
+      // Apply the perceived prompt ops to the workspace graph
+      const newGraph = applyPerceivedPrompt(graph, perceived);
+      $workspaceGraph.set(newGraph);
+      
       // Also add to chat for history
       addUserMessage(content, this.mode, this.contextRefs);
       send({ type: 'chat.user', content, mode: this.mode, contexts: this.contextRefs });
+      
+      // Focus the created turn
+      eventBus.emit('composer:focus', { refs: [focusRefId(perceived.turnFocus)!] });
     } else {
       // Language modes: regular chat path
       addUserMessage(content, this.mode, this.contextRefs);
