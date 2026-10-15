@@ -369,4 +369,95 @@ Because content and structure are one substrate:
 - **The UI *is* the cognition, projected.** Not a dashboard about the mind — a window that *is* the
   mind at whatever depth the user is thinking at.
 
+---
+
+## 18. The Instrument — vivisection, intervention, and the UI as a channel *into* the mind
+
+§0–§17 are the **navigation** half (a window). This is the **instrument** half: what makes the UI a
+developer's vivisection bench on a *running* mind, seeing immediate responses to changes — not a
+viewer. **The UI is not a window onto the mind; it is a channel *into* it** — simply another transport
+into the same live agent, alongside CLI / IRC / WS / MCP.
+
+### 18.1 Trace — a unit of cognition
+
+A new `FocusRef` kind. Where *focus* is a **subject**, a **trace** is a **process instance**: one
+cognitive act threaded end-to-end by the kernel's `correlationId` —
+
+```
+input ─▶ perception ─▶ formalization ─▶ attention ─▶ inference ─▶ admission ─▶ action ─▶ record
+```
+
+Focus a trace and the whole pipeline for that unit is one view. Correlates across gates, cycles, and
+subsystems; joins counters to the events behind them.
+
+### 18.2 The cycle as the clock
+
+The kernel micro-tick (`perceive · attend · reason · authorize · propose · learn`) is the heartbeat.
+Time's atomic unit is the **cycle**: `run / pause / step / rewind`. Every projection is
+cycle-relative, so "time" is grounded in the system's own beat, not wall-clock.
+
+### 18.3 Gates as control points
+
+Perception / Action / Reward / Budget are the *only* writers. The UI stands **at** a gate: watch what
+arrives, **why it was admitted or refused**, and intercept — `observe → veto → inject`. **Adjudication
+is a first-class aspect**, not a log tab.
+
+### 18.4 Breakpoints & watchpoints
+
+Halt when a condition holds — contradiction admitted, confidence exceeds *x*, budget exhausted,
+LM/gate failure, source-reputation clamp. At the break, inspect the whole four-coordinate state.
+**Watchpoints** are pinned traces / concepts that update live.
+
+### 18.5 Intervention + diff
+
+Edit the mind at runtime — believe · retract · goal · tune · swap-strategy · attach-probe — and see
+the **diff**: which concepts / tasks / goals changed, with truth deltas. *Git diff for a mind.*
+
+### 18.6 Causal & counterfactual replay — the killer
+
+SeNARS is event-sourced, so this is *possible*, and no ordinary UI can do it. Trace causality **both
+ways** (why it holds / what it caused); then **rewind to an event, alter one input or truth value,
+re-run, and see what the mind would have concluded.** This is the vivisection.
+
+### 18.7 Interaction as cognition
+
+Every focus, injection, and correction is *perceived*: a cognitive event, recorded in the log,
+replayable, and — via the Dialogue Flywheel — usable as training signal. The tool is **part of the
+mind it inspects**; a developer is another channel into the same running agent.
+
+### 18.8 The vitals layer
+
+Always-on, ambient, not a panel: attention heat, active foci, drives, budget pressure, LM spend, gate
+queue depths. *The mind at a glance.*
+
+---
+
+## 19. Risks & de-risking (honest limits)
+
+1. **Continuous fractal zoom.** Cytoscape is a *discrete* 2-D canvas; "a node becomes a document,
+   continuously" needs a canvas + pinned-DOM hybrid with coordinated layout and hit-testing (the
+   problem SpaceGraph exists to solve). → *Ship a discrete **depth ladder** first; add continuity only
+   if it earns its keep.*
+2. **Global time-travel.** Projecting the *whole* UI at arbitrary `t` needs replay or snapshot+delta.
+   → *Time v1 = what the substrate already time-indexes — concept **revision history** and derivation
+   **provenance** — plus event-log navigation; whole-state rewind later.*
+3. **The Resolver is load-bearing.** Every `FocusRef` kind must resolve to
+   `content · neighborhood · provenance · history · trace`. **Design this typed interface first** — it
+   is most of the real cost.
+4. **Containment must be real.** The fractal is only as deep as the substrate's containment edges.
+   Exist today: concept→tasks, derivation→steps, event→cycle, proposal→judgment. Partial:
+   turn→formalization, goal→subgoals. Fill the gaps as needed.
+5. **Liveness & performance.** A live mind emits continuously; rich projections over it need
+   sampling/virtualisation discipline and a **noise budget** from the start.
+
+---
+
+## 20. The stake, restated
+
+The UI is **not a dashboard about the mind — it is a projection that *is* the mind**, at whatever
+depth the user is thinking, reducible to any conventional UI, mixing flat content and graph freely,
+where a prompt is a perceived concept and the conversation is graph growth — and, for a developer, a
+**vivisection bench**: step the cycle, stand at the gates, break on a condition, intervene, diff the
+ripple, replay counterfactually, and treat your own interaction as cognition.
+
 That is the stake. This document is the contract.
