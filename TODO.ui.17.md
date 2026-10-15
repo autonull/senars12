@@ -598,12 +598,13 @@ Pure, tested, DOM-free foundation under `ui/src/client/framework/`, `ui/src/clie
 | Exports | `kernel/index.ts`, `core/store.ts`, `core/index.ts` | `$focusStack`, `$focus`, `FocusRef`, `FocusStack` re-exported through kernel → core |
 | Attention runtime | `framework/attention-runtime.ts` | Singleton `AttentionField`, per-frame `decay()` loop via `requestAnimationFrame`, `attendFocus`/`releaseFocus`/`tierOf`/`tierToZoom`/`currentAllocations`/`resetAttentionField`/`attendMind` |
 | Graph viewport integration | `components/graph-viewport.ts` | Watches `$focus`, calls `attendFocus(focusRef, 'focus', 1.0)` on change, reads `tierOf` for LOD/zoom |
+| **Cell renderer integration (Step 4)** | `components/node-body.ts`, `utils/render-block.ts` | `s-node-body` attends its focus on mount, polls `tierOf` each frame, reflects `attention-tier` attribute, truncates content for `card` tier via `renderBlockBody(block, sources, depth, tier)` |
 
 Tests: `ui/tests/framework/focus-model.test.ts` (17 tests), `ui/tests/framework/attention.test.ts` (9 tests) — all pass.
 
 ### Remaining — facilitated next steps
 
-1. **Wire attention into cell renderers (Step 4 completion).** The graph viewport attends the focus; other renderers (notebook, chat, artifact, block-menu, related, toc) should also `attendFocus` on hover/focus and read `tierOf` for their LOD decisions. The `s-node-body` component is the primary cell renderer — it should consume the attention tier for its rendering fidelity.
+1. **Wire attention into other renderers (Step 4 completion).** Notebook, chat, artifact, block-menu, related, toc should also `attendFocus` on hover/focus and read `tierOf` for their LOD decisions.
 2. **Ambient layer sampling.** Use `field.sample()` / `sampleMany(budget)` from the attention runtime for the ambient layer (§13) — show a weighted sample of low-attention foci as glyphs in the background.
 3. **Tests:** add cases for non-block foci (`mind`/`drive`/`time`) as wiring introduces them, and for containment edges filling §19.4 gaps (turn→formalization, goal→subgoals).
 4. **Arrangement strategies (Step 8).** Linear / outline / spatial / grid / mixed over a cell set — the `composition-view` / layout machinery becomes one strategy.

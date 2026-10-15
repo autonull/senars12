@@ -75,8 +75,11 @@ const cappedEmbed = (block: SemanticBlock, spec: ViewSpec): TemplateResult => ht
 `;
 
 /** A block's artifact: rendered live while within the depth budget, capped beyond it. */
-const embed = (block: SemanticBlock, spec: ViewSpec, depth: number): TemplateResult =>
+const embed = (block: SemanticBlock, spec: ViewSpec, depth: number, tier?: NodeTier): TemplateResult =>
   embedDepthExceeded(depth) ? cappedEmbed(block, spec) : embedded(spec, depth);
+
+/** Render tier for body detail level. */
+export type NodeTier = 'card' | 'full';
 
 const renderTable = (data: TableData): TemplateResult => html`
   <table class="data">
@@ -88,7 +91,7 @@ const renderTable = (data: TableData): TemplateResult => html`
 `;
 
 /** The inline Markdown subset as Lit nodes — no `innerHTML`, so text is escaped by construction. */
-function renderInline(text: string, sources: readonly Source[]): unknown[] {
+function renderInline(text: string, sources: readonly Source[], tier?: NodeTier): unknown[] {
   return tokenizeInline(text).map((token) => {
     switch (token.type) {
       case 'code':
@@ -118,8 +121,16 @@ function renderInline(text: string, sources: readonly Source[]): unknown[] {
   });
 }
 
-function renderHeading(block: SemanticBlock, sources: readonly Source[]): TemplateResult {
-  const body = renderInline(block.text ?? block.title ?? '', sources);
+/** Truncate text to a summary for card tier. */
+function truncateForCard(text: string | undefined, maxLines = 3): string {
+  if (!text) return '';
+  const lines = text.split('\n');
+  if (lines.length <= maxLines) return text;
+  return lines.slice(0, maxLines).join('\n') + '…';
+}
+
+function renderHeading(block: SemanticBlock, sources: readonly Source[], tier?: NodeTier): TemplateResult {
+  const body = renderInline(tier === 'card' ? truncateForCard(block.text ?? block.title ?? '') : block.text ?? block.title ?? '', sources, tier);
   switch (Math.min(Math.max(block.level ?? 2, 1), 6)) {
     case 1:
       return html`<h1 class="heading">${body}</h1>`;
@@ -142,14 +153,16 @@ function renderHeading(block: SemanticBlock, sources: readonly Source[]): Templa
  * bibliography inline `[n]` references and citation entries resolve against.
  * `depth` counts the projections this body is nested inside, so a fractal body
  * stops at `MAX_EMBED_DEPTH` instead of recursing without end.
+ * `tier` controls detail level: 'card' shows truncated summary, 'full' shows everything.
  */
 export function renderBlockBody(
   block: SemanticBlock,
   sources: readonly Source[],
-  depth = 0
+  depth = 0,
+  tier?: NodeTier
 ): TemplateResult | typeof nothing {
-  if (block.kind === 'heading') return renderHeading(block, sources);
-  if (block.spec) return embed(block, block.spec, depth);
+  if (block.kind === 'heading') return renderHeading(block, sources, tier);
+  if (block.spec) return embed(block, block.spec, depth, tier);
   if (block.kind === 'image' && block.data) {
     const image = payloadOf(block.data, 'image');
     if (image)
@@ -176,29 +189,33 @@ export function renderBlockBody(
   if (block.kind === 'code') {
     const spec = artifactViewSpec(block);
     return spec
-      ? embed(block, spec, depth)
-      : html`<pre class="code"><code>${block.text}</code></pre>`;
+      ? embed(block, spec, depth, tier)
+      : html`<pre class="code"><code>${tier === 'card' ? truncateForCard(block.text) : block.text}</code></pre>`;
   }
   if (block.kind === 'table' && block.data) {
     const spec = artifactViewSpec(block);
-    if (spec) return embed(block, spec, depth);
+    if (spec) return embed(block, spec, depth, tier);
     const data = payloadOf(block.data, 'table');
     if (data) return renderTable(data);
   }
   if (block.kind === 'config-change') {
     const spec = artifactViewSpec(block);
-    if (spec) return embed(block, spec, depth);
+    if (spec) return embed(block, spec, depth, tier);
   }
   if ((block.kind === 'derivation' || block.kind === 'derivation-record') && block.data) {
     const spec = artifactViewSpec(block);
-    if (spec) return embed(block, spec, depth);
+    if (spec) return embed(block, spec, depth, tier);
   }
   if (block.kind === 'list' && block.data) {
     const items = payloadOf(block.data, 'list')?.items;
-    if (items)
+    if (items) {
+      const renderItem = (item: string) => renderInline(tier === 'card' ? truncateForCard(item) : item, sources, tier);
       return html`<ul class="list">
-        ${items.map((item) => html`<li>${renderInline(item, sources)}</li>`)}
+        ${items.map((item) => html`<li>${renderItem(item)}</li>`)}
       </ul>`;
+    }
   }
-  return block.text ? html`<div class="text">${renderInline(block.text, sources)}</div>` : nothing;
+  return block.text
+    ? html`<div class="text">${renderInline(tier === 'card' ? truncateForCard(block.text) : block.text, sources, tier)}</div>`
+    : nothing;
 }
