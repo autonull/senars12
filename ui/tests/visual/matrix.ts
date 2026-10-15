@@ -16,13 +16,15 @@ export type VisualCell = {
   /** Contact-sheet section. */
   group: string;
   title: string;
+  /** One-sentence caption for the gallery: what it shows and what you can do. */
+  explain?: string;
   /** The §P1 coverage key this cell satisfies: `overlay:<id>` | `renderer:<id>` | … */
   surface?: string;
   /** Led in the gallery's Journeys strip (≤6) — proves the paradigm, not just coverage. */
   journey?: boolean;
   /** Scenario loaded through the real engine before the page boots. */
   scenario?: string;
-  /** URL hash applied through the real boot-hydration path. */
+  /** URL applied through the real boot-hydration path. */
   hash?: string;
   viewport?: { width: number; height: number };
   /** Deterministic layout forced after data arrives (defaults to breadthfirst). */
@@ -644,6 +646,62 @@ const openOverlayWithRef =
   };
 
 /**
+ * Seed the teleological workspace with goal blocks before capture, so the Goals
+ * app shows a populated objective list rather than its empty state.
+ */
+const seedGoals: VisualCell['prepare'] = async ({ page }) => {
+  const blocks = [
+    { id: 'goal-robin', kind: 'goal', role: 'user', text: 'Achieve (robin-->animal)!', status: 'active', createdAt: 1, createdBy: 'user' },
+    { id: 'goal-bird', kind: 'goal', role: 'user', text: 'Learn (bird-->animal)!', status: 'pending', createdAt: 2, createdBy: 'user' },
+    { id: 'goal-cat', kind: 'goal', role: 'user', text: 'Verify (cat-->mammal)!', status: 'active', createdAt: 3, createdBy: 'user' },
+  ];
+  await page.evaluate((seeded) => {
+    const api = (window as Record<string, unknown>).__testApi as {
+      store?: { setState?: (path: string, value: unknown) => void };
+    };
+    const map = new Map<string, unknown>(seeded.map((b) => [b.id, b]));
+    api?.store?.setState?.('workspaceGraph', {
+      blocks: map,
+      links: new Map(),
+      roots: seeded.map((b) => b.id),
+      selection: new Set(),
+    });
+  }, blocks);
+  await page.waitForTimeout(300);
+};
+
+/**
+ * A Lab composition, addressed by `?v=<id>` on the `/apps/lab/` entry. Lab and
+ * Studio render the same surfaces the ask shell does, composed by name — so a
+ * cell here proves a *composition*, not one surface.
+ */
+const labPreset = (id: string, title: string, explain: string, preset: string): VisualCell => ({
+  id,
+  group: 'Lab',
+  title,
+  explain,
+  hash: `apps/lab/?v=${preset}`,
+});
+
+/** A Studio composition, addressed by `?preset=<id>` on `/apps/studio/`. */
+const studioPreset = (id: string, title: string, explain: string, preset: string): VisualCell => ({
+  id,
+  group: 'Studio',
+  title,
+  explain,
+  hash: `apps/studio/?preset=${preset}`,
+});
+
+/** A standalone app entry: one surface taken on its own, at its own URL. */
+const appPage = (id: string, title: string, explain: string, path: string): VisualCell => ({
+  id,
+  group: 'Apps',
+  title,
+  explain,
+  hash: path,
+});
+
+/**
  * The curated visual matrix. Cells are data: the spec renders each through the
  * real boot path, `surface` keys the §P1 coverage contract (see
  * `visual-coverage.test.ts`), and layouts are forced deterministic because
@@ -1170,6 +1228,131 @@ const HAND_CURATED_CELLS: VisualCell[] = [
       await page.waitForTimeout(400);
     },
   },
+
+  // ── Composed apps. The Lab and Studio mount *named compositions* of the same
+  //    surfaces the ask shell uses (`/apps/lab/?v=<id>`, `/apps/studio/?preset=<id>`),
+  //    and the standalone apps are single surfaces taken on their own. One
+  //    substrate, many projections, addressed as pages.
+  labPreset(
+    'lab-triple',
+    'Chat · graph · notebook',
+    'Three projections of one substrate side by side: say it, watch concepts form, then read the argument as a document. The composer bar re-composes the widget set live.',
+    'triple'
+  ),
+  labPreset(
+    'lab-mosaic',
+    'Mosaic — six panes',
+    'Chat, graph, notebook, metrics, console and explorer in one wall: every projection of the same substrate at once.',
+    'mosaic'
+  ),
+  labPreset(
+    'lab-dashboard',
+    'Dashboard — the observability wall',
+    'Metrics, graph and conversation together — watch the run while you drive it.',
+    'dashboard'
+  ),
+  labPreset(
+    'lab-quad',
+    'Quad — 2×2 of the core projections',
+    'Chat, graph, notebook and metrics in a balanced grid: the four faces of one substrate.',
+    'quad'
+  ),
+  labPreset(
+    'lab-reasoning-desk',
+    'Reasoning desk',
+    'Ask, read and inspect in one workspace: the composer, the document, and the live detail rail.',
+    'reasoning-desk'
+  ),
+  labPreset(
+    'lab-command-deck',
+    'Command deck',
+    'Console, goals and the graph they operate on — raw Narsese beside the objectives it serves.',
+    'command-deck'
+  ),
+  labPreset(
+    'lab-graph-table',
+    'Graph — table',
+    'The same concepts as a sortable table — truth, priority and confidence as columns.',
+    'graph-table'
+  ),
+  labPreset(
+    'lab-telemetry-wall',
+    'Telemetry wall',
+    'Every meter the kernel exposes, side by side above the graph.',
+    'telemetry-wall'
+  ),
+  labPreset(
+    'lab-graph-full-chrome',
+    'Graph + full chrome',
+    'Canvas with its own toolbar, minimap, legend and lens rail — the graph as a first-class app.',
+    'graph-full-chrome'
+  ),
+  labPreset(
+    'lab-briefing',
+    'Briefing',
+    'A summary rail of metrics over the canvas and the transcript.',
+    'briefing'
+  ),
+  labPreset(
+    'lab-graph-chat-timeline',
+    'Graph · chat · timeline',
+    'The full loop: see the state, speak to it, replay the reasoning that produced it.',
+    'graph-chat-timeline'
+  ),
+  labPreset(
+    'lab-lens-desk',
+    'Lens desk',
+    'Design a projection and watch it applied to the live graph.',
+    'lens-desk'
+  ),
+  labPreset(
+    'lab-study',
+    'Study — everything',
+    'Chat, notebook, graph, explorer, metrics and timeline in one composition.',
+    'study'
+  ),
+  labPreset(
+    'lab-chat-notebook',
+    'Chat ⇄ notebook',
+    'The conversation and its readable projection, side by side.',
+    'chat-notebook'
+  ),
+  labPreset(
+    'lab-graph-explain',
+    'Graph + explain',
+    'The derivation made readable beside the graph it explains.',
+    'graph-explain'
+  ),
+
+  studioPreset(
+    'studio-chat-graph',
+    'Studio — chat ⇄ graph',
+    'The Studio opens on the same read/write pair: speak on the left, watch knowledge form on the right.',
+    'chat-graph'
+  ),
+  studioPreset(
+    'studio-dashboard',
+    'Studio — dashboard',
+    'Metrics, graph and conversation, composed in the Studio shell.',
+    'dashboard'
+  ),
+  studioPreset(
+    'studio-study',
+    'Studio — study (recursive)',
+    'Recursion: a Studio cell that is itself a composition — a nested chat⇄graph beside the notebook.',
+    'study'
+  ),
+
+  appPage('app-console', 'Console', 'The REPL mirror of the bot — type Narsese, watch concepts update.', 'apps/console/'),
+  {
+    id: 'app-goals',
+    group: 'Apps',
+    title: 'Goals',
+    explain: 'The teleological workspace — objectives and the reasoning that serves them.',
+    hash: 'apps/goals/',
+    prepare: seedGoals,
+  },
+  appPage('app-notebook', 'Notebook', 'The same blocks as a document — headings, claims and derivations.', 'apps/notebook/'),
 ];
 
 /** Merge generated base cells with hand-curated overrides (by id). */

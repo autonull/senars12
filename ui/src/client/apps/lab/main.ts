@@ -11,6 +11,9 @@ import '../hud/hud-app.js';
 
 // Graph chrome + panels + views.
 import '../../components/renderers/graph-surface.js';
+import '../../core/view-host.js';
+import '../../components/views/index.js';
+import '../../spacegraph/spacegraph-viewport.js';
 import '../../components/graph-minimap.js';
 import '../../components/graph-legend.js';
 import '../../components/graph-toolbar.js';

@@ -14,9 +14,13 @@ export type VisualCellResult = {
   id: string;
   group: string;
   title: string;
+  /** One-sentence gallery caption: what the cell shows and what you can do. */
+  explain?: string;
   status: TestResult['status'];
   /** Led in the gallery's Journeys strip. */
   journey?: boolean;
+  /** The page rendered a view-host error (no adapter for a shape) — held back. */
+  renderError?: boolean;
   baseline?: string;
   actual?: string;
   diff?: string;
@@ -41,6 +45,7 @@ export default class VisualReporter implements Reporter {
     // Only matrix cells become gallery tiles; assertions (e.g. the legibility
     // check, T.4) share this project but own no baseline.
     if (!VISUAL_CELL_IDS.has(id)) return;
+    const def = CELL_BY_ID.get(id);
     const project = test.parent.project()?.name ?? 'chromium';
     const baseline = join('tests', 'visual', 'baselines', project, `${id}-${process.platform}.png`);
     const artifact = (kind: 'actual' | 'diff') =>
@@ -48,10 +53,12 @@ export default class VisualReporter implements Reporter {
 
     this.cells.set(id, {
       id,
-      group: cellGroup(test),
-      title: id,
+      group: def?.group ?? cellGroup(test),
+      title: def?.title ?? id,
+      explain: def?.explain,
       status: result.status,
-      journey: JOURNEY_IDS.has(id),
+      journey: def?.journey ?? JOURNEY_IDS.has(id),
+      renderError: test.annotations.some((a) => a.type === 'render-error'),
       baseline,
       actual: artifact('actual'),
       diff: artifact('diff'),
@@ -79,6 +86,9 @@ function cellGroup(test: TestCase): string {
 
 /** The ids of the matrix cells; anything else in the project is a plain assertion. */
 const VISUAL_CELL_IDS = new Set(VISUAL_CELLS.map((cell) => cell.id));
+
+/** The cell definitions by id — the source of the gallery's titles and captions. */
+const CELL_BY_ID = new Map(VISUAL_CELLS.map((cell) => [cell.id, cell]));
 
 /** The led journey cells — the paradigm proved, not just covered. */
 const JOURNEY_IDS = new Set(VISUAL_CELLS.filter((cell) => cell.journey).map((cell) => cell.id));

@@ -4,7 +4,7 @@ import { LEGIBLE_NODE_PX, ZOOM } from '../../src/client/utils/graph-scaling.js';
 type GraphProbe = {
   graph?: {
     getNodeCount?: () => number;
-    setLayout?: (n: string) => void;
+    setLayout?: (name: string, opts?: { fit?: boolean }) => void;
     getViewport?: () => { zoom: number } | null;
     getRenderedNodeSizes?: () => Array<{ id: string; size: number }>;
   };
@@ -28,9 +28,22 @@ test('default graph view is legible', async ({ page, testControl }) => {
   );
   await page.evaluate(() => document.fonts.ready);
   await page.evaluate(() =>
-    (window as unknown as { __testApi?: GraphProbe }).__testApi?.graph?.setLayout?.('breadthfirst')
+    (window as unknown as { __testApi?: GraphProbe }).__testApi?.graph?.setLayout?.('breadthfirst', { fit: true })
   );
-  await page.waitForTimeout(400);
+
+  // Wait for the fit to complete: RAF + timeout, then wait for zoom to stabilize
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(null))));
+  await page.waitForTimeout(1000);
+
+  // If zoom still low, wait for it to climb
+  await page.waitForFunction(
+    () => {
+      const graph = (window as unknown as { __testApi?: GraphProbe }).__testApi?.graph;
+      const vp = graph?.getViewport?.();
+      return vp !== null && vp.zoom >= 0.58;
+    },
+    { timeout: 30000, polling: 200 }
+  );
 
   const { viewport, sizes } = await page.evaluate(() => {
     const graph = (window as unknown as { __testApi?: GraphProbe }).__testApi?.graph;

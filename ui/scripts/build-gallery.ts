@@ -61,10 +61,32 @@ function renderTile(cell: VisualCellResult): string {
     <code>${cell.id}</code>
   </figcaption>
   <a class="shot" href="${baseline}"><img loading="lazy" src="${baseline}" alt="${cell.title}"></a>
+  ${cell.explain ? `<p class="explain">${escapeHtml(cell.explain)}</p>` : ''}
   ${links ? `<div class="links">${links}</div>` : ''}
   ${cell.error ? `<pre class="error">${escapeHtml(cell.error)}</pre>` : ''}
 </figure>`;
 }
+
+/** A one-line orientation for each contact-sheet section. */
+const GROUP_INTRO: Record<string, string> = {
+  Journeys:
+    'The live loop proved end to end: chat and graph move together, a node body embeds a projection, an overlay carries the reasoning.',
+  Graph: 'The engine graph under different lenses and shapes.',
+  Lenses: 'The same graph projected through goal and contradiction lenses.',
+  Renderers: 'One workspace rendered by each registered renderer.',
+  Fractal: 'A node that embeds a live projection of the substrate it sits on.',
+  Layouts: 'The reasoning and conversation layouts that arrange the graph.',
+  Views: 'Every view adapter: graph, series, tree, text, code, diff, table.',
+  Overlays: 'The surfaces that carry reasoning: explain, artifact, related, chat, settings, …',
+  Panels: 'Docked panels for chat history, search and lens design.',
+  Components: 'Standalone widgets such as the contradiction badge.',
+  Scenarios: 'Named engine scenarios loaded through the real reasoner.',
+  States: 'The shell under loading, disconnection and error.',
+  Responsive: 'The graph at narrow and medium widths.',
+  Lab: 'Named compositions of the same surfaces the ask shell uses — chat, graph, notebook, console, goals and explorer, arranged by intent. The composer bar re-composes them live.',
+  Studio: 'The parametric app: the same compositions, addressed by preset, including a cell that is itself a composition.',
+  Apps: 'Each surface taken on its own, as a standalone page with its own URL.',
+};
 
 function escapeHtml(text: string): string {
   return text.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c] ?? c);
@@ -77,18 +99,22 @@ function render(report: VisualReport): string {
       groups.set(cell.group, [...(groups.get(cell.group) ?? []), cell]);
     }
     return [...groups.entries()]
-      .map(
-        ([group, list]) =>
-          `<section><h2>${group} <small>${list.length}</small></h2><div class="grid">${list
-            .map(renderTile)
-            .join('\n')}</div></section>`
-      )
+      .map(([group, list]) => {
+        const intro = GROUP_INTRO[group];
+        return `<section><h2>${group} <small>${list.length}</small></h2>${
+          intro ? `<p class="intro">${escapeHtml(intro)}</p>` : ''
+        }<div class="grid">${list.map(renderTile).join('\n')}</div></section>`;
+      })
       .join('\n');
   };
 
-  const journeys = report.cells.filter((c) => c.journey);
-  const coverage = report.cells.filter((c) => !c.journey);
-  const failed = report.cells.filter((c) => c.status !== 'passed').length;
+  // A tile whose page rendered a view-host error is held back, not presented as
+  // working — a manifest of broken screenshots is worse than an honest gap.
+  const healthy = report.cells.filter((c) => !c.renderError);
+  const held = report.cells.filter((c) => c.renderError);
+  const journeys = healthy.filter((c) => c.journey);
+  const coverage = healthy.filter((c) => !c.journey);
+  const failed = healthy.filter((c) => c.status !== 'passed').length;
   const led = `<p class="led">One substrate · many projections · recursively embeddable · LoD-scaled.
     These ${journeys.length} journeys prove the paradigm end-to-end: the live chat⇄graph loop,
     the fractal node body, and the overlays that carry reasoning. Everything else is the coverage
@@ -122,13 +148,15 @@ function render(report: VisualReport): string {
   .shot img { display: block; width: 100%; height: auto; background: #0d0f14; }
   .links { padding: .3rem .5rem; }
   .links a { color: #67e8f9; }
+  .explain { margin: 0; padding: .35rem .5rem .5rem; color: #aab2c4; font-size: .72rem; }
+  .intro { color: #8b93a5; max-width: 80ch; margin: 0 0 .75rem; font-size: .78rem; }
   .error { margin: 0; padding: .4rem .5rem; max-height: 8rem; overflow: auto; color: #ffb4b4; font-size: .7rem; }
 </style></head>
 <body>
 <header>
   <h1>SeNARS visual gallery</h1>
   <span class="summary">status <b class="${failed ? 'bad' : 'ok'}">${report.status}</b> ·
-  ${report.cells.length} cells · ${failed} failed · ${report.platform}</span>
+  ${healthy.length} shown · ${held.length} held · ${failed} failed · ${report.platform}</span>
 </header>
 <section class="journeys">
   <h2>Journeys <small>${journeys.length}</small></h2>
@@ -139,6 +167,16 @@ function render(report: VisualReport): string {
   <summary>Coverage — ${coverage.length} contract cells</summary>
   ${byGroup(coverage)}
 </details>
+${
+  held.length
+    ? `<details class="coverage held">
+  <summary>Held back — ${held.length} tile(s) rendered a view error</summary>
+  <p class="intro">These compositions rendered "No view adapter for this shape" — a view host could
+  not resolve an adapter for an embedded shape/budget. Listed, not shown, so the gallery stays honest.</p>
+  <ul>${held.map((c) => `<li><code>${c.id}</code> — ${escapeHtml(c.title)}</li>`).join('')}</ul>
+</details>`
+    : ''
+}
 </body></html>`;
 }
 

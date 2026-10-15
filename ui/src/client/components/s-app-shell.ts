@@ -19,6 +19,8 @@ import {
 } from '../apps/shared/config-sync.js';
 import '../apps/shared/app-chrome.js';
 import '../apps/shared/composer-controls.js';
+import '../core/view-host.js';
+import './views/index.js';
 import './composition-view.js';
 
 /** The workspace projection binds global atoms; mount it once per page, not per shell. */

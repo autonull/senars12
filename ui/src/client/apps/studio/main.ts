@@ -11,6 +11,9 @@ import '../hud/hud-app.js';
 
 // Graph content + chrome surfaces.
 import '../../components/renderers/graph-surface.js';
+import '../../core/view-host.js';
+import '../../components/views/index.js';
+import '../../spacegraph/spacegraph-viewport.js';
 import '../../components/cognitive-metrics.js';
 import '../../components/telemetry-panel.js';
 import '../../components/node-detail-drawer.js';

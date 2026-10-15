@@ -743,3 +743,60 @@ The client already depends on `@senars/util`, so this adds **no client → `nar`
   subpath depend on — it must be shimmed and proven by the existing suites, not rewritten in place.
 - `util` gains a general-purpose AIKR bag that `io`/`bins` (and any bounded container) can reuse —
   this is the "general-purpose access" the lift is for, beyond the UI.
+
+---
+
+## Session — visual gallery overhaul + composition showcase
+
+**Goal:** delete the stale gallery and generate a fresh, *explained* contact sheet of the GUI, then
+extend it with new examples/variations (Lab/Studio compositions and standalone apps).
+
+### Landed (this session)
+
+- **Reset + regenerate.** Removed the tracked baselines and generated gallery/report; rebuilt the
+  deterministic test client. Baselines captured against the current GUI.
+- **Legibility fix (§T.4).** `settleZoom` in `ui/src/client/utils/graph-scaling.ts` now *enforces* the
+  legibility floor (`Math.max(floor, …)`) instead of allowing a fit below it. The `legibility` assertion
+  passes; nodes never settle unreadable.
+- **Composition showcase (new cells).** `ui/tests/visual/matrix.ts` gained `labPreset` / `studioPreset` /
+  `appPage` builders and 21 new cells:
+  - **Lab** (15): triple, mosaic, dashboard, quad, reasoning-desk, command-deck, graph-table,
+    graph-full-chrome, briefing, graph-chat-timeline, lens-desk, study, chat-notebook, graph-explain.
+  - **Studio** (3): chat-graph, dashboard, study (recursive).
+  - **Apps** (3): console, goals, notebook.
+  Each carries an `explain` caption; each group has an intro in the gallery.
+- **Explained gallery.** `ui/scripts/build-gallery.ts` renders per-cell captions + group intros; the
+  reporter (`ui/tests/visual/reporter.ts`) now carries the real `title`/`explain` and a `renderError`
+  flag.
+- **Render-error guard.** `ui/tests/visual/visual.spec.ts` flags any tile whose page renders
+  "No view adapter for this shape"; the gallery *holds those back* into a listed section instead of
+  shipping broken screenshots.
+- **App wiring fixes.** Lab/Studio/`s-app-shell` now import the view-adapter barrel (`views/index.js`),
+  the view host, and `spacegraph-viewport` — fixing "No view adapter" on table/metrics/notebook bodies
+  and registering the 3D element for compositions that offer it.
+
+### Known gaps / next session
+
+- **3D cannot init headless.** `SpaceGraph.create()` throws in the test browser (WebGL/WebGPU), so
+  `lab-graph-3d`, `studio-graph-3d`, and the standalone `spacegraph` app capture blank and were
+  **dropped**. To capture them: run Playwright headed, or find a SwiftShader/WebGPU flag combo that
+  satisfies SpaceGraphJS (tested `--enable-unsafe-swiftshader`, `--enable-unsafe-webgpu`,
+  `--use-angle=swiftshader` — none worked).
+- **Interruptible-timing render error.** Under the visual run, some embedded telemetry/metrics panes
+  intermittently render "No view adapter for this shape" (lab-mosaic, lab-telemetry-wall observed),
+  though a plain page load is clean — a registration/timing race in the view host. The render-error
+  guard now catches these; ideally fix the race (`surfaceState` re-evaluate when adapters register).
+- **Goals seed.** A `seedGoals` prepare writes `goal` blocks to `$workspaceGraph`, but the Goals app
+  still showed its empty state — verify `projectWorkspaceGraph` maps block `kind:'goal'` to a goal node.
+- **Finish the run.** The last full `test:visual:update` was interrupted; run it once more, then
+  `pnpm --dir ui ui:gallery`. Orphan baselines for dropped cells were deleted.
+
+### New improvement opportunities
+
+- **Incremental visual report.** The reporter overwrites `visual-report.json` per run, so a filtered run
+  loses the coverage set. Merge into the existing report keyed by id so `-g` runs compose.
+- **Gallery `renderError` is string-matched.** Prefer a structured signal (e.g. the view host sets a
+  `data-render-error` attribute / emits an event) over matching the literal error copy.
+- **`--grep`-friendly groups.** Expose a Playwright tag per group (`@lab`, `@studio`, `@apps`) so a
+  subset can be captured without regex on ids.
+- **`tierToZoom` density.** Still static thresholds; make them per-viewport from `densityFactor`.

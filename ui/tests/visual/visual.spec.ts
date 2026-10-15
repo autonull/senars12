@@ -79,6 +79,17 @@ for (const cell of VISUAL_CELLS) {
     await cell.prepare?.(ctx);
     await page.waitForTimeout(500);
 
+    // Flag a tile whose page rendered a view-host error, so the gallery can hold
+    // it back instead of shipping a broken screenshot. `getByText` pierces shadow
+    // DOM, so it sees the error even inside a surface.
+    const renderErrors = await page.getByText('No view adapter for this shape').count();
+    if (renderErrors > 0) {
+      test.info().annotations.push({
+        type: 'render-error',
+        description: `${renderErrors} unrendered view(s)`,
+      });
+    }
+
     await expect(page).toHaveScreenshot(`${cell.id}.png`, {
       mask: (cell.mask ?? []).map((selector) => page.locator(selector)),
       maskColor: '#12141a',

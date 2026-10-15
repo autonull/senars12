@@ -82,10 +82,9 @@ export type GraphFit = 'legible' | 'fit';
 export function settleZoom(zoom: number, count: number, area: number, fit: GraphFit): number {
   if (fit === 'fit') return Math.min(zoom, ZOOM.max);
   const floor = zoomFloor(count, area);
-  // Legible policy: never raise above the fit zoom. The floor is a desired
-  // minimum, but if fitting all content requires a lower zoom, we obey fit
-  // (show everything, accept smaller nodes) rather than crop.
-  return zoom < floor ? zoom : Math.min(zoom, ZOOM.max);
+  // Legible policy: enforce the legibility floor as a minimum zoom.
+  // If the fit zoom is below the floor, lift it to the floor so nodes remain readable.
+  return Math.max(floor, Math.min(zoom, ZOOM.max));
 }
 
 /** The on-screen size of a node of the given world size at a zoom. */
