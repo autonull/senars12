@@ -129,10 +129,10 @@ describe('prompt perception', () => {
     const perceived = perceivePrompt('Goal and question.', graph, formalizations);
     const newGraph = applyPerceivedPrompt(graph, perceived);
 
-    // Should have turn + 2 claims + 2 tasks
+    // Should have turn + 2 claims + 2 tasks (goal + question)
     expect(newGraph.blocks.size).toBe(5);
 
-    const taskBlocks = [...newGraph.blocks.values()].filter(b => b.kind === 'task');
+    const taskBlocks = [...newGraph.blocks.values()].filter(b => b.kind === 'goal' || b.kind === 'question');
     expect(taskBlocks.length).toBe(2);
 
     // Check derived-from links from claims to tasks
