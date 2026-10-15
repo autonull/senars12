@@ -20,6 +20,7 @@ import { BUILTIN_LENS_IDS, builtinLensSpecs, LensSpecSchema, type LensSpec as Le
 import { LENS_COLORS_HEX, LENS_DESCRIPTIONS, LENS_LABELS } from '../../shared/constants.js';
 import type { Channel } from '../modulation/types.js';
 import { theme } from './theme.js';
+import { CHANNELS } from '../modulation/types.js';
 import { defineCatalog } from '../framework/catalog.js';
 import { defineFacetCatalog, createLensFacet, type FacetDescriptor, facetKeysByKind } from '../framework/facet.js';
 
@@ -181,9 +182,9 @@ export const CHANNEL_CATALOG = {
   'line-style': { label: 'Line Style', target: 'edge' },
   width: { label: 'Width', target: 'edge' },
   'edge-color': { label: 'Edge Color', target: 'edge' },
-} as const satisfies Record<Channel, ChannelDescriptor>;
+} as const satisfies Record<string, ChannelDescriptor>;
 
-export const CHANNEL_IDS = Object.keys(CHANNEL_CATALOG) as Channel[];
+export const CHANNEL_IDS = CHANNELS;
 
 /** Scale-map ids, mirrored by `compile.ts`'s runtime implementations. */
 export type ScaleMapId =

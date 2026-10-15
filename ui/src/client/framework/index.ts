@@ -241,6 +241,21 @@ export type {
 
 export { resolveFocus, workspaceResolver, aspectSlice, hasSlice } from './resolver.js';
 
+export {
+  registerAspectProjection,
+  getAspectProjection,
+  getAspectProjections,
+  hasAspectProjection,
+  aspectProjectionIds,
+  resetAspectProjections,
+  CORE_ASPECTS,
+  registerCoreAspects,
+  type AspectProjector,
+  type ProjectionContext,
+  type RegisteredAspect,
+  aspectsForFocus,
+} from './aspect-registry.js';
+
 export type {
   LinkPurpose,
 } from './link-kinds.js';

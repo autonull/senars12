@@ -438,10 +438,13 @@ attention-allocated fidelity — on the current backend.
 
 ### Phase 2 — Open the contract (the ecosystem enablement)
 
-Land the five openings + five seams: `registerFocusKind`, `registerAspectProjection`, `registerShape`,
-`registerChannel`, `registerArrangement`; `Patch`, `WorkspaceAddress`, `Renderer.embed`, `presence`,
-`timeline`. Migrate SeNARS to register its kinds/aspects. **Acceptance:** a toy non-SeNARS app runs on the
-contract with a custom focus kind and a custom channel.
+**Part 1 (COMPLETED):** Open `Channel` registry, `Aspect` registry, `Patch` stream on 2D backend.
+- `modulation/channel-registry.ts` — `registerChannel`, `CORE_CHANNELS`, open `Channel = string`
+- `framework/aspect-registry.ts` — `registerAspectProjection`, `CORE_ASPECTS`, open `Aspect = string`
+- `core/workspace-renderer.ts` — `Patch`, `ItemPatch`, `Id` types; `applyPatch` on `WorkspaceRenderer`
+- `components/renderers/graph.ts` — `applyPatch` implementation (structural + channels)
+
+**Part 2 (remaining):** `registerFocusKind`, `registerShape`, `registerArrangement`; `WorkspaceAddress`, `Renderer.embed`, `presence`, `timeline`. Migrate SeNARS to register its kinds/aspects. **Acceptance:** a toy non-SeNARS app runs on the contract with a custom focus kind and a custom channel.
 
 ### Phase 3 — Grow Backend #2 to parity (the fractal ideal)
 
@@ -632,14 +635,14 @@ The plan serves **(A)** a good SeNARS bench and **(B)** a generic ecosystem. (A)
 in *shape*, but implement **only** what SeNARS exercises, and make every opening **additive** (a registry
 with one entry) rather than a migration.
 
-### 18.5 The minimal coherent cut (recommended)
+### 18.5 The minimal coherent cut (recommended) — **COMPLETED (Phase 0 + 1 + 2.1)**
 
 Do **Phase 0 + Phase 1**, plus **three surgical additions** — and defer the rest:
 
-1. Phase 0: hygiene, retire the parallel path, consolidate the two 2D paths.
-2. Phase 1: mount the Instrument; re-home the aspects on Backend #1.
-3. Open **`Channel`** and **`Aspect`** only (immediate payoff).
-4. Bring modulation through the contract via **`Patch`**, 2D first.
+1. ✅ Phase 0: hygiene, retire the parallel path, consolidate the two 2D paths.
+2. ✅ Phase 1: mount the Instrument; re-home the aspects on Backend #1.
+3. ✅ Open **`Channel`** and **`Aspect`** only (immediate payoff).
+4. ✅ Bring modulation through the contract via **`Patch`**, 2D first.
 5. Upstream the fractal primitive (Phase 3) when SpaceGraphJS is ready.
 
 Everything else (open `Shape`/`Arrangement`/`FocusKind`, merge `Cell`, fuse `Fidelity`, extract packages,
@@ -676,7 +679,7 @@ the first structural task "three registries → one" is **done**.
 
 ## 19. Fresh-session execution plan
 
-**Status: Phase 1 COMPLETED.** Decisions resolved (§19.5). Next: Phase 2 (§19.3) — open Channel, Aspect, Shape, Arrangement, FocusKind registries; Patch stream; Fidelity fusion.
+**Status: Phase 1 COMPLETED. Phase 2 (Channel, Aspect, Patch) COMPLETED.** Decisions resolved (§19.5). Next: Phase 2 remaining — open Shape, Arrangement, FocusKind registries; Fidelity fusion; WorkspaceAddress; Renderer.embed; presence; timeline.
 
 ### 19.0 Next session starts at Phase 1
 
@@ -751,6 +754,14 @@ third path") was **not met**. A0 completed to remove the first structural debt.
 **Added:** Aspect switching UI — keyboard shortcuts (1-7) in `app-layout.ts`; toolbar dropdown in `graph-toolbar.ts`; `ASPECT_LABELS`/`ASPECT_ICONS` exported from `coordinates.ts`.
 
 **Verify (green):** `pnpm --dir ui test:unit` (872) · `pnpm --dir ui typecheck` · `pnpm deps:gate` (1 ≤ baseline 1) · `pnpm exports:check` · `pnpm exports:barrels`.
+
+### 19.3.1 Phase 2 — task list (open Channel, Aspect, Patch) — **COMPLETED**
+
+1. ✅ **Open Channel registry.** Created `modulation/channel-registry.ts` with `registerChannel`, `getChannel`, `getChannels`, `hasChannel`, `channelIds`, `resetChannels`, `CORE_CHANNELS`, `registerCoreChannels`. Updated `modulation/types.ts` to use open `Channel = string` type with core `CHANNELS` tuple for exhaustiveness. Updated `modulation/index.ts` to export channel registry. Updated `utils/lens-catalog.ts` to use `CHANNELS` tuple.
+2. ✅ **Open Aspect registry.** Created `framework/aspect-registry.ts` with `registerAspectProjection`, `getAspectProjection`, `getAspectProjections`, `hasAspectProjection`, `aspectProjectionIds`, `resetAspectProjections`, `CORE_ASPECTS`, `registerCoreAspects`. Updated `framework/coordinates.ts` to use open `Aspect = string` type with core `ASPECTS` tuple for exhaustiveness. Updated `components/aspect-panel.ts` to safely access `ASPECT_ICONS`/`ASPECT_LABELS`. Exported aspect registry from `framework/index.ts`.
+3. ✅ **Patch stream contract.** Added `Patch`, `ItemPatch`, `Id` types to `core/workspace-renderer.ts`. Added optional `applyPatch(patch: Patch)` method to `WorkspaceRenderer` interface. Implemented `applyPatch` in `components/renderers/graph.ts` (2D backend) — applies structural ops via `applyWorkspaceOps` and channel changes via `applyDelta`.
+
+**Verify (green):** `pnpm --dir ui typecheck` · `pnpm --dir ui test:unit` (872) · `pnpm deps:gate` (1 ≤ baseline 1) · `pnpm exports:check` · `pnpm exports:barrels`.
 
 ### 19.4 Anticipated issues & mitigations
 

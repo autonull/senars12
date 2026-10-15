@@ -16,7 +16,7 @@ import type {
   WorkspaceOp,
 } from './workspace-graph.js';
 import { Capability } from './capabilities.js';
-import type { Channel } from '../modulation/types.js';
+import type { Channel, ChannelValue } from '../modulation/types.js';
 import type { FocusRef, TimeRef } from '../framework/coordinates.js';
 import type { ViewFlags } from '../modulation/types.js';
 import type { ThemeTokens } from '../utils/theme.js';
@@ -155,6 +155,22 @@ export interface RendererContext {
   readonly embed: (cell: Cell, host: HTMLElement) => void;
 }
 
+/** One patch stream: structure + channels (§5). */
+export type Id = string;
+
+export interface ItemPatch {
+  readonly id: Id;
+  readonly role?: 'node' | 'edge';
+  readonly data?: Readonly<Record<string, unknown>>;
+  readonly channels?: Readonly<Partial<Record<Channel, ChannelValue>>>;
+}
+
+export interface Patch {
+  readonly upsert?: readonly ItemPatch[];
+  readonly remove?: readonly Id[];
+}
+
+/** A renderer that receives the unified Patch stream. */
 export interface WorkspaceRenderer {
   readonly id: string;
   readonly label: string;
@@ -162,8 +178,10 @@ export interface WorkspaceRenderer {
   mount(host: HTMLElement, ctx: RendererContext): void;
   /** Snapshot (re)hydration — the full current block/link sets. */
   present(blocks: readonly SemanticBlock[], links: readonly SemanticLink[]): void;
-  /** Incremental streaming. */
+  /** Incremental streaming — structural ops (legacy path). */
   apply(ops: readonly WorkspaceOp[]): void;
+  /** Incremental streaming — unified patch stream (structure + channels). */
+  applyPatch?(patch: Patch): void;
   focus(address: FocusRef): void;
   select(ids: readonly string[]): void;
   affordances(anchor?: string): readonly IntentRef[];

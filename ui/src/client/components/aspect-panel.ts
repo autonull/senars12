@@ -233,7 +233,9 @@ export class SAspectPanel extends SurfaceComponent {
 
     const aspectContent = this.renderAspect(this.aspect);
     if (!aspectContent) {
-      return this.renderEmptyState(ASPECT_ICONS[this.aspect], `No ${ASPECT_LABELS[this.aspect].toLowerCase()} data for this focus`);
+      const icon = ASPECT_ICONS[this.aspect] ?? 'search';
+      const label = ASPECT_LABELS[this.aspect] ?? this.aspect;
+      return this.renderEmptyState(icon, `No ${label.toLowerCase()} data for this focus`);
     }
 
     return html`

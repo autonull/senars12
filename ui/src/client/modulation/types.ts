@@ -1,22 +1,32 @@
-export const CHANNELS = [
-  'color',
-  'opacity',
-  'size',
-  'label',
-  'stroke.dash',
-  'stroke.width',
-  'z',
-  'flow.enable',
-  'line-style',
-  'width',
-  'edge-color',
-] as const;
+/**
+ * Modulation types — the neutral contract for visual channels (§5).
+ *
+ * Channels are now open via `registerChannel` (channel-registry.ts). The
+ * `Channel` type is a string so the core set remains typed while
+ * allowing extension. `CHANNELS` tuple is kept for exhaustiveness in
+ * internal switch statements but is no longer the source of truth.
+ */
 
-export type Channel = (typeof CHANNELS)[number];
+import { channelIds, registerCoreChannels, CORE_CHANNELS } from './channel-registry.js';
+
+/** A modulation channel identifier — open registry, core channels are known. */
+export type Channel = string;
+
+/** The core channel IDs as a const tuple for exhaustiveness checking. */
+export const CHANNELS = ['color', 'opacity', 'size', 'label', 'stroke.dash', 'stroke.width', 'z', 'flow.enable', 'line-style', 'width', 'edge-color'] as const;
+
+/** Narrow a string to a Channel (core channels only — use for exhaustiveness). */
+export const asChannel = (id: string): Channel => id;
+
+/** Whether a string is a registered channel. */
+export const isChannel = (id: string): boolean => channelIds().includes(id);
+
+/** Ensure core channels are registered on first import. */
+registerCoreChannels();
 
 export type ChannelValue = string | number | boolean;
 
-export type Delta = Map<string, Partial<Record<Channel, ChannelValue>>>;
+export type Delta = Map<string, Partial<Record<string, ChannelValue>>>;
 
 export interface Item {
   id: string;
@@ -56,7 +66,7 @@ export interface Lens {
 export type Modulation =
   | { op: 'const'; value: ChannelValue }
   | { op: 'field'; field: keyof Item; map?: (v: unknown) => ChannelValue }
-  | { op: 'channel'; channel: Channel; child: Modulation }
+  | { op: 'channel'; channel: string; child: Modulation }
   | { op: 'when'; predicate: (item: Item, view: View) => boolean; child: Modulation }
   | { op: 'union'; children: Modulation[] }
   | { op: 'memo'; id: string; child: Modulation };

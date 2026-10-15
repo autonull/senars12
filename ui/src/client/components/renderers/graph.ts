@@ -20,11 +20,14 @@ import {
   type RendererContext,
   type IntentRef,
   type FocusRef,
+  type Patch,
+  type ItemPatch,
 } from '../../core/workspace-renderer.js';
 import { focusRefId } from '../../framework/coordinates.js';
-import type { Channel } from '../../modulation/types.js';
+import type { Channel, ChannelValue } from '../../modulation/types.js';
 import { diffWorkspaceGraph } from '../../core/workspace-diff.js';
 import { applyWorkspaceOps } from '../../core/workspace-graph.js';
+import { applyDelta } from '../../utils/adapter-2d.js';
 import './graph-surface.js';
 
 const workspaceRefs = (ids: Iterable<Ref>): Ref[] => {
@@ -91,6 +94,47 @@ class GraphRenderer implements WorkspaceRenderer {
     const viewport = getViewportInstance();
     if (viewport) {
       viewport.applyWorkspaceOps(ops);
+    }
+  }
+
+  applyPatch(patch: Patch): void {
+    const viewport = getViewportInstance();
+    if (!viewport) return;
+
+    // Apply structural changes first
+    if (patch.upsert) {
+      // Convert ItemPatch to WorkspaceOp for structural updates
+      const ops = patch.upsert
+        .filter((item) => item.data)
+        .map((item) => ({
+          op: 'upsert' as const,
+          block: item.data!,
+        }));
+      if (ops.length > 0) {
+        viewport.applyWorkspaceOps(ops as any);
+      }
+    }
+    if (patch.remove) {
+      const ops = patch.remove.map((id) => ({ op: 'remove' as const, id }));
+      if (ops.length > 0) {
+        viewport.applyWorkspaceOps(ops as any);
+      }
+    }
+
+    // Apply channel/modulation changes
+    if (patch.upsert) {
+      const delta = new Map<string, Partial<Record<Channel, ChannelValue>>>();
+      for (const item of patch.upsert) {
+        if (item.channels) {
+          delta.set(item.id, item.channels);
+        }
+      }
+      if (delta.size > 0) {
+        const cy = (viewport as any).cy;
+        if (cy) {
+          applyDelta(cy, delta);
+        }
+      }
     }
   }
 

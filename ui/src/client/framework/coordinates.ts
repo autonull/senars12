@@ -8,6 +8,8 @@
  * differently.
  */
 
+import { aspectProjectionIds, registerCoreAspects, CORE_ASPECTS } from './aspect-registry.js';
+
 /** What a task is about — the epistemic/teleological axis the kernel already names. */
 export type TaskType = 'belief' | 'goal' | 'question';
 
@@ -177,36 +179,20 @@ export const FOCUS_KINDS: readonly FocusKind[] = [
 export const isFocusKind = (kind: string): kind is FocusKind =>
   (FOCUS_KINDS as readonly string[]).includes(kind);
 
-/** How a focus is projected — the aspect *is* the intent (§7). */
-export type Aspect =
-  | 'neighborhood'
-  | 'content'
-  | 'provenance'
-  | 'origin'
-  | 'history'
-  | 'ambient'
-  | 'direct';
+/** How a focus is projected — the aspect *is* the intent (§7). Open registry. */
+export type Aspect = string;
 
-/** Every aspect, uniform over any focus. */
-export const ASPECTS: readonly Aspect[] = [
-  'neighborhood',
-  'content',
-  'provenance',
-  'origin',
-  'history',
-  'ambient',
-  'direct',
-];
+/** The core aspect IDs as a const tuple for exhaustiveness checking. */
+export const ASPECTS = ['neighborhood', 'content', 'provenance', 'origin', 'history', 'ambient', 'direct'] as const;
 
-/** Whether a string names an aspect. */
-export const isAspect = (aspect: string): aspect is Aspect =>
-  (ASPECTS as readonly string[]).includes(aspect);
+/** Whether a string names a registered aspect. */
+export const isAspect = (aspect: string): boolean => aspectProjectionIds().includes(aspect);
 
 /**
  * The UI.16 surface each aspect absorbs (§7/§15) — where a projection is rendered
  * until it has a dedicated renderer. `undefined` means the aspect is new.
  */
-export const ASPECT_SURFACES: Readonly<Record<Aspect, string | undefined>> = {
+export const ASPECT_SURFACES: Readonly<Record<string, string | undefined>> = {
   neighborhood: 'graph-viewport',
   content: 's-node-body',
   provenance: 's-explain',
@@ -217,7 +203,7 @@ export const ASPECT_SURFACES: Readonly<Record<Aspect, string | undefined>> = {
 };
 
 /** Human-readable labels for aspects. */
-export const ASPECT_LABELS: Record<Aspect, string> = {
+export const ASPECT_LABELS: Record<string, string> = {
   neighborhood: 'Neighborhood',
   content: 'Content',
   provenance: 'Provenance',
@@ -228,7 +214,7 @@ export const ASPECT_LABELS: Record<Aspect, string> = {
 };
 
 /** Icon names for aspects. */
-export const ASPECT_ICONS: Record<Aspect, string> = {
+export const ASPECT_ICONS: Record<string, string> = {
   neighborhood: 'gitBranch',
   content: 'fileText',
   provenance: 'gitFork',
@@ -302,7 +288,7 @@ export const decodeFocusFragment = (fragment: string): FocusCell | null => {
   const focus = parseFocusKey(focusPart);
   if (!focus) return null;
 
-  const aspect = ASPECTS.includes(aspectPart as Aspect) ? (aspectPart as Aspect) : DEFAULT_ASPECT;
+  const aspect = isAspect(aspectPart) ? aspectPart : DEFAULT_ASPECT;
   const depth = clampDepth(Number(depthPart));
   const time = parseTimeKey(timePart);
   if (!time) return null;
@@ -377,3 +363,6 @@ function parseTimeKey(key: string): TimeRef | null {
   }
   return null;
 }
+
+/** Ensure core aspects are registered on first import. */
+registerCoreAspects();
