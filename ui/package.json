@@ -8,6 +8,14 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./framework": {
+      "types": "./src/client/framework/index.ts",
+      "import": "./src/client/framework/index.ts"
+    },
+    "./framework/*": {
+      "types": "./src/client/framework/*.ts",
+      "import": "./src/client/framework/*.ts"
+    },
     "./server": {
       "types": "./src/server/index.ts",
       "import": "./src/server/index.ts"

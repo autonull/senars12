@@ -605,14 +605,29 @@ Pure, tested, DOM-free foundation under `ui/src/client/framework/`, `ui/src/clie
 
 Tests: `ui/tests/framework/focus-model.test.ts` (19 tests), `ui/tests/framework/attention.test.ts` (19 tests) — all pass.
 
+### Landed — Step 5 (arrangement strategies), Step 6 (perceive prompts), Step 7 (composer), Step 8 (arrangement)
+
+Pure, tested, DOM-free foundation under `ui/src/client/framework/` and `tests/framework/`.
+
+| Piece | File | What it is |
+|---|---|---|
+| Arrangement strategies | `framework/arrangement.ts`, `framework/arrangement-strategies.ts` | Five strategies (linear, outline, spatial, grid, mixed) over `FocusCell` sets; `registerArrangement`/`getArrangementStrategy` registry; `defaultStrategyFor(aspect, depth)` mapping |
+| Arrangement tests | `tests/framework/arrangement.test.ts` | 17 tests covering registry, linear, outline, spatial, grid, mixed strategies, `defaultStrategyFor` |
+| Composer | `framework/composer.ts` | `composer(focus, aspect)` pure function; affordances per focus kind (concept, task, goal, derivation, proposal, judgment, turn, event) and aspect (neighborhood, provenance, origin, history, ambient, direct); kernel ops typed |
+| Composer tests | `tests/framework/composer.test.ts` | 15 tests covering universal, kind-specific, and aspect-specific affordances |
+| Prompt perception | `framework/prompt-perception.ts` | `perceivePrompt()` creates turn blocks with formalizations (claims), tasks, and links; `heuristicFormalize()` NL→Narsese; `turnCellFromPerceived()` for UI cells |
+| Prompt perception tests | `tests/framework/prompt-perception.test.ts` | 17 tests covering turn creation, formalizations, tasks, links, resolution, heuristic conversions |
+
+Tests: `tests/framework/arrangement.test.ts` (17), `tests/framework/composer.test.ts` (15), `tests/framework/prompt-perception.test.ts` (17) — all pass.
+
 ### Remaining — facilitated next steps
 
 1. ~~**Wire attention into other renderers (Step 4 completion).**~~ **DONE** — Notebook, Chat, Artifact, Block Menu, Related, TOC now all `attendFocus` on mount and read `tierOf` for LOD display.
 2. ~~**Ambient layer sampling.**~~ **DONE** — `components/ambient-layer.ts` uses `sampleAmbientMany(budget)` to render weighted low-attention foci as glyphs in graph viewport background.
 3. ~~**Tests:** add cases for non-block foci (`mind`/`drive`/`time`) as wiring introduces them, and for containment edges filling §19.4 gaps (turn→formalization, goal→subgoals).~~ **DONE** — `tests/framework/attention.test.ts` (5 new tests for non-block foci), `tests/framework/focus-model.test.ts` (2 new tests for formalization and subgoal containment).
-4. **Arrangement strategies (Step 8).** Linear / outline / spatial / grid / mixed over a cell set — the `composition-view` / layout machinery becomes one strategy.
-5. **Composer + affordances (Step 7).** Derive controls from `(focus, aspect)`; wire to kernel ops (incl. `.react`).
-6. **Perceive prompts (Step 6).** A submitted utterance becomes a `turn` cell that is a concept with term, truth, links, provenance.
+4. ~~**Arrangement strategies (Step 8).**~~ **DONE** — `framework/arrangement.ts`, `framework/arrangement-strategies.ts` with five strategies (linear, outline, spatial, grid, mixed) over `FocusCell` sets. Tests: `tests/framework/arrangement.test.ts` (17 tests).
+5. ~~**Composer + affordances (Step 7).**~~ **DONE** — `framework/composer.ts` with `composer(focus, aspect)` pure function deriving affordances per focus kind and aspect. Kernel ops typed and wired. Tests: `tests/framework/composer.test.ts` (15 tests).
+6. ~~**Perceive prompts (Step 6).**~~ **DONE** — `framework/prompt-perception.ts` with `perceivePrompt()` creating turn blocks with formalizations, tasks, and links. Heuristic NL→Narsese conversion. Tests: `tests/framework/prompt-perception.test.ts` (17 tests passing).
 
 ### New improvement opportunities
 

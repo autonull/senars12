@@ -275,6 +275,72 @@ export {
   areaName,
 } from './layout.js';
 
+export type {
+  ArrangementKind,
+  ArrangementGlobals,
+  ArrangedCell,
+  Arrangement,
+  ArrangementStrategy,
+  LayoutResult,
+  LayoutStyle,
+} from './arrangement.js';
+
+export {
+  registerArrangement,
+  getArrangementStrategy,
+  getArrangementKinds,
+  arrangeCell,
+  linearArrangement,
+  outlineArrangement,
+  spatialArrangement,
+  gridArrangement,
+  mixedArrangement,
+  DEFAULT_ARRANGEMENT_GLOBALS,
+  workspaceArrangement,
+} from './arrangement.js';
+
+export {
+  linearStrategy,
+  outlineStrategy,
+  spatialStrategy,
+  gridStrategy,
+  mixedStrategy,
+  registerBuiltinArrangements,
+  defaultStrategyFor,
+} from './arrangement-strategies.js';
+
+export type {
+  Affordance,
+  KernelOp,
+  KernelOpType,
+} from './composer.js';
+
+export { composer, executeKernelOp } from './composer.js';
+
+export type {
+  PerceivedPrompt,
+  FormalizationCandidate,
+} from './prompt-perception.js';
+
+export {
+  perceivePrompt,
+  applyPerceivedPrompt,
+  resolveTurn,
+  heuristicFormalize,
+  turnCellFromPerceived,
+} from './prompt-perception.js';
+
+// Re-export core workspace-graph types needed by prompt-perception
+export {
+  emptyWorkspaceGraph,
+  applyWorkspaceOps,
+  type WorkspaceGraph,
+  type SemanticBlock,
+  type SemanticLink,
+  type WorkspaceOp,
+  type Ref,
+} from '../core/workspace-graph.js';
+
 export {
   defineProtocolCatalog,
   serverMessage,
