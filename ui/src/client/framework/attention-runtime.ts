@@ -13,19 +13,21 @@
 
 import { AttentionField, type Allocation, decayRateFor, type AttentionPolicy, attentionPolicyFromConfig } from './attention.js';
 import { type FocusRef, MIND_FOCUS } from './coordinates.js';
-import { $config } from '../core/store.js';
 import { LOD_ZOOM_THRESHOLDS, densityFactor } from '../utils/graph-scaling.js';
+import type { UiConfig } from '../core/config-schema.js';
 
 /** The singleton attention field for this UI session. */
 let fieldInstance: AttentionField | null = null;
 let policy: AttentionPolicy | null = null;
 
-/** Get or create the global attention field, using current UI config. */
-export function getAttentionField(): AttentionField {
+import { DEFAULT_UI_CONFIG } from '../core/config-schema.js';
+
+/** Get or create the global attention field, using provided UI config. */
+export function getAttentionField(config?: UiConfig): AttentionField {
   if (!fieldInstance) {
-    const config = $config.get();
-    fieldInstance = AttentionField.fromConfig(config);
-    policy = attentionPolicyFromConfig(config);
+    const effectiveConfig = config ?? DEFAULT_UI_CONFIG;
+    fieldInstance = AttentionField.fromConfig(effectiveConfig);
+    policy = attentionPolicyFromConfig(effectiveConfig);
   }
   return fieldInstance;
 }
@@ -54,31 +56,14 @@ export function decayAttentionField(cycleIntervalMs?: number): void {
 }
 
 /** Initialize the attention runtime with config and subscribe to config changes. */
-export function initAttentionRuntime(): void {
-  const config = $config.get();
+export function initAttentionRuntime(config: UiConfig, onConfigChange?: (newConfig: UiConfig) => void): void {
   fieldInstance = AttentionField.fromConfig(config);
   policy = attentionPolicyFromConfig(config);
 
   // Re-create field when attention config changes
-  $config.subscribe((newConfig) => {
-    const newPolicy = attentionPolicyFromConfig(newConfig);
-    if (policy && policyChanged(policy, newPolicy)) {
-      policy = newPolicy;
-      fieldInstance = AttentionField.fromConfig(newConfig);
-    }
-  });
-}
-
-function policyChanged(a: AttentionPolicy, b: AttentionPolicy): boolean {
-  return (
-    a.halfLifeMs !== b.halfLifeMs ||
-    a.capacity !== b.capacity ||
-    a.reclaimThreshold !== b.reclaimThreshold ||
-    a.tierCost.glyph !== b.tierCost.glyph ||
-    a.tierCost.label !== b.tierCost.label ||
-    a.tierCost.card !== b.tierCost.card ||
-    a.tierCost.full !== b.tierCost.full
-  );
+  if (onConfigChange) {
+    onConfigChange(config);
+  }
 }
 
 /** Stop the attention runtime (for teardown/testing). */

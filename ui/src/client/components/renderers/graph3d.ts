@@ -16,36 +16,27 @@ import type {
 import {
   registerRenderer,
   type RendererSnapshot,
-  type WorkspaceContext,
-  type WorkspaceInteraction,
   type WorkspaceRenderer,
   type WorkspaceRendererCaps,
+  type RendererContext,
+  type IntentRef,
+  type FocusRef,
 } from '../../core/workspace-renderer.js';
+import { focusRefId } from '../../framework/coordinates.js';
 import type { Channel } from '../../modulation/types.js';
-
-const INTERACTIONS: readonly WorkspaceInteraction[] = [
-  'compose',
-  'stream',
-  'inspect',
-  'explain',
-  'select-context',
-  'follow-up',
-  'palette',
-  'embed',
-];
 
 class Graph3DRenderer implements WorkspaceRenderer {
   readonly id = 'graph-3d';
   readonly label = '3D Graph';
 
-  private ctx?: WorkspaceContext;
+  private ctx?: RendererContext;
   private element?: HTMLElement;
-  private focusRef?: Ref;
-  private selection = new Set<Ref>();
+  private focusRef?: FocusRef;
+  private selection = new Set<string>();
 
   capabilities(): WorkspaceRendererCaps {
     return {
-      interactions: INTERACTIONS,
+      interactions: ['compose', 'stream', 'inspect', 'explain', 'select-context', 'follow-up', 'palette', 'embed'],
       blockKinds: 'all',
       parity: 'partial',
       surface: 'spacegraph-viewport',
@@ -57,7 +48,7 @@ class Graph3DRenderer implements WorkspaceRenderer {
     };
   }
 
-  mount(host: HTMLElement, ctx: WorkspaceContext): void {
+  mount(host: HTMLElement, ctx: RendererContext): void {
     this.ctx = ctx;
     this.element = document.createElement('spacegraph-viewport');
     host.appendChild(this.element);
@@ -67,32 +58,48 @@ class Graph3DRenderer implements WorkspaceRenderer {
 
   apply(_ops: readonly WorkspaceOp[]): void {}
 
-  focus(ref: Ref): void {
-    this.focusRef = ref;
+  focus(address: string | FocusRef): void {
+    if (typeof address === 'string') {
+      this.focusRef = { kind: 'concept', term: address } as FocusRef;
+    } else {
+      this.focusRef = address;
+    }
   }
 
-  select(refs: readonly Ref[]): void {
-    this.selection = new Set(refs);
+  select(ids: readonly string[]): void {
+    this.selection = new Set(ids);
   }
 
-  openComposer(anchor?: Ref): void {
+  affordances(anchor?: string): readonly IntentRef[] {
+    return [];
+  }
+
+  invoke(intentId: string, _args?: unknown): boolean {
+    return false;
+  }
+
+  openComposer(anchor?: FocusRef): void {
     this.ctx?.openOverlay('composer', anchor ?? this.focusRef);
   }
 
-  openExplain(ref: Ref): void {
+  openExplain(ref: FocusRef): void {
     this.ctx?.openOverlay('explain', ref);
   }
 
   snapshot(): RendererSnapshot {
     return {
       renderer: this.id,
-      focus: this.focusRef,
+      focus: this.focusRef ? focusRefId(this.focusRef) : undefined,
       selection: [...this.selection],
     };
   }
 
   restore(snap: RendererSnapshot): void {
-    this.focusRef = snap.focus;
+    if (snap.focus) {
+      this.focusRef = { kind: 'concept', term: snap.focus } as FocusRef;
+    } else {
+      this.focusRef = undefined;
+    }
     this.selection = new Set(snap.selection);
   }
 

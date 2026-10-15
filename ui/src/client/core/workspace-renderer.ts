@@ -17,6 +17,9 @@ import type {
 } from './workspace-graph.js';
 import { Capability } from './capabilities.js';
 import type { Channel } from '../modulation/types.js';
+import type { FocusRef, TimeRef } from '../framework/coordinates.js';
+import type { ViewFlags } from '../modulation/types.js';
+import type { ThemeTokens } from '../utils/theme.js';
 
 /** Every interaction a renderer may implement; capabilities declare the subset. */
 export const WORKSPACE_INTERACTIONS = [
@@ -64,13 +67,13 @@ export type WorkspaceRendererCaps = {
 export interface RendererSnapshot {
   readonly renderer: string;
   readonly viewport?: { x: number; y: number; zoom: number };
-  readonly focus?: Ref;
-  readonly selection: readonly Ref[];
+  readonly focus?: string;
+  readonly selection: readonly string[];
 }
 
 /** The shared shell services a renderer is mounted with — no panel chrome leaks in. */
 export interface WorkspaceContext {
-  readonly openOverlay: (id: string, anchor?: Ref) => void;
+  readonly openOverlay: (id: string, anchor?: string | FocusRef) => void;
   readonly openPalette: () => void;
   /** Current active renderer id. */
   readonly renderer: string;
@@ -82,19 +85,90 @@ export interface WorkspaceContext {
   readonly hasOverlays: () => boolean;
 }
 
+/** The current projection — focus, aspect, depth, time (§3, §7). */
+export interface Projection {
+  readonly focus: FocusRef;
+  readonly aspect: string;
+  readonly depth: number;
+  readonly time: TimeRef;
+}
+
+/** Time-travel / replay seam. */
+export interface Timeline {
+  readonly t: number;
+  readonly range?: [number, number];
+  readonly play?: () => void;
+  readonly pause?: () => void;
+  readonly step?: (direction: number) => void;
+}
+
+/** Collaboration presence seam. */
+export interface Presence {
+  readonly peers: readonly PeerPresence[];
+  readonly self: PeerPresence;
+}
+
+export interface PeerPresence {
+  readonly id: string;
+  readonly name: string;
+  readonly color: string;
+  readonly focus?: FocusRef;
+  readonly selection?: readonly string[];
+}
+
+/** A cell in the composition — surface, composition, or focus projection (§7). */
+export interface Cell {
+  readonly surface?: string;
+  readonly composition?: unknown;
+  readonly focus?: FocusRef;
+  readonly aspect?: string;
+  readonly depth?: number;
+  readonly time?: TimeRef;
+  readonly fidelity?: string;
+  readonly expanded?: boolean;
+  readonly area?: string;
+}
+
+/** An intent reference for affordances. */
+export interface IntentRef {
+  readonly id: string;
+  readonly label: string;
+  readonly group: string;
+}
+
+/** The context a renderer is mounted with — includes projection, theme, flags, timeline, presence. */
+export interface RendererContext {
+  readonly projection: Projection;
+  readonly theme: ThemeTokens;
+  readonly flags: ViewFlags;
+  readonly timeline: Timeline;
+  readonly presence?: Presence;
+  readonly openOverlay: (id: string, anchor?: string | FocusRef) => void;
+  readonly openPalette: () => void;
+  readonly renderer: string;
+  readonly setRenderer: (id: string) => void;
+  readonly overlays: () => string[];
+  readonly hasOverlays: () => boolean;
+  readonly dispatch: (intentId: string, args?: unknown) => boolean;
+  readonly focus: (address: FocusRef) => void;
+  readonly select: (ids: readonly string[]) => void;
+  readonly embed: (cell: Cell, host: HTMLElement) => void;
+}
+
 export interface WorkspaceRenderer {
   readonly id: string;
   readonly label: string;
   capabilities(): WorkspaceRendererCaps;
-  mount(host: HTMLElement, ctx: WorkspaceContext): void;
+  mount(host: HTMLElement, ctx: RendererContext): void;
   /** Snapshot (re)hydration — the full current block/link sets. */
   present(blocks: readonly SemanticBlock[], links: readonly SemanticLink[]): void;
   /** Incremental streaming. */
   apply(ops: readonly WorkspaceOp[]): void;
-  focus(ref: Ref): void;
-  select(refs: readonly Ref[]): void;
-  openComposer(anchor?: Ref): void;
-  openExplain(ref: Ref): void;
+  focus(address: FocusRef): void;
+  select(ids: readonly string[]): void;
+  affordances(anchor?: string): readonly IntentRef[];
+  invoke(intentId: string, args?: unknown): boolean;
+  embed?(cell: Cell, host: HTMLElement): void;
   snapshot(): RendererSnapshot;
   restore(snap: RendererSnapshot): void;
   dispose(): void;
@@ -157,6 +231,8 @@ export const workspaceRenderers = (): WorkspaceRenderer[] => [...registry.values
 export const workspaceRendererIds = (): string[] => [...registry.keys()];
 
 export const workspaceRenderer = (id: string): WorkspaceRenderer | undefined => registry.get(id);
+
+export type { FocusRef } from '../framework/coordinates.js';
 
 /** Renderers that present a block kind richly — the block-kind filter and palette read this. */
 export const renderersForKind = (kind: BlockKind): WorkspaceRenderer[] =>

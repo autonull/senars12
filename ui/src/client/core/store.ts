@@ -8,6 +8,7 @@ import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
 import { builtinLensSpec, LENS_DEFAULT_LAYOUTS, LENS_DEFS, LENS_IDS, PRIMARY_LENSES } from '../utils/lens-catalog.js';
 import { type GraphFit } from '../utils/graph-scaling.js';
+import { theme } from '../utils/theme.js';
 import { CONVERSATION_LAYOUT_IDS } from './conversation-layout.js';
 import { GRAPH_LAYERS, type GraphLayer } from './graph-layer.js';
 import { isRegisteredLayoutId, type LayoutScope } from './layout-ids.js';
@@ -69,13 +70,20 @@ import {
   type CognitiveMeta,
   type ServerErrorRecord,
   type RevisionEntry,
-  exposeKernelTestApi as exposeKernelTestApi,
   setWsClient,
   // UI.17 focus model
   $focusStack,
   $focus,
-  type FocusRef,
-  type FocusStack,
+  $aspect,
+  $depth,
+  $time,
+  setAspect,
+  setDepth,
+  setTime,
+  // UI.17 attention runtime
+  attendFocus,
+  tierOf,
+  tierToZoom,
   // UI.18 cycle control
   $cycleState,
   $cycleCount,
@@ -84,16 +92,14 @@ import {
   setCycleState,
   stepCycle,
   rewindCycle,
+  type FocusRef,
+  type FocusStack,
 } from '../kernel/state.js';
+
+import { type Aspect, type TimeRef } from '../framework/coordinates.js';
 
 // Import derived from framework
 import { derived, setEqual } from '../framework/derived.js';
-// UI.17 attention runtime
-import {
-  attendFocus,
-  tierOf,
-  tierToZoom,
-} from '../framework/index.js';
 
 export type { UiConfig };
 
@@ -144,6 +150,12 @@ export {
   // UI.17 focus model
   $focusStack,
   $focus,
+  $aspect,
+  $depth,
+  $time,
+  setAspect,
+  setDepth,
+  setTime,
   // UI.17 attention runtime
   attendFocus,
   tierOf,
@@ -158,6 +170,8 @@ export {
   rewindCycle,
   type FocusRef,
   type FocusStack,
+  type Aspect,
+  type TimeRef,
   type WorkspaceGraph,
   type SemanticBlock,
   type TelemetryData,
@@ -165,6 +179,8 @@ export {
   type CognitiveMeta,
   type ServerErrorRecord,
   type RevisionEntry,
+  // Theme
+  theme,
 };
 
 export function updateEdgeData(
@@ -800,6 +816,10 @@ const storeAtoms = {
   activeRenderer: $activeRenderer,
   cognitiveEvents: $cognitiveEvents,
   configChanges: $configChanges,
+  focus: $focus,
+  aspect: $aspect,
+  depth: $depth,
+  time: $time,
 } satisfies Record<string, ReadableAtom<unknown>>;
 
 export type TestApiStorePath = keyof typeof storeAtoms;

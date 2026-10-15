@@ -5,11 +5,20 @@ import { loadConfig, saveConfig, DEFAULT_UI_CONFIG, type UiConfig } from '../cor
 import { createFocusStack, type FocusStack } from '../framework/focus-stack.js';
 import {
   type FocusRef,
+  type Aspect,
+  type TimeRef,
   focus,
   focusKey,
   focusEquals,
   MIND_FOCUS,
+  DEFAULT_ASPECT,
+  LIVE,
 } from '../framework/coordinates.js';
+import {
+  attendFocus,
+  tierOf,
+  tierToZoom,
+} from '../framework/attention-runtime.js';
 import type { SemanticBlock } from '../core/workspace-graph.js';
 import type { BlockKind } from '../core/block-descriptors.js';
 
@@ -204,6 +213,15 @@ export const $focusStack = createFocusStack(MIND_FOCUS);
 export const $focus = atom<FocusRef>(MIND_FOCUS);
 $focusStack.subscribe((ref) => $focus.set(ref));
 
+/** The aspect of the current focus — which projection to render (§7). */
+export const $aspect = atom<Aspect>(DEFAULT_ASPECT);
+
+/** The depth of the current focus — containment expansion level (§8). */
+export const $depth = atom<number>(0);
+
+/** The time reference of the current focus — live, at, or range (§9). */
+export const $time = atom<TimeRef>(LIVE);
+
 export function setActiveRenderer(id: string): void {
   $activeRenderer.set(id);
 }
@@ -298,6 +316,18 @@ export function setNeighborhoodDepth(depth: number): void {
   $neighborhoodDepth.set(Math.min(Math.max(Math.round(depth), 1), 3));
 }
 
+export function setAspect(aspect: Aspect): void {
+  $aspect.set(aspect);
+}
+
+export function setDepth(depth: number): void {
+  $depth.set(Math.max(0, Math.floor(depth)));
+}
+
+export function setTime(time: TimeRef): void {
+  $time.set(time);
+}
+
 export function toggleCollapsed(ref: string): void {
   const next = new Set($collapsedBlocks.get());
   if (next.has(ref)) next.delete(ref);
@@ -324,6 +354,10 @@ export {
   type WorkspaceGraph,
   type SemanticBlock,
   blockToFocusRef,
+  // UI.17 attention runtime
+  attendFocus,
+  tierOf,
+  tierToZoom,
 };
 
 export type TestApiStorePath =
@@ -350,7 +384,11 @@ export type TestApiStorePath =
   | 'activeRenderer'
   | 'collapsedBlocks'
   | 'neighborhoodDepth'
-  | 'capabilityFilter';
+  | 'capabilityFilter'
+  | 'focus'
+  | 'aspect'
+  | 'depth'
+  | 'time';
 
 const storeAtoms = {
   chatMessages: $chatMessages,
@@ -377,6 +415,10 @@ const storeAtoms = {
   collapsedBlocks: $collapsedBlocks,
   neighborhoodDepth: $neighborhoodDepth,
   capabilityFilter: $capabilityFilter,
+  focus: $focus,
+  aspect: $aspect,
+  depth: $depth,
+  time: $time,
 } satisfies Record<TestApiStorePath, Readable<unknown>>;
 
 export function exposeKernelTestApi(): void {

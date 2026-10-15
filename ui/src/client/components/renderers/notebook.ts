@@ -32,14 +32,17 @@ import {
   type RendererSnapshot,
   registerRenderer,
   WORKSPACE_INTERACTIONS,
-  type WorkspaceContext,
   type WorkspaceRenderer,
   type WorkspaceRendererCaps,
+  type RendererContext,
+  type IntentRef,
+  type FocusRef,
 } from '../../core/workspace-renderer.js';
+import { focusRefId } from '../../framework/coordinates.js';
 import type { Channel } from '../../modulation/types.js';
 import { blockBodyStyles, renderBlockBody } from '../../utils/render-block.js';
 // UI.17 attention runtime
-import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
+import { attendFocus, tierOf, type FocusRef as FrameworkFocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
 import '../primitives/empty-state.js';
 
 const isSection = (block: SemanticBlock): boolean => blockDescriptor(block.kind).section;
@@ -413,7 +416,7 @@ class NotebookRenderer implements WorkspaceRenderer {
   readonly label = 'Notebook';
 
   #element?: NotebookView;
-  #ctx?: WorkspaceContext;
+  #ctx?: RendererContext;
 
   capabilities(): WorkspaceRendererCaps {
     return {
@@ -429,7 +432,7 @@ class NotebookRenderer implements WorkspaceRenderer {
     };
   }
 
-  mount(host: HTMLElement, ctx: WorkspaceContext): void {
+  mount(host: HTMLElement, ctx: RendererContext): void {
     this.#ctx = ctx;
     this.#element = document.createElement('s-notebook');
     host.appendChild(this.#element);
@@ -439,19 +442,33 @@ class NotebookRenderer implements WorkspaceRenderer {
 
   apply(_ops: readonly WorkspaceOp[]): void {}
 
-  focus(ref: Ref): void {
-    setWorkspaceFocus(ref);
+  focus(address: string | FocusRef): void {
+    if (typeof address === 'string') {
+      setWorkspaceFocus(address);
+    } else {
+      const ref = focusRefId(address);
+      if (ref) setWorkspaceFocus(ref);
+    }
   }
 
-  select(refs: readonly Ref[]): void {
-    setWorkspaceSelection(refs);
+  select(ids: readonly string[]): void {
+    setWorkspaceSelection(ids);
   }
 
-  openComposer(anchor?: Ref): void {
-    eventBus.emit('composer:focus', { refs: anchor ? [anchor] : undefined });
+  affordances(anchor?: string): readonly IntentRef[] {
+    return [];
   }
 
-  openExplain(ref: Ref): void {
+  invoke(intentId: string, _args?: unknown): boolean {
+    return false;
+  }
+
+  openComposer(anchor?: FocusRef): void {
+    const refs = anchor ? [focusRefId(anchor)!] : undefined;
+    eventBus.emit('composer:focus', { refs });
+  }
+
+  openExplain(ref: FocusRef): void {
     this.#ctx?.openOverlay('explain', ref);
   }
 
@@ -461,7 +478,7 @@ class NotebookRenderer implements WorkspaceRenderer {
   }
 
   restore(snap: RendererSnapshot): void {
-    setWorkspaceFocus(snap.focus);
+    if (snap.focus) setWorkspaceFocus(snap.focus);
     setWorkspaceSelection(snap.selection);
   }
 

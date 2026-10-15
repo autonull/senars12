@@ -60,6 +60,9 @@ export function cssToken(name: string, fallback = ''): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
+/** The shape of the theme token object. */
+export type ThemeTokens = typeof theme;
+
 /**
  * The one runtime reader of `design-tokens.json`. A single source shared by CSS
  * (via the generated `tokens.css`), Cytoscape/Three/Chart adapters, canvas

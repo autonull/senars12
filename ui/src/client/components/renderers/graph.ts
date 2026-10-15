@@ -15,10 +15,13 @@ import {
   registerRenderer,
   WORKSPACE_INTERACTIONS,
   type RendererSnapshot,
-  type WorkspaceContext,
   type WorkspaceRenderer,
   type WorkspaceRendererCaps,
+  type RendererContext,
+  type IntentRef,
+  type FocusRef,
 } from '../../core/workspace-renderer.js';
+import { focusRefId } from '../../framework/coordinates.js';
 import type { Channel } from '../../modulation/types.js';
 import { diffWorkspaceGraph } from '../../core/workspace-diff.js';
 import { applyWorkspaceOps } from '../../core/workspace-graph.js';
@@ -36,7 +39,7 @@ class GraphRenderer implements WorkspaceRenderer {
   readonly label = '2D Graph';
 
   #element?: HTMLElement;
-  #ctx?: WorkspaceContext;
+  #ctx?: RendererContext;
 
   capabilities(): WorkspaceRendererCaps {
     return {
@@ -53,7 +56,7 @@ class GraphRenderer implements WorkspaceRenderer {
     };
   }
 
-  mount(host: HTMLElement, ctx: WorkspaceContext): void {
+  mount(host: HTMLElement, ctx: RendererContext): void {
     this.#ctx = ctx;
     this.#element = document.createElement('graph-surface');
     host.appendChild(this.#element);
@@ -91,21 +94,34 @@ class GraphRenderer implements WorkspaceRenderer {
     }
   }
 
-  focus(ref: Ref): void {
-    setWorkspaceFocus(ref);
+  focus(address: string | FocusRef): void {
+    if (typeof address === 'string') {
+      setWorkspaceFocus(address);
+    } else {
+      const ref = focusRefId(address);
+      if (ref) setWorkspaceFocus(ref);
+    }
   }
 
-  select(refs: readonly Ref[]): void {
-    setWorkspaceSelection(refs);
-    $selectedNodeId.set(refs.length === 1 ? (refs[0] ?? null) : null);
+  select(ids: readonly string[]): void {
+    setWorkspaceSelection(ids);
+    $selectedNodeId.set(ids.length === 1 ? (ids[0] ?? null) : null);
   }
 
-  openComposer(anchor?: Ref): void {
-    const refs = anchor ? [anchor] : workspaceRefs($selectedNodeIds.get());
+  affordances(anchor?: string): readonly IntentRef[] {
+    return [];
+  }
+
+  invoke(intentId: string, args?: unknown): boolean {
+    return false;
+  }
+
+  openComposer(anchor?: FocusRef): void {
+    const refs = anchor ? [focusRefId(anchor)!] : workspaceRefs($selectedNodeIds.get());
     eventBus.emit('composer:focus', { refs: refs.length ? refs : undefined });
   }
 
-  openExplain(ref: Ref): void {
+  openExplain(ref: FocusRef): void {
     this.#ctx?.openOverlay('explain', ref);
   }
 
@@ -115,7 +131,7 @@ class GraphRenderer implements WorkspaceRenderer {
   }
 
   restore(snap: RendererSnapshot): void {
-    setWorkspaceFocus(snap.focus);
+    if (snap.focus) setWorkspaceFocus(snap.focus);
     setWorkspaceSelection(snap.selection);
   }
 

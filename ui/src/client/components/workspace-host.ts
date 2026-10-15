@@ -15,25 +15,14 @@ import { BaseComponent } from '../core/base-component.js';
 import { dispatchCommand } from '../core/commands.js';
 import { eventBus } from '../core/events.js';
 import { overlayManager } from '../core/overlay-manager.js';
-import { $activeRenderer, setActiveRenderer } from '../core/store.js';
+import { $activeRenderer, setActiveRenderer, $focus, $aspect, $depth, $time, theme, $view } from '../core/store.js';
+import { focusRefId } from '../framework/coordinates.js';
 import {
-  type WorkspaceContext,
+  type RendererContext,
   type WorkspaceRenderer,
   workspaceRenderer,
   workspaceRenderers,
 } from '../core/workspace-renderer.js';
-
-const WORKSPACE_CONTEXT: WorkspaceContext = {
-  openOverlay: (id, ref) => eventBus.emit('overlay:open', { id, ref }),
-  // Funnel the palette through the command registry, so there is one open seam (§2.6).
-  openPalette: () => void dispatchCommand('overlay.palette'),
-  get renderer() {
-    return $activeRenderer.get();
-  },
-  setRenderer: (id) => setActiveRenderer(id),
-  overlays: () => overlayManager.stack(),
-  hasOverlays: () => overlayManager.size() > 0,
-};
 
 @customElement('workspace-host')
 export class WorkspaceHost extends BaseComponent {
@@ -44,10 +33,16 @@ export class WorkspaceHost extends BaseComponent {
   `;
 
   #current?: WorkspaceRenderer;
+  #rendererContext!: RendererContext;
 
   override connectedCallback(): void {
     super.connectedCallback();
     this.watch($activeRenderer);
+    this.watch($focus);
+    this.watch($aspect);
+    this.watch($depth);
+    this.watch($time);
+    this.#buildRendererContext();
   }
 
   override disconnectedCallback(): void {
@@ -57,7 +52,42 @@ export class WorkspaceHost extends BaseComponent {
   }
 
   override updated(): void {
+    this.#buildRendererContext();
     this.sync();
+  }
+
+  #buildRendererContext(): void {
+    this.#rendererContext = {
+      projection: {
+        focus: $focus.get(),
+        aspect: $aspect.get(),
+        depth: $depth.get(),
+        time: $time.get(),
+      },
+      theme: theme,
+      flags: $view.get().flags,
+      timeline: $view.get().timeline,
+      presence: undefined,
+      openOverlay: (id, ref) => {
+        const anchor = typeof ref === 'string' ? ref : ref ? focusRefId(ref) : undefined;
+        eventBus.emit('overlay:open', { id, ref: anchor });
+      },
+      openPalette: () => void dispatchCommand('overlay.palette'),
+      renderer: $activeRenderer.get(),
+      setRenderer: (id) => setActiveRenderer(id),
+      overlays: () => overlayManager.stack(),
+      hasOverlays: () => overlayManager.size() > 0,
+      dispatch: (intentId, args) => dispatchCommand(intentId, (args as Record<string, unknown>) ?? {}),
+      focus: (address) => {
+        // Focus is handled by the kernel
+      },
+      select: (ids) => {
+        // Selection is handled by the kernel
+      },
+      embed: (cell, host) => {
+        // Embed is handled by the renderer
+      },
+    };
   }
 
   private sync(): void {
@@ -71,7 +101,7 @@ export class WorkspaceHost extends BaseComponent {
     const next = workspaceRenderer(id) ?? workspaceRenderers()[0];
     this.#current = next;
     if (!next) return;
-    next.mount(stage, WORKSPACE_CONTEXT);
+    next.mount(stage, this.#rendererContext);
     if (snapshot) next.restore(snapshot);
   }
 
