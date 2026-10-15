@@ -9,6 +9,9 @@ pasted on".
 **Ready to implement.** §16 is the fresh-session start; §19 names the honest risks. The keystone is
 §0's attention economy: **the UI spends attention the way the mind does.**
 
+**Progress:** §16 Steps 0–1 landed (the four coordinates, `FocusRef`, focus stack, `FocusCell`, and
+the typed Resolver over the WorkspaceGraph). See §21 for the log and the next step.
+
 > **SeNARS is a live two-system cognitive runtime, and the UI is a projection of one Focus
 > through one Aspect at one Depth at one Time — where content and structure are the same
 > substrate seen at different depths.**
@@ -514,3 +517,56 @@ flows; fidelity is bought and reclaimed; nothing is recorded that is not worth t
 not a picture of cognition — it is cognition, allocated the same way.
 
 That is the stake. This document is the contract.
+
+---
+
+## 21. Progress log
+
+### Landed — Steps 0–1 (the coordinates + the Resolver shape)
+
+Pure, tested, DOM-free foundation under `ui/src/client/framework/`, re-exported from the framework
+barrel. Nothing is deleted; this is additive.
+
+| Piece | File | What it is |
+|---|---|---|
+| Four coordinates + `FocusRef` + `FocusCell` | `framework/coordinates.ts` | `FocusRef` (14 typed kinds), `focus` constructors, `focusKey`/`focusEquals`, `Aspect` (+ `ASPECT_SURFACES`, the §7/§15 surface map), `TimeRef` (`live`/`at`/`range`), the `DEPTHS` ladder + `clampDepth`, `FocusCell` + `cellFor`/`cellKey`/`cellEquals` |
+| Focus stack | `framework/focus-stack.ts` | `createFocusStack` — reversible navigation (`set`/`replace`/`back`/`forward`/`reset`), bounded history, `subscribe` |
+| Resolver (Step 0) | `framework/resolver.ts` | `resolveFocus(FocusRef, {graph,depth}) → { content, neighborhood, provenance, history, trace }`, `workspaceResolver`, `aspectSlice`/`hasSlice` |
+| Tests | `tests/framework/focus-model.test.ts` | 12 tests over keys, guards, ladder, stack, and resolution slices |
+
+Design notes:
+
+- The `FocusCell` name is used (not `Cell`) to avoid colliding with the UI.16 `Cell` in
+  `framework/composition.ts` — the latter becomes an arrangement strategy (§15). When the two
+  reconcile, the UI.16 `Cell` retires and `FocusCell` takes the name.
+- The Resolver reads the **one `WorkspaceGraph`** (`core/workspace-graph.ts`), so there is no new
+  substrate: `content` = block + ordered children, `neighborhood` = existing `core/neighborhood.ts`,
+  `provenance` = `provenanceRefs` ⊕ `derived-from`/`supports`, `history` = `revises`/`elaborates`
+  (oldest first), `trace` = `eventRefs` ⊕ `admitted/rejected-by-gate` ⊕ `produced-by-tool`.
+- `origin`/`ambient`/`direct` aspects intentionally carry no graph slice yet — they project a split,
+  a mind and verbs, not a focus's slices.
+
+### Remaining — facilitated next steps
+
+1. **Step 3 wiring (the immediate next slice).** Route the live focus sources into one `$focus`
+   stack in `kernel/state.ts` and re-parent `setWorkspaceFocus` onto it. Today the only focus is the
+   legacy `workspaceGraph.focus: Ref`; ~15 call sites (`graph-viewport`, `notebook`, `toc`, `related`,
+   `artifact`, `block-menu`, `graph`, `graph3d`, `app-layout`) read/write it. Decide the `Ref →
+   FocusRef` mapping (block kind → focus kind) there, deliberately — it is the one place kind
+   ambiguity is resolved, and it is why it was *not* guessed in this slice.
+2. **Step 2 (attention allocator).** Fold the existing LOD/zoom numbers (`utils/graph-scaling.ts`,
+   `utils/renderer-capabilities.ts`, `core/performance-budget.ts`) into one
+   `(focus, weight) → fidelity tier` allocator with decay/reclaim.
+3. **Tests:** the resolver covers block-backed foci; add cases as wiring introduces real
+   non-block foci (`mind`/`drive`/`time`) and as containment edges fill the §19.4 gaps
+   (turn→formalization, goal→subgoals).
+
+### New improvement opportunities
+
+- **`SemanticLinkKind` ↔ provenance/history/trace are sets here; they want one declared table**
+  (like `BUDGET_RESOURCES`) so the resolver and future breakpoints/Instrument aspects agree on which
+  link kinds mean "support", "revised" and "caused".
+- **`ASPECT_SURFACES` is the routing seam for Step 3** — it could also carry the default arrangement
+  (linear/spatial/grid) per `(aspect, depth)`, letting one table drive both aspect and arrangement.
+- **`focusKey` is a natural URL/fragment encoding** (the four coordinates serialize to one address),
+  which would make focus deep-linkable and replayable for free.

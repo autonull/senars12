@@ -187,6 +187,57 @@ export {
   cellSurface,
 } from './composition.js';
 
+export type {
+  FocusKind,
+  FocusRef,
+  TaskType,
+  TimeRef,
+  Aspect,
+  Depth,
+  FocusCell,
+} from './coordinates.js';
+
+export {
+  focus,
+  MIND_FOCUS,
+  focusRefId,
+  isTermFocus,
+  focusKey,
+  focusEquals,
+  FOCUS_KINDS,
+  isFocusKind,
+  LIVE,
+  atTime,
+  timeRange,
+  timeKey,
+  ASPECTS,
+  isAspect,
+  ASPECT_SURFACES,
+  DEPTHS,
+  MAX_DEPTH,
+  clampDepth,
+  DEFAULT_ASPECT,
+  cellFor,
+  cellKey,
+  cellEquals,
+} from './coordinates.js';
+
+export type { FocusStack } from './focus-stack.js';
+export { createFocusStack } from './focus-stack.js';
+
+export type {
+  ContentSlice,
+  ProvenanceSlice,
+  HistorySlice,
+  TraceSlice,
+  FocusResolution,
+  ResolverContext,
+  Resolver,
+  FocusSlice,
+} from './resolver.js';
+
+export { resolveFocus, workspaceResolver, aspectSlice, hasSlice } from './resolver.js';
+
 export {
   AREA_LETTERS,
   LAYOUT_IDS,
