@@ -6,6 +6,9 @@ decides **what the plumbing is for**: a single workspace that is simultaneously 
 graph, addressed by one focus, reducible to any conventional UI, and never "a canvas with panels
 pasted on".
 
+**Ready to implement.** §16 is the fresh-session start; §19 names the honest risks. The keystone is
+§0's attention economy: **the UI spends attention the way the mind does.**
+
 > **SeNARS is a live two-system cognitive runtime, and the UI is a projection of one Focus
 > through one Aspect at one Depth at one Time — where content and structure are the same
 > substrate seen at different depths.**
@@ -30,6 +33,29 @@ document:
 3. **Input is perception.** A prompt is not decoration; it is **perceived**, admitted, formalised
    — it **becomes a concept** in the mind, with a term, a truth value, and links. The conversation
    *is* graph growth.
+
+### The interface is an attention economy — the UI spends attention the way the mind does
+
+The mind has no infinite canvas; it has a **budget** (AIKR): bounded attention, decay, sampling. The UI
+has the same constraints — finite pixels, finite frame time, finite *human* attention. So the UI must
+not fake infinity. It must **allocate by the same mechanism the reasoner uses**: attention.
+
+- **Focus is the signal.** Where the user focuses, energy flows — exactly as the reasoner spends on
+  the concepts it attends to. Focusing is a real `focus.set`/priming event, so **user and system
+  co-direct attention**: the UI shows what the system attends to, and the system attends to what the
+  user focuses.
+- **Fidelity is a function of attention × proximity to focus.** The focus gets full fidelity
+  (provenance, mounted bodies, live labels); the context ring gets **sampled** fidelity; the ambient
+  gets **aggregates**; everything behind gets **reclaimed**.
+- **Decay, not teardown.** As focus moves, previous foci decay — bodies unmount, glyphs simplify —
+  just as concept priority decays without reinforcement.
+- **This resolves the performance problem by principle, not by engineering.** The UI degrades
+  gracefully under load *because* it is an attention economy — so its behaviour under pressure
+  **mirrors the mind's**, and that is why it "best reflects how it actually works."
+
+The UI's own expensive operations (deep provenance, replay, counterfactual) are **budgeted** like
+reasoning operations: you spend to render them, and the spend is visible. There is **no obligation to
+record or render everything** — focus defines where the energy goes, and all resources are finite.
 
 ---
 
@@ -312,6 +338,10 @@ else accumulates quietly. Motion in the field communicates liveness.
 11. Controls are derived from `(focus, aspect)`.
 12. Ambient respects a noise budget.
 13. Adding a view = adding a projection, not a panel.
+14. **Fidelity is allocated by attention** (focus → full, ring → sampled, ambient → aggregate, behind
+    → reclaimed) and reclaimed by decay — the UI obeys AIKR like the mind does.
+15. Nothing is recorded or rendered by default; expensive fidelity (replay, counterfactual) is
+    **budgeted and opt-in**.
 
 ---
 
@@ -332,26 +362,38 @@ else accumulates quietly. Motion in the field communicates liveness.
 | `s-settings` / `lens-designer` / config | `Direct` aspect |
 | `surface-registry`, `composition registry` | the registries of projections and arrangement presets |
 
+Every component is **retained** — re-parented onto the four coordinates, not discarded. A surface that
+does not fit a projection yet is parked behind a registry entry, not deleted: the substrate it was
+built on (UI.16 — dumb surfaces, one shell, data-driven compositions) is exactly what UI.17 needs.
+
 ---
 
-## 16. Implementation order (settled)
+## 16. Implementation order — the fresh-session start
 
-1. **Persist this spec** as `TODO.ui.17.md` *(this file)* and treat UI.16 as the substrate it builds on.
-2. **The four coordinates** — introduce `$focus`, `$aspect` (per-cell), `$depth`, `$time`; the
-   `FocusRef` type; the focus stack; the `Cell` type.
+Build **attention-first**: the resource model (§0) is not a later optimisation; it is the first
+principle, because it is what the whole thing rests on.
+
+**Step 0 — the Resolver (design first, §19.3).** The typed interface
+`resolve(FocusRef) → { content, neighborhood, provenance, history, trace }`. Everything else is a
+consumer; get this shape right before building on it.
+
+1. **The four coordinates** — `$focus`, `$aspect` (per-cell), `$depth`, `$time`; the `FocusRef` type;
+   the focus stack; the `Cell` type. *(Spec already persisted as this file.)*
+2. **Attention governs fidelity** — one allocator mapping `(focus, attention weight) → fidelity tier`,
+   with decay and reclaim. Fold the existing LOD/scaling numbers into it rather than discarding them.
 3. **Route every existing focus source** into `$focus` (graph tap → `concept`; chat submit → `turn`;
    node select → `task`; timeline → `time`; …).
-4. **Build the Cell renderer + Focus+Context canvas** — centre = `Content(focus)`, ring =
-   `Neighborhood(focus)`, translucent `Provenance` / `History` / `Origin` overlays.
-5. **Encode the visual grammar** from the Lens AST + origin; make node bodies translucent.
-6. **Perceive prompts** — a submitted utterance becomes a `turn` cell that is a concept (formalization,
-   truth, induced links, provenance).
-7. **Derive the composer** and the affordances from `(focus, aspect)`; wire affordances to kernel ops
-   (including `.react`).
+4. **Cell renderer + Focus+Context canvas** — centre = `Content(focus)`, ring = `Neighborhood(focus)`,
+   translucent `Provenance` / `History` / `Origin` overlays. *Discrete depth ladder first.*
+5. **Visual grammar** from the Lens AST + origin; translucent node bodies.
+6. **Perceive prompts** — a submitted utterance becomes a `turn` cell that is a concept.
+7. **Composer + affordances** derived from `(focus, aspect)`; wire to kernel ops (incl. `.react`).
 8. **Arrangement strategies** — linear / outline / spatial / grid / mixed over a cell set.
-9. **Rebuild `Ambient`** with the noise budget.
-10. **Delete the obsolete** — the whole-store hairball default, the LOD budget machinery, intent-mode
-    hacks — now unreachable.
+9. **Ambient** — attention field, drives, vitals; noise budget.
+10. **Instrument, budgeted & opt-in** — Trace; cycle step; gates; breakpoints; intervention + diff;
+    counterfactual replay. Each is a *spend*, surfaced before it runs.
+11. **The obsolete** — the whole-store hairball default and intent-mode hacks become unreachable; the
+    LOD machinery is **absorbed** into the attention allocator, not deleted.
 
 ---
 
@@ -417,13 +459,18 @@ the **diff**: which concepts / tasks / goals changed, with truth deltas. *Git di
 
 SeNARS is event-sourced, so this is *possible*, and no ordinary UI can do it. Trace causality **both
 ways** (why it holds / what it caused); then **rewind to an event, alter one input or truth value,
-re-run, and see what the mind would have concluded.** This is the vivisection.
+re-run, and see what the mind would have concluded.** This is the vivisection — **budgeted and opt-in**:
+a deliberate spend, surfaced before it runs, not a background recorder. Counterfactual replay is
+expensive and attention is finite (§0).
 
 ### 18.7 Interaction as cognition
 
-Every focus, injection, and correction is *perceived*: a cognitive event, recorded in the log,
-replayable, and — via the Dialogue Flywheel — usable as training signal. The tool is **part of the
-mind it inspects**; a developer is another channel into the same running agent.
+Every focus, injection, and correction *can* be perceived: a cognitive event, and — via the Dialogue
+Flywheel — usable as training signal. The tool is **part of the mind it inspects**; a developer is
+another channel into the same running agent.
+
+But recording is **not an obligation**: it is a budgeted, opt-in spend (like any other attention
+cost), not a background timeline of every keystroke. **Focus decides what is worth keeping.**
 
 ### 18.8 The vitals layer
 
@@ -447,8 +494,10 @@ queue depths. *The mind at a glance.*
 4. **Containment must be real.** The fractal is only as deep as the substrate's containment edges.
    Exist today: concept→tasks, derivation→steps, event→cycle, proposal→judgment. Partial:
    turn→formalization, goal→subgoals. Fill the gaps as needed.
-5. **Liveness & performance.** A live mind emits continuously; rich projections over it need
-   sampling/virtualisation discipline and a **noise budget** from the start.
+5. **Liveness & performance → resolved by principle.** A live mind emits continuously, but the UI is
+   itself an attention economy (§0): fidelity is allocated by focus, sampled for the ring, aggregated
+   for the ambient, reclaimed behind, and decayed over time. The **noise budget is the same budget the
+   reasoner runs on.** *This is the one risk that becomes the design's best feature.*
 
 ---
 
@@ -459,5 +508,9 @@ depth the user is thinking, reducible to any conventional UI, mixing flat conten
 where a prompt is a perceived concept and the conversation is graph growth — and, for a developer, a
 **vivisection bench**: step the cycle, stand at the gates, break on a condition, intervene, diff the
 ripple, replay counterfactually, and treat your own interaction as cognition.
+
+Above all: **the interface spends attention the way the mind does.** Focus defines where the energy
+flows; fidelity is bought and reclaimed; nothing is recorded that is not worth the spend. The UI is
+not a picture of cognition — it is cognition, allocated the same way.
 
 That is the stake. This document is the contract.
