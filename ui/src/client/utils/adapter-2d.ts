@@ -1,7 +1,7 @@
 import type { Core } from 'cytoscape';
 import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
 import { nodeSize } from './graph-scaling.js';
-import { RENDERER_CAPABILITIES } from './renderer-capabilities.js';
+import { getRendererCapability } from './renderer-capabilities.js';
 import { numericToken, theme, truthColor } from './theme.js';
 
 const confidenceOpacityMin = numericToken('colors.confidence.opacity-min', 0.3);
@@ -10,8 +10,13 @@ const confidenceOpacityMax = numericToken('colors.confidence.opacity-max', 1);
 const confidenceToOpacity = (c: number): number =>
   confidenceOpacityMin + (confidenceOpacityMax - confidenceOpacityMin) * c;
 
-export const SUPPORT_2D = RENDERER_CAPABILITIES['graph-2d'].node;
-export const SUPPORT_2D_EDGES = RENDERER_CAPABILITIES['graph-2d'].edge;
+function getSupport2D(): ReadonlySet<Channel> {
+  return getRendererCapability('graph-2d')?.node ?? new Set();
+}
+
+function getSupport2DEdges(): ReadonlySet<Channel> {
+  return getRendererCapability('graph-2d')?.edge ?? new Set();
+}
 
 interface StyleChanges {
   'background-color'?: string;
@@ -36,8 +41,9 @@ interface EdgeStyleChanges {
 
 function channelToStyles(channels: Partial<Record<Channel, ChannelValue>>): StyleChanges {
   const styles: StyleChanges = {};
+  const support = getSupport2D();
   for (const [ch, value] of Object.entries(channels)) {
-    if (!SUPPORT_2D.has(ch as Channel)) continue;
+    if (!support.has(ch as Channel)) continue;
     switch (ch as Channel) {
       case 'color':
         if (typeof value === 'string') styles['background-color'] = value;
@@ -72,8 +78,9 @@ function channelToStyles(channels: Partial<Record<Channel, ChannelValue>>): Styl
 
 function edgeChannelToStyles(channels: Partial<Record<Channel, ChannelValue>>): EdgeStyleChanges {
   const styles: EdgeStyleChanges = {};
+  const support = getSupport2DEdges();
   for (const [ch, value] of Object.entries(channels)) {
-    if (!SUPPORT_2D_EDGES.has(ch as Channel)) continue;
+    if (!support.has(ch as Channel)) continue;
     switch (ch as Channel) {
       case 'width':
         if (typeof value === 'number') styles.width = value;

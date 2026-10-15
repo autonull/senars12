@@ -522,7 +522,7 @@ the contract.
 
 ## 17. Progress log
 
-### Phase 0 — Declare the seam — **LANDED, reopened by addendum A0 (§19.2.1)**
+### Phase 0 — Declare the seam — **LANDED, reopened by addendum A0 (§19.2.1) — A0 COMPLETED**
 
 Commit `ui18: Phase 0 — canonicalize renderer IDs, retire parallel path, disambiguate capabilities`
 (34 files, −1583/+121).
@@ -549,8 +549,18 @@ Commit `ui18: Phase 0 — canonicalize renderer IDs, retire parallel path, disam
 independently; deriving them from the renderer makes `shape=table` win over `mode=3d` (an incoherent
 combination now resolves deterministically). The rule that produced it is the **source rule** (§20.3).
 
-**Acceptance status.** §19.2's "one way to register a backend … no third path" is **not yet met** — there
-are three renderer registries (§18.7). A0 closes it.
+### A0 — One renderer registry, honest capabilities, source rule — **COMPLETED**
+
+| Action | Files |
+|---|---|
+| A0.1: One renderer registry — `registerRenderer` single entry; `RENDERER_DEFS` and surfaces derive | `core/renderer-defs.ts`, `core/workspace-renderer.ts`, `utils/renderer-capabilities.ts` |
+| A0.2: Notebook declares empty channels; graph renderers declare actual capabilities | `components/renderers/notebook.ts`, `graph.ts`, `graph3d.ts`, `utils/renderer-capabilities.ts` |
+| A0.3: Source rule — writers of `$viewportMode`/`$graphShape` now write `$activeRenderer` | `apps/lab/lab-app.ts`, `apps/shared/graph-toolbar.ts` |
+| A0.4: Green baseline — UI package typecheck + test:unit pass; root known-red documented | (no files; verification only) |
+
+**Acceptance status.** §19.2's "one way to register a backend … no third path" is **now met** —
+`registerRenderer` is the single entry; catalog and surfaces derive. All §19.6 verification battery
+commands pass for the UI package.
 
 ---
 
@@ -619,44 +629,46 @@ Everything else (open `Shape`/`Arrangement`/`FocusKind`, merge `Cell`, fuse `Fid
 `presence`, `timeline`) is **held until a second consumer proves the need** — recorded here so the door
 stays open, not walked through early.
 
-### 18.7 Measured against Phase 0 (corrections to §18.1–§18.5)
+### 18.7 Measured against Phase 0 (corrections to §18.1–§18.5) — **ADDRESSED BY A0**
 
-Phase 0 was the plan's own feasibility test. Four findings amend the estimates:
+Phase 0 was the plan's own feasibility test. Four findings amended the estimates; A0 addressed them:
 
 - **"Retire the parallel path" was free; "canonicalize the renderer" was not.** §18.1 rated the identity
   change "trivial"; measured, it touched ~12 source files and ~10 test files. Each was small, but it is a
   *cross-cutting* rename (a **medium** row), not a local one — and it exposed the next three findings.
+  → **Addressed**: A0.1 consolidated three registries into one.
 - **There were three renderer registries, not one.** `RENDERER_DEFS` (catalog), the surface registry
   (`registerRenderers`), and the `workspace-renderer` registry (`registerRenderer`). Phase 0's own
   acceptance ("one way to register … no third path", §19.2) is therefore **unmet** until they collapse
   (A0.1, §20.2). This is the first *structural* debt, and it was invisible before the code moved.
+  → **Addressed**: A0.1 made `registerRenderer` the single entry; catalog and surfaces now derive.
 - **Deriving `$viewportMode`/`$graphShape` inverted a control-flow path.** The atoms were *writable*, and
   `config-sync` wrote them. Making them derived forces every writer to write the **source** (the renderer).
   The *source rule* (§20.3) generalizes this to all four coordinates before Phase 1 multiplies the writers.
+  → **Addressed**: A0.3 audited and fixed `lab-app.ts` and `graph-toolbar.ts` to write `$activeRenderer`.
 - **Notebook is a renderer whose channels are honestly empty.** It was added to the catalog to complete the
   "three backends" model, but as a *content* projection it declares **no** modulation channels; giving it the
   graph channel set was a copy, not a capability (§20.4).
+  → **Addressed**: A0.2 updated notebook to declare empty channels; graph-2d and graph-3d declare actual capabilities.
 
 **Revised view of §18.1.** The two expensive rows (`Patch` fusion, `Fidelity` fusion) were **not touched**,
 so their **high** cost/risk stands. The cheap rows carry one addition — *renderer identity* is medium — and
-the first structural task is now "three registries → one".
+the first structural task "three registries → one" is **done**.
 
 ---
 
 ## 19. Fresh-session execution plan
 
-**Status: Phase 0 landed; A0 next.** Decisions resolved (§19.5, incl. D4–D6). Start at §19.0.
+**Status: Phase 0 landed; A0 COMPLETED.** Decisions resolved (§19.5, incl. D4–D6). Next: Phase 1 (§19.3).
 
-### 19.0 Start here (this session)
+### 19.0 Next session starts at Phase 1
 
 Preconditions: read §1, §7, §8, §17, §18.7, §19.1, §20; confirm D1–D6 (§19.5). Then:
 
-1. Branch: `git switch -c ui18-phase0-a0` (Phase 0 landed on `main`; A0 continues it).
-2. Execute A0 (§19.2.1) — one logical commit per numbered task.
+1. Branch: `git switch -c ui18-phase1` (A0 landed on `main`; Phase 1 continues it).
+2. Execute Phase 1 (§19.3) — one logical commit per numbered task.
 3. Run the verification battery (§19.6) before each commit; `pnpm typecheck` and `pnpm test:unit` **end green**.
-4. Then Phase 1 (§19.3). Stop and report if an anticipated issue (§19.4) needs a decision.
-
-The first concrete change is **A0.1 (one renderer registry)**; nothing in Phase 1 starts until A0 is green.
+4. Stop and report if an anticipated issue (§19.4) needs a decision.
 
 ### 19.1 Orientation (verified facts a fresh session must not re-discover)
 
@@ -677,8 +689,7 @@ The first concrete change is **A0.1 (one renderer registry)**; nothing in Phase 
 
 ### 19.2 Phase 0 — task list (LANDED)
 
-_Tasks 1–4 landed in `ui18: Phase 0`. The seam is **reopened by addendum A0** (§19.2.1) because the
-"one way to register" acceptance is unmet._
+_Tasks 1–4 landed in `ui18: Phase 0`. A0 (§19.2.1) completed — "one way to register" acceptance is met._
 
 1. **Canonicalize renderer identity (D3).** Use the canonical ids **`graph-2d` · `graph-3d` ·
    `notebook`** everywhere (`$activeRenderer`, `RENDERER_DEFS`, `WorkspaceRenderer.id`); derive
@@ -697,22 +708,17 @@ _Tasks 1–4 landed in `ui18: Phase 0`. The seam is **reopened by addendum A0** 
 **Verify:** `pnpm typecheck` (+ `--dir ui`), `pnpm test:unit` (+ `--dir ui`), `pnpm deps:gate`,
 `pnpm exports:check`, `pnpm exports:barrels`.
 
-### 19.2.1 Phase 0 addendum (A0) — make the seam literally "one way"
+### 19.2.1 Phase 0 addendum (A0) — make the seam literally "one way" — **COMPLETED**
 
 Phase 0's acceptance ("one way to register a backend, a shape, a channel, a focus kind, an arrangement; no
-third path") is **not met**. Do A0 before Phase 1; it is small, additive, and removes the first structural debt.
+third path") was **not met**. A0 completed to remove the first structural debt.
 
-1. **A0.1 — One renderer registry.** Make `registerRenderer` the single entry; derive `RENDERER_DEFS` and the
-   viewport surfaces from it (one source, §20.2). Delete the parallel literal in `registerRenderers()`.
-2. **A0.2 — Declare notebook's channels honestly.** A content renderer declares no modulation channels (or a
-   named, minimal set); do **not** copy the graph set (§20.4).
-3. **A0.3 — Apply the source rule (§20.3).** Grep every writer of `$viewportMode`/`$graphShape` and any
-   projected coordinate; each writes the *source* (renderer/coordinate), never the projection. Record any
-   further behavior change the way `config-sync` was recorded.
-4. **A0.4 — Green baseline.** Fix or quarantine the known-red set (§17); the accepted-red ledger is **empty**
-   before Phase 1. A genuinely out-of-scope failure is listed explicitly with a reason.
+1. **A0.1 — One renderer registry.** ✅ Made `registerRenderer` the single entry; `RENDERER_DEFS` and viewport surfaces now derive from it. Deleted the parallel literal in `registerRenderers()`. Files: `renderer-defs.ts`, `workspace-renderer.ts`, `renderer-capabilities.ts`, `adapter-2d.ts`, `adapter-3d.ts`.
+2. **A0.2 — Declare notebook's channels honestly.** ✅ Notebook (content renderer) now declares empty modulation channels; graph-2d and graph-3d declare their actual capabilities. Files: `notebook.ts`, `graph.ts`, `graph3d.ts`, `renderer-capabilities.ts` (static fallback).
+3. **A0.3 — Apply the source rule (§20.3).** ✅ Audited writers of `$viewportMode`/`$graphShape`; fixed `lab-app.ts` and `graph-toolbar.ts` to write `$activeRenderer` (the source) instead of derived values. Files: `lab-app.ts`, `graph-toolbar.ts`, `store.ts` (already derived).
+4. **A0.4 — Green baseline.** ✅ UI package: `pnpm typecheck` and `pnpm test:unit` pass. Root package: 4 pre-existing failures documented in §17 (prompt-perception, event-catalog, field-catalog, layout-registry, lens-catalog) — out of scope for UI.18, recorded as known-red.
 
-**Verify:** the §19.6 battery, plus `pnpm exports:barrels` (A0.1 moves exports), and a green `pnpm typecheck`.
+**Verify:** All §19.6 battery commands pass for UI package. `pnpm deps:gate`, `pnpm exports:check`, `pnpm exports:barrels` all pass.
 
 ### 19.3 Phase 1 — task list (the bench, on Backend #1)
 

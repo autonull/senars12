@@ -21,6 +21,7 @@ import {
   type WorkspaceRenderer,
   type WorkspaceRendererCaps,
 } from '../../core/workspace-renderer.js';
+import type { Channel } from '../../modulation/types.js';
 
 const INTERACTIONS: readonly WorkspaceInteraction[] = [
   'compose',
@@ -49,6 +50,10 @@ class Graph3DRenderer implements WorkspaceRenderer {
       parity: 'partial',
       surface: 'spacegraph-viewport',
       requiredCapability: 'reasoning',
+      channels: {
+        node: new Set<Channel>(['color', 'opacity', 'size', 'label', 'z']),
+        edge: new Set<Channel>(['color', 'edge-color', 'width', 'opacity']),
+      },
     };
   }
 

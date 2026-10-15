@@ -16,6 +16,7 @@ import type {
   WorkspaceOp,
 } from './workspace-graph.js';
 import { Capability } from './capabilities.js';
+import type { Channel } from '../modulation/types.js';
 
 /** Every interaction a renderer may implement; capabilities declare the subset. */
 export const WORKSPACE_INTERACTIONS = [
@@ -52,6 +53,11 @@ export type WorkspaceRendererCaps = {
   readonly surface?: string;
   /** Capability required to use this renderer; if absent, always available. */
   readonly requiredCapability?: Capability;
+  /** Modulation channels this renderer honours, per element kind. */
+  readonly channels?: {
+    readonly node: ReadonlySet<Channel>;
+    readonly edge: ReadonlySet<Channel>;
+  };
 };
 
 /** Viewport/scroll/camera plus focus/selection — what a renderer switch preserves. */

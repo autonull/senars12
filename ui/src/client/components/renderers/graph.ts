@@ -19,6 +19,7 @@ import {
   type WorkspaceRenderer,
   type WorkspaceRendererCaps,
 } from '../../core/workspace-renderer.js';
+import type { Channel } from '../../modulation/types.js';
 import { diffWorkspaceGraph } from '../../core/workspace-diff.js';
 import { applyWorkspaceOps } from '../../core/workspace-graph.js';
 import './graph-surface.js';
@@ -45,6 +46,10 @@ class GraphRenderer implements WorkspaceRenderer {
       controls: ['layers'],
       surface: 'graph-surface',
       requiredCapability: 'reasoning',
+      channels: {
+        node: new Set<Channel>(['color', 'opacity', 'size', 'label', 'stroke.dash', 'stroke.width', 'z']),
+        edge: new Set<Channel>(['color', 'edge-color', 'width', 'line-style', 'opacity']),
+      },
     };
   }
 

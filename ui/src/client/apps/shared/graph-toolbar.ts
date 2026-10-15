@@ -8,10 +8,9 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { BaseComponent } from '../../core/base-component.js';
 import {
   $activeLens,
+  $activeRenderer,
   $graphLayer,
-  $graphShape,
-  $viewportMode,
-  VIEWPORT_MODES,
+  setActiveRenderer,
 } from '../../kernel/index.js';
 import { LENS_FACETS } from '../../utils/lens-catalog.js';
 import { GRAPH_LAYER_FACETS } from '../../core/graph-layer-defs.js';
@@ -55,20 +54,25 @@ export class GraphToolbar extends BaseComponent {
 
   @state() private activeLens = 'belief';
   @state() private activeLayer = 'both';
-  @state() private activeShape = 'graph';
-  @state() private activeMode = '2d';
+  @state() private activeRenderer = 'graph-2d';
   @state() private activeFilter = 'all';
+
+  private get activeShape(): 'graph' | 'table' {
+    return this.activeRenderer === 'notebook' ? 'table' : 'graph';
+  }
+
+  private get activeMode(): '2d' | '3d' {
+    return this.activeRenderer === 'graph-3d' ? '3d' : '2d';
+  }
 
   override connectedCallback(): void {
     super.connectedCallback();
     this.watchWith($activeLens, (v) => (this.activeLens = v));
+    this.watchWith($activeRenderer, (v) => (this.activeRenderer = v));
     this.watchWith($graphLayer, (v) => (this.activeLayer = v));
-    this.watchWith($graphShape, (v) => (this.activeShape = v));
-    this.watchWith($viewportMode, (v) => (this.activeMode = v));
     this.activeLens = $activeLens.get();
+    this.activeRenderer = $activeRenderer.get();
     this.activeLayer = $graphLayer.get();
-    this.activeShape = $graphShape.get();
-    this.activeMode = $viewportMode.get();
   }
 
   private handleLensChange = (e: CustomEvent): void => {
@@ -80,11 +84,15 @@ export class GraphToolbar extends BaseComponent {
   };
 
   private handleShapeChange = (e: CustomEvent): void => {
-    $graphShape.set(e.detail.value);
+    const shape = e.detail.value as 'graph' | 'table';
+    const renderer = shape === 'table' ? 'notebook' : 'graph-2d';
+    setActiveRenderer(renderer);
   };
 
   private handleModeChange = (e: CustomEvent): void => {
-    $viewportMode.set(e.detail.value);
+    const mode = e.detail.value as '2d' | '3d';
+    const renderer = mode === '3d' ? 'graph-3d' : 'graph-2d';
+    setActiveRenderer(renderer);
   };
 
   private handleFilterChange = (e: CustomEvent): void => {
@@ -107,7 +115,10 @@ export class GraphToolbar extends BaseComponent {
     { value: 'table', label: 'Table' },
   ];
 
-  private modeOptions = VIEWPORT_MODES.map((m) => ({ value: m, label: m.toUpperCase() }));
+  private modeOptions = [
+    { value: '2d', label: '2D' },
+    { value: '3d', label: '3D' },
+  ];
 
   private filterOptions = FILTER_FACETS.ids.map((id) => {
     const facet = FILTER_FACETS.get(id);

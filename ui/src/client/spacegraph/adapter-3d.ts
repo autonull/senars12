@@ -1,9 +1,14 @@
 import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
-import { RENDERER_CAPABILITIES, unsupportedChannels } from '../utils/renderer-capabilities.js';
+import { getRendererCapability, unsupportedChannels } from '../utils/renderer-capabilities.js';
 import { theme } from '../utils/theme.js';
 
-export const SUPPORT_3D = RENDERER_CAPABILITIES['graph-3d'].node;
-export const SUPPORT_3D_EDGES = RENDERER_CAPABILITIES['graph-3d'].edge;
+function getSupport3D(): ReadonlySet<Channel> {
+  return getRendererCapability('graph-3d')?.node ?? new Set();
+}
+
+function getSupport3DEdges(): ReadonlySet<Channel> {
+  return getRendererCapability('graph-3d')?.edge ?? new Set();
+}
 
 export const checkUnsupportedChannels = (delta: Delta, isEdge: (id: string) => boolean): Channel[] =>
   unsupportedChannels(delta, 'graph-3d', isEdge);

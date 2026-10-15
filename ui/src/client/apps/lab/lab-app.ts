@@ -13,7 +13,7 @@
 
 import { css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $activeLens, $graphFit, $graphLayer, $graphShape, $viewportMode } from '../../kernel/index.js';
+import { $activeLens, $activeRenderer, $graphFit, $graphLayer, setActiveRenderer } from '../../kernel/index.js';
 import { BaseComponent } from '../../core/base-component.js';
 import { compositionFor, getCompositions, registerComposition, type Composition } from '../../framework/composition.js';
 import { layoutOf } from '../../framework/layout.js';
@@ -131,10 +131,18 @@ export class LabSurface extends BaseComponent {
     const globals = this.composition.globals ?? {};
     // Lab presets use 'fit' to show full graph; composer respects explicit fit
     $graphFit.set(this.compose ? (globals.fit ?? 'legible') : 'fit');
-    if (globals.mode) $viewportMode.set(globals.mode);
-    if (globals.shape) $graphShape.set(globals.shape);
+    // Source rule: viewportMode and graphShape are derived from activeRenderer
+    const renderer = this.resolveRenderer(globals.mode, globals.shape);
+    if (renderer) setActiveRenderer(renderer);
     if (globals.lens) $activeLens.set(globals.lens);
     if (globals.layer) $graphLayer.set(globals.layer as never);
+  }
+
+  private resolveRenderer(mode?: string, shape?: string): string | undefined {
+    if (shape === 'table') return 'notebook';
+    if (mode === '3d') return 'graph-3d';
+    if (mode === '2d' || shape === 'graph') return 'graph-2d';
+    return undefined;
   }
 
   private signature(): string {

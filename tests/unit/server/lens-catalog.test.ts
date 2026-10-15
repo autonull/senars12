@@ -99,13 +99,18 @@ describe('lensCatalog — channel vocabulary', () => {
 });
 
 describe('renderer capabilities', () => {
-  it('declares node and edge support for both renderers, within the channel vocabulary', () => {
-    for (const renderer of ['graph-2d', 'graph-3d', 'notebook'] as const) {
+  it('declares node and edge support for graph renderers, within the channel vocabulary', () => {
+    for (const renderer of ['graph-2d', 'graph-3d'] as const) {
       for (const target of ['node', 'edge'] as const) {
         const supported = RENDERER_CAPABILITIES[renderer][target];
         expect(supported.size).toBeGreaterThan(0);
         for (const channel of supported) expect(CHANNELS).toContain(channel);
       }
+    }
+    // Notebook is a content renderer and declares no modulation channels (A0.2)
+    for (const target of ['node', 'edge'] as const) {
+      const supported = RENDERER_CAPABILITIES.notebook[target];
+      expect(supported.size).toBe(0);
     }
   });
 

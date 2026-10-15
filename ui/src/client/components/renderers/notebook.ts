@@ -36,6 +36,7 @@ import {
   type WorkspaceRenderer,
   type WorkspaceRendererCaps,
 } from '../../core/workspace-renderer.js';
+import type { Channel } from '../../modulation/types.js';
 import { blockBodyStyles, renderBlockBody } from '../../utils/render-block.js';
 // UI.17 attention runtime
 import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
@@ -421,6 +422,10 @@ class NotebookRenderer implements WorkspaceRenderer {
       parity: 'full',
       surface: 's-notebook',
       requiredCapability: 'language',
+      channels: {
+        node: new Set<Channel>(),
+        edge: new Set<Channel>(),
+      },
     };
   }
 

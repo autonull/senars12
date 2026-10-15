@@ -30,8 +30,14 @@ describe('renderer definitions (D4)', () => {
   it('every renderer declares a capability matrix', () => {
     for (const id of RENDERER_IDS) {
       const def = rendererDef(id);
-      expect(def.capabilities.node.size).toBeGreaterThan(0);
-      expect(def.capabilities.edge.size).toBeGreaterThan(0);
+      // graph-2d and graph-3d declare capabilities; notebook (content renderer) declares none (A0.2)
+      if (id === 'notebook') {
+        expect(def.capabilities.node.size).toBe(0);
+        expect(def.capabilities.edge.size).toBe(0);
+      } else {
+        expect(def.capabilities.node.size).toBeGreaterThan(0);
+        expect(def.capabilities.edge.size).toBeGreaterThan(0);
+      }
     }
   });
 
