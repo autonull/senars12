@@ -71,10 +71,21 @@ import {
   type RevisionEntry,
   exposeKernelTestApi as exposeKernelTestApi,
   setWsClient,
+  // UI.17 focus model
+  $focusStack,
+  $focus,
+  type FocusRef,
+  type FocusStack,
 } from '../kernel/state.js';
 
 // Import derived from framework
 import { derived, setEqual } from '../framework/derived.js';
+// UI.17 attention runtime
+import {
+  attendFocus,
+  tierOf,
+  tierToZoom,
+} from '../framework/index.js';
 
 export type { UiConfig };
 
@@ -122,6 +133,15 @@ export {
   $capabilityFilter,
   emptyWorkspaceGraph,
   setWsClient,
+  // UI.17 focus model
+  $focusStack,
+  $focus,
+  // UI.17 attention runtime
+  attendFocus,
+  tierOf,
+  tierToZoom,
+  type FocusRef,
+  type FocusStack,
   type WorkspaceGraph,
   type SemanticBlock,
   type TelemetryData,

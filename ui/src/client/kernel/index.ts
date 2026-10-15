@@ -55,12 +55,11 @@ export {
   $webllmAvailable,
   $webllmActive,
   $webllmModel,
-  type TelemetryData,
-  type CognitiveMetricsData,
-  type CognitiveMeta,
-  type ServerErrorRecord,
-  type RevisionEntry,
-  type TestApiStorePath,
+  // UI.17 focus model
+  $focusStack,
+  $focus,
+  type FocusRef,
+  type FocusStack,
 } from './state.js';
 
 // ── UI state (lens, layer, viewport, filter) ──────────────────────────────────

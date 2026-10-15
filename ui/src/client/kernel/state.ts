@@ -2,6 +2,19 @@ import type { ChatMessage, CognitiveEvent, GraphNodeData } from '@senars/core';
 
 export type { GraphNodeData };
 import { loadConfig, saveConfig, DEFAULT_UI_CONFIG, type UiConfig } from '../core/config-schema.js';
+import { createFocusStack, type FocusStack } from '../framework/focus-stack.js';
+import {
+  type FocusRef,
+  focus,
+  focusKey,
+  focusEquals,
+  MIND_FOCUS,
+} from '../framework/coordinates.js';
+import type { SemanticBlock } from '../core/workspace-graph.js';
+import type { BlockKind } from '../core/block-descriptors.js';
+
+// Re-export focus types for consumers
+export type { FocusRef, FocusStack };
 
 let wsSocket: WebSocket | null = null;
 
@@ -12,7 +25,7 @@ export function setWsClient(socket: WebSocket): void {
 function sendMessage(msg: Record<string, unknown>): void {
   wsSocket?.send(JSON.stringify(msg));
 }
-import { emptyWorkspaceGraph, type SemanticBlock, type WorkspaceGraph } from '../core/workspace-graph.js';
+import { emptyWorkspaceGraph, type WorkspaceGraph } from '../core/workspace-graph.js';
 
 type Listener<T> = (value: T) => void;
 type Unsubscriber = () => void;
@@ -154,14 +167,56 @@ export const $runTerminations = atom<ReadonlyArray<{ scope: string; reason: stri
 export const $workspaceGraph = atom<WorkspaceGraph>(emptyWorkspaceGraph());
 export const $activeRenderer = atom<string>('graph');
 
+/** The UI.17 focus stack — one focus, reversible navigation (§2, §16 Step 3). */
+export const $focusStack = createFocusStack(MIND_FOCUS);
+
+/** The current focus — derived from the stack for easy reading. */
+export const $focus = atom<FocusRef>(MIND_FOCUS);
+$focusStack.subscribe((ref) => $focus.set(ref));
+
 export function setActiveRenderer(id: string): void {
   $activeRenderer.set(id);
+}
+
+/** Map a workspace block to its FocusRef (§16 Step 3). */
+function blockToFocusRef(block: SemanticBlock): FocusRef {
+  switch (block.kind) {
+    case 'turn':
+      return focus.turn(block.id);
+    case 'claim':
+      return focus.concept(block.id);
+    case 'goal':
+      return focus.goal(block.id);
+    case 'question':
+      return focus.task(block.id, 'question');
+    case 'answer':
+      return focus.task(block.id, 'belief');
+    case 'derivation':
+      return focus.derivation(block.id);
+    case 'derivation-record':
+      return focus.step(block.id, 0);
+    case 'gate-decision':
+      return focus.judgment(block.id);
+    case 'config-change':
+    case 'command':
+    case 'error':
+    case 'budget':
+      return focus.event(block.id);
+    default:
+      return focus.concept(block.id);
+  }
 }
 
 export function setWorkspaceFocus(ref?: string): void {
   const current = $workspaceGraph.get();
   if (current.focus === ref) return;
   $workspaceGraph.set({ ...current, focus: ref });
+  if (ref) {
+    const block = current.blocks.get(ref);
+    if (block) {
+      $focusStack.set(blockToFocusRef(block));
+    }
+  }
 }
 
 export function revealBlock(ref?: string): void {

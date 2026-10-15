@@ -305,6 +305,15 @@ export {
   $webllmModel,
   $workingMemory,
   $workspaceGraph,
+  // UI.17 focus model
+  $focusStack,
+  $focus,
+  // UI.17 attention runtime
+  attendFocus,
+  tierOf,
+  tierToZoom,
+  type FocusRef,
+  type FocusStack,
   type CognitiveMeta,
   type CognitiveMetricsData,
   evaluateLens,

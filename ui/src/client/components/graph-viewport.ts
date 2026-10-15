@@ -9,6 +9,7 @@ import {
   $chatMessages,
   $collapsedBlocks,
   $conversationLayout,
+  $focus,
   $focusTerm,
   $graphEdges,
   $graphFilter,
@@ -39,6 +40,10 @@ import {
   setWorkspaceFocus,
   setWorkspaceSelection,
   toggleCollapsed,
+  // UI.17 attention runtime
+  attendFocus,
+  tierOf,
+  tierToZoom,
 } from '../core/index.js';
 import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
 import { FIT_PADDING, labelCutoff, settleZoom, showsLabel, getLoDTier, showsHtmlBody, LOD_TRANSITION } from '../utils/graph-scaling.js';
@@ -47,6 +52,7 @@ import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
 import { theme } from '../utils/theme.js';
 import { applyWorkspaceOp, type WorkspaceGraph, type WorkspaceOp } from '../core/workspace-graph.js';
+import { focusKey, focusRefId, MIND_FOCUS } from '../framework/coordinates.js';
 import './graph-minimap.js';
 import './graph-popover.js';
 import './graph-legend.js';
@@ -215,6 +221,7 @@ export class GraphViewport extends BaseComponent {
     this.watchWith($collapsedBlocks, () => {
       if (this.cy) this.syncWorkspaceLayer(this.cy);
     });
+    this.watchFocus();
     eventBus.on('graph:layout', this.layoutHandler);
     eventBus.on('graph:zoom-in', this.zoomIn);
     eventBus.on('graph:zoom-out', this.zoomOut);
@@ -1056,11 +1063,23 @@ export class GraphViewport extends BaseComponent {
    * already centred by the selection watch, so it is only recorded.
    */
   private reactToFocus() {
-    const focus = $workspaceGraph.get().focus;
-    if (focus === this.focusedRef) return;
-    this.focusedRef = focus;
-    if (focus === undefined || focus === $selectedNodeId.get()) return;
-    this.centerOnNode(focus);
+    const focusRef = $focus.get();
+    if (focusRef === MIND_FOCUS) return;
+    const focusKeyStr = focusRef.kind === 'mind' ? 'mind' : focusKey(focusRef);
+    if (focusKeyStr === this.focusedRef) return;
+    this.focusedRef = focusKeyStr;
+    // Attend the focus at full weight
+    attendFocus(focusRef, 'focus', 1.0);
+    // Center on the node if it's a workspace block
+    const blockId = focusRefId(focusRef);
+    if (blockId && blockId !== $selectedNodeId.get()) {
+      this.centerOnNode(blockId);
+    }
+  }
+
+  /** Watch the UI.17 focus atom and react to changes. */
+  private watchFocus() {
+    this.watchWith($focus, () => this.reactToFocus());
   }
 
   /**

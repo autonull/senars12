@@ -255,6 +255,17 @@ export {
 } from './attention.js';
 
 export {
+  getAttentionField,
+  attendFocus,
+  releaseFocus,
+  tierOf,
+  tierToZoom,
+  currentAllocations,
+  resetAttentionField,
+  attendMind,
+} from './attention-runtime.js';
+
+export {
   AREA_LETTERS,
   LAYOUT_IDS,
   layoutTemplate,

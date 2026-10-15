@@ -12,7 +12,10 @@ pasted on".
 **Progress:** §16 Steps 0–2 landed (the four coordinates, `FocusRef`, focus stack, `FocusCell`, the
 typed Resolver over the WorkspaceGraph, and the attention allocator). §22 then landed: the shared AIKR
 `PriorityBag` is lifted to `@senars/util` and the UI attention field is rebased on it, so the UI and
-the mind spend attention through one substrate. See §21 for the log and the next step.
+the mind spend attention through one substrate. **§16 Steps 3–4 landed:** the focus stack is wired in
+`kernel/state.ts` with block→`FocusRef` mapping, `setWorkspaceFocus` re-parented, and the attention
+runtime (`attention-runtime.ts`) drives a per-frame decay loop with graph viewport integration. See §21
+for the log and the next step.
 
 > **SeNARS is a live two-system cognitive runtime, and the UI is a projection of one Focus
 > through one Aspect at one Depth at one Time — where content and structure are the same
@@ -583,23 +586,29 @@ Design notes:
   `bag-fidelity`, `todo6-capability`, `todo6-production`, `todo27-*`, `refactor{2,4}`), full UI unit
   (851 tests), `deps:gate` (cycles ≤ baseline), `exports:check`.
 
+### Landed — Step 3 (the focus stack wiring) & Step 4 (attention runtime)
+
+Pure, tested, DOM-free foundation under `ui/src/client/framework/`, `ui/src/client/kernel/`, and `ui/src/client/components/`.
+
+| Piece | File | What it is |
+|---|---|---|
+| Focus stack + `$focus` atom | `kernel/state.ts` | `createFocusStack(MIND_FOCUS)`, `$focusStack`, `$focus` atom synced from stack |
+| Block→FocusRef mapping | `kernel/state.ts` | `blockToFocusRef()` maps 10+ block kinds (turn, claim, goal, question, answer, derivation, derivation-record, gate-decision, config-change, command, error, budget) to typed `FocusRef` kinds |
+| `setWorkspaceFocus` re-parented | `kernel/state.ts` | Now sets both legacy `workspaceGraph.focus` string and pushes `FocusRef` onto stack |
+| Exports | `kernel/index.ts`, `core/store.ts`, `core/index.ts` | `$focusStack`, `$focus`, `FocusRef`, `FocusStack` re-exported through kernel → core |
+| Attention runtime | `framework/attention-runtime.ts` | Singleton `AttentionField`, per-frame `decay()` loop via `requestAnimationFrame`, `attendFocus`/`releaseFocus`/`tierOf`/`tierToZoom`/`currentAllocations`/`resetAttentionField`/`attendMind` |
+| Graph viewport integration | `components/graph-viewport.ts` | Watches `$focus`, calls `attendFocus(focusRef, 'focus', 1.0)` on change, reads `tierOf` for LOD/zoom |
+
+Tests: `ui/tests/framework/focus-model.test.ts` (17 tests), `ui/tests/framework/attention.test.ts` (9 tests) — all pass.
+
 ### Remaining — facilitated next steps
 
-1. **Step 3 wiring.** Route the live focus sources into one `$focus`
-   stack in `kernel/state.ts` and re-parent `setWorkspaceFocus` onto it. Today the only focus is the
-   legacy `workspaceGraph.focus: Ref`; ~15 call sites (`graph-viewport`, `notebook`, `toc`, `related`,
-   `artifact`, `block-menu`, `graph`, `graph3d`, `app-layout`) read/write it. Decide the `Ref →
-   FocusRef` mapping (block kind → focus kind) there, deliberately — it is the one place kind
-   ambiguity is resolved, and it is why it was *not* guessed in this slice.
-2. **Wire attention into the render path (Step 4 prerequisite).** The bag is pure and proven
-   but nothing calls it yet. The cell renderer should `attend` on focus/hover, call
-   `field.decay(decayRateFor(frameDtMs))` once per frame, and read the allocated tier per frame; the
-   graph viewport should translate tier → zoom via `graph-scaling`'s thresholds rather than
-   re-deriving them. `allocate()` already yields each `Allocation.focus`, so the kernel focus events
-   map straight onto `attend`.
-3. **Tests:** the resolver covers block-backed foci; add cases as wiring introduces real
-   non-block foci (`mind`/`drive`/`time`) and as containment edges fill the §19.4 gaps
-   (turn→formalization, goal→subgoals).
+1. **Wire attention into cell renderers (Step 4 completion).** The graph viewport attends the focus; other renderers (notebook, chat, artifact, block-menu, related, toc) should also `attendFocus` on hover/focus and read `tierOf` for their LOD decisions. The `s-node-body` component is the primary cell renderer — it should consume the attention tier for its rendering fidelity.
+2. **Ambient layer sampling.** Use `field.sample()` / `sampleMany(budget)` from the attention runtime for the ambient layer (§13) — show a weighted sample of low-attention foci as glyphs in the background.
+3. **Tests:** add cases for non-block foci (`mind`/`drive`/`time`) as wiring introduces them, and for containment edges filling §19.4 gaps (turn→formalization, goal→subgoals).
+4. **Arrangement strategies (Step 8).** Linear / outline / spatial / grid / mixed over a cell set — the `composition-view` / layout machinery becomes one strategy.
+5. **Composer + affordances (Step 7).** Derive controls from `(focus, aspect)`; wire to kernel ops (incl. `.react`).
+6. **Perceive prompts (Step 6).** A submitted utterance becomes a `turn` cell that is a concept with term, truth, links, provenance.
 
 ### New improvement opportunities
 
@@ -619,6 +628,14 @@ Design notes:
 - **The lifted `Bag` interface now serves two layers** — watch for `nar`-specific needs (e.g. a
   priority-override or a concept-store hook) creeping into the public interface; the UI should adapt
   to the bag, not the reverse.
+- **`attention-runtime.ts` frame loop** — currently a singleton `requestAnimationFrame`; consider
+  tying it to the kernel's cycle tick (`cognitive.delta` frames) so UI and reasoner decay share the
+  same clock (§18.2).
+- **`tierToZoom` uses static thresholds** — could be dynamic per-viewport based on `densityFactor`
+  from `graph-scaling` so the same tier renders legibly at different densities.
+- **`blockToFocusRef` mapping is incomplete** — only ~12 of 30+ block kinds mapped; the rest fall
+  back to `concept`. Extend as call sites are wired (e.g. `paragraph`, `section`, `heading`,
+  `list`, `table`, `code`, `tool-call`, `tool-result`).
 
 ---
 
