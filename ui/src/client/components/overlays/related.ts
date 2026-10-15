@@ -21,6 +21,8 @@ import {
 } from '../../core/store.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
+// UI.17 attention runtime
+import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
 
 /** The hop counts "Open related" offers. */
 const DEPTHS = [1, 2, 3] as const;
@@ -121,6 +123,12 @@ export class RelatedView extends SurfaceComponent {
       white-space: nowrap;
       text-overflow: ellipsis;
     }
+    .attention-tier {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-accent-cyan);
+      opacity: 0.7;
+    }
     .empty {
       padding: var(--spacing-scale-4);
       text-align: center;
@@ -135,6 +143,21 @@ export class RelatedView extends SurfaceComponent {
     super.connectedCallback();
     this.watch($workspaceGraph);
     this.watch($neighborhoodDepth);
+    // Attend the focus block
+    if (this.ref) {
+      const focusRef = focus.concept(this.ref);
+      attendFocus(focusRef, 'focus', 1.0);
+    }
+    // Attend all neighbors
+    const graph = $workspaceGraph.get();
+    const depth = $neighborhoodDepth.get();
+    const model = neighborhood(graph, this.ref, depth);
+    if (model) {
+      for (const neighbor of model.neighbors) {
+        const neighborFocus = focus.concept(neighbor.block.id);
+        attendFocus(neighborFocus, 'ring', 0.5);
+      }
+    }
   }
 
   protected override renderBody() {
@@ -201,16 +224,22 @@ export class RelatedView extends SurfaceComponent {
                   ([group, neighbors]) => html`
                     <span class="group">${group}</span>
                     ${neighbors.map(
-                        (neighbor) => html`
-                          <button
-                            class="row"
-                            data-related=${neighbor.block.id}
-                            @click=${() => this.go(neighbor.block.id)}
-                          >
-                            <span class="dir">${neighbor.direction === 'out' ? '→' : '←'}</span>
-                            <span class="label">${labelOf(neighbor)}</span>
-                          </button>
-                        `
+                        (neighbor) => {
+                          const neighborFocus = focus.concept(neighbor.block.id);
+                          const tier = tierOf(neighborFocus);
+                          return html`
+                            <button
+                              class="row"
+                              data-related=${neighbor.block.id}
+                              data-attention-tier=${tier}
+                              @click=${() => this.go(neighbor.block.id)}
+                            >
+                              <span class="dir">${neighbor.direction === 'out' ? '→' : '←'}</span>
+                              <span class="label">${labelOf(neighbor)}</span>
+                              <span class="attention-tier">[${tier}]</span>
+                            </button>
+                          `;
+                        }
                       )}
                   `
                 )

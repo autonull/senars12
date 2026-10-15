@@ -37,6 +37,8 @@ import {
   type WorkspaceRendererCaps,
 } from '../../core/workspace-renderer.js';
 import { blockBodyStyles, renderBlockBody } from '../../utils/render-block.js';
+// UI.17 attention runtime
+import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
 import '../primitives/empty-state.js';
 
 const isSection = (block: SemanticBlock): boolean => blockDescriptor(block.kind).section;
@@ -65,11 +67,13 @@ interface RenderOptions {
   depth?: number;
   /** False while the present-anchored cursor is before the block (§4.4). */
   admitted?: boolean;
+  /** Attention fidelity tier — drives render detail. */
+  tier?: 'card' | 'full';
 }
 
 function renderBlock(
   block: SemanticBlock,
-  { sources, views, focused, fold, depth, admitted = true }: RenderOptions
+  { sources, views, focused, fold, depth, admitted = true, tier }: RenderOptions
 ): TemplateResult {
   return html`
     <article
@@ -81,6 +85,7 @@ function renderBlock(
       data-role=${block.role}
       data-status=${block.status ?? 'complete'}
       data-focused=${focused}
+      data-attention-tier=${tier}
       aria-current=${focused}
       @click=${() => setWorkspaceFocus(block.id)}
     >
@@ -116,7 +121,7 @@ function renderBlock(
           }}>⋯</button>
         </span>
       </header>
-      ${renderBlockBody(block, sources)} ${views ?? ''}
+      ${renderBlockBody(block, sources, depth, tier)} ${views ?? ''}
     </article>
   `;
 }
@@ -174,6 +179,15 @@ export class NotebookView extends SurfaceComponent {
     }
     .block[data-admitted='false'] {
       opacity: 0.35;
+    }
+    .block[data-attention-tier='reclaimed'],
+    .block[data-attention-tier='glyph'],
+    .block[data-attention-tier='label'] {
+      opacity: 0.6;
+    }
+    .block[data-attention-tier='card'] {
+      max-height: 120px;
+      overflow: hidden;
     }
     .block-head {
       display: flex;
@@ -341,6 +355,10 @@ export class NotebookView extends SurfaceComponent {
           : undefined;
       // A container renders as its own header; its body is the subtree below.
       const header = node.children.length > 0 ? { ...node.block, text: undefined } : node.block;
+      // Attend this block's focus and read its attention tier
+      const focusRef = focus.concept(node.ref);
+      attendFocus(focusRef, 'focus', 1.0);
+      const tier = tierOf(focusRef) === 'full' ? 'full' : 'card';
       return html`
         <section
           class=${node.depth === 0 ? 'page' : 'node'}
@@ -355,6 +373,7 @@ export class NotebookView extends SurfaceComponent {
             fold,
             depth: node.depth,
             admitted: isAdmitted(node.block, cursor),
+            tier,
           })}
           ${node.folded ? '' : node.children.map(render)}
         </section>

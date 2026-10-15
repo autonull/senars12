@@ -13,6 +13,8 @@ import type { Shape, ViewSpec } from '../../core/view-spec.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+// UI.17 attention runtime
+import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
 
 @customElement('s-chat')
 export class ChatView extends SurfaceComponent {
@@ -229,6 +231,9 @@ export class ChatView extends SurfaceComponent {
     super.connectedCallback();
     this.watch($chatMessages);
     this.watch($streamingDelta);
+    // Attend the chat conversation focus
+    const focusRef = focus.drive('chat');
+    attendFocus(focusRef, 'focus', 1.0);
   }
 
   private getFilteredMessages(): ChatMessage[] {

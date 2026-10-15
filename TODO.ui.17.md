@@ -599,12 +599,13 @@ Pure, tested, DOM-free foundation under `ui/src/client/framework/`, `ui/src/clie
 | Attention runtime | `framework/attention-runtime.ts` | Singleton `AttentionField`, per-frame `decay()` loop via `requestAnimationFrame`, `attendFocus`/`releaseFocus`/`tierOf`/`tierToZoom`/`currentAllocations`/`resetAttentionField`/`attendMind` |
 | Graph viewport integration | `components/graph-viewport.ts` | Watches `$focus`, calls `attendFocus(focusRef, 'focus', 1.0)` on change, reads `tierOf` for LOD/zoom |
 | **Cell renderer integration (Step 4)** | `components/node-body.ts`, `utils/render-block.ts` | `s-node-body` attends its focus on mount, polls `tierOf` each frame, reflects `attention-tier` attribute, truncates content for `card` tier via `renderBlockBody(block, sources, depth, tier)` |
+| **Other renderers (Step 4)** | `components/renderers/notebook.ts`, `components/overlays/{chat,artifact,block-menu,related,toc}.ts` | All attend their focus on mount, read `tierOf` for LOD display, show tier badges |
 
 Tests: `ui/tests/framework/focus-model.test.ts` (17 tests), `ui/tests/framework/attention.test.ts` (9 tests) — all pass.
 
 ### Remaining — facilitated next steps
 
-1. **Wire attention into other renderers (Step 4 completion).** Notebook, chat, artifact, block-menu, related, toc should also `attendFocus` on hover/focus and read `tierOf` for their LOD decisions.
+1. ~~**Wire attention into other renderers (Step 4 completion).**~~ **DONE** — Notebook, Chat, Artifact, Block Menu, Related, TOC now all `attendFocus` on mount and read `tierOf` for LOD display.
 2. **Ambient layer sampling.** Use `field.sample()` / `sampleMany(budget)` from the attention runtime for the ambient layer (§13) — show a weighted sample of low-attention foci as glyphs in the background.
 3. **Tests:** add cases for non-block foci (`mind`/`drive`/`time`) as wiring introduces them, and for containment edges filling §19.4 gaps (turn→formalization, goal→subgoals).
 4. **Arrangement strategies (Step 8).** Linear / outline / spatial / grid / mixed over a cell set — the `composition-view` / layout machinery becomes one strategy.

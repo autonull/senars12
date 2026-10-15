@@ -20,6 +20,8 @@ import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
 import type { BlockKind } from '../../core/workspace-graph.js';
 import { TOC_KINDS_TYPE, tocEntries, type TocEntry } from '../../core/toc.js';
+// UI.17 attention runtime
+import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
 
 type Filter = 'all' | BlockKind;
 
@@ -186,6 +188,18 @@ export class TocView extends SurfaceComponent {
       cursor: pointer;
       font-size: var(--typography-scale-sm);
     }
+    .attention-tier {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-accent-cyan);
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+    .entry[data-attention-tier='reclaimed'],
+    .entry[data-attention-tier='glyph'],
+    .entry[data-attention-tier='label'] {
+      opacity: 0.6;
+    }
     .empty {
       padding: var(--spacing-scale-4);
       text-align: center;
@@ -207,6 +221,12 @@ export class TocView extends SurfaceComponent {
   override connectedCallback(): void {
     super.connectedCallback();
     this.watch($collapsedBlocks);
+    // Attend the current focus block
+    const graph = $workspaceGraph.get();
+    if (graph.focus) {
+      const focusRef = focus.concept(graph.focus);
+      attendFocus(focusRef, 'focus', 1.0);
+    }
   }
 
   protected override renderBody() {
@@ -290,6 +310,8 @@ export class TocView extends SurfaceComponent {
   }
 
   private row(entry: TocEntry, current: boolean, hasArtifact: boolean) {
+    const entryFocus = focus.concept(entry.ref);
+    const tier = tierOf(entryFocus);
     return html`
       <li class="row">
         <button
@@ -297,6 +319,7 @@ export class TocView extends SurfaceComponent {
           data-ref=${entry.ref}
           data-kind=${entry.kind}
           data-depth=${entry.depth}
+          data-attention-tier=${tier}
           style=${`--depth: ${entry.depth}`}
           aria-current=${current}
           title="Click to focus · ⌥-click to explain"
@@ -305,6 +328,7 @@ export class TocView extends SurfaceComponent {
         >
           <span class="kind">${blockDescriptor(entry.kind).label}</span>
           <span class="label">${entry.label}</span>
+          <span class="attention-tier">[${tier}]</span>
         </button>
         <button
           class="related"

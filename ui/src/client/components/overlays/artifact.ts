@@ -17,6 +17,8 @@ import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { overlayManager } from '../../core/overlay-manager.js';
 import { projectDataset } from '../../core/view-projection.js';
 import type { SemanticBlock } from '../../core/workspace-graph.js';
+// UI.17 attention runtime
+import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
 
 const imageOf = (block: SemanticBlock): { alt: string; src: string } | undefined =>
   payloadOf(block.data, 'image');
@@ -100,18 +102,25 @@ export class ArtifactView extends SurfaceComponent {
   override connectedCallback(): void {
     super.connectedCallback();
     this.watch($workspaceGraph);
+    // Attend this artifact's block focus
+    if (this.ref) {
+      const focusRef = focus.concept(this.ref);
+      attendFocus(focusRef, 'focus', 1.0);
+    }
   }
 
   protected override renderBody() {
     const block = $workspaceGraph.get().blocks.get(this.ref);
     if (!block) return html`<div class="panel"><p class="empty">Block not found</p></div>`;
     const { image, spec } = this.resolve(block);
+    const focusRef = this.ref ? focus.concept(this.ref) : MIND_FOCUS;
+    const tier = tierOf(focusRef);
     return html`
       <div class="panel" role="dialog" aria-label="Artifact">
         <overlay-header
           overlay-id="artifact"
           .kind=${block.kind}
-          .title=${block.title ?? block.id}
+          .title=${`${block.title ?? block.id} [${tier}]`}
           .draggable=${true}
           .resizable=${true}
           .minimizable=${true}

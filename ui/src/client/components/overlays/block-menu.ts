@@ -26,6 +26,8 @@ import { neighborhood } from '../../core/neighborhood.js';
 import { $activeRenderer } from '../../core/store.js';
 import { defineSurface, SurfaceComponent } from '../../core/surface.js';
 import { linkMeta } from '../../utils/link-catalog.js';
+// UI.17 attention runtime
+import { attendFocus, tierOf, type FocusRef, focus, MIND_FOCUS } from '../../framework/index.js';
 
 @customElement('s-block-menu')
 export class BlockMenuView extends SurfaceComponent {
@@ -74,6 +76,12 @@ export class BlockMenuView extends SurfaceComponent {
       color: var(--colors-semantic-text-muted);
       font-size: var(--typography-scale-xs);
     }
+    .attention-tier {
+      font-family: var(--typography-fontFamilies-data);
+      font-size: var(--typography-scale-xs);
+      color: var(--colors-semantic-accent-cyan);
+      opacity: 0.7;
+    }
     .empty {
       padding: var(--spacing-scale-3);
       text-align: center;
@@ -91,6 +99,11 @@ export class BlockMenuView extends SurfaceComponent {
     this.watch($embeddedViews);
     this.watch($capabilities);
     this.watch($collapsedBlocks);
+    // Attend this block's focus
+    if (this.ref) {
+      const focusRef = focus.concept(this.ref);
+      attendFocus(focusRef, 'focus', 1.0);
+    }
   }
 
   protected override renderBody() {
@@ -103,9 +116,12 @@ export class BlockMenuView extends SurfaceComponent {
     const hasRelated = (neighborhood(graph, this.ref)?.neighbors.length ?? 0) > 0;
     const reasoning = capabilityGate('reasoning');
     const shown = $embeddedViews.get().get(this.ref) ?? new Set<EmbeddedViewId>();
+    // Read attention tier for this block
+    const focusRef = this.ref ? focus.concept(this.ref) : MIND_FOCUS;
+    const tier = tierOf(focusRef);
     return html`
       <div class="menu" role="menu" aria-label="Block actions">
-        <span class="hint">${block.title ?? block.id}</span>
+        <span class="hint">${block.title ?? block.id} <span class="attention-tier">[${tier}]</span></span>
         <button role="menuitem" data-action="follow-up" @click=${this.followUp}>Ask follow-up</button>
         <button role="menuitem" data-action="explain" @click=${this.explain}>Explain</button>
         ${
