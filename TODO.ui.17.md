@@ -644,6 +644,7 @@ Tests: `tests/framework/arrangement.test.ts` (17), `tests/framework/composer.tes
 | **Aspect → arrangement mapping** | `framework/coordinates.ts` | `ASPECT_ARRANGEMENT` table + `defaultArrangementFor(aspect, depth)`; one table drives both aspect projection and spatial arrangement. |
 | **Dynamic `tierToZoom`** | `framework/attention-runtime.ts` | `tierToZoom(tier, viewport?)` now accepts optional `{count, area}` and scales thresholds by `densityFactor` for legibility at different densities. |
 | **Graph-scaling legibility fix** | `utils/graph-scaling.ts`, `tests/components/graph-scaling.test.ts` | `settleZoom` enforces legibility floor (`Math.max(floor, …)`); test updated to match. |
+| **Circular dependency fix** | `core/intent-registry.ts` | Removed import of atoms from `core/index.ts` (which re-exports `ViewHost` depending on `SurfaceComponent`); now imports atoms directly from `kernel/state.ts`, `core/capabilities.ts`, `core/store.ts` to break the cycle. All 107 UI test files pass. |
 
 ### New improvement opportunities
 

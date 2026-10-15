@@ -17,26 +17,23 @@ import {
   type IntentCatalog,
   type IntentPayload,
 } from '../framework/intent';
-import { capabilityGate } from './capabilities';
-import { recordCommandUse } from './command-history';
-import { eventBus } from './events';
-import { surfaceRegistry, registerSurface } from '../framework/surface';
-import { foldableSections, sectionTree } from './sections';
-import { narsBackend } from './nars-backend';
-import { workspaceRenderers } from './workspace-renderer';
+import { capabilityGate } from './capabilities.js';
+import { recordCommandUse } from './command-history.js';
+import { eventBus } from './events.js';
+import { surfaceRegistry, registerSurface } from '../framework/surface.js';
+import { foldableSections, sectionTree } from './sections.js';
+import { narsBackend } from './nars-backend.js';
+import { workspaceRenderers } from './workspace-renderer.js';
 import {
   $activeRenderer,
-  $capabilities,
-  $collapsedBlocks,
   $controlMode,
-  $panels,
   $reasoningRunning,
   $runTerminations,
   $workspaceGraph,
-  $conversationLayout,
-  $selectedNodeIds,
-} from './index.js';
-import { setConversationLayout, setCollapsed } from './store.js';
+  $collapsedBlocks,
+} from '../kernel/state.js';
+import { $capabilities } from './capabilities.js';
+import { $panels, $conversationLayout, $selectedNodeIds, setConversationLayout, setCollapsed } from './store.js';
 import { availableComposerModes, type ComposerMode } from './composer-modes.js';
 import { panelDef, PANEL_KINDS } from './panel-defs.js';
 import { validateCommandArgs } from './command-schemas.js';
