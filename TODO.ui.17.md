@@ -9,8 +9,9 @@ pasted on".
 **Ready to implement.** §16 is the fresh-session start; §19 names the honest risks. The keystone is
 §0's attention economy: **the UI spends attention the way the mind does.**
 
-**Progress:** §16 Steps 0–1 landed (the four coordinates, `FocusRef`, focus stack, `FocusCell`, and
-the typed Resolver over the WorkspaceGraph). See §21 for the log and the next step.
+**Progress:** §16 Steps 0–2 landed (the four coordinates, `FocusRef`, focus stack, `FocusCell`, the
+typed Resolver over the WorkspaceGraph, and the attention allocator). See §21 for the log and the
+next step.
 
 > **SeNARS is a live two-system cognitive runtime, and the UI is a projection of one Focus
 > through one Aspect at one Depth at one Time — where content and structure are the same
@@ -522,7 +523,7 @@ That is the stake. This document is the contract.
 
 ## 21. Progress log
 
-### Landed — Steps 0–1 (the coordinates + the Resolver shape)
+### Landed — Steps 0–2 (the coordinates, the Resolver shape, the attention allocator)
 
 Pure, tested, DOM-free foundation under `ui/src/client/framework/`, re-exported from the framework
 barrel. Nothing is deleted; this is additive.
@@ -532,7 +533,8 @@ barrel. Nothing is deleted; this is additive.
 | Four coordinates + `FocusRef` + `FocusCell` | `framework/coordinates.ts` | `FocusRef` (14 typed kinds), `focus` constructors, `focusKey`/`focusEquals`, `Aspect` (+ `ASPECT_SURFACES`, the §7/§15 surface map), `TimeRef` (`live`/`at`/`range`), the `DEPTHS` ladder + `clampDepth`, `FocusCell` + `cellFor`/`cellKey`/`cellEquals` |
 | Focus stack | `framework/focus-stack.ts` | `createFocusStack` — reversible navigation (`set`/`replace`/`back`/`forward`/`reset`), bounded history, `subscribe` |
 | Resolver (Step 0) | `framework/resolver.ts` | `resolveFocus(FocusRef, {graph,depth}) → { content, neighborhood, provenance, history, trace }`, `workspaceResolver`, `aspectSlice`/`hasSlice` |
-| Tests | `tests/framework/focus-model.test.ts` | 12 tests over keys, guards, ladder, stack, and resolution slices |
+| Attention allocator (Step 2) | `framework/attention.ts` | `AttentionField` — `(focus, weight) → fidelity tier` with `classify`/`tierFor` (per-class ceiling), `decayWeight` (half-life), `RECLAIM_THRESHOLD`, and `TIER_COST` budgeted richest-first |
+| Tests | `tests/framework/focus-model.test.ts`, `tests/framework/attention.test.ts` | 23 tests over keys, guards, ladder, stack, resolution slices, decay and budget allocation |
 
 Design notes:
 
@@ -545,6 +547,10 @@ Design notes:
   (oldest first), `trace` = `eventRefs` ⊕ `admitted/rejected-by-gate` ⊕ `produced-by-tool`.
 - `origin`/`ambient`/`direct` aspects intentionally carry no graph slice yet — they project a split,
   a mind and verbs, not a focus's slices.
+- The allocator's ladder is the **existing LOD ladder** (`glyph`→`label`→`card`→`full`, from
+  `utils/graph-scaling.ts`) plus a `reclaimed` floor — it is imported as a *type only*, so the module
+  stays DOM-free (the tier→zoom thresholds live in `graph-scaling`, unchanged). A future adapter maps
+  an allocated tier back to those thresholds; the allocator never duplicates the numbers.
 
 ### Remaining — facilitated next steps
 
@@ -554,9 +560,10 @@ Design notes:
    `artifact`, `block-menu`, `graph`, `graph3d`, `app-layout`) read/write it. Decide the `Ref →
    FocusRef` mapping (block kind → focus kind) there, deliberately — it is the one place kind
    ambiguity is resolved, and it is why it was *not* guessed in this slice.
-2. **Step 2 (attention allocator).** Fold the existing LOD/zoom numbers (`utils/graph-scaling.ts`,
-   `utils/renderer-capabilities.ts`, `core/performance-budget.ts`) into one
-   `(focus, weight) → fidelity tier` allocator with decay/reclaim.
+2. **Wire attention into the render path (Step 4 prerequisite).** `AttentionField.allocate` is pure
+   but nothing calls it yet; the cell renderer should attend on focus/hover and read the allocated
+   tier per frame, and the graph viewport should translate tier → zoom via `graph-scaling`'s
+   thresholds rather than re-deriving them.
 3. **Tests:** the resolver covers block-backed foci; add cases as wiring introduces real
    non-block foci (`mind`/`drive`/`time`) and as containment edges fill the §19.4 gaps
    (turn→formalization, goal→subgoals).
@@ -570,3 +577,6 @@ Design notes:
   (linear/spatial/grid) per `(aspect, depth)`, letting one table drive both aspect and arrangement.
 - **`focusKey` is a natural URL/fragment encoding** (the four coordinates serialize to one address),
   which would make focus deep-linkable and replayable for free.
+- **The attention half-life (`DEFAULT_HALF_LIFE_MS`) and `TIER_COST` are policy, not physics** — they
+  belong in the token/theme layer or config catalog so the field can be tuned (and asserted) without
+  touching the allocator.
