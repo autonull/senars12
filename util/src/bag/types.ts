@@ -14,3 +14,12 @@ export interface InternalEntry<T extends BagItem> {
   createdAt: number;
   lastAccessedAt: number;
 }
+
+/**
+ * The neutral spend shape `sampleMany` reads: a budget measured in cycles. The
+ * bag names no core budget type — a caller's richer budget is structurally
+ * assignable to this one.
+ */
+export interface CyclesBudget {
+  cycles: number;
+}

@@ -238,7 +238,7 @@ export type {
 
 export { resolveFocus, workspaceResolver, aspectSlice, hasSlice } from './resolver.js';
 
-export type { FidelityTier, AttentionClass, Allocation } from './attention.js';
+export type { FidelityTier, AttentionClass, Allocation, AttentionItem } from './attention.js';
 
 export {
   tierRank,
@@ -246,8 +246,10 @@ export {
   tierCeiling,
   tierFor,
   DEFAULT_HALF_LIFE_MS,
+  DEFAULT_ATTENTION_CAPACITY,
   RECLAIM_THRESHOLD,
   decayWeight,
+  decayRateFor,
   TIER_COST,
   AttentionField,
 } from './attention.js';

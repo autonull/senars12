@@ -37,6 +37,7 @@ export {
   cognitiveBounds,
 } from './cognitive-bounds.js';
 export { withDefaults } from './defaults.js';
+export { PRESSURE } from './pressure.js';
 export { type DialogueConfig, dialogueDefaults, dialogueSchema } from './dialogue.js';
 export {
   type EnvKey,

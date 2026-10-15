@@ -7,21 +7,11 @@
 export const SATURATION_COUNT = 10;
 
 /**
- * One occupancy ladder for every bounded store that reports pressure — the
- * concept store, the task bags, and eviction. They all measure the same
- * quantity (`occupancy`, 0..1), so four rungs spelled four times with four
- * different values meant eviction, telemetry and health could disagree about
- * whether the system was under pressure at the same instant.
- *
- * `NEUTRAL` is the baseline eviction scales its batch sizes from, not a
- * threshold: it is the occupancy at which an archive/forget batch is zero.
+ * The one occupancy ladder every bounded store reports against. It now lives in
+ * `@senars/util` (the AIKR bag reads it too); re-exported here so the cognitive
+ * modules keep importing it from their own constants.
  */
-export const PRESSURE = Object.freeze({
-  NEUTRAL: 0.5,
-  HIGH: 0.7,
-  ARCHIVE: 0.8,
-  CRITICAL: 0.9,
-} as const);
+export { PRESSURE } from '@senars/util/config';
 
 /**
  * The bag capacities a focus is built with when its options are silent. `Focus`

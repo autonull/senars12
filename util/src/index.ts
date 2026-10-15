@@ -32,6 +32,7 @@ export {
   isTruthy,
   parseEnvValue,
   parseOrThrow,
+  PRESSURE,
   readEnvOverrides,
   SchemaValidationError,
   SENARS_ENV_MAP,

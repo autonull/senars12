@@ -10,9 +10,9 @@ pasted on".
 §0's attention economy: **the UI spends attention the way the mind does.**
 
 **Progress:** §16 Steps 0–2 landed (the four coordinates, `FocusRef`, focus stack, `FocusCell`, the
-typed Resolver over the WorkspaceGraph, and the attention allocator). See §21 for the log and the
-next step. The Step-2 allocator is **interim**: §22 plans to rebase it on the shared AIKR `PriorityBag`
-(lifted to `@senars/util`) so the UI and the mind spend attention through one substrate.
+typed Resolver over the WorkspaceGraph, and the attention allocator). §22 then landed: the shared AIKR
+`PriorityBag` is lifted to `@senars/util` and the UI attention field is rebased on it, so the UI and
+the mind spend attention through one substrate. See §21 for the log and the next step.
 
 > **SeNARS is a live two-system cognitive runtime, and the UI is a projection of one Focus
 > through one Aspect at one Depth at one Time — where content and structure are the same
@@ -555,23 +555,49 @@ Design notes:
   stays DOM-free (the tier→zoom thresholds live in `graph-scaling`, unchanged). A future adapter maps
   an allocated tier back to those thresholds; the allocator never duplicates the numbers.
 
+### Landed — §22 (the shared AIKR bag is the attention substrate)
+
+The UI's attention economy now runs on the **mind's own bag**, not a bespoke allocator. Nothing is
+deleted; the nar shim preserves the observable surface byte-for-byte.
+
+| Piece | File | What it is |
+|---|---|---|
+| AIKR bag (lifted) | `util/src/bag/{Bag,fenwick,types,index}.ts` | `PriorityBag` + `FenwickTree` + `BagItem`/`InternalEntry`, decoupled from `core`: the `bag.pressure.transition` sink is now an **injected `onPressure`**; `AIKRBudget` is replaced by the neutral `CyclesBudget` (`{ cycles }`); `PRESSURE` read from util config. `createBag` + `@senars/util/bag` subpath. |
+| PRESSURE ladder | `util/src/config/pressure.ts` | The one occupancy ladder (`NEUTRAL`/`HIGH`/`ARCHIVE`/`CRITICAL`), moved from `nar/src/constants.ts` (which now re-exports it). |
+| nar shim | `nar/src/bag/{Bag,index}.ts` | `Bag.ts` re-exports `@senars/util/bag` and **subclasses** `PriorityBag` to inject the domain-event sink (a caller's `onPressure` overrides); `index.ts`'s `createBag` builds the nar class. `nar/src/bag/{fenwick,types}.ts` deleted. |
+| UI field (rebased) | `ui/src/client/framework/attention.ts` | `AttentionField` is a thin projection over `Bag<AttentionItem>` (`id = focusKey`, `priority = weight`, `+ attentionClass`). Decay is **frame-driven** (`decay(rate)`, `decayRateFor(elapsed, halfLife)`), `forgetRate = RECLAIM_THRESHOLD` is the reclaim floor, and `bag.all()` (priority-descending) is `allocate()`. Adds `sample`/`sampleMany` for the ambient layer. `tierFor` / class ceiling / `TIER_COST` stay. |
+| Tests | `ui/tests/framework/attention.test.ts` | Rewritten to the frame-decay semantics (attend never lowers, decay ages the field, reclaim below the floor, budgeted allocate, class ceilings, ambient sampling). |
+
+Design notes:
+
+- **The lift is a decoupling, not a move.** `util` gained **no** runtime dependency (still `ulid`
+  only); the only nar coupling that would have created `util → core → util` (the domain-event sink)
+  is now the injected `onPressure` the nar shim supplies.
+- **The observable surface is identical.** The domain event still fires on every pressure-level
+  change from any nar-constructed bag (`todo6-production` proves `['high','critical']`), because the
+  nar `PriorityBag` defaults `onPressure` to the same `emitDomainEvent('bag.pressure.transition', …)`.
+- `PRESSURE` lives in a new `util/src/config/pressure.ts` rather than `config/bounds.ts` (that file is
+  specifically the `BoundRow` projector); `nar/src/constants.ts` re-exports it, so the cognitive
+  modules' imports are untouched.
+- Verified: `typecheck:packages` (5 clean), `ui typecheck` (clean), nar bag suites (93 tests incl.
+  `bag-fidelity`, `todo6-capability`, `todo6-production`, `todo27-*`, `refactor{2,4}`), full UI unit
+  (851 tests), `deps:gate` (cycles ≤ baseline), `exports:check`.
+
 ### Remaining — facilitated next steps
 
-1. **Lift the AIKR bag to `@senars/util` (§22) — the agreed next slice.** Decouple `PriorityBag`
-   from `@senars/core` (injected `onPressure`, neutral budget shape, `PRESSURE` moved), lift it with
-   `fenwick`/`types` while shimming `nar/src/bag/*`, then rebase `framework/attention.ts` on
-   `Bag<AttentionItem>`. Independent of Step 3; blocking only the *final* Step-2 shape.
-2. **Step 3 wiring.** Route the live focus sources into one `$focus`
+1. **Step 3 wiring.** Route the live focus sources into one `$focus`
    stack in `kernel/state.ts` and re-parent `setWorkspaceFocus` onto it. Today the only focus is the
    legacy `workspaceGraph.focus: Ref`; ~15 call sites (`graph-viewport`, `notebook`, `toc`, `related`,
    `artifact`, `block-menu`, `graph`, `graph3d`, `app-layout`) read/write it. Decide the `Ref →
    FocusRef` mapping (block kind → focus kind) there, deliberately — it is the one place kind
    ambiguity is resolved, and it is why it was *not* guessed in this slice.
-3. **Wire attention into the render path (Step 4 prerequisite).** The bag is pure
-   but nothing calls it yet; the cell renderer should attend on focus/hover and read the allocated
-   tier per frame, and the graph viewport should translate tier → zoom via `graph-scaling`'s
-   thresholds rather than re-deriving them.
-4. **Tests:** the resolver covers block-backed foci; add cases as wiring introduces real
+2. **Wire attention into the render path (Step 4 prerequisite).** The bag is pure and proven
+   but nothing calls it yet. The cell renderer should `attend` on focus/hover, call
+   `field.decay(decayRateFor(frameDtMs))` once per frame, and read the allocated tier per frame; the
+   graph viewport should translate tier → zoom via `graph-scaling`'s thresholds rather than
+   re-deriving them. `allocate()` already yields each `Allocation.focus`, so the kernel focus events
+   map straight onto `attend`.
+3. **Tests:** the resolver covers block-backed foci; add cases as wiring introduces real
    non-block foci (`mind`/`drive`/`time`) and as containment edges fill the §19.4 gaps
    (turn→formalization, goal→subgoals).
 
@@ -587,13 +613,24 @@ Design notes:
 - **The attention half-life (`DEFAULT_HALF_LIFE_MS`) and `TIER_COST` are policy, not physics** — they
   belong in the token/theme layer or config catalog so the field can be tuned (and asserted) without
   touching the allocator.
+- **`onPressure` is the first instance of a general "announce" seam** — if a second bounded container
+  in `util` (`BoundedRing`, `BoundedMap`) needs to announce a transition without importing a sink,
+  factor the injected-listener pattern into one place rather than re-injecting per container.
+- **The lifted `Bag` interface now serves two layers** — watch for `nar`-specific needs (e.g. a
+  priority-override or a concept-store hook) creeping into the public interface; the UI should adapt
+  to the bag, not the reverse.
 
 ---
 
-## 22. The AIKR bag is the attention substrate (planned — next session)
+## 22. The AIKR bag is the attention substrate (landed)
+
+> **Landed.** See §21 "Landed — §22" for the file-by-file record. The narrative below is the plan as
+> agreed; it is retained because the *why* still governs the shape, and because "The UI adapter"
+> subsection names the contract `framework/attention.ts` now honours.
 
 **Decision.** The UI's attention economy reuses the mind's one AIKR bag — `PriorityBag<T extends
-BagItem>` (`nar/src/bag/Bag.ts`) — instead of the bespoke `framework/attention.ts`. The mind already
+BagItem>` (now `util/src/bag/Bag.ts`, shimmed at `nar/src/bag/Bag.ts`) — instead of the bespoke
+`framework/attention.ts`. The mind already
 uses the exact pattern: `FocusBag extends PriorityBag<Focus>` with `allocateBudget`
 (`nar/src/focus/FocusBag.ts`), the §10 "FocusBag weight". The UI's field is the same object seen
 through the renderer, so — per §0 — it should be the same substrate, not a re-implementation.

@@ -8,6 +8,10 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./bag": {
+      "types": "./src/bag/index.ts",
+      "import": "./src/bag/index.ts"
+    },
     "./commands": {
       "types": "./src/commands/index.ts",
       "import": "./src/commands/index.ts"
