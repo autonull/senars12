@@ -4,13 +4,29 @@
  * An app is a *composition*: an ordered set of dumb surfaces (cells) arranged by
  * a layout, under global controls, addressed by URL. The shell owns the chrome;
  * surfaces only render content. Compositions are data — adding one is a registry
- * entry, not a component.
+ * * entry, not a component.
  *
  * A cell is either a surface id (from the surface registry) or another
  * composition, so variety is unbounded without new code.
  */
 
 import { createIdRegistry, type Registry } from '../core/registry.js';
+import {
+  registerArrangement,
+  getArrangement,
+  getArrangements,
+  hasArrangement,
+  arrangementIds,
+  resetArrangements,
+  CORE_ARRANGEMENTS,
+  registerCoreArrangements,
+  type Arrangement,
+  type ArrangementContext,
+  type Layout,
+  type RegisteredArrangement,
+  arrangementsForLayout,
+  arrangementsForShape,
+} from './arrangement-registry.js';
 
 /** How a composition's cells are arranged. */
 export type LayoutId = 'auto' | 'h' | 'v' | 'grid' | 'hero' | 'rail';
@@ -70,3 +86,21 @@ export const resetCompositions = (): void => compositionRegistry.reset();
 /** The surface id of a cell, when the cell is a surface (not a nested composition). */
 export const cellSurface = (cell: Cell): string | undefined =>
   'surface' in cell ? cell.surface : undefined;
+
+// Re-export arrangement registry
+export {
+  registerArrangement,
+  getArrangement,
+  getArrangements,
+  hasArrangement,
+  arrangementIds,
+  resetArrangements,
+  CORE_ARRANGEMENTS,
+  registerCoreArrangements,
+  type Arrangement,
+  type ArrangementContext,
+  type Layout,
+  type RegisteredArrangement,
+  arrangementsForLayout,
+  arrangementsForShape,
+};

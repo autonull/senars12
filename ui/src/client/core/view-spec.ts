@@ -7,10 +7,31 @@
  */
 
 import { defineCatalog, type Catalog } from '../framework/catalog.js';
+import {
+  registerShape,
+  getShape,
+  getShapes,
+  hasShape,
+  shapeIds,
+  resetShapes,
+  CORE_SHAPES,
+  registerCoreShapes,
+  type ShapeSpec,
+  type RegisteredShape,
+  shapesForBudget,
+  shapesForInteraction,
+  shapeTag,
+  shapeFidelityRange,
+} from './shape-registry.js';
 
-/** The shapes one dataset can be rendered as (§3.3). The view system owns this union. */
+/** The shapes one dataset can be rendered as (§3.3). Open registry — core shapes are registered by default. */
+export type Shape = string;
+
+/** The core shape IDs as a const tuple for exhaustiveness checking. */
 export const SHAPES = ['graph', 'series', 'table', 'tree', 'text', 'code', 'diff'] as const;
-export type Shape = (typeof SHAPES)[number];
+
+/** Whether a string names a registered shape. */
+export const isShape = (id: string): boolean => shapeIds().includes(id);
 
 /** View adapter facet — metadata for a shape's rendering capabilities. */
 export interface ViewAdapterFacets {
@@ -173,3 +194,24 @@ export interface ShapeCaps {
   readonly budgets: readonly Budget[];
   readonly interactions: readonly Interaction[];
 }
+
+/** Ensure core shapes are registered on first import. */
+registerCoreShapes();
+
+// Re-export shape registry functions
+export {
+  registerShape,
+  getShape,
+  getShapes,
+  hasShape,
+  shapeIds,
+  resetShapes,
+  CORE_SHAPES,
+  registerCoreShapes,
+  type ShapeSpec,
+  type RegisteredShape,
+  shapesForBudget,
+  shapesForInteraction,
+  shapeTag,
+  shapeFidelityRange,
+};

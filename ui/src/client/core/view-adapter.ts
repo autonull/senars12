@@ -6,7 +6,9 @@ import {
   type Shape,
   type ShapeCaps,
   type ViewAdapterFacets,
+  type ViewAdapterCatalog,
 } from './view-spec.js';
+import { getShape } from './shape-registry.js';
 
 /**
  * The view-adapter registry. An adapter owns exactly one shape and names the
@@ -74,4 +76,4 @@ export const supportedShapes = (budget: Budget = 'full'): Shape[] => [
 
 /** Get the catalog entry for a shape (tag, budgets, interactions from the catalog). */
 export const viewAdapterCatalogEntry = (shape: Shape): ViewAdapterFacets | undefined =>
-  viewAdapterCatalog.has(shape) ? viewAdapterCatalog.get(shape) : undefined;
+  viewAdapterCatalog.has(shape as ViewAdapterCatalog['ids'][number]) ? viewAdapterCatalog.get(shape as ViewAdapterCatalog['ids'][number]) : undefined;

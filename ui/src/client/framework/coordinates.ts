@@ -9,27 +9,35 @@
  */
 
 import { aspectProjectionIds, registerCoreAspects, CORE_ASPECTS } from './aspect-registry.js';
+import {
+  registerFocusKind,
+  registerCoreFocusKinds,
+  CORE_FOCUS_KINDS,
+  focusKindIds,
+  getFocusKind,
+  getFocusKinds,
+  hasFocusKind,
+  resetFocusKinds,
+  type FocusKindDescriptor,
+  type RegisteredFocusKind,
+  focusKindsForSubstrate,
+  encodeFocusRef,
+  decodeFocusRef,
+  labelFocusRef,
+  iconFocusRef,
+} from './focus-kind-registry.js';
 
 /** What a task is about — the epistemic/teleological axis the kernel already names. */
 export type TaskType = 'belief' | 'goal' | 'question';
 
-/** The kinds of thing one can focus (§2). Every kind is a typed substrate reference. */
-export type FocusKind =
-  | 'concept'
-  | 'task'
-  | 'goal'
-  | 'derivation'
-  | 'step'
-  | 'proposal'
-  | 'judgment'
-  | 'turn'
-  | 'event'
-  | 'cycle'
-  | 'trace'
-  | 'time'
-  | 'drive'
-  | 'space'
-  | 'mind';
+/** The kinds of thing one can focus (§2). Open registry — core kinds are registered by default. */
+export type FocusKind = string;
+
+/** The core focus kind IDs as a const tuple for exhaustiveness checking. */
+export const FOCUS_KINDS = ['concept', 'task', 'goal', 'derivation', 'step', 'proposal', 'judgment', 'turn', 'event', 'cycle', 'trace', 'time', 'drive', 'space', 'mind'] as const;
+
+/** Whether a string names a registered focus kind. */
+export const isFocusKind = (kind: string): boolean => hasFocusKind(kind);
 
 /**
  * A focus is a typed reference into the cognitive substrate, never a UI invention
@@ -155,29 +163,6 @@ export const focusKey = (ref: FocusRef): string => {
 
 /** Whether two foci address the same subject. */
 export const focusEquals = (a: FocusRef, b: FocusRef): boolean => focusKey(a) === focusKey(b);
-
-/** Every focus kind, in the order §2 lists them. */
-export const FOCUS_KINDS: readonly FocusKind[] = [
-  'concept',
-  'task',
-  'goal',
-  'derivation',
-  'step',
-  'proposal',
-  'judgment',
-  'turn',
-  'event',
-  'cycle',
-  'trace',
-  'time',
-  'drive',
-  'space',
-  'mind',
-];
-
-/** Whether a string names a focus kind. */
-export const isFocusKind = (kind: string): kind is FocusKind =>
-  (FOCUS_KINDS as readonly string[]).includes(kind);
 
 /** How a focus is projected — the aspect *is* the intent (§7). Open registry. */
 export type Aspect = string;
@@ -366,3 +351,25 @@ function parseTimeKey(key: string): TimeRef | null {
 
 /** Ensure core aspects are registered on first import. */
 registerCoreAspects();
+
+/** Ensure core focus kinds are registered on first import. */
+registerCoreFocusKinds();
+
+// Re-export focus kind registry functions
+export {
+  registerFocusKind,
+  getFocusKind,
+  getFocusKinds,
+  hasFocusKind,
+  focusKindIds,
+  resetFocusKinds,
+  CORE_FOCUS_KINDS,
+  registerCoreFocusKinds,
+  type FocusKindDescriptor,
+  type RegisteredFocusKind,
+  focusKindsForSubstrate,
+  encodeFocusRef,
+  decodeFocusRef,
+  labelFocusRef,
+  iconFocusRef,
+};

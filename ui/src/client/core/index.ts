@@ -420,7 +420,31 @@ export type {
   ViewSource,
   ViewSpec,
 } from './view-spec.js';
+export {
+  registerShape,
+  getShape,
+  getShapes,
+  hasShape,
+  shapeIds,
+  resetShapes,
+  CORE_SHAPES,
+  registerCoreShapes,
+  type ShapeSpec,
+  type RegisteredShape,
+  shapesForBudget,
+  shapesForInteraction,
+  shapeTag,
+  shapeFidelityRange,
+} from './view-spec.js';
 export { ViewHost } from './view-host.js';
+export {
+  encodeAddress,
+  decodeAddress,
+  buildWorkspaceAddress,
+  addressEquals,
+  type WorkspaceAddress,
+  DEFAULT_WORKSPACE_ADDRESS,
+} from './workspace-address.js';
 export {
   applyWorkspaceOp,
   applyWorkspaceOps,

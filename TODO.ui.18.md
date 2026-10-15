@@ -582,6 +582,26 @@ combination now resolves deterministically). The rule that produced it is the **
 `registerRenderer` is the single entry; catalog and surfaces derive. All §19.6 verification battery
 commands pass for the UI package.
 
+### Phase 2 — Open the contract (Part 2: Shape, Arrangement, FocusKind, WorkspaceAddress, Renderer.embed) — **COMPLETED**
+
+Commit `ui18: Phase 2 Part 2 — open Shape, Arrangement, FocusKind registries; WorkspaceAddress; Renderer.embed`
+(X files, +X/-Y).
+
+| Task | Files |
+|---|---|
+| 1. Open FocusKind registry | `framework/focus-kind-registry.ts` (new); `framework/coordinates.ts` (open `FocusKind = string`); `framework/index.ts` (exports) |
+| 2. Open Shape registry | `core/shape-registry.ts` (new); `core/view-spec.ts` (open `Shape = string`); `core/view-adapter.ts`; `core/index.ts` (exports) |
+| 3. Open Arrangement registry | `framework/arrangement-registry.ts` (new); `framework/composition.ts` (re-exports); `framework/index.ts` (exports) |
+| 4. WorkspaceAddress encoding/decoding | `core/workspace-address.ts` (new); `core/index.ts` (exports) |
+| 5. Renderer.embed capability | `components/renderers/graph.ts` (embed impl); `components/workspace-host.ts` (context delegate) |
+| 6. Migrate SeNARS to register kinds/aspects | Auto-registered on import via `registerCoreFocusKinds()`, `registerCoreAspects()`, `registerCoreShapes()`, `registerCoreArrangements()` |
+
+**Acceptance:** All five registries open and functional; WorkspaceAddress encodes/decodes full UI state; 2D renderer embeds cells; SeNARS uses open contract.
+
+**Verify (green):** `pnpm --dir ui typecheck` · `pnpm --dir ui test:unit` (872) · `pnpm deps:gate` (1 ≤ baseline 1) · `pnpm exports:check` · `pnpm exports:barrels`.
+
+**Status:** Phase 2 fully complete per §19.1/§18.5 minimal coherent cut. Phase 3 (Backend #2 parity) and Phase 4 (ecosystem extraction) remain per §12.
+
 ---
 
 ## 18. Feasibility & scope review (measured)
@@ -601,6 +621,8 @@ one decision** (§18.4).
 | Open `Channel` | modulation (29 files), additive | medium | low |
 | Open `Aspect` | resolver + 7 (3 empty today) | medium | low |
 | Open `FocusKind` | `coordinates.ts` + ~14 | medium-high | type-safety |
+| Open `Shape` | view-spec + adapters + views | medium | low |
+| Open `Arrangement` | composition + layout + presets | medium | low |
 | Merge `Cell` | `composition.ts` + `coordinates.ts` | medium | semantic mismatch |
 | Unify `Patch` | modulation ⊕ projection ⊕ 2 adapters ⊕ 2 viewports | **high** | medium |
 | `Fidelity` *fusion* | attention ⊕ view-spec ⊕ graph-scaling ⊕ `DEPTHS` | **high** | medium |
@@ -635,19 +657,18 @@ The plan serves **(A)** a good SeNARS bench and **(B)** a generic ecosystem. (A)
 in *shape*, but implement **only** what SeNARS exercises, and make every opening **additive** (a registry
 with one entry) rather than a migration.
 
-### 18.5 The minimal coherent cut (recommended) — **COMPLETED (Phase 0 + 1 + 2.1)**
+### 18.5 The minimal coherent cut (recommended) — **COMPLETED (Phase 0 + 1 + 2 complete)**
 
-Do **Phase 0 + Phase 1**, plus **three surgical additions** — and defer the rest:
+Do **Phase 0 + Phase 1 + Phase 2** — and defer the rest:
 
 1. ✅ Phase 0: hygiene, retire the parallel path, consolidate the two 2D paths.
 2. ✅ Phase 1: mount the Instrument; re-home the aspects on Backend #1.
 3. ✅ Open **`Channel`** and **`Aspect`** only (immediate payoff).
 4. ✅ Bring modulation through the contract via **`Patch`**, 2D first.
-5. Upstream the fractal primitive (Phase 3) when SpaceGraphJS is ready.
+5. ✅ Open **`Shape`**, **`Arrangement`**, **`FocusKind`** registries; **`WorkspaceAddress`**; **`Renderer.embed`**.
+6. Upstream the fractal primitive (Phase 3) when SpaceGraphJS is ready.
 
-Everything else (open `Shape`/`Arrangement`/`FocusKind`, merge `Cell`, fuse `Fidelity`, extract packages,
-`presence`, `timeline`) is **held until a second consumer proves the need** — recorded here so the door
-stays open, not walked through early.
+Everything else (merge `Cell`, fuse `Fidelity`, extract packages, `presence`, `timeline`) is **held until a second consumer proves the need** — recorded here so the door stays open, not walked through early.
 
 ### 18.7 Measured against Phase 0 (corrections to §18.1–§18.5) — **ADDRESSED BY A0**
 
@@ -679,7 +700,7 @@ the first structural task "three registries → one" is **done**.
 
 ## 19. Fresh-session execution plan
 
-**Status: Phase 1 COMPLETED. Phase 2 (Channel, Aspect, Patch) COMPLETED.** Decisions resolved (§19.5). Next: Phase 2 remaining — open Shape, Arrangement, FocusKind registries; Fidelity fusion; WorkspaceAddress; Renderer.embed; presence; timeline.
+**Status: Phase 1 COMPLETED. Phase 2 (Channel, Aspect, Patch, Shape, Arrangement, FocusKind, WorkspaceAddress, Renderer.embed) COMPLETED.** Decisions resolved (§19.5). Next: Phase 3 (grow Backend #2 to parity) and Phase 4 (extract ecosystem). Remaining openings: Fidelity fusion; presence; timeline.
 
 ### 19.0 Next session starts at Phase 1
 
@@ -762,6 +783,19 @@ third path") was **not met**. A0 completed to remove the first structural debt.
 3. ✅ **Patch stream contract.** Added `Patch`, `ItemPatch`, `Id` types to `core/workspace-renderer.ts`. Added optional `applyPatch(patch: Patch)` method to `WorkspaceRenderer` interface. Implemented `applyPatch` in `components/renderers/graph.ts` (2D backend) — applies structural ops via `applyWorkspaceOps` and channel changes via `applyDelta`.
 
 **Verify (green):** `pnpm --dir ui typecheck` · `pnpm --dir ui test:unit` (872) · `pnpm deps:gate` (1 ≤ baseline 1) · `pnpm exports:check` · `pnpm exports:barrels`.
+
+### 19.3.2 Phase 2 — task list (open Shape, Arrangement, FocusKind; WorkspaceAddress; Renderer.embed) — **COMPLETED**
+
+1. ✅ **Open FocusKind registry.** Created `framework/focus-kind-registry.ts` with `registerFocusKind`, `getFocusKind`, `getFocusKinds`, `hasFocusKind`, `focusKindIds`, `resetFocusKinds`, `CORE_FOCUS_KINDS`, `registerCoreFocusKinds`. Updated `framework/coordinates.ts` to use open `FocusKind = string` type with core `FOCUS_KINDS` tuple for exhaustiveness. Exported from `framework/index.ts`.
+2. ✅ **Open Shape registry.** Created `core/shape-registry.ts` with `registerShape`, `getShape`, `getShapes`, `hasShape`, `shapeIds`, `resetShapes`, `CORE_SHAPES`, `registerCoreShapes`. Updated `core/view-spec.ts` to use open `Shape = string` type with core `SHAPES` tuple for exhaustiveness. Updated `core/view-adapter.ts` to work with open Shape type. Exported from `core/index.ts`.
+3. ✅ **Open Arrangement registry.** Created `framework/arrangement-registry.ts` with `registerArrangement`, `getArrangement`, `getArrangements`, `hasArrangement`, `arrangementIds`, `resetArrangements`, `CORE_ARRANGEMENTS`, `registerCoreArrangements`. Unified LayoutId, ArrangementKind, and Shape into one `Arrangement` concept. Exported from `framework/index.ts` via `composition.ts`.
+4. ✅ **WorkspaceAddress encoding/decoding.** Created `core/workspace-address.ts` with `WorkspaceAddress` interface, `encodeAddress`, `decodeAddress`, `buildWorkspaceAddress`, `addressEquals`. Exported from `core/index.ts`.
+5. ✅ **Renderer.embed capability.** Implemented `embed(cell, host)` in `components/renderers/graph.ts` (2D backend). Updated `components/workspace-host.ts` to delegate embed to current renderer via `RendererContext.embed`.
+6. ✅ **Migrate SeNARS to register its kinds/aspects.** Core focus kinds, aspects, shapes, and arrangements are registered on module import via `registerCoreFocusKinds()`, `registerCoreAspects()`, `registerCoreShapes()`, `registerCoreArrangements()`.
+
+**Verify (green):** `pnpm --dir ui typecheck` · `pnpm --dir ui test:unit` (872) · `pnpm deps:gate` (1 ≤ baseline 1) · `pnpm exports:check` · `pnpm exports:barrels`.
+
+**Status update:** Phase 2 (open Shape, Arrangement, FocusKind registries; WorkspaceAddress; Renderer.embed) **COMPLETED**. Decisions D1–D6 (§19.5) remain in effect. Next: Phase 3 (grow Backend #2 to parity) and Phase 4 (extract ecosystem) per §19.1/§18.5.
 
 ### 19.4 Anticipated issues & mitigations
 

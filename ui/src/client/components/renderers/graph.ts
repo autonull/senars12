@@ -22,6 +22,7 @@ import {
   type FocusRef,
   type Patch,
   type ItemPatch,
+  type Cell,
 } from '../../core/workspace-renderer.js';
 import { focusRefId } from '../../framework/coordinates.js';
 import type { Channel, ChannelValue } from '../../modulation/types.js';
@@ -183,6 +184,29 @@ class GraphRenderer implements WorkspaceRenderer {
     this.#element?.remove();
     this.#element = undefined;
     this.#ctx = undefined;
+  }
+
+  embed(cell: Cell, host: HTMLElement): void {
+    // Embed a cell as a nested view within this renderer
+    // For graph-2d, we create a nested graph-surface showing the cell's focus
+    if (!cell.focus) return;
+
+    const viewport = getViewportInstance();
+    if (!viewport) return;
+
+    const nestedSurface = document.createElement('graph-surface');
+    nestedSurface.style.width = '100%';
+    nestedSurface.style.height = '100%';
+    nestedSurface.style.minHeight = '200px';
+    nestedSurface.setAttribute('data-embedded', 'true');
+
+    host.appendChild(nestedSurface);
+
+    // Focus the nested surface on the cell's focus
+    const ref = focusRefId(cell.focus);
+    if (ref) {
+      setWorkspaceFocus(ref);
+    }
   }
 }
 

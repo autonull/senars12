@@ -185,6 +185,21 @@ export {
   getCompositions,
   resetCompositions,
   cellSurface,
+  // Arrangement registry (unifies LayoutId, ArrangementKind, Shape)
+  registerArrangement,
+  getArrangement,
+  getArrangements,
+  hasArrangement,
+  arrangementIds,
+  resetArrangements,
+  CORE_ARRANGEMENTS,
+  registerCoreArrangements,
+  type Arrangement,
+  type ArrangementContext,
+  type Layout,
+  type RegisteredArrangement,
+  arrangementsForLayout,
+  arrangementsForShape,
 } from './composition.js';
 
 export type {
@@ -223,6 +238,22 @@ export {
   FOCUS_FRAGMENT_PREFIX,
   encodeFocusFragment,
   decodeFocusFragment,
+  // FocusKind registry (open)
+  registerFocusKind,
+  getFocusKind,
+  getFocusKinds,
+  hasFocusKind,
+  focusKindIds,
+  resetFocusKinds,
+  CORE_FOCUS_KINDS,
+  registerCoreFocusKinds,
+  type FocusKindDescriptor,
+  type RegisteredFocusKind,
+  focusKindsForSubstrate,
+  encodeFocusRef,
+  decodeFocusRef,
+  labelFocusRef,
+  iconFocusRef,
 } from './coordinates.js';
 
 export type { FocusStack } from './focus-stack.js';

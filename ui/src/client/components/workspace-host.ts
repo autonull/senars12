@@ -85,7 +85,8 @@ export class WorkspaceHost extends BaseComponent {
         // Selection is handled by the kernel
       },
       embed: (cell, host) => {
-        // Embed is handled by the renderer
+        // Delegate to current renderer's embed method if available
+        this.#current?.embed?.(cell, host);
       },
     };
   }
