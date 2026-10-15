@@ -640,33 +640,26 @@ Tests: `tests/framework/arrangement.test.ts` (17), `tests/framework/composer.tes
 | **`trace` FocusRef kind** | `framework/coordinates.ts` | Added `trace` kind with `correlationId` for process-instance focus (§18.1). Resolver updated to resolve trace by correlationId. Tests: `tests/framework/focus-model.test.ts` (2 new tests). |
 | **Cycle control state** | `kernel/state.ts`, `core/store.ts`, `core/protocol/sync.ts` | `CycleState` type (`running`/`paused`/`stepping`), `$cycleState`, `$cycleCount`, `$cycleSpeed` atoms, `setCycleState`/`stepCycle`/`rewindCycle` functions. Server protocol extended with `cycle.state` message. |
 | **Instrument components** | `components/instrument/` | Three new surfaces: `s-cycle-controls` (run/pause/step/rewind), `s-trace-viewer` (timeline of events by correlationId), `s-gate-inspector` (observe/veto/inject at kernel gates). Registered via surface registry. |
+| **`SemanticLinkKind` purpose table** | `framework/link-kinds.ts` | Unified `LINK_KIND_PURPOSES` table replacing ad-hoc sets; `purposesOf`, `servesPurpose`, `kindsForPurpose` helpers; typed sets for provenance/history/trace/containment/neighborhood/thread. Resolver updated. |
+| **Aspect → arrangement mapping** | `framework/coordinates.ts` | `ASPECT_ARRANGEMENT` table + `defaultArrangementFor(aspect, depth)`; one table drives both aspect projection and spatial arrangement. |
+| **Dynamic `tierToZoom`** | `framework/attention-runtime.ts` | `tierToZoom(tier, viewport?)` now accepts optional `{count, area}` and scales thresholds by `densityFactor` for legibility at different densities. |
+| **Graph-scaling legibility fix** | `utils/graph-scaling.ts`, `tests/components/graph-scaling.test.ts` | `settleZoom` enforces legibility floor (`Math.max(floor, …)`); test updated to match. |
 
 ### New improvement opportunities
 
-- **`SemanticLinkKind` ↔ provenance/history/trace are sets here; they want one declared table**
-  (like `BUDGET_RESOURCES`) so the resolver and future breakpoints/Instrument aspects agree on which
-  link kinds mean "support", "revised" and "caused".
-- **`ASPECT_SURFACES` is the routing seam for Step 3** — it could also carry the default arrangement
-  (linear/spatial/grid) per `(aspect, depth)`, letting one table drive both aspect and arrangement.
-- ~~**`focusKey` is a natural URL/fragment encoding** (the four coordinates serialize to one address),
-  which would make focus deep-linkable and replayable for free.~~ **DONE** — `encodeFocusFragment`/`decodeFocusFragment` added.
-- ~~**The attention half-life (`DEFAULT_HALF_LIFE_MS`) and `TIER_COST` are policy, not physics** — they
-  belong in the token/theme layer or config catalog so the field can be tuned (and asserted) without
-  touching the allocator.~~ **DONE** — `UiConfig.attention` schema with `halfLifeMs`, `capacity`, `reclaimThreshold`, `tierCost`.
 - **`onPressure` is the first instance of a general "announce" seam** — if a second bounded container
   in `util` (`BoundedRing`, `BoundedMap`) needs to announce a transition without importing a sink,
   factor the injected-listener pattern into one place rather than re-injecting per container.
 - **The lifted `Bag` interface now serves two layers** — watch for `nar`-specific needs (e.g. a
   priority-override or a concept-store hook) creeping into the public interface; the UI should adapt
   to the bag, not the reverse.
-- ~~**`attention-runtime.ts` frame loop** — currently a singleton `requestAnimationFrame`; consider
-  tying it to the kernel's cycle tick (`cognitive.delta` frames) so UI and reasoner decay share the
-  same clock (§18.2).~~ **DONE** — `decayAttentionField` driven by `cognitive.delta`.
-- **`tierToZoom` uses static thresholds** — could be dynamic per-viewport based on `densityFactor`
-  from `graph-scaling` so the same tier renders legibly at different densities.
-- ~~**`blockToFocusRef` mapping is incomplete** — only ~12 of 30+ block kinds mapped; the rest fall
-  back to `concept`. Extend as call sites are wired (e.g. `paragraph`, `section`, `heading`,
-  `list`, `table`, `code`, `tool-call`, `tool-result`).~~ **DONE** — all 30+ block kinds mapped.
+- ~~**`tierToZoom` uses static thresholds** — could be dynamic per-viewport based on `densityFactor`
+  from `graph-scaling` so the same tier renders legibly at different densities.~~ **DONE** — `tierToZoom(tier, viewport?)` accepts optional `{count, area}` and scales by `densityFactor`.
+- ~~**`SemanticLinkKind` ↔ provenance/history/trace are sets here; they want one declared table**
+  (like `BUDGET_RESOURCES`) so the resolver and future breakpoints/Instrument aspects agree on which
+  link kinds mean "support", "revised" and "caused".~~ **DONE** — `framework/link-kinds.ts` with `LINK_KIND_PURPOSES` table, `purposesOf`, `servesPurpose`, `kindsForPurpose`, and typed sets (`PROVENANCE_LINK_KINDS`, `HISTORY_LINK_KINDS`, `TRACE_LINK_KINDS`, etc.). Resolver updated to consume the table.
+- ~~**`ASPECT_SURFACES` is the routing seam for Step 3** — it could also carry the default arrangement
+  (linear/spatial/grid) per `(aspect, depth)`, letting one table drive both aspect and arrangement.~~ **DONE** — `ASPECT_ARRANGEMENT` table + `defaultArrangementFor(aspect, depth)` in `coordinates.ts`; exported from framework barrel.
 
 ---
 

@@ -16,6 +16,17 @@ import type {
   WorkspaceGraph,
 } from '../core/workspace-graph.js';
 import { type Aspect, type FocusRef, focusRefId } from './coordinates.js';
+import {
+  PROVENANCE_LINK_KINDS,
+  HISTORY_LINK_KINDS,
+  TRACE_LINK_KINDS,
+  type SemanticLinkKind as LinkKind,
+} from './link-kinds.js';
+
+/** Convert link kind arrays to sets for the linkedBy function. */
+const PROVENANCE_LINKS = new Set(PROVENANCE_LINK_KINDS);
+const HISTORY_LINKS = new Set(HISTORY_LINK_KINDS);
+const TRACE_LINKS = new Set(TRACE_LINK_KINDS);
 
 /** Find all blocks in a graph that reference a correlationId. */
 function blocksByCorrelationId(graph: WorkspaceGraph, correlationId: string): SemanticBlock[] {
@@ -93,17 +104,6 @@ export interface ResolverContext {
 export interface Resolver {
   resolve(ref: FocusRef, context: ResolverContext): FocusResolution;
 }
-
-/** The link kinds that constitute provenance (a focus's support / origin). */
-const PROVENANCE_LINKS: ReadonlySet<SemanticLinkKind> = new Set(['derived-from', 'supports']);
-/** The link kinds that constitute history (a focus's prior revisions). */
-const HISTORY_LINKS: ReadonlySet<SemanticLinkKind> = new Set(['revises', 'elaborates']);
-/** The link kinds that constitute trace (a focus's gate/tool process). */
-const TRACE_LINKS: ReadonlySet<SemanticLinkKind> = new Set([
-  'admitted-by-gate',
-  'rejected-by-gate',
-  'produced-by-tool',
-]);
 
 /** Resolve block refs to blocks, dropping refs not (yet) in the graph, preserving order. */
 const blocksFrom = (graph: WorkspaceGraph, refs: readonly Ref[] | undefined): SemanticBlock[] => {

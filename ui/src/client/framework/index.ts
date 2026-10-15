@@ -213,6 +213,8 @@ export {
   ASPECTS,
   isAspect,
   ASPECT_SURFACES,
+  ASPECT_ARRANGEMENT,
+  defaultArrangementFor,
   DEPTHS,
   MAX_DEPTH,
   clampDepth,
@@ -240,6 +242,23 @@ export type {
 } from './resolver.js';
 
 export { resolveFocus, workspaceResolver, aspectSlice, hasSlice } from './resolver.js';
+
+export type {
+  LinkPurpose,
+} from './link-kinds.js';
+
+export {
+  LINK_KIND_PURPOSES,
+  purposesOf,
+  servesPurpose,
+  kindsForPurpose,
+  PROVENANCE_LINK_KINDS,
+  HISTORY_LINK_KINDS,
+  TRACE_LINK_KINDS,
+  CONTAINMENT_LINK_KINDS,
+  NEIGHBORHOOD_LINK_KINDS,
+  THREAD_LINK_KINDS,
+} from './link-kinds.js';
 
 export type { FidelityTier, AttentionClass, Allocation, AttentionItem } from './attention.js';
 

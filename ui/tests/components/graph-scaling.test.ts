@@ -77,11 +77,11 @@ describe('graph scaling — legible zoom window (G.2, T.4)', () => {
   it('settles a fit under the requested policy (G.2)', () => {
     const area = VIEWPORTS.desktop;
     const tiny = 0.1;
-    // `legible` no longer lifts an illegible fit — it obeys fit (show all),
-    // only capping at the ceiling. The floor is a desired minimum but never
-    // raises above the fit zoom.
-    expect(settleZoom(tiny, 8, area, 'legible')).toBe(tiny);
-    // `fit` is identical for post-fit settlement: cap at ceiling only.
+    const floor = zoomFloor(8, area);
+    // `legible` enforces the legibility floor — lifts illegible fit so nodes remain readable.
+    expect(settleZoom(tiny, 8, area, 'legible')).toBe(floor);
+    expect(isLegible(nodeSize(0.5, 8, area), floor)).toBe(true);
+    // `fit` only caps at ceiling, obeys the raw fit zoom even if illegible.
     expect(settleZoom(tiny, 8, area, 'fit')).toBe(tiny);
     expect(settleZoom(99, 8, area, 'legible')).toBe(ZOOM.max);
     expect(settleZoom(99, 8, area, 'fit')).toBe(ZOOM.max);

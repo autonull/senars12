@@ -13,8 +13,8 @@
 
 import { AttentionField, type Allocation, decayRateFor, type AttentionPolicy, attentionPolicyFromConfig } from './attention.js';
 import { type FocusRef, MIND_FOCUS } from './coordinates.js';
-import { LOD_ZOOM_THRESHOLDS } from '../utils/graph-scaling.js';
 import { $config } from '../core/store.js';
+import { LOD_ZOOM_THRESHOLDS, densityFactor } from '../utils/graph-scaling.js';
 
 /** The singleton attention field for this UI session. */
 let fieldInstance: AttentionField | null = null;
@@ -88,19 +88,32 @@ export function stopAttentionRuntime(): void {
   policy = null;
 }
 
-/** Convert an allocated fidelity tier to a target zoom level. */
-export function tierToZoom(tier: 'reclaimed' | 'glyph' | 'label' | 'card' | 'full'): number {
-  switch (tier) {
-    case 'reclaimed':
-    case 'glyph':
-      return LOD_ZOOM_THRESHOLDS.glyph;
-    case 'label':
-      return LOD_ZOOM_THRESHOLDS.label;
-    case 'card':
-      return LOD_ZOOM_THRESHOLDS.card;
-    case 'full':
-      return LOD_ZOOM_THRESHOLDS.full;
-  }
+/** Convert an allocated fidelity tier to a target zoom level, optionally adjusted for viewport density. */
+export function tierToZoom(
+  tier: 'reclaimed' | 'glyph' | 'label' | 'card' | 'full',
+  viewport?: { count: number; area: number }
+): number {
+  const base = (() => {
+    switch (tier) {
+      case 'reclaimed':
+      case 'glyph':
+        return LOD_ZOOM_THRESHOLDS.glyph;
+      case 'label':
+        return LOD_ZOOM_THRESHOLDS.label;
+      case 'card':
+        return LOD_ZOOM_THRESHOLDS.card;
+      case 'full':
+        return LOD_ZOOM_THRESHOLDS.full;
+    }
+  })();
+
+  if (!viewport) return base;
+
+  // Adjust for viewport density: denser viewports need higher zoom for same legibility
+  // The density factor scales node size; we invert it so denser = higher zoom threshold
+  const density = densityFactor(viewport.count, viewport.area);
+  // Reference density is ~1.0; if denser, we need proportionally more zoom
+  return base * Math.max(1, density);
 }
 
 /** The current frame's allocations — for debugging/inspection. */
