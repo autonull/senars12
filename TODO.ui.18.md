@@ -419,7 +419,7 @@ never touches a backend.
 
 Each phase is independently shippable and leaves the system coherent.
 
-### Phase 0 — Declare the seam (no visual change)
+### Phase 0 — Declare the seam (no visual change) — **landed (§17); addendum A0 open (§19.2.1)**
 
 | Action | Files |
 |---|---|
@@ -522,7 +522,35 @@ the contract.
 
 ## 17. Progress log
 
-_(fresh — to be filled as phases land, in the UI.17 style: file-by-file, with verification commands.)_
+### Phase 0 — Declare the seam — **LANDED, reopened by addendum A0 (§19.2.1)**
+
+Commit `ui18: Phase 0 — canonicalize renderer IDs, retire parallel path, disambiguate capabilities`
+(34 files, −1583/+121).
+
+| Action | Files |
+|---|---|
+| Canonical renderer ids `graph-2d` · `graph-3d` · `notebook` | `core/renderer-defs.ts`, `kernel/state.ts`, `core/store.ts` |
+| `$viewportMode` / `$graphShape` **derived** from the renderer | `core/store.ts` |
+| Back-compat URL map (`graph`,`2d`→`graph-2d`; `3d`→`graph-3d`) | `core/store.ts` (`hydrateFromUrl`) |
+| Gate set renamed `RENDERER_CAPABILITIES` → `RENDERER_GATE_CAPABILITIES` | `core/capabilities.ts` |
+| Channel matrix keyed by canonical ids | `utils/renderer-capabilities.ts`, `utils/adapter-2d.ts`, `spacegraph/adapter-3d.ts` |
+| Parallel path retired | deleted `framework/{arrangement,arrangement-strategies,composer}.ts`; severed `coordinates.ts`→`ArrangementKind`; dropped `ASPECT_ARRANGEMENT`/`defaultArrangementFor`; pruned `framework/index.ts`; deleted `tests/framework/{arrangement,composer}.test.ts` |
+| Consumers updated | `renderers/{graph,graph3d}.ts`, `graph-surface.ts`, `app-layout.ts`, `display-popover.ts`, `artifact.ts`, `block-menu.ts`, `intent-registry.ts`, `view-presets.ts`, `config-sync.ts` |
+
+**Verify (green):** `pnpm --dir ui test:unit` (872) · `pnpm deps:gate` (1 ≤ baseline 1) ·
+`pnpm exports:check` · `pnpm exports:barrels`.
+
+**Known-red baseline (pre-existing, not UI.18):** `pnpm typecheck` fails in
+`tests/framework/prompt-perception.test.ts` and
+`tests/unit/server/{event,field}-catalog`, `layout-registry`, `lens-catalog`; `pnpm test:unit` fails in
+`tests/nar/refactor{3,4}-*`. Until cleared or quarantined the per-phase gate is not meaningful — see A0.4.
+
+**Behavior change (one, deliberate):** `config-sync.applyGlobals` previously wrote `shape` and `mode`
+independently; deriving them from the renderer makes `shape=table` win over `mode=3d` (an incoherent
+combination now resolves deterministically). The rule that produced it is the **source rule** (§20.3).
+
+**Acceptance status.** §19.2's "one way to register a backend … no third path" is **not yet met** — there
+are three renderer registries (§18.7). A0 closes it.
 
 ---
 
@@ -591,31 +619,53 @@ Everything else (open `Shape`/`Arrangement`/`FocusKind`, merge `Cell`, fuse `Fid
 `presence`, `timeline`) is **held until a second consumer proves the need** — recorded here so the door
 stays open, not walked through early.
 
+### 18.7 Measured against Phase 0 (corrections to §18.1–§18.5)
+
+Phase 0 was the plan's own feasibility test. Four findings amend the estimates:
+
+- **"Retire the parallel path" was free; "canonicalize the renderer" was not.** §18.1 rated the identity
+  change "trivial"; measured, it touched ~12 source files and ~10 test files. Each was small, but it is a
+  *cross-cutting* rename (a **medium** row), not a local one — and it exposed the next three findings.
+- **There were three renderer registries, not one.** `RENDERER_DEFS` (catalog), the surface registry
+  (`registerRenderers`), and the `workspace-renderer` registry (`registerRenderer`). Phase 0's own
+  acceptance ("one way to register … no third path", §19.2) is therefore **unmet** until they collapse
+  (A0.1, §20.2). This is the first *structural* debt, and it was invisible before the code moved.
+- **Deriving `$viewportMode`/`$graphShape` inverted a control-flow path.** The atoms were *writable*, and
+  `config-sync` wrote them. Making them derived forces every writer to write the **source** (the renderer).
+  The *source rule* (§20.3) generalizes this to all four coordinates before Phase 1 multiplies the writers.
+- **Notebook is a renderer whose channels are honestly empty.** It was added to the catalog to complete the
+  "three backends" model, but as a *content* projection it declares **no** modulation channels; giving it the
+  graph channel set was a copy, not a capability (§20.4).
+
+**Revised view of §18.1.** The two expensive rows (`Patch` fusion, `Fidelity` fusion) were **not touched**,
+so their **high** cost/risk stands. The cheap rows carry one addition — *renderer identity* is medium — and
+the first structural task is now "three registries → one".
+
 ---
 
 ## 19. Fresh-session execution plan
 
-**Status: READY.** Decisions resolved (§19.5). Start at §19.0.
+**Status: Phase 0 landed; A0 next.** Decisions resolved (§19.5, incl. D4–D6). Start at §19.0.
 
-### 19.0 Start here (first session, first commit)
+### 19.0 Start here (this session)
 
-Preconditions: read §1, §7, §8, §19.1; confirm D1/D2/D3 (§19.5). Then:
+Preconditions: read §1, §7, §8, §17, §18.7, §19.1, §20; confirm D1–D6 (§19.5). Then:
 
-1. Branch: `git switch -c ui18-phase0`.
-2. Execute §19.2 (Phase 0) — no behavior change; one logical commit per numbered task.
-3. Run the verification battery (§19.6) before each commit.
-4. Stop and report if an anticipated issue (§19.4) needs a decision.
+1. Branch: `git switch -c ui18-phase0-a0` (Phase 0 landed on `main`; A0 continues it).
+2. Execute A0 (§19.2.1) — one logical commit per numbered task.
+3. Run the verification battery (§19.6) before each commit; `pnpm typecheck` and `pnpm test:unit` **end green**.
+4. Then Phase 1 (§19.3). Stop and report if an anticipated issue (§19.4) needs a decision.
 
-The first concrete change is §19.2.1 (canonicalize renderer identity); nothing else starts until Phase 0
-is green.
+The first concrete change is **A0.1 (one renderer registry)**; nothing in Phase 1 starts until A0 is green.
 
 ### 19.1 Orientation (verified facts a fresh session must not re-discover)
 
 - **App entry:** `ui/src/client/index.html` → `entry.ts` → `app-layout.ts` (which imports
   `overlays/index.js`) → `<workspace-host>` mounts the active `WorkspaceRenderer` via `registerRenderer`.
 - **Coordinate state today:** only **`$focus`** exists (derived from `$focusStack`). There are **no
-  `$aspect` / `$depth` / `$time` atoms**; the shell instead has `$viewportMode` (`'2d'|'3d'`),
-  `$graphShape` (`'graph'|'table'`), `$neighborhoodDepth` (1–3). **UI.17 Step 3 was done for focus only.**
+  `$aspect` / `$depth` / `$time` atoms**; the shell instead has `$viewportMode` (`'2d'|'3d'`) and
+  `$graphShape` (`'graph'|'table'`) — now **derived** from `$activeRenderer` (source rule §20.3) — plus
+  `$neighborhoodDepth` (1–3). **UI.17 Step 3 was done for focus only.**
 - **Two 2D hosts, one viewport:** `graph-surface` switches among `<graph-viewport>` (2D),
   `<spacegraph-viewport>` (3D), `<s-view>` (table); `graph-viewport` is also the shape-`graph` view
   adapter tag. Not a file merge — a selector unification.
@@ -625,7 +675,10 @@ is green.
   commit; the Vite alias `spacegraphjs → spacegraphjs7/src/index.ts` (`ui/vite.aliases.ts:14-15`) makes
   local edits live in dev.
 
-### 19.2 Phase 0 — task list (no behavior change)
+### 19.2 Phase 0 — task list (LANDED)
+
+_Tasks 1–4 landed in `ui18: Phase 0`. The seam is **reopened by addendum A0** (§19.2.1) because the
+"one way to register" acceptance is unmet._
 
 1. **Canonicalize renderer identity (D3).** Use the canonical ids **`graph-2d` · `graph-3d` ·
    `notebook`** everywhere (`$activeRenderer`, `RENDERER_DEFS`, `WorkspaceRenderer.id`); derive
@@ -641,8 +694,25 @@ is green.
    `tests/framework/composer.test.ts` (keep `prompt-perception.test.ts`).
 4. **Keep** `framework/coordinates.ts` (vocabulary) and `framework/link-kinds.ts`.
 
-**Verify:** `pnpm typecheck`, `pnpm --dir ui typecheck`, `pnpm test:unit`, `pnpm deps:gate`,
-`pnpm exports:check`, `pnpm --dir ui test:unit`.
+**Verify:** `pnpm typecheck` (+ `--dir ui`), `pnpm test:unit` (+ `--dir ui`), `pnpm deps:gate`,
+`pnpm exports:check`, `pnpm exports:barrels`.
+
+### 19.2.1 Phase 0 addendum (A0) — make the seam literally "one way"
+
+Phase 0's acceptance ("one way to register a backend, a shape, a channel, a focus kind, an arrangement; no
+third path") is **not met**. Do A0 before Phase 1; it is small, additive, and removes the first structural debt.
+
+1. **A0.1 — One renderer registry.** Make `registerRenderer` the single entry; derive `RENDERER_DEFS` and the
+   viewport surfaces from it (one source, §20.2). Delete the parallel literal in `registerRenderers()`.
+2. **A0.2 — Declare notebook's channels honestly.** A content renderer declares no modulation channels (or a
+   named, minimal set); do **not** copy the graph set (§20.4).
+3. **A0.3 — Apply the source rule (§20.3).** Grep every writer of `$viewportMode`/`$graphShape` and any
+   projected coordinate; each writes the *source* (renderer/coordinate), never the projection. Record any
+   further behavior change the way `config-sync` was recorded.
+4. **A0.4 — Green baseline.** Fix or quarantine the known-red set (§17); the accepted-red ledger is **empty**
+   before Phase 1. A genuinely out-of-scope failure is listed explicitly with a reason.
+
+**Verify:** the §19.6 battery, plus `pnpm exports:barrels` (A0.1 moves exports), and a green `pnpm typecheck`.
 
 ### 19.3 Phase 1 — task list (the bench, on Backend #1)
 
@@ -682,6 +752,10 @@ visual gallery (`test:visual:update` → `ui:gallery`).
 | I0.4 | `RENDERER_CAPABILITIES` name collision | rename both; grep tests |
 | I0.5 | "two 2D paths" is really two hosts, one viewport | unify selectors, not files |
 | I0.6 | `graph-viewport.applyDelta` bypasses the contract | defer to Phase 2 (`Patch`), do **not** touch in Phase 0 |
+| I0.7 | three renderer registries; "one way" unmet | A0.1 — `registerRenderer` is the entry, the catalog derives |
+| I0.8 | derived coordinates had writers (`config-sync`) | source rule (§20.3); write the source; A0.3 audit |
+| I0.9 | `pnpm typecheck`/`test:unit` already red (unrelated) | fix or quarantine; the accepted-red ledger is empty (A0.4) |
+| I0.10 | a renderer and a content projection were given the same capability set | capability is **declared**, never copied (§20.4) |
 | I1.1 | Instrument controls are cosmetic without kernel support | kernel companion (§19.3) or `partial` parity |
 | I1.2 | no `$aspect`/`$depth`/`$time` | add them first (I1.1 depends on them for `Origin`) |
 | I1.3 | `origin` has no surface and needs manifold data | may ship empty without a Judgment Manifold; declare it |
@@ -703,12 +777,66 @@ visual gallery (`test:visual:update` → `ui:gallery`).
   Phase 1 blocker.
 - **D3 — Canonical renderer ids: `graph-2d` · `graph-3d` · `notebook`**, used everywhere; `$viewportMode`
   and `$graphShape` are derived views.
+- **D4 — The renderer is the source; coordinates and their projections are views.** No writer writes a
+  derived value. (Measured: `config-sync` inverted its control flow; the single deliberate behavior change is
+  documented in §17.)
+- **D5 — One renderer registry.** `registerRenderer` is the entry; `RENDERER_DEFS` and the viewport surfaces
+  derive from it. This is the literal reading of "no third path" (A0.1).
+- **D6 — A renderer declares only the channels it paints.** Notebook (content) declares none; capability is
+  not copied across renderer kinds (A0.2).
 
 ### 19.6 Verification battery (run per phase)
 
+`pnpm typecheck` and `pnpm test:unit` must be **green before** the battery is trusted (A0.4); the
+remaining gates are the phase's own acceptance.
+
 ```bash
-pnpm typecheck && pnpm --dir ui typecheck
-pnpm test:unit && pnpm --dir ui test:unit
+pnpm typecheck && pnpm --dir ui typecheck      # must be green (baseline, §17/A0.4)
+pnpm test:unit && pnpm --dir ui test:unit      # must be green (baseline, §17/A0.4)
 pnpm deps:gate && pnpm exports:check && pnpm exports:barrels
 pnpm --dir ui test:visual:update && pnpm --dir ui ui:gallery   # the DoD gate (§13)
 ```
+
+---
+
+## 20. Contract repairs (from Phase 0 — the ideal, made explicit)
+
+Phase 0 proved the mechanical half and exposed four rules the contract needs to reach its ideal
+("one workspace, one contract, many renderers"). They are stated here as **contract law**, not as notes,
+so a later session cannot re-learn them by moving code.
+
+### 20.1 A green gate is a precondition, not an output
+
+A capability is "landed" only when the visual/integration gate asserts it (§13) — but a gate that is
+already red asserts nothing. **The accepted-red ledger is empty** before any phase's gate is trusted; a
+failure is either fixed or explicitly listed with a reason. (Measured: `typecheck` and `test:unit` were red
+at Phase 0 onset for reasons unrelated to UI.18 — A0.4.)
+
+### 20.2 One renderer registry
+
+A renderer is registered once (`registerRenderer`); the catalog, the viewport surfaces, the parity matrix
+and the palette all *read* that registry. Today three literals must agree (`RENDERER_DEFS`,
+`registerRenderers`, the registration calls). The contract wants one. This is the literal meaning of
+Phase 0's "no third path" (A0.1, D5).
+
+### 20.3 The source rule (coordinates are views)
+
+Focus · aspect · depth · time are the vocabulary; every UI projection of them — viewport/shape today,
+fidelity/depth-rung tomorrow — is **derived and read-only**. A writer writes the *source* (the renderer, the
+coordinate), never the projection. This is what lets `snapshot()`/`restore()` and the URL be the single
+address (§7 `WorkspaceAddress`) rather than several partially-synced atoms (D4).
+
+### 20.4 Capability is declared, not inferred
+
+A renderer declares exactly the channels/fidelities it honours (`RendererCaps`, §7). Capability is never
+copied from a peer because the peers "look alike": a content projection (notebook) and a spatial projection
+(graph) are the *same contract* with *different declared sets*. This keeps the parity matrix honest (§4) —
+the shell shows the gap where a backend does not honour a control, rather than a capability that silently
+no-ops (D6).
+
+### 20.5 The half still unvalidated
+
+`Patch` (§5) and the `Fidelity` fusion (§6) remain **high cost / high risk** — Phase 0 did not touch them,
+so §18's rating stands. The near-term plan (Phase 1 + the `Channel`/`Aspect` openings, per D1) does not
+require them; they are proven by a second consumer or by the fractal backend (§18.4), whichever arrives
+first. Nothing above blocks them; nothing above should be mistaken for having tested them.
