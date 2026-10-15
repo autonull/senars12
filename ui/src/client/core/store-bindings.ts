@@ -13,12 +13,15 @@ import {
   $cognitiveEvents,
   $cognitiveMetrics,
   $config,
+  $cycleCount,
+  $cycleState,
   $graphEdges,
   $graphMeta,
   $graphNodes,
   $lastSeqId,
   $lensFields,
   $nodeHistory,
+  $reasoningRunning,
   $streamingDelta,
   $telemetry,
   $workingMemory,
@@ -187,6 +190,12 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
 
     case 'cognitive.events':
       pushCognitiveEvents(msg.events);
+      break;
+
+    case 'cycle.state':
+      $cycleState.set(msg.state);
+      $cycleCount.set(msg.cycleCount ?? 0);
+      $reasoningRunning.set(msg.state === 'running');
       break;
 
     case 'server.error':

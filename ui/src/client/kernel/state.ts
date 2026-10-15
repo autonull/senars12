@@ -164,6 +164,36 @@ export const $controlMode = atom<boolean>(false);
 export const $reasoningRunning = atom<boolean>(false);
 export const $runTerminations = atom<ReadonlyArray<{ scope: string; reason: string }>>([]);
 
+/** Cycle control state (§18.2) — the kernel's micro-tick is the UI's clock. */
+export type CycleState = 'running' | 'paused' | 'stepping';
+
+export const $cycleState = atom<CycleState>('running');
+export const $cycleCount = atom<number>(0);
+export const $cycleSpeed = atom<number>(1); // cycles per second when running
+
+/** Request the kernel to run/pause/step/rewind. */
+export function setCycleState(state: CycleState): void {
+  $cycleState.set(state);
+  if (state === 'running') {
+    $reasoningRunning.set(true);
+  } else if (state === 'paused') {
+    $reasoningRunning.set(false);
+  }
+}
+
+/** Step one cycle forward. */
+export function stepCycle(): void {
+  $cycleState.set('stepping');
+  $reasoningRunning.set(true);
+  // The kernel will execute one cycle and then set state back to paused
+  sendMessage({ type: 'cycle.step' });
+}
+
+/** Rewind to a previous cycle (counterfactual replay). */
+export function rewindCycle(targetCycle: number): void {
+  sendMessage({ type: 'cycle.rewind', targetCycle });
+}
+
 export const $workspaceGraph = atom<WorkspaceGraph>(emptyWorkspaceGraph());
 export const $activeRenderer = atom<string>('graph');
 

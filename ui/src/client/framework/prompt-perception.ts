@@ -22,8 +22,8 @@ export interface PerceivedPrompt {
   readonly turnBlock: SemanticBlock<'turn'>;
   /** The formalized claim/concept blocks (System-1 candidates). */
   readonly formalizations: readonly SemanticBlock<'claim'>[];
-  /** The admitted task blocks (System-2). */
-  readonly tasks: readonly SemanticBlock<'task'>[];
+  /** The admitted task blocks (System-2) — using 'answer' for beliefs, 'goal' for goals, 'question' for questions. */
+  readonly tasks: readonly (SemanticBlock<'answer'> | SemanticBlock<'goal'> | SemanticBlock<'question'>)[];
   /** Links connecting the turn to its formalizations and tasks. */
   readonly links: readonly SemanticLink[];
   /** The focus reference for the turn. */
@@ -69,7 +69,7 @@ export function perceivePrompt(
   const ops: WorkspaceOp[] = [{ op: 'block.add', block: turnBlock }];
   const links: SemanticLink[] = [];
   const formalizationBlocks: SemanticBlock<'claim'>[] = [];
-  const taskBlocks: SemanticBlock<'task'>[] = [];
+  const taskBlocks: (SemanticBlock<'answer'> | SemanticBlock<'goal'> | SemanticBlock<'question'>)[] = [];
 
   // Process each formalization candidate
   for (const [index, candidate] of formalizations.entries()) {
@@ -110,23 +110,59 @@ export function perceivePrompt(
     // Add turn as parent of claim
     turnBlock.children?.push(claimId);
 
-    // If this is a task (belief/goal/question), create a task block
+    // If this is a task (belief/goal/question), create a task block with the correct kind
     if (candidate.taskType !== 'belief') {
       const taskId = generateId('task');
-      const taskBlock: SemanticBlock<'task'> = {
-        id: taskId,
-        kind: 'task',
-        role: 'assistant',
-        text: candidate.term,
-        title: candidate.term,
-        createdAt: timestamp + index,
-        createdBy: 'reasoner',
-        status: 'complete',
-        data: { taskType: candidate.taskType },
-        provenanceRefs: [claimId],
-        eventRefs: [],
-        sourceRefs: [],
-      };
+      let taskBlock: SemanticBlock<'answer'> | SemanticBlock<'goal'> | SemanticBlock<'question'>;
+      
+      if (candidate.taskType === 'goal') {
+        taskBlock = {
+          id: taskId,
+          kind: 'goal',
+          role: 'assistant',
+          text: candidate.term,
+          title: candidate.term,
+          createdAt: timestamp + index,
+          createdBy: 'reasoner',
+          status: 'complete',
+          data: { taskType: candidate.taskType },
+          provenanceRefs: [claimId],
+          eventRefs: [],
+          sourceRefs: [],
+        };
+      } else if (candidate.taskType === 'question') {
+        taskBlock = {
+          id: taskId,
+          kind: 'question',
+          role: 'assistant',
+          text: candidate.term,
+          title: candidate.term,
+          createdAt: timestamp + index,
+          createdBy: 'reasoner',
+          status: 'complete',
+          data: { taskType: candidate.taskType },
+          provenanceRefs: [claimId],
+          eventRefs: [],
+          sourceRefs: [],
+        };
+      } else {
+        // belief tasks are represented as 'answer' kind
+        taskBlock = {
+          id: taskId,
+          kind: 'answer',
+          role: 'assistant',
+          text: candidate.term,
+          title: candidate.term,
+          createdAt: timestamp + index,
+          createdBy: 'reasoner',
+          status: 'complete',
+          data: { taskType: candidate.taskType },
+          provenanceRefs: [claimId],
+          eventRefs: [],
+          sourceRefs: [],
+        };
+      }
+      
       taskBlocks.push(taskBlock);
       ops.push({ op: 'block.add', block: taskBlock });
 
@@ -255,7 +291,7 @@ function naturalLanguageToNarsese(sentence: string): string {
   if (lower.includes(' is a ') || lower.includes(' is an ')) {
     const parts = trimmed.split(/ is a | is an /i);
     if (parts.length === 2) {
-      return `<${parts[0].trim()} --> ${parts[1].trim()}>.`;
+      return `<${parts[0]!.trim()} --> ${parts[1]!.trim()}>.`;
     }
   }
 
@@ -263,7 +299,7 @@ function naturalLanguageToNarsese(sentence: string): string {
   if (lower.includes(' are ')) {
     const parts = trimmed.split(/ are /i);
     if (parts.length === 2) {
-      return `<${parts[0].trim()} --> ${parts[1].trim()}>.`;
+      return `<${parts[0]!.trim()} --> ${parts[1]!.trim()}>.`;
     }
   }
 

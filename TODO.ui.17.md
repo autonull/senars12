@@ -637,6 +637,9 @@ Tests: `tests/framework/arrangement.test.ts` (17), `tests/framework/composer.tes
 | Attention policy in config | `core/config-schema.ts`, `framework/attention.ts`, `framework/attention-runtime.ts` | `UiConfig.attention` schema with `halfLifeMs`, `capacity`, `reclaimThreshold`, `tierCost`; `AttentionField.fromConfig()` reads policy; runtime re-creates field on config change. |
 | Cycle-driven attention decay | `framework/attention-runtime.ts`, `core/store-bindings.ts` | `decayAttentionField(cycleIntervalMs?)` called on each `cognitive.delta`; UI and reasoner attention age identically (§18.2). |
 | `focusKey` URL/fragment encoding | `framework/coordinates.ts` | `encodeFocusFragment(cell)` / `decodeFocusFragment(fragment)` serialize the four coordinates to a deep-linkable address. Tests: `tests/framework/focus-model.test.ts` (5 new tests). |
+| **`trace` FocusRef kind** | `framework/coordinates.ts` | Added `trace` kind with `correlationId` for process-instance focus (§18.1). Resolver updated to resolve trace by correlationId. Tests: `tests/framework/focus-model.test.ts` (2 new tests). |
+| **Cycle control state** | `kernel/state.ts`, `core/store.ts`, `core/protocol/sync.ts` | `CycleState` type (`running`/`paused`/`stepping`), `$cycleState`, `$cycleCount`, `$cycleSpeed` atoms, `setCycleState`/`stepCycle`/`rewindCycle` functions. Server protocol extended with `cycle.state` message. |
+| **Instrument components** | `components/instrument/` | Three new surfaces: `s-cycle-controls` (run/pause/step/rewind), `s-trace-viewer` (timeline of events by correlationId), `s-gate-inspector` (observe/veto/inject at kernel gates). Registered via surface registry. |
 
 ### New improvement opportunities
 

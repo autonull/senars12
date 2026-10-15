@@ -43,8 +43,9 @@ const link = (
   id: string,
   source: string,
   target: string,
-  kind: SemanticLink['kind']
-): SemanticLink => ({ id, source, target, kind, createdBy: 'lm' });
+  kind: SemanticLink['kind'],
+  extra?: Partial<SemanticLink>
+): SemanticLink => ({ id, source, target, kind, createdBy: 'lm', ...extra });
 
 const graph = () =>
   applyWorkspaceOps(emptyWorkspaceGraph(), [
@@ -313,5 +314,32 @@ describe('focusKey URL/fragment encoding', () => {
     const decoded = decodeFocusFragment(fragment);
     expect(decoded).not.toBeNull();
     expect(decoded!.focus).toEqual(focus.step('deriv-1', 3));
+  });
+
+  it('encodes and decodes a trace focus', () => {
+    const cell = cellFor(focus.trace('corr-123'), { aspect: 'provenance', depth: 0 });
+    const fragment = encodeFocusFragment(cell);
+    expect(fragment).toBe('focus=trace:corr-123|provenance|0|live');
+    const decoded = decodeFocusFragment(fragment);
+    expect(decoded).not.toBeNull();
+    expect(decoded!.focus).toEqual(focus.trace('corr-123'));
+    expect(decoded!.aspect).toBe('provenance');
+  });
+});
+
+describe('trace focus resolution', () => {
+  it('resolves a trace focus by correlationId', () => {
+    const g = applyWorkspaceOps(emptyWorkspaceGraph(), [
+      { op: 'block.add', block: block('evt1', { kind: 'event', eventRefs: ['corr-123'] }) },
+      { op: 'block.add', block: block('evt2', { kind: 'gate-decision', eventRefs: ['corr-123'] }) },
+      { op: 'block.add', block: block('evt3', { kind: 'event' }) },
+      { op: 'link.add', link: link('l1', 'evt1', 'evt2', 'admitted-by-gate', { eventRefs: ['corr-123'] }) },
+    ]);
+    const resolution = resolveFocus(focus.trace('corr-123'), { graph: g, depth: 1 });
+    expect(resolution.content).toBeDefined();
+    expect(resolution.content?.children.map((b) => b.id)).toContain('evt2');
+    expect(resolution.trace?.events.map((b) => b.id)).toContain('evt1');
+    expect(resolution.trace?.events.map((b) => b.id)).toContain('evt2');
+    expect(resolution.trace?.events.map((b) => b.id)).not.toContain('evt3');
   });
 });

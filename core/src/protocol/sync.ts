@@ -46,3 +46,8 @@ export type CognitiveMetricsData = z.infer<typeof CognitiveMetrics>;
 
 export const LensSet = msg('lens.set', { lens: Lens });
 export const FocusSet = msg('focus.set', { term: z.string() });
+
+export const CycleStateMsg = msg('cycle.state', {
+  state: z.enum(['running', 'paused', 'stepping']),
+  cycleCount: z.number().optional(),
+});

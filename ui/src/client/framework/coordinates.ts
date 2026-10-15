@@ -23,6 +23,7 @@ export type FocusKind =
   | 'turn'
   | 'event'
   | 'cycle'
+  | 'trace'
   | 'time'
   | 'drive'
   | 'space'
@@ -32,6 +33,7 @@ export type FocusKind =
  * A focus is a typed reference into the cognitive substrate, never a UI invention
  * (§2). Block-backed kinds address the one workspace id namespace; the remainder
  * (`time`, `drive`, `space`, `mind`) address the coordinates and the ambient.
+ * `trace` is a process instance threaded by correlationId (§18.1).
  */
 export type FocusRef =
   | { readonly kind: 'concept'; readonly term: string }
@@ -44,6 +46,7 @@ export type FocusRef =
   | { readonly kind: 'turn'; readonly id: string }
   | { readonly kind: 'event'; readonly id: string }
   | { readonly kind: 'cycle'; readonly id: string }
+  | { readonly kind: 'trace'; readonly correlationId: string }
   | { readonly kind: 'time'; readonly time: TimeRef }
   | { readonly kind: 'drive'; readonly name: string }
   | { readonly kind: 'space'; readonly id: string }
@@ -68,6 +71,7 @@ export const focus = {
   turn: (id: string): FocusRef => ({ kind: 'turn', id }),
   event: (id: string): FocusRef => ({ kind: 'event', id }),
   cycle: (id: string): FocusRef => ({ kind: 'cycle', id }),
+  trace: (correlationId: string): FocusRef => ({ kind: 'trace', correlationId }),
   time: (time: TimeRef): FocusRef => ({ kind: 'time', time }),
   drive: (name: string): FocusRef => ({ kind: 'drive', name }),
   space: (id: string): FocusRef => ({ kind: 'space', id }),
@@ -90,7 +94,8 @@ export const focusRefId = (ref: FocusRef): string | undefined => {
     case 'turn':
     case 'event':
     case 'cycle':
-      return ref.id;
+    case 'trace':
+      return ref.kind === 'trace' ? ref.correlationId : ref.id;
     case 'step':
       return ref.derivationId;
     default:
@@ -139,6 +144,8 @@ export const focusKey = (ref: FocusRef): string => {
       return `space:${ref.id}`;
     case 'mind':
       return 'mind';
+    case 'trace':
+      return `trace:${ref.correlationId}`;
     default:
       return `${ref.kind}:${focusRefId(ref) ?? ''}`;
   }
@@ -159,6 +166,7 @@ export const FOCUS_KINDS: readonly FocusKind[] = [
   'turn',
   'event',
   'cycle',
+  'trace',
   'time',
   'drive',
   'space',
@@ -314,6 +322,8 @@ function parseFocusKey(key: string): FocusRef | null {
       return focus.event(value);
     case 'cycle':
       return focus.cycle(value);
+    case 'trace':
+      return focus.trace(value);
     case 'time': {
       const time = parseTimeKey(value);
       return time ? focus.time(time) : null;

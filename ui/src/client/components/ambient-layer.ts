@@ -97,6 +97,8 @@ export class SAmbientLayer extends BaseComponent {
         return focus.id;
       case 'step':
         return focus.derivationId;
+      case 'trace':
+        return focus.correlationId;
       case 'concept':
       case 'task':
       case 'goal':

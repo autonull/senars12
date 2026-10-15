@@ -36,6 +36,7 @@ import {
   StateSnapshot,
   SyncRequest,
   TelemetryMsg,
+  CycleStateMsg,
 } from './sync.js';
 
 export const IncomingFromClient = z.discriminatedUnion('type', [
@@ -76,6 +77,7 @@ export const IncomingFromServer = z.discriminatedUnion('type', [
   ServerError,
   UiCommandMsg,
   ReasoningControlResponse,
+  CycleStateMsg,
 ]);
 export type IncomingFromClient = z.infer<typeof IncomingFromClient>;
 export type IncomingFromServer = z.infer<typeof IncomingFromServer>;

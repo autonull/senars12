@@ -76,6 +76,14 @@ import {
   $focus,
   type FocusRef,
   type FocusStack,
+  // UI.18 cycle control
+  $cycleState,
+  $cycleCount,
+  $cycleSpeed,
+  type CycleState,
+  setCycleState,
+  stepCycle,
+  rewindCycle,
 } from '../kernel/state.js';
 
 // Import derived from framework
@@ -140,6 +148,14 @@ export {
   attendFocus,
   tierOf,
   tierToZoom,
+  // UI.18 cycle control
+  $cycleState,
+  $cycleCount,
+  $cycleSpeed,
+  type CycleState,
+  setCycleState,
+  stepCycle,
+  rewindCycle,
   type FocusRef,
   type FocusStack,
   type WorkspaceGraph,

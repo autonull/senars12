@@ -11,10 +11,46 @@ import { type Neighborhood, neighborhood } from '../core/neighborhood.js';
 import type {
   Ref,
   SemanticBlock,
+  SemanticLink,
   SemanticLinkKind,
   WorkspaceGraph,
 } from '../core/workspace-graph.js';
 import { type Aspect, type FocusRef, focusRefId } from './coordinates.js';
+
+/** Find all blocks in a graph that reference a correlationId. */
+function blocksByCorrelationId(graph: WorkspaceGraph, correlationId: string): SemanticBlock[] {
+  const blocks: SemanticBlock[] = [];
+  for (const block of graph.blocks.values()) {
+    // Check eventRefs for correlationId
+    if (block.eventRefs?.includes(correlationId)) {
+      blocks.push(block);
+      continue;
+    }
+    // Check if the block id itself is the correlationId
+    if (block.id === correlationId) {
+      blocks.push(block);
+      continue;
+    }
+    // Check data.correlationId if present
+    if (block.data && typeof block.data === 'object' && 'correlationId' in block.data) {
+      if ((block.data as { correlationId?: string }).correlationId === correlationId) {
+        blocks.push(block);
+      }
+    }
+  }
+  return blocks;
+}
+
+/** Find all links in a graph that reference a correlationId. */
+function linksByCorrelationId(graph: WorkspaceGraph, correlationId: string): SemanticLink[] {
+  const links: SemanticLink[] = [];
+  for (const link of graph.links.values()) {
+    if (link.eventRefs?.includes(correlationId)) {
+      links.push(link);
+    }
+  }
+  return links;
+}
 
 /** The focal subject's intrinsic substance, with its containment at depth + 1. */
 export interface ContentSlice {
@@ -114,6 +150,21 @@ export const resolveFocus = (
   ref: FocusRef,
   { graph, depth = 1 }: ResolverContext
 ): FocusResolution => {
+  // Handle trace focus — a process instance threaded by correlationId (§18.1)
+  if (ref.kind === 'trace') {
+    const traceBlocks = blocksByCorrelationId(graph, ref.correlationId);
+    const traceLinks = linksByCorrelationId(graph, ref.correlationId);
+    return {
+      ref,
+      content: {
+        block: traceBlocks[0] ?? { id: ref.correlationId, kind: 'command', role: 'system', title: 'Trace', text: '', createdAt: 0, createdBy: 'system' },
+        children: traceBlocks.slice(1),
+      },
+      provenance: { records: traceBlocks },
+      trace: { events: traceBlocks },
+    };
+  }
+
   const id = focusRefId(ref);
   const block = id ? graph.blocks.get(id) : undefined;
   if (!block) return { ref };
