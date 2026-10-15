@@ -11,7 +11,8 @@ pasted on".
 
 **Progress:** §16 Steps 0–2 landed (the four coordinates, `FocusRef`, focus stack, `FocusCell`, the
 typed Resolver over the WorkspaceGraph, and the attention allocator). See §21 for the log and the
-next step.
+next step. The Step-2 allocator is **interim**: §22 plans to rebase it on the shared AIKR `PriorityBag`
+(lifted to `@senars/util`) so the UI and the mind spend attention through one substrate.
 
 > **SeNARS is a live two-system cognitive runtime, and the UI is a projection of one Focus
 > through one Aspect at one Depth at one Time — where content and structure are the same
@@ -385,6 +386,8 @@ consumer; get this shape right before building on it.
    the focus stack; the `Cell` type. *(Spec already persisted as this file.)*
 2. **Attention governs fidelity** — one allocator mapping `(focus, attention weight) → fidelity tier`,
    with decay and reclaim. Fold the existing LOD/scaling numbers into it rather than discarding them.
+   Build it on the **shared AIKR bag** (§22): rebase `framework/attention.ts` on `PriorityBag` once it
+   is lifted to `@senars/util`, rather than keeping a bespoke allocator.
 3. **Route every existing focus source** into `$focus` (graph tap → `concept`; chat submit → `turn`;
    node select → `task`; timeline → `time`; …).
 4. **Cell renderer + Focus+Context canvas** — centre = `Content(focus)`, ring = `Neighborhood(focus)`,
@@ -554,17 +557,21 @@ Design notes:
 
 ### Remaining — facilitated next steps
 
-1. **Step 3 wiring (the immediate next slice).** Route the live focus sources into one `$focus`
+1. **Lift the AIKR bag to `@senars/util` (§22) — the agreed next slice.** Decouple `PriorityBag`
+   from `@senars/core` (injected `onPressure`, neutral budget shape, `PRESSURE` moved), lift it with
+   `fenwick`/`types` while shimming `nar/src/bag/*`, then rebase `framework/attention.ts` on
+   `Bag<AttentionItem>`. Independent of Step 3; blocking only the *final* Step-2 shape.
+2. **Step 3 wiring.** Route the live focus sources into one `$focus`
    stack in `kernel/state.ts` and re-parent `setWorkspaceFocus` onto it. Today the only focus is the
    legacy `workspaceGraph.focus: Ref`; ~15 call sites (`graph-viewport`, `notebook`, `toc`, `related`,
    `artifact`, `block-menu`, `graph`, `graph3d`, `app-layout`) read/write it. Decide the `Ref →
    FocusRef` mapping (block kind → focus kind) there, deliberately — it is the one place kind
    ambiguity is resolved, and it is why it was *not* guessed in this slice.
-2. **Wire attention into the render path (Step 4 prerequisite).** `AttentionField.allocate` is pure
+3. **Wire attention into the render path (Step 4 prerequisite).** The bag is pure
    but nothing calls it yet; the cell renderer should attend on focus/hover and read the allocated
    tier per frame, and the graph viewport should translate tier → zoom via `graph-scaling`'s
    thresholds rather than re-deriving them.
-3. **Tests:** the resolver covers block-backed foci; add cases as wiring introduces real
+4. **Tests:** the resolver covers block-backed foci; add cases as wiring introduces real
    non-block foci (`mind`/`drive`/`time`) and as containment edges fill the §19.4 gaps
    (turn→formalization, goal→subgoals).
 
@@ -580,3 +587,77 @@ Design notes:
 - **The attention half-life (`DEFAULT_HALF_LIFE_MS`) and `TIER_COST` are policy, not physics** — they
   belong in the token/theme layer or config catalog so the field can be tuned (and asserted) without
   touching the allocator.
+
+---
+
+## 22. The AIKR bag is the attention substrate (planned — next session)
+
+**Decision.** The UI's attention economy reuses the mind's one AIKR bag — `PriorityBag<T extends
+BagItem>` (`nar/src/bag/Bag.ts`) — instead of the bespoke `framework/attention.ts`. The mind already
+uses the exact pattern: `FocusBag extends PriorityBag<Focus>` with `allocateBudget`
+(`nar/src/focus/FocusBag.ts`), the §10 "FocusBag weight". The UI's field is the same object seen
+through the renderer, so — per §0 — it should be the same substrate, not a re-implementation.
+
+### The lift: `PriorityBag` → `@senars/util`
+
+Agreed: `util` is the bottom layer (`dependencies: { ulid }` only) and already owns the bag
+vocabulary (`BoundedContainer`, `ListenerBag`). But this is **not a move — it is a decoupling**, or it
+creates a dependency cycle:
+
+- `util` has **no** `@senars/core` dependency, and `core` depends on `util`. `PriorityBag` today
+  imports two core modules — `@senars/core/budget` (`AIKRBudget`) and `@senars/core/event-sink`
+  (`emitDomainEvent`) — so lifting it verbatim yields `util → core → util`. Required decoupling:
+  - Replace `emitDomainEvent('bag.pressure.transition', …)` with an **injected `onPressure`
+    callback** (or a returned listener); keep the actual sink wiring in `nar`.
+  - Name no core type: move the neutral budget shape into `util` (structural `{ cycles: number }`,
+    or move `AIKRBudget` into `util` and have `core` re-export it).
+  - Move the `PRESSURE` thresholds (`nar/src/constants.ts`) into `util` config (`config/bounds.ts`)
+    or inject them; keep `PRESSURE` in `nar` as a re-export.
+- Also lift `fenwick.ts` and `types.ts` (`BagItem`/`InternalEntry`). **Keep `registration.ts` in
+  `nar`** — it resolves nar config slots (`resolveBagSlot`, `BagSlotParams`) and is nar-coupled.
+
+### Do not disturb ubiquitous usage (the hard constraint)
+
+Bag is used by ~17 `nar` modules (`focus/*`, `memory/*`, `learning/*`, `lm/system-one/*`,
+`config/cognitive-parameters`) plus the `@senars/nar/bag` subpath and the root `PriorityBag` export;
+tests deep-import `@senars/nar/bag/Bag.js`. The lift must be **non-breaking**:
+
+- Leave **re-export shims** at `nar/src/bag/Bag.ts` and `nar/src/bag/index.ts` re-exporting from
+  `@senars/util`, so every `../bag/Bag.js` / `../bag/index.js` import, the `@senars/nar/bag` subpath,
+  and the `@senars/nar/bag/Bag.js` deep import used by tests keep resolving; `nar/src/index.ts` still
+  exports `PriorityBag`.
+- Preserve the public surface exactly: `Bag`/`BagItem`/`BagOptions`/`EvictStrategy`/`InternalEntry`,
+  `createBag`, `decayRateValue`, `version`, `BoundedContainer` conformance, `removeAll` batching, and
+  **injected `rng`/`clock`** (deterministic replay must not shift — see the constructor's id-seam
+  comment: identity is drawn from the id seam, never the sampling stream).
+- **Verify before/after:** `pnpm typecheck`; the nar bag suites (`tests/nar/bag/PriorityBag.test.ts`,
+  `tests/nar/bag-fidelity.test.ts`, `todo6-capability`, `todo27-bag-slot`, `todo27-seeded-sampling`,
+  `refactor2-residual-causal`, `refactor4-bounded-aikr`); the determinism gate; and confirm `util`
+  gains **no** new runtime dependency.
+
+### The UI adapter (revises §16 Step 2)
+
+Once lifted, `framework/attention.ts` becomes a thin projection over `Bag<AttentionItem>`:
+
+| today | after |
+|---|---|
+| `AttentionField` + `decayWeight` + threshold | `PriorityBag<AttentionItem>` — `id` = `focusKey(focus)`, `priority` = weight, `+ attentionClass`; `decay(rate)` fed from the frame tick; `forgetRate` = the reclaim floor; `evict('LowestPriority')` = reclaim |
+| `allocate()` → ordered list | `bag.all()` (already priority-descending) |
+| — (absent today) | `bag.sample()` / `sampleMany(budget)` — the **ambient layer's** weighted pick (§11/§13) |
+| `tierFor` / class ceiling / `TIER_COST` | **stays** — fidelity tiers are a rendering projection the bag does not model |
+
+The client already depends on `@senars/util`, so this adds **no client → `nar` edge**.
+`FocusRef` stays immutable; the bag item wraps it: `{ id, priority, attentionClass, focus }`.
+`createBag` gives the one construction path.
+
+### Other plan changes (from this consideration)
+
+- §16 Step 2 is the **shared** bag, not a new allocator; sequence it after the lift.
+- Naming: reconcile the UI `AttentionField` with the mind's `FocusBag` — same pattern, different
+  subject; the UI item is an `AttentionItem`.
+- Decay: pick **one** curve — feed the bag a per-frame `decay` (rate from frame dt) rather than keep
+  the wall-clock half-life, so the UI and the mind age attention identically.
+- §19 gains a risk: the lift is a cross-package change to a class that 17 nar modules and a public
+  subpath depend on — it must be shimmed and proven by the existing suites, not rewritten in place.
+- `util` gains a general-purpose AIKR bag that `io`/`bins` (and any bounded container) can reuse —
+  this is the "general-purpose access" the lift is for, beyond the UI.
