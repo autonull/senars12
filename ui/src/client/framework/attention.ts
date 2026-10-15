@@ -12,11 +12,15 @@
  * plus `reclaimed` (not drawn): the allocator decides the *tier*, the viewport
  * keeps its zoom→tier thresholds unchanged, so this absorbs the LOD machinery
  * rather than replacing it.
+ *
+ * Policy (half-life, capacity, reclaim threshold, tier costs) comes from
+ * `UiConfig.attention` (§0) so it can be tuned without code changes.
  */
 
 import { type Bag, type BagItem, createBag } from '@senars/util/bag';
 import type { LoDTier } from '../utils/graph-scaling.js';
 import { type FocusRef, focusKey } from './coordinates.js';
+import type { UiConfig } from '../core/config-schema.js';
 
 /** The fidelity ladder: the LOD tiers, plus the reclaimed (not-drawn) floor. */
 export type FidelityTier = 'reclaimed' | LoDTier;
@@ -56,14 +60,41 @@ export const tierFor = (attentionClass: AttentionClass, weight: number): Fidelit
   return LADDER[Math.min(ceiling, rank)] ?? 'reclaimed';
 };
 
+/** Default attention policy — used when config is not yet loaded. */
+export const DEFAULT_ATTENTION_POLICY = {
+  halfLifeMs: 30_000 as const,
+  capacity: 64 as const,
+  reclaimThreshold: 0.05 as const,
+  tierCost: { glyph: 1 as const, label: 2 as const, card: 4 as const, full: 8 as const },
+} as const;
+
+export type AttentionPolicy = typeof DEFAULT_ATTENTION_POLICY;
+
+/** Extract attention policy from UI config, falling back to defaults. */
+export function attentionPolicyFromConfig(config?: UiConfig): AttentionPolicy {
+  if (!config?.attention) return DEFAULT_ATTENTION_POLICY;
+  const a = config.attention;
+  return {
+    halfLifeMs: a.halfLifeMs ?? DEFAULT_ATTENTION_POLICY.halfLifeMs,
+    capacity: a.capacity ?? DEFAULT_ATTENTION_POLICY.capacity,
+    reclaimThreshold: a.reclaimThreshold ?? DEFAULT_ATTENTION_POLICY.reclaimThreshold,
+    tierCost: {
+      glyph: a.tierCost?.glyph ?? DEFAULT_ATTENTION_POLICY.tierCost.glyph,
+      label: a.tierCost?.label ?? DEFAULT_ATTENTION_POLICY.tierCost.label,
+      card: a.tierCost?.card ?? DEFAULT_ATTENTION_POLICY.tierCost.card,
+      full: a.tierCost?.full ?? DEFAULT_ATTENTION_POLICY.tierCost.full,
+    },
+  } as AttentionPolicy;
+}
+
 /** Half-life of unattended attention, in ms. */
-export const DEFAULT_HALF_LIFE_MS = 30_000;
+export const DEFAULT_HALF_LIFE_MS = DEFAULT_ATTENTION_POLICY.halfLifeMs;
 
 /** The default number of foci the field will hold at once. */
-export const DEFAULT_ATTENTION_CAPACITY = 64;
+export const DEFAULT_ATTENTION_CAPACITY = DEFAULT_ATTENTION_POLICY.capacity;
 
 /** Below this weight a focus is reclaimed — no longer drawn (invariant 14). */
-export const RECLAIM_THRESHOLD = 0.05;
+export const RECLAIM_THRESHOLD = DEFAULT_ATTENTION_POLICY.reclaimThreshold;
 
 /** Weight after decaying over `elapsed` ms with an exponential half-life. */
 export const decayWeight = (
@@ -83,10 +114,10 @@ export const decayRateFor = (elapsedMs: number, halfLifeMs = DEFAULT_HALF_LIFE_M
 /** Attention cost per tier — richer fidelity is dearer, so it must be budgeted (invariant 15). */
 export const TIER_COST: Readonly<Record<FidelityTier, number>> = {
   reclaimed: 0,
-  glyph: 1,
-  label: 2,
-  card: 4,
-  full: 8,
+  glyph: DEFAULT_ATTENTION_POLICY.tierCost.glyph,
+  label: DEFAULT_ATTENTION_POLICY.tierCost.label,
+  card: DEFAULT_ATTENTION_POLICY.tierCost.card,
+  full: DEFAULT_ATTENTION_POLICY.tierCost.full,
 };
 
 /** One focus's verdict for a frame. */
@@ -114,12 +145,50 @@ export interface AttentionItem extends BagItem {
  */
 export class AttentionField {
   private readonly bag: Bag<AttentionItem>;
+  private readonly reclaimThreshold: number;
+  private readonly tierCost: Readonly<Record<FidelityTier, number>>;
+  private readonly budget: number;
 
+  /**
+   * Create an AttentionField. Supports two signatures:
+   * - `new AttentionField(config?, budgetOverride?)` — from UI config (preferred)
+   * - `new AttentionField(budget, capacity, reclaimThreshold?, tierCost?)` — legacy/test signature
+   */
   constructor(
-    private readonly budget = DEFAULT_ATTENTION_CAPACITY,
-    capacity = DEFAULT_ATTENTION_CAPACITY
+    configOrBudget: UiConfig | number,
+    budgetOrCapacity?: number,
+    reclaimThreshold?: number,
+    tierCost?: Readonly<Record<FidelityTier, number>>
   ) {
-    this.bag = createBag<AttentionItem>({ capacity, forgetRate: RECLAIM_THRESHOLD });
+    if (typeof configOrBudget === 'number') {
+      // Legacy signature: (budget, capacity, reclaimThreshold?, tierCost?)
+      const budget = configOrBudget;
+      const capacity = budgetOrCapacity ?? budget;
+      this.reclaimThreshold = reclaimThreshold ?? DEFAULT_ATTENTION_POLICY.reclaimThreshold;
+      this.tierCost = tierCost ?? TIER_COST;
+      this.budget = budget;
+      this.bag = createBag<AttentionItem>({ capacity, forgetRate: this.reclaimThreshold });
+    } else {
+      // Config signature: (config?, budgetOverride?)
+      const config = configOrBudget;
+      const budgetOverride = budgetOrCapacity;
+      const policy = attentionPolicyFromConfig(config);
+      this.budget = budgetOverride ?? policy.capacity;
+      this.reclaimThreshold = policy.reclaimThreshold;
+      this.tierCost = {
+        reclaimed: 0,
+        glyph: policy.tierCost.glyph,
+        label: policy.tierCost.label,
+        card: policy.tierCost.card,
+        full: policy.tierCost.full,
+      };
+      this.bag = createBag<AttentionItem>({ capacity: policy.capacity, forgetRate: this.reclaimThreshold });
+    }
+  }
+
+  /** Create an AttentionField from UI config (explicit static method). */
+  static fromConfig(config?: UiConfig, budgetOverride?: number): AttentionField {
+    return new AttentionField(config ?? ({} as UiConfig), budgetOverride);
   }
 
   /** Raise a focus's weight (never lower it), re-seating it in the bag. */
@@ -149,7 +218,7 @@ export class AttentionField {
   tierOf(focus: FocusRef): FidelityTier {
     const id = focusKey(focus);
     const item = this.bag.find((entry) => entry.id === id);
-    if (!item || item.priority < RECLAIM_THRESHOLD) return 'reclaimed';
+    if (!item || item.priority < this.reclaimThreshold) return 'reclaimed';
     return tierFor(item.attentionClass, item.priority);
   }
 
@@ -167,14 +236,14 @@ export class AttentionField {
     let remaining = this.budget;
     const allocations: Allocation[] = [];
     for (const item of this.bag.all()) {
-      if (item.priority < RECLAIM_THRESHOLD) continue;
+      if (item.priority < this.reclaimThreshold) continue;
       const desired = tierRank(tierFor(item.attentionClass, item.priority));
       let tier: FidelityTier = 'reclaimed';
       for (let rank = desired; rank >= 0; rank -= 1) {
         const candidate = LADDER[rank] ?? 'reclaimed';
-        if (TIER_COST[candidate] <= remaining) {
+        if (this.tierCost[candidate] <= remaining) {
           tier = candidate;
-          remaining -= TIER_COST[candidate];
+          remaining -= this.tierCost[candidate];
           break;
         }
       }

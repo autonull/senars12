@@ -254,3 +254,94 @@ export const cellKey = (cell: FocusCell): string =>
 
 /** Whether two cells render the same coordinates. */
 export const cellEquals = (a: FocusCell, b: FocusCell): boolean => cellKey(a) === cellKey(b);
+
+/** URL fragment prefix for focus coordinates. */
+export const FOCUS_FRAGMENT_PREFIX = 'focus=';
+
+/** Encode a FocusCell to a URL fragment string. */
+export const encodeFocusFragment = (cell: FocusCell): string =>
+  `${FOCUS_FRAGMENT_PREFIX}${cellKey(cell)}`;
+
+/** Parse a URL fragment string back to a FocusCell, or null if invalid. */
+export const decodeFocusFragment = (fragment: string): FocusCell | null => {
+  if (!fragment.startsWith(FOCUS_FRAGMENT_PREFIX)) return null;
+  const key = fragment.slice(FOCUS_FRAGMENT_PREFIX.length);
+  const [focusPart, aspectPart, depthPart, timePart] = key.split('|');
+  if (!focusPart || !aspectPart || !depthPart || !timePart) return null;
+
+  const focus = parseFocusKey(focusPart);
+  if (!focus) return null;
+
+  const aspect = ASPECTS.includes(aspectPart as Aspect) ? (aspectPart as Aspect) : DEFAULT_ASPECT;
+  const depth = clampDepth(Number(depthPart));
+  const time = parseTimeKey(timePart);
+  if (!time) return null;
+
+  return { focus, aspect, depth, time, expanded: false };
+};
+
+/** Parse a focusKey string back to a FocusRef. */
+function parseFocusKey(key: string): FocusRef | null {
+  const [kind, ...rest] = key.split(':');
+  if (!kind) return null;
+  const value = rest.join(':');
+
+  switch (kind) {
+    case 'concept':
+      return focus.concept(value);
+    case 'task': {
+      const [taskType, term] = value.split(':', 2);
+      if (!taskType || !term || !['belief', 'goal', 'question'].includes(taskType)) return null;
+      return focus.task(term, taskType as TaskType);
+    }
+    case 'goal':
+      return focus.goal(value);
+    case 'derivation':
+      return focus.derivation(value);
+    case 'step': {
+      const [derivationId, indexStr] = value.split('#', 2);
+      const index = Number(indexStr);
+      if (!derivationId || Number.isNaN(index)) return null;
+      return focus.step(derivationId, index);
+    }
+    case 'proposal':
+      return focus.proposal(value);
+    case 'judgment':
+      return focus.judgment(value);
+    case 'turn':
+      return focus.turn(value);
+    case 'event':
+      return focus.event(value);
+    case 'cycle':
+      return focus.cycle(value);
+    case 'time': {
+      const time = parseTimeKey(value);
+      return time ? focus.time(time) : null;
+    }
+    case 'drive':
+      return focus.drive(value);
+    case 'space':
+      return focus.space(value);
+    case 'mind':
+      return MIND_FOCUS;
+    default:
+      return null;
+  }
+}
+
+/** Parse a timeKey string back to a TimeRef. */
+function parseTimeKey(key: string): TimeRef | null {
+  if (key === 'live') return LIVE;
+  if (key.startsWith('at:')) {
+    const t = Number(key.slice(3));
+    return Number.isNaN(t) ? null : atTime(t);
+  }
+  if (key.startsWith('range:')) {
+    const [fromStr, toStr] = key.slice(6).split('-', 2);
+    const from = Number(fromStr);
+    const to = Number(toStr);
+    if (Number.isNaN(from) || Number.isNaN(to)) return null;
+    return timeRange(from, to);
+  }
+  return null;
+}

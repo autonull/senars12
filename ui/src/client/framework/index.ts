@@ -220,6 +220,9 @@ export {
   cellFor,
   cellKey,
   cellEquals,
+  FOCUS_FRAGMENT_PREFIX,
+  encodeFocusFragment,
+  decodeFocusFragment,
 } from './coordinates.js';
 
 export type { FocusStack } from './focus-stack.js';

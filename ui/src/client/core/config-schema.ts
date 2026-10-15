@@ -105,6 +105,28 @@ export const UiConfigSchema = z.object({
     maxDerivationsPerStep: 500,
   })),
 
+  /** Attention field config (UI.17 §0, §16 Step 2) */
+  attention: z
+    .object({
+      halfLifeMs: z.number().int().min(1000).max(300000).default(30000),
+      capacity: z.number().int().min(16).max(256).default(64),
+      reclaimThreshold: z.number().min(0.001).max(0.5).default(0.05),
+      tierCost: z
+        .object({
+          glyph: z.number().int().min(1).max(16).default(1),
+          label: z.number().int().min(1).max(16).default(2),
+          card: z.number().int().min(1).max(16).default(4),
+          full: z.number().int().min(1).max(32).default(8),
+        })
+        .default({ glyph: 1, label: 2, card: 4, full: 8 }),
+    })
+    .default({
+      halfLifeMs: 30000,
+      capacity: 64,
+      reclaimThreshold: 0.05,
+      tierCost: { glyph: 1, label: 2, card: 4, full: 8 },
+    }),
+
   // Advanced
   showTelemetry: z.boolean().default(false),
   showMinimap: z.boolean().default(true),

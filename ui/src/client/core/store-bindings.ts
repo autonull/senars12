@@ -1,3 +1,4 @@
+import { decayAttentionField } from '../framework/attention-runtime.js';
 import type { ChatMessage, CognitiveEvent, GraphNodeData, GraphOp, IncomingFromServer } from '@senars/core';
 import { generateId, makeId, truncate } from '@senars/util';
 import type { Core } from 'cytoscape';
@@ -125,6 +126,9 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
           truncated: msg.meta.truncated ?? false,
           totalHidden: msg.meta.totalHidden ?? 0,
         });
+      // Drive UI attention decay on each kernel cycle (§18.2)
+      // Use cycleIntervalMs if provided by server, otherwise default ~1s
+      decayAttentionField((msg as any).cycleIntervalMs);
       break;
 
     case 'config.schema':

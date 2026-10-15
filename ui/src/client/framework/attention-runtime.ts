@@ -1,26 +1,31 @@
 /**
  * Attention runtime — the per-frame loop that drives the UI attention field (§16 Step 4).
  *
- * A single AttentionField instance, a frame loop that calls `decay`, and the
- * bridge from allocated tiers to viewport zoom via `graph-scaling`'s thresholds.
- * Consumers (graph viewport, cell renderers) attend foci; the runtime ages and
- * allocates once per frame.
+ * A single AttentionField instance, a cycle-driven decay loop (tied to
+ * `cognitive.delta` from the kernel), and the bridge from allocated tiers to
+ * viewport zoom via `graph-scaling`'s thresholds. Consumers (graph viewport,
+ * cell renderers) attend foci; the runtime ages and allocates on each cycle.
+ *
+ * Decay is driven by the kernel's cycle tick (§18.2) so UI and reasoner attention
+ * age identically — the UI's `AttentionField` and the mind's `FocusBag` share
+ * the same substrate (§0, §22).
  */
 
-import { AttentionField, type Allocation, DEFAULT_HALF_LIFE_MS, decayRateFor, tierFor } from './attention.js';
-import { type FocusRef, focusKey, MIND_FOCUS } from './coordinates.js';
+import { AttentionField, type Allocation, decayRateFor, type AttentionPolicy, attentionPolicyFromConfig } from './attention.js';
+import { type FocusRef, MIND_FOCUS } from './coordinates.js';
 import { LOD_ZOOM_THRESHOLDS } from '../utils/graph-scaling.js';
+import { $config } from '../core/store.js';
 
 /** The singleton attention field for this UI session. */
 let fieldInstance: AttentionField | null = null;
-let lastFrameTime = 0;
-let animationFrameId: number | null = null;
+let policy: AttentionPolicy | null = null;
 
-/** Get or create the global attention field. */
+/** Get or create the global attention field, using current UI config. */
 export function getAttentionField(): AttentionField {
   if (!fieldInstance) {
-    fieldInstance = new AttentionField();
-    startFrameLoop();
+    const config = $config.get();
+    fieldInstance = AttentionField.fromConfig(config);
+    policy = attentionPolicyFromConfig(config);
   }
   return fieldInstance;
 }
@@ -40,27 +45,47 @@ export function tierOf(focus: FocusRef): 'reclaimed' | 'glyph' | 'label' | 'card
   return fieldInstance?.tierOf(focus) ?? 'reclaimed';
 }
 
-/** Start the per-frame decay loop. */
-function startFrameLoop(): void {
-  if (animationFrameId !== null) return;
-  lastFrameTime = performance.now();
-  const loop = (now: number) => {
-    const dt = now - lastFrameTime;
-    lastFrameTime = now;
-    if (fieldInstance) {
-      fieldInstance.decay(decayRateFor(dt, DEFAULT_HALF_LIFE_MS));
-    }
-    animationFrameId = requestAnimationFrame(loop);
-  };
-  animationFrameId = requestAnimationFrame(loop);
+/** Decay the attention field by one cycle tick. */
+export function decayAttentionField(cycleIntervalMs?: number): void {
+  const field = getAttentionField();
+  const currentPolicy = policy ?? { halfLifeMs: 30_000 } as AttentionPolicy;
+  const elapsed = cycleIntervalMs ?? 1000; // default ~1s cycle
+  field.decay(decayRateFor(elapsed, currentPolicy.halfLifeMs));
 }
 
-/** Stop the frame loop (for teardown/testing). */
-export function stopFrameLoop(): void {
-  if (animationFrameId !== null) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
+/** Initialize the attention runtime with config and subscribe to config changes. */
+export function initAttentionRuntime(): void {
+  const config = $config.get();
+  fieldInstance = AttentionField.fromConfig(config);
+  policy = attentionPolicyFromConfig(config);
+
+  // Re-create field when attention config changes
+  $config.subscribe((newConfig) => {
+    const newPolicy = attentionPolicyFromConfig(newConfig);
+    if (policy && policyChanged(policy, newPolicy)) {
+      policy = newPolicy;
+      fieldInstance = AttentionField.fromConfig(newConfig);
+    }
+  });
+}
+
+function policyChanged(a: AttentionPolicy, b: AttentionPolicy): boolean {
+  return (
+    a.halfLifeMs !== b.halfLifeMs ||
+    a.capacity !== b.capacity ||
+    a.reclaimThreshold !== b.reclaimThreshold ||
+    a.tierCost.glyph !== b.tierCost.glyph ||
+    a.tierCost.label !== b.tierCost.label ||
+    a.tierCost.card !== b.tierCost.card ||
+    a.tierCost.full !== b.tierCost.full
+  );
+}
+
+/** Stop the attention runtime (for teardown/testing). */
+export function stopAttentionRuntime(): void {
+  fieldInstance?.clear();
+  fieldInstance = null;
+  policy = null;
 }
 
 /** Convert an allocated fidelity tier to a target zoom level. */
@@ -97,7 +122,7 @@ export function sampleAmbientMany(budget: number): import('./attention.js').Atte
 export function resetAttentionField(): void {
   fieldInstance?.clear();
   fieldInstance = null;
-  stopFrameLoop();
+  policy = null;
 }
 
 /** The ambient mind focus — always attended at ambient weight. */

@@ -5,6 +5,7 @@ import {
   type SemanticBlock,
   type SemanticLink,
 } from '../../src/client/core/workspace-graph.js';
+import { blockToFocusRef } from '../../src/client/kernel/state.js';
 import {
   ASPECTS,
   atTime,
@@ -21,6 +22,10 @@ import {
   LIVE,
   MIND_FOCUS,
   timeKey,
+  timeRange,
+  FOCUS_FRAGMENT_PREFIX,
+  encodeFocusFragment,
+  decodeFocusFragment,
 } from '../../src/client/framework/coordinates.js';
 import { createFocusStack } from '../../src/client/framework/focus-stack.js';
 import { aspectSlice, hasSlice, resolveFocus } from '../../src/client/framework/resolver.js';
@@ -203,5 +208,110 @@ describe('the resolver', () => {
     ]);
     const resolution = resolveFocus(focus.goal('goal1'), { graph: g });
     expect(resolution.content?.children.map((b) => b.id)).toContain('subgoal1');
+  });
+});
+
+describe('blockToFocusRef maps every BlockKind to a FocusRef', () => {
+  const b = (id: string, kind: SemanticBlock['kind'], patch: Partial<SemanticBlock> = {}): SemanticBlock =>
+    block(id, { kind, ...patch });
+
+  it('maps conversation/structural kinds', () => {
+    expect(blockToFocusRef(b('t1', 'turn'))).toEqual(focus.turn('t1'));
+    expect(blockToFocusRef(b('s1', 'section')).kind).toBe('concept');
+    expect(blockToFocusRef(b('h1', 'heading')).kind).toBe('concept');
+    expect(blockToFocusRef(b('p1', 'paragraph')).kind).toBe('concept');
+    expect(blockToFocusRef(b('l1', 'list')).kind).toBe('concept');
+    expect(blockToFocusRef(b('r1', 'raw')).kind).toBe('concept');
+  });
+
+  it('maps epistemic kinds', () => {
+    expect(blockToFocusRef(b('c1', 'claim')).kind).toBe('concept');
+    expect(blockToFocusRef(b('g1', 'goal'))).toEqual(focus.goal('g1'));
+    expect(blockToFocusRef(b('q1', 'question'))).toEqual(focus.task('q1', 'question'));
+    expect(blockToFocusRef(b('a1', 'answer'))).toEqual(focus.task('a1', 'belief'));
+  });
+
+  it('maps derivation kinds', () => {
+    expect(blockToFocusRef(b('d1', 'derivation'))).toEqual(focus.derivation('d1'));
+    expect(blockToFocusRef(b('dr1', 'derivation-record'))).toEqual(focus.step('dr1', 0));
+  });
+
+  it('maps judgment/gate kinds', () => {
+    expect(blockToFocusRef(b('gd1', 'gate-decision'))).toEqual(focus.judgment('gd1'));
+  });
+
+  it('maps artifact kinds', () => {
+    expect(blockToFocusRef(b('t1', 'table')).kind).toBe('concept');
+    expect(blockToFocusRef(b('c1', 'code')).kind).toBe('concept');
+    expect(blockToFocusRef(b('m1', 'math')).kind).toBe('concept');
+    expect(blockToFocusRef(b('i1', 'image')).kind).toBe('concept');
+    expect(blockToFocusRef(b('d1', 'diagram')).kind).toBe('concept');
+    expect(blockToFocusRef(b('ch1', 'chart')).kind).toBe('concept');
+    expect(blockToFocusRef(b('ci1', 'citation')).kind).toBe('concept');
+  });
+
+  it('maps tool interaction kinds', () => {
+    expect(blockToFocusRef(b('tc1', 'tool-call'))).toEqual(focus.event('tc1'));
+    expect(blockToFocusRef(b('tr1', 'tool-result'))).toEqual(focus.event('tr1'));
+  });
+
+  it('maps system event kinds', () => {
+    expect(blockToFocusRef(b('cc1', 'config-change'))).toEqual(focus.event('cc1'));
+    expect(blockToFocusRef(b('cmd1', 'command'))).toEqual(focus.event('cmd1'));
+    expect(blockToFocusRef(b('e1', 'error'))).toEqual(focus.event('e1'));
+    expect(blockToFocusRef(b('b1', 'budget'))).toEqual(focus.event('b1'));
+  });
+});
+
+describe('focusKey URL/fragment encoding', () => {
+  it('encodes and decodes a concept cell round-trip', () => {
+    const cell = cellFor(focus.concept('cat'), { aspect: 'neighborhood', depth: 2 });
+    const fragment = encodeFocusFragment(cell);
+    expect(fragment).toBe('focus=concept:cat|neighborhood|2|live');
+    const decoded = decodeFocusFragment(fragment);
+    expect(decoded).not.toBeNull();
+    expect(decoded!.focus).toEqual(focus.concept('cat'));
+    expect(decoded!.aspect).toBe('neighborhood');
+    expect(decoded!.depth).toBe(2);
+    expect(decoded!.time).toEqual(LIVE);
+  });
+
+  it('encodes and decodes a task cell with time range', () => {
+    const time = timeRange(100, 200);
+    const cell = cellFor(focus.task('goal-1', 'goal'), { aspect: 'provenance', depth: 1, time });
+    const fragment = encodeFocusFragment(cell);
+    expect(fragment).toContain('focus=task:goal:goal-1|provenance|1|range:100-200');
+    const decoded = decodeFocusFragment(fragment);
+    expect(decoded).not.toBeNull();
+    expect(decoded!.focus).toEqual(focus.task('goal-1', 'goal'));
+    expect(decoded!.aspect).toBe('provenance');
+    expect(decoded!.depth).toBe(1);
+    expect(decoded!.time).toEqual(time);
+  });
+
+  it('encodes and decodes the mind focus', () => {
+    const cell = cellFor(MIND_FOCUS, { aspect: 'ambient' });
+    const fragment = encodeFocusFragment(cell);
+    expect(fragment).toBe('focus=mind|ambient|0|live');
+    const decoded = decodeFocusFragment(fragment);
+    expect(decoded).not.toBeNull();
+    expect(decoded!.focus).toEqual(MIND_FOCUS);
+    expect(decoded!.aspect).toBe('ambient');
+  });
+
+  it('returns null for invalid fragments', () => {
+    expect(decodeFocusFragment('invalid')).toBeNull();
+    expect(decodeFocusFragment('focus=invalid')).toBeNull();
+    expect(decodeFocusFragment('focus=concept:cat|neighborhood')).toBeNull();
+    expect(decodeFocusFragment('focus=unknown:cat|content|0|live')).toBeNull();
+  });
+
+  it('handles step focus with derivation index', () => {
+    const cell = cellFor(focus.step('deriv-1', 3), { aspect: 'provenance', depth: 2 });
+    const fragment = encodeFocusFragment(cell);
+    expect(fragment).toBe('focus=step:deriv-1#3|provenance|2|live');
+    const decoded = decodeFocusFragment(fragment);
+    expect(decoded).not.toBeNull();
+    expect(decoded!.focus).toEqual(focus.step('deriv-1', 3));
   });
 });

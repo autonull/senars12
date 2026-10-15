@@ -181,8 +181,18 @@ export function setActiveRenderer(id: string): void {
 /** Map a workspace block to its FocusRef (§16 Step 3). */
 function blockToFocusRef(block: SemanticBlock): FocusRef {
   switch (block.kind) {
+    // Conversation / structural
     case 'turn':
       return focus.turn(block.id);
+    case 'section':
+    case 'heading':
+      return focus.concept(block.id);
+    case 'paragraph':
+    case 'list':
+    case 'raw':
+      return focus.concept(block.id);
+
+    // Epistemic content
     case 'claim':
       return focus.concept(block.id);
     case 'goal':
@@ -191,17 +201,39 @@ function blockToFocusRef(block: SemanticBlock): FocusRef {
       return focus.task(block.id, 'question');
     case 'answer':
       return focus.task(block.id, 'belief');
+
+    // Derivation / proof
     case 'derivation':
       return focus.derivation(block.id);
     case 'derivation-record':
       return focus.step(block.id, 0);
+
+    // Judgments / gates
     case 'gate-decision':
       return focus.judgment(block.id);
+
+    // Artifacts
+    case 'table':
+    case 'code':
+    case 'math':
+    case 'image':
+    case 'diagram':
+    case 'chart':
+    case 'citation':
+      return focus.concept(block.id);
+
+    // Tool interactions
+    case 'tool-call':
+    case 'tool-result':
+      return focus.event(block.id);
+
+    // System events
     case 'config-change':
     case 'command':
     case 'error':
     case 'budget':
       return focus.event(block.id);
+
     default:
       return focus.concept(block.id);
   }
@@ -257,7 +289,12 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export { emptyWorkspaceGraph, type WorkspaceGraph, type SemanticBlock };
+export {
+  emptyWorkspaceGraph,
+  type WorkspaceGraph,
+  type SemanticBlock,
+  blockToFocusRef,
+};
 
 export type TestApiStorePath =
   | 'chatMessages'

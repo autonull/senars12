@@ -629,6 +629,15 @@ Tests: `tests/framework/arrangement.test.ts` (17), `tests/framework/composer.tes
 5. ~~**Composer + affordances (Step 7).**~~ **DONE** — `framework/composer.ts` with `composer(focus, aspect)` pure function deriving affordances per focus kind and aspect. Kernel ops typed and wired. Tests: `tests/framework/composer.test.ts` (15 tests).
 6. ~~**Perceive prompts (Step 6).**~~ **DONE** — `framework/prompt-perception.ts` with `perceivePrompt()` creating turn blocks with formalizations, tasks, and links. Heuristic NL→Narsese conversion. Tests: `tests/framework/prompt-perception.test.ts` (17 tests passing).
 
+### Landed — Improvement opportunities addressed (this session)
+
+| Piece | File | What it is |
+|---|---|---|
+| Complete `blockToFocusRef` mapping | `kernel/state.ts` | All 30+ `BlockKind` values now map to typed `FocusRef` kinds (turn, concept, goal, task, derivation, step, judgment, event) instead of falling back to `concept`. Tests: `tests/framework/focus-model.test.ts` (12 new tests). |
+| Attention policy in config | `core/config-schema.ts`, `framework/attention.ts`, `framework/attention-runtime.ts` | `UiConfig.attention` schema with `halfLifeMs`, `capacity`, `reclaimThreshold`, `tierCost`; `AttentionField.fromConfig()` reads policy; runtime re-creates field on config change. |
+| Cycle-driven attention decay | `framework/attention-runtime.ts`, `core/store-bindings.ts` | `decayAttentionField(cycleIntervalMs?)` called on each `cognitive.delta`; UI and reasoner attention age identically (§18.2). |
+| `focusKey` URL/fragment encoding | `framework/coordinates.ts` | `encodeFocusFragment(cell)` / `decodeFocusFragment(fragment)` serialize the four coordinates to a deep-linkable address. Tests: `tests/framework/focus-model.test.ts` (5 new tests). |
+
 ### New improvement opportunities
 
 - **`SemanticLinkKind` ↔ provenance/history/trace are sets here; they want one declared table**
@@ -636,25 +645,25 @@ Tests: `tests/framework/arrangement.test.ts` (17), `tests/framework/composer.tes
   link kinds mean "support", "revised" and "caused".
 - **`ASPECT_SURFACES` is the routing seam for Step 3** — it could also carry the default arrangement
   (linear/spatial/grid) per `(aspect, depth)`, letting one table drive both aspect and arrangement.
-- **`focusKey` is a natural URL/fragment encoding** (the four coordinates serialize to one address),
-  which would make focus deep-linkable and replayable for free.
-- **The attention half-life (`DEFAULT_HALF_LIFE_MS`) and `TIER_COST` are policy, not physics** — they
+- ~~**`focusKey` is a natural URL/fragment encoding** (the four coordinates serialize to one address),
+  which would make focus deep-linkable and replayable for free.~~ **DONE** — `encodeFocusFragment`/`decodeFocusFragment` added.
+- ~~**The attention half-life (`DEFAULT_HALF_LIFE_MS`) and `TIER_COST` are policy, not physics** — they
   belong in the token/theme layer or config catalog so the field can be tuned (and asserted) without
-  touching the allocator.
+  touching the allocator.~~ **DONE** — `UiConfig.attention` schema with `halfLifeMs`, `capacity`, `reclaimThreshold`, `tierCost`.
 - **`onPressure` is the first instance of a general "announce" seam** — if a second bounded container
   in `util` (`BoundedRing`, `BoundedMap`) needs to announce a transition without importing a sink,
   factor the injected-listener pattern into one place rather than re-injecting per container.
 - **The lifted `Bag` interface now serves two layers** — watch for `nar`-specific needs (e.g. a
   priority-override or a concept-store hook) creeping into the public interface; the UI should adapt
   to the bag, not the reverse.
-- **`attention-runtime.ts` frame loop** — currently a singleton `requestAnimationFrame`; consider
+- ~~**`attention-runtime.ts` frame loop** — currently a singleton `requestAnimationFrame`; consider
   tying it to the kernel's cycle tick (`cognitive.delta` frames) so UI and reasoner decay share the
-  same clock (§18.2).
+  same clock (§18.2).~~ **DONE** — `decayAttentionField` driven by `cognitive.delta`.
 - **`tierToZoom` uses static thresholds** — could be dynamic per-viewport based on `densityFactor`
   from `graph-scaling` so the same tier renders legibly at different densities.
-- **`blockToFocusRef` mapping is incomplete** — only ~12 of 30+ block kinds mapped; the rest fall
+- ~~**`blockToFocusRef` mapping is incomplete** — only ~12 of 30+ block kinds mapped; the rest fall
   back to `concept`. Extend as call sites are wired (e.g. `paragraph`, `section`, `heading`,
-  `list`, `table`, `code`, `tool-call`, `tool-result`).
+  `list`, `table`, `code`, `tool-call`, `tool-result`).~~ **DONE** — all 30+ block kinds mapped.
 
 ---
 

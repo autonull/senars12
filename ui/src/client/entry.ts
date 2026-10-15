@@ -1,6 +1,7 @@
 import { Announcer } from './core/announcer.js';
 import { $activeLens, $connectionState, hydrateFromUrl } from './core/store.js';
 import { connect } from './core/ws-client.js';
+import { initAttentionRuntime } from './framework/attention-runtime.js';
 
 // Phase 0: Design system & primitives
 import './styles/theme.css';
@@ -57,4 +58,5 @@ $activeLens.subscribe((lens) => {
 
 hydrateFromUrl();
 mountWorkspaceProjection();
+initAttentionRuntime();
 connect();
