@@ -57,6 +57,7 @@ import './graph-minimap.js';
 import './graph-popover.js';
 import './graph-legend.js';
 import './node-body.js';
+import './ambient-layer.js';
 
 /** Registry of active GraphViewport instances for renderer communication. */
 const viewportRegistry = new Map<string, GraphViewport>();
@@ -457,6 +458,7 @@ export class GraphViewport extends BaseComponent {
   override render() {
     const meta = $graphMeta.get();
     return html`
+      <s-ambient-layer></s-ambient-layer>
       <div id="cy-container" tabindex="0" @click=${this.closeContextMenu}></div>
       ${meta?.truncated ? html`<div class="warning">▼ ${meta.totalHidden} lower-priority concepts hidden</div>` : ''}
       ${this.hiddenBodies > 0 ? html`<div class="warning budget">▼ ${this.hiddenBodies} node bodies over budget — zoom for detail</div>` : ''}

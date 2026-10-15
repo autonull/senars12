@@ -263,6 +263,8 @@ export {
   currentAllocations,
   resetAttentionField,
   attendMind,
+  sampleAmbient,
+  sampleAmbientMany,
 } from './attention-runtime.js';
 
 export {

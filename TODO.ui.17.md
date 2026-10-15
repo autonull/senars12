@@ -601,12 +601,14 @@ Pure, tested, DOM-free foundation under `ui/src/client/framework/`, `ui/src/clie
 | **Cell renderer integration (Step 4)** | `components/node-body.ts`, `utils/render-block.ts` | `s-node-body` attends its focus on mount, polls `tierOf` each frame, reflects `attention-tier` attribute, truncates content for `card` tier via `renderBlockBody(block, sources, depth, tier)` |
 | **Other renderers (Step 4)** | `components/renderers/notebook.ts`, `components/overlays/{chat,artifact,block-menu,related,toc}.ts` | All attend their focus on mount, read `tierOf` for LOD display, show tier badges |
 
+| **Ambient layer (Step 4/§13)** | `components/ambient-layer.ts`, `framework/attention-runtime.ts` | `s-ambient-layer` samples `sampleAmbientMany(budget)` each 5s, renders block glyphs via `<s-icon>` at pseudo-random positions, re-attends at ambient weight |
+
 Tests: `ui/tests/framework/focus-model.test.ts` (17 tests), `ui/tests/framework/attention.test.ts` (9 tests) — all pass.
 
 ### Remaining — facilitated next steps
 
 1. ~~**Wire attention into other renderers (Step 4 completion).**~~ **DONE** — Notebook, Chat, Artifact, Block Menu, Related, TOC now all `attendFocus` on mount and read `tierOf` for LOD display.
-2. **Ambient layer sampling.** Use `field.sample()` / `sampleMany(budget)` from the attention runtime for the ambient layer (§13) — show a weighted sample of low-attention foci as glyphs in the background.
+2. ~~**Ambient layer sampling.**~~ **DONE** — `components/ambient-layer.ts` uses `sampleAmbientMany(budget)` to render weighted low-attention foci as glyphs in graph viewport background.
 3. **Tests:** add cases for non-block foci (`mind`/`drive`/`time`) as wiring introduces them, and for containment edges filling §19.4 gaps (turn→formalization, goal→subgoals).
 4. **Arrangement strategies (Step 8).** Linear / outline / spatial / grid / mixed over a cell set — the `composition-view` / layout machinery becomes one strategy.
 5. **Composer + affordances (Step 7).** Derive controls from `(focus, aspect)`; wire to kernel ops (incl. `.react`).

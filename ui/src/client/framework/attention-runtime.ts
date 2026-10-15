@@ -83,6 +83,16 @@ export function currentAllocations(): Allocation[] {
   return fieldInstance?.allocate() ?? [];
 }
 
+/** A single weighted ambient sample — for the ambient layer (§13). */
+export function sampleAmbient(): import('./attention.js').AttentionItem | undefined {
+  return fieldInstance?.sample();
+}
+
+/** A budget of weighted ambient samples — for the ambient layer (§13). */
+export function sampleAmbientMany(budget: number): import('./attention.js').AttentionItem[] {
+  return fieldInstance?.sampleMany(budget) ?? [];
+}
+
 /** Reset the attention field (e.g. on workspace reset). */
 export function resetAttentionField(): void {
   fieldInstance?.clear();
