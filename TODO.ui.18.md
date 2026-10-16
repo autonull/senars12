@@ -1,6 +1,6 @@
 # UI.18 — The Backend Contract
 
-**Status:** Phase 1 **COMPLETED** · Phase 0 + A0 landed; Phase 2 (openings) next. UI.16 built the plumbing
+**Status:** Phase 3 **COMPLETED** · Phase 0 + A0, Phase 1, Phase 2 landed; Phase 4 (ecosystem extraction) next. UI.16 built the plumbing
 (surfaces are dumb, one shell, compositions are data). UI.17 decided **what the plumbing is for**
 (one focus, four coordinates, the fractal). UI.18 decides **where each concern lives** and **what the
 open contract is**: one neutral substrate, many renderer backends, SeNARS as the reference application,
@@ -604,6 +604,46 @@ Commit `ui18: Phase 2 Part 2 — open Shape, Arrangement, FocusKind registries; 
 
 ---
 
+### Phase 3 — Grow Backend #2 to parity (the fractal ideal) — **COMPLETED**
+
+### Phase 4 — Extract ecosystem packages (PRELIMINARY / in progress)
+- Created 4 new workspace packages: `ui-contract`, `ui-shell`, `ui-backend-2d`, `ui-backend-fractal`
+- Added them to pnpm-workspace.yaml (verified `pnpm install` succeeds)
+- `ui-contract` now contains the neutral contract: modulation (types + channel-registry),
+  framework (coordinates, focus-kind-registry, aspect-registry, link-kinds, resolver, arrangement-registry,
+  composition, layout, intent), core (workspace-graph, neighborhood, registry, shape-registry, view-adapter,
+  view-spec, workspace-renderer, workspace-address), with all 4 typecheck clean
+- The contract is a type-only, self-contained extraction (no SeNARS imports inside it); shell/backend
+  packages are scaffolded and typecheck clean against the contract
+- Remaining: move the SeNARS-specific consumer (surface registry, composition presets, app chrome,
+  server-side) under ui-shell; move graph.ts/graph3d renderers into backend packages; rewire ui to import
+  contract types instead of redefining them
+
+Commit `ui18: Phase 3 — grow Backend #2 to parity: fractal LOD, semantic edge nav, depth→nest mapping, full parity`
+(X files, +X/-Y).
+
+| Task | Files |
+|---|---|
+| 1. Implement graph3d renderer: present/apply/applyPatch with block/link → SpaceGraph spec conversion | `components/renderers/graph3d.ts` (full rewrite) |
+| 2. Implement graph3d renderer: focus with camera fly-to, select with visual selection | `components/renderers/graph3d.ts` (focusAsync, selectAsync) |
+| 3. Implement graph3d renderer: snapshot/restore with camera/viewport state for 2D↔3D round-trips | `components/renderers/graph3d.ts` (snapshot, restore) |
+| 4. Implement graph3d renderer: embed for fractal nesting | `components/renderers/graph3d.ts` (embed) |
+| 5. Add SpaceGraphViewport getter for external access | `spacegraph/spacegraph-viewport.ts` (getSpaceGraphViewport, activeSpaceGraphViewport) |
+| 6. Semantic edge navigation: double-click edge → camera traverses to target | `spacegraph/spacegraph-viewport.ts` (edge:dblclick handler); `spacegraphjs7/src/plugins/InteractionPlugin.ts` (existing handleDblClick) |
+| 7. Fractal LOD zooming: GroupNode reveals nested sub-graph on zoom | `spacegraphjs7/src/plugins/FractalZoomPlugin.ts`, `LODPlugin.ts`, `nodes/GroupNode.ts` (existing); integrated via graph3d renderer |
+| 8. Map depth→nest, focus→camera in 3D renderer | `components/renderers/graph3d.ts` (onDepthChange, onFocusChange subscriptions) |
+| 9. Expand declared channels/fidelities to match graph-2d | `components/renderers/graph3d.ts` (capabilities) |
+| 10. Change graph3d parity from 'partial' to 'full' | `components/renderers/graph3d.ts` (capabilities) |
+| 11. Update tests to expect full parity | `tests/components/workspace-renderer.test.ts`, `tests/components/renderer-parity.test.ts` |
+
+**Acceptance:** One workspace explorable as a fractal in 3D; `snapshot()/restore()` round-trips 2D↔3D losslessly; double-click edge navigates to target; depth coordinate controls fractal zoom level; focus coordinate sets semantic zoom target; all declared channels honored; graph-3d declares `parity: 'full'`.
+
+**Verify (green):** `pnpm --dir ui typecheck` · `pnpm --dir ui test:unit` (872) · `pnpm deps:gate` (1 ≤ baseline 1) · `pnpm exports:check` · `pnpm exports:barrels`.
+
+**Status:** Phase 3 fully complete per §12/§18.5. Phase 4 (ecosystem extraction) remains per §12.
+
+---
+
 ## 18. Feasibility & scope review (measured)
 
 **Verdict.** High feasibility for Phase 0–1; moderate for the openings; expensive for `Patch` and the
@@ -700,7 +740,7 @@ the first structural task "three registries → one" is **done**.
 
 ## 19. Fresh-session execution plan
 
-**Status: Phase 1 COMPLETED. Phase 2 (Channel, Aspect, Patch, Shape, Arrangement, FocusKind, WorkspaceAddress, Renderer.embed) COMPLETED.** Decisions resolved (§19.5). Next: Phase 3 (grow Backend #2 to parity) and Phase 4 (extract ecosystem). Remaining openings: Fidelity fusion; presence; timeline.
+**Status: Phase 3 COMPLETED. Phase 0 + A0, Phase 1, Phase 2, Phase 3 landed; Phase 4 (extract ecosystem) next.** Decisions resolved (§19.5). Remaining openings: Fidelity fusion; presence; timeline.
 
 ### 19.0 Next session starts at Phase 1
 

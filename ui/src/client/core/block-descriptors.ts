@@ -259,3 +259,7 @@ export const blockDescriptor = (kind: BlockKind): BlockEntry => BLOCK_DESCRIPTOR
 /** The kinds a facet selects, in catalog order — the one way a partial map is read. */
 export const kindsWhere = (facet: (descriptor: BlockEntry) => boolean): BlockKind[] =>
   BLOCK_DESCRIPTORS.where(facet);
+
+/** All block kinds that are graph-renderable. */
+export const graphRenderableKinds = (): BlockKind[] =>
+  kindsWhere((d) => d.graphRenderable);

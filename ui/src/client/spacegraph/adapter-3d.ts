@@ -81,6 +81,7 @@ export function applyDelta(
     getNode?: (id: string) => any;
     getEdge?: (id: string) => any;
     updatePosition?: (id: string, position: [number, number, number]) => void;
+    sg?: any; // SpaceGraph instance for direct access
   },
   delta: Delta
 ): void {

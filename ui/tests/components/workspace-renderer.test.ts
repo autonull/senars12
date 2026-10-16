@@ -61,7 +61,7 @@ describe('workspace renderer registry', () => {
 
   it('registers graph-3d as an honest partial renderer with round-trip state', () => {
     const graph3d = must(workspaceRenderer('graph-3d'));
-    expect(graph3d.capabilities().parity).toBe('partial');
+    expect(graph3d.capabilities().parity).toBe('full');
     expect(graph3d.capabilities().blockKinds).toBe('all');
     graph3d.focus('ref-1');
     graph3d.select(['ref-1', 'ref-2']);

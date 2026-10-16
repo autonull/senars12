@@ -1,0 +1,36 @@
+{
+  "name": "@senars/ui-contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./modulation": {
+      "types": "./src/modulation/index.ts",
+      "import": "./src/modulation/index.ts"
+    },
+    "./framework": {
+      "types": "./src/framework/index.ts",
+      "import": "./src/framework/index.ts"
+    },
+    "./core": {
+      "types": "./src/core/index.ts",
+      "import": "./src/core/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@senars/util": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "7.0.2",
+    "vitest": "^5.0.0"
+  }
+}

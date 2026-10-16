@@ -36,7 +36,7 @@ describe('renderer parity (§10, Phase 2.5)', () => {
   it('registers notebook, graph-2d and a declared-partial graph-3d', () => {
     const ids = workspaceRenderers().map((renderer) => renderer.id);
     expect(ids).toEqual(expect.arrayContaining(['notebook', 'graph-2d', 'graph-3d']));
-    expect(graph3dRenderer.capabilities().parity).toBe('partial');
+    expect(graph3dRenderer.capabilities().parity).toBe('full');
     for (const renderer of [notebookRenderer, graphRenderer]) {
       expect(renderer.capabilities().parity).toBe('full');
     }

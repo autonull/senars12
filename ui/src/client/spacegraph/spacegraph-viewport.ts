@@ -25,6 +25,7 @@ import {
   evaluateLens,
   eventBus,
   mountTestApi,
+  setWorkspaceFocus,
 } from '../core/index.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
 import { theme } from '../utils/theme.js';
@@ -65,7 +66,7 @@ export class SpaceGraphViewport extends BaseComponent {
     .tooltip-divider { height: 1px; background: var(--colors-semantic-border-subtle); margin: var(--spacing-scale-1) 0; }
   `;
 
-  private sg: SpaceGraph | null = null;
+  public sg: SpaceGraph | null = null;
   private mounted = false;
   @state() private tooltip: { x: number; y: number; content: string } | null = null;
   private tooltipTimer: ReturnType<typeof setTimeout> | null = null;
@@ -74,6 +75,7 @@ export class SpaceGraphViewport extends BaseComponent {
 
   override connectedCallback() {
     super.connectedCallback();
+    activeSpaceGraphViewport = this;
     const renderer = new GraphRenderer(this.watchWith.bind(this), {
       syncGraph: () => this.syncGraph(),
       applyLens: () => {
@@ -120,6 +122,7 @@ export class SpaceGraphViewport extends BaseComponent {
 
   override disconnectedCallback() {
     super.disconnectedCallback();
+    if (activeSpaceGraphViewport === this) activeSpaceGraphViewport = null;
     eventBus.off('graph:layout', this.layoutHandler);
     eventBus.off('graph:fit', this.fitGraph);
     eventBus.off('graph:search', this.searchGraph);
@@ -150,6 +153,26 @@ export class SpaceGraphViewport extends BaseComponent {
 
     this.sg.events.on('node:removed', (data: { id: string }) => {
       this.handleNodeRemove(data.id);
+    });
+
+    // Handle semantic edge navigation - double-click edge to focus target
+    this.sg.events.on('edge:dblclick', (data: { edge: any }) => {
+      const targetId = data.edge?.target?.id;
+      if (targetId) {
+        // Focus the target node in SeNARS
+        setWorkspaceFocus(targetId);
+        // Also focus in SpaceGraph for visual feedback
+        this.sg?.focusNode(targetId, 100, 0.4);
+      }
+    });
+
+    // Handle node double-click for focus
+    this.sg.events.on('node:dblclick', (data: { node: any }) => {
+      const nodeId = data.node?.id;
+      if (nodeId) {
+        setWorkspaceFocus(nodeId);
+        this.sg?.focusNode(nodeId, 100, 0.4);
+      }
     });
 
     // Viewport sync from SpaceGraph camera
@@ -404,3 +427,13 @@ export class SpaceGraphViewport extends BaseComponent {
     }
   }
 }
+
+// Track the active SpaceGraphViewport instance for external access (e.g., graph3d renderer)
+let activeSpaceGraphViewport: SpaceGraphViewport | null = null;
+
+export function getSpaceGraphViewport(): SpaceGraphViewport | null {
+  return activeSpaceGraphViewport;
+}
+
+// Set active instance in connectedCallback and clear in disconnectedCallback
+// We need to modify the class to update this global

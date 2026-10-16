@@ -1,0 +1,28 @@
+{
+  "name": "@senars/ui-backend-2d",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@senars/ui-contract": "workspace:*",
+    "@senars/ui-shell": "workspace:*",
+    "@senars/core": "workspace:*",
+    "@senars/util": "workspace:*",
+    "cytoscape": "^3.34.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "7.0.2",
+    "vitest": "^5.0.0"
+  }
+}

@@ -5,6 +5,10 @@ packages:
   - 'ui'
   - 'metta'
   - 'util'
+  - 'ui-contract'
+  - 'ui-backend-2d'
+  - 'ui-backend-fractal'
+  - 'ui-shell'
 
 allowBuilds:
   '@biomejs/biome': true
