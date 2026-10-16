@@ -1,1 +1,1 @@
-export const index = 'ui-shell';
+export * from './framework/index.js';

@@ -1,6 +1,6 @@
 # UI.18 — The Backend Contract
 
-**Status:** Phase 3 **COMPLETED** · Phase 4 (ecosystem extraction) in progress — contract-consumption slices landed (registry, shape-registry, workspace-address, channel-registry, aspect/focus-kind registries, composition, layout, coordinates, workspace-graph ops, block/link/graph & neighborhood refinements). UI.16 built the plumbing
+**Status:** Phase 3 **COMPLETED** · Phase 4 (ecosystem extraction) in progress — contract-consumption slices landed (registry, shape-registry, workspace-address, channel-registry, aspect/focus-kind registries, composition, layout, coordinates, workspace-graph ops, block/link/graph & neighborhood refinements, ui-shell catalog/contribution/facet relocation). UI.16 built the plumbing
 (surfaces are dumb, one shell, compositions are data). UI.17 decided **what the plumbing is for**
 (one focus, four coordinates, the fractal). UI.18 decides **where each concern lives** and **what the
 open contract is**: one neutral substrate, many renderer backends, SeNARS as the reference application,
@@ -672,12 +672,27 @@ Commit `ui18: Phase 2 Part 2 — open Shape, Arrangement, FocusKind registries; 
 - Verified: `pnpm --dir ui typecheck` · `pnpm --dir ui test:unit` (872) ·
   `pnpm --dir ui-contract typecheck`.
 
+### Phase 4 slice — relocate domain-free framework modules into ui-shell — **LANDED**
+
+- Relocated `framework/{catalog,contribution,facet}.ts` from `ui` into `ui-shell/src/framework/`
+  (domain-agnostic catalog/contribution/facet primitives) by copy-then-shim; UI now re-exports them
+  from `@senars/ui-shell/framework` (shim files at `ui/src/client/framework/{catalog,contribution,facet}.ts`).
+- Removed the unused generic parameter from `CatalogEntry` to satisfy `ui-shell`'s strict `noUnusedLocals`.
+- Added `ui-shell` dependency link (`ui/node_modules/@senars/ui-shell`) and Vite/Vitest aliases
+  (`@senars/ui-shell`, `/framework`, `/core`) mirroring the contract extraction.
+- Added `ui-shell/tests/smoke.test.ts` (3 passing) and `ui/tests/components/ui-shell-relocation.test.ts`
+  (1 passing) to prove the public import path.
+- Verified: `pnpm --dir ui-shell typecheck` · `pnpm --dir ui-shell test:unit` (3) ·
+  `pnpm --dir ui typecheck` · `pnpm --dir ui test:unit` (873) · `pnpm deps:gate` (1 ≤ baseline 1) ·
+  `pnpm exports:check` · `pnpm exports:barrels`.
+
 **New improvement opportunities:**
 - Migrate `WorkspaceOp` to a contract-generic refinement once a second `SemanticBlock` specialization needs it
-- Move one small SeNARS consumer (e.g. `framework/catalog` types already domain-free) into `ui-shell`
-  by relocation rather than copy, with tests proving the import path
-- Add a smoke test in `ui-shell`/`ui-backend-2d` exercising a minimal contract-based renderer to
+- ✅ Moved small domain-free consumer `framework/catalog, contribution, facet` into `ui-shell` with import-path proof
+- Add a smoke test in `ui-backend-2d` exercising a minimal contract-based renderer (not yet done) to
   satisfy Phase 4's "toy app" acceptance
+- Relocate additional domain-free framework modules (bundle.ts, validator.ts, projector.ts) into `ui-shell`
+- Move `graph.ts`/`graph3d.ts` renderers into backend packages (larger) or provide factory entry points
 
 Commit `ui18: Phase 3 — grow Backend #2 to parity: fractal LOD, semantic edge nav, depth→nest mapping, full parity`
 (X files, +X/-Y).

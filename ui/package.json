@@ -79,6 +79,7 @@
     "@senars/core": "workspace:*",
     "@senars/nar": "workspace:*",
     "@senars/ui-contract": "workspace:*",
+    "@senars/ui-shell": "workspace:*",
     "@senars/util": "workspace:*",
     "chart.js": "^4.5.1",
     "cytoscape": "^3.34.2",
