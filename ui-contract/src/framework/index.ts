@@ -24,6 +24,8 @@ export {
   ASPECTS,
   isAspect,
   ASPECT_SURFACES,
+  ASPECT_LABELS,
+  ASPECT_ICONS,
   DEPTHS,
   MAX_DEPTH,
   clampDepth,
