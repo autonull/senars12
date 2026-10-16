@@ -106,7 +106,7 @@ export {
   arrangementsForLayout,
   arrangementsForShape,
 } from './arrangement-registry.js';
-export type { Composition, Globals, LayoutId } from './composition.js';
+export type { Composition, Cell, Globals, LayoutId } from './composition.js';
 export {
   registerComposition,
   compositionFor,

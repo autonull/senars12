@@ -1,6 +1,6 @@
 # UI.18 — The Backend Contract
 
-**Status:** Phase 3 **COMPLETED** · Phase 4 (ecosystem extraction) in progress — contract-consumption slices landed (registry, shape-registry, workspace-address, channel-registry, aspect/focus-kind registries, composition, layout, coordinates, workspace-graph ops, block/link/graph & neighborhood refinements, ui-shell catalog/contribution/facet relocation). UI.16 built the plumbing
+**Status:** Phase 3 **COMPLETED** · Phase 4 (ecosystem extraction) in progress — contract-consumption slices landed (registry, shape-registry, workspace-address, channel-registry, aspect/focus-kind registries, composition, layout, coordinates, workspace-graph ops, block/link/graph & neighborhood refinements, ui-shell catalog/contribution/facet relocation, ui-shell surface-registry/validator relocation). UI.16 built the plumbing
 (surfaces are dumb, one shell, compositions are data). UI.17 decided **what the plumbing is for**
 (one focus, four coordinates, the fractal). UI.18 decides **where each concern lives** and **what the
 open contract is**: one neutral substrate, many renderer backends, SeNARS as the reference application,
@@ -710,6 +710,42 @@ Commit `ui18: Phase 2 Part 2 — open Shape, Arrangement, FocusKind registries; 
   same `WorkspaceRenderer` interface
 - Move SeNARS's `graph.ts` renderer to consume `ui-backend-2d`'s export as its engine
 - Add a parallel smoke test in `ui-backend-fractal` once SpaceGraphJS nested-repo aliasing is wired
+
+### Phase 4 slice — relocate surface registry + generic validator into ui-shell — **LANDED**
+
+- Moved `framework/surface.ts` (the one mountable-surface registry: `SurfaceDescriptor`, `Placement`,
+  `Presentation`, `surfaceRegistry` + queries, `surfaceTag`, presentation defaults) into
+  `ui-shell/src/framework/surface.ts`; it depends only on `@senars/ui-contract/core`'s `Registry`.
+- Moved `framework/validator.ts` (generic `Contribution`/catalog validator) into
+  `ui-shell/src/framework/validator.ts`; imports `./catalog.js` + `./contribution.js` locally.
+- UI now re-exports both via shims (`ui/src/client/framework/{surface,validator}.ts` →
+  `@senars/ui-shell/framework`), mirroring the catalog/contribution/facet relocation. Added both to the
+  `ui-shell` framework barrel.
+- Satisfied `ui-shell`'s strict `noUnusedLocals`: dropped the unused `SurfaceDescriptor<K>` generic;
+  renamed the unused validator param to `_catalog`.
+- Extended `ui-shell/tests/smoke.test.ts` (surface placement/presentation + generic validator) and
+  `ui/tests/components/ui-shell-relocation.test.ts` (surface registry via the public alias).
+- **Fixed a pre-existing red baseline** (§20.1): `@senars/ui-contract`'s framework barrel did not export
+  the composition `Cell`, so `pnpm --dir ui typecheck` was **failing at HEAD**. Added the export and
+  disambiguated the contract top-level barrel (`Cell` = core's neutral cell; the composition-cell variant
+  stays reachable via `@senars/ui-contract/framework`).
+- Verified: `pnpm --dir ui-contract typecheck` · `pnpm --dir ui-shell typecheck` ·
+  `pnpm --dir ui-shell test:unit` (5) · `pnpm --dir ui typecheck` · `pnpm --dir ui test:unit` (874) ·
+  `pnpm --dir ui-backend-2d typecheck` · `pnpm --dir ui-backend-fractal typecheck` · `pnpm deps:gate`
+  (1 ≤ baseline 1) · `pnpm exports:check` · `pnpm exports:barrels`.
+
+**New improvement opportunities:**
+- `projector.ts` and `bundle.ts` (the plan's other relocation candidates) are **not** domain-free:
+  `projector` depends on SeNARS `WorkspaceGraph`/`@senars/core`, and `bundle` on
+  surface + backends + capabilities + config. Relocate them only after `WorkspaceFragment` /
+  `ProjectorContext` / `CapabilityDescriptor` are neutralized.
+- `protocol.ts` is zod-only but carries SeNARS server vocabulary (`nar`, `agent`, `projection` in
+  `ServerHandlerContext`); neutralize that context before moving it to `ui-shell`.
+- The UI shims are deliberately coarse (`export *` from the whole `@senars/ui-shell/framework`) because
+  `ui-shell` exposes only the `./framework` subpath; add per-module subpath exports when a second consumer
+  needs narrower coupling.
+- The contract still holds **two** notions of `Cell` (core's neutral cell vs. framework's composition
+  cell) — the §0 "Cell fusion" remains held (§18.5); the top-level barrel now pins `Cell` to core.
 
 Commit `ui18: Phase 3 — grow Backend #2 to parity: fractal LOD, semantic edge nav, depth→nest mapping, full parity`
 (X files, +X/-Y).
