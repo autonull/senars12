@@ -1,6 +1,6 @@
 # UI.18 — The Backend Contract
 
-**Status:** Phase 3 **COMPLETED** · Phase 0 + A0, Phase 1, Phase 2 landed; Phase 4 (ecosystem extraction) next. UI.16 built the plumbing
+**Status:** Phase 3 **COMPLETED** · Phase 4 (ecosystem extraction) in progress — first lossless contract-consumption slice landed (registry, shape-registry, workspace-address, channel-registry). UI.16 built the plumbing
 (surfaces are dumb, one shell, compositions are data). UI.17 decided **what the plumbing is for**
 (one focus, four coordinates, the fractal). UI.18 decides **where each concern lives** and **what the
 open contract is**: one neutral substrate, many renderer backends, SeNARS as the reference application,
@@ -618,6 +618,29 @@ Commit `ui18: Phase 2 Part 2 — open Shape, Arrangement, FocusKind registries; 
 - Remaining: move the SeNARS-specific consumer (surface registry, composition presets, app chrome,
   server-side) under ui-shell; move graph.ts/graph3d renderers into backend packages; rewire ui to import
   contract types instead of redefining them
+
+### Phase 4 slice — rewire UI to consume neutral contract types (first lossless slice)
+- Migrated four domain-free neutral modules to be re-exports of `@senars/ui-contract`:
+  `core/registry.ts`, `core/shape-registry.ts`, `core/workspace-address.ts`,
+  `modulation/channel-registry.ts`
+- Added `registry.ts` to `ui-contract` (was absent from preliminary extraction) and exported it from
+  `ui-contract/src/core/index.ts`; contract core gains `createRegistry/createIdRegistry/createLabelRegistry/Registry/RegistryOptions`
+- Added `@senars/ui-contract` dependency to `ui/package.json` and a `pnpm install` link under `ui/node_modules`
+- Added Vite/Vitest aliases for `@senars/ui-contract` (base + `/core` + `/framework` + `/modulation`)
+- Constraint discovered: any module whose types flow through SeNARS domain types (`Ref`, `SemanticBlock`,
+  `SemanticLinkKind`, `WorkspaceGraph`) cannot be neutralized losslessly yet — contract's `Ref`/block kinds
+  are `string`. `neighborhood.ts` and `link-kinds.ts` therefore remain local specializations for now; migrate
+  them only when SeNARS refines the contract's string types via its own (additive) focus-kind/link-kind layers.
+
+**Verify (green):** `pnpm --dir ui typecheck` · `pnpm --dir ui test:unit` (872) · `pnpm --dir ui build:client`
+· `pnpm --dir ui-contract typecheck` · `pnpm deps:gate` (1 ≤ baseline 1) · `pnpm exports:check` ·
+`pnpm exports:barrels`.
+
+**New opportunities:**
+- Apply the same shim to `framework/coordinates.ts` only after its `FocusKind` is refined over the
+  contract's open `string` (keep SeNARS kinds richly typed at the codec layer, per §18.3 D2)
+- Add `ui-shell` content (surface registry presets, app chrome) by moving files, not copy
+- Expose `ids` on UI `Registry consumers` is now available for free (contract addition)
 
 Commit `ui18: Phase 3 — grow Backend #2 to parity: fractal LOD, semantic edge nav, depth→nest mapping, full parity`
 (X files, +X/-Y).

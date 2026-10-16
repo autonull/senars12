@@ -347,6 +347,9 @@ importers:
       '@senars/nar':
         specifier: workspace:*
         version: link:../nar
+      '@senars/ui-contract':
+        specifier: workspace:*
+        version: link:../ui-contract
       '@senars/util':
         specifier: workspace:*
         version: link:../util

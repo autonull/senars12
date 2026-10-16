@@ -1,5 +1,5 @@
 /**
- * One registry shape, N domains. `createRegistry(keyOf)` is the
+ * One registry shape, N domains (E2). `createRegistry(keyOf)` is the
  * metaprogramming seam: instantiate once, reuse everywhere. A domain is
  * `createRegistry<Shape, Descriptor>(d => d.id)`. The descriptor-to-registration
  * helpers (`defineSurface`, `defineOverlay`, etc.) sit on top.
@@ -31,7 +31,7 @@ export interface RegistryOptions {
 
 /**
  * Create a registry keyed by `keyOf(value)`. The registry is a `Map<K, V>` with
- * a thin API that makes intent explicit (register/get/all/has/size/ids) and is
+ * a thin API that makes intent explicit (register/get/all/has/size) and is
  * trivially testable.
  */
 export function createRegistry<K, V>(

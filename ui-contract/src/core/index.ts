@@ -125,3 +125,10 @@ export {
   type Neighborhood,
   neighborhood,
 } from './neighborhood.js';
+export {
+  createRegistry,
+  createIdRegistry,
+  createLabelRegistry,
+  type Registry,
+  type RegistryOptions,
+} from './registry.js';

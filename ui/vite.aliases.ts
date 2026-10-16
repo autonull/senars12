@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const coreSrc = resolve(root, '../core/src');
+const contractSrc = resolve(root, '../ui-contract/src');
 
 /**
  * One alias table for Vite, Vitest, and Storybook. These diverged — Storybook
@@ -35,4 +36,8 @@ export const resolveAliases = [
   { find: '@senars/core/bridge/chat-stream-handler', replacement: resolve(coreSrc, 'bridge/ChatStreamHandler.ts') },
   { find: '@senars/core/agent', replacement: resolve(coreSrc, 'agent/index.ts') },
   { find: '@senars/core', replacement: resolve(coreSrc, 'index.ts') },
+  { find: /^@senars\/ui-contract\/modulation$/, replacement: resolve(contractSrc, 'modulation/index.ts') },
+  { find: /^@senars\/ui-contract\/framework$/, replacement: resolve(contractSrc, 'framework/index.ts') },
+  { find: /^@senars\/ui-contract\/core$/, replacement: resolve(contractSrc, 'core/index.ts') },
+  { find: '@senars/ui-contract', replacement: resolve(contractSrc, 'index.ts') },
 ];
