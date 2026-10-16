@@ -6,7 +6,8 @@
  * chat block, an artifact and an engine claim navigate identically.
  */
 
-import { linksTouching, type Ref, type SemanticBlock, type SemanticLink, type WorkspaceGraph } from './workspace-graph.js';
+import { type Ref, type SemanticBlock, type SemanticLink, type WorkspaceGraph } from './workspace-graph.js';
+import { neighborhood as contractNeighborhood } from '@senars/ui-contract/core';
 
 export interface Neighbor {
   block: SemanticBlock;
@@ -22,28 +23,12 @@ export interface Neighborhood {
   neighbors: Neighbor[];
 }
 
-export function neighborhood(graph: WorkspaceGraph, ref: Ref, depth = 1): Neighborhood | undefined {
-  const block = graph.blocks.get(ref);
-  if (!block) return undefined;
-
-  const seen = new Set<Ref>([ref]);
-  const neighbors: Neighbor[] = [];
-  let frontier: Ref[] = [ref];
-
-  for (let hop = 1; hop <= depth && frontier.length > 0; hop++) {
-    const next: Ref[] = [];
-    for (const id of frontier) {
-      for (const link of linksTouching(graph, id)) {
-        const otherId = link.source === id ? link.target : link.source;
-        const other = graph.blocks.get(otherId);
-        if (!other || seen.has(otherId)) continue;
-        seen.add(otherId);
-        neighbors.push({ block: other, link, direction: link.source === id ? 'out' : 'in', depth: hop });
-        next.push(otherId);
-      }
-    }
-    frontier = next;
-  }
-
-  return { block, neighbors };
-}
+// Runtime implementation delegates to @senars/ui-contract; the interface above keeps
+// SeNARS-refined Neighbor/Neighborhood block types.
+// SeNARS specialization: runtime body delegates to the contract implementation;
+// the refined `Neighbor`/`Neighborhood` types above keep block semantics.
+export const neighborhood = contractNeighborhood as unknown as (
+  graph: WorkspaceGraph,
+  ref: Ref,
+  depth?: number,
+) => Neighborhood | undefined;

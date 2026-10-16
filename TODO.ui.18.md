@@ -1,6 +1,6 @@
 # UI.18 — The Backend Contract
 
-**Status:** Phase 3 **COMPLETED** · Phase 4 (ecosystem extraction) in progress — first lossless contract-consumption slice landed (registry, shape-registry, workspace-address, channel-registry). UI.16 built the plumbing
+**Status:** Phase 3 **COMPLETED** · Phase 4 (ecosystem extraction) in progress — contract-consumption slices landed (registry, shape-registry, workspace-address, channel-registry, aspect/focus-kind registries, composition, layout, coordinates, workspace-graph ops, block/link/graph & neighborhood refinements). UI.16 built the plumbing
 (surfaces are dumb, one shell, compositions are data). UI.17 decided **what the plumbing is for**
 (one focus, four coordinates, the fractal). UI.18 decides **where each concern lives** and **what the
 open contract is**: one neutral substrate, many renderer backends, SeNARS as the reference application,
@@ -651,12 +651,33 @@ Commit `ui18: Phase 2 Part 2 — open Shape, Arrangement, FocusKind registries; 
   `applyWorkspaceOps`, `linksTouching` now delegate to `@senars/ui-contract/core` (cast once at the seam, no copies).
 - Verified: `pnpm --dir ui typecheck` · `pnpm --dir ui test:unit` (872) · `pnpm --dir ui-contract typecheck`.
 
-**Remaining refinement opportunities (additive, by design):**
-- Refine `SemanticBlock`/`WorkspaceGraph`/`WorkspaceOp` to extend the contract's generic records instead of
-  redeclaring them, without losing `BlockKind`'s descriptor-derived union or `SemanticLinkKind`'s closed set.
-- Extend the same aliasing pattern to `neighborhood.ts` once its signatures are refined over contract `Ref`/block kinds.
+**Remaining refinement opportunities (additive, by design) — updated:**
+- [done] Refined `SemanticBlock`/`SemanticLink`/`WorkspaceGraph` to extend the contract's generic records
+  instead of redeclaring them (UI kinds preserved via override: `BlockKind` union, `SemanticLinkKind` closed set).
+  `WorkspaceOp` remains a SeNARS-specialized union over the refined block/link types.
+- [done] Extended the aliasing pattern to `neighborhood.ts`: now delegates to `@senars/ui-contract/core`,
+  keeping SeNARS-refined `Neighbor`/`Neighborhood` block types.
 - Add `ui-shell` content (surface registry presets, app chrome) by moving files, not copy
 - Expose `ids` on UI `Registry consumers` is now available for free (contract addition)
+- Continue narrowing remaining local contract redefinitions (`WorkspaceOp`, view-spec catalog) only
+  where the cast seam stays lossless
+
+### Phase 4 slice — refine UI block/link/graph types + neighborhood over contract — **LANDED**
+
+- `ui/src/client/core/workspace-graph.ts`: `SemanticBlock`, `SemanticLink`, `WorkspaceGraph` now `extend`
+  the contract's generic records (sealed at the cast seam in operators); SeNARS retains `BlockKind`'s
+  descriptor-derived union, `SemanticLinkKind`'s closed set, `PayloadOf<K>`, `ViewSpec`, and enriched `Artifact`.
+- `ui/src/client/core/neighborhood.ts`: runtime body delegates to `@senars/ui-contract/core`;
+  refined `Neighbor`/`Neighborhood` retain SeNARS block types.
+- Verified: `pnpm --dir ui typecheck` · `pnpm --dir ui test:unit` (872) ·
+  `pnpm --dir ui-contract typecheck`.
+
+**New improvement opportunities:**
+- Migrate `WorkspaceOp` to a contract-generic refinement once a second `SemanticBlock` specialization needs it
+- Move one small SeNARS consumer (e.g. `framework/catalog` types already domain-free) into `ui-shell`
+  by relocation rather than copy, with tests proving the import path
+- Add a smoke test in `ui-shell`/`ui-backend-2d` exercising a minimal contract-based renderer to
+  satisfy Phase 4's "toy app" acceptance
 
 Commit `ui18: Phase 3 — grow Backend #2 to parity: fractal LOD, semantic edge nav, depth→nest mapping, full parity`
 (X files, +X/-Y).

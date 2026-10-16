@@ -11,6 +11,11 @@
 import type { BlockKind } from './block-descriptors.js';
 import type { PayloadOf } from './block-payload.js';
 import type { ViewSpec } from './view-spec.js';
+import type {
+  SemanticBlock as ContractSemanticBlock,
+  SemanticLink as ContractSemanticLink,
+  WorkspaceGraph as ContractWorkspaceGraph,
+} from '@senars/ui-contract/core';
 
 export type { BlockKind };
 
@@ -41,32 +46,11 @@ export type BlockStatus = import('@senars/ui-contract/core').BlockStatus;
 /** The producer of a block or link. Refined over contract. */
 export type CreatedBy = import('@senars/ui-contract/core').CreatedBy;
 
-export interface SemanticBlock<K extends BlockKind = BlockKind> {
-  id: Ref;
-  kind: K;
-  role: SemanticRole;
-  title?: string;
-  text?: string;
-  /** Heading depth / grouping level. */
-  level?: number;
-  /** Structured payload, typed by `kind` for the kinds that declare one (`block-payload.ts`). */
+/** SeNARS refinement of the neutral contract's SemanticBlock: typed payload/spec/artifact. */
+export interface SemanticBlock<K extends BlockKind = BlockKind> extends ContractSemanticBlock<K> {
   data?: PayloadOf<K>;
-  /** Formalized artifact contract. */
-  artifact?: Artifact;
-  /** Rich render instruction for the inner view system (§3.3). */
   spec?: ViewSpec;
-  children?: Ref[];
-  /** Who/what produced it. */
-  sourceRefs?: Ref[];
-  /** Cognitive events behind it. */
-  eventRefs?: Ref[];
-  /** Derivations/records behind it. */
-  provenanceRefs?: Ref[];
-  /** Engine-declared uncertainty. */
-  uncertainty?: Uncertainty;
-  status?: BlockStatus;
-  createdAt: number;
-  createdBy: CreatedBy;
+  artifact?: Artifact;
 }
 
 /** The semantic kind of a link (§2.2). */
@@ -93,29 +77,15 @@ export type SemanticLinkKind =
   | 'focuses'
   | 'same-topic';
 
-export interface SemanticLink {
-  id: Ref;
-  source: Ref;
-  target: Ref;
+/** SeNARS refinement of the neutral contract's SemanticLink: closed SemanticLinkKind. */
+export interface SemanticLink extends ContractSemanticLink {
   kind: SemanticLinkKind;
-  label?: string;
-  confidence?: number;
-  uncertainty?: Uncertainty;
-  eventRefs?: Ref[];
-  createdBy: CreatedBy;
 }
 
-export interface WorkspaceGraph {
+/** SeNARS refinement of the neutral contract's WorkspaceGraph (typed blocks/links). */
+export interface WorkspaceGraph extends ContractWorkspaceGraph {
   blocks: Map<Ref, SemanticBlock>;
   links: Map<Ref, SemanticLink>;
-  /** Notebook page order. */
-  roots: Ref[];
-  /** Client/session state — not event-sourced. */
-  focus?: Ref;
-  /** Client/session state — not event-sourced. */
-  selection: Set<Ref>;
-  /** Present-anchored scrub position — client/session state. */
-  timeCursor?: number;
 }
 
 /** Event-sourced workspace mutation (§2.3); `seq` monotonicity comes from `UnifiedGraphProjection`. */
