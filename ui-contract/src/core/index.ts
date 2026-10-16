@@ -16,6 +16,7 @@ export {
   type IntentRef,
   type RendererContext,
   type WorkspaceRenderer,
+  type Cell,
   type RendererParity,
   WORKSPACE_INTERACTIONS,
   WORKSPACE_CONTROLS,

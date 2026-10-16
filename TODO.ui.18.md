@@ -689,10 +689,27 @@ Commit `ui18: Phase 2 Part 2 — open Shape, Arrangement, FocusKind registries; 
 **New improvement opportunities:**
 - Migrate `WorkspaceOp` to a contract-generic refinement once a second `SemanticBlock` specialization needs it
 - ✅ Moved small domain-free consumer `framework/catalog, contribution, facet` into `ui-shell` with import-path proof
-- Add a smoke test in `ui-backend-2d` exercising a minimal contract-based renderer (not yet done) to
-  satisfy Phase 4's "toy app" acceptance
+- ✅ Add a smoke test in `ui-backend-2d` exercising a minimal contract-based renderer
+  (`ui-backend-2d/tests/smoke.test.ts`, 2 passing) plus `Graph2DRenderer` factory and
+  custom focus-kind/channel registration over the neutral contract
 - Relocate additional domain-free framework modules (bundle.ts, validator.ts, projector.ts) into `ui-shell`
 - Move `graph.ts`/`graph3d.ts` renderers into backend packages (larger) or provide factory entry points
+
+### Phase 4 slice — add contract-based 2D backend skeleton + smoke test — **LANDED**
+
+- Added `ui-backend-2d/src/graph2d-renderer.ts`: a minimal `WorkspaceRenderer` implementation over
+  `@senars/ui-contract` (present/apply/applyPatch/focus/select/embed/snapshot/restore) with an honest
+  capability set and a `createGraph2DRenderer` factory in `ui-backend-2d/src/index.ts`.
+- Exported `Cell` from `ui-contract/src/core/index.ts` so backends can type `embed`.
+- Added `ui-backend-2d/tests/smoke.test.ts` (2 passing) proving renderer mount/present/snapshot and
+  custom focus-kind + custom channel registration (Phase 4 "toy app" acceptance seed).
+- Verified: `pnpm --dir ui-backend-2d typecheck` · `pnpm --dir ui-backend-2d test:unit` (2).
+
+**New improvement opportunities:**
+- Provide a cytoscape-backed factory in `ui-backend-2d` replacing the in-memory skeleton, behind the
+  same `WorkspaceRenderer` interface
+- Move SeNARS's `graph.ts` renderer to consume `ui-backend-2d`'s export as its engine
+- Add a parallel smoke test in `ui-backend-fractal` once SpaceGraphJS nested-repo aliasing is wired
 
 Commit `ui18: Phase 3 — grow Backend #2 to parity: fractal LOD, semantic edge nav, depth→nest mapping, full parity`
 (X files, +X/-Y).
