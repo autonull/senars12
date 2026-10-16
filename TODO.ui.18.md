@@ -620,9 +620,10 @@ Commit `ui18: Phase 2 Part 2 — open Shape, Arrangement, FocusKind registries; 
   contract types instead of redefining them
 
 ### Phase 4 slice — rewire UI to consume neutral contract types (first lossless slice)
-- Migrated four domain-free neutral modules to be re-exports of `@senars/ui-contract`:
+- Migrated domain-free neutral modules to be re-exports of `@senars/ui-contract`:
   `core/registry.ts`, `core/shape-registry.ts`, `core/workspace-address.ts`,
-  `modulation/channel-registry.ts`
+  `modulation/channel-registry.ts`, `modulation/types.ts`, `framework/aspect-registry.ts`,
+  `framework/focus-kind-registry.ts`
 - Added `registry.ts` to `ui-contract` (was absent from preliminary extraction) and exported it from
   `ui-contract/src/core/index.ts`; contract core gains `createRegistry/createIdRegistry/createLabelRegistry/Registry/RegistryOptions`
 - Added `@senars/ui-contract` dependency to `ui/package.json` and a `pnpm install` link under `ui/node_modules`
