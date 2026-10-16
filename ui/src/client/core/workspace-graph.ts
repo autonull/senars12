@@ -15,34 +15,31 @@ import type { ViewSpec } from './view-spec.js';
 export type { BlockKind };
 
 /** One id namespace: a block's `Ref` is a graph node id, a popover anchor, a citation target and an engine `Ref`. */
-export type Ref = string;
+import {
+  emptyWorkspaceGraph as contractEmptyWorkspaceGraph,
+  applyWorkspaceOp as contractApplyWorkspaceOp,
+  applyWorkspaceOps as contractApplyWorkspaceOps,
+  linksTouching as contractLinksTouching,
+} from '@senars/ui-contract/core';
 
-/** Engine-declared uncertainty; its rendering is data via the field catalog, not hard-coded. */
-export interface Uncertainty {
-  frequency: number;
-  confidence: number;
-  /** Engine vocabulary, e.g. `'nal'`, `'probability'`, `'proof-checked'`. */
-  vocabulary?: string;
-}
+export type Ref = import('@senars/ui-contract/core').Ref;
 
-/** A self-describing payload an agent emits; known kinds render richly, unknown kinds degrade to text/JSON. */
-export interface Artifact<T = unknown> {
-  kind: string;
-  title?: string;
-  spec?: ViewSpec;
-  data: T;
-}
+/** Engine-declared uncertainty; its rendering is data via the field catalog, not hard-coded. Refined over contract. */
+export type Uncertainty = import('@senars/ui-contract/core').Uncertainty;
+
+/** A self-describing payload an agent emits; known kinds render richly, unknown kinds degrade to text/JSON. Refined over contract's Artifact shape. */
+export type Artifact<T = unknown> = import('@senars/ui-contract/core').Artifact<T> & { spec?: ViewSpec };
 
 /** The semantic kind of a content block (§2.1). */
 
-/** Who a block speaks as. */
-export type SemanticRole = 'user' | 'assistant' | 'system' | 'tool' | 'reasoner';
+/** Who a block speaks as. Refined over contract. */
+export type SemanticRole = import('@senars/ui-contract/core').SemanticRole;
 
-/** The lifecycle of a block under streaming. */
-export type BlockStatus = 'streaming' | 'complete' | 'error' | 'rejected' | 'partial';
+/** The lifecycle of a block under streaming. Refined over contract. */
+export type BlockStatus = import('@senars/ui-contract/core').BlockStatus;
 
-/** The producer of a block or link. */
-export type CreatedBy = 'user' | 'lm' | 'reasoner' | 'tool' | 'system';
+/** The producer of a block or link. Refined over contract. */
+export type CreatedBy = import('@senars/ui-contract/core').CreatedBy;
 
 export interface SemanticBlock<K extends BlockKind = BlockKind> {
   id: Ref;
@@ -130,73 +127,14 @@ export type WorkspaceOp =
   | { op: 'link.remove'; id: Ref; seq?: number; eventRefs?: Ref[] }
   | { op: 'roots.set'; roots: Ref[]; seq?: number; eventRefs?: Ref[] };
 
-export const emptyWorkspaceGraph = (): WorkspaceGraph => ({
-  blocks: new Map(),
-  links: new Map(),
-  roots: [],
-  selection: new Set(),
-});
+/** Create an empty workspace graph (contract-level, refined to SeNARS types). */
+export const emptyWorkspaceGraph = contractEmptyWorkspaceGraph as () => WorkspaceGraph;
 
-function addBlock(graph: WorkspaceGraph, block: SemanticBlock, after?: Ref): WorkspaceGraph {
-  const blocks = new Map(graph.blocks);
-  blocks.set(block.id, block);
-  if (graph.roots.includes(block.id)) return { ...graph, blocks };
+/** Apply one op, returning a new graph (copy-on-write for the store atom). Contract-level; refined to SeNARS types. */
+export const applyWorkspaceOp = contractApplyWorkspaceOp as (graph: WorkspaceGraph, op: WorkspaceOp) => WorkspaceGraph;
 
-  const roots = [...graph.roots];
-  const at = after ? roots.indexOf(after) : -1;
-  if (at >= 0) roots.splice(at + 1, 0, block.id);
-  else roots.push(block.id);
-  return { ...graph, blocks, roots };
-}
+/** Fold an op stream onto a graph, in order. Contract-level; refined to SeNARS types. */
+export const applyWorkspaceOps = contractApplyWorkspaceOps as (graph: WorkspaceGraph, ops: readonly WorkspaceOp[]) => WorkspaceGraph;
 
-function patchBlock(graph: WorkspaceGraph, id: Ref, patch: Partial<SemanticBlock>): WorkspaceGraph {
-  const existing = graph.blocks.get(id);
-  if (!existing) return graph;
-  const blocks = new Map(graph.blocks);
-  blocks.set(id, { ...existing, ...patch });
-  return { ...graph, blocks };
-}
-
-function removeBlock(graph: WorkspaceGraph, id: Ref): WorkspaceGraph {
-  if (!graph.blocks.has(id)) return graph;
-  const blocks = new Map(graph.blocks);
-  blocks.delete(id);
-  const links = new Map(graph.links);
-  for (const [linkId, link] of links) {
-    if (link.source === id || link.target === id) links.delete(linkId);
-  }
-  return { ...graph, blocks, links, roots: graph.roots.filter((root) => root !== id) };
-}
-
-/** Apply one op, returning a new graph (copy-on-write for the store atom). */
-export function applyWorkspaceOp(graph: WorkspaceGraph, op: WorkspaceOp): WorkspaceGraph {
-  switch (op.op) {
-    case 'block.add':
-      return addBlock(graph, op.block, op.after);
-    case 'block.patch':
-      return patchBlock(graph, op.id, op.patch);
-    case 'block.remove':
-      return removeBlock(graph, op.id);
-    case 'link.add': {
-      const links = new Map(graph.links);
-      links.set(op.link.id, op.link);
-      return { ...graph, links };
-    }
-    case 'link.remove': {
-      if (!graph.links.has(op.id)) return graph;
-      const links = new Map(graph.links);
-      links.delete(op.id);
-      return { ...graph, links };
-    }
-    case 'roots.set':
-      return { ...graph, roots: [...op.roots] };
-  }
-}
-
-/** Fold an op stream onto a graph, in order. */
-export const applyWorkspaceOps = (graph: WorkspaceGraph, ops: readonly WorkspaceOp[]): WorkspaceGraph =>
-  ops.reduce(applyWorkspaceOp, graph);
-
-/** The links touching a block, in either direction. */
-export const linksTouching = (graph: WorkspaceGraph, id: Ref): SemanticLink[] =>
-  [...graph.links.values()].filter((link) => link.source === id || link.target === id);
+/** The links touching a block, in either direction. Contract-level; refined to SeNARS types. */
+export const linksTouching = contractLinksTouching as (graph: WorkspaceGraph, id: Ref) => SemanticLink[];

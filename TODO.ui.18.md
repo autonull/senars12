@@ -641,6 +641,20 @@ Commit `ui18: Phase 2 Part 2 — open Shape, Arrangement, FocusKind registries; 
 **New opportunities:**
 - Apply the same shim to `framework/coordinates.ts` only after its `FocusKind` is refined over the
   contract's open `string` (keep SeNARS kinds richly typed at the codec layer, per §18.3 D2)
+
+### Phase 4 slice — refine workspace-graph over the neutral contract (lossless, types + ops) — **LANDED**
+
+- Re-pointed the SeNARS-specific `workspace-graph` implementation at the neutral contract: `Ref`, `Uncertainty`,
+  `SemanticRole`, `BlockStatus`, `CreatedBy` are now aliases over `@senars/ui-contract/core` (types remain SeNARS-refined).
+- Re-exported `Artifact` from the contract's `Artifact` while preserving the SeNARS `spec?: ViewSpec` enrichment.
+- Re-pointed the copy-on-write graph operations at the contract: `emptyWorkspaceGraph`, `applyWorkspaceOp`,
+  `applyWorkspaceOps`, `linksTouching` now delegate to `@senars/ui-contract/core` (cast once at the seam, no copies).
+- Verified: `pnpm --dir ui typecheck` · `pnpm --dir ui test:unit` (872) · `pnpm --dir ui-contract typecheck`.
+
+**Remaining refinement opportunities (additive, by design):**
+- Refine `SemanticBlock`/`WorkspaceGraph`/`WorkspaceOp` to extend the contract's generic records instead of
+  redeclaring them, without losing `BlockKind`'s descriptor-derived union or `SemanticLinkKind`'s closed set.
+- Extend the same aliasing pattern to `neighborhood.ts` once its signatures are refined over contract `Ref`/block kinds.
 - Add `ui-shell` content (surface registry presets, app chrome) by moving files, not copy
 - Expose `ids` on UI `Registry consumers` is now available for free (contract addition)
 
