@@ -16,10 +16,11 @@
  * satisfied by a file that merely looks right.
  *
  * The scenarios run with LM and tools off, so this covers the reasoning path.
- * The CORE.19 additions at the bottom bring the autonomy heartbeat, persistence
- * save/restore, and (feature flags on) the episode consolidator + governance
- * pipeline inside the same spy. System One's manifold still needs an embedding
- * backend, so it remains outside — a test that cannot reach it cannot gate it.
+ * System One's manifold is now reachable too (the CORE.19 real-embeddings work
+ * gives it a deterministic encoder — mock in CI, the real GGUF locally), so
+ * `system-one-decide` joins them. The CORE.19 additions at the bottom bring the
+ * autonomy heartbeat, persistence save/restore, and (feature flags on) the
+ * episode consolidator + governance pipeline inside the same spy.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installIdSource, sequentialIdSource } from '@senars/util';
@@ -29,6 +30,7 @@ import { goalToolFeedbackScenario } from './scenarios/goal-tool-feedback.scenari
 import { contradictionDriveAdaptationScenario } from './scenarios/contradiction-drive-adaptation.scenario';
 import { questionPrologResolutionScenario } from './scenarios/question-prolog-resolution.scenario';
 import { lmRuleFallbackScenario } from './scenarios/lm-rule-fallback.scenario';
+import { systemOneDecideScenario } from './scenarios/system-one-decide.scenario';
 
 const SCENARIOS = [
   beliefDerivationAskScenario,
@@ -36,6 +38,7 @@ const SCENARIOS = [
   contradictionDriveAdaptationScenario,
   questionPrologResolutionScenario,
   lmRuleFallbackScenario,
+  systemOneDecideScenario,
 ];
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-8[0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -99,6 +102,16 @@ describe('TODO28 §7.3 — hermetic seeded run', () => {
  * id/RNG draw in any of them fails here by throwing rather than by being noticed.
  */
 describe('CORE.19 C8.4 — new loops draw no ambient entropy', () => {
+  beforeEach(() => {
+    vi.spyOn(Math, 'random').mockImplementation(AMBIENT);
+    vi.spyOn(crypto, 'randomUUID').mockImplementation(AMBIENT);
+  });
+
+  afterEach(() => {
+    installIdSource();
+    vi.restoreAllMocks();
+  });
+
   it('autonomy stepping', async () => {
     const { NAR } = await import('@senars/nar/nar.js');
     const { e2eNARConfig } = await import('./fixtures');

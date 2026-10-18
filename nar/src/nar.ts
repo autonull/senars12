@@ -207,6 +207,11 @@ export class NAR extends BaseComponent {
     // its `source` (and keeps its position for the C4.1 boundary), a bare function
     // passes through. Every subsystem below shares the one resolved stream.
     this.config = { ...validateNarConfig(config), rng: resolveRng(config.rng) };
+    // Ids are minted deep in the gates, the task manager, the concept store and
+    // the AikrShell bag, none of which receives a config — and some mint during
+    // construction, before `initialize`. The source is installed for the NAR's
+    // whole lifetime (constructor → dispose) so a seeded run fixes those ids too.
+    if (this.config.ids) this.#restoreIdSource ??= installIdSource(this.config.ids);
     this.gates = config.gateRegistry ?? createGateRegistry();
     this.budgetGate = this.gates.getBudgetGate() as KernelBudgetGate;
     this.controlBudgets = new ControlBudgets(this.budgetGate, config.controlBudgets);
@@ -398,10 +403,6 @@ export class NAR extends BaseComponent {
   }
 
   override async initialize(): Promise<void> {
-    // Ids are minted deep in the gates, the task manager and the concept store,
-    // none of which receives a config, so the source is installed process-wide
-    // for this NAR's lifetime rather than threaded to 38 call sites.
-    if (this.config.ids) this.#restoreIdSource ??= installIdSource(this.config.ids);
     await super.initialize();
     this.logger?.info('NAR initialized');
   }

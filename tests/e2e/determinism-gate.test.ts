@@ -7,6 +7,7 @@ import { questionPrologResolutionScenario } from './scenarios/question-prolog-re
 import { lmRuleFallbackScenario } from './scenarios/lm-rule-fallback.scenario';
 import { autonomySteppingScenario } from './scenarios/autonomy-stepping.scenario';
 import { consolidationGovernanceScenario } from './scenarios/consolidation-governance.scenario';
+import { systemOneDecideScenario } from './scenarios/system-one-decide.scenario';
 
 const GOLDEN_SCENARIOS = [
   beliefDerivationAskScenario,
@@ -16,6 +17,7 @@ const GOLDEN_SCENARIOS = [
   lmRuleFallbackScenario,
   autonomySteppingScenario,
   consolidationGovernanceScenario,
+  systemOneDecideScenario,
 ];
 
 /**
@@ -28,19 +30,23 @@ describe('Determinism gate (C27)', () => {
 
   for (const scenario of GOLDEN_SCENARIOS) {
     it(`produces identical traces across ${RUNS} runs: ${scenario.name}`, async () => {
-      const traces: string[] = [];
+      const traces: { hash: string; decisions: string }[] = [];
 
       for (let i = 0; i < RUNS; i++) {
         const result = await runScenario(scenario);
         expect(result.passed).toBe(true);
         expect(result.trace.stateHash).toBeTruthy();
-        traces.push(result.trace.stateHash);
+        traces.push({
+          hash: result.trace.stateHash,
+          decisions: JSON.stringify(result.trace.decisions),
+        });
       }
 
-      // All runs must produce identical state hashes
-      const firstHash = traces[0];
+      // All runs must produce identical state hashes and identical decisions
+      const first = traces[0]!;
       for (let i = 1; i < traces.length; i++) {
-        expect(traces[i]).toBe(firstHash);
+        expect(traces[i]!.hash).toBe(first.hash);
+        expect(traces[i]!.decisions).toBe(first.decisions);
       }
     }, 60000);
   }

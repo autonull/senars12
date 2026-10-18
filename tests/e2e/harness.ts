@@ -3,6 +3,8 @@ import { Truth } from '@senars/nar/index.js';
 import { NAR } from '@senars/nar/nar.js';
 import type { StrategyRegistry } from '@senars/nar/strategies/registration.js';
 import type { Task } from '@senars/nar/types/core.js';
+import type { DecideResult } from '@senars/nar/lm/system-one/decide.js';
+import { createSystemOneBudget, type JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
 import { NarEventBus } from '@senars/nar/types/events.js';
 import { type Clock, fixedClock, SeededRNG, sequentialIdSource, systemClock } from '@senars/util';
 import { e2eNARConfig } from './fixtures.js';
@@ -26,6 +28,7 @@ export type ScenarioStep =
   | { type: 'run'; cycles?: number }
   | { type: 'autonomy'; ticks?: number }
   | { type: 'consolidate'; budget?: number }
+  | { type: 'decide'; context: string; queries: readonly JudgmentQuery[] }
   | { type: 'assert'; check: (trace: NormalizedTrace) => void | Promise<void> };
 
 export interface ExpectedTrace {
@@ -41,6 +44,7 @@ export interface NormalizedTrace {
   derivations: DerivationTrace[];
   budgetEvents: BudgetEventTrace[];
   adaptations: AdaptationTrace[];
+  decisions: DecisionTrace[];
   events: EventTrace[];
   stateHash: string;
   cycleCount: number;
@@ -76,6 +80,23 @@ export interface AdaptationTrace {
   cycle: number;
 }
 
+/**
+ * A deterministic projection of a `DecideResult` — the wall-clock
+ * `provenance.timestamp` is the declared exemption (D13) and is dropped, so two
+ * seeded runs compare exactly.
+ */
+export interface DecisionTrace {
+  band: string;
+  abstained: boolean;
+  inputDigest: string;
+  verdicts: {
+    rubric: string;
+    band: string;
+    abstained: boolean;
+    skipped: boolean;
+  }[];
+}
+
 export interface EventTrace {
   channel: string;
   payload: unknown;
@@ -96,6 +117,7 @@ export class ScenarioHarness {
   private eventBus: NarEventBus;
   private nar: NAR | null = null;
   private eventLog: EventTrace[] = [];
+  private decisions: DecisionTrace[] = [];
   private cycleCount = 0;
   private spec: ScenarioSpec | null = null;
 
@@ -190,6 +212,20 @@ export class ScenarioHarness {
         await this.nar!.consolidateLearning({ budget: step.budget });
         break;
       }
+      case 'decide': {
+        const decider = this.nar!.getSystemOneDecider();
+        if (!decider) throw new Error('decide step needs System One (systemOne.enabled)');
+        this.decisions.push(
+          projectDecision(
+            await decider.decide({
+              context: step.context,
+              queries: step.queries,
+              budget: createSystemOneBudget(),
+            })
+          )
+        );
+        break;
+      }
       case 'assert': {
         const trace = this.normalizeTrace();
         await step.check(trace);
@@ -254,6 +290,7 @@ export class ScenarioHarness {
       derivations,
       budgetEvents,
       adaptations,
+      decisions: this.decisions,
       events: this.eventLog,
       stateHash,
       cycleCount: this.cycleCount,
@@ -304,6 +341,21 @@ export class ScenarioHarness {
     return this.nar;
   }
 }
+
+const projectDecision = (result: DecideResult): DecisionTrace => ({
+  band: result.band,
+  abstained: result.abstained,
+  inputDigest: result.provenance.inputDigest,
+  verdicts: result.verdicts.map((verdict) => ({
+    rubric:
+      verdict.query.kind === 'classify'
+        ? (verdict.query.rubric ?? 'task_type')
+        : verdict.query.rubric,
+    band: verdict.band,
+    abstained: verdict.abstained,
+    skipped: verdict.skipped,
+  })),
+});
 
 export async function runScenario(spec: ScenarioSpec): Promise<ScenarioResult> {
   const harness = new ScenarioHarness(spec);

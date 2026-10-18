@@ -7,6 +7,7 @@ import { questionPrologResolutionScenario } from './scenarios/question-prolog-re
 import { lmRuleFallbackScenario } from './scenarios/lm-rule-fallback.scenario';
 import { autonomySteppingScenario } from './scenarios/autonomy-stepping.scenario';
 import { consolidationGovernanceScenario } from './scenarios/consolidation-governance.scenario';
+import { systemOneDecideScenario } from './scenarios/system-one-decide.scenario';
 
 const GOLDEN_SCENARIOS = [
   beliefDerivationAskScenario,
@@ -16,6 +17,7 @@ const GOLDEN_SCENARIOS = [
   lmRuleFallbackScenario,
   autonomySteppingScenario,
   consolidationGovernanceScenario,
+  systemOneDecideScenario,
 ];
 
 describe('Golden characterization scenarios (Tier 1)', () => {
@@ -32,6 +34,7 @@ describe('Golden characterization scenarios (Tier 1)', () => {
       expect(run1.trace.derivations.length).toBe(run2.trace.derivations.length);
       expect(run1.trace.budgetEvents.length).toBe(run2.trace.budgetEvents.length);
       expect(run1.trace.adaptations.length).toBe(run2.trace.adaptations.length);
+      expect(run1.trace.decisions.length).toBe(run2.trace.decisions.length);
 
       for (let i = 0; i < run1.trace.tasks.length; i++) {
         expect(run1.trace.tasks[i]).toEqual(run2.trace.tasks[i]);
@@ -44,6 +47,9 @@ describe('Golden characterization scenarios (Tier 1)', () => {
       }
       for (let i = 0; i < run1.trace.adaptations.length; i++) {
         expect(run1.trace.adaptations[i]).toEqual(run2.trace.adaptations[i]);
+      }
+      for (let i = 0; i < run1.trace.decisions.length; i++) {
+        expect(run1.trace.decisions[i]).toEqual(run2.trace.decisions[i]);
       }
     }, 30000);
   }

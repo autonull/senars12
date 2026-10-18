@@ -351,6 +351,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 | `todo17-games`/`todo17-parity` under full `test:unit` | `tests/nar/todo17-{games,parity}.test.ts` | pass in isolation; time out (15000ms) only under whole-suite CPU contention. Flaky under load, not chased (§rule 6) |
 | `todo16-batching` under full `test:unit` | `tests/nar/todo16-batching.test.ts` (`judgeBatch processes 64 queries in single joint pass`) | passes in isolation (2.3s); the `elapsed < 50ms` micro-benchmark flaked at 50.56ms under whole-suite contention. Load-flaky, not chased (§rule 6) |
 | MCP resource union `.text` narrowing | `tests/mcp/mcp-resources.test.ts:26` | red at root `pnpm typecheck` (the `McpResource` text/blob union is not narrowed before `.text`); the C7.3 test passes at runtime. Pre-existing (confirmed at `ccb2d05c`), not chased (§rule 6) |
+| `bot-cli` provider assertion | `tests/e2e/bot-cli.test.ts:50` (`expect(out).toContain('provider=mock')`) | red; reproduced with the CORE.19 C8.4 work stashed, so pre-existing and unrelated to that slice — the CLI reports a different provider label than the test's literal. Not chased (§rule 6) |
 
 | `env:grammar` — pre-existing UI `process.env` reads | `ui/src/server/index.ts:57,141` | **CORE.19 regression fixed**: the new `nar/src/metrics/reasoning-http.ts` read is now `envBool(...)` (`@senars/util/config`); the two UI sites pre-date CORE.19 (2026-10-07/10-14) and are UI-owned — not chased (halt rule 1) |
 | `primitives:grammar` — 9 open-coded idioms | `ui/src/client/{components,core}/*.ts` | pre-existing (2026-10-09), UI-owned — not chased (halt rule 1) |
@@ -517,7 +518,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - **C7.6 `--benchmarks` — DONE** (see the "last non-blocked items" section): a real measured report (`src/bin/lib/benchmarks.ts`), no longer a placeholder.
 - **C7.4 seam — DONE** (see the "last non-blocked items" section): `backends.nar.statePath` makes the path configurable, and `--status`/`--doctor` honor it instead of hard-coding the default.
 
-### C8 — Batteries, gates, CI & security hardening — **PARTIAL (C8.1–C8.7 done; System One manifold alone stays outside hermetic coverage)**
+### C8 — Batteries, gates, CI & security hardening — **DONE (C8.1–C8.7; System One's manifold now in hermetic coverage)**
 
 **Done:**
 - C8.1 (partial): `egress:invariant` is added to `GATES` (`scripts/lib/gates.ts`), so `pnpm gates` matches CI. The `budgetgate-verification` exclusion in `test:unit` is **kept deliberately**: the `todo19-profiles` grep-guard asserts both fast and slow lanes name the suite, and the quarantined `.too_slow` file is what the exclusion documents — removing it is a red, so the "broken reference" is a guard-enforced exclusion, not a defect.
@@ -534,7 +535,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 
 **Remaining:**
 - C8.4 (determinism half) — **DONE (this slice).** An `autonomy-stepping` scenario joins `GOLDEN_SCENARIOS` in both the determinism gate and the golden-characterization gate: a NAR in `mode:'stepping'` with seeded `rng`/`clock`/`ids` takes 6 `autonomyTick()`s (heartbeat + curiosity + consolidation), and every id and the `stateHash` agree across runs. The harness gained an `autonomy` step type; the injected `fixedClock` freezes the wall-clock window, so the only bound in play is the cycle budget. See §13.
-- C8.4 (the flagged-out subsystems): the **episode consolidator and the governance pipeline are now inside coverage** (this slice) — their flags alone make them reachable through `consolidateLearning`, so the hermetic block reaches them and the `consolidation-governance` golden scenario runs them under the determinism gate. **System One's manifold alone stays outside**: reaching it needs an embedding backend, and a test that cannot reach it cannot gate it (the harness doc says so).
+- C8.4 (the flagged-out subsystems): the **episode consolidator and the governance pipeline are now inside coverage** (this slice) — their flags alone make them reachable through `consolidateLearning`, so the hermetic block reaches them and the `consolidation-governance` golden scenario runs them under the determinism gate. **System One's manifold is now inside coverage too** — the real-embeddings slice gave it a deterministic encoder (mock in CI, the real GGUF locally), so `system-one-decide` runs the manifold under both gates; see the `C8.4 — System One decide path` subsection in §13.
 
 ### C9 — Document the hardened core — **DONE (C9.1, C9.2, C9.4 done; C9.3 is UI.19-owned)**
 
@@ -613,7 +614,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 
 **Evidence:** `core19-c6` (16, +2); the memory/state/kernel unit set (`memory`, `memory-serialization`, `memory-revision`, `memory-index`, `memory-pressure`, `state-persistence`, `task-manager`, `revision-history`, `term-identity`, `nar-execution`, `parser-parseTask`) 97 green; the full CORE.19 suite (`core19-*` 73) green; `typecheck:packages` clean, `lint` clean. (The parallel-worker run of the unit set hit a pre-existing `onnxruntime-node` "Module did not self-register" flake — unrelated to this slice; the set is green under `--no-file-parallelism`.)
 
-**Notes for the next slice:** the remaining open items are unchanged — the `completed` chain ring is still a UI handoff, not a persisted query window (C4.3's declared seam); C5.2 is a UI-package edit; C7.6 `--benchmarks` stays a declared placeholder until a run yields costly-derivation stats. (C8.4's episode consolidator + governance have since joined hermetic coverage — see the C8.4 section at the end; only System One's manifold stays out.)
+**Notes for the next slice:** the remaining open items are unchanged — the `completed` chain ring is still a UI handoff, not a persisted query window (C4.3's declared seam); C5.2 is a UI-package edit; C7.6 `--benchmarks` stays a declared placeholder until a run yields costly-derivation stats. (C8.4's episode consolidator + governance have since joined hermetic coverage — see the C8.4 section at the end. **Superseded:** System One's manifold has since joined too — the real-embeddings slice made it reachable and the `system-one-decide` scenario gates it; C8.4 is now complete.)
 
 ### C8.4 — Episode consolidator + governance join the hermetic/determinism gates — **DONE**
 
@@ -629,7 +630,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 
 **Evidence:** `pnpm test:hermetic` green (10), `pnpm test:determinism` green (14 = 7 scenarios × 2), golden-characterization green (14), the full CORE.19 suite (`core19-*` 61) green; `pnpm lint` clean; root `pnpm typecheck` shows the same §12 reds only (**no new ones**; no `tests/e2e` error). Tests-only — no production LOC moved, so `complexity:budget` and the `nar.ts` monolith hold.
 
-**Remaining:** **System One's manifold alone stays outside hermetic coverage** — reaching it needs an embedding backend (encoder model), not just a flag, so it stays a declared gap. Everything else in C8 is done.
+**Remaining:** **Superseded** — System One's manifold is no longer a declared gap: the real-embeddings slice gave it a deterministic encoder and the `system-one-decide` scenario gates it. Everything in C8 is done.
 
 ### C1 (stream) + C7.4/C7.6 (non-UI reach) — the last non-blocked items — **DONE**
 
@@ -678,7 +679,23 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 **Evidence:** `core19-embedding` (4, incl. the real-model case under vitest, ~5s), `todo16c-encoder-digest`/`cortex`/`model-override`, `todo29a-a2`, `RetrievalVerifiedMemory`, `core19-m0`/`c7` (60); `test:determinism`, `test:hermetic`, `persistence:replay` green; §11 gates green (`core:no-lm`, `deps:direction`, `deps:gate`, `lint`, `typecheck:packages`, `typecheck:bin`, `exports:{check,barrels,audit}`, `resource:policy`, `memory:ports`, `attention:write-surface`, `control-budgets`, `gates:one-cycle-path`).
 
 **Still open (the other "blocks", all reachable now that the halt list is lifted):**
-- **C8.4 System One coverage**: the manifold is reachable, but no determinism/hermetic *scenario* drives it yet. Add a `decide` harness step + a scenario (mock embedder in CI, real locally — both deterministic) so it joins `test:determinism`/`test:hermetic`.
 - **C2.1/C3.4/C5.2 (UI seams)**: move `runCycles` kernel-side; emit `derivation.record` kernel-side instead of the UI drain; the UI server should not drive cycles in autonomous modes.
 - **Gate reds**: the §12 ledger — `typecheck`/`test:unit` (prompt-perception, server catalogs, refactor suites, mcp-resources), the UI grammar gates, `ui:gate` (browser deps), and a suspended `complexity:budget`.
 - **C9.3 `PHILOSOPHY.md`** and the **completed-chain ring** (§9).
+
+### C8.4 — System One's decide path joins the hermetic/determinism gates — **DONE**
+
+**Status:** The last C8.4 gap is closed. The real-embeddings slice made the manifold *reachable*; this slice brings it *inside the gates*. A `decide` harness step drives System One end-to-end on a running NAR, and a `system-one-decide` golden scenario runs it under both the determinism gate and the hermetic ambient-entropy spy. The encoder resolves to the mock in CI and the real GGUF locally — both deterministic — so the gate holds in both postures.
+
+**Done:**
+- `tests/e2e/harness.ts`: a `decide` `ScenarioStep` (`{type:'decide', context, queries}`) → `nar.getSystemOneDecider().decide({context, queries, budget})`. The trace gained a `decisions: DecisionTrace[]` projection of the `DecideResult` — `{band, abstained, inputDigest, verdicts:[{rubric, band, abstained, skipped}]}` — dropping only the wall-clock `provenance.timestamp` (the declared D13 exemption), so two seeded runs compare exactly. A module-level `projectDecision` keeps the projection in one place.
+- `tests/e2e/scenarios/system-one-decide.scenario.ts` (new, seed 6060): `systemOne.enabled:true`, two beliefs + `run(3)`, then a `decide` with two `evaluate` queries (`groundedness`, `plausibility`). It asserts one decision, a verdict per query, and a UUID-shaped `inputDigest` — so it is more than a no-throw check. It joins `GOLDEN_SCENARIOS` in `determinism-gate.test.ts` and `golden-scenarios.test.ts`, and `SCENARIOS` in `hermetic-run.test.ts`.
+- `tests/e2e/determinism-gate.test.ts`: each scenario now compares the `JSON.stringify(decisions)` projection as well as the `stateHash` — the manifold's *output* is gated, not just the state it leaves behind. `golden-scenarios.test.ts` gained the same per-decision `toEqual` comparison.
+- `tests/e2e/hermetic-run.test.ts`: the CORE.19 C8.4 block gained the ambient-entropy `beforeEach`/`afterEach` (it previously claimed "the same ambient-entropy spy" without installing one — a doc/behaviour mismatch now fixed); `system-one-decide` is the first scenario to run under it. That spy **surfaced a real gap**: `EpisodeConsolidator`'s `AikrShell` bag mints a `makeId()` in its *constructor*, but the seeded id source was installed in `NAR.initialize()` — after construction — so a seeded run stamped one ambient id before the source took over.
+- `nar/src/nar.ts`: the id source is now installed in the **constructor** (`if (this.config.ids) this.#restoreIdSource ??= installIdSource(this.config.ids)`) — before any subsystem is built — and the redundant install in `initialize()` is removed. This is the fix for the gap above: every id a seeded run mints, including those minted during construction, is now deterministic. `dispose()` still restores the previous source.
+
+**Files touched:** `tests/e2e/harness.ts`, `tests/e2e/scenarios/system-one-decide.scenario.ts` (new), `tests/e2e/determinism-gate.test.ts`, `tests/e2e/golden-scenarios.test.ts`, `tests/e2e/hermetic-run.test.ts`, `nar/src/nar.ts`.
+
+**Evidence:** `test:determinism` green (16 = 8 scenarios × 2), `test:hermetic` green (11), golden-characterization green (16); the full CORE.19 suite (`core19-*` + `unit/core/core19-c2` 77) green; `persistence:replay` (3) green; `tests/e2e/` green except a **pre-existing** `bot-cli.test.ts` failure (reproduced on a clean stash of this slice — the `provider=mock` assertion; unrelated, not chased per §rule 6); `typecheck:packages` and `typecheck:bin` clean; `deps:gate`, `deps:direction`, `exports:check`, `lint` clean. The only production LOC moved is `nar/src/nar.ts` (the constructor install), so the `nar.ts` monolith holds and `complexity:budget` stays suspended as recorded.
+
+**Remaining:** nothing in C8.4. The open items are unchanged — the UI seams (C2.1/C3.4/C5.2), the completed-chain ring (§9), and C9.3 (`PHILOSOPHY.md`, UI.19-owned).
