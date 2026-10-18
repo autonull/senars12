@@ -276,14 +276,38 @@ export function handleReasoningAdjustBudget(
   ctx: ServerHandlerContext,
   msg: { type: 'reasoning.adjust-budget'; budget: number; seqId?: number }
 ): void {
-  respondReasoning(ctx.ws as WebSocket, false, `${msg.type} is not yet wired to the engine`, msg.seqId);
+  const engine = getNar(ctx);
+  if (!engine?.adjustCycleBudget) {
+    respondReasoning(ctx.ws as WebSocket, false, 'Engine cannot adjust the cycle budget', msg.seqId);
+    return;
+  }
+  try {
+    engine.adjustCycleBudget(msg.budget);
+    respondReasoning(ctx.ws as WebSocket, true, undefined, msg.seqId);
+  } catch (e: unknown) {
+    respondReasoning(ctx.ws as WebSocket, false, (e as Error).message, msg.seqId);
+  }
 }
 
 export function handleReasoningAdjustProvider(
   ctx: ServerHandlerContext,
   msg: { type: 'reasoning.adjust-provider'; provider: string; seqId?: number }
 ): void {
-  respondReasoning(ctx.ws as WebSocket, false, `${msg.type} is not yet wired to the engine`, msg.seqId);
+  const lm = getNar(ctx)?.getLMClient?.();
+  if (!lm) {
+    respondReasoning(ctx.ws as WebSocket, false, 'No LM provider runtime is configured', msg.seqId);
+    return;
+  }
+  if (!LM_PROVIDER_NAMES.includes(msg.provider as (typeof LM_PROVIDER_NAMES)[number])) {
+    respondReasoning(ctx.ws as WebSocket, false, `Unknown LM provider "${msg.provider}"`, msg.seqId);
+    return;
+  }
+  if (!lm.selectProvider) {
+    respondReasoning(ctx.ws as WebSocket, false, 'The LM runtime cannot select a provider', msg.seqId);
+    return;
+  }
+  lm.selectProvider(msg.provider);
+  respondReasoning(ctx.ws as WebSocket, true, undefined, msg.seqId);
 }
 
 export async function handleCycleStep(

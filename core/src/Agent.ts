@@ -78,6 +78,7 @@ export class Agent {
   #lastCycleTime = 0;
   #lastResponse = '';
   #host?: CycleHost;
+  readonly #capabilities: Partial<AgentCapabilities['supports']>;
 
   constructor(opts: AgentOptions = {}) {
     this.id = opts.id ?? generateId('agent');
@@ -96,6 +97,7 @@ export class Agent {
     this.#consolidateLearning = opts.consolidateLearning;
     this.#consolidation = opts.consolidation;
     this.threadScope = opts.threadScope;
+    this.#capabilities = opts.capabilities ?? {};
 
     this.memory.connectLog(this.log);
     this.memory.connectEngines(this.engines);
@@ -184,6 +186,7 @@ export class Agent {
         rlfp: false,
         selfReasoning: false,
         autonomyLoop: false,
+        ...this.#capabilities,
       },
     };
   }

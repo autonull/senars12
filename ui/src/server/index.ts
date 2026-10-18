@@ -451,6 +451,7 @@ function createServerWithProjection(
     };
     agent.on('*', (event: CognitiveEvent) => {
       if (event.type === 'derivation.made') derivationsWindow++;
+      if (event.type === 'cycle') broadcastCycleState(event.payload);
       dispatchGraphEvent(event, reducerCtx);
       broadcastCognitiveEvent(event);
     });
@@ -548,6 +549,26 @@ function createServerWithProjection(
       if (client.readyState === WebSocket.OPEN) {
         client.send(msg);
       }
+    }
+  }
+
+  /**
+   * Relay the kernel heartbeat as a `cycle.state` frame (CORE.19 C2.2). The bus
+   * already emits one `cycle` cognitive event per cycle; this projects it to the
+   * frame consumers already read, so the UI is pushed the state instead of having
+   * to poll a control message.
+   */
+  function broadcastCycleState(payload: Extract<CognitiveEvent, { type: 'cycle' }>['payload']): void {
+    const msg = JSON.stringify({
+      type: 'cycle.state',
+      state: payload.state,
+      cycleCount: payload.cycle,
+      phase: payload.phase,
+      activeTasks: payload.activeTasks,
+      budget: payload.budget,
+    } satisfies IncomingFromServer);
+    for (const client of wss.clients) {
+      if (client.readyState === WebSocket.OPEN) client.send(msg);
     }
   }
 

@@ -382,22 +382,25 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - C1.4: the new fire ring is declared in `RESOURCE_CONTRACTS` (`kernel.rule-fires`, 1024, drop-oldest) so `resource:policy` covers it.
 
 **Remaining:**
-- C1.2: bridge output still reaches `Agent.#cognitive`, not the durable `EventLog`. Wire the bridge/authored events into the append-only log so "the log is the source of truth" holds. Note: `nar:derivation` (`nar-execution.ts` `admit()`) is emitted on the bus but is **not typed** in `NAREventMap` — an untyped side event to fold into the stream while doing C1.2.
-- C1.3: `derivation.accepted` still has reducers/catalog/replay entries and no emitter; decide emit-vs-remove.
+- C1.2: bridge output still reaches `Agent.#cognitive`, not the durable `EventLog`. Wire the bridge/authored events into the append-only log so "the log is the source of truth" holds. **Friction discovered (log in §9):** `MemoryService.queryEpisodic()` reads the log with *no type filter* and `recall` calls it with none, so appending every bridge event (`cycle`, `derivation.made`, …) would flood the episodic recall window and displace real memory. The wiring therefore has to declare which event families are durable-and-recalled vs durable-and-not, before it is safe. Note: `nar:derivation` (`nar-execution.ts` `admit()`, `:410`) is emitted on the bus but is **not typed** in `NAREventMap` — an untyped side event to fold into the stream while doing C1.2.
+- C1.3: `derivation.accepted` still has reducers/catalog/replay entries and no emitter. **Removal is blocked** — the consumer lives in the UI-owned `ui/src/server/event-reducers.ts:85` and §2 forbids UI edits; so the resolution must be *emit* (one `derivation.accepted` per rule fire maps cleanly: `DerivationStep` already carries `ruleId`/`premises`/`conclusion`/`truth`/`evidenceLineage`/`independence`). Emitting it before C1.2's flood decision is resolved would add another high-frequency log family, so sequence it with C1.2.
 - C1.5: the single query surface over the stream (by type/correlation/cycle/term) is not yet built; `getRuleFiresByCycle` is the only cycle query so far.
 
-### C2 — Kernel control plane & cycle semantics — **PARTIAL (C2.1, C2.2 done; C2.3–C2.6 open)**
+### C2 — Kernel control plane & cycle semantics — **PARTIAL (C2.1, C2.2 done; C2.4, C2.5 done; C2.3, C2.6 open)**
 
 **Done:**
 - C2.1 (kernel side): `step`/`pause`/`resume` + control state live in `NARExecution`, exposed on `NAR`; a paused kernel refuses to advance on `run`. `runCycles` still lives UI-side (`ui/src/server/server-utils.ts`) — not yet moved kernel-side.
 - C2.2: `CycleStepMsg`/`CyclePauseMsg`/`CycleResumeMsg`/`CycleRewindMsg` added to `core/src/protocol`; `CycleStateMsg` extended (`phase`/`activeTasks`/`budget`) and exported; added to `IncomingFromClient`, `PROTOCOL_SPECS`, and server `SERVER_HANDLERS`; UI `pnpm --dir ui test:unit` green (874).
+- C2.2 (relay): the server now projects each `cycle` cognitive event to a `cycle.state` frame and broadcasts it to every client (`ui/src/server/index.ts` `broadcastCycleState`), so the heartbeat is pushed after every cycle instead of only in response to a control message.
+- C2.4: `reasoning.adjust-budget` → `NAR.adjustCycleBudget` (sets the kernel gate's `maxCycles`; `NAR.getBudget()` reads it back) → responds `ok`/typed reason. `reasoning.adjust-provider` → validates against `LM_PROVIDER_NAMES` and calls `getLMClient().selectProvider`, else a typed reason. The string "is not yet wired to the engine" is gone (`ui/src/server/handlers.ts`).
+- C2.5: `Agent.capabilities()` merges an honest `capabilities` override supplied by the composition root; `createNarAgent` derives `drives`/`rlfp`/`selfReasoning` from the wired NAR subsystems (`getDriveManager`/`getRLFP`/`getSelfAnalyzer`), `autonomyLoop` stays `false` until C5.
+- Tests: `tests/unit/core/core19-c2.test.ts` — 8 tests over `adjustCycleBudget`, the two handlers (success + typed rejection + unknown provider + no runtime), and capability merging. All green.
 
 **Remaining:**
-- C2.3: rewind is declared-partial and **not implemented**; `handleCycleRewind` rejects with the typed reason rather than faking a restore. Needs the checkpoint `{graph, bag, pending, cycle, RNG, id high-water, gate ring}`.
-- C2.2 (relay): `cycle.state` is only sent in response to control messages; it is not yet relayed after every cycle by the server (the bus already emits it).
-- C2.4: `reasoning.adjust-budget`/`adjust-provider` still return "is not yet wired to the engine" — replace with a real path or a typed `not-supported` (D15).
-- C2.5: `Agent.capabilities()` is still hardcoded; derive from wired subsystems.
-- C2.6: pause/resume tested (`core19-m0.test.ts`); rewind and the capability report are not.
+- C2.3: rewind is declared-partial and **not implemented**; `handleCycleRewind` rejects with the typed reason rather than faking a restore. **Deferred to C4** — a faithful partial checkpoint `{graph, bag, pending, cycle, RNG, id high-water, gate ring}` *is* C4's consistency boundary; implementing it here would either duplicate C4 or fake a restore (D15). Re-entry: when C4's boundary codec lands, wire `NAR.rewind(cycles)` to restore the declared subset and report the gaps.
+- C2.6: rewind and the capability-report-under-a-wired-engine tests are not yet written; pause/resume are covered by `core19-m0.test.ts`.
+- C2.1: `runCycles` still drives the kernel from the UI package (`D12`: move kernel-side).
+
 
 ### C3 — Gate observation & provenance records — **NOT STARTED**
 

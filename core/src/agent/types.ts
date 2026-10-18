@@ -67,6 +67,12 @@ export interface AgentOptions extends UtilAgentOptions {
   consolidation?: { enabled?: boolean; budget?: number };
   /** Phase A (REFACTOR.todo4): per-correlationId scope for ContrastiveMemory isolation. */
   threadScope?: CorrelationScopeStore;
+  /**
+   * Honest capability overrides (CORE.19 C2.5/D15). The default baseline reports
+   * the optional subsystems absent; a composition root that wired one supplies the
+   * real answer here rather than the Agent guessing from a contract it cannot see.
+   */
+  capabilities?: Partial<AgentCapabilities['supports']>;
 }
 
 /** Options once the cortex has been resolved from a service. `util`'s

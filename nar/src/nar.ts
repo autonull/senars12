@@ -485,6 +485,23 @@ export class NAR extends BaseComponent {
     this.memory.setConfig(updates);
   }
 
+  /**
+   * Raise or lower the kernel's cycle ceiling (CORE.19 C2.4). A single scalar
+   * because that is what `reasoning.adjust-budget` carries; the other budget
+   * dimensions keep their declared ceilings and consumption is left untouched.
+   */
+  adjustCycleBudget(maxCycles: number): void {
+    this.budgetGate.setBudget({ ...this.budgetGate.getBudget(), maxCycles });
+  }
+
+  /**
+   * The kernel's own budget — the one every charge is accounted against, not the
+   * registry's (CORE.19 C2.4). Read-only: `adjustCycleBudget` is the one writer.
+   */
+  getBudget(): Readonly<ReasoningBudget> {
+    return this.budgetGate.getBudget();
+  }
+
   getLMClient(): LMService | undefined {
     return this._lmService;
   }

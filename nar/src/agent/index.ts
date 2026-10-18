@@ -315,6 +315,13 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     consolidateLearning: (options) => narInstance.consolidateLearning(options),
     consolidation: config.consolidation,
     threadScope: config.threadScope,
+    capabilities: {
+      drives: !!narInstance.getDriveManager(),
+      rlfp: !!narInstance.getRLFP(),
+      selfReasoning: !!narInstance.getSelfAnalyzer(),
+      // No autonomous loop is wired yet (CORE.19 C5) — false is the honest answer.
+      autonomyLoop: false,
+    },
   });
 
   const narEngine = new NAREngine(narInstance, agent.emitCognitive.bind(agent));

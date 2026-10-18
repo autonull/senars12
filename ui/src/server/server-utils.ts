@@ -63,6 +63,8 @@ export type NarLike = {
   resume?: () => void;
   getControlState?: () => 'running' | 'paused' | 'stepping';
   getCycleCount?: () => number;
+  /** Adjust the kernel's cycle ceiling (CORE.19 C2.4). */
+  adjustCycleBudget?: (maxCycles: number) => void;
 };
 
 export const DEFAULT_RUN_CYCLES = 20;
