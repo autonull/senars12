@@ -208,6 +208,7 @@ export {
 /** The neuro-symbolic voice: one formalizer, one validation gate, one explanation (CORE.19 C6). @public */
 export {
   createFormalizer,
+  type ConflictExplanation,
   ExplanationGenerator,
   type Explanation,
   type ExplanationGeneratorOptions,

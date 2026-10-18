@@ -244,3 +244,53 @@ describe('CORE.19 C6 — deterministic generation (null provider)', () => {
     await stop(nar);
   });
 });
+
+describe('CORE.19 C6 — contradiction showcase', () => {
+  it('detects coexisting contradictory beliefs and explains the conflict', async () => {
+    const { nar, events } = buildNar();
+    await start(nar);
+
+    await nar.input('(a --> b).');
+    await nar.input('--(a --> b).');
+
+    const pairs = nar.findContradictions();
+    expect(pairs).toHaveLength(1);
+
+    const conflict = await nar.explainConflict(pairs[0]!.a, pairs[0]!.b);
+    expect(conflict.terms).toHaveLength(2);
+    expect(conflict.sides).toHaveLength(2);
+    expect(conflict.narrative).toMatch(/Conflict:/);
+    expect(conflict.narrative).toContain(conflict.terms[0]);
+    expect(conflict.narrative).toContain(conflict.terms[1]);
+
+    const emitted = events.find(
+      (e) => e.channel === 'explanation' && (e.payload as { conflict?: boolean }).conflict === true
+    );
+    expect(emitted).toBeDefined();
+
+    await stop(nar);
+  });
+
+  it('cites the real derivation records of the derived side', async () => {
+    const { nar } = buildNar();
+    await start(nar);
+
+    await nar.input('(a --> b).');
+    await nar.input('(b --> c).');
+    await nar.step();
+    expect(nar.findContradictions()).toEqual([]);
+
+    await nar.input('--(a --> c).');
+    const pairs = nar.findContradictions();
+    expect(pairs).toHaveLength(1);
+
+    const conflict = await nar.explainConflict(pairs[0]!.a, pairs[0]!.b);
+    const derivedSide = conflict.sides.find((side) => side.steps > 0);
+    expect(derivedSide).toBeDefined();
+    for (const id of derivedSide!.derivationIds) {
+      expect(nar.getRuleFireById(id)).toBeDefined();
+    }
+
+    await stop(nar);
+  });
+});

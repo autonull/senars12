@@ -184,6 +184,8 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
     rules: string[];
     steps: number;
     paraphrased: boolean;
+    /** True when the explanation is a conflict between two contradicted beliefs (C6.5). */
+    conflict?: boolean;
   };
   // NAL events
   'nal:derived': { premises: string[]; rule: string; conclusion: string; truth: Truth };

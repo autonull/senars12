@@ -36,6 +36,27 @@ export interface Explanation {
   paraphrase?: string;
 }
 
+/**
+ * Two coexisting beliefs whose terms negate each other, shown with the
+ * provenance of each side (CORE.19 C6.5). The deterministic `narrative` states
+ * what the kernel holds; each `sides` entry is a full {@link Explanation} so the
+ * conflict is explained from the same rule-fire records as any derivation.
+ */
+export interface ConflictExplanation {
+  /** The two contradicted terms, in the order requested. */
+  terms: [string, string];
+  /** Each side's provenance, in the same order as `terms`. */
+  sides: Explanation[];
+  /** Every cited derivation id across both sides; resolvable via `getRuleFireById`. */
+  derivationIds: string[];
+  /** The rule ids cited across both sides, deduped. */
+  rules: string[];
+  /** The fires cited across both sides. */
+  steps: number;
+  /** The deterministic, engine-only narrative of the conflict. */
+  narrative: string;
+}
+
 export interface ExplanationSource {
   /** The fires whose conclusion is `term` — the recorder's term-indexed view (C3.1). */
   firesByConclusion: (term: string) => readonly DerivationStep[];
@@ -81,6 +102,25 @@ export class ExplanationGenerator {
 
     const paraphrase = await this.maybeParaphrase(conclusion, steps);
     return paraphrase ? { ...explanation, paraphrase } : explanation;
+  }
+
+  /**
+   * Explain a conflict between two contradicted beliefs (CORE.19 C6.5): the
+   * provenance of each side, cited from the same rule-fire records, plus a
+   * deterministic narrative. Each side is a full explanation, so its own
+   * paraphrase (when an LM is configured) stays a labeled extra.
+   */
+  async explainConflict(a: string, b: string): Promise<ConflictExplanation> {
+    const [left, right] = await Promise.all([this.explain(a), this.explain(b)]);
+    const sides = [left, right] as const;
+    return {
+      terms: [a, b],
+      sides: [left, right],
+      derivationIds: unique(sides.flatMap((side) => side.derivationIds)),
+      rules: unique(sides.flatMap((side) => side.rules)),
+      steps: left.steps + right.steps,
+      narrative: narrateConflict(a, b, sides),
+    };
   }
 
   /**
@@ -145,3 +185,16 @@ const narrate = (
   const from = premises.length > 0 ? `from ${premises.join(', ')}` : 'from the admitted premises';
   return `${conclusion} follows ${from} via ${rules.join(', ')} in ${steps} step(s).`;
 };
+
+const held = (explanation: Explanation): string =>
+  explanation.steps > 0
+    ? `derived via ${explanation.rules.join(', ') || 'recorded rules'} in ${explanation.steps} step(s)`
+    : 'admitted directly, with no recorded derivation';
+
+const narrateConflict = (
+  a: string,
+  b: string,
+  [left, right]: readonly [Explanation, Explanation]
+): string =>
+  `Conflict: ${a} and ${b} are contradictory and both are held — ${a} was ${held(left)}; ` +
+  `${b} was ${held(right)}. The kernel flags the conflict rather than retracting either side.`;

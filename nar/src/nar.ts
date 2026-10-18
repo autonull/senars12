@@ -82,7 +82,7 @@ import { PROPOSAL_LOG_CAPACITY } from './proposal/lifecycle.js';
 import { LMProposalProducer } from './proposal/lm-rule-producer.js';
 import { type Answer, QueryAPI, ReasoningTrace } from './query';
 import type { Reflex } from './reflex/Reflex.js';
-import { ExplanationGenerator, type Explanation } from './nl/explanation.js';
+import { ExplanationGenerator, type ConflictExplanation, type Explanation } from './nl/explanation.js';
 import {
   createFormalizer,
   type Formalizer,
@@ -1089,13 +1089,7 @@ export class NAR extends BaseComponent {
    */
   async explainDerivation(conclusion: string | Term): Promise<Explanation> {
     const term = typeof conclusion === 'string' ? conclusion : conclusion.toString();
-    const paraphrase = this._lmService
-      ? (input: Parameters<Formalizer['formalToNl']>[0]) => this.getFormalizer().formalToNl(input)
-      : undefined;
-    const explanation = await new ExplanationGenerator({
-      source: { firesByConclusion: (t) => this.processor.getRecorder().firesByConclusion(t) },
-      ...(paraphrase ? { paraphrase } : {}),
-    }).explain(term);
+    const explanation = await this.explanationGenerator().explain(term);
     this.systemEventBus.emit('explanation', {
       conclusion: explanation.conclusion,
       derivationIds: explanation.derivationIds,
@@ -1104,6 +1098,49 @@ export class NAR extends BaseComponent {
       paraphrased: explanation.paraphrase !== undefined,
     });
     return explanation;
+  }
+
+  /**
+   * Coexisting contradictory beliefs (CORE.19 C6.5): pairs of held beliefs whose
+   * terms negate each other. Detection only — {@link explainConflict} cites the
+   * provenance. Reads concept terms (the negation lives in its own concept) and
+   * keeps only concepts that hold a belief.
+   */
+  findContradictions(): Array<{ a: string; b: string }> {
+    const terms = this.memory
+      .listConcepts()
+      .filter((concept) => concept.topBelief() !== undefined)
+      .map((concept) => concept.term);
+    const pairs: Array<{ a: string; b: string }> = [];
+    for (let i = 0; i < terms.length; i++) {
+      for (let j = i + 1; j < terms.length; j++) {
+        const [a, b] = [terms[i]!, terms[j]!];
+        if (!termsEqual(a, b) && this.contradicts(a, b)) {
+          pairs.push({ a: a.toString(), b: b.toString() });
+        }
+      }
+    }
+    return pairs;
+  }
+
+  /**
+   * Show a conflict between two contradicted beliefs and the provenance of each
+   * side, from the kernel's own rule-fire records (CORE.19 C6.5). Announces the
+   * explanation on the bus with `conflict: true`, so a consumer follows it
+   * without new contract surface.
+   */
+  async explainConflict(a: string | Term, b: string | Term): Promise<ConflictExplanation> {
+    const asString = (term: string | Term) => (typeof term === 'string' ? term : term.toString());
+    const conflict = await this.explanationGenerator().explainConflict(asString(a), asString(b));
+    this.systemEventBus.emit('explanation', {
+      conclusion: `${conflict.terms[0]} \u2295 ${conflict.terms[1]}`,
+      derivationIds: conflict.derivationIds,
+      rules: conflict.rules,
+      steps: conflict.steps,
+      paraphrased: false,
+      conflict: true,
+    });
+    return conflict;
   }
 
   recordDerivations(count?: number) {
@@ -1199,5 +1236,16 @@ export class NAR extends BaseComponent {
   }
   private contradicts(a: Term, b: Term): boolean {
     return contradicts(a, b);
+  }
+
+  /** The explanation generator bound to this runtime (C6.4/C6.5): LM paraphrase when configured, engine facts always. */
+  private explanationGenerator(): ExplanationGenerator {
+    const paraphrase = this._lmService
+      ? (input: Parameters<Formalizer['formalToNl']>[0]) => this.getFormalizer().formalToNl(input)
+      : undefined;
+    return new ExplanationGenerator({
+      source: { firesByConclusion: (term) => this.processor.getRecorder().firesByConclusion(term) },
+      ...(paraphrase ? { paraphrase } : {}),
+    });
   }
 }

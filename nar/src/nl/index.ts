@@ -16,6 +16,7 @@ export type {
   GenerationOutput,
 } from './generation.js';
 export type { Explanation, ExplanationGeneratorOptions, ExplanationSource } from './explanation.js';
+export type { ConflictExplanation } from './explanation.js';
 export { ExplanationGenerator } from './explanation.js';
 export { NLGenerationService } from './generation.js';
 export type {
