@@ -87,6 +87,8 @@ interface OpenRecord {
   cycles: number;
   /** The kernel cycle the open sweep belongs to, stamped on every step it records. */
   cycle: number;
+  /** The run correlation the sweep belongs to (CORE.19 C3.1), stamped on every step. */
+  correlationId?: string;
 }
 
 export class DerivationRecorder {
@@ -123,7 +125,7 @@ export class DerivationRecorder {
    * argument used to carry was discarded on arrival — built per premise pair, and
    * spent on nothing.
    */
-  begin(goalTerm: string, cycle = 0): void {
+  begin(goalTerm: string, cycle = 0, correlationId?: string): void {
     if (!this.enabled) return;
     this.open = {
       derivationId: makeId(),
@@ -134,6 +136,7 @@ export class DerivationRecorder {
       maxDepth: 0,
       cycles: 0,
       cycle,
+      ...(correlationId ? { correlationId } : {}),
     };
   }
 
@@ -173,6 +176,7 @@ export class DerivationRecorder {
       evidenceLineage: lineage,
       independence,
       cycle: this.open.cycle,
+      ...(this.open.correlationId ? { correlationId: this.open.correlationId } : {}),
       timestamp: Date.now(),
     };
     this.open.steps.push(step);
@@ -236,6 +240,16 @@ export class DerivationRecorder {
   /** The rule fires whose conclusion is `term` — a term-indexed view for provenance. */
   firesByConclusion(term: string): readonly DerivationStep[] {
     return this.fireRing.toArray().filter((step) => step.conclusion === term);
+  }
+
+  /** The one fire with this id, or `undefined` — the id a `derivation.accepted` carries. */
+  fireById(stepId: string): DerivationStep | undefined {
+    return this.fireRing.toArray().find((step) => step.stepId === stepId);
+  }
+
+  /** The rule fires produced by one rule — a rule-indexed view. */
+  firesByRule(ruleId: string): readonly DerivationStep[] {
+    return this.fireRing.toArray().filter((step) => step.ruleId === ruleId);
   }
 
   clear(): void {

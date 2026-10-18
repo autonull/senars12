@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { BaseComponent } from '@senars/core';
 import type { CognitiveEvent, DerivationRecord, DerivationStep, KernelControlState } from '@senars/core/schemas';
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
@@ -5,6 +6,7 @@ import {
   ambientRng,
   type BeliefTruth,
   BoundedRing,
+  cachePath,
   createLogger,
   type Episode,
   errMsg,
@@ -39,6 +41,7 @@ import type { SelfMetaGameImpl } from './game/impls/SelfMetaGame.js';
 import type { SelfMetaGameEvidence } from './governance/pipeline.js';
 import { GovernanceResolver } from './governance/pipeline.js';
 import { ControlBudgets } from './kernel/control-budgets.js';
+import { GateEventLedger } from './kernel/GateEventLedger.js';
 import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
 import { createDefaultReasoningBudget, type KernelBudgetGate } from './kernel/KernelBudgetGate.js';
 import { SchemaInductor } from './learning/schema-induction.js';
@@ -87,6 +90,9 @@ import type { RandomSource } from './types/primitives.js';
 
 /** Bounded derivation-chain ring per AIKR (no I/O on the hot path). */
 const DERIVATION_RING_CAP = 256;
+
+/** Cycles between runtime gate-log flushes (CORE.19 C3.3) — the interval half. */
+const GATE_LOG_FLUSH_CYCLES = 50;
 
 export type {
   NARConfig,
@@ -154,6 +160,10 @@ export class NAR extends BaseComponent {
   private readonly systemOne: SystemOneRuntime;
   private readonly games: GameManager;
   private readonly persister: StatePersister;
+  /** Runtime gate-decision durability (CORE.19 C3.3); present only when persisting. */
+  #gateLedger: GateEventLedger | null = null;
+  /** Cycles since the last gate-log flush — the interval half of C3.3. */
+  #cyclesSinceGateFlush = 0;
 
   constructor(config: NARConfig = DEFAULT_CONFIG) {
     const eventBus = config.eventBus ?? new NarEventBus();
@@ -306,7 +316,13 @@ export class NAR extends BaseComponent {
       gates: this.gates,
       budgets: this.controlBudgets,
       proposals: this.proposals,
-      onCycleEnd: (cycleCount, config) => this.maybeConsolidateLearning(cycleCount, config),
+      onCycleEnd: async (cycleCount, config) => {
+        await this.maybeConsolidateLearning(cycleCount, config);
+        if (++this.#cyclesSinceGateFlush >= GATE_LOG_FLUSH_CYCLES) {
+          this.#cyclesSinceGateFlush = 0;
+          this.flushGateLogs();
+        }
+      },
     });
     this.lm = new NARLM(
       this.memory,
@@ -340,6 +356,10 @@ export class NAR extends BaseComponent {
       await this.initialize();
     }
     await super.start();
+    if (this.config.persistState && !this.#gateLedger) {
+      const base = this.config.statePath ?? cachePath('nar-state');
+      this.#gateLedger = new GateEventLedger(join(base, 'gate-events'));
+    }
     await this.persister.load();
     this.self?.start();
     this.lm.getEnricher()?.start();
@@ -350,6 +370,7 @@ export class NAR extends BaseComponent {
   override async stop(): Promise<void> {
     this.self?.stop();
     this.stopLM();
+    this.flushGateLogs();
     await this.persister.save();
     await super.stop();
     this.logger?.info('NAR stopped');
@@ -358,10 +379,26 @@ export class NAR extends BaseComponent {
   override async dispose(): Promise<void> {
     this.self?.shutdown();
     this.stopLM();
+    this.#gateLedger?.close();
+    this.#gateLedger = null;
     this.#restoreIdSource?.();
     this.#restoreIdSource = undefined;
     await super.dispose();
     this.logger?.info('NAR disposed');
+  }
+
+  /**
+   * Write the gate rings to the runtime ledger, if one is configured (CORE.19
+   * C3.3). Called every {@link GATE_LOG_FLUSH_CYCLES} cycles and on shutdown;
+   * returns how many events were newly persisted, so a caller can assert it.
+   */
+  flushGateLogs(): number {
+    return this.#gateLedger?.flush(this.gates) ?? 0;
+  }
+
+  /** The runtime gate-event ledger, when persisting — for a reader (C4's replay input). */
+  getGateEventLedger(): GateEventLedger | null {
+    return this.#gateLedger;
   }
 
   /** Whether the kernel is in a running state. */
@@ -449,6 +486,21 @@ export class NAR extends BaseComponent {
   /** The rule fires recorded in one kernel cycle. */
   getRuleFiresByCycle(cycle: number): readonly DerivationStep[] {
     return this.processor.getRecorder().firesByCycle(cycle);
+  }
+
+  /** The rule fires whose conclusion is `term` — the concept-indexed fire view (CORE.19 C3.2). */
+  getRuleFiresByConclusion(term: string): readonly DerivationStep[] {
+    return this.processor.getRecorder().firesByConclusion(term);
+  }
+
+  /** The one fire with this id, or `undefined` — the id a `derivation.accepted` carries. */
+  getRuleFireById(stepId: string): DerivationStep | undefined {
+    return this.processor.getRecorder().fireById(stepId);
+  }
+
+  /** The run's stimulus correlation, if the caller declared one (CORE.19 C3.1). */
+  getCorrelationId(): string | undefined {
+    return this.execution.getCorrelationId();
   }
 
   async *runStream(

@@ -609,6 +609,11 @@ export class NARExecution {
     return this.#controlState;
   }
 
+  /** The run's stimulus correlation, if the caller declared one (CORE.19 C3.1). */
+  getCorrelationId(): string | undefined {
+    return this.cycleTrace.getCorrelationId();
+  }
+
   /**
    * Advance exactly one cycle through the kernel's own primitive (CORE.19
    * M0.1/C2.1). `NAR.run(1)` is what every other entry point already does; a

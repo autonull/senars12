@@ -57,15 +57,22 @@ const handlers = new Map<keyof NAREventMap, Handler>([
       const d = data as NAREventMap['derivation:accepted'];
       return mint('derivation.accepted', {
         engine: 'nar',
+        // The fire's own correlation, so the durable event joins the record's run
+        // (C3.1); absent ⇒ the mint stamps one, unchanged from before.
+        ...(d.correlationId ? { correlationId: d.correlationId } : {}),
         payload: {
           derivationId: d.stepId,
           ruleId: d.ruleId,
+          ruleCategory: d.ruleCategory,
           premises: d.premises,
           conclusion: d.conclusion,
           truth: d.truth,
+          premiseTruths: d.premiseTruths,
+          truthFn: d.truthFn,
           evidenceLineage: d.evidenceLineage,
           independenceCheck: d.independence,
           cycle: d.cycle,
+          ...(d.correlationId ? { correlationId: d.correlationId } : {}),
         },
       });
     },

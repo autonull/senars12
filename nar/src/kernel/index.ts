@@ -21,6 +21,8 @@ export {
   replayCognitiveState,
   replayTaskAdmissions,
 } from './EventLogPersistence.js';
+export type { GateEventEntry, GateEventLedgerOptions } from './GateEventLedger.js';
+export { GateEventEntrySchema, GateEventLedger } from './GateEventLedger.js';
 export type { GateRegistryInit, IGateRegistry } from './GateRegistry.js';
 export { createGateRegistry, GateRegistry } from './GateRegistry.js';
 export { KernelGate } from './gate-base.js';

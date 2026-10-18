@@ -43,6 +43,11 @@ export class CycleTrace {
     this.#correlationId = correlationId;
   }
 
+  /** The stimulus the live run was driven by, if the caller declared one (CORE.19 C3.1). */
+  getCorrelationId(): string | undefined {
+    return this.#correlationId;
+  }
+
   begin(cycle: number, stage: TraceRegion): void {
     this.open.push(stage);
     this.events.push(this.#record(cycle, stage, 'begin'));

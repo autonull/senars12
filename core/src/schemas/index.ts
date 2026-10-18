@@ -61,10 +61,12 @@ export {
   RulePatternSchema,
   RulePatternSideSchema,
 } from './common.js';
-export type { DerivationRecord, DerivationStep } from './derivation-records.js';
+export type { DerivationRecord, DerivationStep, RuleCategory } from './derivation-records.js';
 export {
   DerivationRecordSchema,
   DerivationStepSchema,
+  RULE_CATEGORIES,
+  RuleCategorySchema,
   validateDerivationRecord,
 } from './derivation-records.js';
 export { CognitiveEventBaseSchema, EngineOriginSchema, PROPOSER_ORIGIN } from './event-base.js';

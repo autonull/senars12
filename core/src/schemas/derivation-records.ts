@@ -8,22 +8,28 @@ import { z } from 'zod';
 import { IndependenceSchema } from './common.js';
 import { TruthValueSchema } from './truth.js';
 
+export const RULE_CATEGORIES = [
+  'core',
+  'logic',
+  'propositional',
+  'higher-order',
+  'comparison',
+  'classical',
+  'structural',
+  'temporal',
+  'procedural',
+  'meta-cognitive',
+  'variable',
+] as const;
+
+export const RuleCategorySchema = z.enum(RULE_CATEGORIES);
+
+export type RuleCategory = (typeof RULE_CATEGORIES)[number];
+
 export const DerivationStepSchema = z.object({
   stepId: uuid,
   ruleId: z.string(),
-  ruleCategory: z.enum([
-    'core',
-    'logic',
-    'propositional',
-    'higher-order',
-    'comparison',
-    'classical',
-    'structural',
-    'temporal',
-    'procedural',
-    'meta-cognitive',
-    'variable',
-  ]),
+  ruleCategory: RuleCategorySchema,
   premises: z.array(z.string()), // Term strings
   conclusion: z.string(), // Term string
   truth: TruthValueSchema,
@@ -39,6 +45,12 @@ export const DerivationStepSchema = z.object({
   independence: IndependenceSchema,
   /** The kernel cycle the rule fired in — CORE.19 M0.3/C3.1 joins a fire to its cycle. */
   cycle: nonNegativeInt.optional(),
+  /**
+   * The run/stimulus correlation the fire belongs to (CORE.19 C3.1). Stamped from
+   * the kernel run's correlation id, so a fire record and its durable
+   * `derivation.accepted` event join the same way the cycle's other events do.
+   */
+  correlationId: z.string().optional(),
   /** When the fire was recorded. Absent on records written before it was carried. */
   timestamp: timestamp.optional(),
 });

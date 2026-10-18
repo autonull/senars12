@@ -62,6 +62,8 @@ export interface RuleProcessorHost {
   getDriveManager(): DriveManager | undefined;
   /** Optional: the cycle a rule fire belongs to, stamped onto the fire record. */
   getCycleCount?(): number;
+  /** Optional: the run correlation a fire belongs to, stamped onto the fire record (C3.1). */
+  getCorrelationId?(): string | undefined;
 }
 
 /**
@@ -359,7 +361,8 @@ export class RuleProcessor {
     const p1k = termKey(p1.term);
     const p2k = termKey(p2.term);
     const cycle = this.host?.getCycleCount?.() ?? 0;
-    if (this.recorder.isRecording) this.recorder.begin(p1.term.toString(), cycle);
+    if (this.recorder.isRecording)
+      this.recorder.begin(p1.term.toString(), cycle, this.host?.getCorrelationId?.());
     const matched = this.table.candidates(p1.term.kind, p2.term.kind);
     const metaActive = this.metaActive(matched);
     // Premise depth is a property of the pair, not of the rule concluding over it.

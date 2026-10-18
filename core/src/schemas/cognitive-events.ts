@@ -20,7 +20,7 @@ import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './prop
 import { BudgetTypeSchema, TerminationReasonSchema } from './reasoning-budget.js';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';
-import { DerivationRecordSchema, DerivationStepSchema } from './derivation-records.js';
+import { DerivationRecordSchema, DerivationStepSchema, RuleCategorySchema } from './derivation-records.js';
 
 export { CognitiveEventBaseSchema, EngineOriginSchema } from './event-base.js';
 
@@ -53,13 +53,20 @@ export const DerivationAcceptedEventSchema = CognitiveEventBaseSchema.extend({
   payload: z.object({
     derivationId: uuid,
     ruleId: z.string(),
+    /** The rule's category (CORE.19 C3.2) — the fire record's own field, carried whole. */
+    ruleCategory: RuleCategorySchema.optional(),
     premises: z.array(z.string()),
     conclusion: z.string(),
     truth: TruthValueSchema,
+    /** Truth of each premise, in order — what the fire record already verifies with (C3.5). */
+    premiseTruths: z.array(TruthValueSchema).optional(),
+    truthFn: z.string().optional(),
     evidenceLineage: z.array(uuid),
     independenceCheck: IndependenceSchema,
     /** The kernel cycle the fire belongs to (CORE.19 C1.3/C3.2) — joins it to its `cycle` heartbeat. */
     cycle: nonNegativeInt.optional(),
+    /** The run correlation the fire joins (CORE.19 C3.1/C3.2). */
+    correlationId: z.string().optional(),
   }),
 });
 

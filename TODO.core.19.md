@@ -412,7 +412,22 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - C2.1: `runCycles` still drives the kernel from the UI package (`D12`: move kernel-side).
 
 
-### C3 — Gate observation & provenance records — **NOT STARTED**
+### C3 — Gate observation & provenance records — **DONE (C3.1–C3.3, C3.5; C3.4 partial)**
+
+**Done:**
+- C3.1: every inference-rule application is a fire record carrying `{stepId, ruleId, ruleCategory, premises, conclusion, truth, truthFn, premiseTruths, evidenceLineage, independence, cycle, correlationId}` in the bounded `DerivationRecorder` fire ring (`RULE_FIRE_RING_CAP=1024`). `DerivationStepSchema` gained an optional `correlationId`; the recorder stamps the run's correlation (`begin(goalTerm, cycle, correlationId)`) so a fire joins its run. Query by id (`fireById`), cycle, conclusion, and rule (`firesByRule`).
+- C3.2: the fire record's durable form (`derivation:accepted` → `derivation.accepted`) now carries the whole record — `ruleCategory`, `premiseTruths`, `truthFn`, `correlationId` added to `DerivationAcceptedEventSchema` — and the bridge passes the fire's `correlationId` through to the mint, so the event joins the record's run. It flows through C1's one stream, so `queryEventStream(log, {cycle, term})` and the UI trace viewer read it without new contract surface. `NAR.getRuleFiresByConclusion`/`getRuleFireById` are the kernel read surface.
+- C3.3: `GateEventLedger` (`nar/src/kernel/GateEventLedger.ts`) persists the gate rings through `Ledger` (daily rollover, `retentionDays=30`, `maxEntriesPerFile=10 000`), deduping by event identity in a `WeakSet` so a periodic flush never re-appends the growing window. `NAR` owns it: created in `start()` when `persistState`, flushed every `GATE_LOG_FLUSH_CYCLES=50` cycles (via the `onCycleEnd` hook) and on `stop()`, closed on `dispose()`. `NAR.flushGateLogs()`/`getGateEventLedger()` expose it; `GateEventLedger.read()` is C4's replay input.
+- C3.5: `tests/nar/core19-c3.test.ts` — a seeded syllogism's drained records all verify via `verifyRecord` (truth algebra reproduced); fires are queryable by id/cycle/conclusion; the run correlation is stamped on the record and the durable event; the ledger flushes, dedupes on re-flush, and reads back.
+
+**Files touched:** `core/src/schemas/{derivation-records,cognitive-events,index}.ts`, `nar/src/rules/impls/{recorder,processor}.ts`, `nar/src/proposal/cycle-trace.ts`, `nar/src/nar-execution.ts`, `nar/src/nar.ts`, `nar/src/events/bridge.ts`, `nar/src/kernel/{GateEventLedger,index}.ts`, `tests/nar/core19-c3.test.ts`.
+
+**Evidence:** `core19-c3` (4), `core19-m0`, `core19-c1`, `nar-events-bridge`, `eventlog/query`, `gate-log-persistence`, `full-replay`, `cognitive-replay`, `todo6-production`, `derivation-verifier` green. §11 core battery green (`typecheck`, `typecheck:packages`, `deps:gate`, `deps:direction`, `core:no-lm`, `memory:ports`, `control-budgets`, `gates:one-cycle-path`, `resource:policy`, `exports:check`, `exports:barrels`, `lint`); `pnpm --dir ui typecheck` green. `test:unit` shows the same 4 pre-existing reds (§12), no new ones. `test:determinism` green.
+
+**Remaining (deliberately deferred, not forgotten):**
+- C3.4 (partial): the fire record and its `derivation.accepted` event carry resolvable refs — `stepId`, `premises` (terms), `conclusion`, `evidenceLineage` (stepIds/taskId), `cycle`, `correlationId` — and `getRuleFiresByConclusion` resolves a derived block's parents by term. The full `derivation.record` emission still happens UI-side (`ui/src/server/index.ts` mints it from a recorder drain), which is a D12 seam logged in §9, not chased here (halt list rule 5). The UI aspects `origin`/`ambient`/`direct` remain declared gaps (§9).
+- C3.3: `persistGateLogs`/`loadGateEvents` (single-file `appendJsonl`) stay for one-shot/test use; the runtime path is `GateEventLedger`. C4 wires the ledger's `read()` into replay and declares the boundary.
+- C3.1: `evidenceLineage` is resolvable only within the fire ring's window (`RULE_FIRE_RING_CAP`); a parent evicted before the child fired resolves to the taskId fallback. Widening that window, or persisting lineage with the boundary, is C4's call.
 
 ### C4 — Continuity: persistence, restore & deterministic replay — **NOT STARTED**
 
