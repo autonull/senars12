@@ -52,6 +52,25 @@ const handlers = new Map<keyof NAREventMap, Handler>([
     },
   ],
   [
+    'derivation:accepted',
+    (data) => {
+      const d = data as NAREventMap['derivation:accepted'];
+      return mint('derivation.accepted', {
+        engine: 'nar',
+        payload: {
+          derivationId: d.stepId,
+          ruleId: d.ruleId,
+          premises: d.premises,
+          conclusion: d.conclusion,
+          truth: d.truth,
+          evidenceLineage: d.evidenceLineage,
+          independenceCheck: d.independence,
+          cycle: d.cycle,
+        },
+      });
+    },
+  ],
+  [
     'concept:created',
     (data) => {
       const d = data as NAREventMap['concept:created'];

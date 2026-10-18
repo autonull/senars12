@@ -13,6 +13,7 @@ import {
   toError,
   type ModelRuleStats,
 } from '@senars/util';
+import type { DerivationStep } from '@senars/core/schemas';
 import { countContradictions } from '../../cognitive/impls/conflict-utils.js';
 import type { DriveManager } from '../../drives';
 import { type ControlBudgetPort, UNBUDGETED } from '../../kernel/control-budgets.js';
@@ -402,7 +403,7 @@ export class RuleProcessor {
         );
         (ruleResult as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType =
           rule.taskType;
-        this.recorder.record(rule.id, p1, p2, ruleResult, rule.truthFnName);
+        const step = this.recorder.record(rule.id, p1, p2, ruleResult, rule.truthFnName);
         // Emit rule:applied event for cost tracking
         this.eventBus?.emit('rule:applied', {
           ruleId: rule.id,
@@ -415,6 +416,8 @@ export class RuleProcessor {
           lmTokens: 0,
           cycle,
         });
+        // The durable, provenance-carrying form of the same fire (CORE.19 C1.3).
+        if (step) this.#emitDerivationAccepted(step);
         yield { term: result as Term, ruleResult };
       } catch (error) {
         this.handleRuleError(error, rule.id);
@@ -530,7 +533,8 @@ export class RuleProcessor {
           );
           // Record model-backed rule derivations
           for (const r of result) {
-            this.recorder.record(modelRule.id, p1, effectiveP2, r);
+            const step = this.recorder.record(modelRule.id, p1, effectiveP2, r);
+            if (step) this.#emitDerivationAccepted(step);
           }
           this.#recordModelRuleExecution(
             modelRule,
@@ -547,6 +551,16 @@ export class RuleProcessor {
       })
     );
     yield* results.flat();
+  }
+
+  /**
+   * Emit the durable form of one rule fire (CORE.19 C1.3) without its wall-clock
+   * stamp: the seeded trace compares payloads verbatim (D13), and the durable
+   * append stamps the log's own timestamp anyway.
+   */
+  #emitDerivationAccepted(step: DerivationStep): void {
+    const { timestamp: _timestamp, ...accepted } = step;
+    this.eventBus?.emit('derivation:accepted', accepted);
   }
 
   private handleRuleError(error: unknown, ruleId: string): void {

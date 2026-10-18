@@ -1,5 +1,5 @@
 import type { BudgetEventMap } from '@senars/core/budget';
-import type { AmbiguityReport, KernelControlState } from '@senars/core/schemas';
+import type { AmbiguityReport, DerivationStep, KernelControlState } from '@senars/core/schemas';
 import type { TermTruth } from '@senars/util';
 import type { Term, Truth } from '../terms';
 
@@ -106,6 +106,14 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
   };
   'concept:created': { term: Term; priority: number };
   'concept:removed': { term: Term; reason: 'forgotten' | 'archived' | 'evicted' | 'retracted' };
+  /**
+   * One admitted rule fire, in the schema's own shape (CORE.19 C1.3). The
+   * `derivation.accepted` cognitive event the bridge mints from it is the
+   * durable, provenance-carrying form; `rule:applied` is the live ping. Carries
+   * no wall-clock: the durable append re-stamps, and a `Date.now()` here would
+   * break the seeded trace (D13).
+   */
+  'derivation:accepted': Omit<DerivationStep, 'timestamp'>;
   'memory:pressure': { level: number; utilization: number };
   'memory:consolidated': { conceptsRemoved: number; conceptsArchived: number };
   'lm:call': { modelId: string; inputTokens: number; outputTokens: number; duration: number };

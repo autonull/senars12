@@ -1,6 +1,8 @@
 import {
   appendTextDelta,
+  createLogger,
   type EpisodicMemory,
+  errMsg,
   type EventUnsubscribe,
   generateId,
   incrementCount,
@@ -25,6 +27,7 @@ import type { LLMCortex } from './cortex/LLMCortex.js';
 import type { CognitiveStimulus, Derivation, Engine } from './engine/Engine.js';
 import { invokeEngineHook, sweepEngines } from './engine/sweep.js';
 import type { EventLog } from './eventlog/EventLog.js';
+import { isDurableEvent } from './eventlog/durability.js';
 import { InMemoryEventLog } from './eventlog/InMemoryEventLog.js';
 import { MemoryService } from './memory/MemoryService.js';
 import { type PersistableSessionManager, RECALL_WINDOW } from './memory/types.js';
@@ -43,6 +46,8 @@ export type {
   ResolvedAgentOptions,
   SkillDefinition,
 } from './agent/types.js';
+
+const logger = createLogger({ scope: 'agent', level: 'warn' });
 
 export class Agent {
   readonly id: string;
@@ -78,6 +83,7 @@ export class Agent {
   #lastCycleTime = 0;
   #lastResponse = '';
   #host?: CycleHost;
+  #durableTail: Promise<unknown> = Promise.resolve();
   readonly #capabilities: Partial<AgentCapabilities['supports']>;
 
   constructor(opts: AgentOptions = {}) {
@@ -219,6 +225,7 @@ export class Agent {
   async stop(): Promise<void> {
     if (!this.#started) return;
     this.#started = false;
+    await this.flushDurable();
     await this.sessionManager?.snapshot();
     await this.memory.persist();
     for (const [id, transport] of this.#transports) {
@@ -299,6 +306,27 @@ export class Agent {
 
   #emitCognitive(event: CognitiveEvent): void {
     this.#cognitive.emit(event);
+    this.#persistDurable(event);
+  }
+
+  /**
+   * Fold the single emit funnel into the durable log (D11). The append is
+   * serialized on one tail so the log keeps emit order, and a failure is logged
+   * rather than swallowed — durability is not a no-op. Only the declared families
+   * are kept; the family sets live in `eventlog/durability.ts`.
+   */
+  #persistDurable(event: CognitiveEvent): void {
+    if (!isDurableEvent(event)) return;
+    this.#durableTail = this.#durableTail
+      .then(() => this.log.append(event))
+      .catch((error: unknown) => {
+        logger.warn('durable append failed', { type: event.type, error: errMsg(error) });
+      });
+  }
+
+  /** Await every in-flight durable append. Tests and shutdown use this to read the settled log. */
+  async flushDurable(): Promise<void> {
+    await this.#durableTail;
   }
 
   /** Phase A (REFACTOR.todo1): install a custom macro pipeline (e.g. dialogue Capture phase). */

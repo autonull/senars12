@@ -100,6 +100,15 @@ export type {
   EventLogError,
   SqliteEventLogConfig,
 } from './eventlog/index.js';
+/** Event durability + recall family declarations (CORE.19 C1.2). @public */
+export {
+  DURABLE_EVENT_TYPES,
+  isDurableEvent,
+  RECALLED_EVENT_TYPES,
+  recalledEventTypes,
+} from './eventlog/index.js';
+/** The one read surface over the unified stream (CORE.19 C1.5). @public */
+export { queryEventStream, type StreamQuery } from './eventlog/index.js';
 /** In-memory + SQLite event logs. @public */
 export { InMemoryEventLog, SqliteEventLog } from './eventlog/index.js';
 /** Feedback store. @public */

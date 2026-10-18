@@ -58,6 +58,8 @@ export const DerivationAcceptedEventSchema = CognitiveEventBaseSchema.extend({
     truth: TruthValueSchema,
     evidenceLineage: z.array(uuid),
     independenceCheck: IndependenceSchema,
+    /** The kernel cycle the fire belongs to (CORE.19 C1.3/C3.2) — joins it to its `cycle` heartbeat. */
+    cycle: nonNegativeInt.optional(),
   }),
 });
 

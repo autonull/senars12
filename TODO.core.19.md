@@ -289,6 +289,7 @@ One continuous headless session, `LM_PROVIDER=mock` first, then with a key confi
 | Multi-instance ecology | C1 bus + C4 boundary are proven; instances have something to exchange |
 | True replay-rewind (vs declared-partial) | The C2 checkpoint is stable and C4 replay is byte-identical |
 | Distributed / OTel event export | The single stream exists and is bounded |
+| Typed `nar:derivation` producer | C3's provenance work wants the term/lineage it already carries |
 | System One calibration activation | Real graded labels exist; honesty holds |
 | Performance + accessibility gates | Release-to-others replaces release-as-proof |
 | UI `explain` intent registration | C6 explanations exist; UI.19 registers the affordance |
@@ -348,6 +349,9 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 | Quarantined suites | `tests/nar/{refactor1-source-reputation,refactor1-aikr-induction,rl/budgetgate-verification}.test.ts.too_slow` | C8 triages |
 | CI paused | `.github/workflows/{ci,derivation-verify}.yml` (`workflow_dispatch` only) | C8 decides |
 | `egress:invariant` not in local registry | `scripts/lib/gates.ts` | C8 fixes |
+| `derivation.accepted` seeded-run id equality | `tests/e2e/hermetic-run.test.ts` (`two seeded runs agree on every id`) | red at HEAD **before** C1 (verified by stash). The NAR telemetry summary carries a wall-clock `timestamp` the trace compares verbatim; the C1 `derivation:accepted` trace is timestamp-free by construction. Ownership: C4 (replay/determinism). Not chased (§rule 6) |
+| `metta-conversation` drives/rlfp capability | `tests/integration/metta-conversation.test.ts` (`does not declare drives or RLPF capabilities`) | red at HEAD from **C2.5's honest capabilities**: the NAR always constructs a `DriveManager`, so `supports.drives` is now `true`. Needs a C2/C5 decision on what a *wired* drive means (C5.6 fixes inert drives). Not chased (§rule 6) |
+| `todo17-games`/`todo17-parity` under full `test:unit` | `tests/nar/todo17-{games,parity}.test.ts` | pass in isolation; time out (15000ms) only under whole-suite CPU contention. Flaky under load, not chased (§rule 6) |
 
 ## 13. Progress log
 
@@ -375,16 +379,22 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 
 **Evidence:** `pnpm vitest run tests/nar/core19-m0.test.ts` — 6 passed. Core battery green (see C8 note on `complexity:budget`), `nar-events-bridge` and `mint-cognitive-event` updated and green. No new reds.
 
-### C1 — One event stream — **PARTIAL (C1.1, C1.4 done)**
+### C1 — One event stream — **DONE (C1.1–C1.5)**
 
 **Done:**
 - C1.1: `cycle:state` is the canonical per-cycle event on the one bus and maps to the `cycle` cognitive event; the dead `cycle:start` producer/mapping is retired (D15 — no consumer without a producer).
-- C1.4: the new fire ring is declared in `RESOURCE_CONTRACTS` (`kernel.rule-fires`, 1024, drop-oldest) so `resource:policy` covers it.
+- C1.2: the single emit funnel (`Agent.#emitCognitive`) now folds bridge output into the durable `EventLog` as well as the live `Signal`. The flood friction is resolved by **declaring the families in one place** (`core/src/eventlog/durability.ts`): `DURABLE_EVENT_TYPES` is what the funnel persists (`derivation.accepted`, `belief.*`, `task.admitted`, `policy.violation`, `budget.exhausted`, `proposal.*`, `…`), excluding the ephemeral heartbeat (`cycle`, `health`, `config.*`), the priority/urgency churn (`concept.activated`, `drive.changed`), and `derivation.made` (whose durable form is `derivation.accepted`). `input.user` and `tool.request` stay off the set because the cycle appends them explicitly to join on the returned id. `RECALLED_EVENT_TYPES` is the stricter subset `recall` now passes to `queryEpisodic`, so the log is the source of truth without the heartbeat displacing recalled memory. Appends are serialized on one tail; a failure is logged, not swallowed. `Agent.flushDurable()` (awaited by `stop()`) settles the log for tests.
+- C1.3: `derivation.accepted` is emitted, one per rule fire, from the rule processor (both the sync sweep and the model-rule path) as a new typed NAR event `derivation:accepted` the bridge maps to the cognitive event. Payload is the `DerivationStep` minus its wall-clock `timestamp` (a `Date.now()` there would break the seeded trace, D13); `cycle` was added to `DerivationAcceptedEventSchema` so the record joins its heartbeat. `DerivationRecorder.record()` now returns the step it recorded.
+- C1.4: the fire ring is declared in `RESOURCE_CONTRACTS` (`kernel.rule-fires`, 1024, drop-oldest) so `resource:policy` covers it.
+- C1.5: `queryEventStream(log, {types, correlationId, timeRange, cycle, term, limit})` (`core/src/eventlog/query.ts`) is the one read surface: store-indexable filters push down to `EventLog.query`, payload-level `cycle`/`term` narrow in memory (and suppress the push-down cap so a cap is a cap on the *filtered* result).
 
-**Remaining:**
-- C1.2: bridge output still reaches `Agent.#cognitive`, not the durable `EventLog`. Wire the bridge/authored events into the append-only log so "the log is the source of truth" holds. **Friction discovered (log in §9):** `MemoryService.queryEpisodic()` reads the log with *no type filter* and `recall` calls it with none, so appending every bridge event (`cycle`, `derivation.made`, …) would flood the episodic recall window and displace real memory. The wiring therefore has to declare which event families are durable-and-recalled vs durable-and-not, before it is safe. Note: `nar:derivation` (`nar-execution.ts` `admit()`, `:410`) is emitted on the bus but is **not typed** in `NAREventMap` — an untyped side event to fold into the stream while doing C1.2.
-- C1.3: `derivation.accepted` still has reducers/catalog/replay entries and no emitter. **Removal is blocked** — the consumer lives in the UI-owned `ui/src/server/event-reducers.ts:85` and §2 forbids UI edits; so the resolution must be *emit* (one `derivation.accepted` per rule fire maps cleanly: `DerivationStep` already carries `ruleId`/`premises`/`conclusion`/`truth`/`evidenceLineage`/`independence`). Emitting it before C1.2's flood decision is resolved would add another high-frequency log family, so sequence it with C1.2.
-- C1.5: the single query surface over the stream (by type/correlation/cycle/term) is not yet built; `getRuleFiresByCycle` is the only cycle query so far.
+**Files touched:** `core/src/Agent.ts`, `core/src/agent/phases.ts`, `core/src/eventlog/{index,durability,query}.ts`, `core/src/index.ts`, `core/src/schemas/cognitive-events.ts`, `nar/src/types/events.ts`, `nar/src/events/bridge.ts`, `nar/src/rules/impls/{recorder,processor}.ts`, `tests/nar/core19-c1.test.ts`, `tests/unit/core/eventlog/query.test.ts`, `tests/integration/nar-events-bridge.test.ts`.
+
+**Evidence:** `core19-c1` (4), `eventlog/query` (4), `nar-events-bridge`, `core19-m0`, `agent-phases`, `eventlog-query` green; `pnpm test:unit` shows no new reds (see §12 for the reds that pre-date this slice). `pnpm test:determinism`, `persistence:replay`, and the §11 core battery (`typecheck`, `typecheck:bin`, `typecheck:packages`, `deps:gate`, `deps:direction`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `control-budgets`, `gates:one-cycle-path`, `exports:check`, `exports:barrels`, `lint`) green.
+
+**Remaining (deliberately deferred, not forgotten):**
+- `nar:derivation` (`nar/src/nar-execution.ts` `admit()`, `:410`) is still emitted on the bus but is **not typed** in `NAREventMap` — fold it into the stream (fold into C3, whose provenance work reads the same term/lineage) rather than inventing a parallel seam.
+- `tool.request`/`input.user` durability is owned by the explicit appends in `phases.ts` (`act`/`recall`), not the funnel; when C4's consistency boundary lands, make the ownership explicit in the boundary doc.
 
 ### C2 — Kernel control plane & cycle semantics — **PARTIAL (C2.1, C2.2 done; C2.4, C2.5 done; C2.3, C2.6 open)**
 

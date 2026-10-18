@@ -18,6 +18,7 @@ import type { ChatStreamEvent } from '../chat.js';
 import { SHELL_TIMEOUT_MS } from '../constants.js';
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
 import { sweepEngines } from '../engine/sweep.js';
+import { recalledEventTypes } from '../eventlog/durability.js';
 import { RECALL_WINDOW } from '../memory/types.js';
 import { NAR_ORIGIN } from '../schemas/event-base.js';
 import { mintCognitiveEvent } from '../schemas/index.js';
@@ -70,7 +71,7 @@ const recall = async (
   const cid = await host.log.append({ ...inputUser(stimulus), type: 'input.user' });
 
   const working = host.memory.recent(RECALL_WINDOW);
-  const episodic = await host.memory.queryEpisodic();
+  const episodic = await host.memory.queryEpisodic(undefined, undefined, recalledEventTypes());
   const semantic = await host.memory.querySemantic(stimulus.text);
   const context: Context = { working, episodic, semantic };
   return { cid, context };

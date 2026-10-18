@@ -143,9 +143,9 @@ export class DerivationRecorder {
     p2: RuleInput,
     result: RuleResult,
     truthFnName?: string
-  ): void {
-    if (!this.enabled || !this.open) return;
-    if (this.open.steps.length >= this.maxStepsPerRecord) return;
+  ): DerivationStep | null {
+    if (!this.enabled || !this.open) return null;
+    if (this.open.steps.length >= this.maxStepsPerRecord) return null;
     const stepId = makeId();
     const p1Ancestors = ancestorsOf(p1);
     const p2Ancestors = ancestorsOf(p2);
@@ -182,6 +182,7 @@ export class DerivationRecorder {
       this.open.stampToStep.set(resultStamp.id, stepId);
     this.open.cycles++;
     this.open.maxDepth = Math.max(this.open.maxDepth, p1Ancestors.size + p2Ancestors.size);
+    return step;
   }
 
   finish(): DerivationRecord | null {
