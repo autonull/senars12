@@ -131,6 +131,7 @@ export class ScenarioHarness {
     return e2eNARConfig({
       eventBus: this.eventBus,
       rng: () => this.rng.next(),
+      clock: this.clock,
       ids: sequentialIdSource(),
       ...this.spec?.config,
     });

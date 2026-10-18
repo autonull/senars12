@@ -12,8 +12,12 @@ import {
 } from '@senars/core/schemas';
 import {
   appendJsonl,
+  type Clock,
   errMsg,
+  type IdSource,
+  installIdSource,
   keyedBy,
+  type RandomSource,
   readJsonlWith,
   sha256Hex,
   stableStringify,
@@ -65,6 +69,16 @@ export interface FullReplayOptions {
   range?: { from?: number; to?: number };
   /** Inclusive event ID window over the gate-event log (preferred over ordinals). */
   idRange?: { from?: string; to?: string };
+  /**
+   * Id minting for the replay (CORE.19 C4.4, D13). A seeded run reproduces the
+   * ids it recorded only if the replay mints from the same source, so this is
+   * installed for the replay's duration and restored after. Absent ⇒ ambient.
+   */
+  ids?: IdSource;
+  /** The stream the replayed store's bags and links draw from. Absent ⇒ the store's own default. */
+  rng?: RandomSource;
+  /** The replay's clock — the timestamp counterpart to `ids`, threaded into the store and the stamps. */
+  clock?: Clock;
 }
 
 /** What a replay applied, and what it could not. The one tally of both. */
@@ -95,7 +109,19 @@ function taskTypeFromEvent(type: TaskAdmittedEvent['payload']['taskType']): Conc
 }
 
 export async function replayIntoMemory(options: FullReplayOptions): Promise<ReplayResult> {
-  const { gateEventsPath, derivationRecordsPath, memoryConfig, range, idRange } = options;
+  const restoreIds = options.ids ? installIdSource(options.ids) : undefined;
+  try {
+    return await replayWithInjectedEntropy(options);
+  } finally {
+    restoreIds?.();
+  }
+}
+
+/** The replay proper, run under the caller's injected id source (CORE.19 C4.4). */
+async function replayWithInjectedEntropy(options: FullReplayOptions): Promise<ReplayResult> {
+  const { gateEventsPath, derivationRecordsPath, memoryConfig, range, idRange, rng, clock } =
+    options;
+  const now = clock ?? Date.now;
 
   const { events: allGateEvents, invalid: gateInvalid } = loadGateEvents(gateEventsPath);
   if (gateInvalid > 0) {
@@ -130,15 +156,18 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
     : [];
 
   const { cognitiveParams, strategyRegistry } = options;
-  const memory = new Memory(memoryConfig, {
-    attentionModel: cognitiveParams
-      ? resolveSlot<AttentionModel>(
-          strategyRegistry ?? createDefaultRegistry(),
-          cognitiveParams,
-          'attention'
-        )
-      : undefined,
-  });
+  const memory = new Memory(
+    rng || clock ? { ...memoryConfig, bag: { ...memoryConfig?.bag, rng, clock } } : memoryConfig,
+    {
+      attentionModel: cognitiveParams
+        ? resolveSlot<AttentionModel>(
+            strategyRegistry ?? createDefaultRegistry(),
+            cognitiveParams,
+            'attention'
+          )
+        : undefined,
+    }
+  );
   const errors: string[] = [];
 
   /**
@@ -216,7 +245,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
           concept.addTask('belief', {
             ...matching,
             truth: Truth.fromUnknown(event.payload.newTruth),
-            timestamp: Date.now(),
+            timestamp: now(),
           });
           return true;
         })
@@ -266,7 +295,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
           }
           if (step.independence === 'unknown') return false;
           concept.beliefBag.remove(existing);
-          concept.addTask('belief', { ...existing, truth, timestamp: Date.now() });
+          concept.addTask('belief', { ...existing, truth, timestamp: now() });
           return true;
         })
       ) {

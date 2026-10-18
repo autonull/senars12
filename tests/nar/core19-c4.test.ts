@@ -1,10 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdir, rm } from 'node:fs/promises';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { currentIdCount } from '@senars/util';
+import { currentIdCount, makeId, sequentialIdSource } from '@senars/util';
 import { createNAR } from '../../nar/src';
 import { createSeNARSRegistry } from '../../nar/src/lm';
 import { createLMService } from '../../nar/src/lm/lm-service';
+import { persistGateLogs } from '../../nar/src/kernel/EventLogPersistence.js';
+import { GateRegistry } from '../../nar/src/kernel/GateRegistry.js';
+import { replayIntoMemory } from '../../nar/src/kernel/replay.js';
+import { termParser } from '../../nar/src/terms/index.js';
 import {
   type ConsistencyBoundary,
   decodeBoundary,
@@ -110,5 +116,44 @@ describe('CORE.19 C4 — restart restores the declared boundary', () => {
 
     await nar.stop();
     await nar.dispose();
+  });
+});
+
+describe('CORE.19 C4.4 — replay entropy is injectable', () => {
+  const gateLog = (): string => {
+    const dir = mkdtempSync(join(tmpdir(), 'core19-c4-4-'));
+    const gatePath = join(dir, 'gate-events.jsonl');
+    const registry = new GateRegistry();
+    registry.getPerceptionGate().admit({
+      sourceId: 's',
+      rawObservation: '(a-->b).',
+      sensorConfidence: 1,
+      sourceQuality: 'PRIMARY',
+    });
+    persistGateLogs(registry, gatePath);
+    return gatePath;
+  };
+
+  it('mints task ids from the injected source, deterministically', async () => {
+    const gatePath = gateLog();
+    const withIds = (ids: () => string) =>
+      replayIntoMemory({ gateEventsPath: gatePath, ids, clock: () => 0 });
+
+    const first = await withIds(sequentialIdSource());
+    const second = await withIds(sequentialIdSource());
+    const beliefId = (memory: Awaited<ReturnType<typeof replayIntoMemory>>['memory']): string =>
+      memory.getConcept(termParser.parse('(a-->b)'))!.getBeliefs()[0]!.id;
+
+    expect(beliefId(first.memory)).toBe(beliefId(second.memory));
+    expect(beliefId(first.memory)).toMatch(/^00000000-0000-4000-8000-/);
+  });
+
+  it('restores the ambient id source after the replay', async () => {
+    const gatePath = gateLog();
+    await replayIntoMemory({ gateEventsPath: gatePath, ids: sequentialIdSource() });
+    const before = currentIdCount();
+    const ambient = makeId();
+    expect(ambient).not.toMatch(/^00000000-0000-4000-8000-/);
+    expect(currentIdCount()).toBe(before + 1);
   });
 });

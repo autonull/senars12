@@ -98,7 +98,7 @@ export class NARIO {
       this._systemEventBus?.emit('nar:derivation', {
         term: label,
         confidence: truth.f,
-        timestamp: Date.now(),
+        timestamp: this.config.clock?.() ?? Date.now(),
       });
     }
 

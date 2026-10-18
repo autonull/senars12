@@ -410,7 +410,7 @@ export class NARExecution {
     this.systemEventBus.emit('nar:derivation', {
       term: task.term.toString(),
       confidence: task.truth?.c ?? 0,
-      timestamp: Date.now(),
+      timestamp: this.now(),
     });
     for (const signal of classifyTask(task.term)) {
       switch (signal) {
@@ -429,7 +429,7 @@ export class NARExecution {
             term: task.term,
             mettaVote: false,
             nalVote: true,
-            at: Date.now(),
+            at: this.now(),
           });
           break;
         // Other signals (schema-promoted, capability-added, goal-achieved, goal-failed)
@@ -613,6 +613,11 @@ export class NARExecution {
     this._cycleCount = count;
   }
 
+  /** The kernel's clock — the injected one when seeded, `Date.now` otherwise (CORE.19 C4.4, D13). */
+  private now(): number {
+    return this.config.clock?.() ?? Date.now();
+  }
+
   /** The kernel control state — what a `cycle.state` frame reports (CORE.19 C2.1). */
   getControlState(): KernelControlState {
     return this.#controlState;
@@ -702,7 +707,7 @@ export class NARExecution {
     const rlfpRewardAvg = mean(this._rlfpRewardHistory);
 
     const summary: CognitiveStateSummary = {
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(this.now()).toISOString(),
       active_drives: activeDrives,
       active_meta_goals: activeMetaGoals,
       pending_tool_executions: [], // Would be populated by tool execution tracking
