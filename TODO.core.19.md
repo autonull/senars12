@@ -214,7 +214,7 @@ The smallest demonstrable proof the substrate is real, backend-observed. **Nothi
 
 **Goal:** the organism is usable and useful without a browser.
 
-1. CLI one-shot input: `--believe/-b`, `--ask/-q`, `--goal/-g`, `--steps`, `--json` — construct an agent, run, print (with derivation when asked). A scriptable entry the demo can drive.
+1. CLI one-shot input: positional Narsese (no `-b`/`-g`/`-q` — the sentence's punctuation *is* the task type, and one argument may hold several sentences), plus `--steps`, `--json` — construct an agent, run, print (with derivation when asked). A scriptable entry the demo can drive.
 2. Fix `src/bin/senars.ts` (currently prints a URL, starts nothing) to run the entry it advertises, or state the honest gap.
 3. MCP: make resources return real data (`nar://episodes`, `sessions://list`, `self-reasoning://quality`, `nar://state` reflecting persistence) instead of `[]`/zeros (D15).
 4. Serve `/metrics` (`nar/src/metrics/http.ts` `handleMetricsRequest`) from `HTTPConnection` and the bot, not only the UI server. Add a minimal, production-safe reasoning endpoint for `believe`/`ask` guarded by env, reusing existing handlers (not the `/test/*` surface).
