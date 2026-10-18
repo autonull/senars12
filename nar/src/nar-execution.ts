@@ -1,3 +1,4 @@
+import type { KernelControlState } from '@senars/core/schemas';
 import { BoundedRing, createLogger, errMsg, indexBy, keyedBy, mean, rankBy, roundTo } from '@senars/util';
 import { envBool } from '@senars/util/config';
 import type { EventBus as NarEventBus } from '@senars/util/events';
@@ -108,6 +109,8 @@ export interface NARExecutionOptions {
 
 export class NARExecution {
   private _cycleCount = 0;
+  /** The kernel control state (CORE.19 C2.1). `manual` driving is `running`. */
+  #controlState: KernelControlState = 'running';
   private readonly cycleTrace = new CycleTrace();
   private readonly cycleSignals = {
     testPassed: false,
@@ -209,6 +212,9 @@ export class NARExecution {
    */
   async run(steps = 1, signal?: AbortSignal, correlationId?: string): Promise<number> {
     let derived = 0;
+    // A paused kernel does not advance: `pause()` is the off switch, and a
+    // caller that runs anyway is told nothing happened (CORE.19 C2.1).
+    if (this.#controlState === 'paused') return 0;
     this.cycleTrace.setCorrelationId(correlationId);
 
     // Check RLFP enablement via env var
@@ -218,6 +224,7 @@ export class NARExecution {
       if (signal?.aborted) break;
 
       this._cycleCount++;
+      const derivedBeforeCycle = derived;
       await this.region('cycle', async () => {
         // Four of the five declared scopes are per cycle, so they are re-opened
         // here rather than left to exhaust once over the NAR's life (§5.7).
@@ -246,12 +253,8 @@ export class NARExecution {
 
         // RLFP-driven reasoning decisions
         let effectiveSteps = 1;
-        let strategyPriority: string | null = null;
 
         if (rlfpEnabled && this.policyOptimizer) {
-          // Select strategy priority based on learned policy
-          strategyPriority = this.policyOptimizer.getBestStrategy();
-
           // Scale step count by exploration rate (high exploration = more steps)
           const explorationRate = this.policyOptimizer.getConfig().explorationRate ?? 0.1;
           effectiveSteps = Math.max(1, Math.round(1 + explorationRate * 4)); // 1-5 steps based on exploration
@@ -261,17 +264,6 @@ export class NARExecution {
           this.cognitiveController.getInferenceController().step(5000, effectiveSteps * 100, signal)
         );
         derived += results.length;
-
-        // Emit reasoning cycle event
-        if (this.systemEventBus) {
-          this.systemEventBus.emit('nar:reasoning:cycle', {
-            cycle: this._cycleCount,
-            derived: results.length,
-            strategyPriority,
-            effectiveSteps,
-            timestamp: Date.now(),
-          });
-        }
 
         // The one stage through which anything reaches state. Model-backed
         // proposals settled by a previous pump land here too, so a producer's work
@@ -361,6 +353,10 @@ export class NARExecution {
           await this.onCycleEnd(this._cycleCount, this.config);
         }
       });
+
+      // The kernel heartbeat (CORE.19 M0.2): one `cycle.state` per cycle, after
+      // the cycle closes, so the subscriber reads the count the kernel holds.
+      this.emitCycleState(derived - derivedBeforeCycle);
     }
 
     this.region('memory.consolidate', () =>
@@ -606,6 +602,52 @@ export class NARExecution {
 
   getCycleCount(): number {
     return this._cycleCount;
+  }
+
+  /** The kernel control state — what a `cycle.state` frame reports (CORE.19 C2.1). */
+  getControlState(): KernelControlState {
+    return this.#controlState;
+  }
+
+  /**
+   * Advance exactly one cycle through the kernel's own primitive (CORE.19
+   * M0.1/C2.1). `NAR.run(1)` is what every other entry point already does; a
+   * step is that same call with a state the observer can name.
+   */
+  async step(signal?: AbortSignal, correlationId?: string): Promise<number> {
+    const previous = this.#controlState;
+    this.#controlState = 'stepping';
+    try {
+      return await this.run(1, signal, correlationId);
+    } finally {
+      this.#controlState = previous === 'paused' ? 'paused' : 'running';
+    }
+  }
+
+  /** Stop advancing on `run`; a resume returns to `running` (CORE.19 C2.1). */
+  pause(): void {
+    this.#controlState = 'paused';
+  }
+
+  /** Resume advancing after a pause. */
+  resume(): void {
+    this.#controlState = 'running';
+  }
+
+  /** Emit the per-cycle control heartbeat on the one event stream (CORE.19 M0.2). */
+  private emitCycleState(derived: number): void {
+    if (!this.systemEventBus) return;
+    const spend = this.budgets.getSpendSummary();
+    const budget: Record<string, number> = {};
+    for (const scope of Object.keys(spend)) budget[scope] = spend[scope]!.spent;
+    this.systemEventBus.emit('cycle:state', {
+      state: this.#controlState,
+      cycle: this._cycleCount,
+      phase: this.cycleTrace.current() ?? 'idle',
+      activeTasks: this.taskManager.size,
+      budget,
+      derived,
+    });
   }
 
   /** The live control-budget spend, with each scope's `terminationReason` (§5.7). */

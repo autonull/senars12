@@ -15,6 +15,7 @@ import {
   runCycles,
   aggregateChatResponse,
   broadcastCognitiveEvent,
+  sendCycleState,
   applyConfigUpdates,
   applyConfigField,
   LM_PROVIDER_NAMES,
@@ -283,4 +284,50 @@ export function handleReasoningAdjustProvider(
   msg: { type: 'reasoning.adjust-provider'; provider: string; seqId?: number }
 ): void {
   respondReasoning(ctx.ws as WebSocket, false, `${msg.type} is not yet wired to the engine`, msg.seqId);
+}
+
+export async function handleCycleStep(
+  ctx: ServerHandlerContext,
+  _msg: { type: 'cycle.step'; seqId?: number }
+): Promise<void> {
+  const engine = getNar(ctx);
+  if (!engine?.step) {
+    respondReasoning(ctx.ws as WebSocket, false, 'Engine cannot step cycles', undefined);
+    return;
+  }
+  await Promise.resolve(engine.step())
+    .then(() => sendCycleState(ctx.ws as WebSocket, () => getNar(ctx)))
+    .catch((e: unknown) =>
+      respondReasoning(ctx.ws as WebSocket, false, (e as Error).message, undefined)
+    );
+}
+
+export function handleCyclePause(
+  ctx: ServerHandlerContext,
+  _msg: { type: 'cycle.pause'; seqId?: number }
+): void {
+  getNar(ctx)?.pause?.();
+  sendCycleState(ctx.ws as WebSocket, () => getNar(ctx));
+}
+
+export function handleCycleResume(
+  ctx: ServerHandlerContext,
+  _msg: { type: 'cycle.resume'; seqId?: number }
+): void {
+  getNar(ctx)?.resume?.();
+  sendCycleState(ctx.ws as WebSocket, () => getNar(ctx));
+}
+
+export function handleCycleRewind(
+  ctx: ServerHandlerContext,
+  _msg: { type: 'cycle.rewind'; cycles?: number; seqId?: number }
+): void {
+  // C2.3: rewind is declared-partial and not yet implemented — reject with the
+  // reason rather than pretending the graph was restored (D15).
+  respondReasoning(
+    ctx.ws as WebSocket,
+    false,
+    'cycle.rewind: declared-partial restore is not yet implemented',
+    undefined
+  );
 }

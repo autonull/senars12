@@ -16,14 +16,21 @@ type Handler = (data: unknown) => CognitiveEvent | null;
 
 const handlers = new Map<keyof NAREventMap, Handler>([
   [
-    'cycle:start',
+    'cycle:state',
     (data) => {
-      const d = data as NAREventMap['cycle:start'];
+      const d = data as NAREventMap['cycle:state'];
       return mint('cycle', {
         engine: 'nar',
         cycle: d.cycle,
-        derived: 0,
-        payload: { cycle: d.cycle, derived: 0 },
+        derived: d.derived,
+        payload: {
+          cycle: d.cycle,
+          derived: d.derived,
+          state: d.state,
+          phase: d.phase,
+          activeTasks: d.activeTasks,
+          budget: d.budget,
+        },
       });
     },
   ],

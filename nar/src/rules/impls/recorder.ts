@@ -33,6 +33,14 @@ const CATEGORY_PATTERNS = Object.entries(CATEGORY_KEYWORDS) as [RuleCategory, Re
 const RULE_ID_CACHE = 1024;
 
 /**
+ * How many individual rule fires stay queryable (CORE.19 M0.3/C3.1). The
+ * completed-record ring groups fires into chains; the trace viewer and the
+ * explanation generator need one row *per fire*, so the recorder keeps a second,
+ * bounded ring of the same steps it already builds.
+ */
+export const RULE_FIRE_RING_CAP = 1024;
+
+/**
  * Rule ids are loaded data, so the set is small and closed and the answer never
  * changes — but this ran a `toLowerCase` and up to eleven regex tests per
  * recorded derivation step, which is the field's hottest writer. Read with
@@ -65,6 +73,7 @@ const ancestorsOf = (input: RuleInput): Set<string> => {
 export interface RecorderOptions {
   maxStepsPerRecord?: number;
   maxCompletedRecords?: number;
+  maxFires?: number;
   enabled?: boolean;
 }
 
@@ -76,6 +85,8 @@ interface OpenRecord {
   stampToStep: Map<string, string>;
   maxDepth: number;
   cycles: number;
+  /** The kernel cycle the open sweep belongs to, stamped on every step it records. */
+  cycle: number;
 }
 
 export class DerivationRecorder {
@@ -84,11 +95,14 @@ export class DerivationRecorder {
   private enabled: boolean;
   private open: OpenRecord | null = null;
   private readonly completed: BoundedRing<DerivationRecord>;
+  /** One row per rule fire (CORE.19 C3.1), queryable without draining a chain. */
+  private readonly fireRing: BoundedRing<DerivationStep>;
 
   constructor(opts: RecorderOptions = {}) {
     this.maxStepsPerRecord = opts.maxStepsPerRecord ?? 200;
     this.maxCompletedRecords = opts.maxCompletedRecords ?? 200;
     this.completed = new BoundedRing(this.maxCompletedRecords);
+    this.fireRing = new BoundedRing(opts.maxFires ?? RULE_FIRE_RING_CAP);
     this.enabled = opts.enabled ?? false;
   }
 
@@ -109,7 +123,7 @@ export class DerivationRecorder {
    * argument used to carry was discarded on arrival — built per premise pair, and
    * spent on nothing.
    */
-  begin(goalTerm: string): void {
+  begin(goalTerm: string, cycle = 0): void {
     if (!this.enabled) return;
     this.open = {
       derivationId: makeId(),
@@ -119,6 +133,7 @@ export class DerivationRecorder {
       stampToStep: new Map(),
       maxDepth: 0,
       cycles: 0,
+      cycle,
     };
   }
 
@@ -157,8 +172,11 @@ export class DerivationRecorder {
       premiseTruths: [asBeliefTruth(p1.truth), asBeliefTruth(p2.truth)],
       evidenceLineage: lineage,
       independence,
+      cycle: this.open.cycle,
+      timestamp: Date.now(),
     };
     this.open.steps.push(step);
+    this.fireRing.push(step);
     const resultStamp = result.stamp as { id?: unknown } | undefined;
     if (resultStamp && typeof resultStamp.id === 'string')
       this.open.stampToStep.set(resultStamp.id, stepId);
@@ -201,9 +219,28 @@ export class DerivationRecorder {
     return this.completed.size();
   }
 
+  /**
+   * The most recent rule fires, oldest first (CORE.19 M0.3/C3.1). Read without
+   * draining: a chain drain is a one-shot handoff, a fire query is a window.
+   */
+  fires(limit = RULE_FIRE_RING_CAP): readonly DerivationStep[] {
+    return this.fireRing.tail(limit);
+  }
+
+  /** The rule fires recorded in one kernel cycle. */
+  firesByCycle(cycle: number): readonly DerivationStep[] {
+    return this.fireRing.toArray().filter((step) => step.cycle === cycle);
+  }
+
+  /** The rule fires whose conclusion is `term` — a term-indexed view for provenance. */
+  firesByConclusion(term: string): readonly DerivationStep[] {
+    return this.fireRing.toArray().filter((step) => step.conclusion === term);
+  }
+
   clear(): void {
     this.open = null;
     this.completed.clear();
+    this.fireRing.clear();
   }
 }
 

@@ -135,11 +135,26 @@ export const BootstrapEventSchema = NarBase.extend({
   }),
 });
 
+/** The kernel control state machine a cycle is observed in (CORE.19 C2). */
+export const KERNEL_CONTROL_STATES = ['running', 'paused', 'stepping'] as const;
+export type KernelControlState = (typeof KERNEL_CONTROL_STATES)[number];
+
 export const CycleEventSchema = NarBase.extend({
   type: z.literal('cycle'),
   cycle: z.number(),
   derived: z.number(),
-  payload: z.object({ cycle: z.number(), derived: z.number() }),
+  payload: z.object({
+    cycle: z.number(),
+    derived: z.number(),
+    /** The control-plane state at the moment the cycle closed. */
+    state: z.enum(KERNEL_CONTROL_STATES),
+    /** The stage the kernel is in after the cycle — `idle` between cycles. */
+    phase: z.string(),
+    /** Pending tasks across the manager, read without draining the queue. */
+    activeTasks: z.number(),
+    /** Control-budget spend by scopeId — the observable heartbeat of the bounds. */
+    budget: z.record(z.string(), z.number()),
+  }),
 });
 
 export const HealthEventSchema = NarBase.extend({

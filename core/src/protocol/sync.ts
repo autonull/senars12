@@ -50,4 +50,23 @@ export const FocusSet = msg('focus.set', { term: z.string() });
 export const CycleStateMsg = msg('cycle.state', {
   state: z.enum(['running', 'paused', 'stepping']),
   cycleCount: z.number().optional(),
+  /** The stage the kernel is in after the cycle (CORE.19 C2.1). */
+  phase: z.string().optional(),
+  /** Pending tasks the manager holds after the cycle. */
+  activeTasks: z.number().optional(),
+  /** Control-budget spend by scopeId. */
+  budget: z.record(z.string(), z.number()).optional(),
+});
+
+/**
+ * Client→server kernel control (CORE.19 C2.2). The UI drives the same control
+ * plane `NAR.step/pause/resume` expose, rather than a UI-package loop.
+ */
+export const CycleStepMsg = msg('cycle.step', { seqId: z.number().optional() });
+export const CyclePauseMsg = msg('cycle.pause', { seqId: z.number().optional() });
+export const CycleResumeMsg = msg('cycle.resume', { seqId: z.number().optional() });
+export const CycleRewindMsg = msg('cycle.rewind', {
+  /** The cycle count to rewind toward; the boundary actually restored is reported back. */
+  cycles: z.number().int().nonnegative().optional(),
+  seqId: z.number().optional(),
 });

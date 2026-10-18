@@ -165,6 +165,16 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
     pressureSignal: null,
   },
   {
+    id: 'kernel.rule-fires',
+    holds: 'individual inference-rule fires, one row per fire (CORE.19 C3.1)',
+    owner: 'nar/src/rules/impls/recorder.ts',
+    capacity: { module: 'nar/src/rules/impls/recorder.ts', symbol: 'RULE_FIRE_RING_CAP' },
+    retention: 'drop-oldest',
+    overflow:
+      'BoundedRing drops the oldest fire; the completed-chain ring keeps the grouped records',
+    pressureSignal: null,
+  },
+  {
     id: 'kernel.source-reputation',
     holds: 'per-source reputation, keyed by a source id that arrives on the wire',
     owner: 'nar/src/kernel/source-reputation.ts',

@@ -9,7 +9,14 @@ const cycleDraft = () => ({
   engine: 'nar' as const,
   cycle: 7,
   derived: 0,
-  payload: { cycle: 7, derived: 0 },
+  payload: {
+    cycle: 7,
+    derived: 0,
+    state: 'running' as const,
+    phase: 'idle',
+    activeTasks: 0,
+    budget: {},
+  },
 });
 
 describe('mintCognitiveEvent', () => {

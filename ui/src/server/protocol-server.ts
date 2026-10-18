@@ -37,6 +37,10 @@ const SERVER_HANDLERS: Readonly<Record<string, ServerHandler>> = {
   'reasoning.add-goal': handlers.handleReasoningAddGoal as ServerHandler,
   'reasoning.adjust-budget': handlers.handleReasoningAdjustBudget as ServerHandler,
   'reasoning.adjust-provider': handlers.handleReasoningAdjustProvider as ServerHandler,
+  'cycle.step': handlers.handleCycleStep as ServerHandler,
+  'cycle.pause': handlers.handleCyclePause as ServerHandler,
+  'cycle.resume': handlers.handleCycleResume as ServerHandler,
+  'cycle.rewind': handlers.handleCycleRewind as ServerHandler,
 };
 
 /** Build the server protocol catalog from the shared specs + server handlers. */

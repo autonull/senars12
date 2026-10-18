@@ -37,6 +37,10 @@ import {
   SyncRequest,
   TelemetryMsg,
   CycleStateMsg,
+  CycleStepMsg,
+  CyclePauseMsg,
+  CycleResumeMsg,
+  CycleRewindMsg,
 } from './sync.js';
 
 export const IncomingFromClient = z.discriminatedUnion('type', [
@@ -60,6 +64,10 @@ export const IncomingFromClient = z.discriminatedUnion('type', [
   ReasoningAddGoalMsg,
   ReasoningAdjustBudgetMsg,
   ReasoningAdjustProviderMsg,
+  CycleStepMsg,
+  CyclePauseMsg,
+  CycleResumeMsg,
+  CycleRewindMsg,
 ]);
 export const IncomingFromServer = z.discriminatedUnion('type', [
   ChatAgentStream,

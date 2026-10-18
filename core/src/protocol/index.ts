@@ -69,6 +69,11 @@ export {
   StateSnapshot,
   SyncRequest,
   TelemetryMsg,
+  CycleStateMsg,
+  CycleStepMsg,
+  CyclePauseMsg,
+  CycleResumeMsg,
+  CycleRewindMsg,
 } from './sync.js';
 export type { CognitiveMetricsData, TelemetryMetrics } from './sync.js';
 export type { ConfigFieldType } from './unions.js';

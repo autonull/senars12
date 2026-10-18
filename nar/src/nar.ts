@@ -1,5 +1,5 @@
 import { BaseComponent } from '@senars/core';
-import type { CognitiveEvent, DerivationRecord } from '@senars/core/schemas';
+import type { CognitiveEvent, DerivationRecord, DerivationStep, KernelControlState } from '@senars/core/schemas';
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import {
   ambientRng,
@@ -416,6 +416,39 @@ export class NAR extends BaseComponent {
 
   async run(steps = 1, signal?: AbortSignal, correlationId?: string): Promise<number> {
     return this.execution.run(steps, signal, correlationId);
+  }
+
+  /**
+   * Advance exactly one cycle through the kernel control plane (CORE.19
+   * M0.1/C2.1). Distinct from `run(1)` only in the control state it reports:
+   * a step says so on `cycle:state`, a run does not.
+   */
+  async step(signal?: AbortSignal, correlationId?: string): Promise<number> {
+    return this.execution.step(signal, correlationId);
+  }
+
+  /** Stop the kernel advancing on `run` (CORE.19 C2.1). */
+  pause(): void {
+    this.execution.pause();
+  }
+
+  /** Resume a paused kernel. */
+  resume(): void {
+    this.execution.resume();
+  }
+
+  getControlState(): KernelControlState {
+    return this.execution.getControlState();
+  }
+
+  /** Recent inference-rule fires, oldest first (CORE.19 M0.3/C3.1). */
+  getRuleFires(limit?: number): readonly DerivationStep[] {
+    return this.processor.getRecorder().fires(limit);
+  }
+
+  /** The rule fires recorded in one kernel cycle. */
+  getRuleFiresByCycle(cycle: number): readonly DerivationStep[] {
+    return this.processor.getRecorder().firesByCycle(cycle);
   }
 
   async *runStream(

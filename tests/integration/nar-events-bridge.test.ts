@@ -8,11 +8,29 @@ function term(s: string): { toString: () => string } {
 }
 
 describe('narEventToCognitive', () => {
-  it('maps cycle:start to a cycle cognitive event', () => {
-    const evt = narEventToCognitive('cycle:start', { cycle: 7, conceptCount: 10 });
+  it('maps cycle:state to a cycle cognitive event', () => {
+    const evt = narEventToCognitive('cycle:state', {
+      state: 'stepping',
+      cycle: 7,
+      phase: 'idle',
+      activeTasks: 0,
+      budget: { derivations: 1 },
+      derived: 3,
+    });
     expect(evt).not.toBeNull();
     expect(evt?.type).toBe('cycle');
-    expect(evt).toMatchObject({ engine: 'nar', derived: 0, payload: { cycle: 7, derived: 0 } });
+    expect(evt).toMatchObject({
+      engine: 'nar',
+      derived: 3,
+      payload: {
+        cycle: 7,
+        derived: 3,
+        state: 'stepping',
+        phase: 'idle',
+        activeTasks: 0,
+        budget: { derivations: 1 },
+      },
+    });
   });
 
   it('maps rule:applied to derivation.made with stringified terms', () => {
@@ -95,12 +113,18 @@ describe('narEventToCognitive', () => {
   });
 
   it('returns null for unmapped events', () => {
-    expect(narEventToCognitive('cycle:end', { cycle: 1, derivations: 0, duration: 0 })).toBeNull();
     expect(narEventToCognitive('error', { error: new Error('x') })).toBeNull();
   });
 
   it('honors a custom engine origin', () => {
-    const evt = narEventToCognitive('cycle:start', { cycle: 1, conceptCount: 1 });
+    const evt = narEventToCognitive('cycle:state', {
+      state: 'running',
+      cycle: 1,
+      phase: 'idle',
+      activeTasks: 0,
+      budget: {},
+      derived: 0,
+    });
     expect(evt?.engine).toBe('nar');
   });
 
@@ -120,12 +144,18 @@ describe('narEventToCognitive', () => {
       'tool:result': { type: 'tool', name: 't', args: {}, result: 'r', timestamp: 1, duration: 1 },
       'tool:error': { type: 'tool', name: 't', args: {}, result: 'e', timestamp: 1, duration: 1 },
       'lm:start': { promptLength: 1, streaming: false },
-      'cycle:start': { cycle: 1, conceptCount: 1 },
+      'cycle:state': {
+        state: 'running',
+        cycle: 1,
+        phase: 'idle',
+        activeTasks: 0,
+        budget: {},
+        derived: 0,
+      },
       'memory:pressure': { level: 1, utilization: 0.5 },
       'memory:consolidated': { conceptsRemoved: 1, conceptsArchived: 1 },
       'lm:call': { modelId: 'm', inputTokens: 1, outputTokens: 1, duration: 1 },
       'lm:error': { ruleId: 'r', error: new Error('x'), duration: 1 },
-      'cycle:end': { cycle: 1, derivations: 0, duration: 0 },
       error: { error: new Error('x') },
       'nl:analyzed': { input: 'x', analysis: {} as never },
       'nl:translation': { nl: 'x', narsese: 'y', tier: 1 },

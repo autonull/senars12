@@ -1,5 +1,5 @@
 import type { BudgetEventMap } from '@senars/core/budget';
-import type { AmbiguityReport } from '@senars/core/schemas';
+import type { AmbiguityReport, KernelControlState } from '@senars/core/schemas';
 import type { TermTruth } from '@senars/util';
 import type { Term, Truth } from '../terms';
 
@@ -101,6 +101,8 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
     cpuMs?: number;
     lmCalls?: number;
     lmTokens?: number;
+    /** The kernel cycle the rule fired in — joins the fire to its `cycle:state`. */
+    cycle?: number;
   };
   'concept:created': { term: Term; priority: number };
   'concept:removed': { term: Term; reason: 'forgotten' | 'archived' | 'evicted' | 'retracted' };
@@ -108,8 +110,19 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
   'memory:consolidated': { conceptsRemoved: number; conceptsArchived: number };
   'lm:call': { modelId: string; inputTokens: number; outputTokens: number; duration: number };
   'lm:error': { ruleId: string; error: Error; duration: number };
-  'cycle:start': { cycle: number; conceptCount: number };
-  'cycle:end': { cycle: number; derivations: number; duration: number };
+  /**
+   * The kernel heartbeat (CORE.19 M0/C1): the control-plane state after every
+   * cycle. Replaces the unproduced `cycle:start`/`cycle:end` pair — one event
+   * with a real producer and a consumer.
+   */
+  'cycle:state': {
+    state: KernelControlState;
+    cycle: number;
+    phase: string;
+    activeTasks: number;
+    budget: Record<string, number>;
+    derived: number;
+  };
   error: { error: Error; context?: Record<string, unknown> };
   // NL events (GROW2 §9.3)
   'nl:analyzed': { input: string; analysis: TaskBatch };

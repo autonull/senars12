@@ -57,6 +57,12 @@ export type NarLike = {
   attentionReport?: () => { total: number };
   getProcessor?: () => NarProcessorLike;
   getExecution?: () => { getSpendSummary?: () => SpendSummary };
+  /** Kernel control plane (CORE.19 C2.2) — the UI drives the kernel, not a UI loop. */
+  step?: (signal?: AbortSignal) => unknown;
+  pause?: () => void;
+  resume?: () => void;
+  getControlState?: () => 'running' | 'paused' | 'stepping';
+  getCycleCount?: () => number;
 };
 
 export const DEFAULT_RUN_CYCLES = 20;
@@ -114,6 +120,19 @@ export function broadcastCognitiveEvent(
       client.send(msg);
     }
   }
+}
+
+/** Send the kernel control state as a `cycle.state` frame (CORE.19 C2.2). */
+export function sendCycleState(ws: WebSocket, nar: () => NarLike | undefined): void {
+  if (ws.readyState !== WebSocket.OPEN) return;
+  const engine = nar();
+  ws.send(
+    JSON.stringify({
+      type: 'cycle.state',
+      state: engine?.getControlState?.() ?? 'running',
+      cycleCount: engine?.getCycleCount?.(),
+    } satisfies IncomingFromServer)
+  );
 }
 
 export function sendNodeHistory(

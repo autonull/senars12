@@ -150,6 +150,8 @@ export {
   SelfImprovementProposalSchema,
 } from './governance.js';
 export { NarEventSchemas } from './nar-events.js';
+export type { KernelControlState } from './nar-events.js';
+export { KERNEL_CONTROL_STATES } from './nar-events.js';
 export type {
   ContentProposal,
   Proposal,

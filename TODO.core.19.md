@@ -335,6 +335,8 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 | Prompt-perception (root alias gap) | `tests/framework/prompt-perception.test.ts` | red at root; green in `ui`; aliases only in `ui/vite.aliases.ts` |
 | Server catalog tests | `tests/unit/server/{lens,field,event}-catalog.test.ts`, `layout-registry`, `scenarios`, `config-reset`, `test-endpoints`, `unified-graph-projection` | red |
 | Refactor suites | `tests/nar/refactor3-*.test.ts`, `tests/nar/refactor4-*.test.ts` | red |
+| `complexity:budget` baseline stale (workspaceCount 6→10, exportSubpaths 86→87, productionLOC, appendOnlyPersistenceSites 3→4) | `complexity-budget.json` | red at HEAD before CORE.19; ratchet the baseline in a dedicated commit (§C8.6) |
+| `nar.ts` monolith budget (952 LOC > 940 at HEAD; +33 for the C2 control-plane bindings) | `tests/nar/refactor3-hygiene.test.ts` | red at HEAD; not chased (§rule 6) |
 | Broken reference | `tests/nar/rl/budgetgate-verification.test.ts` (referenced by `test:unit`; file is `.too_slow`) | C8 fixes |
 | Quarantined suites | `tests/nar/{refactor1-source-reputation,refactor1-aikr-induction,rl/budgetgate-verification}.test.ts.too_slow` | C8 triages |
 | CI paused | `.github/workflows/{ci,derivation-verify}.yml` (`workflow_dispatch` only) | C8 decides |
@@ -344,11 +346,48 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 
 > Append per workstream as UI.18 does: status, files touched, evidence, friction logged against §9.
 
-### M0 — Kernel heartbeat proof — **NOT STARTED**
+### M0 — Kernel heartbeat proof — **DONE**
 
-### C1 — One event stream — **NOT STARTED**
+**Status:** Complete. A kernel-owned `step()` advances exactly one cycle, `cycle.state` is emitted once per cycle on the one bus, a rule fire is recorded with its cycle and queryable, and two seeded runs are byte-identical (ids included; timestamps the only exemption).
 
-### C2 — Kernel control plane & cycle semantics — **NOT STARTED**
+**Files touched:**
+- `core/src/schemas/nar-events.ts` — `CycleEventSchema` payload extended to `{cycle, derived, state, phase, activeTasks, budget}`; added `KERNEL_CONTROL_STATES`/`KernelControlState`.
+- `core/src/schemas/index.ts` — re-export `KernelControlState`, `KERNEL_CONTROL_STATES`.
+- `core/src/schemas/derivation-records.ts` — optional `cycle`/`timestamp` on `DerivationStepSchema`.
+- `nar/src/types/events.ts` — retired unproduced `cycle:start`/`cycle:end`; added typed `cycle:state`; `rule:applied` carries `cycle`.
+- `nar/src/events/bridge.ts` — `cycle:state` → `cycle`; `cycle:start` mapping retired.
+- `nar/src/nar-execution.ts` — emits `cycle:state` after every cycle; `#controlState`; `step`/`pause`/`resume`/`getControlState`.
+- `nar/src/rules/impls/recorder.ts` — bounded `fireRing` (cap `RULE_FIRE_RING_CAP`) + `fires()`/`firesByCycle()`/`firesByConclusion()`; steps carry `cycle`/`timestamp`.
+- `nar/src/rules/impls/processor.ts` — threads the host cycle into `begin()` and `rule:applied`.
+- `nar/src/nar.ts` — `step`/`pause`/`resume`/`getControlState`/`getRuleFires`/`getRuleFiresByCycle`.
+- `nar/src/resources/contracts.ts` — `kernel.rule-fires` declared.
+- `tests/nar/core19-m0.test.ts` — the acceptance test.
+
+**Evidence:** `pnpm vitest run tests/nar/core19-m0.test.ts` — 6 passed. Core battery green (see C8 note on `complexity:budget`), `nar-events-bridge` and `mint-cognitive-event` updated and green. No new reds.
+
+### C1 — One event stream — **PARTIAL (C1.1, C1.4 done)**
+
+**Done:**
+- C1.1: `cycle:state` is the canonical per-cycle event on the one bus and maps to the `cycle` cognitive event; the dead `cycle:start` producer/mapping is retired (D15 — no consumer without a producer).
+- C1.4: the new fire ring is declared in `RESOURCE_CONTRACTS` (`kernel.rule-fires`, 1024, drop-oldest) so `resource:policy` covers it.
+
+**Remaining:**
+- C1.2: bridge output still reaches `Agent.#cognitive`, not the durable `EventLog`. Wire the bridge/authored events into the append-only log so "the log is the source of truth" holds. Note: `nar:derivation` (`nar-execution.ts` `admit()`) is emitted on the bus but is **not typed** in `NAREventMap` — an untyped side event to fold into the stream while doing C1.2.
+- C1.3: `derivation.accepted` still has reducers/catalog/replay entries and no emitter; decide emit-vs-remove.
+- C1.5: the single query surface over the stream (by type/correlation/cycle/term) is not yet built; `getRuleFiresByCycle` is the only cycle query so far.
+
+### C2 — Kernel control plane & cycle semantics — **PARTIAL (C2.1, C2.2 done; C2.3–C2.6 open)**
+
+**Done:**
+- C2.1 (kernel side): `step`/`pause`/`resume` + control state live in `NARExecution`, exposed on `NAR`; a paused kernel refuses to advance on `run`. `runCycles` still lives UI-side (`ui/src/server/server-utils.ts`) — not yet moved kernel-side.
+- C2.2: `CycleStepMsg`/`CyclePauseMsg`/`CycleResumeMsg`/`CycleRewindMsg` added to `core/src/protocol`; `CycleStateMsg` extended (`phase`/`activeTasks`/`budget`) and exported; added to `IncomingFromClient`, `PROTOCOL_SPECS`, and server `SERVER_HANDLERS`; UI `pnpm --dir ui test:unit` green (874).
+
+**Remaining:**
+- C2.3: rewind is declared-partial and **not implemented**; `handleCycleRewind` rejects with the typed reason rather than faking a restore. Needs the checkpoint `{graph, bag, pending, cycle, RNG, id high-water, gate ring}`.
+- C2.2 (relay): `cycle.state` is only sent in response to control messages; it is not yet relayed after every cycle by the server (the bus already emits it).
+- C2.4: `reasoning.adjust-budget`/`adjust-provider` still return "is not yet wired to the engine" — replace with a real path or a typed `not-supported` (D15).
+- C2.5: `Agent.capabilities()` is still hardcoded; derive from wired subsystems.
+- C2.6: pause/resume tested (`core19-m0.test.ts`); rewind and the capability report are not.
 
 ### C3 — Gate observation & provenance records — **NOT STARTED**
 

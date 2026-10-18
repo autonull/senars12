@@ -37,6 +37,10 @@ export const DerivationStepSchema = z.object({
   premiseTruths: z.array(TruthValueSchema).optional(), // Truth of each premise, in order — enables standalone truth-algebra verification
   evidenceLineage: z.array(uuid), // Parent derivation IDs
   independence: IndependenceSchema,
+  /** The kernel cycle the rule fired in — CORE.19 M0.3/C3.1 joins a fire to its cycle. */
+  cycle: nonNegativeInt.optional(),
+  /** When the fire was recorded. Absent on records written before it was carried. */
+  timestamp: timestamp.optional(),
 });
 
 export const DerivationRecordSchema = z.object({

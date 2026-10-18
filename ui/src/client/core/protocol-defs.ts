@@ -41,6 +41,11 @@ import {
   ReasoningAdjustBudgetMsg,
   ReasoningAdjustProviderMsg,
   ReasoningControlResponse,
+  CycleStateMsg,
+  CycleStepMsg,
+  CyclePauseMsg,
+  CycleResumeMsg,
+  CycleRewindMsg,
   UiCommandMsg,
   CognitiveEventsMsg,
   TelemetryMsg,
@@ -105,6 +110,10 @@ export const PROTOCOL_SPECS: Readonly<Record<string, ProtocolSpec>> = {
     'Reasoning Adjust Provider',
     ReasoningAdjustProviderMsg
   ),
+  'cycle.step': toServer('cycle.step', 'Cycle Step', CycleStepMsg),
+  'cycle.pause': toServer('cycle.pause', 'Cycle Pause', CyclePauseMsg),
+  'cycle.resume': toServer('cycle.resume', 'Cycle Resume', CycleResumeMsg),
+  'cycle.rewind': toServer('cycle.rewind', 'Cycle Rewind', CycleRewindMsg),
   'chat.agent.stream': toClient('chat.agent.stream', 'Chat Agent Stream', ChatAgentStream),
   'chat.agent.complete': toClient('chat.agent.complete', 'Chat Agent Complete', ChatAgentComplete),
   'cognitive.delta': toClient('cognitive.delta', 'Cognitive Delta', CognitiveDelta),
@@ -122,6 +131,7 @@ export const PROTOCOL_SPECS: Readonly<Record<string, ProtocolSpec>> = {
     ReasoningControlResponse
   ),
   'ui.command': toClient('ui.command', 'UI Command', UiCommandMsg),
+  'cycle.state': toClient('cycle.state', 'Cycle State', CycleStateMsg),
   'cognitive.events': toClient('cognitive.events', 'Cognitive Events', CognitiveEventsMsg),
   'server.error': toClient('server.error', 'Server Error', ServerError),
 };
