@@ -324,14 +324,6 @@ pnpm exports:barrels
 pnpm lint
 ```
 
-> **SUSPENDED (2026-10-18): `complexity:budget`.** Left out of `GATES`
-> (`scripts/lib/gates.ts` `SUSPENDED_GATES`) and not required to pass, because a
-> stale baseline blocks unrelated work. Re-enter by ratcheting
-> `complexity-budget.json` to the current tree in a dedicated commit (§C8.6) and
-> moving the entry back into `GATES`. The `refactor4-budget` falsification test
-> keeps asserting the gate's *mechanism*; only the "checked-in budget is green"
-> assertion is relaxed for the suspension.
-
 Add per workstream:
 - **C4:** `pnpm test:determinism`, `pnpm test:hermetic`, `pnpm persistence:replay`
 - **C6:** `pnpm answer:no-fabrication`, `pnpm rule:has-fallback`, `pnpm cycle:no-provider`
@@ -346,7 +338,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 | Prompt-perception (root alias gap) | `tests/framework/prompt-perception.test.ts` | red at root; green in `ui`; aliases only in `ui/vite.aliases.ts` |
 | Server catalog tests | `tests/unit/server/{lens,field,event}-catalog.test.ts`, `layout-registry`, `scenarios`, `config-reset`, `test-endpoints`, `unified-graph-projection` | red |
 | Refactor suites | `tests/nar/refactor3-*.test.ts`, `tests/nar/refactor4-*.test.ts` | red |
-| `complexity:budget` baseline stale (workspaceCount 6→10, exportSubpaths 86→87, productionLOC, appendOnlyPersistenceSites 3→4) | `complexity-budget.json` | **SUSPENDED 2026-10-18** (directive): removed from `GATES`, not in the §11 battery. Re-enter when the baseline is ratcheted (§C8.6) |
+| `complexity:budget` baseline stale (workspaceCount 6→10, exportSubpaths 86→87, productionLOC 72758→74482, appendOnlyPersistenceSites 3→4, circularChains 11→13) | `complexity-budget.json` | **RE-ENTERED 2026-10-18 (§C8.6)**: baseline ratcheted to the current tree, back in `GATES`; `refactor4-budget` asserts the checked-in budget is green |
 | `nar.ts` monolith budget (1203 LOC > 940 at the current tree, measured as total lines; +84 for the C6 voice surface on top of the C2 control-plane / C4 boundary ports) | `tests/nar/refactor3-hygiene.test.ts` | red at HEAD; not chased (§rule 6) |
 | Broken reference | `tests/nar/rl/budgetgate-verification.test.ts` (referenced by `test:unit`; file is `.too_slow`) | C8 fixes |
 | Quarantined suites | `tests/nar/{refactor1-source-reputation,refactor1-aikr-induction,rl/budgetgate-verification}.test.ts.too_slow` | C8 triages |
@@ -361,7 +353,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 > Append per workstream as UI.18 does: status, files touched, evidence, friction logged against §9.
 
 **Suspensions:**
-- **2026-10-18 — `complexity:budget` suspended by directive.** Removed from `GATES` (`scripts/lib/gates.ts` → `SUSPENDED_GATES`) and from the §11 battery; the `refactor4-budget` falsification test keeps asserting the mechanism, not the stale baseline. Re-entry: ratchet `complexity-budget.json` to the current tree in a dedicated commit and move the entry back.
+- ~~**2026-10-18 — `complexity:budget` suspended by directive.**~~ **Re-entered by C8.6** (2026-10-18): the baseline was ratcheted to the current tree (`exportSubpaths` 87, `productionLOC` 74482, `appendOnlyPersistenceSites` 4, `circularChains` 13, `workspaceCount` 10) in the same commit that moved `complexity:budget` back into `GATES` (`SUSPENDED_GATES` removed; nothing referenced it). The `refactor4-budget` falsification test now asserts the checked-in budget is *green*, not merely parseable.
 
 ### M0 — Kernel heartbeat proof — **DONE**
 
@@ -508,11 +500,16 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - C7.6: `--benchmarks` remains a declared placeholder (honest); implement when a run produces costly-derivation stats to show.
 - C7.4 seam: the MCP/status readers use the NAR's/default `statePath`; a NAR with a non-default path is covered for MCP (`getConfig().statePath`) but `--status`/`--doctor` read the default path only (they build a NAR without the app's overrides). Logged, not chased.
 
-### C8 — Batteries, gates, CI & security hardening — **PARTIAL (C8.1 partial)**
+### C8 — Batteries, gates, CI & security hardening — **PARTIAL (C8.1, C8.6 done)**
 
 **Done:**
 - C8.1 (partial): `egress:invariant` is added to `GATES` (`scripts/lib/gates.ts`), so `pnpm gates` matches CI. The `budgetgate-verification` exclusion in `test:unit` is **kept deliberately**: the `todo19-profiles` grep-guard asserts both fast and slow lanes name the suite, and the quarantined `.too_slow` file is what the exclusion documents — removing it is a red, so the "broken reference" is a guard-enforced exclusion, not a defect.
+- C8.6: `complexity:budget` is **re-entered**. The baseline was ratcheted to the current tree (`exportSubpaths` 86→87, `productionLOC` 72758→74482, `appendOnlyPersistenceSites` 3→4, `circularChains` 11→13, `workspaceCount` 6→10) in the same commit; `SUSPENDED_GATES` was removed (nothing referenced it) and `complexity:budget` moved back into `GATES`. `tests/nar/refactor4-budget.test.ts` now asserts the checked-in budget passes (`passing.code === 0`), not merely renders. `pnpm complexity:budget` green.
 
-**Remaining:** C8.2 (CI triggers), C8.3 (triage quarantined suites), C8.4 (extend determinism/hermetic to the new loops), C8.5 (security docs), C8.6 (`complexity:budget` re-entry), C8.7 (known-red ledger).
+**Files touched (this slice):** `complexity-budget.json`, `scripts/lib/gates.ts`, `tests/nar/refactor4-budget.test.ts`.
+
+**Evidence:** `pnpm complexity:budget` green (all 9 rows PASS); `refactor4-budget` (12) green.
+
+**Remaining:** C8.2 (CI triggers), C8.3 (triage quarantined suites), C8.4 (extend determinism/hermetic to the new loops), C8.5 (security docs), C8.7 (known-red ledger).
 
 ### C9 — Document the hardened core — **NOT STARTED**

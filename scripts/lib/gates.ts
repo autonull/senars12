@@ -26,15 +26,6 @@ const script = (name: string, tier: Gate['tier'] = 'gate'): Gate => ({
   tier,
 });
 
-/**
- * Gates suspended by directive (TODO.core.19 §11) — deliberately left out of
- * `GATES`, so `pnpm gates` and the §11 battery do not run them, and a red here
- * cannot block unrelated work. Re-enter by ratcheting `complexity-budget.json`
- * to the current tree in a dedicated commit, then moving the entry back into
- * `GATES`.
- */
-export const SUSPENDED_GATES: readonly Gate[] = [script('complexity:budget')];
-
 export const GATES: readonly Gate[] = [
   script('typecheck'),
   script('typecheck:bin'),
@@ -79,6 +70,10 @@ export const GATES: readonly Gate[] = [
   // owner actually reads, a retention rule, an overflow behaviour, and a pressure
   // signal or an explicit null.
   script('resource:policy'),
+  // TODO.core.19 C8.6: the ratchet is back on after the baseline was moved to the
+  // current tree in the same commit — a `mustNotIncrease` rule is only real if
+  // the ledger moves with it.
+  script('complexity:budget'),
   script('cycle:no-provider'),
   // TODO29.a A0: the in-cycle induction inventory, and its references still hold.
   script('induction:inventory'),

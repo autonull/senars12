@@ -162,9 +162,11 @@ describe('Bench 99 — complexity budget gate', () => {
     expect(rowOf(result, 'Workspace count').status).toBe('FAIL');
   });
 
-  it('emits a parseable table for the checked-in budget (gate suspended — TODO.core.19 §11)', () => {
-    // The gate is suspended: the checked-in baseline is stale and not required to
-    // pass. The mechanism is still asserted — the CLI runs and renders a table.
+  it('passes on the checked-in budget — the ledger moved with the tree (C8.6)', () => {
+    // Re-entered after the baseline was ratcheted to the current tree: the gate is
+    // back in `GATES`, so the checked-in budget must be green, not merely parseable.
+    expect(passing.code).toBe(0);
+    expect(passing.stdout).toContain('✓ complexity-budget ok');
     expect(passing.stdout).toContain('┌');
     expect(passing.stdout).toContain('│ Metric');
     expect(passing.stdout).toContain('└');
