@@ -1,6 +1,7 @@
 # CORE.19 — Non-UI Hardening: Truth, Continuity, Autonomy, Voice
 
 **Status:** Directive · sibling of `TODO.ui.19.md` — not a successor and not a supersession. UI.19 owns presentation; CORE.19 owns everything the presentation stands on.
+**Implemented at HEAD (2026-10-18):** every workstream (M0, C1–C9) is DONE; the §11 battery is green; the §8 walkthrough is test-backed (`tests/nar/core19-acceptance.test.ts`). Remaining work is out of remit (UI-owned gate reds, three calibration reds, the reserved §9 seams) — see the closure entry in §13.
 **Scope:** reasoning kernel, event bus, persistence/replay/determinism, autonomy loop, neuro-symbolic translation, non-UI reach (CLI/MCP/HTTP/SDK), gates/CI/security.
 **Character:** Hardening, not a rewrite, not an expansion. Capabilities grow only where a verified kernel, one event stream, and honest persistence already hold. No new registries, no new packages, no UI.
 
@@ -268,6 +269,8 @@ The smallest demonstrable proof the substrate is real, backend-observed. **Nothi
 No UI, renderers, surfaces, or aspects. No second consumer app, conformance suite, or publishing. No performance/accessibility overhaul. No `Cell` merge, `Fidelity` fusion, or 3D growth. No new registries, packages, or module moves. These remain parked in UI.19 §8.
 
 ## 8. Acceptance walkthrough (definition of done)
+
+**Backed by `tests/nar/core19-acceptance.test.ts`** — the walkthrough runs as one continuous seeded headless session (steps 1, 3, 5, 6, 7), as two seeded runs (step 2), as an autonomous session (step 4), and as the CLI/MCP round-trip (step 8). Step 9's `pnpm gates --tier slow` is the sole item still gated by the UI-owned reds below (§13); the walkthrough itself is green at HEAD with no LLM configured.
 
 One continuous headless session, `LM_PROVIDER=mock` first, then with a key configured:
 
@@ -738,3 +741,25 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 **Files touched:** `tests/unit/server/{event,field,lens}-catalog.test.ts`, `tests/unit/server/layout-registry.test.ts`, `tests/nar/refactor3-hygiene.test.ts`, `tests/integration/metta-conversation.test.ts`, `tests/mcp/mcp-resources.test.ts`, `tests/e2e/bot-cli.test.ts`, `tests/framework/prompt-perception.test.ts`, `tests/helpers/fake-embedding.ts`, `tests/nar/{c3-hotpath-perf,todo16-enabled-path,todo20-perf,todo22-contrastive,todo22-clm-wiring,todo23-decide,todo23-phases56,todo24-e2e,todo24-reactions}.test.ts`, `nar/src/agent/index.ts`.
 
 **Evidence:** root `pnpm typecheck` **clean** (was ~50 errors across 18 files); `pnpm typecheck:packages`, `pnpm typecheck:bin`, `pnpm lint` clean; the 15 touched suites green (14 files need `--no-file-parallelism` to dodge the pre-existing `onnxruntime-node` load flake); `pnpm --dir ui test:unit` (874) green; `test:unit` **3 failed** (the three numeric reds) / 3518 passed (was 7 failed); `test:determinism` (16), `test:hermetic` (11), `persistence:replay` (3) green.
+
+### C9 + §8 — CORE.19 complete; the acceptance walkthrough is test-backed — **DONE**
+
+**Status:** Every workstream in the plan is DONE (M0, C1–C9) and the §11 battery is green at HEAD. The one artifact the plan's own definition of done named but no test carried — *one continuous headless session* (§8) — now exists. This is the closure entry: the plan is implemented; what remains is out of CORE.19's remit (halt rule 1, calibration, and the reserved §9 seams).
+
+**Done:**
+- `tests/nar/core19-acceptance.test.ts` (new, 4) — the §8 walkthrough in one file:
+  - **one continuous session**: Narsese through the one gate with no LM (a non-Narsese utterance is *declared* rejected, D15), a kernel-owned `step` advancing the heartbeat on the one stream (`cycle:state`, cycle 1), a rule fire queryable by cycle and on the stream, `askWithDerivation` returning a verified derivation, `explainDerivation` citing resolvable rule-fire ids and emitting `explanation`, a coexisting contradiction flagged with a cited explanation, and a kill-and-restart resuming the declared boundary and announcing `restore:state`;
+  - **determinism**: two seeded runs (seeded `rng` + `sequentialIdSource`) byte-identical with ids, timestamps the only exemption (D13);
+  - **autonomy**: `mode:'stepping'` derives unasked — `cycle:state`, `autonomy:curiosity`, `autonomy:consolidated` on the bus — then a window budget halts the loop (`halted: 'cycle-budget'`);
+  - **no browser**: the same round-trip through the CLI one-shot (`runOneShot`, `nal.deduction` in the output) and MCP (`nar://state` non-empty on a seeded NAR).
+
+**Files touched:** `tests/nar/core19-acceptance.test.ts` (new), `TODO.core.19.md`.
+
+**Evidence:** `core19-acceptance` (4); full `pnpm test:unit` **3 failed / 3522 passed / 5 skipped** — the three reds are exactly the §12 calibration rows (`todo16-groundedness-gate`, `todo22-clm-wiring`, `todo16c-rl-distill`), **no new ones**; root `pnpm typecheck` **clean**; `pnpm typecheck:bin`/`typecheck:packages`/`lint` clean; §11 core battery green (`deps:gate`, `deps:direction`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `control-budgets`, `gates:one-cycle-path`, `exports:check`, `exports:barrels`, `resource:policy`); `test:determinism` (16), `test:hermetic` (11), `persistence:replay` (3) green; `docs:drift` clean (test-only change — no source or exports moved, so `complexity:budget` stays suspended and the `nar.ts` monolith holds).
+
+**Remaining work (out of CORE.19's remit — recorded, not chased):**
+- **UI-owned `pnpm gates` reds (halt rule 1).** `pnpm gates` stops at `env:grammar`: two pre-existing `process.env` reads in the UI server host (`ui/src/server/index.ts`). `primitives:grammar` (open-coded idioms) and `schema:grammar` (hand-spelled bounds) live under `ui/src/client`; `ui:gate` needs browser system deps (`playwright install-deps`; `ci.yml` installs chromium). These are UI.19's battery — the only reason step 9's "`pnpm gates` green" is not literally met. Fixing them is a UI edit the halt list forbids.
+- **Calibration reds (need a decision, not a wiring fix).** `tests/nar/todo16-groundedness-gate.test.ts` (score above threshold under the mock embedding), `tests/nar/todo22-clm-wiring.test.ts` (exemplar fallback 0.33 < 0.5), `tests/nar/todo16c-rl-distill.test.ts` (label correlation 0.49 < 0.98). All deterministic, fail at HEAD by stash, belong to the System One / RL calibration surface.
+- **`complexity:budget` suspended** for the major-work period. Re-entry: empty `SUSPENDED_GATES`, uncomment the `ci.yml` step, ratchet `complexity-budget.json` to the current tree (the C8.6 procedure). See §13 Suspensions.
+- **Reserved §9 seams** whose re-entry triggers are not yet met: true replay-rewind (the C2 checkpoint and C4 replay are now stable — the closest to ready), distributed/OTel event export (the stream exists and is bounded), multi-instance ecology, System One calibration activation, performance/accessibility gates, and the UI-owned seams (explain-intent registration, autonomy events on the UI stream, UI driving cycles in autonomous modes).
+- **C9.3 `PHILOSOPHY.md`** does not exist in the tree and is UI.19-owned; nothing to keep consistent here until it lands.
