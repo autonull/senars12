@@ -175,8 +175,17 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
     pressureSignal: null,
   },
   {
-    id: 'kernel.source-reputation',
-    holds: 'per-source reputation, keyed by a source id that arrives on the wire',
+    id: 'kernel.checkpoints',
+    holds: 'rewind checkpoints — whole-graph memory dumps taken every interval (CORE.19 C2.3)',
+    owner: 'nar/src/state/checkpoint.ts',
+    capacity: { module: 'nar/src/state/checkpoint.ts', symbol: 'CHECKPOINT_RING_CAP' },
+    retention: 'drop-oldest',
+    overflow:
+      'BoundedRing drops the oldest checkpoint; a rewind whose target predates the window restores the nearest survivor or reports none',
+    pressureSignal: null,
+  },
+  {
+    id: 'kernel.source-reputation',    holds: 'per-source reputation, keyed by a source id that arrives on the wire',
     owner: 'nar/src/kernel/source-reputation.ts',
     capacity: {
       module: 'nar/src/kernel/source-reputation.ts',

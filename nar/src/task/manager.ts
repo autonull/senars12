@@ -201,6 +201,15 @@ export class TaskManager {
     this.failed.clear();
   }
 
+  /**
+   * Drop the pending queue without touching the retired history. A rewind
+   * replaces what is queued, not what already happened (CORE.19 C2.3).
+   */
+  clearPending(): void {
+    for (const taskId of this.pending.keys()) this.disarm(taskId);
+    this.pending.clear();
+  }
+
   private expireTask(taskId: string): void {
     const wrapper = this.pending.get(taskId);
     if (!wrapper) return;

@@ -342,16 +342,30 @@ export function handleCycleResume(
   sendCycleState(ctx.ws as WebSocket, () => getNar(ctx));
 }
 
-export function handleCycleRewind(
+export async function handleCycleRewind(
   ctx: ServerHandlerContext,
-  _msg: { type: 'cycle.rewind'; cycles?: number; seqId?: number }
-): void {
-  // C2.3: rewind is declared-partial and not yet implemented — reject with the
-  // reason rather than pretending the graph was restored (D15).
-  respondReasoning(
-    ctx.ws as WebSocket,
-    false,
-    'cycle.rewind: declared-partial restore is not yet implemented',
-    undefined
-  );
+  msg: { type: 'cycle.rewind'; cycles?: number; seqId?: number }
+): Promise<void> {
+  const engine = getNar(ctx);
+  if (!engine?.rewind) {
+    respondReasoning(ctx.ws as WebSocket, false, 'Engine cannot rewind cycles', msg.seqId);
+    return;
+  }
+  try {
+    const report = (await engine.rewind(msg.cycles ?? 1)) as {
+      from: number;
+      restored: number;
+      concepts: number;
+      gaps: string[];
+    };
+    respondReasoning(
+      ctx.ws as WebSocket,
+      true,
+      `rewound ${report.from} → ${report.restored} (${report.concepts} concepts); not restored: ${report.gaps.join('; ')}`,
+      msg.seqId
+    );
+    sendCycleState(ctx.ws as WebSocket, () => getNar(ctx));
+  } catch (e: unknown) {
+    respondReasoning(ctx.ws as WebSocket, false, (e as Error).message, msg.seqId);
+  }
 }

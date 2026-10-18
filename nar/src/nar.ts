@@ -48,6 +48,7 @@ import {
 } from './facade/index.js';
 import { createOptionalSubsystems } from './facade/optional-subsystems.js';
 import { StatePersister } from './facade/persistence.js';
+import { createKernelRewind, type KernelRewind, type RewindReport } from './state/checkpoint.js';
 import type { SystemOneRuntime } from './facade/system-one.js';
 import type { FocusBag } from './focus/FocusBag.js';
 import type { GameFocus, GameFocusOptions, ReflexBindable } from './focus/GameFocus.js';
@@ -193,6 +194,8 @@ export class NAR extends BaseComponent {
   #autonomy: AutonomyHeartbeat | null = null;
   /** The neuro-symbolic formalizer (CORE.19 C6); lazily bound to the LM at first use. */
   #formalizer: Formalizer | null = null;
+  /** Bounded rewind checkpoints (CORE.19 C2.3) — the graph a `rewind` can reach. */
+  #rewind!: KernelRewind;
 
   constructor(config: NARConfig = DEFAULT_CONFIG) {
     const eventBus = config.eventBus ?? new NarEventBus();
@@ -368,8 +371,12 @@ export class NAR extends BaseComponent {
           this.#cyclesSinceGateFlush = 0;
           this.flushGateLogs();
         }
+        this.#rewind.maybeCapture(cycleCount);
       },
     });
+    this.#rewind = createKernelRewind(
+      this.memory, this.taskManager, this.execution, this.config.checkpointInterval
+    );
     this.lm = new NARLM(
       this.memory,
       this._registry,
@@ -664,6 +671,18 @@ export class NAR extends BaseComponent {
 
   getCycleCount(): number {
     return this.execution.getCycleCount();
+  }
+
+  /**
+   * Rewind the kernel toward an earlier cycle (CORE.19 C2.3). Declared-partial:
+   * restores the newest checkpoint at or before `cycleCount - cycles` — the graph
+   * and the boundary fields — and reports the state deliberately not restored
+   * (RNG, the rings, the append-only log). Never implies a full restore.
+   */
+  async rewind(cycles = 1): Promise<RewindReport> {
+    const report = await this.#rewind.rewind(cycles);
+    this.systemEventBus.emit('cycle:rewound', report);
+    return report;
   }
 
   /** The instance's randomness — the one stream memory bags, link layers and strategies draw from. */

@@ -130,6 +130,12 @@ export interface NARConfig extends CoreConfig {
   embeddingGenerator?: EmbeddingGenerator;
   /** Maximum total tasks across all concepts (memory pressure bound). */
   maxTasks?: number;
+  /**
+   * Cycles between automatic rewind checkpoints (CORE.19 C2.3). `0` or negative
+   * disables checkpointing, so `rewind` honestly reports that nothing is
+   * reachable. Absent ⇒ the default interval (10 cycles).
+   */
+  checkpointInterval?: number;
 }
 
 export function validateNarConfig(config: NARConfig): NARConfig {

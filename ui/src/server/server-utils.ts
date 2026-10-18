@@ -63,6 +63,8 @@ export type NarLike = {
   resume?: () => void;
   getControlState?: () => 'running' | 'paused' | 'stepping';
   getCycleCount?: () => number;
+  /** Rewind to the nearest checkpoint (CORE.19 C2.3). */
+  rewind?: (cycles?: number) => Promise<unknown>;
   /** Adjust the kernel's cycle ceiling (CORE.19 C2.4). */
   adjustCycleBudget?: (maxCycles: number) => void;
 };

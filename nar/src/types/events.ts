@@ -138,6 +138,20 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
    */
   'restore:state': { cycleCount: number; concepts: number; pendingTasks: number };
   /**
+   * A rewind restored the nearest checkpoint (CORE.19 C2.3). Live-only on the
+   * bus, like the autonomy and explanation events: the payload is the kernel's
+   * own report, and a cognitive variant would force the UI catalog to name one
+   * (halt list).
+   */
+  'cycle:rewound': {
+    from: number;
+    target: number;
+    restored: number;
+    checkpointed: boolean;
+    concepts: number;
+    gaps: string[];
+  };
+  /**
    * The autonomy heartbeat minted an internal question about a concept it is
    * uncertain of (CORE.19 C5.4). The question itself admits through the gate as
    * a `task.admitted`, so this is the *cause*, with the provenance the task

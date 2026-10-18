@@ -12,6 +12,8 @@ export type {
 export { PriorityBag } from './bag/index.js';
 /** The persisted consistency boundary, readable without starting a NAR. @public */
 export { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from './state/persisted.js';
+/** Rewind checkpoints and the partial-restore report (CORE.19 C2.3). @public */
+export { CHECKPOINT_RING_CAP, REWIND_BASE_GAPS, type RewindReport } from './state/checkpoint.js';
 // Cognitive
 /** Counterfactual simulator. @public */
 export { runCounterfactual } from './cognitive/index.js';

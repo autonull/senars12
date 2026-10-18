@@ -2,6 +2,7 @@ import { Agent } from '@senars/core';
 import { NAR } from '@senars/nar/nar.js';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  handleCycleRewind,
   handleReasoningAdjustBudget,
   handleReasoningAdjustProvider,
 } from '../../../ui/src/server/handlers.js';
@@ -106,5 +107,92 @@ describe('CORE.19 C2.5 — honest capabilities', () => {
       selfReasoning: true,
       autonomyLoop: false,
     });
+  });
+});
+
+describe('CORE.19 C2.3/C2.6 — declared-partial rewind', () => {
+  const build = (checkpointInterval: number): NAR =>
+    new NAR(e2eNARConfig({ persistState: false, checkpointInterval }));
+
+  const start = async (nar: NAR): Promise<void> => {
+    await nar.initialize();
+    await nar.start();
+  };
+
+  it('restores the nearest checkpoint and declares the gaps it cannot close', async () => {
+    const nar = build(1);
+    await start(nar);
+    await nar.input('(a --> b).');
+    await nar.run(3);
+    expect(nar.getCycleCount()).toBe(3);
+
+    const report = await nar.rewind(2);
+    expect(report.checkpointed).toBe(true);
+    expect(report.restored).toBe(1);
+    expect(report.target).toBe(1);
+    expect(nar.getCycleCount()).toBe(1);
+    expect(report.gaps.join(' ')).toContain('RNG state');
+
+    await nar.dispose();
+  });
+
+  it('rolls the graph back to the checkpoint, not only the counter', async () => {
+    const nar = build(1);
+    await start(nar);
+    await nar.run(1);
+    const conceptsAtCheckpoint = nar.memory.size;
+
+    await nar.believe('(cat --> animal).');
+    expect(nar.memory.size).toBeGreaterThan(conceptsAtCheckpoint);
+    await nar.run(1);
+
+    const report = await nar.rewind(1);
+    expect(report.restored).toBe(1);
+    expect(nar.memory.size).toBe(conceptsAtCheckpoint);
+
+    await nar.dispose();
+  });
+
+  it('reports the nearest checkpoint when the target was not journaled', async () => {
+    const nar = build(5);
+    await start(nar);
+    await nar.run(10);
+
+    const report = await nar.rewind(3);
+    expect(report.restored).toBe(5);
+    expect(report.target).toBe(7);
+    expect(report.gaps.join(' ')).toContain('nearest checkpoint at cycle 5');
+
+    await nar.dispose();
+  });
+
+  it('reports no reachable checkpoint when checkpointing is off', async () => {
+    const nar = build(0);
+    await start(nar);
+    await nar.run(3);
+
+    const report = await nar.rewind(1);
+    expect(report.checkpointed).toBe(false);
+    expect(report.restored).toBe(3);
+    expect(report.gaps.join(' ')).toContain('no checkpoint');
+
+    await nar.dispose();
+  });
+
+  it('routes cycle.rewind through the server handler and reports the restore', async () => {
+    const nar = build(1);
+    await start(nar);
+    await nar.run(2);
+
+    const { ctx, frames } = fakeCtx(nar);
+    await handleCycleRewind(ctx as never, { type: 'cycle.rewind', cycles: 1 });
+
+    expect(
+      frames.some((f) => f.type === 'reasoning.control.response' && f.ok)
+    ).toBe(true);
+    expect(frames.some((f) => f.type === 'cycle.state')).toBe(true);
+    expect(nar.getCycleCount()).toBe(1);
+
+    await nar.dispose();
   });
 });
