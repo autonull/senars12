@@ -500,11 +500,12 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - C7.6: `--benchmarks` remains a declared placeholder (honest); implement when a run produces costly-derivation stats to show.
 - C7.4 seam: the MCP/status readers use the NAR's/default `statePath`; a NAR with a non-default path is covered for MCP (`getConfig().statePath`) but `--status`/`--doctor` read the default path only (they build a NAR without the app's overrides). Logged, not chased.
 
-### C8 — Batteries, gates, CI & security hardening — **PARTIAL (C8.1, C8.2, C8.5, C8.6 done)**
+### C8 — Batteries, gates, CI & security hardening — **PARTIAL (C8.1, C8.2, C8.4 partial, C8.5, C8.6 done)**
 
 **Done:**
 - C8.1 (partial): `egress:invariant` is added to `GATES` (`scripts/lib/gates.ts`), so `pnpm gates` matches CI. The `budgetgate-verification` exclusion in `test:unit` is **kept deliberately**: the `todo19-profiles` grep-guard asserts both fast and slow lanes name the suite, and the quarantined `.too_slow` file is what the exclusion documents — removing it is a red, so the "broken reference" is a guard-enforced exclusion, not a defect.
 - C8.2: the CI pause stays **documented in place** — both workflows carry a `workflow_dispatch` header stating that every job/step is unchanged and re-enabling is restoring the `on:` block. `pnpm gates` is the local source of truth: `scripts/gates.ts` refuses to run unless every gate is (a) backed by a real `pnpm` script and (b) named in `ci.yml`, and `--tier slow` adds `test:determinism`/`test:hermetic`/`test:load-sensitive`. Verified: no gate is missing a script and every gate name (incl. `complexity:budget`, `egress:invariant`, the three slow tiers) appears in `ci.yml`.
+- C8.4 (partial): `tests/e2e/hermetic-run.test.ts` gained a **CORE.19 C8.4** block that puts the new feedback loops under the same ambient-entropy spy (the golden scenarios stop at the reasoning path). Two cases: **autonomy stepping** (a NAR in `mode:'stepping'` with seeded `rng`/`clock`/`ids`, 5 `autonomyTick()`s, `consolidation.intervalCycles:1`) and **persistence save/restore** (save, dispose, a second NAR on the same `statePath`, resume, run). Both pass with `Math.random`/`crypto.randomUUID` throwing — an unthreaded draw in either loop fails here. `pnpm test:hermetic` green (9).
 - C8.5: `docs/security.md` gained **S5** (neuro-symbolic admission — C6: LM output is a proposal, one gate, `llm-proposed` tagging, declared rejections, D10 no-key path) and **S6** (the reasoning HTTP surface — C7: off unless `ENABLE_REASONING_HTTP=true`, claims its paths and 404s when disabled, POST-only, term validation, `runs` clamp, typed errors, `/metrics` ahead of auth).
 - C8.6: `complexity:budget` is **re-entered**. The baseline was ratcheted to the current tree (`exportSubpaths` 86→87, `productionLOC` 72758→74482, `appendOnlyPersistenceSites` 3→4, `circularChains` 11→13, `workspaceCount` 6→10) in the same commit; `SUSPENDED_GATES` was removed (nothing referenced it) and `complexity:budget` moved back into `GATES`. `tests/nar/refactor4-budget.test.ts` now asserts the checked-in budget passes (`passing.code === 0`), not merely renders. `pnpm complexity:budget` green.
 
@@ -512,6 +513,10 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 
 **Evidence:** `pnpm complexity:budget` green (all 9 rows PASS); `refactor4-budget` (12) green; gate preflight (script + `ci.yml` coverage) clean.
 
-**Remaining:** C8.3 (triage quarantined suites), C8.4 (extend determinism/hermetic to the new autonomy/event-bus/persistence loops), C8.7 (known-red ledger — the §12 table is the ledger, kept current per slice).
+**Remaining:**
+- C8.3 (triage quarantined suites): the three `.too_slow` files are still quarantined; no re-enable/retire decision yet.
+- C8.4 (determinism half): hermetic now covers autonomy + persistence, but no autonomy scenario was added to `GOLDEN_SCENARIOS` (the shared determinism gate compares `stateHash` across runs; the autonomy heartbeat's wall-clock window would need the injected `clock` asserted first). The event bus is already tapped by the harness.
+- C8.4 (the flagged-out subsystems): System One manifold, episode consolidator and governance stay outside hermetic coverage — they require their feature flags, and a test that cannot reach them cannot gate them (the harness doc says so).
+- C8.7: the §12 table *is* the ledger; kept current per slice (no separate artifact).
 
 ### C9 — Document the hardened core — **NOT STARTED**

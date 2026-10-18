@@ -87,3 +87,79 @@ describe('TODO28 §7.3 — hermetic seeded run', () => {
     expect(ids(first)).toBe(ids(second));
   }, 120_000);
 });
+
+/**
+ * CORE.19 C8.4 — the new feedback loops are inside hermetic coverage.
+ *
+ * The golden scenarios stop at the reasoning path (LM/tools off). These add the
+ * two loops CORE.19 introduced — the autonomy heartbeat and persistence
+ * save/restore — under the same ambient-entropy spy: an unthreaded id/RNG draw
+ * in either fails here by throwing rather than by being noticed.
+ */
+describe('CORE.19 C8.4 — new loops draw no ambient entropy', () => {
+  it('autonomy stepping', async () => {
+    const { NAR } = await import('@senars/nar/nar.js');
+    const { e2eNARConfig } = await import('./fixtures');
+    const { Truth } = await import('@senars/nar/index.js');
+    const { SeededRNG, fixedClock } = await import('@senars/util');
+    const rng = new SeededRNG(2025);
+    const nar = new NAR(
+      e2eNARConfig({
+        rng: () => rng.next(),
+        clock: fixedClock(0),
+        ids: sequentialIdSource(),
+        autonomy: {
+          enabled: true,
+          mode: 'stepping',
+          maxCyclesPerWindow: 20,
+          consolidation: { intervalCycles: 1 },
+        },
+      })
+    );
+    await nar.initialize();
+    await nar.start();
+    await nar.input('(a-->b).', 'belief', Truth.create(1, 0.3));
+    const reports: unknown[] = [];
+    for (let i = 0; i < 5; i++) reports.push(await nar.autonomyTick());
+    expect(reports).toHaveLength(5);
+    expect(reports.every((report) => report !== null)).toBe(true);
+    await nar.stop();
+    await nar.dispose();
+  }, 60_000);
+
+  it('persistence save and restore', async () => {
+    const { mkdtempSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const { NAR } = await import('@senars/nar/nar.js');
+    const { e2eNARConfig } = await import('./fixtures');
+    const { SeededRNG, fixedClock } = await import('@senars/util');
+    const statePath = mkdtempSync(join(tmpdir(), 'core19-c8.4-'));
+    const make = (): InstanceType<typeof NAR> => {
+      const rng = new SeededRNG(7);
+      return new NAR(
+        e2eNARConfig({
+          rng: () => rng.next(),
+          clock: fixedClock(0),
+          ids: sequentialIdSource(),
+          persistState: true,
+          statePath,
+        })
+      );
+    };
+    const first = make();
+    await first.initialize();
+    await first.start();
+    await first.input('(cat-->animal).', 'belief');
+    await first.run(3);
+    await first.stop();
+    await first.dispose();
+
+    const resumed = make();
+    await resumed.initialize();
+    await resumed.start();
+    await resumed.run(2);
+    await resumed.stop();
+    await resumed.dispose();
+  }, 60_000);
+});
