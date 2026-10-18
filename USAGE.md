@@ -24,7 +24,7 @@ Reporting modes:
 ```sh
 pnpm bot -- --status      # System One + persisted boundary
 pnpm bot -- --doctor      # credentials, provider probes, persisted boundary
-pnpm bot -- --doctor --benchmarks   # declared placeholder (not yet implemented)
+pnpm bot -- --doctor --benchmarks   # measured costly-derivation report
 ```
 
 `--status` and `--doctor` read the persisted consistency boundary off disk
@@ -86,7 +86,7 @@ import { createAgent } from '@senars/nar/agent';
   reflects wired subsystems honestly (D15).
 
 Experimental / not-yet-stable: `Agent.delegate` (remote delegation), `--tune`
-(simulated metrics), `--benchmarks` (placeholder).
+(simulated metrics). `--benchmarks` reports measured derivation costs.
 
 ## Verification
 

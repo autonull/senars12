@@ -9,7 +9,8 @@
  */
 
 import { serializeTerm } from '../../nar/src/terms/impls/serialize.js';
-import { termParser } from '../../nar/src/terms/index.js';
+import { PUNCTUATION_BY_TASK_TYPE, termParser } from '../../nar/src/terms/index.js';
+import { escapeRegExp } from '../../util/src/utils/text.js';
 
 /** One literal's verdict, and why it went the way it did. */
 export interface LiteralRoundTrip {
@@ -56,8 +57,40 @@ export const canonical = (literal: string): string => {
     : serializeTerm(termParser.parse(literal));
 };
 
-/** Whether a literal reads back as the term it was written to be. */
+/**
+ * One literal, split at its sentence marks — the tasks a task reader would take.
+ * The marks are the grammar's own (`PUNCTUATION_BY_TASK_TYPE`), read as a
+ * character class so a mark added there is a mark here.
+ */
+const SENTENCE_MARKS = Object.values(PUNCTUATION_BY_TASK_TYPE).map(escapeRegExp).join('');
+const SENTENCE_END = new RegExp(`(?<=[${SENTENCE_MARKS}])\\s+`);
+const splitTasks = (literal: string): string[] =>
+  literal
+    .split(SENTENCE_END)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+/** Whether a literal reads back as the term it was written to be.
+ *
+ * One literal may hold several sentences: the one-shot CLI accepts an argument
+ * that does (CORE.19 C7.1) and `USAGE.md` shows one, so the round trip that
+ * actually happens there is per task. A multi-sentence literal is checked as its
+ * tasks — the same reason the single-task path reads `parseTask`, not `parse`.
+ */
 export const roundTrip = (literal: string): LiteralRoundTrip => {
+  const tasks = splitTasks(literal);
+  if (tasks.length <= 1) return roundTripTask(literal);
+  const verdicts = tasks.map(roundTripTask);
+  const failure = verdicts.find((verdict) => verdict.failure)?.failure;
+  return {
+    canonical: verdicts.map((verdict) => verdict.canonical).join(' '),
+    canonicalUpToSpacing: verdicts.every((verdict) => verdict.canonicalUpToSpacing),
+    stable: verdicts.every((verdict) => verdict.stable),
+    ...(failure === undefined ? {} : { failure }),
+  };
+};
+
+const roundTripTask = (literal: string): LiteralRoundTrip => {
   let rendered: string;
   try {
     rendered = canonical(literal);

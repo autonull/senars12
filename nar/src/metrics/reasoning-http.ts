@@ -11,6 +11,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { envBool } from '@senars/util/config';
 
 /** Env flag guarding the production reasoning surface. */
 export const REASONING_HTTP_ENV = 'ENABLE_REASONING_HTTP';
@@ -78,7 +79,7 @@ export const createReasoningRoute =
     const path = (req.url ?? '/').split('?')[0];
     if (path !== BELIEVE_PATH && path !== ASK_PATH) return false;
 
-    if (process.env[REASONING_HTTP_ENV] !== 'true') {
+    if (!envBool(REASONING_HTTP_ENV)) {
       return send(res, 404, TYPED_ERROR('DISABLED', 'Reasoning HTTP surface is disabled'));
     }
     if (req.method !== 'POST') {

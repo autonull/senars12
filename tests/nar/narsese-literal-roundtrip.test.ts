@@ -78,3 +78,19 @@ describe('roundTrip — the gate, on objects rather than on a checkout', () => {
     expect(verdict.canonical).toBe('(robin-->bird).');
   });
 });
+
+describe('roundTrip — one literal may hold several sentences', () => {
+  it('round-trips each task of a multi-sentence literal', () => {
+    // The one-shot CLI takes an argument with several sentences (CORE.19 C7.1),
+    // so the gate checks the round trip that happens: one per task.
+    const verdict = roundTrip('(a-->b). (a-->c)?');
+    expect(verdict.failure).toBeUndefined();
+    expect(verdict.canonical).toBe('(a-->b). (a-->c)?');
+    expect(verdict.canonicalUpToSpacing).toBe(true);
+    expect(verdict.stable).toBe(true);
+  });
+
+  it('fails when one of the tasks does not parse', () => {
+    expect(roundTrip('(a-->b). (a --> )?').failure).toBeDefined();
+  });
+});
