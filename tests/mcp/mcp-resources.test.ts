@@ -2,6 +2,9 @@
  * CORE.19 C7.3 — MCP resources report real state, not `[]`/zeros.
  */
 
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -52,8 +55,12 @@ describe('CORE.19 C7.3 — MCP resources report real state', () => {
     registerMCPResources(server, { nar, agent, sessions });
     const client = await connect(server);
 
-    const state = (await readJson(client, 'nar://state')) as { beliefs: unknown[] };
+    const state = (await readJson(client, 'nar://state')) as {
+      beliefs: unknown[];
+      persisted: unknown;
+    };
     expect(state.beliefs.length).toBeGreaterThan(0);
+    expect('persisted' in state).toBe(true);
 
     const episodes = (await readJson(client, 'nar://episodes')) as { episodes: unknown[] };
     expect(episodes.episodes).toHaveLength(2);
@@ -67,6 +74,30 @@ describe('CORE.19 C7.3 — MCP resources report real state', () => {
     };
     expect(quality.available).toBe(true);
     expect(typeof quality.overall).toBe('number');
+
+    await client.close();
+  });
+
+  it('reflects the persisted boundary a restart would resume', async () => {
+    const statePath = mkdtempSync(join(tmpdir(), 'core19-c7.3-'));
+    const original = createNAR({ enableSelf: true, persistState: true, statePath });
+    disposables.push(original);
+    await original.start();
+    await original.run(4);
+    await original.stop();
+
+    const resumed = createNAR({ enableSelf: true, persistState: true, statePath });
+    disposables.push(resumed);
+    await resumed.start();
+
+    const server = new McpServer({ name: 'test', version: '0.0.1' });
+    registerMCPResources(server, { nar: resumed });
+    const client = await connect(server);
+
+    const state = (await readJson(client, 'nar://state')) as {
+      persisted: { cycleCount: number; pendingTasks: number } | null;
+    };
+    expect(state.persisted?.cycleCount).toBeGreaterThan(0);
 
     await client.close();
   });

@@ -11,6 +11,7 @@
  * lives in `src/bin/commands/*`; non-interactive runners in `src/bin/lib/*`.
  */
 
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createCapturePhase, DEFAULT_MACRO_PIPELINE } from '@senars/core/agent/phases';
 import { createBudget } from '@senars/core/budget';
 import {
@@ -32,7 +33,11 @@ import { DEFAULT_REPUTATION_PATH, providerKey, SourceReputation } from '@senars/
 import { resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
 import { evaluateQuery } from '@senars/nar/lm/system-one';
 import { computeEvidenceId } from '@senars/nar/lm/system-one';
-import { handleMetricsRequest } from '@senars/nar/metrics';
+import {
+  createReasoningRoute,
+  handleMetricsRequest,
+  type ReasoningHttpEngine,
+} from '@senars/nar/metrics';
 import { NLUnderstandingService, TranslationCache } from '@senars/nar/nl';
 import { MemoryQuery } from '@senars/nar/query';
 import { MettaProposer } from '@senars/nar/reflex';
@@ -76,6 +81,19 @@ const logger = createLogger({ scope: 'bot' });
 /** Min grade score for a conversation to be auto-captured into the distillation dataset. */
 const DISTILL_CAPTURE_THRESHOLD = 0.7;
 
+/**
+ * The kernel the injected HTTP routes reason against (CORE.19 C7.4). Connections
+ * are built before the agent is wired, so the route reads this holder per
+ * request rather than closing over a kernel that does not exist yet.
+ */
+let httpKernel: ReasoningHttpEngine | undefined;
+
+const reasoningRoute = createReasoningRoute(() => httpKernel);
+
+/** The HTTP routes the transport serves ahead of auth: `/metrics`, then reasoning. */
+const serveHttpRoutes = async (req: IncomingMessage, res: ServerResponse): Promise<boolean> =>
+  (await handleMetricsRequest(req, res)) || reasoningRoute(req, res);
+
 /** Connection types the bot can construct, keyed by the id used in `ConnectionConfig.type`. */
 const CONNECTION_FACTORIES = {
   cli: (cfg: never) => new CLIConnection(cfg, { emit: () => undefined, logger } as never),
@@ -85,7 +103,7 @@ const CONNECTION_FACTORIES = {
     new HTTPConnection(cfg, {
       emit: () => undefined,
       logger,
-      httpRoute: handleMetricsRequest,
+      httpRoute: serveHttpRoutes,
     } as never),
   mcp: (cfg: never) => new MCPConnection(cfg, { emit: () => undefined, logger } as never),
 } as const;
@@ -228,6 +246,7 @@ async function main(): Promise<void> {
   const lmConfig = resolveLMConfig();
   const settings = resolveLMSettings();
   const { nar, lmService, episodicMemory } = wired;
+  httpKernel = nar as unknown as ReasoningHttpEngine;
 
   const auth = new AuthManager();
   const authCfg = readAuthConfig();

@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { NAR } from '@senars/nar';
+import { readPersistedBoundary } from '@senars/nar';
 import type { ExtendedAgent as Agent } from '@senars/nar/agent';
 import { cloudApiKey, getRoutingStatus } from '@senars/nar/lm';
 import { keyedBy, LM_TASKS, sumBy } from '@senars/util';
@@ -104,6 +105,8 @@ const stateSummary = (nar: NAR) => ({
   questions: nar.getQuestions?.().map((q) => ({ term: q.term.toString(), truth: q.truth })) ?? [],
   attention: nar.attentionReport(),
   drives: nar.getDriveManager?.()?.getAllStates?.() ?? [],
+  /** The durable boundary a restart would resume (CORE.19 C7.3/C7.6); `null` when nothing is saved. */
+  persisted: readPersistedBoundary(nar.getConfig().statePath),
 });
 
 /** Recent episodic entries, or `[]` when the agent exposes no episodic store. */

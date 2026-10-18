@@ -19,7 +19,7 @@ import {
   pressure,
   remainingAll,
 } from '@senars/core/budget';
-import { createLMService } from '@senars/nar';
+import { createLMService, DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '@senars/nar';
 import { NARBuilder } from '@senars/nar/agent/builder';
 import {
   CALIBRATION_LOCK_PATH,
@@ -54,6 +54,8 @@ interface StatusReport {
   };
   governance: { attachedGames: number; awaitingValidation: number; awaitingApproval: number };
   budget?: { slice: BudgetSlice };
+  /** The durable consistency boundary, read off disk (CORE.19 C7.6); `null` when none is saved. */
+  persisted: { statePath: string; cycleCount: number; pendingTasks: number } | null;
 }
 
 const byteSize = (path: string): { exists: boolean; bytes: number } => {
@@ -93,7 +95,16 @@ const collect = async (): Promise<StatusReport> => {
       lockBytes: lock.bytes,
     },
     governance: { attachedGames: 0, awaitingValidation: 0, awaitingApproval: 0 },
+    persisted: null,
   };
+
+  const boundary = readPersistedBoundary();
+  if (boundary)
+    report.persisted = {
+      statePath: DEFAULT_NAR_STATE_PATH(),
+      cycleCount: boundary.cycleCount,
+      pendingTasks: boundary.pendingTasks.length,
+    };
 
   const manifold = nar.getSystemOneManifold();
   if (manifold && 'health' in manifold) {
@@ -176,7 +187,10 @@ const renderText = (r: StatusReport): string => {
   lines.push(
     `Dataset: ${r.artifacts.datasetPath} (${r.artifacts.datasetExists ? formatBytes(r.artifacts.datasetBytes) : 'absent'})`,
     `Calibration lock: ${r.artifacts.lockPath} (${r.artifacts.lockExists ? formatBytes(r.artifacts.lockBytes) : 'absent'})`,
-    `Governance: ${r.governance.attachedGames} attached game(s), awaiting validation: ${r.governance.awaitingValidation}, awaiting approval: ${r.governance.awaitingApproval}`
+    `Governance: ${r.governance.attachedGames} attached game(s), awaiting validation: ${r.governance.awaitingValidation}, awaiting approval: ${r.governance.awaitingApproval}`,
+    r.persisted
+      ? `Persisted state: ${r.persisted.statePath} (cycle ${r.persisted.cycleCount}, ${r.persisted.pendingTasks} pending)`
+      : 'Persisted state: none'
   );
   if (r.budget) lines.push('', renderBudgetSlice(r.budget.slice));
   return lines.join('\n');

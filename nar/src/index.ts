@@ -10,6 +10,8 @@ export type {
 /** Main memory store. @public */
 /** Unified AIKR priority bag substrate. @public */
 export { PriorityBag } from './bag/index.js';
+/** The persisted consistency boundary, readable without starting a NAR. @public */
+export { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from './state/persisted.js';
 // Cognitive
 /** Counterfactual simulator. @public */
 export { runCounterfactual } from './cognitive/index.js';

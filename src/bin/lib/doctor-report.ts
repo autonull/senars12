@@ -12,7 +12,7 @@
  */
 
 import { cpus } from 'node:os';
-import { createBotNAR } from '@senars/nar';
+import { createBotNAR, DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '@senars/nar';
 import { runHealthChecks } from '@senars/nar/health';
 import {
   cloudApiKey,
@@ -125,6 +125,8 @@ interface DoctorOutput {
   routingLog?: { enabled: boolean; bufferSize: number; logPath: string };
   benchmarks?: unknown[];
   deep?: HealthReport;
+  /** The durable consistency boundary on disk (CORE.19 C7.6); `null` when none is saved. */
+  persisted: { statePath: string; cycleCount: number; pendingTasks: number } | null;
 }
 
 const main = async (): Promise<void> => {
@@ -154,7 +156,16 @@ const main = async (): Promise<void> => {
     offlineTier: null,
     demoted: [],
     circuitBreakers: {},
+    persisted: null,
   };
+
+  const boundary = readPersistedBoundary();
+  if (boundary)
+    output.persisted = {
+      statePath: DEFAULT_NAR_STATE_PATH(),
+      cycleCount: boundary.cycleCount,
+      pendingTasks: boundary.pendingTasks.length,
+    };
 
   // Load config
   try {
@@ -265,6 +276,11 @@ const main = async (): Promise<void> => {
     console.log(`CPUs: ${output.cpus}`);
     console.log(
       `Config: ${output.config.valid ? 'valid' : 'invalid'}${output.config.error ? ` (${output.config.error})` : ''}`
+    );
+    console.log(
+      output.persisted
+        ? `Persisted state: ${output.persisted.statePath} (cycle ${output.persisted.cycleCount}, ${output.persisted.pendingTasks} pending)`
+        : 'Persisted state: none'
     );
 
     if (!showDegradation) {
