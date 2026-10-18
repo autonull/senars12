@@ -104,7 +104,7 @@ Verdicts are against *both* parity targets (OpenNARS, ONA) unless split; NARchy 
 | Drives / motivation | design, partial | motivation module | 4 homeostatic drives, but meta-goal policy **off + inert dynamics** | **partial** |
 | Emotion / satisfaction | `[SATISFIED]`, desire-value | pragmatic/minimal | **absent** | **below** |
 | Operant conditioning | procedural learning | **matches RL benchmarks** | Q-learning + GAE/SARSA + RLFP, but **no temporal-induction conditioning proven** | **below on proof** |
-| Procedural / skill learning | yes | motor babbling + operant | schemas from derivations; game reflex learning; **operator terms already exist** | **partial** |
+| Procedural / skill learning | yes | curiosity-driven exploration + operant | schemas from derivations; game reflex learning; **operator terms already exist** | **partial** |
 | Planning / backward inference | rich, multi-goal | subgoaling over implication | goal→tool dispatch; no backward goal rule | **below** |
 | Lifelong / cross-restart memory | experience files | memory-mapped persistence | **exceeds** (declared boundary, replay, determinism) | **exceeds** |
 | Self-modification governance | NAL-9 (partial) | — | SelfOptimizer, ArchitectureDriver, patch/knob governance | **exceeds** |
@@ -203,7 +203,7 @@ Neither reference reaches L2+. SeNARS is the only one positioned to, and reachin
 ### 4.6 Reference models (verified, for design — do not re-discover)
 - **NARchy** (`github.com/narchy/narchy`, author-owned; local reference `docs/java/`): derives from OpenNARS; strengths are **continuous-time NAL-7** (numeric `dt` on `&&`/`==>`; `&&+N` forward, `&&-N` reverse, `&&+-` variable; `&|` joined-at-start, `|&` joined-at-end; `DTERNAL`/`XTERNAL`), **temporal belief tables**, **virtual disjunctions** (`||` = `--(&& -- --)`, de Morgan), **full-spectrum negation** (negation inside concepts), an **image term** `(/, relation, args)` / `(\, relation, args)` (arity 4, `_` placeholder; rules `imageInt`, `imageExt`, `imageNormalize`), **pressurized auto-balanced forgetting**, adaptive concept allocation, concurrent bags (`HijackBag`/`CurveBag`), a binary I/O codec, **InterNARchy** P2P multi-agent protocol, and the **NAgent** sensor/motor API. Rule file: `docs/java/nal/nal4.nal`.
 - **OpenNARS**: full NAL 1–9, internal clock/subjective time, interval/tense temporal inference, `[SATISFIED]` feeling operators + desire-value, NAL-9 mental operators, backward/planning inference, Main GUI.
-- **ONA**: real-time two-cycle engine (semantic NAL1-6, sensorimotor NAL6-8), fixed-timestep temporal window, NARS-native operation execution at a **decision threshold** with precondition satisfaction and **motor babbling**, operant conditioning matching RL benchmarks, usefulness-eviction memory, ROS/embedded, UDPNAR.
+- **ONA**: real-time two-cycle engine (semantic NAL1-6, sensorimotor NAL6-8), fixed-timestep temporal window, NARS-native operation execution at a **decision threshold** with precondition satisfaction and **curiosity-driven exploration**, operant conditioning matching RL benchmarks, usefulness-eviction memory, ROS/embedded, UDPNAR.
 - SeNARS's own earlier read of these is in `docs/plan/narchy.java.md` (delta `d(f)/dt`, goal logic could/would/should, temporal conj/disj, De Morgan, negation in Impl) and `docs/java/java_to_js.md` (operator/punctuation gap).
 
 ### 4.7 The existing neuro-symbolic layer (the ground for the contract)
@@ -231,6 +231,7 @@ Neither reference reaches L2+. SeNARS is the only one positioned to, and reachin
 - **D28 — One neuro-symbolic contract.** Every neural touchpoint is enumerated and bound by the invariants of §0.5. No neural code path may decide a derivation, bypass the admission gate, or lack a deterministic fallback.
 - **D29 — Temporal plurality includes qualitative algebras.** Alongside the stamping models (tense-interval / delta-time / tick-window), SeNARS supports *relational* temporal algebras — Allen's interval algebra (13 base relations + composition) and the point algebra (Vilain–Kautz) — as composable facets of one `TemporalReasoner` port. Spatial analogues (RCC-8) are a reserved seam for embodiment.
 - **D30 — The end state is a coherent whole, not a feature pile.** A workstream that adds capability without preserving the coherence spine (§0.5) is incomplete. The coherence test (I1) is as binding as the corpus (M0).
+- **D31 — Temporal models are candidates; the goal is their unification.** Land every stamping model and algebra facet for consideration, compare them on the corpus, then synthesize a `unified` temporal model from the winners (F2.9). The plurality is the *method*; the unified model is the *result*.
 
 ## 6. Workstreams
 
@@ -288,8 +289,9 @@ The one artifact none of the references has: their examples, run headless, seede
 6. **Temporal truth functions** — the pre/post/conduct/projection family (from `docs/java/TruthFunctions.java` and the interval maths) — implemented per stamping model and verified.
 7. **Enable the four rules per model.** `sequenceIntroduction`, `parallelIntroduction`, `predictiveImplication`, `temporalDeduction` enabled under F1's discipline for models that support them; each verified.
 8. **Cross-validation & selection.** The corpus scores every case under every applicable (stamping, algebra) combination; the scorecard reports a per-combination table. Where models disagree on a case, the disagreement is recorded, not hidden — the plurality is the point, and the disagreements are how temporal representations get *compared* rather than presumed.
+9. **Unification — the real goal (D31, note 4).** The models land first *as candidates for consideration*; the end state is a **`unified` temporal model** assembled from the best of each (NARchy's dt terms, OpenNARS's interval tense, ONA's tick window, plus the algebra facets) once every model is present and the corpus shows which wins which case class. Design the unified model *after* F2's models are green — it is the synthesis the port exists to make possible, not a fourth model designed in a vacuum.
 
-**Acceptance:** `NARConfig.temporal` selects among ≥3 stamping models and ≥2 composable algebra facets; the corpus runs NAL-7, ONA/NARchy technique, and Allen/point constraint cases under each applicable combination; `tests/nar/nal7-temporal.test.ts` runs the **engine** (not the rule objects directly) and passes; the Allen path-consistency solver answers a relation query and flags an inconsistency; two seeded runs per model byte-identical (occurrence times the declared D13 exemption); each model's `report()` declares its gaps.
+**Acceptance:** `NARConfig.temporal` selects among ≥3 stamping models, ≥2 composable algebra facets, and the `unified` synthesis once it exists; the corpus runs NAL-7, ONA/NARchy technique, and Allen/point constraint cases under each applicable combination; `tests/nar/nal7-temporal.test.ts` runs the **engine** (not the rule objects directly) and passes; the Allen path-consistency solver answers a relation query and flags an inconsistency; two seeded runs per model byte-identical (occurrence times the declared D13 exemption); each model's `report()` declares its gaps.
 
 ---
 
@@ -302,7 +304,7 @@ The one artifact none of the references has: their examples, run headless, seede
 3. **Goal deduction & subgoaling.** Backward inference over `==>`/`=/>`: `(G!)` + `(C ==> G)` + satisfied `C` → derived goal; unsatisfied `C` → subgoal `(C!)`. Degree of satisfaction = `expectation(content) − expectation(desire)`.
 4. **Planning.** A derived multi-step plan (`&/` or `&&+N` program) with a success truth-value; multi-goal preference and veto.
 5. **Unify the execution path.** Route `dispatchToolGoals`, `GameFocus` actions, and the new operation rule through **one** executor (`NARExecution` → `ToolManager`), so a NARS operation and a tool are the same thing with different handlers.
-6. **Motor-babbling-equivalent bootstrapping.** When no procedural knowledge exists, emit periodic exploratory operations, gated by a budget and an off switch (D16).
+6. **Curiosity bootstrapping.** When no procedural knowledge exists, emit periodic exploratory operations driven by the curiosity drive (the mechanism ONA calls "motor babbling" — one concept, one name), gated by a budget and an off switch (D16).
 
 **Acceptance:** a goal provokes an operation via the rule (not the bridge); operator terms decompose and evaluate; a two-step plan is derived with a success TV; ONA procedural corpus rows green; the tool bridge and the rule share one executor.
 
@@ -470,7 +472,7 @@ One seeded headless session, `LM_PROVIDER=mock` first then with a key; then the 
 | Seam | Re-enter when |
 |---|---|
 | True replay-rewind (vs declared-partial) | CORE.20 F2/F3 make the checkpoint stable across temporal/procedural state |
-| A fourth temporal model (e.g. hybrid interval+delta) | The corpus shows no single model wins across the reference cases |
+| The `unified` temporal model (D31) | All stamping models + algebra facets are present and the corpus shows which wins which case class — then synthesize (F2.9, §15) |
 | Distributed / OTel event export | The wire protocol (U2) exists and the stream is bounded |
 | Multi-instance ecology (full) | **Entered by A3**; re-enter for negotiation/consensus and InterNARchy-style collaborative learning |
 | Robotic / vision sensorimotor | **Entered by F3** (operation rule + one executor); re-enter for ROS/vision encoders, NAgent-style wrappers |
@@ -517,7 +519,7 @@ Add per workstream:
 - **F3/F4:** `pnpm nal8-procedural`, `pnpm nal9-self` (assert-enabled), `pnpm cycle:no-provider`, `pnpm rule:has-fallback`.
 - **A1:** the ONA operant rows in `pnpm parity`; `pnpm test:determinism`.
 - **U2:** the wire round-trip test; the Docker smoke test; the WASM host test.
-- **C20-close:** `pnpm gates --tier slow`, `pnpm docs:drift`, `pnpm complexity:budget` (ratchet the baseline in the same commit).
+- **C20-close:** `pnpm gates --tier slow`, `pnpm docs:drift`. **`complexity:budget` is out of scope for CORE.20 (directive, §15 note 1)** — the ratchet is suspended for the duration; do not bump or obey it.
 
 UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's concern; run it only when a shared protocol file under `core/src/protocol/` changes (U2 will).
 
@@ -561,3 +563,92 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 ### I1 — Neuro-symbolic integration contract — **NOT STARTED**
 
 ### X1 — UI/UX parity closure — **NOT STARTED (blocked-by UI.19)**
+
+## 15. Pre-start problem ledger (resolve before executing)
+
+> **Directives carried into this ledger (binding).**
+> 1. **`complexity:budget` is out of scope for CORE.20.** The ratchet is suspended for the duration; these changes are deliberately large, so obeying a `mustNotIncrease` baseline would be theatre. Keep a *module-layout/ownership map* (P13) — that is about clarity, not the ratchet.
+> 2. **"Motor babbling" is renamed "curiosity."** One concept, one name (already applied across the plan). ONA's bootstrap exploration and SeNARS's curiosity drive are the same driver.
+> 3. **The non-anthropomorphic stance may be violated for terminology** (`[SATISFIED]` feeling operators, desire-value, "wants") **so long as the semantics stay clear for development and for users.** Clarity governs, not sanitisation. "No sentience claims" (§8) still holds — that is about *claims*, not *naming*.
+> 4. **All temporal models are landed first as candidates; the goal is a *unified* model** assembled from the best of them (D31, F2.9). The plan is deliberately *not* finished designing temporality.
+
+Each item below is a **pre-start question**: resolve it — as a decision (D-ledger), a §0.5 edit, or a workstream sub-task — *before* the workstream that depends on it begins. IDs are stable; when resolved, the item moves into that workstream's §14 progress log as a task and this ledger cites the resolution.
+
+### Problems (resolve before executing)
+
+**P1 — Allen's path-consistency is a second reasoning engine (breaks §0.5 invariant 1).**
+F2.4's `allen` solver is constraint propagation, not NAL forward chaining; run as a peer it gives SeNARS two symbolic authorities. Also NP-hard for arbitrary disjunctions (only the point algebra is tractable).
+→ *Resolution:* express composition as ordinary NAL rules (one composition rule per relation pair producing relation-beliefs), **or** declare the solver an explicitly bounded auxiliary whose outputs re-enter through the admission gate as proposals. Bound it to a focus subnetwork, never the global concept space. **Affects:** F2, I1.
+
+**P2 — Term identity is model-scoped, and SeNARS interns terms globally.**
+`&&+N` means "a delta-time temporal term" to NARchy and "an ordinary sequence" to the tense model; `TermFactory`/`termsEqual`/interning assume one meaning per term.
+→ *Resolution:* the temporal model is fixed **per NAR at construction** (never per-term, never switched mid-run), persisted in the consistency boundary, and carried in experience files. Pluralism is *across NARs*, never *within* one. **Affects:** F2, U1, U2.
+
+**P3 — "One admission gate" is really one *formalization* gate.**
+F3 (tool results, curiosity ops), A1 (`G. :|:` reward/observation), A3 (sensorimotor) are external ingress that are not formalizations.
+→ *Resolution:* distinguish ingress *classes* (formalization, observation, reward, operation-result) under **one provenance discipline and one stream**; restate invariant 2 as "one formalization gate + every external event carries provenance." **Affects:** §0.5, F3, A1, A3.
+
+**P4 — Cross-instance provenance is impossible with local ids.**
+Ids are a process-local high-water mark and correlation ids are per-NAR; a received `derivationId` is meaningless elsewhere.
+→ *Resolution:* cross-instance provenance is **content-addressed** (hash of the proof/term), and received claims are **proposals** admitted through the gate (D17). **Affects:** A3, U2.
+
+**P5 — The wire must negotiate temporal model and truth-function revision.**
+Temporal Narsese is only interpretable if sender and receiver share `{stamping, algebra, truthRevision}`.
+→ *Resolution:* the wire handshake declares `{temporal, truthRevision, languageVersion}`; a mismatch is a typed refusal, never a best-effort parse. **Affects:** U2, A3.
+
+**P6 — `verifyRecord` is not model-aware (halt rule 6 cannot hold for F2/F3).**
+CORE.19 C3 verifies every derivation via `core/src/verify-derivation.ts`; temporal projection and Allen composition do not fit its truth algebra.
+→ *Resolution:* `verifyRecord` becomes a **per-model verifier interface** — each stamping model and algebra facet supplies its truth semantics; temporal derivations are verified by *their* model. **Affects:** F2, F3 (an extension to CORE.19 C3).
+
+**P7 — F4 self-rules mutate the rule table mid-iteration.**
+A meta-rule admitting an LM rule or tuning a knob mid-cycle breaks determinism (D13) and complicates the budget gates.
+→ *Resolution:* meta-rules emit **proposals**; application happens at a **cycle boundary** through the governance gate; the rule table is immutable during a cycle (copy-on-write at the boundary). F4 **depends on F3** (mental operators are operations). **Affects:** F4, I1.
+
+**P8 — F3 `Evaluate` duplicates MeTTa, and the tool bridge conflicts with the threshold rule.**
+`Evaluate` (`add(1,2) ⊢ 3`) is exact computation, which MeTTa already provides; and `dispatchToolGoals` removes operation goals *unconditionally* while F3.2 gates on desire ≥ threshold.
+→ *Resolution:* one `OperationEvaluator` port that delegates exact computation to MeTTa; a threshold policy — NARS-native operations are desire-gated, explicit tool invocations use a default/pass-through threshold. **Affects:** F3, U2.
+
+**P9 — Operator-term inference risks re-breaking "kind is the recogniser."**
+`operation-term.ts` retired the second spelling; generic decomposition (`Decompose1`) could re-introduce structure/​sigil sniffers across files.
+→ *Resolution:* operator-term rules are **kind-based** only; name this as a hard constraint. **Affects:** F3.
+
+**P10 — I1.4's "same derived set" is the wrong property and likely unachievable.**
+Under bounded drop-oldest rings a different visit order evicts different derivations; forcing set-equality would let the amplifier only reorder, never prune — defeating L4.
+→ *Resolution:* restate L4's soundness as **per-derivation soundness** — every derivation produced is independently verified; the amplifier may change *which* derivations fit the budget (its purpose). Drop the set-equality claim from I1.4. **Affects:** I1.
+
+**P11 — Determinism (D13) vs real embeddings and the tick clock.**
+Real llama.cpp embeddings risk float nondeterminism across hardware/threads; `tick-window` introduces an implicit clock.
+→ *Resolution:* the determinism **contract** is the deterministic encoder + injected clock everywhere; real embeddings are a fixed function whose outputs are **cached**, or an explicit declared exemption. `tick-window` derives its tick from `NARConfig.clock`. **Affects:** F2, A1, I1.
+
+**P12 — The corpus will produce false reds without conformance tiers.**
+Vendored OpenNARS/ONA/NARchy cases assume *their* truth functions; a sound-but-different SeNARS derivation is not a failure.
+→ *Resolution:* tier every case — `exact` (identical), `semantic` (sound + expected conclusion), `behavioural` (metric within tolerance). **Affects:** M0.
+
+**P13 — Module layout (the ratchet is dropped, but structure still matters).**
+CORE.20 adds a port, 3 stamping models, 2 algebra facets, REPL, wire, WASM/Docker, operant loop, motivation, usefulness memory, self rules, operator inference — and `nar.ts` is already at 939/940 code lines.
+→ *Resolution:* a **module-layout/ownership map** (`nar/src/temporal/`, `nar/src/integration/`, …), `nar.ts` kept a thin facade, the Allen composition table declared as **data**, and the Allen domain restricted to interval-stamped terms (eternal beliefs excluded — a declared gap). **Affects:** all.
+
+**P14 — X1 is a hard dependency on an unimplemented sibling.**
+UI.19 has no progress log and a stub gate-inspector; CORE.20 owns no UI, so "complete UI/UX capability" cannot complete alone.
+→ *Resolution:* either restate UI/UX as *jointly delivered*, or elevate the **non-browser** surfaces (REPL, TUI dashboard, MCP-backed inspection, concept-graph export) to first-class CORE.20 deliverables so the capability exists without a browser. **Affects:** X1, C20-close.
+
+**P15 — Anthropomorphic drift in A2.**
+Resolved by **note 3**: keep the names (`[SATISFIED]`, desire-value), but require clear, documented semantics for development and users; no sentience *claims*. **Affects:** A2.
+
+### Improvements (adopt where they pay)
+
+**R1 — Generalise the algebra facet to a `RelationAlgebra`.** Allen/point are temporal; RCC-8 (spatial) and a direction calculus are the same shape. Pay the abstraction once while F2 is fresh; embodiment (F3) then falls out. **Affects:** F2, §10.
+
+**R2 — Make the corpus a comparative instrument.** With ≥3 stamping models × ≥2 algebras it answers *which representation wins which task class* — a novel artifact and the empirical spine of `docs/plan/paper.md`. **Affects:** M0, F2.
+
+**R3 — Make L4 an attention strategy, not a subsystem.** Premise/rule selectors already exist; the neural amplifier should be one more `AttentionModel` port — zero new mechanisms. **Affects:** I1.
+
+**R4 — One evaluator port for exact computation.** Funnel operator `Evaluate`, MeTTa, and tool handlers behind a single `OperationEvaluator`. **Affects:** F3, U2.
+
+**R5 — Phase the temporal port conservatively.** Land the simplest stamping model first (`tick-window` has no term-level encoding), get F2's engine path green, then `delta-time` and `tense-interval`, and Allen **last** (it needs the interval domain + the verifier extension). **Affects:** F2.
+
+**R6 — One grand-walkthrough seeded session as the coherence demo.** Make the §9 walkthrough the single artifact exercising all four axes and every invariant; gate completion on it. **Affects:** I1, C20-close.
+
+**R7 — Turn the two-engine risk into a checkable invariant.** Assert: "no symbolic derivation exists that was not produced by a NAL rule or admitted as a proposal." **Affects:** I1, F2.
+
+**R8 — A `unified`-model design session as a deliverable.** After F2's models are green, a dedicated design pass (not a task) assembles the winners into the `unified` model (D31). **Affects:** F2.9.
