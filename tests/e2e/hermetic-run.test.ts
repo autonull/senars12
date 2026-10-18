@@ -16,9 +16,10 @@
  * satisfied by a file that merely looks right.
  *
  * The scenarios run with LM and tools off, so this covers the reasoning path.
- * It is not a claim about every subsystem: System One's manifold, the episode
- * consolidator and the governance pipeline are constructed only when their
- * feature flags are on, and a test that cannot reach them cannot gate them.
+ * The CORE.19 additions at the bottom bring the autonomy heartbeat, persistence
+ * save/restore, and (feature flags on) the episode consolidator + governance
+ * pipeline inside the same spy. System One's manifold still needs an embedding
+ * backend, so it remains outside — a test that cannot reach it cannot gate it.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installIdSource, sequentialIdSource } from '@senars/util';
@@ -92,9 +93,10 @@ describe('TODO28 §7.3 — hermetic seeded run', () => {
  * CORE.19 C8.4 — the new feedback loops are inside hermetic coverage.
  *
  * The golden scenarios stop at the reasoning path (LM/tools off). These add the
- * two loops CORE.19 introduced — the autonomy heartbeat and persistence
- * save/restore — under the same ambient-entropy spy: an unthreaded id/RNG draw
- * in either fails here by throwing rather than by being noticed.
+ * loops CORE.19 introduced or brought into scope — the autonomy heartbeat,
+ * persistence save/restore, and the feature-flagged episode consolidator +
+ * governance pipeline — under the same ambient-entropy spy: an unthreaded
+ * id/RNG draw in any of them fails here by throwing rather than by being noticed.
  */
 describe('CORE.19 C8.4 — new loops draw no ambient entropy', () => {
   it('autonomy stepping', async () => {
@@ -123,6 +125,53 @@ describe('CORE.19 C8.4 — new loops draw no ambient entropy', () => {
     for (let i = 0; i < 5; i++) reports.push(await nar.autonomyTick());
     expect(reports).toHaveLength(5);
     expect(reports.every((report) => report !== null)).toBe(true);
+    await nar.stop();
+    await nar.dispose();
+  }, 60_000);
+
+  it('consolidation and governance', async () => {
+    // The episode consolidator and the governance pipeline are reached only
+    // through `consolidateLearning`, so the golden scenarios never touch them.
+    // Feature flags alone make them reachable, which is what the earlier
+    // "a test that cannot reach them cannot gate them" note deferred.
+    const { NAR } = await import('@senars/nar/nar.js');
+    const { e2eNARConfig } = await import('./fixtures');
+    const { SeededRNG, fixedClock } = await import('@senars/util');
+    const rng = new SeededRNG(99);
+    const nar = new NAR(
+      e2eNARConfig({
+        rng: () => rng.next(),
+        clock: fixedClock(0),
+        ids: sequentialIdSource(),
+        enableTools: true,
+        enableSelf: true,
+        initialAutonomyMode: 'low-risk-auto-merge',
+        episodeConsolidation: { enabled: true, capacity: 16, budget: 4 },
+        proofMettaProposer: { enabled: true, maxRules: 50, minConfidence: 0.5, patternMinSupport: 2 },
+      })
+    );
+    await nar.initialize();
+    await nar.start();
+    nar.getProcessor().setConfig({ recorderEnabled: true });
+    for (const [premise, consequent] of [
+      ['bird', 'animal'],
+      ['animal', 'living'],
+      ['fish', 'animal'],
+      ['living', 'entity'],
+      ['cat', 'animal'],
+      ['dog', 'animal'],
+    ] as const) {
+      await nar.believe(`(${premise} --> ${consequent}). %1.0;0.9%`);
+    }
+    await nar.question('(bird-->?what)?');
+    await nar.run(20);
+    await nar.consolidateLearning({ budget: 10 });
+    expect(nar.getEpisodeConsolidator()).toBeDefined();
+    expect(nar.getGovernanceResolver()).toBeDefined();
+    // The path ran to observable effect, not merely without throwing: a repeated
+    // pattern became a rule and the governance pipeline recorded its resolution.
+    expect(nar.getProofMettaProposer()!.getRules().length).toBeGreaterThan(0);
+    expect(nar.getGovernanceResolver()!.getAdaptations().length).toBeGreaterThan(0);
     await nar.stop();
     await nar.dispose();
   }, 60_000);

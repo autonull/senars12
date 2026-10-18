@@ -25,6 +25,7 @@ export type ScenarioStep =
     }
   | { type: 'run'; cycles?: number }
   | { type: 'autonomy'; ticks?: number }
+  | { type: 'consolidate'; budget?: number }
   | { type: 'assert'; check: (trace: NormalizedTrace) => void | Promise<void> };
 
 export interface ExpectedTrace {
@@ -183,6 +184,10 @@ export class ScenarioHarness {
       case 'autonomy': {
         const ticks = step.ticks ?? 1;
         for (let i = 0; i < ticks; i++) await this.nar!.autonomyTick();
+        break;
+      }
+      case 'consolidate': {
+        await this.nar!.consolidateLearning({ budget: step.budget });
         break;
       }
       case 'assert': {

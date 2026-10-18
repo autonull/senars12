@@ -6,6 +6,7 @@ import { contradictionDriveAdaptationScenario } from './scenarios/contradiction-
 import { questionPrologResolutionScenario } from './scenarios/question-prolog-resolution.scenario';
 import { lmRuleFallbackScenario } from './scenarios/lm-rule-fallback.scenario';
 import { autonomySteppingScenario } from './scenarios/autonomy-stepping.scenario';
+import { consolidationGovernanceScenario } from './scenarios/consolidation-governance.scenario';
 
 const GOLDEN_SCENARIOS = [
   beliefDerivationAskScenario,
@@ -14,6 +15,7 @@ const GOLDEN_SCENARIOS = [
   questionPrologResolutionScenario,
   lmRuleFallbackScenario,
   autonomySteppingScenario,
+  consolidationGovernanceScenario,
 ];
 
 /**

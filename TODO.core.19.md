@@ -510,7 +510,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - C7.6: `--benchmarks` remains a declared placeholder (honest); implement when a run produces costly-derivation stats to show.
 - C7.4 seam: the MCP/status readers use the NAR's/default `statePath`; a NAR with a non-default path is covered for MCP (`getConfig().statePath`) but `--status`/`--doctor` read the default path only (they build a NAR without the app's overrides). Logged, not chased.
 
-### C8 — Batteries, gates, CI & security hardening — **PARTIAL (C8.1, C8.2, C8.3, C8.4, C8.5, C8.6, C8.7 done; C8.4's flagged-out subsystems open)**
+### C8 — Batteries, gates, CI & security hardening — **PARTIAL (C8.1–C8.7 done; System One manifold alone stays outside hermetic coverage)**
 
 **Done:**
 - C8.1 (partial): `egress:invariant` is added to `GATES` (`scripts/lib/gates.ts`), so `pnpm gates` matches CI. The `budgetgate-verification` exclusion in `test:unit` is **kept deliberately**: the `todo19-profiles` grep-guard asserts both fast and slow lanes name the suite, and the quarantined `.too_slow` file is what the exclusion documents — removing it is a red, so the "broken reference" is a guard-enforced exclusion, not a defect.
@@ -527,7 +527,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 
 **Remaining:**
 - C8.4 (determinism half) — **DONE (this slice).** An `autonomy-stepping` scenario joins `GOLDEN_SCENARIOS` in both the determinism gate and the golden-characterization gate: a NAR in `mode:'stepping'` with seeded `rng`/`clock`/`ids` takes 6 `autonomyTick()`s (heartbeat + curiosity + consolidation), and every id and the `stateHash` agree across runs. The harness gained an `autonomy` step type; the injected `fixedClock` freezes the wall-clock window, so the only bound in play is the cycle budget. See §13.
-- C8.4 (the flagged-out subsystems): System One manifold, episode consolidator and governance stay outside hermetic coverage — they require their feature flags, and a test that cannot reach them cannot gate them (the harness doc says so).
+- C8.4 (the flagged-out subsystems): the **episode consolidator and the governance pipeline are now inside coverage** (this slice) — their flags alone make them reachable through `consolidateLearning`, so the hermetic block reaches them and the `consolidation-governance` golden scenario runs them under the determinism gate. **System One's manifold alone stays outside**: reaching it needs an embedding backend, and a test that cannot reach it cannot gate it (the harness doc says so).
 
 ### C9 — Document the hardened core — **DONE (C9.1, C9.2, C9.4 done; C9.3 is UI.19-owned)**
 
@@ -606,4 +606,20 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 
 **Evidence:** `core19-c6` (16, +2); the memory/state/kernel unit set (`memory`, `memory-serialization`, `memory-revision`, `memory-index`, `memory-pressure`, `state-persistence`, `task-manager`, `revision-history`, `term-identity`, `nar-execution`, `parser-parseTask`) 97 green; the full CORE.19 suite (`core19-*` 73) green; `typecheck:packages` clean, `lint` clean. (The parallel-worker run of the unit set hit a pre-existing `onnxruntime-node` "Module did not self-register" flake — unrelated to this slice; the set is green under `--no-file-parallelism`.)
 
-**Notes for the next slice:** the remaining open items are unchanged — the `completed` chain ring is still a UI handoff, not a persisted query window (C4.3's declared seam); C5.2 is a UI-package edit; C7.6 `--benchmarks` stays a declared placeholder until a run yields costly-derivation stats; C8.4's flagged-out subsystems stay outside hermetic coverage because a test cannot reach them without their feature flags.
+**Notes for the next slice:** the remaining open items are unchanged — the `completed` chain ring is still a UI handoff, not a persisted query window (C4.3's declared seam); C5.2 is a UI-package edit; C7.6 `--benchmarks` stays a declared placeholder until a run yields costly-derivation stats. (C8.4's episode consolidator + governance have since joined hermetic coverage — see the C8.4 section at the end; only System One's manifold stays out.)
+
+### C8.4 — Episode consolidator + governance join the hermetic/determinism gates — **DONE**
+
+**Status:** The last reachable C8.4 gap is closed. The episode consolidator and the governance pipeline (`consolidateLearning` → `ProofMettaProposer` learned rules → `GovernanceResolver`) were flagged as out of hermetic coverage because the golden scenarios never touch them. Their flags alone make them reachable, so a dedicated test and scenario now bring them under the same ambient-entropy spy and the determinism gate.
+
+**Done:**
+- `tests/e2e/hermetic-run.test.ts` (C8.4 block): a **consolidation and governance** case — a NAR with `enableTools`/`enableSelf`, `initialAutonomyMode: 'low-risk-auto-merge'`, `episodeConsolidation.enabled`, `proofMettaProposer.enabled`, seeded `rng`/`clock`/`ids` — runs the syllogism, `run(20)`, then `consolidateLearning({budget:10})` with `Math.random`/`crypto.randomUUID` throwing. It asserts the path ran to observable effect (`getProofMettaProposer().getRules().length > 0`, `getGovernanceResolver().getAdaptations().length > 0`), so it is more than a no-throw check. The two out-of-coverage doc comments were rewritten to keep only System One's manifold out.
+- `tests/e2e/harness.ts`: a `consolidate` `ScenarioStep` (`{type:'consolidate', budget?}` → `nar.consolidateLearning(...)`).
+- `tests/e2e/scenarios/consolidation-governance.scenario.ts` (new, seed 5150): the same flags, six syllogism beliefs + a question, `run(20)`, `consolidate`. It joins `GOLDEN_SCENARIOS` in both `determinism-gate.test.ts` and `golden-scenarios.test.ts`, so two seeded runs must agree while the consolidator and governance pipeline are live.
+- `nar/src/types/events.ts` was **not** touched: `consolidateLearning` emits nothing on the bus, so the scenario is gated on the state hash, not on an event.
+
+**Files touched:** `tests/e2e/hermetic-run.test.ts`, `tests/e2e/harness.ts`, `tests/e2e/scenarios/consolidation-governance.scenario.ts` (new), `tests/e2e/determinism-gate.test.ts`, `tests/e2e/golden-scenarios.test.ts`.
+
+**Evidence:** `pnpm test:hermetic` green (10), `pnpm test:determinism` green (14 = 7 scenarios × 2), golden-characterization green (14), the full CORE.19 suite (`core19-*` 61) green; `pnpm lint` clean; root `pnpm typecheck` shows the same §12 reds only (**no new ones**; no `tests/e2e` error). Tests-only — no production LOC moved, so `complexity:budget` and the `nar.ts` monolith hold.
+
+**Remaining:** **System One's manifold alone stays outside hermetic coverage** — reaching it needs an embedding backend (encoder model), not just a flag, so it stays a declared gap. Everything else in C8 is done.
