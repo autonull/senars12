@@ -15,6 +15,13 @@ import {
   primeIdCount,
   selectTopN,
 } from '@senars/util';
+import {
+  AutonomyHeartbeat,
+  type AutonomyConfig,
+  createAutonomyHeartbeat,
+  resolveAutonomyConfig,
+  type AutonomyTickReport,
+} from './autonomy/index.js';
 import { resolveBagSlot } from './bag/registration.js';
 import { CognitiveController, createDefaultRegistry } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
@@ -167,6 +174,8 @@ export class NAR extends BaseComponent {
   #gateLedger: GateEventLedger | null = null;
   /** Cycles since the last gate-log flush — the interval half of C3.3. */
   #cyclesSinceGateFlush = 0;
+  /** The kernel-owned autonomy loop (CORE.19 C5); present once started. */
+  #autonomy: AutonomyHeartbeat | null = null;
 
   constructor(config: NARConfig = DEFAULT_CONFIG) {
     const eventBus = config.eventBus ?? new NarEventBus();
@@ -389,6 +398,8 @@ export class NAR extends BaseComponent {
       });
     this.self?.start();
     this.lm.getEnricher()?.start();
+    this.#autonomy = createAutonomyHeartbeat(this);
+    this.#autonomy.start();
     await this.injectBootstrapGoals();
     this.logger?.info('NAR started');
   }
@@ -396,6 +407,7 @@ export class NAR extends BaseComponent {
   override async stop(): Promise<void> {
     this.self?.stop();
     this.stopLM();
+    this.#autonomy?.stop();
     this.flushGateLogs();
     await this.persister.save();
     await super.stop();
@@ -405,6 +417,8 @@ export class NAR extends BaseComponent {
   override async dispose(): Promise<void> {
     this.self?.shutdown();
     this.stopLM();
+    this.#autonomy?.stop();
+    this.#autonomy = null;
     this.#gateLedger?.close();
     this.#gateLedger = null;
     this.#restoreIdSource?.();
@@ -502,6 +516,33 @@ export class NAR extends BaseComponent {
 
   getControlState(): KernelControlState {
     return this.execution.getControlState();
+  }
+
+  /**
+   * Run one autonomy tick: step the kernel and evaluate the enabled policies
+   * (CORE.19 C5.1). `null` when the loop is not wired (autonomy never started).
+   */
+  async autonomyTick(): Promise<AutonomyTickReport | null> {
+    return this.#autonomy ? this.#autonomy.tick() : null;
+  }
+
+  /** Start the interval-driven loop — a no-op unless mode is `continuous` (CORE.19 C5.2). */
+  startAutonomy(): void {
+    this.#autonomy?.start();
+  }
+
+  stopAutonomy(): void {
+    this.#autonomy?.stop();
+  }
+
+  /** The resolved autonomy configuration, whether or not the loop is running. */
+  getAutonomyConfig(): AutonomyConfig {
+    return this.#autonomy?.config ?? resolveAutonomyConfig(this.config.autonomy);
+  }
+
+  /** Whether the autonomy loop is enabled — the honest `capabilities().autonomyLoop` (C5.7). */
+  isAutonomyEnabled(): boolean {
+    return this.getAutonomyConfig().enabled;
   }
 
   /** Recent inference-rule fires, oldest first (CORE.19 M0.3/C3.1). */

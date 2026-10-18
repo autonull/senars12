@@ -319,8 +319,8 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
       drives: !!narInstance.getDriveManager(),
       rlfp: !!narInstance.getRLFP(),
       selfReasoning: !!narInstance.getSelfAnalyzer(),
-      // No autonomous loop is wired yet (CORE.19 C5) — false is the honest answer.
-      autonomyLoop: false,
+      // The kernel-owned loop is wired (CORE.19 C5); enabled iff configured.
+      autonomyLoop: narInstance.isAutonomyEnabled(),
     },
   });
 

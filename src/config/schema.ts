@@ -1,3 +1,4 @@
+import { AUTONOMY_MODES, AUTONOMY_POLICIES } from '@senars/nar';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 import { LM_TASKS } from '@senars/util';
 import {
@@ -136,6 +137,30 @@ export const backendsSchema = z
         enabled: z.boolean().default(true),
         /** NAR inference cycles per engine step (`NARConfig.cyclesPerStep`). */
         cyclesPerStep: positiveInt.optional(),
+        /**
+         * The kernel-owned autonomy loop (CORE.19 C5). Absent ⇒ off, and the
+         * NAR is pull-driven exactly as before. A partial override over the
+         * declared defaults; the reader lives in `narCoreOverrides`.
+         */
+        autonomy: z
+          .object({
+            enabled: z.boolean().default(false),
+            mode: z.enum(AUTONOMY_MODES).default('manual'),
+            hz: positiveInt.optional(),
+            maxCyclesPerWindow: positiveInt.optional(),
+            maxWallClockMsPerWindow: positiveInt.optional(),
+            backpressureThreshold: z.number().min(0).max(1).optional(),
+            policies: z.partialRecord(z.enum(AUTONOMY_POLICIES), z.boolean()).optional(),
+            curiosity: z
+              .object({
+                maxQuestionsPerWindow: positiveInt,
+                maxConfidence: z.number().min(0).max(1),
+              })
+              .partial()
+              .optional(),
+            consolidation: z.object({ intervalCycles: positiveInt }).partial().optional(),
+          })
+          .optional(),
       })
       .default({ enabled: true }),
   })

@@ -60,6 +60,7 @@ const narCoreOverrides = (appConfig: AppConfig): Partial<NARConfig> => {
     (overrides as Record<string, unknown>).cpuThrottleMs = inference.cpuThrottleMs;
   if (appConfig.backends.nar.cyclesPerStep !== undefined)
     (overrides as Record<string, unknown>).cyclesPerStep = appConfig.backends.nar.cyclesPerStep;
+  if (appConfig.backends.nar.autonomy) overrides.autonomy = appConfig.backends.nar.autonomy;
   return overrides;
 };
 

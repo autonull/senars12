@@ -294,6 +294,8 @@ One continuous headless session, `LM_PROVIDER=mock` first, then with a key confi
 | System One calibration activation | Real graded labels exist; honesty holds |
 | Performance + accessibility gates | Release-to-others replaces release-as-proof |
 | UI `explain` intent registration | C6 explanations exist; UI.19 registers the affordance |
+| Autonomy events on the UI stream | UI.19 wants to render autonomy. `autonomy:curiosity`/`autonomy:consolidated`/`autonomy:budget` are live-only on the bus (no cognitive variant; adding one forces a UI catalog edit the halt list forbids). The durable effects (`task.admitted`, `belief.retracted`) already carry the autonomy correlation |
+| UI drives cycles in autonomous modes | C5.2's kernel loop is the single driver; the UI server's `runCycles` (`ui/src/server/server-utils.ts`) is a D12 seam — a UI-package edit, so re-enter only when UI.19's control surface is rewired |
 
 ## 10. Implementation principle
 
@@ -449,7 +451,24 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - **C4.3 — replay the gate/derivation log on restore.** `GateEventLedger.read()` (C3.3) is the declared replay input; restore does not yet consume it, so restart is boundary-equivalent but not yet log-replayed.
 - **C2.3 — rewind.** Now that the boundary codec exists, `NAR.rewind(cycles)` can restore the declared subset (`{graph, bag, pending, cycle, RNG, id high-water, gate ring}` minus the open RNG field) and report the gaps; `handleCycleRewind` still rejects with a typed reason.
 
-### C5 — Autonomy core — **NOT STARTED**
+### C5 — Autonomy core — **PARTIAL (C5.1–C5.5, C5.7, C5.8 done; C5.6 + C5.5 checkpoint + C5.2 UI-driver open)**
+
+**Done:**
+- C5.1/C5.2: one kernel-owned loop, `AutonomyHeartbeat` (`nar/src/autonomy/heartbeat.ts`), built and started by `NAR` (`createAutonomyHeartbeat`, `nar/src/autonomy/wiring.ts`) and advanced through `NAR.autonomyTick()`/`startAutonomy()`/`stopAutonomy()`. Modes `manual`|`stepping`|`continuous` (`nar/src/autonomy/config.ts`): `stepping` is caller-driven and observable, `continuous` ticks on an interval at `hz`, `manual` is off. A cycle budget and a wall-clock window (`maxCyclesPerWindow`, `maxWallClockMsPerWindow`) cap a runaway loop, which halts itself and says why (`autonomy:budget`). The dead `backends.nar.autonomy` config now has a reader end-to-end: `backendsSchema.nar.autonomy` (`src/config/schema.ts`) → `NARConfig.autonomy` (`narCoreOverrides`, `src/bin/lib/lifecycle.ts`). Autonomy is **off by default** (`DEFAULT_AUTONOMY_CONFIG.enabled = false`), so an unconfigured NAR stays pull-driven exactly as before.
+- C5.3 backpressure: curiosity and consolidation are suppressed above `backpressureThreshold` (`Memory.capacityPressure()`); the store cannot fill with self-noise.
+- C5.4 curiosity: the idle scan picks the least-confident un-asked concept (top-belief confidence ≤ `maxConfidence`), dedups by term, rate-limits per window, and mints an internal question **through the one perception gate** (`nar.input(question, 'question', …, 'autonomy:curiosity:<term>')`, so the resulting `task.admitted` joins on the autonomy correlation). Emits `autonomy:curiosity` with `{policy, trigger, concept, question, cycle}` — the structured cause the task event cannot carry.
+- C5.5 consolidation: on its `intervalCycles`, runs the single decay/eviction sweep (`Memory.consolidate`) and emits `autonomy:consolidated` with before/after concept counts and the eviction report's `archived`/`forgotten`.
+- C5.7 `capabilities().autonomyLoop` derives from `NAR.isAutonomyEnabled()` (`nar/src/agent/index.ts`), not a constant.
+- C5.8 `tests/nar/core19-c5.test.ts` (7): config off-by-default + partial merge; one cycle per tick in `stepping`, observable on the bus; runaway halt at the window budget; curiosity mints a provenance-carrying question whose `task.admitted` carries the autonomy correlation; off switch + store backpressure; consolidation pass report; honest capability flag.
+
+**Files touched:** `nar/src/autonomy/{config,types,heartbeat,wiring,index}.ts` (new), `nar/src/nar.ts`, `nar/src/index.ts`, `nar/src/facade/config.ts`, `nar/src/types/events.ts`, `nar/src/agent/index.ts`, `src/config/schema.ts`, `src/bin/lib/lifecycle.ts`, `tests/nar/core19-c5.test.ts`.
+
+**Evidence:** `core19-c5` (7); §11 core battery green (`typecheck` new-file-clean — same §12 reds, `typecheck:bin`, `typecheck:packages`, `deps:gate`, `deps:direction`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `control-budgets`, `gates:one-cycle-path`, `exports:check`, `exports:barrels`, `resource:policy`, `lint`); `test:determinism`, `test:hermetic`, `persistence:replay`, `tests/config/*` green; `test:unit` shows the same 4 pre-existing reds (§12), **no new ones**.
+
+**Remaining (deliberately deferred, not forgotten):**
+- **C5.6 inert drives.** Attempted "initialize below target" (`DriveManager` booting at 0.1, under every threshold, so `injectMetaGoals` can fire): it broke `tests/nar/integration/self-improvement-litmus.test.ts` (3) and `tests/nar/unit/state-persistence.test.ts` (1). The drive model converges *below* target by construction, so a drive is permanently deficient — start at target and the meta-goal path never fires, start deficient and it fires (and self-goals inject) without bound. Reverted; the fix is a drive-equilibrium redesign (or retiring the path, D15), not a one-line initial value.
+- **C5.5 checkpoint/recover.** The pass runs the sweep and reports, but does not yet checkpoint the C4 boundary before it ("recoverable from checkpoint"). Re-entry: reuse the C4 boundary codec to write a pre-pass checkpoint plus a `recoverConsolidation()` reader.
+- **C5.2 the UI never drives cycles in autonomous modes.** The kernel loop is now the single driver, but the UI server still drives via `runCycles` (`ui/src/server/server-utils.ts`, D12); rewiring that is a UI-package edit — logged in §9, not chased (halt rule 1).
 
 ### C6 — Neuro-symbolic translation & explanatory voice — **NOT STARTED**
 

@@ -3,6 +3,7 @@ import type { AutonomyMode, ReasoningBudget } from '@senars/core/schemas';
 import type { Clock, IdSource } from '@senars/util';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
+import type { AutonomyConfigInput } from '../autonomy/config.js';
 import type { CognitiveRegistry } from '../cognitive';
 import type { CognitiveParameters } from '../config/cognitive-parameters';
 import type { BudgetScopeId } from '../kernel/budget-scopes.js';
@@ -108,6 +109,12 @@ export interface NARConfig extends CoreConfig {
   learningConsolidation?: { enabled?: boolean; budget?: number; interval?: number };
   /** Initial autonomy mode for the action gate (default: 'observe-only'). */
   initialAutonomyMode?: AutonomyMode;
+  /**
+   * The kernel-owned autonomy loop's configuration (CORE.19 C5.1). Absent ⇒
+   * autonomy is off and the NAR behaves exactly as it did before C5 — cycles
+   * are pull-driven only. Configuring it is what turns the heartbeat on.
+   */
+  autonomy?: AutonomyConfigInput;
   /**
    * Control-budget ceilings, per declared `scopeId` (TODO29.a §5.7). An absent
    * scope uses its declared default, so this is an override and not the

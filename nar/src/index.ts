@@ -186,3 +186,20 @@ export {
   unwrapOrThrow,
   ValidationError,
 } from './types/core.js';
+/** The kernel-owned autonomy loop (CORE.19 C5). @public */
+export {
+  AUTONOMY_MODES,
+  AUTONOMY_POLICIES,
+  AutonomyHeartbeat,
+  type AutonomyConfig,
+  type AutonomyConfigInput,
+  type AutonomyMode,
+  type AutonomyPolicyId,
+  type AutonomyPorts,
+  type AutonomyProvenance,
+  type AutonomyTickReport,
+  type ConceptObservation,
+  createAutonomyHeartbeat,
+  DEFAULT_AUTONOMY_CONFIG,
+  resolveAutonomyConfig,
+} from './autonomy/index.js';

@@ -137,6 +137,36 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
    * durable, observable form of the resumption, bridged to `restored`.
    */
   'restore:state': { cycleCount: number; concepts: number; pendingTasks: number };
+  /**
+   * The autonomy heartbeat minted an internal question about a concept it is
+   * uncertain of (CORE.19 C5.4). The question itself admits through the gate as
+   * a `task.admitted`, so this is the *cause*, with the provenance the task
+   * event cannot carry.
+   */
+  'autonomy:curiosity': {
+    policy: 'curiosity';
+    trigger: string;
+    concept: string;
+    question: string;
+    cycle: number;
+  };
+  /** The autonomy heartbeat ran a consolidation pass and reports the delta (CORE.19 C5.5). */
+  'autonomy:consolidated': {
+    policy: 'consolidation';
+    trigger: string;
+    conceptsBefore: number;
+    conceptsAfter: number;
+    archived: number;
+    forgotten: number;
+    cycle: number;
+  };
+  /** The heartbeat halted because an idle-window budget was spent (CORE.19 C5.1). */
+  'autonomy:budget': {
+    reason: string;
+    cycle: number;
+    cyclesInWindow: number;
+    wallClockMs: number;
+  };
   // NL events (GROW2 §9.3)
   'nl:analyzed': { input: string; analysis: TaskBatch };
   'nl:translation': { nl: string; narsese: string; tier: number };
