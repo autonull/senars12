@@ -199,22 +199,24 @@ async function runNonInteractive(flags: Flags): Promise<boolean> {
     console.log(
       [
         'Usage: pnpm run bot [-- --status|--doctor|--tune|--arcade|--multiagent] [--json]',
-        '       pnpm run bot -- --believe "(a-->b)." --ask "(a-->c)?" [--goal "(g)!" --steps N] [--json]',
+        '       pnpm run bot -- "(a-->b). (a-->c)?" [--steps N] [--json]',
         '',
-        'One-shot: --believe/-b, --goal/-g and --ask/-q (comma-separated) run the kernel and print the answer with its derivation.',
-        'No flags: interactive CLI (senars> ). Connections are opt-in via .connect or ENABLE_IRC/WS/HTTP/MCP=true.',
+        'One-shot: positional Narsese (one argument may hold several sentences). The punctuation is the task type — "." belief, "!" goal, "?" question — and questions print their answer with its derivation.',
+        'No arguments: interactive CLI (senars> ). Connections are opt-in via .connect or ENABLE_IRC/WS/HTTP/MCP=true.',
       ].join('\n')
     );
+    return true;
+  }
+  const mode = Object.keys(NON_INTERACTIVE_MODES).find((flag) => flags.has(flag));
+  if (mode) {
+    await NON_INTERACTIVE_MODES[mode]?.();
     return true;
   }
   if (isOneShot(flags)) {
     await runOneShot(readOneShot(flags));
     return true;
   }
-  const mode = Object.keys(NON_INTERACTIVE_MODES).find((flag) => flags.has(flag));
-  if (!mode) return false;
-  await NON_INTERACTIVE_MODES[mode]?.();
-  return true;
+  return false;
 }
 
 async function main(): Promise<void> {

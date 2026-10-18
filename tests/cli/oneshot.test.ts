@@ -1,62 +1,52 @@
 /**
- * CORE.19 C7.1 — the one-shot CLI (believe/ask/step, no browser).
+ * CORE.19 C7.1 — the one-shot CLI.
  *
- * The flag reader is tested directly; the runner is tested through its printed
- * output, which is the contract a script consumes.
+ * Input is positional Narsese: punctuation is the task type, and one argument
+ * may hold several sentences, so there is no `-b`/`-g`/`-q` to get wrong.
  */
 
 import { parseFlags } from '@senars/util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { isOneShot, readOneShot, runOneShot } from '../../src/bin/lib/oneshot.js';
 
-describe('CORE.19 C7.1 — one-shot flag reading', () => {
-  it('collects every repeatable flag across its long and short spellings', () => {
+describe('CORE.19 C7.1 — one-shot input reading', () => {
+  it('reads positional sentences and splits several tasks in one argument', () => {
     const request = readOneShot(
-      parseFlags([
-        '--believe',
-        '(a-->b).',
-        '-b',
-        '(b-->c).',
-        '--ask',
-        '(a-->c)?',
-        '-q',
-        '(c-->d)?',
-        '--goal',
-        '(x)!',
-        '--steps',
-        '7',
-        '--json',
-      ])
+      parseFlags(['(a-->b). (a-->c)?', '(g)!', '--steps', '7', '--json'])
     );
     expect(request).toEqual({
-      beliefs: ['(a-->b).', '(b-->c).'],
-      goals: ['(x)!'],
-      questions: ['(a-->c)?', '(c-->d)?'],
+      inputs: ['(a-->b).', '(a-->c)?', '(g)!'],
       steps: 7,
       json: true,
     });
   });
 
-  it('defaults steps and json, and recognises the trigger flags', () => {
-    const request = readOneShot(parseFlags(['-q', '(a-->b)?']));
+  it('defaults steps and json, and triggers on positional input only', () => {
+    const request = readOneShot(parseFlags(['(a-->b)?']));
     expect(request.steps).toBe(10);
     expect(request.json).toBe(false);
-    expect(isOneShot(parseFlags(['-q', '(a-->b)?']))).toBe(true);
+    expect(isOneShot(parseFlags(['(a-->b)?']))).toBe(true);
     expect(isOneShot(parseFlags(['--status']))).toBe(false);
+  });
+
+  it('skips the pnpm `--` separator that leaks into argv', () => {
+    expect(readOneShot(parseFlags(['--', '(a-->b). (a-->c)?', '--steps', '3']))).toEqual({
+      inputs: ['(a-->b).', '(a-->c)?'],
+      steps: 3,
+      json: false,
+    });
   });
 });
 
 describe('CORE.19 C7.1 — one-shot round-trip', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('derives an answer and cites its derivation', async () => {
+  it('infers the task type from punctuation and answers the question', async () => {
     const lines: string[] = [];
     vi.spyOn(console, 'log').mockImplementation((...args) => lines.push(args.join(' ')));
 
-    await runOneShot({
-      beliefs: ['(cat-->animal).', '(animal-->living).'],
-      goals: [],
-      questions: ['(cat-->living)?'],
+    const result = await runOneShot({
+      inputs: ['(cat-->animal).', '(animal-->living).', '(cat-->living)?'],
       steps: 10,
       json: false,
     });
@@ -64,27 +54,21 @@ describe('CORE.19 C7.1 — one-shot round-trip', () => {
     const output = lines.join('\n');
     expect(output).toContain('(cat-->living)? => (cat-->living)');
     expect(output).toContain('nal.deduction');
+    expect(result.answers.map((a) => a.question)).toEqual(['(cat-->living)?']);
   });
 
-  it('emits parseable JSON when asked', async () => {
+  it('treats a goal as a goal and a bare sentence as a belief', async () => {
     const lines: string[] = [];
     vi.spyOn(console, 'log').mockImplementation((...args) => lines.push(args.join(' ')));
 
+    // No question, so no answers; the goal and the bare belief both admit.
     const result = await runOneShot({
-      beliefs: ['(cat-->animal).', '(animal-->living).'],
-      goals: [],
-      questions: ['(cat-->living)?'],
-      steps: 10,
+      inputs: ['(cat-->animal)', '(cat-->pet)!'],
+      steps: 3,
       json: true,
     });
 
-    expect(result.cycleCount).toBe(10);
-    expect(result.answers[0]).toMatchObject({
-      question: '(cat-->living)?',
-      answer: '(cat-->living)',
-    });
-    expect(result.answers[0]!.derivation!.length).toBeGreaterThan(0);
-    // The printed form is the JSON document, so a script can consume stdout.
-    expect(lines.some((line) => line.startsWith('{'))).toBe(true);
+    expect(result.answers).toEqual([]);
+    expect(result.cycleCount).toBe(3);
   });
 });

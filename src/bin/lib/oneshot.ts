@@ -1,10 +1,11 @@
 /**
- * One-shot CLI: believe/ask/step with no browser (CORE.19 C7.1).
+ * One-shot CLI: feed Narsese, step, and read answers with no browser (CORE.19 C7.1).
  *
- * Every other non-interactive mode reports *on* state; this one *runs* the
- * organism — feed beliefs and goals, advance cycles, and for a question print
- * the answer with its verified derivation when one exists. `--json` makes the
- * whole turn scriptable, which is what the acceptance walkthrough drives.
+ * Input is positional Narsese — no flag, because there is nothing to name: a
+ * sentence's trailing punctuation *is* its task type (`.` belief, `!` goal, `?`
+ * question), and one argument may carry several sentences. `-b`/`-g`/`-q` would
+ * have re-declared what the mark already says, so the runner infers the type and
+ * only answers the questions.
  *
  * Constructed through the bare kernel (`createNAR`), not `createAgentFromEnv`:
  * a one-shot has no session, dialogue or transport to wire, and D10 keeps the
@@ -12,55 +13,36 @@
  */
 
 import { createNAR, type NAR } from '@senars/nar';
-import { Truth } from '@senars/nar/terms';
+import { taskTypeForPunctuation, Truth } from '@senars/nar/terms';
 import type { Flags } from '@senars/util';
 
 /** The answer surface `askWithDerivation` returns, without a `./query` subpath. */
 type Answer = Awaited<ReturnType<NAR['askWithDerivation']>>;
 
 export interface OneShotRequest {
-  beliefs: string[];
-  goals: string[];
-  questions: string[];
+  /** Narsese sentences; each sentence's punctuation selects its task type. */
+  inputs: string[];
   steps: number;
   json: boolean;
 }
 
-/** The flags that select one-shot mode; presence of any is the trigger. */
-const ONESHOT_FLAGS = ['--believe', '-b', '--ask', '-q', '--goal', '-g'] as const;
+/** One argument may hold several sentences; a task ends at its punctuation mark. */
+const splitTasks = (text: string): string[] =>
+  text
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
 
-export const isOneShot = (flags: Flags): boolean => flags.has(...ONESHOT_FLAGS);
+/** The sentence's task type, read from its trailing punctuation; bare input is a belief. */
+const typeOf = (sentence: string) =>
+  taskTypeForPunctuation(/([.!?])\s*$/.exec(sentence.trim())?.[1] ?? '.') ?? 'belief';
 
-/**
- * Every value a repeatable flag was given, across its long and short spellings.
- * `Flags` keeps only the last value of a repeated flag, and a one-shot wants all
- * of them, so this scans the raw argv instead.
- */
-const collectFlag = (flags: Flags, ...names: readonly string[]): string[] => {
-  const { argv } = flags;
-  const out: string[] = [];
-  for (let i = 0; i < argv.length; i++) {
-    const token = argv[i]!;
-    const eq = token.indexOf('=');
-    const name = eq > 0 ? token.slice(0, eq) : token;
-    if (!names.includes(name)) continue;
-    if (eq > 0) {
-      out.push(token.slice(eq + 1));
-      continue;
-    }
-    const next = argv[i + 1];
-    if (next !== undefined && !next.startsWith('-')) {
-      out.push(next);
-      i++;
-    }
-  }
-  return out.filter(Boolean);
-};
+/** A one-shot is any invocation with positional Narsese and no reporting-mode flag. */
+export const isOneShot = (flags: Flags): boolean =>
+  flags.positional.length > 0 && !flags.has('--help', '-h');
 
 export const readOneShot = (flags: Flags): OneShotRequest => ({
-  beliefs: collectFlag(flags, '--believe', '-b'),
-  goals: collectFlag(flags, '--goal', '-g'),
-  questions: collectFlag(flags, '--ask', '-q'),
+  inputs: flags.positional.flatMap(splitTasks),
   steps: flags.num('--steps', 10),
   json: flags.has('--json'),
 });
@@ -76,8 +58,7 @@ const renderAnswer = (question: string, answer: Answer): string => {
 
 /** The serializable outcome of a one-shot run — what `--json` prints and a test asserts. */
 export interface OneShotResult {
-  beliefs: string[];
-  goals: string[];
+  inputs: string[];
   steps: number;
   cycleCount: number;
   answers: Array<{
@@ -88,9 +69,12 @@ export interface OneShotResult {
   }>;
 }
 
-const toResult = (request: OneShotRequest, answers: Array<{ question: string; answer: Answer }>, cycleCount: number): OneShotResult => ({
-  beliefs: request.beliefs,
-  goals: request.goals,
+const toResult = (
+  request: OneShotRequest,
+  answers: Array<{ question: string; answer: Answer }>,
+  cycleCount: number
+): OneShotResult => ({
+  inputs: request.inputs,
   steps: request.steps,
   cycleCount,
   answers: answers.map(({ question, answer }) => ({
@@ -110,15 +94,15 @@ export async function runOneShot(request: OneShotRequest): Promise<OneShotResult
   const nar = createNAR({ persistState: false });
   await nar.start();
   try {
-    for (const belief of request.beliefs) await nar.believe(belief);
-    for (const goal of request.goals) await nar.goal(goal);
+    for (const sentence of request.inputs) await nar.input(sentence, typeOf(sentence));
     if (request.steps > 0) await nar.run(request.steps);
 
     const answers: Array<{ question: string; answer: Answer }> = [];
-    for (const question of request.questions) {
-      const answer = await nar.askWithDerivation(question);
-      answers.push({ question, answer });
-      if (!request.json) console.log(renderAnswer(question, answer));
+    for (const sentence of request.inputs) {
+      if (typeOf(sentence) !== 'question') continue;
+      const answer = await nar.askWithDerivation(sentence);
+      answers.push({ question: sentence, answer });
+      if (!request.json) console.log(renderAnswer(sentence, answer));
     }
 
     const result = toResult(request, answers, nar.getCycleCount());

@@ -18,7 +18,10 @@ export interface Flags {
 
 /**
  * Parses `argv` once into flag lookups. `--flag value` consumes the next token
- * unless it is itself a flag; `--flag=value` is also accepted.
+ * unless it is itself a flag; `--flag=value` is also accepted. A lone `--` is
+ * skipped rather than parsed: `pnpm run bot -- "<narsese>"` leaks the separator
+ * into the script's argv, and treating it as a flag would let it swallow the
+ * sentence after it.
  */
 export function parseFlags(argv: readonly string[] = process.argv.slice(2)): Flags {
   const values = new Map<string, string>();
@@ -26,6 +29,7 @@ export function parseFlags(argv: readonly string[] = process.argv.slice(2)): Fla
   const positional: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const token = argv[i]!;
+    if (token === '--') continue;
     if (!token.startsWith('-')) {
       positional.push(token);
       continue;
