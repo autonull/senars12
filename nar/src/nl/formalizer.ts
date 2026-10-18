@@ -168,10 +168,14 @@ export class StructuredFormalizer implements Formalizer {
     const parsed = parseTaskTolerant(trimmed);
     if (!parsed)
       return { reason: 'not Narsese (no LM configured to formalize natural language)' };
-    const verdict = this.firewall.check(
-      `${trimmed}${parsed.punctuation}`,
-      firewallKindOf(parsed.taskType)
-    );
+    // The firewall reads the surface utterance with its sentence mark, and the
+    // utterance may already carry that mark (`term;`). Appending again yields
+    // `term;;`, which no grammar accepts — this is how an explicitly-marked
+    // `command` came to be unreachable through the deterministic path.
+    const marked = trimmed.endsWith(parsed.punctuation)
+      ? trimmed
+      : `${trimmed}${parsed.punctuation}`;
+    const verdict = this.firewall.check(marked, firewallKindOf(parsed.taskType));
     if (!verdict.allowed) return { reason: `firewall: ${verdict.reason ?? 'rejected'}` };
     return {
       candidate: {

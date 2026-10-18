@@ -248,7 +248,10 @@ export class Concept {
     const stamped = data.stamp !== undefined ? data : { ...data, stamp: Stamp.createInput() };
     if (type === 'belief') return this.addBeliefWithRevision(stamped as TaskData);
 
-    const bag = type === 'goal' ? this.goalBag : this.questionBag;
+    // A kind with no bag of its own (`command`) has nothing to store into —
+    // the same answer {@link bag} gives, so the two cannot disagree.
+    const bag = this.bag(type);
+    if (!bag) return false;
     const item = { ...stamped, id: makeId(), priority: data.budget.priority } as TaskData;
     const added = bag.add(item);
     added && this.recordAccess();

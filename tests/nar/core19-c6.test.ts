@@ -107,6 +107,37 @@ describe('CORE.19 C6 — structured formalizer (no LM, D10)', () => {
 
     await stop(nar);
   });
+
+  it('reads the sentence mark the utterance already carries, including a command', async () => {
+    const { nar } = buildNar();
+    await start(nar);
+
+    const kinds = async (text: string) => (await nar.formalize(text)).candidates[0]?.taskType;
+    expect(await kinds('(bird --> animal).')).toBe('belief');
+    expect(await kinds('(bird --> animal)!')).toBe('goal');
+    expect(await kinds('(bird --> animal)?')).toBe('question');
+    expect(await kinds('(do);')).toBe('command');
+
+    await stop(nar);
+  });
+
+  it('admits a command but stores it in no bag (the kind has none)', async () => {
+    const { nar } = buildNar();
+    await start(nar);
+
+    const result = await nar.perceive('(do);');
+    expect(result.rejected).toEqual([]);
+    expect(result.admitted).toHaveLength(1);
+    expect(result.admitted[0]!.taskType).toBe('command');
+    expect(result.admitted[0]!.source).toBe('user');
+    const holds = (tasks: { term: { toString(): string } }[]) =>
+      tasks.some((t) => t.term.toString() === '(do)');
+    expect(holds(nar.getBeliefs())).toBe(false);
+    expect(holds(nar.getGoals())).toBe(false);
+    expect(holds(nar.getQuestions())).toBe(false);
+
+    await stop(nar);
+  });
 });
 
 describe('CORE.19 C6 — validation gate', () => {
