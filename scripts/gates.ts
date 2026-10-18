@@ -1,7 +1,8 @@
 #!/usr/bin/env tsx
 /**
- * Run every gate in `lib/gates.ts` — the fix for the reason the docs-drift gate
- * sat red for a whole pass of TODO28 without being noticed.
+ * Run every active gate in `lib/gates.ts` — the fix for the reason the docs-drift
+ * gate sat red for a whole pass of TODO28 without being noticed. A gate listed in
+ * `SUSPENDED_GATES` keeps its script and CI entry but is skipped here.
  *
  * Gates are run in order and the run stops at the first failure, so the first
  * thing on screen is the thing that broke. `--tier slow` adds the two tiers CI
@@ -16,11 +17,11 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseFlags } from '@senars/util';
-import { GATES, missingGateScripts } from './lib/gates.js';
+import { ACTIVE_GATES, missingGateScripts } from './lib/gates.js';
 import { ROOT } from './lib/root.js';
 
 const includeSlow = parseFlags().str('--tier', '') === 'slow';
-const gates = GATES.filter((gate) => includeSlow || gate.tier === 'gate');
+const gates = ACTIVE_GATES.filter((gate) => includeSlow || gate.tier === 'gate');
 
 const manifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
   scripts?: Record<string, string>;

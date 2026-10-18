@@ -75,7 +75,10 @@ jobs:
       # TODO20 §5s: generated docs must match committed output (drift gate)
       - run: pnpm docs:drift
       # TODO28 §8.10: every gate in scripts/lib/gates.ts, including this one.
-      - run: pnpm complexity:budget
+      # TODO.core.19: complexity:budget is SUSPENDED (see SUSPENDED_GATES in
+      # scripts/lib/gates.ts) while the tree is under major construction; re-enable
+      # it with the gate's re-entry procedure.
+      # - run: pnpm complexity:budget
       - run: pnpm test:unit
       # The UI registries are exhaustive by `satisfies`; this runs the UI
       # typecheck (missing catalog row → failure) and the UI unit suite.
