@@ -11,7 +11,15 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { checkCycleBudget } from '../../scripts/lib/cycles.js';
 
 const NAR_DIR = join(import.meta.dirname, '../../nar/src');
-const loc = (p: string) => readFileSync(p, 'utf-8').split('\n').length;
+/**
+ * Code lines — the measure the M2 budget is actually about, matching
+ * `todo20-monoliths`. Counting raw lines charged the module's doc comments and
+ * blank spacing against its budget, so the two tests disagreed on the same file.
+ */
+const loc = (p: string) =>
+  readFileSync(p, 'utf-8')
+    .split('\n')
+    .filter((line) => line.trim() !== '' && !/^\s*(\/\/|\/\*|\*)/.test(line)).length;
 
 const dirs: string[] = [];
 afterAll(async () => {

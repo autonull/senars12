@@ -29,7 +29,7 @@ const directional = (text: string): Float32Array => {
 /** Mock generator so tests never load transformers. */
 const cache = createEmbeddingCache({
   maxSize: 100,
-  generator: { generate: async (text: string) => [...directional(text)] },
+  generator: { dimension: dim, generate: async (text: string) => [...directional(text)] },
 });
 
 const evaluateQuery = (rubric = 'groundedness'): JudgmentQuery => ({

@@ -22,8 +22,10 @@ const connect = async (server: McpServer): Promise<Client> => {
 };
 
 const readJson = async (client: Client, uri: string): Promise<unknown> => {
-  const result = await client.readResource({ uri });
-  return JSON.parse(result.contents[0]!.text as string);
+  const { contents } = await client.readResource({ uri });
+  const content = contents[0]!;
+  if (!('text' in content)) throw new Error(`resource ${uri} has no text content`);
+  return JSON.parse(content.text);
 };
 
 describe('CORE.19 C7.3 — MCP resources report real state', () => {

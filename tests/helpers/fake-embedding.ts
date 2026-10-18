@@ -5,9 +5,11 @@
 import { fnv1aCombine } from '@senars/util';
 
 export function fakeEmbeddingGenerator(dimension = 384): {
+  dimension: number;
   generate(text: string): Promise<number[]>;
 } {
   return {
+    dimension,
     async generate(text: string): Promise<number[]> {
       const vec = new Array<number>(dimension).fill(0);
       let h = 2166136261;

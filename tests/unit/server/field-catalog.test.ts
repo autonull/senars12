@@ -59,12 +59,19 @@ describe('fieldCatalog — schema parity', () => {
 describe('fieldCatalog — metadata', () => {
   it('has one descriptor per id, with no unknown keys and no duplicates', () => {
     expect(new Set(FIELD_IDS).size).toBe(FIELD_IDS.length);
-    for (const id of FIELD_IDS) expect(fieldMeta(id)).toBe(FIELD_CATALOG[id]);
+    for (const id of FIELD_IDS) expect(fieldMeta(id)).toBe(FIELD_CATALOG.definition[id]);
   });
 
   it('uses only declared kinds and non-empty labels', () => {
     for (const id of FIELD_IDS) {
-      const meta = fieldMeta(id);
+      // The catalog's entry union is precise per field; this view reads only the
+      // structural shape every entry shares, so the optional facets are declared here.
+      const meta = fieldMeta(id) as {
+        kind: string;
+        label: string;
+        range?: [number, number];
+        precision?: number;
+      };
       expect(KINDS).toContain(meta.kind);
       expect(meta.label.length).toBeGreaterThan(0);
       if (meta.range) expect(meta.range[0]).toBeLessThan(meta.range[1]);

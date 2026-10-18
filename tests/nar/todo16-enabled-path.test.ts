@@ -17,6 +17,7 @@ import { DEFAULT_CONFIG } from '../../nar/src/types/index.js';
  * (the real TransformersEmbeddingGenerator hangs fetching weights offline).
  */
 const fakeGenerator = {
+  dimension: 384,
   generate: async (text: string) => {
     const vec = new Array<number>(384).fill(0);
     let h = 2166136261;

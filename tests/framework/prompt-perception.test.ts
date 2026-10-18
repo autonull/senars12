@@ -42,8 +42,9 @@ describe('prompt perception', () => {
   it('returns a turn focus reference', () => {
     const perceived = perceivePrompt('Test.', graph);
 
-    expect(perceived.turnFocus.kind).toBe('turn');
-    expect(perceived.turnFocus.id).toBe(perceived.turnBlock.id);
+    const focus = perceived.turnFocus;
+    expect(focus.kind).toBe('turn');
+    expect(focus.kind === 'turn' ? focus.id : undefined).toBe(perceived.turnBlock.id);
   });
 
   it('produces workspace ops for the turn and links', () => {
@@ -104,8 +105,8 @@ describe('prompt perception', () => {
       l => l.kind === 'formalizes'
     );
     expect(formalizesLinks.length).toBe(1);
-    expect(formalizesLinks[0].source).toBe(perceived.turnBlock.id);
-    expect(formalizesLinks[0].target).toBe(perceived.formalizations[0].id);
+    expect(formalizesLinks[0]!.source).toBe(perceived.turnBlock.id);
+    expect(formalizesLinks[0]!.target).toBe(perceived.formalizations[0]!.id);
   });
 
   it('creates task blocks for non-belief task types', () => {
@@ -160,9 +161,9 @@ describe('prompt perception', () => {
     expect(cells.turn.expanded).toBe(true);
 
     expect(cells.formalizations.length).toBe(1);
-    expect(cells.formalizations[0].focus.kind).toBe('concept');
-    expect(cells.formalizations[0].depth).toBe(1);
-    expect(cells.formalizations[0].expanded).toBe(false);
+    expect(cells.formalizations[0]!.focus.kind).toBe('concept');
+    expect(cells.formalizations[0]!.depth).toBe(1);
+    expect(cells.formalizations[0]!.expanded).toBe(false);
   });
 });
 
@@ -171,37 +172,37 @@ describe('heuristicFormalize', () => {
     const candidates = heuristicFormalize('<cat --> mammal>.');
 
     expect(candidates.length).toBe(1);
-    expect(candidates[0].term).toBe('<cat --> mammal>.');
-    expect(candidates[0].taskType).toBe('belief');
-    expect(candidates[0].confidence).toBe(0.9);
+    expect(candidates[0]!.term).toBe('<cat --> mammal>.');
+    expect(candidates[0]!.taskType).toBe('belief');
+    expect(candidates[0]!.confidence).toBe(0.9);
   });
 
   it('detects goal punctuation', () => {
     const candidates = heuristicFormalize('<cat --> mouse>!');
 
-    expect(candidates[0].taskType).toBe('goal');
+    expect(candidates[0]!.taskType).toBe('goal');
   });
 
   it('detects question punctuation', () => {
     const candidates = heuristicFormalize('<cat --> ?what>?');
 
-    expect(candidates[0].taskType).toBe('question');
+    expect(candidates[0]!.taskType).toBe('question');
   });
 
   it('converts simple "is a" statements', () => {
     const candidates = heuristicFormalize('Cats are mammals.');
 
     expect(candidates.length).toBe(1);
-    expect(candidates[0].term).toContain('-->');
-    expect(candidates[0].taskType).toBe('belief');
+    expect(candidates[0]!.term).toContain('-->');
+    expect(candidates[0]!.taskType).toBe('belief');
   });
 
   it('converts "what is" questions', () => {
     const candidates = heuristicFormalize('What is a cat?');
 
     expect(candidates.length).toBe(1);
-    expect(candidates[0].term).toContain('?what');
-    expect(candidates[0].taskType).toBe('question');
+    expect(candidates[0]!.term).toContain('?what');
+    expect(candidates[0]!.taskType).toBe('question');
   });
 
   it('splits multiple sentences', () => {
@@ -213,24 +214,24 @@ describe('heuristicFormalize', () => {
   it('detects negation ambiguity', () => {
     const candidates = heuristicFormalize('Cats are not reptiles.');
 
-    expect(candidates[0].ambiguityFlags).toContain('negation');
+    expect(candidates[0]!.ambiguityFlags).toContain('negation');
   });
 
   it('detects modal ambiguity', () => {
     const candidates = heuristicFormalize('Cats might be mammals.');
 
-    expect(candidates[0].ambiguityFlags).toContain('modal');
+    expect(candidates[0]!.ambiguityFlags).toContain('modal');
   });
 
   it('detects quantifier ambiguity', () => {
     const candidates = heuristicFormalize('All cats are mammals.');
 
-    expect(candidates[0].ambiguityFlags).toContain('quantifier');
+    expect(candidates[0]!.ambiguityFlags).toContain('quantifier');
   });
 
   it('detects temporal ambiguity', () => {
     const candidates = heuristicFormalize('Cats were mammals yesterday.');
 
-    expect(candidates[0].ambiguityFlags).toContain('temporal');
+    expect(candidates[0]!.ambiguityFlags).toContain('temporal');
   });
 });

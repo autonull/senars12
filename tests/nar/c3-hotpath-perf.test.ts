@@ -73,6 +73,7 @@ describe('C3 Hot-path benchmarks (bench 119+)', () => {
   describe('EmbeddingCache incremental insert', () => {
     let cache: EmbeddingCache;
     const mockGenerator = {
+      dimension: 384,
       generate: async (text: string) =>
         new Array(384).fill(0).map((_, i) => Math.sin(text.length + i)),
     };

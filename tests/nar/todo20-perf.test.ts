@@ -48,7 +48,7 @@ describe('Bench 69 — P2: EmbeddingCache metrics & eviction', () => {
     new EmbeddingCache({
       maxSize: 100,
       ttlMs: 300_000,
-      generator: { generate: async () => new Array(384).fill(0.5) },
+      generator: { dimension: 384, generate: async () => new Array(384).fill(0.5) },
       ...config,
     });
 

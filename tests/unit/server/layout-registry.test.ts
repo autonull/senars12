@@ -33,7 +33,9 @@ describe('layoutRegistry — SSOT', () => {
   it('resolves every lens default to a registered layout', () => {
     for (const lens of LENS_IDS) {
       const id = layoutRegistry.getForLens(lens);
-      expect(layoutRegistry.get(id)?.id).toBe(LENS_DEFAULT_LAYOUTS[lens]);
+      expect(layoutRegistry.get(id)?.id).toBe(
+        LENS_DEFAULT_LAYOUTS[lens as keyof typeof LENS_DEFAULT_LAYOUTS]
+      );
     }
   });
 

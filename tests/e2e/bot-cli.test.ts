@@ -47,7 +47,7 @@ describe('bot CLI (TODO21 unified entry)', () => {
     'lm/health/doctor/config commands respond',
     async () => {
       const out = await drive('.lm-config\n.health\n.doctor\n.config-show\n.quit\n');
-      expect(out).toContain('provider=mock');
+      expect(out).toContain('provider: mock');
       expect(out).toContain('lm=mock');
       expect(out).toContain('"profile"');
     },

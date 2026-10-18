@@ -35,7 +35,7 @@ describe('eventCatalog — exhaustiveness', () => {
 
   it('has one metadata entry per type, with no unknown keys', () => {
     expect(new Set(EVENT_TYPES).size).toBe(EVENT_TYPES.length);
-    for (const type of EVENT_TYPES) expect(eventMeta(type)).toBe(EVENT_CATALOG[type]);
+    for (const type of EVENT_TYPES) expect(eventMeta(type)).toBe(EVENT_CATALOG.definition[type]);
   });
 });
 

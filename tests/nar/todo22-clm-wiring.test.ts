@@ -33,7 +33,7 @@ const directional = (text: string): Float32Array => {
 
 const cache = createEmbeddingCache({
   maxSize: 200,
-  generator: { generate: async (text: string) => [...directional(text)] },
+  generator: { dimension: dim, generate: async (text: string) => [...directional(text)] },
 });
 
 const BUDGET: ReasoningBudget = {

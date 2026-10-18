@@ -12,7 +12,8 @@ import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic.js';
 
 const embed = async (text: string): Promise<number[]> =>
   Array.from({ length: 8 }, (_, i) => (text.charCodeAt(i % text.length) % 7) / 7);
-const cache = () => createEmbeddingCache({ generator: { generate: embed }, dimension: 8 });
+const cache = () =>
+  createEmbeddingCache({ generator: { dimension: 8, generate: embed }, dimension: 8 });
 
 function newDataset() {
   const tmp = mkdtempSync(join(tmpdir(), 's1-reactions-'));

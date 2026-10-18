@@ -31,13 +31,13 @@ describe('lensCatalog — coverage', () => {
 
   it('exposes the spec as the descriptor body', () => {
     for (const id of LENS_IDS) {
-      expect(LENS_CATALOG[id].spec).toBe(builtinLensSpec(id));
-      expect(LENS_CATALOG[id].id).toBe(id);
+      expect(LENS_CATALOG[id]!.spec).toBe(builtinLensSpec(id));
+      expect(LENS_CATALOG[id]!.id).toBe(id);
     }
   });
 
   it('only marks known lenses as primary', () => {
-    const primary = LENS_IDS.filter((id) => LENS_CATALOG[id].primary);
+    const primary = LENS_IDS.filter((id) => LENS_CATALOG[id]!.primary);
     expect(PRIMARY_LENSES.map((lens) => lens.id)).toEqual(primary);
     for (const lens of PRIMARY_LENSES) expect(lens.primary).toBe(true);
   });
@@ -51,7 +51,7 @@ describe('lensCatalog — coverage', () => {
 describe('lensCatalog — metadata', () => {
   it('uses non-empty presentation for every lens', () => {
     for (const id of LENS_IDS) {
-      const lens = LENS_CATALOG[id];
+      const lens = LENS_CATALOG[id]!;
       expect(lens.label.length).toBeGreaterThan(0);
       expect(lens.description.length).toBeGreaterThan(0);
       expect(lens.color.length).toBeGreaterThan(0);
@@ -102,14 +102,14 @@ describe('renderer capabilities', () => {
   it('declares node and edge support for graph renderers, within the channel vocabulary', () => {
     for (const renderer of ['graph-2d', 'graph-3d'] as const) {
       for (const target of ['node', 'edge'] as const) {
-        const supported = RENDERER_CAPABILITIES[renderer][target];
+        const supported = RENDERER_CAPABILITIES[renderer]![target];
         expect(supported.size).toBeGreaterThan(0);
         for (const channel of supported) expect(CHANNELS).toContain(channel);
       }
     }
     // Notebook is a content renderer and declares no modulation channels (A0.2)
     for (const target of ['node', 'edge'] as const) {
-      const supported = RENDERER_CAPABILITIES.notebook[target];
+      const supported = RENDERER_CAPABILITIES.notebook![target];
       expect(supported.size).toBe(0);
     }
   });

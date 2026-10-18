@@ -34,7 +34,7 @@ describe('TODO24 bench 74: end-to-end flywheel', () => {
       dataset,
       episodic: ep,
       embeddingCache: createEmbeddingCache({
-        generator: { generate: async (t) => [t.length % 5, 1, 2] },
+        generator: { dimension: 3, generate: async (t) => [t.length % 5, 1, 2] },
         dimension: 3,
       }),
       config: { enabled: true },

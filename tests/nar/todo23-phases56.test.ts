@@ -15,6 +15,7 @@ const BUDGET = {
 const cache = createEmbeddingCache({
   maxSize: 100,
   generator: {
+    dimension: 0,
     generate: async (text: string) => [...Buffer.from(text).map((c) => (c / 255) * 2 - 1)],
   },
 });

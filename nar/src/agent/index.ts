@@ -321,7 +321,10 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     consolidation: config.consolidation,
     threadScope: config.threadScope,
     capabilities: {
-      drives: !!narInstance.getDriveManager(),
+      // Drives influence reasoning only when a drive→meta-goal policy is bound
+      // (CORE.19 C5.6 retired the inline path as default-off), so the honest
+      // claim is the policy's presence, not merely a constructed DriveManager.
+      drives: !!narInstance.getConfig().driveMetaGoals,
       rlfp: !!narInstance.getRLFP(),
       selfReasoning: !!narInstance.getSelfAnalyzer(),
       // The kernel-owned loop is wired (CORE.19 C5); enabled iff configured.
