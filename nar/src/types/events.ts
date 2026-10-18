@@ -172,6 +172,8 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
     conceptsAfter: number;
     archived: number;
     forgotten: number;
+    /** Whether a pre-pass checkpoint was captured, so a caller can `recoverConsolidation`. */
+    checkpointed: boolean;
     cycle: number;
   };
   /** The heartbeat halted because an idle-window budget was spent (CORE.19 C5.1). */

@@ -125,13 +125,14 @@ export class AutonomyHeartbeat {
     return candidate.priority > incumbent.priority;
   }
 
-  /** The consolidation policy: run the single sweep on its interval and report the delta. */
+  /** The consolidation policy: checkpoint, run the single sweep on its interval, report the delta. */
   #consolidate(): boolean {
     const cycle = this.#ports.cycle();
     if (cycle === 0 || cycle % this.config.consolidation.intervalCycles !== 0) return false;
     if (this.#ports.pressure() >= this.config.backpressureThreshold) return false;
 
     const conceptsBefore = this.#ports.conceptCount();
+    this.#ports.checkpoint(cycle);
     this.#ports.consolidate(cycle);
     const report = this.#ports.evictionReport();
     this.#ports.emit('autonomy:consolidated', {
@@ -141,6 +142,7 @@ export class AutonomyHeartbeat {
       conceptsAfter: this.#ports.conceptCount(),
       archived: report?.archived ?? 0,
       forgotten: report?.forgotten ?? 0,
+      checkpointed: true,
       cycle,
     });
     return true;

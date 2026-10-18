@@ -218,3 +218,47 @@ describe('CORE.19 C5 — honesty', () => {
     expect(disabled.nar.isAutonomyEnabled()).toBe(false);
   });
 });
+
+describe('CORE.19 C5.5 — consolidation is recoverable from its pre-pass checkpoint', () => {
+  it('restores the exact pre-pass graph when the last pass is undone', async () => {
+    const { nar } = buildNar({ enabled: true, mode: 'stepping' });
+    await start(nar);
+    await nar.believe('(cat --> animal).', Truth.create(0.9, 0.9));
+    const sizeBefore = nar.memory.size;
+    expect(sizeBefore).toBeGreaterThan(0);
+
+    nar.checkpointConsolidation(nar.getCycleCount());
+    nar.clearMemory();
+    expect(nar.memory.size).toBe(0);
+
+    const report = await nar.recoverConsolidation();
+    expect(report?.checkpointed).toBe(true);
+    expect(nar.memory.size).toBe(sizeBefore);
+
+    await stop(nar);
+  });
+
+  it('captures a checkpoint on the pass and reports nothing to recover before one runs', async () => {
+    const fresh = buildNar({ enabled: false, mode: 'manual' });
+    await start(fresh.nar);
+    expect(await fresh.nar.recoverConsolidation()).toBeNull();
+    await stop(fresh.nar);
+
+    const { nar, events } = buildNar({
+      enabled: true,
+      mode: 'stepping',
+      consolidation: { intervalCycles: 1 },
+      policies: { heartbeat: true, curiosity: false, consolidation: true },
+    });
+    await start(nar);
+    await nar.believe('(a --> b).', Truth.create(0.9, 0.9));
+
+    await nar.autonomyTick();
+
+    const consolidated = events.find((e) => e.channel === 'autonomy:consolidated');
+    expect((consolidated!.payload as { checkpointed: boolean }).checkpointed).toBe(true);
+    expect(await nar.recoverConsolidation()).not.toBeNull();
+
+    await stop(nar);
+  });
+});

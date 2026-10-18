@@ -470,11 +470,6 @@ export class NAR extends BaseComponent {
     return this.#gateLedger;
   }
 
-  /** Whether the kernel is in a running state. */
-  override isRunning(): boolean {
-    return super.isRunning();
-  }
-
   /** Get current lifecycle state */
   getState(): string {
     return this.state;
@@ -689,6 +684,12 @@ export class NAR extends BaseComponent {
     this.systemEventBus.emit('cycle:rewound', report);
     return report;
   }
+
+  /** Capture the pre-pass consolidation checkpoint the loop can recover from (CORE.19 C5.5). */
+  checkpointConsolidation(cycle: number): void { this.#rewind.captureConsolidation(cycle); }
+
+  /** Undo the last consolidation pass by restoring its pre-pass checkpoint (CORE.19 C5.5). */
+  recoverConsolidation(): Promise<RewindReport | null> { return this.#rewind.recover(); }
 
   /** The instance's randomness — the one stream memory bags, link layers and strategies draw from. */
   get rng(): RandomSource {

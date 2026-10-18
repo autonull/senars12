@@ -38,6 +38,7 @@ export const createAutonomyHeartbeat = (nar: NAR): AutonomyHeartbeat =>
       })),
     admitQuestion: (narsese, correlationId) =>
       nar.input(narsese, 'question', undefined, correlationId),
+    checkpoint: (cycle) => nar.checkpointConsolidation(cycle),
     consolidate: (cycle) => nar.memory.consolidate({ cycleCount: cycle }),
     evictionReport: () => nar.memory.evictionReport(),
     emit: (event, data) => {

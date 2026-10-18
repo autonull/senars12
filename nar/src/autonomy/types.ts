@@ -33,6 +33,8 @@ export interface AutonomyPorts {
   observations(): ReadonlyArray<ConceptObservation>;
   /** Admit an internally-minted question through the one perception gate. */
   admitQuestion(narsese: string, correlationId: string): Promise<void>;
+  /** Capture a checkpoint before a consolidation pass, so the pass can be undone (C5.5). */
+  checkpoint(cycle: number): void;
   /** Run the single decay/eviction sweep. */
   consolidate(cycle: number): void;
   evictionReport(): { archived: number; forgotten: number } | undefined;

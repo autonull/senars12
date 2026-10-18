@@ -130,6 +130,8 @@ export class KernelCheckpointRing {
  */
 export class KernelRewind {
   readonly #ring = new KernelCheckpointRing();
+  /** The pre-pass consolidation checkpoint (C5.5) — the exact state a pass may be undone to. */
+  #consolidation: KernelCheckpoint | null = null;
 
   constructor(
     private readonly ports: KernelRewindPorts,
@@ -140,14 +142,34 @@ export class KernelRewind {
     return this.#ring.size;
   }
 
-  /** Snapshot the graph when the checkpoint interval has elapsed. */
-  maybeCapture(cycle: number): void {
-    if (this.interval <= 0 || cycle % this.interval !== 0) return;
-    this.#ring.capture(cycle, this.ports.snapshot(), {
+  /** Snapshot the graph and its boundary at `cycle` into the ring. */
+  #snapshot(cycle: number): KernelCheckpoint {
+    return this.#ring.capture(cycle, this.ports.snapshot(), {
       cycleCount: cycle,
       pendingTasks: this.ports.pendingTasks().map(serializeTaskRecord),
       idHighWater: this.ports.idHighWater(),
     });
+  }
+
+  /** Snapshot the graph when the checkpoint interval has elapsed. */
+  maybeCapture(cycle: number): void {
+    if (this.interval <= 0 || cycle % this.interval !== 0) return;
+    this.#snapshot(cycle);
+  }
+
+  /**
+   * Capture a pre-pass consolidation checkpoint (CORE.19 C5.5), un-gated by the
+   * checkpoint interval, and remember it as the pass's recovery point.
+   */
+  captureConsolidation(cycle: number): void {
+    this.#consolidation = this.#snapshot(cycle);
+  }
+
+  /** Restore the pre-pass consolidation checkpoint, or `null` when no pass captured one. */
+  recover(): Promise<RewindReport | null> {
+    return this.#consolidation
+      ? this.#restore(this.#consolidation, this.#consolidation.cycle)
+      : Promise.resolve(null);
   }
 
   /**
@@ -169,23 +191,29 @@ export class KernelRewind {
         gaps: [...REWIND_BASE_GAPS, 'no checkpoint at or before the target cycle'],
       };
     }
+    const report = await this.#restore(checkpoint, target);
+    if (checkpoint.cycle !== target)
+      report.gaps.push(
+        `nearest checkpoint at cycle ${checkpoint.cycle}; the interval to the target was not journaled`
+      );
+    return report;
+  }
+
+  /** Restore a checkpoint's graph and boundary; report exactly what resumed and what did not. */
+  async #restore(checkpoint: KernelCheckpoint, target: number): Promise<RewindReport> {
+    const from = this.ports.getCycleCount();
     await this.ports.restore(checkpoint.memory);
     this.ports.clearPending();
     this.ports.restorePending(checkpoint.boundary.pendingTasks);
     this.ports.setCycleCount(checkpoint.cycle);
     this.ports.primeIdHighWater(checkpoint.boundary.idHighWater);
-    const gaps = [...REWIND_BASE_GAPS];
-    if (checkpoint.cycle !== target)
-      gaps.push(
-        `nearest checkpoint at cycle ${checkpoint.cycle}; the interval to the target was not journaled`
-      );
     return {
       from,
       target,
       restored: checkpoint.cycle,
       checkpointed: true,
       concepts: checkpoint.memory.statistics.totalConcepts,
-      gaps,
+      gaps: [...REWIND_BASE_GAPS],
     };
   }
 }
