@@ -6,12 +6,19 @@ import type {
   PolicyViolationEvent,
   ReasoningBudget,
 } from '@senars/core/schemas';
+import type { GateLogKey } from './event-ring.js';
 import type { IActionGate, IBudgetGate, IPerceptionGate, IRewardGate } from './interfaces.js';
 import { KernelActionGate, type KernelActionGateConfig } from './KernelActionGate.js';
 import { KernelBudgetGate, type KernelBudgetGateConfig } from './KernelBudgetGate.js';
 import { KernelPerceptionGate, type KernelPerceptionGateConfig } from './KernelPerceptionGate.js';
 import { KernelRewardGate, type KernelRewardGateConfig } from './KernelRewardGate.js';
 import type { SourceReputation } from './source-reputation.js';
+
+/** One persisted gate event and the ring it came from — the C4.3 replay input. */
+export interface GateLogEntry {
+  gate: GateLogKey;
+  event: CognitiveEvent;
+}
 
 /**
  * The four gate configs, as each gate accepts them, plus the two registry-wide
@@ -42,6 +49,8 @@ export interface IGateRegistry {
     reward: ReadonlyArray<PolicyViolationEvent>;
     budget: ReadonlyArray<BudgetExhaustedEvent>;
   };
+  /** Re-seed the rings from a persisted gate log (CORE.19 C4.3); returns how many events landed. */
+  restoreEventLogs(entries: ReadonlyArray<GateLogEntry>): number;
   clearAllEventLogs(): void;
 }
 
@@ -135,6 +144,31 @@ export class GateRegistry implements IGateRegistry {
       reward: reward.getEventLog(),
       budget: budget.getEventLog(),
     };
+  }
+
+  /**
+   * Route a persisted gate log back into the rings it came from (CORE.19 C4.3).
+   * The autonomy ring is a state-transition log, so the mode it ends at is
+   * restored with it — the one piece of gate state the log implies, so the log
+   * and the gate cannot disagree after a restart.
+   */
+  restoreEventLogs(entries: ReadonlyArray<GateLogEntry>): number {
+    const { perception, action, reward, budget } = this.gates;
+    let mode: AutonomyMode | undefined;
+    let restored = 0;
+    for (const { gate, event } of entries) {
+      if (gate === 'autonomy') {
+        const change = event as AutonomyModeChangedEvent;
+        action.restoreAutonomyEvent(change);
+        mode = change.payload.newMode;
+      } else if (gate === 'perception') perception.restoreEvent(event);
+      else if (gate === 'action') action.restoreEvent(event);
+      else if (gate === 'reward') reward.restoreEvent(event);
+      else budget.restoreEvent(event);
+      restored++;
+    }
+    if (mode) action.setAutonomyMode(mode);
+    return restored;
   }
 
   clearAllEventLogs(): void {

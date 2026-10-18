@@ -414,12 +414,14 @@ export class NAR extends BaseComponent {
       this.#gateLedger = new GateEventLedger(join(base, 'gate-events'));
     }
     const restored = await this.persister.load();
-    if (restored)
+    if (restored) {
+      await this.#gateLedger?.replayInto(this.gates);
       this.systemEventBus.emit('restore:state', {
         cycleCount: restored.cycleCount,
         concepts: restored.conceptsRestored,
         pendingTasks: restored.pendingRestored,
       });
+    }
     this.self?.start();
     this.lm.getEnricher()?.start();
     this.#autonomy = createAutonomyHeartbeat(this);

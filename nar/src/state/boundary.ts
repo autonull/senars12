@@ -13,12 +13,18 @@ import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from './codec.js';
  *  - the kernel cycle counter
  *  - the pending task queue (tasks raised but not yet admitted to memory)
  *  - the id-minting high-water mark
- *  - the bounded gate-event ring, through `GateEventLedger` (CORE.19 C3.3)
+ *  - the bounded gate-event ring: written through `GateEventLedger` (CORE.19
+ *    C3.3) and, on `start()`, replayed into the in-memory rings (CORE.19 C4.3).
+ *    The one piece of gate state the log implies — the action gate's autonomy
+ *    mode, from the last replayed mode change — is restored with it, so the log
+ *    and the gate cannot disagree after a restart
  *
  * Deliberately omitted, never implied:
  *  - archive / forgetting internals, link caches and embedding caches
  *  - self-observability and metrics counters
  *  - the event-log position (derived by re-reading the log)
+ *  - the derivation fire ring: window-bounded in `DerivationRecorder`, not
+ *    persisted (a re-entry seam, C3.1/C4.3)
  *  - RNG state: the stream is a caller-injected `RandomSource`, not a value the
  *    NAR owns, so it is a re-entry seam (C4.4) rather than a lied-about restore
  */

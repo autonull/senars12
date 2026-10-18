@@ -141,6 +141,11 @@ export class KernelActionGate extends KernelGate<PolicyViolationEvent> {
     return this.autonomyLog;
   }
 
+  /** Re-seed the autonomy ring with a persisted mode change (CORE.19 C4.3). */
+  restoreAutonomyEvent(event: AutonomyModeChangedEvent): void {
+    pushCapped(this.autonomyLog, event, GATE_LOG_CAPACITY);
+  }
+
   /** Set autonomy mode for a named scope without touching the global mode (A3). */
   setScopeAutonomy(scopeId: string, mode: AutonomyMode): void {
     this.scopeModes.set(scopeId, mode);

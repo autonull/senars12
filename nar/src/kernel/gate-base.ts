@@ -92,6 +92,15 @@ export abstract class KernelGate<TEvent extends CognitiveEvent = CognitiveEvent>
     return this.eventLog.toArray();
   }
 
+  /**
+   * Re-seed the ring with a persisted event (CORE.19 C4.3). The event was
+   * schema-validated when the ledger read it back, so it is pushed as-is: a
+   * restore is a replay of a past decision, not a second one.
+   */
+  restoreEvent(event: CognitiveEvent): void {
+    this.eventLog.push(event as TEvent);
+  }
+
   clearEventLog(): void {
     this.eventLog.clear();
   }

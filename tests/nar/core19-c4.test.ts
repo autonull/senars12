@@ -30,6 +30,14 @@ const boundary: ConsistencyBoundary = {
   idHighWater: 42,
 };
 
+const narOptions = () => ({
+  providerRegistry: createSeNARSRegistry(),
+  lmService: createLMService(),
+  persistState: true,
+  statePath: testStateDir,
+  maxConcepts: 500,
+});
+
 describe('CORE.19 C4 — consistency boundary codec', () => {
   it('round-trips the declared boundary through the state envelope', () => {
     expect(decodeBoundary(encodeBoundary(boundary))).toEqual(boundary);
@@ -58,14 +66,6 @@ describe('CORE.19 C4 — restart restores the declared boundary', () => {
 
   afterEach(async () => {
     await rm(testStateDir, { recursive: true, force: true });
-  });
-
-  const narOptions = () => ({
-    providerRegistry: createSeNARSRegistry(),
-    lmService: createLMService(),
-    persistState: true,
-    statePath: testStateDir,
-    maxConcepts: 500,
   });
 
   it('resumes the cycle counter, concept priorities and id ledger, and announces it', async () => {
@@ -116,6 +116,50 @@ describe('CORE.19 C4 — restart restores the declared boundary', () => {
 
     await nar.stop();
     await nar.dispose();
+  });
+});
+
+describe('CORE.19 C4.3 — restore replays the persisted gate log', () => {
+  const freshStateDir = (): string => mkdtempSync(join(tmpdir(), 'core19-c4-3-'));
+
+  const admit = (nar: ReturnType<typeof createNAR>): void => {
+    nar.gates.getPerceptionGate().admit({
+      sourceId: 's',
+      rawObservation: '(a-->b).',
+      sensorConfidence: 1,
+      sourceQuality: 'PRIMARY',
+    });
+  };
+
+  it('re-seeds the gate rings from the ledger, and does not re-append them', async () => {
+    const statePath = freshStateDir();
+    const nar1 = createNAR({ ...narOptions(), statePath });
+    await nar1.start();
+    nar1.gates.getActionGate().requestModeChange('propose-only', 'human', 'corr-c4-3');
+    admit(nar1);
+    expect(nar1.flushGateLogs()).toBeGreaterThanOrEqual(2);
+    await nar1.stop();
+    await nar1.dispose();
+
+    const nar2 = createNAR({ ...narOptions(), statePath });
+    await nar2.start();
+
+    // The autonomy ring and the mode it ends at are restored together.
+    const action = nar2.gates.getActionGate();
+    expect(action.getAutonomyMode()).toBe('propose-only');
+    expect(action.getAutonomyLog().some((e) => e.correlationId === 'corr-c4-3')).toBe(true);
+
+    // The perception ring is re-seeded with the pre-restart admission.
+    const perceptionTypes = new Set(nar2.gates.getPerceptionGate().getEventLog().map((e) => e.type));
+    expect(perceptionTypes.has('task.admitted')).toBe(true);
+
+    // Adopted: a flush re-appends nothing that was replayed.
+    nar2.flushGateLogs();
+    const entries = await nar2.getGateEventLedger()!.readEntries();
+    expect(entries.filter((e) => e.correlationId === 'corr-c4-3')).toHaveLength(1);
+
+    await nar2.stop();
+    await nar2.dispose();
   });
 });
 

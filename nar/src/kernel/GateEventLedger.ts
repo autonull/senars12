@@ -9,12 +9,16 @@
  */
 import type { CognitiveEvent } from '@senars/core/schemas';
 import { CognitiveEventSchema } from '@senars/core/schemas';
+import { createLogger } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
+import { GATE_LOG_KEYS } from './event-ring.js';
 import type { GateRegistry } from './GateRegistry.js';
 
-/** One gate decision as it lands on disk: the ledger's stamp beside the event. */
+/** One gate decision as it lands on disk: the ring it came from, the stamp, the event. */
 export const GateEventEntrySchema = BaseLedgerEntrySchema.extend({
+  /** The gate ring the event came from, so a restore routes it back (CORE.19 C4.3). */
+  gate: z.enum(GATE_LOG_KEYS),
   event: CognitiveEventSchema,
 });
 
@@ -25,6 +29,8 @@ export interface GateEventLedgerOptions {
   retentionDays?: number;
   /** Entries per file before rolling to `<date>-<n>.jsonl`. Default 10 000. */
   maxEntriesPerFile?: number;
+  /** Where a replay reports what it resumed. */
+  logger?: ReturnType<typeof createLogger>;
 }
 
 /**
@@ -37,8 +43,10 @@ export interface GateEventLedgerOptions {
 export class GateEventLedger {
   readonly #ledger: Ledger<GateEventEntry>;
   readonly #seen = new WeakSet<CognitiveEvent>();
+  readonly #logger: ReturnType<typeof createLogger>;
 
   constructor(basePath: string, options: GateEventLedgerOptions = {}) {
+    this.#logger = options.logger ?? createLogger({ scope: 'NAR.GateEventLedger' });
     this.#ledger = createLedger(basePath, GateEventEntrySchema, {
       rollover: {
         retentionDays: options.retentionDays ?? 30,
@@ -49,22 +57,50 @@ export class GateEventLedger {
 
   /** Append every not-yet-written gate event; returns how many were written. */
   flush(registry: GateRegistry): number {
+    const logs = registry.getAllEventLogs();
     let appended = 0;
-    for (const events of Object.values(registry.getAllEventLogs())) {
-      for (const event of events) {
+    for (const gate of GATE_LOG_KEYS) {
+      for (const event of logs[gate]) {
         if (this.#seen.has(event)) continue;
         this.#seen.add(event);
-        this.#ledger.append({ event, correlationId: event.correlationId });
+        this.#ledger.append({ gate, correlationId: event.correlationId, event });
         appended++;
       }
     }
     return appended;
   }
 
+  /** The durable entries, each with the gate it came from — the C4.3 replay input. */
+  async readEntries(limit?: number): Promise<GateEventEntry[]> {
+    return this.#ledger.query(limit ? { limit } : {});
+  }
+
   /** The events written so far, oldest first (optionally the most recent `limit`). */
   async read(limit?: number): Promise<CognitiveEvent[]> {
-    const entries = await this.#ledger.query(limit ? { limit } : {});
-    return entries.map((entry) => entry.event);
+    return (await this.readEntries(limit)).map((entry) => entry.event);
+  }
+
+  /**
+   * Mark events read back from disk as already-written, so a restore that
+   * re-seeds the rings (CORE.19 C4.3) does not have the next flush append them a
+   * second time.
+   */
+  adopt(entries: ReadonlyArray<GateEventEntry>): void {
+    for (const entry of entries) this.#seen.add(entry.event);
+  }
+
+  /**
+   * Replay the persisted log into the registry's rings (CORE.19 C4.3): re-seed
+   * them with what a prior run decided, then adopt it so the next flush appends
+   * only what the restart produced. The ledger owns its own replay rather than
+   * the NAR facade, which stays a directory of subsystems.
+   */
+  async replayInto(registry: GateRegistry): Promise<number> {
+    const entries = await this.readEntries();
+    const restored = registry.restoreEventLogs(entries);
+    this.adopt(entries);
+    if (restored > 0) this.#logger.info('Replayed the persisted gate log', { events: restored });
+    return restored;
   }
 
   getBasePath(): string {

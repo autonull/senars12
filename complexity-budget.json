@@ -2,7 +2,7 @@
   "version": 2,
   "baseline": {
     "exportSubpaths": 87,
-    "productionLOC": 74735,
+    "productionLOC": 74788,
     "appendOnlyPersistenceSites": 4,
     "aikrProcessorCoverage": 6,
     "unboundedAccumulatorSites": 0,
