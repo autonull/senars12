@@ -65,6 +65,8 @@ export type NarLike = {
   getCycleCount?: () => number;
   /** Rewind to the nearest checkpoint (CORE.19 C2.3). */
   rewind?: (cycles?: number) => Promise<unknown>;
+  /** The kernel-owned driver loop (CORE.19 C2.1); refuses in autonomous modes (C5.2). */
+  runCycles?: (cycles: number, signal?: AbortSignal) => Promise<number>;
   /** Adjust the kernel's cycle ceiling (CORE.19 C2.4). */
   adjustCycleBudget?: (maxCycles: number) => void;
 };
@@ -301,13 +303,19 @@ export function runCycles(
 
   let accumulatedSummary: SpendSummary = {};
   const runOne = async (): Promise<void> => {
-    for (let i = 0; i < cycles; i++) {
-      if (controller.signal.aborted) return;
-      await run(1, controller.signal);
-      const exec = engine.getExecution?.();
-      const summary = exec?.getSpendSummary?.();
-      if (summary) accumulatedSummary = mergeSpendSummariesFn(accumulatedSummary, summary);
+    // The kernel owns the driver loop (CORE.19 C2.1); the transport keeps only the
+    // abort controller and the spend report. Fall back to a local loop for an
+    // engine that predates `runCycles`.
+    if (engine.runCycles) {
+      await engine.runCycles(cycles, controller.signal);
+    } else {
+      for (let i = 0; i < cycles; i++) {
+        if (controller.signal.aborted) return;
+        await run(1, controller.signal);
+      }
     }
+    const summary = engine.getExecution?.()?.getSpendSummary?.();
+    if (summary) accumulatedSummary = mergeSpendSummariesFn(accumulatedSummary, summary);
   };
 
   Promise.resolve(runOne())

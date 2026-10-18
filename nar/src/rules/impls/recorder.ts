@@ -99,6 +99,17 @@ export class DerivationRecorder {
   private readonly completed: BoundedRing<DerivationRecord>;
   /** One row per rule fire (CORE.19 C3.1), queryable without draining a chain. */
   private readonly fireRing: BoundedRing<DerivationStep>;
+  /**
+   * The clock a step's and a record's wall-clock is stamped from (CORE.19 C3.4),
+   * injected so a seeded run's `derivation:record` trace is deterministic (D13).
+   * `Date.now` until a host supplies one.
+   */
+  private clock: () => number = Date.now;
+  /**
+   * Fires as each chain closes, so a durable sink can persist a completed record
+   * the moment it exists — a drain cannot lose it first (CORE.19 C3.4).
+   */
+  readonly onRecord = new Signal<DerivationRecord>();
 
   constructor(opts: RecorderOptions = {}) {
     this.maxStepsPerRecord = opts.maxStepsPerRecord ?? 200;
@@ -177,7 +188,7 @@ export class DerivationRecorder {
       independence,
       cycle: this.open.cycle,
       ...(this.open.correlationId ? { correlationId: this.open.correlationId } : {}),
-      timestamp: Date.now(),
+      timestamp: this.clock(),
     };
     this.open.steps.push(step);
     this.fireRing.push(step);
@@ -206,10 +217,11 @@ export class DerivationRecorder {
       finalTruth: last.truth,
       totalCycles: open.cycles,
       maxDepthReached: open.maxDepth,
-      timestamp: Date.now(),
+      timestamp: this.clock(),
       engine: 'nar',
     };
     this.completed.push(record);
+    this.onRecord.emit(record);
     return record;
   }
 
@@ -222,6 +234,26 @@ export class DerivationRecorder {
 
   pending(): number {
     return this.completed.size();
+  }
+
+  /**
+   * The completed chains, oldest first, without draining (CORE.19 C3.4). A drain
+   * is a one-shot handoff; a consumer that wants the window reads it here so the
+   * ring keeps its records for the durable sink.
+   */
+  records(limit = this.maxCompletedRecords): readonly DerivationRecord[] {
+    return this.completed.tail(limit);
+  }
+
+  /** Re-seed the completed ring from a persisted log, oldest first (CORE.19 C3.4). */
+  restoreRecords(records: readonly DerivationRecord[]): number {
+    for (const record of records) this.completed.push(record);
+    return records.length;
+  }
+
+  /** Inject the clock the recorder stamps its steps and records with (CORE.19 C3.4). */
+  setClock(clock: () => number): void {
+    this.clock = clock;
   }
 
   /**

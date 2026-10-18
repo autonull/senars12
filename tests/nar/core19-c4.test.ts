@@ -219,6 +219,92 @@ describe('CORE.19 C4.3 — restore replays the persisted derivation fire log', (
   });
 });
 
+describe('CORE.19 C3.4 — the kernel emits derivation.record, the ledger keeps the chain', () => {
+  const derive = async (nar: NAR): Promise<void> => {
+    await nar.input('(a --> b).');
+    await nar.input('(b --> c).');
+    await nar.step();
+    await nar.run(5);
+  };
+
+  it('emits a completed chain on the one bus with injected-clock timestamps', async () => {
+    const bus = new NarEventBus();
+    const seen: Array<{ timestamp: number; steps: Array<{ timestamp?: number }> }> = [];
+    bus.on('derivation:record', (record) => seen.push(record));
+    const nar = new NAR(
+      e2eNARConfig({ eventBus: bus, clock: () => 4242, persistState: false })
+    );
+    await nar.initialize();
+    await nar.start();
+    await derive(nar);
+
+    expect(seen.length).toBeGreaterThan(0);
+    // Every wall-clock reads the injected clock, so a seeded trace is deterministic (D13).
+    expect(seen[0]!.timestamp).toBe(4242);
+    expect(seen[0]!.steps.every((step) => step.timestamp === 4242)).toBe(true);
+    // The completed ring is read (not drained) and still holds the chain.
+    expect(nar.getProcessor().getRecorder().records().length).toBeGreaterThan(0);
+
+    await nar.stop();
+    await nar.dispose();
+  });
+
+  it('resumes completed chains across a restart', async () => {
+    const statePath = mkdtempSync(join(tmpdir(), 'core19-c4-chains-'));
+    const nar1 = new NAR(e2eNARConfig({ persistState: true, statePath }));
+    await nar1.initialize();
+    await nar1.start();
+    await derive(nar1);
+
+    const records = nar1.getProcessor().getRecorder().records();
+    expect(records.length).toBeGreaterThan(0);
+    const ids = records.map((r) => r.derivationId);
+    await nar1.stop();
+    await nar1.dispose();
+
+    // The ledger holds the chains the run closed, in their durable form.
+    const reader = new DerivationLedger(join(statePath, 'derivations'));
+    const persisted = (await reader.readRecords()).map((r) => r.derivationId);
+    for (const id of ids) expect(persisted).toContain(id);
+    reader.close();
+
+    const nar2 = new NAR(e2eNARConfig({ persistState: true, statePath }));
+    await nar2.initialize();
+    await nar2.start();
+    const restored = new Set(
+      nar2.getProcessor().getRecorder().records().map((r) => r.derivationId)
+    );
+    for (const id of ids) expect(restored.has(id)).toBe(true);
+
+    await nar2.stop();
+    await nar2.dispose();
+  });
+});
+
+describe('CORE.19 C2.1/C5.2 — the kernel owns runCycles and refuses to race autonomy', () => {
+  it('advances exactly N cycles', async () => {
+    const nar = new NAR(e2eNARConfig({ persistState: false }));
+    await nar.initialize();
+    await nar.start();
+    const before = nar.getCycleCount();
+    expect(await nar.runCycles(3)).toBe(3);
+    expect(nar.getCycleCount()).toBe(before + 3);
+    await nar.stop();
+    await nar.dispose();
+  });
+
+  it('refuses to drive while an autonomous mode owns the clock', async () => {
+    const nar = new NAR(
+      e2eNARConfig({ persistState: false, autonomy: { enabled: true, mode: 'stepping' } })
+    );
+    await nar.initialize();
+    await nar.start();
+    await expect(nar.runCycles(1)).rejects.toThrow(/autonomous/);
+    await nar.stop();
+    await nar.dispose();
+  });
+});
+
 describe('CORE.19 C4.4 — replay entropy is injectable', () => {
   const gateLog = (): string => {
     const dir = mkdtempSync(join(tmpdir(), 'core19-c4-4-'));

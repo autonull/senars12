@@ -26,6 +26,9 @@ import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from './codec.js';
  *    `derivation.accepted` form (no wall-clock, D13) and, on `start()`, replayed
  *    into `DerivationRecorder`'s ring (CORE.19 C4.3), so a restart resumes the
  *    fire records `getRuleFiresByConclusion` and `explainDerivation` read
+ *  - the completed derivation chains (CORE.19 C3.4): each chain is written
+ *    through `DerivationLedger` the moment it closes (push, not a drain the
+ *    consumer could beat), and, on `start()`, replayed into the completed ring
  *
  * Deliberately omitted, never implied:
  *  - archive / forgetting internals, link caches and embedding caches

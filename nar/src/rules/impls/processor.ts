@@ -13,7 +13,7 @@ import {
   toError,
   type ModelRuleStats,
 } from '@senars/util';
-import type { DerivationStep } from '@senars/core/schemas';
+import type { DerivationRecord, DerivationStep } from '@senars/core/schemas';
 import { countContradictions } from '../../cognitive/impls/conflict-utils.js';
 import type { DriveManager } from '../../drives';
 import { type ControlBudgetPort, UNBUDGETED } from '../../kernel/control-budgets.js';
@@ -331,14 +331,24 @@ export class RuleProcessor {
     for await (const [p1, p2] of premises) {
       yield* this.applySyncRulesInternal(p1, p2, false);
       yield* this.applyModelRules({ p1, p2 }, undefined, context);
-      this.recorder.finish();
+      this.#finishRecord();
     }
   }
 
   processSync(p1: RuleInput, p2: RuleInput): RuleResult[] {
     this.resultBuffer = [...this.applySyncRulesInternal(p1, p2, true)];
-    this.recorder.finish();
+    this.#finishRecord();
     return this.resultBuffer;
+  }
+
+  /**
+   * Close the open record and put the completed chain on the one bus (CORE.19
+   * C3.4) — the kernel owns the emission, so a consumer drains nothing to get a
+   * `derivation.record`. The record's own drain (a one-shot handoff) still works.
+   */
+  #finishRecord(): void {
+    const record = this.recorder.finish();
+    if (record) this.eventBus?.emit('derivation:record', record);
   }
 
   /**

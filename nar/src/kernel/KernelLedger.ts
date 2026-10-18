@@ -16,9 +16,12 @@ export class KernelLedger {
   readonly gates: GateEventLedger;
   readonly derivations: DerivationLedger;
 
-  constructor(basePath: string) {
+  constructor(basePath: string, recorder: DerivationRecorder) {
     this.gates = new GateEventLedger(join(basePath, 'gate-events'));
     this.derivations = new DerivationLedger(join(basePath, 'derivations'));
+    // Bind the completed-chain sink at construction, so every closing record is
+    // persisted without the facade holding a second wiring line (CORE.19 C3.4).
+    this.derivations.observe(recorder);
   }
 
   /** Append every not-yet-written gate event and rule fire; returns the count. */
@@ -26,9 +29,13 @@ export class KernelLedger {
     return this.gates.flush(gates) + this.derivations.flush(recorder);
   }
 
-  /** Re-seed the gate rings and the fire ring from disk; returns how many were restored. */
+  /** Re-seed the gate rings, the fire ring, and the completed chains from disk. */
   async replay(gates: GateRegistry, recorder: DerivationRecorder): Promise<number> {
-    return (await this.gates.replayInto(gates)) + (await this.derivations.replayInto(recorder));
+    return (
+      (await this.gates.replayInto(gates)) +
+      (await this.derivations.replayInto(recorder)) +
+      (await this.derivations.replayRecordsInto(recorder))
+    );
   }
 
   close(): void {

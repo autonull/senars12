@@ -56,6 +56,7 @@ import type { SelfMetaGameImpl } from './game/impls/SelfMetaGame.js';
 import type { SelfMetaGameEvidence } from './governance/pipeline.js';
 import { GovernanceResolver } from './governance/pipeline.js';
 import { ControlBudgets } from './kernel/control-budgets.js';
+import { driveCycles } from './kernel/cycle-driver.js';
 import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
 import { createDefaultReasoningBudget, type KernelBudgetGate } from './kernel/KernelBudgetGate.js';
 import { KernelLedger } from './kernel/KernelLedger.js';
@@ -412,9 +413,9 @@ export class NAR extends BaseComponent {
       await this.initialize();
     }
     await super.start();
+    this.processor.getRecorder().setClock(() => this.config.clock?.() ?? Date.now());
     if (this.config.persistState && !this.#ledgers) {
-      const base = this.config.statePath ?? cachePath('nar-state');
-      this.#ledgers = new KernelLedger(base);
+      this.#ledgers = new KernelLedger(this.config.statePath ?? cachePath('nar-state'), this.processor.getRecorder());
     }
     const restored = await this.persister.load();
     if (restored) {
@@ -519,6 +520,13 @@ export class NAR extends BaseComponent {
   async run(steps = 1, signal?: AbortSignal, correlationId?: string): Promise<number> {
     return this.execution.run(steps, signal, correlationId);
   }
+
+  /**
+   * The kernel-owned driver loop (CORE.19 C2.1): advance up to `cycles` times,
+   * stopping on abort, refusing while an autonomous mode owns the clock so an
+   * external loop cannot race the heartbeat (C5.2).
+   */
+  runCycles = (cycles: number, signal?: AbortSignal): Promise<number> => driveCycles(this.run.bind(this), cycles, this.getAutonomyConfig(), signal);
 
   /**
    * Advance exactly one cycle through the kernel control plane (CORE.19

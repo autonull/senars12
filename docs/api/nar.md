@@ -784,6 +784,8 @@ _Dynamic subpath (no single entry file)._
 
 - `embeddingRuntime`
 
+- `resolveEmbeddingGenerator` — Pick the real embedder for the active provider. The core cannot: naming the
+
 - `createProactiveEnricher`
 
 - `ProactiveEnricher`
@@ -1086,7 +1088,7 @@ _Dynamic subpath (no single entry file)._
 
 - `MockEmbeddingGenerator`
 
-- `isMockLM` — Transformers (`MiniLM`) is the only real embedder and only ships with the
+- `isMockLM` — The transformers (`MiniLM`) provider is the only real embedder *here*; any
 
 - `createEmbeddingGenerator`
 
@@ -1570,7 +1572,11 @@ _Re-export barrel._
 
 - `DerivationEventEntrySchema` — One rule fire as it lands on disk: its durable `derivation.accepted` form.
 
-- `DerivationLedger` — A ledger over the recorder's fire ring. `flush` appends only fires it has not
+- `DerivationLedger` — A ledger over the recorder's derivation output: the bounded fire ring (pulled,
+
+- `DerivationRecordEntrySchema` — One completed derivation chain as it lands on disk (CORE.19 C3.4).
+
+- `driveCycles`
 
 - `loadGateEvents`
 

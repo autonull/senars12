@@ -9,7 +9,8 @@
  * `derivation.accepted` form (no wall-clock, D13), and re-seeds the ring on a
  * restore.
  */
-import { type DerivationStep, DerivationStepSchema } from '@senars/core/schemas';
+import { join } from 'node:path';
+import { type DerivationRecord, type DerivationStep, DerivationRecordSchema, DerivationStepSchema } from '@senars/core/schemas';
 import { createLogger } from '@senars/util';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
@@ -20,7 +21,13 @@ export const DerivationEventEntrySchema = BaseLedgerEntrySchema.extend({
   fire: DerivationStepSchema,
 });
 
+/** One completed derivation chain as it lands on disk (CORE.19 C3.4). */
+export const DerivationRecordEntrySchema = BaseLedgerEntrySchema.extend({
+  record: DerivationRecordSchema,
+});
+
 export type DerivationEventEntry = z.infer<typeof DerivationEventEntrySchema>;
+export type DerivationRecordEntry = z.infer<typeof DerivationRecordEntrySchema>;
 
 export interface DerivationLedgerOptions {
   /** Files older than this many days are pruned on daily rollover. Default 30. */
@@ -38,24 +45,43 @@ const durableFire = (fire: DerivationStep): DerivationStep => {
 };
 
 /**
- * A ledger over the recorder's fire ring. `flush` appends only fires it has not
- * seen, tracked by identity in a `WeakSet`: the ring hands back the same objects,
- * so a periodic flush neither re-appends a growing window nor needs an id the
- * records do not already carry. The set is weak, so a fire the ring has evicted
- * is collectable — the cursor is a window, not a second log.
+ * A ledger over the recorder's derivation output: the bounded fire ring (pulled,
+ * `flush`) and the completed-chain ring (pushed, `observe`). The fire cursor is
+ * tracked by identity in a `WeakSet`: the ring hands back the same objects, so a
+ * periodic flush neither re-appends a growing window nor needs an id the fires do
+ * not already carry; the set is weak, so a fire the ring has evicted is
+ * collectable — the cursor is a window, not a second log. A completed chain is
+ * pushed the moment it closes, because the ring is drain-emptied by consumers and
+ * a pull could miss it (CORE.19 C3.4).
  */
 export class DerivationLedger {
   readonly #ledger: Ledger<DerivationEventEntry>;
+  readonly #records: Ledger<DerivationRecordEntry>;
   readonly #seen = new WeakSet<DerivationStep>();
   readonly #logger: ReturnType<typeof createLogger>;
+  #unsubscribeRecords: (() => void) | null = null;
 
   constructor(basePath: string, options: DerivationLedgerOptions = {}) {
     this.#logger = options.logger ?? createLogger({ scope: 'NAR.DerivationLedger' });
-    this.#ledger = createLedger(basePath, DerivationEventEntrySchema, {
-      rollover: {
-        retentionDays: options.retentionDays ?? 30,
-        maxEntriesPerFile: options.maxEntriesPerFile ?? 10_000,
-      },
+    const rollover = {
+      retentionDays: options.retentionDays ?? 30,
+      maxEntriesPerFile: options.maxEntriesPerFile ?? 10_000,
+    };
+    this.#ledger = createLedger(basePath, DerivationEventEntrySchema, { rollover });
+    this.#records = createLedger(join(basePath, 'chains'), DerivationRecordEntrySchema, {
+      rollover,
+    });
+  }
+
+  /**
+   * Persist each completed chain as it closes (CORE.19 C3.4). Push, not pull:
+   * the completed ring is drain-emptied by consumers, so a periodic flush could
+   * miss a record a drain took first. The sink is bound to the recorder's own
+   * `onRecord`, so every chain lands whether or not anything drained it.
+   */
+  observe(recorder: DerivationRecorder): void {
+    this.#unsubscribeRecords ??= recorder.onRecord.on((record) => {
+      this.#records.append({ correlationId: record.derivationId, record });
     });
   }
 
@@ -104,11 +130,31 @@ export class DerivationLedger {
     return restored;
   }
 
+  /** The completed chains written so far, oldest first (optionally the most recent `limit`). */
+  async readRecords(limit?: number): Promise<DerivationRecord[]> {
+    const entries = await this.#records.query(limit ? { limit } : {});
+    return entries.map((entry) => entry.record);
+  }
+
+  /**
+   * Re-seed the completed ring from the persisted chains (CORE.19 C3.4), so a
+   * restart resumes the records a consumer's `records()`/`drain()` reads.
+   */
+  async replayRecordsInto(recorder: DerivationRecorder): Promise<number> {
+    const restored = recorder.restoreRecords(await this.readRecords());
+    if (restored > 0)
+      this.#logger.info('Replayed the persisted derivation chains', { chains: restored });
+    return restored;
+  }
+
   getBasePath(): string {
     return this.#ledger.getBasePath();
   }
 
   close(): void {
+    this.#unsubscribeRecords?.();
+    this.#unsubscribeRecords = null;
     this.#ledger.close();
+    this.#records.close();
   }
 }

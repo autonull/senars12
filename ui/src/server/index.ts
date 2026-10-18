@@ -12,7 +12,6 @@ import type {
   LensSpec,
 } from '@senars/core';
 import { IncomingFromClient as IncomingFromClientSchema } from '@senars/core';
-import { mintCognitiveEvent, type DerivationRecord } from '@senars/core/schemas';
 import { DEFAULT_CONFIG, termParser } from '@senars/nar';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
 import { handleMetricsRequest } from '@senars/nar/metrics';
@@ -856,20 +855,9 @@ function broadcastConfigSchema(): void {
     }
   }, 1000);
 
-  // Drain derivation recorder and emit derivation.record events
-  const derivationRecordTimer = setInterval(() => {
-    const processor = nar()?.getProcessor?.();
-    const recorder = processor?.getRecorder?.();
-    if (!recorder) return;
-    const records = recorder.drain();
-    for (const record of records) {
-      const event = mintCognitiveEvent('derivation.record', {
-        engine: 'nar',
-        payload: record,
-      });
-      broadcastCognitiveEvent(event);
-    }
-  }, 2000);
+  // The kernel emits `derivation.record` on the one bus (CORE.19 C3.4), bridged
+  // to the cognitive event the agent subscription above broadcasts — so the UI
+  // no longer drains the recorder to mint one.
 
   httpServer.on('upgrade', (request, socket, head) => {
     if (request.url?.startsWith('/ws') || request.url === '/') {
@@ -881,7 +869,6 @@ function broadcastConfigSchema(): void {
 
   httpServer.on('close', () => {
     clearInterval(telemetryTimer);
-    clearInterval(derivationRecordTimer);
   });
 
   return { server: httpServer, projection, wss };

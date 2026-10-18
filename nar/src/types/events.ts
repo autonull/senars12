@@ -1,5 +1,5 @@
 import type { BudgetEventMap } from '@senars/core/budget';
-import type { AmbiguityReport, DerivationStep, KernelControlState } from '@senars/core/schemas';
+import type { AmbiguityReport, DerivationRecord, DerivationStep, KernelControlState } from '@senars/core/schemas';
 import type { TermTruth } from '@senars/util';
 import type { Term, Truth } from '../terms';
 
@@ -114,6 +114,13 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
    * break the seeded trace (D13).
    */
   'derivation:accepted': Omit<DerivationStep, 'timestamp'>;
+  /**
+   * A completed derivation chain (CORE.19 C3.4), emitted by the kernel when a
+   * record closes rather than drained by a consumer. The bridge mints the durable
+   * `derivation.record` from it; the record's timestamps come from the injected
+   * clock, so a seeded trace stays byte-identical (D13).
+   */
+  'derivation:record': DerivationRecord;
   /**
    * A new belief/goal/question was admitted (a first sighting), the coarse
    * liveness ping the proactive-notification path listens for. Emitted on the one

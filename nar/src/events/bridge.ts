@@ -78,6 +78,13 @@ const handlers = new Map<keyof NAREventMap, Handler>([
     },
   ],
   [
+    'derivation:record',
+    (data) => {
+      const d = data as NAREventMap['derivation:record'];
+      return mint('derivation.record', { engine: 'nar', payload: d });
+    },
+  ],
+  [
     'concept:created',
     (data) => {
       const d = data as NAREventMap['concept:created'];

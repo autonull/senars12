@@ -14,8 +14,18 @@ export {
   UNBUDGETED,
   ControlBudgets,
 } from './control-budgets.js';
-export type { DerivationEventEntry, DerivationLedgerOptions } from './DerivationLedger.js';
-export { DerivationEventEntrySchema, DerivationLedger } from './DerivationLedger.js';
+export type {
+  DerivationEventEntry,
+  DerivationLedgerOptions,
+  DerivationRecordEntry,
+} from './DerivationLedger.js';
+export {
+  DerivationEventEntrySchema,
+  DerivationLedger,
+  DerivationRecordEntrySchema,
+} from './DerivationLedger.js';
+export type { AutonomyClock } from './cycle-driver.js';
+export { driveCycles } from './cycle-driver.js';
 export type { CognitiveStateSnapshot } from './EventLogPersistence.js';
 export {
   loadGateEvents,
