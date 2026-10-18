@@ -63,6 +63,33 @@ Pen-test cases:
 - Model output containing spoofed tool-call payloads → stripped before it can influence agents.
 - Oversized output (> cap) → `LMOutputTooLargeError`, spend/call metrics recorded as failure.
 
+## S5 — Neuro-symbolic admission (CORE.19 C6)
+
+- [x] LM output is a **proposal, never kernel input** (D17). One path admits it:
+      `NAR.perceive` → `Formalizer` (`nlToFormal`) → `validateInterpretation`
+      (term well-formedness, truth-value ranges, `SymbolicFirewall`) → `KernelPerceptionGate.admitFormalization`,
+      which re-parses each candidate and clamps by `SOURCE_QUALITY_CONFIDENCE`.
+- [x] Every admitted block is tagged `CreatedBy: llm-proposed` (or `user` for a direct interaction),
+      so provenance is never implied.
+- [x] Invalid candidates are dropped **with a reason** (`rejection`), never silently; a non-Narsese
+      utterance on the deterministic (`StructuredFormalizer`) path is a declared rejection.
+- [x] The `SymbolicFirewall` blocks injection, operators, oversize and depth before admission.
+- [x] No key required (D10): the null provider is a valid configuration; the whole path works with
+      `LM_PROVIDER=mock` and with no provider.
+
+## S6 — Reasoning HTTP surface (CORE.19 C7)
+
+- [x] `POST /reasoning/believe` and `POST /reasoning/ask` (`nar/src/metrics/reasoning-http.ts`) are
+      **off by default** — reachable only when `ENABLE_REASONING_HTTP=true`. When disabled the route
+      still claims its paths and answers `404 DISABLED`, so a stray request is never routed as chat.
+- [x] The surface reuses the kernel the transport binds (`believe`/`question`/`run`/`askWithDerivation`) —
+      no second reasoning path, not the `/test/*` surface.
+- [x] Only `POST` (405 otherwise); `term` must be a non-empty string (400); `runs` defaults to 5 and
+      clamps to `MAX_ASK_RUNS`=100 so one request cannot run unbounded; failures return typed JSON
+      error codes without stack traces.
+- [x] `GET /metrics` / `/metrics.json` are served from the same injected route, ahead of auth and
+      message routing (a scraper is not a chat client).
+
 ## Related controls (pre-existing)
 
 - Strict config schemas + provider enum (Phase 5 C1); `.env` gitignored; secrets checked by
