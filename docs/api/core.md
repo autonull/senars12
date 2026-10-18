@@ -80,6 +80,18 @@
 
 - `BaseEngine`
 
+- `DURABLE_EVENT_TYPES` — Families the single emit funnel persists to the log. Excludes the ephemeral
+
+- `isDurableEvent`
+
+- `RECALLED_EVENT_TYPES` — The durable subset episodic recall reads. Keeps the conversational and belief
+
+- `recalledEventTypes` — The recalled allowlist as the array `EventLog.query` accepts, in a stable order.
+
+- `queryEventStream`
+
+- `type StreamQuery`
+
 - `InMemoryEventLog`
 
 - `SqliteEventLog` — Every statement this log issues is compiled once and kept: `better-sqlite3`'s
@@ -202,23 +214,49 @@
 
 - `type LensFieldDescriptor`
 
+- `LMSwitchMsg`
+
 - `MettaAtomNode`
 
 - `MettaSkillNode`
 
 - `NarConceptNode`
 
+- `ServerError`
+
+- `type ServerErrorCode`
+
 - `isEventType`
 
 - `isNarEvent`
+
+- `taskTypeForPunctuation` — Task kind named by its Narsese sentence mark; `null` when it is not one.
+
+- `VERIFIER_TRUTH_TABLE` — The transcribed table, exported so the drift test can compare it against the
+
+- `resolveTruthFn` — The truth function a step was derived with: the operation its rule declared,
+
+- `verifyRecord` — Verify a derivation record end to end. Shape is checked against the schema
 
 - `ConnectionError`
 
 ## `./eventlog`
 
+- `DURABLE_EVENT_TYPES` — Families the single emit funnel persists to the log. Excludes the ephemeral
+
+- `isDurableEvent`
+
+- `RECALLED_EVENT_TYPES` — The durable subset episodic recall reads. Keeps the conversational and belief
+
+- `recalledEventTypes` — The recalled allowlist as the array `EventLog.query` accepts, in a stable order.
+
 - `EventLogError`
 
 - `InMemoryEventLog`
+
+- `queryEventStream`
+
+- `type StreamQuery`
 
 - `SqliteEventLog` — Every statement this log issues is compiled once and kept: `better-sqlite3`'s
 
@@ -252,11 +290,65 @@
 
 - `ChatUserMsg`
 
+- `LMStatusRequest`
+
+- `LMStatusMsg`
+
+- `LMSwitchMsg`
+
 - `ConfigField`
 
 - `ConfigSchemaMsg`
 
 - `ConfigSetMsg`
+
+- `UiCommandMsg`
+
+- `ReasoningSubmitMsg`
+
+- `ReasoningAskMsg` — Ask the engine a question and get the answer *with* its verified derivation
+
+- `ReasoningStepMsg`
+
+- `ReasoningRunMsg`
+
+- `ReasoningAbortMsg`
+
+- `ReasoningRetractMsg`
+
+- `ReasoningReviseMsg`
+
+- `ReasoningAddGoalMsg`
+
+- `ReasoningAdjustBudgetMsg`
+
+- `ReasoningAdjustProviderMsg`
+
+- `ReasoningControlResponse`
+
+- `type ReasoningSubmit`
+
+- `type ReasoningAsk`
+
+- `type ReasoningStep`
+
+- `type ReasoningRun`
+
+- `type ReasoningAbort`
+
+- `type ReasoningRetract`
+
+- `type ReasoningRevise`
+
+- `type ReasoningAddGoal`
+
+- `type ReasoningAdjustBudget`
+
+- `type ReasoningAdjustProvider`
+
+- `ServerError`
+
+- `type ServerErrorCode`
 
 - `GraphNodeDataStrict`
 
@@ -288,9 +380,9 @@
 
 - `LensListMsg`
 
-- `NodeSetMsg`
-
 - `ObjectSetMsg`
+
+- `CognitiveEventsMsg`
 
 - `CognitiveMetrics`
 
@@ -304,7 +396,15 @@
 
 - `TelemetryMsg`
 
-- `ViewportSet`
+- `CycleStateMsg`
+
+- `CycleStepMsg` — Client→server kernel control (CORE.19 C2.2). The UI drives the same control
+
+- `CyclePauseMsg`
+
+- `CycleResumeMsg`
+
+- `CycleRewindMsg`
 
 - `IncomingFromClient`
 
@@ -548,6 +648,10 @@ _Re-export barrel._
 
 - `DerivationStepSchema`
 
+- `RULE_CATEGORIES`
+
+- `RuleCategorySchema`
+
 - `validateDerivationRecord`
 
 - `CognitiveEventBaseSchema`
@@ -635,6 +739,8 @@ _Re-export barrel._
 - `SelfImprovementProposalSchema`
 
 - `NarEventSchemas`
+
+- `KERNEL_CONTROL_STATES` — The kernel control state machine a cycle is observed in (CORE.19 C2).
 
 - `ContentProposalSchema` — A formalized claim about a term. It is **not** a truth value to be written: it
 

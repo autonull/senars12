@@ -2,7 +2,17 @@
 
 ## `.`
 
-- `PriorityBag` — The AIKR priority bag: a priority-descending entry store with a Fenwick tree
+- `PriorityBag` — The AIKR bag with `nar`'s observability default wired in; a caller's `onPressure` overrides it.
+
+- `DEFAULT_NAR_STATE_PATH` — Where the state files live when a NAR is not configured with a `statePath`.
+
+- `readPersistedBoundary` — Read the persisted boundary, or `null` when nothing is saved (or it is unreadable).
+
+- `CHECKPOINT_RING_CAP` — How many checkpoints a rewind can reach. The ring caps the memory a rewind
+
+- `REWIND_BASE_GAPS` — The state a snapshot cannot reach, declared once and reported on every rewind.
+
+- `type RewindReport`
 
 - `runCounterfactual`
 
@@ -226,6 +236,64 @@
 
 - `ValidationError`
 
+- `AUTONOMY_MODES` — The autonomy heartbeat's configuration (CORE.19 C5.1). One table, so "is
+
+- `AUTONOMY_POLICIES`
+
+- `AutonomyHeartbeat` — The kernel-owned autonomy loop (CORE.19 C5.1/C5.2). One heartbeat, bounded by
+
+- `type AutonomyConfig`
+
+- `type AutonomyConfigInput`
+
+- `type AutonomyMode`
+
+- `type AutonomyPolicyId`
+
+- `type AutonomyPorts`
+
+- `type AutonomyProvenance`
+
+- `type AutonomyTickReport`
+
+- `type ConceptObservation`
+
+- `createAutonomyHeartbeat` — Bind the heartbeat to a NAR's kernel, memory and bus (CORE.19 C5.2). Kept out
+
+- `DEFAULT_AUTONOMY_CONFIG` — Autonomy is **off by default**: an unconfigured NAR must behave exactly as it
+
+- `resolveAutonomyConfig` — Resolve a partial override over the declared defaults, merging the nested
+
+- `createFormalizer` — The formalizer for a runtime: the hosted provider when an LM is configured,
+
+- `type ConflictExplanation`
+
+- `ExplanationGenerator`
+
+- `type Explanation`
+
+- `type ExplanationGeneratorOptions`
+
+- `type ExplanationSource`
+
+- `type Formalizer`
+
+- `type InterpretationValidation`
+
+- `LmFormalizer` — The hosted provider: the existing safe NL→batch pipeline behind the one
+
+- `PERCEIVED_ORIGINS` — Where an interpretation came from — the D17 tag a proposal carries.
+
+- `type PerceivedAdmission`
+
+- `type PerceivedInterpretation`
+
+- `type PerceivedOrigin`
+
+- `StructuredFormalizer` — The deterministic (null) provider. No LM: an utterance is Narsese or it is
+
+- `validateInterpretation` — The one validation gate before admission: term well-formedness, truth-value
+
 ## `./agent`
 
 - `BinAgentApi` — Minimal agent API for bin layer consumers (excludes core internals).
@@ -272,7 +340,7 @@ _Dynamic subpath (no single entry file)._
 
 - `createBag` — The one construction path for an AIKR bag: capacity is the caller's bound, the rest is knobs.
 
-- `PriorityBag` — The AIKR priority bag: a priority-descending entry store with a Fenwick tree
+- `PriorityBag` — The AIKR bag with `nar`'s observability default wired in; a caller's `onPressure` overrides it.
 
 - `bagSlotErrors` — Every error a `strategies.bag` slot can carry, phrased for `validateParameters`.
 
@@ -456,7 +524,7 @@ _Dynamic subpath (no single entry file)._
 
 - `perceptionTasks` — A game observation as the state belief plus one belief per numeric feature.
 
-- `proposalTasks` — Reflex proposals as executable goals, ranked by the caller but weighted as `value × confidence`.
+- `proposalTasks` — Reflex proposals as executable goals, weighted by {@link expectedValue}.
 
 - `rewardTerm` — `[reward_positive]` — the sign of an outcome.
 
@@ -806,6 +874,8 @@ _Dynamic subpath (no single entry file)._
 
 - `enableRoutingTelemetry`
 
+- `getActiveProvider` — The runtime provider selection, or undefined when env/config decides.
+
 - `getCircuitBreaker`
 
 - `getEffectiveCircuitConfig` — Effective circuit breaker config for a provider (settings > provider defaults > global defaults).
@@ -849,6 +919,8 @@ _Dynamic subpath (no single entry file)._
 - `resolveOfflineModel` — Largest ladder rung already cached under cacheDir (ladder ordered smallest → most capable).
 
 - `resolveOfflineTier` — LM_LOCAL_MODEL wins, else the largest cached offline-ladder rung, else undefined (config default).
+
+- `setActiveProvider` — Select the runtime-active provider (and optional model) — instant, no rebuild.
 
 - `setRouting`
 
@@ -1044,7 +1116,19 @@ _Dynamic subpath (no single entry file)._
 
 - `SymbolicFirewall`
 
+- `ExplanationGenerator`
+
 - `NLGenerationService`
+
+- `createFormalizer` — The formalizer for a runtime: the hosted provider when an LM is configured,
+
+- `LmFormalizer` — The hosted provider: the existing safe NL→batch pipeline behind the one
+
+- `PERCEIVED_ORIGINS` — Where an interpretation came from — the D17 tag a proposal carries.
+
+- `StructuredFormalizer` — The deterministic (null) provider. No LM: an utterance is Narsese or it is
+
+- `validateInterpretation` — The one validation gate before admission: term well-formedness, truth-value
 
 - `dispatchNarseseIntent` — The intent of `input`, or `null` when it is prose — or unparseable Narsese — and belongs to the LM path.
 
@@ -1229,6 +1313,18 @@ _Dynamic subpath (no single entry file)._
 - `MetricsCollector` — What the kernel counts about itself — the counters it bumps as it runs.
 
 - `handleMetricsRequest` — Answer `/metrics` (`text`) or `/metrics.json`, or return `false` for any other
+
+- `createReasoningRoute` — Build the route over a kernel getter. The getter is read per request so the
+
+- `DEFAULT_ASK_RUNS` — Default cycles a single `ask` runs before reading the answer.
+
+- `MAX_ASK_RUNS` — Upper bound on caller-supplied `runs`, so one request cannot run unbounded.
+
+- `REASONING_HTTP_ENV` — Env flag guarding the production reasoning surface.
+
+- `type ReasoningAnswer`
+
+- `type ReasoningHttpEngine`
 
 - `getMetricsAsJson`
 
@@ -1469,6 +1565,10 @@ _Re-export barrel._
 - `replayCognitiveState`
 
 - `replayTaskAdmissions`
+
+- `GateEventEntrySchema` — One gate decision as it lands on disk: the ring it came from, the stamp, the event.
+
+- `GateEventLedger` — A ledger over the gate registry's rings. `flush` appends only events it has
 
 - `createGateRegistry` — The only way to obtain gates (TODO19 F2, TODO33 §5.P2.7). There is no process-global registry: a singleton with a `reset()` that existed solely for test isolation let a NAR with an isolated registry share the global's budget and autonomy mode with any separately-built `Focus`. Every consumer is handed one.
 

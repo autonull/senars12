@@ -1,6 +1,7 @@
 graph TD
   _["."]
   agent["agent"]
+  autonomy["autonomy"]
   bag["bag"]
   capability["capability"]
   cognitive["cognitive"]
@@ -87,6 +88,7 @@ graph TD
   trace["trace"]
   types["types"]
   utils["utils"]
+  _ --> autonomy
   _ --> bag
   _ --> cognitive
   _ --> config
@@ -112,6 +114,7 @@ graph TD
   _ --> rules
   _ --> rules_impls
   _ --> self
+  _ --> state
   _ --> stream
   _ --> task
   _ --> terms
@@ -132,7 +135,9 @@ graph TD
   agent --> rlfp
   agent --> terms
   agent --> types
-  bag --> _
+  autonomy --> _
+  autonomy --> memory
+  autonomy --> types
   bag --> types
   capability --> tools
   cognitive --> cognitive_impls
@@ -187,6 +192,7 @@ graph TD
   eval --> otel
   events --> types
   facade --> _
+  facade --> autonomy
   facade --> focus
   facade --> game_impls
   facade --> kernel
@@ -420,6 +426,10 @@ graph TD
   self --> metrics
   self --> terms
   self --> types
+  state --> memory_ports
+  state --> memory_state
+  state --> task
+  state --> types
   strategies --> memory
   strategies --> reason
   strategies --> rules

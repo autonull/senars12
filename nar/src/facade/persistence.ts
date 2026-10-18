@@ -23,7 +23,7 @@ import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from '../state/cod
 import { rehydrateTask, serializeTaskRecord, type TaskRecord } from '../task/record.js';
 import { termParser } from '../terms';
 import type { Task, TaskType } from '../types';
-import type { NARConfig } from './config.js';
+import { type NARConfig, rngBoundaryPort } from './config.js';
 
 /** Task/drive file schema version — the one state schema version (C4.2). */
 export const NAR_STATE_VERSION = NAR_STATE_SCHEMA_VERSION;
@@ -66,7 +66,7 @@ export interface RestoreSummary {
 
 /** Deps for NAR state persistence (extracted from NAR — M2). */
 export interface StatePersisterDeps {
-  config: Pick<NARConfig, 'persistState' | 'statePath'>;
+  config: Pick<NARConfig, 'persistState' | 'statePath' | 'rng'>;
   memory: Memory;
   processor: {
     serializeModelRules(): unknown;
@@ -149,10 +149,12 @@ export class StatePersister {
   }
 
   #snapshotBoundary(boundary: BoundaryPorts): ConsistencyBoundary {
+    const rngState = rngBoundaryPort(this.deps.config.rng).rngState();
     return {
       cycleCount: boundary.getCycleCount(),
       pendingTasks: boundary.pendingTasks().map(serializeTaskRecord),
       idHighWater: boundary.idHighWater(),
+      ...(rngState !== undefined ? { rngState } : {}),
     };
   }
 
@@ -258,6 +260,8 @@ export class StatePersister {
     const restored = decodeBoundary(text);
     boundary?.setCycleCount(restored.cycleCount);
     boundary?.primeIdHighWater(restored.idHighWater);
+    if (restored.rngState !== undefined)
+      rngBoundaryPort(this.deps.config.rng).setRngState(restored.rngState);
     return {
       cycleCount: restored.cycleCount,
       pendingRestored: boundary?.restorePending(restored.pendingTasks) ?? 0,

@@ -3,8 +3,16 @@ import { mkdir, rm } from 'node:fs/promises';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { currentIdCount, makeId, sequentialIdSource } from '@senars/util';
-import { createNAR } from '../../nar/src';
+import {
+  currentIdCount,
+  makeId,
+  type RandomSource,
+  SeededRNG,
+  sequentialIdSource,
+  type StatefulRandomSource,
+} from '@senars/util';
+import { createNAR, NAR } from '../../nar/src';
+import { e2eNARConfig } from '../e2e/fixtures.js';
 import { createSeNARSRegistry } from '../../nar/src/lm';
 import { createLMService } from '../../nar/src/lm/lm-service';
 import { persistGateLogs } from '../../nar/src/kernel/EventLogPersistence.js';
@@ -17,6 +25,7 @@ import {
   encodeBoundary,
 } from '../../nar/src/state/boundary.js';
 import { encodeState } from '../../nar/src/state/codec.js';
+import { readPersistedBoundary } from '../../nar/src/state/persisted.js';
 import { NarEventBus } from '../../nar/src/types/events.js';
 
 const testStateDir = join(process.cwd(), '.cache', 'test-core19-c4');
@@ -199,5 +208,65 @@ describe('CORE.19 C4.4 — replay entropy is injectable', () => {
     const ambient = makeId();
     expect(ambient).not.toMatch(/^00000000-0000-4000-8000-/);
     expect(currentIdCount()).toBe(before + 1);
+  });
+});
+
+describe('CORE.19 C4.1 — the owned RNG round-trips its position', () => {
+  beforeEach(async () => {
+    await rm(testStateDir, { recursive: true, force: true });
+    await mkdir(testStateDir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(testStateDir, { recursive: true, force: true });
+  });
+
+  const rngNar = (rng: RandomSource | StatefulRandomSource): NAR =>
+    new NAR(
+      e2eNARConfig({
+        providerRegistry: createSeNARSRegistry(),
+        lmService: createLMService(),
+        persistState: true,
+        statePath: testStateDir,
+        rng,
+      })
+    );
+
+  it('saves a stateful source position and resumes the exact stream', async () => {
+    const rng1 = new SeededRNG(42);
+    const nar1 = rngNar(rng1);
+    await nar1.start();
+    await nar1.believe('(cat --> animal).');
+    await nar1.run(5);
+    await nar1.stop();
+    const savedState = rng1.getState();
+    await nar1.dispose();
+
+    const persisted = readPersistedBoundary(testStateDir);
+    expect(typeof persisted?.rngState).toBe('number');
+    expect(persisted?.rngState).toBe(savedState);
+
+    const rng2 = new SeededRNG(1);
+    const nar2 = rngNar(rng2);
+    await nar2.start();
+    expect(rng2.getState()).toBe(savedState);
+
+    const reference = new SeededRNG(1);
+    reference.setState(savedState);
+    expect(rng2.next()).toBe(reference.next());
+
+    await nar2.stop();
+    await nar2.dispose();
+  });
+
+  it('omits RNG state for a bare random source (declared, not guessed)', async () => {
+    const nar = rngNar(() => 0.5);
+    await nar.start();
+    await nar.believe('(a --> b).');
+    await nar.run(2);
+    await nar.stop();
+    await nar.dispose();
+
+    expect(readPersistedBoundary(testStateDir)?.rngState).toBeUndefined();
   });
 });

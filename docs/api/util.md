@@ -46,6 +46,8 @@
 
 - `parseOrThrow`
 
+- `PRESSURE` — One occupancy ladder for every bounded store that reports pressure — the
+
 - `readEnvOverrides`
 
 - `SchemaValidationError`
@@ -306,8 +308,6 @@
 
 - `minBy` — Extremum pick over an iterable. `initial`/`initialScore` seed the running
 
-- `victimBy` — The entry `order` drops out of `live`, or `undefined` when there is nothing to
-
 - `minScore` — Lowest `score` over `items`, {@link maxScore} read the other way — and unlike
 
 - `perPart` — {@link shareCount} read backwards — how many items one of `parts` equal shares
@@ -345,6 +345,8 @@
 - `unique` — Value-level dedup, first occurrence wins. For "the set of concepts this event
 
 - `uniqueBy` — First item per derived key — {@link unique} for a collection whose duplicates
+
+- `victimBy` — The entry `order` drops out of `live`, or `undefined` when there is nothing to
 
 - `formatIssues` — The monorepo's one rendering of a schema failure. Four validators used to
 
@@ -446,13 +448,17 @@
 
 - `shortSha256Hex` — Truncated digest for compact identity keys (sidecars, consolidation ids).
 
-- `generateId` — Monotonic, collision-resistant id. Pass an injectable `rng` (seeded runs,
+- `currentIdCount` — How many ids the installed source has minted. The persistence boundary reads
+
+- `generateId` — A prefixed, human-readable id. The default entropy is the installed id source
 
 - `type IdSource`
 
 - `installIdSource` — Install `source` as the process id source and return a restore function.
 
 - `makeId` — A fresh UUID, or the installed source's id when one is set.
+
+- `primeIdCount` — Raise the minted ledger to `count`. Monotonic — it never lowers the watermark.
 
 - `sequentialIdSource` — Counter-derived UUIDs, for seeded runs: `00000000-0000-4000-8000-000000000001`
 
@@ -562,11 +568,15 @@
 
 - `holdoutSplit` — Deterministic train/holdout partition — shuffles uniformly, then cuts a
 
+- `isStatefulRandomSource` — Whether `value` is a stateful source whose draw position can be checkpointed.
+
 - `mulberry32` — mulberry32: fast, well-distributed 32-bit seeded PRNG.
 
 - `nextInt` — Random integer in [0, max).
 
 - `type RandomSource`
+
+- `randomSourceOf` — A stateful source reduced to its bare draw function; a plain source passes through.
 
 - `rngFrom` — A seed-or-source parameter resolved to a draw function: a bare function
 
@@ -575,6 +585,8 @@
 - `type SeededStream`
 
 - `seededStream` — mulberry32 as a resumable stream. The state word is the only thing separating
+
+- `type StatefulRandomSource`
 
 - `shuffleInPlace` — In-place Fisher–Yates shuffle — the single uniform-shuffle primitive (sampling, bags, exploration).
 
@@ -628,9 +640,15 @@
 
 - `collectText` — Drain a stream into its text, forwarding every event to {@link onEvent} — a
 
+- `containsFolded` — Case-insensitive substring test. Term matching, episodic recall and the MCP
+
 - `escapeRegExp` — Escape every regexp metacharacter in `text`, so untrusted text becomes a
 
 - `extractTerm` — The leading run of atom characters in `content`, or nothing if it starts with none.
+
+- `filterFolded` — Elements of `items` whose text contains `needle`, folded once.
+
+- `foldNeedle` — The case-folded needle {@link containsFolded} expects.
 
 - `isNarsese` — Whether `text` is Narsese rather than prose — the router between the two parsers.
 
@@ -667,6 +685,14 @@
 - `witnessFiles` — Every file a witness list names, deduplicated. Reading the ledger needs the
 
 - `witnessHolds` — Whether `source` still holds the witness text. A missing file never holds.
+
+## `./bag`
+
+- `createBag` — The one construction path for an AIKR bag: capacity is the caller's bound, the rest is knobs.
+
+- `PriorityBag` — The AIKR priority bag: a priority-descending entry store with a Fenwick tree
+
+- `FenwickTree` — Fenwick tree (Binary Indexed Tree) for priority-weighted sampling. Sized once
 
 ## `./commands`
 
@@ -739,6 +765,8 @@
 - `cognitiveBounds`
 
 - `withDefaults` — A declared configuration record with its caller's values overlaid.
+
+- `PRESSURE` — One occupancy ladder for every bounded store that reports pressure — the
 
 - `type DialogueConfig`
 

@@ -29,6 +29,31 @@ export type RandomSource = () => number;
  */
 export const ambientRng: RandomSource = () => Math.random();
 
+/**
+ * A `RandomSource` whose position is a value — the shape a checkpoint round-trips.
+ * `SeededRNG` is the canonical implementation; anything with an equivalent
+ * `source`/`getState`/`setState` triple qualifies, so a caller can hand the kernel
+ * a resumable stream without importing the class.
+ */
+export interface StatefulRandomSource {
+  readonly source: RandomSource;
+  getState(): number;
+  setState(state: number): void;
+}
+
+/** Whether `value` is a stateful source whose draw position can be checkpointed. */
+export const isStatefulRandomSource = (value: unknown): value is StatefulRandomSource =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as StatefulRandomSource).source === 'function' &&
+  typeof (value as StatefulRandomSource).getState === 'function' &&
+  typeof (value as StatefulRandomSource).setState === 'function';
+
+/** A stateful source reduced to its bare draw function; a plain source passes through. */
+export const randomSourceOf = (
+  value: RandomSource | StatefulRandomSource | undefined
+): RandomSource | undefined => (isStatefulRandomSource(value) ? value.source : value);
+
 /** A resumable mulberry32 stream: the draw function plus its live 32-bit state word. */
 export interface SeededStream {
   readonly next: RandomSource;
@@ -100,7 +125,7 @@ export const choice = <T>(rng: RandomSource, items: readonly T[]): T => {
  * `getState`/`setState` checkpoint and restore the exact draw position, which is
  * what makes cloned games and RL baseline snapshots resume identically.
  */
-export class SeededRNG {
+export class SeededRNG implements StatefulRandomSource {
   #stream: SeededStream;
 
   constructor(seed: number = 1) {

@@ -1,5 +1,6 @@
 import type { MettaPort } from '@senars/core/metta-port';
 import type { AutonomyMode, ReasoningBudget } from '@senars/core/schemas';
+import { isStatefulRandomSource, type StatefulRandomSource } from '@senars/util';
 import type { Clock, IdSource } from '@senars/util';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
@@ -70,8 +71,13 @@ export interface NARConfig extends CoreConfig {
   gateRegistry?: GateRegistry;
 
   systemOne?: Partial<SystemOneConfig>;
-  /** TODO20 §5s: injectable RNG — one knob for deterministic replay (threads to focus bags). */
-  rng?: RandomSource;
+  /**
+   * TODO20 §5s: injectable RNG — one knob for deterministic replay (threads to
+   * focus bags). A bare `RandomSource` fixes the draws; a `StatefulRandomSource`
+   * (e.g. `SeededRNG`) additionally checkpoints its position, so the consistency
+   * boundary (CORE.19 C4.1) can resume the exact draw sequence across a restart.
+   */
+  rng?: RandomSource | StatefulRandomSource;
   /**
    * Injectable clock — the time counterpart to `rng`, and one knob for the same
    * reason. Concepts, bags, link layers and the graph stamp `createdAt`,
@@ -146,3 +152,30 @@ export function validateNarConfig(config: NARConfig): NARConfig {
   }
   return config;
 }
+
+/**
+ * The NAR's owned randomness (CORE.19 C4.1). An injected RNG is normalized to its
+ * bare draw function — the one stream every subsystem shares — while a stateful
+ * source keeps its position here, so the consistency boundary can round-trip it.
+ * A stateless source has no entry and the boundary omits RNG state rather than
+ * implying one.
+ */
+const OWNED_RNG = new WeakMap<RandomSource, StatefulRandomSource>();
+
+/** Normalize an injected RNG to its draw function, remembering any stateful handle. */
+export const resolveRng = (rng?: RandomSource | StatefulRandomSource): RandomSource | undefined => {
+  if (!isStatefulRandomSource(rng)) return rng;
+  OWNED_RNG.set(rng.source, rng);
+  return rng.source;
+};
+
+/** The boundary ports for the owned RNG: position round-trip, or an honest no-op. */
+export const rngBoundaryPort = (rng?: RandomSource | StatefulRandomSource) => {
+  const source = resolveRng(rng);
+  return {
+    rngState: (): number | undefined => (source ? OWNED_RNG.get(source)?.getState() : undefined),
+    setRngState: (state: number): void => {
+      if (source) OWNED_RNG.get(source)?.setState(state);
+    },
+  };
+};

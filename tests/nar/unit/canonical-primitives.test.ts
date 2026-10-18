@@ -2,7 +2,9 @@ import { isDeepStrictEqual } from 'node:util';
 import {
   deepEqual,
   holdoutSplit,
+  isStatefulRandomSource,
   mulberry32,
+  randomSourceOf,
   SeededRNG,
   seededStream,
   stableStringify,
@@ -152,5 +154,20 @@ describe('SeededRNG', () => {
       expect(n).toBeLessThan(7);
     }
     expect(() => rng.choice([])).toThrow(RangeError);
+  });
+});
+
+describe('stateful source introspection', () => {
+  it('recognizes a resumable source and reduces it to its draw function', () => {
+    const rng = new SeededRNG(11);
+    expect(isStatefulRandomSource(rng)).toBe(true);
+    expect(randomSourceOf(rng)).toBe(rng.source);
+  });
+
+  it('treats a bare source as stateless and passes it through', () => {
+    const bare = (): number => 0.25;
+    expect(isStatefulRandomSource(bare)).toBe(false);
+    expect(randomSourceOf(bare)).toBe(bare);
+    expect(randomSourceOf(undefined)).toBeUndefined();
   });
 });

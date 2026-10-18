@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { BoundedMap, cachePath, createLogger } from '@senars/util';
+import { BoundedMap, cachePath, createLogger, randomSourceOf } from '@senars/util';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ReflexBindable } from '../focus/GameFocus.js';
 import { threadScope } from '../kernel/thread-scope.js';
@@ -84,7 +84,11 @@ export class SystemOneRuntime {
 
   /** The ε-greedy fallback every reflex path attaches; one construction, one stream (TODO28 §7.3). */
   private incumbentReflex(name: string): EpsilonGreedyReflex {
-    return new EpsilonGreedyReflex(name, { numArms: 10, epsilon: 0.1, rng: this.config.rng });
+    return new EpsilonGreedyReflex(name, {
+      numArms: 10,
+      epsilon: 0.1,
+      rng: randomSourceOf(this.config.rng),
+    });
   }
 
   /**

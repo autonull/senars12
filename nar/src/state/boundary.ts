@@ -13,6 +13,10 @@ import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from './codec.js';
  *  - the kernel cycle counter
  *  - the pending task queue (tasks raised but not yet admitted to memory)
  *  - the id-minting high-water mark
+ *  - RNG state, *when the NAR owns a `StatefulRandomSource`* (CORE.19 C4.1): the
+ *    position word is round-tripped, so a resumed run continues the exact draw
+ *    sequence. A caller-injected bare `RandomSource` has no position to save and
+ *    the field is simply absent — declared, never a lied-about restore
  *  - the bounded gate-event ring: written through `GateEventLedger` (CORE.19
  *    C3.3) and, on `start()`, replayed into the in-memory rings (CORE.19 C4.3).
  *    The one piece of gate state the log implies — the action gate's autonomy
@@ -25,8 +29,6 @@ import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from './codec.js';
  *  - the event-log position (derived by re-reading the log)
  *  - the derivation fire ring: window-bounded in `DerivationRecorder`, not
  *    persisted (a re-entry seam, C3.1/C4.3)
- *  - RNG state: the stream is a caller-injected `RandomSource`, not a value the
- *    NAR owns, so it is a re-entry seam (C4.4) rather than a lied-about restore
  */
 export interface ConsistencyBoundary {
   /** The kernel cycle counter — a resumed run continues from N, not 0. */
@@ -35,6 +37,8 @@ export interface ConsistencyBoundary {
   pendingTasks: TaskRecord[];
   /** The id-minting ledger, so a restart never re-stamps an id it already used. */
   idHighWater: number;
+  /** The owned RNG's position word; absent when the source is stateless (C4.1). */
+  rngState?: number;
 }
 
 export const EMPTY_BOUNDARY: ConsistencyBoundary = {
@@ -66,5 +70,6 @@ export const decodeBoundary = (text: string): ConsistencyBoundary => {
     cycleCount: raw.cycleCount ?? 0,
     pendingTasks: raw.pendingTasks ?? [],
     idHighWater: raw.idHighWater ?? 0,
+    ...(raw.rngState !== undefined ? { rngState: raw.rngState } : {}),
   };
 };

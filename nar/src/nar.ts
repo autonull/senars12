@@ -34,7 +34,7 @@ import type { CognitiveParameters } from './config/cognitive-parameters';
 import { DEFAULT_COGNITIVE_PARAMETERS } from './config/cognitive-parameters.js';
 import type { ParameterLedger } from './config/parameter-ledger.js';
 import { createBootstrapTasks, DriveManager } from './drives';
-import { type NARConfig, validateNarConfig } from './facade/config.js';
+import { type NARConfig, resolveRng, validateNarConfig } from './facade/config.js';
 import { type GameAttachOptions, GameManager } from './facade/games.js';
 import {
   askNaturalLanguage,
@@ -204,20 +204,23 @@ export class NAR extends BaseComponent {
 
     super({ logger, eventBus });
 
-    this.config = { ...validateNarConfig(config) };
+    // Normalize the injected RNG to one bare source: a stateful handle supplies
+    // its `source` (and keeps its position for the C4.1 boundary), a bare function
+    // passes through. Every subsystem below shares the one resolved stream.
+    this.config = { ...validateNarConfig(config), rng: resolveRng(config.rng) };
     this.gates = config.gateRegistry ?? createGateRegistry();
     this.budgetGate = this.gates.getBudgetGate() as KernelBudgetGate;
     this.controlBudgets = new ControlBudgets(this.budgetGate, config.controlBudgets);
     // A NAR always has a registry and a parameter graph: the registry has no
     // external dependencies, so "no strategy config" is not a state a NAR can be
     // in. Everything below reads from these two and nothing else decides.
-    const registry = config.strategyRegistry ?? createDefaultRegistry({ rng: config.rng });
+    const registry = config.strategyRegistry ?? createDefaultRegistry({ rng: this.rng });
     const cognitiveParams = config.cognitiveParams ?? DEFAULT_COGNITIVE_PARAMETERS;
     // The `attention` slot is resolved by the controller, which owns every slot;
     // memory starts on the null model and is given the resolved one there.
     this.memory = new Memory({
       ...this.config,
-      bag: resolveBagSlot(cognitiveParams.strategies.bag, config.rng, config.clock),
+      bag: resolveBagSlot(cognitiveParams.strategies.bag, this.rng, config.clock),
       embeddingGenerator: config.embeddingGenerator ?? createEmbeddingGenerator(embeddingRuntime),
     });
     this.ruleTable = loadBuiltinTable();
@@ -235,12 +238,12 @@ export class NAR extends BaseComponent {
     this.tools = new ToolManager({
       eventBus,
       feedbackObserver: config.feedbackObserver,
-      rng: config.rng,
+      rng: this.rng,
     });
     this._lmService = this.config.lmService;
     this._registry = this.config.providerRegistry;
 
-    const optional = createOptionalSubsystems(this.config, config.rng);
+    const optional = createOptionalSubsystems(this.config, this.rng);
     this.rlfp = optional.rlfp;
     this.#episodeConsolidator = optional.episodeConsolidator;
     this.#miningBag = optional.miningBag;
@@ -291,7 +294,7 @@ export class NAR extends BaseComponent {
     );
     this.games = new GameManager(
       this.systemOne,
-      config.rng,
+      this.rng,
       config.proposals,
       this.systemEventBus,
       this.#proofMettaProposer,
@@ -689,7 +692,7 @@ export class NAR extends BaseComponent {
 
   /** The instance's randomness — the one stream memory bags, link layers and strategies draw from. */
   get rng(): RandomSource {
-    return this.config.rng ?? ambientRng;
+    return (this.config.rng ?? ambientRng) as RandomSource;
   }
 
   getController(): CognitiveController | undefined {
@@ -708,7 +711,7 @@ export class NAR extends BaseComponent {
   getSchemaInductor(): import('./learning/schema-induction.js').SchemaInductor | undefined {
     if (!this.#schemaInductor && this._lmService) {
       this.#schemaInductor = new SchemaInductor(this.memory, this._lmService, {
-        rng: this.config.rng,
+        rng: this.rng,
       });
     }
     return this.#schemaInductor;
