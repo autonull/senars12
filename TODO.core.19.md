@@ -519,4 +519,13 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - C8.4 (the flagged-out subsystems): System One manifold, episode consolidator and governance stay outside hermetic coverage — they require their feature flags, and a test that cannot reach them cannot gate them (the harness doc says so).
 - C8.7: the §12 table *is* the ledger; kept current per slice (no separate artifact).
 
-### C9 — Document the hardened core — **NOT STARTED**
+### C9 — Document the hardened core — **PARTIAL (C9.1, C9.2, C9.4-security done)**
+
+**Done:**
+- C9.1: this file *is* the document — the decision log (D7–D17), the halt list (§2), the consistency boundary (C4 / `nar/src/state/boundary.ts`), the gate inventory (C3), and the per-workstream progress log (§13) all live here.
+- C9.2: `USAGE.md` (new, root) documents the non-UI surfaces command-first: CLI one-shots, `--status`/`--doctor`, MCP resources, `/metrics` + the env-guarded `/reasoning/*`, and the SDK (`NAR`/`Agent`/`createAgent`, `askWithDerivation`, `getRecentDerivations`, experimental markers). It references UI.19 W6 for the demo/release rather than duplicating it.
+- C9.4 (security): `docs/security.md` S5/S6 document the C6 admission path and the C7 HTTP surface (see C8.5). `docs/architecture`, `docs/api` and `README.md` are generated; this slice touched none of their sources, so `docs:drift` is unaffected.
+
+**Remaining:**
+- C9.3: `PHILOSOPHY.md` does not exist in the tree (only referenced by the plans); its intent (transparent, auditable, uncapturable reasoning; AGPL rationale; no sentience claims) is UI.19-owned. Nothing to keep consistent here — re-enter with UI.19 if it lands.
+- C9.4: run `pnpm docs:drift` once the generated doc sources are the only remaining churn; not exercised in this slice.
