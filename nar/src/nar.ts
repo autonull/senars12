@@ -1,4 +1,3 @@
-import { join } from 'node:path';
 import { BaseComponent } from '@senars/core';
 import type {
   CognitiveEvent,
@@ -57,9 +56,9 @@ import type { SelfMetaGameImpl } from './game/impls/SelfMetaGame.js';
 import type { SelfMetaGameEvidence } from './governance/pipeline.js';
 import { GovernanceResolver } from './governance/pipeline.js';
 import { ControlBudgets } from './kernel/control-budgets.js';
-import { GateEventLedger } from './kernel/GateEventLedger.js';
 import { createGateRegistry, type GateRegistry } from './kernel/GateRegistry.js';
 import { createDefaultReasoningBudget, type KernelBudgetGate } from './kernel/KernelBudgetGate.js';
+import { KernelLedger } from './kernel/KernelLedger.js';
 import { SchemaInductor } from './learning/schema-induction.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { LMRules } from './lm';
@@ -186,8 +185,8 @@ export class NAR extends BaseComponent {
   private readonly systemOne: SystemOneRuntime;
   private readonly games: GameManager;
   private readonly persister: StatePersister;
-  /** Runtime gate-decision durability (CORE.19 C3.3); present only when persisting. */
-  #gateLedger: GateEventLedger | null = null;
+  /** Runtime durability for the gate rings and the fire ring (CORE.19 C3.3/C4.3); present only when persisting. */
+  #ledgers: KernelLedger | null = null;
   /** Cycles since the last gate-log flush — the interval half of C3.3. */
   #cyclesSinceGateFlush = 0;
   /** The kernel-owned autonomy loop (CORE.19 C5); present once started. */
@@ -372,7 +371,7 @@ export class NAR extends BaseComponent {
         await this.maybeConsolidateLearning(cycleCount, config);
         if (++this.#cyclesSinceGateFlush >= GATE_LOG_FLUSH_CYCLES) {
           this.#cyclesSinceGateFlush = 0;
-          this.flushGateLogs();
+          this.flushLogs();
         }
         this.#rewind.maybeCapture(cycleCount);
       },
@@ -412,13 +411,13 @@ export class NAR extends BaseComponent {
       await this.initialize();
     }
     await super.start();
-    if (this.config.persistState && !this.#gateLedger) {
+    if (this.config.persistState && !this.#ledgers) {
       const base = this.config.statePath ?? cachePath('nar-state');
-      this.#gateLedger = new GateEventLedger(join(base, 'gate-events'));
+      this.#ledgers = new KernelLedger(base);
     }
     const restored = await this.persister.load();
     if (restored) {
-      await this.#gateLedger?.replayInto(this.gates);
+      await this.#ledgers?.replay(this.gates, this.processor.getRecorder());
       this.systemEventBus.emit('restore:state', {
         cycleCount: restored.cycleCount,
         concepts: restored.conceptsRestored,
@@ -437,7 +436,7 @@ export class NAR extends BaseComponent {
     this.self?.stop();
     this.stopLM();
     this.#autonomy?.stop();
-    this.flushGateLogs();
+    this.flushLogs();
     await this.persister.save();
     await super.stop();
     this.logger?.info('NAR stopped');
@@ -448,8 +447,8 @@ export class NAR extends BaseComponent {
     this.stopLM();
     this.#autonomy?.stop();
     this.#autonomy = null;
-    this.#gateLedger?.close();
-    this.#gateLedger = null;
+    this.#ledgers?.close();
+    this.#ledgers = null;
     this.#restoreIdSource?.();
     this.#restoreIdSource = undefined;
     await super.dispose();
@@ -457,17 +456,18 @@ export class NAR extends BaseComponent {
   }
 
   /**
-   * Write the gate rings to the runtime ledger, if one is configured (CORE.19
-   * C3.3). Called every {@link GATE_LOG_FLUSH_CYCLES} cycles and on shutdown;
-   * returns how many events were newly persisted, so a caller can assert it.
+   * Write the kernel rings — gate decisions and rule fires — to the runtime
+   * ledger, if one is configured (CORE.19 C3.3/C4.3). Called every
+   * {@link GATE_LOG_FLUSH_CYCLES} cycles and on shutdown; returns how many
+   * entries were newly persisted, so a caller can assert it.
    */
-  flushGateLogs(): number {
-    return this.#gateLedger?.flush(this.gates) ?? 0;
+  flushLogs(): number {
+    return this.#ledgers?.flush(this.gates, this.processor.getRecorder()) ?? 0;
   }
 
   /** The runtime gate-event ledger, when persisting — for a reader (C4's replay input). */
-  getGateEventLedger(): GateEventLedger | null {
-    return this.#gateLedger;
+  getGateEventLedger(): KernelLedger['gates'] | null {
+    return this.#ledgers?.gates ?? null;
   }
 
   /** Get current lifecycle state */

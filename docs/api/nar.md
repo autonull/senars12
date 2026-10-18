@@ -1568,6 +1568,10 @@ _Re-export barrel._
 
 - `ControlBudgets`
 
+- `DerivationEventEntrySchema` — One rule fire as it lands on disk: its durable `derivation.accepted` form.
+
+- `DerivationLedger` — A ledger over the recorder's fire ring. `flush` appends only fires it has not
+
 - `loadGateEvents`
 
 - `persistGateLogs`
@@ -1593,6 +1597,8 @@ _Re-export barrel._
 - `createDefaultReasoningBudget`
 
 - `KernelBudgetGate`
+
+- `KernelLedger`
 
 - `KernelPerceptionGate`
 

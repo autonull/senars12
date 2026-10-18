@@ -121,10 +121,10 @@ describe('CORE.19 C3 — gate observation & provenance records', () => {
     });
     nar.gates.getActionGate().requestModeChange('propose-only', 'system');
 
-    const flushed = nar.flushGateLogs();
+    const flushed = nar.flushLogs();
     expect(flushed).toBeGreaterThanOrEqual(2);
     // Nothing new since the last flush — the cursor is identity-based, not a re-append.
-    expect(nar.flushGateLogs()).toBe(0);
+    expect(nar.flushLogs()).toBe(0);
 
     const types = new Set((await nar.getGateEventLedger()!.read()).map((e) => e.type));
     expect(types.has('task.admitted')).toBe(true);

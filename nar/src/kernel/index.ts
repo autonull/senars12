@@ -14,6 +14,8 @@ export {
   UNBUDGETED,
   ControlBudgets,
 } from './control-budgets.js';
+export type { DerivationEventEntry, DerivationLedgerOptions } from './DerivationLedger.js';
+export { DerivationEventEntrySchema, DerivationLedger } from './DerivationLedger.js';
 export type { CognitiveStateSnapshot } from './EventLogPersistence.js';
 export {
   loadGateEvents,
@@ -35,6 +37,7 @@ export type {
 } from './interfaces.js';
 export { KernelActionGate, NALVetoError } from './KernelActionGate.js';
 export { createDefaultReasoningBudget, KernelBudgetGate } from './KernelBudgetGate.js';
+export { KernelLedger } from './KernelLedger.js';
 export { KernelPerceptionGate } from './KernelPerceptionGate.js';
 export {
   EpistemicFirewallViolation,

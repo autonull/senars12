@@ -252,6 +252,17 @@ export class DerivationRecorder {
     return this.fireRing.toArray().filter((step) => step.ruleId === ruleId);
   }
 
+  /**
+   * Re-seed the fire ring from a persisted log (CORE.19 C4.3), oldest first, so
+   * a restart resumes the fire records `fires`/`firesByConclusion` read. The ring
+   * keeps its own bound: more entries than capacity drop the oldest, exactly as a
+   * live run would. Returns how many were restored.
+   */
+  restoreFires(steps: readonly DerivationStep[]): number {
+    for (const step of steps) this.fireRing.push(step);
+    return steps.length;
+  }
+
   clear(): void {
     this.open = null;
     this.completed.clear();

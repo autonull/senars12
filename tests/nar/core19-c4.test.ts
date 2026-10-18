@@ -15,6 +15,7 @@ import { createNAR, NAR } from '../../nar/src';
 import { e2eNARConfig } from '../e2e/fixtures.js';
 import { createSeNARSRegistry } from '../../nar/src/lm';
 import { createLMService } from '../../nar/src/lm/lm-service';
+import { DerivationLedger } from '../../nar/src/kernel/DerivationLedger.js';
 import { persistGateLogs } from '../../nar/src/kernel/EventLogPersistence.js';
 import { GateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 import { replayIntoMemory } from '../../nar/src/kernel/replay.js';
@@ -146,7 +147,7 @@ describe('CORE.19 C4.3 — restore replays the persisted gate log', () => {
     await nar1.start();
     nar1.gates.getActionGate().requestModeChange('propose-only', 'human', 'corr-c4-3');
     admit(nar1);
-    expect(nar1.flushGateLogs()).toBeGreaterThanOrEqual(2);
+    expect(nar1.flushLogs()).toBeGreaterThanOrEqual(2);
     await nar1.stop();
     await nar1.dispose();
 
@@ -163,9 +164,55 @@ describe('CORE.19 C4.3 — restore replays the persisted gate log', () => {
     expect(perceptionTypes.has('task.admitted')).toBe(true);
 
     // Adopted: a flush re-appends nothing that was replayed.
-    nar2.flushGateLogs();
+    nar2.flushLogs();
     const entries = await nar2.getGateEventLedger()!.readEntries();
     expect(entries.filter((e) => e.correlationId === 'corr-c4-3')).toHaveLength(1);
+
+    await nar2.stop();
+    await nar2.dispose();
+  });
+});
+
+describe('CORE.19 C4.3 — restore replays the persisted derivation fire log', () => {
+  const derive = async (nar: NAR): Promise<void> => {
+    await nar.input('(a --> b).');
+    await nar.input('(b --> c).');
+    await nar.step();
+    await nar.run(5);
+  };
+
+  it('re-seeds the fire ring from the ledger, and does not re-append it', async () => {
+    const statePath = mkdtempSync(join(tmpdir(), 'core19-c4-3d-'));
+    const nar1 = createNAR({ ...narOptions(), statePath });
+    await nar1.start();
+    await derive(nar1);
+
+    const fires = nar1.getRuleFires();
+    expect(fires.length).toBeGreaterThan(0);
+    const stepIds = fires.map((f) => f.stepId);
+    expect(nar1.flushLogs()).toBeGreaterThanOrEqual(fires.length);
+    await nar1.stop();
+    await nar1.dispose();
+
+    // The ledger holds exactly the fires the run produced, in their durable form.
+    const reader = new DerivationLedger(join(statePath, 'derivations'));
+    const persisted = (await reader.read()).map((f) => f.stepId);
+    expect(persisted.sort()).toEqual([...stepIds].sort());
+
+    const nar2 = createNAR({ ...narOptions(), statePath });
+    await nar2.start();
+
+    // The fire ring is re-seeded with the pre-restart fires, so a derived
+    // conclusion still resolves to its real parents after a restart.
+    const restoredIds = new Set(nar2.getRuleFires().map((f) => f.stepId));
+    for (const id of stepIds) expect(restoredIds.has(id)).toBe(true);
+    expect(nar2.getRuleFiresByConclusion(fires[0]!.conclusion).length).toBeGreaterThan(0);
+
+    // Adopted: a restart flush re-appends nothing that was replayed.
+    const before = (await reader.readEntries()).length;
+    nar2.flushLogs();
+    expect((await reader.readEntries()).length).toBe(before);
+    reader.close();
 
     await nar2.stop();
     await nar2.dispose();

@@ -22,13 +22,15 @@ import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from './codec.js';
  *    The one piece of gate state the log implies — the action gate's autonomy
  *    mode, from the last replayed mode change — is restored with it, so the log
  *    and the gate cannot disagree after a restart
+ *  - the derivation fire ring: written through `DerivationLedger` in its
+ *    `derivation.accepted` form (no wall-clock, D13) and, on `start()`, replayed
+ *    into `DerivationRecorder`'s ring (CORE.19 C4.3), so a restart resumes the
+ *    fire records `getRuleFiresByConclusion` and `explainDerivation` read
  *
  * Deliberately omitted, never implied:
  *  - archive / forgetting internals, link caches and embedding caches
  *  - self-observability and metrics counters
  *  - the event-log position (derived by re-reading the log)
- *  - the derivation fire ring: window-bounded in `DerivationRecorder`, not
- *    persisted (a re-entry seam, C3.1/C4.3)
  */
 export interface ConsistencyBoundary {
   /** The kernel cycle counter — a resumed run continues from N, not 0. */
