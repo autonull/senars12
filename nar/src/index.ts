@@ -203,3 +203,20 @@ export {
   DEFAULT_AUTONOMY_CONFIG,
   resolveAutonomyConfig,
 } from './autonomy/index.js';
+/** The neuro-symbolic voice: one formalizer, one validation gate, one explanation (CORE.19 C6). @public */
+export {
+  createFormalizer,
+  ExplanationGenerator,
+  type Explanation,
+  type ExplanationGeneratorOptions,
+  type ExplanationSource,
+  type Formalizer,
+  type InterpretationValidation,
+  LmFormalizer,
+  PERCEIVED_ORIGINS,
+  type PerceivedAdmission,
+  type PerceivedInterpretation,
+  type PerceivedOrigin,
+  StructuredFormalizer,
+  validateInterpretation,
+} from './nl/index.js';

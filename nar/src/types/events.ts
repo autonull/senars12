@@ -171,6 +171,20 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
   'nl:analyzed': { input: string; analysis: TaskBatch };
   'nl:translation': { nl: string; narsese: string; tier: number };
   'nl:clarification-needed': { ambiguity: Ambiguity };
+  /**
+   * The kernel explained a derivation from its own rule-fire records (CORE.19
+   * C6.4). Live-only on the bus, like the autonomy events: the payload is the
+   * engine's own facts, and minting a cognitive variant would force the UI
+   * catalog to name one (halt list). The cited `derivationIds` join the durable
+   * `derivation.accepted` events, which already carry the same provenance.
+   */
+  explanation: {
+    conclusion: string;
+    derivationIds: string[];
+    rules: string[];
+    steps: number;
+    paraphrased: boolean;
+  };
   // NAL events
   'nal:derived': { premises: string[]; rule: string; conclusion: string; truth: Truth };
   // LM validation events

@@ -15,7 +15,23 @@ export type {
   GenerationInput,
   GenerationOutput,
 } from './generation.js';
+export type { Explanation, ExplanationGeneratorOptions, ExplanationSource } from './explanation.js';
+export { ExplanationGenerator } from './explanation.js';
 export { NLGenerationService } from './generation.js';
+export type {
+  Formalizer,
+  InterpretationValidation,
+  PerceivedAdmission,
+  PerceivedInterpretation,
+  PerceivedOrigin,
+} from './formalizer.js';
+export {
+  createFormalizer,
+  LmFormalizer,
+  PERCEIVED_ORIGINS,
+  StructuredFormalizer,
+  validateInterpretation,
+} from './formalizer.js';
 export type { NarseseIntent } from './narsese-intent.js';
 export { dispatchNarseseIntent } from './narsese-intent.js';
 export type {

@@ -364,7 +364,8 @@ export class KernelPerceptionGate extends KernelGate {
 
   admitFormalization(
     batch: FormalizationBatch,
-    sourceQuality: SourceQuality = 'LLM_PRIOR'
+    sourceQuality: SourceQuality = 'LLM_PRIOR',
+    source: TaskAdmittedEvent['payload']['source'] = 'llm'
   ): {
     admitted: TaskAdmittedEvent['payload'][];
     rejected: { candidateId: string; reason: string }[];
@@ -389,7 +390,7 @@ export class KernelPerceptionGate extends KernelGate {
         candidate.truth
           ? { frequency: candidate.truth.frequency, confidence }
           : { frequency: 1.0, confidence },
-        'llm',
+        source,
         correlation
       );
       if (out.admitted && out.task) admitted.push(out.task);

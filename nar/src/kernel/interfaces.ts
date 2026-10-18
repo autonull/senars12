@@ -17,6 +17,7 @@ import type {
   RewardGateOutput,
   ShadowValidationDropEvent,
   SourceQuality,
+  TaskAdmittedEvent,
 } from '@senars/core/schemas';
 import type { TruthLike } from '@senars/util';
 import type { TaskTypeName, Term } from '../terms';
@@ -32,9 +33,10 @@ export interface IPerceptionGate extends GateEventLog<CognitiveEvent> {
   ): PerceptionGateOutput;
   admitFormalization(
     batch: FormalizationBatch,
-    sourceQuality?: SourceQuality
+    sourceQuality?: SourceQuality,
+    source?: TaskAdmittedEvent['payload']['source']
   ): {
-    admitted: Array<Record<string, unknown>>;
+    admitted: TaskAdmittedEvent['payload'][];
     rejected: Array<{ candidateId: string; reason: string }>;
   };
   /** Emit a shadow validation drop event to the gate's event log. */

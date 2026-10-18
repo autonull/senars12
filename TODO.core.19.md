@@ -293,7 +293,7 @@ One continuous headless session, `LM_PROVIDER=mock` first, then with a key confi
 | Typed `nar:derivation` producer | C3's provenance work wants the term/lineage it already carries |
 | System One calibration activation | Real graded labels exist; honesty holds |
 | Performance + accessibility gates | Release-to-others replaces release-as-proof |
-| UI `explain` intent registration | C6 explanations exist; UI.19 registers the affordance |
+| UI `explain` intent registration | C6 explanations exist; UI.19 registers the affordance. The `explanation` bus event is live-only (no cognitive variant; a UI catalog edit the halt list forbids), like the autonomy events — the cited `derivationIds` join the durable `derivation.accepted` events |
 | Autonomy events on the UI stream | UI.19 wants to render autonomy. `autonomy:curiosity`/`autonomy:consolidated`/`autonomy:budget` are live-only on the bus (no cognitive variant; adding one forces a UI catalog edit the halt list forbids). The durable effects (`task.admitted`, `belief.retracted`) already carry the autonomy correlation |
 | UI drives cycles in autonomous modes | C5.2's kernel loop is the single driver; the UI server's `runCycles` (`ui/src/server/server-utils.ts`) is a D12 seam — a UI-package edit, so re-enter only when UI.19's control surface is rewired |
 
@@ -347,7 +347,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 | Server catalog tests | `tests/unit/server/{lens,field,event}-catalog.test.ts`, `layout-registry`, `scenarios`, `config-reset`, `test-endpoints`, `unified-graph-projection` | red |
 | Refactor suites | `tests/nar/refactor3-*.test.ts`, `tests/nar/refactor4-*.test.ts` | red |
 | `complexity:budget` baseline stale (workspaceCount 6→10, exportSubpaths 86→87, productionLOC, appendOnlyPersistenceSites 3→4) | `complexity-budget.json` | **SUSPENDED 2026-10-18** (directive): removed from `GATES`, not in the §11 battery. Re-enter when the baseline is ratcheted (§C8.6) |
-| `nar.ts` monolith budget (952 LOC > 940 at HEAD; +33 for the C2 control-plane bindings, +26 for the C4 boundary ports) | `tests/nar/refactor3-hygiene.test.ts` | red at HEAD; not chased (§rule 6) |
+| `nar.ts` monolith budget (1203 LOC > 940 at the current tree, measured as total lines; +84 for the C6 voice surface on top of the C2 control-plane / C4 boundary ports) | `tests/nar/refactor3-hygiene.test.ts` | red at HEAD; not chased (§rule 6) |
 | Broken reference | `tests/nar/rl/budgetgate-verification.test.ts` (referenced by `test:unit`; file is `.too_slow`) | C8 fixes |
 | Quarantined suites | `tests/nar/{refactor1-source-reputation,refactor1-aikr-induction,rl/budgetgate-verification}.test.ts.too_slow` | C8 triages |
 | CI paused | `.github/workflows/{ci,derivation-verify}.yml` (`workflow_dispatch` only) | C8 decides |
@@ -470,7 +470,24 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - **C5.5 checkpoint/recover.** The pass runs the sweep and reports, but does not yet checkpoint the C4 boundary before it ("recoverable from checkpoint"). Re-entry: reuse the C4 boundary codec to write a pre-pass checkpoint plus a `recoverConsolidation()` reader.
 - **C5.2 the UI never drives cycles in autonomous modes.** The kernel loop is now the single driver, but the UI server still drives via `runCycles` (`ui/src/server/server-utils.ts`, D12); rewiring that is a UI-package edit — logged in §9, not chased (halt rule 1).
 
-### C6 — Neuro-symbolic translation & explanatory voice — **NOT STARTED**
+### C6 — Neuro-symbolic translation & explanatory voice — **PARTIAL (C6.1–C6.4 done; C6.5 open)**
+
+**Done:**
+- C6.1: a `Formalizer` contract (`nar/src/nl/formalizer.ts`) with `nlToFormal(text, ctx?) → PerceivedInterpretation` and `formalToNl(input) → GenerationOutput`. `PerceivedInterpretation` *is* a `FormalizationBatch` plus provenance (`createdBy: 'user' | 'llm-proposed'`, `provider`, optional `rejection`), so it feeds the perception gate without unwrapping. Two providers: `StructuredFormalizer` (the null/D10 path — `parseTaskTolerant` formalizes Narsese deterministically, and a non-Narsese utterance is *declared* rejected, never silent) and `LmFormalizer` (the hosted path, wrapping the existing safe pipeline). `createFormalizer(lm)` is the D10 boundary: an absent LM is a valid configuration.
+- C6.2: one validation gate, `validateInterpretation(interp, firewall?)` — term well-formedness, truth-value ranges and syntactic validity via the `SymbolicFirewall`; invalid candidates are dropped *with a reason*. Admission is only via `KernelPerceptionGate.admitFormalization`, now taking an optional `source` so a `user` interaction is tagged `user` and an LM proposal `llm` (D17). `NAR.perceive(text, ctx?)` is the one round-trip: formalize → validate → admit → store (`NARIO.storeAdmitted`), returning `{interpretation, admitted, rejected}`.
+- C6.3: the existing safe pipeline is *the* hosted provider — `LmFormalizer` reuses `NLUnderstandingService` (which runs the firewall + `toFormalizationBatch`), so there is no second NL→Narsese path to keep in step.
+- C6.4: `ExplanationGenerator` (`nar/src/nl/explanation.ts`) walks the C3 rule-fire records (`firesByConclusion`, most-recent fire per term, cycle-guarded) to build an `Explanation`: engine facts (`{ruleId}: premises ⊢ conclusion truth`), the cited `derivationIds` (resolvable via `NAR.getRuleFireById`), rules, base premises, and a deterministic `narrative`. An LM paraphrase, when configured, is a *separate labeled field* that never replaces the facts; with no LM it is absent. `NAR.explainDerivation(conclusion)` exposes it and emits a live-only `explanation` bus event (`{conclusion, derivationIds, rules, steps, paraphrased}`).
+- C6.6 (tests): `tests/nar/core19-c6.test.ts` (10) — structured formalize/perceive with a declared rejection for non-Narsese, the firewall blocking a tool invocation, the validation gate dropping an out-of-range truth and a blocked operator (with reasons) while keeping the valid candidate, the hosted path tagging `llm-proposed`/source `llm` and rejecting an unparseable candidate, the explanation citing real derivable records + emitting the event + a deterministic narrative when there is none, and the null-provider generation fallback.
+
+**Files touched:** `nar/src/nl/{formalizer,explanation,index}.ts` (formalizer/explanation new), `nar/src/nar.ts`, `nar/src/nar-io.ts`, `nar/src/types/events.ts`, `nar/src/index.ts`, `nar/src/kernel/{interfaces.ts,KernelPerceptionGate.ts}`, `biome.json`, `tests/nar/core19-c6.test.ts`.
+
+**Evidence:** `core19-c6` (10), `kernel-gates`, `core19-c3`, `core19-c5`, `nar-events-bridge` green. §11 core battery green (`typecheck:packages`, `typecheck:bin`, `lint`, `deps:gate`, `deps:direction`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `control-budgets`, `gates:one-cycle-path`, `exports:check`, `exports:barrels`); `test:determinism`, `test:hermetic`, `answer:no-fabrication`, `rule:has-fallback`, `cycle:no-provider` green; `pnpm --dir ui typecheck` green. `test:unit` shows only the §12 reds (no new ones). `pnpm lint` was broken by the gitignored `.shadow/` shadow-worktree dirs biome still scanned; `biome.json` now excludes `!**/.shadow`, so the gate matches the repo's own ignore rules (§C8).
+
+**Remaining (deliberately deferred, not forgotten):**
+- **C6.5 contradiction showcase.** Not implemented: the kernel detects contradictions (the `contradiction` event / `contradicts`) but a *showcase* — surface the resolution or a flagged conflict with an explanation and correct provenance — is not yet wired. Re-entry: reuse `ExplanationGenerator` over the conflict's two derivable beliefs and emit the same `explanation` event with the resolution.
+- **C6.4 paraphrase.** The hosted-belief paraphrase path exists but is only exercised via `formalToNl`; a test with a real LM is not written (the mock's `GenerationOutput` contract is not asserted).
+- **C6.2 `command` tasks.** A `command` candidate is admitted (the task kind is real) but the formalizer produces none; the firewall maps `command` to the `goal` kind for the operator-position check.
+
 
 ### C7 — Non-UI reach: CLI, MCP, HTTP, SDK — **PARTIAL (C7.1, C7.2 done; C7.3 partial)**
 

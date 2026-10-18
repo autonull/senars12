@@ -178,6 +178,30 @@ export class NARIO {
   }
 
   /**
+   * Store a task the perception gate already admitted through
+   * `admitFormalization` (CORE.19 C6.2). The formalization path emits its own
+   * `task.admitted`; this is the store half, so a perceived task joins memory
+   * exactly as an `input` task does.
+   */
+  storeAdmitted(task: TaskAdmittedPayload): void {
+    const term = termParser.parse(task.term);
+    if (!term) {
+      this.warn('Failed to parse admitted formalization term', task.term);
+      return;
+    }
+    const truth = task.truth
+      ? Truth.create(task.truth.frequency, task.truth.confidence)
+      : Truth.TRUE;
+    this.commitAdmitted({
+      term,
+      label: task.term,
+      type: task.taskType as TaskType,
+      truth,
+      prime: true,
+    });
+  }
+
+  /**
    * Provide external reward feedback to update policy.
    * Goes through the RewardGate (epistemic firewall) and if accepted, updates the RLFPLearner.
    * @param reward - Reward value between -1 and 1

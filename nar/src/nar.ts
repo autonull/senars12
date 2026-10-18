@@ -1,6 +1,12 @@
 import { join } from 'node:path';
 import { BaseComponent } from '@senars/core';
-import type { CognitiveEvent, DerivationRecord, DerivationStep, KernelControlState } from '@senars/core/schemas';
+import type {
+  CognitiveEvent,
+  DerivationRecord,
+  DerivationStep,
+  KernelControlState,
+  TaskAdmittedEvent,
+} from '@senars/core/schemas';
 import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
 import {
   ambientRng,
@@ -76,6 +82,15 @@ import { PROPOSAL_LOG_CAPACITY } from './proposal/lifecycle.js';
 import { LMProposalProducer } from './proposal/lm-rule-producer.js';
 import { type Answer, QueryAPI, ReasoningTrace } from './query';
 import type { Reflex } from './reflex/Reflex.js';
+import { ExplanationGenerator, type Explanation } from './nl/explanation.js';
+import {
+  createFormalizer,
+  type Formalizer,
+  type PerceivedAdmission,
+  type PerceivedInterpretation,
+  validateInterpretation,
+} from './nl/formalizer.js';
+import type { NLContext } from './nl/understanding.js';
 import type { RLFPLearner } from './rlfp';
 import { loadBuiltinTable, RuleProcessor, type RuleTableStore } from './rules';
 import { ProofStreamRing } from './rules/impls/recorder.js';
@@ -176,6 +191,8 @@ export class NAR extends BaseComponent {
   #cyclesSinceGateFlush = 0;
   /** The kernel-owned autonomy loop (CORE.19 C5); present once started. */
   #autonomy: AutonomyHeartbeat | null = null;
+  /** The neuro-symbolic formalizer (CORE.19 C6); lazily bound to the LM at first use. */
+  #formalizer: Formalizer | null = null;
 
   constructor(config: NARConfig = DEFAULT_CONFIG) {
     const eventBus = config.eventBus ?? new NarEventBus();
@@ -1022,6 +1039,71 @@ export class NAR extends BaseComponent {
 
   explain(conclusion: Task) {
     return this.traceAPI.explain(conclusion);
+  }
+
+  /**
+   * The formalizer bound to this runtime (CORE.19 C6): the hosted LM provider
+   * when an LM is configured, the deterministic provider otherwise (D10).
+   */
+  getFormalizer(): Formalizer {
+    this.#formalizer ??= createFormalizer(this._lmService);
+    return this.#formalizer;
+  }
+
+  /** Perceive an utterance as a formalization proposal, without admitting it. */
+  formalize(text: string, ctx?: NLContext): Promise<PerceivedInterpretation> {
+    return this.getFormalizer().nlToFormal(text, ctx);
+  }
+
+  /**
+   * The one neuro-symbolic admission path (CORE.19 C6.2): formalize, validate
+   * with the firewall, admit through the perception gate, and store what was
+   * admitted. Invalid candidates are rejected with a reason rather than faked.
+   */
+  async perceive(text: string, ctx?: NLContext): Promise<PerceivedAdmission> {
+    const raw = await this.getFormalizer().nlToFormal(text, ctx);
+    const { interpretation, rejected: invalid } = validateInterpretation(raw);
+    const llm = interpretation.createdBy === 'llm-proposed';
+    const { admitted, rejected: gateRejected } = this.gates
+      .getPerceptionGate()
+      .admitFormalization(interpretation, llm ? 'LLM_PRIOR' : 'GENERAL', llm ? 'llm' : 'user');
+    for (const task of admitted) this.io.storeAdmitted(task);
+    return {
+      interpretation,
+      admitted,
+      rejected: [
+        ...(interpretation.rejection
+          ? [{ candidateId: '', reason: interpretation.rejection }]
+          : []),
+        ...invalid,
+        ...gateRejected,
+      ],
+    };
+  }
+
+  /**
+   * Explain how `conclusion` was derived, from the kernel's own rule-fire
+   * records (CORE.19 C6.4). The engine facts are always engine-derived; an LM
+   * paraphrase, when configured, is a labeled extra. Announces the explanation
+   * on the bus so a consumer can follow it without new contract surface.
+   */
+  async explainDerivation(conclusion: string | Term): Promise<Explanation> {
+    const term = typeof conclusion === 'string' ? conclusion : conclusion.toString();
+    const paraphrase = this._lmService
+      ? (input: Parameters<Formalizer['formalToNl']>[0]) => this.getFormalizer().formalToNl(input)
+      : undefined;
+    const explanation = await new ExplanationGenerator({
+      source: { firesByConclusion: (t) => this.processor.getRecorder().firesByConclusion(t) },
+      ...(paraphrase ? { paraphrase } : {}),
+    }).explain(term);
+    this.systemEventBus.emit('explanation', {
+      conclusion: explanation.conclusion,
+      derivationIds: explanation.derivationIds,
+      rules: explanation.rules,
+      steps: explanation.steps,
+      paraphrased: explanation.paraphrase !== undefined,
+    });
+    return explanation;
   }
 
   recordDerivations(count?: number) {
