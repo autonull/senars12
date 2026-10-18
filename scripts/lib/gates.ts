@@ -70,9 +70,8 @@ export const GATES: readonly Gate[] = [
   // owner actually reads, a retention rule, an overflow behaviour, and a pressure
   // signal or an explicit null.
   script('resource:policy'),
-  // TODO.core.19 C8.6 re-entered this ratchet; it is now SUSPENDED while the tree
-  // is under major construction (see `SUSPENDED_GATES` below). Listed here so its
-  // script and CI entry stay known; `pnpm gates` no longer runs it.
+  // TODO.core.19 C8.6 re-entered this ratchet (suspended for the major-work period,
+  // now closed). See `SUSPENDED_GATES` below for the re-entry procedure.
   script('complexity:budget'),
   script('cycle:no-provider'),
   // TODO29.a A0: the in-cycle induction inventory, and its references still hold.
@@ -143,7 +142,7 @@ export const missingGateScripts = (scripts: Record<string, string>): string[] =>
  * this list and ratcheting its baseline to the current tree in the same commit
  * (the C8.6 procedure).
  */
-export const SUSPENDED_GATES: readonly string[] = ['complexity:budget'];
+export const SUSPENDED_GATES: readonly string[] = [];
 
 /** The gates `pnpm gates` actually runs — every declared gate minus the suspended ones. */
 export const ACTIVE_GATES: readonly Gate[] = GATES.filter(

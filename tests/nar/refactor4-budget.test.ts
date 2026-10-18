@@ -2,8 +2,8 @@
  * Bench 99 — Complexity Budget Gate Falsification
  *
  * Verifies that the complexity-budget gate fails on injected regressions
- * for each of the six metrics and renders the checked-in budget. The gate itself
- * is SUSPENDED (`SUSPENDED_GATES`) — the rules are falsified here regardless.
+ * for each of the six metrics, passes the checked-in budget, and renders it.
+ * The gate is re-entered at CORE.19 C8.6 — the baseline ratchets with the tree.
  *
  * Falsifying a budget rule means mutating the *baseline*, and the tree measures
  * the same either way — so the measurement and the two CLI runs are taken once,
@@ -163,10 +163,11 @@ describe('Bench 99 — complexity budget gate', () => {
     expect(rowOf(result, 'Workspace count').status).toBe('FAIL');
   });
 
-  it('renders the checked-in budget without requiring a green verdict (suspended)', () => {
-    // `complexity:budget` is SUSPENDED (`SUSPENDED_GATES`), so deliberate growth
-    // may leave the checked-in baseline behind: assert the file is well-formed and
-    // renders, not that it is green. The cases above still prove every rule.
+  it('passes the checked-in budget — the baseline ratchets with the tree', () => {
+    // CORE.19 C8.6 re-entered the gate: the checked-in baseline must be green, so
+    // deliberate growth ratchets it in the same commit. The cases above still
+    // prove every rule.
+    expect(passing.code).toBe(0);
     expect(passing.stdout).toContain('┌');
     expect(passing.stdout).toContain('│ Metric');
     expect(passing.stdout).toContain('└');
