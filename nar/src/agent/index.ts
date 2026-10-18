@@ -2,6 +2,7 @@ import type {
   ChatOptions,
   ChatStreamEvent,
   CortexSynthesizeRequest,
+  Derivation,
   PromptBuilder,
 } from '@senars/core';
 import { Agent, InMemoryEventLog, SqliteEventLog } from '@senars/core';
@@ -129,9 +130,13 @@ interface NarAgentApi {
 
   getEpisodicMemory(): EpisodicMemory | undefined;
 
-  getRecentDerivations(): unknown;
+  /** The recent derivation records the kernel made (first-class SDK surface, CORE.19 C7.5). */
+  getRecentDerivations(): Derivation[];
 
-  /** Delegate a cognitive task to another agent over WebSocket. */
+  /**
+   * Delegate a cognitive task to another agent over WebSocket.
+   * @experimental — remote delegation is not part of the stable SDK surface.
+   */
   delegate(params: {
     target: string; // ws://host:port
     task: { type: string; term: string };
