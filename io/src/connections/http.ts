@@ -40,6 +40,7 @@ export class HTTPConnection extends BaseConnection {
     ttlMs: REQUEST_TIMEOUT_MS,
   });
   private readonly health?: () => Promise<HealthReport> | HealthReport;
+  private readonly httpRoute?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>;
 
   constructor(config: ConnectionConfig, deps: ConnectionDeps) {
     super(config, deps);
@@ -48,6 +49,7 @@ export class HTTPConnection extends BaseConnection {
     this.port = port;
     if (apiKey) this.apiKeys.add(apiKey);
     this.health = deps.health;
+    this.httpRoute = deps.httpRoute;
   }
 
   override async connect(): Promise<void> {
@@ -97,6 +99,10 @@ export class HTTPConnection extends BaseConnection {
       res.end();
       return;
     }
+
+    // CORE.19 C7.4: an injected route (e.g. `/metrics`) runs before the message
+    // routing and before auth — a scraper is not a chat client.
+    if (this.httpRoute && (await this.httpRoute(req, res))) return;
 
     if (url.pathname === '/health') {
       res.statusCode = 200;

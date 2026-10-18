@@ -1,3 +1,4 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { HealthReport } from './health.js';
 import type { ScopedLogger } from './lifecycle.js';
 
@@ -74,6 +75,13 @@ export interface ConnectionDeps {
   readonly getSessionSpaceId?: (connectionId: string) => string | undefined;
   /** O3 (TODO20): readiness probe consumed by the HTTP `/health/ready` endpoint. */
   readonly health?: () => Promise<HealthReport> | HealthReport;
+  /**
+   * CORE.19 C7.4: an optional extra HTTP route (e.g. `/metrics`). It runs before
+   * the message routing and returns whether it handled the request — `io` cannot
+   * import `nar`, so the metrics writer is supplied from above rather than
+   * reached for.
+   */
+  readonly httpRoute?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>;
 }
 
 export interface TransportDeps extends ConnectionDeps {

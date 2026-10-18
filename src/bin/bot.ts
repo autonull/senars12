@@ -32,6 +32,7 @@ import { DEFAULT_REPUTATION_PATH, providerKey, SourceReputation } from '@senars/
 import { resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
 import { evaluateQuery } from '@senars/nar/lm/system-one';
 import { computeEvidenceId } from '@senars/nar/lm/system-one';
+import { handleMetricsRequest } from '@senars/nar/metrics';
 import { NLUnderstandingService, TranslationCache } from '@senars/nar/nl';
 import { MemoryQuery } from '@senars/nar/query';
 import { MettaProposer } from '@senars/nar/reflex';
@@ -80,7 +81,12 @@ const CONNECTION_FACTORIES = {
   cli: (cfg: never) => new CLIConnection(cfg, { emit: () => undefined, logger } as never),
   irc: (cfg: never) => new IRCConnection(cfg, { emit: () => undefined, logger } as never),
   websocket: (cfg: never) => new WSConnection(cfg, { emit: () => undefined, logger } as never),
-  http: (cfg: never) => new HTTPConnection(cfg, { emit: () => undefined, logger } as never),
+  http: (cfg: never) =>
+    new HTTPConnection(cfg, {
+      emit: () => undefined,
+      logger,
+      httpRoute: handleMetricsRequest,
+    } as never),
   mcp: (cfg: never) => new MCPConnection(cfg, { emit: () => undefined, logger } as never),
 } as const;
 
