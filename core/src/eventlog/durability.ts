@@ -44,6 +44,7 @@ export const DURABLE_EVENT_TYPES: ReadonlySet<CognitiveEvent['type']> = new Set(
   'proposal.admitted',
   'proposal.rejected',
   'self-mod.proposal',
+  'bootstrap',
 ]);
 
 /**

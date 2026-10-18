@@ -54,6 +54,18 @@ export const makeId = (): string => {
 };
 
 /**
+ * How many ids the installed source has minted. The persistence boundary reads
+ * this as its id high-water mark (CORE.19 C4.1), so a restart can prime the
+ * ledger rather than re-mint an id the pre-restart process already stamped.
+ */
+export const currentIdCount = (): number => minted;
+
+/** Raise the minted ledger to `count`. Monotonic — it never lowers the watermark. */
+export const primeIdCount = (count: number): void => {
+  if (count > minted) minted = count;
+};
+
+/**
  * Counter-derived UUIDs, for seeded runs: `00000000-0000-4000-8000-000000000001`
  * and up. UUID-shaped rather than `evt-1` because `CognitiveEventSchema`
  * validates `taskId` as a UUID at the untrusted boundary, and because a replay

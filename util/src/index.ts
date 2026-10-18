@@ -396,10 +396,12 @@ export {
 } from './utils/hash.js';
 /** @public ULID id generation. */
 export {
+  currentIdCount,
   generateId,
   type IdSource,
   installIdSource,
   makeId,
+  primeIdCount,
   sequentialIdSource,
   sortableIdSource,
 } from './utils/id.js';

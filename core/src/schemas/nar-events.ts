@@ -132,6 +132,19 @@ export const BootstrapEventSchema = NarBase.extend({
     beliefs: z.array(z.string()).optional(),
     atoms: z.array(z.object({ atom: z.string(), space: z.string().optional() })).optional(),
     skills: z.array(z.object({ name: z.string(), code: z.string() })).optional(),
+    /**
+     * What a restart resumed from the persistence boundary (CORE.19 C4.6). A
+     * restore is a bootstrap of persisted state, so it rides the existing
+     * `bootstrap` type rather than minting a new cognitive variant the UI
+     * catalog would have to name.
+     */
+    restored: z
+      .object({
+        cycleCount: z.number(),
+        concepts: z.number(),
+        pendingTasks: z.number(),
+      })
+      .optional(),
   }),
 });
 

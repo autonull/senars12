@@ -8,9 +8,11 @@ import {
   BoundedRing,
   cachePath,
   createLogger,
+  currentIdCount,
   type Episode,
   errMsg,
   installIdSource,
+  primeIdCount,
   selectTopN,
 } from '@senars/util';
 import { resolveBagSlot } from './bag/registration.js';
@@ -74,6 +76,7 @@ import { ReasoningAboutReasoning } from './self';
 import { StreamReasoner } from './stream/reasoner.js';
 import { wireSystemOne } from './system-one-wiring.js';
 import { TaskManager } from './task';
+import { rehydrateTask } from './task/record.js';
 import type { Term } from './terms';
 import {
   containsSubterm,
@@ -276,6 +279,23 @@ export class NAR extends BaseComponent {
       driveManager: this.driveManager,
       attentionReport: () => this.attentionReport(),
       query: this.query,
+      boundary: {
+        getCycleCount: () => this.execution.getCycleCount(),
+        setCycleCount: (count) => this.execution.setCycleCount(count),
+        pendingTasks: () => this.taskManager.getPending(),
+        restorePending: (records) => {
+          let restored = 0;
+          for (const record of records) {
+            const task = rehydrateTask(record, record.type ?? 'belief');
+            if (!task) continue;
+            this.taskManager.addTask(task);
+            restored++;
+          }
+          return restored;
+        },
+        idHighWater: () => currentIdCount(),
+        primeIdHighWater: (count) => primeIdCount(count),
+      },
     });
     // D23 (TODO17b): ambiguity at ingress stimulates curiosity (A4 closure).
     this.gates.getPerceptionGate().setDriveManager(this.driveManager);
@@ -360,7 +380,13 @@ export class NAR extends BaseComponent {
       const base = this.config.statePath ?? cachePath('nar-state');
       this.#gateLedger = new GateEventLedger(join(base, 'gate-events'));
     }
-    await this.persister.load();
+    const restored = await this.persister.load();
+    if (restored)
+      this.systemEventBus.emit('restore:state', {
+        cycleCount: restored.cycleCount,
+        concepts: restored.conceptsRestored,
+        pendingTasks: restored.pendingRestored,
+      });
     this.self?.start();
     this.lm.getEnricher()?.start();
     await this.injectBootstrapGoals();

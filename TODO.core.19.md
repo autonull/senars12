@@ -288,6 +288,7 @@ One continuous headless session, `LM_PROVIDER=mock` first, then with a key confi
 | Kernel-originated `WorkspaceOp` producer | UI.19's workspace substrate needs kernel ops rather than projected fragments |
 | Multi-instance ecology | C1 bus + C4 boundary are proven; instances have something to exchange |
 | True replay-rewind (vs declared-partial) | The C2 checkpoint is stable and C4 replay is byte-identical |
+| NAR-owned stateful RNG | C4.4 needs RNG state in the boundary; the stream is a caller-injected `RandomSource` today |
 | Distributed / OTel event export | The single stream exists and is bounded |
 | Typed `nar:derivation` producer | C3's provenance work wants the term/lineage it already carries |
 | System One calibration activation | Real graded labels exist; honesty holds |
@@ -344,7 +345,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 | Server catalog tests | `tests/unit/server/{lens,field,event}-catalog.test.ts`, `layout-registry`, `scenarios`, `config-reset`, `test-endpoints`, `unified-graph-projection` | red |
 | Refactor suites | `tests/nar/refactor3-*.test.ts`, `tests/nar/refactor4-*.test.ts` | red |
 | `complexity:budget` baseline stale (workspaceCount 6→10, exportSubpaths 86→87, productionLOC, appendOnlyPersistenceSites 3→4) | `complexity-budget.json` | **SUSPENDED 2026-10-18** (directive): removed from `GATES`, not in the §11 battery. Re-enter when the baseline is ratcheted (§C8.6) |
-| `nar.ts` monolith budget (952 LOC > 940 at HEAD; +33 for the C2 control-plane bindings) | `tests/nar/refactor3-hygiene.test.ts` | red at HEAD; not chased (§rule 6) |
+| `nar.ts` monolith budget (952 LOC > 940 at HEAD; +33 for the C2 control-plane bindings, +26 for the C4 boundary ports) | `tests/nar/refactor3-hygiene.test.ts` | red at HEAD; not chased (§rule 6) |
 | Broken reference | `tests/nar/rl/budgetgate-verification.test.ts` (referenced by `test:unit`; file is `.too_slow`) | C8 fixes |
 | Quarantined suites | `tests/nar/{refactor1-source-reputation,refactor1-aikr-induction,rl/budgetgate-verification}.test.ts.too_slow` | C8 triages |
 | CI paused | `.github/workflows/{ci,derivation-verify}.yml` (`workflow_dispatch` only) | C8 decides |
@@ -429,7 +430,24 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - C3.3: `persistGateLogs`/`loadGateEvents` (single-file `appendJsonl`) stay for one-shot/test use; the runtime path is `GateEventLedger`. C4 wires the ledger's `read()` into replay and declares the boundary.
 - C3.1: `evidenceLineage` is resolvable only within the fire ring's window (`RULE_FIRE_RING_CAP`); a parent evicted before the child fired resolves to the taskId fallback. Widening that window, or persisting lineage with the boundary, is C4's call.
 
-### C4 — Continuity: persistence, restore & deterministic replay — **NOT STARTED**
+### C4 — Continuity: persistence, restore & deterministic replay — **PARTIAL (C4.1, C4.2, C4.6 done for the reachable fields; C4.3, C4.4 open)**
+
+**Done:**
+- C4.1: the consistency boundary is declared in **one place** — `nar/src/state/boundary.ts` (`ConsistencyBoundary`, `EMPTY_BOUNDARY`, `BOUNDARY_FILENAME`, `encodeBoundary`/`decodeBoundary`) — with the saved/restored/omitted fields written down in the module doc, and both directions implemented for the fields reachable without an RNG overhaul: the **kernel cycle counter**, the **pending task queue**, and the **id-minting high-water mark**. `StatePersister` round-trips them through `nar-boundary.json` via a `BoundaryPorts` callback bundle the NAR supplies; `NARExecution.setCycleCount` and `util`'s `currentIdCount`/`primeIdCount` are the new writers. Nothing is implied: a missing field restores to its empty value, and an unsupported schema version is refused by `decodeState`.
+- C4.2: `attention.json` was written but never read — it is now read on `load()` and its top-priority concepts restored (`Memory.addConcept` + `writeAttention {reason:'assign'}`). The three state version axes are unified at the constant level: `NAR_STATE_SCHEMA_VERSION` (`nar/src/state/codec.ts`) is the one version, and `NAR_STATE_VERSION` (task/drive files) and `MEMORY_VERSION` (memory dump) now read it. `SNAPSHOT_VERSION` (`kernel/EventLogPersistence.ts`) stays a distinct *artifact* version for the gate-event snapshot and is documented as such — it is not the state boundary.
+- C4.6: a `restore:state` NAR event is emitted on `start()` **only when persisted state exists** (`StatePersister.load()` returns `null` for a fresh path, via a one-list `#hasState()`), carrying `{cycleCount, concepts, pendingTasks}`. It is bridged to the **existing** `bootstrap` cognitive event (payload gained an optional `restored` field) rather than a new cognitive variant — the UI catalog keys every cognitive type, and adding one would force a UI edit the halt list forbids. Durable via `DURABLE_EVENT_TYPES`.
+- C4.5 (partial): `tests/nar/core19-c4.test.ts` (5) — boundary codec round-trip, version refusal, omitted-field defaults; and a full restart that resumes the cycle counter, concept priorities and id ledger and announces it, plus a fresh start that announces nothing.
+
+**Files touched:** `nar/src/state/{boundary.ts,codec.ts,index.ts}`, `nar/src/facade/persistence.ts`, `nar/src/nar.ts`, `nar/src/nar-execution.ts`, `nar/src/memory/state/serialization.ts`, `nar/src/types/events.ts`, `nar/src/events/bridge.ts`, `core/src/schemas/nar-events.ts`, `core/src/eventlog/durability.ts`, `util/src/utils/id.ts`, `util/src/index.ts`, `tests/nar/core19-c4.test.ts`, `tests/integration/nar-events-bridge.test.ts`.
+
+**Evidence:** `core19-c4` (5), `core19-m0`/`c1`/`c2`/`c3`, `nar-events-bridge`, `eventlog/*`, `mint-cognitive-event`, `gate-correlation-id`, `utils`, `full-replay`, `gate-log-persistence`, `09-restart-equivalence`, `todo20-config`, `cognitive-replay` green. §11 core battery green (`typecheck:packages`, `typecheck:bin`, `lint`, `deps:gate`, `deps:direction`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `control-budgets`, `gates:one-cycle-path`, `resource:policy`, `exports:check`, `exports:barrels`); `test:determinism` and `persistence:replay` green. `pnpm typecheck` shows the same 37 pre-existing errors in the §12 red files, **no new ones** (the `event-catalog` type error a new cognitive variant would have caused was avoided by reusing `bootstrap`). `test:hermetic` stays red exactly as §12 records (owned by C4, not chased).
+
+**Remaining (deliberately deferred, not forgotten):**
+- **C4.1 — RNG state.** The boundary lists RNG state, but the stream is a caller-injected `RandomSource` with no stateful handle the NAR owns, so persisting it would be a lie. Re-entry: give the NAR an owned `SeededRNG` (or a stateful `rng` port) and round-trip `getState`/`setState`. Logged as a seam in §9.
+- **C4.2 — `SerializedMemory`.** `deserialize` is still not wired into the NAR restore path (it stays the replay hasher's serializer); the parallel `StatePersister` task-file path is the restore path. Unify or delete in a later slice (D15).
+- **C4.3 — replay the gate/derivation log on restore.** `GateEventLedger.read()` (C3.3) is the declared replay input; restore does not yet consume it, so restart is boundary-equivalent but not yet log-replayed.
+- **C4.4 — entropy injection into `FullReplayOptions`.** `ids`/`rng`/`clock` are not yet accepted by `replayIntoMemory`; some replay paths still mint ambient ids. This is also what `test:hermetic` (§12) is waiting on.
+- **C2.3 — rewind.** Now that the boundary codec exists, `NAR.rewind(cycles)` can restore the declared subset (`{graph, bag, pending, cycle, RNG, id high-water, gate ring}` minus the open RNG field) and report the gaps; `handleCycleRewind` still rejects with a typed reason.
 
 ### C5 — Autonomy core — **NOT STARTED**
 

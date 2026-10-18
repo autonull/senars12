@@ -604,6 +604,15 @@ export class NARExecution {
     return this._cycleCount;
   }
 
+  /**
+   * Restore the kernel cycle counter from the persistence boundary (CORE.19
+   * C4.1) so a resumed run continues from the cycle it stopped at. The one
+   * writer besides the cycle loop itself.
+   */
+  setCycleCount(count: number): void {
+    this._cycleCount = count;
+  }
+
   /** The kernel control state — what a `cycle.state` frame reports (CORE.19 C2.1). */
   getControlState(): KernelControlState {
     return this.#controlState;

@@ -12,7 +12,7 @@
 import type { TaskBagKind } from '@senars/core/schemas';
 import { createLogger } from '@senars/util';
 import type { Bag } from '../../bag/Bag.js';
-import { decodeState, encodeState } from '../../state/codec.js';
+import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from '../../state/codec.js';
 import { rehydrateTask, type TaskRecord } from '../../task/record.js';
 import { serializeStamp, type Term, termParser } from '../../terms';
 import type { Concept, TaskData } from '../concept.js';
@@ -38,7 +38,7 @@ export interface SerializedConcept {
   questions: TaskRecord[];
 }
 
-export const MEMORY_VERSION = 1;
+export const MEMORY_VERSION = NAR_STATE_SCHEMA_VERSION;
 
 const MEMORY_STATE_KIND = 'memory.state';
 

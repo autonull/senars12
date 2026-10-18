@@ -158,6 +158,22 @@ const handlers = new Map<keyof NAREventMap, Handler>([
         payload: { skill: 'lm.generate', args: [], result: '', durationMs: 0 },
       }),
   ],
+  [
+    'restore:state',
+    (data) => {
+      const d = data as NAREventMap['restore:state'];
+      return mint('bootstrap', {
+        engine: 'nar',
+        payload: {
+          restored: {
+            cycleCount: d.cycleCount,
+            concepts: d.concepts,
+            pendingTasks: d.pendingTasks,
+          },
+        },
+      });
+    },
+  ],
 ]);
 
 export function narEventToCognitive(

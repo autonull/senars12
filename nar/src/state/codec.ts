@@ -9,6 +9,15 @@ import { SenarsError } from '@senars/util/errors';
 
 export const STATE_CODEC_FORMAT = 'senars.state';
 
+/**
+ * The one schema version for state files that cross the persistence boundary
+ * (CORE.19 C4.2). The task/drive files (`NAR_STATE_VERSION`), the memory dump
+ * (`MEMORY_VERSION`) and the boundary file all read this constant, so a version
+ * bump is a single edit and one documented migration or refusal, not three
+ * independent axes that can disagree.
+ */
+export const NAR_STATE_SCHEMA_VERSION = 1;
+
 export interface StateEnvelope<T = unknown> {
   format: typeof STATE_CODEC_FORMAT;
   /** Logical state kind, e.g. 'nar.beliefs' | 'nar.drives' | 'memory.state'. */

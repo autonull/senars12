@@ -162,6 +162,7 @@ describe('narEventToCognitive', () => {
         budget: {},
         derived: 0,
       },
+      'restore:state': { cycleCount: 2, concepts: 3, pendingTasks: 1 },
       'memory:pressure': { level: 1, utilization: 0.5 },
       'memory:consolidated': { conceptsRemoved: 1, conceptsArchived: 1 },
       'lm:call': { modelId: 'm', inputTokens: 1, outputTokens: 1, duration: 1 },

@@ -132,6 +132,11 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
     derived: number;
   };
   error: { error: Error; context?: Record<string, unknown> };
+  /**
+   * A restart resumed the declared persistence boundary (CORE.19 C4.6) — the
+   * durable, observable form of the resumption, bridged to `restored`.
+   */
+  'restore:state': { cycleCount: number; concepts: number; pendingTasks: number };
   // NL events (GROW2 §9.3)
   'nl:analyzed': { input: string; analysis: TaskBatch };
   'nl:translation': { nl: string; narsese: string; tier: number };
