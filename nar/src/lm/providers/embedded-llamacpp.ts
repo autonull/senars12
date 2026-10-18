@@ -120,7 +120,10 @@ async function buildGrammar(
   return undefined;
 }
 
-async function ensureRuntimeLoaded(): Promise<void> {
+/** Load the configured GGUF into the shared runtime if it is not resident yet.
+ *  Shared by the chat path and the embedding generator so one deployment loads
+ *  one model. */
+export async function ensureRuntimeLoaded(): Promise<void> {
   if (isLoaded()) return;
   const settings = getLMSettings();
   const modelPath = settings.llamacppModelPath ?? envStr('LM_LLAMACPP_MODEL');

@@ -13,10 +13,9 @@ import {
   createConfiguredLMRules,
   createLMService,
   createSeNARSRegistry,
-  embeddingRuntime,
+  resolveEmbeddingGenerator,
   setRouting,
 } from '@senars/nar/lm';
-import { createEmbeddingGenerator } from '@senars/nar/memory/embedding';
 import { EpisodicMemory } from '@senars/nar/memory/episodic';
 import { type PromotionResult, consolidateEpisodes } from '@senars/nar/memory/retrieval-verified';
 import { cachePath, createLogger, envStr, setupGracefulShutdown } from '@senars/util';
@@ -149,7 +148,7 @@ export async function createAgentFromEnv(
         {
           episodic: episodicMemory,
           lm: lmService,
-          embeddings: createEmbeddingGenerator(embeddingRuntime),
+          embeddings: resolveEmbeddingGenerator(),
           promote: async (content, provenance) => {
             logger.info(`Memory promoted with provenance: ${JSON.stringify(provenance)}`);
             const safeContent = content.replace(/["\\]/g, ' ').trim();

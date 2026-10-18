@@ -4,7 +4,8 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import type { EmbeddingGenerator } from '../../memory/embedding.js';
-import { cosineSimilarity, createEmbeddingGenerator } from '../../memory/embedding.js';
+import { cosineSimilarity } from '../../memory/embedding.js';
+import { resolveEmbeddingGenerator } from '../../lm/embedding-runtime.js';
 
 // --- rag_query ---
 
@@ -15,7 +16,7 @@ export interface RagQueryDeps {
 }
 
 export function createRagQueryTools(deps: RagQueryDeps) {
-  const embedder = deps.embeddingGenerator ?? createEmbeddingGenerator();
+  const embedder = deps.embeddingGenerator ?? resolveEmbeddingGenerator();
   const topK = deps.topK ?? 5;
 
   return {

@@ -62,7 +62,7 @@ import { KernelLedger } from './kernel/KernelLedger.js';
 import { SchemaInductor } from './learning/schema-induction.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { LMRules } from './lm';
-import { embeddingRuntime } from './lm/embedding-runtime.js';
+import { resolveEmbeddingGenerator } from './lm/embedding-runtime.js';
 import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
 import type { MiningBag } from './lm/system-one/hard-negatives.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
@@ -71,7 +71,7 @@ import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-gr
 import type { CognitiveDispatcher, JudgmentManifold } from './lm/system-one/types.js';
 import type { Concept } from './memory';
 import { Memory } from './memory';
-import { createEmbeddingGenerator, type EmbeddingGenerator } from './memory/embedding.js';
+import type { EmbeddingGenerator } from './memory/embedding.js';
 import type { EpisodeConsolidator } from './memory/episode-consolidator.js';
 import type { ProofMettaProposer } from './meta/index.js';
 import { MetricsCollector } from './metrics';
@@ -220,7 +220,7 @@ export class NAR extends BaseComponent {
     this.memory = new Memory({
       ...this.config,
       bag: resolveBagSlot(cognitiveParams.strategies.bag, this.rng, config.clock),
-      embeddingGenerator: config.embeddingGenerator ?? createEmbeddingGenerator(embeddingRuntime),
+      embeddingGenerator: config.embeddingGenerator ?? resolveEmbeddingGenerator(),
     });
     this.ruleTable = loadBuiltinTable();
     this.processor = new RuleProcessor(undefined, this.ruleTable.index());

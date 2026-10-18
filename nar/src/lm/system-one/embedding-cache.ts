@@ -1,26 +1,32 @@
-import { LruCache } from '@senars/util';
-import { TransformersEmbeddingGenerator } from '../../memory/embedding.js';
-import { embeddingRuntime } from '../embedding-runtime.js';
+import { getOrInsert, LruCache } from '@senars/util';
+import { type EmbeddingGenerator } from '../../memory/embedding.js';
+import { resolveEmbeddingGenerator } from '../embedding-runtime.js';
 import type { EmbeddingCache as EmbeddingCacheApi, EmbeddingPointer } from './types.js';
 
-const DIMENSION = 384;
-
-/** Process-wide buffer pool: the pool grows to the high-water mark of *concurrent*
- *  live embeddings (bounded by the cache's own `maxSize`), and released slots are
- *  recycled through the free list. Slots travel with their entry so release is O(1). */
-const bufferPool: Float32Array[] = [];
-const freeList: number[] = [];
-
-function allocateBuffer(): { slot: number; buffer: Float32Array } {
-  const recycled = freeList.pop();
-  if (recycled !== undefined) return { slot: recycled, buffer: bufferPool[recycled]! };
-  const buffer = new Float32Array(DIMENSION);
-  bufferPool.push(buffer);
-  return { slot: bufferPool.length - 1, buffer };
+/** One width's recycled buffers. A slot is reusable only at its own width, so a
+ *  model swap does not silently reinterpret another model's vectors. */
+interface BufferPool {
+  buffers: Float32Array[];
+  free: number[];
 }
 
-function releaseBuffer(slot: number): void {
-  freeList.push(slot);
+/** Process-wide pools keyed by width: a pool grows to the high-water mark of
+ *  *concurrent* live embeddings at that width (bounded by the cache's `maxSize`),
+ *  and released slots recycle through the free list. Slots travel with their
+ *  entry so release is O(1). */
+const bufferPools = new Map<number, BufferPool>();
+
+function allocateBuffer(dimension: number): {
+  pool: BufferPool;
+  slot: number;
+  buffer: Float32Array;
+} {
+  const pool = getOrInsert(bufferPools, dimension, () => ({ buffers: [], free: [] }));
+  const recycled = pool.free.pop();
+  if (recycled !== undefined) return { pool, slot: recycled, buffer: pool.buffers[recycled]! };
+  const buffer = new Float32Array(dimension);
+  pool.buffers.push(buffer);
+  return { pool, slot: pool.buffers.length - 1, buffer };
 }
 
 export interface EmbeddingCacheConfig {
@@ -28,7 +34,7 @@ export interface EmbeddingCacheConfig {
   ttlMs: number;
   /** H1/Bench 26: expected embedding width — wrong-dimension vectors are rejected here. */
   dimension?: number;
-  generator?: { generate(text: string): Promise<number[]> };
+  generator?: EmbeddingGenerator;
   /** §5s: per-event metrics sink (wired to Prometheus by SystemOneRuntime). */
   metricsSink?: (event: 'hit' | 'miss' | 'eviction', size: number) => void;
 }
@@ -37,6 +43,7 @@ interface CacheEntry {
   /** The LRU key this entry is filed under — the handle a pointer read touches. */
   key: string;
   pointer: EmbeddingPointer;
+  pool: BufferPool;
   slot: number;
   buffer: Float32Array;
 }
@@ -51,7 +58,7 @@ export interface EmbeddingCacheMetrics {
 }
 
 export class EmbeddingCache {
-  #generator: TransformersEmbeddingGenerator | NonNullable<EmbeddingCacheConfig['generator']>;
+  #generator: EmbeddingGenerator;
   #config: EmbeddingCacheConfig;
   #cache: LruCache<string, CacheEntry>;
   #pointerIndex = new Map<EmbeddingPointer, CacheEntry>();
@@ -72,7 +79,7 @@ export class EmbeddingCache {
       ttlMs: config.ttlMs ?? 300_000,
       dimension: config.dimension,
     };
-    this.#generator = config.generator ?? new TransformersEmbeddingGenerator(embeddingRuntime);
+    this.#generator = config.generator ?? resolveEmbeddingGenerator();
     this.#metricsSink = config.metricsSink;
     this.#cache = new LruCache({
       maxSize: this.#config.maxSize,
@@ -83,7 +90,7 @@ export class EmbeddingCache {
 
   /** Release everything the cache holds outside itself: pooled buffer + pointer index. */
   #forgetEntry(entry: CacheEntry): void {
-    releaseBuffer(entry.slot);
+    entry.pool.free.push(entry.slot);
     this.#pointerIndex.delete(entry.pointer);
     this.#evictions++;
     this.#emit('eviction');
@@ -107,24 +114,24 @@ export class EmbeddingCache {
         `Embedding dimension mismatch: expected ${this.#config.dimension}, got ${embedding.length}`
       );
     }
-    const { slot, buffer } = allocateBuffer();
+    const { pool, slot, buffer } = allocateBuffer(embedding.length);
     buffer.set(embedding);
 
     const pointer = ++this.#pointerCounter as EmbeddingPointer;
     this.#writes++;
-    this.#insert(text, { key: text, pointer, slot, buffer });
+    this.#insert(text, { key: text, pointer, pool, slot, buffer });
 
     return pointer;
   }
 
   async writeRaw(embedding: readonly number[]): Promise<EmbeddingPointer> {
-    const { slot, buffer } = allocateBuffer();
-    buffer.set(embedding.slice(0, buffer.length));
+    const { pool, slot, buffer } = allocateBuffer(embedding.length);
+    buffer.set(embedding);
     const pointer = ++this.#pointerCounter as EmbeddingPointer;
 
     this.#writes++;
     const key = `\0raw:${pointer}`;
-    this.#insert(key, { key, pointer, slot, buffer });
+    this.#insert(key, { key, pointer, pool, slot, buffer });
 
     return pointer;
   }
@@ -178,7 +185,7 @@ export class EmbeddingCache {
     return this.#cache.hitRate;
   }
 
-  get generator(): TransformersEmbeddingGenerator | NonNullable<EmbeddingCacheConfig['generator']> {
+  get generator(): EmbeddingGenerator {
     return this.#generator;
   }
 

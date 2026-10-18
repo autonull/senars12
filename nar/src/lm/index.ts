@@ -2,7 +2,7 @@ export { admitTasks } from './admit.js';
 export type { ContextBeliefOptions } from './context.js';
 export { topBeliefTasks } from './context.js';
 export { attemptLMCorrection } from './correction.js';
-export { embeddingRuntime } from './embedding-runtime.js';
+export { embeddingRuntime, resolveEmbeddingGenerator } from './embedding-runtime.js';
 export type { EnricherConfig, EnricherSystemOneDeps, EnrichmentResult } from './enrichment.js';
 export { createProactiveEnricher, ProactiveEnricher } from './enrichment.js';
 export type {

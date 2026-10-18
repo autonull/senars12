@@ -3,6 +3,8 @@ import { l2Normalize } from '../utils/similarity.js';
 
 export interface EmbeddingGenerator {
   dimension: number;
+  /** The model's identity for provenance; absent for a generator with none. */
+  readonly modelId?: string;
 
   generate(text: string): Promise<number[]>;
 }
@@ -49,6 +51,7 @@ export const DEFAULT_EMBEDDING_DIMENSION = 384;
 
 export class TransformersEmbeddingGenerator implements EmbeddingGenerator {
   readonly dimension: number;
+  readonly modelId: string;
   private model: TransformersJSEmbeddingModel | null = null;
 
   constructor(
@@ -56,17 +59,15 @@ export class TransformersEmbeddingGenerator implements EmbeddingGenerator {
     modelId: string = DEFAULT_EMBEDDING_MODEL_ID,
     dimension: number = DEFAULT_EMBEDDING_DIMENSION
   ) {
-    this.#modelId = modelId;
+    this.modelId = modelId;
     this.dimension = dimension;
   }
-
-  readonly #modelId: string;
 
   async generate(text: string): Promise<number[]> {
     if (!this.model) {
       // Embeddings ride the same settings rails (device/dtype/cacheDir) as chat models.
       const settings = this.runtime();
-      this.model = new TransformersJSEmbeddingModel(this.#modelId, {
+      this.model = new TransformersJSEmbeddingModel(this.modelId, {
         device: settings.device,
         dtype: settings.dtype ?? (settings.quantized ? 'q4' : 'fp32'),
         ...(settings.cacheDir ? { cacheDir: settings.cacheDir } : {}),
@@ -81,6 +82,7 @@ export class TransformersEmbeddingGenerator implements EmbeddingGenerator {
 }
 
 export class MockEmbeddingGenerator implements EmbeddingGenerator {
+  readonly modelId = 'mock';
   constructor(readonly dimension: number = DEFAULT_EMBEDDING_DIMENSION) {}
 
   async generate(text: string): Promise<number[]> {
@@ -93,11 +95,12 @@ export class MockEmbeddingGenerator implements EmbeddingGenerator {
 }
 
 /**
- * Transformers (`MiniLM`) is the only real embedder and only ships with the
- * transformers provider; any other posture (llamacpp-embedded, ollama, mock)
- * degrades honestly to the deterministic generator rather than dragging a
- * second heavy runtime into the process (onnxruntime crashes under vitest
- * worker pools and cold loads cost minutes).
+ * The transformers (`MiniLM`) provider is the only real embedder *here*; any
+ * other posture degrades to the deterministic generator rather than dragging a
+ * second heavy runtime into this cycle-path module. The embedded llama.cpp
+ * provider has its own real generator, chosen outside the core by
+ * `resolveEmbeddingGenerator` (`nar/src/lm/embedding-runtime.ts`) — this module
+ * cannot name it without the core importing the induction layer.
  */
 export const isMockLM = (runtime: EmbeddingRuntimeSource): boolean =>
   runtime().provider !== 'transformers';

@@ -3,6 +3,7 @@ import {
   getLlama,
   type Llama,
   type LlamaContext,
+  type LlamaEmbeddingContext,
   type LlamaModel,
   resolveChatWrapper,
 } from 'node-llama-cpp';
@@ -10,6 +11,7 @@ import {
 let llamaP: Promise<Llama> | undefined;
 let modelP: Promise<LlamaModel> | undefined;
 let contextP: Promise<LlamaContext> | undefined;
+let embeddingContextP: Promise<LlamaEmbeddingContext> | undefined;
 let wrapper: ChatWrapper | undefined;
 let currentConfig: EmbeddedLlamaConfig | undefined;
 
@@ -101,6 +103,19 @@ export function getLlamaInstance(): Promise<Llama> {
   return llamaP;
 }
 
+/**
+ * The embedding context over the loaded model: the real, offline vector source
+ * the System One encoder reads (CORE.19). One context, shared — `getEmbeddingFor`
+ * evaluates against the same model the chat path holds, so a deployment loads a
+ * GGUF once. The vector width is the model's own; consumers adapt rather than
+ * assume a dimension.
+ */
+export async function getEmbeddingContext(): Promise<LlamaEmbeddingContext> {
+  const model = await getModel();
+  embeddingContextP ??= model.createEmbeddingContext();
+  return embeddingContextP;
+}
+
 export async function createSequence(): Promise<Awaited<ReturnType<LlamaContext['getSequence']>>> {
   const context = await getContext();
   if (context.sequencesLeft === 0) {
@@ -118,6 +133,9 @@ export function isLoaded(): boolean {
 }
 
 export async function dispose(): Promise<void> {
+  const embeddingContext = await embeddingContextP?.catch(() => undefined);
+  embeddingContextP = undefined;
+  await embeddingContext?.dispose().catch(() => undefined);
   const context = await contextP?.catch(() => undefined);
   contextP = undefined;
   await context?.dispose().catch(() => undefined);

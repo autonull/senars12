@@ -20,8 +20,7 @@ import {
   StubCortex,
 } from '../lm/system-one/dispatcher.js';
 import { JudgmentDataset } from '../lm/system-one/distill.js';
-import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';
-import { embeddingRuntime } from '../lm/embedding-runtime.js';
+import { createEmbeddingCache, type EmbeddingCache } from '../lm/system-one/embedding-cache.js';import { embeddingRuntime, resolveEmbeddingGenerator } from '../lm/embedding-runtime.js';
 import { createGroundednessGate } from '../lm/system-one/groundedness-gate.js';
 import {
   type BeliefSource,
@@ -47,7 +46,6 @@ import type {
 } from '../lm/system-one/types.js';
 import { createSystemOneBudget, DEFAULT_SYNTHESIS_CANDIDATES } from '../lm/system-one/types.js';
 import { composeModelDigest, encoderDigest } from '../lm/system-one/wasi-runtime.js';
-import { createEmbeddingGenerator } from '../memory/embedding.js';
 import { recordEmbeddingCacheEvent } from '../metrics/prometheus.js';
 import { EpsilonGreedyReflex } from '../reflex/EpsilonGreedyReflex.js';
 import type { Reflex } from '../reflex/Reflex.js';
@@ -120,13 +118,16 @@ export class SystemOneRuntime {
       systemOneConfig.manifold && !('judgeBatch' in systemOneConfig.manifold)
         ? (systemOneConfig.manifold as SystemOneConfigSchema['manifold']).encoder
         : undefined;
-    const encoder = createEmbeddingGenerator(embeddingRuntime, encoderConfig);
+    const encoder = resolveEmbeddingGenerator(embeddingRuntime, encoderConfig);
     const embeddingCache =
       systemOneConfig.embeddingCache ??
       createEmbeddingCache({
         maxSize: 10000,
         ttlMs: 300_000,
-        dimension: encoderConfig?.dimension ?? encoder.dimension,
+        // A generator that only reveals its width on the first vector (the
+        // embedded GGUF) passes `undefined`, and the cache allocates to the
+        // vector it receives. A declared width still validates.
+        ...(encoder.dimension > 0 ? { dimension: encoder.dimension } : {}),
         generator: encoder,
         metricsSink: recordEmbeddingCacheEvent,
       });
@@ -170,8 +171,8 @@ export class SystemOneRuntime {
         backendId: 'encoder-wasm-s1' as any,
         modelDigest: composeModelDigest(
           encoderDigest(
-            encoderConfig?.modelId ?? 'Xenova/all-MiniLM-L6-v2',
-            encoderConfig?.dimension ?? 384
+            encoder.modelId ?? encoderConfig?.modelId ?? 'Xenova/all-MiniLM-L6-v2',
+            encoder.dimension > 0 ? encoder.dimension : (encoderConfig?.dimension ?? 384)
           ),
           'all-MiniLM-L6-v2-heads-v1'
         ) as any,
