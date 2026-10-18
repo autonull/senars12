@@ -65,6 +65,7 @@ import {
 import { readAppEnvConfig, readAuthConfig } from './lib/env-config.js';
 import { runEntrypoint } from './lib/fatal-error.js';
 import { createAgentFromEnv } from './lib/lifecycle.js';
+import { isOneShot, readOneShot, runOneShot } from './lib/oneshot.js';
 import { createRemoteRegistry } from './lib/remote-registry.js';
 
 assertValidEnv();
@@ -190,8 +191,18 @@ async function collectChat(rt: BotRuntime, input: string, tier: LMTask): Promise
 async function runNonInteractive(flags: Flags): Promise<boolean> {
   if (flags.has('--help', '-h')) {
     console.log(
-      'Usage: pnpm run bot [-- --status|--doctor|--tune|--arcade|--multiagent] [--json]\n\nNo flags: interactive CLI (senars> ). Connections are opt-in via .connect or ENABLE_IRC/WS/HTTP/MCP=true.'
+      [
+        'Usage: pnpm run bot [-- --status|--doctor|--tune|--arcade|--multiagent] [--json]',
+        '       pnpm run bot -- --believe "(a-->b)." --ask "(a-->c)?" [--goal "(g)!" --steps N] [--json]',
+        '',
+        'One-shot: --believe/-b, --goal/-g and --ask/-q (comma-separated) run the kernel and print the answer with its derivation.',
+        'No flags: interactive CLI (senars> ). Connections are opt-in via .connect or ENABLE_IRC/WS/HTTP/MCP=true.',
+      ].join('\n')
     );
+    return true;
+  }
+  if (isOneShot(flags)) {
+    await runOneShot(readOneShot(flags));
     return true;
   }
   const mode = Object.keys(NON_INTERACTIVE_MODES).find((flag) => flags.has(flag));

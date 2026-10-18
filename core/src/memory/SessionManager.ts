@@ -46,6 +46,14 @@ export class JsonlSessionManager implements SessionManager {
     return this.#store.size();
   }
 
+  /**
+   * The live sessions, least-recently-used first — the real data behind
+   * `sessions://list` (CORE.19 C7.3), rather than a hardcoded empty array.
+   */
+  list(): ConversationSession[] {
+    return [...this.#store.values()];
+  }
+
   async restore(): Promise<void> {
     for (const entry of await this.#ledger.query({})) {
       this.#store.load(entry.key, {

@@ -130,11 +130,12 @@ const startHttp = (port: number, guard: HttpGuard): Teardown => {
 async function initialize() {
   // Single shared NAR/agent instance — MCP tools, resources and the agent
   // all operate on the same cognitive core.
-  const { nar, agent, appConfig, episodicMemory } = await createAgentFromEnv();
+  const { nar, agent, appConfig, episodicMemory, sessionManager } = await createAgentFromEnv();
   const jobs = new JobManager();
+  await sessionManager.restore();
 
   registerNARTools(server, nar, agent, { jobs, approval: appConfig.connections?.mcp?.approval });
-  registerMCPResources(server, { nar, agent, jobs });
+  registerMCPResources(server, { nar, agent, jobs, sessions: sessionManager });
   registerMCPPrompts(server);
 
   // TODO24: Dialogue Flywheel tools (react/turns/retrospect) when enabled.

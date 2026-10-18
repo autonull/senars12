@@ -16,6 +16,13 @@ export interface MCPResourceContext {
   nar: NAR;
   agent?: Agent;
   jobs?: JobManager;
+  /**
+   * Live sessions for `sessions://list` (CORE.19 C7.3). Structural so the MCP
+   * layer does not depend on the session manager's concrete class.
+   */
+  sessions?: {
+    list(): Array<{ key: string; createdAt: number; lastSeenAt: number; history: unknown[] }>;
+  };
 }
 
 /** "Which model am I actually using?" — active provider, per-task model, credentials, stats. */
@@ -159,9 +166,11 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
     () => stateSummary(nar)
   );
 
-  json('episodes', 'nar://episodes', 'Episodes', 'Recent episodic memory entries', () => ({
-    episodes: [],
-  }));
+  json('episodes', 'nar://episodes', 'Episodes', 'Recent episodic memory entries', async () => {
+    const episodic = await agent?.getEpisodicMemory?.();
+    const episodes = episodic ? await episodic.getEpisodes({ limit: 50 }) : [];
+    return { episodes };
+  });
 
   json(
     'benchmarks',
@@ -177,7 +186,14 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
     nar.tools.list().map((t) => ({ name: t.name, description: t.description }))
   );
 
-  json('sessions_list', 'sessions://list', 'Sessions', 'List all available sessions', () => []);
+  json('sessions_list', 'sessions://list', 'Sessions', 'List all available sessions', () =>
+    (context.sessions?.list() ?? []).map((session) => ({
+      key: session.key,
+      createdAt: session.createdAt,
+      lastSeenAt: session.lastSeenAt,
+      turns: session.history.length,
+    }))
+  );
 
   json(
     'knowledge_list',
@@ -216,10 +232,11 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
     'self-reasoning://quality',
     'Self-Reasoning Quality',
     'Self-reasoning quality metrics',
-    () =>
-      nar.getSelfAnalyzer?.()
-        ? { available: true, overall: 0, coherence: 0, relevance: 0, completeness: 0 }
-        : { available: false }
+    async () => {
+      const analyzer = nar.getSelfAnalyzer?.();
+      if (!analyzer) return { available: false };
+      return { available: true, ...(await analyzer.assessQuality()) };
+    }
   );
 
   json(

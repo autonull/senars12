@@ -118,6 +118,9 @@ export const GATES: readonly Gate[] = [
   script('reward:policy-only'),
   // TODO32 M9: no contradictory or redundantly nested term reaches committed state.
   script('derivation:clean'),
+  // TODO.core.19 C8.1: the egress invariant ran in CI but had no local entry, so a
+  // red here was invisible to `pnpm gates` — the one place a check can be a comment.
+  script('egress:invariant'),
   // Generated docs must match the committed output. A diff rather than a red
   // test, which is why it survived being red for a pass.
   script('docs:drift'),
