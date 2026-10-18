@@ -662,3 +662,23 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 **Evidence:** `pnpm narsese:literals` green (19 literals round-trip); `narsese-literal-roundtrip` (12); the `core19-*` suites + `unit/core/core19-c2` + `cli/{oneshot,benchmarks}` + `config/schema` (97) green; `pnpm typecheck:packages` and `pnpm typecheck:bin` clean; `pnpm lint`, `deps:gate`, `deps:direction`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `control-budgets`, `gates:one-cycle-path`, `exports:check`, `exports:barrels`, `resource:policy`, `test:determinism`, `test:hermetic`, `persistence:replay`, `docs:drift` green; `pnpm env:grammar` reports only the two pre-existing UI sites. Root `pnpm typecheck` shows the same §12 reds only (no new ones); `test:unit` unchanged (the §12 reds).
 
 **Remaining (unchanged):** the UI grammar reds belong to UI.19's battery (halt rule 1); `ui:gate` needs browser deps. Every other open item stays as recorded — the UI-package seams (C2.1/C3.4/C5.2), the completed-chain ring (§9), C8.4's System One manifold (needs an embedding backend), and C9.3 (`PHILOSOPHY.md`, UI.19-owned).
+
+### Real offline embeddings (llamacpp-embedded) — **DONE** · System One reachable
+
+**Status:** The last "needs a dependency" block is gone. The embedded llama.cpp provider had a real chat path but its embeddings degraded to `MockEmbeddingGenerator`, so System One's encoder was fake and the manifold was out of reach. It now embeds through the cached GGUF — real, offline, no mock — and System One judges end-to-end on a running NAR.
+
+**Done:**
+- `LlamaCppEmbeddingGenerator` (`nar/src/lm/providers/embedded-embedding.ts`): embeds via node-llama-cpp's `LlamaEmbeddingContext` (`getEmbeddingFor`) over the loaded GGUF. The chat path and the embedder share one loaded model — `embedded-llamacpp.ts` now exports `ensureRuntimeLoaded`, and `llama-runtime.ts` owns one `getEmbeddingContext()` (disposed with the rest).
+- `resolveEmbeddingGenerator` (`nar/src/lm/embedding-runtime.ts`): picks the real generator for the `llamacpp-embedded` provider, else `createEmbeddingGenerator` (transformers/mock). It lives in `lm/` because a `memory/` module naming the induction layer would be a `core:no-lm` violation. Callers moved: `facade/system-one.ts`, `nar.ts`, `src/bin/lib/lifecycle.ts`, `tools/adapters/rag-query.ts`.
+- **Width-agnostic**: `EmbeddingCache` pools buffers per width and allocates to the vector it receives, so the GGUF's native width flows (no 384 assumption). `EmbeddingGenerator` gained an optional `modelId` for provenance; the manifold digest reads the real encoder identity.
+- Verified real: `Qwen3.5-0.8B-Q4_0.gguf` → 1024-dim, cos(same-topic) 0.879 vs cos(off-topic) 0.363; deterministic run-to-run. System One on a live NAR: `decide()` returned `band: "block"`, 6 verdicts, from the real embedding.
+
+**Files touched:** `nar/src/lm/runtime/llama-runtime.ts`, `nar/src/lm/providers/{embedded-llamacpp,embedded-embedding}.ts`, `nar/src/lm/embedding-runtime.ts`, `nar/src/lm/system-one/embedding-cache.ts`, `nar/src/lm/index.ts`, `nar/src/memory/embedding.ts`, `nar/src/facade/system-one.ts`, `nar/src/nar.ts`, `nar/src/tools/adapters/rag-query.ts`, `src/bin/lib/lifecycle.ts`, `tests/nar/core19-embedding.test.ts` (new).
+
+**Evidence:** `core19-embedding` (4, incl. the real-model case under vitest, ~5s), `todo16c-encoder-digest`/`cortex`/`model-override`, `todo29a-a2`, `RetrievalVerifiedMemory`, `core19-m0`/`c7` (60); `test:determinism`, `test:hermetic`, `persistence:replay` green; §11 gates green (`core:no-lm`, `deps:direction`, `deps:gate`, `lint`, `typecheck:packages`, `typecheck:bin`, `exports:{check,barrels,audit}`, `resource:policy`, `memory:ports`, `attention:write-surface`, `control-budgets`, `gates:one-cycle-path`).
+
+**Still open (the other "blocks", all reachable now that the halt list is lifted):**
+- **C8.4 System One coverage**: the manifold is reachable, but no determinism/hermetic *scenario* drives it yet. Add a `decide` harness step + a scenario (mock embedder in CI, real locally — both deterministic) so it joins `test:determinism`/`test:hermetic`.
+- **C2.1/C3.4/C5.2 (UI seams)**: move `runCycles` kernel-side; emit `derivation.record` kernel-side instead of the UI drain; the UI server should not drive cycles in autonomous modes.
+- **Gate reds**: the §12 ledger — `typecheck`/`test:unit` (prompt-perception, server catalogs, refactor suites, mcp-resources), the UI grammar gates, `ui:gate` (browser deps), and a suspended `complexity:budget`.
+- **C9.3 `PHILOSOPHY.md`** and the **completed-chain ring** (§9).
