@@ -5,6 +5,7 @@ import type { Clock, IdSource } from '@senars/util';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { AutonomyConfigInput } from '../autonomy/config.js';
+import type { MetaGoalPolicy } from '../drives/meta-goals.js';
 import type { CognitiveRegistry } from '../cognitive';
 import type { CognitiveParameters } from '../config/cognitive-parameters';
 import type { BudgetScopeId } from '../kernel/budget-scopes.js';
@@ -121,6 +122,14 @@ export interface NARConfig extends CoreConfig {
    * are pull-driven only. Configuring it is what turns the heartbeat on.
    */
   autonomy?: AutonomyConfigInput;
+  /**
+   * The drive→meta-goal injection policy (CORE.19 C5.6). **Absent ⇒ the path is
+   * off**, which is the default: the built-in mapping's trigger sat below every
+   * drive's resting equilibrium, so nothing was ever injected. Binding
+   * `createDriveMetaGoalPolicy()` revives it; binding another policy replaces it.
+   * The built-in table and a pure policy live in `drives/meta-goals.ts`.
+   */
+  driveMetaGoals?: MetaGoalPolicy;
   /**
    * Control-budget ceilings, per declared `scopeId` (TODO29.a §5.7). An absent
    * scope uses its declared default, so this is an override and not the

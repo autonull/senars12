@@ -294,6 +294,16 @@
 
 - `validateInterpretation` — The one validation gate before admission: term well-formedness, truth-value
 
+- `createDriveMetaGoalPolicy` — Bind a policy over a table (default: the built-in drive→meta-goal table).
+
+- `type DriveMetaGoal`
+
+- `DRIVE_META_GOAL_TABLE` — The table's parsed form. A literal here is a constant, so it is either right or
+
+- `type MetaGoalContext`
+
+- `type MetaGoalPolicy`
+
 ## `./agent`
 
 - `BinAgentApi` — Minimal agent API for bin layer consumers (excludes core internals).

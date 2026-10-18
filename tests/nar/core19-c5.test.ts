@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 import {
   AUTONOMY_MODES,
   AUTONOMY_POLICIES,
+  createDriveMetaGoalPolicy,
   DEFAULT_AUTONOMY_CONFIG,
+  DRIVE_META_GOAL_TABLE,
   resolveAutonomyConfig,
   Truth,
   type AutonomyConfigInput,
 } from '@senars/nar';
 import type { NARConfig } from '@senars/nar/facade/config.js';
+import { DriveManager } from '@senars/nar/drives/index.js';
 import { NAR } from '@senars/nar/nar.js';
 import { NarEventBus } from '@senars/nar/types/events.js';
 import { e2eNARConfig } from '../e2e/fixtures.js';
@@ -216,6 +219,55 @@ describe('CORE.19 C5 — honesty', () => {
 
     const disabled = buildNar({});
     expect(disabled.nar.isAutonomyEnabled()).toBe(false);
+  });
+});
+
+describe('CORE.19 C5.6 — drive→meta-goal policy (off by default)', () => {
+  const driveStates = () => new DriveManager({ input: async () => {} }).getAllStates();
+  const goalFor = (driveId: string) =>
+    DRIVE_META_GOAL_TABLE.find((g) => g.driveId === driveId)!.term;
+
+  it('is pure: injects the mapped goal only for a drive below its threshold', () => {
+    const states = driveStates();
+    for (const s of states) s.currentIntensity = s.spec.id === 'competence' ? 0.1 : 0.9;
+
+    const goals = createDriveMetaGoalPolicy().plan({ drives: states, active: { has: () => false } });
+
+    expect(goals.map(String)).toEqual([goalFor('competence').toString()]);
+  });
+
+  it('does not re-inject a goal that is already active', () => {
+    const states = driveStates();
+    for (const s of states) s.currentIntensity = 0.1;
+    const competenceGoal = goalFor('competence');
+
+    const goals = createDriveMetaGoalPolicy().plan({
+      drives: states,
+      active: { has: (term) => term === competenceGoal },
+    });
+
+    expect(goals.some((term) => term === competenceGoal)).toBe(false);
+  });
+
+  it('injects nothing without a bound policy, and the goal with one', async () => {
+    const build = (extra: Partial<NARConfig>) =>
+      new NAR(e2eNARConfig({ eventBus: new NarEventBus(), persistState: false, ...extra }));
+    const injected = (nar: NAR) =>
+      nar.taskManager.getPending().some((task) => String(task.term).includes('switch_strategy'));
+
+    const off = build({});
+    await start(off);
+    off.getDriveManager()!.stimulate('competence', -1);
+    await off.run(1);
+    expect(injected(off)).toBe(false);
+    await stop(off);
+
+    const on = build({ driveMetaGoals: createDriveMetaGoalPolicy() });
+    await start(on);
+    on.getDriveManager()!.stimulate('competence', -1);
+    await on.run(1);
+    expect(injected(on)).toBe(true);
+    await stop(on);
   });
 });
 

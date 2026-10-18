@@ -225,3 +225,11 @@ export {
   StructuredFormalizer,
   validateInterpretation,
 } from './nl/index.js';
+/** The drive→meta-goal injection policy — extracted, pure, and off by default (CORE.19 C5.6). @public */
+export {
+  createDriveMetaGoalPolicy,
+  type DriveMetaGoal,
+  DRIVE_META_GOAL_TABLE,
+  type MetaGoalContext,
+  type MetaGoalPolicy,
+} from './drives/index.js';

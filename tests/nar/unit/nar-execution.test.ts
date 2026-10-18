@@ -2,6 +2,7 @@ import type { RLFPLearner } from '@senars/nar/rlfp';
 import { createGateRegistry } from '../../../nar/src/kernel/GateRegistry.js';
 import { describe, expect, test, vi } from 'vitest';
 import {
+  createDriveMetaGoalPolicy,
   createTaskWeight,
   createTask,
   DEFAULT_CONFIG,
@@ -238,7 +239,7 @@ describe('NARExecution', () => {
           memory: freshMemory,
           taskManager: freshTaskManager,
           cognitiveController: freshController,
-          config: DEFAULT_CONFIG,
+          config: { ...DEFAULT_CONFIG, driveMetaGoals: createDriveMetaGoalPolicy() },
           rlfp,
           driveManager,
         });
@@ -270,7 +271,7 @@ describe('NARExecution', () => {
           memory: freshMemory,
           taskManager: freshTaskManager,
           cognitiveController: freshController,
-          config: DEFAULT_CONFIG,
+          config: { ...DEFAULT_CONFIG, driveMetaGoals: createDriveMetaGoalPolicy() },
           rlfp,
           driveManager,
         });
@@ -293,7 +294,7 @@ describe('NARExecution', () => {
         memory,
         taskManager,
         cognitiveController: controller,
-        config: DEFAULT_CONFIG,
+        config: { ...DEFAULT_CONFIG, driveMetaGoals: createDriveMetaGoalPolicy() },
         rlfp,
         driveManager,
       });

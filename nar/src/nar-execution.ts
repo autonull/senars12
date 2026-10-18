@@ -24,7 +24,7 @@ import {
 import type { ReasoningAboutReasoning } from './self';
 import type { TaskManager } from './task';
 import { classifyTask, type TaskSignal } from './task';
-import { isCompound, operationNameOf, type Term, TermSet, termParser } from './terms';
+import { isCompound, operationNameOf, type Term, TermSet } from './terms';
 import { Truth } from './terms/impls/Truth.js';
 import { type PhaseTimerSummary, summarizeRegions } from './trace';
 import type { Task } from './types';
@@ -40,37 +40,7 @@ export interface CognitiveStateSummary {
   rlfp_reward_avg: number;
 }
 
-/** Drive → meta-goal mapping for homeostatic self-operation injection. */
-const META_GOAL_BY_DRIVE: Record<string, { threshold: number; narsese: string }> = {
-  competence: {
-    threshold: 0.3,
-    narsese: 'switch_strategy((focused-->strategy),(derivation-->strategyType))',
-  },
-  curiosity: { threshold: 0.3, narsese: 'run_scenario_shadow((induction-->profile))' },
-};
-
 const logger = createLogger({ scope: 'nar:execution' });
-
-/**
- * The meta-goal table's parsed form. The narsese is a literal, so the parse is a
- * constant too: doing it per cycle re-parsed two unchanging strings and
- * re-emitted the same failure every cycle when one was malformed.
- *
- * A literal that does not parse throws, and it used to warn and drop the drive.
- * That hid this retirement completely: the two literals stopped parsing, both
- * drives vanished, and every test below still passed — a filter that matches
- * nothing and a filter that was removed look identical from the outside. A
- * literal in this file is a constant, so it is either right or a build break.
- */
-const META_GOALS: readonly { driveId: string; threshold: number; term: Term }[] = Object.entries(
-  META_GOAL_BY_DRIVE
-).map(([driveId, goal]) => ({
-  driveId,
-  threshold: goal.threshold,
-  term: termParser.parse(goal.narsese),
-}));
-
-const META_GOAL_BY_DRIVE_ID = indexBy(META_GOALS, (g) => g.driveId);
 
 export interface NARExecutionOptions {
   memory: MemoryPorts;
@@ -719,12 +689,17 @@ export class NARExecution {
   }
 
   /**
-   * Inject meta-goals driven by homeostatic drive state.
-   * When a drive falls below its threshold, the corresponding self-operation
-   * goal is injected so the tool layer can act (e.g. switch strategy, run scenarios).
+   * Inject meta-goals driven by homeostatic drive state (CORE.19 C5.6).
+   *
+   * The mapping and the decision live behind `config.driveMetaGoals` — an
+   * **optional** policy, absent by default, so a NAR that does not bind one runs
+   * exactly as it did when this path was inert. When a drive falls below the
+   * policy's threshold, the corresponding self-operation goal is injected so the
+   * tool layer can act (e.g. switch strategy, run scenarios).
    */
   private injectMetaGoals(): void {
-    if (!this.driveManager) return;
+    const policy = this.config.driveMetaGoals;
+    if (!policy || !this.driveManager) return;
 
     const activeTerms = new TermSet();
     // De-duplicating against every goal is control work (A7) — and the only
@@ -737,18 +712,12 @@ export class NARExecution {
       activeTerms.add(peeked.term);
     }
 
-    for (const state of this.driveManager.getAllStates()) {
-      const goal = META_GOAL_BY_DRIVE_ID.get(state.spec.id);
-      if (!goal) continue;
-
-      if (state.currentIntensity >= goal.threshold || activeTerms.has(goal.term)) continue;
-
-      this.taskManager.addTask(createTask(goal.term, 'goal', Truth.NEUTRAL));
-      logger.debug('Injected meta-goal from drive', {
-        drive: state.spec.id,
-        intensity: state.currentIntensity,
-        goal: goal.term.toString(),
-      });
+    for (const term of policy.plan({
+      drives: this.driveManager.getAllStates(),
+      active: activeTerms,
+    })) {
+      this.taskManager.addTask(createTask(term, 'goal', Truth.NEUTRAL));
+      logger.debug('Injected meta-goal from drive', { goal: term.toString() });
     }
   }
 
