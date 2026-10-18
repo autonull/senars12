@@ -5,6 +5,7 @@ import { goalToolFeedbackScenario } from './scenarios/goal-tool-feedback.scenari
 import { contradictionDriveAdaptationScenario } from './scenarios/contradiction-drive-adaptation.scenario';
 import { questionPrologResolutionScenario } from './scenarios/question-prolog-resolution.scenario';
 import { lmRuleFallbackScenario } from './scenarios/lm-rule-fallback.scenario';
+import { autonomySteppingScenario } from './scenarios/autonomy-stepping.scenario';
 
 const GOLDEN_SCENARIOS = [
   beliefDerivationAskScenario,
@@ -12,6 +13,7 @@ const GOLDEN_SCENARIOS = [
   contradictionDriveAdaptationScenario,
   questionPrologResolutionScenario,
   lmRuleFallbackScenario,
+  autonomySteppingScenario,
 ];
 
 describe('Golden characterization scenarios (Tier 1)', () => {

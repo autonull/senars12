@@ -228,6 +228,63 @@ describe('CORE.19 C6 — explanation cites real derivation records', () => {
   });
 });
 
+describe('CORE.19 C6 — LM paraphrase is a labeled extra, never the facts', () => {
+  const GENERATION_OUTPUT = {
+    response: 'a implies b, and b implies c, so a implies c.',
+    confidence: 0.7,
+    suggestedFollowups: [],
+    meta: { reasoningType: 'simple deduction', keyPremises: [], gaps: [] },
+  };
+  const withGeneration = () =>
+    buildNar({
+      lmService: createMockLMService({ generateObjectFn: (() => GENERATION_OUTPUT) as never }),
+    });
+
+  it('keeps the engine facts and adds the paraphrase alongside them', async () => {
+    const { nar, events } = withGeneration();
+    await start(nar);
+
+    await nar.input('(a --> b).');
+    await nar.input('(b --> c).');
+    await nar.step();
+
+    const conclusion = nar.getRuleFires().at(-1)!.conclusion;
+    const explanation = await nar.explainDerivation(conclusion);
+
+    expect(explanation.steps).toBeGreaterThan(0);
+    expect(explanation.facts.every((fact) => fact.includes('\u22a2'))).toBe(true);
+    expect(explanation.derivationIds.length).toBe(explanation.steps);
+    expect(explanation.paraphrase).toBe(GENERATION_OUTPUT.response);
+
+    const emitted = events.find((e) => e.channel === 'explanation');
+    expect(emitted?.payload).toMatchObject({ conclusion, paraphrased: true });
+
+    await stop(nar);
+  });
+
+  it('labels each side of a conflict, from the same generator', async () => {
+    const { nar } = withGeneration();
+    await start(nar);
+
+    await nar.input('(a --> b).');
+    await nar.input('(b --> c).');
+    await nar.step();
+    await nar.input('--(a --> c).');
+
+    const pairs = nar.findContradictions();
+    expect(pairs).toHaveLength(1);
+    const conflict = await nar.explainConflict(pairs[0]!.a, pairs[0]!.b);
+
+    const derived = conflict.sides.find((side) => side.steps > 0);
+    const direct = conflict.sides.find((side) => side.steps === 0);
+    expect(derived?.paraphrase).toBe(GENERATION_OUTPUT.response);
+    expect(derived?.facts.length).toBeGreaterThan(0);
+    expect(direct?.paraphrase).toBeUndefined();
+
+    await stop(nar);
+  });
+});
+
 describe('CORE.19 C6 — deterministic generation (null provider)', () => {
   it('falls back to a structured narrative with no LM configured', async () => {
     const { nar } = buildNar();

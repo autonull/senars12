@@ -467,7 +467,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - **C5.5 checkpoint/recover.** The pass runs the sweep and reports, but does not yet checkpoint the C4 boundary before it ("recoverable from checkpoint"). Re-entry: reuse the C4 boundary codec to write a pre-pass checkpoint plus a `recoverConsolidation()` reader.
 - **C5.2 the UI never drives cycles in autonomous modes.** The kernel loop is now the single driver, but the UI server still drives via `runCycles` (`ui/src/server/server-utils.ts`, D12); rewiring that is a UI-package edit — logged in §9, not chased (halt rule 1).
 
-### C6 — Neuro-symbolic translation & explanatory voice — **DONE (C6.1–C6.6; C6.4 paraphrase test + C6.2 `command` open)**
+### C6 — Neuro-symbolic translation & explanatory voice — **DONE (C6.1–C6.6; C6.2 `command` open)**
 
 **Done:**
 - C6.1: a `Formalizer` contract (`nar/src/nl/formalizer.ts`) with `nlToFormal(text, ctx?) → PerceivedInterpretation` and `formalToNl(input) → GenerationOutput`. `PerceivedInterpretation` *is* a `FormalizationBatch` plus provenance (`createdBy: 'user' | 'llm-proposed'`, `provider`, optional `rejection`), so it feeds the perception gate without unwrapping. Two providers: `StructuredFormalizer` (the null/D10 path — `parseTaskTolerant` formalizes Narsese deterministically, and a non-Narsese utterance is *declared* rejected, never silent) and `LmFormalizer` (the hosted path, wrapping the existing safe pipeline). `createFormalizer(lm)` is the D10 boundary: an absent LM is a valid configuration.
@@ -482,7 +482,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 **Evidence:** `core19-c6` (12), `kernel-gates`, `core19-c3`, `core19-c5`, `nar-events-bridge` green. §11 core battery green (`typecheck:packages`, `typecheck:bin`, `lint`, `deps:gate`, `deps:direction`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `control-budgets`, `gates:one-cycle-path`, `exports:check`, `exports:barrels`); `test:determinism`, `test:hermetic`, `answer:no-fabrication`, `rule:has-fallback`, `cycle:no-provider` green; `pnpm --dir ui typecheck` green. `test:unit` shows only the §12 reds (no new ones). `pnpm lint` was broken by the gitignored `.shadow/` shadow-worktree dirs biome still scanned; `biome.json` now excludes `!**/.shadow`, so the gate matches the repo's own ignore rules (§C8). **C6.5 slice:** `core19-c6` (12), the CORE.19 `m0`/`c1`/`c3`/`c4`/`c5`/`c7` suites, `core19-c2`, `nar-events-bridge`, `eventlog/query` all green; `typecheck:packages`/`typecheck:bin` clean, `lint` clean, the §11 gates above re-run green.
 
 **Remaining (deliberately deferred, not forgotten):**
-- **C6.4 paraphrase.** The hosted-belief paraphrase path exists but is only exercised via `formalToNl`; a test with a real LM is not written (the mock's `GenerationOutput` contract is not asserted). `explainConflict` likewise takes each side's paraphrase from `explain` when an LM is configured, but no test asserts the conflict-level paraphrase (each side is explained by the same generator as `explainDerivation`).
+- **C6.4 paraphrase — DONE (this slice).** A test drives the hosted paraphrase path: a mock LM's `GenerationOutput` becomes the labeled `paraphrase` while the engine facts and cited `derivationIds` remain (`facts` still engine-derived, ids resolvable), the emitted `explanation` reports `paraphrased: true`, and a conflict's derived side carries the paraphrase while its directly-held side stays paraphrase-free (each side explained by the same generator as `explainDerivation`). See §13.
 - **C6.2 `command` tasks.** A `command` candidate is admitted (the task kind is real) but the formalizer produces none; the firewall maps `command` to the `goal` kind for the operator-position check.
 - **C6.5 resolution vs flagging.** The showcase *flags* the conflict (honest — the kernel neither retracts nor revises a belief against its negation); it does not model a resolution because none exists to model. If NAL negation-revision lands, `explainConflict` should cite it.
 
@@ -506,7 +506,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - C7.6: `--benchmarks` remains a declared placeholder (honest); implement when a run produces costly-derivation stats to show.
 - C7.4 seam: the MCP/status readers use the NAR's/default `statePath`; a NAR with a non-default path is covered for MCP (`getConfig().statePath`) but `--status`/`--doctor` read the default path only (they build a NAR without the app's overrides). Logged, not chased.
 
-### C8 — Batteries, gates, CI & security hardening — **PARTIAL (C8.1, C8.2, C8.3, C8.4 partial, C8.5, C8.6, C8.7 done)**
+### C8 — Batteries, gates, CI & security hardening — **PARTIAL (C8.1, C8.2, C8.3, C8.4, C8.5, C8.6, C8.7 done; C8.4's flagged-out subsystems open)**
 
 **Done:**
 - C8.1 (partial): `egress:invariant` is added to `GATES` (`scripts/lib/gates.ts`), so `pnpm gates` matches CI. The `budgetgate-verification` exclusion in `test:unit` is **kept deliberately**: the `todo19-profiles` grep-guard asserts both fast and slow lanes name the suite, and the quarantined `.too_slow` file is what the exclusion documents — removing it is a red, so the "broken reference" is a guard-enforced exclusion, not a defect.
@@ -522,7 +522,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 **Evidence:** `pnpm complexity:budget` green (all 9 rows PASS); `refactor4-budget` (12) green; gate preflight (script + `ci.yml` coverage) clean.
 
 **Remaining:**
-- C8.4 (determinism half): hermetic now covers autonomy + persistence, but no autonomy scenario was added to `GOLDEN_SCENARIOS` (the shared determinism gate compares `stateHash` across runs; the autonomy heartbeat's wall-clock window would need the injected `clock` asserted first). The event bus is already tapped by the harness.
+- C8.4 (determinism half) — **DONE (this slice).** An `autonomy-stepping` scenario joins `GOLDEN_SCENARIOS` in both the determinism gate and the golden-characterization gate: a NAR in `mode:'stepping'` with seeded `rng`/`clock`/`ids` takes 6 `autonomyTick()`s (heartbeat + curiosity + consolidation), and every id and the `stateHash` agree across runs. The harness gained an `autonomy` step type; the injected `fixedClock` freezes the wall-clock window, so the only bound in play is the cycle budget. See §13.
 - C8.4 (the flagged-out subsystems): System One manifold, episode consolidator and governance stay outside hermetic coverage — they require their feature flags, and a test that cannot reach them cannot gate them (the harness doc says so).
 
 ### C9 — Document the hardened core — **DONE (C9.1, C9.2, C9.4 done; C9.3 is UI.19-owned)**
@@ -535,3 +535,17 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 
 **Remaining:**
 - C9.3: `PHILOSOPHY.md` does not exist in the tree (only referenced by the plans); its intent (transparent, auditable, uncapturable reasoning; AGPL rationale; no sentience claims) is UI.19-owned. Nothing to keep consistent here — re-enter with UI.19 if it lands.
+
+### Closing gaps — C6.4 paraphrase + C8.4 autonomy determinism — **DONE**
+
+**Status:** Two deferred sub-items closed without touching production code (tests-only), so no gate, budget or boundary moved.
+
+**Done:**
+- C6.4 (paraphrase): `tests/nar/core19-c6.test.ts` gained an "LM paraphrase is a labeled extra" block (2 tests). A mock LM whose `generateObjectFn` returns a `GenerationOutput` drives `explainDerivation`, asserting the paraphrase is the labeled `paraphrase` while the engine `facts` stay engine-derived (`⊢`-shaped), `derivationIds` remain resolvable, and the emitted `explanation` reports `paraphrased: true`. The second test covers `explainConflict`: the derived side carries the paraphrase, the directly-held side stays paraphrase-free.
+- C8.4 (determinism): `tests/e2e/harness.ts` gained an `autonomy` `ScenarioStep` (`{type:'autonomy', ticks?}` → `nar.autonomyTick()` per tick). A new `tests/e2e/scenarios/autonomy-stepping.scenario.ts` (seed 4242, `mode:'stepping'`, `maxCyclesPerWindow:20`, `consolidation.intervalCycles:1`) joins `GOLDEN_SCENARIOS` in both `determinism-gate.test.ts` and `golden-scenarios.test.ts`. The injected `fixedClock` freezes the wall-clock window; every id and the `stateHash` agree across runs.
+
+**Files touched:** `tests/e2e/harness.ts`, `tests/e2e/scenarios/autonomy-stepping.scenario.ts` (new), `tests/e2e/determinism-gate.test.ts`, `tests/e2e/golden-scenarios.test.ts`, `tests/nar/core19-c6.test.ts`.
+
+**Evidence:** `pnpm test:determinism` green (12 = 6 scenarios × 2), `pnpm test:hermetic` green (9), golden-characterization green (12), `core19-c6` (14), the full CORE.19 suite set + `mcp-resources` green (67). `pnpm lint` clean, `pnpm typecheck:packages` clean, root `pnpm typecheck` shows the same §12 reds only (no new ones). No production LOC moved, so `complexity:budget` and the `nar.ts` monolith hold.
+
+**Remaining (unchanged by this slice):** C5.5 consolidation checkpoint/recover, C5.6 inert drives (needs a drive-equilibrium redesign or a D15 retirement), C5.2 the UI-driver seam (a UI-package edit, §9), C6.2 `command` tasks, C7.6 `--benchmarks`, and C8.4's flagged-out subsystems (System One manifold, episode consolidator, governance) which stay outside hermetic coverage because a test that cannot reach them cannot gate them.

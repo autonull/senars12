@@ -24,6 +24,7 @@ export type ScenarioStep =
       truth?: { f: number; c: number };
     }
   | { type: 'run'; cycles?: number }
+  | { type: 'autonomy'; ticks?: number }
   | { type: 'assert'; check: (trace: NormalizedTrace) => void | Promise<void> };
 
 export interface ExpectedTrace {
@@ -177,6 +178,11 @@ export class ScenarioHarness {
           this.cycleCount++;
           await this.nar!.run(1);
         }
+        break;
+      }
+      case 'autonomy': {
+        const ticks = step.ticks ?? 1;
+        for (let i = 0; i < ticks; i++) await this.nar!.autonomyTick();
         break;
       }
       case 'assert': {
