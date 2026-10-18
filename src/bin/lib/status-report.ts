@@ -98,10 +98,11 @@ const collect = async (): Promise<StatusReport> => {
     persisted: null,
   };
 
-  const boundary = readPersistedBoundary();
+  const statePath = appConfig.backends.nar.statePath ?? DEFAULT_NAR_STATE_PATH();
+  const boundary = readPersistedBoundary(statePath);
   if (boundary)
     report.persisted = {
-      statePath: DEFAULT_NAR_STATE_PATH(),
+      statePath,
       cycleCount: boundary.cycleCount,
       pendingTasks: boundary.pendingTasks.length,
     };

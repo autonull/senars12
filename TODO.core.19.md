@@ -290,7 +290,7 @@ One continuous headless session, `LM_PROVIDER=mock` first, then with a key confi
 | True replay-rewind (vs declared-partial) | The C2 checkpoint is stable and C4 replay is byte-identical |
 | NAR-owned stateful RNG | **Entered by C4.1** for a caller-supplied `StatefulRandomSource` (position round-tripped). Re-enter only for a *default* seeded stream the NAR mints itself rather than accepting |
 | Distributed / OTel event export | The single stream exists and is bounded |
-| Typed `nar:derivation` producer | C3's provenance work wants the term/lineage it already carries |
+| Typed `nar:derivation` producer | **Entered** — typed in `NAREventMap` (a live liveness ping, no bridge mapping); re-enter only if the durable stream needs the coarse "belief admitted" signal as a cognitive event rather than `task.admitted`/`derivation.accepted` |
 | Derivation fire-ring durability | **Entered by C4.3** — the fire ring is now written beside the gate ring (its `derivation.accepted` form) and re-seeded on restore (`DerivationLedger` + `DerivationRecorder.restoreFires`). Re-enter only if the completed-chain records (not the per-fire ring) should survive a restart |
 | System One calibration activation | Real graded labels exist; honesty holds |
 | Performance + accessibility gates | Release-to-others replaces release-as-proof |
@@ -393,8 +393,8 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 **Evidence:** `core19-c1` (4), `eventlog/query` (4), `nar-events-bridge`, `core19-m0`, `agent-phases`, `eventlog-query` green; `pnpm test:unit` shows no new reds (see §12 for the reds that pre-date this slice). `pnpm test:determinism`, `persistence:replay`, and the §11 core battery (`typecheck`, `typecheck:bin`, `typecheck:packages`, `deps:gate`, `deps:direction`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `control-budgets`, `gates:one-cycle-path`, `exports:check`, `exports:barrels`, `lint`) green.
 
 **Remaining (deliberately deferred, not forgotten):**
-- `nar:derivation` (`nar/src/nar-execution.ts` `admit()`, `:410`) is still emitted on the bus but is **not typed** in `NAREventMap` — fold it into the stream (fold into C3, whose provenance work reads the same term/lineage) rather than inventing a parallel seam.
-- `tool.request`/`input.user` durability is owned by the explicit appends in `phases.ts` (`act`/`recall`), not the funnel; when C4's consistency boundary lands, make the ownership explicit in the boundary doc.
+- **`nar:derivation` — DONE (see the "last non-blocked items" section).** It is now typed in `NAREventMap` (`nar/src/types/events.ts`). No bridge mapping: the durable `task.admitted`/`concept.activated`/`derivation.accepted` events already carry the admission with provenance, so it stays the live liveness ping the proactive-notification path reads (D15).
+- **`tool.request`/`input.user` durability ownership — DONE.** Declared in `core/src/eventlog/durability.ts` (they are appended explicitly by the cycle, not the funnel) and now cross-referenced from the consistency-boundary doc (`nar/src/state/boundary.ts`).
 
 ### C2 — Kernel control plane & cycle semantics — **DONE (C2.1–C2.6; C2.1's UI-side `runCycles` seam open)**
 
@@ -427,7 +427,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 **Remaining (deliberately deferred, not forgotten):**
 - C3.4 (partial): the fire record and its `derivation.accepted` event carry resolvable refs — `stepId`, `premises` (terms), `conclusion`, `evidenceLineage` (stepIds/taskId), `cycle`, `correlationId` — and `getRuleFiresByConclusion` resolves a derived block's parents by term. The full `derivation.record` emission still happens UI-side (`ui/src/server/index.ts` mints it from a recorder drain), which is a D12 seam logged in §9, not chased here (halt list rule 5). The UI aspects `origin`/`ambient`/`direct` remain declared gaps (§9).
 - C3.3: `persistGateLogs`/`loadGateEvents` (single-file `appendJsonl`) stay for one-shot/test use; the runtime path is `GateEventLedger`. C4 wires the ledger's `read()` into replay and declares the boundary.
-- C3.1: `evidenceLineage` is resolvable only within the fire ring's window (`RULE_FIRE_RING_CAP`); a parent evicted before the child fired resolves to the taskId fallback. Widening that window, or persisting lineage with the boundary, is C4's call.
+- **C3.1 `evidenceLineage` window — COVERED by the durable fire ring (C4.3).** The fire ring is now persisted (`DerivationLedger`) and re-seeded on restart, so `fireById`/`getRuleFiresByConclusion` resolve a derived block's parents to their real records across a restart, not only within a single run. Within a run the window is still `RULE_FIRE_RING_CAP`; a wider window would need lineage persisted apart from the ring, which the plan does not ask for.
 
 ### C4 — Continuity: persistence, restore & deterministic replay — **DONE (C4.1–C4.6; C4.2's `SerializedMemory` path resolved as distinct-purpose, C4.3's derivation-half-of-log remains an open seam)**
 
@@ -491,7 +491,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - **C6.5 resolution vs flagging.** The showcase *flags* the conflict (honest — the kernel neither retracts nor revises a belief against its negation); it does not model a resolution because none exists to model. If NAL negation-revision lands, `explainConflict` should cite it.
 
 
-### C7 — Non-UI reach: CLI, MCP, HTTP, SDK — **PARTIAL (C7.1–C7.6 code done; C7.5 prose lands with C9.2)**
+### C7 — Non-UI reach: CLI, MCP, HTTP, SDK — **DONE (C7.1–C7.6; C7.5 prose in `USAGE.md`)**
 
 **Done:**
 - C7.1: one-shot CLI — `src/bin/lib/oneshot.ts`, wired into `bot.ts` `runNonInteractive` ahead of the reporting modes. Input is **positional Narsese** (no `-b`/`-g`/`-q`: the sentence's punctuation *is* the task type, and one argument may hold several sentences), with `--steps` and `--json`. It runs the bare kernel (`createNAR`, D10 — no LM required) and for each question prints the answer with its verified derivation. `parseFlags` now skips a leaked `--` separator, so the standard `pnpm run bot -- "<narsese>"` reaches the script. `tests/cli/oneshot.test.ts` (5) covers reading/splitting, the `--` separator, the round-trip, and the JSON result.
@@ -506,9 +506,9 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 **Evidence:** `core19-c7` (8), `mcp-resources` (2), `io/http-metrics`, `cli/oneshot` green; `typecheck:bin`/`typecheck:packages` clean; `exports:check`, `exports:barrels`, `deps:gate`, `deps:direction`, `lint` green.
 
 **Remaining:**
-- C7.5 (prose): `USAGE.md` documenting `Agent`/`NAR`/`createAgent`, `getRecentDerivations`/`askWithDerivation` first-class, experimental methods — lands with C9.2 (do not duplicate).
-- C7.6: `--benchmarks` remains a declared placeholder (honest); implement when a run produces costly-derivation stats to show.
-- C7.4 seam: the MCP/status readers use the NAR's/default `statePath`; a NAR with a non-default path is covered for MCP (`getConfig().statePath`) but `--status`/`--doctor` read the default path only (they build a NAR without the app's overrides). Logged, not chased.
+- C7.5 (prose): `USAGE.md` documents `Agent`/`NAR`/`createAgent`, `getRecentDerivations`/`askWithDerivation` first-class, experimental methods — landed with C9.2.
+- **C7.6 `--benchmarks` — DONE** (see the "last non-blocked items" section): a real measured report (`src/bin/lib/benchmarks.ts`), no longer a placeholder.
+- **C7.4 seam — DONE** (see the "last non-blocked items" section): `backends.nar.statePath` makes the path configurable, and `--status`/`--doctor` honor it instead of hard-coding the default.
 
 ### C8 — Batteries, gates, CI & security hardening — **PARTIAL (C8.1–C8.7 done; System One manifold alone stays outside hermetic coverage)**
 
@@ -623,3 +623,19 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 **Evidence:** `pnpm test:hermetic` green (10), `pnpm test:determinism` green (14 = 7 scenarios × 2), golden-characterization green (14), the full CORE.19 suite (`core19-*` 61) green; `pnpm lint` clean; root `pnpm typecheck` shows the same §12 reds only (**no new ones**; no `tests/e2e` error). Tests-only — no production LOC moved, so `complexity:budget` and the `nar.ts` monolith hold.
 
 **Remaining:** **System One's manifold alone stays outside hermetic coverage** — reaching it needs an embedding backend (encoder model), not just a flag, so it stays a declared gap. Everything else in C8 is done.
+
+### C1 (stream) + C7.4/C7.6 (non-UI reach) — the last non-blocked items — **DONE**
+
+**Status:** The three deferred items that were neither blocked by the halt list (UI-package edits) nor by a missing dependency (an embedding backend) are closed: the state path is configurable and honored by the durability readers, `--benchmarks` reports real measured costs, and `nar:derivation` is a typed member of the one bus.
+
+**Done:**
+- C1 (`nar:derivation`): added `'nar:derivation': { term: string; confidence: number; timestamp: number }` to `NAREventMap` (`nar/src/types/events.ts`) — it was emitted on the NAR bus but untyped, so it fell through the bus's index signature. No bridge mapping is added: the durable `task.admitted`/`concept.activated`/`derivation.accepted` events already carry the admission with provenance, so this stays a live liveness ping (the proactive-notification path's signal), documented as such on the type (D15 — a live signal, not a second log).
+- C1 (durability ownership): the boundary doc (`nar/src/state/boundary.ts`) now states that `input.user`/`tool.request` join the durable log through the cycle's explicit append (a later phase joins on the returned id), not the emit funnel, cross-referencing `core/src/eventlog/durability.ts`.
+- C7.4: `backends.nar.statePath` (`src/config/schema.ts`) is threaded into `narCoreOverrides` (`src/bin/lib/lifecycle.ts`), so a NAR's persisted-state path is configurable. `--status`/`--doctor` resolve `config.backends.nar.statePath ?? DEFAULT_NAR_STATE_PATH()` and read/print the same path a restart would resume (`src/bin/lib/{status,doctor}-report.ts`). The seam is closed: the readers no longer hard-code the default path.
+- C7.6 (`--benchmarks`): the placeholder `[]` is replaced by a real measurement (`src/bin/lib/benchmarks.ts`) — a fixed LM-free syllogism workload on a bare kernel, ranked by the `rule:applied` events' own `cpuMs`/`duration`. Measured data, never simulated (D15). `doctor --benchmarks` renders it; JSON carries a typed `DerivationCost[]`.
+
+**Files touched:** `nar/src/types/events.ts`, `nar/src/state/boundary.ts`, `src/config/schema.ts`, `src/bin/lib/lifecycle.ts`, `src/bin/lib/status-report.ts`, `src/bin/lib/doctor-report.ts`, `src/bin/lib/benchmarks.ts` (new), `tests/config/schema.test.ts`, `tests/cli/benchmarks.test.ts` (new).
+
+**Evidence:** `tests/config/schema.test.ts` (6), `tests/cli/benchmarks.test.ts` (1), the CORE.19 suite (`core19-*` 61), `mcp-resources`, `cli/oneshot`, `io/http-metrics` green; §11 core battery green (`typecheck` — same §12 reds only, `typecheck:bin`, `typecheck:packages`, `deps:gate`, `deps:direction`, `core:no-lm`, `memory:ports`, `attention:write-surface`, `control-budgets`, `gates:one-cycle-path`, `exports:check`, `exports:barrels`, `resource:policy`, `lint`); `test:determinism` (14), `test:hermetic` (10), `persistence:replay` (3) green; `test:unit` shows only the §12 reds (`metta-conversation`, `refactor3-hygiene`, `server/event-catalog`, `server/field-catalog`), **no new ones**. Tests/config/bin only — no `nar/src` production LOC moved beyond the two doc/type edits, so `complexity:budget` (suspended) and the `nar.ts` monolith hold.
+
+**Remaining (all blocked, not skipped):** C2.1 (`runCycles` kernel-side), C3.4 (the UI-side `derivation.record` emission) and C5.2 (the UI cycle driver) are UI-package edits the halt list forbids; the completed-chain ring is a UI drain handoff (§9); C8.4's System One manifold needs an embedding backend; C9.3 (`PHILOSOPHY.md`) is UI.19-owned. C3.1's `evidenceLineage` window is **covered by the durable fire ring** (C4.3): after a restart the ring is re-seeded from `DerivationLedger`, so `fireById` resolves a derived block's parents to their real records (within the ring's `RULE_FIRE_RING_CAP`), never merely the taskId fallback.

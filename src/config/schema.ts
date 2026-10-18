@@ -138,6 +138,12 @@ export const backendsSchema = z
         /** NAR inference cycles per engine step (`NARConfig.cyclesPerStep`). */
         cyclesPerStep: positiveInt.optional(),
         /**
+         * Where persisted NAR state lives (`NARConfig.statePath`). Absent ⇒ the
+         * cache default, so the durability readers (`--status`/`--doctor`, MCP)
+         * report the same path a restart would resume (CORE.19 C7.4).
+         */
+        statePath: z.string().optional(),
+        /**
          * The kernel-owned autonomy loop (CORE.19 C5). Absent ⇒ off, and the
          * NAR is pull-driven exactly as before. A partial override over the
          * declared defaults; the reader lives in `narCoreOverrides`.

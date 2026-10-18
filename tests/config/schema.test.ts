@@ -29,8 +29,14 @@ describe('appConfigSchema: previously stripped blocks', () => {
     expect(config.bot.lmRules.rules).toHaveLength(1);
   });
 
-  it('maps agent identity onto the bot profile', () => {
-    const config = appConfigSchema.parse({ agent: { name: 'senars', persona: 'curious' } });
+  it('carries the configured NAR state path (CORE.19 C7.4), absent by default', () => {
+    expect(appConfigSchema.parse({ backends: { nar: { statePath: '/tmp/nar' } } }).backends.nar.statePath).toBe(
+      '/tmp/nar'
+    );
+    expect(appConfigSchema.parse({}).backends.nar.statePath).toBeUndefined();
+  });
+
+  it('maps agent identity onto the bot profile', () => {    const config = appConfigSchema.parse({ agent: { name: 'senars', persona: 'curious' } });
     expect(config.profile.name).toBe('senars');
     expect(config.profile.personality).toBe('curious');
   });

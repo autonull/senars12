@@ -30,7 +30,10 @@ import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from './codec.js';
  * Deliberately omitted, never implied:
  *  - archive / forgetting internals, link caches and embedding caches
  *  - self-observability and metrics counters
- *  - the event-log position (derived by re-reading the log)
+ *  - the event-log position (derived by re-reading the log); `input.user` and
+ *    `tool.request` are appended to that log explicitly by the cycle rather than
+ *    the emit funnel, because a later phase joins on the returned id — the
+ *    ownership is declared in `eventlog/durability.ts`, not this boundary
  */
 export interface ConsistencyBoundary {
   /** The kernel cycle counter — a resumed run continues from N, not 0. */

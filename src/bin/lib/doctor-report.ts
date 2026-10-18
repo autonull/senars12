@@ -7,7 +7,7 @@
  *   --json           Output machine-readable JSON
  *   --degradation    Show graceful degradation posture
  *   --routing-log    Show routing telemetry summary
- *   --benchmarks     Show top-10 costly derivations
+ *   --benchmarks     Show the costliest derivations from a fixed workload
  *   --deep           Run shared readiness checks against a bare kernel (LM/gates)
  */
 
@@ -46,6 +46,7 @@ import {
 import { loadConfig } from '../../config/index.js';
 import { jsonMode } from '../commands/args.js';
 import { credentialReport } from './doctor-checks.js';
+import { type DerivationCost, runDerivationBenchmarks } from './benchmarks.js';
 
 const logger = createLogger({ scope: 'doctor' });
 
@@ -123,7 +124,7 @@ interface DoctorOutput {
     credentials: Record<string, boolean>;
   };
   routingLog?: { enabled: boolean; bufferSize: number; logPath: string };
-  benchmarks?: unknown[];
+  benchmarks?: DerivationCost[];
   deep?: HealthReport;
   /** The durable consistency boundary on disk (CORE.19 C7.6); `null` when none is saved. */
   persisted: { statePath: string; cycleCount: number; pendingTasks: number } | null;
@@ -159,14 +160,6 @@ const main = async (): Promise<void> => {
     persisted: null,
   };
 
-  const boundary = readPersistedBoundary();
-  if (boundary)
-    output.persisted = {
-      statePath: DEFAULT_NAR_STATE_PATH(),
-      cycleCount: boundary.cycleCount,
-      pendingTasks: boundary.pendingTasks.length,
-    };
-
   // Load config
   try {
     const config = await loadConfig();
@@ -176,6 +169,15 @@ const main = async (): Promise<void> => {
       backends: { nar: config.backends.nar.enabled },
     };
     if (config.routing) setRouting(config.routing as never);
+
+    const statePath = config.backends.nar.statePath ?? DEFAULT_NAR_STATE_PATH();
+    const boundary = readPersistedBoundary(statePath);
+    if (boundary)
+      output.persisted = {
+        statePath,
+        cycleCount: boundary.cycleCount,
+        pendingTasks: boundary.pendingTasks.length,
+      };
   } catch (e) {
     output.config = { valid: false, error: errMsg(e) };
   }
@@ -259,9 +261,9 @@ const main = async (): Promise<void> => {
     }
   }
 
-  // Benchmarks placeholder
+  // Benchmarks: a real, fixed LM-free workload, ranked by measured rule-fire cost.
   if (showBenchmarks) {
-    output.benchmarks = [];
+    output.benchmarks = await runDerivationBenchmarks();
   }
 
   if (jsonOutput) {
@@ -313,8 +315,13 @@ const main = async (): Promise<void> => {
     }
 
     if (showBenchmarks) {
-      console.log('\n--- Benchmarks ---');
-      console.log('(not yet implemented)');
+      console.log('\n--- Costly Derivations (measured rule fires) ---');
+      if (!output.benchmarks?.length) console.log('(no rule fires produced by the benchmark workload)');
+      else
+        for (const b of output.benchmarks)
+          console.log(
+            `  ${b.rule.padEnd(20)} ${b.conclusion}  calls=${b.calls} cpuMs=${b.cpuMs.toFixed(2)} durationMs=${b.durationMs.toFixed(2)}`
+          );
     }
 
     if (output.deep) {

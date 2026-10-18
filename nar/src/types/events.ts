@@ -114,6 +114,14 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
    * break the seeded trace (D13).
    */
   'derivation:accepted': Omit<DerivationStep, 'timestamp'>;
+  /**
+   * A new belief/goal/question was admitted (a first sighting), the coarse
+   * liveness ping the proactive-notification path listens for. Emitted on the one
+   * NAR bus; it has no `CognitiveEvent` counterpart, because it announces an
+   * admission the durable `task.admitted`/`concept.activated`/`derivation.accepted`
+   * events already carry with provenance (D15 — a live signal, not a second log).
+   */
+  'nar:derivation': { term: string; confidence: number; timestamp: number };
   'memory:pressure': { level: number; utilization: number };
   'memory:consolidated': { conceptsRemoved: number; conceptsArchived: number };
   'lm:call': { modelId: string; inputTokens: number; outputTokens: number; duration: number };
