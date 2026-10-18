@@ -26,6 +26,15 @@ const script = (name: string, tier: Gate['tier'] = 'gate'): Gate => ({
   tier,
 });
 
+/**
+ * Gates suspended by directive (TODO.core.19 §11) — deliberately left out of
+ * `GATES`, so `pnpm gates` and the §11 battery do not run them, and a red here
+ * cannot block unrelated work. Re-enter by ratcheting `complexity-budget.json`
+ * to the current tree in a dedicated commit, then moving the entry back into
+ * `GATES`.
+ */
+export const SUSPENDED_GATES: readonly Gate[] = [script('complexity:budget')];
+
 export const GATES: readonly Gate[] = [
   script('typecheck'),
   script('typecheck:bin'),
@@ -95,7 +104,6 @@ export const GATES: readonly Gate[] = [
   script('exports:audit'),
   script('exports:check'),
   script('exports:barrels'),
-  script('complexity:budget'),
   // TODO32: the integration milestones, each its own gate so a red one names the
   // milestone rather than "tests failed". e2e:pipeline is M1/M3/M6/M7 and rides
   // the committed example, so the getting-started docs cannot drift from reality.

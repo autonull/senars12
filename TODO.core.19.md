@@ -317,9 +317,16 @@ pnpm control-budgets
 pnpm gates:one-cycle-path
 pnpm exports:check
 pnpm exports:barrels
-pnpm complexity:budget
 pnpm lint
 ```
+
+> **SUSPENDED (2026-10-18): `complexity:budget`.** Left out of `GATES`
+> (`scripts/lib/gates.ts` `SUSPENDED_GATES`) and not required to pass, because a
+> stale baseline blocks unrelated work. Re-enter by ratcheting
+> `complexity-budget.json` to the current tree in a dedicated commit (§C8.6) and
+> moving the entry back into `GATES`. The `refactor4-budget` falsification test
+> keeps asserting the gate's *mechanism*; only the "checked-in budget is green"
+> assertion is relaxed for the suspension.
 
 Add per workstream:
 - **C4:** `pnpm test:determinism`, `pnpm test:hermetic`, `pnpm persistence:replay`
@@ -335,7 +342,7 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 | Prompt-perception (root alias gap) | `tests/framework/prompt-perception.test.ts` | red at root; green in `ui`; aliases only in `ui/vite.aliases.ts` |
 | Server catalog tests | `tests/unit/server/{lens,field,event}-catalog.test.ts`, `layout-registry`, `scenarios`, `config-reset`, `test-endpoints`, `unified-graph-projection` | red |
 | Refactor suites | `tests/nar/refactor3-*.test.ts`, `tests/nar/refactor4-*.test.ts` | red |
-| `complexity:budget` baseline stale (workspaceCount 6→10, exportSubpaths 86→87, productionLOC, appendOnlyPersistenceSites 3→4) | `complexity-budget.json` | red at HEAD before CORE.19; ratchet the baseline in a dedicated commit (§C8.6) |
+| `complexity:budget` baseline stale (workspaceCount 6→10, exportSubpaths 86→87, productionLOC, appendOnlyPersistenceSites 3→4) | `complexity-budget.json` | **SUSPENDED 2026-10-18** (directive): removed from `GATES`, not in the §11 battery. Re-enter when the baseline is ratcheted (§C8.6) |
 | `nar.ts` monolith budget (952 LOC > 940 at HEAD; +33 for the C2 control-plane bindings) | `tests/nar/refactor3-hygiene.test.ts` | red at HEAD; not chased (§rule 6) |
 | Broken reference | `tests/nar/rl/budgetgate-verification.test.ts` (referenced by `test:unit`; file is `.too_slow`) | C8 fixes |
 | Quarantined suites | `tests/nar/{refactor1-source-reputation,refactor1-aikr-induction,rl/budgetgate-verification}.test.ts.too_slow` | C8 triages |
@@ -345,6 +352,9 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 ## 13. Progress log
 
 > Append per workstream as UI.18 does: status, files touched, evidence, friction logged against §9.
+
+**Suspensions:**
+- **2026-10-18 — `complexity:budget` suspended by directive.** Removed from `GATES` (`scripts/lib/gates.ts` → `SUSPENDED_GATES`) and from the §11 battery; the `refactor4-budget` falsification test keeps asserting the mechanism, not the stale baseline. Re-entry: ratchet `complexity-budget.json` to the current tree in a dedicated commit and move the entry back.
 
 ### M0 — Kernel heartbeat proof — **DONE**
 
