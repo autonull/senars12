@@ -13,8 +13,8 @@
  */
 
 import { createNAR, type NAR } from '@senars/nar';
-import { taskTypeForPunctuation, Truth } from '@senars/nar/terms';
-import type { Flags } from '@senars/util';
+import { PUNCTUATION_BY_TASK_TYPE, taskTypeForPunctuation, Truth } from '@senars/nar/terms';
+import { escapeRegExp, type Flags } from '@senars/util';
 
 /** The answer surface `askWithDerivation` returns, without a `./query` subpath. */
 type Answer = Awaited<ReturnType<NAR['askWithDerivation']>>;
@@ -26,16 +26,24 @@ export interface OneShotRequest {
   json: boolean;
 }
 
+/**
+ * The grammar's one mark set (`PUNCTUATION_BY_TASK_TYPE`), read as a character
+ * class — never a second `[.!?]` literal that could drift from it.
+ */
+const MARKS = Object.values(PUNCTUATION_BY_TASK_TYPE).map(escapeRegExp).join('');
+const TASK_END = new RegExp(`(?<=[${MARKS}])\\s+`);
+const TRAILING_MARK = new RegExp(`([${MARKS}])\\s*$`);
+
 /** One argument may hold several sentences; a task ends at its punctuation mark. */
 const splitTasks = (text: string): string[] =>
   text
-    .split(/(?<=[.!?])\s+/)
+    .split(TASK_END)
     .map((sentence) => sentence.trim())
     .filter(Boolean);
 
-/** The sentence's task type, read from its trailing punctuation; bare input is a belief. */
+/** The sentence's task type, from the one punctuation source; bare input is a belief. */
 const typeOf = (sentence: string) =>
-  taskTypeForPunctuation(/([.!?])\s*$/.exec(sentence.trim())?.[1] ?? '.') ?? 'belief';
+  taskTypeForPunctuation(TRAILING_MARK.exec(sentence.trim())?.[1] ?? '') ?? 'belief';
 
 /** A one-shot is any invocation with positional Narsese and no reporting-mode flag. */
 export const isOneShot = (flags: Flags): boolean =>

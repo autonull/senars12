@@ -106,10 +106,15 @@ const stateSummary = (nar: NAR) => ({
   drives: nar.getDriveManager?.()?.getAllStates?.() ?? [],
 });
 
+/** Recent episodic entries, or `[]` when the agent exposes no episodic store. */
+const recentEpisodes = async (agent: Agent | undefined, limit: number) => {
+  const episodic = await agent?.getEpisodicMemory?.();
+  return episodic ? await episodic.getEpisodes({ limit }) : [];
+};
+
 /** Memory health — episode volume, tool retrieval success, consolidation state. */
 const memoryStatus = async (nar: NAR, agent?: Agent) => {
-  const episodic = await agent?.getEpisodicMemory?.();
-  const episodes = episodic ? await episodic.getEpisodes({ limit: 10_000 }) : [];
+  const episodes = await recentEpisodes(agent, 10_000);
   const retrieval = nar.tools.getAllFeedback().reduce(
     (acc: { calls: number; ok: number }, s) => ({
       calls: acc.calls + s.totalCalls,
@@ -166,11 +171,9 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
     () => stateSummary(nar)
   );
 
-  json('episodes', 'nar://episodes', 'Episodes', 'Recent episodic memory entries', async () => {
-    const episodic = await agent?.getEpisodicMemory?.();
-    const episodes = episodic ? await episodic.getEpisodes({ limit: 50 }) : [];
-    return { episodes };
-  });
+  json('episodes', 'nar://episodes', 'Episodes', 'Recent episodic memory entries', async () => ({
+    episodes: await recentEpisodes(agent, 50),
+  }));
 
   json(
     'benchmarks',
