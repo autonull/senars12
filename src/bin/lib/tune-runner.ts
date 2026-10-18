@@ -42,7 +42,11 @@ function parseArgs(): TuneOptions {
 
 function printHelp(): void {
   console.log(`
-NAR Tune - Self-tuning hyperparameter optimization
+NAR Tune - Self-tuning hyperparameter optimization (SIMULATED)
+
+This optimizer is a SIMULATION: its test metrics are synthetic, not a real test
+run, so a "best config" it writes is not evidence of a real improvement. Use it
+to exercise the tuning loop, not to tune production.
 
 Usage: nar tune [options]
 
@@ -155,6 +159,9 @@ async function main(): Promise<void> {
   const options = parseArgs();
 
   console.log('🧠 NAR Tune - Self-Tuning Hyperparameter Optimization');
+  console.log(
+    '⚠️  SIMULATED: metrics below are synthetic (no test suite is run), so results are not evidence of a real improvement.\n'
+  );
   console.log(`Running ${options.iterations} iterations...\n`);
 
   const rlfp = new RLFPLearner({

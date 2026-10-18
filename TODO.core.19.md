@@ -459,12 +459,13 @@ UI battery (`pnpm --dir ui typecheck`, `pnpm --dir ui test:unit`) is UI.19's con
 - C7.1: one-shot CLI — `src/bin/lib/oneshot.ts` (`--believe/-b`, `--goal/-g`, `--ask/-q`, `--steps`, `--json`), wired into `bot.ts` `runNonInteractive` ahead of the reporting modes. It runs the bare kernel (`createNAR`, D10 — no LM required), feeds beliefs/goals, advances `--steps`, and for a question prints the answer with its verified derivation (human or JSON). `tests/cli/oneshot.test.ts` (4) covers flag collection (repeated flags across long/short spellings), the round-trip, and the JSON result.
 - C7.2: `src/bin/senars.ts` now actually starts the entry it advertises — the web UI is started when `ENABLE_WEB_UI` is set and the URL printed only then; otherwise it states the honest gap ("no UI; set ENABLE_WEB_UI=true"). The unconditional `UI at http://localhost:8765` line is gone.
 - C7.3 (partial): MCP resources return real data. `nar://episodes` reads `agent.getEpisodicMemory().getEpisodes()`; `sessions://list` returns the live sessions via a new `JsonlSessionManager.list()` (restored at MCP startup and passed into the resource context); `self-reasoning://quality` returns `getSelfAnalyzer().assessQuality()` instead of hardcoded zeros. `tests/mcp/mcp-resources.test.ts` asserts all three on a seeded agent.
+- C7.6 (partial): `--tune` is now explicitly labeled SIMULATED — the help text and a run banner state that its metrics are synthetic and its "best config" is not evidence of a real improvement (`src/bin/lib/tune-runner.ts`), rather than presenting a simulated optimizer as real.
 
 **Remaining:**
 - C7.3: `nar://state` reports a live summary but does not yet reflect *persistence* (the boundary file); no consumer for `nar://state` from a persisted NAR is tested.
-- C7.4: serve `/metrics` (`nar/src/metrics/http.ts`) from `HTTPConnection` and the bot, not only the UI server; add the env-guarded reasoning endpoint.
+- C7.4: serve `/metrics` (`nar/src/metrics/http.ts`) from `HTTPConnection` and the bot, not only the UI server; add the env-guarded reasoning endpoint. (`io` cannot import `nar`, so this needs a metrics handler threaded through the transport deps.)
 - C7.5: stabilize/document the SDK surface (`Agent`/`NAR`/`createAgent`; `getRecentDerivations`/`askWithDerivation` first-class; mark experimental).
-- C7.6: `--status`/`--doctor` read persisted state; `--tune` real or labeled simulated; implement or declare `--benchmarks`.
+- C7.6: `--status`/`--doctor` do not yet read persisted state; `--benchmarks` is declared "(not yet implemented)" (honest) but unimplemented.
 
 ### C8 — Batteries, gates, CI & security hardening — **PARTIAL (C8.1 partial)**
 
