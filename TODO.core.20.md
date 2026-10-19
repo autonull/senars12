@@ -652,3 +652,109 @@ Resolved by **note 3**: keep the names (`[SATISFIED]`, desire-value), but requir
 **R7 — Turn the two-engine risk into a checkable invariant.** Assert: "no symbolic derivation exists that was not produced by a NAL rule or admitted as a proposal." **Affects:** I1, F2.
 
 **R8 — A `unified`-model design session as a deliverable.** After F2's models are green, a dedicated design pass (not a task) assembles the winners into the `unified` model (D31). **Affects:** F2.9.
+
+----
+
+### 3. What is Missing? (The Blind Spots)
+While the plan is incredibly rigorous regarding symbolic logic and architecture, it has several critical blind spots regarding the intersection of LLMs, real-world deployment, and security.
+
+#### **A. The "Translation Bottleneck" Benchmark (NL ↔ Narsese)**
+*   **The Gap:** The plan focuses heavily on benchmarking the *symbolic* engine (M0). However, the entire system relies on the `Formalizer` to translate Natural Language into Narsese. If the LLM translates *"The cat is not on the mat"* incorrectly, the symbolic engine will flawlessly execute logic on a false premise.
+*   **The Fix:** The plan needs a **Translation Conformance Harness**. How do you benchmark the NL-to-Narsese parser against standard NLU datasets (e.g., FraCaS, GLUE) to ensure the LLM isn't silently dropping logical negations or quantifiers before they even hit the symbolic gate?
+
+#### **B. Compute Budgeting for the Neural Stratum (Latency & Cost)**
+*   **The Gap:** The plan meticulously tracks memory bounds, bag capacities, and cycle budgets for the *symbolic* core. But what about the LLM? If System One (neural judgment) or the L4 neural amplifier is invoked on every premise selection, the system could trigger thousands of LLM API calls per second, resulting in massive latency and financial ruin.
+*   **The Fix:** A strict **Neural Compute Budget** (e.g., token limits, rate limiting, semantic caching). The plan needs a mechanism to decide *when* to invoke the expensive LLM and when to rely on cheap, deterministic heuristics.
+
+#### **C. Adversarial Robustness and "Prompt Injection via Narsese"**
+*   **The Gap:** The plan mentions updating `security.md` for wire protocols, but cognitive architectures are highly susceptible to logical paradoxes and infinite loops. If a malicious actor sends a carefully crafted Narsese sentence designed to trigger a cyclic dependency in the temporal solver (e.g., exploiting the NP-hard nature of Allen's interval algebra noted in P1), they could DOS the agent's reasoning core.
+*   **The Fix:** A **Logical Fuzzer** and strict depth/complexity limits on incoming formalizations. The admission gate must reject propositions that threaten to cause combinatorial explosions in the derivation recorder.
+
+#### **D. Neural Stratum Drift & Catastrophic Forgetting**
+*   **The Gap:** The symbolic memory has "usefulness eviction" (A4). But what about the vector embeddings and System One models? As the agent learns new concepts over thousands of cycles, the semantic space of the embeddings will drift. A concept that meant "danger" on Day 1 might mathematically drift closer to "curiosity" by Day 30.
+*   **The Fix:** A mechanism for **Neural-Symbolic Anchoring**. The system needs a way to periodically recalibrate its embeddings against the rigid symbolic definitions to prevent semantic drift from corrupting the LLM's "intuition."
+
+----
+
+This is the most radical and liberating question you can ask when designing a cognitive architecture.
+
+The short answer is: **No, you do not strictly need explicit symbolic temporal reasoning (NAL-7). An atemporal system can still be profoundly useful.**
+
+If you strip away NAL-7 entirely, you avoid 90% of the architectural tar pits (canonicalization, interval math, truth-value decay over time, the frame problem). You are left with a **State-Reactive Associative Engine**, which is exactly how most highly successful modern AI systems (like LLMs and standard Reinforcement Learning agents) operate.
+
+Here is a breakdown of what an atemporal SeNARS looks like, what you lose by dropping time, how to cheat the losses, and why "Implicit Time" might be the smartest architectural choice.
+
+---
+
+### 1. What an Atemporal SeNARS Looks Like
+If you restrict SeNARS to NAL 1–6 (atemporal logic) plus Operator execution, the system becomes a powerful **diagnostic, associative, and reactive reasoner**.
+
+*   **Beliefs are static correlations:** It learns `<rooster_crows ==> sun_rises>`. It doesn't know the rooster crows *before* the sun rises; it just knows that when one is present in the context, the other is highly likely to be true.
+*   **Tool Use is immediate:** It learns `<goal(reach_target) ==> ^move(forward)>`. If the goal is active, it fires the operation.
+*   **Context is King:** Like an LLM, the system relies entirely on its **current sensory input** and **working memory** (the active concepts in the bag) to determine what is happening "now."
+*   **Planning is Search, not Timeline:** To achieve a goal, it looks for a chain of implications `<A ==> B>`, `<B ==> C>`. It tries to make `A` true, expecting `C` to eventually become true.
+
+**Where this excels:**
+*   Natural Language Q&A and Reasoning.
+*   Fault diagnosis (Symptoms $\rightarrow$ Root Cause).
+*   Categorization and Ontology building.
+*   Simple reflex-based robotics and game-playing (where the screen state *is* the current reality).
+
+---
+
+### 2. The Four Things You Lose (And How to Cheat Them)
+
+If you drop explicit temporal reasoning, you lose four specific cognitive capabilities. However, in modern AI, we usually "cheat" these using the environment or external modules rather than solving them in the core logic.
+
+#### A. Causality vs. Correlation
+*   **The Problem:** Without time, the system cannot distinguish between "A causes B" and "B causes A" or "C causes both."
+*   **The Cheat:** **Intervention.** In an agentic loop, causality is established by *doing*, not just observing. If the system executes `^turn_switch` and observes `light_on`, the *action-to-effect* link is inherently causal. You don't need temporal logic to know the switch caused the light; the motor-sensory loop proves it.
+
+#### B. The Frame Problem (State Persistence)
+*   **The Problem:** If I turn on the light, how does the system know the light is *still on* 10 seconds later if no new sensory input arrives?
+*   **The Cheat:** **The Environment Loop / State Vectors.** Instead of the logic engine remembering `<light = on>`, the *environment* (or a dedicated state-tracking module) simply feeds `light=on` into the system's perception stream every cycle until an event changes it. Time is handled by the refresh rate of the sensor loop, not by logical inertia.
+
+#### C. Sequential Planning with Delays
+*   **The Problem:** "Bake at 350 degrees for 40 minutes." An atemporal system doesn't understand "40 minutes."
+*   **The Cheat:** **External Timers / Promises.** The system executes `^set_timer(40_min)`. The environment handles the waiting. When the timer finishes, the environment injects the event `timer_finished` back into the system's perception. The logic engine just reacts to the event.
+
+#### D. Rhythm and Prediction
+*   **The Problem:** Catching a moving ball or predicting a stock trend requires understanding velocity and continuous change.
+*   **The Cheat:** **Neural/RL Subsystems.** This is exactly what the "Neural Facilitator" layer in your architecture is for. Let a recurrent neural network, a Kalman filter, or an RL policy handle the continuous physics, and let it feed discrete symbolic events (`ball_interceptable`) to the NARS core.
+
+---
+
+### 3. The "Implicit Time" Paradigm
+
+The most successful cognitive architectures of the last decade do not use symbolic temporal logic. They use **Implicit Time**.
+
+In Implicit Time, **time is not a property of the logic; it is a property of the execution loop.**
+
+*   **Markov Decision Processes (RL):** The state at $t+1$ depends only on the state at $t$ and the action taken. Time is just the index of the loop iteration.
+*   **Transformers (LLMs):** Time is just the sequence of tokens in the context window. "Before" and "After" are just left-to-right positioning.
+*   **Subsumption Architectures (Robotics):** The robot doesn't plan a timeline; it just constantly reacts to the latest sensor readings.
+
+If SeNARS adopts Implicit Time:
+1.  **Drop NAL-7.**
+2.  **Make the Sensorimotor Cycle fast.** The system wakes up, reads the current environment state, fires any applicable operations, updates its atemporal beliefs, and goes back to sleep.
+3.  **Use RL for Sequences.** If a sequence of actions is required, the RL subsystem (which you already have) learns the policy to navigate the state-space.
+
+---
+
+### 4. Strategic Recommendation: The "Event-Driven Reactive Core"
+
+If you are willing to sacrifice NAL-7 parity with OpenNARS, you can build a much more stable, highly effective SeNARS.
+
+**The Architecture:**
+1.  **NAL 1–6 Core:** Handles concepts, inheritance, similarities, sets, and static implications.
+2.  **Operator Execution:** Handles tool use and motor commands.
+3.  **Sensorimotor Buffer:** A simple FIFO queue of the last $N$ events.
+4.  **Pattern Matcher:** Instead of complex temporal induction, use a simple sequence miner on the FIFO buffer. If it sees `Event A` followed by `Event B` frequently, it creates a simple rule: `Context(A) ==> Expect(B)`.
+5.  **LLM Integration:** Let the LLM handle complex temporal planning (e.g., "Write a schedule for tomorrow") and output discrete, atemporal goals for SeNARS to execute one by one.
+
+### Summary Verdict
+
+**Do you need it?** No.
+**Will it be useful without it?** Yes, incredibly useful. It becomes a highly capable **Associative Reasoner and Reactive Agent**.
+
+By dropping explicit temporal reasoning, you shift the burden of "time" from the **Logic Engine** (which is bad at math and state-tracking) to the **Environment Loop and Neural Subsystems** (which are excellent at it).
