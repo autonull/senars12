@@ -37,7 +37,5 @@
 
 - Use `pnpm`/`pnpx`, not `npm`/`npx`
 
-- `pkill`: do not use, it hangs
-
 - `README.md` is generated. Don't edit it directly; edit the appropriate section in `docs/readme/*`
   and run `pnpm readme`
