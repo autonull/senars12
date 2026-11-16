@@ -1,6 +1,6 @@
 ## License
 
-MIT License — see `LICENSE` for details.
+AGPL License — see `LICENSE` for details.
 
 ---
 
