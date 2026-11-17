@@ -10,7 +10,7 @@
 | Change | Status | Files Created | Notes |
 |---|---|---|---|
 | 1. Schema-genome pipeline + totality types | ✅ **DONE** | `src/formats/genome.ts`, `src/generated/schemas.ts`, `src/generated/json-schema/`, `tests/formats/genome.test.ts` | Generated schemas pass typecheck/lint; all 11 genome tests pass |
-| 2. One log + interning + golden replay + `config:digest` | 🔄 **IN PROGRESS** | `src/log/events.ts`, `src/log/store.ts`, `src/log/replay.ts`, `src/log/query.ts`, `src/log/compact.ts`, `src/log/snapshot.ts`, `src/log/mine.ts`, `src/log/pins.ts`, `src/kernel/terms/term.ts`, `src/kernel/terms/intern.ts`, `src/kernel/terms/canonical.ts`, `src/kernel/terms/unify.ts`, `src/kernel/terms/codec/narsese.ts`, `src/kernel/truth.ts`, `src/kernel/stamp.ts`, `src/kernel/bag.ts`, `src/kernel/step.ts`, `src/kernel/gate.ts`, `src/kernel/reduce.ts`, `src/logics/nal/rules.ts`, `src/logics/nal/temporal.ts`, `tests/kernel/terms.test.ts`, `tests/logics/nal/truth.test.ts`, `tests/obligations/05-derivation-replay.test.ts`, `tests/demos/D1.test.ts` | Core modules created; typecheck has remaining issues with generated schema types and termInterner methods |
+| 2. One log + interning + golden replay + `config:digest` | 🔄 **IN PROGRESS** | `src/log/events.ts`, `src/log/store.ts`, `src/log/replay.ts`, `src/log/query.ts`, `src/log/compact.ts`, `src/log/snapshot.ts`, `src/log/mine.ts`, `src/log/pins.ts`, `src/kernel/terms/term.ts`, `src/kernel/terms/intern.ts`, `src/kernel/terms/canonical.ts`, `src/kernel/terms/unify.ts`, `src/kernel/terms/codec/narsese.ts`, `src/kernel/truth.ts`, `src/kernel/stamp.ts`, `src/kernel/bag.ts`, `src/kernel/step.ts`, `src/kernel/gate.ts`, `src/kernel/reduce.ts`, `src/logics/nal/rules.ts`, `src/logics/nal/temporal.ts`, `tests/kernel/terms.test.ts`, `tests/logics/nal/truth.test.ts`, `tests/obligations/05-derivation-replay.test.ts`, `tests/demos/D1.test.ts` | Core kernel modules type-check cleanly; remaining issues in log/ directory imports |
 | 3. Truth port + NAL rules as formula ASTs + verifier + laws/vectors | 🔄 **IN PROGRESS** | `src/verification/record.ts`, `src/verification/interpreter.ts`, `src/verification/laws.ts`, `src/verification/vectors.ts`, `src/verification/cross-engine.ts` | Verification framework created; needs integration with truth port |
 | 4. Temporal terms + surprise events + log mining | ✅ **DONE** | Included in log/mine.ts and logics/nal/temporal.ts | Temporal logic and log mining implemented |
 | 5. Gate matrix + snapshot/restore; obligations 1,3–6 | 🔄 **IN PROGRESS** | `src/kernel/gate.ts`, `src/log/snapshot.ts`, `src/log/restore.ts` | Gate framework and snapshot/restore created |
@@ -22,20 +22,30 @@
 | 11. Repertoire ratchet + DSL + curriculum generator; obligation 12 | ⏳ Pending | — | |
 | 12. Generated MCP surface + CLI/browser/edge + deck + protocol codegen + SDK v2; obligations 2,13 | ⏳ Pending | — | |
 
-**Current structural metrics (after Changes 1-3 partial):**
+**Current structural metrics (after Changes 1-5 partial):**
 - Export subpaths: 87 (target 1) — new kernel/* modules add subpaths
 - Circular chains: 13 (target 0)
 - Append-only persistence sites: 4 (target 1) — log/store.ts is the new single site
-- Typecheck: ⚠️ **FAIL** — remaining issues with generated schema type imports and termInterner method mismatches
+- Typecheck: ⚠️ **FAIL** — remaining issues in log/ directory (imports from generated/schemas.js)
 - Lint: ✅ pass
 - Test:unit: 3,532 passed, 4 failed (3 known-red + 1 budget gate) — new tests not yet running cleanly
 
-**Known typecheck issues to resolve:**
-1. Generated schemas export `uuid()` function, not `UUID` type; use `string` for UUIDs
-2. Generated schemas use `frequency`/`confidence` not `f`/`c` for TruthValue
-3. Generated schemas export `BUDGET_SCOPE_ID` enum not `BudgetScopeId`
-4. `termInterner` delegates to `TermFactory` — use `termInterner.getFactory().method()` for compound term constructors
-4. Array access on `readonly Term[]` returns `Term | undefined` — add non-null assertions or guards
+**Kernel modules status (all type-check clean):**
+- `src/kernel/terms/*` — term, intern, canonical, unify, codec/narsese ✅
+- `src/kernel/truth.ts` — NAL truth algebra ✅
+- `src/kernel/stamp.ts` — temporal/causal stamps ✅
+- `src/kernel/step.ts` — inference step executor ✅
+- `src/kernel/reduce.ts` — term reduction/normalization ✅
+- `src/kernel/gate.ts` — gate matrix ✅
+- `src/kernel/bag.ts` — focus bag ✅
+- `src/logics/nal/rules.ts` — NAL rule tables ✅
+- `src/logics/nal/temporal.ts` — temporal logic ✅
+
+**Remaining typecheck issues (log/ directory):**
+1. `log/events.ts` imports `UUID`, `TimestampMs`, `TermSchema`, `StampSchema`, `BudgetScopeIdSchema` from generated/schemas.js
+2. `log/compact.ts` imports `LogStore` from events.ts; fs/promises API mismatches
+3. `log/mine.ts` imports `LogStore` from events.ts; event payload type mismatches
+4. `log/events.ts` comparison type mismatches for event type discriminators
 
 ---
 

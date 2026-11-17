@@ -5,8 +5,8 @@
  * lossless round-trip encoding/decoding with full operator support.
  */
 
-import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, termToJSON, termFromJSON } from '../intern.js';
-import type { TruthValue } from '../../generated/schemas.js';
+import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, termToJSON, termFromJSON, getArgs } from '../intern.js';
+import type { TruthValue } from '../../types.js';
 
 /** Narsese codec options. */
 export interface NarseseCodecOptions {
@@ -87,6 +87,7 @@ export function encodeNarseseWithTruth(
  * Format a term recursively.
  */
 function formatTerm(term: Term, options: NarseseCodecOptions): string {
+  const args = getArgs(term);
   switch (term.op) {
     case TermOp.VARIABLE:
       return (term as VariableTerm).name;
@@ -95,7 +96,7 @@ function formatTerm(term: Term, options: NarseseCodecOptions): string {
       return escapeConstant((term as ConstantTerm).value);
 
     case TermOp.NEGATION:
-      return `~${formatTerm((term as CompoundTerm).args[0], options)}`;
+      return `~${formatTerm(args![0]!, options)}`;
 
     case TermOp.INHERITANCE:
       return formatBinary(term as CompoundTerm, '-->', options);
@@ -137,21 +138,24 @@ function formatTerm(term: Term, options: NarseseCodecOptions): string {
       return formatNary(term as CompoundTerm, '|~', options);
 
     case TermOp.STATEMENT:
-      return `${formatTerm((term as CompoundTerm).args[0], options)}.`;
+      return `${formatTerm(args![0]!, options)}.`;
 
     case TermOp.QUESTION:
-      return `${formatTerm((term as CompoundTerm).args[0], options)}?`;
+      return `${formatTerm(args![0]!, options)}?`;
 
     case TermOp.GOAL:
-      return `${formatTerm((term as CompoundTerm).args[0], options)}!`;
+      return `${formatTerm(args![0]!, options)}!`;
 
     default:
-      return term.op;
+      // This should never be reached if all TermOp cases are handled
+      // Use a type assertion to satisfy TypeScript
+      return '' as never;
   }
 }
 
 function formatBinary(term: CompoundTerm, op: string, options: NarseseCodecOptions): string {
-  const [left, right] = term.args;
+  const left = term.args[0]!;
+  const right = term.args[1]!;
   const leftStr = formatTerm(left, options);
   const rightStr = formatTerm(right, options);
 
@@ -171,7 +175,7 @@ function formatNary(term: CompoundTerm, op: string, options: NarseseCodecOptions
   const opPrec = getOperatorPrecedence(op);
 
   return parts.map((part, i) => {
-    const termOp = (term as CompoundTerm).args[i].op;
+    const termOp = term.args[i]!.op;
     const termPrec = getPrecedence(termOp);
     return termPrec < opPrec ? `(${part})` : part;
   }).join(` ${op} `);
@@ -275,7 +279,7 @@ class NarseseDecoder {
 
     // Check for punctuation
     if (this.pos < this.input.length) {
-      const ch = this.input[this.pos];
+      const ch = this.input[this.pos]!;
       if (['.', '!', '?', ';'].includes(ch)) {
         this.punctuation = ch;
         this.pos++;
@@ -324,7 +328,7 @@ class NarseseDecoder {
     this.skipWhitespace();
 
     // Binary operators (longest first)
-    const operators = [
+    const operators: [string, TermOp][] = [
       ['==>', TermOp.IMPLICATION],
       ['<=>', TermOp.EQUIVALENCE],
       ['-->', TermOp.INHERITANCE],
@@ -340,7 +344,9 @@ class NarseseDecoder {
       [';', TermOp.SEQUENTIAL],
     ];
 
-    for (const [opStr, op] of operators) {
+    for (const opEntry of operators) {
+      const opStr = opEntry[0]!;
+      const op = opEntry[1]!;
       if (this.match(opStr)) {
         const right = this.parseTerm();
         const left = termInterner.constant(word);
@@ -372,7 +378,7 @@ class NarseseDecoder {
 
   private parseNumber(): string {
     const start = this.pos;
-    while (this.pos < this.input.length && /[\d.]/.test(this.input[this.pos])) {
+    while (this.pos < this.input.length && /[\d.]/.test(this.input[this.pos]!)) {
       this.pos++;
     }
     return this.input.slice(start, this.pos);
@@ -381,7 +387,7 @@ class NarseseDecoder {
   private parseWord(): string {
     const start = this.pos;
     while (this.pos < this.input.length) {
-      const ch = this.input[this.pos];
+      const ch = this.input[this.pos]!;
       if (this.isDelimiter(ch)) break;
       this.pos++;
     }
@@ -391,7 +397,7 @@ class NarseseDecoder {
   private parseIdentifier(): string {
     const start = this.pos;
     while (this.pos < this.input.length) {
-      const ch = this.input[this.pos];
+      const ch = this.input[this.pos]!;
       if (!this.isIdentChar(ch)) break;
       this.pos++;
     }
@@ -399,7 +405,7 @@ class NarseseDecoder {
   }
 
   private skipWhitespace(): void {
-    while (this.pos < this.input.length && /\s/.test(this.input[this.pos])) {
+    while (this.pos < this.input.length && /\s/.test(this.input[this.pos]!)) {
       this.pos++;
     }
   }
@@ -454,8 +460,9 @@ export function decodeNarseseBatch(
 export function roundTripTest(term: Term, truth?: TruthValue): boolean {
   const encoded = truth ? encodeNarseseWithTruth(term, truth) : encodeNarsese(term);
   const decoded = decodeNarsese(encoded);
-  return termInterner.equals(term, decoded.term) &&
-    (!truth || (decoded.truth && decoded.truth.f === truth.f && decoded.truth.c === truth.c));
+  if (!termInterner.equals(term, decoded.term)) return false;
+  if (!truth) return true;
+  return !!decoded.truth && decoded.truth.f === truth.f && decoded.truth.c === truth.c;
 }
 
 /**

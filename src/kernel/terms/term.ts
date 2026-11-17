@@ -5,8 +5,8 @@
  * immutable, and form a DAG with maximal sharing.
  */
 
-import type { UUID, TimestampMs } from '../../generated/schemas.js';
 import type { TruthValue, Stamp } from '../types.js';
+import type { UUID, TimestampMs } from '../types.js';
 
 /** Term operator types. */
 export enum TermOp {
@@ -71,7 +71,7 @@ export interface StampedTerm {
 /** Term factory with interning. */
 export class TermFactory {
   private static instance: TermFactory;
-  private internTable = new Map<number, Map<string, Term>>();
+  private internTable = new Map<string, Map<string, Term>>();
   private variableCounter = 0;
   private hashSeed = 0x9e3779b9;
 
@@ -139,15 +139,16 @@ export class TermFactory {
     if (term) return term as CompoundTerm;
 
     const complexity = 1 + args.reduce((sum, a) => sum + a.complexity, 0);
-    term = Object.freeze({
-      op,
+    const compoundOp = op as Exclude<TermOp, TermOp.VARIABLE | TermOp.CONSTANT>;
+    const compound: CompoundTerm = Object.freeze({
+      op: compoundOp,
       args: Object.freeze([...args]),
       arity: args.length,
       hash: this.hashString(key),
       complexity,
     });
-    table.set(key, term);
-    return term as CompoundTerm;
+    table.set(key, compound);
+    return compound;
   }
 
   /** Inheritance (S --> P). */
@@ -347,8 +348,9 @@ class NarseseParser {
 
     // Variable
     if (this.match('$') || this.match('#')) {
+      const prefix = this.input[this.pos - 1]!;
       const name = this.parseIdentifier();
-      const fullName = (this.input[start] === '$' ? '$' : '#') + name;
+      const fullName = prefix + name;
       let varTerm = this.variables.get(fullName);
       if (!varTerm) {
         varTerm = this.factory.variable(fullName);
@@ -424,7 +426,7 @@ class NarseseParser {
   private parseWord(): string {
     const start = this.pos;
     while (this.pos < this.input.length) {
-      const ch = this.input[this.pos];
+      const ch = this.input[this.pos]!;
       if (this.isDelimiter(ch)) break;
       this.pos++;
     }
@@ -434,7 +436,7 @@ class NarseseParser {
   private parseIdentifier(): string {
     const start = this.pos;
     while (this.pos < this.input.length) {
-      const ch = this.input[this.pos];
+      const ch = this.input[this.pos]!;
       if (!this.isIdentChar(ch)) break;
       this.pos++;
     }
@@ -442,7 +444,7 @@ class NarseseParser {
   }
 
   private skipWhitespace(): void {
-    while (this.pos < this.input.length && /\s/.test(this.input[this.pos])) {
+    while (this.pos < this.input.length && /\s/.test(this.input[this.pos]!)) {
       this.pos++;
     }
   }
@@ -478,71 +480,77 @@ class NarseseFormatter {
     return this.formatTerm(term, 0);
   }
 
+  private static getArgs(term: Term): readonly Term[] | null {
+    return term.op !== TermOp.VARIABLE && term.op !== TermOp.CONSTANT ? (term as CompoundTerm).args : null;
+  }
+
   private static formatTerm(term: Term, precedence: number): string {
     const opPrec = this.getPrecedence(term.op);
     const needsParens = opPrec < precedence;
+    const args = this.getArgs(term);
 
     let result: string;
     switch (term.op) {
       case TermOp.VARIABLE:
-        result = term.name;
+        result = (term as VariableTerm).name;
         break;
       case TermOp.CONSTANT:
-        result = this.escapeConstant(term.value);
+        result = this.escapeConstant((term as ConstantTerm).value);
         break;
       case TermOp.NEGATION:
-        result = '~' + this.formatTerm(term.args[0], this.getPrecedence(TermOp.NEGATION));
+        result = '~' + this.formatTerm(args![0]!, this.getPrecedence(TermOp.NEGATION));
         break;
       case TermOp.INHERITANCE:
-        result = this.formatBinary(term.args[0], term.args[1], '-->', opPrec);
+        result = this.formatBinary(args![0]!, args![1]!, '-->', opPrec);
         break;
       case TermOp.SIMILARITY:
-        result = this.formatBinary(term.args[0], term.args[1], '<->', opPrec);
+        result = this.formatBinary(args![0]!, args![1]!, '<->', opPrec);
         break;
       case TermOp.IMPLICATION:
-        result = this.formatBinary(term.args[0], term.args[1], '==>', opPrec);
+        result = this.formatBinary(args![0]!, args![1]!, '==>', opPrec);
         break;
       case TermOp.EQUIVALENCE:
-        result = this.formatBinary(term.args[0], term.args[1], '<=>', opPrec);
+        result = this.formatBinary(args![0]!, args![1]!, '<=>', opPrec);
         break;
       case TermOp.CONJUNCTION:
-        result = term.args.map(a => this.formatTerm(a, opPrec + 1)).join(' & ');
+        result = args!.map(a => this.formatTerm(a, opPrec + 1)).join(' & ');
         break;
       case TermOp.DISJUNCTION:
-        result = term.args.map(a => this.formatTerm(a, opPrec + 1)).join(' | ');
+        result = args!.map(a => this.formatTerm(a, opPrec + 1)).join(' | ');
         break;
       case TermOp.PRODUCT:
-        result = term.args.map(a => this.formatTerm(a, opPrec + 1)).join(' * ');
+        result = args!.map(a => this.formatTerm(a, opPrec + 1)).join(' * ');
         break;
       case TermOp.EXTENSIONAL_IMAGE:
-        result = this.formatBinary(term.args[0], term.args[1], '@', opPrec);
+        result = this.formatBinary(args![0]!, args![1]!, '@', opPrec);
         break;
       case TermOp.INTENSIONAL_IMAGE:
-        result = this.formatBinary(term.args[0], term.args[1], '#', opPrec);
+        result = this.formatBinary(args![0]!, args![1]!, '#', opPrec);
         break;
       case TermOp.PREDICTION:
-        result = this.formatBinary(term.args[0], term.args[1], '|>', opPrec);
+        result = this.formatBinary(args![0]!, args![1]!, '|>', opPrec);
         break;
       case TermOp.CONCURRENT:
-        result = term.args.map(a => this.formatTerm(a, opPrec + 1)).join(' || ');
+        result = args!.map(a => this.formatTerm(a, opPrec + 1)).join(' || ');
         break;
       case TermOp.SEQUENTIAL:
-        result = term.args.map(a => this.formatTerm(a, opPrec + 1)).join(' ; ');
+        result = args!.map(a => this.formatTerm(a, opPrec + 1)).join(' ; ');
         break;
       case TermOp.PARALLEL:
-        result = term.args.map(a => this.formatTerm(a, opPrec + 1)).join(' |~ ');
+        result = args!.map(a => this.formatTerm(a, opPrec + 1)).join(' |~ ');
         break;
       case TermOp.STATEMENT:
-        result = this.formatTerm(term.args[0], opPrec) + '.';
+        result = this.formatTerm(args![0]!, opPrec) + '.';
         break;
       case TermOp.QUESTION:
-        result = this.formatTerm(term.args[0], opPrec) + '?';
+        result = this.formatTerm(args![0]!, opPrec) + '?';
         break;
       case TermOp.GOAL:
-        result = this.formatTerm(term.args[0], opPrec) + '!';
+        result = this.formatTerm(args![0]!, opPrec) + '!';
         break;
       default:
-        result = term.op;
+        // Exhaustiveness check - all TermOp cases should be handled
+        return '' as never;
     }
 
     return needsParens ? `(${result})` : result;

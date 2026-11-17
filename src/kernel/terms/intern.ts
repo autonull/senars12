@@ -24,6 +24,26 @@ export class TermInterner {
   private factory: TermFactory;
   private enabled = true;
 
+  // Convenience methods for common compound terms
+  conjunction!: (...terms: Term[]) => CompoundTerm;
+  disjunction!: (...terms: Term[]) => CompoundTerm;
+  negation!: (term: Term) => CompoundTerm;
+  implication!: (antecedent: Term, consequent: Term) => CompoundTerm;
+  equivalence!: (left: Term, right: Term) => CompoundTerm;
+  product!: (...terms: Term[]) => CompoundTerm;
+  inheritance!: (subject: Term, predicate: Term) => CompoundTerm;
+  similarity!: (subject: Term, predicate: Term) => CompoundTerm;
+  extensionalImage!: (term: Term, image: Term) => CompoundTerm;
+  intensionalImage!: (term: Term, image: Term) => CompoundTerm;
+  prediction!: (term: Term, predicted: Term) => CompoundTerm;
+  concurrent!: (...terms: Term[]) => CompoundTerm;
+  sequential!: (...terms: Term[]) => CompoundTerm;
+  parallel!: (...terms: Term[]) => CompoundTerm;
+  statement!: (term: Term) => CompoundTerm;
+  question!: (term: Term) => CompoundTerm;
+  goal!: (term: Term) => CompoundTerm;
+  getHash!: (term: Term) => number;
+
   constructor(factory: TermFactory = TermFactory.getInstance()) {
     this.factory = factory;
   }
@@ -130,6 +150,26 @@ export class TermInterner {
 /** Global interner instance. */
 export const termInterner = new TermInterner();
 
+/** Convenience methods for common compound terms. */
+termInterner.conjunction = (...terms: Term[]) => termInterner.compound(TermOp.CONJUNCTION, ...terms);
+termInterner.disjunction = (...terms: Term[]) => termInterner.compound(TermOp.DISJUNCTION, ...terms);
+termInterner.negation = (term: Term) => termInterner.compound(TermOp.NEGATION, term);
+termInterner.implication = (antecedent: Term, consequent: Term) => termInterner.compound(TermOp.IMPLICATION, antecedent, consequent);
+termInterner.equivalence = (left: Term, right: Term) => termInterner.compound(TermOp.EQUIVALENCE, left, right);
+termInterner.product = (...terms: Term[]) => termInterner.compound(TermOp.PRODUCT, ...terms);
+termInterner.inheritance = (subject: Term, predicate: Term) => termInterner.compound(TermOp.INHERITANCE, subject, predicate);
+termInterner.similarity = (subject: Term, predicate: Term) => termInterner.compound(TermOp.SIMILARITY, subject, predicate);
+termInterner.extensionalImage = (term: Term, image: Term) => termInterner.compound(TermOp.EXTENSIONAL_IMAGE, term, image);
+termInterner.intensionalImage = (term: Term, image: Term) => termInterner.compound(TermOp.INTENSIONAL_IMAGE, term, image);
+termInterner.prediction = (term: Term, predicted: Term) => termInterner.compound(TermOp.PREDICTION, term, predicted);
+termInterner.concurrent = (...terms: Term[]) => termInterner.compound(TermOp.CONCURRENT, ...terms);
+termInterner.sequential = (...terms: Term[]) => termInterner.compound(TermOp.SEQUENTIAL, ...terms);
+termInterner.parallel = (...terms: Term[]) => termInterner.compound(TermOp.PARALLEL, ...terms);
+termInterner.statement = (term: Term) => termInterner.compound(TermOp.STATEMENT, term);
+termInterner.question = (term: Term) => termInterner.compound(TermOp.QUESTION, term);
+termInterner.goal = (term: Term) => termInterner.compound(TermOp.GOAL, term);
+termInterner.getHash = (term: Term) => termInterner.hash(term);
+
 /**
  * Term equality that respects interning.
  * Returns true iff a and b are the exact same interned object.
@@ -159,13 +199,13 @@ export function termComplexity(term: Term): number {
 export function termFromJSON(json: TermJSON): Term {
   switch (json.op) {
     case 'var':
-      return termInterner.variable(json.name);
+      return termInterner.variable(json.name!);
     case 'const':
-      return termInterner.constant(json.value);
+      return termInterner.constant(json.value!);
     default:
       return termInterner.compound(
         json.op as TermOp,
-        ...json.args.map(termFromJSON)
+        ...(json.args ?? []).map(termFromJSON)
       );
   }
 }
@@ -274,6 +314,11 @@ export function substitute(term: Term, substitution: Map<VariableTerm, Term>): T
   });
 }
 
+/** Get args of a compound term. */
+export function getArgs(term: Term): readonly Term[] | null {
+  return term.op !== TermOp.VARIABLE && term.op !== TermOp.CONSTANT ? (term as CompoundTerm).args : null;
+}
+
 /**
  * Check if a term contains a variable.
  */
@@ -330,11 +375,12 @@ export function isUnifiable(a: Term, b: Term): boolean {
   const cb = b as CompoundTerm;
   if (ca.arity !== cb.arity) return false;
   for (let i = 0; i < ca.arity; i++) {
-    if (!isUnifiable(ca.args[i], cb.args[i])) return false;
+    if (!isUnifiable(ca.args[i]!, cb.args[i]!)) return false;
   }
   return true;
 }
 
 // Re-export shared types
 export type { TruthValue, Stamp } from '../types.js';
-export { TermFactory, Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm } from './term.js';
+export type { Term, VariableTerm, ConstantTerm, CompoundTerm } from './term.js';
+export { TermOp, TermFactory } from './term.js';

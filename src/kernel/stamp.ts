@@ -10,7 +10,10 @@
  */
 
 import { randomUUID } from 'crypto';
-import type { UUID, TimestampMs } from '../generated/schemas.js';
+import type { UUID } from './types.js';
+
+/** Timestamp in milliseconds since epoch. */
+export type TimestampMs = number;
 
 /** Stamp for a term/belief. */
 export interface Stamp {
@@ -91,13 +94,13 @@ export function createStampFromIds(
 /** Merge multiple stamps (for revision/confluence). */
 export function mergeStamps(stamps: readonly Stamp[], ruleId: string): Stamp {
   if (stamps.length === 0) throw new Error('Cannot merge empty stamp set');
-  if (stamps.length === 1) return stamps[0];
+  if (stamps.length === 1) return stamps[0]!;
 
   const allParents = stamps.flatMap(s => s.parents);
   const uniqueParents = [...new Set(allParents)];
   const maxEvidence = Math.max(...stamps.map(s => s.evidence));
   const allDerivations = stamps.flatMap(s => s.derivation);
-  const uniqueDerivations = [...new Set(allDerivations, ruleId)];
+  const uniqueDerivations = [...new Set([...allDerivations, ruleId])];
 
   return {
     id: randomUUID(),
@@ -138,7 +141,7 @@ export function getCausalChain(stamp: Stamp, allStamps: Map<UUID, Stamp>): Stamp
 
   while (current && current.parents.length > 0) {
     // For simplicity, follow first parent (could be all parents)
-    const parentId = current.parents[0];
+    const parentId = current.parents[0]!;
     if (visited.has(parentId)) break;
     const parent = allStamps.get(parentId);
     if (!parent) break;

@@ -9,7 +9,7 @@
  * - Redundant operator elimination
  */
 
-import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, visitTerm, mapTerm, TermVisitor } from './intern.js';
+import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, visitTerm, mapTerm, TermVisitor, getArgs } from './intern.js';
 
 /** Canonical term representation. */
 export interface CanonicalTerm {
@@ -89,10 +89,16 @@ export function canonicalize(term: Term, options: Partial<CanonicalOptions> = {}
 function normalizeTerm(term: Term, options: CanonicalOptions): Term {
   return mapTerm(term, t => {
     if (t.op !== TermOp.NEGATION) return t;
+    const args = getArgs(t);
+    if (!args || args.length === 0) return t;
+    const firstArg = args[0]!;
 
     // Eliminate double negation: ~~A -> A
-    if (options.eliminateDoubleNegation && t.args[0].op === TermOp.NEGATION) {
-      return t.args[0].args[0];
+    if (options.eliminateDoubleNegation && firstArg.op === TermOp.NEGATION) {
+      const innerArgs = getArgs(firstArg);
+      if (innerArgs && innerArgs.length > 0) {
+        return innerArgs[0]!;
+      }
     }
     return t;
   });
@@ -139,15 +145,15 @@ function sortCommutative(term: Term, options: CanonicalOptions): Term {
 
   return mapTerm(term, t => {
     if (!COMMUTATIVE_OPS.has(t.op)) return t;
-    if (t.arity <= 1) return t;
+    const args = getArgs(t);
+    if (!args || args.length <= 1) return t;
 
-    const compound = t as CompoundTerm;
-    const sorted = [...compound.args].sort((a, b) => termInterner.hash(a) - termInterner.hash(b));
+    const sorted = [...args].sort((a, b) => termInterner.hash(a) - termInterner.hash(b));
 
     // Check if already sorted
     let same = true;
-    for (let i = 0; i < compound.args.length; i++) {
-      if (compound.args[i] !== sorted[i]) { same = false; break; }
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] !== sorted[i]) { same = false; break; }
     }
     if (same) return t;
 
@@ -163,15 +169,20 @@ function normalizeImplication(term: Term, options: CanonicalOptions): Term {
   if (!options.normalizeImplication) return term;
 
   return mapTerm(term, t => {
+    const args = getArgs(t);
+    if (!args) return t;
+
     if (t.op === TermOp.IMPLICATION) {
-      const [antecedent, consequent] = t.args;
+      const antecedent = args[0]!;
+      const consequent = args[1]!;
       return termInterner.disjunction(
         termInterner.negation(antecedent),
         consequent
       );
     }
     if (t.op === TermOp.EQUIVALENCE) {
-      const [left, right] = t.args;
+      const left = args[0]!;
+      const right = args[1]!;
       return termInterner.conjunction(
         termInterner.implication(left, right),
         termInterner.implication(right, left)
@@ -309,10 +320,11 @@ function debruijnToString(t: DebrTerm): string {
     case 'const':
       return t.value;
     case 'compound':
-      if (t.args.length === 1) {
-        return `${t.op}(${debruijnToString(t.args[0])})`;
+      const args = t.args;
+      if (args.length === 1) {
+        return `${t.op}(${debruijnToString(args[0]!)})`;
       }
-      return `(${t.args.map(debruijnToString).join(` ${t.op} `)})`;
+      return `(${args.map(debruijnToString).join(` ${t.op} `)})`;
   }
 }
 

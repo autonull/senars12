@@ -8,8 +8,8 @@
  * All operations saturate at boundaries; no operation throws on valid input.
  */
 
-import type { Frequency, Confidence, TruthLike } from '../generated/schemas.js';
-import { clamp, clamp01, safeDiv, softSquash, weakenConfidence, confidenceToWeight, weightToConfidence } from '../generated/schemas.js';
+import type { Frequency, Confidence, TruthLike } from './types.js';
+import { clamp, clamp01, safeDiv, softSquash, weakenConfidence, confidenceToWeight, weightToConfidence } from './types.js';
 
 // Import the utility functions we need
 const MAX_CONFIDENCE = 0.999;
@@ -40,7 +40,49 @@ export const createTruth = (f: number, c: number): Truth => {
 };
 
 /** Truth constants. */
-export const Truth = {
+export const Truth: {
+  readonly TRUE: Truth;
+  readonly FALSE: Truth;
+  readonly NEUTRAL: Truth;
+  readonly MAX_CONFIDENCE: number;
+  readonly WEAKENING_FACTOR: number;
+  readonly fromUnknown: (t: TruthLike | undefined, fallback?: Truth) => Truth;
+  readonly negation: (t: Truth) => Truth;
+  readonly conversion: (t: Truth) => Truth;
+  readonly attention: (t: Truth) => number;
+  readonly expectation: (t: Truth) => number;
+  readonly harshness: (t: Truth) => number;
+  readonly analogy: (t1: Truth, t2: Truth) => Truth;
+  readonly resemblance: (t1: Truth, t2: Truth) => Truth;
+  readonly intersection: (t1: Truth, t2: Truth) => Truth;
+  readonly union: (t1: Truth, t2: Truth) => Truth;
+  readonly deduction: (t1: Truth, t2: Truth) => Truth;
+  readonly deductionWeak: (t1: Truth, t2: Truth) => Truth | null;
+  readonly induction: (t1: Truth, t2: Truth) => Truth;
+  readonly abduction: (t1: Truth, t2: Truth) => Truth;
+  readonly detachment: (t1: Truth, t2: Truth) => Truth;
+  readonly revision: (t1: Truth, t2: Truth) => Truth;
+  readonly revisionWeak: (t1: Truth, t2: Truth) => Truth;
+  readonly choice: (t1: Truth, t2: Truth) => Truth;
+  readonly structuralDeduction: (t: Truth) => Truth;
+  readonly structuralReduction: (t: Truth) => Truth;
+  readonly damp: (t: Truth, factor: number) => Truth;
+  readonly reinforce: (t: Truth) => Truth;
+  readonly contradict: (t: Truth) => Truth;
+  readonly isStronger: (t1: Truth, t2: Truth) => boolean;
+  readonly weak: (c: number) => number;
+  readonly c2w: (c: number) => number;
+  readonly w2c: (w: number) => number;
+  readonly serialize: (t: Truth) => string;
+  readonly format: (t: Truth, fractionDigits?: number) => string;
+  readonly deserialize: (s: string) => Truth | null;
+  readonly equals: (t1: Truth, t2: Truth, epsilon?: number) => boolean;
+  readonly compare: (t1: Truth, t2: Truth) => number;
+  readonly deductionChain: (t1: Truth, t2: Truth, steps: number) => Truth;
+  readonly inductionChain: (t1: Truth, t2: Truth, steps: number, independence?: 'independent' | 'dependent' | 'unknown') => Truth;
+  readonly abductionChain: (t1: Truth, t2: Truth, steps: number, independence?: 'independent' | 'dependent' | 'unknown') => Truth;
+  readonly conversionChain: (t: Truth, steps: number) => Truth;
+} = {
   TRUE: Object.freeze({ f: 1.0 as Frequency, c: 0.9 as Confidence }) as Truth,
   FALSE: Object.freeze({ f: 0.0 as Frequency, c: 0.9 as Confidence }) as Truth,
   NEUTRAL: Object.freeze({ f: 0.5 as Frequency, c: 0.9 as Confidence }) as Truth,

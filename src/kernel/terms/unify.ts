@@ -122,7 +122,7 @@ function unifyTerms(
 
     // Unify arguments pairwise
     for (let i = 0; i < ca.arity; i++) {
-      const result = unifyTerms(ca.args[i], cb.args[i], subst, options, depth + 1);
+      const result = unifyTerms(ca.args[i]!, cb.args[i]!, subst, options, depth + 1);
       if (!result.success) return result;
     }
     return { success: true };
@@ -247,7 +247,7 @@ export function unifyAll(
   }
 
   // Apply combined substitution to first term of first pair
-  const unified = applySubst(pairs[0][0], combinedSubst);
+  const unified = applySubst(pairs[0]![0]!, combinedSubst);
 
   return { success: true, substitution: combinedSubst, unified };
 }
@@ -341,7 +341,7 @@ function antiUnifyTerms(
       const newArgs: Term[] = [];
 
       for (let i = 0; i < ca.arity; i++) {
-        const argResult = antiUnifyTerms(ca.args[i], cb.args[i], result.subst1, result.subst2, result.varCounter);
+        const argResult = antiUnifyTerms(ca.args[i]!, cb.args[i]!, result.subst1, result.subst2, result.varCounter);
         newArgs.push(argResult.term);
         result = argResult;
       }
@@ -411,7 +411,7 @@ function matchTerms(pattern: Term, term: Term, subst: Substitution): { success: 
     }
 
     for (let i = 0; i < cp.arity; i++) {
-      const result = matchTerms(cp.args[i], ct.args[i], subst);
+      const result = matchTerms(cp.args[i]!, ct.args[i]!, subst);
       if (!result.success) return result;
     }
     return { success: true };

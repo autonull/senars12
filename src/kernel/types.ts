@@ -7,7 +7,8 @@
  * This module provides both interfaces.
  */
 
-import type { TimestampMs } from '../generated/schemas.js';
+/** Timestamp in milliseconds since epoch. */
+export type TimestampMs = number;
 
 /** Frequency in [0, 1]. */
 export type Frequency = number;

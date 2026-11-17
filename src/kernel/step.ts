@@ -5,10 +5,11 @@
  * with truth computation, stamp derivation, and metadata.
  */
 
-import { Term, Truth } from './terms/intern.js';
+import { Term } from './terms/intern.js';
 import { Stamp } from './stamp.js';
 import type { TruthValue } from './types.js';
 import type { TruthOp } from './truth.js';
+import { Truth } from './truth.js';
 
 /** Inference rule identifier. */
 export type RuleId = string;
@@ -149,18 +150,21 @@ export class StepExecutor {
     let truth: TruthValue;
 
     if (premises.length === 1) {
-      truth = Truth[truthOp as 'negation' | 'conversion' | 'structuralDeduction' | 'structuralReduction'](premises[0].truth);
+      const p0 = premises[0]!;
+      truth = Truth[truthOp as 'negation' | 'conversion' | 'structuralDeduction' | 'structuralReduction'](p0.truth);
     } else if (premises.length === 2) {
+      const p0 = premises[0]!;
+      const p1 = premises[1]!;
       const binaryOp = Truth[truthOp] as (t1: TruthValue, t2: TruthValue) => TruthValue | null;
-      const result = binaryOp(premises[0].truth, premises[1].truth);
+      const result = binaryOp(p0.truth, p1.truth);
       if (!result) return null;
       truth = result;
     } else {
       // N-ary: chain binary
-      let result = premises[0].truth;
+      let result = premises[0]!.truth;
       const binaryOp = Truth[truthOp] as (t1: TruthValue, t2: TruthValue) => TruthValue | null;
       for (let i = 1; i < premises.length; i++) {
-        const next = binaryOp(result, premises[i].truth);
+        const next = binaryOp(result, premises[i]!.truth);
         if (!next) return null;
         result = next;
       }
@@ -200,7 +204,7 @@ export class StepExecutor {
 
     const parentIds = parents.map(p => p.id);
     const maxEvidence = Math.max(...parents.map(p => p.evidence));
-    const allDerivations = [...new Set(parents.flatMap(p => p.derivation), ruleId)];
+    const allDerivations = [...new Set([...parents.flatMap(p => p.derivation), ruleId])];
 
     return {
       id: '', // Will be filled by bag
@@ -253,7 +257,9 @@ export class StepExecutor {
     for (let i = 0; i < premises.length && pairs < maxPairs; i++) {
       for (let j = i + 1; j < premises.length && pairs < maxPairs; j++) {
         pairs++;
-        const pairPremises = [premises[i], premises[j]];
+        const pi = premises[i]!;
+        const pj = premises[j]!;
+        const pairPremises: Premise[] = [pi, pj];
 
         for (const rule of this.rules.values()) {
           if (categories && !categories.includes(rule.category)) continue;
@@ -300,13 +306,15 @@ function registerBuiltinRules(executor: StepExecutor): void {
     priority: 100,
     builtin: true,
     condition: (premises) => {
-      const [m, n] = premises;
+      const m = premises[0]!;
+      const n = premises[1]!;
       // Check if predicate of first matches subject of second
       return isInheritance(m.term) && isInheritance(n.term) &&
         termsEqual(getPredicate(m.term), getSubject(n.term));
     },
     buildConclusion: (premises) => {
-      const [m, n] = premises;
+      const m = premises[0]!;
+      const n = premises[1]!;
       return createInheritance(getSubject(m.term), getPredicate(n.term));
     },
   });
@@ -322,12 +330,14 @@ function registerBuiltinRules(executor: StepExecutor): void {
     priority: 90,
     builtin: true,
     condition: (premises) => {
-      const [m, n] = premises;
+      const m = premises[0]!;
+      const n = premises[1]!;
       return isInheritance(m.term) && isInheritance(n.term) &&
         termsEqual(getPredicate(m.term), getPredicate(n.term));
     },
     buildConclusion: (premises) => {
-      const [m, n] = premises;
+      const m = premises[0]!;
+      const n = premises[1]!;
       return createInheritance(getSubject(m.term), getSubject(n.term));
     },
   });
@@ -343,12 +353,14 @@ function registerBuiltinRules(executor: StepExecutor): void {
     priority: 80,
     builtin: true,
     condition: (premises) => {
-      const [m, n] = premises;
+      const m = premises[0]!;
+      const n = premises[1]!;
       return isInheritance(m.term) && isInheritance(n.term) &&
         termsEqual(getSubject(m.term), getSubject(n.term));
     },
     buildConclusion: (premises) => {
-      const [m, n] = premises;
+      const m = premises[0]!;
+      const n = premises[1]!;
       return createInheritance(getPredicate(m.term), getPredicate(n.term));
     },
   });
@@ -364,9 +376,11 @@ function registerBuiltinRules(executor: StepExecutor): void {
     priority: 95,
     builtin: true,
     condition: (premises) => {
-      return premises[0].term === premises[1].term;
+      const m = premises[0]!;
+      const n = premises[1]!;
+      return m.term === n.term;
     },
-    buildConclusion: (premises) => premises[0].term,
+    buildConclusion: (premises) => premises[0]!.term,
   });
 
   // Comparison: S1-->P1, S2-->P2 => (S1*S2)-->(P1*P2)
@@ -380,10 +394,13 @@ function registerBuiltinRules(executor: StepExecutor): void {
     priority: 70,
     builtin: true,
     condition: (premises) => {
-      return isInheritance(premises[0].term) && isInheritance(premises[1].term);
+      const m = premises[0]!;
+      const n = premises[1]!;
+      return isInheritance(m.term) && isInheritance(n.term);
     },
     buildConclusion: (premises) => {
-      const [m, n] = premises;
+      const m = premises[0]!;
+      const n = premises[1]!;
       const s1 = getSubject(m.term);
       const s2 = getSubject(n.term);
       const p1 = getPredicate(m.term);
@@ -406,10 +423,13 @@ function registerBuiltinRules(executor: StepExecutor): void {
     priority: 65,
     builtin: true,
     condition: (premises) => {
-      return isInheritance(premises[0].term) && isInheritance(premises[1].term);
+      const m = premises[0]!;
+      const n = premises[1]!;
+      return isInheritance(m.term) && isInheritance(n.term);
     },
     buildConclusion: (premises) => {
-      const [m, n] = premises;
+      const m = premises[0]!;
+      const n = premises[1]!;
       const s1 = getSubject(m.term);
       const s2 = getSubject(n.term);
       const p1 = getPredicate(m.term);
@@ -432,12 +452,14 @@ function registerBuiltinRules(executor: StepExecutor): void {
     priority: 75,
     builtin: true,
     condition: (premises) => {
-      const [m, n] = premises;
+      const m = premises[0]!;
+      const n = premises[1]!;
       return isInheritance(m.term) && isInheritance(n.term) &&
         termsEqual(getPredicate(m.term), getPredicate(n.term));
     },
     buildConclusion: (premises) => {
-      const [m, n] = premises;
+      const m = premises[0]!;
+      const n = premises[1]!;
       return createSimilarity(getSubject(m.term), getSubject(n.term));
     },
   });
@@ -453,7 +475,7 @@ function registerBuiltinRules(executor: StepExecutor): void {
     priority: 50,
     builtin: true,
     condition: () => true,
-    buildConclusion: (premises) => createNegation(premises[0].term),
+    buildConclusion: (premises) => createNegation(premises[0]!.term),
   });
 
   // Conversion: A => A (swap subject/predicate)
@@ -466,9 +488,9 @@ function registerBuiltinRules(executor: StepExecutor): void {
     truthOp: 'conversion',
     priority: 55,
     builtin: true,
-    condition: (premises) => isInheritance(premises[0].term) || isSimilarity(premises[0].term),
+    condition: (premises) => isInheritance(premises[0]!.term) || isSimilarity(premises[0]!.term),
     buildConclusion: (premises) => {
-      const term = premises[0].term;
+      const term = premises[0]!.term;
       if (isInheritance(term)) {
         return createInheritance(getPredicate(term), getSubject(term));
       }
