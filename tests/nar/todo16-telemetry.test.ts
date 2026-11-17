@@ -111,11 +111,12 @@ describe('System One — Telemetry Emission (R2)', () => {
     console.log('Metrics:', JSON.stringify(metrics, null, 2));
     expect(metrics.name).toBe('senars_systemone_judgments_total');
     expect(metrics.values.length).toBeGreaterThan(0);
-    const metricValue = metrics.values[0]!;
-    expect(metricValue.labels.axis).toBe('epistemic');
-    expect(metricValue.labels.shape).toBe('classify');
-    expect(metricValue.labels.tier).toBe('1');
-    expect(metricValue.value).toBeGreaterThan(0);
+    const classifyValue = metrics.values.find(
+      (value) => value.labels.axis === 'epistemic' && value.labels.shape === 'classify'
+    );
+    expect(classifyValue).toBeDefined();
+    expect(classifyValue!.labels.tier).toBe('1');
+    expect(classifyValue!.value).toBeGreaterThan(0);
   });
 
   it('does not emit judgment.resolved events when systemOne.enabled=false', async () => {

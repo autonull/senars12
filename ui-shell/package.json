@@ -26,11 +26,11 @@
     "@senars/util": "workspace:*",
     "lit": "^3.3.3",
     "mitt": "^3.0.1",
-    "nanoid": "^6.0.1"
+    "nanoid": "^6.0.2"
   },
   "devDependencies": {
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.6.6",
     "typescript": "7.0.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.1.0"
   }
 }

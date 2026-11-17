@@ -3,11 +3,9 @@ import { resolveAliases } from '../vite.aliases.js';
 
 const config: StorybookConfig = {
   stories: ['../src/client/**/*.stories.@(ts|tsx)'],
-  addons: [
-    '@storybook/addon-links',
-    '@storybook/addon-essentials',
-    '@storybook/addon-interactions',
-  ],
+  // Storybook 10 folded essentials and interactions into core; only the
+  // still-separate links addon remains.
+  addons: ['@storybook/addon-links'],
   framework: {
     name: '@storybook/web-components-vite',
     options: {},

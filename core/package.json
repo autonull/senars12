@@ -98,15 +98,15 @@
   },
   "dependencies": {
     "@senars/util": "workspace:*",
-    "ai": "^7.0.92",
-    "better-sqlite3": "^13.0.3",
-    "zod": "^4.5.4"
+    "ai": "^7.0.173",
+    "better-sqlite3": "^13.2.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@senars/metta": "workspace:*",
     "@senars/nar": "workspace:*",
     "@types/better-sqlite3": "^9.6.0",
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.6.6",
     "typescript": "7.0.2"
   }
 }

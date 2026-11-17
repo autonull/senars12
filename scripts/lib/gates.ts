@@ -137,12 +137,17 @@ export const missingGateScripts = (scripts: Record<string, string>): string[] =>
  * Gates deliberately suspended while the tree is under major construction. A
  * `mustNotIncrease` ledger cannot tell deliberate growth from accidental bloat,
  * so obeying it mid-feature costs a baseline edit per commit and reports nothing
- * a reader could not see. A suspended gate keeps its script and CI entry (known,
- * runnable by hand) but is dropped from `pnpm gates`. Re-enter one by emptying
- * this list and ratcheting its baseline to the current tree in the same commit
- * (the C8.6 procedure).
+ * a reader could not see. A suspended gate keeps its script and a commented CI
+ * entry (known, runnable by hand) but is dropped from `pnpm gates`. Re-enter one
+ * by emptying this list and ratcheting its baseline to the current tree in the
+ * same commit (the C8.6 procedure).
  */
-export const SUSPENDED_GATES: readonly string[] = [];
+export const SUSPENDED_GATES: readonly string[] = [
+  // CORE.22a: the LOC ratchet is not an acceptance gate during the one-fold
+  // migration. The script and its CI entry are kept for manual use; re-enter by
+  // removing this entry and ratcheting the baseline to the finished tree.
+  'complexity:budget',
+];
 
 /** The gates `pnpm gates` actually runs — every declared gate minus the suspended ones. */
 export const ACTIVE_GATES: readonly Gate[] = GATES.filter(

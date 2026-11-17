@@ -75,9 +75,11 @@ jobs:
       # TODO20 §5s: generated docs must match committed output (drift gate)
       - run: pnpm docs:drift
       # TODO28 §8.10: every gate in scripts/lib/gates.ts, including this one.
-      # TODO.core.19 C8.6: re-entered with the major-work period closed; the
-      # baseline ratchets in the same commit as any deliberate growth.
-      - run: pnpm complexity:budget
+      # TODO.core.19 C8.6: re-entered with the major-work period closed.
+      # TODO.core.22a: suspended for the one-fold migration; the LOC ratchet is
+      # not an acceptance gate while the tree is under significant engineering.
+      # Re-enter by removing the SUSPENDED_GATES entry and ratcheting the baseline.
+      # - run: pnpm complexity:budget
       - run: pnpm test:unit
       # The UI registries are exhaustive by `satisfies`; this runs the UI
       # typecheck (missing catalog row → failure) and the UI unit suite.

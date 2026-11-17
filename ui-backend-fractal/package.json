@@ -14,16 +14,16 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
+    "@senars/core": "workspace:*",
     "@senars/ui-contract": "workspace:*",
     "@senars/ui-shell": "workspace:*",
-    "@senars/core": "workspace:*",
     "@senars/util": "workspace:*",
-    "three": "^0.185.1"
+    "three": "^0.187.0"
   },
   "devDependencies": {
-    "@types/node": "^26.4.1",
-    "@types/three": "^0.185.4",
+    "@types/node": "^26.6.6",
+    "@types/three": "^0.187.0",
     "typescript": "7.0.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.1.0"
   }
 }
