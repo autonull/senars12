@@ -269,6 +269,12 @@ function generate(): string {
     lines.push(`export const ${name} = () => ${code};`);
   }
   lines.push('');
+  // Type aliases for primitive validators
+  lines.push('/** UUID string (RFC 4122). */');
+  lines.push('export type UUID = string;');
+  lines.push('/** Unix timestamp in milliseconds. */');
+  lines.push('export type TimestampMs = number;');
+  lines.push('');
 
   // ============================================================================
   // ENUMS — declare once, use everywhere
@@ -425,6 +431,67 @@ function generate(): string {
   lines.push('  globalAmbiguities: z.array(AmbiguityFlagSchema).optional(),');
   lines.push('});');
   lines.push('export type FormalizationBatch = z.infer<typeof FormalizationBatchSchema>;');
+  lines.push('');
+
+  // --- Core kernel types (Term, Stamp, BudgetScopeId) ---
+  lines.push('export const TermOpSchema = z.enum([');
+  lines.push("  'var', 'const', '-->', '<->', '==>', '<=>', '&', '|', '~', '*', '@', '#', '|>', '||', ';', '|~', '.', '?', '!'");
+  lines.push(']);');
+  lines.push('export type TermOp = z.infer<typeof TermOpSchema>;');
+  lines.push('');
+
+  lines.push('export const VariableTermSchema = z.object({');
+  lines.push("  op: z.literal('var'),");
+  lines.push('  name: z.string(),');
+  lines.push('  index: z.number().int().nonnegative(),');
+  lines.push('  hash: z.number().int(),');
+  lines.push('  complexity: z.number().int().positive(),');
+  lines.push('});');
+  lines.push('export type VariableTerm = z.infer<typeof VariableTermSchema>;');
+  lines.push('');
+
+  lines.push('export const ConstantTermSchema = z.object({');
+  lines.push("  op: z.literal('const'),");
+  lines.push('  value: z.string(),');
+  lines.push('  hash: z.number().int(),');
+  lines.push('  complexity: z.number().int().positive(),');
+  lines.push('});');
+  lines.push('export type ConstantTerm = z.infer<typeof ConstantTermSchema>;');
+  lines.push('');
+
+  lines.push('export const CompoundTermOpSchema = TermOpSchema.exclude([\'var\', \'const\']);');
+  lines.push('export type CompoundTermOp = z.infer<typeof CompoundTermOpSchema>;');
+  lines.push('');
+  lines.push('export const CompoundTermSchema = z.object({');
+  lines.push('  op: CompoundTermOpSchema,');
+  lines.push('  args: z.array(z.lazy(() => TermSchema)),');
+  lines.push('  arity: z.number().int().positive(),');
+  lines.push('  hash: z.number().int(),');
+  lines.push('  complexity: z.number().int().positive(),');
+  lines.push('});');
+  lines.push('export type CompoundTerm = z.infer<typeof CompoundTermSchema>;');
+  lines.push('');
+
+  lines.push('export const TermSchema: z.ZodTypeAny = z.discriminatedUnion(\'op\', [');
+  lines.push('  VariableTermSchema,');
+  lines.push('  ConstantTermSchema,');
+  lines.push('  CompoundTermSchema,');
+  lines.push(']);');
+  lines.push('export type Term = z.infer<typeof TermSchema>;');
+  lines.push('');
+
+  lines.push('export const StampSchema = z.object({');
+  lines.push('  id: uuid(),');
+  lines.push('  ts: timestamp(),');
+  lines.push('  parents: z.array(uuid()),');
+  lines.push('  derivation: z.array(z.string()),');
+  lines.push('  evidence: z.number(),');
+  lines.push('});');
+  lines.push('export type Stamp = z.infer<typeof StampSchema>;');
+  lines.push('');
+
+  lines.push('export const BudgetScopeIdSchema = z.enum(BUDGET_SCOPE_IDS);');
+  lines.push('export type BudgetScopeId = z.infer<typeof BudgetScopeIdSchema>;');
   lines.push('');
 
   // --- Gate I/O ---
@@ -780,6 +847,68 @@ function generate(): string {
   lines.push('export type JudgmentResolvedEvent = z.infer<typeof JudgmentResolvedEventSchema>;');
   lines.push('');
 
+  lines.push('export const GatePassedEventSchema = CognitiveEventBaseSchema.extend({');
+  lines.push("  type: z.literal('gate.passed'),");
+  lines.push('  payload: z.object({');
+  lines.push("    gate: z.enum(['perception', 'action', 'reward', 'budget']),");
+  lines.push('    score: unitInterval().optional(),');
+  lines.push('    detail: z.string().optional(),');
+  lines.push('  }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const GateFailedEventSchema = CognitiveEventBaseSchema.extend({');
+  lines.push("  type: z.literal('gate.failed'),");
+  lines.push('  payload: z.object({');
+  lines.push("    gate: z.enum(['perception', 'action', 'reward', 'budget']),");
+  lines.push('    score: unitInterval().optional(),');
+  lines.push('    detail: z.string().optional(),');
+  lines.push('  }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const BudgetConsumedEventSchema = CognitiveEventBaseSchema.extend({');
+  lines.push("  type: z.literal('budget.consumed'),");
+  lines.push('  payload: z.object({');
+  lines.push('    budgetType: z.enum(BUDGET_TYPES),');
+  lines.push('    amount: nonNegativeInt(),');
+  lines.push('    remaining: nonNegativeInt(),');
+  lines.push('    limit: positiveInt(),');
+  lines.push('  }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const ProposalSubmittedEventSchema = CognitiveEventBaseSchema.extend({');
+  lines.push("  type: z.literal('proposal.submitted'),");
+  lines.push('  payload: z.object({');
+  lines.push('    proposalId: uuid(),');
+  lines.push('    kind: z.enum(PROPOSAL_KINDS),');
+  lines.push('    revision: nonNegativeInt(),');
+  lines.push('  }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const SnapshotCreatedEventSchema = CognitiveEventBaseSchema.extend({');
+  lines.push("  type: z.literal('snapshot.created'),");
+  lines.push('  payload: z.object({');
+  lines.push('    snapshotId: uuid(),');
+  lines.push('    cycle: nonNegativeInt(),');
+  lines.push('    entryCount: positiveInt(),');
+  lines.push('    hash: z.string(),');
+  lines.push('  }),');
+  lines.push('});');
+  lines.push('');
+
+  lines.push('export const SnapshotRestoredEventSchema = CognitiveEventBaseSchema.extend({');
+  lines.push("  type: z.literal('snapshot.restored'),");
+  lines.push('  payload: z.object({');
+  lines.push('    snapshotId: uuid(),');
+  lines.push('    cycle: nonNegativeInt(),');
+  lines.push('    entriesReplayed: positiveInt(),');
+  lines.push('  }),');
+  lines.push('});');
+  lines.push('');
+
   lines.push('export const EgressGateRejectedEventSchema = CognitiveEventBaseSchema.extend({');
   lines.push("  type: z.literal('egress.gate.rejected'),");
   lines.push('  payload: z.object({');
@@ -788,7 +917,6 @@ function generate(): string {
   lines.push('    detail: z.string().optional(),');
   lines.push('  }),');
   lines.push('});');
-  lines.push('export type EgressGateRejectedEvent = z.infer<typeof EgressGateRejectedEventSchema>;');
   lines.push('');
 
   lines.push('export const ShadowValidationDropEventSchema = CognitiveEventBaseSchema.extend({');
@@ -801,7 +929,6 @@ function generate(): string {
   lines.push('    semanticScore: z.number().optional(),');
   lines.push('  }),');
   lines.push('});');
-  lines.push('export type ShadowValidationDropEvent = z.infer<typeof ShadowValidationDropEventSchema>;');
   lines.push('');
 
   // --- Derivation records (before DerivationRecordEventSchema) ---
@@ -1117,9 +1244,6 @@ function generate(): string {
   lines.push('  }),');
   lines.push('});');
   lines.push('');
-  lines.push('export type ProposalRejectedEvent = z.infer<typeof ProposalRejectedEventSchema>;');
-  lines.push('export type ProposalAdmittedEvent = z.infer<typeof ProposalAdmittedEventSchema>;');
-  lines.push('');
 
   // --- Reasoning budget (before BudgetGate) ---
   lines.push('export const ConsumedBudgetSchema = z.object({');
@@ -1198,14 +1322,20 @@ function generate(): string {
   lines.push('  BeliefRevisedEventSchema,');
   lines.push('  ConceptActivatedEventSchema,');
   lines.push('  BudgetExhaustedEventSchema,');
+  lines.push('  BudgetConsumedEventSchema,');
   lines.push('  PolicyViolationEventSchema,');
   lines.push('  AutonomyModeChangedEventSchema,');
   lines.push('  SelfModProposalEventSchema,');
   lines.push('  JudgmentResolvedEventSchema,');
+  lines.push('  GatePassedEventSchema,');
+  lines.push('  GateFailedEventSchema,');
   lines.push('  EgressGateRejectedEventSchema,');
   lines.push('  ShadowValidationDropEventSchema,');
+  lines.push('  ProposalSubmittedEventSchema,');
   lines.push('  ProposalAdmittedEventSchema,');
   lines.push('  ProposalRejectedEventSchema,');
+  lines.push('  SnapshotCreatedEventSchema,');
+  lines.push('  SnapshotRestoredEventSchema,');
   lines.push('  ...NarEventSchemas,');
   lines.push(']);');
   lines.push('');
@@ -1217,9 +1347,19 @@ function generate(): string {
   lines.push('export type BeliefRevisedEvent = z.infer<typeof BeliefRevisedEventSchema>;');
   lines.push('export type ConceptActivatedEvent = z.infer<typeof ConceptActivatedEventSchema>;');
   lines.push('export type BudgetExhaustedEvent = z.infer<typeof BudgetExhaustedEventSchema>;');
+  lines.push('export type BudgetConsumedEvent = z.infer<typeof BudgetConsumedEventSchema>;');
   lines.push('export type PolicyViolationEvent = z.infer<typeof PolicyViolationEventSchema>;');
   lines.push('export type AutonomyModeChangedEvent = z.infer<typeof AutonomyModeChangedEventSchema>;');
   lines.push('export type SelfModProposalEvent = z.infer<typeof SelfModProposalEventSchema>;');
+  lines.push('export type GatePassedEvent = z.infer<typeof GatePassedEventSchema>;');
+  lines.push('export type GateFailedEvent = z.infer<typeof GateFailedEventSchema>;');
+  lines.push('export type EgressGateRejectedEvent = z.infer<typeof EgressGateRejectedEventSchema>;');
+  lines.push('export type ShadowValidationDropEvent = z.infer<typeof ShadowValidationDropEventSchema>;');
+  lines.push('export type ProposalSubmittedEvent = z.infer<typeof ProposalSubmittedEventSchema>;');
+  lines.push('export type ProposalAdmittedEvent = z.infer<typeof ProposalAdmittedEventSchema>;');
+  lines.push('export type ProposalRejectedEvent = z.infer<typeof ProposalRejectedEventSchema>;');
+  lines.push('export type SnapshotCreatedEvent = z.infer<typeof SnapshotCreatedEventSchema>;');
+  lines.push('export type SnapshotRestoredEvent = z.infer<typeof SnapshotRestoredEventSchema>;');
   lines.push('');
 
   lines.push('export type CognitiveEventOf<T extends CognitiveEvent[\'type\']> = Extract<CognitiveEvent, { type: T }>;');

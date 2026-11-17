@@ -10,7 +10,7 @@
 | Change | Status | Files Created | Notes |
 |---|---|---|---|
 | 1. Schema-genome pipeline + totality types | ✅ **DONE** | `src/formats/genome.ts`, `src/generated/schemas.ts`, `src/generated/json-schema/`, `tests/formats/genome.test.ts` | Generated schemas pass typecheck/lint; all 11 genome tests pass |
-| 2. One log + interning + golden replay + `config:digest` | 🔄 **IN PROGRESS** | `src/log/events.ts`, `src/log/store.ts`, `src/log/replay.ts`, `src/log/query.ts`, `src/log/compact.ts`, `src/log/snapshot.ts`, `src/log/mine.ts`, `src/log/pins.ts`, `src/kernel/terms/term.ts`, `src/kernel/terms/intern.ts`, `src/kernel/terms/canonical.ts`, `src/kernel/terms/unify.ts`, `src/kernel/terms/codec/narsese.ts`, `src/kernel/truth.ts`, `src/kernel/stamp.ts`, `src/kernel/bag.ts`, `src/kernel/step.ts`, `src/kernel/gate.ts`, `src/kernel/reduce.ts`, `src/logics/nal/rules.ts`, `src/logics/nal/temporal.ts`, `tests/kernel/terms.test.ts`, `tests/logics/nal/truth.test.ts`, `tests/obligations/05-derivation-replay.test.ts`, `tests/demos/D1.test.ts` | Core kernel modules type-check cleanly; remaining issues in log/ directory imports |
+| 2. One log + interning + golden replay + `config:digest` | 🔄 **IN PROGRESS** | `src/log/events.ts`, `src/log/store.ts`, `src/log/replay.ts`, `src/log/query.ts`, `src/log/compact.ts`, `src/log/snapshot.ts`, `src/log/mine.ts`, `src/log/pins.ts`, `src/kernel/terms/term.ts`, `src/kernel/terms/intern.ts`, `src/kernel/terms/canonical.ts`, `src/kernel/terms/unify.ts`, `src/kernel/terms/codec/narsese.ts`, `src/kernel/truth.ts`, `src/kernel/stamp.ts`, `src/kernel/bag.ts`, `src/kernel/step.ts`, `src/kernel/gate.ts`, `src/kernel/reduce.ts`, `src/logics/nal/rules.ts`, `src/logics/nal/temporal.ts`, `tests/kernel/terms.test.ts`, `tests/logics/nal/truth.test.ts`, `tests/obligations/05-derivation-replay.test.ts`, `tests/demos/D1.test.ts` | Core kernel modules type-check cleanly; log/ directory imports fixed; remaining issues in test file module resolution |
 | 3. Truth port + NAL rules as formula ASTs + verifier + laws/vectors | 🔄 **IN PROGRESS** | `src/verification/record.ts`, `src/verification/interpreter.ts`, `src/verification/laws.ts`, `src/verification/vectors.ts`, `src/verification/cross-engine.ts` | Verification framework created; needs integration with truth port |
 | 4. Temporal terms + surprise events + log mining | ✅ **DONE** | Included in log/mine.ts and logics/nal/temporal.ts | Temporal logic and log mining implemented |
 | 5. Gate matrix + snapshot/restore; obligations 1,3–6 | 🔄 **IN PROGRESS** | `src/kernel/gate.ts`, `src/log/snapshot.ts`, `src/log/restore.ts` | Gate framework and snapshot/restore created |
@@ -26,7 +26,7 @@
 - Export subpaths: 87 (target 1) — new kernel/* modules add subpaths
 - Circular chains: 13 (target 0)
 - Append-only persistence sites: 4 (target 1) — log/store.ts is the new single site
-- Typecheck: ⚠️ **FAIL** — remaining issues in log/ directory (imports from generated/schemas.js)
+- Typecheck: ⚠️ **FAIL** — remaining issues in test files (module resolution) and some log/ edge cases
 - Lint: ✅ pass
 - Test:unit: 3,532 passed, 4 failed (3 known-red + 1 budget gate) — new tests not yet running cleanly
 
@@ -41,11 +41,19 @@
 - `src/logics/nal/rules.ts` — NAL rule tables ✅
 - `src/logics/nal/temporal.ts` — temporal logic ✅
 
-**Remaining typecheck issues (log/ directory):**
-1. `log/events.ts` imports `UUID`, `TimestampMs`, `TermSchema`, `StampSchema`, `BudgetScopeIdSchema` from generated/schemas.js
-2. `log/compact.ts` imports `LogStore` from events.ts; fs/promises API mismatches
-3. `log/mine.ts` imports `LogStore` from events.ts; event payload type mismatches
-4. `log/events.ts` comparison type mismatches for event type discriminators
+**Fixed log/ directory issues:**
+1. ✅ `log/events.ts` - Added UUID, TimestampMs, TermSchema, StampSchema, BudgetScopeIdSchema to generated schemas; fixed event type guards to match generated event types
+2. ✅ `log/compact.ts` - Fixed LogStore import from store.ts; fixed fs/promises API to use FileHandle methods
+3. ✅ `log/mine.ts` - Fixed LogStore import from store.ts; fixed event payload access with proper type guards; fixed JSON.stringify replacer issue
+4. ✅ `log/pins.ts` - Fixed fs/promises API to use FileHandle methods; fixed FileHandle type
+5. ✅ `log/query.ts` - Fixed LogStore import from store.ts; fixed aggregation type narrowing
+6. ✅ `log/replay.ts` - Fixed LogStore import from store.ts
+7. ✅ `log/snapshot.ts` - Fixed LogStore import from store.ts
+8. ✅ `log/events.ts` - Fixed event type discriminators to match generated schemas (e.g., 'task.admitted' vs 'TaskAdmitted')
+
+**Remaining issues:**
+- Test files import from `@senars/*` package paths that don't exist yet
+- Some edge cases in log/ directory (store.ts FileHandle, replay.ts event type conversion, snapshot.ts undefined checks)
 
 ---
 

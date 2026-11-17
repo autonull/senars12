@@ -6,8 +6,8 @@
  * a reducer function to reconstruct any derived state.
  */
 
-import type { LogEntry, CognitiveEvent, LogStore } from './events.js';
-import type { LogStore as LogStoreType } from './store.js';
+import type { LogEntry, CognitiveEvent } from './events.js';
+import type { LogStore } from './store.js';
 
 /** Reducer function for replay: (state, event) -> newState. */
 export type Reducer<S, E extends CognitiveEvent = CognitiveEvent> = (
@@ -57,7 +57,7 @@ export interface ReplayResult<S> {
  * and applies the reducer to accumulate state.
  */
 export async function replay<S>(
-  store: LogStoreType,
+  store: LogStore,
   options: ReplayOptions<S>
 ): Promise<ReplayResult<S>> {
   const {
@@ -126,7 +126,7 @@ export interface CheckpointReplayResult<S> extends ReplayResult<S> {
  * Replay with periodic checkpointing for long-running replays.
  */
 export async function replayWithCheckpoints<S>(
-  store: LogStoreType,
+  store: LogStore,
   options: CheckpointReplayOptions<S>
 ): Promise<CheckpointReplayResult<S>> {
   const {
@@ -216,7 +216,7 @@ export interface ParallelReplayResult<S> extends ReplayResult<S> {
  * Use when events can be partitioned by a key (e.g., by term, by agent).
  */
 export async function replayParallel<S, K>(
-  store: LogStoreType,
+  store: LogStore,
   options: ParallelReplayOptions<S, K>
 ): Promise<ParallelReplayResult<S>> {
   const {
@@ -297,7 +297,7 @@ export async function replayParallel<S, K>(
  * Used for golden replay tests.
  */
 export async function verifyReplay<S>(
-  store: LogStoreType,
+  store: LogStore,
   reducer: Reducer<S>,
   expectedState: S,
   options: Partial<ReplayOptions<S>> = {}

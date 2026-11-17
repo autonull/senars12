@@ -16,6 +16,11 @@ export const unitInterval = () => z.number().min(0).max(1);
 export const signedUnitInterval = () => z.number().min(-1).max(1);
 export const timestamp = () => z.number().int().positive();
 
+/** UUID string (RFC 4122). */
+export type UUID = string;
+/** Unix timestamp in milliseconds. */
+export type TimestampMs = number;
+
 // ============================================================================
 // ENUMS
 // ============================================================================
@@ -532,6 +537,59 @@ export const FormalizationBatchSchema = z.object({
 });
 export type FormalizationBatch = z.infer<typeof FormalizationBatchSchema>;
 
+export const TermOpSchema = z.enum([
+  'var', 'const', '-->', '<->', '==>', '<=>', '&', '|', '~', '*', '@', '#', '|>', '||', ';', '|~', '.', '?', '!'
+]);
+export type TermOp = z.infer<typeof TermOpSchema>;
+
+export const VariableTermSchema = z.object({
+  op: z.literal('var'),
+  name: z.string(),
+  index: z.number().int().nonnegative(),
+  hash: z.number().int(),
+  complexity: z.number().int().positive(),
+});
+export type VariableTerm = z.infer<typeof VariableTermSchema>;
+
+export const ConstantTermSchema = z.object({
+  op: z.literal('const'),
+  value: z.string(),
+  hash: z.number().int(),
+  complexity: z.number().int().positive(),
+});
+export type ConstantTerm = z.infer<typeof ConstantTermSchema>;
+
+export const CompoundTermOpSchema = TermOpSchema.exclude(['var', 'const']);
+export type CompoundTermOp = z.infer<typeof CompoundTermOpSchema>;
+
+export const CompoundTermSchema = z.object({
+  op: CompoundTermOpSchema,
+  args: z.array(z.lazy(() => TermSchema)),
+  arity: z.number().int().positive(),
+  hash: z.number().int(),
+  complexity: z.number().int().positive(),
+});
+export type CompoundTerm = z.infer<typeof CompoundTermSchema>;
+
+export const TermSchema: z.ZodTypeAny = z.discriminatedUnion('op', [
+  VariableTermSchema,
+  ConstantTermSchema,
+  CompoundTermSchema,
+]);
+export type Term = z.infer<typeof TermSchema>;
+
+export const StampSchema = z.object({
+  id: uuid(),
+  ts: timestamp(),
+  parents: z.array(uuid()),
+  derivation: z.array(z.string()),
+  evidence: z.number(),
+});
+export type Stamp = z.infer<typeof StampSchema>;
+
+export const BudgetScopeIdSchema = z.enum(BUDGET_SCOPE_IDS);
+export type BudgetScopeId = z.infer<typeof BudgetScopeIdSchema>;
+
 export const PerceptionGateInputSchema = z.object({
   sourceId: z.string(),
   source: z.enum(STIMULUS_SOURCES).optional(),
@@ -859,6 +917,62 @@ export const JudgmentResolvedEventSchema = CognitiveEventBaseSchema.extend({
 });
 export type JudgmentResolvedEvent = z.infer<typeof JudgmentResolvedEventSchema>;
 
+export const GatePassedEventSchema = CognitiveEventBaseSchema.extend({
+  type: z.literal('gate.passed'),
+  payload: z.object({
+    gate: z.enum(['perception', 'action', 'reward', 'budget']),
+    score: unitInterval().optional(),
+    detail: z.string().optional(),
+  }),
+});
+
+export const GateFailedEventSchema = CognitiveEventBaseSchema.extend({
+  type: z.literal('gate.failed'),
+  payload: z.object({
+    gate: z.enum(['perception', 'action', 'reward', 'budget']),
+    score: unitInterval().optional(),
+    detail: z.string().optional(),
+  }),
+});
+
+export const BudgetConsumedEventSchema = CognitiveEventBaseSchema.extend({
+  type: z.literal('budget.consumed'),
+  payload: z.object({
+    budgetType: z.enum(BUDGET_TYPES),
+    amount: nonNegativeInt(),
+    remaining: nonNegativeInt(),
+    limit: positiveInt(),
+  }),
+});
+
+export const ProposalSubmittedEventSchema = CognitiveEventBaseSchema.extend({
+  type: z.literal('proposal.submitted'),
+  payload: z.object({
+    proposalId: uuid(),
+    kind: z.enum(PROPOSAL_KINDS),
+    revision: nonNegativeInt(),
+  }),
+});
+
+export const SnapshotCreatedEventSchema = CognitiveEventBaseSchema.extend({
+  type: z.literal('snapshot.created'),
+  payload: z.object({
+    snapshotId: uuid(),
+    cycle: nonNegativeInt(),
+    entryCount: positiveInt(),
+    hash: z.string(),
+  }),
+});
+
+export const SnapshotRestoredEventSchema = CognitiveEventBaseSchema.extend({
+  type: z.literal('snapshot.restored'),
+  payload: z.object({
+    snapshotId: uuid(),
+    cycle: nonNegativeInt(),
+    entriesReplayed: positiveInt(),
+  }),
+});
+
 export const EgressGateRejectedEventSchema = CognitiveEventBaseSchema.extend({
   type: z.literal('egress.gate.rejected'),
   payload: z.object({
@@ -867,7 +981,6 @@ export const EgressGateRejectedEventSchema = CognitiveEventBaseSchema.extend({
     detail: z.string().optional(),
   }),
 });
-export type EgressGateRejectedEvent = z.infer<typeof EgressGateRejectedEventSchema>;
 
 export const ShadowValidationDropEventSchema = CognitiveEventBaseSchema.extend({
   type: z.literal('shadow.validation.dropped'),
@@ -879,7 +992,6 @@ export const ShadowValidationDropEventSchema = CognitiveEventBaseSchema.extend({
     semanticScore: z.number().optional(),
   }),
 });
-export type ShadowValidationDropEvent = z.infer<typeof ShadowValidationDropEventSchema>;
 
 export const RuleCategorySchema = z.enum(RULE_CATEGORIES);
 export type RuleCategory = (typeof RULE_CATEGORIES)[number];
@@ -1159,9 +1271,6 @@ export const ProposalAdmittedEventSchema = CognitiveEventBaseSchema.extend({
   }),
 });
 
-export type ProposalRejectedEvent = z.infer<typeof ProposalRejectedEventSchema>;
-export type ProposalAdmittedEvent = z.infer<typeof ProposalAdmittedEventSchema>;
-
 export const ConsumedBudgetSchema = z.object({
   cycles: nonNegativeInt().default(0),
   depth: nonNegativeInt().default(0),
@@ -1228,14 +1337,20 @@ export const CognitiveEventSchema = z.discriminatedUnion('type', [
   BeliefRevisedEventSchema,
   ConceptActivatedEventSchema,
   BudgetExhaustedEventSchema,
+  BudgetConsumedEventSchema,
   PolicyViolationEventSchema,
   AutonomyModeChangedEventSchema,
   SelfModProposalEventSchema,
   JudgmentResolvedEventSchema,
+  GatePassedEventSchema,
+  GateFailedEventSchema,
   EgressGateRejectedEventSchema,
   ShadowValidationDropEventSchema,
+  ProposalSubmittedEventSchema,
   ProposalAdmittedEventSchema,
   ProposalRejectedEventSchema,
+  SnapshotCreatedEventSchema,
+  SnapshotRestoredEventSchema,
   ...NarEventSchemas,
 ]);
 
@@ -1246,9 +1361,19 @@ export type DerivationRecordEvent = z.infer<typeof DerivationRecordEventSchema>;
 export type BeliefRevisedEvent = z.infer<typeof BeliefRevisedEventSchema>;
 export type ConceptActivatedEvent = z.infer<typeof ConceptActivatedEventSchema>;
 export type BudgetExhaustedEvent = z.infer<typeof BudgetExhaustedEventSchema>;
+export type BudgetConsumedEvent = z.infer<typeof BudgetConsumedEventSchema>;
 export type PolicyViolationEvent = z.infer<typeof PolicyViolationEventSchema>;
 export type AutonomyModeChangedEvent = z.infer<typeof AutonomyModeChangedEventSchema>;
 export type SelfModProposalEvent = z.infer<typeof SelfModProposalEventSchema>;
+export type GatePassedEvent = z.infer<typeof GatePassedEventSchema>;
+export type GateFailedEvent = z.infer<typeof GateFailedEventSchema>;
+export type EgressGateRejectedEvent = z.infer<typeof EgressGateRejectedEventSchema>;
+export type ShadowValidationDropEvent = z.infer<typeof ShadowValidationDropEventSchema>;
+export type ProposalSubmittedEvent = z.infer<typeof ProposalSubmittedEventSchema>;
+export type ProposalAdmittedEvent = z.infer<typeof ProposalAdmittedEventSchema>;
+export type ProposalRejectedEvent = z.infer<typeof ProposalRejectedEventSchema>;
+export type SnapshotCreatedEvent = z.infer<typeof SnapshotCreatedEventSchema>;
+export type SnapshotRestoredEvent = z.infer<typeof SnapshotRestoredEventSchema>;
 
 export type CognitiveEventOf<T extends CognitiveEvent['type']> = Extract<CognitiveEvent, { type: T }>;
 

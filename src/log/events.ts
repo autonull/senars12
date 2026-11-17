@@ -100,20 +100,50 @@ export const createLogEntry = (
 };
 
 /** Event type guards for pattern matching. */
-export const isTaskAdmittedEvent = (e: CognitiveEvent): e is CognitiveEvent & { type: 'TaskAdmitted' } =>
-  e.type === 'TaskAdmitted';
+export const isTaskAdmittedEvent = (e: CognitiveEvent): e is CognitiveEvent & { type: 'task.admitted' } =>
+  e.type === 'task.admitted';
 
-export const isDerivationAcceptedEvent = (e: CognitiveEvent): e is CognitiveEvent & { type: 'DerivationAccepted' } =>
-  e.type === 'DerivationAccepted';
+export const isDerivationAcceptedEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'derivation.accepted' }> =>
+  e.type === 'derivation.accepted';
 
-export const isGateEvent = (e: CognitiveEvent): e is CognitiveEvent & { type: 'GatePassed' | 'GateFailed' } =>
-  e.type === 'GatePassed' || e.type === 'GateFailed';
+export const isGatePassedEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'gate.passed' }> =>
+  e.type === 'gate.passed';
 
-export const isBudgetEvent = (e: CognitiveEvent): e is CognitiveEvent & { type: 'BudgetConsumed' | 'BudgetExhausted' } =>
-  e.type === 'BudgetConsumed' || e.type === 'BudgetExhausted';
+export const isGateFailedEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'gate.failed' }> =>
+  e.type === 'gate.failed';
 
-export const isProposalEvent = (e: CognitiveEvent): e is CognitiveEvent & { type: 'ProposalSubmitted' | 'ProposalAdmitted' | 'ProposalRejected' } =>
-  e.type === 'ProposalSubmitted' || e.type === 'ProposalAdmitted' || e.type === 'ProposalRejected';
+export const isGateEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'gate.passed' | 'gate.failed' }> =>
+  e.type === 'gate.passed' || e.type === 'gate.failed';
 
-export const isSnapshotEvent = (e: CognitiveEvent): e is CognitiveEvent & { type: 'SnapshotCreated' | 'SnapshotRestored' } =>
-  e.type === 'SnapshotCreated' || e.type === 'SnapshotRestored';
+export const isBudgetConsumedEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'budget.consumed' }> =>
+  e.type === 'budget.consumed';
+
+export const isBudgetExhaustedEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'budget.exhausted' }> =>
+  e.type === 'budget.exhausted';
+
+export const isBudgetEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'budget.consumed' | 'budget.exhausted' }> =>
+  e.type === 'budget.consumed' || e.type === 'budget.exhausted';
+
+export const isProposalSubmittedEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'proposal.submitted' }> =>
+  e.type === 'proposal.submitted';
+
+export const isProposalAdmittedEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'proposal.admitted' }> =>
+  e.type === 'proposal.admitted';
+
+export const isProposalRejectedEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'proposal.rejected' }> =>
+  e.type === 'proposal.rejected';
+
+export const isProposalEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'proposal.submitted' | 'proposal.admitted' | 'proposal.rejected' }> =>
+  e.type === 'proposal.submitted' || e.type === 'proposal.admitted' || e.type === 'proposal.rejected';
+
+export const isSnapshotCreatedEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'snapshot.created' }> =>
+  e.type === 'snapshot.created';
+
+export const isSnapshotRestoredEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'snapshot.restored' }> =>
+  e.type === 'snapshot.restored';
+
+export const isSnapshotEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'snapshot.created' | 'snapshot.restored' }> =>
+  e.type === 'snapshot.created' || e.type === 'snapshot.restored';
+
+export const isDerivationMadeEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'derivation.made' }> =>
+  e.type === 'derivation.made';

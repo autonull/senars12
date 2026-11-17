@@ -66,7 +66,7 @@ export class PinStore {
   private index = new Map<string, PinIndexEntry>();
   private currentFile = 0;
   private currentCount = 0;
-  private currentFd: number | null = null;
+  private currentFd: fs.FileHandle | null = null;
 
   constructor(config: Partial<PinStoreConfig> = {}) {
     this.config = { ...defaultPinStoreConfig, ...config };
@@ -177,7 +177,7 @@ export class PinStore {
 
     const line = JSON.stringify(pin) + '\n';
     const buffer = Buffer.from(line, 'utf-8');
-    await fs.write(this.currentFd!, buffer);
+    await this.currentFd!.write(buffer);
     this.currentCount++;
 
     this.index.set(`${operation}:${inputHash}`, {
@@ -189,7 +189,7 @@ export class PinStore {
     });
 
     if (this.currentCount >= this.config.maxPinsPerFile) {
-      await fs.close(this.currentFd!);
+      await this.currentFd!.close();
       this.currentFile++;
       this.currentCount = 0;
       await this.openCurrentFile();
@@ -243,7 +243,7 @@ export class PinStore {
   /** Close the pin store. */
   async close(): Promise<void> {
     if (this.currentFd !== null) {
-      await fs.close(this.currentFd);
+      await this.currentFd.close();
       this.currentFd = null;
     }
   }

@@ -8,7 +8,8 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { createHash } from 'crypto';
-import type { LogEntry, CognitiveEvent, LogStore as LogStoreType } from './events.js';
+import type { LogEntry, CognitiveEvent } from './events.js';
+import type { LogStore } from './store.js';
 import { isTaskAdmittedEvent, isDerivationAcceptedEvent, isSnapshotEvent } from './events.js';
 import type { ReplayOptions, Reducer } from './replay.js';
 import { replay } from './replay.js';
@@ -89,7 +90,7 @@ export class SnapshotManager<S> {
   }
 
   /** Create a snapshot at the given sequence. */
-  async create(store: LogStoreType, seq: number, customMeta?: Record<string, unknown>): Promise<SnapshotMetadata> {
+  async create(store: LogStore, seq: number, customMeta?: Record<string, unknown>): Promise<SnapshotMetadata> {
     await this.ensureDir();
 
     // Replay from last snapshot or genesis
@@ -124,7 +125,7 @@ export class SnapshotManager<S> {
   }
 
   /** Create a snapshot at the current log head. */
-  async createAtHead(store: LogStoreType, customMeta?: Record<string, unknown>): Promise<SnapshotMetadata> {
+  async createAtHead(store: LogStore, customMeta?: Record<string, unknown>): Promise<SnapshotMetadata> {
     return this.create(store, store.getLastSeq(), customMeta);
   }
 
@@ -260,7 +261,7 @@ export function createSnapshotManager<S>(
  * Returns the restored state and the sequence to continue replay from.
  */
 export async function restoreAndReplay<S>(
-  store: LogStoreType,
+  store: LogStore,
   snapshotManager: SnapshotManager<S>,
   options: Partial<ReplayOptions<S>> = {}
 ): Promise<{ state: S; fromSeq: number }> {
@@ -302,7 +303,7 @@ export interface AutoSnapshotPolicy {
 }
 
 export async function replayWithAutoSnapshot<S>(
-  store: LogStoreType,
+  store: LogStore,
   snapshotManager: SnapshotManager<S>,
   policy: AutoSnapshotPolicy,
   options: Partial<ReplayOptions<S>> = {}

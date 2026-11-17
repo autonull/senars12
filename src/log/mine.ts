@@ -7,8 +7,10 @@
  * - Term co-occurrence and causal structure
  */
 
-import type { LogEntry, CognitiveEvent, LogStore as LogStoreType } from './events.js';
-import { isTaskAdmittedEvent, isDerivationAcceptedEvent, isGateEvent } from './events.js';
+import { createHash } from 'crypto';
+import type { LogEntry, CognitiveEvent } from './events.js';
+import type { LogStore } from './store.js';
+import { isGateFailedEvent, isDerivationAcceptedEvent, isDerivationMadeEvent } from './events.js';
 import { query } from './query.js';
 
 /** A surprise event detected in the log. */
@@ -80,7 +82,7 @@ export const defaultMiningConfig: MiningConfig = {
 
 /** Mine surprise events from the log. */
 export async function mineSurprises(
-  store: LogStoreType,
+  store: LogStore,
   config: Partial<MiningConfig> = {}
 ): Promise<SurpriseEvent[]> {
   const { surpriseThreshold, contextWindow } = { ...defaultMiningConfig, ...config };
@@ -88,62 +90,72 @@ export async function mineSurprises(
 
   // 1. Gate failures
   const gateFailures = await query(store, {
-    filter: { field: 'event.type', op: { eq: 'GateFailed' } },
+    filter: { field: 'event.type', op: { eq: 'gate.failed' } },
     limit: 1000,
   });
   for (const entry of gateFailures.results) {
-    const context = await getContext(store, entry.seq, contextWindow);
-    surprises.push({
-      seq: entry.seq,
-      kind: 'gate-failure',
-      description: `Gate ${entry.event.gateName} failed`,
-      trigger: entry,
-      context,
-      score: 0.9,
-    });
+    if (isGateFailedEvent(entry.event)) {
+      const context = await getContext(store, entry.seq, contextWindow);
+      surprises.push({
+        seq: entry.seq,
+        kind: 'gate-failure',
+        description: `Gate ${entry.event.payload.gate} failed`,
+        trigger: entry,
+        context,
+        score: 0.9,
+      });
+    }
   }
 
   // 2. Confidence violations (truth > 0.99 or < 0.01)
   const derivations = await query(store, {
-    filter: { field: 'event.type', op: { eq: 'DerivationAccepted' } },
+    filter: { field: 'event.type', op: { eq: 'derivation.accepted' } },
     limit: 5000,
   });
   for (const entry of derivations.results) {
-    const truth = entry.event.truth;
-    if (truth && (truth.f > 0.99 || truth.f < 0.01 || truth.c > 0.99 || truth.c < 0.01)) {
-      const context = await getContext(store, entry.seq, contextWindow);
-      surprises.push({
-        seq: entry.seq,
-        kind: 'confidence-violation',
-        description: `Extreme truth value: f=${truth.f}, c=${truth.c}`,
-        trigger: entry,
-        context,
-        score: Math.max(truth.f, 1 - truth.f, truth.c, 1 - truth.c),
-      });
+    if (isDerivationAcceptedEvent(entry.event)) {
+      const truth = entry.event.payload.truth;
+      if (truth && (truth.frequency > 0.99 || truth.frequency < 0.01 || truth.confidence > 0.99 || truth.confidence < 0.01)) {
+        const context = await getContext(store, entry.seq, contextWindow);
+        surprises.push({
+          seq: entry.seq,
+          kind: 'confidence-violation',
+          description: `Extreme truth value: f=${truth.frequency}, c=${truth.confidence}`,
+          trigger: entry,
+          context,
+          score: Math.max(truth.frequency, 1 - truth.frequency, truth.confidence, 1 - truth.confidence),
+        });
+      }
     }
   }
 
   // 3. Novel terms (first occurrence of a term structure)
   const termStructures = new Map<string, number>();
-  for (const entry of derivations.results) {
-    for (const premise of entry.event.premises) {
-      const struct = getTermStructure(premise);
-      if (!termStructures.has(struct)) {
-        termStructures.set(struct, entry.seq);
-        const context = await getContext(store, entry.seq, contextWindow);
-        surprises.push({
-          seq: entry.seq,
-          kind: 'novel-term',
-          description: `Novel term structure: ${struct}`,
-          trigger: entry,
-          context,
-          score: 0.7,
-        });
+  const derivationMade = await query(store, {
+    filter: { field: 'event.type', op: { eq: 'derivation.made' } },
+    limit: 5000,
+  });
+  for (const entry of derivationMade.results) {
+    if (isDerivationMadeEvent(entry.event)) {
+      for (const premise of entry.event.payload.premises) {
+        const struct = getTermStructure(premise);
+        if (!termStructures.has(struct)) {
+          termStructures.set(struct, entry.seq);
+          const context = await getContext(store, entry.seq, contextWindow);
+          surprises.push({
+            seq: entry.seq,
+            kind: 'novel-term',
+            description: `Novel term structure: ${struct}`,
+            trigger: entry,
+            context,
+            score: 0.7,
+          });
+        }
       }
-    }
-    const conclusionStruct = getTermStructure(entry.event.conclusion);
-    if (!termStructures.has(conclusionStruct)) {
-      termStructures.set(conclusionStruct, entry.seq);
+      const conclusionStruct = getTermStructure(entry.event.payload.conclusion);
+      if (!termStructures.has(conclusionStruct)) {
+        termStructures.set(conclusionStruct, entry.seq);
+      }
     }
   }
 
@@ -152,7 +164,7 @@ export async function mineSurprises(
 }
 
 /** Get context events around a sequence. */
-async function getContext(store: LogStoreType, seq: number, window: number): Promise<LogEntry[]> {
+async function getContext(store: LogStore, seq: number, window: number): Promise<LogEntry[]> {
   const from = Math.max(store.getFirstSeq(), seq - window);
   const to = Math.min(store.getLastSeq(), seq + window);
   const results: LogEntry[] = [];
@@ -178,14 +190,14 @@ function getTermStructure(term: unknown): string {
 
 /** Mine procedural schemas from derivation patterns. */
 export async function mineProceduralSchemas(
-  store: LogStoreType,
+  store: LogStore,
   config: Partial<MiningConfig> = {}
 ): Promise<ProceduralSchema[]> {
   const { minSupport, minConfidence, maxPatternLength } = { ...defaultMiningConfig, ...config };
   const schemas = new Map<string, ProceduralSchema>();
 
   const derivations = await query(store, {
-    filter: { field: 'event.type', op: { eq: 'DerivationAccepted' } },
+    filter: { field: 'event.type', op: { eq: 'derivation.accepted' } },
     limit: 10000,
     orderBy: [{ field: 'seq', direction: 'asc' }],
   });
@@ -193,9 +205,11 @@ export async function mineProceduralSchemas(
   // Group by rule sequence
   const ruleSequences = new Map<string, LogEntry[]>();
   for (const entry of derivations.results) {
-    const ruleSeq = entry.event.ruleId ?? 'unknown';
-    if (!ruleSequences.has(ruleSeq)) ruleSequences.set(ruleSeq, []);
-    ruleSequences.get(ruleSeq)!.push(entry);
+    if (isDerivationAcceptedEvent(entry.event)) {
+      const ruleSeq = entry.event.payload.ruleId ?? 'unknown';
+      if (!ruleSequences.has(ruleSeq)) ruleSequences.set(ruleSeq, []);
+      ruleSequences.get(ruleSeq)!.push(entry);
+    }
   }
 
   // Build schemas from frequent rule sequences
@@ -203,10 +217,18 @@ export async function mineProceduralSchemas(
     if (entries.length < minSupport) continue;
 
     // Extract premise/conclusion pattern
-    const premises = entries[0].event.premises;
-    const conclusion = entries[0].event.conclusion;
-    const premiseTemplates = premises.map(p => createTemplate(p, entries.map(e => e.event.premises[premises.indexOf(p)])));
-    const conclusionTemplate = createTemplate(conclusion, entries.map(e => e.event.conclusion));
+    const firstEntry = entries[0];
+    if (!firstEntry || !isDerivationAcceptedEvent(firstEntry.event)) continue;
+    const premises = firstEntry.event.payload.premises;
+    const conclusion = firstEntry.event.payload.conclusion;
+    const premiseTemplates = premises.map((p, i) => createTemplate(p, entries.map(e => {
+      if (isDerivationAcceptedEvent(e.event)) return e.event.payload.premises[i];
+      return null;
+    }).filter(Boolean)));
+    const conclusionTemplate = createTemplate(conclusion, entries.map(e => {
+      if (isDerivationAcceptedEvent(e.event)) return e.event.payload.conclusion;
+      return null;
+    }).filter(Boolean));
 
     // Compute confidence (success rate - all accepted derivations are "successful" by definition)
     // In a more sophisticated version, we'd track failed attempts too
@@ -214,16 +236,20 @@ export async function mineProceduralSchemas(
 
     if (confidence >= minConfidence) {
       const id = `schema-${createHash('sha256').update(ruleSeq).digest('hex').substring(0, 8)}`;
-      schemas.set(id, {
-        id,
-        premises: premiseTemplates,
-        conclusion: conclusionTemplate,
-        ruleSequence: ruleSeq.split(','),
-        support: entries.length,
-        confidence,
-        firstSeen: entries[0].seq,
-        lastSeen: entries[entries.length - 1].seq,
-      });
+      const firstEntry = entries[0];
+      const lastEntry = entries[entries.length - 1];
+      if (firstEntry && lastEntry) {
+        schemas.set(id, {
+          id,
+          premises: premiseTemplates,
+          conclusion: conclusionTemplate,
+          ruleSequence: ruleSeq.split(','),
+          support: entries.length,
+          confidence,
+          firstSeen: firstEntry.seq,
+          lastSeen: lastEntry.seq,
+        });
+      }
     }
   }
 
@@ -247,18 +273,20 @@ function generalizeTerm(example: unknown, instances: unknown[]): string {
   if (instances.length <= 1) return exampleStr;
 
   // Simple generalization: find common structure
-  const instanceStrs = instances.map(JSON.stringify);
-  let common = instanceStrs[0];
+  const instanceStrs = instances.map(v => JSON.stringify(v));
+  if (instanceStrs.length === 0) return exampleStr;
+  let common: string = instanceStrs[0]!;
   for (let i = 1; i < instanceStrs.length; i++) {
-    common = commonPrefix(common, instanceStrs[i]);
+    common = commonPrefix(common, instanceStrs[i]!);
   }
 
   // Replace varying parts with $VAR
-  return common.replace(/"[^"]*"/g, (match, offset) => {
+  const replacer = (match: string, offset: number): string => {
     const before = common.substring(0, offset);
     const varName = `VAR${before.split('$VAR').length}`;
     return `$${varName}`;
-  });
+  };
+  return common.replace(/"[^"]*"/g, replacer);
 }
 
 /** Find common prefix of two strings. */
@@ -287,7 +315,7 @@ export interface CooccurrenceEdge {
 }
 
 export async function mineTermCooccurrence(
-  store: LogStoreType,
+  store: LogStore,
   minCount: number = 5
 ): Promise<CooccurrenceEdge[]> {
   const termCounts = new Map<string, number>();
@@ -295,15 +323,16 @@ export async function mineTermCooccurrence(
   let totalDerivations = 0;
 
   const derivations = await query(store, {
-    filter: { field: 'event.type', op: { eq: 'DerivationAccepted' } },
+    filter: { field: 'event.type', op: { eq: 'derivation.accepted' } },
     limit: 50000,
   });
 
   for (const entry of derivations.results) {
+    if (!isDerivationAcceptedEvent(entry.event)) continue;
     totalDerivations++;
     const terms = [
-      ...entry.event.premises.map(getTermStructure),
-      getTermStructure(entry.event.conclusion),
+      ...entry.event.payload.premises.map(getTermStructure),
+      getTermStructure(entry.event.payload.conclusion),
     ];
 
     for (const term of terms) {
@@ -321,7 +350,9 @@ export async function mineTermCooccurrence(
   const edges: CooccurrenceEdge[] = [];
   for (const [pair, count] of pairCounts) {
     if (count < minCount) continue;
-    const [termA, termB] = pair.split('|');
+    const parts = pair.split('|');
+    if (parts.length !== 2) continue;
+    const [termA, termB] = parts;
     const countA = termCounts.get(termA) ?? 0;
     const countB = termCounts.get(termB) ?? 0;
     const pmi = Math.log2((count * totalDerivations) / (countA * countB));
@@ -339,14 +370,14 @@ export interface CausalChain {
 }
 
 export async function mineCausalChains(
-  store: LogStoreType,
+  store: LogStore,
   maxLength: number = 4,
   minSupport: number = 3
 ): Promise<CausalChain[]> {
   const chains = new Map<string, { count: number; successes: number }>();
 
   const derivations = await query(store, {
-    filter: { field: 'event.type', op: { eq: 'DerivationAccepted' } },
+    filter: { field: 'event.type', op: { eq: 'derivation.accepted' } },
     limit: 20000,
     orderBy: [{ field: 'seq', direction: 'asc' }],
   });
@@ -354,28 +385,33 @@ export async function mineCausalChains(
   // Build derivation graph
   const termToDerivations = new Map<string, LogEntry[]>();
   for (const entry of derivations.results) {
-    for (const premise of entry.event.premises) {
+    if (!isDerivationAcceptedEvent(entry.event)) continue;
+    for (const premise of entry.event.payload.premises) {
       const key = getTermStructure(premise);
       if (!termToDerivations.has(key)) termToDerivations.set(key, []);
       termToDerivations.get(key)!.push(entry);
     }
-    const conclusionKey = getTermStructure(entry.event.conclusion);
+    const conclusionKey = getTermStructure(entry.event.payload.conclusion);
     if (!termToDerivations.has(conclusionKey)) termToDerivations.set(conclusionKey, []);
     termToDerivations.get(conclusionKey)!.push(entry);
   }
 
   // Find chains (simplified: sequence of derivations where conclusion of one is premise of next)
   for (const entry of derivations.results) {
-    const chain = [getTermStructure(entry.event.conclusion)];
-    let current = entry.event.conclusion;
+    if (!isDerivationAcceptedEvent(entry.event)) continue;
+    const chain = [getTermStructure(entry.event.payload.conclusion)];
+    let current = entry.event.payload.conclusion;
     let currentSeq = entry.seq;
 
     for (let len = 1; len < maxLength; len++) {
       const nextDerivations = termToDerivations.get(getTermStructure(current)) ?? [];
-      const next = nextDerivations.find(d => d.seq > currentSeq);
-      if (!next) break;
-      chain.push(getTermStructure(next.conclusion));
-      current = next.conclusion;
+      const next = nextDerivations.find(d => {
+        if (!isDerivationAcceptedEvent(d.event)) return false;
+        return d.seq > currentSeq;
+      });
+      if (!next || !isDerivationAcceptedEvent(next.event)) break;
+      chain.push(getTermStructure(next.event.payload.conclusion));
+      current = next.event.payload.conclusion;
       currentSeq = next.seq;
     }
 

@@ -5,7 +5,8 @@
  * and transforming log events without full replay.
  */
 
-import type { LogEntry, CognitiveEvent, LogStore as LogStoreType } from './events.js';
+import type { LogEntry, CognitiveEvent } from './events.js';
+import type { LogStore } from './store.js';
 import { isTaskAdmittedEvent, isDerivationAcceptedEvent, isGateEvent, isBudgetEvent, isProposalEvent } from './events.js';
 
 /** Query filter operators. */
@@ -158,6 +159,15 @@ function getFieldValue(entry: LogEntry, path: string): unknown {
   return current;
 }
 
+function compareValues(a: unknown, b: unknown): number {
+  if (a === b) return 0;
+  if (a === undefined || a === null) return -1;
+  if (b === undefined || b === null) return 1;
+  if (typeof a === 'number' && typeof b === 'number') return a < b ? -1 : 1;
+  if (typeof a === 'string' && typeof b === 'string') return a < b ? -1 : 1;
+  return String(a).localeCompare(String(b));
+}
+
 /**
  * Apply projection to an entry.
  */
@@ -183,7 +193,7 @@ function applyProjection(entry: LogEntry, projection?: Projection): unknown {
  * Execute a query against the log store.
  */
 export async function query(
-  store: LogStoreType,
+  store: LogStore,
   options: QueryOptions = {}
 ): Promise<QueryResult> {
   const {
@@ -222,7 +232,7 @@ export async function query(
       for (const { field, direction } of orderBy) {
         const av = getFieldValue(a as LogEntry, field);
         const bv = getFieldValue(b as LogEntry, field);
-        const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+        const cmp = compareValues(av, bv);
         if (cmp !== 0) return direction === 'asc' ? cmp : -cmp;
       }
       return 0;
@@ -241,7 +251,7 @@ export async function query(
  * Execute an aggregation query.
  */
 export async function aggregate(
-  store: LogStoreType,
+  store: LogStore,
   query: AggregationQuery
 ): Promise<AggregationResult> {
   const { groupBy = [], aggregations, filter, fromSeq = store.getFirstSeq(), toSeq = store.getLastSeq() } = query;
@@ -269,9 +279,17 @@ export async function aggregate(
 
       if ('count' in agg) {
         group.get(name)!.push(1);
-      } else if ('sum' in agg || 'avg' in agg || 'min' in agg || 'max' in agg) {
-        const field = agg.sum ?? agg.avg ?? agg.min ?? agg.max;
-        const value = getFieldValue(entry, field);
+      } else if ('sum' in agg) {
+        const value = getFieldValue(entry, agg.sum);
+        if (typeof value === 'number') group.get(name)!.push(value);
+      } else if ('avg' in agg) {
+        const value = getFieldValue(entry, agg.avg);
+        if (typeof value === 'number') group.get(name)!.push(value);
+      } else if ('min' in agg) {
+        const value = getFieldValue(entry, agg.min);
+        if (typeof value === 'number') group.get(name)!.push(value);
+      } else if ('max' in agg) {
+        const value = getFieldValue(entry, agg.max);
         if (typeof value === 'number') group.get(name)!.push(value);
       } else if ('distinct' in agg) {
         const value = getFieldValue(entry, agg.distinct);
@@ -292,24 +310,24 @@ export async function aggregate(
     const values: Record<string, unknown> = {};
     for (const [name, values_] of aggs) {
       const agg = aggregations[name];
+      if (!agg) continue;
+      const nums = values_.filter((v): v is number => typeof v === 'number');
       if ('count' in agg) {
         values[name] = values_.length;
       } else if ('sum' in agg) {
-        values[name] = values_.reduce((a, b) => a + (b as number), 0);
+        values[name] = nums.reduce((a, b) => a + b, 0);
       } else if ('avg' in agg) {
-        values[name] = values_.length > 0
-          ? values_.reduce((a, b) => a + (b as number), 0) / values_.length
-          : 0;
+        values[name] = nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
       } else if ('min' in agg) {
-        values[name] = values_.length > 0 ? Math.min(...values_ as number[]) : null;
+        values[name] = nums.length > 0 ? Math.min(...nums) : null;
       } else if ('max' in agg) {
-        values[name] = values_.length > 0 ? Math.max(...values_ as number[]) : null;
+        values[name] = nums.length > 0 ? Math.max(...nums) : null;
       } else if ('distinct' in agg) {
         values[name] = [...new Set(values_)].length;
-      } else if ('histogram' in agg) {
+      } else if ('histogram' in agg && agg.histogram.buckets) {
         const buckets = agg.histogram.buckets;
         const counts = new Array(buckets.length - 1).fill(0);
-        for (const v of values_ as number[]) {
+        for (const v of nums) {
           for (let i = 0; i < buckets.length - 1; i++) {
             if (v >= buckets[i] && v < buckets[i + 1]) {
               counts[i]++;
@@ -335,7 +353,7 @@ export async function aggregate(
  * Convenience: query for TaskAdmitted events.
  */
 export async function queryTasks(
-  store: LogStoreType,
+  store: LogStore,
   options: { taskType?: CognitiveEvent['type']; limit?: number; fromSeq?: number } = {}
 ): Promise<QueryResult> {
   return query(store, {
@@ -353,15 +371,15 @@ export async function queryTasks(
  * Convenience: query for DerivationAccepted events.
  */
 export async function queryDerivations(
-  store: LogStoreType,
+  store: LogStore,
   options: { ruleId?: string; limit?: number; fromSeq?: number } = {}
 ): Promise<QueryResult> {
-  const filter: Filter = { field: 'event.type', op: { eq: 'DerivationAccepted' } };
+  let filter: Filter = { field: 'event.type', op: { eq: 'derivation.accepted' } };
   if (options.ruleId) {
     filter = {
       and: [
         filter,
-        { field: 'event.ruleId', op: { eq: options.ruleId } },
+        { field: 'event.payload.ruleId', op: { eq: options.ruleId } },
       ],
     };
   }
@@ -380,7 +398,7 @@ export async function queryDerivations(
  * Convenience: query for Gate events.
  */
 export async function queryGates(
-  store: LogStoreType,
+  store: LogStore,
   options: { gateName?: string; passed?: boolean; limit?: number; fromSeq?: number } = {}
 ): Promise<QueryResult> {
   const filters: Filter[] = [{ field: 'event.type', op: { in: ['GatePassed', 'GateFailed'] } }];
@@ -405,7 +423,7 @@ export async function queryGates(
  * Convenience: query for Budget events.
  */
 export async function queryBudgets(
-  store: LogStoreType,
+  store: LogStore,
   options: { scope?: string; exhausted?: boolean; limit?: number; fromSeq?: number } = {}
 ): Promise<QueryResult> {
   const filters: Filter[] = [{ field: 'event.type', op: { in: ['BudgetConsumed', 'BudgetExhausted'] } }];

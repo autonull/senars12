@@ -5,7 +5,9 @@
  * and creates checkpoints for faster replay startup.
  */
 
-import type { LogEntry, CognitiveEvent, LogStore as LogStoreType } from './events.js';
+import { promises as fs } from 'fs';
+import type { LogEntry, CognitiveEvent } from './events.js';
+import type { LogStore } from './store.js';
 import { isTaskAdmittedEvent, isDerivationAcceptedEvent, isSnapshotEvent } from './events.js';
 
 /** Compaction policy for different event types. */
@@ -65,7 +67,7 @@ interface TaskInfo {
  * Analyze the log to build task dependency graph for compaction.
  */
 export async function analyzeLogForCompaction(
-  store: LogStoreType,
+  store: LogStore,
   fromSeq: number,
   toSeq: number
 ): Promise<Map<number, TaskInfo>> {
@@ -77,11 +79,12 @@ export async function analyzeLogForCompaction(
     if (!entry) continue;
 
     if (isTaskAdmittedEvent(entry.event)) {
-      const termStr = JSON.stringify(entry.event.term);
+      const termStr = JSON.stringify(entry.event.payload.term);
+      const payloadTruth = entry.event.payload.truth ?? { frequency: 0.5, confidence: 0.5 };
       const info: TaskInfo = {
         term: termStr,
-        type: entry.event.taskType,
-        truth: entry.event.truth,
+        type: entry.event.payload.taskType,
+        truth: { f: payloadTruth.frequency, c: payloadTruth.confidence },
         seq: entry.seq,
         ts: entry.ts,
         derivedFrom: [],
@@ -93,7 +96,7 @@ export async function analyzeLogForCompaction(
       termToSeq.get(termStr)!.push(entry.seq);
     } else if (isDerivationAcceptedEvent(entry.event)) {
       // Link derivation to premises
-      for (const premise of entry.event.premises) {
+      for (const premise of entry.event.payload.premises) {
         const premiseStr = JSON.stringify(premise);
         const premiseSeqs = termToSeq.get(premiseStr) ?? [];
         for (const pSeq of premiseSeqs) {
@@ -104,7 +107,7 @@ export async function analyzeLogForCompaction(
         }
       }
       // Link conclusion
-      const conclusionStr = JSON.stringify(entry.event.conclusion);
+      const conclusionStr = JSON.stringify(entry.event.payload.conclusion);
       if (!termToSeq.has(conclusionStr)) termToSeq.set(conclusionStr, []);
       termToSeq.get(conclusionStr)!.push(entry.seq);
     }
@@ -145,7 +148,7 @@ export function selectEntriesToCompact(
  * Creates a new compacted log directory; original is preserved until verified.
  */
 export async function compactLog(
-  store: LogStoreType,
+  store: LogStore,
   targetDir: string,
   policy: CompactionPolicy = defaultCompactionPolicy,
   options: { checkpointInterval?: number; verify?: boolean } = {}
@@ -166,20 +169,23 @@ export async function compactLog(
   let checkpointSeq: number | undefined;
 
   // Write compacted segments
-  const segmentSize = 64 * 1024 * 1024;
+const segmentSize = 64 * 1024 * 1024;
   let currentSegment = 0;
   let currentSize = 0;
-  let currentFd: number | null = null;
-  const openSegment = async () => {
-    if (currentFd !== null) {
-      await import('fs').then(fs => fs.promises.close(currentFd!));
+  let currentHandle: fs.FileHandle | null = null;
+
+  const openSegment = async (handle: fs.FileHandle | null): Promise<fs.FileHandle> => {
+    if (handle !== null) {
+      await handle.close();
     }
     const path = `${targetDir}/segment-${currentSegment.toString().padStart(6, '0')}.log`;
-    currentFd = await import('fs').then(fs => fs.promises.open(path, 'a'));
+    const newHandle = await fs.open(path, 'a');
     currentSize = 0;
     currentSegment++;
+    return newHandle;
   };
-  await openSegment();
+
+  currentHandle = await openSegment(currentHandle);
 
   for (let seq = store.getFirstSeq(); seq <= store.getLastSeq(); seq++) {
     if (toRemove.has(seq)) {
@@ -193,7 +199,7 @@ export async function compactLog(
 
     const line = JSON.stringify(entry) + '\n';
     const buffer = Buffer.from(line, 'utf-8');
-    await import('fs').then(fs => fs.promises.write(currentFd!, buffer));
+    if (currentHandle) await currentHandle.write(buffer);
     currentSize += buffer.length;
     compactedCount++;
 
@@ -204,12 +210,12 @@ export async function compactLog(
 
     // Rotate segment
     if (currentSize >= segmentSize) {
-      await openSegment();
+      currentHandle = await openSegment(currentHandle);
     }
   }
 
-  if (currentFd !== null) {
-    await import('fs').then(fs => fs.promises.close(currentFd));
+  if (currentHandle !== null) {
+    await currentHandle.close();
   }
 
   // Verify if requested
@@ -234,7 +240,7 @@ export async function compactLog(
  * Verify that compacted log replays to same state as original.
  */
 async function verifyCompaction(
-  originalStore: LogStoreType,
+  originalStore: LogStore,
   compactedDir: string,
   removed: Set<number>
 ): Promise<boolean> {
@@ -268,7 +274,7 @@ export interface SnapshotCheckpoint {
 }
 
 export async function createSnapshotCheckpoint(
-  store: LogStoreType,
+  store: LogStore,
   stateHash: string,
   metadata: Record<string, unknown> = {}
 ): Promise<SnapshotCheckpoint> {
@@ -284,16 +290,20 @@ export async function createSnapshotCheckpoint(
  * Restore from a snapshot checkpoint (find the checkpoint, then replay from there).
  */
 export async function findLatestCheckpoint(
-  store: LogStoreType
+  store: LogStore
 ): Promise<SnapshotCheckpoint | null> {
-  const entries = await store.queryByType('SnapshotCreated', 1);
+  const entries = await store.queryByType('snapshot.created', 1);
   if (entries.length === 0) return null;
 
-  const event = entries[0].event as CognitiveEvent & { type: 'SnapshotCreated' };
+  const firstEntry = entries[0];
+  if (!firstEntry) return null;
+  const event = firstEntry.event;
+  if (!('payload' in event) || !event.payload) return null;
+  const payload = event.payload as { snapshotId: string; cycle: number; entryCount: number; hash: string };
   return {
-    seq: entries[0].seq,
-    ts: entries[0].ts,
-    stateHash: event.stateHash,
-    metadata: event.metadata ?? {},
+    seq: firstEntry.seq,
+    ts: firstEntry.ts,
+    stateHash: payload.hash,
+    metadata: {},
   };
 }
