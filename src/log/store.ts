@@ -6,12 +6,13 @@
  * for the event log.
  */
 
-import { promises as fs } from 'fs';
+import { promises as fs } from 'node:fs';
+import type { FileHandle } from 'node:fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
 import type { LogEntry, CognitiveEvent, UUID, TimestampMs } from './events.js';
-import { hashEntry, createLogEntry, LogEntrySchema } from './events.js';
+import { hashEntry, createLogEntry } from './events.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_LOG_DIR = join(__dirname, '..', '..', 'data', 'log');
@@ -48,7 +49,7 @@ interface IndexEntry {
 
 /** Log segment file handle. */
 interface SegmentHandle {
-  fd: number;
+  fd: FileHandle;
   path: string;
   size: number;
   entryCount: number;
@@ -99,13 +100,13 @@ export class LogStore {
   }
 
   /** Build index for a segment by scanning entries. */
-  private async indexSegment(segmentNum: number, fd: number, size: number): Promise<void> {
+  private async indexSegment(segmentNum: number, fd: FileHandle, size: number): Promise<void> {
     let offset = 0;
     const buffer = Buffer.alloc(64 * 1024);
     let partial = '';
 
     while (offset < size) {
-      const { bytesRead } = await fs.read(fd, buffer, 0, buffer.length, offset);
+      const { bytesRead } = await fd.read(buffer, 0, buffer.length, offset);
       if (bytesRead === 0) break;
 
       const chunk = buffer.subarray(0, bytesRead).toString('utf-8');
@@ -147,14 +148,15 @@ export class LogStore {
     const entryBase = createLogEntry(event, options);
     const seq = ++this.currentSeq;
     const id = crypto.randomUUID();
-    const hash = hashEntry({ ...entryBase, seq, id });
+    const hash = hashEntry(entryBase);
 
     const entry: LogEntry = { ...entryBase, seq, id, hash };
     const line = JSON.stringify(entry) + '\n';
     const buffer = Buffer.from(line, 'utf-8');
 
     const segment = this.segments[this.currentSegment];
-    await fs.write(segment.fd, buffer, 0, buffer.length);
+    if (!segment) throw new Error('No current segment');
+    await segment.fd.write(buffer, 0, buffer.length);
     segment.size += buffer.length;
     segment.entryCount++;
 
@@ -168,7 +170,7 @@ export class LogStore {
     });
 
     if (this.config.syncOnAppend) {
-      await fs.fdatasync(segment.fd);
+      await segment.fd.datasync();
     }
 
     // Check rotation
@@ -182,8 +184,9 @@ export class LogStore {
   /** Rotate to a new segment. */
   private async rotateSegment(): Promise<void> {
     const oldSegment = this.segments[this.currentSegment];
-    await fs.fdatasync(oldSegment.fd);
-    await fs.close(oldSegment.fd);
+    if (!oldSegment) throw new Error('No current segment to rotate');
+    await oldSegment.fd.datasync();
+    await oldSegment.fd.close();
     this.currentSegment++;
     await this.openCurrentSegment();
   }
@@ -194,8 +197,9 @@ export class LogStore {
     if (!idx) return null;
 
     const segment = this.segments[idx.segment];
+    if (!segment) return null;
     const buffer = Buffer.alloc(idx.length);
-    await fs.read(segment.fd, buffer, 0, idx.length, idx.offset);
+    await segment.fd.read(buffer, 0, idx.length, idx.offset);
     const line = buffer.toString('utf-8').trim();
     return JSON.parse(line) as LogEntry;
   }
@@ -223,6 +227,7 @@ export class LogStore {
     const results: LogEntry[] = [];
     for (let i = this.index.length - 1; i >= 0 && results.length < limit; i--) {
       const idx = this.index[i];
+      if (!idx) continue;
       const entry = await this.read(idx.seq);
       if (entry && entry.event.type === type) {
         results.push(entry);
@@ -257,8 +262,8 @@ export class LogStore {
     this.closed = true;
 
     for (const segment of this.segments) {
-      await fs.fdatasync(segment.fd);
-      await fs.close(segment.fd);
+      await segment.fd.datasync();
+      await segment.fd.close();
     }
   }
 

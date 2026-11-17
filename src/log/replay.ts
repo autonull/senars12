@@ -145,7 +145,7 @@ export async function replayWithCheckpoints<S>(
   // Try to resume from checkpoint
   const checkpoint = await loadCheckpoint();
   let state = checkpoint?.state ?? initialState;
-  let startSeq = checkpoint?.seq + 1 ?? fromSeq;
+  let startSeq = (checkpoint?.seq ?? fromSeq - 1) + 1;
   let eventsProcessed = 0;
   let lastCheckpointSeq = checkpoint?.seq ?? fromSeq - 1;
   const startTime = Date.now();
@@ -275,7 +275,7 @@ export async function replayParallel<S, K>(
     );
 
     if (onProgress) {
-      onProgress(totalProcessed, totalEntries, { type: 'Progress' } as CognitiveEvent);
+      onProgress(totalProcessed, totalEntries, { type: 'Progress' } as unknown as CognitiveEvent);
     }
   }
 

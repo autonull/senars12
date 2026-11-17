@@ -329,7 +329,9 @@ export async function aggregate(
         const counts = new Array(buckets.length - 1).fill(0);
         for (const v of nums) {
           for (let i = 0; i < buckets.length - 1; i++) {
-            if (v >= buckets[i] && v < buckets[i + 1]) {
+            const lower = buckets[i];
+            const upper = buckets[i + 1];
+            if (lower !== undefined && upper !== undefined && v >= lower && v < upper) {
               counts[i]++;
               break;
             }

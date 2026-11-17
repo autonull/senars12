@@ -5,10 +5,23 @@
  * sequences, predictions, and concurrent processes.
  */
 
-import { Term, TermOp, TruthValue } from '../../kernel/terms/intern.js';
+import { Term, TermOp, TruthValue, termInterner, getArgs } from '../../kernel/terms/intern.js';
 import { Truth } from '../../kernel/truth.js';
 import { Stamp } from '../../kernel/stamp.js';
 import type { Premise } from '../../kernel/step.js';
+
+/** Wrap a function to check premises length matches arity. */
+function withArity<const N extends 1 | 2, R>(
+  arity: N,
+  fn: (premises: N extends 1 ? [Premise] : [Premise, Premise]) => R
+): (premises: Premise[]) => R {
+  return (premises: Premise[]) => {
+    if (premises.length < arity) {
+      throw new Error(`Expected at least ${arity} premises, got ${premises.length}`);
+    }
+    return fn(premises as N extends 1 ? [Premise] : [Premise, Premise]);
+  };
+}
 
 /** Temporal operators. */
 export enum TemporalOp {
@@ -55,6 +68,33 @@ export const TemporalTruth = {
   }),
 } as const;
 
+/** Check if term is a sequential compound. */
+function isSequential(term: Term): boolean {
+  return term.op === TermOp.SEQUENTIAL;
+}
+
+/** Check if term is a prediction compound. */
+function isPrediction(term: Term): boolean {
+  return term.op === TermOp.PREDICTION;
+}
+
+/** Check if term is a concurrent compound. */
+function isConcurrent(term: Term): boolean {
+  return term.op === TermOp.CONCURRENT;
+}
+
+/** Check if term is a parallel compound. */
+function isParallel(term: Term): boolean {
+  return term.op === TermOp.PARALLEL;
+}
+
+/** Get args of a compound term safely. */
+function getCompoundArgs(term: Term): [Term, ...Term[]] {
+  const args = getArgs(term);
+  if (!args || args.length === 0) throw new Error('Expected compound term with at least 1 arg');
+  return args as [Term, ...Term[]];
+}
+
 /** Temporal rule definitions. */
 export const TEMPORAL_RULES = [
   // Sequence introduction: A, B => A ; B
@@ -66,10 +106,8 @@ export const TEMPORAL_RULES = [
     premiseRoles: ['first', 'second'],
     truthOp: 'sequential' as const,
     priority: 50,
-    condition: (premises: Premise[]) => true,
-    buildConclusion: (premises: Premise[]) => {
-      return termInterner.sequential(premises[0].term, premises[1].term);
-    },
+    condition: withArity(2, () => true),
+    buildConclusion: withArity(2, ([p1, p2]) => termInterner.sequential(p1.term, p2.term)),
   },
 
   // Sequence elimination: A ; B => A, B
@@ -81,12 +119,11 @@ export const TEMPORAL_RULES = [
     premiseRoles: ['sequence'],
     truthOp: 'deduction' as const,
     priority: 50,
-    condition: (premises: Premise[]) => isSequential(premises[0].term),
-    buildConclusion: (premises: Premise[]) => {
-      const term = premises[0].term;
-      // Return first element (could return both as conjunction)
-      return term.args[0];
-    },
+    condition: withArity(1, ([p]) => isSequential(p.term)),
+    buildConclusion: withArity(1, ([p]) => {
+      const args = getCompoundArgs(p.term);
+      return args[0];
+    }),
   },
 
   // Concurrent introduction: A, B => A || B
@@ -98,10 +135,8 @@ export const TEMPORAL_RULES = [
     premiseRoles: ['first', 'second'],
     truthOp: 'concurrent' as const,
     priority: 45,
-    condition: (premises: Premise[]) => true,
-    buildConclusion: (premises: Premise[]) => {
-      return termInterner.concurrent(premises[0].term, premises[1].term);
-    },
+    condition: withArity(2, () => true),
+    buildConclusion: withArity(2, ([p1, p2]) => termInterner.concurrent(p1.term, p2.term)),
   },
 
   // Concurrent elimination: A || B => A, B
@@ -113,10 +148,11 @@ export const TEMPORAL_RULES = [
     premiseRoles: ['concurrent'],
     truthOp: 'deduction' as const,
     priority: 45,
-    condition: (premises: Premise[]) => isConcurrent(premises[0].term),
-    buildConclusion: (premises: Premise[]) => {
-      return premises[0].term.args[0];
-    },
+    condition: withArity(1, ([p]) => isConcurrent(p.term)),
+    buildConclusion: withArity(1, ([p]) => {
+      const args = getCompoundArgs(p.term);
+      return args[0];
+    }),
   },
 
   // Prediction introduction: A ; B => A |> B
@@ -128,11 +164,11 @@ export const TEMPORAL_RULES = [
     premiseRoles: ['sequence'],
     truthOp: 'prediction' as const,
     priority: 55,
-    condition: (premises: Premise[]) => isSequential(premises[0].term),
-    buildConclusion: (premises: Premise[]) => {
-      const term = premises[0].term;
-      return termInterner.prediction(term.args[0], term.args[1]);
-    },
+    condition: withArity(1, ([p]) => isSequential(p.term)),
+    buildConclusion: withArity(1, ([p]) => {
+      const args = getCompoundArgs(p.term);
+      return termInterner.prediction(args[0]!, args[1]!);
+    }),
   },
 
   // Prediction elimination: A |> B => A ; B
@@ -144,11 +180,11 @@ export const TEMPORAL_RULES = [
     premiseRoles: ['prediction'],
     truthOp: 'deduction' as const,
     priority: 55,
-    condition: (premises: Premise[]) => isPrediction(premises[0].term),
-    buildConclusion: (premises: Premise[]) => {
-      const term = premises[0].term;
-      return termInterner.sequential(term.args[0], term.args[1]);
-    },
+    condition: withArity(1, ([p]) => isPrediction(p.term)),
+    buildConclusion: withArity(1, ([p]) => {
+      const args = getCompoundArgs(p.term);
+      return termInterner.sequential(args[0]!, args[1]!);
+    }),
   },
 
   // Temporal deduction: A |> B, A => B
@@ -160,14 +196,14 @@ export const TEMPORAL_RULES = [
     premiseRoles: ['prediction', 'antecedent'],
     truthOp: 'detachment' as const,
     priority: 80,
-    condition: (premises: Premise[]) => {
-      const [pred, ante] = premises;
-      return isPrediction(pred.term) && termsEqual(pred.term.args[0], ante.term);
-    },
-    buildConclusion: (premises: Premise[]) => {
-      const [pred] = premises;
-      return pred.term.args[1];
-    },
+    condition: withArity(2, ([pred, ante]) => {
+      const predArgs = getCompoundArgs(pred.term);
+      return isPrediction(pred.term) && termsEqual(predArgs[0]!, ante.term);
+    }),
+    buildConclusion: withArity(2, ([pred]) => {
+      const predArgs = getCompoundArgs(pred.term);
+      return predArgs[1]!;
+    }),
   },
 
   // Temporal induction: A |> B, B => A
@@ -179,14 +215,14 @@ export const TEMPORAL_RULES = [
     premiseRoles: ['prediction', 'consequent'],
     truthOp: 'abduction' as const,
     priority: 70,
-    condition: (premises: Premise[]) => {
-      const [pred, conseq] = premises;
-      return isPrediction(pred.term) && termsEqual(pred.term.args[1], conseq.term);
-    },
-    buildConclusion: (premises: Premise[]) => {
-      const [pred] = premises;
-      return pred.term.args[0];
-    },
+    condition: withArity(2, ([pred, conseq]) => {
+      const predArgs = getCompoundArgs(pred.term);
+      return isPrediction(pred.term) && termsEqual(predArgs[1]!, conseq.term);
+    }),
+    buildConclusion: withArity(2, ([pred]) => {
+      const predArgs = getCompoundArgs(pred.term);
+      return predArgs[0]!;
+    }),
   },
 
   // Temporal revision: A |> B, A |> B (different evidence) => A |> B
@@ -198,13 +234,14 @@ export const TEMPORAL_RULES = [
     premiseRoles: ['prediction1', 'prediction2'],
     truthOp: 'revision' as const,
     priority: 75,
-    condition: (premises: Premise[]) => {
-      const [p1, p2] = premises;
+    condition: withArity(2, ([p1, p2]) => {
+      const p1Args = getCompoundArgs(p1.term);
+      const p2Args = getCompoundArgs(p2.term);
       return isPrediction(p1.term) && isPrediction(p2.term) &&
-        termsEqual(p1.term.args[0], p2.term.args[0]) &&
-        termsEqual(p1.term.args[1], p2.term.args[1]);
-    },
-    buildConclusion: (premises: Premise[]) => premises[0].term,
+        termsEqual(p1Args[0]!, p2Args[0]!) &&
+        termsEqual(p1Args[1]!, p2Args[1]!);
+    }),
+    buildConclusion: withArity(2, ([p1]) => p1.term),
   },
 
   // Parallel introduction: A, B => A |~ B
@@ -216,10 +253,8 @@ export const TEMPORAL_RULES = [
     premiseRoles: ['first', 'second'],
     truthOp: 'parallel' as const,
     priority: 40,
-    condition: (premises: Premise[]) => true,
-    buildConclusion: (premises: Premise[]) => {
-      return termInterner.parallel(premises[0].term, premises[1].term);
-    },
+    condition: withArity(2, () => true),
+    buildConclusion: withArity(2, ([p1, p2]) => termInterner.parallel(p1.term, p2.term)),
   },
 
   // Retrospection: A |< B (B retrodicts A)
@@ -231,11 +266,11 @@ export const TEMPORAL_RULES = [
     premiseRoles: ['sequence'],
     truthOp: 'retrospection' as const,
     priority: 55,
-    condition: (premises: Premise[]) => isSequential(premises[0].term),
-    buildConclusion: (premises: Premise[]) => {
-      const term = premises[0].term;
-      return createRetrospection(term.args[1], term.args[0]); // Swapped
-    },
+    condition: withArity(1, ([p]) => isSequential(p.term)),
+    buildConclusion: withArity(1, ([p]) => {
+      const args = getCompoundArgs(p.term);
+      return createRetrospection(args[1]!, args[0]!); // Swapped
+    }),
   },
 ];
 
@@ -247,11 +282,13 @@ export function createTemporalTerm(op: TemporalOp, ...args: Term[]): Term {
     case TemporalOp.CONCURRENT:
       return termInterner.concurrent(...args);
     case TemporalOp.PREDICTION:
-      return termInterner.prediction(args[0], args[1]);
+      if (args.length < 2) throw new Error('PREDICTION requires 2 args');
+      return termInterner.prediction(args[0]!, args[1]!);
     case TemporalOp.PARALLEL:
       return termInterner.parallel(...args);
     case TemporalOp.RETROSPECTION:
-      return createRetrospection(args[0], args[1]);
+      if (args.length < 2) throw new Error('RETROSPECTION requires 2 args');
+      return createRetrospection(args[0]!, args[1]!);
     default:
       throw new Error(`Unknown temporal operator: ${op}`);
   }
@@ -262,23 +299,6 @@ function createRetrospection(antecedent: Term, consequent: Term): Term {
   return termInterner.compound(TermOp.PREDICTION, antecedent, consequent); // Placeholder
 }
 
-/** Temporal term predicates. */
-export function isSequential(term: Term): boolean {
-  return term.op === TermOp.SEQUENTIAL;
-}
-
-export function isConcurrent(term: Term): boolean {
-  return term.op === TermOp.CONCURRENT;
-}
-
-export function isPrediction(term: Term): boolean {
-  return term.op === TermOp.PREDICTION;
-}
-
-export function isParallel(term: Term): boolean {
-  return term.op === TermOp.PARALLEL;
-}
-
 export function isTemporal(term: Term): boolean {
   return [TermOp.SEQUENTIAL, TermOp.CONCURRENT, TermOp.PREDICTION, TermOp.PARALLEL].includes(term.op);
 }
@@ -286,7 +306,8 @@ export function isTemporal(term: Term): boolean {
 /** Get temporal components. */
 export function getTemporalComponents(term: Term): Term[] | null {
   if (!isTemporal(term)) return null;
-  return [...term.args];
+  const args = getArgs(term);
+  return args ? [...args] : null;
 }
 
 /** Temporal logic for reasoning about intervals. */
@@ -377,7 +398,8 @@ export function projectTemporal(
 
   for (const belief of beliefs) {
     if (isPrediction(belief.term)) {
-      const [antecedent, consequent] = belief.term.args;
+      const args = getCompoundArgs(belief.term);
+      const [antecedent, consequent] = [args[0]!, args[1]!];
       // If antecedent matches a current belief, project consequent
       for (const current of beliefs) {
         if (termsEqual(current.term, antecedent) && current.timestamp <= now) {
@@ -416,11 +438,15 @@ export function mineSequentialPatterns(
 
   // Find pairs within maxGap
   for (let i = 0; i < sorted.length; i++) {
+    const ei = sorted[i];
+    if (!ei) continue;
     for (let j = i + 1; j < sorted.length; j++) {
-      const gap = sorted[j].timestamp - sorted[i].timestamp;
+      const ej = sorted[j];
+      if (!ej) continue;
+      const gap = ej.timestamp - ei.timestamp;
       if (gap > maxGap) break;
 
-      const key = `${termInterner.format(sorted[i].term)} -> ${termInterner.format(sorted[j].term)}`;
+      const key = `${termInterner.format(ei.term)} -> ${termInterner.format(ej.term)}`;
       const existing = patterns.get(key) ?? { count: 0, intervals: [] };
       existing.count++;
       existing.intervals.push(gap);
@@ -433,11 +459,13 @@ export function mineSequentialPatterns(
   for (const [key, { count, intervals }] of patterns) {
     if (count >= minSupport) {
       const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-      const [firstStr, secondStr] = key.split(' -> ');
+      const parts = key.split(' -> ');
+      if (parts.length !== 2) continue;
+      const [firstStr, secondStr] = parts;
       results.push({
         pattern: [
-          termInterner.parse(firstStr),
-          termInterner.parse(secondStr),
+          termInterner.parse(firstStr!),
+          termInterner.parse(secondStr!),
         ],
         support: count,
         confidence: count / sorted.length,
@@ -465,8 +493,6 @@ export function reviseTemporalBeliefs(
     };
   }).filter(b => b.truth.c > 0.1); // Remove decayed beliefs
 }
-
-import { termInterner } from '../../kernel/terms/intern';
 
 function termsEqual(a: Term, b: Term): boolean {
   return a === b;

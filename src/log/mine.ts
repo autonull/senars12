@@ -299,10 +299,11 @@ function commonPrefix(a: string, b: string): string {
 /** Extract variable bindings from a template. */
 function extractBindings(template: string, bindings: Map<string, string[]>): void {
   const varRegex = /\$VAR(\d+)/g;
-  let match;
-  while ((match = varRegex.exec(template)) !== null) {
+  let match: RegExpExecArray | null = varRegex.exec(template);
+  while (match !== null) {
     const varName = match[0];
     if (!bindings.has(varName)) bindings.set(varName, []);
+    match = varRegex.exec(template);
   }
 }
 
@@ -352,7 +353,9 @@ export async function mineTermCooccurrence(
     if (count < minCount) continue;
     const parts = pair.split('|');
     if (parts.length !== 2) continue;
-    const [termA, termB] = parts;
+    const termA = parts[0];
+    const termB = parts[1];
+    if (!termA || !termB) continue;
     const countA = termCounts.get(termA) ?? 0;
     const countB = termCounts.get(termB) ?? 0;
     const pmi = Math.log2((count * totalDerivations) / (countA * countB));

@@ -319,12 +319,13 @@ function debruijnToString(t: DebrTerm): string {
       return t.index < 0 ? `?${t.index}` : `#${t.index}`;
     case 'const':
       return t.value;
-    case 'compound':
+    case 'compound': {
       const args = t.args;
       if (args.length === 1) {
         return `${t.op}(${debruijnToString(args[0]!)})`;
       }
       return `(${args.map(debruijnToString).join(` ${t.op} `)})`;
+    }
   }
 }
 

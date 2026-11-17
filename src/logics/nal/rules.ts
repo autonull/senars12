@@ -5,10 +5,24 @@
  * rule definitions with truth functions, conditions, and priorities.
  */
 
-import { Term, TermOp, TruthValue } from '../../kernel/terms/intern.js';
-import { Truth } from '../../kernel/truth.js';
+import { Term, TermOp, TruthValue, termInterner, getArgs } from '../../kernel/terms/intern.js';
+import { Truth, type TruthOp } from '../../kernel/truth.js';
 import { Stamp } from '../../kernel/stamp.js';
 import type { RuleCategory, RuleId, Premise, StepResult } from '../../kernel/step.js';
+import { StepExecutor } from '../../kernel/step.js';
+
+/** Wrap a function to check premises length matches arity. */
+function withArity<const N extends 1 | 2, R>(
+  arity: N,
+  fn: (premises: N extends 1 ? [Premise] : [Premise, Premise]) => R
+): (premises: Premise[]) => R {
+  return (premises: Premise[]) => {
+    if (premises.length < arity) {
+      throw new Error(`Expected at least ${arity} premises, got ${premises.length}`);
+    }
+    return fn(premises as N extends 1 ? [Premise] : [Premise, Premise]);
+  };
+}
 
 /** NAL rule definition. */
 export interface NALRule {
@@ -17,7 +31,7 @@ export interface NALRule {
   category: RuleCategory;
   arity: 1 | 2;
   premiseRoles: string[];
-  truthOp: keyof typeof Truth;
+  truthOp: TruthOp;
   priority: number;
   condition: (premises: Premise[]) => boolean;
   buildConclusion: (premises: Premise[]) => Term | null;
@@ -40,15 +54,13 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['major', 'minor'],
     truthOp: 'deduction',
     priority: 100,
-    condition: (premises) => {
-      const [m, n] = premises;
-      return isInheritance(m.term) && isInheritance(n.term) &&
-        termsEqual(getPredicate(m.term), getSubject(n.term));
-    },
-    buildConclusion: (premises) => {
-      const [m, n] = premises;
-      return createInheritance(getSubject(m.term), getPredicate(n.term));
-    },
+    condition: withArity(2, ([m, n]) =>
+      isInheritance(m.term) && isInheritance(n.term) &&
+      termsEqual(getPredicate(m.term), getSubject(n.term))
+    ),
+    buildConclusion: withArity(2, ([m, n]) =>
+      createInheritance(getSubject(m.term), getPredicate(n.term))
+    ),
   },
 
   // Induction: S1-->P, S2-->P => S1-->S2
@@ -60,15 +72,13 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['major', 'minor'],
     truthOp: 'induction',
     priority: 90,
-    condition: (premises) => {
-      const [m, n] = premises;
-      return isInheritance(m.term) && isInheritance(n.term) &&
-        termsEqual(getPredicate(m.term), getPredicate(n.term));
-    },
-    buildConclusion: (premises) => {
-      const [m, n] = premises;
-      return createInheritance(getSubject(m.term), getSubject(n.term));
-    },
+    condition: withArity(2, ([m, n]) =>
+      isInheritance(m.term) && isInheritance(n.term) &&
+      termsEqual(getPredicate(m.term), getPredicate(n.term))
+    ),
+    buildConclusion: withArity(2, ([m, n]) =>
+      createInheritance(getSubject(m.term), getSubject(n.term))
+    ),
   },
 
   // Abduction: S-->P1, S-->P2 => P1-->P2
@@ -80,15 +90,13 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['major', 'minor'],
     truthOp: 'abduction',
     priority: 80,
-    condition: (premises) => {
-      const [m, n] = premises;
-      return isInheritance(m.term) && isInheritance(n.term) &&
-        termsEqual(getSubject(m.term), getSubject(n.term));
-    },
-    buildConclusion: (premises) => {
-      const [m, n] = premises;
-      return createInheritance(getPredicate(m.term), getPredicate(n.term));
-    },
+    condition: withArity(2, ([m, n]) =>
+      isInheritance(m.term) && isInheritance(n.term) &&
+      termsEqual(getSubject(m.term), getSubject(n.term))
+    ),
+    buildConclusion: withArity(2, ([m, n]) =>
+      createInheritance(getPredicate(m.term), getPredicate(n.term))
+    ),
   },
 
   // Revision: same term, different evidence
@@ -100,8 +108,8 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['belief1', 'belief2'],
     truthOp: 'revision',
     priority: 95,
-    condition: (premises) => premises[0].term === premises[1].term,
-    buildConclusion: (premises) => premises[0].term,
+    condition: withArity(2, ([a, b]) => a.term === b.term),
+    buildConclusion: withArity(2, ([a]) => a.term),
   },
 
   // ========================================================================
@@ -117,16 +125,15 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['major', 'minor'],
     truthOp: 'analogy',
     priority: 70,
-    condition: (premises) => {
-      return isInheritance(premises[0].term) && isInheritance(premises[1].term);
-    },
-    buildConclusion: (premises) => {
-      const [m, n] = premises;
-      return createInheritance(
+    condition: withArity(2, ([m, n]) =>
+      isInheritance(m.term) && isInheritance(n.term)
+    ),
+    buildConclusion: withArity(2, ([m, n]) =>
+      createInheritance(
         createProduct(getSubject(m.term), getSubject(n.term)),
         createProduct(getPredicate(m.term), getPredicate(n.term))
-      );
-    },
+      )
+    ),
   },
 
   // Analogy: S1-->P1, S2-->P2 => (S1*S2)<->(P1*P2)
@@ -138,16 +145,15 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['major', 'minor'],
     truthOp: 'analogy',
     priority: 65,
-    condition: (premises) => {
-      return isInheritance(premises[0].term) && isInheritance(premises[1].term);
-    },
-    buildConclusion: (premises) => {
-      const [m, n] = premises;
-      return createSimilarity(
+    condition: withArity(2, ([m, n]) =>
+      isInheritance(m.term) && isInheritance(n.term)
+    ),
+    buildConclusion: withArity(2, ([m, n]) =>
+      createSimilarity(
         createProduct(getSubject(m.term), getSubject(n.term)),
         createProduct(getPredicate(m.term), getPredicate(n.term))
-      );
-    },
+      )
+    ),
   },
 
   // Resemblance: S1-->P, S2-->P => S1<->S2
@@ -159,15 +165,13 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['major', 'minor'],
     truthOp: 'resemblance',
     priority: 75,
-    condition: (premises) => {
-      const [m, n] = premises;
-      return isInheritance(m.term) && isInheritance(n.term) &&
-        termsEqual(getPredicate(m.term), getPredicate(n.term));
-    },
-    buildConclusion: (premises) => {
-      const [m, n] = premises;
-      return createSimilarity(getSubject(m.term), getSubject(n.term));
-    },
+    condition: withArity(2, ([m, n]) =>
+      isInheritance(m.term) && isInheritance(n.term) &&
+      termsEqual(getPredicate(m.term), getPredicate(n.term))
+    ),
+    buildConclusion: withArity(2, ([m, n]) =>
+      createSimilarity(getSubject(m.term), getSubject(n.term))
+    ),
   },
 
   // ========================================================================
@@ -183,8 +187,8 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['premise'],
     truthOp: 'negation',
     priority: 50,
-    condition: () => true,
-    buildConclusion: (premises) => createNegation(premises[0].term),
+    condition: withArity(1, () => true),
+    buildConclusion: withArity(1, ([p]) => createNegation(p.term)),
   },
 
   // Conversion (inheritance): S-->P => P-->S
@@ -196,11 +200,10 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['premise'],
     truthOp: 'conversion',
     priority: 55,
-    condition: (premises) => isInheritance(premises[0].term),
-    buildConclusion: (premises) => {
-      const term = premises[0].term;
-      return createInheritance(getPredicate(term), getSubject(term));
-    },
+    condition: withArity(1, ([p]) => isInheritance(p.term)),
+    buildConclusion: withArity(1, ([p]) =>
+      createInheritance(getPredicate(p.term), getSubject(p.term))
+    ),
   },
 
   // Conversion (similarity): S<->P => P<->S
@@ -212,11 +215,10 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['premise'],
     truthOp: 'conversion',
     priority: 55,
-    condition: (premises) => isSimilarity(premises[0].term),
-    buildConclusion: (premises) => {
-      const term = premises[0].term;
-      return createSimilarity(getPredicate(term), getSubject(term));
-    },
+    condition: withArity(1, ([p]) => isSimilarity(p.term)),
+    buildConclusion: withArity(1, ([p]) =>
+      createSimilarity(getPredicate(p.term), getSubject(p.term))
+    ),
   },
 
   // Structural deduction: A ==> B => A ==> B (weaken)
@@ -228,8 +230,8 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['premise'],
     truthOp: 'structuralDeduction',
     priority: 45,
-    condition: (premises) => premises[0].term.op === TermOp.IMPLICATION,
-    buildConclusion: (premises) => premises[0].term,
+    condition: withArity(1, ([p]) => p.term.op === TermOp.IMPLICATION),
+    buildConclusion: withArity(1, ([p]) => p.term),
   },
 
   // ========================================================================
@@ -245,12 +247,12 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['premise'],
     truthOp: 'deduction',
     priority: 60,
-    condition: (premises) => isSequential(premises[0].term),
-    buildConclusion: (premises) => {
-      const term = premises[0].term;
-      const [first, second] = term.args;
-      return createPrediction(first, second);
-    },
+    condition: withArity(1, ([p]) => isSequential(p.term)),
+    buildConclusion: withArity(1, ([p]) => {
+      const args = getArgs(p.term);
+      if (!args || args.length < 2) throw new Error('Expected sequential term with 2 args');
+      return createPrediction(args[0]!, args[1]!);
+    }),
   },
 
   // Postdiction: (A |> B) => (A | B)
@@ -262,12 +264,12 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['premise'],
     truthOp: 'deduction',
     priority: 60,
-    condition: (premises) => isPrediction(premises[0].term),
-    buildConclusion: (premises) => {
-      const term = premises[0].term;
-      const [first, second] = term.args;
-      return createSequential(first, second);
-    },
+    condition: withArity(1, ([p]) => isPrediction(p.term)),
+    buildConclusion: withArity(1, ([p]) => {
+      const args = getArgs(p.term);
+      if (!args || args.length < 2) throw new Error('Expected prediction term with 2 args');
+      return createSequential(args[0]!, args[1]!);
+    }),
   },
 
   // ========================================================================
@@ -283,16 +285,12 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['rule', 'fact'],
     truthOp: 'deduction',
     priority: 40,
-    condition: (premises) => {
-      const [rule, fact] = premises;
-      return isImplication(rule.term) &&
-        isInheritance(fact.term) &&
-        termsEqual(getAntecedent(rule.term), fact.term);
-    },
-    buildConclusion: (premises) => {
-      const [rule] = premises;
-      return getConsequent(rule.term);
-    },
+    condition: withArity(2, ([rule, fact]) =>
+      isImplication(rule.term) &&
+      isInheritance(fact.term) &&
+      termsEqual(getAntecedent(rule.term), fact.term)
+    ),
+    buildConclusion: withArity(2, ([rule]) => getConsequent(rule.term)),
   },
 
   // ========================================================================
@@ -308,8 +306,8 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['premise'],
     truthOp: 'deduction',
     priority: 30,
-    condition: (premises) => !isVariable(premises[0].term),
-    buildConclusion: (premises) => termInterner.variable('$x'),
+    condition: withArity(1, ([p]) => !isVariable(p.term)),
+    buildConclusion: withArity(1, () => termInterner.variable('$x')),
   },
 
   // ========================================================================
@@ -325,11 +323,10 @@ export const NAL_RULES: NALRule[] = [
     premiseRoles: ['derivation'],
     truthOp: 'deduction',
     priority: 20,
-    condition: (premises) => premises[0].stamp.derivation.length > 0,
-    buildConclusion: (premises) => {
-      const stamp = premises[0].stamp;
-      return termInterner.constant(`derived_by_${stamp.derivation.join('_')}`);
-    },
+    condition: withArity(1, ([p]) => p.stamp.derivation.length > 0),
+    buildConclusion: withArity(1, ([p]) =>
+      termInterner.constant(`derived_by_${p.stamp.derivation.join('_')}`)
+    ),
   },
 ];
 
@@ -387,19 +384,27 @@ function isVariable(term: Term): boolean {
 }
 
 function getSubject(term: Term): Term {
-  return term.args[0];
+  const args = getArgs(term);
+  if (!args || args.length < 1) throw new Error('Expected compound term with at least 1 arg');
+  return args[0]!;
 }
 
 function getPredicate(term: Term): Term {
-  return term.args[1];
+  const args = getArgs(term);
+  if (!args || args.length < 2) throw new Error('Expected compound term with at least 2 args');
+  return args[1]!;
 }
 
 function getAntecedent(term: Term): Term {
-  return term.args[0];
+  const args = getArgs(term);
+  if (!args || args.length < 1) throw new Error('Expected compound term with at least 1 arg');
+  return args[0]!;
 }
 
 function getConsequent(term: Term): Term {
-  return term.args[1];
+  const args = getArgs(term);
+  if (!args || args.length < 2) throw new Error('Expected compound term with at least 2 args');
+  return args[1]!;
 }
 
 function termsEqual(a: Term, b: Term): boolean {

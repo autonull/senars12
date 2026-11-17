@@ -136,12 +136,13 @@ export class SnapshotManager<S> {
       const snapshots = files
         .filter(f => f.endsWith(SNAPSHOT_EXT))
         .map(f => parseInt(f.split('-')[1]!.split('.')[0]!, 10))
-        .filter(n => !isNaN(n))
+        .filter((n): n is number => !isNaN(n))
         .sort((a, b) => b - a);
 
       if (snapshots.length === 0) return null;
 
       const latest = snapshots[0];
+      if (latest === undefined) return null;
       const path = this.getSnapshotPath(latest);
       const content = await fs.readFile(path, 'utf-8');
       return JSON.parse(content) as SnapshotFile<S>;
@@ -157,12 +158,13 @@ export class SnapshotManager<S> {
       const snapshots = files
         .filter(f => f.endsWith(SNAPSHOT_EXT))
         .map(f => parseInt(f.split('-')[1]!.split('.')[0]!, 10))
-        .filter(n => !isNaN(n) && n <= seq)
+        .filter((n): n is number => !isNaN(n) && n <= seq)
         .sort((a, b) => b - a);
 
       if (snapshots.length === 0) return null;
 
       const target = snapshots[0];
+      if (target === undefined) return null;
       const path = this.getSnapshotPath(target);
       const content = await fs.readFile(path, 'utf-8');
       return JSON.parse(content) as SnapshotFile<S>;

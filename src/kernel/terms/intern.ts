@@ -251,9 +251,10 @@ export function visitTerm<T>(term: Term, visitor: TermVisitor<T>): T {
       return visitor.visitVariable(term);
     case TermOp.CONSTANT:
       return visitor.visitConstant(term);
-    default:
+    default: {
       const children = (term as CompoundTerm).args.map(arg => visitTerm(arg, visitor));
       return visitor.visitCompound(term as CompoundTerm, children);
+    }
   }
 }
 
