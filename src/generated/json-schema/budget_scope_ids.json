@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "string",
+  "enum": [
+    "derivations",
+    "premises",
+    "candidate-derivations",
+    "proposal-application",
+    "control-work",
+    "decision-derivations"
+  ]
+}

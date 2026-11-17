@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "string",
+  "enum": [
+    "core",
+    "logic",
+    "propositional",
+    "higher-order",
+    "comparison",
+    "classical",
+    "structural",
+    "temporal",
+    "procedural",
+    "meta-cognitive",
+    "variable"
+  ]
+}

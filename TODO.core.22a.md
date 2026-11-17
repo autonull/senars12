@@ -1,9 +1,34 @@
 # TODO.CORE.22a — Development Plan for One Fold
 
-**Status:** Draft v0, for iteration. No architecture work has started.
+**Status:** In Progress — Change 1 complete (2026-11-17)
 **Parent:** `TODO.core.22.md` — the *what*. This file is the *how*.
 **Naming note:** the parent title says `TODO.CORE.23.md`; its filename is `TODO.core.22.md`. This plan follows the filename.
 **Rule:** the dependency upgrade (W-1) is complete. Every other section is a proposal that waits for review.
+
+## Progress Tracking
+
+| Change | Status | Files Created | Notes |
+|---|---|---|---|
+| 1. Schema-genome pipeline + totality types | ✅ **DONE** | `src/formats/genome.ts`, `src/generated/schemas.ts`, `src/generated/json-schema/`, `tests/formats/genome.test.ts` | Generated schemas pass typecheck/lint; all 11 genome tests pass |
+| 2. One log + interning + golden replay + `config:digest` | ⏳ Pending | — | |
+| 3. Truth port + NAL rules as formula ASTs + verifier + laws/vectors | ⏳ Pending | — | |
+| 4. Temporal terms + surprise events + log mining | ⏳ Pending | — | |
+| 5. Gate matrix + snapshot/restore; obligations 1,3–6 | ⏳ Pending | — | |
+| 6. Oracle seam + faculty engine + 10 specs + fallbacks | ⏳ Pending | — | |
+| 7. Judgment cascade + learned judge + calibration/demotion + repair/contract | ⏳ Pending | — | |
+| 8. Axiomatic module: SLD + engines + CNF/models/MUS + certificates; projections | ⏳ Pending | — | |
+| 9. Economy: U/SF/VoI/metareasoning/overlays; obligations 6,10 | ⏳ Pending | — | |
+| 10. Habitat pack + lane A + fairness gate + first scorecard fold | ⏳ Pending | — | |
+| 11. Repertoire ratchet + DSL + curriculum generator; obligation 12 | ⏳ Pending | — | |
+| 12. Generated MCP surface + CLI/browser/edge + deck + protocol codegen + SDK v2; obligations 2,13 | ⏳ Pending | — | |
+
+**Current structural metrics (after Change 1):**
+- Export subpaths: 87 (target 1)
+- Circular chains: 13 (target 0)
+- Append-only persistence sites: 4 (target 1)
+- Typecheck: ✅ pass
+- Lint: ✅ pass
+- Test:unit: 3,532 passed, 4 failed (3 known-red + 1 budget gate)
 
 ---
 

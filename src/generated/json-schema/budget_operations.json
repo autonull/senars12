@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "string",
+  "enum": [
+    "nal-step",
+    "lm-call",
+    "memory-op",
+    "derivation-depth",
+    "systemone-judgment",
+    "derivation",
+    "premise-selection",
+    "candidate-derivation",
+    "proposal-application",
+    "control-work",
+    "decision-derivation"
+  ]
+}

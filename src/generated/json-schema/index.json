@@ -1,0 +1,381 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "TASK_TYPES": {
+      "type": "string",
+      "enum": [
+        "belief",
+        "goal",
+        "question",
+        "command"
+      ]
+    },
+    "TASK_BAG_KINDS": {
+      "type": "string",
+      "enum": [
+        "belief",
+        "goal",
+        "question"
+      ]
+    },
+    "TASK_PUNCTUATIONS": {
+      "type": "string",
+      "enum": [
+        ".",
+        "!",
+        "?",
+        ";"
+      ]
+    },
+    "TOLERANT_PUNCTUATIONS": {
+      "type": "string",
+      "enum": [
+        "",
+        ".",
+        "!",
+        "?"
+      ]
+    },
+    "SOURCE_QUALITY": {
+      "type": "string",
+      "enum": [
+        "PRIMARY",
+        "SECONDARY",
+        "GENERAL",
+        "TERTIARY",
+        "LLM_PRIOR",
+        "PEER_AGENT",
+        "SELF_METTA"
+      ]
+    },
+    "AMBIGUITY_TYPES": {
+      "type": "string",
+      "enum": [
+        "parse",
+        "intent",
+        "term",
+        "reference",
+        "quantifier",
+        "modal",
+        "temporal",
+        "negation"
+      ]
+    },
+    "AMBIGUITY_SEVERITIES": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "DETECTED_INTENTS": {
+      "type": "string",
+      "enum": [
+        "chat",
+        "command",
+        "reasoning",
+        "learning"
+      ]
+    },
+    "STIMULUS_SOURCES": {
+      "type": "string",
+      "enum": [
+        "user",
+        "llm",
+        "derivation",
+        "reflex",
+        "sensor"
+      ]
+    },
+    "AUTONOMY_MODES": {
+      "type": "string",
+      "enum": [
+        "observe-only",
+        "propose-only",
+        "sandbox-execute",
+        "low-risk-auto-merge",
+        "human-approved-production"
+      ]
+    },
+    "AUTONOMITY_AUTHORITIES": {
+      "type": "string",
+      "enum": [
+        "system",
+        "human",
+        "external-governance"
+      ]
+    },
+    "RISK_LEVELS": {
+      "type": "string",
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+      ]
+    },
+    "CAPABILITY_RISKS": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "GAME_DOMAINS": {
+      "type": "string",
+      "enum": [
+        "external",
+        "self"
+      ]
+    },
+    "REWARD_DOMAINS": {
+      "type": "string",
+      "enum": [
+        "external-reflex",
+        "self-scheduler",
+        "self-config-proposal",
+        "self-patch-score",
+        "self-explanation-rank"
+      ]
+    },
+    "RULE_CATEGORIES": {
+      "type": "string",
+      "enum": [
+        "core",
+        "logic",
+        "propositional",
+        "higher-order",
+        "comparison",
+        "classical",
+        "structural",
+        "temporal",
+        "procedural",
+        "meta-cognitive",
+        "variable"
+      ]
+    },
+    "RULE_PROVENANCE_KINDS": {
+      "type": "string",
+      "enum": [
+        "builtin",
+        "proposal",
+        "import"
+      ]
+    },
+    "ENGINE_ORIGINS": {
+      "type": "string",
+      "enum": [
+        "nar",
+        "proposer",
+        "metta"
+      ]
+    },
+    "PROPOSAL_KINDS": {
+      "type": "string",
+      "enum": [
+        "content",
+        "rule"
+      ]
+    },
+    "PROPOSAL_REJECTIONS": {
+      "type": "string",
+      "enum": [
+        "schema-version",
+        "stale-revision",
+        "evicted-reference",
+        "queue-overflow",
+        "cancelled",
+        "failed-schema"
+      ]
+    },
+    "BUDGET_SCOPE_IDS": {
+      "type": "string",
+      "enum": [
+        "derivations",
+        "premises",
+        "candidate-derivations",
+        "proposal-application",
+        "control-work",
+        "decision-derivations"
+      ]
+    },
+    "BUDGET_TYPES": {
+      "type": "string",
+      "enum": [
+        "cycles",
+        "depth",
+        "memory",
+        "llm"
+      ]
+    },
+    "TERMINATION_REASONS": {
+      "type": "string",
+      "enum": [
+        "cycle-budget",
+        "depth-budget",
+        "memory-budget",
+        "llm-budget",
+        "deadline",
+        "backpressure",
+        "aborted",
+        "completed"
+      ]
+    },
+    "BUDGET_OPERATIONS": {
+      "type": "string",
+      "enum": [
+        "nal-step",
+        "lm-call",
+        "memory-op",
+        "derivation-depth",
+        "systemone-judgment",
+        "derivation",
+        "premise-selection",
+        "candidate-derivation",
+        "proposal-application",
+        "control-work",
+        "decision-derivation"
+      ]
+    },
+    "GATE_NAMES": {
+      "type": "string",
+      "enum": [
+        "perception",
+        "action",
+        "reward",
+        "budget"
+      ]
+    },
+    "REWARD_TYPES": {
+      "type": "string",
+      "enum": [
+        "extrinsic",
+        "intrinsic",
+        "derivation-depth-reduction",
+        "self-model-accuracy",
+        "contradiction-reduction"
+      ]
+    },
+    "REWARD_TARGET_TYPES": {
+      "type": "string",
+      "enum": [
+        "attention-priority",
+        "policy-weights",
+        "truth-frequency",
+        "truth-confidence"
+      ]
+    },
+    "VIOLATION_TYPES": {
+      "type": "string",
+      "enum": [
+        "unauthorized-tool",
+        "budget-exceeded",
+        "epistemic-firewall",
+        "sandbox-escape",
+        "self-mod-unauthorized"
+      ]
+    },
+    "SEVERITY_LEVELS": {
+      "type": "string",
+      "enum": [
+        "warn",
+        "block",
+        "quarantine"
+      ]
+    },
+    "SELF_IMPROVEMENT_KINDS": {
+      "type": "string",
+      "enum": [
+        "knob-tune",
+        "focus-weight",
+        "strategy-switch",
+        "schema-promotion",
+        "patch-apply",
+        "test-generate",
+        "schema-evolution",
+        "metta-rule-adoption"
+      ]
+    },
+    "GOVERNANCE_ACTIONS": {
+      "type": "string",
+      "enum": [
+        "AUTO_MERGE",
+        "CREATE_PR",
+        "REQUIRE_HUMAN_REVIEW",
+        "REJECT"
+      ]
+    },
+    "GOVERNANCE_DECISIONS": {
+      "type": "string",
+      "enum": [
+        "AUTO_MERGED",
+        "PR_CREATED",
+        "HUMAN_REVIEW_REQUIRED",
+        "REJECTED"
+      ]
+    },
+    "GOVERNANCE_DECIDED_BY": {
+      "type": "string",
+      "enum": [
+        "governance-runner",
+        "human-reviewer",
+        "security-team"
+      ]
+    },
+    "ACTIVATION_SOURCES": {
+      "type": "string",
+      "enum": [
+        "perception",
+        "goal",
+        "derivation",
+        "decay",
+        "associative"
+      ]
+    },
+    "KERNEL_CONTROL_STATES": {
+      "type": "string",
+      "enum": [
+        "running",
+        "paused",
+        "stepping"
+      ]
+    },
+    "CONFLICT_TYPES": {
+      "type": "string",
+      "enum": [
+        "frequency",
+        "semantic"
+      ]
+    },
+    "HEALTH_STATUSES": {
+      "type": "string",
+      "enum": [
+        "healthy",
+        "degraded",
+        "unhealthy"
+      ]
+    },
+    "SHADOW_SOURCES": {
+      "type": "string",
+      "enum": [
+        "llm",
+        "bridge-llm"
+      ]
+    },
+    "STAMP_TYPES": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "provisional"
+      ]
+    },
+    "EGRESS_GATES": {
+      "type": "string",
+      "enum": [
+        "groundedness",
+        "risk"
+      ]
+    }
+  }
+}
