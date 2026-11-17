@@ -7,21 +7,21 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { TermFactory } from '../../../src/kernel/terms/intern.js';
-import { Truth } from '../../../src/kernel/truth.js';
-import { Stamp } from '../../../src/kernel/stamp.js';
-import { createStepExecutor, StepExecutor } from '../../../src/kernel/step.js';
-import { NALRuleEngine } from '../../../src/logics/nal/rules.js';
+import { TermFactory } from '../../../src/kernel/terms/intern';
+import { Truth } from '../../../src/kernel/truth';
+import { Stamp } from '../../../src/kernel/stamp';
+import { createStepExecutor, StepExecutor } from '../../../src/kernel/step';
+import { NALRuleEngine } from '../../../src/logics/nal/rules';
 import {
   DerivationRecorder,
   DerivationRecord,
   DerivationStepRecord,
   verifyDerivation,
   createReferenceInterpreter,
-} from '../../../src/verification/record.js';
-import { ReferenceInterpreter } from '../../../src/verification/interpreter.js';
-import { REFERENCE_VECTORS } from '../../../src/verification/vectors.js';
-import type { Term, TruthValue, Premise, RuleId } from '../../../src/kernel/step.js';
+} from '../../../src/verification/record';
+import { ReferenceInterpreter } from '../../../src/verification/interpreter';
+import { REFERENCE_VECTORS } from '../../../src/verification/vectors';
+import type { Term, TruthValue, Premise, RuleId } from '../../../src/kernel/step';
 
 describe('Obligation 5: Derivation Replay', () => {
   let executor: StepExecutor;

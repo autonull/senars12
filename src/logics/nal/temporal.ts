@@ -5,7 +5,7 @@
  * sequences, predictions, and concurrent processes.
  */
 
-import { Term, TermOp, TruthValue } from '../../kernel/intern.js';
+import { Term, TermOp, TruthValue } from '../../kernel/terms/intern.js';
 import { Truth } from '../../kernel/truth.js';
 import { Stamp } from '../../kernel/stamp.js';
 import type { Premise } from '../../kernel/step.js';

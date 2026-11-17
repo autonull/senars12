@@ -31,8 +31,8 @@ import {
   canonicalize,
   canonicalEquals,
   canonicalHash,
-} from '../../src/kernel/terms/intern.js';
-import { canonicalize as canonicalizeTerm } from '../../src/kernel/terms/canonical.js';
+} from '../../src/kernel/terms/intern';
+import { canonicalize as canonicalizeTerm } from '../../src/kernel/terms/canonical';
 
 describe('TermFactory', () => {
   beforeEach(() => {

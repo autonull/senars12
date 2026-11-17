@@ -9,14 +9,14 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { TermFactory } from '../../../src/kernel/terms/intern.js';
-import { Truth } from '../../../src/kernel/truth.js';
-import { Stamp } from '../../../src/kernel/stamp.js';
-import { createStepExecutor, StepExecutor } from '../../../src/kernel/step.js';
-import { NALRuleEngine } from '../../../src/logics/nal/rules.js';
-import { Bag, createBag } from '../../../src/kernel/bag.js';
-import { GateRegistry, createGateRegistry } from '../../../src/kernel/gate.js';
-import type { Term, TruthValue, Premise } from '../../../src/kernel/step.js';
+import { TermFactory } from '../../../src/kernel/terms/intern';
+import { Truth } from '../../../src/kernel/truth';
+import { Stamp } from '../../../src/kernel/stamp';
+import { createStepExecutor, StepExecutor } from '../../../src/kernel/step';
+import { NALRuleEngine } from '../../../src/logics/nal/rules';
+import { Bag, createBag } from '../../../src/kernel/bag';
+import { GateRegistry, createGateRegistry } from '../../../src/kernel/gate';
+import type { Term, TruthValue, Premise } from '../../../src/kernel/step';
 
 describe('Demo D1: Basic NAL Reasoning', () => {
   let factory: TermFactory;

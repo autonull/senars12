@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Truth } from '../../src/kernel/truth.js';
+import { Truth } from '../../src/kernel/truth';
 
 describe('Truth Algebra', () => {
   describe('Constants', () => {
