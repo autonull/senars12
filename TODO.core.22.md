@@ -23,6 +23,8 @@ The flywheel is not a layer. It is what the fold *does*: every solved problem de
 
 **The sentence:** one log, many logics, one economy, one ratchet — attention bounded, record unbounded, truth modular, evidence global, deliberation proportional to irreversibility, utility governed, predictions learned, and all self-modification flowing through one reversible admission gate nothing can widen.
 
+`mcplogic`: https://github.com/autonull/mcplogic
+
 ---
 
 ## 2. The collapse — what was many becomes one
