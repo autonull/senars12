@@ -43,6 +43,19 @@ All facts below are from the working tree at the start of this plan, after W-1.
 
 **LOC is not a budget in this plan.** It is not an acceptance gate, not a ratchet, and not a milestone ceiling. `complexity:budget` is suspended for CORE.22a: `SUSPENDED_GATES` contains it, its script still exists for manual use, and its CI step is commented. A deliberate engineering change is not rejected because it adds lines; do not edit the baseline to chase it. The architecture ratchet is structural: export subpaths, circular chains, persistence sites, and the one-package boundary.
 
+### 1.2 Monotone structural ratchet
+
+| M | exportSubpaths | circularChains | notes |
+|---|---:|---:|---|
+| M0 | 87 | 13 | green baseline, no LOC gate |
+| M1 | ≤87 | ≤10 | no new subpath |
+| M2 | ≤20 | ≤8 | |
+| M3 | ≤16 | ≤6 | |
+| M4 | ≤12 | ≤4 | |
+| M5 | ≤6 | ≤2 | |
+| M6 | ≤2 | ≤1 | UI re-pointed |
+| M7 | **1** | **0** | persistence=1, workspace=6 |
+
 ### 1.2 Source size by package (raw lines, orientation only — not a budget)
 
 | Package | Raw lines | Role |
@@ -80,9 +93,9 @@ These are pre-existing at HEAD and are not caused by W-1. They are the only reas
 
 | Test | Failure | Owner in this plan |
 |---|---|---|
-| `tests/nar/todo16-groundedness-gate.test.ts` | ungrounded narration scores above threshold; `grounded` is `true` where `false` is required | M3, faculties/judgment |
-| `tests/nar/todo22-clm-wiring.test.ts` | exemplar score `0.33 < 0.5` for an unknown rubric | M3, faculties/judgment |
-| `tests/nar/todo16c-rl-distill.test.ts` | label-mean correlation `0.499 < 0.98` after training | M3, faculties/judgment |
+| `tests/nar/todo16-groundedness-gate.test.ts` | ungrounded narration scores above threshold; `grounded` is `true` where `false` is required | M2, faculties/judgment |
+| `tests/nar/todo22-clm-wiring.test.ts` | exemplar score `0.33 < 0.5` for an unknown rubric | M2, faculties/judgment |
+| `tests/nar/todo16c-rl-distill.test.ts` | label-mean correlation `0.499 < 0.98` after training | M2, faculties/judgment |
 
 Two smaller pre-existing ledger items are not test failures:
 
@@ -184,10 +197,11 @@ No production source file changed. Two build configs and two tests changed to ma
 
 ### 2.5 Upgrade follow-ups
 
-1. **M0** clears the three known-red tests and the no-test package scripts; W-1 does not hide them.
+1. **M0** quarantines the three known-red tests transparently (skip with reason + ledger entry naming M2 as mechanism owner); W-1 does not hide them. The fix is a rewritten faculty mechanism in M2, not a threshold patch on legacy code.
 2. **M2** removes `@opentelemetry/sdk-trace-node` and `prom-client` if the new log/oracle sink covers their only consumers. If not, it records why they stay.
-3. **M2** removes `effect` from `metta` if the exact-computation oracle can expose a small `Result`/`Async` seam. Until then, `effect@4` is the only runtime remnant of MeTTa.
-4. **M6** removes `ink`/`ora` if the one CLI still does not import them. They are currently declared and unused.
+3. **M2** removes `effect` from `metta`; the exact-computation oracle exposes a small `Result`/`Async` seam instead. `effect@4` is not a runtime dependency of the reasoner.
+4. **M6** adds explicit task: migrate `@modelcontextprotocol/sdk` (v1) → `@modelcontextprotocol/server` + `client` (v2 ≥2.4.0). This is a line jump, not churn; record as exception to D22a.8. v2 drops `express`/`cors`/`raw-body`/`eventsource`, ships `workerd`/`browser` shims + `validators/cf-worker` — exactly the edge surface. Pin `zod` ≥4.2 (4.6.7 ✓), Node ≥20.
+5. **M6** removes `ink`/`ora` if the one CLI still does not import them. They are currently declared and unused.
 
 ---
 
@@ -213,7 +227,7 @@ Deleting the UI packages is **not** in this plan. That is a UI decision.
 
 | Directory | Responsibility |
 |---|---|
-| `src/kernel/terms/` | interned term IR, canonicalisation, unification |
+| `src/kernel/terms/` | interned term IR, canonicalisation, unification, `unify.ts` |
 | `src/kernel/` | bags, view cache, one step, one gate |
 | `src/logics/nal/` | NAL + temporal rules as data |
 | `src/logics/axiomatic/` | SLD floor, engines, CNF, models, MUS, certificates |
@@ -231,8 +245,7 @@ Deleting the UI packages is **not** in this plan. That is a UI decision.
 | `src/deck/` | schema-driven inspector + three views |
 | `src/worlds/` | Habitat/Probe packs + arena fold |
 | `src/formats/` | notation codecs + axiom data + `genome.ts` |
-| `src/log/` | append, compact, snapshot, replay, query, fold |
-| `src/persistence/` | snapshot/restore + compaction + replay pins |
+| `src/log/` | append, compact, snapshot, restore, replay, query, fold, mine, pins |
 
 `src/formats/genome.ts` is the schema-as-genome generator. Its output lives in `src/generated/`; generated output is never hand-edited and `schema:drift` verifies freshness.
 
@@ -243,6 +256,7 @@ Deleting the UI packages is **not** in this plan. That is a UI decision.
 3. Internal imports are relative or root-relative. No workspace package names.
 4. The reasoner package depends only on `util`/`core`/`nar`/`metta`/`io` through code that has moved into `src/`; the manifests are deleted at M7.
 5. The UI packages may depend on the generated protocol, never on reasoner internals.
+6. **Live entrypoint cut-over (M1–M6).** `surface/` + bin never import legacy packages (`nar|core|io|metta|util`). Each slice cuts the entrypoint over; legacy becomes dead-on-arrival and is deleted by M7. A mechanical move (relocate + update imports) is not a shim; a re-export bridge that survives its milestone is. Gate: `surface-no-legacy` (bin/surface imports nothing from legacy package names) active M1–M6, stronger than `no-new-legacy`.
 
 ---
 
@@ -256,7 +270,7 @@ Deleting the UI packages is **not** in this plan. That is a UI decision.
 | `nar` | **absorb and delete** | `kernel/`, `logics/`, `faculties/`, `economy/`, `loop/`, `oracles/` |
 | `core` | **absorb and delete** | `log/`, `kernel/`, `loop/`, `faculties/`, `surface/` |
 | `io` | **absorb and delete** | `surface/` |
-| `metta` | **merge into an oracle** | `oracles/metta` + `logics/rewrite` |
+| `metta` | **merge into an oracle** | `oracles/metta` |
 | `util` | **absorb and shrink** | `kernel/`, `log/`, `economy/`, `surface/` |
 | `ui*` | **remain consumers** | generated protocol + deck; out of scope |
 
@@ -299,7 +313,7 @@ The raw line counts are here to show scale, not to set a target. They are not bu
 | `nar/src/governance` | 516 | merge | `admit/` |
 | `nar/src/commands` | 469 | merge | `surface/cli` |
 | `nar/src/metrics` | 457 | delete/fold | `log/` |
-| `nar/src/state` | 435 | merge | `log/`, `persistence/` |
+| `nar/src/state` | 435 | merge | `log/` |
 | `nar/src/autonomy` | 366 | merge | `economy/` |
 | `nar/src/eval` | 326 | merge | `worlds/` |
 | `nar/src/utils` | 324 | delete/merge | `kernel/` |
@@ -399,11 +413,11 @@ Ordering only. No time estimates.
 **Goal:** make the current tree honestly green before construction.
 
 Tasks:
-1. Fix the three known-red tests (groundedness, CLM, distillation). Each fix must be a real behavioural fix, not a threshold change that hides the failure.
+1. Quarantine the three known-red tests (groundedness, CLM, distillation) transparently: `skip` with reason string + ledger entry naming **M2** as mechanism owner. A real behavioural fix via rewritten faculty mechanism lands in M2; M0 does not patch legacy code that M2 deletes.
 2. Add `--passWithNoTests` to `ui-contract` and `ui-backend-fractal`, or remove those scripts.
-3. Create the target skeleton: `src/kernel`, `src/log`, `src/logics`, `src/oracles`, `src/faculties`, `src/economy`, `src/loop`, `src/admit`, `src/surface`, `src/worlds`, `src/deck`, `src/formats`, `src/persistence`, `src/verification`, and generated `src/generated`. Empty directories are not enough; add the first type files only when the slice starts.
+3. Create the target skeleton: `src/kernel`, `src/log`, `src/logics`, `src/oracles`, `src/faculties`, `src/economy`, `src/loop`, `src/admit`, `src/surface`, `src/worlds`, `src/deck`, `src/formats`, `src/verification`, and generated `src/generated`. Empty directories are not enough; add the first type files only when the slice starts.
 4. Keep `complexity:budget` suspended for CORE.22a: `SUSPENDED_GATES` contains it, its script and CI entry remain, and its CI step stays commented. Do not add a LOC metric or a LOC gate; `schema:drift` verifies generated artifacts.
-5. Add `no-legacy` and `no-new-legacy` gates; `no-new-legacy` fails if a new file appears under a legacy package.
+5. Add `no-legacy`, `no-new-legacy`, and `surface-no-legacy` gates; `no-new-legacy` fails if a new file appears under a legacy package; `surface-no-legacy` fails if `surface/` or bin imports from `nar|core|io|metta|util` package names.
 6. Add `schema:drift` and `generated:artifacts` gates before generated code exists.
 
 Acceptance:
@@ -444,7 +458,7 @@ Acceptance:
 - NAL truth algebra is one table; the verifier re-computes every record.
 - Terms are interned; equality is identity; round-trip codecs pass.
 - Snapshot/restore reproduces state without replaying from genesis.
-- Obligations 2, 3, 4, 5, 6 are green.
+- Obligations 1, 3, 4, 5 are green.
 - `circularChains` ≤ 10; no new `@senars/*` subpath is added.
 
 Kill criterion: if the new path cannot replay the old corpus without a second inference path, stop and re-slice.
@@ -460,7 +474,7 @@ New files:
 - `src/faculties/specs.ts`, `engine.ts`, `fallback.ts`, `judgment/cascade.ts`, `judgment/judge.ts`, `judgment/calibration.ts`, `judgment/telemetry.ts`;
 - `src/loop/repair.ts`, `contract.ts`, `appraise.ts`;
 - `src/log/mine.ts`;
-- `tests/oracles/memo.test.ts`, `tests/faculties/cascade.test.ts`, `tests/obligations/07-judge-failclosed.test.ts`, `tests/faculties/groundedness.test.ts`, `tests/faculties/contrastive.test.ts`, `tests/faculties/distillation.test.ts`.
+- `tests/oracles/memo.test.ts`, `tests/faculties/cascade.test.ts`, `tests/obligations/09-judge-failclosed.test.ts`, `tests/faculties/groundedness.test.ts`, `tests/faculties/contrastive.test.ts`, `tests/faculties/distillation.test.ts`.
 
 Deletions:
 - `nar/src/lm/providers`, `nar/src/lm/context`, `nar/src/lm/rule-templates` after oracle/faculty parity;
@@ -473,9 +487,9 @@ Deletions:
 Acceptance:
 - Every external call in `src/` goes through `Oracle`; a new `fetch`/client import outside `src/oracles` fails `one-oracle`.
 - Replay with pinned oracle outputs is deterministic.
-- The three known-red faculty tests are green.
-- Obligations 1, 7, 9, 10, 11 are green.
-- `exportSubpaths` ≤ 20; `circularChains` decreases.
+- The three known-red faculty tests are green (rewritten as `tests/faculties/{groundedness,contrastive,distillation}.test.ts` via new mechanism).
+- Obligations 2(cand), 9, 11(pins) are green.
+- `exportSubpaths` ≤ 20; `circularChains` ≤ 8.
 
 Kill criterion: if a provider cannot be expressed as an oracle without a second code path, delete the provider instead of widening the seam.
 
@@ -501,7 +515,7 @@ Acceptance:
 - `U = Σ wᵢ·φᵢ` and `EU(task) = E[U(s′) − U(s)] − λ·cost − ρ·risk` are the only utility arithmetic.
 - SF predicts delayed reward from the log; a new mission is a new `w`.
 - Metareasoning uses judgment margins; small margin thinks, large margin acts.
-- Obligations 6, 9, 10 are green; D5/D8 are reproducible.
+- Obligations 6, 10(weights) are green; D5/D8 are reproducible.
 - `circularChains` ≤ 6; no second scheduler exists.
 
 Kill criterion: any retained focus/strategy/RL scheduler is a second economy; delete it.
@@ -528,7 +542,7 @@ Acceptance:
 - A finite model is independently re-checkable; an SLD/SMT/ASP verdict is replay-pinned and cross-engine checked.
 - `NAL → Axiomatic` at `f ≥ 0.9 ∧ c ≥ 0.8`; `Axiomatic → NAL` caps confidence and preserves base stamp ids.
 - Fuzzy passes the port conformance test.
-- Obligations 8 and 11 are green.
+- Obligations 3(engines), 8, 11(models) are green.
 - No second term layer or projection cast exists.
 
 Kill criterion: if a projection is implemented as a cast or a second term layer, reject it.
@@ -555,7 +569,7 @@ Acceptance:
 - Every admit/demote/retire is an event; rollback is one event.
 - DSL is fuel-metered and has no dangerous words; no effect bypasses admitted operators.
 - Curriculum positives have proofs, negatives have countermodels; no human annotation.
-- Obligation 12 is green; D3/D9/D10/D12 are reproducible.
+- Obligations 7, 10(boundary), 12 are green; D3/D9/D10/D12 are reproducible.
 - Growth is an admitted artifact, never a new subsystem.
 
 Kill criterion: if growth requires a new subsystem instead of an admitted artifact, stop.
@@ -564,7 +578,7 @@ Kill criterion: if growth requires a new subsystem instead of an admitted artifa
 
 ### M6 — One binary, every surface, MCP, CLI, worlds, arena, deck
 
-**Goal:** one generated MCP surface and one CLI over the same schemas, one deck, and the world/arena packs.
+**Goal:** one generated MCP surface and one CLI over the same schemas, one deck, and the world/arena packs. UI re-points to generated protocol; MCP SDK v1→v2 migration.
 
 New files:
 - `src/surface/mcp/server.ts`, `handlers.ts`, `tools.generated.ts`, `resources.ts`, `tasks.ts`;
@@ -572,6 +586,7 @@ New files:
 - `src/deck/inspector.ts`, `timeline.ts`, `provenance.ts`, `pressure.ts`;
 - `src/worlds/habitat.ts`, `arena.ts`, `scorecard.ts`, `pack.ts`;
 - `src/surface/transports/cli.ts`, `http.ts`, `ws.ts`, `irc.ts`, `mcp.ts`;
+- `src/ui-contract/` (generated protocol from genome, verified by `schema:drift`);
 - `tests/surface/mcp-conformance.test.ts`, `tests/surface/cli.test.ts`, `tests/obligations/13-surface-parity.test.ts`, `tests/demos/D6.test.ts`, `tests/demos/D11.test.ts`.
 
 Deletions:
@@ -588,9 +603,11 @@ Acceptance:
 - No sessions; handles are log references. `ttlMs`/`cacheScope` lists; deterministic order.
 - `_meta.traceparent` flows into the log.
 - Tools project from Task/Rule schemas; resources are fold queries.
-- Node/browser/edge produce identical hashes for the same seeded run.
-- Obligation 13 is green; D6/D11 are reproducible.
+- Node/browser/edge produce identical hashes for the same **seeded, pinned-oracle run** (live LM differs by backend).
+- All `ui-*` packages typecheck against generated protocol (`pnpm --dir ui typecheck` green); zero runtime dependency on `senars` internals.
+- Obligations 2(MRTR), 13 are green; D6/D11 are reproducible.
 - One binary serves every surface; no hand-written surface sits beside the generated one.
+- `@modelcontextprotocol/sdk` v1 migrated to `@modelcontextprotocol/server` + `client` v2; `zod` ≥4.2, Node ≥20.
 
 Kill criterion: if a surface is hand-written beside the generated one, delete the hand-written one.
 
@@ -616,6 +633,7 @@ Deletions:
 
 Acceptance:
 - `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm typecheck:bin`, `pnpm lint`, `pnpm test:unit`, `pnpm gates` all green.
+- `pnpm --dir ui typecheck` green (UI re-pointed in M6).
 - `exportSubpaths = 1`; `circularChains = 0`; `workspaceCount` is the new count; `appendOnlyPersistenceSites = 1`.
 - All 13 obligations green; all 12 demonstrations reproducible from seeds.
 - Fresh contributor reproduces the demos in under five minutes after install.
@@ -635,14 +653,14 @@ This maps parent §14 to concrete files. Each change is a vertical slice; no cha
 | 2 | One log + interning + golden replay + `config:digest` | `src/log/events.ts`, `store.ts`, `replay.ts`, `src/kernel/terms/intern.ts`, `tests/obligations/05` | `core/src/eventlog`, `nar/src/memory/state` |
 | 3 | Truth port + NAL rules as formula ASTs + verifier + laws/vectors | `src/kernel/truth.ts`, `src/logics/nal/rules.ts`, `src/verification/*` | `nar/src/rules/nal`, `nar/src/decision` |
 | 4 | Temporal terms + surprise events + log mining | `src/logics/nal/temporal.ts`, `src/log/mine.ts`, `src/log/events.ts` | `nar/src/terms` temporal helpers, `nar/src/learning` |
-| 5 | Gate matrix + snapshot/restore; obligations 1–6 | `src/kernel/gate.ts`, `src/log/snapshot.ts`, `restore.ts`, `tests/obligations/01-06` | gate copies in `nar/src/kernel`, `core/src/agent` |
+| 5 | Gate matrix + snapshot/restore; obligations 1,3–6 | `src/kernel/gate.ts`, `src/log/snapshot.ts`, `restore.ts`, `tests/obligations/01-06` | gate copies in `nar/src/kernel`, `core/src/agent` |
 | 6 | Oracle seam + faculty engine + 10 specs + fallbacks | `src/oracles/oracle.ts`, `memo.ts`, `src/faculties/specs.ts`, `engine.ts` | `nar/src/lm/providers`, `context`, `rule-templates` |
 | 7 | Judgment cascade + learned judge + calibration/demotion + repair/contract | `src/faculties/judgment/*`, `src/loop/repair.ts`, `contract.ts` | `nar/src/lm/system-one`, `nar/src/cognitive` |
 | 8 | Axiomatic module: SLD + engines + CNF/models/MUS + certificates; projections | `src/logics/axiomatic/*`, `src/logics/projections.ts`, `src/logics/fuzzy.ts` | bridge code, duplicated proof helpers |
-| 9 | Generated MCP surface + logic/coprocessor profiles + CLI/browser/edge faces | `src/surface/mcp/*`, `src/surface/cli/*`, `src/surface/profiles.ts` | `src/bin`, `src/cli`, `io/src` |
-| 10 | Economy: U/SF/VoI/metareasoning/overlays; obligations 9/10 | `src/economy/*`, `tests/obligations/09-10` | `nar/src/focus`, `strategies`, `task`, `drives`, `rl`, `rlfp`, `reflex` |
-| 11 | Habitat pack + lane A + fairness gate + first scorecard fold | `src/worlds/habitat.ts`, `pack.ts`, `scorecard.ts` | `nar/src/game`, `nar/src/eval` |
-| 12 | Repertoire ratchet + DSL + curriculum generator; obligation 12 | `src/admit/*`, `src/mining/*` | `nar/src/governance`, `learning`, `self`, `capability` (except sandbox) |
+| 9 | Economy: U/SF/VoI/metareasoning/overlays; obligations 6,10 | `src/economy/*`, `tests/obligations/06,10` | `nar/src/focus`, `strategies`, `task`, `drives`, `rl`, `rlfp`, `reflex` |
+| 10 | Habitat pack + lane A + fairness gate + first scorecard fold | `src/worlds/habitat.ts`, `pack.ts`, `scorecard.ts` | `nar/src/game`, `nar/src/eval` |
+| 11 | Repertoire ratchet + DSL + curriculum generator; obligation 12 | `src/admit/*`, `src/mining/*` | `nar/src/governance`, `learning`, `self`, `capability` (except sandbox) |
+| 12 | Generated MCP surface + CLI/browser/edge + deck + protocol codegen + SDK v2; obligations 2,13 | `src/surface/mcp/*`, `src/surface/cli/*`, `src/deck/*`, `src/ui-contract/*`, `tests/obligations/02,13` | `src/bin`, `src/cli`, `io/src`, legacy packages |
 
 ---
 
@@ -674,34 +692,39 @@ This maps parent §14 to concrete files. Each change is a vertical slice; no cha
 | `one-log` | only `src/log` appends; every state file is derived |
 | `one-truth` | only `src/logics/*` implements truth; kernel imports the port |
 | `one-oracle` | every external/nondeterministic call is `Oracle`; no raw `fetch`/client/engine outside `src/oracles` |
-| `one-economy` | one scheduler; no focus/priority queue outside `kernel/bag` and `economy` |
+| `one-economy` | one scheduler; no focus/priority queue outside `kernel/bag` and `economy`; fairness enforced here |
 | `one-admission` | no artifact mutation outside `admit` |
 | `no-legacy` | no `@senars/*` package name, workspace dir or subpath remains |
 | `no-new-legacy` | a new file under a legacy package fails during M1–M6 |
+| `surface-no-legacy` | `surface/` + bin import nothing from `nar|core|io|metta|util` package names; active M1–M6 |
 | `schema:drift` | generated schemas/types/tools/docs are fresh |
 | `generated:artifacts` | every generated artifact is reproducible from the genome |
 | `governance-immutability` | the agent cannot write governed files; a sabotage patch is rejected |
-| `surface-parity` | node/browser/edge hashes equal for a seeded run; MCP conformance |
+| `surface-parity` | node/browser/edge hashes equal for a **seeded, pinned-oracle** run; MCP conformance |
 | `oracle-pins` | replay uses pinned oracle versions/results; a live call on replay fails |
 | `profile-parity` | `fast`, `balanced`, `deliberate` run the same task and differ only in cost/quality |
+| `gate-matrix` | risk × verdict matrix enforced for judgment cascade; irreversible fails closed |
+| `formalize:candidates` | translation ambiguity yields candidate formalizations + MRTR; no single-path coercion |
 
-### 8.4 Obligation map
+### 8.4 Obligation map (canonical — replaces all other references)
 
-| # | Obligation | Test | Gate |
-|---|---|---|---|
-| 1 | Evidence laundering never inflates confidence | `tests/obligations/01-laundering.test.ts` | `derivation:clean` |
-| 2 | Translation ambiguity yields candidates + MRTR | `tests/obligations/02-ambiguity.test.ts` | `narsese:literals` |
-| 3 | Bounded degradation returns `unchecked`, never hangs | `tests/obligations/03-bounded.test.ts` | `test:load-sensitive` |
-| 4 | Contradiction resilience keeps both beliefs | `tests/obligations/04-contradiction.test.ts` | `derivation:clean` |
-| 5 | Derivation replay is byte-identical | `tests/obligations/05-replay.test.ts` | `test:determinism` |
-| 6 | Scheduler fairness over 10k ticks | `tests/obligations/06-fairness.test.ts` | `economy/fairness` |
-| 7 | Sabotage patch is rejected | `tests/obligations/07-sabotage.test.ts` | `governance-immutability` |
-| 8 | Cross-system laundering respects the cap and stamps | `tests/obligations/08-cross-system.test.ts` | `one-truth` |
-| 9 | Judge fails closed for irreversible, lives for reversible | `tests/obligations/09-judge.test.ts` | `one-admission` |
-| 10 | Governance artifacts reject agent writes | `tests/obligations/10-governance.test.ts` | `governance-immutability` |
-| 11 | Oracle models re-evaluated purely; pins hold | `tests/obligations/11-oracle.test.ts` | `oracle-pins` |
-| 12 | No artifact widens admission; rollback is one event | `tests/obligations/12-growth.test.ts` | `one-admission` |
-| 13 | Browser/node/edge identical hashes; stateless instance-hop | `tests/obligations/13-surface.test.ts` | `surface-parity` |
+| # | Obligation | Depends on | First green | Fully green | Gate |
+|---|---|---|---|---|---|
+| 1 | laundering | NAL truth+stamps | M1 | M1 | `derivation:clean` |
+| 2 | ambiguity + MRTR | faculties / MCP | M2 (cand) | M6 (MRTR) | `formalize:candidates` + `surface-parity` |
+| 3 | bounded → `unchecked` | kernel budget / engines | M1 | M4 | `test:load-sensitive` |
+| 4 | contradiction coexist | NAL | M1 | M1 | `derivation:clean` |
+| 5 | replay byte-identical | log+terms / oracles+genome | M1 | M7 | `test:determinism` |
+| 6 | fairness 10k | economy scheduler | M3 | M3 | `one-economy` (fairness) |
+| 7 | sabotage | admit + external runner | M5 | M5 | `governance-immutability` |
+| 8 | cross-system laundering | projections | M4 | M4 | `one-truth` |
+| 9 | judge fail-closed / live | judgment + gate matrix | M2 | M2 | `gate-matrix` |
+| 10 | governance writes | weights / admit boundary | M3 (weights) | M5 (boundary) | `governance-immutability` |
+| 11 | oracle integrity | pins / models+cross-engine | M2 (pins) | M4 (models) | `oracle-pins` |
+| 12 | growth boundary | admit | M5 | M5 | `one-admission` |
+| 13 | surface parity | surface + engines | M6 | M6 | `surface-parity` |
+
+**Milestone acceptance:** M1: 1,3,4,5 · M2: 2(cand),9,11(pins) · M3: 6,10(weights) · M4: 3(engines),8,11(models) · M5: 7,10(boundary),12 · M6: 2(MRTR),13 · M7: all 13.
 
 ### 8.5 Demonstration map
 
@@ -734,18 +757,20 @@ This maps parent §14 to concrete files. Each change is a vertical slice; no cha
 | Known-red fixes hide failures | mechanism or explicit typed `unchecked` | a threshold-only fix |
 | Generated artifacts drift | `schema:drift` + `docs:drift` | stale generated code committed |
 | Governance is writable by the agent | external runner + sabotage test | agent writes a governed file |
+| MCP v1 cannot speak 2026-07-28 | M6 explicit v1→v2 migration task | v1 still in use at M6 acceptance |
+| Live entrypoint imports legacy | `surface-no-legacy` gate M1–M6 | legacy import in `surface/` or bin |
 
 ---
 
 ## 10. Decisions needed before implementation
 
-1. **UI scope.** Confirm that `ui*` stays a separate consumer and is not part of the reasoner collapse. If not, this plan needs a UI workstream.
-2. **MeTTa placement.** Confirm `metta` becomes an oracle engine (`oracles/metta`) plus a minimal rewrite logic, not a separate subsystem.
-3. **`effect` removal.** Confirm the target may replace `effect` with a small `Result`/`Async` seam, or that `effect` stays as the MeTTa runtime.
-4. **`deck` timing.** Confirm the deck is built after M6 and does not delay the one-package fold. The existing UI can remain until the deck covers its journey screenshots.
-5. **`mcplogic` publication.** Confirm that `autonull/mcplogic` is a publication target, not a fork. Creating/publishing a GitHub repo requires explicit approval.
-6. **Known-red ownership.** Confirm M0 owns the three fixes and that every reasoner gate must be green before M1; the UI gates remain UI-owned.
-7. **LOC is not a gate.** Confirm `complexity:budget` is ignored for CORE.22a and no LOC metric is added. The structural gates (`exports:*`, circular chains, one package) are the ratchet.
+1. **UI scope.** Confirmed: separate consumers. M6 tasks the UI re-point onto generated protocol (codegen into `ui-contract`); `pnpm --dir ui typecheck` gates M7.
+2. **MeTTa placement.** Confirmed: oracle only (`oracles/metta`); `logics/rewrite` dropped.
+3. **`effect` removal.** Confirmed: replace with small `Result`/`Async` seam; `effect` is not a runtime dependency.
+4. **`deck` timing.** Confirmed: deck ∈ M6, minimal (inspector + 3 views), does not delay M7.
+5. **`mcplogic` publication.** Confirmed: publication target, not a fork. Reuse existing repo (tag/archive old TS standalone, README → monorepo + npm); npm `mcplogic` is a thin profile alias of the `senars` bin. No new GitHub repo.
+6. **Known-red ownership.** Confirmed: M0 quarantines transparently (skip + ledger entry naming M2 as mechanism owner); M2 rewrites tests green via new mechanism. §1.4 owner M3→M2 updated.
+7. **LOC is not a gate.** Confirmed: `complexity:budget` suspended; structural ratchet only (exportSubpaths, circularChains, persistenceSites); optional fresh-baseline re-entry at close.
 
 ---
 
@@ -758,7 +783,7 @@ This maps parent §14 to concrete files. Each change is a vertical slice; no cha
 - **D22a.5 — Oracles before providers.** M2 establishes the seam before deleting LM providers.
 - **D22a.6 — Faculty fixes are mechanism fixes.** The three known-red tests are fixed by scoring/training mechanisms, not thresholds.
 - **D22a.7 — UI is a consumer.** No target code imports UI; the generated protocol is the only shared surface.
-- **D22a.8 — W-1 is complete.** The dependency upgrade is a fact, not a recurring churn; later upgrades are separate plans.
+- **D22a.8 — W-1 is complete.** The dependency upgrade is a fact, not a recurring churn; later upgrades are separate plans. **Exception:** `@modelcontextprotocol/sdk` v1→v2 line jump is architecture (M6), not churn; recorded here.
 
 ---
 
@@ -778,6 +803,8 @@ This maps parent §14 to concrete files. Each change is a vertical slice; no cha
 - [ ] One-hour unattended run is replayable, recoverable, and includes evolution.
 - [ ] Governance artifacts are outside the agent's write surface; a sabotage patch is rejected.
 - [ ] Generated schemas, tools, docs and MCP surface are reproducible; `schema:drift` and `docs:drift` green.
+- [ ] `surface-no-legacy` gate passes (no legacy package imports in `surface/` or bin).
+- [ ] `@modelcontextprotocol/server` + `client` v2 in use; `sdk` v1 removed.
 
 ---
 
@@ -801,11 +828,11 @@ New dependency policy:
 src/
   index.ts
   bin/senars.ts
-  log/         events.ts store.ts compact.ts snapshot.ts replay.ts query.ts mine.ts
-  persistence/ snapshot.ts restore.ts pins.ts
+  log/         events.ts store.ts compact.ts snapshot.ts restore.ts replay.ts query.ts mine.ts pins.ts
   formats/     narsese.ts tptp.ts smtlib.ts dimacs.ts json.ts axiom-data.ts genome.ts
   generated/   (generated; verified by schema:drift)
-  kernel/      bag.ts truth.ts stamp.ts step.ts gate.ts reduce.ts view-cache.ts unify.ts terms/
+  kernel/      bag.ts truth.ts stamp.ts step.ts gate.ts reduce.ts view-cache.ts terms/
+  kernel/terms/  unify.ts
   logics/      nal/ axiomatic/ projections.ts fuzzy.ts
   oracles/     oracle.ts memo.ts pins.ts lm.ts retrieval.ts engines/
   faculties/   specs.ts engine.ts fallback.ts judgment/
