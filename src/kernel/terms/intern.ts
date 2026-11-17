@@ -384,3 +384,4 @@ export function isUnifiable(a: Term, b: Term): boolean {
 export type { TruthValue, Stamp } from '../types.js';
 export type { Term, VariableTerm, ConstantTerm, CompoundTerm } from './term.js';
 export { TermOp, TermFactory } from './term.js';
+export { canonicalize, canonicalEquals, canonicalHash, createCanonicalIndex } from './canonical';

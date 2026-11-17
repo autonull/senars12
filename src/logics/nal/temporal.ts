@@ -466,7 +466,7 @@ export function reviseTemporalBeliefs(
   }).filter(b => b.truth.c > 0.1); // Remove decayed beliefs
 }
 
-import { termInterner } from '../../kernel/intern.js';
+import { termInterner } from '../../kernel/terms/intern';
 
 function termsEqual(a: Term, b: Term): boolean {
   return a === b;

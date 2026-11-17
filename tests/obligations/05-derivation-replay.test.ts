@@ -7,21 +7,21 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { TermFactory } from '../../../src/kernel/terms/intern';
-import { Truth } from '../../../src/kernel/truth';
-import { Stamp } from '../../../src/kernel/stamp';
-import { createStepExecutor, StepExecutor } from '../../../src/kernel/step';
-import { NALRuleEngine } from '../../../src/logics/nal/rules';
+import { TermFactory } from '@senars/kernel/terms/intern';
+import { Truth } from '@senars/kernel/truth';
+import { Stamp } from '@senars/kernel/stamp';
+import { createStepExecutor, StepExecutor } from '@senars/kernel/step';
+import { NALRuleEngine } from '@senars/logics/nal/rules';
 import {
   DerivationRecorder,
   DerivationRecord,
   DerivationStepRecord,
   verifyDerivation,
   createReferenceInterpreter,
-} from '../../../src/verification/record';
-import { ReferenceInterpreter } from '../../../src/verification/interpreter';
-import { REFERENCE_VECTORS } from '../../../src/verification/vectors';
-import type { Term, TruthValue, Premise, RuleId } from '../../../src/kernel/step';
+} from '@senars/verification/record';
+import { ReferenceInterpreter } from '@senars/verification/interpreter';
+import { REFERENCE_VECTORS } from '@senars/verification/vectors';
+import type { Term, TruthValue, Premise, RuleId } from '@senars/kernel/step';
 
 describe('Obligation 5: Derivation Replay', () => {
   let executor: StepExecutor;

@@ -9,14 +9,14 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { TermFactory } from '../../../src/kernel/terms/intern';
-import { Truth } from '../../../src/kernel/truth';
-import { Stamp } from '../../../src/kernel/stamp';
-import { createStepExecutor, StepExecutor } from '../../../src/kernel/step';
-import { NALRuleEngine } from '../../../src/logics/nal/rules';
-import { Bag, createBag } from '../../../src/kernel/bag';
-import { GateRegistry, createGateRegistry } from '../../../src/kernel/gate';
-import type { Term, TruthValue, Premise } from '../../../src/kernel/step';
+import { TermFactory } from '@senars/kernel/terms/intern';
+import { Truth } from '@senars/kernel/truth';
+import { Stamp } from '@senars/kernel/stamp';
+import { createStepExecutor, StepExecutor } from '@senars/kernel/step';
+import { NALRuleEngine } from '@senars/logics/nal/rules';
+import { Bag, createBag } from '@senars/kernel/bag';
+import { GateRegistry, createGateRegistry } from '@senars/kernel/gate';
+import type { Term, TruthValue, Premise } from '@senars/kernel/step';
 
 describe('Demo D1: Basic NAL Reasoning', () => {
   let factory: TermFactory;

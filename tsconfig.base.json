@@ -19,7 +19,15 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": false,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@senars/kernel/*": ["src/kernel/*"],
+      "@senars/logics/*": ["src/logics/*"],
+      "@senars/verification/*": ["src/verification/*"],
+      "@senars/log/*": ["src/log/*"],
+      "@senars/formats/*": ["src/formats/*"]
+    }
   },
   "exclude": ["node_modules", "dist"]
 }

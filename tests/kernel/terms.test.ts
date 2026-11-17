@@ -31,8 +31,8 @@ import {
   canonicalize,
   canonicalEquals,
   canonicalHash,
-} from '../../src/kernel/terms/intern';
-import { canonicalize as canonicalizeTerm } from '../../src/kernel/terms/canonical';
+} from '@senars/kernel/terms/intern';
+import { canonicalize as canonicalizeTerm } from '@senars/kernel/terms/canonical';
 
 describe('TermFactory', () => {
   beforeEach(() => {
