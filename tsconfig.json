@@ -16,10 +16,17 @@
       "@senars/metta/*": ["./metta/src/*"],
       "@senars/ui/*": ["./ui/src/*"],
       "@senars/kernel/*": ["./src/kernel/*"],
-      "@senars/logics/*": ["./src/logics/*"],
+      "@senars/logics/*": ["../src/logics/*"],
       "@senars/verification/*": ["./src/verification/*"],
       "@senars/log/*": ["./src/log/*"],
-      "@senars/formats/*": ["./src/formats/*"]
+      "@senars/formats/*": ["./src/formats/*"],
+      "@senars/admit/*": ["./src/admit/*"],
+      "@senars/worlds/*": ["./src/worlds/*"],
+      "@senars/mining/*": ["./src/mining/*"],
+      "@senars/surface/*": ["./src/surface/*"],
+      "@senars/deck/*": ["./src/deck/*"],
+      "@senars/ui-contract/*": ["./src/ui-contract/*"],
+      "@senars/economy/*": ["./src/economy/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "tests/**/*.ts"],
