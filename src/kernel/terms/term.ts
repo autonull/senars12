@@ -746,7 +746,7 @@ export function fromNarsese(input: string): Term | null {
   const term = parseTermContent(content, factory);
 
   if (punctuation && term) {
-    return factory.compound(punctuation, [term]);
+    return factory.compound(punctuation, term);
   }
   return term;
 }
@@ -762,7 +762,7 @@ function parseTermContent(content: string, factory: TermFactory): Term | null {
   // Check for negation
   if (trimmed.startsWith('~')) {
     const inner = parseTermContent(trimmed.slice(1).trim(), factory);
-    if (inner) return factory.compound(TermOp.NEGATION, [inner]);
+    if (inner) return factory.compound(TermOp.NEGATION, inner);
     return null;
   }
 
@@ -789,7 +789,7 @@ function parseTermContent(content: string, factory: TermFactory): Term | null {
       const left = parseTermContent(trimmed.slice(0, idx).trim(), factory);
       const right = parseTermContent(trimmed.slice(idx + sym.length).trim(), factory);
       if (left && right) {
-        return factory.compound(op, [left, right]);
+        return factory.compound(op, left, right);
       }
     }
   }
@@ -816,8 +816,8 @@ function findTopLevelOperator(str: string, op: string): number {
     else if (ch === ')') depth--;
     else if (depth === 0 && str.startsWith(op, i)) {
       // Check it's not part of a longer operator
-      const before = i > 0 ? str[i - 1] : '';
-      const after = i + op.length < str.length ? str[i + op.length] : '';
+      const before = i > 0 ? str[i - 1] ?? '' : '';
+      const after = i + op.length < str.length ? str[i + op.length] ?? '' : '';
       if (!/[\w]/.test(before) && !/[\w]/.test(after)) {
         return i;
       }

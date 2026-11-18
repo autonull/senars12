@@ -157,6 +157,7 @@ export class MiniSatOracle implements Oracle<MiniSatInput, MiniSatResult> {
 
       const args = [cnfFile, outFile, ...extraArgs];
 
+      const startTs = Date.now();
       return await new Promise((resolve, reject) => {
         const child = spawn(this.minisatPath, args, { timeout: timeoutMs });
         let stdout = '';

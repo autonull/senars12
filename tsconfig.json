@@ -22,6 +22,6 @@
       "@senars/formats/*": ["./src/formats/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "tests/**/*.ts"],
   "exclude": ["node_modules", "dist", "tests/setup", "src/cli/**", "src/bin/**", "src/api/**"]
 }

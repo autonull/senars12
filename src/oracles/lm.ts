@@ -6,10 +6,10 @@
  */
 
 import { createHash } from 'crypto';
-import type { LMTask, LMGenerateOptions, LanguageModel } from '@senars/util';
-import { generateText, generateObject, streamText, type LanguageModelV1 } from 'ai';
-import type { ZodSchema } from 'zod';
+import type { LMTask, LMGenerateOptions } from '@senars/util';
+import { generateText, generateObject, streamText, type LanguageModel } from 'ai';
 import { zodSchema } from 'ai';
+import type { ZodSchema } from 'zod';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from './oracle.js';
 import { PinStore } from './pins.js';
 
@@ -181,8 +181,8 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
           maxOutputTokens: opts?.maxOutputTokens ?? this.maxOutputTokens,
         });
 
-        if (usage) {
-          this.stats.totalTokens += usage.totalTokens;
+        if (usage && typeof (usage as { totalTokens?: number }).totalTokens === 'number') {
+          this.stats.totalTokens += (usage as { totalTokens: number }).totalTokens;
         }
 
         return text;
@@ -204,11 +204,11 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
           abortSignal: opts?.signal,
         });
 
-        if (usage) {
-          this.stats.totalTokens += usage.totalTokens;
+        if (usage && typeof (usage as { totalTokens?: number }).totalTokens === 'number') {
+          this.stats.totalTokens += (usage as { totalTokens: number }).totalTokens;
         }
 
-        return object;
+        return object as object;
       }
 
       case 'lm.stream': {

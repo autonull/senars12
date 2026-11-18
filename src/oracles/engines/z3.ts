@@ -155,6 +155,7 @@ export class Z3Oracle implements Oracle<Z3Input, Z3Result> {
 
     const args = [format === 'smtlib2' ? '-smt2' : '-smt', '-in', ...extraArgs];
 
+    const startTs = Date.now();
     return new Promise((resolve, reject) => {
       const child = spawn(this.z3Path, args, { timeout: timeoutMs });
       let stdout = '';
@@ -207,7 +208,7 @@ export class Z3Oracle implements Oracle<Z3Input, Z3Result> {
 
     // Extract statistics
     const statsMatch = stdout.match(/\(:statistics (.*)\)/);
-    if (statsMatch) {
+    if (statsMatch && statsMatch[1]) {
       try {
         result.stats = JSON.parse(statsMatch[1]);
       } catch {

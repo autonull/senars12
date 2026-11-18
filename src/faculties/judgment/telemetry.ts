@@ -220,7 +220,7 @@ export class FileTelemetrySink implements TelemetrySink {
   }
 
   private async ensureFile(): Promise<void> {
-    const date = new Date().toISOString().split('T')[0];
+    const date = new Date().toISOString().split('T')[0]!;
 
     if (date !== this.currentDate || !this.fileHandle) {
       if (this.fileHandle) {
@@ -330,12 +330,12 @@ export class TelemetryCollector {
   async emit(event: Omit<AnyTelemetryEvent, 'timestamp' | 'eventId' | 'correlationId'>): Promise<void> {
     if (!this.enabled) return;
 
-    const fullEvent: AnyTelemetryEvent = {
+    const fullEvent = {
       ...event,
       timestamp: Date.now(),
       eventId: crypto.randomUUID(),
       correlationId: this.correlationId,
-    };
+    } as AnyTelemetryEvent;
 
     await Promise.all(this.sinks.map(s => s.write(fullEvent).catch(console.error)));
   }

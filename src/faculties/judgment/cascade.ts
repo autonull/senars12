@@ -5,8 +5,8 @@
  * Each stage can use faculties and oracles, with fail-closed fallbacks.
  */
 
-import { Truth as TruthOps } from '../../kernel/truth.js';
-import type { Term, Truth } from '../../kernel/terms/term.js';
+import { Truth as TruthOps, Truth } from '../../kernel/truth.js';
+import type { Term } from '../../kernel/terms/term.js';
 import type { Task } from '../../kernel/types.js';
 import type { FacultyInput, FacultyOutput } from '../specs.js';
 import { facultyEngine } from '../engine.js';
@@ -100,7 +100,7 @@ export interface JudgmentCalibration {
   /** Post-calibration confidence. */
   postConfidence: number;
   /** Calibration method. */
-  method: 'isotonic' | 'platt' | 'temperature' | 'none';
+  method: 'isotonic' | 'platt' | 'temperature' | 'beta' | 'none';
 }
 
 /** Stage function type. */
@@ -186,7 +186,7 @@ export class JudgmentCascade {
       }
 
       try {
-        candidates = await this.withTimeout(stageFn(candidates, context), this.config.stageTimeoutMs);
+        candidates = await this.withTimeout(stageFn(candidates, context), this.config.stageTimeoutMs ?? 5000);
         timings[stage] = Date.now() - stageStart;
 
         // Update stage stats
@@ -204,7 +204,7 @@ export class JudgmentCascade {
     // Select final candidate
     let selected: JudgmentCandidate | null = null;
     if (candidates.length > 0) {
-      selected = candidates[0]; // Already sorted by select stage
+      selected = candidates[0]!; // Already sorted by select stage; length checked
     }
 
     // Apply fallback if no candidate selected
@@ -476,7 +476,7 @@ export class JudgmentCascade {
       factor: calibrated / Math.max(0.001, confidence),
       preConfidence: confidence,
       postConfidence: calibrated,
-      method: this.config.calibrationMethod,
+      method: this.config.calibrationMethod ?? 'temperature',
     };
   }
 

@@ -4,7 +4,8 @@
  * Implements multiple selection strategies: utility-based, VoI-based, epsilon-greedy, etc.
  */
 
-import type { Term, Truth } from '../kernel/terms/term.js';
+import type { Term } from '../kernel/terms/term.js';
+import type { Truth } from '../kernel/truth.js';
 import type { Task } from '../kernel/types.js';
 import type { FacultyOutput } from '../faculties/specs.js';
 
@@ -270,7 +271,7 @@ export class ActionSelector {
     // Sort by score descending
     scored.sort((a, b) => b.score - a.score);
     for (let i = 0; i < scored.length; i++) {
-      scored[i].rank = i + 1;
+      scored[i]!.rank = i + 1;
     }
 
     return scored;
@@ -288,7 +289,7 @@ export class ActionSelector {
 
     scored.sort((a, b) => b.score - a.score);
     for (let i = 0; i < scored.length; i++) {
-      scored[i].rank = i + 1;
+      scored[i]!.rank = i + 1;
     }
     return scored;
   }
@@ -375,9 +376,9 @@ export class ActionSelector {
         return this.softmaxSelect(scored);
       case 'thompson':
       case 'ucb':
-        return scored[0].candidate; // Already sorted by score
+        return scored[0]!.candidate; // Already sorted by score
       default:
-        return scored[0].candidate; // Greedy
+        return scored[0]!.candidate; // Greedy
     }
   }
 
@@ -392,7 +393,7 @@ export class ActionSelector {
         if (r <= 0) return s.candidate;
       }
     }
-    return scored[0].candidate; // Exploit
+    return scored[0]!.candidate; // Exploit
   }
 
   /** Softmax selection. */
@@ -403,7 +404,7 @@ export class ActionSelector {
       r -= s.score;
       if (r <= 0) return s.candidate;
     }
-    return scored[0].candidate;
+    return scored[0]!.candidate;
   }
 
   /** Update exploration parameters. */

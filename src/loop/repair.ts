@@ -4,7 +4,8 @@
  * Detects anomalies, diagnoses root causes, and applies repairs.
  */
 
-import type { Term, Truth } from '../kernel/terms/term.js';
+import type { Term } from '../kernel/terms/term.js';
+import type { Truth } from '../kernel/truth.js';
 import type { Task } from '../kernel/types.js';
 import type { FacultyInput, FacultyOutput } from '../faculties/specs.js';
 import { facultyEngine } from '../faculties/engine.js';
@@ -58,7 +59,7 @@ export interface RepairContext {
   /** Resource usage. */
   resources: ResourceUsage;
   /** Oracle health. */
-  oracleHealth: OracleHealth;
+  oracleHealth: OracleHealth[];
   /** Gate states. */
   gateStates: GateState[];
 }
@@ -589,8 +590,8 @@ export const divergenceDetector: AnomalyDetector = async (context): Promise<Anom
 
   for (let i = 0; i < beliefs.length; i++) {
     for (let j = i + 1; j < beliefs.length; j++) {
-      const t1 = beliefs[i].term.toString();
-      const t2 = beliefs[j].term.toString();
+      const t1 = beliefs[i]!.term.toString();
+      const t2 = beliefs[j]!.term.toString();
       // Simple contradiction check
       if (t1.includes('not') && t2.includes(t1.replace('not', '').trim())) {
         contradictions++;

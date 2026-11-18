@@ -4,7 +4,8 @@
  * Provides design-by-contract verification for loop iterations.
  */
 
-import type { Term, Truth } from '../kernel/terms/term.js';
+import type { Term } from '../kernel/terms/term.js';
+import type { Truth } from '../kernel/truth.js';
 import type { Task } from '../kernel/types.js';
 
 /** Contract types. */
@@ -440,8 +441,8 @@ export const noContradictoryBeliefsContract: LoopContract = {
 
     for (let i = 0; i < beliefs.length; i++) {
       for (let j = i + 1; j < beliefs.length; j++) {
-        const t1 = beliefs[i].term.toString();
-        const t2 = beliefs[j].term.toString();
+        const t1 = beliefs[i]!.term.toString();
+        const t2 = beliefs[j]!.term.toString();
         // Check for negation contradiction
         if (t1.startsWith('~') && t1.substring(1) === t2) {
           contradictions++;
@@ -530,7 +531,7 @@ export const beliefProgressContract: LoopContract = {
 
     let growing = 0;
     for (let i = 1; i < beliefCounts.length; i++) {
-      if (beliefCounts[i] >= beliefCounts[i - 1]) growing++;
+      if (beliefCounts[i]! >= beliefCounts[i - 1]!) growing++;
     }
 
     const passed = growing >= 3; // At least 3 non-decreasing steps

@@ -5,8 +5,9 @@
  * rule definitions with truth functions, conditions, and priorities.
  */
 
-import { Term, TermOp, TruthValue, termInterner, getArgs } from '../../kernel/terms/intern.js';
-import { Truth, type TruthOp } from '../../kernel/truth.js';
+import { Term, TermOp, termInterner } from '../../kernel/terms/intern.js';
+import { Truth, type TruthOp, type TruthValue } from '../../kernel/truth.js';
+import { getArgs } from '../../kernel/terms/term.js';
 import { Stamp } from '../../kernel/stamp.js';
 import type { RuleCategory, RuleId, Premise, StepResult } from '../../kernel/step.js';
 import { StepExecutor } from '../../kernel/step.js';

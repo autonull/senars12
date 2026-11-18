@@ -2,7 +2,8 @@
  * Loop Act — action execution and effect handling for the cognitive loop.
  */
 
-import type { Term, Truth } from '../kernel/terms/term.js';
+import type { Term } from '../kernel/terms/term.js';
+import type { Truth } from '../kernel/truth.js';
 import type { Task, TaskType } from '../kernel/types.js';
 import type { SelectionResult, SelectionCandidate } from './select.js';
 
@@ -73,6 +74,8 @@ export interface ActionEffect {
   probability: number;
   /** Description. */
   description: string;
+  /** Priority for execution ordering. */
+  priority?: number;
 }
 
 /** Retry policy. */
@@ -308,6 +311,7 @@ export class ActionExecutor {
               term: effect.term,
               type: 'belief' as TaskType,
               truth: effect.truth ?? { f: 0.5, c: 0.5 },
+              priority: effect.priority ?? 0.5,
             });
             succeeded = true;
             break;
@@ -326,6 +330,7 @@ export class ActionExecutor {
               term: effect.term,
               type: 'goal' as TaskType,
               truth: effect.truth ?? { f: 0.5, c: 0.5 },
+              priority: effect.priority ?? 0.5,
             });
             succeeded = true;
             break;
@@ -339,6 +344,7 @@ export class ActionExecutor {
                 term: effect.term,
                 type: 'goal' as TaskType,
                 truth: effect.truth,
+                priority: effect.priority ?? 0.5,
               });
               succeeded = true;
             }

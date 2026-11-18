@@ -176,6 +176,7 @@ export class ClingoOracle implements Oracle<ClingoInput, ClingoResult> {
       ...extraArgs,
     ];
 
+    const startTs = Date.now();
     return new Promise((resolve, reject) => {
       const child = spawn(this.clingoPath, args, { timeout: timeoutMs });
       let stdout = '';

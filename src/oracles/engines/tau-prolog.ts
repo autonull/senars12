@@ -158,6 +158,7 @@ export class TauPrologOracle implements Oracle<TauPrologInput, TauPrologResult> 
       throw new Error('tau-prolog not installed. Install with: pnpm add tau-prolog');
     }
 
+    const startTs = Date.now();
     const session = pl.create(1000); // 1000ms limit per query
 
     return new Promise((resolve, reject) => {

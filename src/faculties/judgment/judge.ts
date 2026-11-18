@@ -191,7 +191,7 @@ export class LogisticJudge implements JudgeModel {
     const x = this.featuresToArray(features);
     let sum = this.bias;
     for (let i = 0; i < x.length && i < this.weights.length; i++) {
-      sum += x[i] * this.weights[i];
+      sum += x[i]! * this.weights[i]!;
     }
     return this.sigmoid(sum);
   }
@@ -225,13 +225,15 @@ export class LogisticJudge implements JudgeModel {
       let totalLoss = 0;
 
       for (let i = 0; i < X.length; i++) {
-        const pred = this.predictFromArray(X[i]);
-        const error = pred - y[i];
+        const xi = X[i]!;
+        const yi = y[i]!;
+        const pred = this.predictFromArray(xi);
+        const error = pred - yi;
         totalLoss += error * error;
 
         // Update weights
         for (let j = 0; j < this.weights.length; j++) {
-          this.weights[j] -= learningRate * error * X[i][j];
+          this.weights[j]! -= learningRate * error * xi[j]!;
         }
         this.bias -= learningRate * error;
       }
@@ -247,7 +249,7 @@ export class LogisticJudge implements JudgeModel {
   private predictFromArray(x: number[]): number {
     let sum = this.bias;
     for (let i = 0; i < x.length && i < this.weights.length; i++) {
-      sum += x[i] * this.weights[i];
+      sum += x[i]! * this.weights[i]!;
     }
     return this.sigmoid(sum);
   }
@@ -312,8 +314,8 @@ export class JudgeEnsemble implements JudgeModel {
     let weightSum = 0;
 
     for (let i = 0; i < this.models.length; i++) {
-      const pred = this.models[i].predict(features);
-      const w = this.weights[i];
+      const pred = this.models[i]!.predict(features);
+      const w = this.weights[i]!;
       sum += pred * w;
       weightSum += w;
     }
@@ -370,7 +372,7 @@ export class IsotonicCalibrator {
   }
 
   /** Recompute calibration map using isotonic regression (PAVA). */
-  private recompute(): void {
+  recompute(): void {
     // Sort bins by predicted probability
     const sortedBins = Array.from(this.bins.entries())
       .sort(([a], [b]) => a - b)
@@ -387,8 +389,8 @@ export class IsotonicCalibrator {
       blocks.push({ ...bin });
       // Merge if monotonicity violated
       while (blocks.length >= 2) {
-        const last = blocks[blocks.length - 1];
-        const prev = blocks[blocks.length - 2];
+        const last = blocks[blocks.length - 1]!;
+        const prev = blocks[blocks.length - 2]!;
         if (last.observed < prev.observed) {
           // Pool
           const totalWeight = last.weight + prev.weight;

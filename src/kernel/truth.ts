@@ -8,8 +8,11 @@
  * All operations saturate at boundaries; no operation throws on valid input.
  */
 
-import type { Frequency, Confidence, TruthLike } from './types.js';
+import type { Frequency, Confidence, TruthLike, TruthValue } from './types.js';
 import { clamp, clamp01, safeDiv, softSquash, weakenConfidence, confidenceToWeight, weightToConfidence } from './types.js';
+
+// Re-export TruthValue from types
+export type { TruthValue } from './types.js';
 
 // Import the utility functions we need
 const MAX_CONFIDENCE = 0.999;

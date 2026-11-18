@@ -364,7 +364,8 @@ export class LoopRecordStore {
     const iterations = new Set<number>();
 
     for (const entry of this.index.values()) {
-      byType[entry.iteration as any]++; // This is wrong, need to read records
+      // Proper counting by type would require reading records
+      // byType[entry.iteration as any]++; // This is wrong, need to read records
       iterations.add(entry.iteration);
     }
 

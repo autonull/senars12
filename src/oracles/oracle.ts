@@ -254,7 +254,7 @@ export class OracleRegistry {
       }
     }
 
-    const result = await oracle.call(input);
+    const result = await oracle.call(input) as OracleOutput<TOutput>;
 
     if (pinning && this.pinStore && !result.meta.pinned) {
       const pinKey = `${operation}:${JSON.stringify(input.args)}`;
