@@ -32,10 +32,10 @@
 | Change | Source Files | Integration Status | Notes |
 |---|---|---|---|
 | 1. Schema-genome pipeline + totality types | ✅ **DONE** | ✅ **DONE** | Generated schemas pass typecheck/lint; all 11 genome tests pass |
-| 2. One log + interning + golden replay + `config:digest` | ✅ **DONE** | 🔄 **IN PROGRESS** | Log/kernel modules type-check cleanly; bin/cli/tests need migration to `src/log/` |
+| 2. One log + interning + golden replay + `config:digest` | ✅ **DONE** | 🔄 **IN PROGRESS** | Log/kernel modules type-check cleanly; ✅ core19-c1, cognitive-replay tests migrated; bin/cli/tests need migration |
 | 3. Truth port + NAL rules as formula ASTs + verifier + laws/vectors | ✅ **DONE** | 🔄 **IN PROGRESS** | Verification framework complete; bin/cli/tests need migration |
 | 4. Temporal terms + surprise events + log mining | ✅ **DONE** | 🔄 **IN PROGRESS** | Implemented in log/mine.ts and logics/nal/temporal.ts |
-| 5. Gate matrix + snapshot/restore; obligations 1,3–6 | ✅ **DONE** | 🔄 **IN PROGRESS** | Gate framework created; bin/cli/tests need migration |
+| 5. Gate matrix + snapshot/restore; obligations 1,3–6 | ✅ **DONE** | 🔄 **IN PROGRESS** | Gate framework created; ✅ GateEventLedger deduplication fixed; bin/cli/tests need migration |
 | 6. Oracle seam + faculty engine + 10 specs + fallbacks | ✅ **DONE** | 🔄 **IN PROGRESS** | Oracle/faculty modules type-check cleanly; bin/cli/tests need migration |
 | 7. Judgment cascade + learned judge + calibration/demotion + repair/contract | ✅ **DONE** | 🔄 **IN PROGRESS** | Judgment/loop modules type-check cleanly; bin/cli/tests need migration |
 | 8. Axiomatic module: SLD + engines + CNF/models/MUS + certificates; projections | ✅ **DONE** | 🔄 **IN PROGRESS** | Axiomatic modules type-check cleanly; bin/cli/tests need migration |
@@ -81,23 +81,36 @@
 - `pnpm exports:audit` now PASS
 - This unblocks package consolidation work
 
+### Session Log — 2026-11-18 (Test Migration Progress)
+**Tests Migrated to New LogStore API**
+- `tests/nar/core19-c1.test.ts`: Migrated from `InMemoryEventLog` to `LogStoreEventLog` with `createLogStoreEventLog`
+- `tests/nar/cognitive-replay.test.ts`: Migrated from `EventLogPersistence` (file-based) to `LogStoreGateEventLedger` (LogStore-based)
+- `tests/unit/core/agent.test.ts`: Updated to provide `log` parameter to `Agent` constructor
+- `src/log/GateEventLedger.ts`: Fixed deduplication bug — changed from `WeakSet<CognitiveEvent>` to `Set<string>` (event IDs) for proper replay deduplication
+- `src/utils/index.ts`: Added bridge exports from `@senars/util` for gradual migration
+- `tsconfig.json`: Added missing path aliases (`@senars/utils`, `@senars/loop`, `@senars/oracles`, `@senars/faculties`)
+
 **Current Blocker: `surface-no-legacy` Gate**
 - 100+ legacy imports in `src/bin/`, `src/bin/commands/`, `src/bin/lib/`, `src/cli/`, `src/surface/`
 - Need systematic migration to `src/` path aliases (`@senars/kernel/*`, `@senars/log/*`, `@senars/logics/*`, `@senars/economy/*`, `@senars/faculties/*`, `@senars/oracles/*`, `@senars/worlds/*`, `@senars/admit/*`, `@senars/surface/*`, `@senars/deck/*`, `@senars/utils/*`, `@senars/formats/*`)
-- Tests also import from legacy packages (29 test failures)
+- Tests also import from legacy packages (20 test failures remaining)
 
 **Remaining Work (M1-M3 Consolidation):**
 - ✅ Fix port interface type mismatches (NARFacadePort, AutonomyNAR, SelfToolsNAR, SelfConceptNAR now match actual NAR)
 - ✅ Fix `BeliefInfo` type to use `frequency`/`confidence` instead of `f`/`c`
 - ✅ Fix exports-audit violation (core: ./eventlog removed 2026-11-18)
+- ✅ Migrate `tests/nar/core19-c1.test.ts` to LogStoreEventLog (2026-11-18)
+- ✅ Migrate `tests/nar/cognitive-replay.test.ts` to LogStoreGateEventLedger (2026-11-18)
+- ✅ Migrate `tests/unit/core/agent.test.ts` to provide log parameter (2026-11-18)
+- ✅ Fix GateEventLedger deduplication bug (2026-11-18)
 - 🔄 Migrate `src/bin/`, `src/bin/commands/`, `src/bin/lib/` imports from `@senars/*` to `src/` path aliases (blocks `surface-no-legacy`)
 - 🔄 Migrate `src/cli/` and `src/surface/` imports from `@senars/*` to `src/` path aliases
-- 🔄 Migrate all tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases
+- 🔄 Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (20 failures remaining)
 - Consolidate export subpaths from 96 to 1 (collapse core, nar, io, metta, util, ui packages into root)
 - Reduce persistence sites to 1
 - Typecheck: ⚠️ **PARTIAL** — source files PASS, but bin/cli/tests FAIL due to legacy imports
 - Lint: ✅ **PASS** — biome lint clean
-- Test:unit: ❌ **FAIL** — 29 failures from legacy imports and missing modules
+- Test:unit: ❌ **FAIL** — 20 failures from legacy imports and missing modules
 
 **Kernel modules status (all type-check clean):**
 - `src/kernel/terms/*` — term, intern, canonical, unify, codec/narsese ✅
