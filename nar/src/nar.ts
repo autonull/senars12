@@ -423,7 +423,8 @@ export class NAR extends BaseComponent {
     if (this.config.persistState && !this.#ledgers) {
       this.#ledgers = new KernelLedger(
         this.config.statePath ?? cachePath('nar-state'),
-        this.processor.getRecorder()
+        this.processor.getRecorder(),
+        { logStore: this.config.logStore }
       );
     }
     if (this.persister) {

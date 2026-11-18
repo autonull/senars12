@@ -30,6 +30,7 @@ export interface SeNARSOptions {
   rlfp?: NARConfig['rlfp'];
   persistState?: boolean;
   statePath?: string;
+  logStore?: NARConfig['logStore'];
   maxConcepts?: number;
   maxTasks?: number;
   cognitiveParams?: NARConfig['cognitiveParams'];
@@ -68,6 +69,7 @@ export function createNAR(options: SeNARSOptions = {}): NAR {
     ...(options.rlfp !== undefined ? { rlfp: options.rlfp } : {}),
     ...(options.persistState !== undefined ? { persistState: options.persistState } : {}),
     ...(options.statePath !== undefined ? { statePath: options.statePath } : {}),
+    ...(options.logStore !== undefined ? { logStore: options.logStore } : {}),
     ...(options.maxConcepts !== undefined ? { maxConcepts: options.maxConcepts } : {}),
     ...(options.maxTasks !== undefined ? { maxTasks: options.maxTasks } : {}),
     ...(options.cognitiveParams !== undefined ? { cognitiveParams: options.cognitiveParams } : {}),

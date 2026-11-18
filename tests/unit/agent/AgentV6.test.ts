@@ -37,13 +37,14 @@ async function collectChat(
 
 describe('Agent (v6 harness)', () => {
   let nar: NAR;
+  const created: Awaited<ReturnType<typeof createAgent>>[] = [];
 
   beforeEach(() => {
     nar = createTestNAR({ maxConcepts: 20 });
   });
 
-  afterEach(() => {
-    // no-op: tmp dirs cleaned in individual tests
+  afterEach(async () => {
+    while (created.length) await created.pop()?.stop();
   });
 
   // ── Parse gate ──────────────────────────────────────────
@@ -51,6 +52,7 @@ describe('Agent (v6 harness)', () => {
   it('feeds Narsese belief directly to NAR without LM', async () => {
     const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
+    created.push(agent);
     const text = await collectChat(agent, '(cat-->animal).');
     expect(text).toContain('(cat-->animal)');
     expect(nar.getBeliefs().length).toBeGreaterThan(0);
@@ -60,6 +62,7 @@ describe('Agent (v6 harness)', () => {
   it('parses goal (!) correctly', async () => {
     const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
+    created.push(agent);
     const text = await collectChat(agent, '(call_mom)!');
     expect(text).toContain('+ (call_mom)!');
     expect(nar.getGoals().length).toBeGreaterThan(0);
@@ -69,6 +72,7 @@ describe('Agent (v6 harness)', () => {
   it('parses question (?) and checks existing beliefs', async () => {
     const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
+    created.push(agent);
     await nar.input('(cat-->animal).');
     const text = await collectChat(agent, '(cat-->?)?');
     expect(text).toMatch(/cat/);
@@ -78,6 +82,7 @@ describe('Agent (v6 harness)', () => {
   it('rejects invalid Narsese and falls back to LM', async () => {
     const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
+    created.push(agent);
     const text = await collectChat(agent, 'hello world');
     expect(text).toBe('Hi there!');
     rmSync(basePath, { recursive: true, force: true });
@@ -87,6 +92,7 @@ describe('Agent (v6 harness)', () => {
 
   it('recall() returns empty without episodic memory', async () => {
     const agent = await createAgent({ nar });
+    created.push(agent);
     const episodes = await agent.recall();
     expect(episodes).toEqual([]);
   });
@@ -94,6 +100,7 @@ describe('Agent (v6 harness)', () => {
   it('recall() searches episodic memory after chat', async () => {
     const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
+    created.push(agent);
     await collectChat(agent, 'hello there friend');
     await new Promise((r) => setTimeout(r, 50));
     const episodes = await agent.recall('hello');
@@ -106,6 +113,7 @@ describe('Agent (v6 harness)', () => {
 
   it('setThrottle() clamps to 0-100', async () => {
     const agent = await createAgent({ nar });
+    created.push(agent);
     agent.setThrottle(150);
     expect(agent.getThrottle()).toBe(100);
     agent.setThrottle(-5);
@@ -116,12 +124,14 @@ describe('Agent (v6 harness)', () => {
 
   it('start() works', async () => {
     const agent = await createAgent({ nar });
+    created.push(agent);
     await agent.start();
     await agent.stop();
   });
 
   it('start()/stop() works without NAR (no-op)', async () => {
-    const agent = await createAgent();
+    const agent = await createAgent({});
+    created.push(agent);
     await agent.start();
     await agent.stop();
   });
@@ -130,6 +140,7 @@ describe('Agent (v6 harness)', () => {
 
   it('works without NAR (NL still goes to LM)', async () => {
     const agent = await createAgent({ lmService: scriptedLM });
+    created.push(agent);
     const text = await collectChat(agent, 'hello');
     expect(text).toBe('Hi there!');
   });
@@ -138,18 +149,21 @@ describe('Agent (v6 harness)', () => {
 
   it('works without LM (Narsese only)', async () => {
     const agent = await createAgent({ nar });
+    created.push(agent);
     const text = await collectChat(agent, '(cat-->animal).');
     expect(text).toContain('(cat-->animal)');
   });
 
   it('works without NAR (LM only)', async () => {
     const agent = await createAgent({ lmService: scriptedLM });
+    created.push(agent);
     const text = await collectChat(agent, 'hello');
     expect(text).toBe('Hi there!');
   });
 
   it('works without episodic memory', async () => {
     const agent = await createAgent({ nar, lmService: scriptedLM });
+    created.push(agent);
     const text = await collectChat(agent, 'hello');
     expect(text).toBe('Hi there!');
   });
@@ -159,6 +173,7 @@ describe('Agent (v6 harness)', () => {
   it('believe() parses Narsese and feeds NAR', async () => {
     const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, episodicMemory: ep });
+    created.push(agent);
     await agent.believe('(cat-->animal).');
     expect(nar.getBeliefs().length).toBeGreaterThan(0);
     rmSync(basePath, { recursive: true, force: true });
@@ -168,12 +183,14 @@ describe('Agent (v6 harness)', () => {
 
   it('getNAR() returns the NAR instance', async () => {
     const agent = await createAgent({ nar });
+    created.push(agent);
     expect(agent.getNAR()).toBe(nar);
   });
 
   it('getEpisodicMemory() returns the memory instance', async () => {
     const { ep, basePath } = makeEpisodicMemory();
     const agent = await createAgent({ nar, episodicMemory: ep });
+    created.push(agent);
     expect(agent.getEpisodicMemory()).toBe(ep);
     rmSync(basePath, { recursive: true, force: true });
   });

@@ -6,7 +6,7 @@ import { rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const testStateDir = join(process.cwd(), '.cache', 'test-metta-tool');
-const testDbPath = join(testStateDir, 'events.sqlite');
+const testLogDir = join(testStateDir, 'log');
 
 async function ensureDir() {
   await mkdir(testStateDir, { recursive: true });
@@ -32,7 +32,7 @@ describe('M3: MeTTa Verified — metta tool executes via ActionGate', () => {
     });
     const agent = await createAgent({
       nar,
-      persistence: { path: testDbPath },
+      persistence: { path: testLogDir },
     });
 
     try {
@@ -63,7 +63,7 @@ describe('M3: MeTTa Verified — metta tool executes via ActionGate', () => {
     });
     const agent = await createAgent({
       nar,
-      persistence: { path: testDbPath },
+      persistence: { path: testLogDir },
     });
 
     try {
@@ -89,7 +89,7 @@ describe('M3: MeTTa Verified — metta tool executes via ActionGate', () => {
     });
     const agent = await createAgent({
       nar,
-      persistence: { path: testDbPath },
+      persistence: { path: testLogDir },
     });
 
     try {

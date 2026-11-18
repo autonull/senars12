@@ -1368,8 +1368,8 @@ Files created:
 **Remaining Work (M1-M3 Persistence Consolidation):**
 - ✅ `GateEventLedger` + `DerivationLedger` → LogStore (implemented in `src/log/GateEventLedger.ts`, `src/log/DerivationLedger.ts`)
 - ✅ `KernelLedger` → LogStore (updated to use LogStore-backed ledgers when LogStore provided)
-- ⏳ Update `state-persistence` tests to use LogStore snapshot format instead of legacy JSON files
-- ⏳ Fix LogStore file handle cleanup in tests (segment files not closed on test teardown)
+- ✅ Update `state-persistence` tests to use LogStore snapshot format instead of legacy JSON files
+- ✅ Fix LogStore file handle cleanup in tests (segment files not closed on test teardown)
 
 **Gates Status After Migration:**
 - `pnpm typecheck` ✅ PASS

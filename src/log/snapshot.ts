@@ -129,6 +129,35 @@ export class SnapshotManager<S> {
     return this.create(store, store.getLastSeq(), customMeta);
   }
 
+  /** Save a pre-built state as a snapshot at the given sequence. */
+  async saveState(state: S, seq: number, customMeta?: Record<string, unknown>): Promise<SnapshotMetadata> {
+    await this.ensureDir();
+
+    const stateHash = this.hashState(state);
+
+    const metadata: SnapshotMetadata = {
+      seq,
+      ts: Date.now(),
+      stateHash,
+      schemaVersion: 1,
+      custom: customMeta,
+    };
+
+    const snapshotFile: SnapshotFile<S> = { metadata, state };
+    const path = this.getSnapshotPath(seq);
+    await fs.writeFile(path, JSON.stringify(snapshotFile), 'utf-8');
+
+    // Prune old snapshots
+    await this.prune();
+
+    return metadata;
+  }
+
+  /** Save a pre-built state as a snapshot at the current log head. */
+  async saveStateAtHead(store: LogStore, state: S, customMeta?: Record<string, unknown>): Promise<SnapshotMetadata> {
+    return this.saveState(state, store.getLastSeq(), customMeta);
+  }
+
   /** Find the latest snapshot. */
   async findLatest(): Promise<SnapshotFile<S> | null> {
     try {

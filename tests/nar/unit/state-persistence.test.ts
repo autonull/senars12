@@ -1,5 +1,7 @@
-import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { EventBus } from '@senars/util/events';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
@@ -18,6 +20,8 @@ import { createLMService } from '../../../nar/src/lm/lm-service';
 import { NARExecution } from '../../../nar/src/nar-execution';
 import type { RLFPLearner } from '../../../nar/src/rlfp';
 import { createTestController } from '../fixtures/cognitive';
+import { createLogStore } from '../../../src/log/store.js';
+import type { LogStore } from '../../../src/log/store.js';
 
 // Persistence assertions are LM-independent; default to the mock provider so
 // this file stays hermetic (avoids downloading real weights). Explicit
@@ -32,16 +36,19 @@ const createMockRLFP = (): RLFPLearner =>
     policyOptimizerPublic: {} as any,
   }) as unknown as RLFPLearner;
 
-describe('NAR State Persistence', () => {
-  const testStateDir = join(process.cwd(), '.cache', 'test-state-persistence');
+describe('NAR State Persistence (LogStore)', () => {
+  let stateDir: string;
+  let logStore: LogStore;
 
   beforeEach(async () => {
-    await rm(testStateDir, { recursive: true, force: true });
-    await mkdir(testStateDir, { recursive: true });
+    stateDir = mkdtempSync(join(tmpdir(), 'nar-state-persist-'));
+    logStore = createLogStore({ dir: join(stateDir, 'log') });
+    await logStore.open();
   });
 
   afterEach(async () => {
-    await rm(testStateDir, { recursive: true, force: true });
+    await logStore.close();
+    await rm(stateDir, { recursive: true, force: true });
   });
 
   test('saveState and loadState persist drives', async () => {
@@ -52,7 +59,8 @@ describe('NAR State Persistence', () => {
       providerRegistry: registry,
       lmService,
       persistState: true,
-      statePath: testStateDir,
+      statePath: stateDir,
+      logStore,
       maxConcepts: 100,
     });
 
@@ -66,56 +74,55 @@ describe('NAR State Persistence', () => {
     // Run a cycle to let drives decay and get saved
     await nar.run(5);
 
-    const drivesBefore = driveManager
-      ?.getAllStates()
-      .map((ds) => ({ id: ds.spec.id, intensity: ds.currentIntensity }));
-
     // Trigger save
     await nar.stop();
 
-    // Verify files were created
-    const files = await readdir(testStateDir);
-    expect(files).toContain('drives.json');
-    expect(files).toContain('beliefs.json');
-    expect(files).toContain('goals.json');
-    expect(files).toContain('questions.json');
+    // Close first LogStore before opening second one
+    await logStore.close();
 
-    // Check drives.json content (StateCodec envelope, TODO20 X7)
-    const drivesEnvelope = JSON.parse(await readFile(join(testStateDir, 'drives.json'), 'utf-8'));
-    expect(drivesEnvelope.format).toBe('senars.state');
-    expect(drivesEnvelope.kind).toBe('nar.drives');
-    const savedDrives = drivesEnvelope.payload;
-    expect(savedDrives.competence).toBeDefined();
-    expect(savedDrives.curiosity).toBeDefined();
+    // Create new LogStore instance pointing to same log directory
+    const logStore2 = createLogStore({ dir: join(stateDir, 'log') });
+    await logStore2.open();
 
-    // Create new NAR instance and load state
-    const nar2 = createNAR({
-      providerRegistry: registry,
-      lmService,
-      persistState: true,
-      statePath: testStateDir,
-      maxConcepts: 100,
-    });
+    try {
+      const nar2 = createNAR({
+        providerRegistry: registry,
+        lmService,
+        persistState: true,
+        statePath: stateDir,
+        logStore: logStore2,
+        maxConcepts: 100,
+      });
 
-    await nar2.start();
+      await nar2.start();
 
-    const driveManager2 = nar2.getDriveManager();
-    const drivesAfter = driveManager2
-      ?.getAllStates()
-      .map((ds) => ({ id: ds.spec.id, intensity: ds.currentIntensity }));
+      const driveManager2 = nar2.getDriveManager();
 
-    // Verify drives were restored (approximately)
-    const competenceAfter = driveManager2?.getState('competence')?.currentIntensity ?? 0;
-    const curiosityAfter = driveManager2?.getState('curiosity')?.currentIntensity ?? 0;
+      // Verify drives were restored (approximately)
+      const competenceAfter = driveManager2?.getState('competence')?.currentIntensity ?? 0;
+      const curiosityAfter = driveManager2?.getState('curiosity')?.currentIntensity ?? 0;
 
-    // Values should be close to what was saved (allowing for decay during load)
-    expect(competenceAfter).toBeLessThan(0.8); // Should be lower than default
-    expect(curiosityAfter).toBeGreaterThan(0.5); // Should be higher than default
+      // Values should be close to what was saved (allowing for decay during load)
+      expect(competenceAfter).toBeLessThan(0.8); // Should be lower than default
+      expect(curiosityAfter).toBeGreaterThan(0.5); // Should be higher than default
 
-    await nar2.stop();
+      await nar2.stop();
+    } finally {
+      await logStore2.close();
+      // Reopen original logStore for afterEach cleanup
+      logStore = createLogStore({ dir: join(stateDir, 'log') });
+      await logStore.open();
+    }
   });
 
   test('saveState persists beliefs, goals, and questions', async () => {
+    // Reopen logStore if it was closed
+    if (logStore.getEntryCount() === 0) {
+      await logStore.close();
+      logStore = createLogStore({ dir: join(stateDir, 'log') });
+      await logStore.open();
+    }
+
     const registry = createSeNARSRegistry();
     const lmService = createLMService();
 
@@ -123,7 +130,8 @@ describe('NAR State Persistence', () => {
       providerRegistry: registry,
       lmService,
       persistState: true,
-      statePath: testStateDir,
+      statePath: stateDir,
+      logStore,
       maxConcepts: 100,
     });
 
@@ -137,34 +145,42 @@ describe('NAR State Persistence', () => {
     await nar.run(2);
     await nar.stop();
 
-    // Verify files exist
-    const files = await readdir(testStateDir);
-    expect(files).toContain('beliefs.json');
-    expect(files).toContain('goals.json');
-    expect(files).toContain('questions.json');
+    // Close first LogStore before opening second one
+    await logStore.close();
 
-    // Create new NAR and load
-    const nar2 = createNAR({
-      providerRegistry: registry,
-      lmService,
-      persistState: true,
-      statePath: testStateDir,
-      maxConcepts: 100,
-    });
+    // Create new LogStore instance pointing to same log directory
+    const logStore2 = createLogStore({ dir: join(stateDir, 'log') });
+    await logStore2.open();
 
-    await nar2.start();
+    try {
+      const nar2 = createNAR({
+        providerRegistry: registry,
+        lmService,
+        persistState: true,
+        statePath: stateDir,
+        logStore: logStore2,
+        maxConcepts: 100,
+      });
 
-    // Check beliefs were restored
-    const beliefs = nar2.getBeliefs();
-    const hasTestBelief = beliefs.some((b) => b.term.toString().includes('test_belief'));
-    expect(hasTestBelief).toBe(true);
+      await nar2.start();
 
-    // Check goals were restored
-    const goals = nar2.getGoals();
-    const hasTestGoal = goals.some((g) => g.term.toString().includes('test_goal'));
-    expect(hasTestGoal).toBe(true);
+      // Check beliefs were restored
+      const beliefs = nar2.getBeliefs();
+      const hasTestBelief = beliefs.some((b) => b.term.toString().includes('test_belief'));
+      expect(hasTestBelief).toBe(true);
 
-    await nar2.stop();
+      // Check goals were restored
+      const goals = nar2.getGoals();
+      const hasTestGoal = goals.some((g) => g.term.toString().includes('test_goal'));
+      expect(hasTestGoal).toBe(true);
+
+      await nar2.stop();
+    } finally {
+      await logStore2.close();
+      // Reopen original logStore for afterEach cleanup
+      logStore = createLogStore({ dir: join(stateDir, 'log') });
+      await logStore.open();
+    }
   });
 });
 

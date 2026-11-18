@@ -44,6 +44,9 @@ import type {
 import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas/truth';
 import { Truth } from '../terms';
 import { WebSocket } from 'ws';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const logger = createLogger({ scope: 'nar-agent', level: 'warn' });
 
@@ -294,10 +297,13 @@ function extendAgent(agent: Agent, config: CreateAgentConfig, narInstance: NAR, 
 export async function createAgent(config: CreateAgentConfig = {}): Promise<ExtendedAgent> {
   let log: LogStoreEventLog;
   let logStore: any;
+  let logDir: string;
   if (config.persistence) {
-    logStore = createLogStore({ dir: config.persistence.path });
+    logDir = config.persistence.path;
+    logStore = createLogStore({ dir: logDir });
   } else {
-    logStore = createLogStore();
+    logDir = mkdtempSync(join(tmpdir(), 'senars-agent-log-'));
+    logStore = createLogStore({ dir: logDir });
   }
   await logStore.open();
   log = new LogStoreEventLog(logStore);
@@ -423,6 +429,17 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     const ws = new WSConnection(wsConfig, { emit: () => undefined, logger: wsLogger } as any);
     await agent.mount(ws);
   }
+
+  // Wrap agent.stop to close logStore and clean up temp directory
+  const originalStop = agent.stop.bind(agent);
+  const isTempDir = !config.persistence;
+  agent.stop = async () => {
+    await originalStop();
+    await logStore.close();
+    if (isTempDir) {
+      rmSync(logDir, { recursive: true, force: true }).catch(() => {});
+    }
+  };
 
   return extendAgent(agent, config, narInstance, narEngine);
 }

@@ -246,8 +246,8 @@ export class LogStoreStatePersister {
         boundary: boundaryData,
       };
 
-      // Create snapshot at current log head
-      await this.snapshotManager.createAtHead(this.store, { savedAt: state.timestamp });
+      // Create snapshot at current log head with pre-built state
+      await this.snapshotManager.saveStateAtHead(this.store, state, { savedAt: state.timestamp });
       this.logger.info('NAR state saved via LogStore snapshot');
     } catch (e) {
       this.logger.warn('NAR state save failed', { error: e });
