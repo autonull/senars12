@@ -186,6 +186,7 @@ export const consolidateLearning = async (
     // Phase E: submit schema promotions to GovernanceResolver
     if (results.length > 0) {
       const resolver = nar.getGovernanceResolver();
+      if (!resolver) return;
       const mode = nar.gates.getActionGate().getAutonomyMode();
       for (const result of results) {
         const proposal: SelfImprovementProposal = {
@@ -299,7 +300,9 @@ const adoptLearnedMettaRules = async (nar: NARFacadePort, proposer: ProofMettaPr
     },
     rewardDomain: 'self-patch-score',
   };
-  const decision = nar.getGovernanceResolver().resolve(proposal, mode, {
+  const resolver = nar.getGovernanceResolver();
+  if (!resolver) return;
+  const decision = resolver.resolve(proposal, mode, {
     applyFocusWeight: () => {},
     applyKnob: () => {},
     applySchemaPatch: () => {}, // Required for metta-rule-adoption auto-apply

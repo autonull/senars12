@@ -4,23 +4,26 @@
  */
 
 import type { Concept } from '../memory/concept.js';
+import type { NarEventBus } from '../types/events.js';
+import type { TaskType, TruthType } from '../types';
+import type { Term } from '../terms';
+import type { AutonomyConfigInput } from './config.js';
+import type { Clock } from '@senars/util';
 
 export interface AutonomyNAR {
   getCycleCount(): number;
   getConfig(): {
-    autonomy: unknown;
-    clock?: () => number;
+    autonomy?: AutonomyConfigInput;
+    clock?: Clock;
   };
-  step(): Promise<void>;
+  step(signal?: AbortSignal, correlationId?: string): Promise<number>;
   memory: {
     capacityPressure(): number;
-    consolidate(options: { cycleCount: number }): Promise<void>;
-    evictionReport(): unknown;
+    consolidate(options?: { cycleCount?: number }): void;
+    evictionReport(): { archived: number; forgotten: number } | undefined;
   };
   listConcepts(): Concept[];
-  input(narsese: string, type: 'question', truth?: unknown, correlationId?: string): Promise<void>;
-  checkpointConsolidation(cycle: number): Promise<void>;
-  getEventBus(): {
-    emit(event: string, data: unknown): void;
-  };
+  input(input: string | Term, type?: TaskType, truth?: TruthType, correlationId?: string): Promise<void>;
+  checkpointConsolidation(cycle: number): void;
+  getEventBus(): NarEventBus;
 }

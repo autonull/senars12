@@ -8,8 +8,11 @@ import type { CognitiveController } from '../../../cognitive/impls/CognitiveCont
 import type { RuleProcessor } from '../../../rules/impls/processor.js';
 import type { ToolManager } from '../../impls/tool-registry.js';
 import type { ApprovalService } from '@senars/core';
+import type { NARExecution } from '../../../nar-execution.js';
 
-export type SelfToolsNAR = {};
+export interface SelfToolsNAR {
+  getExecution(): NARExecution | undefined;
+}
 
 export interface SelfToolsDeps {
   workspaceRoot?: string;

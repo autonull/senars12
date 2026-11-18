@@ -466,8 +466,6 @@ _Dynamic subpath (no single entry file)._
 
 ## `./agent/types`
 
-- `CorrelationScopeStore` — Per-correlationId scope store (Phase A) — the contract that keeps one user's
-
 - `AgentOptions`
 
 - `ResolvedAgentOptions` — Options once the cortex has been resolved from a service. `util`'s
@@ -823,8 +821,6 @@ _Dynamic subpath (no single entry file)._
 - `freshBudget` — The same ceilings over unspent consumption — the counters at zero and no
 
 - `AIKRBudget` — The remaining-cycles view the bag and the tick pipeline both consume.
-
-- `BudgetEventMap` — Every `budget:slice:*` payload, so a bus can be typed against this alone.
 
 - `BudgetEventBus` — The one bus method `BudgetSlice` needs — a NAR `NarEventBus` satisfies it.
 

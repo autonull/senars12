@@ -20,7 +20,7 @@ import { termParser } from '../../nar/src/terms';
 
 /** Minimal NAR config needed by StatePersister — avoids cycle with nar/src/facade/config. */
 interface PersisterNARConfig {
-  persistState: boolean;
+  persistState?: boolean;
   statePath?: string;
   rng?: unknown;
 }

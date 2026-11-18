@@ -138,7 +138,6 @@ graph TD
   agent --> rlfp
   agent --> terms
   agent --> types
-  autonomy --> _
   autonomy --> memory
   autonomy --> types
   bag --> types
@@ -199,7 +198,9 @@ graph TD
   facade --> drives
   facade --> focus
   facade --> game_impls
+  facade --> governance
   facade --> kernel
+  facade --> learning
   facade --> lm
   facade --> lm_rule
   facade --> lm_rule-selectors
@@ -210,7 +211,10 @@ graph TD
   facade --> ports
   facade --> query
   facade --> reflex
+  facade --> rules_impls
+  facade --> tools
   facade --> tools_adapters
+  facade --> tools_impls
   facade --> types
   focus --> _
   focus --> bag
@@ -488,7 +492,6 @@ graph TD
   tools_adapters_self --> rules_impls
   tools_adapters_self --> tools_adapters
   tools_adapters_self --> tools_impls
-  tools_impls --> _
   tools_impls --> terms_impls
   tools_impls --> tools
   tools_impls --> types

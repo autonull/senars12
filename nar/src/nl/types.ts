@@ -4,7 +4,7 @@
 
 export interface BeliefInfo {
   term: string;
-  truth?: { f: number; c: number };
+  truth?: { frequency: number; confidence: number };
 }
 
 export interface DerivationTrace {

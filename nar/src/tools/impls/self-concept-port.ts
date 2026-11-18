@@ -3,6 +3,8 @@
  * Extracted to break self-concept.ts <-> nar.ts cycle.
  */
 
+import type { TruthType } from '../../types';
+
 export interface SelfConceptNAR {
-  believe(term: string, truth: { f: number; c: number }): Promise<void>;
+  believe(term: string, truth?: TruthType): Promise<void>;
 }

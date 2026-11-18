@@ -1574,17 +1574,7 @@ _Re-export barrel._
 
 - `ControlBudgets`
 
-- `DerivationEventEntrySchema` — One rule fire as it lands on disk: its durable `derivation.accepted` form.
-
-- `DerivationLedger` — A ledger over the recorder's derivation output: the bounded fire ring (pulled,
-
-- `DerivationRecordEntrySchema` — One completed derivation chain as it lands on disk (CORE.19 C3.4).
-
 - `driveCycles`
-
-- `GateEventEntrySchema` — One gate decision as it lands on disk: the ring it came from, the stamp, the event.
-
-- `GateEventLedger` — A ledger over the gate registry's rings. `flush` appends only events it has
 
 - `createGateRegistry` — The only way to obtain gates (TODO19 F2, TODO33 §5.P2.7). There is no process-global registry: a singleton with a `reset()` that existed solely for test isolation let a NAR with an isolated registry share the global's budget and autonomy mode with any separately-built `Focus`. Every consumer is handed one.
 
