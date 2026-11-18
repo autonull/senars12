@@ -47,8 +47,8 @@
 - ✅ Migrate `src/cli/` imports from `@senars/*` to `src/` path aliases
 - ✅ Migrate `src/surface/` imports — already using `@senars/worlds`, `@senars/admit`, `@senars/mining` path aliases
 - ✅ Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (261 test files — 247+ migrated for @senars/* imports; ~80 files with relative imports remain)
-- 🔄 **Consolidate export subpaths from 89 to 1** (collapse core, nar, io, metta, util, ui packages into root)
-- 🔄 **Reduce persistence sites to 1** (LogStore only)
+- ⏸️ **Consolidate export subpaths from 89 to 1** (collapse core, nar, io, metta, util, ui packages into root) — *attempted, reverted due to import complexity; requires careful manual migration*
+- 🔄 **Reduce persistence sites to 1** (LogStore only) — *in progress: EventLogPersistence.ts file-based JSONL needs migration to LogStoreGateEventLedger*
 - ✅ Migrate ~80 test files with relative imports from `../../nar/src/` to new path aliases (77 files migrated, 82 imports fixed)
 
 ### Session Log — 2026-11-18 (Test Import Migration & Barrel Completion)
@@ -117,3 +117,20 @@
 - 82 individual import statements fixed across nar, core, io, metta, util packages
 - Verified: `tests/integration/irc-live.test.ts`, `tests/nar/atom-interning-cache.test.ts`, `tests/nar/benchmark*.test.ts`, `tests/nar/budget-similarity.test.ts` (fixed missing `@senars/core/budget` import), `tests/nar/budget-scopes.test.ts`
 - All gates passing: typecheck, lint, surface-no-legacy, exports:check, deps:gate, typecheck:packages
+
+### Session Log — 2026-11-18 (Package Consolidation Attempted & Reverted)
+**Attempted automated consolidation of 6 packages (core, nar, io, metta, util, ui) into single src/ tree:**
+- Automated copy/merge of package sources into root src/
+- Automated import rewriting (@senars/* → relative paths)
+- **Result**: Massive import breakage (malformed paths, missing modules, type conflicts)
+- **Action**: Full revert via `git checkout -- core/ nar/ io/ metta/ util/ package.json pnpm-workspace.yaml`
+- **Lesson**: Package consolidation requires careful manual migration with dependency graph analysis, not automated string replacement
+- **Status**: Packages restored, all gates passing
+
+**Current Persistence Sites (4 → target 1):**
+1. `src/log/store.ts` — LogStore (primary, append-only) ✅
+2. `src/log/EventLogPersistence.ts` — file-based JSONL (legacy, needs migration) 🔄
+3. `core/src/eventlog/` — legacy SqliteEventLog/InMemoryEventLog (replaced by LogStoreEventLog adapter) ✅
+4. `nar/src/facade/persistence.js` — deleted, replaced by LogStoreStatePersister ✅
+
+**Next: Migrate EventLogPersistence.ts (persistGateLogs/loadGateEvents) to LogStoreGateEventLedger**
