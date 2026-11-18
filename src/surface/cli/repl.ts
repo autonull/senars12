@@ -98,7 +98,7 @@ async function handleMetaCommand(state: REPLState, command: string): Promise<voi
       console.clear();
       break;
 
-    case 'commands':
+    case 'commands': {
       const seen = new Set<string>();
       for (const [, command] of state.app.commands) {
         if (!seen.has(command.name)) {
@@ -107,6 +107,7 @@ async function handleMetaCommand(state: REPLState, command: string): Promise<voi
         }
       }
       break;
+    }
 
     default:
       console.log(`Unknown meta-command: .${cmd}`);

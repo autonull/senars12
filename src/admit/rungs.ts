@@ -195,15 +195,13 @@ export function getNextRung(
   const currentRung = statusToRung(artifact.status);
   const currentIndex = RUNGS.indexOf(currentRung);
 
-  // Try to advance
-  for (let i = currentIndex + 1; i < RUNGS.length; i++) {
-    const rung = RUNGS[i]!;
+  // Try to advance to next rung only
+  const nextIndex = currentIndex + 1;
+  if (nextIndex < RUNGS.length) {
+    const rung = RUNGS[nextIndex]!;
     const { met } = meetsRungRequirements(artifact, rung, gateResults, requirements);
     if (met) {
       return rung;
-    } else {
-      // Stop at first unmet requirement
-      break;
     }
   }
 

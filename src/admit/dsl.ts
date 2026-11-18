@@ -116,7 +116,7 @@ export class DSLCompiler {
         return {
           type: 'if',
           condition: this.compile(expr.cond),
-          then: this.compile(expr.then),
+          thenBranch: this.compile(expr.then),
           else: expr.else ? this.compile(expr.else) : undefined,
         };
       case 'let':

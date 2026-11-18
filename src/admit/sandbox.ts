@@ -90,7 +90,7 @@ export type SandboxAST =
   | { type: 'variable'; name: string }
   | { type: 'call'; function: string; args: SandboxAST[] }
   | { type: 'operator'; operator: string; args: SandboxAST[] }
-  | { type: 'if'; condition: SandboxAST; then: SandboxAST; else?: SandboxAST }
+  | { type: 'if'; condition: SandboxAST; thenBranch: SandboxAST; else?: SandboxAST }
   | { type: 'let'; name: string; value: SandboxAST; body: SandboxAST }
   | { type: 'lambda'; params: string[]; body: SandboxAST }
   | { type: 'list'; elements: SandboxAST[] }
@@ -307,11 +307,11 @@ export class Sandbox {
   }
 
   /** Evaluate if. */
-  private evalIf(node: { type: 'if'; condition: SandboxAST; then: SandboxAST; else?: SandboxAST }): unknown {
+  private evalIf(node: { type: 'if'; condition: SandboxAST; thenBranch: SandboxAST; else?: SandboxAST }): unknown {
     this.checkFuel(1);
     const condition = this.eval(node.condition);
     if (condition) {
-      return this.eval(node.then);
+      return this.eval(node.thenBranch);
     } else if (node.else) {
       return this.eval(node.else);
     }
