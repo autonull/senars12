@@ -1,8 +1,8 @@
-import { type CreateAgentConfig, createAgent } from '@senars/nar/agent';
-import type { NAR } from '../../nar/src';
-import { createTestNAR } from '../../nar/src';
-import type { LMService } from '../../nar/src/lm';
-import { errMsg } from '@senars/util';
+import { type CreateAgentConfig, createAgent } from '@senars/agent';
+import type { NAR } from '@senars/nar';
+import { createTestNAR } from '@senars/nar';
+import type { LMService } from '@senars/lm';
+import { errMsg } from '@senars/utils';
 
 export interface ProbeExpectations {
   responseContains?: string[];

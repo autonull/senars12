@@ -2,7 +2,7 @@
  * Deterministic text→embedding stub for benches: FNV-1a rolling hash projected
  * into `dimension` coordinates. Same text ⇒ same vector, no model, no I/O.
  */
-import { fnv1aCombine } from '@senars/util';
+import { fnv1aCombine } from '@senars/utils';
 
 export function fakeEmbeddingGenerator(dimension = 384): {
   dimension: number;

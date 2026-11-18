@@ -7,7 +7,7 @@
  */
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { NAR } from '@senars/nar/nar.js';
-import type { NARConfig } from '@senars/nar/facade/config.js';
+import type { NARConfig } from '@senars/agent';
 import { e2eNARConfig } from './fixtures.js';
 
 const PROOF_METTA = {

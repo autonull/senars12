@@ -4,9 +4,9 @@ import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { DialogueCapture } from '@senars/nar/dialogue';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
-import { dialogueDefaults } from '@senars/util/config';
+import { DialogueCapture } from '@senars/dialogue';
+import { EpisodicMemory } from '@senars/memory';
+import { dialogueDefaults } from '@senars/utils/config';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { registerDialogueTools } from '../../src/bin/lib/mcp/mcp-dialogue-tools.js';
 

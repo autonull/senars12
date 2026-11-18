@@ -7,7 +7,7 @@
  * (`scripts/fuzz-narsese.ts`) seeds from it too, and that script must not pull
  * vitest in through a test helper.
  */
-import { createLCG, type RandomSource } from '@senars/util';
+import { createLCG, type RandomSource } from '@senars/utils';
 import { vi } from 'vitest';
 
 export type { RandomSource };

@@ -5,7 +5,7 @@
  * may hold several sentences, so there is no `-b`/`-g`/`-q` to get wrong.
  */
 
-import { parseFlags } from '@senars/util';
+import { parseFlags } from '@senars/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { isOneShot, readOneShot, runOneShot } from '../../src/bin/lib/oneshot.js';
 

@@ -1,4 +1,4 @@
-import { mulberry32, weightedSample, weightedSampleBy } from '@senars/util';
+import { mulberry32, weightedSample, weightedSampleBy } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 const items = [

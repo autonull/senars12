@@ -1,4 +1,4 @@
-import { ThreadScope } from '@senars/nar/kernel';
+import { ThreadScope } from '@senars/kernel';
 import { describe, expect, it } from 'vitest';
 
 const FILL = 1100;

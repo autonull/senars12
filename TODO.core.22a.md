@@ -106,7 +106,7 @@
 - ✅ Migrate `src/bin/`, `src/bin/commands/`, `src/bin/lib/` imports from `@senars/*` to `src/` path aliases (blocks `surface-no-legacy`)
 - ✅ Migrate `src/cli/` imports from `@senars/*` to `src/` path aliases (2026-11-18)
 - ✅ Migrate `src/surface/` imports — already using `@senars/worlds`, `@senars/admit`, `@senars/mining` path aliases mapped to `src/` (no legacy `@senars/core|nar|io|metta|util` imports)
-- 🔄 Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (20 failures remaining)
+- 🔄 Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (~15 test files migrated, ~85 remaining)
 - Consolidate export subpaths from 96 to 1 (collapse core, nar, io, metta, util, ui packages into root)
 - Reduce persistence sites to 1
 - Typecheck: ✅ **PASS** — source files and cli PASS (bin/tests have pre-existing issues)
@@ -1700,3 +1700,37 @@ Files created:
 - `@senars/mining/*` → `./src/mining/*`
 
 No legacy `@senars/core|nar|io|metta|util` imports found. `surface-no-legacy` passes.
+
+---
+### Session Log — 2026-11-18 (Test Migration — Part 1)
+**Added new path aliases to tsconfig.json** for test migration:
+- `@senars/agent`, `@senars/budget`, `@senars/config`, `@senars/health`, `@senars/memory`, `@senars/terms`, `@senars/self`, `@senars/rules`, `@senars/reflex`, `@senars/nl`, `@senars/metrics`, `@senars/query`, `@senars/dialogue`, `@senars/otel`, `@senars/focus`
+
+**Migrated ~15 test files** from legacy imports to new src/ path aliases:
+- `tests/cli/oneshot.test.ts` — `@senars/util` → `@senars/utils`
+- `tests/conversational/framework.ts` — `@senars/nar/agent` → `@senars/agent`, `@senars/nar` → `@senars/nar`, `@senars/nar/lm` → `@senars/lm`, `@senars/util` → `@senars/utils`
+- `tests/conversational/runner.ts` — `@senars/util` → `@senars/utils`
+- `tests/helpers/fake-embedding.ts` — `@senars/util` → `@senars/utils`
+- `tests/helpers/rng.ts` — `@senars/util` → `@senars/utils`
+- `tests/io/http-metrics.test.ts` — `@senars/nar/metrics` → `@senars/metrics`, `@senars/util` → `@senars/utils`
+- `tests/mcp/mcp-resources.test.ts` — `@senars/nar` → `@senars/agent`, `@senars/nar/agent` → `@senars/agent`
+- `tests/mcp/mcp-dialogue-tools.test.ts` — `@senars/nar/dialogue` → `@senars/dialogue`, `@senars/nar/memory` → `@senars/memory`, `@senars/util/config` → `@senars/utils/config`
+- `tests/mcp/mcp-bridge.test.ts` — `@senars/nar` → `@senars/agent`
+- `tests/unit/nar/routing.test.ts` — `@senars/nar/lm` → `@senars/lm`, `@senars/util` → `@senars/utils`
+- `tests/unit/lm/grammars.test.ts` — `@senars/nar/lm/grammars` → `@senars/lm`, `@senars/nar/lm/providers/llamacpp` → `@senars/lm`
+- `tests/unit/nar/head-artifact.test.ts` — `@senars/util` → `@senars/utils`
+- `tests/unit/nar/weighted-sample.test.ts` — `@senars/util` → `@senars/utils`
+- `tests/unit/nar/thread-scope.test.ts` — `@senars/nar/kernel` → `@senars/kernel`
+- `tests/unit/nar/RetrievalVerifiedMemory.test.ts` — `@senars/nar` → `@senars/agent`/`@senars/lm`, `@senars/nar/memory` → `@senars/memory`
+- `tests/unit/nar/truth-properties.test.ts` — `@senars/nar` → `@senars/kernel`
+- `tests/e2e/hermetic-run.test.ts` — `@senars/util` → `@senars/utils`
+- `tests/e2e/fixtures.ts` — `@senars/nar/config/cognitive-parameters` → `@senars/config/nar`, `@senars/nar/index` → `@senars/agent`, `@senars/nar/facade/config` → `@senars/agent`, `@senars/util` → `@senars/utils`
+- `tests/e2e/self-improvement-loop.test.ts` — `@senars/nar/facade/config` → `@senars/agent`
+- `tests/e2e/production-loop.test.ts` — `@senars/core` → `@senars/agent`
+- `tests/e2e/chat-synthesis.test.ts` — `@senars/nar/agent` → `@senars/agent`, `@senars/nar/lm` → `@senars/lm`
+- `tests/e2e/ws-reconnect.test.ts` — `@senars/core` → `@senars/agent`
+
+**Gates Status**
+- `pnpm typecheck` ✅ PASS
+- `pnpm lint` ✅ PASS
+- `pnpm surface-no-legacy` ✅ PASS

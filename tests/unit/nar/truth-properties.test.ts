@@ -1,4 +1,4 @@
-import { Truth } from '@senars/nar';
+import { Truth } from '@senars/kernel';
 import fc from 'fast-check';
 
 function truthArb() {

@@ -8,10 +8,10 @@ import { CognitiveRegistry } from '@senars/nar/cognitive/impls/CognitiveRegistry
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
   type CognitiveParameters,
-} from '@senars/nar/config/cognitive-parameters.js';
-import { DEFAULT_CONFIG } from '@senars/nar/index.js';
-import type { NARConfig } from '@senars/nar/facade/config.js';
-import { deepMerge } from '@senars/util';
+} from '@senars/config/nar';
+import { DEFAULT_CONFIG } from '@senars/agent';
+import type { NARConfig } from '@senars/agent';
+import { deepMerge } from '@senars/utils';
 
 /** Deterministic default registry with every built-in strategy registered. */
 export const e2eStrategyRegistry = (): CognitiveRegistry => {

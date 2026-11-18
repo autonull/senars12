@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { loadGrammar } from '@senars/nar/lm/grammars';
-import { createLlamaCppFetch, runWithGrammar } from '@senars/nar/lm/providers/llamacpp';
+import { loadGrammar } from '@senars/lm';
+import { createLlamaCppFetch, runWithGrammar } from '@senars/lm';
 
 const withCapturingFetch = async (
   body: unknown,

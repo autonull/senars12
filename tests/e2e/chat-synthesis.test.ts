@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingFromServer } from '@senars/core';
-import { createAgent } from '@senars/nar/agent';
-import { createMockLMService } from '@senars/nar/lm';
+import { createAgent } from '@senars/agent';
+import { createMockLMService } from '@senars/lm';
 import { startAgentUI } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';

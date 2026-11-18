@@ -6,8 +6,8 @@
  */
 
 import { HTTPConnection } from '@senars/io';
-import { handleMetricsRequest } from '@senars/nar/metrics';
-import { silentLogger } from '@senars/util';
+import { handleMetricsRequest } from '@senars/metrics';
+import { silentLogger } from '@senars/utils';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const PORT = 53921;

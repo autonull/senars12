@@ -1,7 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { NAR } from '@senars/nar';
+import type { NAR } from '@senars/agent';
 import type { Tool } from '@senars/nar/tools';
 import { ToolManager } from '@senars/nar/tools';
 import { describe, expect, it } from 'vitest';

@@ -8,8 +8,8 @@ import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { createNAR } from '@senars/nar';
-import type { ExtendedAgent } from '@senars/nar/agent';
+import { createNAR } from '@senars/agent';
+import type { ExtendedAgent } from '@senars/agent';
 import { afterEach, describe, expect, it } from 'vitest';
 import { registerMCPResources } from '../../src/bin/lib/mcp/mcp-resources.js';
 

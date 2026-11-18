@@ -23,7 +23,7 @@
  * episode consolidator + governance pipeline inside the same spy.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { installIdSource, sequentialIdSource } from '@senars/util';
+import { installIdSource, sequentialIdSource } from '@senars/utils';
 import { runScenario } from './harness';
 import { beliefDerivationAskScenario } from './scenarios/belief-derivation-ask.scenario';
 import { goalToolFeedbackScenario } from './scenarios/goal-tool-feedback.scenario';
@@ -68,7 +68,7 @@ describe('TODO28 §7.3 — hermetic seeded run', () => {
   it('the id source is scoped to the NAR and restored on dispose', async () => {
     const { NAR } = await import('@senars/nar/nar.js');
     const { e2eNARConfig } = await import('./fixtures');
-    const { makeId } = await import('@senars/util');
+    const { makeId } = await import('@senars/utils');
     const AMBIENT_UUID =
       '00000000-0000-4000-8000-00000000ffff' as `${string}-${string}-${string}-${string}-${string}`;
     const restoreAmbient = vi.spyOn(crypto, 'randomUUID').mockReturnValue(AMBIENT_UUID);

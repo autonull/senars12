@@ -1,10 +1,10 @@
 import { promises as fs } from 'node:fs';
-import type { EpisodeType } from '@senars/nar';
-import { createMockLMService } from '@senars/nar';
-import { MockEmbeddingGenerator } from '@senars/nar/memory/embedding';
-import { consolidateEpisodes } from '@senars/nar/memory/retrieval-verified';
+import type { EpisodeType } from '@senars/agent';
+import { createMockLMService } from '@senars/lm';
+import { MockEmbeddingGenerator } from '@senars/lm';
+import { consolidateEpisodes } from '@senars/memory';
 import { afterAll, describe, expect, it } from 'vitest';
-import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
+import { EpisodicMemory } from '@senars/memory';
 
 const dir = '.cache/test-episodes-retrieval';
 

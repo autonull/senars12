@@ -10,8 +10,8 @@ import {
   resetDemotions,
   resolveOfflineModel,
   setRouting,
-} from '@senars/nar/lm';
-import { LM_TASKS } from '@senars/util';
+} from '@senars/lm';
+import { LM_TASKS } from '@senars/utils';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 afterEach(() => {

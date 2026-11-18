@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { CognitiveDelta, IncomingFromServer } from '@senars/core';
-import { Agent } from '@senars/core';
+import { Agent } from '@senars/agent';
 import { NAREngine } from '@senars/nar/engine/NAREngine';
 import { startAgentUI } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

@@ -1,4 +1,4 @@
-import { parseFlags } from '@senars/util';
+import { parseFlags } from '@senars/utils';
 import { ConversationalTestHarness, type Scenario, type ScenarioResult } from './framework.js';
 import { describeProvider, resolveProvider, resolveTestLMService } from './providers.js';
 import { buildReport, formatHumanReadable, formatJson } from './report.js';
