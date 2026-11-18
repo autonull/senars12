@@ -4,7 +4,7 @@ import {
   createCallTally,
   DisposalRegistry,
   recordCall,
-} from '../../../util/src';
+} from '@senars/util/';
 
 describe('recordCall', () => {
   it('derives rate and mean duration from the counters it keeps', () => {

@@ -1,14 +1,14 @@
 import { CallTallySeries, createCallTally } from '@senars/utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { Memory, TermBuilder, Truth } from '../../nar/src';
-import { createTimestamp } from '../../nar/src/types';
-import { type RuleInput, RuleProcessor } from '../../nar/src/rules';
-import { CognitiveRegistry } from '../../nar/src/cognitive/impls/CognitiveRegistry.js';
-import { RuleGraph } from '../../nar/src/strategies/lm-graph/RuleGraph.js';
-import type { LMRule } from '../../nar/src/lm/LMRule.js';
-import type { ModelRuleSelector } from '../../nar/src/strategies/types.js';
-import type { Term } from '../../nar/src/terms';
-import { termsEqual } from '../../nar/src/terms';
+import { Memory, TermBuilder, Truth } from '@senars/nar/';
+import { createTimestamp } from '@senars/nar/types';
+import { type RuleInput, RuleProcessor } from '@senars/nar/rules';
+import { CognitiveRegistry } from '@senars/nar/cognitive/impls/CognitiveRegistry.js';
+import { RuleGraph } from '@senars/nar/strategies/lm-graph/RuleGraph.js';
+import type { LMRule } from '@senars/nar/lm/LMRule.js';
+import type { ModelRuleSelector } from '@senars/nar/strategies/types.js';
+import type { Term } from '@senars/nar/terms';
+import { termsEqual } from '@senars/nar/terms';
 
 // Helper to create a RuleInput from a term string
 const makeInput = (termStr: string): RuleInput => ({
@@ -219,7 +219,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     graph.activate(termA, termB);
 
     // Use graph premise source via primitives
-    const { PREMISE_SOURCES } = await import('../../nar/src/strategies/premise/primitives.js');
+    const { PREMISE_SOURCES } = await import('@senars/nar/strategies/premise/primitives.js');
     const task = { term: termA } as any;
     const concepts = PREMISE_SOURCES.graph(task, memory);
 
@@ -241,7 +241,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     graph.activate(termA, termB); // Second activation increases weight
 
     const { PREMISE_SCORER_REGISTRY, resolveScorer } = await import(
-      '../../nar/src/strategies/premise/primitives.js'
+      '@senars/nar/strategies/premise/primitives.js'
     );
     const scorer = resolveScorer(memory, 'edgeWeight');
 

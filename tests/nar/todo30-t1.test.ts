@@ -22,9 +22,9 @@ import {
   atomOf,
   rawCompoundCtors,
   clearTerms,
-} from '../../nar/src/terms/impls/intern.js';
-import { termKey, isCompound } from '../../nar/src/terms/index.js';
-import { termParser, type Term } from '../../nar/src/terms/index.js';
+} from '@senars/nar/terms/impls/intern.js';
+import { termKey, isCompound } from '@senars/nar/terms/index.js';
+import { termParser, type Term } from '@senars/nar/terms/index.js';
 
 describe('T1 — product arity is reachable and distinct from atoms', () => {
   beforeEach(() => clearTerms());

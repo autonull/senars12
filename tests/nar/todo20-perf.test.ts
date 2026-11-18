@@ -1,9 +1,9 @@
 /** Bench 69 — Performance Hot Paths (TODO20 Phase 8: P1 bag-lcg, P2 cache, P3 negotiator, P4 param-batch). */
 import { describe, expect, it, vi } from 'vitest';
-import { PriorityBag } from '../../nar/src/bag/Bag.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { Negotiator, type NALDerivation } from '../../nar/src/reflex/Negotiator.js';
-import { createParameterTable } from '../../nar/src/config/parameter-table.js';
+import { PriorityBag } from '@senars/nar/bag/Bag.js';
+import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { Negotiator, type NALDerivation } from '@senars/nar/reflex/Negotiator.js';
+import { createParameterTable } from '@senars/nar/config/parameter-table.js';
 import { createLCG, type RandomSource } from '../helpers/rng.js';
 
 describe('Bench 69 — P1: Bag seeded LCG', () => {

@@ -7,14 +7,14 @@ import {
   NAR,
   Truth,
   termParser,
-} from '../../nar/src';
-import type { Perception } from '../../nar/src/game/Game.js';
-import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { ManifoldReflex } from '../../nar/src/lm/system-one/manifold-reflex.js';
-import type { ClassifyProposition } from '../../nar/src/lm/system-one/types.js';
-import { EpsilonGreedyReflex } from '../../nar/src/reflex/EpsilonGreedyReflex.js';
+} from '@senars/nar/';
+import type { Perception } from '@senars/nar/game/Game.js';
+import { ActionGateTransducer } from '@senars/nar/lm/system-one/action-transducer.js';
+import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
+import { ManifoldReflex } from '@senars/nar/lm/system-one/manifold-reflex.js';
+import type { ClassifyProposition } from '@senars/nar/lm/system-one/types.js';
+import { EpsilonGreedyReflex } from '@senars/nar/reflex/EpsilonGreedyReflex.js';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,

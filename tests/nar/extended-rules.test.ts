@@ -4,7 +4,7 @@ import {
   DISABLED_RULES,
   NAL_EXTENDED_RULES,
   RULE_BODIES,
-} from '../../nar/src/rules';
+} from '@senars/nar/rules';
 
 const bodyOfDisabled = (ruleId: string): string | undefined =>
   NAL_EXTENDED_RULES.find((rule) => rule.id === ruleId)?.body;

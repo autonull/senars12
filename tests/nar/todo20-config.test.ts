@@ -16,7 +16,7 @@ import { createLogStore } from '@senars/log/store.js';
 import { decodeState, encodeState } from '@senars/nar/state/codec.js';
 import { appConfigSchema } from '../../src/config/schema.js';
 import { MIGRATIONS, migrateConfig, migrateConfigFile } from '../../src/utils/config-migrate.js';
-import { deepFreeze } from '../../util/src/index.js';
+import { deepFreeze } from '@senars/util/index.js';
 
 /** Bench 66 — Configuration Hardening (TODO20 Phase 5: C1/C2/C3/C4, X7). */
 

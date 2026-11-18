@@ -1,11 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
-import { KernelActionGate } from '../../nar/src/kernel/KernelActionGate.js';
-import { GATE_LOG_CAPACITY } from '../../nar/src/kernel/event-ring.js';
-import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
-import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
-import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
-import { atom, TermBuilder } from '../../nar/src/terms/index.js';
+import { KernelActionGate } from '@senars/nar/kernel/KernelActionGate.js';
+import { GATE_LOG_CAPACITY } from '@senars/nar/kernel/event-ring.js';
+import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
+import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
+import { KernelRewardGate } from '@senars/nar/kernel/KernelRewardGate.js';
+import { atom, TermBuilder } from '@senars/nar/terms/index.js';
 
 describe('kernel gates', () => {
   it('perception admits valid observation and admitTask preserves truth', async () => {
@@ -96,7 +96,7 @@ describe('kernel gates', () => {
 
   it('NL batch converts to FormalizationCandidates with ambiguity flags', async () => {
     const { toFormalizationBatch, detectAmbiguityFlags } = await import(
-      '../../nar/src/nl/understanding.js'
+      '@senars/nar/nl/understanding.js'
     );
     expect(detectAmbiguityFlags('Cats may eat unless served fish').map((f) => f.type)).toEqual(
       expect.arrayContaining(['negation', 'modal'])
@@ -115,7 +115,7 @@ describe('kernel gates', () => {
   });
 
   it('perception gate admits formalization candidates provisionally', async () => {
-    const { toFormalizationBatch } = await import('../../nar/src/nl/understanding.js');
+    const { toFormalizationBatch } = await import('@senars/nar/nl/understanding.js');
     const gate = new KernelPerceptionGate();
     const batch = toFormalizationBatch('Cats are mammals', {
       beliefs: [{ narsese: '(cat-->mammal)', source: 'user' }],

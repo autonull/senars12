@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
-import { createDispatcher } from '../../nar/src/lm/system-one/dispatcher.js';
-import type { ReasoningBudget, EvaluateProposition } from '../../nar/src/lm/system-one/types.js';
+import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
+import { createDispatcher } from '@senars/nar/lm/system-one/dispatcher.js';
+import type { ReasoningBudget, EvaluateProposition } from '@senars/nar/lm/system-one/types.js';
 
 describe('System One — Explicit Safety Floor (R6)', () => {
   const mockBudget: ReasoningBudget = {

@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createNAR, Truth } from '../../nar/src';
+import { createNAR, Truth } from '@senars/nar/';
 
 const TRANSCRIPT_FACTS = ['(cat --> animal).', '(kitty --> cat).', '(animal --> mortal).'];
 

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { InputProcessor } from '../../../nar/src/task/input.js';
+import { InputProcessor } from '@senars/nar/task/input.js';
 import {
   PUNCTUATION_BY_TASK_TYPE,
   rehydrateTask,
   serializeTaskRecord,
   taskTypeFromPunctuation,
-} from '../../../nar/src/task/record.js';
-import { Truth, termParser } from '../../../nar/src/terms/index.js';
-import { createTaskWeight, createTask } from '../../../nar/src/types/index.js';
+} from '@senars/nar/task/record.js';
+import { Truth, termParser } from '@senars/nar/terms/index.js';
+import { createTaskWeight, createTask } from '@senars/nar/types/index.js';
 
 const term = (source: string) => termParser.parse(source);
 

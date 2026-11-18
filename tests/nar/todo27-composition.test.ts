@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { CognitiveRegistry } from '@senars/agent';
 import { Memory } from '@senars/memory';
-import { atom, Truth } from '../../nar/src/terms/index.js';
-import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
+import { atom, Truth } from '@senars/nar/terms/index.js';
+import { createBeliefTask, createTaskWeight } from '@senars/nar/types/index.js';
 import { ConfigurationError } from '@senars/agent';
 import type {
   AttentionModel,
@@ -10,8 +10,8 @@ import type {
   ModelRuleSelector,
   SamplingStrategy,
   Strategy,
-} from '../../nar/src/strategies/types.js';
-import type { LMRule } from '../../nar/src/lm/LMRule.js';
+} from '@senars/nar/strategies/types.js';
+import type { LMRule } from '@senars/nar/lm/LMRule.js';
 import { CompositeStrategy } from '@senars/agent';
 import { CompositeSampling } from '@senars/agent';
 import { CompositeAttention } from '@senars/agent';

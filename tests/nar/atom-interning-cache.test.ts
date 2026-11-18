@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { atomKey } from '../../nar/src/terms/impls/accessors.js';
+import { atomKey } from '@senars/nar/terms/impls/accessors.js';
 import {
   atomOf,
   clearTerms,
   compoundOf,
   evictTerm,
   termCacheSize,
-} from '../../nar/src/terms/impls/intern.js';
+} from '@senars/nar/terms/impls/intern.js';
 import { assertDefined } from '@senars/utils';
-import { TermBuilder } from '../../nar/src/terms/index.js';
+import { TermBuilder } from '@senars/nar/terms/index.js';
 
 /**
  * The atom cache is read *before* the grammar checks, on the reasoning hot

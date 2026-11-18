@@ -3,13 +3,13 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { AssociativeRegistry, LinkLayerMemory } from '@senars/agent';
 import { LINK_LAYER } from '@senars/agent';
-import { Layer } from '../../nar/src/memory/links/Layer.js';
+import { Layer } from '@senars/nar/memory/links/Layer.js';
 import { Memory } from '@senars/memory';
-import { atom } from '../../nar/src/terms/index.js';
-import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
-import { Truth } from '../../nar/src/terms/index.js';
+import { atom } from '@senars/nar/terms/index.js';
+import { createBeliefTask, createTaskWeight } from '@senars/nar/types/index.js';
+import { Truth } from '@senars/nar/terms/index.js';
 import { TermLinkStrategy } from '@senars/agent';
-import type { Strategy } from '../../nar/src/strategies/types.js';
+import type { Strategy } from '@senars/nar/strategies/types.js';
 
 /**
  * TODO27 Bench 104 — the associative port can write, and the memory path holds

@@ -1,5 +1,5 @@
-import { Layer, LinkManager } from '../../../../nar/src/memory/links';
-import { atom } from '../../../../nar/src/terms';
+import { Layer, LinkManager } from '@senars/nar/memory/links';
+import { atom } from '@senars/nar/terms';
 
 const cat = atom('cat');
 const dog = atom('dog');

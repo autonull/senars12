@@ -8,7 +8,7 @@ import { getMetricsAsJson } from '@senars/metrics';
 import { KernelActionGate, KernelBudgetGate, KernelPerceptionGate } from '@senars/kernel';
 import { Negotiator } from '@senars/reflex';
 import { SchemaStore } from '@senars/focus';
-import { Truth } from '../../nar/src';
+import { Truth } from '@senars/nar/';
 import { CollectingProcessor } from '../helpers/otel.js';
 
 const collector = new CollectingProcessor();

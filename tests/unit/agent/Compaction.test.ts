@@ -1,6 +1,6 @@
 import { createMockLMService } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
-import { createCompactionPromptBuilder } from '../../../nar/src/agent/compaction.js';
+import { createCompactionPromptBuilder } from '@senars/nar/agent/compaction.js';
 
 describe('createCompactionPromptBuilder', () => {
   it('returns empty prompt and does not call the LM below the threshold', () => {

@@ -4,7 +4,7 @@ import {
   DEFAULT_COGNITIVE_PARAMETERS,
   PARAMETER_SPACE,
   readCognitiveParams,
-} from '../../../nar/src/config/cognitive-parameters';
+} from '@senars/nar/config/cognitive-parameters';
 
 describe('readCognitiveParams — a run’s parameters outlive the process', () => {
   it('reads the tuner’s envelope, which is what `pnpm tune` writes', () => {

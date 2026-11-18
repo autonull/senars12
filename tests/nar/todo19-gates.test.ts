@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createGateRegistry } from '../../nar/src/kernel/index.js';
-import { NAR } from '../../nar/src/nar.js';
-import { GameFocus } from '../../nar/src/focus/GameFocus.js';
-import { createArcadeRegistry } from '../../nar/src/game/index.js';
+import { createGateRegistry } from '@senars/nar/kernel/index.js';
+import { NAR } from '@senars/nar/nar.js';
+import { GameFocus } from '@senars/nar/focus/GameFocus.js';
+import { createArcadeRegistry } from '@senars/nar/game/index.js';
 
 /**
  * Bench 42 — Gate Isolation (TODO19 F2)

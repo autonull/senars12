@@ -49,7 +49,7 @@
 - ✅ Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (261 test files — 247+ migrated for @senars/* imports; ~80 files with relative imports remain)
 - 🔄 **Consolidate export subpaths from 89 to 1** (collapse core, nar, io, metta, util, ui packages into root)
 - 🔄 **Reduce persistence sites to 1** (LogStore only)
-- Migrate ~80 test files with relative imports from `../../nar/src/` to new path aliases
+- ✅ Migrate ~80 test files with relative imports from `../../nar/src/` to new path aliases (77 files migrated, 82 imports fixed)
 
 ### Session Log — 2026-11-18 (Test Import Migration & Barrel Completion)
 **Path Alias Fixes:**
@@ -110,3 +110,10 @@
 **Gates Status After Fixes:**
 - All gates passing except `env:grammar` (pre-existing UI issue — out of scope)
 - `pnpm docs:drift` ✅ PASS (docs regenerated with new MettaEngine export)
+
+### Session Log — 2026-11-18 (Test Import Migration: Relative → Path Aliases)
+**Migrated 77 test files from relative imports to path aliases using automated script:**
+- Pattern: `../../../nar/src/...` → `@senars/nar/...`, `../../../core/src/...` → `@senars/core/...`, etc.
+- 82 individual import statements fixed across nar, core, io, metta, util packages
+- Verified: `tests/integration/irc-live.test.ts`, `tests/nar/atom-interning-cache.test.ts`, `tests/nar/benchmark*.test.ts`, `tests/nar/budget-similarity.test.ts` (fixed missing `@senars/core/budget` import), `tests/nar/budget-scopes.test.ts`
+- All gates passing: typecheck, lint, surface-no-legacy, exports:check, deps:gate, typecheck:packages

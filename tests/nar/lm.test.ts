@@ -1,5 +1,5 @@
-import { createBotNAR } from '../../nar/src';
-import { LMResponseParser } from '../../nar/src/lm';
+import { createBotNAR } from '@senars/nar/';
+import { LMResponseParser } from '@senars/nar/lm';
 
 describe('LMResponseParser', () => {
   describe('parse', () => {

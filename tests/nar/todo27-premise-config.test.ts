@@ -4,9 +4,9 @@ import { ConfigurationError } from '@senars/agent';
 import { PREMISE_PRIMITIVES } from '@senars/agent';
 import { validateParameters } from '@senars/reflex';
 import { Memory } from '@senars/memory';
-import { atom, Truth } from '../../nar/src/terms/index.js';
-import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
-import type { Strategy } from '../../nar/src/strategies/types.js';
+import { atom, Truth } from '@senars/nar/terms/index.js';
+import { createBeliefTask, createTaskWeight } from '@senars/nar/types/index.js';
+import type { Strategy } from '@senars/nar/strategies/types.js';
 
 /**
  * TODO27 Bench 105 — the premise primitives' sampling pipeline is configuration.

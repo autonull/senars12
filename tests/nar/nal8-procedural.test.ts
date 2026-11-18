@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { NALExtendedRules, TermBuilder } from '../../nar/src';
+import { NALExtendedRules, TermBuilder } from '@senars/nar/';
 
 describe('NAL8 Procedural Rules', () => {
   const { inheritance, sequence, operation, predictive: _predictive, atom } = TermBuilder;

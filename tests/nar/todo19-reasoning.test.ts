@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
+import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
 import {
   createReasoningGame,
   generateEvalTasks,
   ReasoningGame,
   type ReasoningGameOptions,
-} from '../../nar/src/game/impls/ReasoningGame.js';
-import { ReasoningMetaGame } from '../../nar/src/game/impls/ReasoningMetaGame.js';
-import { REASONING_SPECS } from '../../nar/src/game/impls/ReasoningGame.js';
-import { DEFAULT_ACTIONS, DEFAULT_REWARDS } from '../../nar/src/game/index.js';
-import { ParameterScopeError } from '../../nar/src/config/parameter-table.js';
-import { GameFocus } from '../../nar/src/focus/GameFocus.js';
-import { createArcadeRegistry, registerReasoningGames } from '../../nar/src/game/registry.js';
-import type { Game, GameOutcome, Perception } from '../../nar/src/game/Game.js';
-import type { ActionProposal, LearningEvent, Reflex } from '../../nar/src/reflex/Reflex.js';
+} from '@senars/nar/game/impls/ReasoningGame.js';
+import { ReasoningMetaGame } from '@senars/nar/game/impls/ReasoningMetaGame.js';
+import { REASONING_SPECS } from '@senars/nar/game/impls/ReasoningGame.js';
+import { DEFAULT_ACTIONS, DEFAULT_REWARDS } from '@senars/nar/game/index.js';
+import { ParameterScopeError } from '@senars/nar/config/parameter-table.js';
+import { GameFocus } from '@senars/nar/focus/GameFocus.js';
+import { createArcadeRegistry, registerReasoningGames } from '@senars/nar/game/registry.js';
+import type { Game, GameOutcome, Perception } from '@senars/nar/game/Game.js';
+import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex/Reflex.js';
 
 /**
  * Bench 44 — ReasoningGame Falsification (TODO19 Phase B, R4)
@@ -153,8 +153,8 @@ describe('Bench 44 — ReasoningGame Falsification', () => {
   });
 
   it('R4.2 — fault-injected judgeBatch: reasoning ops fail closed, episode survives on the incumbent', async () => {
-    const { ManifoldReflex } = await import('../../nar/src/lm/system-one/manifold-reflex.js');
-    const { EpsilonGreedyReflex } = await import('../../nar/src/reflex/EpsilonGreedyReflex.js');
+    const { ManifoldReflex } = await import('@senars/nar/lm/system-one/manifold-reflex.js');
+    const { EpsilonGreedyReflex } = await import('@senars/nar/reflex/EpsilonGreedyReflex.js');
     const faulted = {
       judgeBatch: async () => {
         throw new Error('manifold fault');

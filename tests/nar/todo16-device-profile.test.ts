@@ -1,20 +1,20 @@
 import type { ReasoningBudget } from '@senars/agent';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
+import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
 import {
   createDispatcher,
   DeterministicManifold,
   Tier3SymbolicManifold,
-} from '../../nar/src/lm/system-one/dispatcher.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import type { EvaluateQuery, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
+} from '@senars/nar/lm/system-one/dispatcher.js';
+import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
+import type { EvaluateQuery, JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
 import {
   DigestMismatchError,
   loadHeadRuntime,
   SandboxedHeadRuntime,
   verifyModelDigest,
-} from '../../nar/src/lm/system-one/wasi-runtime.js';
+} from '@senars/nar/lm/system-one/wasi-runtime.js';
 
 const mockBudget: ReasoningBudget = {
   maxCycles: 100,

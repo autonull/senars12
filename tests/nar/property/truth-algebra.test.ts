@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { Truth, isTruthEqual } from '../../../nar/src/terms';
+import { Truth, isTruthEqual } from '@senars/nar/terms';
 
 const MAX_C = Math.min(Math.fround(Truth.MAX_CONFIDENCE), Truth.MAX_CONFIDENCE);
 /** Largest f32-representable value ≤ x (fast-check requires f32-exact bounds). */

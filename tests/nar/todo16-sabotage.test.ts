@@ -1,11 +1,11 @@
 import type { AutonomyMode } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
-import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
+import { ProposalRouter } from '@senars/nar/governance/pipeline.js';
 import {
   buildSabotageFlag,
   type HeadCandidateSpec,
   validateHeadCandidate,
-} from '../../nar/src/lm/system-one/distill.js';
+} from '@senars/nar/lm/system-one/distill.js';
 
 const pinnedIncumbent: HeadCandidateSpec = {
   headId: 'injection',

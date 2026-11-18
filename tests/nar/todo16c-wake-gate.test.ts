@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createWakeGate } from '../../nar/src/lm/system-one/wake-gate.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import type { EvaluateProposition } from '../../nar/src/lm/system-one/types.js';
+import { createWakeGate } from '@senars/nar/lm/system-one/wake-gate.js';
+import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
+import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import type { EvaluateProposition } from '@senars/nar/lm/system-one/types.js';
 import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
 
 const budget = {

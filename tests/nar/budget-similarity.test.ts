@@ -7,9 +7,9 @@ import {
   isExhausted,
   pressure,
   remainingAll,
-} from '@senars/budget';
+} from '@senars/core/budget';
 import { describe, expect, it } from 'vitest';
-import { cosine, cosineNormalized, jaccard, normalize } from '../../nar/src/utils/similarity.js';
+import { cosine, cosineNormalized, jaccard, normalize } from '@senars/nar/utils/similarity.js';
 
 const slice = (cycles: number, depth: number, memoryOps: number, llmCalls: number) =>
   createBudgetSlice({

@@ -7,13 +7,13 @@ import {
   NAR,
   Truth,
   termParser,
-} from '../../nar/src';
-import { PriorityBag } from '../../nar/src/bag/Bag.js';
-import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
-import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import type { ClassifyProposition, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
+} from '@senars/nar/';
+import { PriorityBag } from '@senars/nar/bag/Bag.js';
+import { KernelRewardGate } from '@senars/nar/kernel/KernelRewardGate.js';
+import { ActionGateTransducer } from '@senars/nar/lm/system-one/action-transducer.js';
+import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
+import type { ClassifyProposition, JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,

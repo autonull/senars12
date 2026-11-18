@@ -3,12 +3,12 @@ import type {
   EmbeddingPointer,
   JudgmentProposition,
   ReasoningBudget,
-} from '../../nar/src/lm/system-one/types.js';
+} from '@senars/nar/lm/system-one/types.js';
 import {
   consensusFanout,
   fanoutWithinBudget,
   verifyCascade,
-} from '../../nar/src/lm/system-one/verify.js';
+} from '@senars/nar/lm/system-one/verify.js';
 
 /**
  * P2 (TODO19): SDE-style verify cascade + consensus fan-out budget knob.

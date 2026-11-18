@@ -1,7 +1,7 @@
 import { type BoundSpec, cognitiveBounds } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
-import { KNOB_SPECS } from '../../nar/src/rlfp/knobs.js';
+import { KNOB_SPECS } from '@senars/nar/rlfp/knobs.js';
 
 /**
  * The RLFP tuner and `SelfMetaGame` both hand-tune cognitive parameters, and both used to

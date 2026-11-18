@@ -15,11 +15,11 @@ import {
   termKey,
   termsEqual,
   toNarsese,
-} from '../../nar/src/terms';
-import { OPERATORS } from '../../nar/src/terms/operators';
-import { createTask } from '../../nar/src/types';
-import { Truth } from '../../nar/src/terms';
-import type { Term } from '../../nar/src/terms/types';
+} from '@senars/nar/terms';
+import { OPERATORS } from '@senars/nar/terms/operators';
+import { createTask } from '@senars/nar/types';
+import { Truth } from '@senars/nar/terms';
+import type { Term } from '@senars/nar/terms/types';
 
 const a = TermBuilder.atom('a');
 const b = TermBuilder.atom('b');

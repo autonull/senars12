@@ -10,16 +10,16 @@
 
 import { LMRule } from '@senars/lm';
 import * as layerJson from '@senars/lm';
-import { CYCLE_PATH_PREFIXES } from '../../nar/src/lm/in-cycle-inventory.js';
+import { CYCLE_PATH_PREFIXES } from '@senars/nar/lm/in-cycle-inventory.js';
 import {
   createEmbeddingGenerator,
   isMockLM,
   MockEmbeddingGenerator,
 } from '@senars/agent';
-import { RuleProcessor } from '../../nar/src/rules/impls/processor.js';
-import { loadBuiltinTable } from '../../nar/src/rules/impls/builtin-table.js';
-import { RuleTableStore } from '../../nar/src/rules/impls/rule-table.js';
-import { BUILTIN_DECLARATIONS, RULE_BODIES } from '../../nar/src/rules/impls/registration.js';
+import { RuleProcessor } from '@senars/nar/rules/impls/processor.js';
+import { loadBuiltinTable } from '@senars/nar/rules/impls/builtin-table.js';
+import { RuleTableStore } from '@senars/nar/rules/impls/rule-table.js';
+import { BUILTIN_DECLARATIONS, RULE_BODIES } from '@senars/nar/rules/impls/registration.js';
 import type { ModelRule } from '@senars/rules';
 import { parseJsonObject } from '@senars/utils';
 

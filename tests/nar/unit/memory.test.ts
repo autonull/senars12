@@ -5,7 +5,7 @@ import {
   type Term,
   TermBuilder,
   Truth,
-} from '../../../nar/src';
+} from '@senars/nar/';
 
 describe('Memory', () => {
   let mem: Memory;

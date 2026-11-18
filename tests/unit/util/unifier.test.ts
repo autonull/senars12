@@ -4,7 +4,7 @@ import {
   structuralEqual,
   Unifier,
   type UnifierDialect,
-} from '../../../util/src/utils/unify.js';
+} from '@senars/util/utils/unify.js';
 
 type T = { v?: string; tag: string; kids: T[] };
 

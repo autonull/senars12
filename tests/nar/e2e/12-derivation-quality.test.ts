@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { createNAR, Truth, termKey, termParser, TermBuilder } from '../../../nar/src';
-import { canonicalTerm, TERM_REDUCERS } from '../../../nar/src/terms';
-import { createSeNARSRegistry } from '../../../nar/src/lm';
-import { createLMService } from '../../../nar/src/lm/lm-service';
+import { createNAR, Truth, termKey, termParser, TermBuilder } from '@senars/nar/';
+import { canonicalTerm, TERM_REDUCERS } from '@senars/nar/terms';
+import { createSeNARSRegistry } from '@senars/nar/lm';
+import { createLMService } from '@senars/nar/lm/lm-service';
 import { rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 

@@ -1,4 +1,4 @@
-import { TermBuilder, Truth, termsEqual } from '../../nar/src';
+import { TermBuilder, Truth, termsEqual } from '@senars/nar/';
 
 describe('Term Builder Comprehensive Tests', () => {
   describe('Atom Creation', () => {

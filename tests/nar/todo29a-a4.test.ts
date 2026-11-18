@@ -12,10 +12,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Memory } from '@senars/memory';
 import { describe, expect, it } from 'vitest';
-import { Concept } from '../../nar/src/memory/concept.js';
-import { NullAttentionModel } from '../../nar/src/strategies/attention/NullAttentionModel.js';
-import { SimpleAttention } from '../../nar/src/strategies/attention/SimpleAttention.js';
-import { TermBuilder } from '../../nar/src/terms/impls/factory.js';
+import { Concept } from '@senars/nar/memory/concept.js';
+import { NullAttentionModel } from '@senars/nar/strategies/attention/NullAttentionModel.js';
+import { SimpleAttention } from '@senars/nar/strategies/attention/SimpleAttention.js';
+import { TermBuilder } from '@senars/nar/terms/impls/factory.js';
 import {
   ATTENTION_OWNER,
   ATTENTION_REASONS,

@@ -11,21 +11,21 @@ import {
   sequentialIdSource,
   type StatefulRandomSource,
 } from '@senars/utils';
-import { createNAR, NAR } from '../../nar/src';
+import { createNAR, NAR } from '@senars/nar/';
 import { e2eNARConfig } from '../e2e/fixtures.js';
-import { createSeNARSRegistry } from '../../nar/src/lm';
-import { createLMService } from '../../nar/src/lm/lm-service';
-import { GateRegistry } from '../../nar/src/kernel/GateRegistry.js';
-import { termParser } from '../../nar/src/terms/index.js';
+import { createSeNARSRegistry } from '@senars/nar/lm';
+import { createLMService } from '@senars/nar/lm/lm-service';
+import { GateRegistry } from '@senars/nar/kernel/GateRegistry.js';
+import { termParser } from '@senars/nar/terms/index.js';
 import {
   type ConsistencyBoundary,
   decodeBoundary,
   encodeBoundary,
-} from '../../nar/src/state/boundary.js';
-import { encodeState } from '../../nar/src/state/codec.js';
+} from '@senars/nar/state/boundary.js';
+import { encodeState } from '@senars/nar/state/codec.js';
 // readPersistedBoundary is for the old file-based boundary; new persistence uses LogStore snapshots
-// import { readPersistedBoundary } from '../../nar/src/state/persisted.js';
-import { NarEventBus } from '../../nar/src/types/events.js';
+// import { readPersistedBoundary } from '@senars/nar/state/persisted.js';
+import { NarEventBus } from '@senars/nar/types/events.js';
 import { createLogStore } from '../../src/log/store';
 import { createLogStoreGateEventLedger } from '../../src/log/GateEventLedger';
 import { createLogStoreDerivationLedger } from '../../src/log/DerivationLedger';

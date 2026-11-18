@@ -3,14 +3,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createLogger } from '@senars/utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { BaseConnection } from '../../io/src/connections/base.js';
-import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../../io/src/types.js';
-import { PersistentSpace } from '../../metta/src/extensions/persistent-space.js';
-import type { CognitiveTaskResult } from '../../nar/src/cooperation/delegation.js';
-import { createDelegation, handleDelegationMessage } from '../../nar/src/cooperation/delegation.js';
-import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
-import { SystemOneIngressJudge } from '../../nar/src/lm/system-one/ingress-judge.js';
-import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
+import { BaseConnection } from '@senars/io/connections/base.js';
+import type { ConnectionConfig, ConnectionDeps, IOMessage } from '@senars/io/types.js';
+import { PersistentSpace } from '@senars/metta/extensions/persistent-space.js';
+import type { CognitiveTaskResult } from '@senars/nar/cooperation/delegation.js';
+import { createDelegation, handleDelegationMessage } from '@senars/nar/cooperation/delegation.js';
+import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
+import { SystemOneIngressJudge } from '@senars/nar/lm/system-one/ingress-judge.js';
+import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
 
 /**
  * Bench 36 — Fail-Closed Integrity (TODO17b Phase A)

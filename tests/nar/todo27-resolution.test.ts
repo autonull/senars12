@@ -7,16 +7,16 @@ import { getMetricsAsJson } from '@senars/metrics';
 import { RuleGraph } from '@senars/agent';
 import { TermLinkStrategy } from '@senars/agent';
 import { Memory } from '@senars/memory';
-import { atom, Truth } from '../../nar/src/terms/index.js';
-import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
-import type { LMRule } from '../../nar/src/lm/LMRule.js';
+import { atom, Truth } from '@senars/nar/terms/index.js';
+import { createBeliefTask, createTaskWeight } from '@senars/nar/types/index.js';
+import type { LMRule } from '@senars/nar/lm/LMRule.js';
 import type {
   AttentionModel,
   DerivationStrategy,
   ModelRuleSelector,
   SamplingStrategy,
   Strategy,
-} from '../../nar/src/strategies/types.js';
+} from '@senars/nar/strategies/types.js';
 import { CollectingProcessor } from '../helpers/otel.js';
 
 /** A memory holding three linked concepts, so a config can be seen in the output. */

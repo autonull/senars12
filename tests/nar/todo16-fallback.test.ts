@@ -1,9 +1,9 @@
 import { validateCognitiveEvent } from '@senars/agent';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
-import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
-import { createDispatcher } from '../../nar/src/lm/system-one/dispatcher.js';
-import type { CognitiveContext, ReasoningBudget } from '../../nar/src/lm/system-one/types.js';
+import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
+import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
+import { createDispatcher } from '@senars/nar/lm/system-one/dispatcher.js';
+import type { CognitiveContext, ReasoningBudget } from '@senars/nar/lm/system-one/types.js';
 
 describe('System One — Thermodynamic Fallback (Bench 13)', () => {
   let dispatcher: ReturnType<typeof createDispatcher>;
@@ -167,7 +167,7 @@ describe('System One — Thermodynamic Fallback (Bench 13)', () => {
 
   it('Safety gates remain intact during fallback', async () => {
     // Verify that KernelActionGate still enforces autonomy mode
-    const { KernelActionGate } = await import('../../nar/src/kernel/KernelActionGate.js');
+    const { KernelActionGate } = await import('@senars/nar/kernel/KernelActionGate.js');
     const actionGate = new KernelActionGate({ autonomyMode: 'observe-only' });
     const input = {
       proposalId: 'test-prop-1',

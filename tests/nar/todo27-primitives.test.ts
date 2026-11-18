@@ -16,8 +16,8 @@ import {
 } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { PriorityBag } from '../../nar/src/bag/Bag.js';
-import { SingleFlight } from '../../nar/src/nl/singleflight.js';
+import { PriorityBag } from '@senars/nar/bag/Bag.js';
+import { SingleFlight } from '@senars/nar/nl/singleflight.js';
 
 /**
  * TODO27 Benches 112–114 — the primitives every other selection path defers to.

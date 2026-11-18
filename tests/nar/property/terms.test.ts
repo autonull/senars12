@@ -1,7 +1,7 @@
 import fc from 'fast-check';
-import type { Term } from '../../../nar/src';
-import { canonicalTerm, TermBuilder, termsEqual } from '../../../nar/src/terms';
-import { VALID_ATOM_CHARS } from '../../../nar/src/terms/impls/valid-atom.js';
+import type { Term } from '@senars/nar/';
+import { canonicalTerm, TermBuilder, termsEqual } from '@senars/nar/terms';
+import { VALID_ATOM_CHARS } from '@senars/nar/terms/impls/valid-atom.js';
 
 // Valid atom characters: alphanumerics and underscore only (per Narsese grammar)
 const validAtomStr = fc

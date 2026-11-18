@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { GenerationInput } from '../../nar/src/nl/generation.js';
-import { NLGenerationService } from '../../nar/src/nl/generation.js';
+import type { GenerationInput } from '@senars/nar/nl/generation.js';
+import { NLGenerationService } from '@senars/nar/nl/generation.js';
 
 const service = () => new NLGenerationService({ languageModel: () => null } as never);
 

@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG, TermBuilder, Truth, termsEqual } from '../../../nar/src';
+import { DEFAULT_CONFIG, TermBuilder, Truth, termsEqual } from '@senars/nar/';
 /**
  * Term System Tests - Canonicalization, Hashing, and Structural Sharing
  */

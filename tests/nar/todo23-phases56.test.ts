@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createDecider, type DecideDeps } from '../../nar/src/lm/system-one/decide.js';
-import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { ManifoldRLAgent } from '../../nar/src/lm/system-one/manifold-rl-agent.js';
-import type { JudgmentProposition, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
+import { createDecider, type DecideDeps } from '@senars/nar/lm/system-one/decide.js';
+import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { ManifoldRLAgent } from '@senars/nar/lm/system-one/manifold-rl-agent.js';
+import type { JudgmentProposition, JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
 
 const BUDGET = {
   maxCycles: 100,

@@ -7,8 +7,8 @@ import {
   TermBuilder,
   Truth,
   termParser,
-} from '../../../../nar/src';
-import { operationNameOf, readOperationTerm } from '../../../../nar/src/terms/index.js';
+} from '@senars/nar/';
+import { operationNameOf, readOperationTerm } from '@senars/nar/terms/index.js';
 
 describe('Goal/Action Contract', () => {
   let nar: NAR;

@@ -13,7 +13,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SourceReputation } from '@senars/kernel';
-import { QBeliefStore } from '../../nar/src/rl/impls/QBeliefStore.js';
+import { QBeliefStore } from '@senars/nar/rl/impls/QBeliefStore.js';
 import {
   AIKRProcessor,
   AikrBagOptions,

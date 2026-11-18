@@ -1,4 +1,4 @@
-import type { Term } from '../../../nar/src';
+import type { Term } from '@senars/nar/';
 import {
   atomicSymbols,
   bareInheritancePair,
@@ -13,8 +13,8 @@ import {
   termDepth,
   termSize,
   walkTerms,
-} from '../../../nar/src';
-import { fromNarsese, termKey, toNarsese } from '../../../nar/src/terms';
+} from '@senars/nar/';
+import { fromNarsese, termKey, toNarsese } from '@senars/nar/terms';
 
 describe('TermBuilder', () => {
   beforeEach(() => TermBuilder.clear());

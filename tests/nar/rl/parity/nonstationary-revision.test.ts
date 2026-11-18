@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'vitest';
-import { DEFAULT_CONFIG, TermBuilder } from '../../../../nar/src';
-import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
-import { NAR } from '../../../../nar/src/nar';
+import { DEFAULT_CONFIG, TermBuilder } from '@senars/nar/';
+import { BanditGame } from '@senars/nar/game/impls/BanditGame.js';
+import { NAR } from '@senars/nar/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
-} from '../../../../nar/src/rl/index.js';
-import { operationTerm } from '../../../../nar/src/terms/index.js';
+} from '@senars/nar/rl/index.js';
+import { operationTerm } from '@senars/nar/terms/index.js';
 
 describe('RL Parity - Non-Stationary Environment', () => {
   test('SeNARS can track drifting reward means', async () => {

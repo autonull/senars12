@@ -12,13 +12,13 @@ import {
   TaskManager,
   TermBuilder,
   Truth,
-} from '../../../nar/src';
-import type { CognitiveController } from '../../../nar/src/cognitive';
-import { createGateRegistry } from '../../../nar/src/kernel';
-import { createSeNARSRegistry } from '../../../nar/src/lm';
-import { createLMService } from '../../../nar/src/lm/lm-service';
-import { NARExecution } from '../../../nar/src/nar-execution';
-import type { RLFPLearner } from '../../../nar/src/rlfp';
+} from '@senars/nar/';
+import type { CognitiveController } from '@senars/nar/cognitive';
+import { createGateRegistry } from '@senars/nar/kernel';
+import { createSeNARSRegistry } from '@senars/nar/lm';
+import { createLMService } from '@senars/nar/lm/lm-service';
+import { NARExecution } from '@senars/nar/nar-execution';
+import type { RLFPLearner } from '@senars/nar/rlfp';
 import { createTestController } from '../fixtures/cognitive';
 import { createLogStore } from '../../../src/log/store.js';
 import type { LogStore } from '../../../src/log/store.js';

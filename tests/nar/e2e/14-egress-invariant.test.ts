@@ -13,10 +13,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createNAR } from '../../../nar/src/nar-presets.js';
-import { termKey, Truth } from '../../../nar/src/terms/index.js';
-import { NO_DECISION_PORT } from '../../../nar/src/ports/decision.js';
-import type { DecisionResult } from '../../../nar/src/ports/decision.js';
+import { createNAR } from '@senars/nar/nar-presets.js';
+import { termKey, Truth } from '@senars/nar/terms/index.js';
+import { NO_DECISION_PORT } from '@senars/nar/ports/decision.js';
+import type { DecisionResult } from '@senars/nar/ports/decision.js';
 import { systemOneDefaults, systemOneSchema } from '@senars/utils';
 
 /**

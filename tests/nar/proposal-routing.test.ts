@@ -1,7 +1,7 @@
 import { clamp01 } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
-import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
-import { SelfRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
+import { ProposalRouter } from '@senars/nar/governance/pipeline.js';
+import { SelfRewardGate } from '@senars/nar/kernel/KernelRewardGate.js';
 
 describe('todo7: proposal routing', () => {
   it('submit queues; drain empties', () => {

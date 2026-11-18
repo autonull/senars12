@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { TranslationCache } from '../../nar/src/nl/cache.js';
-import { NLUnderstandingService } from '../../nar/src/nl/understanding.js';
+import { TranslationCache } from '@senars/nar/nl/cache.js';
+import { NLUnderstandingService } from '@senars/nar/nl/understanding.js';
 
 const service = (cache: TranslationCache) =>
   new NLUnderstandingService({ languageModel: () => null } as never, cache);

@@ -1,5 +1,5 @@
-import { Stamp } from '../../../nar/src';
-import { DEPTH_MAX } from '../../../nar/src/types';
+import { Stamp } from '@senars/nar/';
+import { DEPTH_MAX } from '@senars/nar/types';
 
 describe('Stamp', () => {
   describe('createInput', () => {

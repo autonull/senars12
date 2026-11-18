@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { NALExtendedRules, TermBuilder } from '../../nar/src';
+import { NALExtendedRules, TermBuilder } from '@senars/nar/';
 
 describe('NAL2 Instance and Property Copula Rules', () => {
   const { inheritance, setExt: instance, setInt: property, atom } = TermBuilder;

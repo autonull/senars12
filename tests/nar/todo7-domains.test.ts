@@ -1,11 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
-import { KernelActionGate } from '../../nar/src/kernel/KernelActionGate.js';
+import { KernelActionGate } from '@senars/nar/kernel/KernelActionGate.js';
 import {
   ExternalRewardGate,
   KernelRewardGate,
   SelfRewardGate,
-} from '../../nar/src/kernel/KernelRewardGate.js';
+} from '@senars/nar/kernel/KernelRewardGate.js';
 
 describe('todo7: reward domain split', () => {
   it('external rewards apply directly; self rewards require proposal', () => {

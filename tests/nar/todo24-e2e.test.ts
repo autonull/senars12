@@ -3,16 +3,16 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
-import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
-import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { JudgmentDataset } from '../../nar/src/lm/system-one/distill.js';
-import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
-import { DialogueCapture } from '../../nar/src/dialogue/impls/DialogueCapture.js';
+import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
+import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
+import { ProposalRouter } from '@senars/nar/governance/pipeline.js';
+import { DialogueCapture } from '@senars/nar/dialogue/impls/DialogueCapture.js';
 import {
   loadRetrospectives,
   persistRetrospective,
   retrospect,
-} from '../../nar/src/dialogue/impls/retrospect.js';
+} from '@senars/nar/dialogue/impls/retrospect.js';
 
 const makeEpisodic = async (): Promise<EpisodicMemory> =>
   new EpisodicMemory({

@@ -63,7 +63,7 @@ describe('Bench 40 — Surface Truth', () => {
   });
 
   it('D24 — README rule-matrix claims have implementations', async () => {
-    const { NALRules, NALExtendedRules } = await import('../../nar/src/rules');
+    const { NALRules, NALExtendedRules } = await import('@senars/nar/rules');
     const rules = { ...NALRules, ...NALExtendedRules } as Record<string, unknown>;
     for (const claimed of [
       'modusPonens',

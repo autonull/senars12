@@ -4,7 +4,7 @@ import {
   PreferenceCollector,
   RewardModel,
   type TrajectoryStep,
-} from '../../nar/src/rlfp';
+} from '@senars/nar/rlfp';
 
 describe('RewardModel', () => {
   it('should compute reward from trajectory', () => {

@@ -11,7 +11,7 @@ import {
   TrainedLinearHead,
   trainHead,
   writeHeadArtifacts,
-} from '../../../nar/src/lm/system-one/train.js';
+} from '@senars/nar/lm/system-one/train.js';
 
 /**
  * A trained head is the one artifact in the system that is read from disk as JSON

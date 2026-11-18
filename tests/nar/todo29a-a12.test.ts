@@ -13,10 +13,10 @@ import {
   TermBuilder,
   termKey,
   type TermReducer,
-} from '../../nar/src/terms';
-import { OPERATORS } from '../../nar/src/terms/operators.js';
-import { serializeTerm } from '../../nar/src/terms/impls/serialize.js';
-import type { Term, OperatorKey } from '../../nar/src/terms/types.js';
+} from '@senars/nar/terms';
+import { OPERATORS } from '@senars/nar/terms/operators.js';
+import { serializeTerm } from '@senars/nar/terms/impls/serialize.js';
+import type { Term, OperatorKey } from '@senars/nar/terms/types.js';
 
 const kinds = () => Object.keys(OPERATORS) as (keyof typeof OPERATORS)[];
 

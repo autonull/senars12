@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { NARBuilder, BuilderError, resolveProfile } from '../../nar/src/agent/builder.js';
-import type { WiredNAR } from '../../nar/src/agent/builder.js';
-import { NAR } from '../../nar/src/nar.js';
+import { NARBuilder, BuilderError, resolveProfile } from '@senars/nar/agent/builder.js';
+import type { WiredNAR } from '@senars/nar/agent/builder.js';
+import { NAR } from '@senars/nar/nar.js';
 
 /**
  * Bench 41 — Assembly Integrity (TODO19 F1–F3)

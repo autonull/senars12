@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'vitest';
-import { DEFAULT_CONFIG, type Term, TermBuilder } from '../../../../nar/src';
-import { BanditGame } from '../../../../nar/src/game/impls/BanditGame.js';
-import { NAR } from '../../../../nar/src/nar';
+import { DEFAULT_CONFIG, type Term, TermBuilder } from '@senars/nar/';
+import { BanditGame } from '@senars/nar/game/impls/BanditGame.js';
+import { NAR } from '@senars/nar/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   QBeliefStore,
   RewardBeliefAdapter,
-} from '../../../../nar/src/rl/index.js';
-import { operationNameOf, operationTerm } from '../../../../nar/src/terms/index.js';
+} from '@senars/nar/rl/index.js';
+import { operationNameOf, operationTerm } from '@senars/nar/terms/index.js';
 import { EpsilonGreedy } from '../baselines/bandit';
 
 describe('RL Parity - Bandit Epsilon-Greedy @load-sensitive', () => {

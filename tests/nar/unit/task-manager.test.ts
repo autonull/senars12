@@ -1,4 +1,4 @@
-import { createGateRegistry } from '../../../nar/src/kernel/GateRegistry.js';
+import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
 import {
   createTaskWeight,
   createTask,
@@ -6,7 +6,7 @@ import {
   TaskManager,
   TermBuilder,
   Truth,
-} from '../../../nar/src';
+} from '@senars/nar/';
 
 describe('TaskManager', () => {
   let mem: Memory;

@@ -1,5 +1,5 @@
-import { Registry, SleepTool, ToolManager } from '../../../nar/src/tools';
-import { NarEventBus } from '../../../nar/src/types';
+import { Registry, SleepTool, ToolManager } from '@senars/nar/tools';
+import { NarEventBus } from '@senars/nar/types';
 
 describe('Tool Framework', () => {
   describe('Registry', () => {

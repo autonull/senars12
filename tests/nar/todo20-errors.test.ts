@@ -11,14 +11,14 @@ import {
   PerceptionGateError,
   RewardGateError,
   SenarsError,
-} from '../../nar/src/errors/index.js';
+} from '@senars/nar/errors/index.js';
 import { LogStoreStatePersister } from '@senars/log/StatePersister.js';
 import { createLogStore } from '@senars/log/store.js';
-import { ConnectionConfigSchema } from '../../nar/src/tools/schemas.js';
+import { ConnectionConfigSchema } from '@senars/nar/tools/schemas.js';
 
 /** Bench 64 — Error Taxonomy & Result (TODO20 Phase 3). */
 
-const NAR_SRC = join(import.meta.dirname, '../../nar/src');
+const NAR_SRC = join(import.meta.dirname, '@senars/nar/');
 
 describe('Bench 64 — Error Taxonomy (E1)', () => {
   it('every taxonomy class is a SenarsError with a grep-able code and context', () => {

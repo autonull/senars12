@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { createNAR, termKey, Truth, TermBuilder } from '../../../nar/src';
+import { createNAR, termKey, Truth, TermBuilder } from '@senars/nar/';
 import { rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createSeNARSRegistry } from '../../../nar/src/lm';
-import { createLMService } from '../../../nar/src/lm/lm-service';
+import { createSeNARSRegistry } from '@senars/nar/lm';
+import { createLMService } from '@senars/nar/lm/lm-service';
 
 const testStateDir = join(process.cwd(), '.cache', 'test-restart-equivalence');
 

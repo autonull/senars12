@@ -10,7 +10,7 @@ import { fixedClock, systemClock } from '@senars/utils';
 import { afterAll, describe, expect, it } from 'vitest';
 import { checkCycleBudget } from '../../scripts/lib/cycles.js';
 
-const NAR_DIR = join(import.meta.dirname, '../../nar/src');
+const NAR_DIR = join(import.meta.dirname, '@senars/nar/');
 /**
  * Code lines — the measure the M2 budget is actually about, matching
  * `todo20-monoliths`. Counting raw lines charged the module's doc comments and

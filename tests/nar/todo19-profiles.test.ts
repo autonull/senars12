@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { runNalAB } from '../../nar/src/focus/nal-ab.js';
-import { createArcadeRegistry, registerReasoningGames } from '../../nar/src/game/registry.js';
-import { NARBuilder, BuilderError, resolveProfile } from '../../nar/src/agent/builder.js';
-import { createParameterTable, ParameterScopeError } from '../../nar/src/config/parameter-table.js';
-import type { Game } from '../../nar/src/game/Game.js';
-import type { Reflex, ActionProposal, LearningEvent } from '../../nar/src/reflex/Reflex.js';
-import { createGridWorldGame } from '../../nar/src/game/impls/GridWorldGame.js';
-import { trainHead } from '../../nar/src/lm/system-one/train.js';
+import { runNalAB } from '@senars/nar/focus/nal-ab.js';
+import { createArcadeRegistry, registerReasoningGames } from '@senars/nar/game/registry.js';
+import { NARBuilder, BuilderError, resolveProfile } from '@senars/nar/agent/builder.js';
+import { createParameterTable, ParameterScopeError } from '@senars/nar/config/parameter-table.js';
+import type { Game } from '@senars/nar/game/Game.js';
+import type { Reflex, ActionProposal, LearningEvent } from '@senars/nar/reflex/Reflex.js';
+import { createGridWorldGame } from '@senars/nar/game/impls/GridWorldGame.js';
+import { trainHead } from '@senars/nar/lm/system-one/train.js';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -46,7 +46,7 @@ describe('Bench 46 — Domain Deployment', () => {
     );
     const dir = mkdtempSync(join(tmpdir(), 'device-head-'));
     const { writeHeadBundle, loadHeadBundle } = await import(
-      '../../nar/src/lm/system-one/wasi-head-bundle.js'
+      '@senars/nar/lm/system-one/wasi-head-bundle.js'
     );
     const { wasmPath, modelDigest } = await writeHeadBundle(dir, {
       weights: model.weights,

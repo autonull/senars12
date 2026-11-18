@@ -1,5 +1,5 @@
 import type { RLFPLearner } from '@senars/reflex';
-import { createGateRegistry } from '../../../nar/src/kernel/GateRegistry.js';
+import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
 import { describe, expect, test, vi } from 'vitest';
 import {
   createDriveMetaGoalPolicy,
@@ -13,13 +13,13 @@ import {
   TermBuilder,
   Truth,
   termParser,
-} from '../../../nar/src';
-import type { CognitiveController } from '../../../nar/src/cognitive';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '../../../nar/src/config/cognitive-parameters';
-import { DriveManager } from '../../../nar/src/drives';
-import { NARExecution } from '../../../nar/src/nar-execution';
-import { operationNameOf } from '../../../nar/src/terms/index.js';
-import { ToolManager } from '../../../nar/src/tools';
+} from '@senars/nar/';
+import type { CognitiveController } from '@senars/nar/cognitive';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters';
+import { DriveManager } from '@senars/nar/drives';
+import { NARExecution } from '@senars/nar/nar-execution';
+import { operationNameOf } from '@senars/nar/terms/index.js';
+import { ToolManager } from '@senars/nar/tools';
 import { createTestController, inferenceParams, transitivity } from '../fixtures/cognitive';
 
 const createMockProcessor = () => ({

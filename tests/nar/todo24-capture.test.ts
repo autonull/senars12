@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
+import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DialogueCapture } from '../../nar/src/dialogue/impls/DialogueCapture.js';
+import { DialogueCapture } from '@senars/nar/dialogue/impls/DialogueCapture.js';
 
 const makeEpisodic = async (): Promise<{ ep: EpisodicMemory; cleanup: () => Promise<void> }> => {
   const basePath = join(await mkdtemp(join(tmpdir(), 'todo24-')), 'episodes');

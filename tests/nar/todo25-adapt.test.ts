@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { RetrospectiveAdapter } from '@senars/dialogue';
 import type { Retrospective } from '@senars/dialogue';
 import { emptyReactionDistribution } from '@senars/dialogue';
-import type { StrategyType } from '../../nar/src/strategies/index.js';
+import type { StrategyType } from '@senars/nar/strategies/index.js';
 
 /**
  * TODO25 Bench 77 — Phase A falsifier: retrospective-driven strategy

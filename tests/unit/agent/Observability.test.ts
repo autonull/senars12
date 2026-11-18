@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createTestNAR } from '../../../nar/src';
-import { createAgent } from '../../../nar/src/agent/index.js';
-import { createMockLMService } from '../../../nar/src/lm';
+import { createTestNAR } from '@senars/nar/';
+import { createAgent } from '@senars/nar/agent/index.js';
+import { createMockLMService } from '@senars/nar/lm';
 
 const scriptedLM = createMockLMService({
   available: true,

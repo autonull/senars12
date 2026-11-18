@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Concept, Stamp, TermBuilder, Truth } from '../../../nar/src';
+import { Concept, Stamp, TermBuilder, Truth } from '@senars/nar/';
 
 describe('Concept', () => {
   let concept: Concept;

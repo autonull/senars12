@@ -4,20 +4,20 @@ import { join } from 'node:path';
 import type { ReasoningBudget } from '@senars/agent';
 import { clamp01 } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
-import type { GridWorldState } from '../../nar/src/game/impls/GridWorldGame.js';
-import { GridWorldGame } from '../../nar/src/game/impls/GridWorldGame.js';
-import { JudgmentDataset, runBakeOff } from '../../nar/src/lm/system-one/distill.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { ManifoldRLAgent } from '../../nar/src/lm/system-one/manifold-rl-agent.js';
-import { recordReflexOutcome } from '../../nar/src/lm/system-one/reflex-label-source.js';
+import type { GridWorldState } from '@senars/nar/game/impls/GridWorldGame.js';
+import { GridWorldGame } from '@senars/nar/game/impls/GridWorldGame.js';
+import { JudgmentDataset, runBakeOff } from '@senars/nar/lm/system-one/distill.js';
+import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
+import { ManifoldRLAgent } from '@senars/nar/lm/system-one/manifold-rl-agent.js';
+import { recordReflexOutcome } from '@senars/nar/lm/system-one/reflex-label-source.js';
 import {
   loadHeadArtifacts,
   loadTrainingData,
   pearson,
   trainHead,
   writeHeadArtifacts,
-} from '../../nar/src/lm/system-one/train.js';
+} from '@senars/nar/lm/system-one/train.js';
 import { QLearning } from './rl/baselines/gridworld.js';
 
 const budget: ReasoningBudget = {

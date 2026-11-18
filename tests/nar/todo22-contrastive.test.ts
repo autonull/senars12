@@ -4,13 +4,13 @@ import {
   cosineF32,
   fitInfoNCE,
   rubricOf,
-} from '../../nar/src/lm/system-one/contrastive.js';
-import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
+} from '@senars/nar/lm/system-one/contrastive.js';
+import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
 import {
   mineHardNegatives,
   seedContrastiveMemory,
-} from '../../nar/src/lm/system-one/hard-negatives.js';
-import type { JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
+} from '@senars/nar/lm/system-one/hard-negatives.js';
+import type { JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
 
 const dim = 32;
 

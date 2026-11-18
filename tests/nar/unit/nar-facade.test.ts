@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest';
-import { createTask, createTaskWeight, Memory, TermBuilder, Truth } from '../../../nar/src';
-import { MetricsCollector } from '../../../nar/src/metrics';
-import { QueryAPI, ReasoningTrace } from '../../../nar/src/query';
-import type { Tool } from '../../../nar/src/tools';
-import { ToolManager } from '../../../nar/src/tools';
+import { createTask, createTaskWeight, Memory, TermBuilder, Truth } from '@senars/nar/';
+import { MetricsCollector } from '@senars/nar/metrics';
+import { QueryAPI, ReasoningTrace } from '@senars/nar/query';
+import type { Tool } from '@senars/nar/tools';
+import { ToolManager } from '@senars/nar/tools';
 
 const createMockTool = (
   name: string,

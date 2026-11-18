@@ -9,9 +9,9 @@ import {
   TermBuilder,
   Truth,
   termsEqual,
-} from '../../nar/src';
-import { createTimestamp } from '../../nar/src/types';
-import { fromNarsese, serializeTerm } from '../../nar/src/terms';
+} from '@senars/nar/';
+import { createTimestamp } from '@senars/nar/types';
+import { fromNarsese, serializeTerm } from '@senars/nar/terms';
 
 function time(name: string, iterations: number, fn: (i: number) => void): number {
   for (let i = 0; i < Math.min(100, iterations); i++) fn(i);
@@ -85,7 +85,7 @@ describe('Performance benchmarks (infrastructure)', () => {
   });
 
   test('memory serialize/deserialize', async () => {
-    const { deserialize, serialize } = await import('../../nar/src/memory/state/serialization');
+    const { deserialize, serialize } = await import('@senars/nar/memory/state/serialization');
     const memory = new Memory();
     memory.addTask(
       TermBuilder.inheritance(atom('cat'), atom('animal'))!,

@@ -2,20 +2,20 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { Registry } from '../../nar/src/tools/impls/Registry.js';
-import type { ToolSchema } from '../../nar/src/tools/types.js';
+import { Registry } from '@senars/nar/tools/impls/Registry.js';
+import type { ToolSchema } from '@senars/nar/tools/types.js';
 import {
   createCodeExecTools,
   shellAllowlistFromEnv,
-} from '../../nar/src/tools/adapters/code-exec.js';
-import { containsPath, assertWasmPathContained } from '../../nar/src/capability/wasi-sandbox.js';
+} from '@senars/nar/tools/adapters/code-exec.js';
+import { containsPath, assertWasmPathContained } from '@senars/nar/capability/wasi-sandbox.js';
 import {
   enforceLMOutputSize,
   LMOutputTooLargeError,
   maxLMOutputChars,
-} from '../../nar/src/lm/service/sanitize.js';
+} from '@senars/nar/lm/service/sanitize.js';
 
-const NAR_SRC = join(import.meta.dirname, '../../nar/src');
+const NAR_SRC = join(import.meta.dirname, '@senars/nar/');
 
 const walk = (dir: string): string[] =>
   readdirSync(dir).flatMap((entry) => {
@@ -149,7 +149,7 @@ describe('Bench 68 — S4: LM response sanitization', () => {
   });
 
   it('Narsese from LM output is grammar-validated before admission', async () => {
-    const { LMResponseParser } = await import('../../nar/src/lm/rule/response-parser.js');
+    const { LMResponseParser } = await import('@senars/nar/lm/rule/response-parser.js');
     const invalid = LMResponseParser.parse('this is not narsese <<<');
     expect(invalid.valid).toBe(false);
     const valid = LMResponseParser.parse('<a-->b>. %1.0;0.9%');

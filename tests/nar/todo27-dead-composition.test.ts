@@ -5,7 +5,7 @@ import {
   validateParameters,
 } from '@senars/reflex';
 import { TermLinkStrategy } from '@senars/agent';
-import type { Strategy } from '../../nar/src/strategies/types.js';
+import type { Strategy } from '@senars/nar/strategies/types.js';
 
 /**
  * TODO27 Bench 100 — the dead composition surface is gone.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { ProviderRuntime } from '../../nar/src/lm/provider-runtime.js';
-import { CallAccounting, textCodec } from '../../nar/src/lm/service/accounting.js';
-import { createLMService } from '../../nar/src/lm/lm-service.js';
+import { ProviderRuntime } from '@senars/nar/lm/provider-runtime.js';
+import { CallAccounting, textCodec } from '@senars/nar/lm/service/accounting.js';
+import { createLMService } from '@senars/nar/lm/lm-service.js';
 
 const TRANSPORT_FAILURE = new Error('fetch failed: ECONNREFUSED');
 const LOGIC_FAILURE = new Error('schema mismatch');

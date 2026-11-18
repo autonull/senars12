@@ -9,11 +9,11 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { TaskManager, TermBuilder, Truth } from '../../../nar/src';
-import { NARIO } from '../../../nar/src/nar-io.js';
-import { NARLM } from '../../../nar/src/nar-lm.js';
-import type { InferenceController } from '../../../nar/src/reason/inference-controller.js';
-import { createTask } from '../../../nar/src/types/index.js';
+import { TaskManager, TermBuilder, Truth } from '@senars/nar/';
+import { NARIO } from '@senars/nar/nar-io.js';
+import { NARLM } from '@senars/nar/nar-lm.js';
+import type { InferenceController } from '@senars/nar/reason/inference-controller.js';
+import { createTask } from '@senars/nar/types/index.js';
 import { NAR } from '../../../src';
 import { createGateRegistry } from '@senars/kernel';
 

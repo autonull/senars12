@@ -1,4 +1,4 @@
-import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
+import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
 /**
  * A5's boundary (TODO29.a §5.5) — every case failing first, per §10.1.
  *
@@ -19,13 +19,13 @@ import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
  */
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '../../nar/src/config/cognitive-parameters.js';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters.js';
 
-import { AssociativeRegistry } from '../../nar/src/memory/associative.js';
-import type { ConceptGraph } from '../../nar/src/memory/ConceptGraph.js';
-import { Concept, type ConceptTaskType } from '../../nar/src/memory/concept.js';
-import { Focus } from '../../nar/src/memory/focus.js';
-import { LinkManager } from '../../nar/src/memory/links/index.js';
+import { AssociativeRegistry } from '@senars/nar/memory/associative.js';
+import type { ConceptGraph } from '@senars/nar/memory/ConceptGraph.js';
+import { Concept, type ConceptTaskType } from '@senars/nar/memory/concept.js';
+import { Focus } from '@senars/nar/memory/focus.js';
+import { LinkManager } from '@senars/nar/memory/links/index.js';
 import type {
   BeliefTable,
   ConceptReader,
@@ -38,17 +38,17 @@ import type {
   StatisticsView,
   SymbolIndex,
   TaskAdmission,
-} from '../../nar/src/memory/ports/index.js';
-import { Memory } from '../../nar/src/memory/memory.js';
-import type { MemoryView } from '../../nar/src/memory/view.js';
-import { InferenceController } from '../../nar/src/reason/inference-controller.js';
-import { RuleProcessor } from '../../nar/src/rules/impls/processor.js';
-import { NullAttentionModel } from '../../nar/src/strategies/attention/NullAttentionModel.js';
-import { TaskManager } from '../../nar/src/task/manager.js';
-import { Stamp, Truth, type Term } from '../../nar/src/terms';
-import { atom } from '../../nar/src/terms/impls/factory.js';
-import type { Budget, Task } from '../../nar/src/types';
-import { createTaskWeight, createTask } from '../../nar/src/types';
+} from '@senars/nar/memory/ports/index.js';
+import { Memory } from '@senars/nar/memory/memory.js';
+import type { MemoryView } from '@senars/nar/memory/view.js';
+import { InferenceController } from '@senars/nar/reason/inference-controller.js';
+import { RuleProcessor } from '@senars/nar/rules/impls/processor.js';
+import { NullAttentionModel } from '@senars/nar/strategies/attention/NullAttentionModel.js';
+import { TaskManager } from '@senars/nar/task/manager.js';
+import { Stamp, Truth, type Term } from '@senars/nar/terms';
+import { atom } from '@senars/nar/terms/impls/factory.js';
+import type { Budget, Task } from '@senars/nar/types';
+import { createTaskWeight, createTask } from '@senars/nar/types';
 
 import { isCyclePath, resolveInNar } from '../../scripts/lib/layer-boundary.js';
 import { ROOT } from '../../scripts/lib/root.js';

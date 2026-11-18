@@ -3,13 +3,13 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Truth, termParser } from '../../../nar/src';
+import { Truth, termParser } from '@senars/nar/';
 import {
   createQueryAPI,
   createReasoningTrace,
   QueryAPI,
   ReasoningTrace,
-} from '../../../nar/src/query';
+} from '@senars/nar/query';
 import { NAR } from '../../../src';
 
 describe('QueryAPI', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
+import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
 
 describe('todo7: scoped budgets', () => {
   it('scopes isolate counters; shared default untouched', () => {

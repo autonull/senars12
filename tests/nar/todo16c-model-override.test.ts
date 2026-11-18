@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { LMService, createLMService } from '../../nar/src/lm/lm-service.js';
-import { resolveActiveProvider } from '../../nar/src/lm/providers.js';
-import { createSeNARSRegistry } from '../../nar/src/lm/index.js';
-import { getLastRoutingDecision } from '../../nar/src/lm/providers.js';
-import { createLMServiceCortex } from '../../nar/src/lm/system-one/cortex-adapter.js';
-import type { CognitiveContext, SynthesisQuery } from '../../nar/src/lm/system-one/types.js';
+import { LMService, createLMService } from '@senars/nar/lm/lm-service.js';
+import { resolveActiveProvider } from '@senars/nar/lm/providers.js';
+import { createSeNARSRegistry } from '@senars/nar/lm/index.js';
+import { getLastRoutingDecision } from '@senars/nar/lm/providers.js';
+import { createLMServiceCortex } from '@senars/nar/lm/system-one/cortex-adapter.js';
+import type { CognitiveContext, SynthesisQuery } from '@senars/nar/lm/system-one/types.js';
 
 const withEnv = (env: Record<string, string | undefined>, fn: () => void | Promise<void>) => {
   const saved = Object.fromEntries(Object.keys(env).map((k) => [k, process.env[k]]));
@@ -72,7 +72,7 @@ describe('Bench 27 — Per-Call Model Override', () => {
     await withEnv({ LM_PROVIDER: 'mock' }, async () => {
       // Cost accrues only for paid capabilities; price the mock so its real
       // reported usage alone exceeds the cap, then drive it through a live call.
-      const { MODEL_CAPABILITIES } = await import('../../nar/src/lm/providers.js');
+      const { MODEL_CAPABILITIES } = await import('@senars/nar/lm/providers.js');
       const cap = MODEL_CAPABILITIES['builtin:mock'];
       if (!cap) throw new Error('builtin:mock capability missing');
       const original = cap.costPerMTok;
@@ -124,7 +124,7 @@ describe('Bench 27 — Per-Call Model Override', () => {
   });
 
   it('H6 — LMUnavailableError carries provider-specific remediation hints', async () => {
-    const { withHint } = await import('../../nar/src/lm/lm-service.js');
+    const { withHint } = await import('@senars/nar/lm/lm-service.js');
     expect(withHint('unavailable', 'openai-compatible')).toMatch(/ollama serve/);
     expect(withHint('unavailable', 'llamacpp-embedded')).toMatch(/fetch-model/);
     expect(withHint('unavailable', 'unknown-provider')).toBe('unavailable');

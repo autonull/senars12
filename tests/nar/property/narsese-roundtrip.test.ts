@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import fc from 'fast-check';
-import type { OperatorKey, Term } from '../../../nar/src/terms';
-import { OPERATORS, serializeTerm, TermBuilder, termsEqual } from '../../../nar/src/terms';
-import { termParser } from '../../../nar/src/terms/impls/parser-peggy.js';
+import type { OperatorKey, Term } from '@senars/nar/terms';
+import { OPERATORS, serializeTerm, TermBuilder, termsEqual } from '@senars/nar/terms';
+import { termParser } from '@senars/nar/terms/impls/parser-peggy.js';
 
 /** Parser-safe atom names (Narsese atoms: letters/digits, no reserved chars). */
 const atomNameArb = fc
@@ -115,7 +115,7 @@ describe('Narsese round-trip (property)', () => {
 
   it('the grammar names no kind the operator table lacks', () => {
     const grammar = readFileSync(
-      new URL('../../../nar/src/terms/narsese.peggy', import.meta.url),
+      new URL('@senars/nar/terms/narsese.peggy', import.meta.url),
       'utf8'
     );
     const mapped = [...grammar.matchAll(/'[^']+'\s*:\s*'([^']+)'/g)].map(([, kind]) => kind);

@@ -10,8 +10,8 @@ import {
   shuffleInPlace,
 } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
-import { schedulerReward } from '../../../nar/src/focus/scheduler-reward.js';
-import { TermBuilder, TermMap } from '../../../nar/src/terms';
+import { schedulerReward } from '@senars/nar/focus/scheduler-reward.js';
+import { TermBuilder, TermMap } from '@senars/nar/terms';
 
 const items = [
   { id: 'b', priority: 2 },

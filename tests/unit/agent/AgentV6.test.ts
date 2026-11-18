@@ -2,11 +2,11 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { NAR } from '../../../nar/src';
-import { createTestNAR } from '../../../nar/src';
-import { createAgent } from '../../../nar/src/agent/index.js';
-import { createMockLMService } from '../../../nar/src/lm';
-import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
+import type { NAR } from '@senars/nar/';
+import { createTestNAR } from '@senars/nar/';
+import { createAgent } from '@senars/nar/agent/index.js';
+import { createMockLMService } from '@senars/nar/lm';
+import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
 
 const scriptedLM = createMockLMService({
   available: true,

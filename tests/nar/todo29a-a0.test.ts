@@ -3,8 +3,8 @@ import {
   CYCLE_PATH_PREFIXES,
   IN_CYCLE_EDGE_ATTRIBUTIONS,
   IN_CYCLE_INVENTORY,
-} from '../../nar/src/lm/in-cycle-inventory.js';
-import { PROVIDER_SEAMS } from '../../nar/src/lm/provider-seams.js';
+} from '@senars/nar/lm/in-cycle-inventory.js';
+import { PROVIDER_SEAMS } from '@senars/nar/lm/provider-seams.js';
 import {
   checkInventory,
   type DiscoveredEdge,
@@ -12,7 +12,7 @@ import {
   lineOf,
 } from '../../scripts/lib/induction-inventory.js';
 import { checkSeams } from '../../scripts/lib/provider-dependency.js';
-import { type WitnessList, witnessFiles, witnessHolds } from '../../util/src/index.js';
+import { type WitnessList, witnessFiles, witnessHolds } from '@senars/util/index.js';
 
 /**
  * TODO29.a A0 — the two gates' rules, and the declarations they read.

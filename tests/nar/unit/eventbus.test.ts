@@ -4,7 +4,7 @@
 
 import { EventBus } from '@senars/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { NAREventMap } from '../../../nar/src/types/events.js';
+import type { NAREventMap } from '@senars/nar/types/events.js';
 
 describe('EventBus', () => {
   let eventBus: EventBus;

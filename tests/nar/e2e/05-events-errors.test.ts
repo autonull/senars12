@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG, TermBuilder, Truth } from '../../../nar/src';
+import { DEFAULT_CONFIG, TermBuilder, Truth } from '@senars/nar/';
 /**
  * Event System & Error Handling Tests
  */

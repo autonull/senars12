@@ -1,13 +1,13 @@
 import { createServer, type Server } from 'node:http';
 import type { ReasoningBudget } from '@senars/agent';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
+import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
 import {
   admitRemotePropositions,
   handleSystemOneRequest,
-} from '../../nar/src/lm/system-one/http-endpoint.js';
-import { createHttpManifold } from '../../nar/src/lm/system-one/http-manifold.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+} from '@senars/nar/lm/system-one/http-endpoint.js';
+import { createHttpManifold } from '@senars/nar/lm/system-one/http-manifold.js';
+import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
 import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
 
 const budget: ReasoningBudget = {

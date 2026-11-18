@@ -1,4 +1,4 @@
-import { SlidingWindowRateLimiter } from '../../../util/src';
+import { SlidingWindowRateLimiter } from '@senars/util/';
 
 describe('SlidingWindowRateLimiter', () => {
   it('admits exactly the limit per window, then sheds', () => {

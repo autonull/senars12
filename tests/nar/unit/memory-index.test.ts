@@ -1,6 +1,6 @@
 import type { Concept as ConceptType } from '@senars/agent';
-import { TermBuilder, Truth } from '../../../nar/src';
-import { Concept, MemoryIndex } from '../../../nar/src/memory';
+import { TermBuilder, Truth } from '@senars/nar/';
+import { Concept, MemoryIndex } from '@senars/nar/memory';
 
 function createTestConcept(symbol: string): ConceptType {
   const concept = new Concept(TermBuilder.atom(symbol));

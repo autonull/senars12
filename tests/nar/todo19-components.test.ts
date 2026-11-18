@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
+import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
 import { readFileSync } from 'node:fs';
 import { cognitiveBounds } from '@senars/utils';
 import {
@@ -19,11 +19,11 @@ import {
   composeReward,
   createCognitionRegistries,
   tuneAction,
-} from '../../nar/src/game/index.js';
-import { ParameterScopeError, createParameterTable } from '../../nar/src/config/parameter-table.js';
-import { createSelfMetaGame } from '../../nar/src/game/impls/SelfMetaGame.js';
-import { describeMetaGameActions } from '../../nar/src/game/meta-spec.js';
-import { MetaGame } from '../../nar/src/game/impls/MetaGame.js';
+} from '@senars/nar/game/index.js';
+import { ParameterScopeError, createParameterTable } from '@senars/nar/config/parameter-table.js';
+import { createSelfMetaGame } from '@senars/nar/game/impls/SelfMetaGame.js';
+import { describeMetaGameActions } from '@senars/nar/game/meta-spec.js';
+import { MetaGame } from '@senars/nar/game/impls/MetaGame.js';
 
 /**
  * Bench 43 — Component Contracts (TODO19 Phase A)

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { SchemaInductor } from '@senars/lm';
-import { InferenceController } from '../../nar/src/reason/inference-controller.js';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '../../nar/src/config/cognitive-parameters.js';
-import type { Task } from '../../nar/src/types/index.js';
-import { createTask, createTaskWeight } from '../../nar/src/types/index.js';
-import { termParser, Truth } from '../../nar/src/terms/index.js';
-import { Memory } from '../../nar/src/memory/memory.js';
-import { Concept } from '../../nar/src/memory/index.js';
-import type { DerivationContext } from '../../nar/src/strategies/index.js';
+import { InferenceController } from '@senars/nar/reason/inference-controller.js';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters.js';
+import type { Task } from '@senars/nar/types/index.js';
+import { createTask, createTaskWeight } from '@senars/nar/types/index.js';
+import { termParser, Truth } from '@senars/nar/terms/index.js';
+import { Memory } from '@senars/nar/memory/memory.js';
+import { Concept } from '@senars/nar/memory/index.js';
+import type { DerivationContext } from '@senars/nar/strategies/index.js';
 
 /**
  * TODO25 Bench 80 — derivation-chain capture (SchemaInductor fuel).

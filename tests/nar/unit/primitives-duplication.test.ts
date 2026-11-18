@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { shannonEntropy, topOption } from '../../../nar/src/lm/system-one/distribution.js';
-import { rewardBeliefTerm, rewardLevel } from '../../../nar/src/rl/impls/reward-term.js';
-import { filterByTerm, termMatches } from '../../../nar/src/memory/term-filter.js';
-import { recallEpisodes } from '../../../nar/src/agent/recall.js';
+import { shannonEntropy, topOption } from '@senars/nar/lm/system-one/distribution.js';
+import { rewardBeliefTerm, rewardLevel } from '@senars/nar/rl/impls/reward-term.js';
+import { filterByTerm, termMatches } from '@senars/nar/memory/term-filter.js';
+import { recallEpisodes } from '@senars/nar/agent/recall.js';
 
 const termOf = (s: string) => ({ toString: () => s });
 const dist = (pairs: [string, number][]) => pairs.map(([option, p]) => ({ option, p }));

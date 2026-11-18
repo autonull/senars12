@@ -1,21 +1,21 @@
 import type { ReasoningBudget } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
-import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
-import { ContrastiveMemory } from '../../nar/src/lm/system-one/contrastive.js';
-import { createDispatcher } from '../../nar/src/lm/system-one/dispatcher.js';
-import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { createGroundednessGate } from '../../nar/src/lm/system-one/groundedness-gate.js';
-import { LMReflex } from '../../nar/src/lm/system-one/lm-reflex.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { ManifoldReflex } from '../../nar/src/lm/system-one/manifold-reflex.js';
-import { createTraceGrader } from '../../nar/src/lm/system-one/trace-grader.js';
+import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
+import { ContrastiveMemory } from '@senars/nar/lm/system-one/contrastive.js';
+import { createDispatcher } from '@senars/nar/lm/system-one/dispatcher.js';
+import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { createGroundednessGate } from '@senars/nar/lm/system-one/groundedness-gate.js';
+import { LMReflex } from '@senars/nar/lm/system-one/lm-reflex.js';
+import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
+import { ManifoldReflex } from '@senars/nar/lm/system-one/manifold-reflex.js';
+import { createTraceGrader } from '@senars/nar/lm/system-one/trace-grader.js';
 import type {
   CognitiveDispatcher,
   JudgmentManifold,
   PEAResult,
-} from '../../nar/src/lm/system-one/types.js';
-import { EpsilonGreedyReflex } from '../../nar/src/reflex/EpsilonGreedyReflex.js';
-import type { ActionProposal, Reflex } from '../../nar/src/reflex/Reflex.js';
+} from '@senars/nar/lm/system-one/types.js';
+import { EpsilonGreedyReflex } from '@senars/nar/reflex/EpsilonGreedyReflex.js';
+import type { ActionProposal, Reflex } from '@senars/nar/reflex/Reflex.js';
 
 const dim = 32;
 const mockBudgetGate = new KernelBudgetGate();

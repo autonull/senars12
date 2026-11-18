@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { createAgent } from '../../../nar/src/agent/index.js';
-import { createNAR } from '../../../nar/src/nar-presets.js';
+import { createAgent } from '@senars/nar/agent/index.js';
+import { createNAR } from '@senars/nar/nar-presets.js';
 import { SOURCE_QUALITY_CONFIDENCE } from '@senars/agent';
-import { Truth } from '../../../nar/src/terms';
+import { Truth } from '@senars/nar/terms';
 import { rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 

@@ -9,11 +9,11 @@ import {
   fitCalibrationLock,
   readCalibrationLock,
   writeCalibrationLock,
-} from '../../nar/src/lm/system-one/calibration-fit.js';
-import { JudgmentDataset, validateHeadCandidate } from '../../nar/src/lm/system-one/distill.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import type { ModelDigest } from '../../nar/src/lm/system-one/types.js';
+} from '@senars/nar/lm/system-one/calibration-fit.js';
+import { JudgmentDataset, validateHeadCandidate } from '@senars/nar/lm/system-one/distill.js';
+import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
+import type { ModelDigest } from '@senars/nar/lm/system-one/types.js';
 
 /** Synthetic miscalibrated head: predicted systematically inflated by 0.25 over a noisy truth. */
 function miscalibratedDataset(rows: number): JudgmentDataset {

@@ -10,9 +10,9 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { resolveEmbeddingGenerator } from '../../nar/src/lm/embedding-runtime.js';
-import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { MockEmbeddingGenerator } from '../../nar/src/memory/embedding.js';
+import { resolveEmbeddingGenerator } from '@senars/nar/lm/embedding-runtime.js';
+import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { MockEmbeddingGenerator } from '@senars/nar/memory/embedding.js';
 
 const MODEL =
   process.env.LM_LLAMACPP_MODEL ?? join(process.cwd(), '.models', 'Qwen3.5-0.8B-Q4_0.gguf');

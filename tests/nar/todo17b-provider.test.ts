@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createLlamaCppFetch, MODEL_PLACEHOLDER } from '../../nar/src/lm/providers/llamacpp.js';
+import { createLlamaCppFetch, MODEL_PLACEHOLDER } from '@senars/nar/lm/providers/llamacpp.js';
 
 /**
  * Bench 39 — Boot-Order Resilience (TODO17b D4)

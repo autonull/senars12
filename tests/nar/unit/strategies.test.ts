@@ -4,13 +4,13 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createDefaultRegistry } from '../../../nar/src/cognitive';
-import type { Strategy } from '../../../nar/src/reason';
-import { createStrategy } from '../../../nar/src/reason';
-import { CompositeStrategy, DecompositionStrategy } from '../../../nar/src/strategies/premise';
-import { TermBuilder } from '../../../nar/src/terms/impls/factory.js';
-import { Truth } from '../../../nar/src/terms/impls/Truth.js';
-import { createTask, type Task } from '../../../nar/src/types/index.js';
+import { createDefaultRegistry } from '@senars/nar/cognitive';
+import type { Strategy } from '@senars/nar/reason';
+import { createStrategy } from '@senars/nar/reason';
+import { CompositeStrategy, DecompositionStrategy } from '@senars/nar/strategies/premise';
+import { TermBuilder } from '@senars/nar/terms/impls/factory.js';
+import { Truth } from '@senars/nar/terms/impls/Truth.js';
+import { createTask, type Task } from '@senars/nar/types/index.js';
 import { NAR } from '../../../src';
 
 /** The premise slot, by name — the registry is the only way to get a strategy. */

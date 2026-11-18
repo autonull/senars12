@@ -10,16 +10,16 @@
  */
 
 import { createLogger } from '@senars/utils';
-import { createSeNARSRegistry } from '../../../nar/src/lm/index.js';
-import { createLMService } from '../../../nar/src/lm/lm-service.js';
-import { createNAR } from '../../../nar/src/nar-presets.js';
+import { createSeNARSRegistry } from '@senars/nar/lm/index.js';
+import { createLMService } from '@senars/nar/lm/lm-service.js';
+import { createNAR } from '@senars/nar/nar-presets.js';
 import {
   initializeMetaReasoning,
   META_REASONING_BELIEFS,
   registerMetaRules,
-} from '../../../nar/src/rules/impls/meta-rules.js';
-import { operationNameOf, operationTerm } from '../../../nar/src/terms/index.js';
-import { initializeSelfConcept } from '../../../nar/src/tools/impls/self-concept.js';
+} from '@senars/nar/rules/impls/meta-rules.js';
+import { operationNameOf, operationTerm } from '@senars/nar/terms/index.js';
+import { initializeSelfConcept } from '@senars/nar/tools/impls/self-concept.js';
 
 const logger = createLogger({ scope: 'self-improvement-litmus' });
 
@@ -34,9 +34,9 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
     const lmService = createLMService();
 
     // Create NAR with cognitive architecture for controller
-    const { CognitiveRegistry } = await import('../../../nar/src/cognitive/index.js');
+    const { CognitiveRegistry } = await import('@senars/nar/cognitive/index.js');
     const { DEFAULT_COGNITIVE_PARAMETERS } = await import(
-      '../../../nar/src/config/cognitive-parameters.js'
+      '@senars/nar/config/cognitive-parameters.js'
     );
     const cognitiveRegistry = new CognitiveRegistry();
     cognitiveRegistry.initializeDefaults();
@@ -183,7 +183,7 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
 
     // Test the goal→tool dispatch by directly invoking the tool executor
     // with a native AST operation term
-    const { TermBuilder, atom, Truth, createTask } = await import('../../../nar/src/index.js');
+    const { TermBuilder, atom, Truth, createTask } = await import('@senars/nar/index.js');
 
     // Build an operation term: switch_strategy(focused, derivation)
     const opTerm = operationTerm('switch_strategy', { strategy: 'focused', mode: 'derivation' });
@@ -242,7 +242,7 @@ describe('M3 Litmus Test — Autonomous Self-Improvement Loop', () => {
 describe('Self-Concept Fix Pattern → Codemod Mapping', () => {
   test('Fix patterns map to valid codemod patterns', async () => {
     const { getFixPatternMapping, getFixPatternConcepts, FIX_PATTERN_MAPPINGS } = await import(
-      '../../../nar/src/tools/impls/self-concept.js'
+      '@senars/nar/tools/impls/self-concept.js'
     );
 
     const concepts = getFixPatternConcepts();
@@ -270,7 +270,7 @@ describe('Self-Concept Fix Pattern → Codemod Mapping', () => {
 describe('Meta-Reasoning AIKR Bounds Enforcement', () => {
   test('Meta-derivation budget is enforced', async () => {
     const { META_AIKR_BOUNDS, getMetaBudgetStatus } = await import(
-      '../../../nar/src/rules/impls/meta-rules.js'
+      '@senars/nar/rules/impls/meta-rules.js'
     );
 
     expect(META_AIKR_BOUNDS.maxMetaDerivationsPerStep).toBe(5);
@@ -297,9 +297,9 @@ describe('Meta-Reasoning AIKR Bounds Enforcement', () => {
 
 describe('Homeostatic Drive Stimulation', () => {
   test('Drive stimulation events are connected', async () => {
-    const { createNAR } = await import('../../../nar/src/index.js');
-    const { createSeNARSRegistry } = await import('../../../nar/src/lm/index.js');
-    const { createLMService } = await import('../../../nar/src/lm/lm-service.js');
+    const { createNAR } = await import('@senars/nar/index.js');
+    const { createSeNARSRegistry } = await import('@senars/nar/lm/index.js');
+    const { createLMService } = await import('@senars/nar/lm/lm-service.js');
 
     // Test individual stimulations
     const registry = createSeNARSRegistry();

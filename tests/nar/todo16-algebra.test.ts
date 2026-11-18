@@ -5,8 +5,8 @@ import {
   isSynthesisQuery,
   validateBatchQueries,
   AlgebraPurityError,
-} from '../../nar/src/lm/system-one/algebra.js';
-import type { JudgmentQuery, SynthesisQuery } from '../../nar/src/lm/system-one/types.js';
+} from '@senars/nar/lm/system-one/algebra.js';
+import type { JudgmentQuery, SynthesisQuery } from '@senars/nar/lm/system-one/types.js';
 
 describe('System One — Algebra Purity (Bench 1)', () => {
   const makeClassifyQuery = (): JudgmentQuery => ({

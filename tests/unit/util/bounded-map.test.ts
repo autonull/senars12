@@ -1,4 +1,4 @@
-import { BoundedMap, LruCache } from '../../../util/src';
+import { BoundedMap, LruCache } from '@senars/util/';
 
 describe('BoundedMap', () => {
   it('drops the least-recently-used key past capacity', () => {

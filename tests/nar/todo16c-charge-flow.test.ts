@@ -1,18 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
+import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
 import {
   SystemOneDispatcher,
   DeterministicManifold,
   Tier3SymbolicManifold,
   StubCortex,
-} from '../../nar/src/lm/system-one/dispatcher.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
+} from '@senars/nar/lm/system-one/dispatcher.js';
+import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
+import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
 import {
   chargeJudgment,
   resourceCostToLmCalls,
-} from '../../nar/src/lm/system-one/resource-gate.js';
-import type { EmbeddingPointer, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
+} from '@senars/nar/lm/system-one/resource-gate.js';
+import type { EmbeddingPointer, JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
 
 const budget = {
   maxCycles: 100,

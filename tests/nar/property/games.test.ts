@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { createArcadeRegistry } from '../../../nar/src/game';
+import { createArcadeRegistry } from '@senars/nar/game';
 
 describe('Game spec contract (property)', () => {
   const registry = createArcadeRegistry();
