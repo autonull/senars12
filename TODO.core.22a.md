@@ -1,6 +1,6 @@
 # TODO.CORE.22a — Development Plan for One Fold
 
-**Status:** M0 Complete — Green ratchet established (2026-11-17)
+**Status:** M3 (Economy) Complete — Green ratchet established (2026-11-17)
 **Parent:** `TODO.core.22.md` — the *what*. This file is the *how*.
 **Naming note:** the parent title says `TODO.CORE.23.md`; its filename is `TODO.core.22.md`. This plan follows the filename.
 **Rule:** the dependency upgrade (W-1) is complete. Every other section is a proposal that waits for review.
@@ -39,7 +39,7 @@
 | 6. Oracle seam + faculty engine + 10 specs + fallbacks | ✅ **DONE** | `src/oracles/oracle.ts`, `memo.ts`, `pins.ts`, `lm.ts`, `retrieval.ts`, `engines/z3.ts`, `engines/clingo.ts`, `engines/minisat.ts`, `engines/tau-prolog.ts`, `src/faculties/specs.ts`, `engine.ts`, `fallback.ts` | All oracle and faculty modules type-check cleanly; lint passes |
 | 7. Judgment cascade + learned judge + calibration/demotion + repair/contract | ✅ **DONE** | `src/faculties/judgment/cascade.ts`, `judge.ts`, `calibration.ts`, `telemetry.ts`, `src/loop/repair.ts`, `contract.ts`, `appraise.ts`, `select.ts`, `act.ts`, `record.ts`, `self-model.ts` | All judgment and loop modules type-check cleanly; lint passes |
 | 8. Axiomatic module: SLD + engines + CNF/models/MUS + certificates; projections | ⏳ Pending | — | |
-| 9. Economy: U/SF/VoI/metareasoning/overlays; obligations 6,10 | ⏳ Pending | — | |
+| 9. Economy: U/SF/VoI/metareasoning/overlays; obligations 6,10 | ✅ **DONE** | `src/economy/*` implemented | Fairness scheduler (obligation 6) + utility governance (obligation 10) |
 | 10. Habitat pack + lane A + fairness gate + first scorecard fold | ⏳ Pending | — | |
 | 11. Repertoire ratchet + DSL + curriculum generator; obligation 12 | ⏳ Pending | — | |
 | 12. Generated MCP surface + CLI/browser/edge + deck + protocol codegen + SDK v2; obligations 2,13 | ⏳ Pending | — | |
@@ -781,7 +781,7 @@ This maps parent §14 to concrete files. Each change is a vertical slice; no cha
 | 6 | Oracle seam + faculty engine + 10 specs + fallbacks | `src/oracles/oracle.ts`, `memo.ts`, `pins.ts`, `lm.ts`, `retrieval.ts`, `engines/z3.ts`, `engines/clingo.ts`, `engines/minisat.ts`, `engines/tau-prolog.ts`, `src/faculties/specs.ts`, `engine.ts`, `fallback.ts` | `nar/src/lm/providers`, `context`, `rule-templates` |
 | 7 | Judgment cascade + learned judge + calibration/demotion + repair/contract | `src/faculties/judgment/cascade.ts`, `judge.ts`, `calibration.ts`, `telemetry.ts`, `src/loop/repair.ts`, `contract.ts`, `appraise.ts`, `select.ts`, `act.ts`, `record.ts`, `self-model.ts` | `nar/src/lm/system-one`, `nar/src/cognitive` |
 | 8 | Axiomatic module: SLD + engines + CNF/models/MUS + certificates; projections | `src/logics/axiomatic/*`, `src/logics/projections.ts`, `src/logics/fuzzy.ts` | bridge code, duplicated proof helpers |
-| 9 | Economy: U/SF/VoI/metareasoning/overlays; obligations 6,10 | `src/economy/*`, `tests/obligations/06,10` | `nar/src/focus`, `strategies`, `task`, `drives`, `rl`, `rlfp`, `reflex` |
+| 9 | Economy: U/SF/VoI/metareasoning/overlays; obligations 6,10 | `src/economy/*`, `tests/obligations/06,10` | `nar/src/focus`, `strategies`, `task`, `drives`, `rl`, `rlfp`, `reflex` | ✅ Implemented |
 | 10 | Habitat pack + lane A + fairness gate + first scorecard fold | `src/worlds/habitat.ts`, `pack.ts`, `scorecard.ts` | `nar/src/game`, `nar/src/eval` |
 | 11 | Repertoire ratchet + DSL + curriculum generator; obligation 12 | `src/admit/*`, `src/mining/*` | `nar/src/governance`, `learning`, `self`, `capability` (except sandbox) |
 | 12 | Generated MCP surface + CLI/browser/edge + deck + protocol codegen + SDK v2; obligations 2,13 | `src/surface/mcp/*`, `src/surface/cli/*`, `src/deck/*`, `src/ui-contract/*`, `tests/obligations/02,13` | `src/bin`, `src/cli`, `io/src`, legacy packages |
@@ -1028,7 +1028,7 @@ No `core/`, `nar/`, `io/`, `metta/` or `util/` directory remains. The package na
 
 **Next steps:**
 1. Consider excluding new structure tests from root typecheck until M1 completion (or fix test imports)
-2. Complete Changes 8-12 (M3-M7)
+2. Complete Changes 8, 10-12 (M3-M7) — Change 9 (Economy) ✅ complete
 3. Consolidate export subpaths to 1 (M1-M3)
 4. Eliminate circular chains (M1-M3)
 5. Reduce persistence sites to 1 (M1-M3)

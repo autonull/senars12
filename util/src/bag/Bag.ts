@@ -65,6 +65,26 @@ export interface Bag<T extends BagItem> {
   clear(): void;
   peek(): T | undefined;
   toArray(): T[];
+  /** Adaptive histogram of item priorities (or any numeric accessor).
+   *  Returns bin edges and counts. Defaults to 10 equal-width bins spanning
+   *  min..max; if all values equal, returns single bin. */
+  histogram(accessor: (item: T) => number, bins?: number): Histogram;
+}
+
+/** Adaptive histogram result. */
+export interface Histogram {
+  /** Bin edges (length = bins + 1). */
+  edges: number[];
+  /** Count per bin (length = bins). */
+  counts: number[];
+  /** Total items. */
+  total: number;
+  /** Min value. */
+  min: number;
+  /** Max value. */
+  max: number;
+  /** Mean value. */
+  mean: number;
 }
 
 /**
@@ -387,5 +407,56 @@ export class PriorityBag<T extends BagItem> implements Bag<T>, BoundedContainer<
 
   toArray(): T[] {
     return this.store.map((e) => e.item);
+  }
+
+  histogram(accessor: (item: T) => number, bins = 10): Histogram {
+    const items = this.toArray();
+    if (items.length === 0) {
+      return { edges: [0, 1], counts: [0], total: 0, min: 0, max: 0, mean: 0 };
+    }
+
+    let min = Infinity;
+    let max = -Infinity;
+    let sum = 0;
+    const values = new Array<number>(items.length);
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!item) continue;
+      const v = accessor(item);
+      values[i] = v;
+      if (v < min) min = v;
+      if (v > max) max = v;
+      sum += v;
+    }
+
+    const mean = sum / items.length;
+
+    // If all values equal, return single bin
+    if (min === max) {
+      return { edges: [min, max + 1], counts: [items.length], total: items.length, min, max, mean };
+    }
+
+    const actualBins = Math.min(bins, items.length);
+    const edges = new Array<number>(actualBins + 1);
+    const width = (max - min) / actualBins;
+
+    for (let i = 0; i <= actualBins; i++) {
+      edges[i] = min + i * width;
+    }
+    // Ensure last edge is exactly max (floating point)
+    edges[actualBins] = max;
+
+    const counts = new Array<number>(actualBins).fill(0);
+    for (const v of values) {
+      if (v === max) {
+        counts[actualBins - 1]!++;
+      } else {
+        const idx = Math.floor((v - min) / width);
+        counts[Math.min(idx, actualBins - 1)]!++;
+      }
+    }
+
+    return { edges, counts, total: items.length, min, max, mean };
   }
 }

@@ -4,6 +4,7 @@ export type {
   BagOptions,
   CyclesBudget,
   EvictStrategy,
+  Histogram,
   InternalEntry,
   PressureListener,
   PressureTransition,

@@ -519,6 +519,11 @@ export class LoopRecorder {
   getCorrelationId(): string {
     return this.correlationId;
   }
+
+  /** Close the underlying store. */
+  async close(): Promise<void> {
+    await this.store.close();
+  }
 }
 
 /** Create a loop recorder. */
