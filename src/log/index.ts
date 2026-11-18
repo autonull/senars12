@@ -10,3 +10,5 @@ export * from './compact.js';
 export * from './snapshot.js';
 export * from './mine.js';
 export * from './pins.js';
+export * from './EventLogAdapter.js';
+export * from './StatePersister.js';

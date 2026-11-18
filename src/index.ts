@@ -5,6 +5,8 @@
  * New modules are available via path aliases (@senars/kernel/*, @senars/logics/*, etc.).
  */
 
+export * from './log/index.js';
+
 export type {
   CLICommand,
   CommandContext,

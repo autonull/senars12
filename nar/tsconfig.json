@@ -1,5 +1,22 @@
 {
   "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@senars/log/*": ["../src/log/*"],
+      "@senars/logics/*": ["../src/logics/*"],
+      "@senars/kernel/*": ["../src/kernel/*"],
+      "@senars/verification/*": ["../src/verification/*"],
+      "@senars/formats/*": ["../src/formats/*"],
+      "@senars/admit/*": ["../src/admit/*"],
+      "@senars/worlds/*": ["../src/worlds/*"],
+      "@senars/mining/*": ["../src/mining/*"],
+      "@senars/surface/*": ["../src/surface/*"],
+      "@senars/deck/*": ["../src/deck/*"],
+      "@senars/ui-contract/*": ["../src/ui-contract/*"],
+      "@senars/economy/*": ["../src/economy/*"]
+    }
+  },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "src/backend/NarBackend.ts", "src/backend/NarCapabilities.ts"]
 }

@@ -63,6 +63,8 @@ export interface NARConfig extends CoreConfig {
   metta?: MettaPort;
   persistState?: boolean;
   statePath?: string;
+  /** Unified LogStore for all persistence (replaces SqliteEventLog, StatePersister, KernelLedger). */
+  logStore?: import('../../../src/log/store').LogStore;
 
   cognitiveParams?: CognitiveParameters;
   strategyRegistry?: CognitiveRegistry;
