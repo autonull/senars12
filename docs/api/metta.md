@@ -42,6 +42,8 @@
 
 - `type RewriteRule`
 
+- `MettaEngine`
+
 - `MeTTaInterpreter`
 
 - `PatternMatcher`

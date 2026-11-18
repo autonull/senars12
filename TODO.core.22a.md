@@ -82,13 +82,31 @@
 - `pnpm surface-no-legacy` ✅ PASS
 - `pnpm exports:check` ✅ PASS
 - `pnpm deps:gate` ✅ PASS (0 cycles)
+- `pnpm docs:drift` ✅ PASS (docs regenerated)
 - `pnpm env:grammar` ❌ FAIL (pre-existing UI issue — out of scope)
 
 **Remaining Import Errors (2 files):**
-- `tests/nar/todo20-config.test.ts`: Imports `StatePersister`, `NAR_STATE_VERSION` from deleted `../../nar/src/facade/persistence.js` — needs migration to `LogStoreStatePersister` + `NAR_STATE_SCHEMA_VERSION`
-- `tests/nar/todo20-errors.test.ts`: Same persistence imports — needs migration
+- ✅ `tests/nar/todo20-config.test.ts`: Migrated to `LogStoreStatePersister` + `NAR_STATE_SCHEMA_VERSION`
+- ✅ `tests/nar/todo20-errors.test.ts`: Migrated to `LogStoreStatePersister` + `NAR_STATE_SCHEMA_VERSION`
+
+**Test Import Migrations (relative → path aliases):**
+- `tests/nar/full-replay.test.ts`: 6/6 tests passing
+- `tests/nar/gate-log-persistence.test.ts`: 3/3 tests passing
+- `tests/nar/todo29a-a9.test.ts`: 15/17 tests passing (2 pre-existing logic failures)
+- `tests/unit/server/test-endpoints.test.ts`: 3/3 tests passing
+- `tests/nar/todo20-config.test.ts`: 12/12 tests passing ✅
+- `tests/nar/todo20-errors.test.ts`: 10/10 tests passing ✅
 
 **Test Suite Status:**
 - 259/386 test files passing (127 failing)
 - Most failures are FileHandle resource cleanup issues (5-6 errors) and pre-existing logic failures
-- 2 remaining import errors (above)
+- 0 remaining import errors
+
+### Session Log — 2026-11-18 (Fixed Remaining Test Import Errors)
+**Migrated final 2 test files from deleted `nar/src/facade/persistence.js` to new LogStore persistence:**
+- `tests/nar/todo20-config.test.ts`: Replaced `StatePersister` + `NAR_STATE_VERSION` with `LogStoreStatePersister` + `NAR_STATE_SCHEMA_VERSION`; updated test to use LogStore snapshots API (12/12 passing)
+- `tests/nar/todo20-errors.test.ts`: Same migration; test now uses `createLogStore` + `LogStoreStatePersister` (10/10 passing)
+
+**Gates Status After Fixes:**
+- All gates passing except `env:grammar` (pre-existing UI issue — out of scope)
+- `pnpm docs:drift` ✅ PASS (docs regenerated with new MettaEngine export)

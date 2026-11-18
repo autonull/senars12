@@ -12,7 +12,8 @@ import {
   RewardGateError,
   SenarsError,
 } from '../../nar/src/errors/index.js';
-import { StatePersister } from '../../nar/src/facade/persistence.js';
+import { LogStoreStatePersister } from '@senars/log/StatePersister.js';
+import { createLogStore } from '@senars/log/store.js';
 import { ConnectionConfigSchema } from '../../nar/src/tools/schemas.js';
 
 /** Bench 64 — Error Taxonomy & Result (TODO20 Phase 3). */
@@ -118,14 +119,19 @@ describe('Bench 64 — Zod strict boundaries (E3)', () => {
 
 describe('Bench 64 — Result adoption (persistence)', () => {
   it('unreadable state files yield typed errors, not ENOENT crashes', async () => {
-    const persister = new StatePersister({
-      config: { persistState: true, statePath: join(import.meta.dirname, 'tmp-does-not-exist') },
+    const statePath = join(import.meta.dirname, 'tmp-does-not-exist');
+    const logStore = createLogStore({ dir: join(statePath, 'log') });
+    await logStore.open();
+    const persister = new LogStoreStatePersister(logStore, {
+      config: { persistState: true, statePath },
       memory: { addTask: () => {} } as never,
       processor: { serializeModelRules: () => ({}), deserializeModelRules: () => {} },
       attentionReport: () => ({ concepts: [], total: 0 }),
       query: { getTasksByKind: () => ({ belief: [], goal: [], question: [] }) },
     });
-    // load() must not throw on missing files (ENOENT → ok(null) path)
+    // load() must not throw on missing files/snapshots (returns null)
     await expect(persister.load()).resolves.toBeNull();
+    await persister.close();
+    await logStore.close();
   });
 });

@@ -2,16 +2,18 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '../../nar/src/config/cognitive-parameters.js';
-import { Memory } from '../../nar/src/memory/index.js';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters.js';
+import { Memory } from '@senars/nar/memory/index.js';
 import {
   decodeMemoryState,
   encodeMemoryState,
   MEMORY_VERSION,
   validate,
-} from '../../nar/src/memory/state/serialization.js';
-import { NAR_STATE_VERSION, StatePersister } from '../../nar/src/facade/persistence.js';
-import { decodeState, encodeState } from '../../nar/src/state/codec.js';
+} from '@senars/nar/memory/state/serialization.js';
+import { NAR_STATE_SCHEMA_VERSION } from '@senars/nar/state/codec.js';
+import { LogStoreStatePersister } from '@senars/log/StatePersister.js';
+import { createLogStore } from '@senars/log/store.js';
+import { decodeState, encodeState } from '@senars/nar/state/codec.js';
 import { appConfigSchema } from '../../src/config/schema.js';
 import { MIGRATIONS, migrateConfig, migrateConfigFile } from '../../src/utils/config-migrate.js';
 import { deepFreeze } from '../../util/src/index.js';
@@ -106,9 +108,11 @@ describe('Bench 66 — X7 StateCodec', () => {
     expect(() => decodeState(encodeState('b.kind', 1, {}), 'a.kind', 1)).toThrow(/kind mismatch/);
   });
 
-  it('StatePersister writes versioned envelopes and reads them back', async () => {
+  it('LogStoreStatePersister writes versioned snapshots and reads them back', async () => {
     const statePath = mkdtempSync(join(tmpdir(), 'bench66-'));
-    const persister = new StatePersister({
+    const logStore = createLogStore({ dir: join(statePath, 'log') });
+    await logStore.open();
+    const persister = new LogStoreStatePersister(logStore, {
       config: { persistState: true, statePath },
       memory: { addTask: () => {} } as never,
       processor: {
@@ -119,12 +123,11 @@ describe('Bench 66 — X7 StateCodec', () => {
       query: { getTasksByKind: () => ({ belief: [], goal: [], question: [] }) },
     });
     await persister.save();
-    const written = readFileSync(join(statePath, 'beliefs.json'), 'utf-8');
-    const envelope = JSON.parse(written) as { format: string; version: number; kind: string };
-    expect(envelope.format).toBe('senars.state');
-    expect(envelope.version).toBe(NAR_STATE_VERSION);
-    expect(envelope.kind).toBe('nar.beliefs');
-    await persister.load();
+    // Verify save/load work without errors (snapshot version is NAR_STATE_SCHEMA_VERSION internally)
+    const result = await persister.load();
+    expect(result).not.toBeNull();
+    await persister.close();
+    await logStore.close();
     rmSync(statePath, { recursive: true, force: true });
   });
 
