@@ -126,7 +126,6 @@
     "@browser-ai/transformers-js": "3.0.4",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@senars/core": "workspace:*",
-    "@senars/metta": "workspace:*",
     "@senars/nar": "workspace:*",
     "@senars/ui": "workspace:*",
     "@senars/util": "workspace:*",

@@ -2,7 +2,7 @@
 /**
  * Surface legacy-import gate: fails if `src/surface/` or `src/bin/` imports from legacy packages.
  *
- * Legacy packages: @senars/nar, @senars/core, @senars/metta, @senars/util
+ * Legacy packages: @senars/nar, @senars/core, @senars/util
  * The surface and CLI must not depend on the internal package structure.
  */
 import { readFileSync, existsSync } from 'node:fs';
@@ -11,7 +11,7 @@ import glob from 'glob';
 import { importEdges } from './lib/imports.js';
 import { ROOT } from './lib/root.js';
 
-const LEGACY_PKGS = ['core', 'metta'] as const;
+const LEGACY_PKGS = ['core'] as const;
 const TARGET_DIRS = ['src/surface', 'src/bin'];
 
 const legacySpecifier = (specifier: string): string | undefined => {

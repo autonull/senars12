@@ -23,9 +23,6 @@ importers:
       '@senars/core':
         specifier: workspace:*
         version: link:core
-      '@senars/metta':
-        specifier: workspace:*
-        version: link:metta
       '@senars/nar':
         specifier: workspace:*
         version: link:nar
@@ -229,9 +226,6 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
-      '@senars/metta':
-        specifier: workspace:*
-        version: link:../metta
       '@senars/nar':
         specifier: workspace:*
         version: link:../nar
@@ -244,40 +238,6 @@ importers:
       typescript:
         specifier: 7.0.2
         version: 7.0.2
-
-  metta:
-    dependencies:
-      '@senars/core':
-        specifier: workspace:*
-        version: link:../core
-      '@senars/util':
-        specifier: workspace:*
-        version: link:../util
-      effect:
-        specifier: ^4.1.4
-        version: 4.1.4
-      immutable:
-        specifier: ^5.2.1
-        version: 5.2.1
-      valibot:
-        specifier: ^1.5.0
-        version: 1.5.0(typescript@7.0.2)
-    devDependencies:
-      '@types/node':
-        specifier: ^26.6.6
-        version: 26.6.6
-      fast-check:
-        specifier: ^4.10.2
-        version: 4.10.2
-      tsx:
-        specifier: ^4.23.15
-        version: 4.23.15
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vitest:
-        specifier: ^5.1.0
-        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(@vitest/coverage-v8@5.1.0)(jsdom@31.0.1)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   nar:
     dependencies:

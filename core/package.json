@@ -99,7 +99,6 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@senars/metta": "workspace:*",
     "@senars/nar": "workspace:*",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.6",

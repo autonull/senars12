@@ -2,6 +2,160 @@
  * MeTTa — MeTTa port and agent (migrated from @senars/metta and @senars/core/metta-port).
  */
 
-export { createMeTTa, parseMeTTa, bootstrapStdLib, clearOps, defineOp, getOp, hasOp, registerOp, type GroundedOp, MettaEngine, MeTTaInterpreter, EGraph, PatternMatcher, ReductionPipeline, InMemorySpace, Stamp as MettaStamp, MeTTaBuilder, MeTTaRuntime, createMeTTa as createMetta, parseMeTTa as parseMetta } from '@senars/metta';
+export {
+  Concept,
+  ConceptBag,
+} from './core/concept-bag.js';
+export {
+  createConfig,
+  type MeTTaConfig,
+  presets,
+} from './core/config.js';
+export {
+  MeTTaError,
+  MeTTaReason,
+} from './core/errors.js';
+export {
+  atomKey,
+  equalAtoms,
+  hashAtom,
+} from './core/hash.js';
+export {
+  clearOps,
+  defineOp,
+  type GroundedOp,
+  getOp,
+  hasOp,
+  registerOp,
+} from './core/ops.js';
+export {
+  InMemorySpace,
+} from './core/space.js';
+export {
+  Stamp as MettaStamp,
+} from './core/stamp.js';
+export {
+  EGraph,
+  type RewriteRule,
+} from './engine/egraph.js';
+export {
+  MettaEngine,
+} from './engine/MettaEngine.js';
+export {
+  MeTTaInterpreter,
+} from './engine/interpreter.js';
+export {
+  PatternMatcher,
+} from './engine/match.js';
+export {
+  ReductionPipeline,
+} from './engine/reduce.js';
+export {
+  applySubst,
+  type Substitution,
+  unify,
+} from './engine/unify.js';
+export {
+  type PersistedSpaceData,
+  PersistentSpace,
+  type PersistentSpaceOptions,
+} from './extensions/persistent-space.js';
+export type {
+  IPCMessage,
+} from './ipc/protocol.js';
+export {
+  deserialize,
+  serialize,
+} from './ipc/protocol.js';
+export {
+  SharedMemoryQueue,
+} from './ipc/shared-memory.js';
+export {
+  parseMeTTa,
+} from './parser/runtime.js';
+export {
+  globalJIT,
+  JITCompiler,
+} from './performance/jit.js';
+export type {
+  ParallelOptions,
+} from './performance/parallel.js';
+export {
+  parallelMap,
+  parallelReduce,
+} from './performance/parallel.js';
+export {
+  createMeTTa,
+  MeTTaBuilder,
+  MeTTaRuntime,
+  createMeTTa as createMetta,
+  parseMeTTa as parseMetta,
+} from './runtime/builder.js';
+export type {
+  MeTTaContext,
+} from './runtime/context.js';
+export {
+  bootstrapStdLib,
+} from './stdlib/index.js';
+export type {
+  ExpressionAtom,
+  GroundedAtom,
+  MeTTaAtom,
+  NumberAtom,
+  StringAtom,
+  SymbolAtom,
+  VariableAtom,
+} from './types/ast.js';
+export {
+  AtomKind,
+  expr,
+  isExpression,
+  isGrounded,
+  isNumber,
+  isString,
+  isSymbol,
+  isVariable,
+  num,
+  str,
+  sym,
+  varr,
+} from './types/ast.js';
+export {
+  composeSubst,
+  freshType,
+  occursCheck,
+  resetTypeIds,
+  TypeChecker,
+  unifyTypes,
+} from './types/inference.js';
+export type {
+  ImmutableSpace,
+  MeTTaSpace,
+} from './types/space.js';
+export type {
+  Keyword,
+  OperationName,
+  TypeName,
+  ValidateAtomType,
+  VariableName,
+} from './types/syntax.js';
+export type {
+  Subst,
+  Type,
+  TypeCon,
+  TypeEnv,
+  TypeFun,
+  TypeScheme,
+  TypeVar,
+} from './types/type.js';
+export {
+  isTypeCon,
+  isTypeFun,
+  isTypeVar,
+  TypeKind,
+  typecon,
+  typefun,
+  typevar,
+} from './types/type.js';
 export type { MettaPort } from '@senars/core/metta-port';
-export { createMettaPort } from '@senars/metta/agent';
+export { createMettaPort } from './agent/index.js';

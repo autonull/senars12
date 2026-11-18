@@ -2,7 +2,6 @@ packages:
   - 'core'
   - 'nar'
   - 'ui'
-  - 'metta'
   - 'util'
   - 'log'
   - 'ui-contract'
