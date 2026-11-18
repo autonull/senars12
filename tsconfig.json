@@ -20,10 +20,10 @@
       "@senars/metta": ["../metta/src/index.ts"],
       "@senars/metta/*": ["./metta/src/*"],
       "@senars/ui/*": ["./ui/src/*"],
-      "@senars/utils": ["./src/utils/index.ts"],
-      "@senars/utils/*": ["./src/utils/*"],
-      "@senars/util": ["./util/src/index.ts"],
-      "@senars/util/*": ["./util/src/*"],
+      "@senars/utils": ["./src/util/index.ts"],
+      "@senars/utils/*": ["./src/util/*"],
+      "@senars/util": ["./src/util/index.ts"],
+      "@senars/util/*": ["./src/util/*"],
       "@senars/kernel": ["./src/kernel/index.ts"],
       "@senars/kernel/*": ["./src/kernel/*"],
       "@senars/lm": ["./src/lm/index.ts"],
@@ -77,9 +77,21 @@
       "@senars/otel": ["./src/otel/index.ts"],
       "@senars/otel/*": ["./src/otel/*"],
       "@senars/focus": ["./src/focus/index.ts"],
-      "@senars/focus/*": ["./src/focus/*"]
+      "@senars/focus/*": ["./src/focus/*"],
+      "@senars/events": ["./src/events/index.ts"],
+      "@senars/events/*": ["./src/events/*"],
+      "@senars/errors": ["./src/errors/index.ts"],
+      "@senars/errors/*": ["./src/errors/*"],
+      "@senars/commands": ["./src/commands/index.ts"],
+      "@senars/commands/*": ["./src/commands/*"],
+      "@senars/feedback": ["./src/feedback/index.ts"],
+      "@senars/feedback/*": ["./src/feedback/*"],
+      "@senars/bag": ["./src/bag/index.ts"],
+      "@senars/bag/*": ["./src/bag/*"],
+      "@senars/types": ["./src/types/index.ts"],
+      "@senars/types/*": ["./src/types/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "tests/**/*.ts"],
-  "exclude": ["node_modules", "dist", "tests/setup", "src/cli/**", "src/bin/**", "src/api/**", "tests/obligations/**", "tests/nar/**", "src/log/GateEventLedger.ts", "src/log/DerivationLedger.ts"]
+  "exclude": ["node_modules", "dist", "tests/setup", "src/cli/**", "src/bin/**", "src/api/**", "tests/obligations/**", "tests/nar/**", "src/log/GateEventLedger.ts", "src/log/DerivationLedger.ts", "src/_pending/**"]
 }

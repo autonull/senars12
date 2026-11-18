@@ -1,5 +1,6 @@
-import { errMsg, type LMTask, withRetry as retry } from '@senars/util';
-import { SenarsError } from '@senars/util/errors';
+import { errMsg, withRetry as retry } from '@senars/util';
+import { type LMTask } from '@senars/types/llm.js';
+import { SenarsError } from '@senars/errors';
 
 /** H6/X14: provider-specific remediation hints appended to LM failures. */
 const LADDER_HINTS: Partial<Record<string, string>> = {

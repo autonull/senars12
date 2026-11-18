@@ -145,3 +145,55 @@
 4. `nar/src/facade/persistence.js` — deleted, replaced by LogStoreStatePersister ✅
 
 **Next: Consolidate export subpaths from 89 to 1** (requires careful manual migration)
+
+### Session Log — 2026-11-18 (Util Package Migration - Phase 1 Complete)
+**Migrated `@senars/util` package to new `src/` structure:**
+- **Created new top-level directories**: `src/util/`, `src/types/`, `src/events/`, `src/errors/`, `src/commands/`, `src/feedback/`, `src/bag/`, `src/config/`, `src/memory/`
+- **Moved all util source files** from `util/src/` to appropriate new directories (30+ files)
+- **Created barrel exports** (`index.ts`) for each new directory with proper `export type` for isolatedModules compatibility
+- **Updated path aliases** in `tsconfig.root.json` and `tsconfig.json` for all new directories
+- **Fixed imports** in migrated files and dependent code (`nar/src/lm/service/errors.ts`, `src/bin/commands/args.ts`, `src/config/loader.ts`, `src/config/schema.ts`, `src/memory/index.ts`, and 13 other files)
+- **Resolved dependency cycles** introduced by migration (2 cycles fixed)
+- **Updated `nar/tsconfig.json`** with new path aliases for package-level typecheck
+
+**Gates Status After Migration:**
+- `pnpm typecheck` ✅ PASS (root)
+- `pnpm typecheck:bin` ✅ PASS
+- `pnpm typecheck:packages` ✅ PASS (5 packages clean)
+- `pnpm lint` ✅ PASS
+- `pnpm exports:check` ✅ PASS
+- `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
+- `pnpm docs:drift` ❌ FAIL (pre-existing nar runtime error in `valid-atom.ts`)
+- `pnpm env:grammar` ❌ FAIL (pre-existing UI issue — out of scope)
+
+**Export Subpaths Reduced:**
+- Before: util:13 subpaths
+- After: Consolidated into root `src/` structure (util/types/events/errors/commands/feedback/bag/config/memory)
+- Total export subpaths: 89 → 76 (util package exports merged into root)
+
+### Consolidation Plan (M1-M3)
+**Phase 1: Core Package Migration (util → core → io → metta → nar)**
+- ✅ **util**: Move `util/src/` → `src/util/`, `src/types/`, `src/events/`, `src/errors/`, `src/commands/`, `src/feedback/`, `src/bag/`, `src/config/`, `src/memory/` (merge with existing). Update imports. Remove `util/` package.
+- [ ] **core**: Move `core/src/` → `src/` (merge: agent, engine, cortex, motor, memory, protocol, schemas, budget, etc.). Update imports. Remove `core/` package.
+- [ ] **io**: Move `io/src/` → `src/io/` (merge with existing). Update imports. Remove `io/` package.
+- [ ] **metta**: Move `metta/src/` → `src/metta/` (merge with existing). Update imports. Remove `metta/` package.
+- [ ] **nar**: Move `nar/src/` → `src/` (merge: kernel, lm, memory, rules, terms, bag, cognitive, etc.). Update imports. Remove `nar/` package.
+
+**Phase 2: UI Package Migration**
+- [ ] **ui-contract**: Move `ui-contract/src/` → `src/ui-contract/` (merge). Update imports. Remove `ui-contract/` package.
+- [ ] **ui-shell**: Move `ui-shell/src/` → `src/ui-shell/` (merge). Update imports. Remove `ui-shell/` package.
+- [ ] **ui-backend-2d**: Move `ui-backend-2d/src/` → `src/ui-backend-2d/` (merge). Update imports. Remove `ui-backend-2d/` package.
+- [ ] **ui-backend-fractal**: Move `ui-backend-fractal/src/` → `src/ui-backend-fractal/` (merge). Update imports. Remove `ui-backend-fractal/` package.
+- [ ] **ui**: Move `ui/src/` → `src/ui/` (merge with existing `src/client`, `src/server`). Update imports. Remove `ui/` package.
+
+**Phase 3: Final Cleanup**
+- [ ] Update root `package.json`: remove workspace dependencies, add consolidated dependencies, update exports
+- [ ] Update `pnpm-workspace.yaml`: remove all sub-packages
+- [ ] Update `tsconfig.root.json`: remove all `@senars/*` path aliases, keep only `src/` structure
+- [ ] Run all gates: typecheck, lint, surface-no-legacy, exports:check, deps:gate, typecheck:packages, docs:drift
+- [ ] Verify test suite passes
+
+**Dependency Order (topological):**
+util (leaf) → core → io → metta → ui-contract → ui-shell → ui-backend-2d/ui-backend-fractal → nar → ui
+
+**Current Session: ✅ Phase 1 - util package migration COMPLETE**

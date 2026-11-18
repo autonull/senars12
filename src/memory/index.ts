@@ -13,6 +13,6 @@ export { EpisodeConsolidator, symbolicSummary } from '@senars/nar/memory/episode
 export type { ConsolidationResult, EpisodeConsolidatorOptions } from '@senars/nar/memory/episode-consolidator.js';
 export { LinkLayerMemory } from '@senars/nar/memory/associative.js';
 
-// Re-export InMemorySessionManager from util
-export { InMemorySessionManager, createSession, abortSession, type SessionStoreOptions } from '@senars/util/memory/in-memory-session-manager.js';
-export type { SessionManager, ConversationSession } from '@senars/util/types/memory.js';
+// Re-export InMemorySessionManager from util (now @senars/memory)
+export { InMemorySessionManager, createSession, abortSession, type SessionStoreOptions } from '@senars/memory/in-memory-session-manager.js';
+export type { SessionManager, ConversationSession } from '@senars/types/memory.js';

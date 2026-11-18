@@ -56,7 +56,7 @@ export { positiveInt } from '@senars/util/config';
 export { ConfigurationError } from '@senars/util/errors';
 export type { LMTask, LMExecutionStats, ConversationSession, SessionManager, Teardown, HealthReport } from '@senars/util';
 export { SlidingWindowRateLimiter, keyedBy, mapValues, LM_TASKS, BoundedMap, mean, selectTopN, entryKey, sumBy, filterFolded } from '@senars/util';
-export { evaluateExpression } from '@senars/util/utils/eval.js';
+export { evaluateExpression } from '@senars/util/eval.js';
 
 // CLI-specific utilities (from src/bin/commands/args.ts)
 export {

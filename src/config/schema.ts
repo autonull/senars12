@@ -1,6 +1,6 @@
 import { AUTONOMY_MODES, AUTONOMY_POLICIES } from '@senars/nar';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
-import { LM_TASKS } from '@senars/util';
+import { LM_TASKS } from '@senars/utils';
 import {
   dialogueDefaults,
   dialogueSchema,
@@ -15,7 +15,7 @@ import {
   type SystemOneConfig,
   systemOneDefaults,
   systemOneSchema,
-} from '@senars/util/config';
+} from '@senars/config';
 import { z } from 'zod';
 
 // System One schema/defaults live in @senars/util/config (single definition —

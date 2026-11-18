@@ -1,22 +1,56 @@
-import type { NARConfig } from '@senars/nar';
-import { narCoreDefaults } from '@senars/util/config';
-import { deepFreeze } from '@senars/util';
-import type { AppConfig, BotConfig, BotProfile } from './schema.js';
-import { appConfigSchema, botConfigSchema, botProfileSchema } from './schema.js';
-
 /**
- * The NAR core knobs a NAR constructed from this app config starts with, taken
- * from the same bounds table the engine's own `DEFAULT_CONFIG` reads — this used
- * to be a second hand-written copy that had drifted to `maxConcepts: 100` against
- * the table's 1000, and nothing could have noticed because nothing consumed the
- * divergence. One table, one answer.
+ * Defaults for a declared configuration record.
+ *
+ * Every connection read `config.config.<key> as T ?? default` — ten sites in
+ * `io`, and a fifteen-field record literal in the IRC transport — so "what this
+ * transport does with no configuration at all" was re-derived per read, in one
+ * file per transport, with the answer spread across a constructor rather than
+ * declared next to the type it defaults.
+ *
+ * {@link withDefaults} resolves a record once: the defaults are the declaration,
+ * and every value a caller supplied is overlaid. A supplied `undefined` or
+ * `null` is the absence of a value and falls back, which is the answer `??`
+ * default gave — at one of them instead of all of them.
+ * @public
  */
-export const DEFAULT_NAR_CORE_CONFIG: Partial<NARConfig> = narCoreDefaults;
 
-/** §5n follow-up: frozen at module load — mutation throws in strict mode. */
-export const DEFAULT_BOT_CONFIG: BotConfig = deepFreeze(botConfigSchema.parse({}));
-export const DEFAULT_PROFILE: BotProfile = deepFreeze(botProfileSchema.parse({}));
+import { deepFreeze } from '@senars/util/object.js';
+import { appConfigSchema } from './schema.js';
+import type { AppConfig } from './schema.js';
+
+/** Fully defaulted app config — used by `.config-reset` and tests. */
 export const DEFAULT_APP_CONFIG: AppConfig = deepFreeze(appConfigSchema.parse({}));
 
-export const makeDefaultBotConfig = (overrides?: Partial<BotConfig>): BotConfig =>
-  botConfigSchema.parse(overrides ?? {});
+/**
+ * A declared configuration record with its caller's values overlaid.
+ *
+ * {@link withDefaults} resolves a record once: the defaults are the declaration,
+ * and every value a caller supplied is overlaid. A supplied `undefined` or
+ * `null` is the absence of a value and falls back, which is the answer `??`
+ * default gave — at one of them instead of all of them.
+ *
+ * `NoInfer` keeps the annotated type authoritative, so a key the defaults omit is
+ * still readable off the result.
+ *
+ * @example
+ * ```typescript
+ * interface HTTPOptions {
+ *   name: string;
+ *   port: number;
+ *   apiKey?: string;
+ * }
+ * const HTTP_DEFAULTS: HTTPOptions = { name: 'HTTP', port: 8080 };
+ *
+ * const { name, port, apiKey } = withDefaults<HTTPOptions>(config.config, HTTP_DEFAULTS);
+ * ```
+ */
+export const withDefaults = <T extends object>(
+  config: Readonly<Record<string, unknown>>,
+  defaults: NoInfer<T>
+): T => {
+  const resolved = { ...defaults } as Record<string, unknown>;
+  for (const [key, value] of Object.entries(config)) {
+    if (value !== undefined && value !== null) resolved[key] = value;
+  }
+  return resolved as T;
+};

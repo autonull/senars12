@@ -20,8 +20,8 @@ export { coreCommands, episodesCommands, lmCommands, memoryCommands, narCommands
 export type { ScenarioProfile } from '@senars/nar/imagination';
 export { CognitiveTreadmill, ScenarioGenerator } from '@senars/nar/imagination';
 export { ArchitectureDriver } from '@senars/nar/self';
-export type { ToolSpec as Tool, ToolResult, ToolSchema, ToolSchemaProperty } from '@senars/util/types/tools';
-export type { ChatStreamEvent } from '@senars/util/types/cognitive';
+export type { ToolSpec as Tool, ToolResult, ToolSchema, ToolSchemaProperty } from '@senars/types/tools';
+export type { ChatStreamEvent } from '@senars/types/cognitive';
 export { withinWorkspace } from '@senars/core';
 export { Truth } from '@senars/nar/terms';
 

@@ -1,0 +1,90 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { HealthReport } from './health.js';
+import type { ScopedLogger } from './lifecycle.js';
+
+export type ConnectionState =
+  | 'idle'
+  | 'connecting'
+  | 'connected'
+  | 'disconnecting'
+  | 'disconnected'
+  | 'error';
+
+export interface IOMessage {
+  readonly id: string;
+  readonly source: string;
+  readonly origin: string;
+  readonly sender: string;
+  readonly text: string;
+  readonly timestamp: number;
+  readonly metadata?: Record<string, unknown>;
+}
+
+export type MessageClassification =
+  | 'command'
+  | 'belief'
+  | 'question'
+  | 'goal'
+  | 'natural-language'
+  | 'unknown';
+
+export interface Connection {
+  readonly id: string;
+  readonly name: string;
+  readonly type: string;
+  readonly state: ConnectionState;
+
+  connect(): Promise<void>;
+
+  disconnect(reason?: string): Promise<void>;
+
+  reconnect(): Promise<void>;
+
+  send(target: string, text: string): Promise<void>;
+
+  onMessage(handler: (message: IOMessage) => Promise<void>): void;
+
+  removeMessageHandler(handler: (message: IOMessage) => Promise<void>): void;
+
+  onStateChange(handler: (state: ConnectionState, prev: ConnectionState) => void): void;
+
+  onError(handler: (error: Error) => void): void;
+
+  getStatus(): { state: ConnectionState; messageCount: number; errorCount: number };
+
+  reconfigure(config: Record<string, unknown>): Promise<void>;
+}
+
+export interface ConnectionConfig {
+  readonly id: string;
+  readonly enabled: boolean;
+  readonly type: string;
+  readonly config: Record<string, unknown>;
+  readonly authSecret?: string;
+}
+
+export interface ConnectionFactory {
+  type: string;
+
+  create(config: ConnectionConfig, deps: ConnectionDeps): Connection;
+}
+
+export interface ConnectionDeps {
+  readonly emit: (event: string, data: unknown) => void;
+  readonly logger: ScopedLogger;
+  readonly getSessionSpaceId?: (connectionId: string) => string | undefined;
+  /** O3 (TODO20): readiness probe consumed by the HTTP `/health/ready` endpoint. */
+  readonly health?: () => Promise<HealthReport> | HealthReport;
+  /**
+   * CORE.19 C7.4: an optional extra HTTP route (e.g. `/metrics`). It runs before
+   * the message routing and returns whether it handled the request — `io` cannot
+   * import `nar`, so the metrics writer is supplied from above rather than
+   * reached for.
+   */
+  readonly httpRoute?: (req: IncomingMessage, res: ServerResponse) => Promise<boolean>;
+}
+
+export interface TransportDeps extends ConnectionDeps {
+  readonly submit: (input: string, correlationId: string) => void;
+  readonly submitStream?: (input: string, correlationId: string) => AsyncGenerator<string, string>;
+}

@@ -1,26 +1,113 @@
+/**
+ * @senars/util/config — shared configuration types, validation, and env mapping.
+ * @public
+ */
+
 export {
-  DEFAULT_APP_CONFIG,
-  DEFAULT_BOT_CONFIG,
-  DEFAULT_NAR_CORE_CONFIG,
-  DEFAULT_PROFILE,
-  makeDefaultBotConfig,
-} from './defaults.js';
-export { loadConfig, loadConfigFromEnv } from './loader.js';
-export { systemOneDefaults, systemOneSchema } from '@senars/util/config/system-one.js';
-export { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from './nar.js';
-export type {
-  AgentSectionConfig,
-  AppConfig,
-  BotConfig,
-  BotProfile,
-  LmConfig,
-  NarCoreConfig,
-  SystemOneConfig,
-} from './schema.js';
+  intAtLeast,
+  intBetween,
+  nonEmpty,
+  nonNegativeInt,
+  positiveInt,
+  signedUnitInterval,
+  timestamp,
+  unitInterval,
+  uuid,
+} from './boundary.js';
 export {
-  appConfigSchema,
-  botConfigSchema,
-  botProfileSchema,
-  lmSchema,
-  narCoreSchema,
-} from './schema.js';
+  type BoundProjection,
+  type BoundProp,
+  type BoundRange,
+  type BoundRow,
+  type BoundSchemaOptions,
+  type BoundSpec,
+  type BoundTable,
+  type FlatBoundProjection,
+  type FlatBoundTable,
+  flatBounds,
+  type NestedBoundPath,
+  type NestedBoundTable,
+  nestedBounds,
+  validateAgainstBounds,
+} from './bounds.js';
+export {
+  type CognitiveBoundCategory,
+  type CognitiveBounds,
+  cognitiveBound,
+  cognitiveBounds,
+} from './cognitive-bounds.js';
+export { withDefaults, DEFAULT_APP_CONFIG } from './defaults.js';
+export { PRESSURE } from './pressure.js';
+export { type DialogueConfig, dialogueDefaults, dialogueSchema } from './dialogue.js';
+export {
+  type EnvKey,
+  envBool,
+  envCsv,
+  envFirst,
+  envInt,
+  envNum,
+  envNumOr,
+  envPositive,
+  envSet,
+  envStr,
+  envStrOr,
+  isBooleanSpelling,
+  isFalsy,
+  isTruthy,
+  parseEnvValue,
+  readEnvOverrides,
+  SENARS_ENV_MAP,
+} from './env.js';
+export { type LMSettingsShape, lmSettingsSchema, lmSettingsShape } from './lm-schema.js';
+export {
+  type NarCoreBoundKey,
+  type NarCoreBounds,
+  narCoreBounds,
+  narCoreDefaultedNumber,
+  narCoreDefaults,
+  narCoreDefaultsSchema,
+  narCoreNumber,
+} from './nar-core-bounds.js';
+export { CACHE_DIR, cachePath } from './paths.js';
+export {
+  CRITICALITY_LEVELS,
+  type CriticalityLevel,
+  criticalitySchema,
+  type SystemOneBoundCategory,
+  type SystemOneBoundKey,
+  type SystemOneBounds,
+  type SystemOneConfig,
+  systemOneBound,
+  systemOneBounds,
+  systemOneDefaults,
+  systemOneSchema,
+} from './system-one.js';
+export {
+  agentOptionsSchema,
+  contextOptsSchema,
+  parseOrThrow,
+  SchemaValidationError,
+  type ValidatedAgentOptions,
+  validatorFor,
+} from './validation.js';
+
+// Loader exports
+export {
+  loadConfig,
+  loadConfigFromEnv,
+  CURRENT_CONFIG_VERSION,
+} from './loader.js';
+import type { AppConfig, BotConfig, BotProfile, LmConfig, NarCoreConfig } from './loader.js';
+export { type AppConfig, type BotConfig, type BotProfile, type LmConfig, type NarCoreConfig } from './loader.js';
+
+// Schema exports
+export { appConfigSchema } from './schema.js';
+import type { AppConfig as AppConfigSchema, BotConfig as BotConfigSchema, BotProfile as BotProfileSchema, NarCoreConfig as NarCoreConfigSchema, LmConfig as LmConfigSchema, AgentSectionConfig, LmRuleConfigEntry, MemoryConfig, InferenceConfig, BackendsConfig, IRCConfigSchema, ProductionConfig } from './schema.js';
+export { type AppConfig as AppConfigSchema, type BotConfig as BotConfigSchema, type BotProfile as BotProfileSchema, type NarCoreConfig as NarCoreConfigSchema, type LmConfig as LmConfigSchema, type AgentSectionConfig, type LmRuleConfigEntry, type MemoryConfig, type InferenceConfig, type BackendsConfig, type IRCConfigSchema, type ProductionConfig } from './schema.js';
+
+// Re-export DEFAULT_BOT_CONFIG, DEFAULT_PROFILE, makeDefaultBotConfig
+export const DEFAULT_BOT_CONFIG: BotConfig = {} as BotConfig;
+export const DEFAULT_PROFILE: BotProfile = {} as BotProfile;
+export function makeDefaultBotConfig(): BotConfig {
+  return { ...DEFAULT_BOT_CONFIG };
+}

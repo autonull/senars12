@@ -29,12 +29,28 @@
       "@senars/ui-contract/*": ["./src/ui-contract/*"],
       "@senars/economy/*": ["./src/economy/*"],
       "@senars/generated/*": ["./src/generated/*"],
-      "@senars/utils": ["./src/utils/index.ts"],
-      "@senars/utils/*": ["./src/utils/*"],
-      "@senars/util": ["./util/src/index.ts"],
-      "@senars/util/*": ["./util/src/*"]
+      "@senars/utils": ["./src/util/index.ts"],
+      "@senars/utils/*": ["./src/util/*"],
+      "@senars/util": ["./src/util/index.ts"],
+      "@senars/util/*": ["./src/util/*"],
+      "@senars/events": ["./src/events/index.ts"],
+      "@senars/events/*": ["./src/events/*"],
+      "@senars/errors": ["./src/errors/index.ts"],
+      "@senars/errors/*": ["./src/errors/*"],
+      "@senars/commands": ["./src/commands/index.ts"],
+      "@senars/commands/*": ["./src/commands/*"],
+      "@senars/feedback": ["./src/feedback/index.ts"],
+      "@senars/feedback/*": ["./src/feedback/*"],
+      "@senars/bag": ["./src/bag/index.ts"],
+      "@senars/bag/*": ["./src/bag/*"],
+      "@senars/config": ["./src/config/index.ts"],
+      "@senars/config/*": ["./src/config/*"],
+      "@senars/types": ["./src/types/index.ts"],
+      "@senars/types/*": ["./src/types/*"],
+      "@senars/memory": ["./src/memory/index.ts"],
+      "@senars/memory/*": ["./src/memory/*"]
     }
   },
-  "include": ["src/log/**/*.ts", "src/logics/**/*.ts", "src/verification/**/*.ts", "src/formats/**/*.ts", "src/admit/**/*.ts", "src/worlds/**/*.ts", "src/mining/**/*.ts", "src/surface/**/*.ts", "src/deck/**/*.ts", "src/ui-contract/**/*.ts", "src/economy/**/*.ts", "src/kernel/**/*.ts", "src/generated/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
+  "include": ["src/log/**/*.ts", "src/logics/**/*.ts", "src/verification/**/*.ts", "src/formats/**/*.ts", "src/admit/**/*.ts", "src/worlds/**/*.ts", "src/mining/**/*.ts", "src/surface/**/*.ts", "src/deck/**/*.ts", "src/ui-contract/**/*.ts", "src/economy/**/*.ts", "src/kernel/**/*.ts", "src/generated/**/*.ts", "src/util/**/*.ts", "src/events/**/*.ts", "src/errors/**/*.ts", "src/commands/**/*.ts", "src/feedback/**/*.ts", "src/bag/**/*.ts", "src/config/**/*.ts", "src/types/**/*.ts", "src/memory/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist", "tests", "src/cli/**", "src/bin/**", "src/api/**", "src/_pending/**", "src/log/EventLogAdapter.ts", "src/log/StatePersister.ts"]
 }
