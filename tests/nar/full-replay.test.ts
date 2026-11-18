@@ -1,22 +1,25 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { validateCognitiveEvent, validateDerivationRecord } from '@senars/agent';
 import { v4 as uuidv4 } from 'uuid';
-import { describe, expect, it } from 'vitest';
 import {
   type CognitiveParameters,
   DEFAULT_COGNITIVE_PARAMETERS,
 } from '@senars/config';
-import { loadGateEvents, persistGateLogs } from '@senars/log';
 import { GateRegistry } from '@senars/kernel';
 import {
-  persistDerivationRecords,
   replayIntoMemory,
   serializeReplayResult,
 } from '@senars/kernel';
 import { Memory } from '@senars/memory';
 import { termParser } from '@senars/terms';
+import { createLogStore } from '../../src/log/store';
+import { createLogStoreGateEventLedger } from '../../src/log/GateEventLedger';
+import { createLogStoreDerivationLedger } from '../../src/log/DerivationLedger';
+import type { LogStore } from '../../src/log/store';
+import type { CognitiveEvent, DerivationRecord } from '@senars/core/schemas';
 
 const mkTaskAdmitted = (
   overrides: Partial<{
@@ -92,13 +95,77 @@ const mkDerivationRecord = (conclusions: string[]): ReturnType<typeof validateDe
   });
 };
 
-describe('todo7: full-state memory replay', () => {
-  it('replays gate events + derivation records into Memory with full state', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'full-replay-'));
+describe('todo7: full-state memory replay (LogStore)', () => {
+  let logStore: LogStore;
+  let gateLedger: ReturnType<typeof createLogStoreGateEventLedger>;
+  let derivLedger: ReturnType<typeof createLogStoreDerivationLedger>;
+  let stateDir: string;
+
+  beforeEach(async () => {
+    stateDir = mkdtempSync(join(tmpdir(), 'full-replay-'));
+    logStore = createLogStore({ dir: join(stateDir, 'log') });
+    await logStore.open();
+    gateLedger = createLogStoreGateEventLedger(logStore);
+    derivLedger = createLogStoreDerivationLedger(logStore);
+  });
+
+  afterEach(async () => {
+    await logStore.close();
+  });
+
+  async function flushGates(registry: GateRegistry): Promise<number> {
+    return gateLedger.flush(registry);
+  }
+
+  async function readGates(): Promise<CognitiveEvent[]> {
+    return gateLedger.read();
+  }
+
+  async function flushDerivations(records: DerivationRecord[]): Promise<number> {
+    let appended = 0;
+    for (const record of records) {
+      const event: CognitiveEvent = {
+        type: 'derivation.record',
+        engine: 'nar',
+        timestamp: record.timestamp ?? Date.now(),
+        correlationId: crypto.randomUUID(),
+        causationId: record.derivationId,
+        payload: record,
+      };
+      await logStore.append(event, { ts: event.timestamp });
+      appended++;
+    }
+    return appended;
+  }
+
+  async function readDerivations(): Promise<DerivationRecord[]> {
+    const events = await derivLedger.readRecords();
+    return events.map((e) => e.payload as DerivationRecord);
+  }
+
+  async function replayFromLogStore(
+    gateEvents: CognitiveEvent[],
+    derivationRecords: DerivationRecord[],
+    options?: { cognitiveParams?: CognitiveParameters }
+  ): Promise<ReturnType<typeof replayIntoMemory>> {
+    // Create temp files for the legacy replayIntoMemory (which expects file paths)
+    // This is a bridge until we have a pure LogStore-based replay
+    const dir = mkdtempSync(join(tmpdir(), 'replay-bridge-'));
     const gatePath = join(dir, 'gate-events.jsonl');
     const derivPath = join(dir, 'derivations.jsonl');
-    const snapshotPath = join(dir, 'replay-snapshot.json');
 
+    const { appendJsonl } = await import('@senars/util');
+    await appendJsonl(gatePath, gateEvents);
+    await appendJsonl(derivPath, derivationRecords);
+
+    return replayIntoMemory({
+      gateEventsPath: gatePath,
+      derivationRecordsPath: derivPath,
+      cognitiveParams: options?.cognitiveParams,
+    });
+  }
+
+  it('replays gate events + derivation records into Memory with full state', async () => {
     const registry = new GateRegistry();
     registry.getPerceptionGate().admit({
       sourceId: 's',
@@ -121,15 +188,15 @@ describe('todo7: full-state memory replay', () => {
     });
     registry.getActionGate().requestModeChange('propose-only', 'system');
 
-    persistGateLogs(registry, gatePath);
+    await flushGates(registry);
 
     const records = [mkDerivationRecord(['(a-->c)'])];
-    persistDerivationRecords(records, derivPath);
+    await flushDerivations(records);
 
-    const result = await replayIntoMemory({
-      gateEventsPath: gatePath,
-      derivationRecordsPath: derivPath,
-    });
+    const gateEvents = await readGates();
+    const derivationRecords = await readDerivations();
+
+    const result = await replayFromLogStore(gateEvents, derivationRecords);
 
     expect(result.appliedTasks).toBe(2);
     expect(result.appliedDerivations).toBe(1);
@@ -141,6 +208,7 @@ describe('todo7: full-state memory replay', () => {
     expect(conceptAtoC!.getBeliefs()).toHaveLength(1);
     expect(conceptAtoC!.getBeliefs()[0]?.truth).toEqual({ f: 0.9, c: 0.8 });
 
+    const snapshotPath = join(stateDir, 'replay-snapshot.json');
     await serializeReplayResult(result, snapshotPath);
     const snapshot = JSON.parse(require('node:fs').readFileSync(snapshotPath, 'utf8'));
     expect(snapshot.stats.appliedTasks).toBe(2);
@@ -148,10 +216,6 @@ describe('todo7: full-state memory replay', () => {
   });
 
   it('replays belief revisions with evidence lineage', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'replay-rev-'));
-    const gatePath = join(dir, 'gate-events.jsonl');
-    const derivPath = join(dir, 'derivations.jsonl');
-
     const registry = new GateRegistry();
     registry.getPerceptionGate().admit({
       sourceId: 's',
@@ -159,20 +223,17 @@ describe('todo7: full-state memory replay', () => {
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
-    persistGateLogs(registry, gatePath);
+    await flushGates(registry);
 
-    const { events } = loadGateEvents(gatePath);
+    const gateEvents = await readGates();
     const rev = mkBeliefRevised(
       '(a-->b)',
       { frequency: 0.8, confidence: 0.7 },
       { frequency: 0.9, confidence: 0.85 }
     );
-    require('node:fs').appendFileSync(gatePath, JSON.stringify(rev) + '\n');
+    const allGateEvents = [...gateEvents, rev];
 
-    const result = await replayIntoMemory({
-      gateEventsPath: gatePath,
-      derivationRecordsPath: derivPath,
-    });
+    const result = await replayFromLogStore(allGateEvents, []);
 
     expect(result.appliedRevisions).toBe(1);
     const concept = result.memory.getConcept(termParser.parse('(a-->b)'));
@@ -183,10 +244,6 @@ describe('todo7: full-state memory replay', () => {
   });
 
   it('replays concept activations (priority)', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'replay-act-'));
-    const gatePath = join(dir, 'gate-events.jsonl');
-    const derivPath = join(dir, 'derivations.jsonl');
-
     const registry = new GateRegistry();
     registry.getPerceptionGate().admit({
       sourceId: 's',
@@ -194,16 +251,13 @@ describe('todo7: full-state memory replay', () => {
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
-    persistGateLogs(registry, gatePath);
+    await flushGates(registry);
 
-    const { events } = loadGateEvents(gatePath);
+    const gateEvents = await readGates();
     const act = mkConceptActivated('(a-->b)', 0.75);
-    require('node:fs').appendFileSync(gatePath, JSON.stringify(act) + '\n');
+    const allGateEvents = [...gateEvents, act];
 
-    const result = await replayIntoMemory({
-      gateEventsPath: gatePath,
-      derivationRecordsPath: derivPath,
-    });
+    const result = await replayFromLogStore(allGateEvents, []);
 
     expect(result.appliedActivations).toBe(1);
     const concept = result.memory.getConcept(termParser.parse('(a-->b)'));
@@ -212,11 +266,6 @@ describe('todo7: full-state memory replay', () => {
   });
 
   it('pause → serialize → replay in separate process yields same state', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'replay-roundtrip-'));
-    const gatePath = join(dir, 'gate-events.jsonl');
-    const derivPath = join(dir, 'derivations.jsonl');
-    const snapshotPath = join(dir, 'replay-snapshot.json');
-
     const registry = new GateRegistry();
     registry.getPerceptionGate().admit({
       sourceId: 's',
@@ -240,21 +289,22 @@ describe('todo7: full-state memory replay', () => {
     });
     registry.getBudgetGate().check({ operation: 'nal-step' });
     registry.getBudgetGate().check({ operation: 'nal-step' });
-    persistGateLogs(registry, gatePath);
+    await flushGates(registry);
 
     const records = [mkDerivationRecord(['(a-->c)'])];
-    persistDerivationRecords(records, derivPath);
+    await flushDerivations(records);
 
-    const result1 = await replayIntoMemory({
-      gateEventsPath: gatePath,
-      derivationRecordsPath: derivPath,
-    });
-    serializeReplayResult(result1, snapshotPath);
+    const gateEvents = await readGates();
+    const derivationRecords = await readDerivations();
 
-    const result2 = await replayIntoMemory({
-      gateEventsPath: gatePath,
-      derivationRecordsPath: derivPath,
-    });
+    const result1 = await replayFromLogStore(gateEvents, derivationRecords);
+    const snapshotPath = join(stateDir, 'replay-snapshot.json');
+    await serializeReplayResult(result1, snapshotPath);
+
+    // Replay again from same LogStore events (simulating separate process)
+    const gateEvents2 = await readGates();
+    const derivationRecords2 = await readDerivations();
+    const result2 = await replayFromLogStore(gateEvents2, derivationRecords2);
 
     expect(result2.gateSnapshot).toEqual(result1.gateSnapshot);
     expect(result2.memory.getStatistics().totalConcepts).toBe(
@@ -271,24 +321,28 @@ describe('todo7: full-state memory replay', () => {
   });
 
   it("replays with the original run's attention model when its parameters are given", async () => {
-    // TODO27 §18: a replay that primes nothing is not a replay. `sample` runs
-    // `decayAll`, so the attention slot is observable in the replayed state.
     const replay = async (cognitiveParams?: CognitiveParameters) => {
+      // Create isolated LogStore for each replay (like original file-based test)
       const dir = mkdtempSync(join(tmpdir(), 'replay-attention-'));
-      const gatePath = join(dir, 'gate-events.jsonl');
+      const logStore = createLogStore({ dir: join(dir, 'log') });
+      await logStore.open();
+      const gateLedger = createLogStoreGateEventLedger(logStore);
+
       const registry = new GateRegistry();
-      registry.getPerceptionGate().admit({
+      await registry.getPerceptionGate().admit({
         sourceId: 's',
         rawObservation: '(a-->b).',
         sensorConfidence: 1,
         sourceQuality: 'PRIMARY',
       });
-      persistGateLogs(registry, gatePath);
-      const result = await replayIntoMemory({ gateEventsPath: gatePath, cognitiveParams });
+      await gateLedger.flush(registry);
+
+      const gateEvents = await gateLedger.read();
+      await logStore.close();
+
+      const result = await replayFromLogStore(gateEvents, [], { cognitiveParams });
       const concept = result.memory.getConcept(termParser.parse('(a-->b)'))!;
       concept.writeAttention({ reason: 'assign', value: 1 });
-      // The decay clock is consolidation's, and consolidation fires on its
-      // interval — a read no longer advances it (TODO29.a §4 row 1).
       for (let i = 0; i < 10; i++) result.memory.consolidate();
       return concept.priority;
     };
@@ -302,16 +356,11 @@ describe('todo7: full-state memory replay', () => {
     });
     const unconfigured = await replay(undefined);
 
-    // `simple` deducts priority × activationDecayRate per elapsed cycle;
-    // `NullAttentionModel` deducts nothing.
     expect(configured).toBeLessThan(1);
     expect(unconfigured).toBe(1);
   });
 
   it('handles missing derivation records gracefully', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'replay-no-deriv-'));
-    const gatePath = join(dir, 'gate-events.jsonl');
-
     const registry = new GateRegistry();
     registry.getPerceptionGate().admit({
       sourceId: 's',
@@ -319,12 +368,10 @@ describe('todo7: full-state memory replay', () => {
       sensorConfidence: 1,
       sourceQuality: 'PRIMARY',
     });
-    persistGateLogs(registry, gatePath);
+    await flushGates(registry);
 
-    const result = await replayIntoMemory({
-      gateEventsPath: gatePath,
-      derivationRecordsPath: join(dir, 'nonexistent.jsonl'),
-    });
+    const gateEvents = await readGates();
+    const result = await replayFromLogStore(gateEvents, []);
 
     expect(result.appliedTasks).toBe(1);
     expect(result.appliedDerivations).toBe(0);

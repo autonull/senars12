@@ -84,15 +84,15 @@ export class LogStoreGateEventLedger {
         // Only append kernel-engine events (gate events)
         if (event.engine !== 'kernel') continue;
 
-        // Use event.id as deduplication key (same as legacy ledger)
-        const eventId = event.id;
-        if (!eventId) continue;
-        if (this.#seen.has(eventId)) continue;
-        this.#seen.add(eventId);
+        // Stable deduplication key: hash of event content (legacy events lack id)
+        const eventKey = this.#eventKey(event);
+        if (this.#seen.has(eventKey)) continue;
+        this.#seen.add(eventKey);
 
         // Encode gate in causationId for replay routing
         const eventWithGate = {
           ...event,
+          id: event.id ?? crypto.randomUUID(),
           causationId: `${gate}:${event.causationId ?? ''}`,
         };
 
@@ -102,6 +102,13 @@ export class LogStoreGateEventLedger {
     }
 
     return appended;
+  }
+
+  /** Create a stable key for deduplication from event content. */
+  #eventKey(event: CognitiveEvent): string {
+    // Use correlationId + type + timestamp + JSON payload for stability
+    const payloadStr = JSON.stringify(event.payload);
+    return `${event.correlationId}:${event.type}:${event.timestamp}:${payloadStr}`;
   }
 
   /** Get the current cursor position (for compatibility). */

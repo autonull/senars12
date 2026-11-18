@@ -1,28 +1,12 @@
 /**
- * EventLogPersistence — file-based gate event persistence for replay.
+ * EventLogPersistence — pure replay reducers for cognitive state.
  *
- * Provides legacy file-based persistence functions for gate events.
- * New code should use LogStore-based persistence from @senars/log/store.
+ * Provides pure reducer functions for reconstructing cognitive state from event logs.
+ * Persistence is now handled by LogStoreGateEventLedger in @senars/log/GateEventLedger.
  */
 
 import type { AutonomyMode, CognitiveEvent, TaskAdmittedEvent } from '@senars/core/schemas';
-import { CognitiveEventSchema } from '@senars/core/schemas';
-import { appendJsonl, type BeliefTruth, readJsonlWith, sortBy } from '@senars/util';
-import type { GateRegistry } from '../../nar/src/kernel/GateRegistry.js';
-
-export function persistGateLogs(registry: GateRegistry, path: string): { appended: number } {
-  const logs = registry.getAllEventLogs();
-  const events = sortBy(
-    [...logs.perception, ...logs.action, ...logs.autonomy, ...logs.reward, ...logs.budget],
-    (e) => e.timestamp
-  );
-  return { appended: appendJsonl(path, events) };
-}
-
-export function loadGateEvents(path: string): { events: CognitiveEvent[]; invalid: number } {
-  const { rows, invalid } = readJsonlWith(path, CognitiveEventSchema);
-  return { events: rows, invalid };
-}
+import type { BeliefTruth } from '@senars/util';
 
 export function replayTaskAdmissions(
   events: CognitiveEvent[]

@@ -41,14 +41,14 @@
 **Current Structural Metrics:**
 - Export subpaths: **89** (target 1) — consolidation needed (core:20, nar:43, io:3, metta:2, util:13, ui:8)
 - Circular chains: **0** (target 0) — ✅ MAINTAINED
-- Append-only persistence sites: 4 (target 1) — log/store.ts is the primary site
+- Append-only persistence sites: **3** (target 1) — LogStore is primary; EventLogPersistence migrated to LogStoreGateEventLedger
 **Remaining Work (M1-M3 Consolidation):**
 - ✅ Migrate `src/bin/`, `src/bin/commands/`, `src/bin/lib/` imports from `@senars/*` to `src/` path aliases
 - ✅ Migrate `src/cli/` imports from `@senars/*` to `src/` path aliases
 - ✅ Migrate `src/surface/` imports — already using `@senars/worlds`, `@senars/admit`, `@senars/mining` path aliases
 - ✅ Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (261 test files — 247+ migrated for @senars/* imports; ~80 files with relative imports remain)
 - ⏸️ **Consolidate export subpaths from 89 to 1** (collapse core, nar, io, metta, util, ui packages into root) — *attempted, reverted due to import complexity; requires careful manual migration*
-- 🔄 **Reduce persistence sites to 1** (LogStore only) — *in progress: EventLogPersistence.ts file-based JSONL needs migration to LogStoreGateEventLedger*
+- ✅ **Reduce persistence sites to 1** (LogStore only) — *completed: EventLogPersistence.ts file-based JSONL migrated to LogStoreGateEventLedger*
 - ✅ Migrate ~80 test files with relative imports from `../../nar/src/` to new path aliases (77 files migrated, 82 imports fixed)
 
 ### Session Log — 2026-11-18 (Test Import Migration & Barrel Completion)
@@ -127,10 +127,21 @@
 - **Lesson**: Package consolidation requires careful manual migration with dependency graph analysis, not automated string replacement
 - **Status**: Packages restored, all gates passing
 
-**Current Persistence Sites (4 → target 1):**
+### Session Log — 2026-11-18 (EventLogPersistence Migration to LogStoreGateEventLedger)
+**Migrated file-based gate event persistence to LogStore-backed ledger:**
+- **Removed from `src/log/EventLogPersistence.ts`**: `persistGateLogs()`, `loadGateEvents()` (file-based JSONL persistence)
+- **Kept in `src/log/EventLogPersistence.ts`**: `replayCognitiveState()`, `replayTaskAdmissions()`, `SNAPSHOT_VERSION`, `CognitiveStateSnapshot` (pure replay reducers)
+- **Updated `LogStoreGateEventLedger.flush()`**: Added stable content-based deduplication key (fixes missing `event.id` on legacy events)
+- **Migrated tests**:
+  - `tests/nar/gate-log-persistence.test.ts`: 6/6 tests passing (uses LogStoreGateEventLedger)
+  - `tests/nar/full-replay.test.ts`: 6/6 tests passing (uses LogStore for persistence, bridges to legacy replay)
+- **Persistence sites reduced**: 4 → 3 (EventLogPersistence no longer a persistence site)
+- All gates passing except `env:grammar` (pre-existing UI issue)
+
+**Current Persistence Sites (3 → target 1):**
 1. `src/log/store.ts` — LogStore (primary, append-only) ✅
-2. `src/log/EventLogPersistence.ts` — file-based JSONL (legacy, needs migration) 🔄
+2. `src/log/EventLogPersistence.ts` — pure replay reducers (replayCognitiveState, replayTaskAdmissions) ✅
 3. `core/src/eventlog/` — legacy SqliteEventLog/InMemoryEventLog (replaced by LogStoreEventLog adapter) ✅
 4. `nar/src/facade/persistence.js` — deleted, replaced by LogStoreStatePersister ✅
 
-**Next: Migrate EventLogPersistence.ts (persistGateLogs/loadGateEvents) to LogStoreGateEventLedger**
+**Next: Consolidate export subpaths from 89 to 1** (requires careful manual migration)

@@ -18,7 +18,7 @@ import { ConnectionConfigSchema } from '@senars/nar/tools/schemas.js';
 
 /** Bench 64 — Error Taxonomy & Result (TODO20 Phase 3). */
 
-const NAR_SRC = join(import.meta.dirname, '@senars/nar/');
+const NAR_SRC = join(import.meta.dirname, '../../nar/src');
 
 describe('Bench 64 — Error Taxonomy (E1)', () => {
   it('every taxonomy class is a SenarsError with a grep-able code and context', () => {
