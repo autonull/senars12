@@ -12,9 +12,11 @@
       "@senars/io/*": ["./io/src/*"],
       "@senars/nar": ["./nar/src/index.ts"],
       "@senars/nar/*": ["./nar/src/*"],
-      "@senars/metta": ["./metta/src/index.ts"],
+      "@senars/metta": ["../metta/src/index.ts"],
       "@senars/metta/*": ["./metta/src/*"],
       "@senars/ui/*": ["./ui/src/*"],
+      "@senars/utils": ["./src/utils/index.ts"],
+      "@senars/utils/*": ["./src/utils/*"],
       "@senars/kernel/*": ["./src/kernel/*"],
       "@senars/logics/*": ["./src/logics/*"],
       "@senars/verification/*": ["./src/verification/*"],
@@ -27,7 +29,10 @@
       "@senars/surface/*": ["./src/surface/*"],
       "@senars/deck/*": ["./src/deck/*"],
       "@senars/ui-contract/*": ["./src/ui-contract/*"],
-      "@senars/economy/*": ["./src/economy/*"]
+      "@senars/economy/*": ["./src/economy/*"],
+      "@senars/loop/*": ["./src/loop/*"],
+      "@senars/oracles/*": ["./src/oracles/*"],
+      "@senars/faculties/*": ["./src/faculties/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "tests/**/*.ts"],

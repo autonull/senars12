@@ -1,7 +1,12 @@
-import { Agent, InMemoryEventLog, isDurableEvent, recalledEventTypes } from '@senars/core';
+import { Agent, isDurableEvent, recalledEventTypes, LogStoreEventLog } from '@senars/core';
+import { createLogStoreEventLog } from '@senars/core/eventlog';
 import { mintCognitiveEvent } from '@senars/core/schemas';
 import { NAREngine } from '@senars/nar/engine/NAREngine';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { rmSync } from 'node:fs';
 
 /**
  * CORE.19 C1 — one event stream.
@@ -13,8 +18,8 @@ import { describe, expect, it } from 'vitest';
  * fields verify against the schema.
  */
 
-const startedAgent = async (): Promise<{ agent: Agent; log: InMemoryEventLog; nar: NAREngine['nar'] }> => {
-  const log = new InMemoryEventLog();
+const startedAgent = async (): Promise<{ agent: Agent; log: LogStoreEventLog; nar: NAREngine['nar'] }> => {
+  const log = await createLogStoreEventLog();
   const agent = new Agent({ id: 'core19-c1', log });
   const engine = new NAREngine(undefined, (event) => agent.emitCognitive(event));
   agent.registerEngine('nar', engine);
@@ -31,13 +36,15 @@ describe('CORE.19 C1 — one event stream', () => {
     await nar.step();
     await agent.flushDurable();
 
-    const types = log.events.map((e) => e.type);
+    const events = await log.query({});
+    const types = events.map((e) => e.type);
     expect(types).toContain('derivation.accepted');
 
     // The heartbeat is live-only: it must not enter the durable log.
     expect(types).not.toContain('cycle');
 
     await agent.stop();
+    await log.close();
   });
 
   it('emits a schema-shaped derivation.accepted per rule fire', async () => {
@@ -48,7 +55,8 @@ describe('CORE.19 C1 — one event stream', () => {
     await nar.step();
     await agent.flushDurable();
 
-    const accepted = log.events.filter((e) => e.type === 'derivation.accepted');
+    const events = await log.query({});
+    const accepted = events.filter((e) => e.type === 'derivation.accepted');
     expect(accepted.length).toBeGreaterThan(0);
     const event = accepted[0]!;
     if (event.type !== 'derivation.accepted') throw new Error('narrowing');
@@ -61,6 +69,7 @@ describe('CORE.19 C1 — one event stream', () => {
     expect(event.payload.truth.frequency).toBeGreaterThanOrEqual(0);
 
     await agent.stop();
+    await log.close();
   });
 
   it('declares which families are durable and which episodic recall reads', () => {
@@ -90,12 +99,13 @@ describe('CORE.19 C1 — one event stream', () => {
     await nar.step();
     await agent.flushDurable();
 
-    const events = log.events;
+    const events = await log.query({});
     // Every id in the log is distinct — the serialized tail keeps emit order and
     // appends each durable family once.
     const ids = events.map((e) => e.id);
     expect(new Set(ids).size).toBe(ids.length);
 
     await agent.stop();
+    await log.close();
   });
 });

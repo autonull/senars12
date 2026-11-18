@@ -1,6 +1,11 @@
 import { Agent } from '@senars/core';
+import { createLogStoreEventLog } from '@senars/core/eventlog';
 import type { Engine } from '@senars/util';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { rmSync } from 'node:fs';
 
 function mockEngine(id: string): Engine {
   return {
@@ -11,15 +16,28 @@ function mockEngine(id: string): Engine {
 }
 
 describe('Agent', () => {
+  let logDir: string;
+  let log: Awaited<ReturnType<typeof createLogStoreEventLog>>;
+
+  beforeEach(async () => {
+    logDir = mkdtempSync(join(tmpdir(), 'agent-test-'));
+    log = await createLogStoreEventLog({ dir: logDir });
+  });
+
+  afterEach(async () => {
+    await log.close();
+    rmSync(logDir, { recursive: true, force: true });
+  });
+
   it('creates an agent with default state', () => {
-    const agent = new Agent({ id: 'test' });
+    const agent = new Agent({ id: 'test', log });
     expect(agent.id).toBe('test');
     expect(agent.engines.size).toBe(0);
     expect(agent.health().status).toBe('stuck');
   });
 
   it('registers and retrieves engines', () => {
-    const agent = new Agent();
+    const agent = new Agent({ log });
     const engine = mockEngine('nar');
     agent.registerEngine('nar', engine);
     expect(agent.engines.has('nar')).toBe(true);
@@ -27,7 +45,7 @@ describe('Agent', () => {
   });
 
   it('routes input through cycle and returns response', async () => {
-    const agent = new Agent();
+    const agent = new Agent({ log });
     const engine = mockEngine('nar');
     agent.registerEngine('nar', engine);
 
@@ -42,7 +60,7 @@ describe('Agent', () => {
   });
 
   it('stop shuts down engines', async () => {
-    const agent = new Agent();
+    const agent = new Agent({ log });
     const engine = mockEngine('nar');
     agent.registerEngine('nar', engine);
     await agent.start();
@@ -51,7 +69,7 @@ describe('Agent', () => {
   });
 
   it('health reports healthy after start', async () => {
-    const agent = new Agent();
+    const agent = new Agent({ log });
     const engine = mockEngine('nar');
     agent.registerEngine('nar', engine);
     await agent.start();
@@ -60,7 +78,7 @@ describe('Agent', () => {
   });
 
   it('emits events via on handler', async () => {
-    const agent = new Agent();
+    const agent = new Agent({ log });
     const listener = vi.fn();
     agent.on('*', listener);
 
@@ -79,6 +97,7 @@ describe('Agent', () => {
       .fn()
       .mockResolvedValue({ groundedness: { score: 0.9, abstained: false }, risks: [] });
     const agent = new Agent({
+      log,
       traceGrader,
       cortex: { synthesize: vi.fn().mockResolvedValue({ text: 'I handled it.' }) } as never,
     });

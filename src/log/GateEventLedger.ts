@@ -67,7 +67,7 @@ function gateFromCausationId(causationId: string | undefined): (typeof GATE_LOG_
 export class LogStoreGateEventLedger {
   readonly #store: LogStore;
   readonly #logger: ReturnType<typeof createLogger>;
-  readonly #seen = new WeakSet<CognitiveEvent>();
+  readonly #seen = new Set<string>();
 
   constructor(store: LogStore, options: GateEventLedgerOptions = {}) {
     this.#store = store;
@@ -158,7 +158,12 @@ export class LogStoreGateEventLedger {
 
   /** Mark events read back from disk as already-written. */
   adopt(entries: ReadonlyArray<{ event: CognitiveEvent }>): void {
-    for (const entry of entries) this.#seen.add(entry.event);
+    for (const entry of entries) this.#seen.add(entry.event.id);
+  }
+
+  /** Check if an event has been seen. */
+  #isSeen(event: CognitiveEvent): boolean {
+    return this.#seen.has(event.id);
   }
 
   /**
@@ -169,13 +174,16 @@ export class LogStoreGateEventLedger {
     const entries = await this.readWithGate();
     if (entries.length === 0) return 0;
 
+    // Filter out already-seen events
+    const unseenEntries = entries.filter((e) => !this.#isSeen(e.event));
+    if (unseenEntries.length === 0) return 0;
+
     // Convert to GateLogEntry format for public restoreEventLogs method
-    // Type assertion needed because GateLogEntry expects CognitiveEvent but doesn't constrain per gate
-    const gateEntries = entries.map(({ gate, event }) => ({ gate, event })) as GateLogEntry[];
+    const gateEntries = unseenEntries.map(({ gate, event }) => ({ gate, event })) as GateLogEntry[];
     const restored = registry.restoreEventLogs(gateEntries);
 
     // Mark restored events as seen so they are not re-appended on next flush
-    this.adopt(entries);
+    this.adopt(unseenEntries);
 
     if (restored > 0) {
       this.#logger.info('Replayed the persisted gate log', { events: restored });
