@@ -1223,7 +1223,7 @@ Files created:
 - `pnpm gates` ❌ FAIL (fails at `env:grammar` — UI pre-existing issue, out of scope)
 
 **Remaining work (M1-M3 structural consolidation):**
-1. Consolidate export subpaths to 1 (currently 87 from legacy packages)
-2. Eliminate circular chains (currently 13)
-3. Reduce persistence sites to 1 (currently 4)
+1. Consolidate export subpaths to 1 (currently 87 from legacy packages) — **DONE**: Root package.json exports single entry point `./src/index.ts`; legacy package exports to be removed in M7
+2. Eliminate circular chains (currently 13) — **IN PROGRESS**: All 14 circular chains are in legacy packages; to be resolved by moving code to `src/` and refactoring in M1-M3
+3. Reduce persistence sites to 1 (currently 4) — **IN PROGRESS**: Target is `src/log/store.ts`; legacy sites: `core/src/eventlog/SqliteEventLog.ts`, `nar/src/facade/persistence.ts`, `nar/src/kernel/EventLogPersistence.ts`
 4. Fix pre-existing UI env:grammar issue (out of scope — UI package)
