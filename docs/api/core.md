@@ -80,7 +80,7 @@
 
 - `BaseEngine`
 
-- `DURABLE_EVENT_TYPES` — Families the single emit funnel persists to the log. Excludes the ephemeral
+- `DURABLE_EVENT_TYPES` — Which cognitive events the append-only log keeps, and which of those episodic
 
 - `isDurableEvent`
 
@@ -88,13 +88,11 @@
 
 - `recalledEventTypes` — The recalled allowlist as the array `EventLog.query` accepts, in a stable order.
 
-- `queryEventStream`
+- `LogStoreEventLog`
 
-- `type StreamQuery`
+- `createLogStoreEventLog`
 
-- `InMemoryEventLog`
-
-- `SqliteEventLog` — Every statement this log issues is compiled once and kept: `better-sqlite3`'s
+- `createLogStoreEventLogFromStore`
 
 - `BaseComponent`
 
@@ -242,23 +240,11 @@
 
 ## `./eventlog`
 
-- `DURABLE_EVENT_TYPES` — Families the single emit funnel persists to the log. Excludes the ephemeral
+- `LogStoreEventLog`
 
-- `isDurableEvent`
+- `createLogStoreEventLog`
 
-- `RECALLED_EVENT_TYPES` — The durable subset episodic recall reads. Keeps the conversational and belief
-
-- `recalledEventTypes` — The recalled allowlist as the array `EventLog.query` accepts, in a stable order.
-
-- `EventLogError`
-
-- `InMemoryEventLog`
-
-- `queryEventStream`
-
-- `type StreamQuery`
-
-- `SqliteEventLog` — Every statement this log issues is compiled once and kept: `better-sqlite3`'s
+- `createLogStoreEventLogFromStore`
 
 ## `./protocol`
 
@@ -595,6 +581,14 @@ _Re-export barrel._
 - `type PromptBuilder`
 
 ## `./schemas`
+
+- `DURABLE_EVENT_TYPES` — Which cognitive events the append-only log keeps, and which of those episodic
+
+- `RECALLED_EVENT_TYPES` — The durable subset episodic recall reads. Keeps the conversational and belief
+
+- `isDurableEvent`
+
+- `recalledEventTypes` — The recalled allowlist as the array `EventLog.query` accepts, in a stable order.
 
 - `AutonomyModeChangedEventSchema`
 

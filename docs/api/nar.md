@@ -306,9 +306,13 @@
 
 ## `./agent`
 
-- `BinAgentApi` — Minimal agent API for bin layer consumers (excludes core internals).
+- `createAgent` — Create a cognitive agent with the given configuration.
 
-- `createAgent`
+- `type CreateAgentConfig`
+
+- `type BinAgentApi`
+
+- `type ExtendedAgent`
 
 - `createCortexFromLM`
 
@@ -1578,14 +1582,6 @@ _Re-export barrel._
 
 - `driveCycles`
 
-- `loadGateEvents`
-
-- `persistGateLogs`
-
-- `replayCognitiveState`
-
-- `replayTaskAdmissions`
-
 - `GateEventEntrySchema` — One gate decision as it lands on disk: the ring it came from, the stamp, the event.
 
 - `GateEventLedger` — A ledger over the gate registry's rings. `flush` appends only events it has
@@ -1616,24 +1612,6 @@ _Re-export barrel._
 
 - `SelfRewardGate`
 
-- `computeReplayStateHash` — Deterministic content hash of a replay outcome — the C14 replay verification token.
-
-- `type FullReplayOptions`
-
-- `persistDerivationRecords`
-
-- `type ReplayResult`
-
-- `type ReplaySnapshotFile`
-
-- `type ReplayTally`
-
-- `replayIntoMemory`
-
-- `serializeReplayResult`
-
-- `verifyReplayStateHash`
-
 - `domainKey` — Derive a `domain:<host>` key from a URL-bearing source id, else undefined.
 
 - `providerKey` — Derive a `provider:<name>` key for an LM provider, else undefined.
@@ -1653,3 +1631,31 @@ _Re-export barrel._
 - `ThreadScope`
 
 - `threadScope` — Singleton instance for the process.
+
+- `type FullReplayOptions`
+
+- `type ReplayResult`
+
+- `type ReplayTally`
+
+- `type ReplaySnapshotFile`
+
+- `type CognitiveStateSnapshot`
+
+- `replayIntoMemory`
+
+- `computeReplayStateHash`
+
+- `verifyReplayStateHash`
+
+- `serializeReplayResult`
+
+- `persistDerivationRecords`
+
+- `loadGateEvents`
+
+- `replayTaskAdmissions`
+
+- `replayCognitiveState`
+
+- `SNAPSHOT_VERSION`

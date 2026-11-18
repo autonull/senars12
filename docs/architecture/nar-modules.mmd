@@ -1,5 +1,6 @@
 graph TD
   _["."]
+  ______src_log["../../src/log"]
   agent["agent"]
   autonomy["autonomy"]
   bag["bag"]
@@ -122,6 +123,7 @@ graph TD
   _ --> terms_impls
   _ --> types
   agent --> _
+  agent --> ______src_log
   agent --> cognitive_impls
   agent --> config
   agent --> cooperation
@@ -208,8 +210,6 @@ graph TD
   facade --> ports
   facade --> query
   facade --> reflex
-  facade --> state
-  facade --> task
   facade --> tools_adapters
   facade --> types
   focus --> _
