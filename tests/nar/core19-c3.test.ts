@@ -8,6 +8,8 @@ import type { NARConfig } from '@senars/nar/facade/config.js';
 import { NAR } from '@senars/nar/nar.js';
 import { NarEventBus } from '@senars/nar/types/events.js';
 import { e2eNARConfig } from '../e2e/fixtures.js';
+import { createLogStore } from '../../src/log/store';
+import type { LogStore } from '../../src/log/store';
 
 /**
  * CORE.19 C3 — gate observation & provenance records.
@@ -109,7 +111,9 @@ describe('CORE.19 C3 — gate observation & provenance records', () => {
 
   it('persists the gate rings to a rotating ledger at runtime', async () => {
     const statePath = mkdtempSync(join(tmpdir(), 'core19-c3-'));
-    const { nar } = buildNar({ persistState: true, statePath });
+    const logStore = createLogStore({ dir: join(statePath, 'log') });
+    await logStore.open();
+    const { nar } = buildNar({ persistState: true, statePath, logStore });
     await nar.initialize();
     await nar.start();
 
@@ -121,16 +125,17 @@ describe('CORE.19 C3 — gate observation & provenance records', () => {
     });
     nar.gates.getActionGate().requestModeChange('propose-only', 'system');
 
-    const flushed = nar.flushLogs();
+    const flushed = await nar.flushLogs();
     expect(flushed).toBeGreaterThanOrEqual(2);
     // Nothing new since the last flush — the cursor is identity-based, not a re-append.
-    expect(nar.flushLogs()).toBe(0);
+    expect(await nar.flushLogs()).toBe(0);
 
     const types = new Set((await nar.getGateEventLedger()!.read()).map((e) => e.type));
     expect(types.has('task.admitted')).toBe(true);
     expect(types.has('autonomy.mode.changed')).toBe(true);
 
     await nar.stop();
+    await logStore.close();
     await nar.dispose();
   });
 });

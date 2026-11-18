@@ -168,8 +168,10 @@
   - ✅ `SqliteEventLog` → `LogStoreEventLog` adapter created (`src/log/EventLogAdapter.ts`), agent creation migrated
   - ✅ `StatePersister` (`nar/src/facade/persistence.ts`) → `LogStoreStatePersister` (`src/log/StatePersister.ts`) using LogStore snapshots, NAR migrated
   - ✅ Legacy persistence files removed: `core/src/eventlog/SqliteEventLog.ts`, `InMemoryEventLog.ts`, `EventLog.ts`, `AbstractEventLog.ts`, `durability.ts`, `query.ts`, `index.ts`; `nar/src/facade/persistence.ts`; `nar/src/kernel/EventLogPersistence.ts`
-  - ⏳ `GateEventLedger` + `DerivationLedger` (`nar/src/kernel/`) → LogStore (blocked on schema divergence: core `CognitiveEvent` has `engine: 'kernel'|'nar'|'proposer'` with health status `crashed|degraded|healthy|stuck`; generated schemas have `engine: 'nar'|'metta'|'proposer'` with health status `degraded|healthy|unhealthy`)
-  - ⏳ `KernelLedger` (`nar/src/kernel/KernelLedger.ts`) → LogStore
+  - ✅ `GateEventLedger` + `DerivationLedger` (`nar/src/kernel/`) → LogStore: Legacy file-based ledgers removed from `nar/src/kernel/`; LogStore-backed versions in `src/log/` are now the only implementation
+  - ✅ `KernelLedger` (`nar/src/kernel/KernelLedger.ts`) → LogStore: Now requires LogStore, no legacy fallback; NAR config validation enforces `logStore` when `persistState=true`
+  - ⚠️ LogStore file handle management: `EBADF` errors during read after append — segment file handles being closed prematurely (investigation needed)
+  - ⚠️ Test updates needed: `core19-c3.test.ts`, `core19-c4.test.ts`, `refactor1-timeline.test.ts`, and e2e tests using legacy `InMemoryEventLog`/`SqliteEventLog` need migration to LogStore
 - Fix pre-existing UI env:grammar issue (out of scope — UI package)
 
 ---
@@ -1416,3 +1418,28 @@ Files created:
 - Legacy `SqliteEventLog`/`InMemoryEventLog` tests (deprecated in favor of LogStore)
 - `AgentV6` tests (createAgent now manages LogStore lifecycle differently)
 - Various integration/e2e tests (pre-existing issues unrelated to our changes)
+
+---
+### Session Log — 2026-11-18 (Legacy Ledger Removal & KernelLedger LogStore Migration)
+**Legacy File-Based Ledgers Removed**
+- Deleted `nar/src/kernel/GateEventLedger.ts` and `nar/src/kernel/DerivationLedger.ts` (file-based JSONL ledgers using `@senars/util/ledger`)
+- Removed exports from `nar/src/kernel/index.ts`
+- These were the second persistence site (after LogStore); their removal reduces persistence sites to 1
+**KernelLedger Now Requires LogStore**
+- Updated `nar/src/kernel/KernelLedger.ts` to require `LogStore` in constructor (removed optional `logStore` and legacy fallback)
+- Removed `basePath` option; unified persistence is now mandatory when using KernelLedger
+- Updated `nar/src/facade/config.ts` validation to require `logStore` when `persistState=true`
+- Updated `nar/src/nar.ts` to validate `logStore` before creating KernelLedger
+**LogStoreGateEventLedger Deduplication Fixed**
+- Replaced cursor-based deduplication with `WeakSet<CognitiveEvent>` (matching legacy ledger approach)
+- Added proper `adopt()` implementation to mark replayed events as seen
+- Fixed `read()` and `readWithGate()` to read from log start (seq=1) for full history
+**Test Updates**
+- Updated `tests/nar/core19-c3.test.ts` to create LogStore and pass to NAR config
+- Fixed missing `await` on `flushLogs()` calls
+- Deleted legacy test files: `tests/unit/core/eventlog/sqlite-eventlog.test.ts`, `eventlog-query.test.ts`, `query.test.ts`
+**Known Issues**
+- LogStore `EBADF` (bad file descriptor) errors during `read()` after `append()` — segment file handles appear to be closed prematurely during rotation or GC; investigation needed
+- `core19-c3.test.ts` "persists the gate rings" test fails due to LogStore read error
+- `core19-c4.test.ts` and `refactor1-timeline.test.ts` still reference removed legacy ledgers; need migration
+- Multiple e2e tests use `InMemoryEventLog` from `@senars/core/eventlog` which no longer exports it; need migration to `LogStoreEventLog` adapter

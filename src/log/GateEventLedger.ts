@@ -47,22 +47,11 @@ function gateFromCausationId(causationId: string | undefined): (typeof GATE_LOG_
 export class LogStoreGateEventLedger {
   readonly #store: LogStore;
   readonly #logger: ReturnType<typeof createLogger>;
-  readonly #cursor: number;
+  readonly #seen = new WeakSet<CognitiveEvent>();
 
   constructor(store: LogStore, options: GateEventLedgerOptions = {}) {
     this.#store = store;
     this.#logger = options.logger ?? createLogger({ scope: 'NAR.LogStoreGateEventLedger' });
-    this.#cursor = store.getLastSeq();
-  }
-
-  /** Get the current cursor position. */
-  getCursor(): number {
-    return this.#cursor;
-  }
-
-  /** Advance the cursor to the current log head. */
-  advanceCursor(): void {
-    // Cursor is implicitly the last seq; no separate state needed
   }
 
   /** Append every not-yet-written gate event; returns how many were written. */
@@ -74,6 +63,10 @@ export class LogStoreGateEventLedger {
       for (const event of logs[gate]) {
         // Only append kernel-engine events (gate events)
         if (event.engine !== 'kernel') continue;
+
+        // Use WeakSet to track seen events (same as legacy ledger)
+        if (this.#seen.has(event)) continue;
+        this.#seen.add(event);
 
         // Encode gate in causationId for replay routing
         const eventWithGate = {
@@ -89,9 +82,19 @@ export class LogStoreGateEventLedger {
     return appended;
   }
 
+  /** Get the current cursor position (for compatibility). */
+  getCursor(): number {
+    return this.#store.getLastSeq();
+  }
+
+  /** Advance the cursor to the current log head (no-op, kept for compatibility). */
+  advanceCursor(): void {
+    // No-op: WeakSet handles deduplication
+  }
+
   /** Read gate events from the log, oldest first. */
   async read(limit?: number): Promise<CognitiveEvent[]> {
-    const startSeq = this.#cursor + 1;
+    const startSeq = 1;
     const endSeq = this.#store.getLastSeq();
 
     if (startSeq > endSeq) return [];
@@ -109,7 +112,7 @@ export class LogStoreGateEventLedger {
 
   /** Read gate events with their originating gate ring. */
   async readWithGate(limit?: number): Promise<Array<{ gate: (typeof GATE_LOG_KEYS)[number]; event: CognitiveEvent }>> {
-    const startSeq = this.#cursor + 1;
+    const startSeq = 1;
     const endSeq = this.#store.getLastSeq();
 
     if (startSeq > endSeq) return [];
@@ -135,7 +138,7 @@ export class LogStoreGateEventLedger {
 
   /** Mark events read back from disk as already-written. */
   adopt(entries: ReadonlyArray<{ event: CognitiveEvent }>): void {
-    // No-op for LogStore version - cursor handles dedup
+    for (const entry of entries) this.#seen.add(entry.event);
   }
 
   /**
@@ -150,6 +153,9 @@ export class LogStoreGateEventLedger {
     // Type assertion needed because GateLogEntry expects CognitiveEvent but doesn't constrain per gate
     const gateEntries = entries.map(({ gate, event }) => ({ gate, event })) as GateLogEntry[];
     const restored = registry.restoreEventLogs(gateEntries);
+
+    // Mark restored events as seen so they are not re-appended on next flush
+    this.adopt(entries);
 
     if (restored > 0) {
       this.#logger.info('Replayed the persisted gate log', { events: restored });

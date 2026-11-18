@@ -161,6 +161,11 @@ export function validateNarConfig(config: NARConfig): NARConfig {
       maxConcepts: config.maxConcepts,
     });
   }
+  if (config.persistState && !config.logStore) {
+    throw new ConfigurationError('persistState requires logStore to be configured', {
+      persistState: config.persistState,
+    });
+  }
   return config;
 }
 

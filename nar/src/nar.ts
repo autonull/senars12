@@ -421,6 +421,9 @@ export class NAR extends BaseComponent {
     await super.start();
     this.processor.getRecorder().setClock(() => this.config.clock?.() ?? Date.now());
     if (this.config.persistState && !this.#ledgers) {
+      if (!this.config.logStore) {
+        throw new Error('persistState requires logStore to be configured');
+      }
       this.#ledgers = new KernelLedger(
         this.config.statePath ?? cachePath('nar-state'),
         this.processor.getRecorder(),

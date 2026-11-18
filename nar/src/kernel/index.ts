@@ -14,20 +14,8 @@ export {
   UNBUDGETED,
   ControlBudgets,
 } from './control-budgets.js';
-export type {
-  DerivationEventEntry,
-  DerivationLedgerOptions,
-  DerivationRecordEntry,
-} from './DerivationLedger.js';
-export {
-  DerivationEventEntrySchema,
-  DerivationLedger,
-  DerivationRecordEntrySchema,
-} from './DerivationLedger.js';
 export type { AutonomyClock } from './cycle-driver.js';
 export { driveCycles } from './cycle-driver.js';
-export type { GateEventEntry, GateEventLedgerOptions } from './GateEventLedger.js';
-export { GateEventEntrySchema, GateEventLedger } from './GateEventLedger.js';
 export type { GateRegistryInit, IGateRegistry } from './GateRegistry.js';
 export { createGateRegistry, GateRegistry } from './GateRegistry.js';
 export { KernelGate } from './gate-base.js';
