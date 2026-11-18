@@ -24,8 +24,28 @@ export type { ChatStreamEvent } from '@senars/util/types/cognitive';
 export { withinWorkspace } from '@senars/core';
 export { Truth } from '@senars/nar/terms';
 
+// Re-export core Agent class as CoreAgent
+export { Agent as CoreAgent, type AgentOptions } from '@senars/core';
+
+// Re-export NAR engine
+export { NAREngine } from '@senars/nar/engine';
+export { BaseEngine } from '@senars/core';
+export { KernelBudgetGate, KernelPerceptionGate, KernelActionGate, KernelRewardGate, KernelLedger } from '@senars/nar/kernel';
+export { TaskManager } from '@senars/nar/task/index.js';
+export { GameRegistry, createArcadeRegistry, type GameSpec, UnknownGameError } from '@senars/nar/game/registry.js';
+export { ActionRegistry, ComponentRegistry, createCognitionRegistries, RewardRegistry, SensorRegistry } from '@senars/nar/game/registries.js';
+// Strategy is re-exported from strategies below
+
+// Re-export Log types for compatibility
+export { InMemoryEventLog, LogStoreEventLog, createLogStoreEventLog } from '@senars/log/EventLogAdapter.js';
+
 // Re-export NAR memory types
 export { ConceptGraph, type ConceptGraphOptions, type CoActivationEdge } from '@senars/nar/memory/ConceptGraph.js';
+export { EpisodicMemory } from '@senars/nar/memory/episodic';
+export { EpisodeConsolidator, symbolicSummary } from '@senars/nar/memory/episode-consolidator.js';
+export type { ConsolidationResult, EpisodeConsolidatorOptions } from '@senars/nar/memory/episode-consolidator.js';
+export { Memory } from '@senars/nar/memory/index.js';
+export type { ConceptTaskType, MemoryConfig } from '@senars/nar/memory/index.js';
 export { PriorityBag } from '@senars/nar/bag/Bag.js';
 export { ToolManager } from '@senars/nar/tools/impls/ToolManager.js';
 
@@ -57,3 +77,56 @@ export type { TetrisGameConfig, TetrisPlacement, TetrisState } from '@senars/nar
 export { createTetrisGame, TetrisGame } from '@senars/nar/game/impls/TetrisGame.js';
 export type { Player as TicTacToePlayer, TicTacToeAction, TicTacToeConfig, TicTacToeState } from '@senars/nar/game/impls/TicTacToe.js';
 export { createTicTacToeGame, minimax, TicTacToeGame } from '@senars/nar/game/impls/TicTacToe.js';
+
+// Re-export NAR cognitive types
+export { CognitiveController } from '@senars/nar/cognitive/impls/CognitiveController.js';
+export { runCounterfactual } from '@senars/nar/cognitive/impls/counterfactual.js';
+export {
+  CognitiveRegistry,
+  createDefaultRegistry,
+  resolveSlot,
+} from '@senars/nar/cognitive/impls/CognitiveRegistry.js';
+
+// Re-export NAR strategies/attention types
+export {
+  AllSelector,
+  AnytimeDerivation,
+  CompositeAttention,
+  DefaultDerivation,
+  DiverseSampling,
+  DiverseSelector,
+  FocusedDerivation,
+  GoalBiasedSampling,
+  GoalRelevanceAttention,
+  NullAttentionModel,
+  NoveltySampling,
+  PrioritySampling,
+  PrioritySelector,
+  RotationSelector,
+  SampledDerivation,
+  SimpleAttention,
+  SpreadingActivation,
+} from '@senars/nar/strategies/index.js';
+export type {
+  AttentionContext,
+  AttentionModel,
+  ComponentMetadata,
+  DerivationContext,
+  DerivationStrategy,
+  ModelRuleSelectionContext,
+  ModelRuleSelector,
+  MetricsSummary,
+  SamplingStrategy,
+  SearchSpace,
+  SearchSpaceParam,
+  Strategy,
+  StrategyType,
+} from '@senars/nar/strategies/types.js';
+export type {
+  StrategyCatalog,
+  StrategyConfig,
+  StrategyFactoryDeps,
+  StrategyRegistration,
+  StrategyRegistry,
+  StrategySpec,
+} from '@senars/nar/strategies/registration.js';

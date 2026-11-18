@@ -6,6 +6,7 @@ export { clearOps, defineOp, type GroundedOp, getOp, hasOp, registerOp } from '.
 export { InMemorySpace } from './core/space.js';
 export { Stamp } from './core/stamp.js';
 export { EGraph, type RewriteRule } from './engine/egraph.js';
+export { MettaEngine } from './engine/MettaEngine.js';
 export { MeTTaInterpreter } from './engine/interpreter.js';
 export { PatternMatcher } from './engine/match.js';
 export { ReductionPipeline } from './engine/reduce.js';

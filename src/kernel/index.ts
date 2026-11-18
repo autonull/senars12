@@ -14,11 +14,57 @@ export * from './reduce.js';
 export * from './bag.js';
 
 // Re-export NAR kernel types
-export { DEFAULT_REPUTATION_PATH, providerKey, SourceReputation, threadScope } from '@senars/nar/kernel';
-export { createGateRegistry, GateRegistry, type GateRegistryInit, type IGateRegistry } from '@senars/nar/kernel';
+export {
+  BUDGET_SCOPE_IDS,
+  BUDGET_SCOPES,
+  type BudgetDimension,
+  type BudgetScopeId,
+  type BudgetScopeSpec,
+  scopeBudget,
+  scopeLimit,
+  scopeSpec,
+  type ControlBudgetOverrides,
+  type ControlBudgetPort,
+  UNBUDGETED,
+  ControlBudgets,
+  type AutonomyClock,
+  driveCycles,
+  type GateRegistryInit,
+  type IGateRegistry,
+  createGateRegistry,
+  GateRegistry,
+  KernelGate,
+  type IActionGate,
+  type IBudgetGate,
+  type IDriveManager,
+  type IPerceptionGate,
+  type IRewardGate,
+  KernelActionGate,
+  NALVetoError,
+  createDefaultReasoningBudget,
+  KernelBudgetGate,
+  KernelLedger,
+  KernelPerceptionGate,
+  EpistemicFirewallViolation,
+  ExternalRewardGate,
+  KernelRewardGate,
+  SelfRewardGate,
+  domainKey,
+  providerKey,
+  DEFAULT_REPUTATION_CAPACITY,
+  DEFAULT_REPUTATION_PATH,
+  type ReputationDeltaEntry,
+  type ReputationEntry,
+  SourceReputation,
+  type SourceReputationOptions,
+  type ThreadScopeState,
+  ThreadScope,
+  threadScope,
+} from '@senars/nar/kernel';
 
 // Re-export NAR engine
 export { NAREngine } from '@senars/nar/engine';
+export { BaseEngine } from '@senars/core';
 
 // Re-export replay utilities
 export {
@@ -36,4 +82,4 @@ export {
   replayTaskAdmissions,
   replayCognitiveState,
   SNAPSHOT_VERSION,
-} from '../../nar/src/kernel/replay-compat.js';
+} from '@senars/nar/kernel/replay-compat.js';

@@ -43,6 +43,10 @@ export * from '../../util/src/types/tools.js';
 export * from '../../util/src/types/transport.js';
 export * from '../../util/src/types/truth.js';
 
+// Commands
+export * from '../../util/src/commands/index.js';
+export * from '../../util/src/commands/registry.js';
+
 // Utils
 export * from '../../util/src/utils/assert.js';
 export * from '../../util/src/utils/async.js';
@@ -85,6 +89,9 @@ export * from '../../util/src/events/listener-bag.js';
 export * from '../../util/src/events/push-queue.js';
 export * from '../../util/src/events/signal.js';
 export * from '../../util/src/events/types.js';
+
+// Logger
+export * from '../../util/src/logger.js';
 
 // Local utils (config-check, config-migrate, env-validate)
 export * from './config-check.js';

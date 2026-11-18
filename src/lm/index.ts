@@ -9,7 +9,7 @@ export { computeEvidenceId } from '@senars/nar/lm/system-one';
 export { probeEmbeddedLlama } from '@senars/nar/lm';
 export { getRouting, setRouting, getRoutingLogStatus, getRoutingStatus, getModelChain } from '@senars/nar/lm/providers';
 export { readCalibrationLockOrNull } from '@senars/nar/lm/system-one';
-export { rubricOf } from '@senars/nar/lm/system-one/contrastive';
+export { rubricOf, ContrastiveMemory, type ContrastiveMemoryConfig, createContrastiveMemory } from '@senars/nar/lm/system-one/contrastive';
 export { StubCortex } from '@senars/nar/lm/system-one/dispatcher';
 export { createLlamaCppFetch, runWithGrammar } from '@senars/nar/lm/providers/llamacpp';
 export { loadGrammar } from '@senars/nar/lm/grammars';
@@ -23,7 +23,7 @@ export { cloudApiKey, endpointPath, getCircuitBreaker, getEffectiveCircuitConfig
 export { configureLM, createConfiguredLMRules, resolveEmbeddingGenerator, embeddingRuntime } from '@senars/nar/lm';
 export { EmbeddingCache, createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache';
 export type { TraceGradeInput, TraceGradeResult } from '@senars/nar/lm/system-one/trace-grader';
-export { mineHardNegatives } from '@senars/nar/lm/system-one/hard-negatives';
+export { mineHardNegatives, MiningBag } from '@senars/nar/lm/system-one/hard-negatives';
 export { SchemaInductor, createSchemaInductor } from '@senars/nar/learning';
 export { createFrozenEvalSet, splitOod, evalMetrics, headMetrics, writeEvalSet, loadEvalSet, digestRows } from '@senars/nar/lm/system-one/eval-set';
 export { writeCalibrationLock, fitCalibrationLock } from '@senars/nar/lm/system-one/calibration-fit';
@@ -34,3 +34,8 @@ export { LM_TASKS } from '@senars/util';
 export type { JudgmentQuery } from '@senars/nar/lm/system-one/types';
 export type { LMTask } from '@senars/util';
 export type { LMProviderName } from '@senars/nar/lm/env-config';
+
+// System One reflexes and judges
+export { LMReflex, PlacementCascadeReflex } from '@senars/nar/lm/system-one';
+export { EpsilonGreedyReflex, TabularQReflex, Negotiator, NalVetoArbitration, WeightedQuorum, UCBReflex } from '@senars/nar/reflex';
+export { SystemOneIngressJudge } from '@senars/nar/lm/system-one/ingress-judge';

@@ -1865,3 +1865,48 @@ No legacy `@senars/core|nar|io|metta|util` imports found. `surface-no-legacy` pa
 - `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
 - `pnpm typecheck:packages` ✅ PASS (5 packages clean)
 
+---
+### Session Log — 2026-11-18 (Missing Barrel Exports & Typecheck Fixes)
+**Added missing exports to new `src/` barrels and fixed typecheck errors:**
+
+**New Barrel Exports Added:**
+- `src/rules/index.ts`: Full rule system exports (RuleProcessor, RuleIndex, RuleTableStore, loadBuiltinTable, NALRules, NALExtendedRules, rule contract types, recorder)
+- `src/agent/index.ts`: Core Agent class (as CoreAgent), NarAgentApi (as Agent), NAREngine, BaseEngine, Kernel gates (KernelBudgetGate, KernelPerceptionGate, etc.), TaskManager, GameRegistry, ActionRegistry, ComponentRegistry, RewardRegistry, SensorRegistry, cognitive types (CognitiveController, createDefaultRegistry, CognitiveRegistry, resolveSlot), strategies/attention types, InMemoryEventLog, LogStoreEventLog
+- `src/kernel/index.ts`: Full NAR kernel re-exports (budget scopes, control budgets, autonomy clock, gate registry, kernel gates, engine, reputation, thread scope, replay utilities)
+- `src/lm/index.ts`: ContrastiveMemory, MiningBag, system-one reflexes (LMReflex, PlacementCascadeReflex), reflexes from @senars/nar/reflex (EpsilonGreedyReflex, TabularQReflex, Negotiator, NalVetoArbitration, WeightedQuorum, UCBReflex), SystemOneIngressJudge
+- `src/memory/index.ts`: ConceptGraph, Memory, EpisodeConsolidator, LinkLayerMemory, EpisodicMemory (with correct path)
+- `src/metta/index.ts`: MettaEngine, bootstrapStdLib, clearOps, MeTTaInterpreter, EGraph, PatternMatcher, ReductionPipeline, InMemorySpace, MettaStamp, MeTTaBuilder, MeTTaRuntime (renamed Stamp to MettaStamp to avoid conflict)
+- `src/utils/index.ts`: Logger (createLogger, defaultLogger, Logger, silentLogger, registerLogEnricher), CommandRegistry, commands types
+- `src/log/EventLogAdapter.ts`: InMemoryEventLog compatibility class for test migration
+
+**Typecheck Fixes:**
+- Fixed duplicate `Agent` export in `@senars/agent` (CoreAgent vs Agent/NarAgentApi)
+- Fixed duplicate `Strategy` export in `@senars/agent`
+- Fixed `BaseEngine` import path (from `@senars/core` not `@senars/nar/engine`)
+- Fixed `Stamp` conflict between `@senars/kernel` and `@senars/metta` (renamed to `MettaStamp`)
+- Fixed `LinkLayerMemory` import path (from `@senars/nar/memory/associative.js`)
+
+**Gates Status After Fixes:**
+- `pnpm typecheck` ✅ PASS (root)
+- `pnpm typecheck:bin` ✅ PASS
+- `pnpm lint` ✅ PASS
+- `pnpm surface-no-legacy` ✅ PASS
+- `pnpm exports:check` ✅ PASS
+- `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
+- `pnpm docs:drift` ✅ PASS (docs regenerated)
+- `pnpm gates` ❌ FAIL at `env:grammar` (pre-existing UI issue — out of scope)
+
+**Current Structural Metrics:**
+- Export subpaths: **89** (target 1) — consolidation needed (core:20, nar:43, io:3, metta:2, util:13, ui:8)
+- Circular chains: **0** (target 0) — ✅ MAINTAINED
+- Append-only persistence sites: 4 (target 1) — log/store.ts is the primary site
+
+**Remaining Work (M1-M3 Consolidation):**
+- ✅ Migrate `src/bin/`, `src/bin/commands/`, `src/bin/lib/` imports from `@senars/*` to `src/` path aliases
+- ✅ Migrate `src/cli/` imports from `@senars/*` to `src/` path aliases
+- ✅ Migrate `src/surface/` imports — already using `@senars/worlds`, `@senars/admit`, `@senars/mining` path aliases
+- ✅ Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (261 test files — 247+ migrated for @senars/* imports; ~80 files with relative imports remain)
+- 🔄 **Consolidate export subpaths from 89 to 1** (collapse core, nar, io, metta, util, ui packages into root)
+- 🔄 **Reduce persistence sites to 1** (LogStore only)
+- Migrate ~80 test files with relative imports from `../../nar/src/` to new path aliases
+
