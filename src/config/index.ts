@@ -7,6 +7,7 @@ export {
 } from './defaults.js';
 export { loadConfig, loadConfigFromEnv } from './loader.js';
 export { systemOneDefaults, systemOneSchema } from '@senars/util/config/system-one.js';
+export { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from './nar.js';
 export type {
   AgentSectionConfig,
   AppConfig,

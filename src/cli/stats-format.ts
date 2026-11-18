@@ -3,7 +3,7 @@
  * Shared formatting for NAR, LM, and Agent statistics
  */
 
-import type { NAR, Agent } from '../agent/index.js';
+import type { NAR, ExtendedAgent } from '../agent/index.js';
 import type { LMExecutionStats } from '../utils/common.js';
 import { formatDuration, formatTruth, limitList } from '../utils/common.js';
 import type { LMHandle } from './commands.js';
@@ -82,7 +82,7 @@ export function formatAttention(nar: NAR, limit = 20): string {
   return lines.join('\n');
 }
 
-export function formatAgentStatus(agent: Agent, nar: NAR, lmService: LMHandle): string {
+export function formatAgentStatus(agent: ExtendedAgent, nar: NAR, lmService: LMHandle): string {
   const stats = nar.getStatistics();
   const lmStats = lmService.getStats();
   const knowledge = agent.knowList();

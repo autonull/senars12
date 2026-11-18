@@ -8,6 +8,7 @@
 
 import { z } from 'zod';
 import type { LogStore } from './store.js';
+import { createLogStore } from './store.js';
 import type {
   LogEntry,
   CognitiveEvent,
@@ -248,9 +249,9 @@ export function createLogStoreEventLogFromStore(store: LogStore): LogStoreEventL
  * This is a compatibility wrapper for tests that still use the old InMemoryEventLog interface.
  * New code should use LogStoreEventLog directly with createLogStoreEventLog().
  */
+
 export class InMemoryEventLog extends LogStoreEventLog {
   constructor() {
-    const { createLogStore } = require('./store.js');
     const store = createLogStore();
     super(store);
     // Open the store synchronously for compatibility

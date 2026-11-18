@@ -7,16 +7,16 @@ import { describe, expect, it } from 'vitest';
 import {
   type CognitiveParameters,
   DEFAULT_COGNITIVE_PARAMETERS,
-} from '../../nar/src/config/cognitive-parameters.js';
-import { loadGateEvents, persistGateLogs } from '../../nar/src/kernel/EventLogPersistence.js';
-import { GateRegistry } from '../../nar/src/kernel/GateRegistry.js';
+} from '@senars/config';
+import { loadGateEvents, persistGateLogs } from '@senars/log';
+import { GateRegistry } from '@senars/kernel';
 import {
   persistDerivationRecords,
   replayIntoMemory,
   serializeReplayResult,
-} from '../../nar/src/kernel/replay.js';
-import { Memory } from '../../nar/src/memory/memory.js';
-import { termParser } from '../../nar/src/terms/index.js';
+} from '@senars/kernel';
+import { Memory } from '@senars/memory';
+import { termParser } from '@senars/terms';
 
 const mkTaskAdmitted = (
   overrides: Partial<{

@@ -6,8 +6,8 @@ import {
   loadGateEvents,
   persistGateLogs,
   replayTaskAdmissions,
-} from '../../nar/src/kernel/EventLogPersistence.js';
-import { GateRegistry } from '../../nar/src/kernel/GateRegistry.js';
+} from '@senars/log';
+import { GateRegistry } from '@senars/kernel';
 
 describe('todo7: gate log persistence', () => {
   it('persists, reloads, and replays admissions in order', () => {

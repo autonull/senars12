@@ -4,10 +4,9 @@
 
 export type { NARConfig } from '@senars/nar';
 export { NAR } from '@senars/nar';
-export type { BinAgentApi as Agent } from '@senars/nar/agent';
 export { createAgent } from '@senars/nar/agent';
 export { NARBuilder } from '@senars/nar/agent/builder';
-export type { ExtendedAgent } from '@senars/nar/agent';
+export type { ExtendedAgent, BinAgentApi } from '@senars/nar/agent';
 export type { WiredNAR } from '@senars/nar/agent/builder';
 export { createNAR } from '@senars/nar';
 export { createBotNAR, createMinimalNAR, createTestNAR } from '@senars/nar';
@@ -15,6 +14,8 @@ export { DEFAULT_CONFIG } from '@senars/nar';
 export { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '@senars/nar';
 export { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
 export type { NAREventMap } from '@senars/nar/types';
+export { NarEventBus } from '@senars/nar/types';
+export { validateCognitiveEvent, validateDerivationRecord } from '@senars/generated/schemas';
 export { coreCommands, episodesCommands, lmCommands, memoryCommands, narCommands, rlfpCommands, selfCommands } from '@senars/nar/commands';
 export type { ScenarioProfile } from '@senars/nar/imagination';
 export { CognitiveTreadmill, ScenarioGenerator } from '@senars/nar/imagination';
@@ -24,8 +25,8 @@ export type { ChatStreamEvent } from '@senars/util/types/cognitive';
 export { withinWorkspace } from '@senars/core';
 export { Truth } from '@senars/nar/terms';
 
-// Re-export core Agent class as CoreAgent
-export { Agent as CoreAgent, type AgentOptions } from '@senars/core';
+// Re-export core Agent class
+export { Agent, type AgentOptions } from '@senars/core';
 
 // Re-export NAR engine
 export { NAREngine } from '@senars/nar/engine';

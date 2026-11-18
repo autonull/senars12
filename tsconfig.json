@@ -32,6 +32,7 @@
       "@senars/transport/*": ["./src/io/*"],
       "@senars/metta-runtime": ["./src/metta/index.ts"],
       "@senars/metta-runtime/*": ["./src/metta/*"],
+      "@senars/generated/*": ["./src/generated/*"],
       "@senars/logics/*": ["./src/logics/*"],
       "@senars/verification/*": ["./src/verification/*"],
       "@senars/log": ["./src/log/index.ts"],
@@ -80,5 +81,5 @@
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "tests/**/*.ts"],
-  "exclude": ["node_modules", "dist", "tests/setup", "src/cli/**", "src/bin/**", "src/api/**", "tests/obligations/**", "tests/nar/**", "tests/e2e/**", "src/log/GateEventLedger.ts", "src/log/DerivationLedger.ts"]
+  "exclude": ["node_modules", "dist", "tests/setup", "src/cli/**", "src/bin/**", "src/api/**", "tests/obligations/**", "tests/nar/**", "src/log/GateEventLedger.ts", "src/log/DerivationLedger.ts"]
 }

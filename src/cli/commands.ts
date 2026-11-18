@@ -1,6 +1,6 @@
 import type { CLICommand } from '../io/index.js';
 import { QUIT_SENTINEL } from '../io/index.js';
-import type { NAR, Agent } from '../agent/index.js';
+import type { NAR, ExtendedAgent } from '../agent/index.js';
 import type { LMTask, LMExecutionStats } from '../utils/common.js';
 import { degrade, errMsg, splitWords, truncate } from '../utils/common.js';
 import type { ConversationSession, SessionManager } from '../utils/common.js';
@@ -76,7 +76,7 @@ export interface TierControl {
 
 export function buildCommands(
   nar: NAR,
-  agent: Agent,
+  agent: ExtendedAgent,
   lmService: LMHandle,
   sessionManager: SessionManager,
   getSession: () => ConversationSession,

@@ -11,15 +11,15 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { CognitiveEvent, Proposal } from '@senars/agent';
 import { PROPOSAL_SCHEMA_VERSION } from '@senars/agent';
-import { replayCognitiveState } from '../../nar/src/kernel/EventLogPersistence.js';
-import { ProposalLifecycle } from '../../nar/src/proposal/lifecycle.js';
+import { replayCognitiveState } from '@senars/kernel';
+import { ProposalLifecycle } from '@senars/proposal';
 import {
   ProposalReplayError,
   isProposalStream,
   recordedSchemaVersions,
   replayProposalStream,
   staleAdmissions,
-} from '../../nar/src/proposal/replay.js';
+} from '@senars/proposal';
 import { fromRoot } from '../../scripts/lib/root.js';
 
 const FIXTURE = fromRoot('tests/fixtures/proposal-stream.jsonl');
