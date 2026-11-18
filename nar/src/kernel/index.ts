@@ -26,13 +26,6 @@ export {
 } from './DerivationLedger.js';
 export type { AutonomyClock } from './cycle-driver.js';
 export { driveCycles } from './cycle-driver.js';
-export type { CognitiveStateSnapshot } from './EventLogPersistence.js';
-export {
-  loadGateEvents,
-  persistGateLogs,
-  replayCognitiveState,
-  replayTaskAdmissions,
-} from './EventLogPersistence.js';
 export type { GateEventEntry, GateEventLedgerOptions } from './GateEventLedger.js';
 export { GateEventEntrySchema, GateEventLedger } from './GateEventLedger.js';
 export type { GateRegistryInit, IGateRegistry } from './GateRegistry.js';
@@ -55,18 +48,6 @@ export {
   KernelRewardGate,
   SelfRewardGate,
 } from './KernelRewardGate.js';
-export {
-  computeReplayStateHash,
-  type FullReplayOptions,
-  persistDerivationRecords,
-  type ReplayResult,
-  type ReplaySnapshotFile,
-  type ReplayTally,
-  replayIntoMemory,
-  serializeReplayResult,
-  verifyReplayStateHash,
-} from './replay.js';
-
 export { domainKey, providerKey } from './reputation-keys.js';
 export {
   DEFAULT_REPUTATION_CAPACITY,

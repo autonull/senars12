@@ -1,7 +1,7 @@
 import { BoundedRing, generateId, takeLast } from '@senars/util';
 import type { Engine } from '../engine/Engine.js';
 import { sweepEngines } from '../engine/sweep.js';
-import type { EventLog } from '../eventlog/EventLog.js';
+import type { EventLog } from '../eventlog/index.js';
 import type { SkillFeedback, ToolRegistry } from '../motor/ToolRegistry.js';
 import type { MemoryEntry, MemoryQuery } from './types.js';
 import { RECALL_WINDOW, WORKING_MEMORY_CAPACITY } from './types.js';

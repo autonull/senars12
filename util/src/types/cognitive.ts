@@ -6,7 +6,7 @@ import type { BeliefTruth } from './truth.js';
  * `kernel` events and System One mints `proposer` ones, and the schema said so
  * while `EngineOrigin` did not.
  */
-export const ENGINE_ORIGINS = ['nar', 'kernel', 'proposer'] as const;
+export const ENGINE_ORIGINS = ['nar', 'kernel', 'proposer', 'metta'] as const;
 
 export type EngineOrigin = (typeof ENGINE_ORIGINS)[number];
 

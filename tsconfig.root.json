@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ESNext", "esnext.temporal", "dom", "dom.iterable"],
+    "types": ["node", "vitest/globals"],
+    "rootDir": ".",
+    "paths": {
+      "@senars/kernel/*": ["./src/kernel/*"],
+      "@senars/logics/*": ["./src/logics/*"],
+      "@senars/verification/*": ["./src/verification/*"],
+      "@senars/log": ["./src/log/index.ts"],
+      "@senars/log/*": ["./src/log/*"],
+      "@senars/formats/*": ["./src/formats/*"],
+      "@senars/admit/*": ["./src/admit/*"],
+      "@senars/worlds/*": ["./src/worlds/*"],
+      "@senars/mining/*": ["./src/mining/*"],
+      "@senars/surface/*": ["./src/surface/*"],
+      "@senars/deck/*": ["./src/deck/*"],
+      "@senars/ui-contract/*": ["./src/ui-contract/*"],
+      "@senars/economy/*": ["./src/economy/*"],
+      "@senars/generated/*": ["./src/generated/*"]
+    }
+  },
+  "include": ["src/log/**/*.ts", "src/logics/**/*.ts", "src/verification/**/*.ts", "src/formats/**/*.ts", "src/admit/**/*.ts", "src/worlds/**/*.ts", "src/mining/**/*.ts", "src/surface/**/*.ts", "src/deck/**/*.ts", "src/ui-contract/**/*.ts", "src/economy/**/*.ts", "src/kernel/**/*.ts", "src/generated/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
+  "exclude": ["node_modules", "dist", "tests", "src/cli/**", "src/bin/**", "src/api/**", "src/_pending/**", "src/log/EventLogAdapter.ts", "src/log/StatePersister.ts"]
+}

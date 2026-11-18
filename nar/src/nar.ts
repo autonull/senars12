@@ -48,7 +48,6 @@ import {
 import { createOptionalSubsystems } from './facade/optional-subsystems.js';
 import { LogStoreStatePersister } from '@senars/log/StatePersister';
 import type { LogStore } from '@senars/log/store';
-import { StatePersister } from './facade/persistence.js';
 import { KernelLedger } from './kernel/KernelLedger.js';
 import { createKernelRewind, type KernelRewind, type RewindReport } from './state/checkpoint.js';
 import type { SystemOneRuntime } from './facade/system-one.js';
@@ -188,7 +187,7 @@ export class NAR extends BaseComponent {
   // Extracted subsystems (M2)
   private readonly systemOne: SystemOneRuntime;
   private readonly games: GameManager;
-  private readonly persister: LogStoreStatePersister | StatePersister;
+  private readonly persister: LogStoreStatePersister;
   /** Runtime durability for the gate rings and the fire ring (CORE.19 C3.3/C4.3); present only when persisting. */
   #ledgers: KernelLedger | null = null;
   /** Cycles since the last gate-log flush — the interval half of C3.3. */
@@ -313,61 +312,35 @@ export class NAR extends BaseComponent {
     });
     this.driveManager.setSystemEventBus(this.systemEventBus);
 
-    // Use LogStoreStatePersister if LogStore is available, otherwise fall back to legacy StatePersister
-    if (this.config.logStore) {
-      this.persister = new LogStoreStatePersister(this.config.logStore, {
-        config: this.config,
-        memory: this.memory,
-        processor: this.processor,
-        driveManager: this.driveManager,
-        attentionReport: () => this.attentionReport(),
-        query: this.query,
-        boundary: {
-          getCycleCount: () => this.execution.getCycleCount(),
-          setCycleCount: (count) => this.execution.setCycleCount(count),
-          pendingTasks: () => this.taskManager.getPending(),
-          restorePending: (records) => {
-            let restored = 0;
-            for (const record of records) {
-              const task = rehydrateTask(record, record.type ?? 'belief');
-              if (!task) continue;
-              this.taskManager.addTask(task);
-              restored++;
-            }
-            return restored;
-          },
-          idHighWater: () => currentIdCount(),
-          primeIdHighWater: (count) => primeIdCount(count),
-        },
-      });
-    } else {
-      // Legacy fallback
-      this.persister = new StatePersister({
-        config: this.config,
-        memory: this.memory,
-        processor: this.processor,
-        driveManager: this.driveManager,
-        attentionReport: () => this.attentionReport(),
-        query: this.query,
-        boundary: {
-          getCycleCount: () => this.execution.getCycleCount(),
-          setCycleCount: (count) => this.execution.setCycleCount(count),
-          pendingTasks: () => this.taskManager.getPending(),
-          restorePending: (records) => {
-            let restored = 0;
-            for (const record of records) {
-              const task = rehydrateTask(record, record.type ?? 'belief');
-              if (!task) continue;
-              this.taskManager.addTask(task);
-              restored++;
-            }
-            return restored;
-          },
-          idHighWater: () => currentIdCount(),
-          primeIdHighWater: (count) => primeIdCount(count),
-        },
-      });
+    // Use LogStoreStatePersister (LogStore is required for persistence)
+    if (!this.config.logStore) {
+      throw new Error('LogStore is required for persistence. Provide config.logStore.');
     }
+    this.persister = new LogStoreStatePersister(this.config.logStore, {
+      config: this.config,
+      memory: this.memory,
+      processor: this.processor,
+      driveManager: this.driveManager,
+      attentionReport: () => this.attentionReport(),
+      query: this.query,
+      boundary: {
+        getCycleCount: () => this.execution.getCycleCount(),
+        setCycleCount: (count) => this.execution.setCycleCount(count),
+        pendingTasks: () => this.taskManager.getPending(),
+        restorePending: (records) => {
+          let restored = 0;
+          for (const record of records) {
+            const task = rehydrateTask(record, record.type ?? 'belief');
+            if (!task) continue;
+            this.taskManager.addTask(task);
+            restored++;
+          }
+          return restored;
+        },
+        idHighWater: () => currentIdCount(),
+        primeIdHighWater: (count) => primeIdCount(count),
+      },
+    });
     // D23 (TODO17b): ambiguity at ingress stimulates curiosity (A4 closure).
     this.gates.getPerceptionGate().setDriveManager(this.driveManager);
     // TODO29.a A1: the cycle's only route to a provider. The seam holds this
@@ -449,7 +422,10 @@ export class NAR extends BaseComponent {
     await super.start();
     this.processor.getRecorder().setClock(() => this.config.clock?.() ?? Date.now());
     if (this.config.persistState && !this.#ledgers) {
-      this.#ledgers = new KernelLedger(this.config.statePath ?? cachePath('nar-state'), this.processor.getRecorder());
+      this.#ledgers = new KernelLedger(
+        this.config.statePath ?? cachePath('nar-state'),
+        this.processor.getRecorder()
+      );
     }
     const restored = await this.persister.load();
     if (restored) {

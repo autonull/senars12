@@ -5,7 +5,7 @@ import type {
   Derivation,
   PromptBuilder,
 } from '@senars/core';
-import { Agent, InMemoryEventLog } from '@senars/core';
+import { Agent } from '@senars/core';
 import { createLogStore, LogStoreEventLog } from '../../../src/log/index.js';
 import { createCortexFromLM } from '@senars/core/cortex';
 import type { PersistableSessionManager } from '@senars/core/memory';
@@ -292,15 +292,15 @@ function extendAgent(agent: Agent, config: CreateAgentConfig, narInstance: NAR, 
  * This is the main factory function for creating NAR-backed agents.
  */
 export async function createAgent(config: CreateAgentConfig = {}): Promise<ExtendedAgent> {
-  let log: InMemoryEventLog | LogStoreEventLog;
+  let log: LogStoreEventLog;
   let logStore: any;
   if (config.persistence) {
     logStore = createLogStore({ dir: config.persistence.path });
-    await logStore.open();
-    log = new LogStoreEventLog(logStore);
   } else {
-    log = new InMemoryEventLog();
+    logStore = createLogStore();
   }
+  await logStore.open();
+  log = new LogStoreEventLog(logStore);
 
   const feedbackObserver = new DefaultToolFeedbackObserver();
 

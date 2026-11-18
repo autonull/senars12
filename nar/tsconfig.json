@@ -1,7 +1,6 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@senars/log/*": ["../src/log/*"],
       "@senars/logics/*": ["../src/logics/*"],

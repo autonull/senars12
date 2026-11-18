@@ -172,6 +172,7 @@ export type RULE_PROVENANCE_KIND = (typeof RULE_PROVENANCE_KINDS)[number];
 
 export const ENGINE_ORIGINS = [
   "nar",
+  "kernel",
   "proposer",
   "metta"
 ] as const;

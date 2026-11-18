@@ -26,9 +26,9 @@ import type { ChatOptions, ChatStreamEvent } from './chat.js';
 import type { LLMCortex } from './cortex/LLMCortex.js';
 import type { CognitiveStimulus, Derivation, Engine } from './engine/Engine.js';
 import { invokeEngineHook, sweepEngines } from './engine/sweep.js';
-import type { EventLog } from './eventlog/EventLog.js';
-import { isDurableEvent } from './eventlog/durability.js';
-import { InMemoryEventLog } from './eventlog/InMemoryEventLog.js';
+import type { EventLog } from './eventlog/index.js';
+import { isDurableEvent } from './schemas/index.js';
+import { LogStoreEventLog } from './eventlog/index.js';
 import { MemoryService } from './memory/MemoryService.js';
 import { type PersistableSessionManager, RECALL_WINDOW } from './memory/types.js';
 import { registerBuiltinTools } from './motor/builtin-tools.js';
@@ -88,7 +88,13 @@ export class Agent {
 
   constructor(opts: AgentOptions = {}) {
     this.id = opts.id ?? generateId('agent');
-    this.log = opts.log ?? new InMemoryEventLog();
+    if (opts.log) {
+      this.log = opts.log;
+    } else if (opts.logStore) {
+      this.log = new LogStoreEventLog(opts.logStore);
+    } else {
+      throw new Error('Either log or logStore must be provided in AgentOptions');
+    }
     this.memory = new MemoryService();
     this.policy = new PolicyEngine();
     this.motor = new ToolRegistry(opts.feedbackObserver);

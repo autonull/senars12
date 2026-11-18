@@ -10,9 +10,8 @@ import { z } from 'zod';
 import type { LogStore } from './store.js';
 import type { LogEntry, CognitiveEvent as LogCognitiveEvent, UUID, TimestampMs } from './events.js';
 import { createLogEntry, hashEntry } from './events.js';
-import type { EventLog, EventLogConfig, CognitiveEvent as CoreCognitiveEvent } from '@senars/core/eventlog';
-import type { EventLogQuery } from '@senars/core/eventlog/EventLog.js';
-import { CognitiveEventSchema } from '@senars/core/schemas/cognitive-events.js';
+import type { EventLog, EventLogConfig, EventLogQuery, CognitiveEvent as CoreCognitiveEvent } from '@senars/core/eventlog';
+import { CognitiveEventSchema } from '@senars/core/schemas/cognitive-events';
 import { PushQueue } from '@senars/util/events';
 
 interface Subscription {
@@ -61,13 +60,19 @@ export class LogStoreEventLog implements EventLog {
     const validated = CognitiveEventSchema.parse(fullEvent);
 
     // Convert to log store event format and append
-    const logEvent = validated as unknown as LogCognitiveEvent;
+    const logEvent = this.convertToLogEvent(validated);
     await this.store.append(logEvent, { ts: validated.timestamp });
 
     // Notify subscribers
     this.notify(validated);
 
     return validated;
+  }
+
+  private convertToLogEvent(event: CoreCognitiveEvent): LogCognitiveEvent {
+    // The new LogCognitiveEvent type is compatible since we added 'kernel' to ENGINE_ORIGINS
+    // and the base fields match. Cast through unknown to satisfy TypeScript.
+    return event as unknown as LogCognitiveEvent;
   }
 
   subscribe(options?: {
@@ -105,13 +110,20 @@ export class LogStoreEventLog implements EventLog {
         for (let s = seq + 1; s <= this.store.getLastSeq(); s++) {
           const e = await this.store.read(s);
           if (!e) continue;
-          if (this.matchesSubscription(subscription, e.event as unknown as CoreCognitiveEvent)) {
-            subscription.queue.push(e.event as unknown as CoreCognitiveEvent);
+          const coreEvent = this.convertFromLogEvent(e.event);
+          if (this.matchesSubscription(subscription, coreEvent)) {
+            subscription.queue.push(coreEvent);
           }
         }
         break;
       }
     }
+  }
+
+  private convertFromLogEvent(event: LogCognitiveEvent): CoreCognitiveEvent {
+    // The LogCognitiveEvent has the same base structure as CoreCognitiveEvent
+    // since we aligned ENGINE_ORIGINS. Cast through unknown.
+    return event as unknown as CoreCognitiveEvent;
   }
 
   private matchesSubscription(subscription: Subscription, event: CoreCognitiveEvent): boolean {
@@ -144,7 +156,7 @@ export class LogStoreEventLog implements EventLog {
       const entry = await this.store.read(seq);
       if (!entry) continue;
 
-      const event = entry.event as unknown as CoreCognitiveEvent;
+      const event = this.convertFromLogEvent(entry.event);
 
       if (query.correlationId && event.correlationId !== query.correlationId) continue;
       if (typesSet && !typesSet.has(event.type)) continue;
@@ -165,7 +177,7 @@ export class LogStoreEventLog implements EventLog {
       const entry = await this.store.read(seq);
       if (!entry) continue;
 
-      const event = entry.event as unknown as CoreCognitiveEvent;
+      const event = this.convertFromLogEvent(entry.event);
 
       if (!started) {
         if (event.id === fromId || (event.id ?? '') > fromId) {

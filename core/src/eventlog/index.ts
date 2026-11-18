@@ -1,13 +1,16 @@
-export type { CognitiveEvent } from '../schemas/index.js';
-export {
-  DURABLE_EVENT_TYPES,
-  isDurableEvent,
-  RECALLED_EVENT_TYPES,
-  recalledEventTypes,
-} from './durability.js';
-export type { EventLog, EventLogConfig } from './EventLog.js';
-export { EventLogError } from './EventLog.js';
-export { InMemoryEventLog } from './InMemoryEventLog.js';
-export { queryEventStream, type StreamQuery } from './query.js';
-export type { SqliteEventLogConfig } from './SqliteEventLog.js';
-export { SqliteEventLog } from './SqliteEventLog.js';
+/**
+ * EventLog — unified adapter over LogStore.
+ *
+ * The legacy SqliteEventLog and InMemoryEventLog have been replaced by
+ * LogStoreEventLog from @senars/log. This module re-exports the adapter
+ * for compatibility.
+ */
+
+export type {
+  EventLog,
+  EventLogConfig,
+  EventLogQuery,
+  CognitiveEvent,
+} from '@senars/log';
+export { LogStoreEventLog } from '@senars/log/EventLogAdapter.js';
+export { createLogStoreEventLog, createLogStoreEventLogFromStore } from '@senars/log/EventLogAdapter.js';

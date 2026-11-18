@@ -8,7 +8,6 @@
 
 import type { LogStore } from './store.js';
 import { SnapshotManager, createSnapshotManager, type SnapshotConfig } from './snapshot.js';
-import type { RestoreSummary, BoundaryPorts } from '../../nar/src/facade/persistence.js';
 import { encodeState, decodeState, NAR_STATE_SCHEMA_VERSION } from '../../nar/src/state/codec.js';
 import { serializeTaskRecord, rehydrateTask, type TaskRecord } from '../../nar/src/task/record.js';
 import { encodeBoundary, decodeBoundary, type ConsistencyBoundary, BOUNDARY_FILENAME } from '../../nar/src/state/boundary.js';
@@ -29,6 +28,31 @@ const STATE_FILENAMES = [
   'lm-rules.json',
   BOUNDARY_FILENAME,
 ] as const;
+
+/**
+ * The kernel-side operations the persistence boundary round-trips (CORE.19
+ * C4.1). The NAR owns the kernel, the queue and the id ledger, so the persister
+ * names the one operation it needs of each rather than reaching into them.
+ */
+export interface BoundaryPorts {
+  getCycleCount(): number;
+  setCycleCount(count: number): void;
+  /** The pending queue at save time. */
+  pendingTasks(): any[];
+  /** Re-queue restored pending tasks; returns how many were queued. */
+  restorePending(records: any[]): number;
+  /** The id-minting high-water mark at save time. */
+  idHighWater(): number;
+  /** Prime the id ledger past the saved mark, so a restart never re-stamps an id. */
+  primeIdHighWater(count: number): void;
+}
+
+/** What a restore resumed, for the `restored` event (CORE.19 C4.6). */
+export interface RestoreSummary {
+  cycleCount: number;
+  pendingRestored: number;
+  conceptsRestored: number;
+}
 
 interface StatePersisterDeps {
   config: Pick<NARConfig, 'persistState' | 'statePath' | 'rng'>;

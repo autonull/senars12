@@ -18,7 +18,7 @@ import type {
   Engine,
   ToolResult,
 } from '../engine/Engine.js';
-import type { EventLog } from '../eventlog/EventLog.js';
+import type { EventLog } from '../eventlog/index.js';
 import type { MemoryService } from '../memory/MemoryService.js';
 import type { ToolRegistry } from '../motor/ToolRegistry.js';
 import { motorToToolSet } from '../motor/toToolSet.js';

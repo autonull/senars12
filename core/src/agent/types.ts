@@ -32,9 +32,10 @@ import type {
   Engine,
   ToolResult,
 } from '../engine/Engine.js';
-import type { EventLog } from '../eventlog/EventLog.js';
 import type { PersistableSessionManager } from '../memory/types.js';
+import type { LogStore } from '@senars/log/store';
 import type { PinStore } from '../motor/builtin-tools.js';
+import type { EventLog } from '../eventlog/index.js';
 import type { AgentCapabilities } from '../protocol/index.js';
 import type { CognitiveEvent } from '../schemas/index.js';
 import type { MacroPhase } from './pipeline.js';
@@ -44,6 +45,7 @@ export type { CognitiveStimulus, Context, Derivation, ParsedCommand, ToolResult 
 
 export interface AgentOptions extends UtilAgentOptions {
   log?: EventLog;
+  logStore?: LogStore;
   cortex?: LLMCortex;
   episodicMemory?: EpisodicMemory;
   /** Evaluate a MeTTa expression; backs the `metta` builtin tool. */

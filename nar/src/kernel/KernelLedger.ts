@@ -12,15 +12,23 @@ import { DerivationLedger } from './DerivationLedger.js';
 import { GateEventLedger } from './GateEventLedger.js';
 import type { GateRegistry } from './GateRegistry.js';
 
+export interface KernelLedgerOptions {
+  /** Optional LogStore for unified persistence (replaces file-based ledgers). */
+  logStore?: never; // Reserved for future use - blocked by schema divergence (TODO.core.22a.md)
+}
+
 export class KernelLedger {
   readonly gates: GateEventLedger;
   readonly derivations: DerivationLedger;
 
-  constructor(basePath: string, recorder: DerivationRecorder) {
+  constructor(
+    basePath: string,
+    recorder: DerivationRecorder,
+    _options: KernelLedgerOptions = {}
+  ) {
+    // Legacy file-based ledgers (LogStore-based ledgers blocked by schema divergence)
     this.gates = new GateEventLedger(join(basePath, 'gate-events'));
     this.derivations = new DerivationLedger(join(basePath, 'derivations'));
-    // Bind the completed-chain sink at construction, so every closing record is
-    // persisted without the facade holding a second wiring line (CORE.19 C3.4).
     this.derivations.observe(recorder);
   }
 
