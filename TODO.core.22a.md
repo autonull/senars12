@@ -76,8 +76,8 @@
 - `pnpm docs:drift` ✅ PASS
 
 **Remaining Work (M1-M3 Consolidation):**
-- Fix port interface type mismatches (NARFacadePort, AutonomyNAR, SelfToolsNAR need to match actual NAR)
-- Fix `BeliefInfo` type to use `frequency`/`confidence` instead of `f`/`c`
+- ✅ Fix port interface type mismatches (NARFacadePort, AutonomyNAR, SelfToolsNAR, SelfConceptNAR now match actual NAR)
+- ✅ Fix `BeliefInfo` type to use `frequency`/`confidence` instead of `f`/`c`
 - Consolidate export subpaths from 87 to 1
 - Reduce persistence sites to 1
 - Typecheck: ✅ **PASS** — all source files and test files type-check cleanly
@@ -1503,6 +1503,45 @@ Files created:
 **Gates Status**
 - `pnpm typecheck` ✅ PASS
 - `pnpm typecheck:packages` ✅ PASS
+- `pnpm typecheck:bin` ✅ PASS
+- `pnpm lint` ✅ PASS
+- `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
+- `pnpm exports:check` ✅ PASS
+- `pnpm docs:drift` ✅ PASS (docs regenerated)
+- `pnpm gates` ❌ FAIL (fails at `env:grammar` — UI pre-existing issue, out of scope)
+
+---
+### Session Log — 2026-11-18 (Port Interface Type Mismatches & BeliefInfo Fix)
+**Port Interface Type Mismatches Resolved**
+- Updated `NARFacadePort` (`nar/src/facade/ports.ts`) to match actual NAR implementation:
+  - Fixed `input()` signature to accept `string | Term`, optional `TaskType`, `TruthType`
+  - Added missing methods: `getExecution()`, `gates`, `checkConstitutionViolation()`, `getConstitution()`, `step()`, `pause()`, `resume()`, `getControlState()`, `getAutonomyConfig()`, `getEventBus()`, `getRuleTable()`, `getProposalLog()`, `getFocusBag()`, `getAttachedGames()`, `getSelfMetaGame()`, `getMetricsCollector()`
+  - Fixed `logger` type to `ScopedLogger | undefined`
+  - Fixed `getSystemOneContrastive()` to return `ContrastiveMemory | undefined` with optional correlationId
+  - Fixed `getRuleTable()` import path to `../rules/impls/rule-table.js`
+- Updated `AutonomyNAR` (`nar/src/autonomy/ports.ts`) to match NAR config structure:
+  - `getConfig()` returns `{ autonomy?: AutonomyConfigInput; clock?: Clock }`
+  - `step()` returns `Promise<number>` with optional signal/correlationId
+  - `memory.consolidate()` returns `void` (not Promise)
+  - `memory.evictionReport()` returns `{ archived: number; forgotten: number } | undefined`
+  - `checkpointConsolidation()` returns `void`
+- Updated `SelfToolsNAR` (`nar/src/tools/adapters/self/context-port.ts`):
+  - Added `getExecution(): NARExecution | undefined`
+- Updated `SelfConceptNAR` (`nar/src/tools/impls/self-concept-port.ts`):
+  - Changed `believe()` truth parameter from `{ f: number; c: number }` to `TruthType` (frequency/confidence)
+
+**BeliefInfo Type Fixed**
+- Updated `nar/src/nl/types.ts`: `BeliefInfo.truth` now uses `{ frequency: number; confidence: number }` instead of `{ f: number; c: number }`
+
+**PersisterNARConfig Fixed**
+- Updated `src/log/StatePersister.ts`: `persistState` is now optional (`boolean | undefined`) to match `NARConfig`
+
+**Facade Fixes**
+- Updated `nar/src/facade/index.ts`: Handle undefined `GovernanceResolver` with early returns
+
+**All Reasoner Gates Green**
+- `pnpm typecheck` ✅ PASS
+- `pnpm typecheck:packages` ✅ PASS (5 packages clean)
 - `pnpm typecheck:bin` ✅ PASS
 - `pnpm lint` ✅ PASS
 - `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
