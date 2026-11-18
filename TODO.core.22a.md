@@ -1576,3 +1576,34 @@ Files created:
 - `pnpm exports:check` ✅ PASS
 - `pnpm docs:drift` ✅ PASS (docs regenerated)
 - `pnpm gates` ❌ FAIL (fails at `env:grammar` — UI pre-existing issue, out of scope)
+
+---
+### Session Log — 2026-11-18 (GateEventLedger Type Fix & Test Verification)
+**LogStoreGateEventLedger Type Error Fixed**
+- Fixed `src/log/GateEventLedger.ts` typecheck errors:
+  - Changed `#seen` Set to use `event.id` (string) instead of `event` (object) for deduplication
+  - Added null checks for optional `event.id` in `flush()`, `adopt()`, and `#isSeen()` methods
+- `pnpm typecheck` ✅ PASS (was failing with TS2345 errors)
+
+**Test Suite Verification**
+- Unit tests: 367 passed, 19 failed (pre-existing failures from legacy module deletions and LogStore file handle cleanup)
+- Fixed `tests/cli/bot-command-primitives.test.ts` by ensuring `@senars/util` import works correctly
+- Pre-existing failures include: deleted `InMemoryEventLog`/`SqliteEventLog`, missing `EventLogPersistence`, tests requiring `logStore` config, LogStore `ERR_INVALID_STATE` file handle warnings
+
+**Gates Status**
+- `pnpm typecheck` ✅ PASS
+- `pnpm typecheck:packages` ✅ PASS (5 packages clean)
+- `pnpm typecheck:bin` ✅ PASS
+- `pnpm lint` ✅ PASS
+- `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
+- `pnpm exports:check` ✅ PASS
+- `pnpm docs:drift` ✅ PASS (docs regenerated)
+- `pnpm gates` ❌ FAIL (fails at `env:grammar` — UI pre-existing issue, out of scope)
+- `pnpm surface-no-legacy` ❌ FAIL (100+ legacy imports in `src/bin/` — migration in progress)
+
+**Remaining Work (M1-M3 Consolidation):**
+- 🔄 Migrate `src/bin/`, `src/bin/commands/`, `src/bin/lib/` imports from `@senars/*` to `src/` path aliases (blocks `surface-no-legacy`)
+- 🔄 Migrate `src/cli/` and `src/surface/` imports from `@senars/*` to `src/` path aliases
+- 🔄 Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (20 failures remaining)
+- Consolidate export subpaths from 96 to 1 (collapse core, nar, io, metta, util, ui packages into root)
+- Reduce persistence sites to 1

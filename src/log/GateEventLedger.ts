@@ -84,9 +84,11 @@ export class LogStoreGateEventLedger {
         // Only append kernel-engine events (gate events)
         if (event.engine !== 'kernel') continue;
 
-        // Use WeakSet to track seen events (same as legacy ledger)
-        if (this.#seen.has(event)) continue;
-        this.#seen.add(event);
+        // Use event.id as deduplication key (same as legacy ledger)
+        const eventId = event.id;
+        if (!eventId) continue;
+        if (this.#seen.has(eventId)) continue;
+        this.#seen.add(eventId);
 
         // Encode gate in causationId for replay routing
         const eventWithGate = {
@@ -158,12 +160,16 @@ export class LogStoreGateEventLedger {
 
   /** Mark events read back from disk as already-written. */
   adopt(entries: ReadonlyArray<{ event: CognitiveEvent }>): void {
-    for (const entry of entries) this.#seen.add(entry.event.id);
+    for (const entry of entries) {
+      const id = entry.event.id;
+      if (id) this.#seen.add(id);
+    }
   }
 
   /** Check if an event has been seen. */
   #isSeen(event: CognitiveEvent): boolean {
-    return this.#seen.has(event.id);
+    const id = event.id;
+    return id ? this.#seen.has(id) : false;
   }
 
   /**
