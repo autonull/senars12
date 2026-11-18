@@ -5,7 +5,8 @@
  * lossless round-trip encoding/decoding with full operator support.
  */
 
-import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, termToJSON, termFromJSON, getArgs } from '../intern.js';
+import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, termToJSON, termFromJSON } from '../intern.js';
+import { getArgs } from '../term.js';
 import type { TruthValue } from '../../types.js';
 
 /** Narsese codec options. */

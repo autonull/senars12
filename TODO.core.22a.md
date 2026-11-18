@@ -36,8 +36,8 @@
 | 3. Truth port + NAL rules as formula ASTs + verifier + laws/vectors | ✅ **DONE** | `src/verification/record.ts`, `src/verification/interpreter.ts`, `src/verification/laws.ts`, `src/verification/vectors.ts`, `src/verification/cross-engine.ts` | Verification framework complete; all source files type-check cleanly |
 | 4. Temporal terms + surprise events + log mining | ✅ **DONE** | Included in log/mine.ts and logics/nal/temporal.ts | Temporal logic and log mining implemented |
 | 5. Gate matrix + snapshot/restore; obligations 1,3–6 | ✅ **DONE** | `src/kernel/gate.ts`, `src/log/snapshot.ts`, `src/log/restore.ts` | Gate framework and snapshot/restore created |
-| 6. Oracle seam + faculty engine + 10 specs + fallbacks | ✅ **DONE** | `src/oracles/oracle.ts`, `memo.ts`, `pins.ts`, `lm.ts`, `retrieval.ts`, `engines/z3.ts`, `engines/clingo.ts`, `engines/minisat.ts`, `engines/tau-prolog.ts`, `src/faculties/specs.ts`, `engine.ts`, `fallback.ts` | |
-| 7. Judgment cascade + learned judge + calibration/demotion + repair/contract | ✅ **DONE** | `src/faculties/judgment/cascade.ts`, `judge.ts`, `calibration.ts`, `telemetry.ts`, `src/loop/repair.ts`, `contract.ts`, `appraise.ts`, `select.ts`, `act.ts`, `record.ts`, `self-model.ts` | |
+| 6. Oracle seam + faculty engine + 10 specs + fallbacks | 🔧 **TYPECHECK FIXES IN PROGRESS** | `src/oracles/oracle.ts`, `memo.ts`, `pins.ts`, `lm.ts`, `retrieval.ts`, `engines/z3.ts`, `engines/clingo.ts`, `engines/minisat.ts`, `engines/tau-prolog.ts`, `src/faculties/specs.ts`, `engine.ts`, `fallback.ts` | Core logic complete; fixing import/type errors in faculty engine, fallback, and oracle engines |
+| 7. Judgment cascade + learned judge + calibration/demotion + repair/contract | 🔧 **TYPECHECK FIXES IN PROGRESS** | `src/faculties/judgment/cascade.ts`, `judge.ts`, `calibration.ts`, `telemetry.ts`, `src/loop/repair.ts`, `contract.ts`, `appraise.ts`, `select.ts`, `act.ts`, `record.ts`, `self-model.ts` | Core logic complete; fixing import/type errors in judgment cascade, loop modules |
 | 8. Axiomatic module: SLD + engines + CNF/models/MUS + certificates; projections | ⏳ Pending | — | |
 | 9. Economy: U/SF/VoI/metareasoning/overlays; obligations 6,10 | ⏳ Pending | — | |
 | 10. Habitat pack + lane A + fairness gate + first scorecard fold | ⏳ Pending | — | |
@@ -80,41 +80,44 @@
 - `src/log/mine.ts` — pattern/surprise mining ✅
 - `src/log/pins.ts` — deterministic oracle pinning ✅
 
-**Oracle modules status (new, type-check pending fixes):**
+**Oracle modules status (new, type-check fixes in progress):**
 - `src/oracles/oracle.ts` — oracle seam interface ✅
 - `src/oracles/memo.ts` — memoization layer ✅
 - `src/oracles/pins.ts` — deterministic pinning ✅
-- `src/oracles/lm.ts` — LM oracle adapter ✅
-- `src/oracles/retrieval.ts` — retrieval oracle ✅
-- `src/oracles/engines/z3.ts` — Z3 SMT oracle ✅
-- `src/oracles/engines/clingo.ts` — Clingo ASP oracle ✅
-- `src/oracles/engines/minisat.ts` — MiniSat SAT oracle ✅
+- `src/oracles/lm.ts` — LM oracle adapter 🔧 (fixing LanguageModel import)
+- `src/oracles/retrieval.ts` — retrieval oracle 🔧 (fixing undefined access)
+- `src/oracles/engines/z3.ts` — Z3 SMT oracle 🔧 (fixing startTs reference)
+- `src/oracles/engines/clingo.ts` — Clingo ASP oracle 🔧 (fixing startTs reference)
+- `src/oracles/engines/minisat.ts` — MiniSat SAT oracle 🔧 (fixing startTs reference)
 - `src/oracles/engines/tau-prolog.ts` — Tau Prolog oracle ✅
 
-**Faculty modules status (new, type-check pending fixes):**
-- `src/faculties/specs.ts` — 10 core faculty specifications ✅
-- `src/faculties/engine.ts` — faculty engine ✅
-- `src/faculties/fallback.ts` — pure-NAL fallbacks ✅
-- `src/faculties/judgment/cascade.ts` — judgment cascade ✅
-- `src/faculties/judgment/judge.ts` — learned judge ✅
-- `src/faculties/judgment/calibration.ts` — calibration & demotion ✅
-- `src/faculties/judgment/telemetry.ts` — structured telemetry ✅
+**Faculty modules status (new, type-check fixes in progress):**
+- `src/faculties/specs.ts` — 10 core faculty specifications ✅ (added durationMs to FacultyOracleMeta, added 'fallback' evidence source)
+- `src/faculties/engine.ts` — faculty engine 🔧 (fixed facultyRegistry import, PinStore API usage)
+- `src/faculties/fallback.ts` — pure-NAL fallbacks 🔧 (fixed Truth import, createTruth usage, evidence source types, undefined checks)
+- `src/faculties/judgment/cascade.ts` — judgment cascade 🔧 (fixing Truth import, undefined checks, calibration types)
+- `src/faculties/judgment/judge.ts` — learned judge 🔧 (fixing undefined checks)
+- `src/faculties/judgment/calibration.ts` — calibration & demotion 🔧 (fixing private method access, calibration type)
+- `src/faculties/judgment/telemetry.ts` — structured telemetry 🔧 (fixing event type unions)
 
-**Loop modules status (new, type-check pending fixes):**
-- `src/loop/repair.ts` — self-repair loop ✅
-- `src/loop/contract.ts` — design-by-contract ✅
-- `src/loop/appraise.ts` — meta-appraisal ✅
-- `src/loop/select.ts` — action selection ✅
-- `src/loop/act.ts` — action execution ✅
-- `src/loop/record.ts` — structured recording ✅
-- `src/loop/self-model.ts` — self-model ✅
+**Loop modules status (new, type-check fixes in progress):**
+- `src/loop/repair.ts` — self-repair loop 🔧 (fixing Truth import, undefined checks, OracleHealth iterator)
+- `src/loop/contract.ts` — design-by-contract 🔧 (fixing Truth import, undefined checks)
+- `src/loop/appraise.ts` — meta-appraisal 🔧 (fixing Truth import)
+- `src/loop/select.ts` — action selection 🔧 (fixing Truth import, undefined checks)
+- `src/loop/act.ts` — action execution 🔧 (fixing Truth import, Task priority field)
+- `src/loop/record.ts` — structured recording 🔧 (fixing any type indexing)
+- `src/loop/self-model.ts` — self-model 🔧 (fixing Truth import)
 
-**Remaining work:**
-- Test files import from `@senars/*` package paths — need path aliases or relative imports
+**Remaining work (as of 2026-11-17):**
+- Fix TypeScript errors in Changes 6-7 modules (oracles, faculties, loop) — ~40 errors remaining in source files
+- Test files for new structure import from `@senars/*` package paths — need path aliases or relative imports (excluded from test:unit)
 - Consolidate export subpaths to 1 (M1-M3)
 - Eliminate circular chains (M1-M3)
 - Reduce persistence sites to 1 (M1-M3)
-- Complete Changes 6-12 (M2-M7)
+- Complete Changes 8-12 (M3-M7)
+- `pnpm typecheck` currently fails on new structure source files and tests
+- `pnpm gates` fails at `typecheck` gate
 
 ---
 
@@ -179,11 +182,11 @@ All facts below are from the working tree at the start of this plan, after W-1.
 | `io/src` | 2,013 | transports |
 | **Total** | **97,189** | |
 
-### 1.3 Verification matrix
+### 1.3 Verification matrix (baseline after M0, before Changes 6-7 typecheck fixes)
 
 | Gate | Result |
 |---|---|
-| `pnpm typecheck` | **pass**, 0 errors |
+| `pnpm typecheck` | **pass**, 0 errors (baseline only) |
 | `pnpm typecheck:packages` | **pass**, 5 packages clean (`ui` excluded by design) |
 | `pnpm typecheck:bin` | **pass**, 0 errors |
 | `pnpm --dir ui typecheck` | **pass**, 0 errors |
@@ -197,6 +200,17 @@ All facts below are from the working tree at the start of this plan, after W-1.
 | `pnpm --dir ui build:client` | **pass**, Vite 8 client build |
 | `core/tsup.config.ts` | **pass**, ESM build; declarations disabled |
 | `ui/tsup.config.ts` | **pass**, server ESM build |
+
+### 1.3 Verification matrix (current — after Changes 6-7 implementation, before typecheck fixes)
+
+| Gate | Result | Notes |
+|---|---|---|
+| `pnpm typecheck` | ❌ FAIL | ~40 errors in new structure source files (oracles, faculties, loop, kernel) |
+| `pnpm typecheck:packages` | ✅ PASS | 5 packages clean |
+| `pnpm typecheck:bin` | ✅ PASS | 0 errors |
+| `pnpm lint` | ✅ PASS | All source files pass |
+| `pnpm test:unit` | ✅ PASS | New structure tests excluded |
+| `pnpm gates` | ❌ FAIL | Fails at `typecheck` gate |
 
 ### 1.4 Known-red ledger
 
@@ -963,3 +977,39 @@ tests/
 ```
 
 No `core/`, `nar/`, `io/`, `metta/` or `util/` directory remains. The package name is `senars`; the published alias is `mcplogic`.
+
+---
+
+## Session Log — 2026-11-17
+
+### Typecheck fixes applied (Changes 6-7 progress)
+
+**Files modified:**
+- `src/faculties/engine.ts` — Fixed `facultyRegistry` import (was `import type`, now separate value import); fixed PinStore API usage (build oracle input first, then use `getPin`/`pin` with oracle operation and args); added `FacultyOracleMeta` import from specs
+- `src/faculties/fallback.ts` — Fixed `Truth` import (from `kernel/truth.ts` not `kernel/terms/term.ts`); replaced `TruthOps.create` with `createTruth`; added `'fallback'` to `FacultyEvidence.source` union; fixed undefined checks for `getArgs` results using non-null assertions
+- `src/faculties/specs.ts` — Added `durationMs` to `FacultyOracleMeta`; added `'fallback'` to `FacultyEvidence.source` union
+- `src/kernel/terms/intern.ts` — Removed re-export of `Stamp` and `TruthValue` (caused ambiguity in kernel barrel); made `getArgs` and `isUnifiable` non-exported (internal use only)
+- `src/kernel/terms/unify.ts` — Made `isUnifiable` non-exported (conflict with intern.ts)
+- `src/kernel/terms/canonical.ts` — Fixed `getArgs` import (now from `term.ts`)
+- `src/kernel/terms/codec/narsese.ts` — Fixed `getArgs` import (now from `term.ts`)
+- `src/kernel/bag.ts` — Fixed `Stamp` import (now from `types.ts`)
+- `src/kernel/index.ts` — Removed export of non-existent `view-cache.js`
+- `src/loop/act.ts` — Fixed switch case block for `'oracle'` (lint fix)
+- `src/loop/select.ts` — Fixed `forEach` with return value (lint fix); fixed implicit `any` in `sampleGamma`
+- `tsconfig.base.json` — Removed `paths` to allow package tsconfigs to extend cleanly
+- `tsconfig.json` — Added new structure path aliases (`@senars/kernel/*`, `@senars/logics/*`, etc.)
+
+**Gates status after fixes:**
+- `pnpm lint` ✅ PASS
+- `pnpm typecheck:packages` ✅ PASS
+- `pnpm typecheck:bin` ✅ PASS
+- `pnpm exports:check` ✅ PASS
+- `pnpm docs:drift` ✅ PASS
+- `pnpm typecheck` ❌ FAIL (~40 errors remain in oracles, faculties, loop, kernel source files)
+- `pnpm gates` ❌ FAIL (fails at `typecheck`)
+
+**Next steps:**
+1. Fix remaining TypeScript errors in `src/faculties/judgment/*`, `src/loop/*`, `src/oracles/engines/*`
+2. Fix `Truth` import in loop modules (should be from `kernel/truth.ts`)
+3. Fix `TruthValue` import in logics/nal and verification modules (should be from `kernel/types.ts`)
+4. Consider excluding new structure tests from root typecheck until M1 completion

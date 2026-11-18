@@ -93,7 +93,7 @@ export interface FacultyOutput<T = unknown> {
 /** Faculty evidence. */
 export interface FacultyEvidence {
   /** Source of evidence. */
-  source: 'oracle' | 'memory' | 'rule' | 'observation' | 'axiom';
+  source: 'oracle' | 'memory' | 'rule' | 'observation' | 'axiom' | 'fallback';
   /** Description. */
   description: string;
   /** Strength of evidence. */
@@ -112,6 +112,8 @@ export interface FacultyOracleMeta {
   provider: string;
   /** Whether result was pinned. */
   pinned: boolean;
+  /** Duration in milliseconds. */
+  durationMs: number;
 }
 
 /** Faculty specification. */

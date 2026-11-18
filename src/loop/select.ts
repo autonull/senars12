@@ -269,7 +269,9 @@ export class ActionSelector {
 
     // Sort by score descending
     scored.sort((a, b) => b.score - a.score);
-    scored.forEach((s, i) => s.rank = i + 1);
+    for (let i = 0; i < scored.length; i++) {
+      scored[i].rank = i + 1;
+    }
 
     return scored;
   }
@@ -285,7 +287,9 @@ export class ActionSelector {
     }
 
     scored.sort((a, b) => b.score - a.score);
-    scored.forEach((s, i) => s.rank = i + 1);
+    for (let i = 0; i < scored.length; i++) {
+      scored[i].rank = i + 1;
+    }
     return scored;
   }
 
@@ -333,7 +337,7 @@ export class ActionSelector {
       const d = shape - 1/3;
       const c = 1 / Math.sqrt(9 * d);
       while (true) {
-        let x, v;
+        let x: number, v: number;
         do {
           x = this.normalRandom();
           v = 1 + c * x;

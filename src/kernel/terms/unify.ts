@@ -221,7 +221,7 @@ export function applySubstitution(term: Term, subst: Substitution): Term {
 /**
  * Check if two terms are unifiable (without computing MGU).
  */
-export function isUnifiable(a: Term, b: Term, options?: Partial<UnifyOptions>): boolean {
+function isUnifiable(a: Term, b: Term, options?: Partial<UnifyOptions>): boolean {
   return unify(a, b, options).success;
 }
 

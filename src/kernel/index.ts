@@ -10,4 +10,3 @@ export * from './step.js';
 export * from './gate.js';
 export * from './reduce.js';
 export * from './bag.js';
-export * from './view-cache.js';

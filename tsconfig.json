@@ -14,7 +14,12 @@
       "@senars/nar/*": ["./nar/src/*"],
       "@senars/metta": ["./metta/src/index.ts"],
       "@senars/metta/*": ["./metta/src/*"],
-      "@senars/ui/*": ["./ui/src/*"]
+      "@senars/ui/*": ["./ui/src/*"],
+      "@senars/kernel/*": ["./src/kernel/*"],
+      "@senars/logics/*": ["./src/logics/*"],
+      "@senars/verification/*": ["./src/verification/*"],
+      "@senars/log/*": ["./src/log/*"],
+      "@senars/formats/*": ["./src/formats/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts"],

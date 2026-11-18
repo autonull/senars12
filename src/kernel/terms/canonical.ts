@@ -9,7 +9,8 @@
  * - Redundant operator elimination
  */
 
-import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, visitTerm, mapTerm, TermVisitor, getArgs } from './intern.js';
+import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, visitTerm, mapTerm, TermVisitor } from './intern.js';
+import { getArgs } from './term.js';
 
 /** Canonical term representation. */
 export interface CanonicalTerm {

@@ -6,9 +6,9 @@
  * Supports attention-based ordering, capacity limits, and revision.
  */
 
-import { Term, Stamp, termInterner } from './terms/intern.js';
+import { Term, termInterner } from './terms/intern.js';
 import { Truth } from './truth.js';
-import type { TruthValue, UUID } from './types.js';
+import type { TruthValue, UUID, Stamp } from './types.js';
 import type { Frequency, Confidence } from './types.js';
 
 /** Bag entry: term + truth + stamp. */

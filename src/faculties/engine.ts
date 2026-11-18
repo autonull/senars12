@@ -3,7 +3,8 @@
  */
 
 import { createHash } from 'crypto';
-import type { FacultySpec, FacultyInput, FacultyOutput, FacultyRegistry, facultyRegistry } from './specs.js';
+import type { FacultySpec, FacultyInput, FacultyOutput, FacultyRegistry, FacultyOracleMeta } from './specs.js';
+import { facultyRegistry } from './specs.js';
 import type { Oracle, OracleInput, OracleOutput } from '../oracles/oracle.js';
 import { oracleRegistry } from '../oracles/oracle.js';
 import { PinStore } from '../oracles/pins.js';
@@ -36,14 +37,7 @@ export interface FacultyInvocationContext {
   oracleMeta?: FacultyOracleMeta;
 }
 
-/** Faculty oracle metadata. */
-export interface FacultyOracleMeta {
-  operation: string;
-  callId: string;
-  provider: string;
-  pinned: boolean;
-  durationMs: number;
-}
+
 
 /** Faculty engine statistics. */
 export interface FacultyEngineStats {
@@ -140,20 +134,23 @@ export class FacultyEngine {
 
     this.stats.totalInvocations++;
     this.initFacultyStats(facultyName);
-    this.stats.byFaculty[facultyName].calls++;
+    const facultyStats = this.stats.byFaculty[facultyName]!;
+    facultyStats.calls++;
 
     let output: FacultyOutput<T>;
     let fallbackUsed = false;
 
     try {
+      // Build oracle input first (needed for pinning)
+      const oracleInput = this.buildOracleInput(input, spec);
+
       // Check pin store first if in replay mode
       if (this.isReplay && this.pinStore) {
-        const pinKey = `faculty:${facultyName}:${this.hashInput(input)}`;
-        const pinned = await this.pinStore.getPin(pinKey);
+        const pinned = await this.pinStore.getPin(spec.oracleOperation, oracleInput.args);
         if (pinned !== null) {
           this.stats.pinnedInvocations++;
           this.stats.successfulInvocations++;
-          this.stats.byFaculty[facultyName].successes++;
+          facultyStats.successes++;
           output = pinned as FacultyOutput<T>;
           output.fallbackUsed = false;
           this.emitTelemetry(context, output);
@@ -162,23 +159,23 @@ export class FacultyEngine {
       }
 
       // Invoke through oracle
-      output = await this.invokeThroughOracle<T>(input, spec, context);
+      output = await this.invokeThroughOracle<T>(input, spec, context, oracleInput);
       this.stats.successfulInvocations++;
-      this.stats.byFaculty[facultyName].successes++;
+      facultyStats.successes++;
 
       // Pin the result if not in replay mode
       if (!this.isReplay && this.pinStore) {
-        const pinKey = `faculty:${facultyName}:${this.hashInput(input)}`;
-        await this.pinStore.pin(pinKey, output);
+        const inputHash = this.pinStore.hashInput(spec.oracleOperation, oracleInput.args);
+        await this.pinStore.pin(spec.oracleOperation, inputHash, output);
       }
     } catch (error) {
       this.stats.failedInvocations++;
-      this.stats.byFaculty[facultyName].calls--; // Don't count failed as call for avg
+      facultyStats.calls--; // Don't count failed as call for avg
 
       if (this.enableFallback && spec.fallback) {
         // Try fallback
         this.stats.fallbackInvocations++;
-        this.stats.byFaculty[facultyName].fallbacks++;
+        facultyStats.fallbacks++;
 
         try {
           const fallbackOutput = await spec.fallback(input);
@@ -189,7 +186,7 @@ export class FacultyEngine {
               faculty: facultyName,
             } as FacultyOutput<T>;
             this.stats.successfulInvocations++; // Fallback success counts as success
-            this.stats.byFaculty[facultyName].successes++;
+            facultyStats.successes++;
           } else {
             throw error;
           }
@@ -214,15 +211,13 @@ export class FacultyEngine {
   private async invokeThroughOracle<T>(
     input: FacultyInput,
     spec: FacultySpec,
-    context: FacultyInvocationContext
+    context: FacultyInvocationContext,
+    oracleInput: OracleInput
   ): Promise<FacultyOutput<T>> {
     const oracle = oracleRegistry.get(spec.oracleOperation);
     if (!oracle) {
       throw new Error(`No oracle registered for ${spec.oracleOperation}`);
     }
-
-    // Build oracle input based on faculty
-    const oracleInput = this.buildOracleInput(input, spec);
 
     const oracleOutput = await oracle.call(oracleInput);
 

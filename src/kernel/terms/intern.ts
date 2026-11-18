@@ -316,7 +316,7 @@ export function substitute(term: Term, substitution: Map<VariableTerm, Term>): T
 }
 
 /** Get args of a compound term. */
-export function getArgs(term: Term): readonly Term[] | null {
+function getArgs(term: Term): readonly Term[] | null {
   return term.op !== TermOp.VARIABLE && term.op !== TermOp.CONSTANT ? (term as CompoundTerm).args : null;
 }
 
@@ -382,7 +382,6 @@ export function isUnifiable(a: Term, b: Term): boolean {
 }
 
 // Re-export shared types
-export type { TruthValue, Stamp } from '../types.js';
 export type { Term, VariableTerm, ConstantTerm, CompoundTerm } from './term.js';
 export { TermOp, TermFactory } from './term.js';
 export { canonicalize, canonicalEquals, canonicalHash, createCanonicalIndex } from './canonical';

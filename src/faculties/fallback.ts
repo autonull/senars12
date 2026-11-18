@@ -4,10 +4,11 @@
  * These provide deterministic, LM-free alternatives when oracle calls fail.
  */
 
-import type { Term, Truth } from '../kernel/terms/term.js';
+import type { Term } from '../kernel/terms/term.js';
+import type { Truth } from '../kernel/truth.js';
 import type { Task } from '../kernel/types.js';
 import type { FacultyInput, FacultyOutput, FacultyFallback } from './specs.js';
-import { Truth as TruthOps } from '../kernel/truth.js';
+import { Truth as TruthOps, createTruth } from '../kernel/truth.js';
 import { fromNarsese, getArgs, isInheritance, isConjunction, isDisjunction, visitTerms } from '../kernel/terms/term.js';
 import { createTask, type TaskType } from '../kernel/types.js';
 
@@ -22,7 +23,7 @@ const lmTaskWeight = (source: string): number => {
 const fallbackTask = (term: Term | string, type: TaskType, f = 0.5, c = 0.3): Task[] => {
   const parsed = typeof term === 'string' ? fromNarsese(term) : term;
   if (!parsed) return [];
-  return [createTask(parsed, type, TruthOps.create(f, c), lmTaskWeight('fallback'))];
+  return [createTask(parsed, type, createTruth(f, c), lmTaskWeight('fallback'))];
 };
 
 /** Extract key terms from a term. */
@@ -75,14 +76,19 @@ export const inferenceFallback: FacultyFallback = async (input): Promise<Faculty
   const secondaryTerm = secondaryTask.term;
 
   if (isInheritance(primaryTerm) && isInheritance(secondaryTerm)) {
-    const [s1, p1] = getArgs(primaryTerm);
-    const [s2, p2] = getArgs(secondaryTerm);
+    const primaryArgs = getArgs(primaryTerm);
+    const secondaryArgs = getArgs(secondaryTerm);
+    if (primaryArgs.length < 2 || secondaryArgs.length < 2) return { faculty: 'inference', result: { conclusions: [] }, confidence: 0, evidence: [], fallbackUsed: true, durationMs: 0 };
+    const s1 = primaryArgs[0]!;
+    const p1 = primaryArgs[1]!;
+    const s2 = secondaryArgs[0]!;
+    const p2 = secondaryArgs[1]!;
 
     if (p1.toString() === s2.toString()) {
       // Deduction: (s1 --> p1), (p1 --> p2) => (s1 --> p2)
       const concluded = `( ${s1} --> ${p2} )`;
       conclusions.push({
-        term: fromNarsese(concluded),
+        term: fromNarsese(concluded)!,
         truth: TruthOps.deduction(primaryTask.truth, secondaryTask.truth),
         inferenceType: 'deduction',
       });
@@ -90,7 +96,7 @@ export const inferenceFallback: FacultyFallback = async (input): Promise<Faculty
       // Induction: (s --> p1), (s --> p2) => (p1 <-> p2) weakly
       const concluded = `( ${p1} <-> ${p2} )`;
       conclusions.push({
-        term: fromNarsese(concluded),
+        term: fromNarsese(concluded)!,
         truth: TruthOps.induction(primaryTask.truth, secondaryTask.truth),
         inferenceType: 'induction',
       });
@@ -98,7 +104,7 @@ export const inferenceFallback: FacultyFallback = async (input): Promise<Faculty
       // Abduction: (s1 --> p), (s2 --> p) => (s1 <-> s2) weakly
       const concluded = `( ${s1} <-> ${s2} )`;
       conclusions.push({
-        term: fromNarsese(concluded),
+        term: fromNarsese(concluded)!,
         truth: TruthOps.abduction(primaryTask.truth, secondaryTask.truth),
         inferenceType: 'abduction',
       });
@@ -123,7 +129,7 @@ export const abductionFallback: FacultyFallback = async (input): Promise<Faculty
 
   const hypotheses = Array.from({ length: maxHypotheses }, (_, i) => ({
     term: fromNarsese(`(?x${i} --> ${term})`),
-    truth: TruthOps.create(0.4, 0.2),
+    truth: createTruth(0.4, 0.2),
     explanation: `Hypothesis ${i + 1}: possible cause for ${term}`,
   })).filter(h => h.term);
 
@@ -152,10 +158,18 @@ export const inductionFallback: FacultyFallback = async (input): Promise<Faculty
 
   if (patternTerms.length > 0 && exampleTerms.length >= minExamples) {
     // Find common predicate
-    const patternPredicates = patternTerms.filter(t => isInheritance(t)).map(t => getArgs(t)[1]);
-    const examplePredicates = exampleTerms.filter(t => isInheritance(t)).map(t => getArgs(t)[1]);
+    const patternPredicates = patternTerms
+      .filter(t => isInheritance(t))
+      .map(t => getArgs(t))
+      .filter(args => args.length >= 2)
+      .map(args => args[1]);
+    const examplePredicates = exampleTerms
+      .filter(t => isInheritance(t))
+      .map(t => getArgs(t))
+      .filter(args => args.length >= 2)
+      .map(args => args[1]);
 
-    const common = patternPredicates.filter(p => examplePredicates.some(ep => ep.toString() === p.toString()));
+    const common = patternPredicates.filter(p => examplePredicates.some(ep => ep!.toString() === p!.toString()));
 
     for (const pred of common.slice(0, 3)) {
       generalizations.push({

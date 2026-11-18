@@ -240,11 +240,12 @@ export class ActionExecutor {
       case 'internal':
         effects.push(...await this.executeInternal(action));
         break;
-      case 'oracle':
+      case 'oracle': {
         const oracleResult = await this.executeOracle(action);
         oracleResults = oracleResult.oracleResults;
         effects.push(...oracleResult.effects);
         break;
+      }
       case 'motor':
         effects.push(...await this.executeMotor(action));
         break;
