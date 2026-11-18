@@ -4,12 +4,12 @@
  * Usage: tsx src/bin/imagine.ts --profile induction --seed 42
  */
 
-import type { NAR } from '@senars/nar';
-import { createNAR, DEFAULT_CONFIG } from '@senars/nar';
-import type { ScenarioProfile } from '@senars/nar/imagination';
-import { CognitiveTreadmill, ScenarioGenerator } from '@senars/nar/imagination';
-import { ArchitectureDriver } from '@senars/nar/self';
-import { divider, formatDuration, parseFlags, pct, section, writeJsonFile } from '@senars/util';
+import type { NAR } from '../agent/index.js';
+import { createNAR, DEFAULT_CONFIG } from '../agent/index.js';
+import type { ScenarioProfile } from '../agent/index.js';
+import { CognitiveTreadmill, ScenarioGenerator } from '../agent/index.js';
+import { ArchitectureDriver } from '../agent/index.js';
+import { divider, formatDuration, parseFlags, pct, section, writeJsonFile } from '../utils/common.js';
 import { runEntrypoint } from './lib/fatal-error.js';
 
 interface ImagineOptions {

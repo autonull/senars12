@@ -7,20 +7,17 @@
  *        pnpm exec tsx src/bin/self-report.ts
  */
 
-import { NARBuilder } from '@senars/nar/agent/builder';
-import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
-import { initializeMetaReasoning, registerMetaRules } from '@senars/nar/rules';
-import { operationNameOf } from '@senars/nar/terms';
-import { initializeSelfConcept } from '@senars/nar/tools';
+import { NARBuilder, createLMService, createSeNARSRegistry } from '../agent/index.js';
+import { initializeMetaReasoning, registerMetaRules } from '../rules/index.js';
+import { operationNameOf } from '../terms/index.js';
+import { initializeSelfConcept } from '../self/index.js';
 import {
-  bar,
   createLogger,
   divider,
-  formatNarseseTruth,
   mean,
   pct,
   selectTopN,
-} from '@senars/util';
+} from '../utils/common.js';
 import { runEntrypoint } from './lib/fatal-error.js';
 import { mettaPort } from './lib/metta.js';
 

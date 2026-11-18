@@ -8,8 +8,8 @@
  * the same reads at two granularities.
  */
 
-import { probeEmbeddedLlama } from '@senars/nar/lm';
-import { envSet, errMsg } from '@senars/util';
+import { probeEmbeddedLlama } from '../../lm/index.js';
+import { envSet, errMsg } from '../../utils/common.js';
 import { loadConfig } from '../../config/index.js';
 import { attempted } from '../../cli/commands.js';
 

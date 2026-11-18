@@ -1,6 +1,6 @@
 /** Application config read/write commands (`.config-*`). Mutates `rt.appConfig` in place. */
 
-import { envStrOr, thaw, writeJsonFile } from '@senars/util';
+import { envStrOr, thaw, writeJsonFile } from '../../../utils/common.js';
 import { cmd } from '../../cli/commands.js';
 import { coerce, flagsOf, setPath, tokenize } from './args.js';
 import type { BotRuntime } from './context.js';

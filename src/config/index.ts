@@ -6,6 +6,7 @@ export {
   makeDefaultBotConfig,
 } from './defaults.js';
 export { loadConfig, loadConfigFromEnv } from './loader.js';
+export { systemOneDefaults } from '@senars/util/config/system-one.js';
 export type {
   AgentSectionConfig,
   AppConfig,

@@ -12,8 +12,8 @@
  */
 
 import { cpus } from 'node:os';
-import { createBotNAR, DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '@senars/nar';
-import { runHealthChecks } from '@senars/nar/health';
+import { createBotNAR, DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '../../agent/index.js';
+import { runHealthChecks } from '../../health/index.js';
 import {
   cloudApiKey,
   endpointPath,
@@ -33,7 +33,7 @@ import {
   resolveLMSettings,
   resolveOfflineTier,
   setRouting,
-} from '@senars/nar/lm';
+} from '../../lm/index.js';
 import {
   createLogger,
   errMsg,
@@ -42,7 +42,7 @@ import {
   LM_TASKS,
   mapValues,
   parseFlags,
-} from '@senars/util';
+} from '../../utils/common.js';
 import { loadConfig } from '../../config/index.js';
 import { jsonMode } from '../commands/args.js';
 import { credentialReport } from './doctor-checks.js';

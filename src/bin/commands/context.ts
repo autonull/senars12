@@ -6,17 +6,17 @@
  * Mutable fields are exactly the ones the commands intentionally mutate.
  */
 
-import type { AuthManager, CommandRegistry, ConnectionManager } from '@senars/io';
-import type { ParameterLedger } from '@senars/nar/config';
-import type { DialogueCapture, RetrospectiveAdapter } from '@senars/nar/dialogue';
+import type { AuthManager, CommandRegistry, ConnectionManager } from '../../../io/index.js';
+import type { ParameterLedger } from '../../../config/nar.js';
+import type { DialogueCapture, RetrospectiveAdapter } from '../../../dialogue/index.js';
 import type {
   EmbeddingCache,
   JudgmentDataset,
   TraceGradeInput,
   TraceGradeResult,
-} from '@senars/nar/lm/system-one';
-import type { MemoryQuery } from '@senars/nar/query';
-import type { ReadOnlyLookup } from '@senars/util';
+} from '../../../lm/index.js';
+import type { MemoryQuery } from '../../../query/index.js';
+import type { ReadOnlyLookup } from '../../../utils/common.js';
 import type { ChatTier } from '../../cli/commands.js';
 import type { AttachedGame } from '../../cli/conversation-game.js';
 import type { AppConfig, BotProfile } from '../../config/index.js';

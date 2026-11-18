@@ -4,7 +4,7 @@
  * (`@senars/io`) — the single source of truth for `ENABLE_*` gates.
  */
 
-import { cachePath, envBool, envCsv, envInt, envStr, envStrOr } from '@senars/util/config';
+import { cachePath, envBool, envCsv, envInt, envStr, envStrOr } from '../../utils/common.js';
 
 export interface EpisodicConfig {
   memoryPath: string;

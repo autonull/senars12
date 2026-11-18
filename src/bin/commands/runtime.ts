@@ -1,7 +1,7 @@
 /** Host-surface commands that shell out or own a long-lived handle (`.webui`, `.arcade`, `.multiagent`). */
 
 import { execFile } from 'node:child_process';
-import { finiteOr } from '@senars/util';
+import { finiteOr } from '../../../utils/common.js';
 import { attempted, cmd } from '../../cli/commands.js';
 import { tokenize } from './args.js';
 import type { BotRuntime } from './context.js';

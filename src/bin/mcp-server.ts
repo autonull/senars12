@@ -9,18 +9,15 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { DialogueCapture } from '@senars/nar/dialogue';
+import { DialogueCapture } from '../dialogue/index.js';
 import {
-  BoundedMap,
   createLogger,
   envStr,
   envStrOr,
-  generateId,
   parseFlags,
   setupGracefulShutdown,
   type Teardown,
-} from '@senars/util';
-import { envNum } from '@senars/util/config';
+} from '../utils/common.js';
 import { runEntrypoint } from './lib/fatal-error.js';
 import { HttpGuard, rejectWithStatus } from './lib/http-guards.js';
 import { createAgentFromEnv } from './lib/lifecycle.js';

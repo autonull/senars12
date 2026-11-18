@@ -89,3 +89,6 @@ export * from '../util/src/events/types.js';
 export * from './config-check.js';
 export * from './config-migrate.js';
 export * from './env-validate.js';
+
+// Common utilities (frequently used)
+export * from './common.js';

@@ -12,8 +12,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createCapturePhase, DEFAULT_MACRO_PIPELINE } from '@senars/core/agent/phases';
-import { createBudget } from '@senars/core/budget';
+import { createCapturePhase, DEFAULT_MACRO_PIPELINE, createBudget } from '../budget/index.js';
 import {
   AuthManager,
   bindAgentToConnection,
@@ -25,23 +24,18 @@ import {
   IRCConnection,
   MCPConnection,
   WSConnection,
-} from '@senars/io';
-import { createMeTTa, parseMeTTa } from '@senars/metta';
-import { DEFAULT_LEDGER_PATH, ParameterLedger } from '@senars/nar/config';
-import { DialogueCapture, RetrospectiveAdapter } from '@senars/nar/dialogue';
-import { DEFAULT_REPUTATION_PATH, providerKey, SourceReputation } from '@senars/nar/kernel';
-import { resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
-import { evaluateQuery } from '@senars/nar/lm/system-one';
-import { computeEvidenceId } from '@senars/nar/lm/system-one';
-import {
-  createReasoningRoute,
-  handleMetricsRequest,
-  type ReasoningHttpEngine,
-} from '@senars/nar/metrics';
-import { NLUnderstandingService, TranslationCache } from '@senars/nar/nl';
-import { MemoryQuery } from '@senars/nar/query';
-import { MettaProposer } from '@senars/nar/reflex';
-import type { LMTask } from '@senars/util';
+  QUIT_SENTINEL,
+} from '../io/index.js';
+import { createMeTTa, parseMeTTa } from '../metta/index.js';
+import { DEFAULT_LEDGER_PATH, ParameterLedger } from '../config/nar.js';
+import { DialogueCapture, RetrospectiveAdapter } from '../dialogue/index.js';
+import { DEFAULT_REPUTATION_PATH, providerKey, SourceReputation } from '../kernel/index.js';
+import { resolveLMConfig, resolveLMSettings, evaluateQuery, computeEvidenceId } from '../lm/index.js';
+import { createReasoningRoute, handleMetricsRequest, type ReasoningHttpEngine } from '../metrics/index.js';
+import { NLUnderstandingService, TranslationCache } from '../nl/index.js';
+import { MemoryQuery } from '../query/index.js';
+import { MettaProposer } from '../reflex/index.js';
+import type { LMTask } from '../utils/common.js';
 import {
   createLogger,
   ensureDir,
@@ -52,8 +46,8 @@ import {
   setupGracefulShutdown,
   thaw,
   unique,
-} from '@senars/util';
-import { envBool } from '@senars/util/config';
+  envBool,
+} from '../utils/common.js';
 import { Effect } from 'effect';
 import { buildCommands } from '../cli/commands.js';
 import { reflexesOf } from '../cli/conversation-game.js';
@@ -421,7 +415,7 @@ async function main(): Promise<void> {
   // Bot-only default profile: enable System One by default (opt-out via config)
   // This only affects the bot; non-Bot NAR consumers are unaffected.
   if (!wired.appConfig.systemOne?.enabled) {
-    const { systemOneDefaults } = await import('@senars/util/config');
+    const { systemOneDefaults } = await import('../config/index.js');
     wired.appConfig.systemOne = {
       ...systemOneDefaults,
       enabled: true,

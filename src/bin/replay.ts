@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import {
   type CognitiveParameters,
   readCognitiveParams as readParamsFile,
-} from '@senars/nar/config/cognitive-parameters';
+} from '../config/nar.js';
 import {
   computeReplayStateHash,
   type FullReplayOptions,
@@ -28,8 +28,8 @@ import {
   replayIntoMemory,
   serializeReplayResult,
   verifyReplayStateHash,
-} from '@senars/nar/kernel';
-import { createLogger, parseFlags } from '@senars/util';
+} from '../kernel/index.js';
+import { createLogger, parseFlags } from '../utils/common.js';
 import { runEntrypoint } from './lib/fatal-error.js';
 
 const __filename = fileURLToPath(import.meta.url);

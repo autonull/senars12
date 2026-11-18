@@ -8,9 +8,9 @@ import {
   HEAD_SPECS,
   type ScoreDistribution,
   specToQuery,
-} from '@senars/nar/lm/system-one';
-import { rubricOf } from '@senars/nar/lm/system-one/contrastive.js';
-import { envStrOr, finiteOr, formatBytes, incrementCount, writeJsonFile } from '@senars/util';
+  rubricOf,
+} from '../../../lm/index.js';
+import { envStrOr, finiteOr, formatBytes, incrementCount, writeJsonFile } from '../../../utils/common.js';
 import { attempted, cmd } from '../../cli/commands.js';
 import { type ReflexView, reflexesOf } from '../../cli/conversation-game.js';
 import {
@@ -110,9 +110,8 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
             cortex: () => formatSystemOneCortex(nar),
             reflexes: () => formatSystemOneReflexes(nar),
             'eval-set': async ([action]) => {
-              const { createFrozenEvalSet, evalMetrics, headMetrics, loadEvalSet, writeEvalSet } =
-                await import('@senars/nar/lm/system-one/eval-set.js');
-              const { JudgmentDataset } = await import('@senars/nar/lm/system-one/distill.js');
+              const { createFrozenEvalSet, evalMetrics, headMetrics, loadEvalSet, writeEvalSet, JudgmentDataset } =
+                await import('../../../lm/index.js');
               if (action === 'create' || action === 'regenerate') {
                 const set = createFrozenEvalSet(await JudgmentDataset.load(datasetPathOf(rt)));
                 await writeEvalSet(set, EVAL_SET_PATH);
@@ -289,7 +288,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
       async (args = '') => {
         const dispatcher = nar.getSystemOneDispatcher?.() as { cortex?: unknown } | undefined;
         if (!dispatcher) return 'System One dispatcher not available';
-        const { StubCortex } = await import('@senars/nar/lm/system-one/dispatcher.js');
+        const { StubCortex } = await import('../../../lm/index.js');
         const cortex = dispatcher.cortex as {
           health?: () => { provider?: string; breakerOpen?: boolean };
           describe?: () => { grammar?: string; temperature?: number; model?: string };
@@ -340,7 +339,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
         readCalibrationLockOrNull,
         writeCalibrationLock,
         fitCalibrationLock,
-      } = await import('@senars/nar/lm/system-one/calibration-fit.js');
+      } = await import('../../../lm/index.js');
       const verb = args.trim().toLowerCase();
       if (verb === 'refresh') {
         if (!nar.isSystemOneEnabled?.()) return 'System One: disabled';
@@ -355,10 +354,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
       if (verb === 'refit') {
         if (!nar.isSystemOneEnabled?.()) return 'System One: disabled';
         return attempted('refit', async () => {
-          const { JudgmentDataset } = await import('@senars/nar/lm/system-one/distill.js');
-          const { digestRows, loadEvalSet, splitOod } = await import(
-            '@senars/nar/lm/system-one/eval-set.js'
-          );
+          const { JudgmentDataset, digestRows, loadEvalSet, splitOod } = await import('../../../lm/index.js');
           const dataset = await JudgmentDataset.load(datasetPathOf(rt));
           let options: Record<string, unknown> = {};
           try {

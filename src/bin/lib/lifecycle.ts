@@ -2,12 +2,12 @@
  * Shared bin lifecycle utilities — agent startup, shutdown, env-based creation.
  */
 
-import type { Agent as CoreAgent } from '@senars/core';
-import { JsonlSessionManager } from '@senars/core/memory';
-import type { NARConfig } from '@senars/nar';
-import type { ExtendedAgent } from '@senars/nar/agent';
-import { NARBuilder } from '@senars/nar/agent/builder';
-import { threadScope } from '@senars/nar/kernel';
+import type { Agent as CoreAgent } from '../../agent/index.js';
+import { JsonlSessionManager } from '../../memory/index.js';
+import type { NARConfig } from '../../agent/index.js';
+import type { ExtendedAgent } from '../../agent/index.js';
+import { NARBuilder } from '../../agent/index.js';
+import { threadScope } from '../../kernel/index.js';
 import {
   configureLM,
   createConfiguredLMRules,
@@ -15,10 +15,10 @@ import {
   createSeNARSRegistry,
   resolveEmbeddingGenerator,
   setRouting,
-} from '@senars/nar/lm';
-import { EpisodicMemory } from '@senars/nar/memory/episodic';
-import { type PromotionResult, consolidateEpisodes } from '@senars/nar/memory/retrieval-verified';
-import { cachePath, createLogger, envStr, setupGracefulShutdown } from '@senars/util';
+} from '../../lm/index.js';
+import { EpisodicMemory } from '../../memory/index.js';
+import { type PromotionResult, consolidateEpisodes } from '../../memory/index.js';
+import { cachePath, createLogger, envStr, setupGracefulShutdown } from '../../utils/common.js';
 import { type AppConfig, loadConfig } from '../../config/index.js';
 import { readEpisodicConfig } from './env-config.js';
 import { mettaPort } from './metta.js';
