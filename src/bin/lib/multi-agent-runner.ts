@@ -3,10 +3,9 @@
  * Shared multi-agent runner — parameterized for multi-agent.ts and multi-agent-demo.ts
  */
 
-import { CLIConnection } from '@senars/io/connections/cli';
-import { WSConnection } from '@senars/io/connections/ws';
-import type { WiredNAR } from '@senars/nar/agent/builder';
-import { createLogger, setupGracefulShutdown } from '@senars/util';
+import { CLIConnection, WSConnection } from '../../../io/index.js';
+import type { WiredNAR } from '../../agent/index.js';
+import { createLogger, setupGracefulShutdown } from '../../../utils/common.js';
 
 export interface MultiAgentRunnerOptions {
   scope: string;

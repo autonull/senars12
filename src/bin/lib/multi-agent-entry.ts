@@ -6,8 +6,8 @@
  * `--testing` uses the deterministic testing factory (replaces multi-agent-demo).
  */
 
-import { NARBuilder } from '@senars/nar/agent/builder';
-import { parseFlags } from '@senars/util';
+import { NARBuilder } from '../../agent/index.js';
+import { parseFlags } from '../../../utils/common.js';
 import { mettaPort } from './metta.js';
 import { runMultiAgent } from './multi-agent-runner.js';
 

@@ -1,10 +1,10 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { NAR } from '@senars/nar';
-import { readPersistedBoundary } from '@senars/nar';
-import type { ExtendedAgent as Agent } from '@senars/nar/agent';
-import { cloudApiKey, getRoutingStatus } from '@senars/nar/lm';
-import { keyedBy, LM_TASKS, sumBy } from '@senars/util';
+import type { NAR } from '../../../agent/index.js';
+import { readPersistedBoundary } from '../../../agent/index.js';
+import type { ExtendedAgent as Agent } from '../../../agent/index.js';
+import { cloudApiKey, getRoutingStatus } from '../../../lm/index.js';
+import { keyedBy, LM_TASKS, sumBy } from '../../../utils/common.js';
 import type { JobManager } from './job-manager.js';
 import {
   formatBeliefsForMCP,

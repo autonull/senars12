@@ -31,7 +31,7 @@ export interface AgentFromEnvOptions {
 
 export interface AgentFromEnvResult {
   agent: ExtendedAgent;
-  nar: import('@senars/nar').NAR;
+  nar: import('../../agent/index.js').NAR;
   sessionManager: JsonlSessionManager;
   episodicMemory: EpisodicMemory;
   lmService: ReturnType<typeof createLMService>;

@@ -4,7 +4,7 @@
  * the `job_status` tool.
  */
 
-import { BoundedMap, errMsg } from '@senars/util';
+import { BoundedMap, errMsg } from '../../../utils/common.js';
 
 export type JobStatus = 'running' | 'done' | 'error';
 

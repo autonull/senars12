@@ -1,9 +1,9 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { EpisodicMemory } from '@senars/nar';
-import type { DialogueCapture as DialogueCaptureType } from '@senars/nar/dialogue';
-import { retrospect, selectProbes } from '@senars/nar/dialogue';
-import { parseJsonOr, type ReadOnlyLookup, takeLast, unique } from '@senars/util';
-import { positiveInt } from '@senars/util/config';
+import type { EpisodicMemory } from '../../../memory/index.js';
+import type { DialogueCapture as DialogueCaptureType } from '../../../dialogue/index.js';
+import { retrospect, selectProbes } from '../../../dialogue/index.js';
+import { parseJsonOr, type ReadOnlyLookup, takeLast, unique } from '../../../utils/common.js';
+import { positiveInt } from '../../../utils/common.js';
 import { z } from 'zod';
 import { ANNOTATIONS, createMCPResponse, stringifyMCP } from './mcp-response.js';
 

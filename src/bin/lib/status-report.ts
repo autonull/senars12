@@ -18,15 +18,15 @@ import {
   isExhausted,
   pressure,
   remainingAll,
-} from '@senars/core/budget';
-import { createLMService, DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '@senars/nar';
-import { NARBuilder } from '@senars/nar/agent/builder';
+} from '../../budget/index.js';
+import { createLMService, DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '../../agent/index.js';
+import { NARBuilder } from '../../agent/index.js';
 import {
   CALIBRATION_LOCK_PATH,
   HEAD_SPECS,
   type SystemOneManifold,
-} from '@senars/nar/lm/system-one';
-import { createLogger, errMsg, formatBytes, parseFlags, pct } from '@senars/util';
+} from '../../lm/index.js';
+import { createLogger, errMsg, formatBytes, parseFlags, pct } from '../../../utils/common.js';
 import { loadConfig } from '../../config/index.js';
 import { renderReport } from '../commands/args.js';
 import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';

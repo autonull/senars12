@@ -1607,3 +1607,46 @@ Files created:
 - 🔄 Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (20 failures remaining)
 - Consolidate export subpaths from 96 to 1 (collapse core, nar, io, metta, util, ui packages into root)
 - Reduce persistence sites to 1
+
+---
+### Session Log — 2026-11-18 (src/bin/ Import Migration — Part 1)
+**Created Barrel Exports in src/**
+- `src/agent/index.ts` — NAR, NARBuilder, createNAR, ArchitectureDriver, CognitiveTreadmill, ScenarioGenerator
+- `src/budget/index.ts` — createCapturePhase, DEFAULT_MACRO_PIPELINE, createBudget
+- `src/config/nar.ts` — DEFAULT_LEDGER_PATH, ParameterLedger, OutcomeLinker, DEFAULT_COGNITIVE_PARAMETERS
+- `src/dialogue/index.ts` — DialogueCapture, RetrospectiveAdapter, retrospect, persistRetrospective, loadRetrospectives, extractLessons, Reconsolidator, selectProbes, mineHardNegatives, OutcomeLinker, episodeQualitySurface
+- `src/health/index.ts` — runHealthChecks, DEFAULT_NAR_STATE_PATH, readPersistedBoundary, createBotNAR, NAREventMap
+- `src/io/index.ts` — All transport connections (CLI, HTTP, WS, IRC, MCP) and types
+- `src/lm/index.ts` — resolveLMConfig, resolveLMSettings, evaluateQuery, computeEvidenceId, probeEmbeddedLlama, getRouting, setRouting, getRoutingLogStatus, getModelChain, readCalibrationLockOrNull, rubricOf, StubCortex, createLlamaCppFetch, runWithGrammar, loadGrammar, JudgmentDataset, calibrateFit, createSystemOneBudget, JudgmentQuery, LMTask
+- `src/memory/index.ts` — EpisodicMemory, consolidateEpisodes, PromotionResult, JsonlSessionManager, EpisodeType
+- `src/metrics/index.ts` — createReasoningRoute, handleMetricsRequest, ReasoningHttpEngine
+- `src/metta/index.ts` — createMeTTa, parseMeTTa, MettaPort, createMettaPort
+- `src/nl/index.ts` — NLUnderstandingService, TranslationCache
+- `src/otel/index.ts` — initOtel, shutdownOtel, withSpan
+- `src/query/index.ts` — MemoryQuery, episodeQualitySurface
+- `src/reflex/index.ts` — MettaProposer, RLFPLearner, createKnobSet, TaskRewardMetrics, DEFAULT_COGNITIVE_PARAMETERS, CognitiveParameters
+- `src/rules/index.ts` — initializeMetaReasoning, registerMetaRules
+- `src/self/index.ts` — initializeSelfConcept, operationNameOf, ArchitectureDriver
+- `src/terms/index.ts` — PUNCTUATION_BY_TASK_TYPE, taskTypeForPunctuation, Truth
+- `src/utils/common.ts` — Frequently used util functions (createLogger, parseFlags, errMsg, etc.)
+
+**Updated src/index.ts** to re-export from new barrel modules
+**Added legacy package path aliases to tsconfig.root.json** for migration period
+
+**Migrated src/bin/ and src/bin/commands/ imports** (28 files):
+- bot.ts, config-validate.ts, imagine.ts, mcp-server.ts, replay.ts, self-report.ts
+- All 13 command files in src/bin/commands/
+
+**Gates Status**
+- `pnpm typecheck` ✅ PASS
+- `pnpm lint` ✅ PASS
+- `pnpm surface-no-legacy` ❌ FAIL (7 remaining files in src/bin/lib/)
+
+**Remaining lib files to migrate:**
+- src/bin/lib/lifecycle.ts
+- src/bin/lib/mcp/job-manager.ts
+- src/bin/lib/mcp/mcp-bridge.ts
+- src/bin/lib/mcp/mcp-dialogue-tools.ts
+- src/bin/lib/mcp/mcp-resources.ts
+- src/bin/lib/mcp/mcp-tools.ts
+- src/bin/lib/metta.ts

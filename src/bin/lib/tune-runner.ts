@@ -7,10 +7,10 @@
 
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
-import type { CognitiveParameters } from '@senars/nar/config/cognitive-parameters';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters';
-import { createKnobSet, RLFPLearner, type TaskRewardMetrics } from '@senars/nar/rlfp';
-import { formatDuration, parseFlags, pct, section, sleep, thaw } from '@senars/util';
+import type { CognitiveParameters } from '../../config/nar.js';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '../../config/nar.js';
+import { createKnobSet, RLFPLearner, type TaskRewardMetrics } from '../../reflex/index.js';
+import { formatDuration, parseFlags, pct, section, sleep, thaw } from '../../../utils/common.js';
 import { runEntrypoint } from './fatal-error.js';
 
 interface TuneOptions {

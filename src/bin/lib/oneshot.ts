@@ -12,9 +12,9 @@
  * path working with no LM configured.
  */
 
-import { createNAR, type NAR } from '@senars/nar';
-import { PUNCTUATION_BY_TASK_TYPE, taskTypeForPunctuation, Truth } from '@senars/nar/terms';
-import { escapeRegExp, type Flags } from '@senars/util';
+import { createNAR, type NAR } from '../../agent/index.js';
+import { PUNCTUATION_BY_TASK_TYPE, taskTypeForPunctuation, Truth } from '../../terms/index.js';
+import { escapeRegExp, type Flags } from '../../../utils/common.js';
 
 /** The answer surface `askWithDerivation` returns, without a `./query` subpath. */
 type Answer = Awaited<ReturnType<NAR['askWithDerivation']>>;
