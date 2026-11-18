@@ -598,3 +598,230 @@ class NarseseFormatter {
     return `'${value.replace(/'/g, "\\'")}'`;
   }
 }
+
+/** Get arguments of a compound term. */
+export function getArgs(term: Term): readonly Term[] {
+  if (term.op === TermOp.VARIABLE || term.op === TermOp.CONSTANT) {
+    return [];
+  }
+  return (term as CompoundTerm).args;
+}
+
+/** Check if term is an inheritance. */
+export function isInheritance(term: Term): boolean {
+  return term.op === TermOp.INHERITANCE;
+}
+
+/** Check if term is a conjunction. */
+export function isConjunction(term: Term): boolean {
+  return term.op === TermOp.CONJUNCTION;
+}
+
+/** Check if term is a disjunction. */
+export function isDisjunction(term: Term): boolean {
+  return term.op === TermOp.DISJUNCTION;
+}
+
+/** Check if term is a negation. */
+export function isNegation(term: Term): boolean {
+  return term.op === TermOp.NEGATION;
+}
+
+/** Check if term is a similarity. */
+export function isSimilarity(term: Term): boolean {
+  return term.op === TermOp.SIMILARITY;
+}
+
+/** Check if term is an implication. */
+export function isImplication(term: Term): boolean {
+  return term.op === TermOp.IMPLICATION;
+}
+
+/** Check if term is an equivalence. */
+export function isEquivalence(term: Term): boolean {
+  return term.op === TermOp.EQUIVALENCE;
+}
+
+/** Check if term is a statement. */
+export function isStatement(term: Term): boolean {
+  return term.op === TermOp.STATEMENT;
+}
+
+/** Check if term is a question. */
+export function isQuestion(term: Term): boolean {
+  return term.op === TermOp.QUESTION;
+}
+
+/** Check if term is a goal. */
+export function isGoal(term: Term): boolean {
+  return term.op === TermOp.GOAL;
+}
+
+/** Check if term is atomic (variable or constant). */
+export function isAtomic(term: Term): boolean {
+  return term.op === TermOp.VARIABLE || term.op === TermOp.CONSTANT;
+}
+
+/** Check if term is compound. */
+export function isCompound(term: Term): boolean {
+  return !isAtomic(term);
+}
+
+/** Check if term contains a variable. */
+export function hasVariable(term: Term): boolean {
+  if (term.op === TermOp.VARIABLE) return true;
+  if (term.op === TermOp.CONSTANT) return false;
+  return (term as CompoundTerm).args.some(hasVariable);
+}
+
+/** Get all symbols in a term. */
+export function getSymbols(term: Term): Set<string> {
+  const symbols = new Set<string>();
+  if (term.op === TermOp.CONSTANT) {
+    symbols.add((term as ConstantTerm).value);
+  } else if (term.op === TermOp.VARIABLE) {
+    symbols.add((term as VariableTerm).name);
+  } else {
+    for (const arg of (term as CompoundTerm).args) {
+      for (const s of getSymbols(arg)) symbols.add(s);
+    }
+  }
+  return symbols;
+}
+
+/** Check if two terms share a symbol. */
+export function sharesSymbol(a: Term, b: Term): boolean {
+  const aSyms = getSymbols(a);
+  const bSyms = getSymbols(b);
+  for (const s of aSyms) if (bSyms.has(s)) return true;
+  return false;
+}
+
+/** Calculate structural similarity between two terms. */
+export function calculateSimilarity(a: Term, b: Term): number {
+  const aSyms = getSymbols(a);
+  const bSyms = getSymbols(b);
+  if (aSyms.size === 0 && bSyms.size === 0) return 1;
+  if (aSyms.size === 0 || bSyms.size === 0) return 0;
+  let intersection = 0;
+  for (const s of aSyms) if (bSyms.has(s)) intersection++;
+  return intersection / (aSyms.size + bSyms.size - intersection);
+}
+
+/** Walk a term and apply a visitor. */
+export function visitTerms(term: Term, visitor: (t: Term) => void): void {
+  visitor(term);
+  if (term.op !== TermOp.VARIABLE && term.op !== TermOp.CONSTANT) {
+    for (const arg of (term as CompoundTerm).args) {
+      visitTerms(arg, visitor);
+    }
+  }
+}
+
+/** Get term key for interning. */
+export function termKey(term: Term): string {
+  return term.hash.toString(36);
+}
+
+/** Parse Narsese string to term (simplified). */
+export function fromNarsese(input: string): Term | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  // Handle punctuation
+  let punctuation: TermOp | null = null;
+  let content = trimmed;
+  if (trimmed.endsWith('.')) {
+    punctuation = TermOp.STATEMENT;
+    content = trimmed.slice(0, -1).trim();
+  } else if (trimmed.endsWith('?')) {
+    punctuation = TermOp.QUESTION;
+    content = trimmed.slice(0, -1).trim();
+  } else if (trimmed.endsWith('!')) {
+    punctuation = TermOp.GOAL;
+    content = trimmed.slice(0, -1).trim();
+  }
+
+  const factory = TermFactory.getInstance();
+  const term = parseTermContent(content, factory);
+
+  if (punctuation && term) {
+    return factory.compound(punctuation, [term]);
+  }
+  return term;
+}
+
+function parseTermContent(content: string, factory: TermFactory): Term | null {
+  const trimmed = content.trim();
+
+  // Check for parentheses
+  if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
+    return parseTermContent(trimmed.slice(1, -1).trim(), factory);
+  }
+
+  // Check for negation
+  if (trimmed.startsWith('~')) {
+    const inner = parseTermContent(trimmed.slice(1).trim(), factory);
+    if (inner) return factory.compound(TermOp.NEGATION, [inner]);
+    return null;
+  }
+
+  // Check for binary operators (simplified - finds first top-level operator)
+  const ops = [
+    { op: TermOp.EQUIVALENCE, sym: '<=>' },
+    { op: TermOp.IMPLICATION, sym: '==>' },
+    { op: TermOp.SIMILARITY, sym: '<->' },
+    { op: TermOp.INHERITANCE, sym: '-->' },
+    { op: TermOp.CONJUNCTION, sym: '&' },
+    { op: TermOp.DISJUNCTION, sym: '|' },
+    { op: TermOp.CONCURRENT, sym: '||' },
+    { op: TermOp.SEQUENTIAL, sym: ';' },
+    { op: TermOp.PARALLEL, sym: '|~' },
+    { op: TermOp.EXTENSIONAL_IMAGE, sym: '@' },
+    { op: TermOp.INTENSIONAL_IMAGE, sym: '#' },
+    { op: TermOp.PREDICTION, sym: '|>' },
+    { op: TermOp.PRODUCT, sym: '*' },
+  ];
+
+  for (const { op, sym } of ops) {
+    const idx = findTopLevelOperator(trimmed, sym);
+    if (idx >= 0) {
+      const left = parseTermContent(trimmed.slice(0, idx).trim(), factory);
+      const right = parseTermContent(trimmed.slice(idx + sym.length).trim(), factory);
+      if (left && right) {
+        return factory.compound(op, [left, right]);
+      }
+    }
+  }
+
+  // Variable or constant
+  if (/^\?[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed)) {
+    return factory.variable(trimmed.slice(1));
+  }
+  if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed)) {
+    return factory.constant(trimmed);
+  }
+  if (/^'[^']*'$/.test(trimmed)) {
+    return factory.constant(trimmed.slice(1, -1).replace(/\\'/g, "'"));
+  }
+
+  return null;
+}
+
+function findTopLevelOperator(str: string, op: string): number {
+  let depth = 0;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+    else if (depth === 0 && str.startsWith(op, i)) {
+      // Check it's not part of a longer operator
+      const before = i > 0 ? str[i - 1] : '';
+      const after = i + op.length < str.length ? str[i + op.length] : '';
+      if (!/[\w]/.test(before) && !/[\w]/.test(after)) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}

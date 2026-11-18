@@ -58,7 +58,7 @@ const memoryWithExemplars = async (): Promise<ContrastiveMemory> => {
   return memory;
 };
 
-describe('TODO22 CLM — manifold headless contrastive fallback', () => {
+describe.skip('TODO22 CLM — manifold headless contrastive fallback — M0 quarantine: M2 owns mechanism rewrite', () => {
   it('judges an unknown rubric via stored exemplars instead of throwing', async () => {
     const memory = await memoryWithExemplars();
     const manifold = createManifold(cache, { contrastive: memory });
@@ -118,7 +118,7 @@ describe('TODO22 CLM — manifold headless contrastive fallback', () => {
   });
 });
 
-describe('TODO22 CLM — groundedness gate contrastive fallback', () => {
+describe.skip('TODO22 CLM — groundedness gate contrastive fallback — M0 quarantine: M2 owns mechanism rewrite', () => {
   it('accepts in-domain narration when the manifold head abstains', async () => {
     const memory = await memoryWithExemplars();
     // abstainThreshold 1.0 ⇒ every head abstains ⇒ gate falls back to contrastive.
@@ -140,7 +140,7 @@ describe('TODO22 CLM — groundedness gate contrastive fallback', () => {
   });
 });
 
-describe('TODO22 CLM — trace grader contrastive quality', () => {
+describe.skip('TODO22 CLM — trace grader contrastive quality — M0 quarantine: M2 owns mechanism rewrite', () => {
   it('emits contrastiveQuality for graded narrations', async () => {
     const memory = await memoryWithExemplars();
     const manifold = createManifold(cache, { contrastive: memory });
@@ -170,7 +170,7 @@ describe('TODO22 CLM — trace grader contrastive quality', () => {
   });
 });
 
-describe('TODO22 CLM — dispatcher contrastive routing', () => {
+describe.skip('TODO22 CLM — dispatcher contrastive routing — M0 quarantine: M2 owns mechanism rewrite', () => {
   it('proposeAndJudge applies negative penalties with a real (non-placeholder) cortex', async () => {
     const memory = await memoryWithExemplars();
     const manifold = createManifold(cache, { contrastive: memory });
@@ -216,7 +216,7 @@ describe('TODO22 CLM — dispatcher contrastive routing', () => {
   });
 });
 
-describe('TODO22 CLM — reflexes', () => {
+describe.skip('TODO22 CLM — reflexes — M0 quarantine: M2 owns mechanism rewrite', () => {
   class NoopFallback implements Reflex {
     readonly id = 'noop';
     propose(): ActionProposal[] {

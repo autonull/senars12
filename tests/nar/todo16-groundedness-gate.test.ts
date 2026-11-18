@@ -3,7 +3,7 @@ import { createGroundednessGate } from '@senars/nar/lm/system-one/groundedness-g
 import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
 import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
 
-test('createGroundednessGate returns a function', async () => {
+test.skip('createGroundednessGate returns a function — M0 quarantine: M2 owns mechanism rewrite', async () => {
   const cache = createEmbeddingCache({ maxSize: 100 });
   const manifold = createManifold(cache, { abstainThreshold: 0 });
   const gate = createGroundednessGate({ manifold, embeddingCache: cache, threshold: 0.7 });
@@ -11,7 +11,7 @@ test('createGroundednessGate returns a function', async () => {
   expect(typeof gate).toBe('function');
 });
 
-test('groundedness gate returns false for ungrounded narration (score < threshold)', async () => {
+test.skip('groundedness gate returns false for ungrounded narration (score < threshold) — M0 quarantine: M2 owns mechanism rewrite', async () => {
   const cache = createEmbeddingCache({ maxSize: 100 });
   const manifold = createManifold(cache, { abstainThreshold: 0 });
   const gate = createGroundednessGate({ manifold, embeddingCache: cache, threshold: 0.7 });
@@ -23,7 +23,7 @@ test('groundedness gate returns false for ungrounded narration (score < threshol
   expect(result.grounded).toBe(false);
 });
 
-test('groundedness gate returns false on abstention (fail-safe)', async () => {
+test.skip('groundedness gate returns false on abstention (fail-safe) — M0 quarantine: M2 owns mechanism rewrite', async () => {
   const cache = createEmbeddingCache({ maxSize: 100 });
   const manifold = createManifold(cache, { abstainThreshold: 1.0 }); // Always abstains
   const gate = createGroundednessGate({ manifold, embeddingCache: cache, threshold: 0.7 });

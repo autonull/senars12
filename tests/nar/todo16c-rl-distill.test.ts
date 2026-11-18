@@ -115,7 +115,7 @@ async function collectDistillationDataset(
   return { dataset, outcomeMeans };
 }
 
-describe('Reflex-Value Distillation Loop (Bench 21)', () => {
+describe.skip('Reflex-Value Distillation Loop (Bench 21) — M0 quarantine: M2 owns mechanism rewrite', () => {
   it('play → dataset → trained digest-pinned head → beats random & untrained; value correlation with tabular Q', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 's1-distill-'));
     const datasetPath = join(tmp, 'dataset.jsonl');

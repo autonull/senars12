@@ -74,6 +74,14 @@ jobs:
       - run: pnpm exports:barrels
       # TODO20 §5s: generated docs must match committed output (drift gate)
       - run: pnpm docs:drift
+      # TODO.core.22a M0: generated schemas/types/tools/docs are fresh
+      - run: pnpm schema:drift
+      # TODO.core.22a M0: every generated artifact is reproducible from the genome
+      - run: pnpm generated:artifacts
+      # TODO.core.22a M0: no new files in legacy packages
+      - run: pnpm no-new-legacy
+      # TODO.core.22a M0: surface/ and bin/ must not import legacy packages
+      - run: pnpm surface-no-legacy
       # TODO28 §8.10: every gate in scripts/lib/gates.ts, including this one.
       # TODO.core.19 C8.6: re-entered with the major-work period closed.
       # TODO.core.22a: suspended for the one-fold migration; the LOC ratchet is

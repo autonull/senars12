@@ -7,6 +7,8 @@
  * This module provides both interfaces.
  */
 
+import type { Term } from './terms/term.js';
+
 /** Timestamp in milliseconds since epoch. */
 export type TimestampMs = number;
 
@@ -116,4 +118,45 @@ export function serializeTruth(t: TruthValue): string {
 /** Nearly equal comparison. */
 export function nearlyEqual(a: number, b: number, epsilon = 1e-3): boolean {
   return Math.abs(a - b) < epsilon;
+}
+
+/** Task type enumeration. */
+export enum TaskType {
+  BELIEF = 'belief',
+  GOAL = 'goal',
+  QUESTION = 'question',
+}
+
+/** Task punctuation. */
+export enum TaskPunctuation {
+  STATEMENT = '.',
+  QUESTION = '?',
+  GOAL = '!',
+}
+
+/** Task bag kind. */
+export enum TaskBagKind {
+  DERIVATION = 'derivation',
+  INPUT = 'input',
+  OUTPUT = 'output',
+}
+
+/** Task representation. */
+export interface Task {
+  readonly term: Term;
+  readonly type: TaskType;
+  readonly truth: TruthValue;
+  readonly priority: number;
+  readonly stamp?: Stamp;
+}
+
+/** Create a task. */
+export function createTask(
+  term: Term,
+  type: TaskType,
+  truth: TruthValue,
+  priority: number,
+  stamp?: Stamp
+): Task {
+  return { term, type, truth, priority, stamp };
 }

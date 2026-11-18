@@ -118,6 +118,10 @@ export const GATES: readonly Gate[] = [
   // Generated docs must match the committed output. A diff rather than a red
   // test, which is why it survived being red for a pass.
   script('docs:drift'),
+  script('schema:drift'),
+  script('generated:artifacts'),
+  script('no-new-legacy'),
+  script('surface-no-legacy'),
   script('test:unit'),
   // The UI registries (theme/event/field/lens/layout/surface) are exhaustive by
   // `satisfies`, so a missing catalog row fails the UI typecheck; this gate makes
