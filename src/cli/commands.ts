@@ -1,10 +1,9 @@
-import type { CLICommand } from '@senars/io/connections/cli';
-import { QUIT_SENTINEL } from '@senars/io/connections/cli';
-import type { NAR } from '@senars/nar';
-import type { BinAgentApi as Agent } from '@senars/nar/agent';
-import type { LMTask } from '@senars/util';
-import { degrade, errMsg, type LMExecutionStats, splitWords, truncate } from '@senars/util';
-import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
+import type { CLICommand } from '../io/index.js';
+import { QUIT_SENTINEL } from '../io/index.js';
+import type { NAR, Agent } from '../agent/index.js';
+import type { LMTask, LMExecutionStats } from '../utils/common.js';
+import { degrade, errMsg, splitWords, truncate } from '../utils/common.js';
+import type { ConversationSession, SessionManager } from '../utils/common.js';
 import {
   formatAgentStatus,
   formatAttention,

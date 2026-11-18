@@ -3,9 +3,9 @@
  * `.systemone` readout surfaces. Pure presentation over NAR; no command state.
  */
 
-import type { NAR } from '@senars/nar';
-import { readCalibrationLockOrNull } from '@senars/nar/lm/system-one';
-import { flooredRatio, formatDuration, pct } from '@senars/util';
+import type { NAR } from '../agent/index.js';
+import { readCalibrationLockOrNull } from '../lm/index.js';
+import { flooredRatio, formatDuration, pct } from '../utils/common.js';
 import { type AttachedGame, reflexesOf } from './conversation-game.js';
 
 export function formatSystemOneStatus(nar: NAR, conversationGame: AttachedGame | null): string {

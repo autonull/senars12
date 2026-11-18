@@ -4,7 +4,7 @@
 
 export type { NARConfig } from '@senars/nar';
 export { NAR } from '@senars/nar';
-export type { Agent } from '@senars/nar/agent';
+export type { BinAgentApi as Agent } from '@senars/nar/agent';
 export { createAgent } from '@senars/nar/agent';
 export { NARBuilder } from '@senars/nar/agent/builder';
 export type { ExtendedAgent } from '@senars/nar/agent';

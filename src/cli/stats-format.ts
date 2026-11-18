@@ -3,10 +3,9 @@
  * Shared formatting for NAR, LM, and Agent statistics
  */
 
-import type { NAR } from '@senars/nar';
-import type { BinAgentApi as Agent } from '@senars/nar/agent';
-import type { LMExecutionStats } from '@senars/util';
-import { formatDuration, formatTruth, limitList } from '@senars/util';
+import type { NAR, Agent } from '../agent/index.js';
+import type { LMExecutionStats } from '../utils/common.js';
+import { formatDuration, formatTruth, limitList } from '../utils/common.js';
 import type { LMHandle } from './commands.js';
 
 export interface FormattedStats {

@@ -39,3 +39,6 @@
 
 - `README.md` is generated. Don't edit it directly; edit the appropriate section in `docs/readme/*`
   and run `pnpm readme`
+
+- No backwards compatibility / legacy is necessary, since there are no users yet; full-speed ahead
+

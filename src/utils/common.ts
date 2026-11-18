@@ -49,7 +49,13 @@ export {
   tokenize,
   flagsOf,
   onOff,
+  degrade,
+  truncate,
+  limitList,
+  formatTruth,
+  flooredRatio,
+  splitLines,
 } from '@senars/util';
 export { ConfigurationError } from '@senars/util/errors';
-export type { LMTask } from '@senars/util';
+export type { LMTask, LMExecutionStats, ConversationSession, SessionManager } from '@senars/util';
 export { SlidingWindowRateLimiter } from '@senars/util';
