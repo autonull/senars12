@@ -31,6 +31,7 @@ import {
   canonicalize,
   canonicalEquals,
   canonicalHash,
+  isCompound,
 } from '@senars/kernel/terms/intern';
 import { canonicalize as canonicalizeTerm } from '@senars/kernel/terms/canonical';
 
@@ -65,16 +66,18 @@ describe('TermFactory', () => {
     const inh2 = factory.inheritance(a, b);
     expect(inh1).toBe(inh2);
     expect(inh1.op).toBe(TermOp.INHERITANCE);
-    expect(inh1.arity).toBe(2);
-    expect(inh1.args[0]).toBe(a);
-    expect(inh1.args[1]).toBe(b);
+    const inh1Compound = inh1 as CompoundTerm;
+    expect(inh1Compound.arity).toBe(2);
+    expect(inh1Compound.args[0]).toBe(a);
+    expect(inh1Compound.args[1]).toBe(b);
   });
 
   it('should parse Narsese', () => {
     const factory = TermFactory.getInstance();
     const term = factory.parse('(Socrates --> Mortal).');
     expect(term.op).toBe(TermOp.STATEMENT);
-    expect(term.args[0].op).toBe(TermOp.INHERITANCE);
+    const statement = term as CompoundTerm;
+    expect(statement.args[0]?.op).toBe(TermOp.INHERITANCE);
   });
 
   it('should format terms as Narsese', () => {
@@ -132,7 +135,8 @@ describe('Term Interning', () => {
     };
     const term = termFromJSON(json);
     expect(term.op).toBe(TermOp.INHERITANCE);
-    expect(term.args[0].op).toBe(TermOp.CONSTANT);
+    const inhTerm = term as CompoundTerm;
+    expect(inhTerm.args[0]?.op).toBe(TermOp.CONSTANT);
   });
 
   it('should visit term trees', () => {
@@ -153,8 +157,11 @@ describe('Term Interning', () => {
     const mapped = mapTerm(term, t => t.op === TermOp.CONSTANT && t.value === 'A'
       ? factory.constant('X')
       : t);
-    expect(mapped.args[0].value).toBe('X');
-    expect(mapped.args[1].value).toBe('B');
+    const mappedCompound = mapped as CompoundTerm;
+    const arg0 = mappedCompound.args[0] as ConstantTerm;
+    const arg1 = mappedCompound.args[1] as ConstantTerm;
+    expect(arg0?.value).toBe('X');
+    expect(arg1?.value).toBe('B');
   });
 
   it('should find subterms', () => {
@@ -169,7 +176,7 @@ describe('Term Interning', () => {
     const term = factory.inheritance(factory.variable('$x'), factory.constant('B'));
     const vars = getVariables(term);
     expect(vars.length).toBe(1);
-    expect(vars[0].name).toBe('$x');
+    expect(vars[0]?.name).toBe('$x');
   });
 
   it('should substitute variables', () => {
@@ -177,7 +184,9 @@ describe('Term Interning', () => {
     const x = factory.variable('$x');
     const term = factory.inheritance(x, factory.constant('B'));
     const subbed = substitute(term, new Map([[x, factory.constant('A')]]));
-    expect(subbed.args[0].value).toBe('A');
+    const subbedCompound = subbed as CompoundTerm;
+    const arg0 = subbedCompound.args[0] as ConstantTerm;
+    expect(arg0?.value).toBe('A');
   });
 
   it('should check variable containment', () => {
@@ -192,8 +201,10 @@ describe('Term Interning', () => {
     const x = factory.variable('$x');
     const term = factory.inheritance(x, factory.constant('B'));
     const renamed = renameVariables(term, 'v');
-    expect(renamed.args[0].name).toMatch(/^v\d+$/);
-    expect(renamed.args[0]).not.toBe(x);
+    const renamedCompound = renamed as CompoundTerm;
+    const renamedVar = renamedCompound.args[0] as VariableTerm;
+    expect(renamedVar.name).toMatch(/^v\d+$/);
+    expect(renamedVar).not.toBe(x);
   });
 
   it('should standardize apart', () => {
@@ -201,7 +212,9 @@ describe('Term Interning', () => {
     const x = factory.variable('$x');
     const term = factory.inheritance(x, factory.constant('B'));
     const std = standardizeApart(term);
-    expect(std.args[0].name).toMatch(/^_v\d+$/);
+    const stdCompound = std as CompoundTerm;
+    const stdVar = stdCompound.args[0] as VariableTerm;
+    expect(stdVar.name).toMatch(/^_v\d+$/);
   });
 
   it('should check unifiability', () => {
@@ -298,7 +311,8 @@ describe('Term Parsing', () => {
     const factory = TermFactory.getInstance();
     const term = factory.parse('(A & B & C)');
     expect(term.op).toBe(TermOp.CONJUNCTION);
-    expect(term.arity).toBe(3);
+    const conj = term as CompoundTerm;
+    expect(conj.arity).toBe(3);
   });
 
   it('should parse disjunction', () => {
@@ -317,7 +331,8 @@ describe('Term Parsing', () => {
     const factory = TermFactory.getInstance();
     const term = factory.parse('$x');
     expect(term.op).toBe(TermOp.VARIABLE);
-    expect(term.name).toBe('$x');
+    const varTerm = term as VariableTerm;
+    expect(varTerm.name).toBe('$x');
   });
 
   it('should parse statements/questions/goals', () => {

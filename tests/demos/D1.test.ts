@@ -9,14 +9,13 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { TermFactory } from '@senars/kernel/terms/intern';
-import { Truth } from '@senars/kernel/truth';
+import { TermFactory, Term } from '@senars/kernel/terms/intern';
+import { Truth, type TruthValue } from '@senars/kernel/truth';
 import { Stamp } from '@senars/kernel/stamp';
-import { createStepExecutor, StepExecutor } from '@senars/kernel/step';
+import { createStepExecutor, StepExecutor, type Premise } from '@senars/kernel/step';
 import { NALRuleEngine } from '@senars/logics/nal/rules';
 import { Bag, createBag } from '@senars/kernel/bag';
 import { GateRegistry, createGateRegistry } from '@senars/kernel/gate';
-import type { Term, TruthValue, Premise } from '@senars/kernel/step';
 
 describe('Demo D1: Basic NAL Reasoning', () => {
   let factory: TermFactory;

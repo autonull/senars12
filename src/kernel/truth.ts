@@ -34,6 +34,9 @@ export const normalizeTruth = (f: number, c: number): Truth =>
     c: clamp(isNaN(c) ? 0.9 : c, 0, MAX_CONFIDENCE) as Confidence,
   });
 
+/** Alias for normalizeTruth (test compatibility). */
+export const normalize = normalizeTruth;
+
 /** Create a truth value with validation. */
 export const createTruth = (f: number, c: number): Truth => {
   if (c > MAX_CONFIDENCE) {
@@ -50,6 +53,7 @@ export const Truth: {
   readonly MAX_CONFIDENCE: number;
   readonly WEAKENING_FACTOR: number;
   readonly fromUnknown: (t: TruthLike | undefined, fallback?: Truth) => Truth;
+  readonly normalize: (f: number, c: number) => Truth;
   readonly negation: (t: Truth) => Truth;
   readonly conversion: (t: Truth) => Truth;
   readonly attention: (t: Truth) => number;
@@ -97,6 +101,9 @@ export const Truth: {
     if (!t) return fallback;
     return 'f' in t && 'c' in t ? (t as Truth) : normalizeTruth(t.frequency, t.confidence);
   },
+
+  /** Normalize a truth value (clamp to valid domain). */
+  normalize: normalizeTruth,
 
   /** Negation: ~(f, c) = (1-f, c). */
   negation: (t: Truth): Truth => normalizeTruth(1 - t.f, t.c),
