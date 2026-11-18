@@ -98,9 +98,6 @@ export * from './rules/index.js';
 // Self
 export * from './self/index.js';
 
-// Terms
-export * from './terms/index.js';
-
 // Config/NAR
 export * from './config/nar.js';
 

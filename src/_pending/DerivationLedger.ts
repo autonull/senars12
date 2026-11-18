@@ -8,7 +8,7 @@
 import type { LogStore } from '../../../../src/log/store.js';
 import type { CognitiveEvent } from '../../../../src/log/events.js';
 import type { DerivationRecorder } from '../../../../nar/src/rules/impls/recorder.js';
-import { createLogger } from '@senars/util';
+import { createLogger } from '@senars/utils';
 
 export interface DerivationLedgerOptions {
   /** Where a replay reports what it resumed. */

@@ -9,7 +9,7 @@ import type { LogStore } from '../../../../src/log/store.js';
 import type { CognitiveEvent } from '../../../../src/log/events.js';
 import type { GateRegistry } from '../../../../nar/src/kernel/GateRegistry.js';
 import { GATE_LOG_KEYS } from '../../../../nar/src/kernel/event-ring.js';
-import { createLogger } from '@senars/util';
+import { createLogger } from '@senars/utils';
 
 export interface GateEventLedgerOptions {
   /** Where a replay reports what it resumed. */

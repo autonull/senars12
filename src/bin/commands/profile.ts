@@ -1,6 +1,6 @@
 /** Persona profile and the bot skill registry (`.profile`, `.skill-*`). */
 
-import { removeBy } from '../../../utils/common.js';
+import { removeBy } from '../../utils/common.js';
 import { cmd } from '../../cli/commands.js';
 import type { BotConfig } from '../../config/index.js';
 import { tokenize } from './args.js';

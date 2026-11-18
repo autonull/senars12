@@ -1,7 +1,7 @@
 /** Host-surface commands that shell out or own a long-lived handle (`.webui`, `.arcade`, `.multiagent`). */
 
 import { execFile } from 'node:child_process';
-import { finiteOr } from '../../../utils/common.js';
+import { finiteOr } from '../../utils/common.js';
 import { attempted, cmd } from '../../cli/commands.js';
 import { tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
@@ -20,7 +20,7 @@ export const runtimeCommandsFor = (rt: BotRuntime) => [
     }
     if (rt.webuiHandle) return 'Web UI already running';
     const port = finiteOr(sub, 3001);
-    const { startAgentUI } = await import('../../../ui/src/server/index.js');
+    const { startAgentUI } = await import('@senars/ui/server');
     rt.webuiHandle = await startAgentUI(rt.wired.agent as never, { port } as never);
     return `Web UI on :${port}`;
   }),

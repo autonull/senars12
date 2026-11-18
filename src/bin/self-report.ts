@@ -17,6 +17,8 @@ import {
   mean,
   pct,
   selectTopN,
+  bar,
+  formatNarseseTruth,
 } from '../utils/common.js';
 import { runEntrypoint } from './lib/fatal-error.js';
 import { mettaPort } from './lib/metta.js';

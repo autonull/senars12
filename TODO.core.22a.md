@@ -1734,3 +1734,57 @@ No legacy `@senars/core|nar|io|metta|util` imports found. `surface-no-legacy` pa
 - `pnpm typecheck` ✅ PASS
 - `pnpm lint` ✅ PASS
 - `pnpm surface-no-legacy` ✅ PASS
+
+### Session Log — 2026-11-18 (Import Migration Complete — Bin/CLI/Surface)
+**All src/bin/, src/bin/commands/, src/bin/lib/, src/cli/ imports migrated to src/ path aliases**
+- Migrated 50+ files from legacy `@senars/core|nar|io|metta|util` to `src/` barrels
+- Created/extended 20+ barrel exports in `src/`:
+  - `src/agent/index.ts` — NAR, NARBuilder, createAgent, createNAR, createBotNAR, createLMService, createSeNARSRegistry, coreCommands, episodesCommands, lmCommands, memoryCommands, narCommands, rlfpCommands, selfCommands, Tool, ToolResult, ToolSchema, ToolSchemaProperty, ChatStreamEvent, withinWorkspace, Truth, DEFAULT_NAR_STATE_PATH, readPersistedBoundary
+  - `src/budget/index.ts` — createBudget, createCapturePhase, DEFAULT_MACRO_PIPELINE, ALL_RESOURCES, BUDGET_RESOURCES, BudgetSlice, BudgetLimits, ConsumedBudget, BudgetResource, isExhausted, pressure, remainingAll, traceDimensions
+  - `src/config/index.ts` — DEFAULT_APP_CONFIG, DEFAULT_BOT_CONFIG, DEFAULT_NAR_CORE_CONFIG, DEFAULT_PROFILE, makeDefaultBotConfig, loadConfig, loadConfigFromEnv, systemOneDefaults, systemOneSchema
+  - `src/dialogue/index.ts` — DialogueCapture, RetrospectiveAdapter, retrospect, persistRetrospective, loadRetrospectives, extractLessons, Reconsolidator, selectProbes, mineHardNegatives, OutcomeLinker, episodeQualitySurface
+  - `src/health/index.ts` — runHealthChecks, DEFAULT_NAR_STATE_PATH, readPersistedBoundary, createBotNAR, NAREventMap
+  - `src/io/index.ts` — AuthManager, bindAgentToConnection, createConnectionConfigsFromEnv, CLIConnection, HTTPConnection, IRCConnection, MCPConnection, WSConnection, CommandRegistry, connectionCommands, createAuthCommands, QUIT_SENTINEL
+  - `src/lm/index.ts` — resolveLMConfig, resolveLMSettings, createLMService, createSeNARSRegistry, evaluateQuery, computeEvidenceId, probeEmbeddedLlama, getRouting, setRouting, getRoutingLogStatus, getRoutingStatus, getModelChain, readCalibrationLockOrNull, rubricOf, StubCortex, createLlamaCppFetch, runWithGrammar, loadGrammar, JudgmentDataset, calibrateFit, createSystemOneBudget, CALIBRATION_LOCK_PATH, HEAD_SPECS, SystemOneManifold, cloudApiKey, endpointPath, getCircuitBreaker, getEffectiveCircuitConfig, probeJson, probeLlamaCpp, probeModelsEndpoint, resolveOfflineTier, LM_PROVIDER_NAMES, LM_TASKS, formatLMConfig, isGpuBackend, asRubricId, ScoreDistribution, specToQuery, resetCircuitBreakers, resetDemotions, configureLM, createConfiguredLMRules, resolveEmbeddingGenerator, embeddingRuntime, EmbeddingCache, TraceGradeInput, TraceGradeResult, mineHardNegatives, SchemaInductor, createSchemaInductor, createFrozenEvalSet, splitOod, evalMetrics, headMetrics, writeEvalSet, loadEvalSet, digestRows, writeCalibrationLock, fitCalibrationLock
+  - `src/memory/index.ts` — EpisodicMemory, consolidateEpisodes, PromotionResult, JsonlSessionManager, EpisodeType
+  - `src/metrics/index.ts` — createReasoningRoute, handleMetricsRequest, ReasoningHttpEngine
+  - `src/metta/index.ts` — createMeTTa, parseMeTTa, MettaPort, createMettaPort
+  - `src/nl/index.ts` — NLUnderstandingService, TranslationCache
+  - `src/otel/index.ts` — initOtel, shutdownOtel, withSpan
+  - `src/query/index.ts` — MemoryQuery, episodeQualitySurface
+  - `src/reflex/index.ts` — MettaProposer, RLFPLearner, createKnobSet, TaskRewardMetrics, DEFAULT_COGNITIVE_PARAMETERS, CognitiveParameters
+  - `src/rules/index.ts` — initializeMetaReasoning, registerMetaRules
+  - `src/self/index.ts` — initializeSelfConcept, operationNameOf, ArchitectureDriver
+  - `src/terms/index.ts` — PUNCTUATION_BY_TASK_TYPE, taskTypeForPunctuation, Truth, operationNameOf
+  - `src/utils/common.ts` — Frequently used util functions + CLI-specific utilities (tokenize, flagsOf, setPath, coerce, onOff, jsonMode, renderReport, dispatchSub, ratioArg, positiveArg, evaluateExpression)
+  - `src/utils/index.ts` — Full bridge to @senars/util (config, errors, types, utils, events, bag)
+  - `src/focus/index.ts` — GameFocus, Reflex, Focus, FocusBag, FocusScheduler, FocusTree, GameFocus, MetaFocus, SchemaStore
+
+**Path Aliases Added to tsconfig.json:**
+- `@senars/agent`, `@senars/budget`, `@senars/config`, `@senars/health`, `@senars/memory`, `@senars/terms`, `@senars/self`, `@senars/rules`, `@senars/reflex`, `@senars/nl`, `@senars/metrics`, `@senars/query`, `@senars/dialogue`, `@senars/otel`, `@senars/focus`
+- `@senars/utils` → `./src/utils/index.ts` (new barrel)
+- `@senars/util` → `./util/src/index.ts` (legacy package)
+
+**Fixed Circular Import in src/utils/common.ts:**
+- Changed imports from `@senars/utils` (new barrel) to `@senars/util` (legacy package) to break circular dependency
+- Removed `export * from '../../util/src/utils/eval.js'` from `src/utils/index.ts` to avoid duplicate `evaluateExpression` export
+
+**Gates Status After Migration:**
+- `pnpm typecheck` ✅ PASS (root)
+- `pnpm typecheck:bin` ✅ PASS
+- `pnpm typecheck:packages` ✅ PASS (5 packages clean)
+- `pnpm lint` ✅ PASS
+- `pnpm surface-no-legacy` ✅ PASS (no legacy imports in surface/ or bin/)
+- `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
+- `pnpm exports:check` ✅ PASS
+- `pnpm docs:drift` ✅ PASS (docs regenerated)
+- `pnpm gates` ❌ FAIL at `env:grammar` (pre-existing UI issue — out of scope)
+
+**Remaining Work (M1-M3 Consolidation):**
+- ✅ Migrate `src/bin/`, `src/bin/commands/`, `src/bin/lib/` imports from `@senars/*` to `src/` path aliases
+- ✅ Migrate `src/cli/` imports from `@senars/*` to `src/` path aliases
+- ✅ Migrate `src/surface/` imports — already using `@senars/worlds`, `@senars/admit`, `@senars/mining` path aliases
+- 🔄 Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (261 test files with legacy imports)
+- Consolidate export subpaths from 96 to 1 (collapse core, nar, io, metta, util, ui packages into root)
+- Reduce persistence sites to 1 (LogStore only)
+

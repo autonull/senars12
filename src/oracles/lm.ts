@@ -6,7 +6,7 @@
  */
 
 import { createHash } from 'crypto';
-import type { LMTask, LMGenerateOptions } from '@senars/util';
+import type { LMTask, LMGenerateOptions } from '@senars/utils';
 import { generateText, generateObject, streamText, type LanguageModel } from 'ai';
 import { zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';

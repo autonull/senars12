@@ -26,7 +26,7 @@ import {
   HEAD_SPECS,
   type SystemOneManifold,
 } from '../../lm/index.js';
-import { createLogger, errMsg, formatBytes, parseFlags, pct } from '../../../utils/common.js';
+import { createLogger, errMsg, formatBytes, parseFlags, pct } from '../../utils/common.js';
 import { loadConfig } from '../../config/index.js';
 import { renderReport } from '../commands/args.js';
 import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';

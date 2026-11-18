@@ -5,6 +5,7 @@
 export {
   AuthManager,
   BaseConnection,
+  bindAgentToConnection,
   broadcastToSubscribers,
   CLIConnection,
   CommandRegistry,
@@ -13,6 +14,7 @@ export {
   cleanupWSClient,
   connectionCommands,
   createAuthCommands,
+  createConnectionConfigsFromEnv,
   createWSClient,
   HTTPConnection,
   IRCConnection,

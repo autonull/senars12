@@ -1,7 +1,7 @@
 /** Health, telemetry and micro-benchmark commands (`.doctor`, `.health`, `.spend`, `.benchmarks`, …). */
 
-import { resolveLMSettings } from '../../../lm/index.js';
-import { clamp, finiteOr, perSecond, stopwatch } from '../../../utils/common.js';
+import { resolveLMSettings } from '../../index.js';
+import { clamp, finiteOr, perSecond, stopwatch } from '../../utils/common.js';
 import { attempted, cmd } from '../../cli/commands.js';
 import { configValidity, credentialSummary, embeddedProbe } from '../lib/doctor-checks.js';
 import { jsonMode } from './args.js';
@@ -31,7 +31,7 @@ export const diagnosticCommandsFor = (rt: BotRuntime) => [
   }),
   cmd('routing-log', 'Routing telemetry status', async () => {
     return attempted('routing-log unavailable', async () => {
-      const { getRoutingLogStatus } = await import('../../../lm/index.js');
+      const { getRoutingLogStatus } = await import('../../lm/index.js');
       const st = getRoutingLogStatus();
       return `enabled=${st.enabled} buffered=${st.bufferSize} log=${st.logPath}`;
     });
@@ -60,8 +60,8 @@ export const diagnosticCommandsFor = (rt: BotRuntime) => [
     return `${cycles} cycles in ${ms}ms (${perSecond(cycles, ms).toFixed(0)} cyc/s), derivations=${derived}\nFull suites: pnpm bench`;
   }),
   cmd('selftune', 'Quick 3-iteration self-tune demo', async () => {
-    const { RLFPLearner } = await import('../../../reflex/index.js');
-    const { DEFAULT_COGNITIVE_PARAMETERS } = await import('../../../config/nar.js');
+    const { RLFPLearner } = await import('../../reflex/index.js');
+    const { DEFAULT_COGNITIVE_PARAMETERS } = await import('../../config/nar.js');
     const rlfp = new RLFPLearner({ currentParams: { ...DEFAULT_COGNITIVE_PARAMETERS } });
     let best = -Infinity;
     for (let i = 0; i < 3; i++) {

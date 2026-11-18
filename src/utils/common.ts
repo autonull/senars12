@@ -20,9 +20,13 @@ export {
   clamp,
   perSecond,
   stopwatch,
+  envStr,
   envStrOr,
   envBool,
   envNum,
+  envSet,
+  envCsv,
+  envInt,
   cachePath,
   formatDuration,
   formatBytes,
@@ -32,30 +36,38 @@ export {
   parseJsonOr,
   type ReadOnlyLookup,
   takeLast,
-  positiveInt,
   sleep,
   escapeRegExp,
   divider,
   splitWords,
   getNested,
   parseEnvValue,
-  coerce,
-  jsonMode,
-  renderReport,
-  dispatchSub,
-  ratioArg,
-  positiveArg,
-  setPath,
-  tokenize,
-  flagsOf,
-  onOff,
   degrade,
   truncate,
   limitList,
   formatTruth,
   flooredRatio,
   splitLines,
+  bar,
+  formatNarseseTruth,
+  generateId,
 } from '@senars/util';
+export { positiveInt } from '@senars/util/config';
 export { ConfigurationError } from '@senars/util/errors';
-export type { LMTask, LMExecutionStats, ConversationSession, SessionManager } from '@senars/util';
-export { SlidingWindowRateLimiter } from '@senars/util';
+export type { LMTask, LMExecutionStats, ConversationSession, SessionManager, Teardown, HealthReport } from '@senars/util';
+export { SlidingWindowRateLimiter, keyedBy, mapValues, LM_TASKS, BoundedMap, mean, selectTopN, entryKey, sumBy, filterFolded } from '@senars/util';
+export { evaluateExpression } from '@senars/util/utils/eval.js';
+
+// CLI-specific utilities (from src/bin/commands/args.ts)
+export {
+  tokenize,
+  flagsOf,
+  setPath,
+  coerce,
+  onOff,
+  jsonMode,
+  renderReport,
+  dispatchSub,
+  ratioArg,
+  positiveArg,
+} from '../bin/commands/args.js';

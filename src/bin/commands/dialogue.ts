@@ -1,8 +1,8 @@
 /** Dialogue Flywheel commands (`.react`, `.turns`, `.retrospect*`, `.probes`, …). */
 
-import { OutcomeLinker } from '../../../config/nar.js';
-import { episodeQualitySurface } from '../../../query/index.js';
-import { errMsg, finiteOr, makeId, takeLast, unique } from '../../../utils/common.js';
+import { OutcomeLinker } from '../../config/nar.js';
+import { episodeQualitySurface } from '../../query/index.js';
+import { errMsg, finiteOr, makeId, takeLast, unique } from '../../utils/common.js';
 import { attempted, cmd } from '../../cli/commands.js';
 import { tokenize } from './args.js';
 import { type BotRuntime, systemOneOf } from './context.js';
@@ -27,7 +27,7 @@ export const runSessionRetrospective = async (
   const { wired, strategyAdapter, memoryQuery } = rt;
   const { parameterLedger } = rt;
   if (!parameterLedger) return 'Parameter ledger not attached.';
-  const { mineHardNegatives } = await import('../../../lm/index.js');
+  const { mineHardNegatives } = await import('../../lm/index.js');
   const miningBag = wired.nar.getMiningBag?.();
   const negatives = await mineHardNegatives(wired.nar, wired.episodicMemory, {
     limit: 16,
@@ -53,7 +53,7 @@ export const runSessionRetrospective = async (
     rewardDomain: 'external-reflex' as const,
     correlationId: sessionId,
   };
-  const { retrospect, persistRetrospective } = await import('../../../dialogue/index.js');
+  const { retrospect, persistRetrospective } = await import('../../dialogue/index.js');
   const r = await retrospect(sessionId, wired.episodicMemory, {
     // Turn ids share the correlationId the kernel minted, so the join is exact.
     traceGrades: systemOneOf(rt)?.traceGradeHistory,
@@ -168,7 +168,7 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
     return runSessionRetrospective(rt, sid);
   }),
   cmd('retrospectives', 'List past retrospectives: [n]', async (args = '') => {
-    const { loadRetrospectives } = await import('../../../dialogue/index.js');
+    const { loadRetrospectives } = await import('../../dialogue/index.js');
     const limit = finiteOr(args.trim(), 10);
     const rs = await loadRetrospectives(limit);
     if (rs.length === 0) return 'No retrospectives.';
@@ -183,7 +183,7 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
     'lessons',
     'Show lessons extracted from retrospectives + formalized corrections',
     async () => {
-      const { extractLessons, loadRetrospectives } = await import('../../../dialogue/index.js');
+      const { extractLessons, loadRetrospectives } = await import('../../dialogue/index.js');
       const retrospectLessons = (await loadRetrospectives(50)).flatMap((r) =>
         extractLessons(r, {
           term: 'dialogue_performance',
@@ -218,7 +218,7 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
     'reconsolidate',
     'Ingest retrospective lessons as self-beliefs (one-shot per digest, survives restarts)',
     async () => {
-      const { Reconsolidator, loadRetrospectives } = await import('../../../dialogue/index.js');
+      const { Reconsolidator, loadRetrospectives } = await import('../../dialogue/index.js');
       const reconsolidator = new Reconsolidator(
         { load: (n: number) => loadRetrospectives(n) },
         {
@@ -239,7 +239,7 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
     'probes',
     'Show curriculum probes selected from flywheel-graded data (corrections + low grades)',
     async () => {
-      const { selectProbes } = await import('../../../dialogue/index.js');
+      const { selectProbes } = await import('../../dialogue/index.js');
       const probes = await selectProbes(
         {
           reactions: () => rt.wired.episodicMemory.getEpisodes({ type: 'reaction', limit: 1000 }),
@@ -291,7 +291,7 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
     }
     const inductor =
       nar.getSchemaInductor() ??
-      new (await import('../../../lm/index.js')).SchemaInductor(nar.memory, lmService, {
+      new (await import('../../lm/index.js')).SchemaInductor(nar.memory, lmService, {
         inductionIntervalMs: 0,
       });
     for (const chain of chains) inductor.onDerivation(chain as never);

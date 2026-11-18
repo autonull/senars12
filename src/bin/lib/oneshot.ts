@@ -14,7 +14,7 @@
 
 import { createNAR, type NAR } from '../../agent/index.js';
 import { PUNCTUATION_BY_TASK_TYPE, taskTypeForPunctuation, Truth } from '../../terms/index.js';
-import { escapeRegExp, type Flags } from '../../../utils/common.js';
+import { escapeRegExp, type Flags } from '../../utils/common.js';
 
 /** The answer surface `askWithDerivation` returns, without a `./query` subpath. */
 type Answer = Awaited<ReturnType<NAR['askWithDerivation']>>;

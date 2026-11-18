@@ -7,7 +7,7 @@
  */
 
 import { NARBuilder } from '../../agent/index.js';
-import { parseFlags } from '../../../utils/common.js';
+import { parseFlags } from '../../utils/common.js';
 import { mettaPort } from './metta.js';
 import { runMultiAgent } from './multi-agent-runner.js';
 
