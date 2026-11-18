@@ -19,17 +19,7 @@
       "@senars/deck/*": ["./src/deck/*"],
       "@senars/ui-contract/*": ["./src/ui-contract/*"],
       "@senars/economy/*": ["./src/economy/*"],
-      "@senars/generated/*": ["./src/generated/*"],
-      "@senars/core": ["./core/src/index.ts"],
-      "@senars/core/*": ["./core/src/*"],
-      "@senars/io": ["./io/src/index.ts"],
-      "@senars/io/*": ["./io/src/*"],
-      "@senars/nar": ["../nar/src/index.ts"],
-      "@senars/nar/*": ["./nar/src/*"],
-      "@senars/metta": ["./metta/src/index.ts"],
-      "@senars/metta/*": ["./metta/src/*"],
-      "@senars/util": ["./util/src/index.ts"],
-      "@senars/util/*": ["./util/src/*"]
+      "@senars/generated/*": ["./src/generated/*"]
     }
   },
   "include": ["src/log/**/*.ts", "src/logics/**/*.ts", "src/verification/**/*.ts", "src/formats/**/*.ts", "src/admit/**/*.ts", "src/worlds/**/*.ts", "src/mining/**/*.ts", "src/surface/**/*.ts", "src/deck/**/*.ts", "src/ui-contract/**/*.ts", "src/economy/**/*.ts", "src/kernel/**/*.ts", "src/generated/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],

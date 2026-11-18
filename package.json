@@ -18,7 +18,6 @@
     "dev": "turbo run dev",
     "start": "tsx src/index.ts",
     "repl": "pnpm run bot",
-    "replay": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/replay.ts",
     "status": "pnpm run bot -- --status",
     "doctor": "pnpm run bot -- --doctor",
     "bot": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/bot.ts",

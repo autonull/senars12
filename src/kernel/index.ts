@@ -15,14 +15,3 @@ export * from './bag.js';
 
 // Re-export NAR kernel types
 export { DEFAULT_REPUTATION_PATH, providerKey, SourceReputation, threadScope } from '@senars/nar/kernel';
-// Replay compatibility (file-based)
-export {
-  computeReplayStateHash,
-  type FullReplayOptions,
-  type ReplaySnapshotFile,
-  replayIntoMemory,
-  serializeReplayResult,
-  verifyReplayStateHash,
-  type ReplayResult,
-  type SNAPSHOT_VERSION,
-} from '@senars/nar/kernel/replay-compat';
