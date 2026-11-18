@@ -10,12 +10,12 @@ import {
   BUDGET_SCOPES,
   scopeLimitKey,
   scopeTerminationReason,
-} from '@senars/nar/kernel/budget-scopes';
-import { ControlBudgets } from '@senars/nar/kernel/control-budgets';
+} from '@senars/kernel';
+import { ControlBudgets } from '@senars/kernel';
 import {
   createDefaultReasoningBudget,
   KernelBudgetGate,
-} from '@senars/nar/kernel/KernelBudgetGate';
+} from '@senars/kernel';
 import { describe, expect, it } from 'vitest';
 
 describe('the gate spends the budget core accounts', () => {

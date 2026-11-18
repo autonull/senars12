@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { LMRule } from '@senars/nar/lm/rule/LMRule';
-import type { LMService } from '@senars/nar/lm/lm-service';
+import { LMRule } from '@senars/lm';
+import type { LMService } from '@senars/lm';
 import { atom } from '@senars/terms';
 
 const never = <T>(): Promise<T> => new Promise<T>(() => {});

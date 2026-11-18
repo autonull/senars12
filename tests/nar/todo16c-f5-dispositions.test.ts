@@ -3,8 +3,8 @@ import { NAR } from '@senars/agent';
 import { createNAR } from '@senars/agent';
 import { admitTasks } from '@senars/lm';
 import type { LMService } from '@senars/lm';
-import { createSystemOneLMRuleAdapter } from '@senars/nar/lm/system-one/rule-adapter';
-import { ProactiveEnricher } from '@senars/nar/lm/enrichment';
+import { createSystemOneLMRuleAdapter } from '@senars/lm';
+import { ProactiveEnricher } from '@senars/lm';
 import { termParser } from '@senars/terms';
 import { Truth } from '@senars/terms';
 

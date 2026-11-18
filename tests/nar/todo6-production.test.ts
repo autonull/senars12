@@ -27,7 +27,7 @@ import {
   replayIntoMemory,
   serializeReplayResult,
   verifyReplayStateHash,
-} from '@senars/nar/kernel/replay';
+} from '@senars/kernel';
 import { initOtel, shutdownOtel, withSpan } from '@senars/otel';
 import { v4 as uuidv4 } from 'uuid';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';

@@ -9,18 +9,18 @@
  */
 
 import { LMRule } from '@senars/lm';
-import * as layerJson from '@senars/nar/lm/json.js';
+import * as layerJson from '@senars/lm';
 import { CYCLE_PATH_PREFIXES } from '../../nar/src/lm/in-cycle-inventory.js';
 import {
   createEmbeddingGenerator,
   isMockLM,
   MockEmbeddingGenerator,
-} from '@senars/nar/memory/embedding';
+} from '@senars/agent';
 import { RuleProcessor } from '../../nar/src/rules/impls/processor.js';
 import { loadBuiltinTable } from '../../nar/src/rules/impls/builtin-table.js';
 import { RuleTableStore } from '../../nar/src/rules/impls/rule-table.js';
 import { BUILTIN_DECLARATIONS, RULE_BODIES } from '../../nar/src/rules/impls/registration.js';
-import type { ModelRule } from '@senars/nar/rules/types';
+import type { ModelRule } from '@senars/rules';
 import { parseJsonObject } from '@senars/utils';
 
 const A2_TABLE = 'A2 — the shipped table is exactly the registered NAL rules';
@@ -89,7 +89,7 @@ describe('A2 — the gate sees both directions and grants no exemption', () => {
   });
 
   it('a workspace subpath of the layer fails, and both spellings resolve alike', () => {
-    expect(at("import { LMRule } from '@senars/nar/lm/rule/LMRule.js';")).toHaveLength(1);
+    expect(at("import { LMRule } from '@senars/lm';")).toHaveLength(1);
     expect(resolveInNar(`${ROOT}/nar/src/rules/x.ts`, '@senars/nar/lm/json.js')).toBe(
       `${ROOT}/nar/src/lm/json`
     );

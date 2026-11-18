@@ -2,10 +2,10 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { OutcomeLinker, ParameterLedger } from '@senars/agent';
-import { ParameterTable } from '@senars/nar/config/parameter-table.js';
-import { RetrospectiveAdapter } from '@senars/nar/dialogue/index.js';
-import { retrospect } from '@senars/nar/dialogue/index.js';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
+import { ParameterTable } from '@senars/config/nar';
+import { RetrospectiveAdapter } from '@senars/dialogue';
+import { retrospect } from '@senars/dialogue';
+import { EpisodicMemory } from '@senars/agent';
 import { RLFPLearner } from '@senars/reflex';
 import { afterAll, describe, expect, it } from 'vitest';
 

@@ -16,17 +16,17 @@ import {
   scopeSpec,
   scopeTerminationReason,
   type BudgetScopeId,
-} from '@senars/nar/kernel/budget-scopes';
-import { ControlBudgets, type ControlBudgetOverrides } from '@senars/nar/kernel/control-budgets';
-import { createGateRegistry } from '@senars/nar/kernel/GateRegistry';
+} from '@senars/kernel';
+import { ControlBudgets, type ControlBudgetOverrides } from '@senars/kernel';
+import { createGateRegistry } from '@senars/kernel';
 import { termParser } from '@senars/terms';
-import { Truth } from '@senars/nar/terms/impls/Truth';
+import { Truth } from '@senars/terms';
 import {
   createDefaultReasoningBudget,
   KernelBudgetGate,
-} from '@senars/nar/kernel/KernelBudgetGate';
+} from '@senars/kernel';
 import { DEFAULT_CONFIG, Memory, RuleProcessor, TaskManager } from '@senars/agent';
-import { NARExecution } from '@senars/nar/nar-execution';
+import { NARExecution } from '@senars/agent';
 import { createTestController, inferenceParams } from './fixtures/cognitive.js';
 
 /** Derivation count per cycle — what the decision budget must not move. */

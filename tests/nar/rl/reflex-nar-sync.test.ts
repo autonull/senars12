@@ -6,11 +6,11 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TabularQReflex } from '@senars/nar/reflex/TabularQReflex.js';
-import { Negotiator } from '@senars/nar/reflex/Negotiator.js';
-import type { ActionProposal, LearningEvent } from '@senars/nar/reflex/Reflex.js';
-import type { NALDerivation } from '@senars/nar/reflex/Negotiator.js';
-import type { GridWorldState } from '@senars/nar/game/impls/GridWorldGame.js';
+import { TabularQReflex } from '@senars/reflex';
+import { Negotiator } from '@senars/reflex';
+import type { ActionProposal, LearningEvent } from '@senars/reflex';
+import type { NALDerivation } from '@senars/reflex';
+import type { GridWorldState } from '@senars/agent';
 import type { Perception } from '@senars/focus';
 
 describe('Reflex↔NAR Sync (2D)', () => {

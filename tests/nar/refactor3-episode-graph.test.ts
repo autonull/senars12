@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DialogueCapture } from '@senars/dialogue';
 import { Memory } from '@senars/memory';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
-import { causalConnections, episodeSalience } from '@senars/nar/memory/episode-consolidator.js';
+import { EpisodicMemory } from '@senars/agent';
+import { causalConnections, episodeSalience } from '@senars/agent';
 import { MemoryQuery } from '@senars/query';
 import { fixedClock } from '@senars/utils';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -69,9 +69,9 @@ describe('Bench 92 — episode graph completeness & MemoryQuery hardening (REFAC
   });
 
   it('SelfMetaGame drain budget reads `proposals.budget` from config', async () => {
-    const { createSelfMetaGame } = await import('@senars/nar/game/impls/SelfMetaGame.js');
-    const { FocusBag } = await import('@senars/nar/focus/FocusBag.js');
-    const { createGateRegistry } = await import('@senars/nar/kernel/index.js');
+    const { createSelfMetaGame } = await import('@senars/agent');
+    const { FocusBag } = await import('@senars/focus');
+    const { createGateRegistry } = await import('@senars/kernel');
     const game = createSelfMetaGame({
       gates: createGateRegistry(),
       id: 'g',

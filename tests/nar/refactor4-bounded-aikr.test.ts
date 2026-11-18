@@ -12,36 +12,36 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SourceReputation } from '@senars/nar/kernel/source-reputation.js';
+import { SourceReputation } from '@senars/kernel';
 import { QBeliefStore } from '../../nar/src/rl/impls/QBeliefStore.js';
 import {
   AIKRProcessor,
   AikrBagOptions,
   ProcessOptions,
   BagPrioritySampling,
-} from '@senars/nar/learning/aikr-processor.js';
-import { PriorityBag } from '@senars/nar/bag/Bag.js';
-import { shadowValidator, ShadowValidationResult } from '@senars/nar/lm/shadow-validation.js';
-import { verifyCascade } from '@senars/nar/lm/system-one/verify.js';
-import { PlacementCascadeReflex } from '@senars/nar/lm/system-one/cascade-reflex.js';
+} from '@senars/agent';
+import { PriorityBag } from '@senars/kernel';
+import { shadowValidator, ShadowValidationResult } from '@senars/lm';
+import { verifyCascade } from '@senars/lm';
+import { PlacementCascadeReflex } from '@senars/lm';
 import { createHash } from 'node:crypto';
-import type { JudgmentProvenance } from '@senars/nar/lm/system-one/decide.js';
+import type { JudgmentProvenance } from '@senars/lm';
 import type { Term, Truth } from '@senars/terms';
 import { atom, Truth as TruthClass, TermBuilder } from '@senars/terms';
 import type { Memory } from '@senars/memory';
 import type { NAR } from '@senars/agent';
-import type { GateRegistry } from '@senars/nar/kernel/index.js';
+import type { GateRegistry } from '@senars/kernel';
 import type { Task } from '@senars/agent';
 import { EpisodeConsolidatorOptions } from '@senars/agent';
 import { ProposalBagOptions } from '@senars/agent';
-import { MiningBagOptions } from '@senars/nar/lm/system-one/hard-negatives.js';
+import { MiningBagOptions } from '@senars/lm';
 import { SchemaInductionConfig } from '@senars/lm';
 import type {
   ModelDigest,
   BackendId,
   QueryId,
   CalibrationVersion,
-} from '@senars/nar/lm/system-one/types.js';
+} from '@senars/lm';
 
 const MODEL_DIGEST = 'model-sha256' as ModelDigest;
 const BACKEND_ID = 'b1' as BackendId;

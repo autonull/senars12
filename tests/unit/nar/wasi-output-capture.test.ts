@@ -12,7 +12,7 @@ const wasmBytes = (): Uint8Array =>
 
 describe('createWasmModuleSandbox output capture', () => {
   it('captures stdout and exit code from a WASI module', async () => {
-    const { createWasmModuleSandbox } = await import('@senars/nar/capability');
+    const { createWasmModuleSandbox } = await import('@senars/agent');
     const dir = mkdtempSync(join(tmpdir(), 'senars-wasi-'));
     const wasmPath = join(dir, 'hello.wasm');
     writeFileSync(wasmPath, wasmBytes());
@@ -24,7 +24,7 @@ describe('createWasmModuleSandbox output capture', () => {
   });
 
   it('fails closed when the wasm path escapes allowedPaths', async () => {
-    const { createWasmModuleSandbox } = await import('@senars/nar/capability');
+    const { createWasmModuleSandbox } = await import('@senars/agent');
     const dir = mkdtempSync(join(tmpdir(), 'senars-wasi-'));
     const wasmPath = join(dir, 'hello.wasm');
     writeFileSync(wasmPath, wasmBytes());

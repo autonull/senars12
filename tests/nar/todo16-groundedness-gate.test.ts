@@ -1,7 +1,7 @@
 import { test, expect } from 'vitest';
-import { createGroundednessGate } from '@senars/nar/lm/system-one/groundedness-gate.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
-import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { createGroundednessGate } from '@senars/lm';
+import { createManifold } from '@senars/lm';
+import { createEmbeddingCache } from '@senars/lm';
 
 test.skip('createGroundednessGate returns a function — M0 quarantine: M2 owns mechanism rewrite', async () => {
   const cache = createEmbeddingCache({ maxSize: 100 });

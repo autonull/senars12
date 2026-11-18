@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Memory } from '@senars/memory';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
+import { EpisodicMemory } from '@senars/agent';
 import { MemoryQuery } from '@senars/query';
 import { TermBuilder } from '@senars/terms';
 import { fixedClock, systemClock } from '@senars/utils';

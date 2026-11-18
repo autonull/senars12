@@ -2,12 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NAR } from '@senars/agent';
 import { createNAR } from '@senars/agent';
 import type { LMService } from '@senars/lm';
-import { createLMServiceCortex } from '@senars/nar/lm/system-one/cortex-adapter';
+import { createLMServiceCortex } from '@senars/lm';
 import type {
   CognitiveContext,
   SynthesisQuery,
   ReasoningBudget,
-} from '@senars/nar/lm/system-one/types';
+} from '@senars/lm';
 
 /**
  * Bench 16 — Cortex Ladder
@@ -132,7 +132,7 @@ describe('Bench 16 — Cortex Ladder', () => {
     const peaResult = await dispatcher.proposeAndJudge(context, synthesisQuery, [], budget);
 
     // All candidates should be parseable by termParser
-    const { termParser } = await import('@senars/nar/terms');
+    const { termParser } = await import('@senars/terms');
     for (const candidate of peaResult.candidates) {
       const parsed = termParser.parse(candidate);
       expect(parsed).not.toBeNull();
@@ -197,7 +197,7 @@ describe('Bench 16 — Cortex Ladder', () => {
     expect(peaResult.admitted.length).toBeGreaterThanOrEqual(0);
 
     // Candidates should be valid Narsese
-    const { termParser } = await import('@senars/nar/terms');
+    const { termParser } = await import('@senars/terms');
     for (const candidate of peaResult.candidates) {
       const parsed = termParser.parse(candidate);
       expect(parsed).not.toBeNull();
@@ -297,7 +297,7 @@ describe('Bench 16 — Cortex Ladder', () => {
     // Actual llamacpp-embedded test would require the model to be present
     if (process.env.LM_LLAMACPP_MODEL) {
       // If model is set, test the real path
-      const { termParser } = await import('@senars/nar/terms');
+      const { termParser } = await import('@senars/terms');
       const testNarsese = '(robin-->bird).';
       const parsed = termParser.parse(testNarsese);
       expect(parsed).not.toBeNull();

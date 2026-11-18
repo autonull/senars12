@@ -8,7 +8,7 @@ import {
   type RuleProposal,
 } from '@senars/agent';
 import { createGateRegistry } from '@senars/kernel';
-import { LMProposalProducer } from '@senars/nar/proposal/lm-rule-producer';
+import { LMProposalProducer } from '@senars/agent';
 import {
   BUILTIN_DECLARATIONS,
   diffArtifacts,
@@ -19,7 +19,7 @@ import {
   RuleTableStore,
   tableArtifact,
 } from '@senars/rules';
-import { RuleIndex } from '@senars/nar/rules/impls/RuleIndex';
+import { RuleIndex } from '@senars/rules';
 import { StreamReasoner } from '@senars/agent';
 import { TermBuilder, Truth } from '@senars/terms';
 
@@ -74,7 +74,7 @@ const harness = () => {
 
 describe('the rule set is not an import side effect', () => {
   it('importing the rule modules registers nothing', async () => {
-    const fresh = await import('@senars/nar/rules');
+    const fresh = await import('@senars/rules');
     // A store built with no artifact is empty — the shipped table is *loaded*.
     expect(RuleTableStore.empty(fresh.RULE_BODIES).entries()).toEqual([]);
     expect(fresh.BUILTIN_DECLARATIONS.length).toBeGreaterThan(0);

@@ -10,7 +10,7 @@ import { Memory } from '@senars/memory';
 import { MetricsCollector } from '@senars/metrics';
 import { RuleProcessor } from '@senars/rules';
 import { ConfigurationError } from '@senars/agent';
-import { RuleGraph } from '@senars/nar/strategies/lm-graph/RuleGraph.js';
+import { RuleGraph } from '@senars/agent';
 
 /**
  * TODO27 Bench 102 — validation at the boundary.

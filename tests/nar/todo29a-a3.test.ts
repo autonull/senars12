@@ -10,8 +10,8 @@
 
 import type { CognitiveEvent, ContentProposal, Proposal, RuleProposal } from '@senars/agent';
 import { PROPOSAL_KINDS, PROPOSAL_SCHEMA_VERSION, ProposalSchema } from '@senars/agent';
-import type { AdmissionVerdict } from '@senars/nar/proposal/lifecycle.js';
-import { ProposalLifecycle, type ProposalQueueLimits } from '@senars/nar/proposal/lifecycle.js';
+import type { AdmissionVerdict } from '@senars/agent';
+import { ProposalLifecycle, type ProposalQueueLimits } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 import {
   DECISIONS,

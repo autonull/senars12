@@ -13,7 +13,7 @@ import {
   isExhausted,
 } from '@senars/budget';
 import { createFocusTree, type FocusTree, type FocusTreeOptions } from '@senars/focus';
-import { Focus } from '@senars/nar/focus/Focus.js';
+import { Focus } from '@senars/focus';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createGateRegistry } from '@senars/kernel';
 

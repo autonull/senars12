@@ -66,7 +66,7 @@ describe('TODO28 §7.3 — hermetic seeded run', () => {
   }
 
   it('the id source is scoped to the NAR and restored on dispose', async () => {
-    const { NAR } = await import('@senars/nar/nar.js');
+    const { NAR } = await import('@senars/agent');
     const { e2eNARConfig } = await import('./fixtures');
     const { makeId } = await import('@senars/utils');
     const AMBIENT_UUID =
@@ -113,10 +113,10 @@ describe('CORE.19 C8.4 — new loops draw no ambient entropy', () => {
   });
 
   it('autonomy stepping', async () => {
-    const { NAR } = await import('@senars/nar/nar.js');
+    const { NAR } = await import('@senars/agent');
     const { e2eNARConfig } = await import('./fixtures');
-    const { Truth } = await import('@senars/nar/index.js');
-    const { SeededRNG, fixedClock } = await import('@senars/util');
+    const { Truth } = await import('@senars/agent');
+    const { SeededRNG, fixedClock } = await import('@senars/utils');
     const rng = new SeededRNG(2025);
     const nar = new NAR(
       e2eNARConfig({
@@ -147,9 +147,9 @@ describe('CORE.19 C8.4 — new loops draw no ambient entropy', () => {
     // through `consolidateLearning`, so the golden scenarios never touch them.
     // Feature flags alone make them reachable, which is what the earlier
     // "a test that cannot reach them cannot gate them" note deferred.
-    const { NAR } = await import('@senars/nar/nar.js');
+    const { NAR } = await import('@senars/agent');
     const { e2eNARConfig } = await import('./fixtures');
-    const { SeededRNG, fixedClock } = await import('@senars/util');
+    const { SeededRNG, fixedClock } = await import('@senars/utils');
     const rng = new SeededRNG(99);
     const nar = new NAR(
       e2eNARConfig({
@@ -193,9 +193,9 @@ describe('CORE.19 C8.4 — new loops draw no ambient entropy', () => {
     const { mkdtempSync } = await import('node:fs');
     const { tmpdir } = await import('node:os');
     const { join } = await import('node:path');
-    const { NAR } = await import('@senars/nar/nar.js');
+    const { NAR } = await import('@senars/agent');
     const { e2eNARConfig } = await import('./fixtures');
-    const { SeededRNG, fixedClock } = await import('@senars/util');
+    const { SeededRNG, fixedClock } = await import('@senars/utils');
     const statePath = mkdtempSync(join(tmpdir(), 'core19-c8.4-'));
     const make = (): InstanceType<typeof NAR> => {
       const rng = new SeededRNG(7);

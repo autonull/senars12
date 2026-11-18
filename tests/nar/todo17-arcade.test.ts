@@ -1,5 +1,5 @@
 import { BrierHarness } from '@senars/agent';
-import { ConfidenceRouter } from '@senars/nar/lm/system-one/policy';
+import { ConfidenceRouter } from '@senars/lm';
 import { GameFocus } from '@senars/focus';
 import { createGridWorldGame, SeededRNG, type Game } from '@senars/focus';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/reflex';
@@ -265,13 +265,13 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     // provider `otel/index.ts` owns, and the global registration is a
     // once-per-process latch — so whichever test file registered first decided
     // whether these spans went anywhere.
-    const { initOtel, shutdownOtel } = await import('@senars/nar/otel');
+    const { initOtel, shutdownOtel } = await import('@senars/otel');
     await initOtel({
       batch: false,
       spanProcessors: [new SimpleSpanProcessor(exporter)],
     });
     try {
-      const { startArcadeTickSpan } = await import('@senars/nar/eval/arcade-trace');
+      const { startArcadeTickSpan } = await import('@senars/agent');
       const span = startArcadeTickSpan('manifold', 'tetris', 3);
       span.finish({
         action: 'place:r0:c3',
@@ -306,7 +306,7 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
   });
 
   it('G2 schema induction: worst/best action patterns become advisory veto-eligible beliefs', async () => {
-    const { induceEpisodeSchemas } = await import('@senars/nar/focus');
+    const { induceEpisodeSchemas } = await import('@senars/focus');
 
     // Unit: relative contrast, minimum samples, no-contrast ⇒ no promotion
     expect(induceEpisodeSchemas([])).toEqual([]);
@@ -333,7 +333,7 @@ describe('TODO17 Bench 34 — Arcade harness & controls', () => {
     ).toEqual([]);
 
     // Integration: real tetris episode; promoted beliefs land as NAL-derivable content
-    const { createTetrisGame } = await import('@senars/nar/game');
+    const { createTetrisGame } = await import('@senars/agent');
     const game = createTetrisGame({ seed: 21, width: 6, height: 8, pieceCap: 20 });
     const focus = new GameFocus({
       gateRegistry: createGateRegistry(),

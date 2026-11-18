@@ -13,7 +13,7 @@ import { importEdges, maskNonCode } from '../../scripts/lib/imports.js';
  *    edge closed while those three were live.
  *  - **that its scan is not fooled by text that looks like an import.** Masking
  *    is what makes it safe: without it, `nar`'s own code generators emit
- *    `from '@senars/nar/tools/schemas'` as *generated text*, and a gate that
+ *    `from '@senars/agent'` as *generated text*, and a gate that
  *    flags its own source templates is a gate people route around.
  */
 
@@ -48,7 +48,7 @@ describe('TODO28 — module specifier extraction', () => {
 
   it('finds dynamic imports, and marks them dynamic', () => {
     const edges = importEdges(
-      `const m = await import('@senars/metta');\nconst n = await import(\n  './lazy.js'\n);`
+      `const m = await import('@senars/metta-runtime');\nconst n = await import(\n  './lazy.js'\n);`
     );
     expect(edges.map((e) => [e.specifier, e.dynamic])).toEqual([
       ['@senars/metta', true],
@@ -91,7 +91,7 @@ describe('TODO28 — module specifier extraction', () => {
   });
 
   it('sees a real import nested inside an interpolation', () => {
-    const source = "const p = `${(await import('@senars/metta')).createMeTTa()}`;";
+    const source = "const p = `${(await import('@senars/metta-runtime')).createMeTTa()}`;";
     expect(importEdges(source).map((e) => [e.specifier, e.dynamic])).toEqual([
       ['@senars/metta', true],
     ]);
@@ -122,7 +122,7 @@ describe('TODO28 — the repository contains the shapes the gate must survive', 
 
   it('nar generates its own package name as scaffold text, and the gate does not flag it', () => {
     const source = repoFile('nar/src/tools/adapters/test-gen.ts');
-    expect(source).toContain(`from '@senars/nar/tools/schemas'`);
+    expect(source).toContain(`from '@senars/agent'`);
     expect(specifiersOf(source)).not.toContain('@senars/nar/tools/schemas');
   });
 

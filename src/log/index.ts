@@ -14,3 +14,4 @@ export * from './EventLogAdapter.js';
 export * from './StatePersister.js';
 export * from './GateEventLedger.js';
 export * from './DerivationLedger.js';
+export * from './EventLogPersistence.js';

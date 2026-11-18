@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import type { EmbeddingPointer } from '@senars/nar/lm/system-one/types.js';
+import { createEmbeddingCache } from '@senars/lm';
+import type { EmbeddingPointer } from '@senars/lm';
 import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
 
 /**

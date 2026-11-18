@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultReasoningBudget, createGateRegistry } from '@senars/kernel';
 import type { LMService } from '@senars/lm';
-import { LMRule } from '@senars/nar/lm/rule/LMRule.js';
+import { LMRule } from '@senars/lm';
 import {
   DEFAULT_CONFIG,
   Memory,
@@ -11,17 +11,17 @@ import {
   type Term,
 } from '@senars/agent';
 import type { CognitiveController } from '@senars/agent';
-import { NARExecution } from '@senars/nar/nar-execution.js';
+import { NARExecution } from '@senars/agent';
 import {
   type CycleStageEvent,
   findInCycleProposals,
   findStageOverlaps,
 } from '@senars/agent';
-import { CYCLE_STAGES } from '@senars/nar/proposal/stages.js';
-import { LMProposalProducer } from '@senars/nar/proposal/lm-rule-producer.js';
-import { StreamReasoner } from '@senars/nar/stream/reasoner.js';
-import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
-import type { ModelRuleWork } from '@senars/nar/rules/types';
+import { CYCLE_STAGES } from '@senars/agent';
+import { LMProposalProducer } from '@senars/agent';
+import { StreamReasoner } from '@senars/agent';
+import { KernelPerceptionGate } from '@senars/kernel';
+import type { ModelRuleWork } from '@senars/rules';
 import { createTaskWeight, createTimestamp } from '@senars/agent';
 import { Stamp, Truth } from '@senars/terms';
 import { createTestController, inferenceParams } from './fixtures/cognitive.js';

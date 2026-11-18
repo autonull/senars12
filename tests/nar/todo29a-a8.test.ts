@@ -11,14 +11,14 @@
  */
 import { describe, expect, it } from 'vitest';
 import { Truth } from '@senars/terms';
-import { atom } from '@senars/nar/terms/impls/factory.js';
-import { Memory } from '@senars/nar/memory/memory.js';
-import { DEFAULT_MEMORY_CONFIG } from '@senars/nar/memory/config.js';
+import { atom } from '@senars/terms';
+import { Memory } from '@senars/agent';
+import { DEFAULT_MEMORY_CONFIG } from '@senars/agent';
 import {
   conceptValue,
   evictionOrder,
   evictUnderPressure,
-} from '@senars/nar/memory/pressure/index.js';
+} from '@senars/kernel';
 import { RESOURCE_CONTRACTS, RESOURCE_IDS } from '@senars/agent';
 import { termParser } from '@senars/terms';
 import { NEUTRAL_BUDGET } from '@senars/agent';

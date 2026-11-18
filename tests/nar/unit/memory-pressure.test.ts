@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Memory } from '@senars/memory';
 import { PRESSURE } from '@senars/agent';
 import { atom, TermBuilder } from '@senars/terms';
-import { evictUnderPressure } from '@senars/nar/memory/pressure';
+import { evictUnderPressure } from '@senars/kernel';
 
 /**
  * A concept carrying no tasks — the only kind **archiving** may shed. Forgetting

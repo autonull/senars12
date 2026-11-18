@@ -1,12 +1,12 @@
-import { ManifoldReflex } from '@senars/nar/lm/system-one/manifold-reflex';
-import { createManifold } from '@senars/nar/lm/system-one/manifold';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache';
+import { ManifoldReflex } from '@senars/lm';
+import { createManifold } from '@senars/lm';
+import { EmbeddingCache } from '@senars/lm';
 import {
   extractLabeledData,
   fitCalibrationLock,
   identityECE,
-} from '@senars/nar/lm/system-one/calibration-fit';
-import { JudgmentDataset } from '@senars/nar/lm/system-one/distill';
+} from '@senars/lm';
+import { JudgmentDataset } from '@senars/lm';
 import { EpsilonGreedyReflex } from '@senars/reflex';
 import { createGame2048, createSnakeGame, createTicTacToeGame, SeededRNG } from '@senars/focus';
 import { game2048HeuristicAction } from './rl/baselines/2048.js';
@@ -17,7 +17,7 @@ import type {
   JudgmentManifold,
   JudgmentQuery,
   ReasoningBudget,
-} from '@senars/nar/lm/system-one/types';
+} from '@senars/lm';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

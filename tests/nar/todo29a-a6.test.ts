@@ -6,8 +6,8 @@ import {
   RuleIndex,
   RuleProcessor,
 } from '@senars/rules';
-import { createRulePattern } from '@senars/nar/rules/types';
-import type { InferenceTable, RegisteredRule } from '@senars/nar/rules/types';
+import { createRulePattern } from '@senars/rules';
+import type { InferenceTable, RegisteredRule } from '@senars/rules';
 import { bucketCensus, kindViolations } from '../../scripts/lib/dispatch-table.js';
 import { OPERATORS, Stamp, TermBuilder, Truth, type Term } from '@senars/terms';
 import { createTimestamp } from '@senars/agent';

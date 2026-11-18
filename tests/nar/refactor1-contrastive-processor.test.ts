@@ -1,4 +1,4 @@
-import { ContrastiveMemory } from '@senars/nar/lm/system-one/contrastive.js';
+import { ContrastiveMemory } from '@senars/lm';
 import { describe, expect, it } from 'vitest';
 
 /** Family-consistent unit vector: `<family>` sets the direction, the suffix jitters it. */

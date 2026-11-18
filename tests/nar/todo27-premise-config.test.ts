@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CognitiveRegistry, createDefaultRegistry } from '@senars/agent';
 import { ConfigurationError } from '@senars/agent';
-import { PREMISE_PRIMITIVES } from '@senars/nar/strategies/premise';
+import { PREMISE_PRIMITIVES } from '@senars/agent';
 import { validateParameters } from '@senars/reflex';
 import { Memory } from '@senars/memory';
 import { atom, Truth } from '../../nar/src/terms/index.js';

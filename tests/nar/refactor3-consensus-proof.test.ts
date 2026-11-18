@@ -3,10 +3,10 @@ import { createMeTTa, parseMeTTa } from '@senars/metta-runtime';
 import { NarEventBus } from '@senars/agent';
 import type { ContradictionEvent } from '@senars/agent';
 import { MettaProposer } from '@senars/reflex';
-import { Negotiator } from '@senars/nar/reflex/Negotiator.js';
-import type { ActionProposal } from '@senars/nar/reflex/Reflex.js';
-import type { NALDerivation } from '@senars/nar/reflex/negotiation-types.js';
-import { NalVetoArbitration, WeightedQuorum } from '@senars/nar/reflex/weighted-quorum.js';
+import { Negotiator } from '@senars/reflex';
+import type { ActionProposal } from '@senars/reflex';
+import type { NALDerivation } from '@senars/reflex';
+import { NalVetoArbitration, WeightedQuorum } from '@senars/reflex';
 import { describe, expect, it } from 'vitest';
 
 const runtime = createMeTTa();

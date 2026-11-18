@@ -3,8 +3,8 @@
  * Fluent DSL for specifying multi-cycle reasoning tests
  */
 
-import type { Truth as TruthType } from '@senars/nar/terms/impls/Truth.js';
-import type { Term } from '@senars/nar/terms/types.js';
+import type { Truth as TruthType } from '@senars/terms';
+import type { Term } from '@senars/terms';
 import type { TaskType } from '@senars/agent';
 import type { NARConfig } from '../../../src';
 import { NAR } from '../../../src';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createNAR } from '@senars/agent';
-import { Truth } from '@senars/nar/terms/impls/Truth.js';
+import { Truth } from '@senars/terms';
 
 describe('M5: Reward → Policy Learning', () => {
   it('reward changes a policy observable, never Truth', async () => {

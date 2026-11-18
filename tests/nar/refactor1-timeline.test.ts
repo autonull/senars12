@@ -1,8 +1,8 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
-import { ProofStreamRing } from '@senars/nar/rules/impls/recorder.js';
+import { EpisodicMemory } from '@senars/agent';
+import { ProofStreamRing } from '@senars/rules';
 import { createLogStoreEventLog } from '../../src/log/EventLogAdapter';
 import { afterAll, describe, expect, it } from 'vitest';
 

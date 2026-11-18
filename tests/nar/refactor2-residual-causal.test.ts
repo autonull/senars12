@@ -1,10 +1,10 @@
 import type { CognitiveEvent } from '@senars/agent';
 import type { CycleHost } from '@senars/budget';
 import { runCycle } from '@senars/budget';
-import { type BagItem, PriorityBag } from '@senars/nar/bag/Bag.js';
-import { retrospect } from '@senars/nar/dialogue/impls/retrospect.js';
-import { AIKRProcessor } from '@senars/nar/learning/aikr-processor.js';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
+import { type BagItem, PriorityBag } from '@senars/kernel';
+import { retrospect } from '@senars/dialogue';
+import { AIKRProcessor } from '@senars/agent';
+import { EpisodicMemory } from '@senars/agent';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

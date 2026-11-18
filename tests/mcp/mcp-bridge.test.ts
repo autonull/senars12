@@ -225,7 +225,7 @@ describe('registerNARTools (agent-specific MCP surface)', () => {
       capabilities: { readOnly: true },
       execute: async (args: Record<string, unknown>) => {
         const path = args.path as string;
-        const { withinWorkspace } = await import('@senars/core');
+        const { withinWorkspace } = await import('@senars/agent');
         if (!withinWorkspace(path)) {
           return {
             success: false,

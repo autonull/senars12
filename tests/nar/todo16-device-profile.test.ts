@@ -134,7 +134,7 @@ describe('System One — No-Cloud Device Profile E2E (H3)', () => {
 
   it('No provider fallback - untrusted HTTP results re-enter at LLM_PRIOR ceiling', async () => {
     // From http-endpoint.ts: untrusted results are seeded at LLM_PRIOR (0.5) ceiling
-    const { SOURCE_QUALITY_CONFIDENCE } = await import('@senars/core/schemas');
+    const { SOURCE_QUALITY_CONFIDENCE } = await import('@senars/agent');
 
     // Verify LLM_PRIOR ceiling is 0.5
     expect(SOURCE_QUALITY_CONFIDENCE.LLM_PRIOR).toBe(0.5);
@@ -145,7 +145,7 @@ describe('System One — No-Cloud Device Profile E2E (H3)', () => {
 
   it('Policy violation event emitted on safety-floor veto', async () => {
     // This verifies the kernel event structure for safety-floor veto
-    const { validateCognitiveEvent } = await import('@senars/core/schemas');
+    const { validateCognitiveEvent } = await import('@senars/agent');
 
     // Create a mock event matching the safety-floor veto pattern
     const vetoEvent = {

@@ -1,10 +1,10 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { retrospect } from '@senars/nar/dialogue/impls/retrospect.js';
+import { retrospect } from '@senars/dialogue';
 import { Memory } from '@senars/memory';
 import { createQueryAPI } from '@senars/query';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
+import { EpisodicMemory } from '@senars/agent';
 import { episodeQualitySurface, MemoryQuery } from '@senars/query';
 import { TermBuilder } from '@senars/terms';
 import { Truth } from '@senars/terms';

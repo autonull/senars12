@@ -4,7 +4,7 @@ import {
   DEFAULT_COGNITIVE_PARAMETERS,
   validateParameters,
 } from '@senars/reflex';
-import { TermLinkStrategy } from '@senars/nar/strategies/premise/term-link.js';
+import { TermLinkStrategy } from '@senars/agent';
 import type { Strategy } from '../../nar/src/strategies/types.js';
 
 /**

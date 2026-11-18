@@ -1,14 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { AssociativeRegistry, LinkLayerMemory } from '@senars/nar/memory/associative';
-import { LINK_LAYER } from '@senars/nar/memory/links';
+import { AssociativeRegistry, LinkLayerMemory } from '@senars/agent';
+import { LINK_LAYER } from '@senars/agent';
 import { Layer } from '../../nar/src/memory/links/Layer.js';
 import { Memory } from '@senars/memory';
 import { atom } from '../../nar/src/terms/index.js';
 import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
 import { Truth } from '../../nar/src/terms/index.js';
-import { TermLinkStrategy } from '@senars/nar/strategies/premise/term-link.js';
+import { TermLinkStrategy } from '@senars/agent';
 import type { Strategy } from '../../nar/src/strategies/types.js';
 
 /**

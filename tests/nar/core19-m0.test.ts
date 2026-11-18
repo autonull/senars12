@@ -194,7 +194,7 @@ describe('CORE.19 C2 — kernel control plane', () => {
   });
 
   it('accepts the cycle control messages on the client protocol', async () => {
-    const { IncomingFromClient } = await import('@senars/core/protocol');
+    const { IncomingFromClient } = await import('@senars/agent');
     for (const message of [
       { type: 'cycle.step' },
       { type: 'cycle.pause' },

@@ -12,11 +12,11 @@ import { Effect } from 'effect';
 import { atom, createMinimalNAR, createTask, TermBuilder, Truth } from '@senars/agent';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/reflex';
 import { selectProbes } from '@senars/dialogue';
-import { SystemOneIngressJudge } from '@senars/nar/lm/system-one/ingress-judge.js';
-import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
-import { domainKey, providerKey } from '@senars/nar/kernel/reputation-keys.js';
-import { SourceReputation } from '@senars/nar/kernel/source-reputation.js';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache';
+import { SystemOneIngressJudge } from '@senars/lm';
+import { KernelPerceptionGate } from '@senars/kernel';
+import { domainKey, providerKey } from '@senars/kernel';
+import { SourceReputation } from '@senars/kernel';
+import { EmbeddingCache } from '@senars/lm';
 import { RuleProcessor } from '@senars/rules';
 import { MettaProposer } from '@senars/reflex';
 import { Negotiator } from '@senars/reflex';
@@ -27,10 +27,10 @@ import {
   composeStrategy,
   describeStrategyExpression,
 } from '@senars/agent';
-import { CognitiveController } from '@senars/nar/cognitive/impls/CognitiveController.js';
-import type { DerivationContext, DerivationStrategy } from '@senars/nar/strategies';
+import { CognitiveController } from '@senars/agent';
+import type { DerivationContext, DerivationStrategy } from '@senars/agent';
 import type { Task } from '@senars/agent';
-import type { JudgmentManifold, JudgmentProposition } from '@senars/nar/lm/system-one/types.js';
+import type { JudgmentManifold, JudgmentProposition } from '@senars/lm';
 import { createMeTTa, parseMeTTa } from '@senars/metta-runtime';
 import { describe, expect, it } from 'vitest';
 

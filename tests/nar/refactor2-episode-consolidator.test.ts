@@ -1,6 +1,6 @@
 import type { Episode } from '@senars/utils';
-import { EpisodeConsolidator, symbolicSummary } from '@senars/nar/memory/episode-consolidator.js';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
+import { EpisodeConsolidator, symbolicSummary } from '@senars/agent';
+import { EpisodicMemory } from '@senars/agent';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -204,14 +204,14 @@ describe('Bench 87 — EpisodeConsolidator (AIKR pattern #1)', () => {
 
 describe('Bench 87 — NAR wiring (inert until sinks are wired)', () => {
   it('consolidator is absent unless config opts in; hook no-ops without it', async () => {
-    const { NAR } = await import('@senars/nar');
+    const { NAR } = await import('@senars/agent');
     const nar = new NAR({} as never);
     expect(nar.getEpisodeConsolidator()).toBeUndefined();
     await expect(nar.consolidateLearning({ budget: 2 })).resolves.toBeUndefined();
   });
 
   it('enabled config creates the process; admit + emit flow through the episodic store', async () => {
-    const { NAR } = await import('@senars/nar');
+    const { NAR } = await import('@senars/agent');
     const nar = new NAR({
       episodeConsolidation: { enabled: true, capacity: 4, budget: 4 },
     } as never);

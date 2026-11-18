@@ -2,12 +2,12 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ReasoningBudget } from '@senars/agent';
-import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate';
+import { KernelBudgetGate } from '@senars/kernel';
 import type { Perception } from '@senars/focus';
-import { actionGrammar } from '@senars/nar/lm/system-one/action-grammar.js';
-import { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
-import { LMReflex } from '@senars/nar/lm/system-one/lm-reflex.js';
-import type { CognitiveDispatcher, PEAResult } from '@senars/nar/lm/system-one/types.js';
+import { actionGrammar } from '@senars/lm';
+import { JudgmentDataset } from '@senars/lm';
+import { LMReflex } from '@senars/lm';
+import type { CognitiveDispatcher, PEAResult } from '@senars/lm';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/reflex';
 import { EpsilonGreedyReflex } from '@senars/reflex';
 import { describe, expect, it } from 'vitest';
@@ -177,9 +177,9 @@ describe.skipIf(!process.env.LM_LLAMACPP_MODEL)(
   'TODO17 Bench 32 — embedded leg (model-gated)',
   () => {
     it('real llamacpp-embedded model decides legally; P50 latency recorded', async () => {
-      const { createLMService } = await import('@senars/nar/lm/lm-service.js');
-      const { createLMServiceCortex } = await import('@senars/nar/lm/system-one/cortex-adapter.js');
-      const { createDispatcher } = await import('@senars/nar/lm/system-one/dispatcher.js');
+      const { createLMService } = await import('@senars/lm');
+      const { createLMServiceCortex } = await import('@senars/lm');
+      const { createDispatcher } = await import('@senars/lm');
       const lmService = createLMService();
       const cortex = createLMServiceCortex({ lmService });
       const dispatcher = createDispatcher(true, { budgetGate: mockBudgetGate }, cortex);

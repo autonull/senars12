@@ -5,9 +5,9 @@ import {
 } from '@senars/reflex';
 import { MetricsCollector } from '@senars/metrics';
 import { RuleProcessor } from '@senars/rules';
-import { createRulePattern, type RegisteredRule } from '@senars/nar/rules/types';
+import { createRulePattern, type RegisteredRule } from '@senars/rules';
 import { TermBuilder, getPredicate, getSubject, termsEqual } from '@senars/terms';
-import { Truth } from '@senars/nar/terms/impls/Truth.js';
+import { Truth } from '@senars/terms';
 import type { Memory } from '@senars/memory';
 import type { RLFPLearner } from '@senars/reflex';
 

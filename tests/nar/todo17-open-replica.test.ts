@@ -1,10 +1,10 @@
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { EmbeddingCache } from '@senars/lm';
 import {
   canonicalState,
   createOpenSystemOneManifold,
-} from '@senars/nar/lm/system-one/open-systemone-manifold.js';
-import { seedTruth } from '@senars/nar/lm/system-one/seed.js';
-import type { JudgmentQuery, ReasoningBudget } from '@senars/nar/lm/system-one/types.js';
+} from '@senars/lm';
+import { seedTruth } from '@senars/lm';
+import type { JudgmentQuery, ReasoningBudget } from '@senars/lm';
 import { describe, expect, it } from 'vitest';
 
 const budget: ReasoningBudget = {

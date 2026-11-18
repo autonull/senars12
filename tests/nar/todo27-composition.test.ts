@@ -12,10 +12,10 @@ import type {
   Strategy,
 } from '../../nar/src/strategies/types.js';
 import type { LMRule } from '../../nar/src/lm/LMRule.js';
-import { CompositeStrategy } from '@senars/nar/strategies/premise/selection-strategies.js';
-import { CompositeSampling } from '@senars/nar/strategies/sampling/CompositeSampling.js';
-import { CompositeAttention } from '@senars/nar/strategies/attention/CompositeAttention.js';
-import { CompositeLMRuleSelector } from '@senars/nar/strategies/lm-selectors/CompositeLMRuleSelector.js';
+import { CompositeStrategy } from '@senars/agent';
+import { CompositeSampling } from '@senars/agent';
+import { CompositeAttention } from '@senars/agent';
+import { CompositeLMRuleSelector } from '@senars/agent';
 
 /**
  * TODO27 Bench 103 — one spec form for every slot.

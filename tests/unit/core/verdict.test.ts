@@ -9,8 +9,8 @@
 
 import type { Verdict } from '@senars/agent';
 import type { PolicyDecision } from '@senars/agent';
-import type { JudgmentBudgetVerdict } from '@senars/nar/lm/system-one/resource-gate.js';
-import type { FirewallVerdict } from '@senars/nar/nl/firewall.js';
+import type { JudgmentBudgetVerdict } from '@senars/lm';
+import type { FirewallVerdict } from '@senars/nl';
 import { describe, expect, it } from 'vitest';
 
 /**

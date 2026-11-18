@@ -8,9 +8,9 @@ import {
 import { Memory } from '@senars/memory';
 import { MetricsCollector } from '@senars/metrics';
 import { RuleProcessor } from '@senars/rules';
-import { NullAttentionModel } from '@senars/nar/strategies/attention/NullAttentionModel';
+import { NullAttentionModel } from '@senars/agent';
 import { DEFAULT_CONFIG } from '@senars/agent';
-import type { AttentionModel } from '@senars/nar/strategies/types';
+import type { AttentionModel } from '@senars/agent';
 
 /**
  * TODO27 — the `attention` slot is a slot.

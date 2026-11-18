@@ -1,6 +1,6 @@
 import type { SelfImprovementProposal } from '@senars/agent';
-import { type MinedNegative, MiningBag } from '@senars/nar/lm/system-one/hard-negatives.js';
-import { ProposalBag } from '@senars/nar/meta/proposal-bag.js';
+import { type MinedNegative, MiningBag } from '@senars/lm';
+import { ProposalBag } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 const proposal = (
@@ -145,7 +145,7 @@ describe('Bench 89 — MiningBag (AIKR pattern #5)', () => {
   });
 
   it('mineHardNegatives `into` accumulates into the bag (contradictions + errors)', async () => {
-    const { mineHardNegatives } = await import('@senars/nar/lm/system-one/hard-negatives.js');
+    const { mineHardNegatives } = await import('@senars/lm');
     // Structural stand-ins per the todo22 mining-test convention.
     const nar = {
       getBeliefs: () => [
@@ -175,7 +175,7 @@ describe('Bench 89 — MiningBag (AIKR pattern #5)', () => {
   });
 
   it('NAR: mining bag absent by default; opt-in creates it and the hook drains + seeds', async () => {
-    const { NAR } = await import('@senars/nar');
+    const { NAR } = await import('@senars/agent');
     const plain = new NAR({} as never);
     expect(plain.getMiningBag()).toBeUndefined();
 

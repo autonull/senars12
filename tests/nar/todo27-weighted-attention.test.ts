@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CognitiveRegistry } from '@senars/agent';
 import { ConfigurationError } from '@senars/agent';
-import { CompositeAttention } from '@senars/nar/strategies/attention/CompositeAttention.js';
+import { CompositeAttention } from '@senars/agent';
 import { validateParameters } from '@senars/reflex';
 import { Memory } from '@senars/memory';
 import { atom } from '../../nar/src/terms/index.js';
