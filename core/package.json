@@ -8,10 +8,6 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
-    "./eventlog": {
-      "types": "./src/eventlog/index.ts",
-      "import": "./src/eventlog/index.ts"
-    },
     "./protocol": {
       "types": "./src/protocol/index.ts",
       "import": "./src/protocol/index.ts"

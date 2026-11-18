@@ -20,32 +20,32 @@
 - `schema:drift` ✅ PASS
 - `generated:artifacts` ✅ PASS
 - `no-new-legacy` ✅ PASS (baseline established)
-- `surface-no-legacy` ⚠️ FAIL (expected — legacy imports in `src/bin/` until M1 collapse)
-- `typecheck` ⚠️ FAIL (expected — test imports from old packages until M1 collapse)
-- `test:unit` ✅ PASS (three known-red tests quarantined)
+- `surface-no-legacy` ❌ FAIL (legacy imports in `src/bin/`, `src/bin/commands/`, `src/bin/lib/` — migration in progress)
+- `typecheck` ⚠️ FAIL (test imports from old packages until migration complete)
+- `test:unit` ❌ FAIL (29 failures — tests import from deleted/moved modules)
 - `lint` ✅ PASS
 - `docs:drift` ✅ PASS
-- `exports:*` ✅ PASS
+- `exports:*` ✅ PASS (exports-audit fixed 2026-11-18)
 
 ## Progress Tracking
 
-| Change | Status | Files Created | Notes |
+| Change | Source Files | Integration Status | Notes |
 |---|---|---|---|
-| 1. Schema-genome pipeline + totality types | ✅ **DONE** | `src/formats/genome.ts`, `src/generated/schemas.ts`, `src/generated/json-schema/`, `tests/formats/genome.test.ts` | Generated schemas pass typecheck/lint; all 11 genome tests pass |
-| 2. One log + interning + golden replay + `config:digest` | ✅ **DONE** | `src/log/events.ts`, `src/log/store.ts`, `src/log/replay.ts`, `src/log/query.ts`, `src/log/compact.ts`, `src/log/snapshot.ts`, `src/log/mine.ts`, `src/log/pins.ts`, `src/kernel/terms/term.ts`, `src/kernel/terms/intern.ts`, `src/kernel/terms/canonical.ts`, `src/kernel/terms/unify.ts`, `src/kernel/terms/codec/narsese.ts`, `src/kernel/truth.ts`, `src/kernel/stamp.ts`, `src/kernel/bag.ts`, `src/kernel/step.ts`, `src/kernel/gate.ts`, `src/kernel/reduce.ts`, `src/logics/nal/rules.ts`, `src/logics/nal/temporal.ts` | All log/ and kernel/ modules type-check cleanly; lint passes |
-| 3. Truth port + NAL rules as formula ASTs + verifier + laws/vectors | ✅ **DONE** | `src/verification/record.ts`, `src/verification/interpreter.ts`, `src/verification/laws.ts`, `src/verification/vectors.ts`, `src/verification/cross-engine.ts` | Verification framework complete; all source files type-check cleanly |
-| 4. Temporal terms + surprise events + log mining | ✅ **DONE** | Included in log/mine.ts and logics/nal/temporal.ts | Temporal logic and log mining implemented |
-| 5. Gate matrix + snapshot/restore; obligations 1,3–6 | ✅ **DONE** | `src/kernel/gate.ts`, `src/log/snapshot.ts`, `src/log/restore.ts` | Gate framework and snapshot/restore created |
-| 6. Oracle seam + faculty engine + 10 specs + fallbacks | ✅ **DONE** | `src/oracles/oracle.ts`, `memo.ts`, `pins.ts`, `lm.ts`, `retrieval.ts`, `engines/z3.ts`, `engines/clingo.ts`, `engines/minisat.ts`, `engines/tau-prolog.ts`, `src/faculties/specs.ts`, `engine.ts`, `fallback.ts` | All oracle and faculty modules type-check cleanly; lint passes |
-| 7. Judgment cascade + learned judge + calibration/demotion + repair/contract | ✅ **DONE** | `src/faculties/judgment/cascade.ts`, `judge.ts`, `calibration.ts`, `telemetry.ts`, `src/loop/repair.ts`, `contract.ts`, `appraise.ts`, `select.ts`, `act.ts`, `record.ts`, `self-model.ts` | All judgment and loop modules type-check cleanly; lint passes |
-| 8. Axiomatic module: SLD + engines + CNF/models/MUS + certificates; projections | ✅ **DONE** | `src/logics/axiomatic/ast.ts`, `sld.ts`, `cnf.ts`, `models.ts`, `symmetry.ts`, `mus.ts`, `certificates.ts`, `engines.ts`, `index.ts`, `src/logics/projections.ts`, `src/logics/fuzzy.ts` | All axiomatic modules type-check cleanly; lint passes; all gates pass (except UI env:grammar) |
-| 9. Economy: U/SF/VoI/metareasoning/overlays; obligations 6,10 | ✅ **DONE** | `src/economy/*` implemented | Fairness scheduler (obligation 6) + utility governance (obligation 10) |
-| 10. Habitat pack + lane A + fairness gate + first scorecard fold | ✅ **DONE** | `src/worlds/*` | Habitat, pack, scorecard, arena; lane A fairness gate |
-| 11. Repertoire ratchet + DSL + curriculum generator; obligation 12 | ✅ **DONE** | `src/admit/*`, `src/mining/*` | Repertoire, lifecycle, curriculum, book, governance, sandbox, DSL, rungs; mining |
-| 12. Generated MCP surface + CLI/browser/edge + deck + protocol codegen + SDK v2; obligations 2,13 | ✅ **DONE** | `src/surface/*`, `src/deck/*`, `src/ui-contract/*` | MCP server, CLI, transports, deck inspector, UI contract |
+| 1. Schema-genome pipeline + totality types | ✅ **DONE** | ✅ **DONE** | Generated schemas pass typecheck/lint; all 11 genome tests pass |
+| 2. One log + interning + golden replay + `config:digest` | ✅ **DONE** | 🔄 **IN PROGRESS** | Log/kernel modules type-check cleanly; bin/cli/tests need migration to `src/log/` |
+| 3. Truth port + NAL rules as formula ASTs + verifier + laws/vectors | ✅ **DONE** | 🔄 **IN PROGRESS** | Verification framework complete; bin/cli/tests need migration |
+| 4. Temporal terms + surprise events + log mining | ✅ **DONE** | 🔄 **IN PROGRESS** | Implemented in log/mine.ts and logics/nal/temporal.ts |
+| 5. Gate matrix + snapshot/restore; obligations 1,3–6 | ✅ **DONE** | 🔄 **IN PROGRESS** | Gate framework created; bin/cli/tests need migration |
+| 6. Oracle seam + faculty engine + 10 specs + fallbacks | ✅ **DONE** | 🔄 **IN PROGRESS** | Oracle/faculty modules type-check cleanly; bin/cli/tests need migration |
+| 7. Judgment cascade + learned judge + calibration/demotion + repair/contract | ✅ **DONE** | 🔄 **IN PROGRESS** | Judgment/loop modules type-check cleanly; bin/cli/tests need migration |
+| 8. Axiomatic module: SLD + engines + CNF/models/MUS + certificates; projections | ✅ **DONE** | 🔄 **IN PROGRESS** | Axiomatic modules type-check cleanly; bin/cli/tests need migration |
+| 9. Economy: U/SF/VoI/metareasoning/overlays; obligations 6,10 | ✅ **DONE** | 🔄 **IN PROGRESS** | Economy modules implemented; bin/cli/tests need migration |
+| 10. Habitat pack + lane A + fairness gate + first scorecard fold | ✅ **DONE** | 🔄 **IN PROGRESS** | Worlds modules implemented; bin/cli/tests need migration |
+| 11. Repertoire ratchet + DSL + curriculum generator; obligation 12 | ✅ **DONE** | 🔄 **IN PROGRESS** | Admit/mining modules implemented; bin/cli/tests need migration |
+| 12. Generated MCP surface + CLI/browser/edge + deck + protocol codegen + SDK v2; obligations 2,13 | ✅ **DONE** | 🔄 **IN PROGRESS** | Surface/deck/ui-contract modules implemented; bin/cli need migration to new imports |
 
-**Current structural metrics (after Changes 1-12 complete):**
-- Export subpaths: 87 (target 1) — consolidation needed in M1-M3
+**Current structural metrics (after Changes 1-12 source files complete):**
+- Export subpaths: **96** (target 1) — consolidation needed (core:22, nar:44, io:4, metta:3, util:14, ui:9)
 - Circular chains: **0** (target 0) — ✅ RESOLVED (2026-11-18)
 - Append-only persistence sites: 4 (target 1) — log/store.ts is the primary site
 
@@ -75,14 +75,29 @@
 - `pnpm lint` ✅ PASS
 - `pnpm docs:drift` ✅ PASS
 
+### Session Log — 2026-11-18 (Exports Audit Fixed)
+**Exports Audit Violation Resolved**
+- Removed unused `./eventlog` export from `core/package.json` (no consumers, not in PUBLIC_API)
+- `pnpm exports:audit` now PASS
+- This unblocks package consolidation work
+
+**Current Blocker: `surface-no-legacy` Gate**
+- 100+ legacy imports in `src/bin/`, `src/bin/commands/`, `src/bin/lib/`, `src/cli/`, `src/surface/`
+- Need systematic migration to `src/` path aliases (`@senars/kernel/*`, `@senars/log/*`, `@senars/logics/*`, `@senars/economy/*`, `@senars/faculties/*`, `@senars/oracles/*`, `@senars/worlds/*`, `@senars/admit/*`, `@senars/surface/*`, `@senars/deck/*`, `@senars/utils/*`, `@senars/formats/*`)
+- Tests also import from legacy packages (29 test failures)
+
 **Remaining Work (M1-M3 Consolidation):**
 - ✅ Fix port interface type mismatches (NARFacadePort, AutonomyNAR, SelfToolsNAR, SelfConceptNAR now match actual NAR)
 - ✅ Fix `BeliefInfo` type to use `frequency`/`confidence` instead of `f`/`c`
-- Consolidate export subpaths from 87 to 1
+- ✅ Fix exports-audit violation (core: ./eventlog removed 2026-11-18)
+- 🔄 Migrate `src/bin/`, `src/bin/commands/`, `src/bin/lib/` imports from `@senars/*` to `src/` path aliases (blocks `surface-no-legacy`)
+- 🔄 Migrate `src/cli/` and `src/surface/` imports from `@senars/*` to `src/` path aliases
+- 🔄 Migrate all tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases
+- Consolidate export subpaths from 96 to 1 (collapse core, nar, io, metta, util, ui packages into root)
 - Reduce persistence sites to 1
-- Typecheck: ✅ **PASS** — all source files and test files type-check cleanly
+- Typecheck: ⚠️ **PARTIAL** — source files PASS, but bin/cli/tests FAIL due to legacy imports
 - Lint: ✅ **PASS** — biome lint clean
-- Test:unit: ✅ **PASS** (3508 passed, 5 skipped)
+- Test:unit: ❌ **FAIL** — 29 failures from legacy imports and missing modules
 
 **Kernel modules status (all type-check clean):**
 - `src/kernel/terms/*` — term, intern, canonical, unify, codec/narsese ✅
