@@ -23,9 +23,6 @@ importers:
       '@senars/core':
         specifier: workspace:*
         version: link:core
-      '@senars/io':
-        specifier: workspace:*
-        version: link:io
       '@senars/metta':
         specifier: workspace:*
         version: link:metta
@@ -101,6 +98,9 @@ importers:
       tau-prolog:
         specifier: ^0.3.4
         version: 0.3.4
+      ulid:
+        specifier: ^3.0.2
+        version: 3.0.2
       wasmtime:
         specifier: ^0.0.2
         version: 0.0.2
@@ -245,15 +245,6 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
-  io:
-    dependencies:
-      '@senars/core':
-        specifier: workspace:*
-        version: link:../core
-      '@senars/util':
-        specifier: workspace:*
-        version: link:../util
-
   metta:
     dependencies:
       '@senars/core':
@@ -314,9 +305,6 @@ importers:
       '@senars/core':
         specifier: workspace:*
         version: link:../core
-      '@senars/io':
-        specifier: workspace:*
-        version: link:../io
       '@senars/util':
         specifier: workspace:*
         version: link:../util

@@ -19,7 +19,7 @@ import { join } from 'node:path';
 import { fromRoot } from './lib/root.js';
 
 /** Packages whose sources ship into the runtime the kernel gates guard. */
-const PACKAGES = ['util', 'core', 'io', 'metta', 'nar'] as const;
+const PACKAGES = ['util', 'core', 'metta', 'nar'] as const;
 
 /**
  * `ui` is excluded deliberately: it carries 4 pre-existing errors

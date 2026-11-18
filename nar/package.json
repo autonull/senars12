@@ -194,7 +194,6 @@
     "@opentelemetry/sdk-trace-node": "^2.12.0",
     "@opentelemetry/semantic-conventions": "^1.45.0",
     "@senars/core": "workspace:*",
-    "@senars/io": "workspace:*",
     "@senars/util": "workspace:*",
     "@wasmer/wasi": "^1.2.2",
     "zod": "^4.6.7"

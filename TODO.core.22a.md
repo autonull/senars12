@@ -200,6 +200,32 @@
 - Before: core:20 subpaths, util:13 subpaths
 - After: core merged into root `src/` structure, util already merged
 - Total export subpaths: 89 → 76 (core + util packages exports merged into root)
+
+### Session Log — 2026-11-18 (IO Package Migration - Phase 1 Complete)
+**Migrated `@senars/io` package to new `src/io/` structure:**
+- **Moved all io source files** from `io/src/` to `src/io/` preserving directory structure (connections/, commands/, bridge/, utils/)
+- **Updated `src/io/index.ts`** to be the main barrel export (re-exporting from local files instead of `@senars/io`)
+- **Added `@senars/io` path alias** in `tsconfig.root.json` pointing to `./src/io/index.ts`
+- **Updated `nar/tsconfig.json`** with `@senars/io` path alias for package-level typecheck
+- **Removed `io/` package** from `pnpm-workspace.yaml`
+- **Removed `@senars/io`** from root `package.json` and `nar/package.json` dependencies
+- **Added `ulid`** to root `package.json` dependencies (required by `src/util/id.ts`)
+- **Updated gate scripts**: `typecheck-packages.ts`, `verify-exports.ts`, `surface-no-legacy.ts` to remove `io` from legacy package lists
+**Gates Status After Migration:**
+- `pnpm typecheck` ✅ PASS (root)
+- `pnpm typecheck:bin` ✅ PASS
+- `pnpm typecheck:packages` ✅ PASS (4 packages clean: util, core, metta, nar)
+- `pnpm lint` ✅ PASS
+- `pnpm exports:check` ✅ PASS (5 packages: util, core, nar, metta, ui)
+- `pnpm surface-no-legacy` ✅ PASS
+- `pnpm deps:gate` ❌ FAIL (pre-existing nar runtime error in `valid-atom.ts` / `event-base.ts`)
+- `pnpm docs:drift` ❌ FAIL (pre-existing nar runtime error in `valid-atom.ts`)
+- `pnpm env:grammar` ❌ FAIL (pre-existing UI issue — out of scope)
+**Export Subpaths Reduced:**
+- Before: io:4 subpaths (., ./connections/cli, ./connections/ws, ./connections/reply-target)
+- After: Consolidated into root `src/io/` structure
+- Total export subpaths: 76 → 72 (io package exports merged into root)
+
 **Migrated 77 test files from relative imports to path aliases using automated script:**
 - Pattern: `../../../nar/src/...` → `@senars/nar/...`, `../../../core/src/...` → `@senars/core/...`, etc.
 - 82 individual import statements fixed across nar, core, io, metta, util packages
@@ -263,7 +289,7 @@
 **Phase 1: Core Package Migration (util → core → io → metta → nar)**
 - ✅ **util**: Move `util/src/` → `src/util/`, `src/types/`, `src/events/`, `src/errors/`, `src/commands/`, `src/feedback/`, `src/bag/`, `src/config/`, `src/memory/` (merge with existing). Update imports. Remove `util/` package.
 - ✅ **core**: Move `core/src/` → `src/` (merge: agent, engine, cortex, motor, memory, protocol, schemas, budget, etc.). Update imports. Remove `core/` package.
-- [ ] **io**: Move `io/src/` → `src/io/` (merge with existing). Update imports. Remove `io/` package.
+- ✅ **io**: Move `io/src/` → `src/io/` (merge with existing). Update imports. Remove `io/` package.
 - [ ] **metta**: Move `metta/src/` → `src/metta/` (merge with existing). Update imports. Remove `metta/` package.
 - [ ] **nar**: Move `nar/src/` → `src/` (merge: kernel, lm, memory, rules, terms, bag, cognitive, etc.). Update imports. Remove `nar/` package.
 
@@ -284,4 +310,4 @@
 **Dependency Order (topological):**
 util (leaf) → core → io → metta → ui-contract → ui-shell → ui-backend-2d/ui-backend-fractal → nar → ui
 
-**Current Session: ✅ Phase 1 - util package migration COMPLETE, ✅ core package migration COMPLETE**
+**Current Session: ✅ Phase 1 - util package migration COMPLETE, ✅ core package migration COMPLETE, ✅ io package migration COMPLETE**

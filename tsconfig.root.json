@@ -15,6 +15,8 @@
       "@senars/nar/tools/*": ["./nar/src/tools/*"],
       "@senars/core": ["./core/src/index.ts"],
       "@senars/core/*": ["./core/src/*"],
+      "@senars/io": ["./src/io/index.ts"],
+      "@senars/io/*": ["./src/io/*"],
       "@senars/kernel/*": ["./src/kernel/*"],
       "@senars/logics/*": ["./src/logics/*"],
       "@senars/verification/*": ["./src/verification/*"],

@@ -34,7 +34,9 @@
       "@senars/types": ["../src/types/index.ts"],
       "@senars/types/*": ["../src/types/*"],
       "@senars/memory": ["../src/memory/index.ts"],
-      "@senars/memory/*": ["../src/memory/*"]
+      "@senars/memory/*": ["../src/memory/*"],
+      "@senars/io": ["../src/io/index.ts"],
+      "@senars/io/*": ["../src/io/*"]
     }
   },
   "include": ["src/**/*.ts"],

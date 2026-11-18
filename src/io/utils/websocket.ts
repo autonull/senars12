@@ -1,0 +1,111 @@
+import { addToSet, makeId, periodic, removeFromSet, toError } from '@senars/util';
+import { WebSocket } from 'ws';
+
+export interface WSClient {
+  ws: WebSocket;
+  id: string;
+  subscriptions: Set<string>;
+  stopHeartbeat: () => void;
+  lastSeen: number;
+}
+
+export interface WSClientOptions {
+  heartbeatInterval?: number;
+  onMessage?: (data: Record<string, unknown>, client: WSClient) => void;
+  onClose?: (client: WSClient) => void;
+  onError?: (error: Error, client: WSClient) => void;
+}
+
+export const createWSClient = (
+  ws: WebSocket,
+  id: string = makeId(),
+  options: WSClientOptions = {}
+): WSClient => {
+  const { heartbeatInterval = 30000, onMessage, onClose, onError } = options;
+  const client: WSClient = {
+    ws,
+    id,
+    subscriptions: new Set(),
+    stopHeartbeat: periodic(() => sendHeartbeat(ws), heartbeatInterval),
+    lastSeen: Date.now(),
+  };
+
+  ws.on('message', (data) => {
+    client.lastSeen = Date.now();
+    try {
+      onMessage?.(JSON.parse(data.toString()), client);
+    } catch (e) {
+      onError?.(toError(e), client);
+    }
+  });
+
+  ws.on('close', () => {
+    client.stopHeartbeat();
+    onClose?.(client);
+  });
+
+  ws.on('error', (err) => {
+    client.stopHeartbeat();
+    onError?.(err, client);
+  });
+
+  ws.send(JSON.stringify({ type: 'connected', id }));
+  return client;
+};
+
+export const cleanupWSClient = (client: WSClient, code = 1000, reason = 'Server closing'): void => {
+  client.stopHeartbeat();
+  if (client.ws.readyState === WebSocket.OPEN) {
+    client.ws.close(code, reason);
+  }
+};
+
+export const sendHeartbeat = (ws: WebSocket): void => {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'heartbeat', timestamp: Date.now() }));
+  }
+};
+
+export const sendWSMessage = (
+  ws: WebSocket,
+  type: string,
+  data?: Record<string, unknown>
+): void => {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type, ...data, timestamp: Date.now() }));
+  }
+};
+
+export const subscribeToEvents = (
+  subscriptions: Map<string, Set<WebSocket>>,
+  client: WSClient,
+  events: string[]
+): void => {
+  for (const event of events) {
+    addToSet(subscriptions, event, client.ws);
+    client.subscriptions.add(event);
+  }
+};
+
+export const unsubscribeFromEvents = (
+  subscriptions: Map<string, Set<WebSocket>>,
+  client: WSClient,
+  events: string[]
+): void => {
+  for (const event of events) {
+    removeFromSet(subscriptions, event, client.ws);
+    client.subscriptions.delete(event);
+  }
+};
+
+export const broadcastToSubscribers = (
+  subscribers: Set<WebSocket> | undefined,
+  event: string,
+  data?: Record<string, unknown>
+): void => {
+  if (!subscribers) return;
+  const message = JSON.stringify({ type: 'event', event, data, timestamp: Date.now() });
+  for (const ws of subscribers) {
+    if (ws.readyState === WebSocket.OPEN) ws.send(message);
+  }
+};
