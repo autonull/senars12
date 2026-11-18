@@ -5,7 +5,7 @@
 import { spawn } from 'child_process';
 import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle.js';
-import { PinStore } from '../pins.js';
+import { OraclePinStore } from '../pins.js';
 
 /** Input for Z3 SMT solving. */
 export interface Z3Input extends OracleInput {
@@ -63,7 +63,7 @@ export class Z3Oracle implements Oracle<Z3Input, Z3Result> {
   private z3Path: string;
   private defaultTimeoutMs: number;
   private defaultFormat: 'smtlib2' | 'smtlib1';
-  private pinStore: PinStore | null = null;
+  private pinStore: OraclePinStore | null = null;
   private isReplay = false;
 
   private stats = {
@@ -81,7 +81,7 @@ export class Z3Oracle implements Oracle<Z3Input, Z3Result> {
     this.defaultFormat = config.defaultFormat ?? 'smtlib2';
   }
 
-  setPinStore(store: PinStore): void {
+  setPinStore(store: OraclePinStore): void {
     this.pinStore = store;
   }
 

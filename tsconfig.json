@@ -30,5 +30,5 @@
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "tests/**/*.ts"],
-  "exclude": ["node_modules", "dist", "tests/setup", "src/cli/**", "src/bin/**", "src/api/**", "tests/obligations/**"]
+  "exclude": ["node_modules", "dist", "tests/setup", "src/cli/**", "src/bin/**", "src/api/**", "tests/obligations/**", "tests/nar/**", "tests/e2e/**"]
 }

@@ -5,7 +5,7 @@
 import { spawn } from 'child_process';
 import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle.js';
-import { PinStore } from '../pins.js';
+import { OraclePinStore } from '../pins.js';
 
 /** Input for Clingo ASP solving. */
 export interface ClingoInput extends OracleInput {
@@ -78,7 +78,7 @@ export class ClingoOracle implements Oracle<ClingoInput, ClingoResult> {
   private defaultTimeoutMs: number;
   private defaultModels: number;
   private defaultFormat: 'json' | 'text';
-  private pinStore: PinStore | null = null;
+  private pinStore: OraclePinStore | null = null;
   private isReplay = false;
 
   private stats = {
@@ -97,7 +97,7 @@ export class ClingoOracle implements Oracle<ClingoInput, ClingoResult> {
     this.defaultFormat = config.defaultFormat ?? 'json';
   }
 
-  setPinStore(store: PinStore): void {
+  setPinStore(store: OraclePinStore): void {
     this.pinStore = store;
   }
 

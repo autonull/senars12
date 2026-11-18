@@ -12,7 +12,7 @@ import type { UUID, TimestampMs } from '../generated/schemas.js';
 import type { OracleOperation } from './oracle.js';
 
 /** A pinned value for deterministic replay. */
-export interface Pin<T = unknown> {
+export interface OraclePin<T = unknown> {
   /** Unique pin ID. */
   id: UUID;
   /** Operation type that was pinned. */
@@ -28,7 +28,7 @@ export interface Pin<T = unknown> {
 }
 
 /** Pin store configuration. */
-export interface PinStoreConfig {
+export interface OraclePinStoreConfig {
   /** Directory for pin files. */
   dir: string;
   /** Maximum pins per file. */
@@ -38,20 +38,20 @@ export interface PinStoreConfig {
 }
 
 /** Default pin store configuration. */
-export const defaultPinStoreConfig: PinStoreConfig = {
+export const defaultOraclePinStoreConfig: OraclePinStoreConfig = {
   dir: join(process.cwd(), 'data', 'oracle-pins'),
   maxPinsPerFile: 10000,
   compress: false,
 };
 
 /** Pin entry for storage. */
-interface PinEntry<T = unknown> extends Pin<T> {
+interface OraclePinEntry<T = unknown> extends OraclePin<T> {
   /** Sequence number in the log when this pin was used. */
   logSeq?: number;
 }
 
 /** In-memory pin index. */
-interface PinIndexEntry {
+interface OraclePinIndexEntry {
   id: UUID;
   operation: OracleOperation;
   inputHash: string;
@@ -62,16 +62,16 @@ interface PinIndexEntry {
 /**
  * Pin store for deterministic replay of oracle calls.
  */
-export class PinStore {
-  private config: PinStoreConfig;
-  private index = new Map<string, PinIndexEntry>();
+export class OraclePinStore {
+  private config: OraclePinStoreConfig;
+  private index = new Map<string, OraclePinIndexEntry>();
   private currentFile = 0;
   private currentCount = 0;
   private currentFd: fs.FileHandle | null = null;
   private initialized = false;
 
-  constructor(config: Partial<PinStoreConfig> = {}) {
-    this.config = { ...defaultPinStoreConfig, ...config };
+  constructor(config: Partial<OraclePinStoreConfig> = {}) {
+    this.config = { ...defaultOraclePinStoreConfig, ...config };
   }
 
   /** Initialize the pin store. */
@@ -97,7 +97,7 @@ export class PinStore {
         let offset = 0;
         for (const line of lines) {
           try {
-            const pin = JSON.parse(line) as PinEntry;
+            const pin = JSON.parse(line) as OraclePinEntry;
             const key = `${pin.operation}:${pin.inputHash}`;
             this.index.set(key, {
               id: pin.id,
@@ -153,7 +153,7 @@ export class PinStore {
       const content = await fs.readFile(path, 'utf-8');
       const lines = content.trim().split('\n');
       for (const line of lines) {
-        const pin = JSON.parse(line) as PinEntry<T>;
+        const pin = JSON.parse(line) as OraclePinEntry<T>;
         if (pin.inputHash === inputHash && pin.operation === operation) {
           return pin.output;
         }
@@ -173,7 +173,7 @@ export class PinStore {
     if (this.currentFd === null) await this.openCurrentFile();
 
     const id = crypto.randomUUID();
-    const pin: PinEntry<T> = {
+    const pin: OraclePinEntry<T> = {
       id,
       operation,
       inputHash,
@@ -221,7 +221,7 @@ export class PinStore {
     const path = join(this.config.dir, existing.file);
     const content = await fs.readFile(path, 'utf-8');
     for (const line of content.trim().split('\n')) {
-      const pin = JSON.parse(line) as PinEntry<T>;
+      const pin = JSON.parse(line) as OraclePinEntry<T>;
       if (pin.inputHash === inputHash && pin.operation === operation) {
         return pin.output;
       }
@@ -230,14 +230,14 @@ export class PinStore {
   }
 
   /** Get all pins for an operation. */
-  async getPinsForOperation<T>(operation: OracleOperation): Promise<Pin<T>[]> {
-    const results: Pin<T>[] = [];
+  async getPinsForOperation<T>(operation: OracleOperation): Promise<OraclePin<T>[]> {
+    const results: OraclePin<T>[] = [];
     for (const [key, entry] of this.index) {
       if (entry.operation === operation) {
         const path = join(this.config.dir, entry.file);
         const content = await fs.readFile(path, 'utf-8');
         for (const line of content.trim().split('\n')) {
-          const pin = JSON.parse(line) as PinEntry<T>;
+          const pin = JSON.parse(line) as OraclePinEntry<T>;
           if (pin.operation === operation) {
             results.push(pin);
           }
@@ -270,22 +270,22 @@ export class PinStore {
 }
 
 /** Create a pin store. */
-export function createPinStore(config?: Partial<PinStoreConfig>): PinStore {
-  return new PinStore(config);
+export function createOraclePinStore(config?: Partial<OraclePinStoreConfig>): OraclePinStore {
+  return new OraclePinStore(config);
 }
 
 /**
  * Pinning decorator for class methods.
- * Usage: @pin('operation-name') async method(...args) { ... }
+ * Usage: @oraclePin('operation-name') async method(...args) { ... }
  */
-export function pin(operation: OracleOperation) {
+export function oraclePin(operation: OracleOperation) {
   return function (
     target: Object,
     propertyKey: string | symbol,
     descriptor: TypedPropertyDescriptor<(...args: unknown[]) => Promise<unknown>>
   ) {
     const originalMethod = descriptor.value!;
-    const store = createPinStore();
+    const store = createOraclePinStore();
     let initialized = false;
 
     descriptor.value = async function (...args: unknown[]) {
@@ -301,10 +301,10 @@ export function pin(operation: OracleOperation) {
 }
 
 /** Higher-order function to pin a function. */
-export function withPin<T extends (...args: unknown[]) => Promise<unknown>>(
+export function withOraclePin<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   operation: OracleOperation,
-  store: PinStore
+  store: OraclePinStore
 ): T {
   return (async (...args: unknown[]) => {
     return store.getOrPin(operation, args, () => fn(...args));
@@ -314,17 +314,17 @@ export function withPin<T extends (...args: unknown[]) => Promise<unknown>>(
 /**
  * Replay-pinned function: during replay, returns pinned value; during live, computes and pins.
  */
-export function createReplayPinned<T extends (...args: unknown[]) => Promise<unknown>>(
+export function createReplayOraclePinned<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   operation: OracleOperation,
-  store: PinStore,
+  store: OraclePinStore,
   isReplay: boolean
 ): T {
   return (async (...args: unknown[]) => {
     if (isReplay) {
       const pinned = await store.getPin(operation, args);
       if (pinned !== null) return pinned;
-      console.warn(`[Pin] No pin found for ${operation} during replay, computing`);
+      console.warn(`[OraclePin] No pin found for ${operation} during replay, computing`);
     }
     return store.getOrPin(operation, args, () => fn(...args));
   }) as T;

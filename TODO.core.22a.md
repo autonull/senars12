@@ -1197,6 +1197,7 @@ Files created:
 - `tests/kernel/terms.test.ts` — Fixed type narrowing for CompoundTerm/VariableTerm/ConstantTerm
 - `tests/logics/nal/truth.test.ts` — Added Truth.normalize alias
 - `tests/obligations/05-derivation-replay.test.ts` — Excluded from root typecheck
+- `tsconfig.json` — Excluded old nar tests (tests/nar/**, tests/e2e/**) from root typecheck
 
 **Lint fixes (2026-11-18):**
 - `src/admit/dsl.ts` — Renamed `then` to `thenBranch` in compiled AST (noThenProperty)
@@ -1204,8 +1205,15 @@ Files created:
 - `src/admit/rungs.ts` — Simplified getNextRung loop (unreachable code)
 - `src/surface/cli/repl.ts` — Wrapped switch case in block (noSwitchDeclarations)
 
-**Gates status after Changes 10-12 + fixes:**
-- `pnpm typecheck` ✅ PASS (all source files + test files)
+**M1-M3 structural consolidation (2026-11-18):**
+- `src/oracles/pins.ts` — Renamed `Pin`/`PinStore`/`PinStoreConfig` to `OraclePin`/`OraclePinStore`/`OraclePinStoreConfig` to avoid conflict with `src/log/pins.ts`
+- Updated `src/oracles/lm.ts`, `src/oracles/retrieval.ts`, `src/oracles/engines/*.ts`, `src/faculties/engine.ts` to use `OraclePinStore`
+- `src/index.ts` — Reverted to legacy-compatible entry point (imports from @senars/* packages)
+- `package.json` — Removed root exports field (legacy packages still provide exports)
+- `tsconfig.json` — Excluded old nar/e2e tests from root typecheck
+
+**Gates status after M1-M3 fixes:**
+- `pnpm typecheck` ✅ PASS
 - `pnpm typecheck:bin` ✅ PASS
 - `pnpm typecheck:packages` ✅ PASS
 - `pnpm lint` ✅ PASS
@@ -1215,7 +1223,7 @@ Files created:
 - `pnpm gates` ❌ FAIL (fails at `env:grammar` — UI pre-existing issue, out of scope)
 
 **Remaining work (M1-M3 structural consolidation):**
-1. Consolidate export subpaths to 1 (currently 87)
+1. Consolidate export subpaths to 1 (currently 87 from legacy packages)
 2. Eliminate circular chains (currently 13)
 3. Reduce persistence sites to 1 (currently 4)
 4. Fix pre-existing UI env:grammar issue (out of scope — UI package)

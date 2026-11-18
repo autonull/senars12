@@ -7,7 +7,7 @@ import { createHash, randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle.js';
-import { PinStore } from '../pins.js';
+import { OraclePinStore } from '../pins.js';
 
 /** Input for MiniSat SAT solving. */
 export interface MiniSatInput extends OracleInput {
@@ -58,7 +58,7 @@ export class MiniSatOracle implements Oracle<MiniSatInput, MiniSatResult> {
 
   private minisatPath: string;
   private defaultTimeoutMs: number;
-  private pinStore: PinStore | null = null;
+  private pinStore: OraclePinStore | null = null;
   private isReplay = false;
 
   private stats = {
@@ -75,7 +75,7 @@ export class MiniSatOracle implements Oracle<MiniSatInput, MiniSatResult> {
     this.defaultTimeoutMs = config.defaultTimeoutMs ?? 30000;
   }
 
-  setPinStore(store: PinStore): void {
+  setPinStore(store: OraclePinStore): void {
     this.pinStore = store;
   }
 

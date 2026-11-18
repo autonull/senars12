@@ -7,14 +7,14 @@ import type { FacultySpec, FacultyInput, FacultyOutput, FacultyRegistry, Faculty
 import { facultyRegistry } from './specs.js';
 import type { Oracle, OracleInput, OracleOutput } from '../oracles/oracle.js';
 import { oracleRegistry } from '../oracles/oracle.js';
-import { PinStore } from '../oracles/pins.js';
+import { OraclePinStore } from '../oracles/pins.js';
 
 /** Faculty engine configuration. */
 export interface FacultyEngineConfig {
   /** Faculty registry to use. */
   registry?: FacultyRegistry;
   /** Pin store for deterministic replay. */
-  pinStore?: PinStore;
+  pinStore?: OraclePinStore;
   /** Default timeout for faculty calls. */
   defaultTimeoutMs?: number;
   /** Whether to enable fallback on oracle failure. */
@@ -58,7 +58,7 @@ export interface FacultyEngineStats {
 /** Faculty engine. */
 export class FacultyEngine {
   private registry: FacultyRegistry;
-  private pinStore: PinStore | null;
+  private pinStore: OraclePinStore | null;
   private defaultTimeoutMs: number;
   private enableFallback: boolean;
   private telemetry: boolean;
@@ -96,7 +96,7 @@ export class FacultyEngine {
   }
 
   /** Set the pin store. */
-  setPinStore(store: PinStore): void {
+  setPinStore(store: OraclePinStore): void {
     this.pinStore = store;
   }
 

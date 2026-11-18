@@ -4,7 +4,7 @@
 
 import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from './oracle.js';
-import { PinStore } from './pins.js';
+import { OraclePinStore } from './pins.js';
 
 /** Input for retrieval query. */
 export interface RetrievalInput extends OracleInput {
@@ -83,7 +83,7 @@ export class RetrievalOracle implements Oracle<RetrievalInput, RetrievalResult> 
   private defaultTopK: number;
   private defaultThreshold: number;
   private defaultMode: 'vector' | 'keyword' | 'hybrid';
-  private pinStore: PinStore | null = null;
+  private pinStore: OraclePinStore | null = null;
   private isReplay = false;
 
   private stats = {
@@ -103,7 +103,7 @@ export class RetrievalOracle implements Oracle<RetrievalInput, RetrievalResult> 
     this.defaultMode = config.defaultMode ?? 'vector';
   }
 
-  setPinStore(store: PinStore): void {
+  setPinStore(store: OraclePinStore): void {
     this.pinStore = store;
   }
 

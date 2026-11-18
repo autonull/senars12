@@ -11,7 +11,7 @@ import { generateText, generateObject, streamText, type LanguageModel } from 'ai
 import { zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from './oracle.js';
-import { PinStore } from './pins.js';
+import { OraclePinStore } from './pins.js';
 
 /** Input for LM generateText. */
 export interface LMGenerateTextInput extends OracleInput {
@@ -68,7 +68,7 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
   private defaultTask: LMTask;
   private maxOutputTokens?: number;
   private temperature?: number;
-  private pinStore: PinStore | null = null;
+  private pinStore: OraclePinStore | null = null;
   private isReplay = false;
 
   private stats = {
@@ -91,7 +91,7 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
   }
 
   /** Set the pin store for deterministic replay. */
-  setPinStore(store: PinStore): void {
+  setPinStore(store: OraclePinStore): void {
     this.pinStore = store;
   }
 
@@ -293,7 +293,7 @@ export function createLMStreamOracle(
 }
 
 /** Register all LM oracles with the registry. */
-export function registerLMOracles(lmService: LMOracleService, pinStore?: PinStore): LMOracle[] {
+export function registerLMOracles(lmService: LMOracleService, pinStore?: OraclePinStore): LMOracle[] {
   const oracles = [
     createLMGenerateTextOracle(lmService),
     createLMGenerateObjectOracle(lmService),

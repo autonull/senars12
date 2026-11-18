@@ -4,7 +4,7 @@
 
 import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle.js';
-import { PinStore } from '../pins.js';
+import { OraclePinStore } from '../pins.js';
 
 /** Input for Tau Prolog query. */
 export interface TauPrologInput extends OracleInput {
@@ -61,7 +61,7 @@ export class TauPrologOracle implements Oracle<TauPrologInput, TauPrologResult> 
 
   private defaultTimeoutMs: number;
   private defaultMaxSolutions: number;
-  private pinStore: PinStore | null = null;
+  private pinStore: OraclePinStore | null = null;
   private isReplay = false;
 
   private stats = {
@@ -78,7 +78,7 @@ export class TauPrologOracle implements Oracle<TauPrologInput, TauPrologResult> 
     this.defaultMaxSolutions = config.defaultMaxSolutions ?? 100;
   }
 
-  setPinStore(store: PinStore): void {
+  setPinStore(store: OraclePinStore): void {
     this.pinStore = store;
   }
 

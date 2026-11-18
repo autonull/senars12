@@ -1,3 +1,10 @@
+/**
+ * Senars — unified reasoning package.
+ *
+ * Main entry point re-exports from legacy packages during transition.
+ * New modules are available via path aliases (@senars/kernel/*, @senars/logics/*, etc.).
+ */
+
 export type {
   CLICommand,
   CommandContext,
