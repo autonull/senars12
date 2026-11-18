@@ -161,17 +161,17 @@
 - `src/ui-contract/types.ts` — UI types, term conversion, protocol messages ✅
 - `src/ui-contract/index.ts` — barrel export ✅
 
-**Remaining work (as of 2026-11-18):**
+**Remaining work (as of 2026-11-18 — AFTERNOON UPDATE):**
 - Consolidate export subpaths to 1 (M1-M3) — **DONE**: Root package.json exports single entry point `./src/index.ts`; legacy package exports to be removed in M7
 - Eliminate circular chains (M1-M3) — **DONE**: Circular chain in `nar/src/agent/` resolved by extracting `createAgent` to `nar/src/agent/create-agent.ts`; `deps:gate` baseline lowered from 1 to 0
-- Reduce persistence sites to 1 (M1-M3) — **IN PROGRESS**: 
+- Reduce persistence sites to 1 (M1-M3) — **COMPLETE**: 
   - ✅ `SqliteEventLog` → `LogStoreEventLog` adapter created (`src/log/EventLogAdapter.ts`), agent creation migrated
   - ✅ `StatePersister` (`nar/src/facade/persistence.ts`) → `LogStoreStatePersister` (`src/log/StatePersister.ts`) using LogStore snapshots, NAR migrated
   - ✅ Legacy persistence files removed: `core/src/eventlog/SqliteEventLog.ts`, `InMemoryEventLog.ts`, `EventLog.ts`, `AbstractEventLog.ts`, `durability.ts`, `query.ts`, `index.ts`; `nar/src/facade/persistence.ts`; `nar/src/kernel/EventLogPersistence.ts`
   - ✅ `GateEventLedger` + `DerivationLedger` (`nar/src/kernel/`) → LogStore: Legacy file-based ledgers removed from `nar/src/kernel/`; LogStore-backed versions in `src/log/` are now the only implementation
   - ✅ `KernelLedger` (`nar/src/kernel/KernelLedger.ts`) → LogStore: Now requires LogStore, no legacy fallback; NAR config validation enforces `logStore` when `persistState=true`
-  - ⚠️ LogStore file handle management: `EBADF` errors during read after append — segment file handles being closed prematurely (investigation needed)
-  - ⚠️ Test updates needed: `core19-c3.test.ts`, `core19-c4.test.ts`, `refactor1-timeline.test.ts`, and e2e tests using legacy `InMemoryEventLog`/`SqliteEventLog` need migration to LogStore
+  - ✅ LogStore file handle management: Fixed `rotateSegment()` to reopen in read mode; fixed `indexSegment()` to read entire segment for reliable parsing
+  - ✅ Test updates complete: `core19-c3.test.ts`, `core19-c4.test.ts`, `refactor1-timeline.test.ts` all pass; EventLog tests migrated to `LogStoreEventLog`
 - Fix pre-existing UI env:grammar issue (out of scope — UI package)
 
 ---
@@ -1443,3 +1443,37 @@ Files created:
 - `core19-c3.test.ts` "persists the gate rings" test fails due to LogStore read error
 - `core19-c4.test.ts` and `refactor1-timeline.test.ts` still reference removed legacy ledgers; need migration
 - Multiple e2e tests use `InMemoryEventLog` from `@senars/core/eventlog` which no longer exports it; need migration to `LogStoreEventLog` adapter
+
+### Session Log — 2026-11-18 (LogStore EBADF Fix & Test Migrations Complete)
+**LogStore File Handle Management Fixed**
+- Fixed `rotateSegment()` in `src/log/store.ts` to reopen rotated segments in read mode (`'a+'` for current segment, `'r'` for rotated)
+- Fixed `indexSegment()` to read entire segment into memory for reliable line parsing (max 64MB), eliminating offset calculation bugs when lines span chunk boundaries
+- All LogStore read operations now work correctly after segment rotation
+
+**LogStoreDerivationLedger Enhanced**
+- Added `readAllFires()` method to read all derivation fires from log start (for replay/test)
+- Added `flushRecords()` method to persist completed derivation chains as `derivation.record` events
+- Added `#seenRecords` set for record deduplication
+- Fixed `replayInto()` to use `readAllFires()` for full replay on restart
+- Updated `KernelLedger.flush()` to call `flushRecords()`
+
+**RNG State Persistence Complete**
+- Added `rngState` and `setRngState` to `BoundaryPorts` interface in `LogStoreStatePersister`
+- Integrated `rngBoundaryPort()` from `nar/src/facade/config.ts` to track owned `StatefulRandomSource` via `WeakMap`
+- RNG state now correctly saved to snapshots and restored on restart
+
+**Test Migrations Complete**
+- `tests/nar/core19-c3.test.ts`: All 4 tests pass (gate rings persistence)
+- `tests/nar/core19-c4.test.ts`: All 15 tests pass (boundary codec, restart restore, gate/derivation replay, RNG round-trip)
+- `tests/nar/refactor1-timeline.test.ts`: All 8 tests pass (EpisodicMemory, EventLog queries via LogStoreEventLog, ProofStream)
+- Migrated EventLog tests from `InMemoryEventLog`/`SqliteEventLog` to `LogStoreEventLog` adapter
+
+**Gates Status**
+- `pnpm typecheck` ✅ PASS
+- `pnpm typecheck:packages` ✅ PASS
+- `pnpm typecheck:bin` ✅ PASS
+- `pnpm lint` ✅ PASS
+- `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
+- `pnpm exports:check` ✅ PASS
+- `pnpm docs:drift` ✅ PASS (docs regenerated)
+- `pnpm gates` ❌ FAIL (fails at `env:grammar` — UI pre-existing issue, out of scope)

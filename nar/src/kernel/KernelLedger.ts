@@ -40,9 +40,13 @@ export class KernelLedger {
     this.derivations.observe(recorder);
   }
 
-  /** Append every not-yet-written gate event and rule fire; returns the count. */
+  /** Append every not-yet-written gate event, rule fire, and completed chain; returns the count. */
   async flush(gates: GateRegistry, recorder: DerivationRecorder): Promise<number> {
-    return (await this.gates.flush(gates)) + (await this.derivations.flush(recorder));
+    return (
+      (await this.gates.flush(gates)) +
+      (await this.derivations.flush(recorder)) +
+      (await this.derivations.flushRecords(recorder))
+    );
   }
 
   /** Re-seed the gate rings, the fire ring, and the completed chains from disk. */

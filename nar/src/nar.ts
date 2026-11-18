@@ -33,7 +33,7 @@ import type { CognitiveParameters } from './config/cognitive-parameters';
 import { DEFAULT_COGNITIVE_PARAMETERS } from './config/cognitive-parameters.js';
 import type { ParameterLedger } from './config/parameter-ledger.js';
 import { createBootstrapTasks, DriveManager } from './drives';
-import { type NARConfig, resolveRng, validateNarConfig } from './facade/config.js';
+import { type NARConfig, resolveRng, rngBoundaryPort, validateNarConfig } from './facade/config.js';
 import { type GameAttachOptions, GameManager } from './facade/games.js';
 import {
   askNaturalLanguage,
@@ -314,6 +314,7 @@ export class NAR extends BaseComponent {
 
     // Use LogStoreStatePersister when persistence is enabled and LogStore is provided
     if (this.config.persistState && this.config.logStore) {
+      const rngPort = rngBoundaryPort(this.config.rng);
       this.persister = new LogStoreStatePersister(this.config.logStore, {
         config: this.config,
         memory: this.memory,
@@ -337,6 +338,8 @@ export class NAR extends BaseComponent {
           },
           idHighWater: () => currentIdCount(),
           primeIdHighWater: (count) => primeIdCount(count),
+          rngState: rngPort.rngState,
+          setRngState: rngPort.setRngState,
         },
       });
     }

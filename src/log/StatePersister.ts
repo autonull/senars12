@@ -45,6 +45,10 @@ export interface BoundaryPorts {
   idHighWater(): number;
   /** Prime the id ledger past the saved mark, so a restart never re-stamps an id. */
   primeIdHighWater(count: number): void;
+  /** Get the owned RNG's position word, if any (CORE.19 C4.1). */
+  rngState?(): number | undefined;
+  /** Set the owned RNG's position word (CORE.19 C4.1). */
+  setRngState?(state: number): void;
 }
 
 /** What a restore resumed, for the `restored` event (CORE.19 C4.6). */
@@ -346,6 +350,9 @@ export class LogStoreStatePersister {
       boundary.primeIdHighWater(snapshot.boundary.idHighWater);
       cycleCount = snapshot.boundary.cycleCount;
       pendingRestored = boundary.restorePending(snapshot.boundary.pendingTasks);
+      if (snapshot.boundary.rngState !== undefined && boundary.setRngState) {
+        boundary.setRngState(snapshot.boundary.rngState);
+      }
     }
 
     this.logger.info('NAR state loaded from LogStore', { cycleCount, pendingRestored, conceptsRestored });
@@ -353,7 +360,7 @@ export class LogStoreStatePersister {
   }
 
   #snapshotBoundary(boundary: BoundaryPorts): ConsistencyBoundary {
-    const rngState = (this.deps.config.rng as any)?.rngState?.();
+    const rngState = boundary.rngState?.();
     return {
       cycleCount: boundary.getCycleCount(),
       pendingTasks: boundary.pendingTasks().map(serializeTaskRecord),

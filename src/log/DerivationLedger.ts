@@ -23,7 +23,8 @@ export interface DerivationLedgerOptions {
  */
 export class LogStoreDerivationLedger {
   readonly #store: LogStore;
-  readonly #seen = new Set<string>(); // Track by stepId
+  readonly #seen = new Set<string>(); // Track fires by stepId
+  readonly #seenRecords = new Set<string>(); // Track records by derivationId
   readonly #logger: ReturnType<typeof createLogger>;
   readonly #cursor: number;
 
@@ -87,9 +88,51 @@ export class LogStoreDerivationLedger {
     return appended;
   }
 
-  /** Read derivation fires from the log, oldest first. */
+  /** Append every not-yet-written completed derivation record; returns how many were written. */
+  async flushRecords(recorder: DerivationRecorder): Promise<number> {
+    let appended = 0;
+    for (const record of recorder.records()) {
+      // Use derivationId as the unique key for deduplication
+      const key = record.derivationId;
+      if (this.#seenRecords.has(key)) continue;
+      this.#seenRecords.add(key);
+
+      const event: CognitiveEvent = {
+        type: 'derivation.record',
+        engine: 'nar',
+        timestamp: record.timestamp ?? Date.now(),
+        correlationId: crypto.randomUUID(),
+        causationId: record.derivationId,
+        payload: record,
+      };
+
+      await this.#store.append(event, { ts: event.timestamp });
+      appended++;
+    }
+    return appended;
+  }
+
+  /** Read derivation fires from the log, oldest first (incremental from cursor). */
   async read(limit?: number): Promise<CognitiveEvent[]> {
     const startSeq = this.#cursor + 1;
+    const endSeq = this.#store.getLastSeq();
+
+    if (startSeq > endSeq) return [];
+
+    const entries = await this.#store.readRange(startSeq, endSeq);
+    const fires = entries
+      .map((e) => e.event)
+      .filter((e) => e.engine === 'nar' && isDerivationAcceptedEvent(e));
+
+    if (limit && fires.length > limit) {
+      return fires.slice(-limit);
+    }
+    return fires;
+  }
+
+  /** Read ALL derivation fires from the log, oldest first (for replay/test). */
+  async readAllFires(limit?: number): Promise<CognitiveEvent[]> {
+    const startSeq = 1;
     const endSeq = this.#store.getLastSeq();
 
     if (startSeq > endSeq) return [];
@@ -134,9 +177,10 @@ export class LogStoreDerivationLedger {
 
   /**
    * Replay the persisted log into the recorder's fire ring (CORE.19 C4.3).
+   * Reads ALL fires from the log (not cursor-based) for full replay on restart.
    */
   async replayInto(recorder: DerivationRecorder): Promise<number> {
-    const entries = await this.read();
+    const entries = await this.readAllFires();
     if (entries.length === 0) return 0;
 
     // Convert derivation.accepted payloads to DerivationStep

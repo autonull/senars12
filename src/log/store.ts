@@ -101,20 +101,19 @@ export class LogStore {
 
   /** Build index for a segment by scanning entries. */
   private async indexSegment(segmentNum: number, fd: FileHandle, size: number): Promise<void> {
+    // Read entire segment into memory for reliable line parsing (max 64MB)
+    const buffer = Buffer.alloc(size);
+    const { bytesRead } = await fd.read(buffer, 0, size, 0);
+    if (bytesRead === 0) return;
+
+    const content = buffer.subarray(0, bytesRead).toString('utf-8');
+    const lines = content.split('\n');
     let offset = 0;
-    const buffer = Buffer.alloc(64 * 1024);
-    let partial = '';
 
-    while (offset < size) {
-      const { bytesRead } = await fd.read(buffer, 0, buffer.length, offset);
-      if (bytesRead === 0) break;
-
-      const chunk = buffer.subarray(0, bytesRead).toString('utf-8');
-      const lines = (partial + chunk).split('\n');
-      partial = lines.pop() ?? '';
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
+    for (const line of lines) {
+      const lineWithNewline = line + '\n';
+      const lineByteLength = Buffer.byteLength(lineWithNewline, 'utf-8');
+      if (line.trim()) {
         try {
           const entry = JSON.parse(line) as LogEntry;
           this.index.push({
@@ -122,22 +121,22 @@ export class LogStore {
             id: entry.id,
             ts: entry.ts,
             offset,
-            length: Buffer.byteLength(line + '\n', 'utf-8'),
+            length: lineByteLength,
             segment: segmentNum,
           });
           this.currentSeq = Math.max(this.currentSeq, entry.seq);
         } catch {
           // Skip malformed lines
         }
-        offset += Buffer.byteLength(line + '\n', 'utf-8');
       }
+      offset += lineByteLength;
     }
   }
 
   /** Open the current write segment. */
   private async openCurrentSegment(): Promise<void> {
     const path = join(this.config.dir, `segment-${this.currentSegment.toString().padStart(6, '0')}.log`);
-    const fd = await fs.open(path, 'a');
+    const fd = await fs.open(path, 'a+');
     this.segments.push({ fd, path, size: 0, entryCount: 0 });
   }
 
@@ -187,6 +186,9 @@ export class LogStore {
     if (!oldSegment) throw new Error('No current segment to rotate');
     await oldSegment.fd.datasync();
     await oldSegment.fd.close();
+    // Reopen the rotated segment in read mode so it remains readable
+    const readFd = await fs.open(oldSegment.path, 'r');
+    oldSegment.fd = readFd;
     this.currentSegment++;
     await this.openCurrentSegment();
   }

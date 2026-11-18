@@ -1,9 +1,9 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { InMemoryEventLog, SqliteEventLog } from '@senars/core/eventlog';
 import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
 import { ProofStreamRing } from '@senars/nar/rules/impls/recorder.js';
+import { createLogStoreEventLog } from '../../src/log/EventLogAdapter';
 import { afterAll, describe, expect, it } from 'vitest';
 
 const dirs: string[] = [];
@@ -115,8 +115,9 @@ describe('Bench 84 — EventLog.query', () => {
     },
   ];
 
-  it('InMemoryEventLog filters by correlationId, types, timeRange, limit', async () => {
-    const log = new InMemoryEventLog();
+  it('LogStoreEventLog filters by correlationId, types, timeRange, limit', async () => {
+    const dir = await tmpBase();
+    const log = await createLogStoreEventLog({ dir: join(dir, 'log') });
     for (const e of makeEvents()) await log.append(e as never);
     expect(
       (await log.query({ correlationId: 'q1' })).map(
@@ -140,11 +141,12 @@ describe('Bench 84 — EventLog.query', () => {
         (e) => (e.payload as { toolName?: string }).toolName
       )
     ).toEqual(['t']);
+    await log.close();
   });
 
-  it('SqliteEventLog indexed query parity with InMemoryEventLog', async () => {
+  it('LogStoreEventLog indexed query parity (new instance)', async () => {
     const dir = await tmpBase();
-    const log = new SqliteEventLog({ path: join(dir, 'events.sqlite') });
+    const log = await createLogStoreEventLog({ dir: join(dir, 'log') });
     for (const e of makeEvents()) await log.append(e as never);
     expect(
       (await log.query({ correlationId: 'q1' })).map(
