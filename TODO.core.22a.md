@@ -1249,7 +1249,13 @@ Files created:
 **Remaining work (M1-M3 structural consolidation):**
 1. Consolidate export subpaths to 1 (currently 87 from legacy packages) — **DONE**: Root package.json exports single entry point `./src/index.ts`; legacy package exports to be removed in M7
 2. Eliminate circular chains (currently 13) — **DONE**: Circular chain in `nar/src/agent/` resolved by extracting `createAgent` to `nar/src/agent/create-agent.ts`; `deps:gate` baseline lowered from 1 to 0
-3. Reduce persistence sites to 1 (currently 4) — **IN PROGRESS**: Target is `src/log/store.ts`; legacy sites: `core/src/eventlog/SqliteEventLog.ts`, `nar/src/facade/persistence.ts`, `nar/src/kernel/EventLogPersistence.ts`
+3. Reduce persistence sites to 1 (currently 4) — **MOSTLY DONE**:
+   - ✅ `SqliteEventLog`/`InMemoryEventLog` → `LogStoreEventLog` adapter (`src/log/EventLogAdapter.ts`)
+   - ✅ `StatePersister` → `LogStoreStatePersister` (`src/log/StatePersister.ts`) using LogStore snapshots
+   - ✅ Legacy persistence files removed from core and nar packages
+   - ✅ Schema divergence resolved: core and generated `CognitiveEvent` schemas now aligned
+   - ⏳ `GateEventLedger` + `DerivationLedger` → LogStore (now unblocked)
+   - ⏳ `KernelLedger` → LogStore
 4. Fix pre-existing UI env:grammar issue (out of scope — UI package)
 
 ---
@@ -1316,3 +1322,51 @@ Files created:
 - `pnpm exports:check` ✅ PASS
 - `pnpm docs:drift` ✅ PASS
 - `pnpm gates` ❌ FAIL (fails at `env:grammar` — UI pre-existing issue, out of scope)
+
+---
+
+### Session Log — 2026-11-18 (Schema Divergence Resolution & Persistence Completion)
+
+**Schema Divergence Resolved**
+- Updated `src/formats/genome.ts` to align with core/util schemas:
+  - Added `'kernel'` to `ENGINE_ORIGINS` enum (was `['nar', 'proposer', 'metta']`, now `['nar', 'kernel', 'proposer', 'metta']`)
+  - Changed `HEALTH_STATUSES` from `['healthy', 'degraded', 'unhealthy']` to `['healthy', 'degraded', 'stuck', 'crashed']` to match util
+  - Fixed `HealthEventSchema` generation to use `HEALTH_STATUSES` enum instead of hardcoded values
+- Regenerated `src/generated/schemas.ts` — now matches core/util schemas exactly
+- Both core and generated schemas now have identical `ENGINE_ORIGINS` and `HEALTH_STATUSES`
+
+**Path Aliases Fixed for @senars/log**
+- Added `@senars/log` and `@senars/log/*` path aliases to `tsconfig.json` (root), `io/tsconfig.json`, `metta/tsconfig.json`, `nar/tsconfig.json`
+- All packages now resolve `@senars/log` imports correctly
+- `pnpm typecheck:packages` now passes for all 5 packages (core, io, metta, nar, util)
+
+**File-Based Replay Compatibility Restored**
+- Created `nar/src/kernel/replay-compat.ts` with migrated file-based replay functions:
+  - `replayIntoMemory`, `computeReplayStateHash`, `verifyReplayStateHash`, `serializeReplayResult`
+  - `loadGateEvents`, `replayTaskAdmissions`, `replayCognitiveState`, `persistDerivationRecords`
+  - `FullReplayOptions`, `ReplayResult`, `ReplaySnapshotFile`, `CognitiveStateSnapshot`, `SNAPSHOT_VERSION`
+- Exported from `nar/src/kernel/index.ts` for backward compatibility with `src/bin/replay.ts` and tests
+- `pnpm typecheck:bin` now passes
+
+**NAR Persistence Made Optional**
+- Modified `nar/src/nar.ts` to only create `LogStoreStatePersister` when `config.persistState === true` and `config.logStore` is provided
+- `persister` field made optional (`LogStoreStatePersister | undefined`)
+- `start()` and `stop()` methods guard persister calls with optional chaining
+- Tests without persistence config no longer fail with "LogStore is required" error
+
+**Gates Status After Fixes:**
+- `pnpm typecheck` ✅ PASS
+- `pnpm typecheck:bin` ✅ PASS
+- `pnpm typecheck:packages` ✅ PASS (5 packages clean)
+- `pnpm lint` ✅ PASS
+- `pnpm test:unit` ⚠️ Some failures (LogStore file handle cleanup, state-persistence test expectations for old file format — expected during migration)
+- `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
+- `pnpm exports:check` ✅ PASS
+- `pnpm docs:drift` ✅ PASS
+- `pnpm gates` ❌ FAIL (fails at `env:grammar` — UI pre-existing issue, out of scope)
+
+**Remaining Work (M1-M3 Persistence Consolidation):**
+- ⏳ `GateEventLedger` + `DerivationLedger` (`nar/src/kernel/`) → LogStore (schema divergence resolved, migration now possible)
+- ⏳ `KernelLedger` (`nar/src/kernel/KernelLedger.ts`) → LogStore
+- Update `state-persistence` tests to use LogStore snapshot format instead of legacy JSON files
+- Fix LogStore file handle cleanup in tests (segment files not closed on test teardown)

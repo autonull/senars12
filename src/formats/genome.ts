@@ -86,7 +86,7 @@ const Defs = {
       'variable',
     ] as const,
     RULE_PROVENANCE_KINDS: ['builtin', 'proposal', 'import'] as const,
-    ENGINE_ORIGINS: ['nar', 'proposer', 'metta'] as const,
+    ENGINE_ORIGINS: ['nar', 'kernel', 'proposer', 'metta'] as const,
     PROPOSAL_KINDS: ['content', 'rule'] as const,
     PROPOSAL_REJECTIONS: [
       'schema-version',
@@ -172,7 +172,7 @@ const Defs = {
     ] as const,
     KERNEL_CONTROL_STATES: ['running', 'paused', 'stepping'] as const,
     CONFLICT_TYPES: ['frequency', 'semantic'] as const,
-    HEALTH_STATUSES: ['healthy', 'degraded', 'unhealthy'] as const,
+    HEALTH_STATUSES: ['healthy', 'degraded', 'stuck', 'crashed'] as const,
     SHADOW_SOURCES: ['llm', 'bridge-llm'] as const,
     STAMP_TYPES: ['standard', 'provisional'] as const,
     EGRESS_GATES: ['groundedness', 'risk'] as const,
@@ -1137,7 +1137,7 @@ function generate(): string {
   lines.push('export const HealthEventSchema = NarBase.extend({');
   lines.push("  type: z.literal('health'),");
   lines.push('  payload: z.object({');
-  lines.push("    status: z.enum(['healthy', 'degraded', 'unhealthy']),");
+  lines.push('    status: z.enum(HEALTH_STATUSES),');
   lines.push('    cycleCount: z.number(),');
   lines.push('    errorRate: z.number(),');
   lines.push('    byEngine: z.record(z.string(), z.number()).optional(),');

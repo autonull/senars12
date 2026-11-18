@@ -187,7 +187,7 @@ export class NAR extends BaseComponent {
   // Extracted subsystems (M2)
   private readonly systemOne: SystemOneRuntime;
   private readonly games: GameManager;
-  private readonly persister: LogStoreStatePersister;
+  private readonly persister: LogStoreStatePersister | undefined;
   /** Runtime durability for the gate rings and the fire ring (CORE.19 C3.3/C4.3); present only when persisting. */
   #ledgers: KernelLedger | null = null;
   /** Cycles since the last gate-log flush — the interval half of C3.3. */
@@ -312,35 +312,34 @@ export class NAR extends BaseComponent {
     });
     this.driveManager.setSystemEventBus(this.systemEventBus);
 
-    // Use LogStoreStatePersister (LogStore is required for persistence)
-    if (!this.config.logStore) {
-      throw new Error('LogStore is required for persistence. Provide config.logStore.');
-    }
-    this.persister = new LogStoreStatePersister(this.config.logStore, {
-      config: this.config,
-      memory: this.memory,
-      processor: this.processor,
-      driveManager: this.driveManager,
-      attentionReport: () => this.attentionReport(),
-      query: this.query,
-      boundary: {
-        getCycleCount: () => this.execution.getCycleCount(),
-        setCycleCount: (count) => this.execution.setCycleCount(count),
-        pendingTasks: () => this.taskManager.getPending(),
-        restorePending: (records) => {
-          let restored = 0;
-          for (const record of records) {
-            const task = rehydrateTask(record, record.type ?? 'belief');
-            if (!task) continue;
-            this.taskManager.addTask(task);
-            restored++;
-          }
-          return restored;
+    // Use LogStoreStatePersister when persistence is enabled and LogStore is provided
+    if (this.config.persistState && this.config.logStore) {
+      this.persister = new LogStoreStatePersister(this.config.logStore, {
+        config: this.config,
+        memory: this.memory,
+        processor: this.processor,
+        driveManager: this.driveManager,
+        attentionReport: () => this.attentionReport(),
+        query: this.query,
+        boundary: {
+          getCycleCount: () => this.execution.getCycleCount(),
+          setCycleCount: (count) => this.execution.setCycleCount(count),
+          pendingTasks: () => this.taskManager.getPending(),
+          restorePending: (records) => {
+            let restored = 0;
+            for (const record of records) {
+              const task = rehydrateTask(record, record.type ?? 'belief');
+              if (!task) continue;
+              this.taskManager.addTask(task);
+              restored++;
+            }
+            return restored;
+          },
+          idHighWater: () => currentIdCount(),
+          primeIdHighWater: (count) => primeIdCount(count),
         },
-        idHighWater: () => currentIdCount(),
-        primeIdHighWater: (count) => primeIdCount(count),
-      },
-    });
+      });
+    }
     // D23 (TODO17b): ambiguity at ingress stimulates curiosity (A4 closure).
     this.gates.getPerceptionGate().setDriveManager(this.driveManager);
     // TODO29.a A1: the cycle's only route to a provider. The seam holds this
@@ -427,14 +426,16 @@ export class NAR extends BaseComponent {
         this.processor.getRecorder()
       );
     }
-    const restored = await this.persister.load();
-    if (restored) {
-      await this.#ledgers?.replay(this.gates, this.processor.getRecorder());
-      this.systemEventBus.emit('restore:state', {
-        cycleCount: restored.cycleCount,
-        concepts: restored.conceptsRestored,
-        pendingTasks: restored.pendingRestored,
-      });
+    if (this.persister) {
+      const restored = await this.persister.load();
+      if (restored) {
+        await this.#ledgers?.replay(this.gates, this.processor.getRecorder());
+        this.systemEventBus.emit('restore:state', {
+          cycleCount: restored.cycleCount,
+          concepts: restored.conceptsRestored,
+          pendingTasks: restored.pendingRestored,
+        });
+      }
     }
     this.self?.start();
     this.lm.getEnricher()?.start();
@@ -449,7 +450,9 @@ export class NAR extends BaseComponent {
     this.stopLM();
     this.#autonomy?.stop();
     this.flushLogs();
-    await this.persister.save();
+    if (this.persister) {
+      await this.persister.save();
+    }
     await super.stop();
     this.logger?.info('NAR stopped');
   }

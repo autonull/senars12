@@ -59,3 +59,20 @@ export {
 } from './source-reputation.js';
 export type { ThreadScopeState } from './thread-scope.js';
 export { ThreadScope, threadScope } from './thread-scope.js';
+
+export {
+  type FullReplayOptions,
+  type ReplayResult,
+  type ReplayTally,
+  type ReplaySnapshotFile,
+  type CognitiveStateSnapshot,
+  replayIntoMemory,
+  computeReplayStateHash,
+  verifyReplayStateHash,
+  serializeReplayResult,
+  persistDerivationRecords,
+  loadGateEvents,
+  replayTaskAdmissions,
+  replayCognitiveState,
+  SNAPSHOT_VERSION,
+} from './replay-compat.js';

@@ -340,7 +340,8 @@ export type CONFLICT_TYPE = (typeof CONFLICT_TYPES)[number];
 export const HEALTH_STATUSES = [
   "healthy",
   "degraded",
-  "unhealthy"
+  "stuck",
+  "crashed"
 ] as const;
 export type HEALTH_STATUSE = (typeof HEALTH_STATUSES)[number];
 
@@ -1174,7 +1175,7 @@ export const CycleEventSchema = NarBase.extend({
 export const HealthEventSchema = NarBase.extend({
   type: z.literal('health'),
   payload: z.object({
-    status: z.enum(['healthy', 'degraded', 'unhealthy']),
+    status: z.enum(HEALTH_STATUSES),
     cycleCount: z.number(),
     errorRate: z.number(),
     byEngine: z.record(z.string(), z.number()).optional(),

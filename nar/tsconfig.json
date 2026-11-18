@@ -2,6 +2,7 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "paths": {
+      "@senars/log": ["../src/log/index.ts"],
       "@senars/log/*": ["../src/log/*"],
       "@senars/logics/*": ["../src/logics/*"],
       "@senars/kernel/*": ["../src/kernel/*"],

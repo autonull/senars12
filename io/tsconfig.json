@@ -1,7 +1,22 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@senars/log": ["../src/log/index.ts"],
+      "@senars/log/*": ["../src/log/*"],
+      "@senars/logics/*": ["../src/logics/*"],
+      "@senars/kernel/*": ["../src/kernel/*"],
+      "@senars/verification/*": ["../src/verification/*"],
+      "@senars/formats/*": ["../src/formats/*"],
+      "@senars/admit/*": ["../src/admit/*"],
+      "@senars/worlds/*": ["../src/worlds/*"],
+      "@senars/mining/*": ["../src/mining/*"],
+      "@senars/surface/*": ["../src/surface/*"],
+      "@senars/deck/*": ["../src/deck/*"],
+      "@senars/ui-contract/*": ["../src/ui-contract/*"],
+      "@senars/economy/*": ["../src/economy/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
