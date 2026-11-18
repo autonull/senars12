@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { NAR } from '@senars/nar';
-import { CognitiveRegistry, CognitiveController, resolveSlot } from '@senars/nar/cognitive';
+import { NAR } from '@senars/agent';
+import { CognitiveRegistry, CognitiveController, resolveSlot } from '@senars/agent';
 import {
   type CognitiveParameters,
   DEFAULT_COGNITIVE_PARAMETERS,
-} from '@senars/nar/config/cognitive-parameters';
-import { Memory } from '@senars/nar/memory';
-import { MetricsCollector } from '@senars/nar/metrics';
-import { RuleProcessor } from '@senars/nar/rules';
+} from '@senars/reflex';
+import { Memory } from '@senars/memory';
+import { MetricsCollector } from '@senars/metrics';
+import { RuleProcessor } from '@senars/rules';
 import { NullAttentionModel } from '@senars/nar/strategies/attention/NullAttentionModel';
-import { DEFAULT_CONFIG } from '@senars/nar/types';
+import { DEFAULT_CONFIG } from '@senars/agent';
 import type { AttentionModel } from '@senars/nar/strategies/types';
 
 /**

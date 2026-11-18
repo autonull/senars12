@@ -1,4 +1,4 @@
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import type { ReasoningBudget } from '@senars/agent';
 import { describe, expect, it, vi } from 'vitest';
 import { GameFocus } from '../../nar/src/focus/GameFocus.js';
 import type { Perception } from '../../nar/src/game/Game.js';
@@ -7,7 +7,7 @@ import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
 import { ManifoldReflex } from '../../nar/src/lm/system-one/manifold-reflex.js';
 import { EpsilonGreedyReflex } from '../../nar/src/reflex/EpsilonGreedyReflex.js';
-import { createGateRegistry } from '@senars/nar/kernel';
+import { createGateRegistry } from '@senars/kernel';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,

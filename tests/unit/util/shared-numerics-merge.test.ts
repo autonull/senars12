@@ -1,4 +1,4 @@
-import { deepFreeze, deepMerge, finiteOr, sigmoid, softmax, toFiniteNumber } from '@senars/util';
+import { deepFreeze, deepMerge, finiteOr, sigmoid, softmax, toFiniteNumber } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('sigmoid', () => {

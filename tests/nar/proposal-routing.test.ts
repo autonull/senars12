@@ -1,4 +1,4 @@
-import { clamp01 } from '@senars/util';
+import { clamp01 } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
 import { SelfRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';

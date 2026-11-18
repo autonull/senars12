@@ -8,11 +8,11 @@ import {
   resolveAutonomyConfig,
   Truth,
   type AutonomyConfigInput,
-} from '@senars/nar';
-import type { NARConfig } from '@senars/nar/facade/config.js';
+} from '@senars/agent';
+import type { NARConfig } from '@senars/agent';
 import { DriveManager } from '@senars/nar/drives/index.js';
-import { NAR } from '@senars/nar/nar.js';
-import { NarEventBus } from '@senars/nar/types/events.js';
+import { NAR } from '@senars/agent';
+import { NarEventBus } from '@senars/agent';
 import { e2eNARConfig } from '../e2e/fixtures.js';
 
 /**

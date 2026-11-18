@@ -2,10 +2,10 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { Reconsolidator } from '@senars/nar/dialogue';
-import { digestPin, loadRetrospectives, persistRetrospective } from '@senars/nar/dialogue';
-import type { Retrospective } from '@senars/nar/dialogue';
-import { emptyReactionDistribution } from '@senars/nar/dialogue';
+import { Reconsolidator } from '@senars/dialogue';
+import { digestPin, loadRetrospectives, persistRetrospective } from '@senars/dialogue';
+import type { Retrospective } from '@senars/dialogue';
+import { emptyReactionDistribution } from '@senars/dialogue';
 
 /**
  * TODO25 Bench 78 — Phase B falsifier: retrospective-triggered

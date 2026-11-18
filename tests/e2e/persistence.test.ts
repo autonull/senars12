@@ -1,9 +1,9 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Agent, InMemoryEventLog } from '@senars/core';
-import { JsonlSessionManager } from '@senars/core/memory';
-import { NAREngine } from '@senars/nar/engine/NAREngine';
+import { Agent, InMemoryEventLog } from '@senars/agent';
+import { JsonlSessionManager } from '@senars/memory';
+import { NAREngine } from '@senars/agent';
 import { startAgentUI } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 

@@ -3,10 +3,10 @@ import {
   createMockLMService,
   type PerceivedInterpretation,
   validateInterpretation,
-} from '@senars/nar';
-import type { NARConfig } from '@senars/nar/facade/config.js';
-import { NAR } from '@senars/nar/nar.js';
-import { NarEventBus } from '@senars/nar/types/events.js';
+} from '@senars/agent';
+import type { NARConfig } from '@senars/agent';
+import { NAR } from '@senars/agent';
+import { NarEventBus } from '@senars/agent';
 import { e2eNARConfig } from '../e2e/fixtures.js';
 
 /**

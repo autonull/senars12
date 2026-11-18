@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { handleMetricsRequest, recordLmSpend } from '@senars/nar/metrics';
+import { handleMetricsRequest, recordLmSpend } from '@senars/metrics';
 
 const fakeRes = () => {
   const state = { status: 0, headers: {} as Record<string, string>, body: '' };

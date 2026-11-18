@@ -6,7 +6,7 @@
  * recorded), not internal counters.
  */
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
-import { NAR } from '@senars/nar/nar.js';
+import { NAR } from '@senars/agent';
 import type { NARConfig } from '@senars/agent';
 import { e2eNARConfig } from './fixtures.js';
 

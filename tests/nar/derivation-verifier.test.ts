@@ -1,5 +1,5 @@
-import type { DerivationRecord } from '@senars/core/schemas/derivation-records';
-import { verifyRecord } from '@senars/core/verify-derivation';
+import type { DerivationRecord } from '@senars/agent';
+import { verifyRecord } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 const taskId = '11111111-1111-4111-8111-111111111111';

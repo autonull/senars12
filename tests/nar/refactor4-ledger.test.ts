@@ -15,7 +15,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/util/ledger';
+import { Ledger, createLedger, BaseLedgerEntrySchema } from '@senars/utils';
 import { EpisodeSchema } from '@senars/nar/memory/EpisodicMemory.js';
 
 describe('Bench 96 — Ledger<T> primitive', () => {

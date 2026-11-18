@@ -1,6 +1,6 @@
-import { createBag, resolveBagSlot } from '@senars/nar/bag';
-import { createDefaultRegistry } from '@senars/nar/cognitive';
-import { mulberry32 } from '@senars/util';
+import { createBag, resolveBagSlot } from '@senars/agent';
+import { createDefaultRegistry } from '@senars/agent';
+import { mulberry32 } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 import { Memory, TermBuilder } from '../../nar/src';
 import type { SamplingStrategy } from '../../nar/src/strategies';

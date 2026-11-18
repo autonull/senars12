@@ -26,16 +26,16 @@ import { verifyCascade } from '@senars/nar/lm/system-one/verify.js';
 import { PlacementCascadeReflex } from '@senars/nar/lm/system-one/cascade-reflex.js';
 import { createHash } from 'node:crypto';
 import type { JudgmentProvenance } from '@senars/nar/lm/system-one/decide.js';
-import type { Term, Truth } from '@senars/nar/terms';
-import { atom, Truth as TruthClass, TermBuilder } from '@senars/nar/terms';
-import type { Memory } from '@senars/nar/memory';
-import type { NAR } from '@senars/nar/nar.js';
+import type { Term, Truth } from '@senars/terms';
+import { atom, Truth as TruthClass, TermBuilder } from '@senars/terms';
+import type { Memory } from '@senars/memory';
+import type { NAR } from '@senars/agent';
 import type { GateRegistry } from '@senars/nar/kernel/index.js';
-import type { Task } from '@senars/nar/types';
-import { EpisodeConsolidatorOptions } from '@senars/nar';
-import { ProposalBagOptions } from '@senars/nar/meta';
+import type { Task } from '@senars/agent';
+import { EpisodeConsolidatorOptions } from '@senars/agent';
+import { ProposalBagOptions } from '@senars/agent';
 import { MiningBagOptions } from '@senars/nar/lm/system-one/hard-negatives.js';
-import { SchemaInductionConfig } from '@senars/nar/learning';
+import { SchemaInductionConfig } from '@senars/lm';
 import type {
   ModelDigest,
   BackendId,

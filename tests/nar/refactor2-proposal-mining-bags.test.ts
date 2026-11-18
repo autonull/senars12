@@ -1,4 +1,4 @@
-import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
+import type { SelfImprovementProposal } from '@senars/agent';
 import { type MinedNegative, MiningBag } from '@senars/nar/lm/system-one/hard-negatives.js';
 import { ProposalBag } from '@senars/nar/meta/proposal-bag.js';
 import { describe, expect, it } from 'vitest';

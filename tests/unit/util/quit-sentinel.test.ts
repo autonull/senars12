@@ -1,5 +1,5 @@
-import { errMsg } from '@senars/util';
-import { isQuitResult, QUIT_SENTINEL } from '@senars/util/commands';
+import { errMsg } from '@senars/utils';
+import { isQuitResult, QUIT_SENTINEL } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('QUIT_SENTINEL', () => {

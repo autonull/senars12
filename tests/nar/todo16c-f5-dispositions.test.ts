@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { NAR } from '@senars/nar';
-import { createNAR } from '@senars/nar';
-import { admitTasks } from '@senars/nar/lm';
-import type { LMService } from '@senars/nar/lm';
+import { NAR } from '@senars/agent';
+import { createNAR } from '@senars/agent';
+import { admitTasks } from '@senars/lm';
+import type { LMService } from '@senars/lm';
 import { createSystemOneLMRuleAdapter } from '@senars/nar/lm/system-one/rule-adapter';
 import { ProactiveEnricher } from '@senars/nar/lm/enrichment';
-import { termParser } from '@senars/nar/terms';
-import { Truth } from '@senars/nar/terms';
+import { termParser } from '@senars/terms';
+import { Truth } from '@senars/terms';
 
 /**
  * F5 — §8 dispositions with real consumers:

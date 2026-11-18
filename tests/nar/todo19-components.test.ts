@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 import { readFileSync } from 'node:fs';
-import { cognitiveBounds } from '@senars/util/config';
+import { cognitiveBounds } from '@senars/utils';
 import {
   ActionRegistry,
   RewardRegistry,

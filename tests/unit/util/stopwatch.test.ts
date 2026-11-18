@@ -1,4 +1,4 @@
-import { monotonicNow, stopwatch } from '@senars/util';
+import { monotonicNow, stopwatch } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('stopwatch', () => {

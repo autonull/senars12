@@ -1,4 +1,4 @@
-import type { Episode } from '@senars/util';
+import type { Episode } from '@senars/utils';
 import { EpisodeConsolidator, symbolicSummary } from '@senars/nar/memory/episode-consolidator.js';
 import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';

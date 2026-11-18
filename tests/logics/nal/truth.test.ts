@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Truth } from '@senars/kernel/truth';
+import { Truth } from '@senars/kernel';
 
 describe('Truth Algebra', () => {
   describe('Constants', () => {

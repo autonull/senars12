@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Signal } from '@senars/util';
+import { Signal } from '@senars/utils';
 
 const collector = (log: string[], label: string) => (value: string) =>
   log.push(`${label}:${value}`);

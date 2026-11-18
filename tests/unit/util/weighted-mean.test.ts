@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { weightedMean } from '@senars/util';
+import { weightedMean } from '@senars/utils';
 
 describe('weightedMean', () => {
   it('is the exact mean when the prior weight is the sample index', () => {

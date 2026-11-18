@@ -1,7 +1,7 @@
 import type { LanguageModelV3StreamPart } from '@ai-sdk/provider';
-import type { ComposedRequest, ModelProvider } from '@senars/core';
-import { ModelRunner } from '@senars/core';
-import { createMockLMService } from '@senars/nar';
+import type { ComposedRequest, ModelProvider } from '@senars/agent';
+import { ModelRunner } from '@senars/agent';
+import { createMockLMService } from '@senars/agent';
 import { jsonSchema, type LanguageModel, type ModelMessage, type ToolSet, tool } from 'ai';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import { describe, expect, it } from 'vitest';

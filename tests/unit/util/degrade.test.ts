@@ -8,7 +8,7 @@
  * command's failure answer *is* the error text.
  */
 
-import { degrade } from '@senars/util';
+import { degrade } from '@senars/utils';
 import { describe, expect, it, vi } from 'vitest';
 
 const logger = () => ({ warn: vi.fn() });

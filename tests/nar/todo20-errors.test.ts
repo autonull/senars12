@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { attempt, err, flatMap, isErr, isOk, map, ok, unwrapOrThrow } from '@senars/util';
+import { attempt, err, flatMap, isErr, isOk, map, ok, unwrapOrThrow } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {

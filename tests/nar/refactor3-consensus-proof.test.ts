@@ -1,8 +1,8 @@
 import { Effect } from 'effect';
-import { createMeTTa, parseMeTTa } from '@senars/metta';
-import { NarEventBus } from '@senars/nar/types/events.js';
-import type { ContradictionEvent } from '@senars/nar/types/events.js';
-import { MettaProposer } from '@senars/nar/reflex';
+import { createMeTTa, parseMeTTa } from '@senars/metta-runtime';
+import { NarEventBus } from '@senars/agent';
+import type { ContradictionEvent } from '@senars/agent';
+import { MettaProposer } from '@senars/reflex';
 import { Negotiator } from '@senars/nar/reflex/Negotiator.js';
 import type { ActionProposal } from '@senars/nar/reflex/Reflex.js';
 import type { NALDerivation } from '@senars/nar/reflex/negotiation-types.js';

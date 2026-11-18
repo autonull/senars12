@@ -1,4 +1,4 @@
-import { isEventType, type TaskAdmittedEvent } from '@senars/core/schemas/cognitive-events';
+import { isEventType, type TaskAdmittedEvent } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 import { createGateRegistry } from '../../nar/src/kernel/GateRegistry.js';
 import { Memory } from '../../nar/src/memory/memory.js';

@@ -15,7 +15,7 @@ import { NARLM } from '../../../nar/src/nar-lm.js';
 import type { InferenceController } from '../../../nar/src/reason/inference-controller.js';
 import { createTask } from '../../../nar/src/types/index.js';
 import { NAR } from '../../../src';
-import { createGateRegistry } from '@senars/nar/kernel';
+import { createGateRegistry } from '@senars/kernel';
 
 describe('InferenceController', () => {
   let nar: NAR;

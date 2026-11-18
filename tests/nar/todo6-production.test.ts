@@ -10,17 +10,17 @@
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createCognitiveThread } from '@senars/core';
+import { createCognitiveThread } from '@senars/agent';
 import {
   type BudgetSlice,
   consumeCycles,
   createBudgetSlice,
   mergeConsumption,
   sliceBudget,
-} from '@senars/core/budget';
-import { validateCognitiveEvent } from '@senars/core/schemas';
-import { PriorityBag } from '@senars/nar/bag';
-import { CognitiveRegistry } from '@senars/nar/cognitive';
+} from '@senars/budget';
+import { validateCognitiveEvent } from '@senars/agent';
+import { PriorityBag } from '@senars/agent';
+import { CognitiveRegistry } from '@senars/agent';
 import {
   computeReplayStateHash,
   type ReplaySnapshotFile,
@@ -28,7 +28,7 @@ import {
   serializeReplayResult,
   verifyReplayStateHash,
 } from '@senars/nar/kernel/replay';
-import { initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
+import { initOtel, shutdownOtel, withSpan } from '@senars/otel';
 import { v4 as uuidv4 } from 'uuid';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { CollectingProcessor } from '../helpers/otel.js';

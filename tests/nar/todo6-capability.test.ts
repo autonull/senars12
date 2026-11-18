@@ -9,9 +9,9 @@
  *   E3 `CapabilityOntology` provenance + registration
  */
 
-import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
-import type { Bag } from '@senars/nar/bag';
-import { PriorityBag, resolveBagSlot } from '@senars/nar/bag';
+import type { SelfImprovementProposal } from '@senars/agent';
+import type { Bag } from '@senars/agent';
+import { PriorityBag, resolveBagSlot } from '@senars/agent';
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
 import { Memory, TermBuilder, Truth } from '../../nar/src';

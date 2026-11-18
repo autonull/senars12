@@ -1,4 +1,4 @@
-import { assertDefined, invariant } from '@senars/util/utils/assert';
+import { assertDefined, invariant } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('invariant', () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { RetrospectiveAdapter } from '@senars/nar/dialogue';
-import type { Retrospective } from '@senars/nar/dialogue';
-import { emptyReactionDistribution } from '@senars/nar/dialogue';
+import { RetrospectiveAdapter } from '@senars/dialogue';
+import type { Retrospective } from '@senars/dialogue';
+import { emptyReactionDistribution } from '@senars/dialogue';
 import type { StrategyType } from '../../nar/src/strategies/index.js';
 
 /**

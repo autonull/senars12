@@ -7,7 +7,7 @@ import { appendFileSync } from 'node:fs';
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
   type CognitiveParameters,
-} from '@senars/nar/config/cognitive-parameters';
+} from '@senars/reflex';
 
 const bin = process.env.LANE_BIN ?? 'senars';
 

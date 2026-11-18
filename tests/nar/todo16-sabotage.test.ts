@@ -1,4 +1,4 @@
-import type { AutonomyMode } from '@senars/core/schemas/governance';
+import type { AutonomyMode } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 import { ProposalRouter } from '../../nar/src/governance/pipeline.js';
 import {

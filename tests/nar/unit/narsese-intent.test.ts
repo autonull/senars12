@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { classify, dispatchNarseseIntent } from '@senars/nar/nl';
-import { termParser } from '@senars/nar/terms';
+import { classify, dispatchNarseseIntent } from '@senars/nl';
+import { termParser } from '@senars/terms';
 
 describe('the Narsese ingress router', () => {
   it('names the kind from the punctuation', () => {

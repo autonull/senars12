@@ -1,5 +1,5 @@
-import { Agent, InMemoryEventLog } from '@senars/core';
-import { NAREngine } from '@senars/nar/engine/NAREngine';
+import { Agent, InMemoryEventLog } from '@senars/agent';
+import { NAREngine } from '@senars/agent';
 import { startAgentUI } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 

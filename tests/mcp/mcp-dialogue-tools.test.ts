@@ -6,7 +6,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { DialogueCapture } from '@senars/dialogue';
 import { EpisodicMemory } from '@senars/memory';
-import { dialogueDefaults } from '@senars/utils/config';
+import { dialogueDefaults } from '@senars/utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { registerDialogueTools } from '../../src/bin/lib/mcp/mcp-dialogue-tools.js';
 

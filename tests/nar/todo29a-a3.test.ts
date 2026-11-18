@@ -8,8 +8,8 @@
  * admission — each with the reason code the document promises.
  */
 
-import type { CognitiveEvent, ContentProposal, Proposal, RuleProposal } from '@senars/core/schemas';
-import { PROPOSAL_KINDS, PROPOSAL_SCHEMA_VERSION, ProposalSchema } from '@senars/core/schemas';
+import type { CognitiveEvent, ContentProposal, Proposal, RuleProposal } from '@senars/agent';
+import { PROPOSAL_KINDS, PROPOSAL_SCHEMA_VERSION, ProposalSchema } from '@senars/agent';
 import type { AdmissionVerdict } from '@senars/nar/proposal/lifecycle.js';
 import { ProposalLifecycle, type ProposalQueueLimits } from '@senars/nar/proposal/lifecycle.js';
 import { describe, expect, it } from 'vitest';

@@ -1,4 +1,4 @@
-import { registerAgentTools, ToolRegistry } from '@senars/core/motor';
+import { registerAgentTools, ToolRegistry } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 async function callTool(

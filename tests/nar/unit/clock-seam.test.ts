@@ -6,7 +6,7 @@
  * a claim a store that read `Date.now()` could not honour and no test could
  * pin. These assert the claim holds.
  */
-import { fixedClock } from '@senars/util';
+import { fixedClock } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 import { Layer } from '../../../nar/src/memory/links/Layer.js';

@@ -1,12 +1,12 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { verifyRecord } from '@senars/core/verify-derivation';
-import { SeededRNG, sequentialIdSource } from '@senars/util';
+import { verifyRecord } from '@senars/agent';
+import { SeededRNG, sequentialIdSource } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
-import type { NARConfig } from '@senars/nar/facade/config.js';
-import { NAR } from '@senars/nar/nar.js';
-import { NarEventBus } from '@senars/nar/types/events.js';
+import type { NARConfig } from '@senars/agent';
+import { NAR } from '@senars/agent';
+import { NarEventBus } from '@senars/agent';
 import { e2eNARConfig } from '../e2e/fixtures.js';
 import { createLogStore } from '../../src/log/store';
 import type { LogStore } from '../../src/log/store';

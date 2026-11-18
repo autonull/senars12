@@ -12,7 +12,7 @@ import {
   sequentialIdSource,
   sleep,
   wordOverlap,
-} from '@senars/util';
+} from '@senars/utils';
 
 describe('Utility Functions', () => {
   describe('clamp', () => {

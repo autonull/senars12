@@ -1,23 +1,23 @@
-import { SeededRNG } from '@senars/nar/game';
-import { createGame2048, Game2048 } from '@senars/nar/game';
-import { createGridWorldGame } from '@senars/nar/game';
-import { createSnakeGame, SnakeGame } from '@senars/nar/game';
-import { createTetrisGame, TetrisGame } from '@senars/nar/game';
-import { createTicTacToeGame, TicTacToeGame } from '@senars/nar/game';
+import { SeededRNG } from '@senars/focus';
+import { createGame2048, Game2048 } from '@senars/focus';
+import { createGridWorldGame } from '@senars/focus';
+import { createSnakeGame, SnakeGame } from '@senars/focus';
+import { createTetrisGame, TetrisGame } from '@senars/focus';
+import { createTicTacToeGame, TicTacToeGame } from '@senars/focus';
 import { game2048HeuristicAction } from './rl/baselines/2048.js';
 import { snakeHeuristicAction } from './rl/baselines/snake.js';
 import { tetrisHeuristicPlacement } from './rl/baselines/tetris.js';
 import { ticTacToeHeuristicAction } from './rl/baselines/tictactoe.js';
-import { EpsilonGreedyReflex } from '@senars/nar/reflex';
-import { GameFocus } from '@senars/nar/focus';
+import { EpsilonGreedyReflex } from '@senars/reflex';
+import { GameFocus } from '@senars/focus';
 import {
   createEmbeddingCache,
   createManifold,
   PlacementCascadeReflex,
   type SystemOneManifold,
-} from '@senars/nar/lm/system-one';
+} from '@senars/lm';
 import { describe, expect, it } from 'vitest';
-import { createGateRegistry } from '@senars/nar/kernel';
+import { createGateRegistry } from '@senars/kernel';
 
 const EPISODES = 200;
 const MAX_STEPS = 120;

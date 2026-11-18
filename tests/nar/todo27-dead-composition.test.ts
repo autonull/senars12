@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CognitiveRegistry } from '@senars/nar/cognitive';
+import { CognitiveRegistry } from '@senars/agent';
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
   validateParameters,
-} from '@senars/nar/config/cognitive-parameters';
+} from '@senars/reflex';
 import { TermLinkStrategy } from '@senars/nar/strategies/premise/term-link.js';
 import type { Strategy } from '../../nar/src/strategies/types.js';
 

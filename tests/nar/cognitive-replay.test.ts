@@ -1,12 +1,12 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { validateCognitiveEvent } from '@senars/core/schemas';
+import { validateCognitiveEvent } from '@senars/agent';
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { createLogStore } from '../../src/log/store.js';
 import { LogStoreGateEventLedger, createLogStoreGateEventLedger } from '../../src/log/GateEventLedger.js';
-import { GateRegistry } from '@senars/nar/kernel';
+import { GateRegistry } from '@senars/kernel';
 import { rmSync } from 'node:fs';
 
 const driveAllGates = (): GateRegistry => {

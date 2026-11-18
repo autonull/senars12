@@ -10,7 +10,7 @@ import {
   saturationRamp,
   softSquash,
   sumBy,
-} from '@senars/util';
+} from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('clampSigned', () => {

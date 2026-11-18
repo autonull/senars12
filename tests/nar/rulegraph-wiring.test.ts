@@ -1,4 +1,4 @@
-import { CallTallySeries, createCallTally } from '@senars/util';
+import { CallTallySeries, createCallTally } from '@senars/utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Memory, TermBuilder, Truth } from '../../nar/src';
 import { createTimestamp } from '../../nar/src/types';

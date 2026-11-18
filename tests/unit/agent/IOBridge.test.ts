@@ -1,6 +1,6 @@
-import { createLogger } from '@senars/core';
-import { InMemorySessionManager, JsonlSessionManager } from '@senars/core/memory';
-import type { Connection, IOMessage } from '@senars/io';
+import { createLogger } from '@senars/agent';
+import { InMemorySessionManager, JsonlSessionManager } from '@senars/memory';
+import type { Connection, IOMessage } from '@senars/transport';
 import {
   AuthManager,
   bindAgentToConnection,
@@ -15,10 +15,10 @@ import {
   MessageRouter,
   originExtractor,
   resolveSessionKey,
-} from '@senars/io';
-import type { NAR } from '@senars/nar';
-import { createAgent, createSession } from '@senars/nar/agent';
-import type { CommandContext, Logger } from '@senars/util';
+} from '@senars/transport';
+import type { NAR } from '@senars/agent';
+import { createAgent, createSession } from '@senars/agent';
+import type { CommandContext, Logger } from '@senars/utils';
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';

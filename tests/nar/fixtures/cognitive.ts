@@ -1,15 +1,15 @@
-import { CognitiveController, createDefaultRegistry } from '@senars/nar/cognitive';
+import { CognitiveController, createDefaultRegistry } from '@senars/agent';
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
   type CognitiveParameters,
-} from '@senars/nar/config/cognitive-parameters';
-import { MetricsCollector } from '@senars/nar/metrics';
-import { RuleProcessor } from '@senars/nar/rules';
+} from '@senars/reflex';
+import { MetricsCollector } from '@senars/metrics';
+import { RuleProcessor } from '@senars/rules';
 import { createRulePattern, type RegisteredRule } from '@senars/nar/rules/types';
-import { TermBuilder, getPredicate, getSubject, termsEqual } from '@senars/nar/terms';
+import { TermBuilder, getPredicate, getSubject, termsEqual } from '@senars/terms';
 import { Truth } from '@senars/nar/terms/impls/Truth.js';
-import type { Memory } from '@senars/nar/memory';
-import type { RLFPLearner } from '@senars/nar/rlfp';
+import type { Memory } from '@senars/memory';
+import type { RLFPLearner } from '@senars/reflex';
 
 /**
  * A real `CognitiveController` over a real `RuleProcessor` with no rules

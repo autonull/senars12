@@ -6,7 +6,7 @@ import {
   sharedOperations,
   spentScopeIds,
 } from '../../scripts/lib/control-budgets.js';
-import { BUDGET_RESOURCES } from '@senars/core/budget';
+import { BUDGET_RESOURCES } from '@senars/budget';
 import {
   BUDGET_SCOPE_IDS,
   BUDGET_SCOPES,
@@ -19,13 +19,13 @@ import {
 } from '@senars/nar/kernel/budget-scopes';
 import { ControlBudgets, type ControlBudgetOverrides } from '@senars/nar/kernel/control-budgets';
 import { createGateRegistry } from '@senars/nar/kernel/GateRegistry';
-import { termParser } from '@senars/nar/terms';
+import { termParser } from '@senars/terms';
 import { Truth } from '@senars/nar/terms/impls/Truth';
 import {
   createDefaultReasoningBudget,
   KernelBudgetGate,
 } from '@senars/nar/kernel/KernelBudgetGate';
-import { DEFAULT_CONFIG, Memory, RuleProcessor, TaskManager } from '@senars/nar';
+import { DEFAULT_CONFIG, Memory, RuleProcessor, TaskManager } from '@senars/agent';
 import { NARExecution } from '@senars/nar/nar-execution';
 import { createTestController, inferenceParams } from './fixtures/cognitive.js';
 

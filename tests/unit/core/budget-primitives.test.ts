@@ -12,7 +12,7 @@ import {
   chargeBudget,
   createBudget,
   zeroConsumed,
-} from '@senars/core/budget';
+} from '@senars/budget';
 import { describe, expect, it } from 'vitest';
 
 const LIMITS = { maxCycles: 2, maxDepth: 3, maxMemoryOps: 4, maxLMCalls: 5 };

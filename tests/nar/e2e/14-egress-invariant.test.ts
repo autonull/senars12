@@ -17,7 +17,7 @@ import { createNAR } from '../../../nar/src/nar-presets.js';
 import { termKey, Truth } from '../../../nar/src/terms/index.js';
 import { NO_DECISION_PORT } from '../../../nar/src/ports/decision.js';
 import type { DecisionResult } from '../../../nar/src/ports/decision.js';
-import { systemOneDefaults, systemOneSchema } from '@senars/util/config';
+import { systemOneDefaults, systemOneSchema } from '@senars/utils';
 
 /**
  * The port serves both cycle call sites, so a test about egress must select its

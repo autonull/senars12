@@ -1,8 +1,8 @@
-import { createGameFocus } from '@senars/nar/focus';
-import { createGridWorldGame } from '@senars/nar/game';
-import { TabularQReflex } from '@senars/nar/reflex';
+import { createGameFocus } from '@senars/focus';
+import { createGridWorldGame } from '@senars/focus';
+import { TabularQReflex } from '@senars/reflex';
 import { describe, expect, it } from 'vitest';
-import { createGateRegistry } from '@senars/nar/kernel';
+import { createGateRegistry } from '@senars/kernel';
 
 describe('M3.5 GridWorld Validation - New Architecture', () => {
   const gridConfig = {

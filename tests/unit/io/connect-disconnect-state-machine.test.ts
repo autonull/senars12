@@ -7,8 +7,8 @@
  * closed.
  */
 
-import { BaseConnection } from '@senars/io';
-import { type ConnectionConfig, type ConnectionState, Logger } from '@senars/util';
+import { BaseConnection } from '@senars/transport';
+import { type ConnectionConfig, type ConnectionState, Logger } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 const silentLogger = (): Logger => new Logger({ level: 'error', format: 'text' }).child('probe');

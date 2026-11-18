@@ -5,12 +5,12 @@ import {
   loadBuiltinTable,
   RuleIndex,
   RuleProcessor,
-} from '@senars/nar/rules';
+} from '@senars/rules';
 import { createRulePattern } from '@senars/nar/rules/types';
 import type { InferenceTable, RegisteredRule } from '@senars/nar/rules/types';
 import { bucketCensus, kindViolations } from '../../scripts/lib/dispatch-table.js';
-import { OPERATORS, Stamp, TermBuilder, Truth, type Term } from '@senars/nar/terms';
-import { createTimestamp } from '@senars/nar/types';
+import { OPERATORS, Stamp, TermBuilder, Truth, type Term } from '@senars/terms';
+import { createTimestamp } from '@senars/agent';
 
 const rule = (id: string, priority: number, ops: [Term['kind'], Term['kind']]): RegisteredRule => ({
   id,

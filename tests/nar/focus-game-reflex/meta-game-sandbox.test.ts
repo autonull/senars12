@@ -1,15 +1,15 @@
-import { createFocus, createGameFocus, createMetaFocus, FocusBag } from '@senars/nar/focus';
+import { createFocus, createGameFocus, createMetaFocus, FocusBag } from '@senars/focus';
 import {
   createGridWorldGame,
   createMetaGame,
   createSelfMetaGame,
   MetaGame as MetaGameClass,
   SelfMetaGameImpl,
-} from '@senars/nar/game';
-import { TabularQReflex } from '@senars/nar/reflex';
-import { cognitiveBounds } from '@senars/util/config';
+} from '@senars/focus';
+import { TabularQReflex } from '@senars/reflex';
+import { cognitiveBounds } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
-import { createGateRegistry } from '@senars/nar/kernel';
+import { createGateRegistry } from '@senars/kernel';
 
 describe('MetaGame Sandbox - Gate 5', () => {
   describe('MetaGame', () => {

@@ -1,6 +1,6 @@
-import { Agent } from '@senars/core';
-import { createLogStoreEventLog } from '@senars/core/eventlog';
-import type { Engine } from '@senars/util';
+import { Agent } from '@senars/agent';
+import { createLogStoreEventLog } from '@senars/agent';
+import type { Engine } from '@senars/utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';

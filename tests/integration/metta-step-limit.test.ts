@@ -1,4 +1,4 @@
-import { createMeTTa, MeTTaReason, parseMeTTa } from '@senars/metta';
+import { createMeTTa, MeTTaReason, parseMeTTa } from '@senars/metta-runtime';
 import { Cause, Effect, Exit } from 'effect';
 import { describe, expect, it } from 'vitest';
 

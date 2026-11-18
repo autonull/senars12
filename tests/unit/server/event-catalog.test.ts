@@ -1,4 +1,4 @@
-import { CognitiveEventSchema } from '@senars/core/schemas';
+import { CognitiveEventSchema } from '@senars/agent';
 import {
   EVENT_CATALOG,
   EVENT_CATEGORIES,

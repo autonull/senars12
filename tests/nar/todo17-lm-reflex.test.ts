@@ -1,15 +1,15 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import type { ReasoningBudget } from '@senars/agent';
 import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate';
-import type { Perception } from '@senars/nar/game';
+import type { Perception } from '@senars/focus';
 import { actionGrammar } from '@senars/nar/lm/system-one/action-grammar.js';
 import { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
 import { LMReflex } from '@senars/nar/lm/system-one/lm-reflex.js';
 import type { CognitiveDispatcher, PEAResult } from '@senars/nar/lm/system-one/types.js';
-import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
-import { EpsilonGreedyReflex } from '@senars/nar/reflex';
+import type { ActionProposal, LearningEvent, Reflex } from '@senars/reflex';
+import { EpsilonGreedyReflex } from '@senars/reflex';
 import { describe, expect, it } from 'vitest';
 
 const budget: ReasoningBudget = {

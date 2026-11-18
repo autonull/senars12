@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CognitiveRegistry } from '@senars/nar/cognitive';
-import { ConfigurationError } from '@senars/nar/types';
+import { CognitiveRegistry } from '@senars/agent';
+import { ConfigurationError } from '@senars/agent';
 import type { Strategy } from '../../nar/src/strategies/types.js';
 
 /**

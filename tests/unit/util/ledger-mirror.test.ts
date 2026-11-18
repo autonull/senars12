@@ -6,7 +6,7 @@
  * a reload continues the window rather than restarting it.
  */
 
-import { createLedger, DEFAULT_MIRROR_SIZE } from '@senars/util/ledger';
+import { createLedger, DEFAULT_MIRROR_SIZE } from '@senars/utils';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

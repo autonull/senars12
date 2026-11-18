@@ -1,10 +1,10 @@
-import { PriorityBag, resolveBagSlot } from '@senars/nar/bag';
+import { PriorityBag, resolveBagSlot } from '@senars/agent';
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
   validateParameters,
-} from '@senars/nar/config/cognitive-parameters';
-import { Memory } from '@senars/nar/memory';
-import { ConfigurationError } from '@senars/nar/types';
+} from '@senars/reflex';
+import { Memory } from '@senars/memory';
+import { ConfigurationError } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 import { atom, Truth } from '../../nar/src/terms/index.js';
 import { createTaskWeight } from '../../nar/src/types/index.js';

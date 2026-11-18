@@ -13,7 +13,7 @@ import {
   match,
   ok,
   unwrapOrThrow,
-} from '@senars/util';
+} from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('Result', () => {

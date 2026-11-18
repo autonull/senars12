@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
-import { boundedDeadline, TimeoutError, withDeadline } from '@senars/util';
+import { boundedDeadline, TimeoutError, withDeadline } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = join(import.meta.dirname, '../../..');

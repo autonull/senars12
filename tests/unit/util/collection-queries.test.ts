@@ -1,4 +1,4 @@
-import { collectUpTo, joinKey, shareOf, splitKey } from '@senars/util';
+import { collectUpTo, joinKey, shareOf, splitKey } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('collectUpTo', () => {

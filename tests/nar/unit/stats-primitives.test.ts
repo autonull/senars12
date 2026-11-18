@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clamp01, mean, pearson, percentile, stdDev, ucb1, variance } from '@senars/util';
+import { clamp01, mean, pearson, percentile, stdDev, ucb1, variance } from '@senars/utils';
 
 describe('variance / stdDev / mean', () => {
   it('computes population moments', () => {

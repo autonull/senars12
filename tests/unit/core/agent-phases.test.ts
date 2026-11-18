@@ -1,6 +1,6 @@
-import type { CognitiveEvent } from '@senars/core';
-import type { CycleHost } from '@senars/core/agent/phases';
-import { runCycle } from '@senars/core/agent/phases';
+import type { CognitiveEvent } from '@senars/agent';
+import type { CycleHost } from '@senars/budget';
+import { runCycle } from '@senars/budget';
 import { describe, expect, it, vi } from 'vitest';
 
 function makeHost(overrides: Partial<CycleHost> = {}): CycleHost & {

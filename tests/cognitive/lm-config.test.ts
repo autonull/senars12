@@ -8,7 +8,7 @@ import {
   resolveLMConfig,
   resolveLMSettings,
   setRouting,
-} from '@senars/nar/lm';
+} from '@senars/lm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const ENV_KEYS = [

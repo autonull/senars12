@@ -1,4 +1,4 @@
-import { BUILTIN_TOOLS, type CmdArgSet, type ToolResult } from '@senars/core';
+import { BUILTIN_TOOLS, type CmdArgSet, type ToolResult } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 const execute = async (name: string, args: CmdArgSet): Promise<ToolResult> => {

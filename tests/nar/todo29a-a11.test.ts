@@ -14,7 +14,7 @@ import {
   DECISION_CALL_SITES,
   DECISION_POSITIONS,
   DECISION_QUERIES,
-} from '@senars/nar/decision';
+} from '@senars/agent';
 import { manifestViolations } from '../../scripts/lib/decision-manifest.js';
 import {
   askSafely,
@@ -22,10 +22,10 @@ import {
   type CycleDecisionRequest,
   type DecisionPort,
 } from '@senars/nar/ports';
-import { PROPOSAL_SCHEMA_VERSION } from '@senars/core/schemas';
+import { PROPOSAL_SCHEMA_VERSION } from '@senars/agent';
 import { rankDerivations } from '@senars/nar/rules/impls/ranking.js';
 import { BUDGET_SCOPE_IDS } from '@senars/nar/kernel/budget-scopes';
-import type { QueryId, ModelDigest, BackendId, CalibrationVersion } from '@senars/nar/decision';
+import type { QueryId, ModelDigest, BackendId, CalibrationVersion } from '@senars/agent';
 
 const branded = <T extends string>(value: string): T => value as T;
 

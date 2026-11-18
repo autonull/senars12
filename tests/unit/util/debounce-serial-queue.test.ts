@@ -1,4 +1,4 @@
-import { debounce, SerialLanes, SerialQueue } from '@senars/util';
+import { debounce, SerialLanes, SerialQueue } from '@senars/utils';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('debounce', () => {

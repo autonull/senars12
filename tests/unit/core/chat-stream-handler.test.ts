@@ -1,5 +1,5 @@
-import type { Agent } from '@senars/core';
-import { aggregateChatResponse } from '@senars/core/bridge/chat-stream-handler';
+import type { Agent } from '@senars/agent';
+import { aggregateChatResponse } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 function fakeAgent(parts: string[]): Agent {

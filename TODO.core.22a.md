@@ -1780,11 +1780,59 @@ No legacy `@senars/core|nar|io|metta|util` imports found. `surface-no-legacy` pa
 - `pnpm docs:drift` ✅ PASS (docs regenerated)
 - `pnpm gates` ❌ FAIL at `env:grammar` (pre-existing UI issue — out of scope)
 
+---
+### Session Log — 2026-11-18 (Test Migration — Part 2: Bulk @senars/* Import Migration)
+**Automated migration of 247 test files** from legacy `@senars/*` imports to new `src/` path aliases:
+- Created migration script `scripts/migrate-test-imports.ts` with comprehensive import mapping
+- Added missing path aliases to root `tsconfig.json`:
+  - `@senars/kernel`, `@senars/kernel/*` → `./src/kernel/*`
+  - `@senars/lm`, `@senars/lm/*` → `./src/lm/*`
+  - `@senars/transport`, `@senars/transport/*` → `./src/io/*` (new barrel for IO)
+  - `@senars/metta-runtime`, `@senars/metta-runtime/*` → `./src/metta/*` (new barrel for Metta)
+- Added path aliases to `tests/nar/tsconfig.json` for new barrels
+- Created `tests/obligations/tsconfig.json` extending root config
+
+**Import mappings applied:**
+- `@senars/nar` → `@senars/agent` (NAR, createTestNAR, createNAR, DEFAULT_CONFIG, etc.)
+- `@senars/nar/terms` → `@senars/terms` (Truth, operationNameOf, PUNCTUATION_BY_TASK_TYPE)
+- `@senars/nar/lm` → `@senars/lm` (LM service, grammars, providers, system-one)
+- `@senars/nar/metrics` → `@senars/metrics` (createReasoningRoute, handleMetricsRequest)
+- `@senars/nar/reflex` → `@senars/reflex` (MettaProposer, RLFPLearner, cognitive parameters)
+- `@senars/nar/rules` → `@senars/rules` (initializeMetaReasoning, registerMetaRules)
+- `@senars/nar/self` → `@senars/self` (ArchitectureDriver, initializeSelfConcept)
+- `@senars/nar/dialogue` → `@senars/dialogue` (DialogueCapture, RetrospectiveAdapter, etc.)
+- `@senars/nar/health` → `@senars/health` (runHealthChecks, createBotNAR)
+- `@senars/nar/focus` → `@senars/focus` (Focus, FocusBag, GameFocus, MetaFocus, SchemaStore)
+- `@senars/nar/agent` → `@senars/agent` (createAgent, createTestNAR, NARBuilder)
+- `@senars/nar/otel` → `@senars/otel` (initOtel, shutdownOtel, withSpan)
+- `@senars/nar/kernel` → `@senars/kernel` (reputation, threadScope)
+- `@senars/core` → `@senars/agent`/`@senars/memory` (createAgent, JsonlSessionManager, etc.)
+- `@senars/core/memory` → `@senars/memory` (JsonlSessionManager, InMemorySessionManager)
+- `@senars/util` → `@senars/utils` (silentLogger, createLogger, generateId, SeededRNG, etc.)
+- `@senars/io` → `@senars/transport` (HTTPConnection, CLIConnection, WSConnection, etc.)
+- `@senars/metta` → `@senars/metta-runtime` (createMeTTa, parseMeTTa, MeTTaReason)
+- `@senars/kernel` (legacy) → `@senars/kernel` (new barrel)
+- `@senars/lm` (legacy) → `@senars/lm` (new barrel)
+
+**Gates Status**
+- `pnpm typecheck` ✅ PASS (root and bin)
+- `pnpm lint` ✅ PASS
+- `pnpm surface-no-legacy` ✅ PASS
+- `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
+- `pnpm exports:check` ✅ PASS
+- `pnpm docs:drift` ✅ PASS (docs regenerated)
+- `pnpm gates` ❌ FAIL at `env:grammar` (pre-existing UI issue — out of scope)
+
+**Remaining Import Issues (not addressed in this migration):**
+- Relative imports from `../../nar/src/` in ~80 test files (require manual migration)
+- Missing exports in new barrels for: NAREngine, ConceptGraph, PriorityBag, ToolManager, InMemorySessionManager, GateRegistry, EventLogPersistence, replay utilities
+- Legacy package subpath exports not available (e.g., `@senars/nar/cognitive/impls/CognitiveRegistry.js`)
+
 **Remaining Work (M1-M3 Consolidation):**
 - ✅ Migrate `src/bin/`, `src/bin/commands/`, `src/bin/lib/` imports from `@senars/*` to `src/` path aliases
 - ✅ Migrate `src/cli/` imports from `@senars/*` to `src/` path aliases
 - ✅ Migrate `src/surface/` imports — already using `@senars/worlds`, `@senars/admit`, `@senars/mining` path aliases
-- 🔄 Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (261 test files with legacy imports)
+- 🔄 Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (261 test files — 247 migrated for @senars/* imports; ~80 files with relative imports remain; new barrels need additional exports)
 - Consolidate export subpaths from 96 to 1 (collapse core, nar, io, metta, util, ui packages into root)
 - Reduce persistence sites to 1 (LogStore only)
 

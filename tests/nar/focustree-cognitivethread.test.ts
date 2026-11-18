@@ -5,17 +5,17 @@ import {
   createRootBudget,
   type SpawnResult,
   ThreadPool,
-} from '@senars/core';
+} from '@senars/agent';
 import {
   type BudgetSlice,
   consumeCycles,
   createBudgetSlice,
   isExhausted,
-} from '@senars/core/budget';
-import { createFocusTree, type FocusTree, type FocusTreeOptions } from '@senars/nar/focus';
+} from '@senars/budget';
+import { createFocusTree, type FocusTree, type FocusTreeOptions } from '@senars/focus';
 import { Focus } from '@senars/nar/focus/Focus.js';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createGateRegistry } from '@senars/nar/kernel';
+import { createGateRegistry } from '@senars/kernel';
 
 function createMockFocusOptions(id: string): FocusTreeOptions['rootFocus'] {
   return {

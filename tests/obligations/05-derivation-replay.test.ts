@@ -7,10 +7,10 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { TermFactory } from '@senars/kernel/terms/intern';
-import { Truth } from '@senars/kernel/truth';
-import { Stamp } from '@senars/kernel/stamp';
-import { createStepExecutor, StepExecutor } from '@senars/kernel/step';
+import { TermFactory } from '@senars/kernel';
+import { Truth } from '@senars/kernel';
+import { Stamp } from '@senars/kernel';
+import { createStepExecutor, StepExecutor } from '@senars/kernel';
 import { NALRuleEngine } from '@senars/logics/nal/rules';
 import {
   DerivationRecorder,
@@ -21,7 +21,7 @@ import {
 } from '@senars/verification/record';
 import { ReferenceInterpreter } from '@senars/verification/interpreter';
 import { REFERENCE_VECTORS } from '@senars/verification/vectors';
-import type { Term, TruthValue, Premise, RuleId } from '@senars/kernel/step';
+import type { Term, TruthValue, Premise, RuleId } from '@senars/kernel';
 
 describe('Obligation 5: Derivation Replay', () => {
   let executor: StepExecutor;

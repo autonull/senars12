@@ -1,6 +1,6 @@
 import { type CreateAgentConfig, createAgent } from '@senars/agent';
-import type { NAR } from '@senars/nar';
-import { createTestNAR } from '@senars/nar';
+import type { NAR } from '@senars/agent';
+import { createTestNAR } from '@senars/agent';
 import type { LMService } from '@senars/lm';
 import { errMsg } from '@senars/utils';
 

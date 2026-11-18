@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG, NAR, TermBuilder } from '@senars/nar';
+import { DEFAULT_CONFIG, NAR, TermBuilder } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 /**

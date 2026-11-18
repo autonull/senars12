@@ -7,12 +7,12 @@ import {
   identityECE,
 } from '@senars/nar/lm/system-one/calibration-fit';
 import { JudgmentDataset } from '@senars/nar/lm/system-one/distill';
-import { EpsilonGreedyReflex } from '@senars/nar/reflex';
-import { createGame2048, createSnakeGame, createTicTacToeGame, SeededRNG } from '@senars/nar/game';
+import { EpsilonGreedyReflex } from '@senars/reflex';
+import { createGame2048, createSnakeGame, createTicTacToeGame, SeededRNG } from '@senars/focus';
 import { game2048HeuristicAction } from './rl/baselines/2048.js';
 import { snakeHeuristicAction } from './rl/baselines/snake.js';
 import { ticTacToeHeuristicAction } from './rl/baselines/tictactoe.js';
-import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
+import type { ActionProposal, LearningEvent, Reflex } from '@senars/reflex';
 import type {
   JudgmentManifold,
   JudgmentQuery,

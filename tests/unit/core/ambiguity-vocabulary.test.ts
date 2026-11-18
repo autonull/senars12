@@ -5,7 +5,7 @@ import {
   AmbiguityFlagSchema,
   AmbiguityReportSchema,
   ambiguitySeverityOf,
-} from '@senars/core/schemas';
+} from '@senars/agent';
 import { AmbiguitySchema, TaskBatchSchema } from '@senars/nar/nl/schemas';
 import { detectAmbiguityFlags, toFormalizationBatch } from '@senars/nar/nl/understanding';
 import { describe, expect, it } from 'vitest';

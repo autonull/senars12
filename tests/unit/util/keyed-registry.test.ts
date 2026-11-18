@@ -1,5 +1,5 @@
-import { KeyedRegistry, type KeyedRegistryOptions } from '@senars/util';
-import { withDefaults } from '@senars/util/config';
+import { KeyedRegistry, type KeyedRegistryOptions } from '@senars/utils';
+import { withDefaults } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 interface Sensor {

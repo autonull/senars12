@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createNAR, type NAR } from '@senars/nar';
-import type { LMService } from '@senars/nar/lm';
-import { DECISION_CALL_SITES } from '@senars/nar/decision';
+import { createNAR, type NAR } from '@senars/agent';
+import type { LMService } from '@senars/lm';
+import { DECISION_CALL_SITES } from '@senars/agent';
 import { manifestViolations } from '../../scripts/lib/decision-manifest.js';
 
 /**

@@ -1,13 +1,13 @@
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-node';
 import { afterAll, describe, expect, it } from 'vitest';
-import { createLogger } from '@senars/core';
-import { HTTPConnection } from '@senars/io';
-import { emitEvent, initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
-import { runHealthChecks } from '@senars/nar/health';
-import { getMetricsAsJson } from '@senars/nar/metrics';
-import { KernelActionGate, KernelBudgetGate, KernelPerceptionGate } from '@senars/nar/kernel';
-import { Negotiator } from '@senars/nar/reflex';
-import { SchemaStore } from '@senars/nar/focus';
+import { createLogger } from '@senars/agent';
+import { HTTPConnection } from '@senars/transport';
+import { emitEvent, initOtel, shutdownOtel, withSpan } from '@senars/otel';
+import { runHealthChecks } from '@senars/health';
+import { getMetricsAsJson } from '@senars/metrics';
+import { KernelActionGate, KernelBudgetGate, KernelPerceptionGate } from '@senars/kernel';
+import { Negotiator } from '@senars/reflex';
+import { SchemaStore } from '@senars/focus';
 import { Truth } from '../../nar/src';
 import { CollectingProcessor } from '../helpers/otel.js';
 

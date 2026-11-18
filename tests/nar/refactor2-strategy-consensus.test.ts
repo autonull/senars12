@@ -9,29 +9,29 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { Effect } from 'effect';
-import { atom, createMinimalNAR, createTask, TermBuilder, Truth } from '@senars/nar';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters';
-import { selectProbes } from '@senars/nar/dialogue';
+import { atom, createMinimalNAR, createTask, TermBuilder, Truth } from '@senars/agent';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/reflex';
+import { selectProbes } from '@senars/dialogue';
 import { SystemOneIngressJudge } from '@senars/nar/lm/system-one/ingress-judge.js';
 import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
 import { domainKey, providerKey } from '@senars/nar/kernel/reputation-keys.js';
 import { SourceReputation } from '@senars/nar/kernel/source-reputation.js';
 import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache';
-import { RuleProcessor } from '@senars/nar/rules';
-import { MettaProposer } from '@senars/nar/reflex';
-import { Negotiator } from '@senars/nar/reflex';
-import { NalVetoArbitration, WeightedQuorum } from '@senars/nar/reflex';
-import { CognitiveRegistry } from '@senars/nar/cognitive';
-import { MetricsCollector } from '@senars/nar/metrics';
+import { RuleProcessor } from '@senars/rules';
+import { MettaProposer } from '@senars/reflex';
+import { Negotiator } from '@senars/reflex';
+import { NalVetoArbitration, WeightedQuorum } from '@senars/reflex';
+import { CognitiveRegistry } from '@senars/agent';
+import { MetricsCollector } from '@senars/metrics';
 import {
   composeStrategy,
   describeStrategyExpression,
-} from '@senars/nar/reason/strategy-algebra.js';
+} from '@senars/agent';
 import { CognitiveController } from '@senars/nar/cognitive/impls/CognitiveController.js';
 import type { DerivationContext, DerivationStrategy } from '@senars/nar/strategies';
-import type { Task } from '@senars/nar/types';
+import type { Task } from '@senars/agent';
 import type { JudgmentManifold, JudgmentProposition } from '@senars/nar/lm/system-one/types.js';
-import { createMeTTa, parseMeTTa } from '@senars/metta';
+import { createMeTTa, parseMeTTa } from '@senars/metta-runtime';
 import { describe, expect, it } from 'vitest';
 
 /** A reputation ledger of this test's own: the default path is the repo's cache, so

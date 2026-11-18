@@ -1,4 +1,4 @@
-import { createAgent } from '@senars/nar/agent';
+import { createAgent } from '@senars/agent';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';

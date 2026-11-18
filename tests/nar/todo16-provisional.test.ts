@@ -1,4 +1,4 @@
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import type { ReasoningBudget } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
 import { PriorityBag } from '../../nar/src/bag/Bag.js';

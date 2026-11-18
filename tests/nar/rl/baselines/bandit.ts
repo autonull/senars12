@@ -1,4 +1,4 @@
-import { SeededRNG } from '@senars/util';
+import { SeededRNG } from '@senars/utils';
 import type { Game } from '../../../../nar/src/game/Game.js';
 
 /**

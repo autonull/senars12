@@ -1,10 +1,10 @@
-import { FocusBag, FocusScheduler, GameFocus, createFocus } from '@senars/nar/focus';
-import { SchedulerAdapter } from '@senars/nar/learning';
-import type { FocusStepReport } from '@senars/nar/focus';
-import type { GameFocus as GameFocusType } from '@senars/nar/focus';
-import { createGridWorldGame } from '@senars/nar/game';
+import { FocusBag, FocusScheduler, GameFocus, createFocus } from '@senars/focus';
+import { SchedulerAdapter } from '@senars/lm';
+import type { FocusStepReport } from '@senars/focus';
+import type { GameFocus as GameFocusType } from '@senars/focus';
+import { createGridWorldGame } from '@senars/focus';
 import { describe, expect, it } from 'vitest';
-import { createGateRegistry } from '@senars/nar/kernel';
+import { createGateRegistry } from '@senars/kernel';
 
 const report = (focusId: string, derivations: number, tasksProcessed: number): FocusStepReport => ({
   focusId,

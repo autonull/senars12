@@ -1,5 +1,5 @@
-import { bootstrapStdLib, clearOps } from '@senars/metta';
-import { MettaEngine } from '@senars/metta/engine/MettaEngine';
+import { bootstrapStdLib, clearOps } from '@senars/metta-runtime';
+import { MettaEngine } from '@senars/metta-runtime';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 describe('MeTTa engine tool invocation', () => {

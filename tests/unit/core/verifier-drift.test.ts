@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { safeDiv } from '@senars/util';
-import { Truth } from '@senars/nar/terms';
-import { resolveTruthFn, VERIFIER_TRUTH_TABLE } from '@senars/core/verify-derivation';
+import { safeDiv } from '@senars/utils';
+import { Truth } from '@senars/terms';
+import { resolveTruthFn, VERIFIER_TRUTH_TABLE } from '@senars/agent';
 import { BUILTIN_DECLARATIONS } from '../../../nar/src/rules/impls/registration.js';
 
 /**

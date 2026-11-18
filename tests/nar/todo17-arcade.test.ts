@@ -1,18 +1,18 @@
-import { BrierHarness } from '@senars/nar/eval/brier-harness';
+import { BrierHarness } from '@senars/agent';
 import { ConfidenceRouter } from '@senars/nar/lm/system-one/policy';
-import { GameFocus } from '@senars/nar/focus';
-import { createGridWorldGame, SeededRNG, type Game } from '@senars/nar/game';
-import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
-import { createGateRegistry } from '@senars/nar/kernel';
+import { GameFocus } from '@senars/focus';
+import { createGridWorldGame, SeededRNG, type Game } from '@senars/focus';
+import type { ActionProposal, LearningEvent, Reflex } from '@senars/reflex';
+import { createGateRegistry } from '@senars/kernel';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { verifyRecord } from '@senars/core/verify-derivation';
+import { verifyRecord } from '@senars/agent';
 import {
   isResumable,
   loadSession,
   saveSession,
   type ArcadeSession,
-} from '@senars/nar/eval/session-state';
+} from '@senars/agent';
 
 /** Fixed-confidence scripted reflex (review band lands at p=0.5). */
 class FixedConfidenceReflex implements Reflex {

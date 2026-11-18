@@ -4,7 +4,7 @@ import {
   type SearchProvider,
   searchWeb,
   type WebSearchResult,
-} from '@senars/core/motor';
+} from '@senars/agent';
 import { createWebSearchTools } from '@senars/nar/tools/adapters/web-search';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

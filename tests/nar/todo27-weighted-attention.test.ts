@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CognitiveRegistry } from '@senars/nar/cognitive';
-import { ConfigurationError } from '@senars/nar/types';
+import { CognitiveRegistry } from '@senars/agent';
+import { ConfigurationError } from '@senars/agent';
 import { CompositeAttention } from '@senars/nar/strategies/attention/CompositeAttention.js';
-import { validateParameters } from '@senars/nar/config/cognitive-parameters';
-import { Memory } from '@senars/nar/memory';
+import { validateParameters } from '@senars/reflex';
+import { Memory } from '@senars/memory';
 import { atom } from '../../nar/src/terms/index.js';
 import type { AttentionModel } from '../../nar/src/strategies/types.js';
 

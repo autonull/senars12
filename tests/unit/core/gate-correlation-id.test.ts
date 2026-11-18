@@ -2,7 +2,7 @@ import {
   createDefaultReasoningBudget,
   KernelBudgetGate,
 } from '@senars/nar/kernel/KernelBudgetGate';
-import { installIdSource } from '@senars/util';
+import { installIdSource } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 /**

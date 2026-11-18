@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SchemaInductor } from '@senars/nar/learning';
+import { SchemaInductor } from '@senars/lm';
 import { InferenceController } from '../../nar/src/reason/inference-controller.js';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '../../nar/src/config/cognitive-parameters.js';
 import type { Task } from '../../nar/src/types/index.js';

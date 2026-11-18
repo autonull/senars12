@@ -15,7 +15,7 @@ import {
   sortBy,
   sumBy,
   uniqueBy,
-} from '@senars/util';
+} from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('accumulate', () => {

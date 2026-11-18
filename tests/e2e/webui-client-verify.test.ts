@@ -1,4 +1,4 @@
-import type { GraphNodeData, IncomingFromServer } from '@senars/core';
+import type { GraphNodeData, IncomingFromServer } from '@senars/agent';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { $graphEdges, $graphNodes, $nodeHistory } from '../../ui/src/client/core/store.js';
 import { applyServerMessage } from '../../ui/src/client/core/store-bindings.js';

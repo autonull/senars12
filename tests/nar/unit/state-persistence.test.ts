@@ -2,7 +2,7 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { EventBus } from '@senars/util/events';
+import { EventBus } from '@senars/utils';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   createTaskWeight,

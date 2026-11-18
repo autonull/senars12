@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CognitiveRegistry } from '@senars/nar/cognitive';
-import { Memory } from '@senars/nar/memory';
+import { CognitiveRegistry } from '@senars/agent';
+import { Memory } from '@senars/memory';
 import { atom, Truth } from '../../nar/src/terms/index.js';
 import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
-import { ConfigurationError } from '@senars/nar/types';
+import { ConfigurationError } from '@senars/agent';
 import type {
   AttentionModel,
   DerivationStrategy,

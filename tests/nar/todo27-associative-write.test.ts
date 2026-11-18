@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { AssociativeRegistry, LinkLayerMemory } from '@senars/nar/memory/associative';
 import { LINK_LAYER } from '@senars/nar/memory/links';
 import { Layer } from '../../nar/src/memory/links/Layer.js';
-import { Memory } from '@senars/nar/memory';
+import { Memory } from '@senars/memory';
 import { atom } from '../../nar/src/terms/index.js';
 import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
 import { Truth } from '../../nar/src/terms/index.js';

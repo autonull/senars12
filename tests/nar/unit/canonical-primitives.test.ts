@@ -8,7 +8,7 @@ import {
   SeededRNG,
   seededStream,
   stableStringify,
-} from '@senars/util';
+} from '@senars/utils';
 
 describe('stableStringify', () => {
   it('is independent of key insertion order', () => {

@@ -22,8 +22,8 @@ const specifiersOf = (source: string): string[] => importEdges(source).map((e) =
 describe('TODO28 — module specifier extraction', () => {
   it('finds every static import shape', () => {
     const source = [
-      `import { a } from '@senars/core';`,
-      `import type { B } from '@senars/nar';`,
+      `import { a } from '@senars/agent';`,
+      `import type { B } from '@senars/agent';`,
       `import Default from './default.js';`,
       `import { type C, d } from './mixed.js';`,
       `import '@senars/util/side-effect.js';`,
@@ -70,7 +70,7 @@ describe('TODO28 — module specifier extraction', () => {
   it('ignores specifiers in template literals — the generators emit them as text', () => {
     const source = [
       'const rule_template = `',
-      `import { TermBuilder } from '@senars/nar/terms';`,
+      `import { TermBuilder } from '@senars/terms';`,
       'export const x = { id: `${id}_rule` };',
       '`;',
       `import { real } from './real.js';`,
@@ -81,7 +81,7 @@ describe('TODO28 — module specifier extraction', () => {
   it('survives a nested interpolation whose code contains braces and quotes', () => {
     const source = [
       'const t = `',
-      `import { fake } from '@senars/nar/terms';`,
+      `import { fake } from '@senars/terms';`,
       "  .map(([k, v]) => `${k}: z.${typeof v === 'string' ? 'string()' : 'unknown()'}`)",
       "  .join(',')",
       '`;',
@@ -110,7 +110,7 @@ describe('TODO28 — module specifier extraction', () => {
   });
 
   it('reports offsets that point at the real import', () => {
-    const source = `// noise\nimport { a } from '@senars/core';\n`;
+    const source = `// noise\nimport { a } from '@senars/agent';\n`;
     const [edge] = importEdges(source);
     expect(source.slice(edge?.offset).startsWith('import')).toBe(true);
   });

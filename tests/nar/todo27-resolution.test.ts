@@ -1,12 +1,12 @@
 import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { initOtel, shutdownOtel, withSpan } from '@senars/nar/otel';
-import { CognitiveRegistry } from '@senars/nar/cognitive';
-import { ConfigurationError } from '@senars/nar/types';
-import { canonicalJson, configDigest } from '@senars/nar/strategies/registration';
-import { getMetricsAsJson } from '@senars/nar/metrics';
+import { initOtel, shutdownOtel, withSpan } from '@senars/otel';
+import { CognitiveRegistry } from '@senars/agent';
+import { ConfigurationError } from '@senars/agent';
+import { canonicalJson, configDigest } from '@senars/agent';
+import { getMetricsAsJson } from '@senars/metrics';
 import { RuleGraph } from '@senars/nar/strategies/lm-graph/RuleGraph.js';
 import { TermLinkStrategy } from '@senars/nar/strategies/premise/term-link.js';
-import { Memory } from '@senars/nar/memory';
+import { Memory } from '@senars/memory';
 import { atom, Truth } from '../../nar/src/terms/index.js';
 import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
 import type { LMRule } from '../../nar/src/lm/LMRule.js';

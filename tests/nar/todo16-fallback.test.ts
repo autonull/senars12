@@ -1,4 +1,4 @@
-import { validateCognitiveEvent } from '@senars/core/schemas';
+import { validateCognitiveEvent } from '@senars/agent';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
 import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';

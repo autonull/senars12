@@ -5,7 +5,7 @@ import {
   SandboxTimeoutError,
   sanitizePreopens,
   withSandboxTimeout,
-} from '@senars/nar/capability';
+} from '@senars/agent';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('sandbox hardening', () => {

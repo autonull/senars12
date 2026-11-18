@@ -15,7 +15,7 @@ import {
   writeJsonFile,
   writeJsonFileSync,
   writeJsonl,
-} from '@senars/util';
+} from '@senars/utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('fs primitives', () => {

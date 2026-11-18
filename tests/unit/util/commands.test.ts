@@ -1,6 +1,6 @@
-import type { CommandContext, CommandDefinition } from '@senars/util/commands';
-import { CommandRegistry } from '@senars/util/commands';
-import type { Connection } from '@senars/util/types/transport';
+import type { CommandContext, CommandDefinition } from '@senars/utils';
+import { CommandRegistry } from '@senars/utils';
+import type { Connection } from '@senars/utils';
 import { describe, expect, it, vi } from 'vitest';
 
 function dummyConnection(): Connection {

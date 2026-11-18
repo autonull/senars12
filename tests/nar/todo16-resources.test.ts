@@ -1,5 +1,5 @@
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { stableStringify } from '@senars/util';
+import type { ReasoningBudget } from '@senars/agent';
+import { stableStringify } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 import {
   createJudgmentDelegation,

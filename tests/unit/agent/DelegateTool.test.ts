@@ -1,5 +1,5 @@
-import { type AgentToolDeps, ToolRegistry } from '@senars/core';
-import { registerAgentTools } from '@senars/core/motor';
+import { type AgentToolDeps, ToolRegistry } from '@senars/agent';
+import { registerAgentTools } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 const buildRegistry = (deps: AgentToolDeps): ToolRegistry => {

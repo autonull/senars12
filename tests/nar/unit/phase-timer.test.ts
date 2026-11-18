@@ -1,5 +1,5 @@
-import type { CycleStageEvent } from '@senars/nar/proposal/cycle-trace.js';
-import { summarizeRegions } from '@senars/nar/trace';
+import type { CycleStageEvent } from '@senars/agent';
+import { summarizeRegions } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 const region = (

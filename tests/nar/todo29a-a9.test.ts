@@ -9,8 +9,8 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import type { CognitiveEvent, Proposal } from '@senars/core/schemas';
-import { PROPOSAL_SCHEMA_VERSION } from '@senars/core/schemas';
+import type { CognitiveEvent, Proposal } from '@senars/agent';
+import { PROPOSAL_SCHEMA_VERSION } from '@senars/agent';
 import { replayCognitiveState } from '../../nar/src/kernel/EventLogPersistence.js';
 import { ProposalLifecycle } from '../../nar/src/proposal/lifecycle.js';
 import {

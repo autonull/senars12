@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateExpression, ExpressionError } from '@senars/util/utils/eval';
+import { evaluateExpression, ExpressionError } from '@senars/utils';
 
 describe('evaluateExpression', () => {
   it('evaluates arithmetic with correct precedence', () => {

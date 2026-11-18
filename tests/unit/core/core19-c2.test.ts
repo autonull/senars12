@@ -1,5 +1,5 @@
-import { Agent } from '@senars/core';
-import { NAR } from '@senars/nar/nar.js';
+import { Agent } from '@senars/agent';
+import { NAR } from '@senars/agent';
 import { describe, expect, it, vi } from 'vitest';
 import {
   handleCycleRewind,

@@ -1,4 +1,4 @@
-import { periodic } from '@senars/util';
+import { periodic } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('periodic', () => {

@@ -9,7 +9,7 @@
  * meta-reasoning beliefs, meta-rule registration, and the enabled subsystems.
  */
 
-import { createLogger } from '@senars/util';
+import { createLogger } from '@senars/utils';
 import { createSeNARSRegistry } from '../../../nar/src/lm/index.js';
 import { createLMService } from '../../../nar/src/lm/lm-service.js';
 import { createNAR } from '../../../nar/src/nar-presets.js';

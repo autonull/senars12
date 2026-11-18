@@ -1,4 +1,4 @@
-import { ChatMessage, GraphNodeDataView, NarConceptNode } from '@senars/core/protocol';
+import { ChatMessage, GraphNodeDataView, NarConceptNode } from '@senars/agent';
 import {
   FormalizationBatchSchema,
   FormalizationCandidateSchema,
@@ -9,7 +9,7 @@ import {
   TaskTypeSchema,
   TOLERANT_PUNCTUATIONS,
   taskTypeForPunctuation,
-} from '@senars/core/schemas';
+} from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 /**

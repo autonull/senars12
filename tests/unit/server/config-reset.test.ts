@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG } from '@senars/nar';
+import { DEFAULT_CONFIG } from '@senars/agent';
 import { resetConfigFields } from '@senars/ui/server/config-schema';
 import { describe, expect, it } from 'vitest';
 

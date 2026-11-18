@@ -1,4 +1,4 @@
-import { type Bag, PriorityBag } from '@senars/nar/bag';
+import { type Bag, PriorityBag } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 interface TestItem {

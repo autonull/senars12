@@ -5,7 +5,7 @@
  * connection deps; this asserts the wiring, not the writer.
  */
 
-import { HTTPConnection } from '@senars/io';
+import { HTTPConnection } from '@senars/transport';
 import { handleMetricsRequest } from '@senars/metrics';
 import { silentLogger } from '@senars/utils';
 import { afterEach, describe, expect, it } from 'vitest';

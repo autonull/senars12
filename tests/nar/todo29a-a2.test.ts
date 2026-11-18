@@ -8,7 +8,7 @@
  * seen fail.
  */
 
-import { LMRule } from '@senars/nar/lm';
+import { LMRule } from '@senars/lm';
 import * as layerJson from '@senars/nar/lm/json.js';
 import { CYCLE_PATH_PREFIXES } from '../../nar/src/lm/in-cycle-inventory.js';
 import {
@@ -21,7 +21,7 @@ import { loadBuiltinTable } from '../../nar/src/rules/impls/builtin-table.js';
 import { RuleTableStore } from '../../nar/src/rules/impls/rule-table.js';
 import { BUILTIN_DECLARATIONS, RULE_BODIES } from '../../nar/src/rules/impls/registration.js';
 import type { ModelRule } from '@senars/nar/rules/types';
-import { parseJsonObject } from '@senars/util';
+import { parseJsonObject } from '@senars/utils';
 
 const A2_TABLE = 'A2 — the shipped table is exactly the registered NAL rules';
 import { describe, expect, it } from 'vitest';
@@ -105,7 +105,7 @@ describe('A2 — the gate sees both directions and grants no exemption', () => {
 
   it('a sibling module and another package are not the layer', () => {
     expect(at("import { cosine } from '../utils/similarity.js';")).toEqual([]);
-    expect(at("import { pushCapped } from '@senars/util';")).toEqual([]);
+    expect(at("import { pushCapped } from '@senars/utils';")).toEqual([]);
     expect(at("import { Truth } from '../terms';")).toEqual([]);
   });
 

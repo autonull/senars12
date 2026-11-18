@@ -1,8 +1,8 @@
-import { createGateRegistry } from '@senars/nar/kernel';
-import { GameFocus } from '@senars/nar/focus';
-import type { Game } from '@senars/nar/game';
-import { createGridWorldGame } from '@senars/nar/game';
-import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
+import { createGateRegistry } from '@senars/kernel';
+import { GameFocus } from '@senars/focus';
+import type { Game } from '@senars/focus';
+import { createGridWorldGame } from '@senars/focus';
+import type { ActionProposal, LearningEvent, Reflex } from '@senars/reflex';
 import { describe, expect, it } from 'vitest';
 
 const fakeGame = (id: string, actions: string[]): Game => ({

@@ -5,8 +5,8 @@ import {
   createTransportPlugin,
   PluginLoader,
   type TransportRegistry,
-} from '@senars/core';
-import type { Connection, ConnectionConfig, ConnectionDeps } from '@senars/util';
+} from '@senars/agent';
+import type { Connection, ConnectionConfig, ConnectionDeps } from '@senars/utils';
 import { describe, expect, it, vi } from 'vitest';
 
 function dummyConnection(config: ConnectionConfig, _deps: ConnectionDeps): Connection {

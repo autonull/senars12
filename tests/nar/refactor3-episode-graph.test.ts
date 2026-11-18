@@ -1,12 +1,12 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DialogueCapture } from '@senars/nar/dialogue';
-import { Memory } from '@senars/nar/memory';
+import { DialogueCapture } from '@senars/dialogue';
+import { Memory } from '@senars/memory';
 import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
 import { causalConnections, episodeSalience } from '@senars/nar/memory/episode-consolidator.js';
-import { MemoryQuery } from '@senars/nar/query/memory-query.js';
-import { fixedClock } from '@senars/util';
+import { MemoryQuery } from '@senars/query';
+import { fixedClock } from '@senars/utils';
 import { afterAll, describe, expect, it } from 'vitest';
 
 const PINNED = 1_700_000_000_000;

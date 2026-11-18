@@ -6,7 +6,7 @@ import type { ExtendedAgent } from '../../nar/src/agent/index.js';
 import { LMService, LMUnavailableError } from '../../nar/src/lm/lm-service.js';
 import { consolidateEpisodes } from '../../nar/src/memory/retrieval-verified.js';
 import type { ConsolidatorDeps } from '../../nar/src/memory/retrieval-verified.js';
-import type { Episode } from '@senars/util';
+import type { Episode } from '@senars/utils';
 
 /**
  * Bench 37 — Async Honesty (TODO17b Phase A)

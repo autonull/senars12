@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DialogueCapture, inferReactionFromUtterance } from '@senars/nar/dialogue';
-import type { ReactionKind } from '@senars/nar/dialogue';
+import { DialogueCapture, inferReactionFromUtterance } from '@senars/dialogue';
+import type { ReactionKind } from '@senars/dialogue';
 import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic.js';
 
 /**

@@ -1,6 +1,6 @@
-import { consumeCycles, createBudgetSlice, pressure } from '@senars/core/budget';
-import { Memory } from '@senars/nar/memory';
-import { atom, TermBuilder, Truth } from '@senars/nar/terms';
+import { consumeCycles, createBudgetSlice, pressure } from '@senars/budget';
+import { Memory } from '@senars/memory';
+import { atom, TermBuilder, Truth } from '@senars/terms';
 import {
   BoundedMap,
   formatIssues,
@@ -13,7 +13,7 @@ import {
   serializeTruth,
   weightedPick,
   weightedSampleBy,
-} from '@senars/util';
+} from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { PriorityBag } from '../../nar/src/bag/Bag.js';

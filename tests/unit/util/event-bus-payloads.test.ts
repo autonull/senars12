@@ -1,4 +1,4 @@
-import { createLogger, EventBus } from '@senars/util';
+import { createLogger, EventBus } from '@senars/utils';
 import { describe, expect, it, vi } from 'vitest';
 
 interface Signals extends Record<string, unknown> {

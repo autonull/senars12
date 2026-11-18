@@ -1,4 +1,4 @@
-import type { RLFPLearner } from '@senars/nar/rlfp';
+import type { RLFPLearner } from '@senars/reflex';
 import { createGateRegistry } from '../../../nar/src/kernel/GateRegistry.js';
 import { describe, expect, test, vi } from 'vitest';
 import {

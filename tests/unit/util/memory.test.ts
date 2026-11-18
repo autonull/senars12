@@ -1,5 +1,5 @@
-import { abortSession, createSession, InMemorySessionManager } from '@senars/util/memory';
-import type { ConversationSession } from '@senars/util/types/memory';
+import { abortSession, createSession, InMemorySessionManager } from '@senars/utils';
+import type { ConversationSession } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('createSession', () => {

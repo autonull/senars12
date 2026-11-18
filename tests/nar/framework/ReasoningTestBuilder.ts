@@ -5,7 +5,7 @@
 
 import type { Truth as TruthType } from '@senars/nar/terms/impls/Truth.js';
 import type { Term } from '@senars/nar/terms/types.js';
-import type { TaskType } from '@senars/nar/types/index.js';
+import type { TaskType } from '@senars/agent';
 import type { NARConfig } from '../../../src';
 import { NAR } from '../../../src';
 

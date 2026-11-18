@@ -1,5 +1,5 @@
-import { type BudgetSlice, consumeCycles, createBudgetSlice } from '@senars/core/budget';
-import { ConceptGraph } from '@senars/nar/memory';
+import { type BudgetSlice, consumeCycles, createBudgetSlice } from '@senars/budget';
+import { ConceptGraph } from '@senars/memory';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { atom, Stamp, type Term, TermBuilder, Truth, type TruthType } from '../../nar/src';
 import { createDefaultRegistry } from '../../nar/src/cognitive';

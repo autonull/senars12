@@ -1,4 +1,4 @@
-import { escapeRegExp, splitWords } from '@senars/util';
+import { escapeRegExp, splitWords } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('escapeRegExp', () => {

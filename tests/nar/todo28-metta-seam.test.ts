@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createAgent } from '@senars/nar/agent';
-import { createMettaPort } from '@senars/metta/agent';
-import { NAR } from '@senars/nar';
-import { DEFAULT_CONFIG } from '@senars/nar/types';
+import { createAgent } from '@senars/agent';
+import { createMettaPort } from '@senars/metta-runtime';
+import { NAR } from '@senars/agent';
+import { DEFAULT_CONFIG } from '@senars/agent';
 
 /**
  * TODO28 Bench — the MeTTa seam is a seam.

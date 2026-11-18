@@ -1,7 +1,7 @@
 /**
  * Test fixtures - Shared test utilities
  */
-import { DEFAULT_CONFIG, NAR } from '@senars/nar';
+import { DEFAULT_CONFIG, NAR } from '@senars/agent';
 
 export const E2E_CONFIG = {
   maxConcepts: 100,

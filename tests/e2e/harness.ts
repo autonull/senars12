@@ -1,12 +1,12 @@
-import type { NARConfig } from '@senars/nar/facade/config.js';
-import { Truth } from '@senars/nar/index.js';
-import { NAR } from '@senars/nar/nar.js';
-import type { StrategyRegistry } from '@senars/nar/strategies/registration.js';
-import type { Task } from '@senars/nar/types/core.js';
+import type { NARConfig } from '@senars/agent';
+import { Truth } from '@senars/agent';
+import { NAR } from '@senars/agent';
+import type { StrategyRegistry } from '@senars/agent';
+import type { Task } from '@senars/agent';
 import type { DecideResult } from '@senars/nar/lm/system-one/decide.js';
 import { createSystemOneBudget, type JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
-import { NarEventBus } from '@senars/nar/types/events.js';
-import { type Clock, fixedClock, SeededRNG, sequentialIdSource, systemClock } from '@senars/util';
+import { NarEventBus } from '@senars/agent';
+import { type Clock, fixedClock, SeededRNG, sequentialIdSource, systemClock } from '@senars/utils';
 import { e2eNARConfig } from './fixtures.js';
 
 export interface ScenarioSpec {

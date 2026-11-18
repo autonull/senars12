@@ -1,6 +1,6 @@
-import { consumeCycles, createBudgetSlice } from '@senars/core/budget';
-import { setDomainEventSink } from '@senars/core/event-sink';
-import { BudgetExhaustedEventSchema } from '@senars/core/schemas';
+import { consumeCycles, createBudgetSlice } from '@senars/budget';
+import { setDomainEventSink } from '@senars/agent';
+import { BudgetExhaustedEventSchema } from '@senars/agent';
 import { afterEach, describe, expect, it } from 'vitest';
 
 /**

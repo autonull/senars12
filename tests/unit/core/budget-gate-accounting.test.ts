@@ -4,7 +4,7 @@ import {
   BUDGET_TYPES,
   budgetLimit,
   budgetRemaining,
-} from '@senars/core/budget';
+} from '@senars/budget';
 import {
   BUDGET_SCOPE_IDS,
   BUDGET_SCOPES,

@@ -1,5 +1,5 @@
-import { registerAgentTools } from '@senars/core/motor';
-import { abortSession, createAgent, createSession } from '@senars/nar/agent';
+import { registerAgentTools } from '@senars/agent';
+import { abortSession, createAgent, createSession } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 type DispatchLogger = {

@@ -16,8 +16,8 @@ import {
   ValidationError,
   flatMap,
   map,
-} from '@senars/nar';
-import type { ErrorCode } from '@senars/util/errors';
+} from '@senars/agent';
+import type { ErrorCode } from '@senars/utils';
 
 describe('Budget', () => {
   describe.each`

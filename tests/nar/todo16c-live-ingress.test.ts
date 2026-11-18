@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { NAR } from '@senars/nar';
-import { createNAR } from '@senars/nar';
-import type { LMService } from '@senars/nar/lm';
-import { Truth } from '@senars/nar/terms';
+import { NAR } from '@senars/agent';
+import { createNAR } from '@senars/agent';
+import type { LMService } from '@senars/lm';
+import { Truth } from '@senars/terms';
 
 /**
  * Bench 15 — Live Ingress Calibration

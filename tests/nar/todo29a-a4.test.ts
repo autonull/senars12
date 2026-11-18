@@ -10,7 +10,7 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { Memory } from '@senars/nar/memory';
+import { Memory } from '@senars/memory';
 import { describe, expect, it } from 'vitest';
 import { Concept } from '../../nar/src/memory/concept.js';
 import { NullAttentionModel } from '../../nar/src/strategies/attention/NullAttentionModel.js';

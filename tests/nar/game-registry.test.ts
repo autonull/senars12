@@ -4,7 +4,7 @@
  * every registered spec creates a deterministic, interface-conformant game;
  * each game honors observe/legalActions/step semantics with seeded outcomes.
  */
-import type { Game } from '@senars/nar/game';
+import type { Game } from '@senars/focus';
 import {
   createArcadeRegistry,
   createArithmeticGame,
@@ -13,7 +13,7 @@ import {
   createRPSGame,
   GameRegistry,
   UnknownGameError,
-} from '@senars/nar/game';
+} from '@senars/focus';
 import { describe, expect, it } from 'vitest';
 
 const play = (game: Game, action: string): { reward: number; terminal: boolean } =>

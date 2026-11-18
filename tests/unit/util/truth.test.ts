@@ -9,7 +9,7 @@ import {
   serializeTruth,
   stripTruthSuffix,
   TermTruthSchema,
-} from '@senars/util';
+} from '@senars/utils';
 
 const BELIEF = { frequency: 0.8, confidence: 0.9 };
 const TERM = { f: 0.8, c: 0.9 };

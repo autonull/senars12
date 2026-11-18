@@ -2,11 +2,11 @@ import { readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Memory } from '@senars/nar/memory';
+import { Memory } from '@senars/memory';
 import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
-import { MemoryQuery } from '@senars/nar/query/memory-query.js';
-import { TermBuilder } from '@senars/nar/terms';
-import { fixedClock, systemClock } from '@senars/util';
+import { MemoryQuery } from '@senars/query';
+import { TermBuilder } from '@senars/terms';
+import { fixedClock, systemClock } from '@senars/utils';
 import { afterAll, describe, expect, it } from 'vitest';
 import { checkCycleBudget } from '../../scripts/lib/cycles.js';
 

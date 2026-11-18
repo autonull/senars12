@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createLogger } from '@senars/util';
+import { createLogger } from '@senars/utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { BaseConnection } from '../../io/src/connections/base.js';
 import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../../io/src/types.js';

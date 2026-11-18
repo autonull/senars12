@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { selectProbes } from '@senars/nar/dialogue';
-import type { CurriculumSource } from '@senars/nar/dialogue';
-import type { Episode } from '@senars/util';
+import { selectProbes } from '@senars/dialogue';
+import type { CurriculumSource } from '@senars/dialogue';
+import type { Episode } from '@senars/utils';
 
 /**
  * TODO25 Bench 79 — Phase C falsifier: curriculum probe selection. Gate (N3):

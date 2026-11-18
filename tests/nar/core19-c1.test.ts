@@ -1,7 +1,7 @@
-import { Agent, isDurableEvent, recalledEventTypes, LogStoreEventLog } from '@senars/core';
-import { createLogStoreEventLog } from '@senars/core/eventlog';
-import { mintCognitiveEvent } from '@senars/core/schemas';
-import { NAREngine } from '@senars/nar/engine/NAREngine';
+import { Agent, isDurableEvent, recalledEventTypes, LogStoreEventLog } from '@senars/agent';
+import { createLogStoreEventLog } from '@senars/agent';
+import { mintCognitiveEvent } from '@senars/agent';
+import { NAREngine } from '@senars/agent';
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';

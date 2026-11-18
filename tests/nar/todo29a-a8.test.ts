@@ -10,7 +10,7 @@
  * nothing" from "found nothing wrong".
  */
 import { describe, expect, it } from 'vitest';
-import { Truth } from '@senars/nar/terms/index.js';
+import { Truth } from '@senars/terms';
 import { atom } from '@senars/nar/terms/impls/factory.js';
 import { Memory } from '@senars/nar/memory/memory.js';
 import { DEFAULT_MEMORY_CONFIG } from '@senars/nar/memory/config.js';
@@ -19,9 +19,9 @@ import {
   evictionOrder,
   evictUnderPressure,
 } from '@senars/nar/memory/pressure/index.js';
-import { RESOURCE_CONTRACTS, RESOURCE_IDS } from '@senars/nar/resources/index.js';
-import { termParser } from '@senars/nar/terms/index.js';
-import { NEUTRAL_BUDGET } from '@senars/nar/types/index.js';
+import { RESOURCE_CONTRACTS, RESOURCE_IDS } from '@senars/agent';
+import { termParser } from '@senars/terms';
+import { NEUTRAL_BUDGET } from '@senars/agent';
 
 const term = (name: string) => atom(name);
 

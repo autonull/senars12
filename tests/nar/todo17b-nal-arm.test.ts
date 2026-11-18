@@ -4,15 +4,15 @@
  * (Bench 15 semantics) and must fire ZERO vetoes when no rules exist —
  * an unseeded veto that reduces return is a regression, not a safety net.
  */
-import { GameFocus } from '@senars/nar/focus';
+import { GameFocus } from '@senars/focus';
 import { induceEpisodeSchemas, type EpisodeTick } from '@senars/nar/focus/episode-schemas';
-import { createBanditGame, createGridWorldGame, type Game } from '@senars/nar/game';
-import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
-import { Negotiator } from '@senars/nar/reflex';
+import { createBanditGame, createGridWorldGame, type Game } from '@senars/focus';
+import type { ActionProposal, LearningEvent, Reflex } from '@senars/reflex';
+import { Negotiator } from '@senars/reflex';
 import { describe, expect, it } from 'vitest';
-import { clamp01 } from '@senars/util';
+import { clamp01 } from '@senars/utils';
 import { pinDeterministicRNG, restoreRNG } from '../helpers/rng.js';
-import { createGateRegistry } from '@senars/nar/kernel';
+import { createGateRegistry } from '@senars/kernel';
 
 /** Scripted reflex that always proposes one action at high confidence. */
 class FixedActionReflex implements Reflex {

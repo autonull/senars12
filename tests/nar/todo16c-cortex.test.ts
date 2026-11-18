@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { NAR } from '@senars/nar';
-import { createNAR } from '@senars/nar';
-import type { LMService } from '@senars/nar/lm';
+import { NAR } from '@senars/agent';
+import { createNAR } from '@senars/agent';
+import type { LMService } from '@senars/lm';
 import { createLMServiceCortex } from '@senars/nar/lm/system-one/cortex-adapter';
 import type {
   CognitiveContext,

@@ -3,7 +3,7 @@ import {
   DETECTED_INTENTS,
   TASK_BAG_KINDS,
   TASK_TYPES,
-} from '@senars/core/schemas';
+} from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 import {
   asRubricId,

@@ -1,5 +1,5 @@
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
-import { bandOrdinal } from '@senars/util';
+import type { ReasoningBudget } from '@senars/agent';
+import { bandOrdinal } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 import { ActionGateTransducer } from '../../nar/src/lm/system-one/action-transducer.js';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';

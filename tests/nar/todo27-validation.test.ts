@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { CognitiveRegistry } from '@senars/nar/cognitive';
-import { CognitiveController } from '@senars/nar/cognitive';
+import { CognitiveRegistry } from '@senars/agent';
+import { CognitiveController } from '@senars/agent';
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
   mergeParameters,
   validateParameters,
-} from '@senars/nar/config/cognitive-parameters';
-import { Memory } from '@senars/nar/memory';
-import { MetricsCollector } from '@senars/nar/metrics';
-import { RuleProcessor } from '@senars/nar/rules';
-import { ConfigurationError } from '@senars/nar/types';
+} from '@senars/reflex';
+import { Memory } from '@senars/memory';
+import { MetricsCollector } from '@senars/metrics';
+import { RuleProcessor } from '@senars/rules';
+import { ConfigurationError } from '@senars/agent';
 import { RuleGraph } from '@senars/nar/strategies/lm-graph/RuleGraph.js';
 
 /**

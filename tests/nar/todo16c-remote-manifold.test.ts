@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import type { ReasoningBudget } from '@senars/agent';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createEmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import {

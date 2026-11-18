@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { clamp01, mulberry32 } from '@senars/util';
+import { clamp01, mulberry32 } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 import {
   assertLockMatches,

@@ -13,7 +13,7 @@ import {
   MAX_ASK_RUNS,
   REASONING_HTTP_ENV,
   type ReasoningHttpEngine,
-} from '@senars/nar/metrics';
+} from '@senars/metrics';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const makeReq = (method: string, url: string, body?: unknown): IncomingMessage =>

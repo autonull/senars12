@@ -1,4 +1,4 @@
-import { PolicyEngine } from '@senars/core';
+import { PolicyEngine } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 const policy = (sandboxDir?: string) =>

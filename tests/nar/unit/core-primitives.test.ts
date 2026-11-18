@@ -8,7 +8,7 @@ import {
   removeFromSet,
   selectByPriority,
   shuffleInPlace,
-} from '@senars/util';
+} from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 import { schedulerReward } from '../../../nar/src/focus/scheduler-reward.js';
 import { TermBuilder, TermMap } from '../../../nar/src/terms';

@@ -1,5 +1,5 @@
-import { createMockLMService } from '@senars/nar';
-import { createConfiguredLMRules } from '@senars/nar/lm';
+import { createMockLMService } from '@senars/agent';
+import { createConfiguredLMRules } from '@senars/lm';
 import { describe, expect, it } from 'vitest';
 import { appConfigSchema, lmRuleSchema } from '../../src/config/schema.js';
 

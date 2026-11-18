@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { Memory } from '@senars/nar/memory';
-import { PRESSURE } from '@senars/nar/constants';
-import { atom, TermBuilder } from '@senars/nar/terms';
+import { Memory } from '@senars/memory';
+import { PRESSURE } from '@senars/agent';
+import { atom, TermBuilder } from '@senars/terms';
 import { evictUnderPressure } from '@senars/nar/memory/pressure';
 
 /**

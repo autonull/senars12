@@ -1,4 +1,4 @@
-import { deepEqual, deepFreeze, thaw } from '@senars/util';
+import { deepEqual, deepFreeze, thaw } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('thaw', () => {

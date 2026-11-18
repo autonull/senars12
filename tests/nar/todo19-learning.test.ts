@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { mulberry32 } from '@senars/util';
+import { mulberry32 } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 import { induceEpisodeSchemas } from '../../nar/src/focus/episode-schemas.js';
 import { SchemaStore } from '../../nar/src/focus/schema-store.js';

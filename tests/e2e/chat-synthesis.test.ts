@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { IncomingFromServer } from '@senars/core';
+import type { IncomingFromServer } from '@senars/agent';
 import { createAgent } from '@senars/agent';
 import { createMockLMService } from '@senars/lm';
 import { startAgentUI } from '@senars/ui/server';

@@ -9,7 +9,7 @@ import {
   ToolError,
   TransportError,
   ValidationError,
-} from '@senars/util/errors';
+} from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('SenarsError base', () => {

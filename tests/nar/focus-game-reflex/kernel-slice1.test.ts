@@ -1,8 +1,8 @@
-import { createFocus, createGameFocus, Focus, FocusBag, GameFocus } from '@senars/nar/focus';
-import { createGridWorldGame, GridWorldGame } from '@senars/nar/game';
-import { Negotiator, TabularQReflex } from '@senars/nar/reflex';
+import { createFocus, createGameFocus, Focus, FocusBag, GameFocus } from '@senars/focus';
+import { createGridWorldGame, GridWorldGame } from '@senars/focus';
+import { Negotiator, TabularQReflex } from '@senars/reflex';
 import { describe, expect, it } from 'vitest';
-import { createGateRegistry } from '@senars/nar/kernel';
+import { createGateRegistry } from '@senars/kernel';
 
 describe('Focus-Game-Reflex Kernel - Slice 1', () => {
   describe('Focus', () => {

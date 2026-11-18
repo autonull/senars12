@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNAR } from '@senars/nar';
+import { createNAR } from '@senars/agent';
 import { Truth } from '@senars/nar/terms/impls/Truth.js';
 
 describe('M5: Reward → Policy Learning', () => {

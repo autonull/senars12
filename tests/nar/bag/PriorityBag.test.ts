@@ -1,4 +1,4 @@
-import { PriorityBag } from '@senars/nar/bag';
+import { PriorityBag } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 import { createLCG } from '../../helpers/rng.js';
 

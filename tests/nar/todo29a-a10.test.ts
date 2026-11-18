@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import type { CognitiveEvent, RuleDeclaration, RuleTable } from '@senars/core/schemas';
+import type { CognitiveEvent, RuleDeclaration, RuleTable } from '@senars/agent';
 import {
   BUILTIN_RULE_ARTIFACT_VERSION,
   PROPOSAL_SCHEMA_VERSION,
   RULE_TABLE_SCHEMA_VERSION,
   type RuleProposal,
-} from '@senars/core/schemas';
-import { createGateRegistry } from '@senars/nar/kernel';
+} from '@senars/agent';
+import { createGateRegistry } from '@senars/kernel';
 import { LMProposalProducer } from '@senars/nar/proposal/lm-rule-producer';
 import {
   BUILTIN_DECLARATIONS,
@@ -18,10 +18,10 @@ import {
   RuleTableError,
   RuleTableStore,
   tableArtifact,
-} from '@senars/nar/rules';
+} from '@senars/rules';
 import { RuleIndex } from '@senars/nar/rules/impls/RuleIndex';
-import { StreamReasoner } from '@senars/nar/stream';
-import { TermBuilder, Truth } from '@senars/nar/terms';
+import { StreamReasoner } from '@senars/agent';
+import { TermBuilder, Truth } from '@senars/terms';
 
 const DECLARATION: RuleDeclaration = {
   ruleId: 'test:learned',

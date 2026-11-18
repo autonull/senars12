@@ -10,7 +10,7 @@ import {
   SeededRNG,
   sequentialIdSource,
   type StatefulRandomSource,
-} from '@senars/util';
+} from '@senars/utils';
 import { createNAR, NAR } from '../../nar/src';
 import { e2eNARConfig } from '../e2e/fixtures.js';
 import { createSeNARSRegistry } from '../../nar/src/lm';

@@ -1,4 +1,4 @@
-import { SHA256_PINNED, sha256Hex, sha256HexParts, sha256Prefixed } from '@senars/util';
+import { SHA256_PINNED, sha256Hex, sha256HexParts, sha256Prefixed } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
 describe('sha256HexParts', () => {

@@ -1,4 +1,4 @@
-import { createMockLMService } from '@senars/nar';
+import { createMockLMService } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 import { createCompactionPromptBuilder } from '../../../nar/src/agent/compaction.js';
 

@@ -1,4 +1,4 @@
-import { AutonomyMode, type SelfImprovementProposal } from '@senars/core/schemas';
+import { AutonomyMode, type SelfImprovementProposal } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 import { SandboxValidator } from '../../nar/src/governance/pipeline.js';
 

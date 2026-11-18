@@ -1,4 +1,4 @@
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import type { ReasoningBudget } from '@senars/agent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
 import { createManifold } from '../../nar/src/lm/system-one/manifold.js';

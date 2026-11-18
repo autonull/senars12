@@ -7,7 +7,7 @@ import {
   evictTerm,
   termCacheSize,
 } from '../../nar/src/terms/impls/intern.js';
-import { assertDefined } from '@senars/util';
+import { assertDefined } from '@senars/utils';
 import { TermBuilder } from '../../nar/src/terms/index.js';
 
 /**

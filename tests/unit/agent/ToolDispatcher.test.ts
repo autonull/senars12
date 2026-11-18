@@ -1,4 +1,4 @@
-import { dispatchToolCalls } from '@senars/nar/agent';
+import { dispatchToolCalls } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 
 describe('ToolDispatcher', () => {

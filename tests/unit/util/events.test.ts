@@ -1,4 +1,4 @@
-import { EventBus } from '@senars/util/events';
+import { EventBus } from '@senars/utils';
 import { describe, expect, it, vi } from 'vitest';
 
 interface TestEvents extends Record<string, unknown> {

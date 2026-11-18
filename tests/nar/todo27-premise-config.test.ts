@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CognitiveRegistry, createDefaultRegistry } from '@senars/nar/cognitive';
-import { ConfigurationError } from '@senars/nar/types';
+import { CognitiveRegistry, createDefaultRegistry } from '@senars/agent';
+import { ConfigurationError } from '@senars/agent';
 import { PREMISE_PRIMITIVES } from '@senars/nar/strategies/premise';
-import { validateParameters } from '@senars/nar/config/cognitive-parameters';
-import { Memory } from '@senars/nar/memory';
+import { validateParameters } from '@senars/reflex';
+import { Memory } from '@senars/memory';
 import { atom, Truth } from '../../nar/src/terms/index.js';
 import { createBeliefTask, createTaskWeight } from '../../nar/src/types/index.js';
 import type { Strategy } from '../../nar/src/strategies/types.js';

@@ -1,6 +1,6 @@
-import type { JudgmentResolvedEvent } from '@senars/core/schemas';
-import { validateCognitiveEvent } from '@senars/core/schemas';
-import { fnv1aCombine } from '@senars/util';
+import type { JudgmentResolvedEvent } from '@senars/agent';
+import { validateCognitiveEvent } from '@senars/agent';
+import { fnv1aCombine } from '@senars/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
 import { createMockLMService } from '../../nar/src/lm/lm-service.js';

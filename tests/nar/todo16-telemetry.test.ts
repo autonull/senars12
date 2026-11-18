@@ -1,5 +1,5 @@
-import type { ReasoningBudget } from '@senars/core/schemas';
-import { validateCognitiveEvent } from '@senars/core/schemas';
+import type { ReasoningBudget } from '@senars/agent';
+import { validateCognitiveEvent } from '@senars/agent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
 import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
