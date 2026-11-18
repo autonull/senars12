@@ -384,5 +384,4 @@ export function isUnifiable(a: Term, b: Term): boolean {
 // Re-export shared types
 export type { Term, VariableTerm, ConstantTerm, CompoundTerm } from './term.js';
 export { TermOp, TermFactory } from './term.js';
-export { canonicalize, canonicalEquals, canonicalHash, createCanonicalIndex } from './canonical';
 export { isCompound, isAtomic } from './term.js';
