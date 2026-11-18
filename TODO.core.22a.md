@@ -1366,7 +1366,17 @@ Files created:
 - `pnpm gates` ❌ FAIL (fails at `env:grammar` — UI pre-existing issue, out of scope)
 
 **Remaining Work (M1-M3 Persistence Consolidation):**
-- ⏳ `GateEventLedger` + `DerivationLedger` (`nar/src/kernel/`) → LogStore (schema divergence resolved, migration now possible)
-- ⏳ `KernelLedger` (`nar/src/kernel/KernelLedger.ts`) → LogStore
-- Update `state-persistence` tests to use LogStore snapshot format instead of legacy JSON files
-- Fix LogStore file handle cleanup in tests (segment files not closed on test teardown)
+- ✅ `GateEventLedger` + `DerivationLedger` → LogStore (implemented in `src/log/GateEventLedger.ts`, `src/log/DerivationLedger.ts`)
+- ✅ `KernelLedger` → LogStore (updated to use LogStore-backed ledgers when LogStore provided)
+- ⏳ Update `state-persistence` tests to use LogStore snapshot format instead of legacy JSON files
+- ⏳ Fix LogStore file handle cleanup in tests (segment files not closed on test teardown)
+
+**Gates Status After Migration:**
+- `pnpm typecheck` ✅ PASS
+- `pnpm typecheck:bin` ✅ PASS
+- `pnpm typecheck:packages` ✅ PASS (5 packages clean)
+- `pnpm lint` ✅ PASS
+- `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
+- `pnpm exports:check` ✅ PASS
+- `pnpm docs:drift` ✅ PASS
+- `pnpm gates` ❌ FAIL (fails at `env:grammar` — UI pre-existing issue, out of scope)

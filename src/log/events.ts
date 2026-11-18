@@ -152,6 +152,9 @@ export const isSnapshotEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent,
 export const isDerivationMadeEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'derivation.made' }> =>
   e.type === 'derivation.made';
 
+export const isDerivationRecordEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: 'derivation.record' }> =>
+  e.type === 'derivation.record';
+
 /**
  * EventLog interface for the unified log store.
  */

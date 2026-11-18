@@ -12,6 +12,5 @@ export * from './mine.js';
 export * from './pins.js';
 export * from './EventLogAdapter.js';
 export * from './StatePersister.js';
-// GateEventLedger and DerivationLedger are in pending/ - blocked by schema divergence
-// export * from './pending/GateEventLedger.js';
-// export * from './pending/DerivationLedger.js';
+export * from './GateEventLedger.js';
+export * from './DerivationLedger.js';

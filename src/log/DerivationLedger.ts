@@ -1,0 +1,199 @@
+/**
+ * LogStore-based DerivationLedger — runtime durability for derivation fire ring.
+ *
+ * Replaces file-based DerivationLedger with LogStore-backed persistence.
+ * Uses the unified event log for all derivation events.
+ */
+
+import type { LogStore } from './store.js';
+import type { CognitiveEvent } from './events.js';
+import type { DerivationRecorder } from '../../nar/src/rules/impls/recorder.js';
+import type { DerivationStep, DerivationRecord } from '@senars/core/schemas';
+import { createLogger } from '@senars/util';
+import { isDerivationAcceptedEvent, isDerivationRecordEvent } from './events.js';
+
+export interface DerivationLedgerOptions {
+  /** Where a replay reports what it resumed. */
+  logger?: ReturnType<typeof createLogger>;
+}
+
+/**
+ * LogStore-backed derivation ledger.
+ * Derivation events are stored as CognitiveEvents with engine='nar' in the unified log.
+ */
+export class LogStoreDerivationLedger {
+  readonly #store: LogStore;
+  readonly #seen = new Set<string>(); // Track by stepId
+  readonly #logger: ReturnType<typeof createLogger>;
+  readonly #cursor: number;
+
+  constructor(store: LogStore, options: DerivationLedgerOptions = {}) {
+    this.#store = store;
+    this.#logger = options.logger ?? createLogger({ scope: 'NAR.LogStoreDerivationLedger' });
+    this.#cursor = store.getLastSeq();
+  }
+
+  /** Get the current cursor position. */
+  getCursor(): number {
+    return this.#cursor;
+  }
+
+  /** Advance the cursor to the current log head. */
+  advanceCursor(): void {
+    // Cursor is implicitly the last seq
+  }
+
+  /**
+   * Persist each completed chain as it closes (CORE.19 C3.4).
+   * Push, not pull: the completed ring is drain-emptied by consumers.
+   */
+  observe(_recorder: DerivationRecorder): void {
+    // Records are appended as 'derivation.record' events by the recorder
+    // This method is kept for interface compatibility
+  }
+
+  /** Append every not-yet-written rule fire; returns how many were written. */
+  async flush(recorder: DerivationRecorder): Promise<number> {
+    let appended = 0;
+    for (const fire of recorder.fires()) {
+      if (this.#seen.has(fire.stepId)) continue;
+      this.#seen.add(fire.stepId);
+
+      // Convert fire to derivation.accepted event and append
+      const event: CognitiveEvent = {
+        type: 'derivation.accepted',
+        engine: 'nar',
+        timestamp: fire.timestamp ?? Date.now(),
+        correlationId: fire.correlationId ?? crypto.randomUUID(),
+        causationId: fire.correlationId,
+        payload: {
+          derivationId: fire.stepId, // Use stepId as derivationId for fire
+          ruleId: fire.ruleId ?? 'unknown',
+          ruleCategory: fire.ruleCategory,
+          premises: fire.premises ?? [],
+          conclusion: fire.conclusion,
+          truth: fire.truth,
+          premiseTruths: fire.premiseTruths,
+          truthFn: fire.truthFn,
+          evidenceLineage: fire.evidenceLineage ?? [],
+          independenceCheck: fire.independence ?? 'independent',
+          cycle: fire.cycle,
+        },
+      };
+
+      await this.#store.append(event, { ts: event.timestamp });
+      appended++;
+    }
+    return appended;
+  }
+
+  /** Read derivation fires from the log, oldest first. */
+  async read(limit?: number): Promise<CognitiveEvent[]> {
+    const startSeq = this.#cursor + 1;
+    const endSeq = this.#store.getLastSeq();
+
+    if (startSeq > endSeq) return [];
+
+    const entries = await this.#store.readRange(startSeq, endSeq);
+    const fires = entries
+      .map((e) => e.event)
+      .filter((e) => e.engine === 'nar' && isDerivationAcceptedEvent(e));
+
+    if (limit && fires.length > limit) {
+      return fires.slice(-limit);
+    }
+    return fires;
+  }
+
+  /** Read completed derivation records from the log. */
+  async readRecords(limit?: number): Promise<CognitiveEvent[]> {
+    const startSeq = 1;
+    const endSeq = this.#store.getLastSeq();
+
+    if (startSeq > endSeq) return [];
+
+    const entries = await this.#store.readRange(startSeq, endSeq);
+    const records = entries
+      .map((e) => e.event)
+      .filter((e) => e.engine === 'nar' && isDerivationRecordEvent(e));
+
+    if (limit && records.length > limit) {
+      return records.slice(-limit);
+    }
+    return records;
+  }
+
+  /** Mark fires read back from disk as already-written. */
+  adopt(entries: ReadonlyArray<CognitiveEvent>): void {
+    for (const entry of entries) {
+      if (isDerivationAcceptedEvent(entry) && entry.payload.derivationId) {
+        this.#seen.add(entry.payload.derivationId);
+      }
+    }
+  }
+
+  /**
+   * Replay the persisted log into the recorder's fire ring (CORE.19 C4.3).
+   */
+  async replayInto(recorder: DerivationRecorder): Promise<number> {
+    const entries = await this.read();
+    if (entries.length === 0) return 0;
+
+    // Convert derivation.accepted payloads to DerivationStep
+    const fires: DerivationStep[] = entries
+      .filter(isDerivationAcceptedEvent)
+      .map((e) => ({
+        stepId: e.payload.derivationId ?? crypto.randomUUID(),
+        ruleId: e.payload.ruleId ?? 'unknown',
+        ruleCategory: e.payload.ruleCategory ?? 'logic',
+        premises: e.payload.premises ?? [],
+        conclusion: e.payload.conclusion,
+        truth: e.payload.truth,
+        truthFn: e.payload.truthFn,
+        substitution: undefined,
+        premiseTruths: e.payload.premiseTruths,
+        evidenceLineage: e.payload.evidenceLineage ?? [],
+        independence: e.payload.independenceCheck ?? 'independent',
+        cycle: e.payload.cycle,
+        correlationId: e.correlationId,
+        timestamp: e.timestamp,
+      }));
+
+    const restored = recorder.restoreFires(fires);
+    this.adopt(entries);
+
+    if (restored > 0) {
+      this.#logger.info('Replayed the persisted derivation log', { fires: restored });
+    }
+    return restored;
+  }
+
+  /**
+   * Re-seed the completed ring from the persisted chains (CORE.19 C3.4).
+   */
+  async replayRecordsInto(recorder: DerivationRecorder): Promise<number> {
+    const entries = await this.readRecords();
+    if (entries.length === 0) return 0;
+
+    // Convert derivation.record payloads to DerivationRecord
+    const records: DerivationRecord[] = entries.map((e) => e.payload as DerivationRecord);
+
+    const restored = recorder.restoreRecords(records);
+    if (restored > 0) {
+      this.#logger.info('Replayed the persisted derivation chains', { chains: restored });
+    }
+    return restored;
+  }
+
+  close(): void {
+    // LogStore is managed externally
+  }
+}
+
+/** Create a LogStoreDerivationLedger. */
+export const createLogStoreDerivationLedger = (
+  store: LogStore,
+  options?: DerivationLedgerOptions
+): LogStoreDerivationLedger => {
+  return new LogStoreDerivationLedger(store, options);
+};

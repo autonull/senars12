@@ -383,7 +383,7 @@ export class NAR extends BaseComponent {
         await this.maybeConsolidateLearning(cycleCount, config);
         if (++this.#cyclesSinceGateFlush >= GATE_LOG_FLUSH_CYCLES) {
           this.#cyclesSinceGateFlush = 0;
-          this.flushLogs();
+          await this.flushLogs();
         }
         this.#rewind.maybeCapture(cycleCount);
       },
@@ -449,7 +449,7 @@ export class NAR extends BaseComponent {
     this.self?.stop();
     this.stopLM();
     this.#autonomy?.stop();
-    this.flushLogs();
+    await this.flushLogs();
     if (this.persister) {
       await this.persister.save();
     }
@@ -476,7 +476,7 @@ export class NAR extends BaseComponent {
    * {@link GATE_LOG_FLUSH_CYCLES} cycles and on shutdown; returns how many
    * entries were newly persisted, so a caller can assert it.
    */
-  flushLogs(): number {
+  async flushLogs(): Promise<number> {
     return this.#ledgers?.flush(this.gates, this.processor.getRecorder()) ?? 0;
   }
 
