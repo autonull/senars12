@@ -11,7 +11,7 @@ import { NAR } from '../nar.js';
 import { Truth, termParser } from '../terms/index.js';
 import type { Task } from '../types/index.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
-import { type CreateAgentConfig, createAgent } from './index.js';
+import { type CreateAgentConfig, createAgent } from './create-agent.js';
 
 const log = createLogger({ scope: 'CognitiveAgent' });
 

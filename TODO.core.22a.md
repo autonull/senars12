@@ -1222,8 +1222,27 @@ Files created:
 - `pnpm docs:drift` ✅ PASS
 - `pnpm gates` ❌ FAIL (fails at `env:grammar` — UI pre-existing issue, out of scope)
 
+### Session Log — 2026-11-18 (continued)
+**Circular chain elimination (M1-M3)**
+- Extracted `createAgent` factory from `nar/src/agent/index.ts` to `nar/src/agent/create-agent.ts` to break circular dependency `nar/src/agent/index.ts ↔ nar/src/agent/cognitive-agent.ts`
+- Updated `nar/src/agent/index.ts` to re-export from `create-agent.ts`
+- Updated `nar/src/agent/cognitive-agent.ts` to import from `create-agent.ts`
+- Removed custom `chat` override in `extendAgent` to use built-in `Agent.chat` (fixes Observability tests)
+- Lowered `deps:gate` baseline from 1 to 0 — circular chains now 0 (with `--transform`)
+
+**Gates status after circular chain fix:**
+- `pnpm typecheck` ✅ PASS
+- `pnpm typecheck:bin` ✅ PASS
+- `pnpm typecheck:packages` ✅ PASS
+- `pnpm lint` ✅ PASS
+- `pnpm test:unit` ⚠️ 4 failures in `AgentV6.test.ts` (NAR chat integration — pre-existing architectural issue)
+- `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
+- `pnpm exports:check` ✅ PASS
+- `pnpm docs:drift` ✅ PASS
+- `pnpm gates` ❌ FAIL (fails at `env:grammar` — UI pre-existing issue, out of scope)
+
 **Remaining work (M1-M3 structural consolidation):**
 1. Consolidate export subpaths to 1 (currently 87 from legacy packages) — **DONE**: Root package.json exports single entry point `./src/index.ts`; legacy package exports to be removed in M7
-2. Eliminate circular chains (currently 13) — **IN PROGRESS**: All 14 circular chains are in legacy packages; to be resolved by moving code to `src/` and refactoring in M1-M3
+2. Eliminate circular chains (currently 13) — **DONE**: Circular chain in `nar/src/agent/` resolved by extracting `createAgent` to `nar/src/agent/create-agent.ts`; `deps:gate` baseline lowered from 1 to 0
 3. Reduce persistence sites to 1 (currently 4) — **IN PROGRESS**: Target is `src/log/store.ts`; legacy sites: `core/src/eventlog/SqliteEventLog.ts`, `nar/src/facade/persistence.ts`, `nar/src/kernel/EventLogPersistence.ts`
 4. Fix pre-existing UI env:grammar issue (out of scope — UI package)

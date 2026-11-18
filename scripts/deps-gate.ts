@@ -29,8 +29,9 @@ import { circularChains } from './lib/dpdm.js';
  *     — `Agent` is exported only from the core root. Needs a deep subpath export (minor
  *     semver) before the barrel import can be narrowed.
  *
- * `--transform` (TODO7 D3) removed edge 1; contract/impl splits removed 2 and 3/4. */
-const BASELINE = 1;
+ * `--transform` (TODO7 D3) removed edge 1; contract/impl splits removed 2 and 3/4.
+ * Circular chain in `nar/src/agent/` resolved by extracting `createAgent` to separate file. */
+const BASELINE = 0;
 
 try {
   const chains = circularChains();
