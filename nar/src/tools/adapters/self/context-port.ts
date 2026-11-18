@@ -9,10 +9,7 @@ import type { RuleProcessor } from '../../../rules/impls/processor.js';
 import type { ToolManager } from '../../impls/tool-registry.js';
 import type { ApprovalService } from '@senars/core';
 
-export interface SelfToolsNAR {
-  // Minimal NAR surface needed by self-tools
-  // Add methods as needed by the tools
-}
+export type SelfToolsNAR = {};
 
 export interface SelfToolsDeps {
   workspaceRoot?: string;
