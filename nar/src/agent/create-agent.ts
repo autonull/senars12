@@ -44,7 +44,8 @@ import type {
 import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas/truth';
 import { Truth } from '../terms';
 import { WebSocket } from 'ws';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -437,7 +438,7 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     await originalStop();
     await logStore.close();
     if (isTempDir) {
-      rmSync(logDir, { recursive: true, force: true }).catch(() => {});
+      await rm(logDir, { recursive: true, force: true }).catch(() => {});
     }
   };
 
