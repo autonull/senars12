@@ -105,7 +105,7 @@
 - ✅ Fix GateEventLedger deduplication bug (2026-11-18)
 - ✅ Migrate `src/bin/`, `src/bin/commands/`, `src/bin/lib/` imports from `@senars/*` to `src/` path aliases (blocks `surface-no-legacy`)
 - ✅ Migrate `src/cli/` imports from `@senars/*` to `src/` path aliases (2026-11-18)
-- 🔄 Migrate `src/surface/` imports from `@senars/*` to `src/` path aliases
+- ✅ Migrate `src/surface/` imports — already using `@senars/worlds`, `@senars/admit`, `@senars/mining` path aliases mapped to `src/` (no legacy `@senars/core|nar|io|metta|util` imports)
 - 🔄 Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (20 failures remaining)
 - Consolidate export subpaths from 96 to 1 (collapse core, nar, io, metta, util, ui packages into root)
 - Reduce persistence sites to 1
@@ -1664,7 +1664,7 @@ Files created:
 
 **Remaining Work (M1-M3 Consolidation):**
 - ✅ Migrate `src/cli/` imports from `@senars/*` to `src/` path aliases (2026-11-18)
-- 🔄 Migrate `src/surface/` imports from `@senars/*` to `src/` path aliases
+- ✅ Migrate `src/surface/` imports — already using `@senars/worlds`, `@senars/admit`, `@senars/mining` path aliases mapped to `src/` (no legacy `@senars/core|nar|io|metta|util` imports)
 - 🔄 Migrate remaining tests from `@senars/nar`, `@senars/core`, `@senars/io`, `@senars/metta`, `@senars/util` to `src/` path aliases (20+ failures remaining)
 - Consolidate export subpaths from 96 to 1 (collapse core, nar, io, metta, util, ui packages into root)
 - Reduce persistence sites to 1
@@ -1691,3 +1691,12 @@ Files created:
 - `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
 - `pnpm exports:check` ✅ PASS
 - `pnpm docs:drift` ✅ PASS (docs regenerated)
+
+---
+### Session Log — 2026-11-18 (src/surface/ Verification)
+**Verified src/surface/ imports** — already using correct path aliases:
+- `@senars/worlds/*` → `./src/worlds/*`
+- `@senars/admit/*` → `./src/admit/*`
+- `@senars/mining/*` → `./src/mining/*`
+
+No legacy `@senars/core|nar|io|metta|util` imports found. `surface-no-legacy` passes.
