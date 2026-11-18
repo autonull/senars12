@@ -1,6 +1,6 @@
 import type { LMGenerateOptions, LMService, LMTask } from '@senars/util';
 import type { ZodSchema } from 'zod';
-import type { ProviderSpend } from './lm-service.js';
+import type { ProviderSpend } from './service/spend.js';
 import type { getCircuitBreaker } from './providers.js';
 
 /**

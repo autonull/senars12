@@ -8,17 +8,24 @@
 
 import { z } from 'zod';
 import type { LogStore } from './store.js';
-import type { LogEntry, CognitiveEvent as LogCognitiveEvent, UUID, TimestampMs } from './events.js';
+import type {
+  LogEntry,
+  CognitiveEvent,
+  UUID,
+  TimestampMs,
+  EventLog,
+  EventLogConfig,
+  EventLogQuery,
+} from './events.js';
 import { createLogEntry, hashEntry } from './events.js';
-import type { EventLog, EventLogConfig, EventLogQuery, CognitiveEvent as CoreCognitiveEvent } from '@senars/core/eventlog';
-import { CognitiveEventSchema } from '@senars/core/schemas/cognitive-events';
+import { CognitiveEventSchema } from '../generated/schemas.js';
 import { PushQueue } from '@senars/util/events';
 
 interface Subscription {
-  filter?: (event: CoreCognitiveEvent) => boolean;
+  filter?: (event: CognitiveEvent) => boolean;
   fromId?: string;
   types?: ReadonlySet<string>;
-  queue: PushQueue<CoreCognitiveEvent>;
+  queue: PushQueue<CognitiveEvent>;
 }
 
 /**
@@ -38,23 +45,23 @@ export class LogStoreEventLog implements EventLog {
     return this.store.getEntryCount();
   }
 
-  get events(): ReadonlyArray<CoreCognitiveEvent> {
+  get events(): ReadonlyArray<CognitiveEvent> {
     // This is expensive - materializes all events. Used by InMemoryEventLog compatibility.
     // Note: synchronous version for compatibility; prefer async iteration in new code.
-    const entries: CoreCognitiveEvent[] = [];
+    const entries: CognitiveEvent[] = [];
     // We can't use await here, so this returns empty for now.
     // In practice, callers should use query() or getRange() instead.
     return entries;
   }
 
-  async append(event: Omit<CoreCognitiveEvent, 'id' | 'timestamp'>): Promise<CoreCognitiveEvent> {
+  async append(event: Omit<CognitiveEvent, 'id' | 'timestamp'>): Promise<CognitiveEvent> {
     if (this.closed) throw new Error('Event log is closed');
 
     const fullEvent = {
       ...event,
       id: crypto.randomUUID(),
       timestamp: Date.now(),
-    } as CoreCognitiveEvent;
+    } as CognitiveEvent;
 
     // Validate the event using core schema
     const validated = CognitiveEventSchema.parse(fullEvent);
@@ -69,18 +76,18 @@ export class LogStoreEventLog implements EventLog {
     return validated;
   }
 
-  private convertToLogEvent(event: CoreCognitiveEvent): LogCognitiveEvent {
-    // The new LogCognitiveEvent type is compatible since we added 'kernel' to ENGINE_ORIGINS
+  private convertToLogEvent(event: CognitiveEvent): CognitiveEvent {
+    // The CognitiveEvent type is compatible since we aligned ENGINE_ORIGINS
     // and the base fields match. Cast through unknown to satisfy TypeScript.
-    return event as unknown as LogCognitiveEvent;
+    return event as unknown as CognitiveEvent;
   }
 
   subscribe(options?: {
-    filter?: (event: CoreCognitiveEvent) => boolean;
+    filter?: (event: CognitiveEvent) => boolean;
     fromId?: string;
     types?: string[];
-  }): AsyncIterable<CoreCognitiveEvent> {
-    const queue = new PushQueue<CoreCognitiveEvent>();
+  }): AsyncIterable<CognitiveEvent> {
+    const queue = new PushQueue<CognitiveEvent>();
     const typesSet = options?.types?.length ? new Set(options.types) : undefined;
 
     const subscription: Subscription = {
@@ -120,19 +127,19 @@ export class LogStoreEventLog implements EventLog {
     }
   }
 
-  private convertFromLogEvent(event: LogCognitiveEvent): CoreCognitiveEvent {
-    // The LogCognitiveEvent has the same base structure as CoreCognitiveEvent
-    // since we aligned ENGINE_ORIGINS. Cast through unknown.
-    return event as unknown as CoreCognitiveEvent;
+  private convertFromLogEvent(event: CognitiveEvent): CognitiveEvent {
+    // The CognitiveEvent type is compatible since we aligned ENGINE_ORIGINS.
+    // Cast through unknown to satisfy TypeScript.
+    return event as unknown as CognitiveEvent;
   }
 
-  private matchesSubscription(subscription: Subscription, event: CoreCognitiveEvent): boolean {
+  private matchesSubscription(subscription: Subscription, event: CognitiveEvent): boolean {
     if (subscription.types && !subscription.types.has(event.type)) return false;
     if (subscription.filter && !subscription.filter(event)) return false;
     return true;
   }
 
-  notify(event: CoreCognitiveEvent): void {
+  notify(event: CognitiveEvent): void {
     for (const sub of this.subscribers) {
       if (sub.queue.closed) continue;
       if (sub.fromId && sub.fromId >= (event.id ?? '')) continue;
@@ -145,8 +152,8 @@ export class LogStoreEventLog implements EventLog {
     }
   }
 
-  async query(query: EventLogQuery): Promise<CoreCognitiveEvent[]> {
-    const results: CoreCognitiveEvent[] = [];
+  async query(query: EventLogQuery): Promise<CognitiveEvent[]> {
+    const results: CognitiveEvent[] = [];
     const typesSet = query.types?.length ? new Set(query.types) : undefined;
     const limit = query.limit ?? Number.MAX_SAFE_INTEGER;
     let count = 0;
@@ -169,8 +176,8 @@ export class LogStoreEventLog implements EventLog {
     return results.reverse(); // Return in chronological order
   }
 
-  async getRange(fromId: string, toId?: string): Promise<CoreCognitiveEvent[]> {
-    const results: CoreCognitiveEvent[] = [];
+  async getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]> {
+    const results: CognitiveEvent[] = [];
     let started = false;
 
     for (let seq = this.store.getFirstSeq(); seq <= this.store.getLastSeq(); seq++) {

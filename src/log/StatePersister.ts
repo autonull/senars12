@@ -14,10 +14,16 @@ import { encodeBoundary, decodeBoundary, type ConsistencyBoundary, BOUNDARY_FILE
 import type { Memory } from '../../nar/src/memory';
 import type { DriveManager } from '../../nar/src/drives';
 import type { QueryAPI } from '../../nar/src/query/api.js';
-import type { NARConfig } from '../../nar/src/facade/config.js';
 import { createLogger } from '@senars/util';
 import type { TaskType } from '../../nar/src/types';
 import { termParser } from '../../nar/src/terms';
+
+/** Minimal NAR config needed by StatePersister — avoids cycle with nar/src/facade/config. */
+interface PersisterNARConfig {
+  persistState: boolean;
+  statePath?: string;
+  rng?: unknown;
+}
 
 const STATE_FILENAMES = [
   'beliefs.json',
@@ -59,7 +65,7 @@ export interface RestoreSummary {
 }
 
 interface StatePersisterDeps {
-  config: Pick<NARConfig, 'persistState' | 'statePath' | 'rng'>;
+  config: PersisterNARConfig;
   memory: Memory;
   processor: {
     serializeModelRules(): unknown;

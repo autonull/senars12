@@ -8,9 +8,29 @@
 
 import type { LogStore } from './store.js';
 import type { CognitiveEvent } from './events.js';
-import type { GateRegistry, GateLogEntry } from '../../nar/src/kernel/GateRegistry.js';
-import { GATE_LOG_KEYS, type GateLogKey } from '../../nar/src/kernel/event-ring.js';
 import { createLogger } from '@senars/util';
+
+/** Gate log keys — must match nar/src/kernel/event-ring.ts */
+const GATE_LOG_KEYS = ['perception', 'action', 'autonomy', 'reward', 'budget'] as const;
+type GateLogKey = (typeof GATE_LOG_KEYS)[number];
+
+/** One persisted gate event and the ring it came from. */
+interface GateLogEntry {
+  gate: GateLogKey;
+  event: CognitiveEvent;
+}
+
+/** Minimal GateRegistry interface needed by GateEventLedger. */
+interface GateRegistry {
+  getAllEventLogs(): {
+    perception: ReadonlyArray<CognitiveEvent>;
+    action: ReadonlyArray<CognitiveEvent>;
+    autonomy: ReadonlyArray<CognitiveEvent>;
+    reward: ReadonlyArray<CognitiveEvent>;
+    budget: ReadonlyArray<CognitiveEvent>;
+  };
+  restoreEventLogs(entries: ReadonlyArray<GateLogEntry>): number;
+}
 
 export interface GateEventLedgerOptions {
   /** Where a replay reports what it resumed. */

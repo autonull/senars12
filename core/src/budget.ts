@@ -25,8 +25,9 @@ import {
 } from './budget-resources.js';
 import type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason } from './schemas/index.js';
 import { zeroConsumed } from './schemas/index.js';
+import type { BudgetEventMap } from './budget-events.js';
 
-export type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason };
+export type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason, BudgetEventMap };
 
 export { zeroConsumed };
 
@@ -63,37 +64,6 @@ export const freshBudget = <T extends ReasoningBudget>(budget: T, ceiling?: Part
 export interface AIKRBudget {
   cycles: number;
   depth?: number;
-}
-
-/** Every `budget:slice:*` payload, so a bus can be typed against this alone. */
-export interface BudgetEventMap {
-  'budget:slice:created': {
-    sliceId: string;
-    parentId?: string;
-    maxCycles: number;
-    maxDepth: number;
-    maxMemoryOps: number;
-    maxLMCalls: number;
-  };
-  'budget:slice:consumed': {
-    sliceId: string;
-    resource: keyof ConsumedBudget;
-    amount: number;
-    consumed: number;
-    total: number;
-    pressure: number;
-  };
-  'budget:slice:exhausted': {
-    sliceId: string;
-    reason: TerminationReason;
-    consumed: ConsumedBudget;
-    total: BudgetLimits;
-  };
-  'budget:slice:merged': {
-    parentId: string;
-    childId: string;
-    consumed: ConsumedBudget;
-  };
 }
 
 /**

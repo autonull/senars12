@@ -12,7 +12,8 @@ import type { FocusStepReport } from '../../focus/Focus.js';
 import type { FocusBag } from '../../focus/FocusBag.js';
 import type { GameFocus } from '../../focus/GameFocus.js';
 import { schedulerReward } from '../../focus/scheduler-reward.js';
-import { ProposalRouter } from '../../governance/pipeline.js';
+import type { ProposalRouterPort } from '../../governance/proposal-router-port.js';
+import { NoopProposalRouter } from '../../governance/proposal-router-port.js';
 import type { GateRegistry } from '../../kernel/index.js';
 import type { SelfRewardGate } from '../../kernel/KernelRewardGate.js';
 import type { LearnerRegistry } from '../../learning/domain-learners.js';
@@ -51,6 +52,8 @@ export interface SelfMetaGameConfig extends MetaGameConfig {
   drainBudget?: number;
   /** Gate authority for proposal routing; defaults to the process-global registry. */
   gates: GateRegistry;
+  /** Optional proposal router for governance; defaults to no-op. */
+  proposalRouter?: ProposalRouterPort;
 }
 
 export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
@@ -61,7 +64,7 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   private static readonly knobScope: ParameterScope = 'system';
   private scheduler: { registry: LearnerRegistry; rewardGate: SelfRewardGate } | null = null;
   /** D20 (TODO17b): the governance router that consumes self-improvement proposals. */
-  private readonly proposalRouter = new ProposalRouter();
+  private readonly proposalRouter: ProposalRouterPort;
   /** Phase C (REFACTOR.todo3 §10a M5): typed contradiction intake counter. */
   #contradictions = 0;
   /** Phase D (REFACTOR.todo2): bounded proposal bag — absent ⇒ arrival-order routing. */
@@ -76,6 +79,7 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
     this.gates = config.gates;
     this.proposalBag = config.proposalBag;
     this.drainBudget = config.drainBudget ?? 4;
+    this.proposalRouter = config.proposalRouter ?? new NoopProposalRouter();
     this.parameterTable = createParameterTable();
 
     // TODO19 F5: knobs are ParameterTable entries (system scope, self-owned);

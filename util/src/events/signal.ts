@@ -1,5 +1,5 @@
 import { defaultLogger, type Logger } from '../logger.js';
-import type { EventReceiver, EventUnsubscribe } from './event-bus.js';
+import type { EventReceiver, EventUnsubscribe } from './types.js';
 import { ListenerBag } from './listener-bag.js';
 
 /**

@@ -16,7 +16,7 @@ import { LMRules } from '../lm/rule-selectors/factory.js';
 import { seedContrastiveMemory } from '../lm/system-one/hard-negatives.js';
 import { createSystemOneLMRuleAdapter } from '../lm/system-one/rule-adapter.js';
 import type { ProofMettaProposer } from '../meta/index.js';
-import type { NAR } from '../nar.js';
+import type { NARFacadePort } from './ports.js';
 import type { Answer } from '../query/api';
 import { selectVerifiedDerivation } from '../query/derivation.js';
 import {
@@ -28,8 +28,8 @@ import {
   termParser,
   termsEqual,
 } from '../terms';
-import type { Tool } from '../tools';
-import { discoverTools } from '../tools';
+import type { Tool } from '../tools/types.js';
+import { discoverTools } from '../tools/impls/decorator.js';
 import { createSelfTools } from '../tools/adapters/self-tools.js';
 
 const logger = createLogger({ scope: 'nar:facade' });
@@ -37,10 +37,10 @@ const logger = createLogger({ scope: 'nar:facade' });
 /** Shared with `core`'s builtin `metta` tool, so both report the same absence. */
 const METTA_UNCONFIGURED = 'metta engine not configured';
 
-const initialized = new WeakSet<NAR>();
-const toolsInitialized = new WeakSet<NAR>();
+const initialized = new WeakSet<object>();
+const toolsInitialized = new WeakSet<object>();
 
-export const getModelWithFallback = (nar: NAR, prefix: string): LanguageModel | undefined => {
+export const getModelWithFallback = (nar: NARFacadePort, prefix: string): LanguageModel | undefined => {
   const registry = nar.getProviderRegistry();
   if (!registry) return undefined;
   const id = (candidate: string) =>
@@ -52,7 +52,7 @@ export const getModelWithFallback = (nar: NAR, prefix: string): LanguageModel | 
   }
 };
 
-export const injectBootstrapGoals = async (nar: NAR): Promise<void> => {
+export const injectBootstrapGoals = async (nar: NARFacadePort): Promise<void> => {
   for (const task of createBootstrapTasks()) {
     await nar.input(task.term, task.type, task.truth as never);
   }
@@ -72,7 +72,7 @@ const SYSTEM_ONE_DISPOSITION_RULES = new Set([
   'lm-uncertainty-calibration',
 ]);
 
-export const initializeLMRules = (nar: NAR, lmRules: readonly LMRule[]): void => {
+export const initializeLMRules = (nar: NARFacadePort, lmRules: readonly LMRule[]): void => {
   if (initialized.has(nar)) return;
 
   const toolDispatcher = async (tool: string, args: Record<string, unknown>) => {
@@ -109,7 +109,7 @@ export const initializeLMRules = (nar: NAR, lmRules: readonly LMRule[]): void =>
   initialized.add(nar);
 };
 
-export const initializeTools = (nar: NAR): void => {
+export const initializeTools = (nar: NARFacadePort): void => {
   if (toolsInitialized.has(nar)) return;
 
   const toolDeps = { memory: nar.memory, nar } as Record<string, unknown>;
@@ -171,7 +171,7 @@ export const initializeTools = (nar: NAR): void => {
  * promotion only under pressure. Call from any periodic cycle point.
  */
 export const consolidateLearning = async (
-  nar: NAR,
+  nar: NARFacadePort,
   options: { budget?: number } = {}
 ): Promise<void> => {
   const inductor = nar.getSchemaInductor();
@@ -261,7 +261,7 @@ export const consolidateLearning = async (
  * validate them through the metta tool, then submit the result to the
  * GovernanceResolver for low-risk auto-apply.
  */
-const adoptLearnedMettaRules = async (nar: NAR, proposer: ProofMettaProposer): Promise<void> => {
+const adoptLearnedMettaRules = async (nar: NARFacadePort, proposer: ProofMettaProposer): Promise<void> => {
   const rules = proposer.getRules();
   if (rules.length === 0) return;
   logger.debug('Metta rules learned', { count: rules.length });
@@ -312,7 +312,7 @@ const adoptLearnedMettaRules = async (nar: NAR, proposer: ProofMettaProposer): P
  * TODO32 M8: answer the question, then attach the derivation the recorder
  * captured for that exact conclusion — verified, or not attached at all.
  */
-export const askWithDerivation = async (nar: NAR, question: string): Promise<Answer> => {
+export const askWithDerivation = async (nar: NARFacadePort, question: string): Promise<Answer> => {
   const answer = await nar.query.ask(question);
   if (!answer.answer) return answer;
   const derivation = selectVerifiedDerivation(
@@ -322,7 +322,7 @@ export const askWithDerivation = async (nar: NAR, question: string): Promise<Ans
   return derivation ? { ...answer, derivation } : answer;
 };
 
-export const askNaturalLanguage = async (nar: NAR, question: string): Promise<string> => {
+export const askNaturalLanguage = async (nar: NARFacadePort, question: string): Promise<string> => {
   const lm = nar.getLMClient();
   if (!lm) return 'LM client not configured';
 

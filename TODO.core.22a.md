@@ -46,8 +46,40 @@
 
 **Current structural metrics (after Changes 1-12 complete):**
 - Export subpaths: 87 (target 1) — consolidation needed in M1-M3
-- Circular chains: 13 (target 0) — to be resolved in M1-M3
+- Circular chains: **0** (target 0) — ✅ RESOLVED (2026-11-18)
 - Append-only persistence sites: 4 (target 1) — log/store.ts is the primary site
+
+### Session Log — 2026-11-18 (Circular Chain Elimination Complete)
+**All Circular Dependency Chains Resolved (22 → 0)**
+- Fixed `core/src/eventlog` <-> `src/log/EventLogAdapter` cycle by removing `@senars/core/eventlog` import
+- Fixed `core/src/eventlog` <-> `src/log/StatePersister` cycle by extracting minimal `PersisterNARConfig` interface
+- Fixed `core/src/eventlog` <-> `src/log/GateEventLedger` cycle by defining local types in `GateEventLedger`
+- Fixed `util/src/events/event-bus` <-> `listener-bag` cycle by extracting shared types to `types.ts`
+- Fixed `core/src/budget` <-> `budget-otel` cycle by extracting `BudgetEventMap` to `budget-events.ts`
+- Fixed `core/src/agent/pipeline` <-> `types` cycle by extracting `CorrelationScopeStore` to separate file
+- Fixed `nar/src/terms/index` <-> `reduce-task` <-> `types/core` cycle by extracting `Task` type to `types/task.ts`
+- Fixed `nar/src/nar` <-> `autonomy/wiring` cycle by creating `AutonomyNAR` port interface
+- Fixed `nar/src/lm/lm-service` <-> `interfaces` cycle by importing `ProviderSpend` directly from `spend.ts`
+- Fixed `nar/src/focus/Focus` <-> `reflex/Negotiator` cycle by importing `NALDerivation` from `negotiation-types.ts`
+- Fixed `nar/src/game/SelfMetaGame` <-> `governance/pipeline` cycle by introducing `ProposalRouterPort` interface
+- Fixed `nar/src/nl/generation` <-> `prompts/generation-v1` cycle by extracting shared types to `nl/types.ts`
+- Fixed `nar/src/nar` <-> `facade/index` cycle by creating `NARFacadePort` interface
+- Fixed `nar/src/tools/self-concept` <-> `nar` cycle by creating `SelfConceptNAR` port
+- Fixed `nar/src/tools/adapters/self-tools` <-> `nar` cycle by creating `SelfToolsNAR` port
+
+**Gates Status After Fixes:**
+- `pnpm typecheck` ✅ PASS (root)
+- `pnpm typecheck:packages` ⚠️ nar package has type errors in port interfaces (minimal ports don't match full NAR)
+- `pnpm deps:gate` ✅ PASS (0 cycles ≤ baseline 0)
+- `pnpm exports:check` ✅ PASS
+- `pnpm lint` ✅ PASS
+- `pnpm docs:drift` ✅ PASS
+
+**Remaining Work (M1-M3 Consolidation):**
+- Fix port interface type mismatches (NARFacadePort, AutonomyNAR, SelfToolsNAR need to match actual NAR)
+- Fix `BeliefInfo` type to use `frequency`/`confidence` instead of `f`/`c`
+- Consolidate export subpaths from 87 to 1
+- Reduce persistence sites to 1
 - Typecheck: ✅ **PASS** — all source files and test files type-check cleanly
 - Lint: ✅ **PASS** — biome lint clean
 - Test:unit: ✅ **PASS** (3508 passed, 5 skipped)

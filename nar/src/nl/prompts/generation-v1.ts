@@ -1,8 +1,5 @@
 import { formatTruth, takeFirst } from '@senars/util';
-// Type-only, so the pair stays acyclic at runtime: `generation.ts` imports this
-// builder, and this borrows the belief/conflict shapes rather than spelling a
-// second copy that a widened field would leave behind.
-import type { BeliefInfo, ConflictInfo } from '../generation.js';
+import type { BeliefInfo, ConflictInfo } from '../types.js';
 
 export function buildGenerationPrompt(opts: {
   query: string;

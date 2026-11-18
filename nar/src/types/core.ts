@@ -9,6 +9,7 @@ import { Stamp, Truth } from '../terms';
 import type { Truth as TruthType } from '../terms/impls/Truth.js';
 import { canonicalTask } from '../terms/reduce-task.js';
 import { createTimestamp, DEPTH_MAX, type Timestamp } from './primitives.js';
+import type { Task } from './task.js';
 
 export type { Source, Stamp } from '../terms/impls/Stamp.js';
 export type { Truth as TruthType } from '../terms/impls/Truth.js';
@@ -29,16 +30,8 @@ import type { Budget, TaskType } from '@senars/core/schemas';
 
 export type { Budget, TaskType };
 
-// Core Task interface
-export interface Task {
-  readonly term: Term;
-  readonly type: TaskType;
-  readonly truth: TruthType;
-  readonly budget: Budget;
-  readonly stamp: Stamp;
-  readonly occurrenceTime: Timestamp;
-  readonly derived: boolean;
-}
+// Core Task interface — defined in ./task.js to break cycle with reduce-task.ts
+export type { Task } from './task.js';
 
 // Memory concepts
 export interface ConceptLike {

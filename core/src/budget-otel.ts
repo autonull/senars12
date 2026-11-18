@@ -9,7 +9,7 @@
  */
 
 import { keyedBy } from '@senars/util';
-import type { BudgetEventMap } from './budget.js';
+import type { BudgetEventMap } from './budget-events.js';
 import {
   ALL_RESOURCES,
   BUDGET_RESOURCES,

@@ -6,8 +6,8 @@
  * The NAR reasons about `fix_pattern:null_check`; the tool layer maps to actual codemod strings.
  */
 
-import type { NAR } from '../../nar.js';
 import { Truth, type TruthType } from '../../terms';
+import type { SelfConceptNAR } from './self-concept-port.js';
 
 /** Semantic truth values for self-beliefs (high confidence, moderate frequency) */
 const SELF_TRUTH: TruthType = Truth.create(0.7, 0.9);
@@ -54,7 +54,7 @@ export const SELF_CONCEPT_BELIEFS = [
 ] as const;
 
 /** Initialize self-concept beliefs into NAR */
-export async function initializeSelfConcept(nar: NAR): Promise<void> {
+export async function initializeSelfConcept(nar: SelfConceptNAR): Promise<void> {
   for (const belief of SELF_CONCEPT_BELIEFS) {
     await nar.believe(belief, SELF_TRUTH);
   }

@@ -16,6 +16,8 @@
  */
 import type { ReasoningBudget, TerminationReason } from './schemas/index.js';
 
+export type { TerminationReason };
+
 /** The four AIKR dimensions a budget is limited in — its whole ceiling. */
 export type BudgetLimits = Pick<
   ReasoningBudget,

@@ -3,7 +3,7 @@ import type { Bag, BagItem } from '../bag/Bag.js';
 import { createBag } from '../bag/index.js';
 import type { Game } from '../game/Game.js';
 import type { GateRegistry } from '../kernel/index.js';
-import type { NALDerivation } from '../reflex/Negotiator.js';
+import type { NALDerivation } from '../reflex/negotiation-types.js';
 import type { LearningEvent, Reflex } from '../reflex/Reflex.js';
 import { FOCUS_DEFAULTS } from '../constants.js';
 import type { Term } from '../terms/index.js';

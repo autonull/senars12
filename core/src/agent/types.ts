@@ -15,15 +15,6 @@ import type { ChatOptions, ChatStreamEvent } from '../chat.js';
  * Agent public type definitions.
  */
 
-/**
- * Per-correlationId scope store (Phase A) — the contract that keeps one user's
- * context from bleeding into another's. `nar` holds the LRU-backed
- * implementation; `core` only needs to name the reader.
- */
-export interface CorrelationScopeStore {
-  get(correlationId: string): { contrastiveMemory?: object; sourceKey?: string };
-}
-
 import type { LLMCortex } from '../cortex/LLMCortex.js';
 import type {
   CognitiveStimulus,
@@ -39,9 +30,11 @@ import type { EventLog } from '../eventlog/index.js';
 import type { AgentCapabilities } from '../protocol/index.js';
 import type { CognitiveEvent } from '../schemas/index.js';
 import type { MacroPhase } from './pipeline.js';
+import type { CorrelationScopeStore } from './correlation-scope.js';
 
 /** `util` owns the shape; re-exported so `core` importers keep one spelling. */
 export type { CognitiveStimulus, Context, Derivation, ParsedCommand, ToolResult };
+export type { CorrelationScopeStore } from './correlation-scope.js';
 
 export interface AgentOptions extends UtilAgentOptions {
   log?: EventLog;

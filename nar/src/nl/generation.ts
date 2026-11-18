@@ -11,23 +11,9 @@ import type { ILMService } from '../lm/interfaces.js';
 import { buildGenerationPrompt } from './prompts/generation-v1.js';
 import { GenerationOutputSchema } from './schemas.js';
 import { SingleFlight } from './singleflight.js';
+import type { BeliefInfo, DerivationTrace, ConflictInfo } from './types.js';
 
-export interface BeliefInfo {
-  term: string;
-  truth?: BeliefTruth;
-}
-
-export interface DerivationTrace {
-  steps: number;
-  beliefs: BeliefInfo[];
-  newBeliefs: BeliefInfo[];
-}
-
-export interface ConflictInfo {
-  belief: BeliefInfo;
-  conflictWith: BeliefInfo;
-  type: 'direct' | 'frequency' | 'implication';
-}
+export type { BeliefInfo, DerivationTrace, ConflictInfo } from './types.js';
 
 export interface GenerationInput {
   query: string;

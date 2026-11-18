@@ -23,7 +23,7 @@ import type { MemoryService } from '../memory/MemoryService.js';
 import type { ToolRegistry } from '../motor/ToolRegistry.js';
 import { motorToToolSet } from '../motor/toToolSet.js';
 import type { PolicyEngine } from '../PolicyEngine.js';
-import type { CorrelationScopeStore } from './types.js';
+import type { CorrelationScopeStore } from './correlation-scope.js';
 
 /**
  * Shared macro-cycle pipeline (REFACTOR.todo1 Phase A).

@@ -4,21 +4,13 @@ import type { ApprovalService } from '@senars/core';
 import type { CapabilityRisk, Result } from '@senars/util';
 import { ensureParentDir, errMsg } from '@senars/util';
 import type { CognitiveController } from '../../../cognitive/impls/CognitiveController.js';
-import type { NAR } from '../../../nar.js';
 import type { RLFPLearner } from '../../../rlfp/RLFPLearner.js';
 import type { RuleProcessor } from '../../../rules/impls/processor.js';
 import type { ToolManager } from '../../impls/tool-registry.js';
 import type { ShadowWorktreeManager, TestRunResult } from '../shadow-worktree.js';
+import type { SelfToolsDeps, SelfToolsNAR } from './context-port.js';
 
-export interface SelfToolsDeps {
-  workspaceRoot?: string;
-  nar?: NAR;
-  rlfpLearner?: RLFPLearner;
-  cognitiveController?: CognitiveController;
-  toolManager?: ToolManager;
-  ruleProcessor?: RuleProcessor;
-  approval?: ApprovalService;
-}
+export type { SelfToolsDeps, SelfToolsNAR } from './context-port.js';
 
 export interface SelfToolsContext {
   deps: SelfToolsDeps;

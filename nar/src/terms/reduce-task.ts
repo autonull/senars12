@@ -1,4 +1,4 @@
-import type { Task } from '../types/core.js';
+import type { Task } from '../types/task.js';
 import { canonicalTerm } from './reduce.js';
 import { getArgs } from './impls/accessors.js';
 import { Truth } from './impls/Truth.js';

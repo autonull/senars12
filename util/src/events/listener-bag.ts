@@ -1,6 +1,6 @@
 import { defaultLogger, type Logger } from '../logger.js';
 import { errMsg } from '../utils/error.js';
-import type { EventReceiver, EventUnsubscribe } from './event-bus.js';
+import type { EventReceiver, EventUnsubscribe } from './types.js';
 
 interface Listener<T> {
   fn: EventReceiver<T>;

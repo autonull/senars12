@@ -53,7 +53,7 @@ export {
   ValidationError,
 } from './errors/index.js';
 /** @public Event bus receiver/unsubscribe contracts. */
-export type { EventReceiver, EventUnsubscribe } from './events/event-bus.js';
+export type { EventReceiver, EventUnsubscribe } from './events/types.js';
 // Events
 /** @public Generic typed event bus runtime. */
 export { EventBus } from './events/event-bus.js';

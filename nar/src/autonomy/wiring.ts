@@ -1,5 +1,5 @@
 import type { Concept } from '../memory/concept.js';
-import type { NAR } from '../nar.js';
+import type { AutonomyNAR } from './ports.js';
 import { resolveAutonomyConfig } from './config.js';
 import { AutonomyHeartbeat } from './heartbeat.js';
 import type { AutonomyPorts } from './types.js';
@@ -23,7 +23,7 @@ const topConfidence = (concept: Concept): number => {
  * of `nar.ts` so the facade stays under its monolith budget: the wiring names
  * only the public surface it drives.
  */
-export const createAutonomyHeartbeat = (nar: NAR): AutonomyHeartbeat =>
+export const createAutonomyHeartbeat = (nar: AutonomyNAR): AutonomyHeartbeat =>
   new AutonomyHeartbeat(resolveAutonomyConfig(nar.getConfig().autonomy), {
     cycle: () => nar.getCycleCount(),
     now: () => nar.getConfig().clock?.() ?? Date.now(),
