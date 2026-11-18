@@ -238,14 +238,6 @@
 
 - `ConnectionError`
 
-## `./eventlog`
-
-- `LogStoreEventLog`
-
-- `createLogStoreEventLog`
-
-- `createLogStoreEventLogFromStore`
-
 ## `./protocol`
 
 - `CONNECTION_COLORS` — Color coding for connection states.
