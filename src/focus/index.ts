@@ -1,13 +1,9 @@
-/**
- * Focus — game focus and reflex types (migrated from @senars/nar/focus).
- */
-
-export type { Game, GameOutcome, MetaGame, Perception, SelfMetaGame } from '@senars/nar/game';
-export type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex';
-export { actionRuleBelief, type SeededBelief, seedBelief } from '@senars/nar/focus/belief-seeding';
-export { induceEpisodeSchemas, type PromotedSchema } from '@senars/nar/focus/episode-schemas';
-export type { FocusConcept, FocusOptions, FocusStepReport, FocusTask } from '@senars/nar/focus/Focus';
-export { Focus } from '@senars/nar/focus/Focus';
+export type { Game, GameOutcome, MetaGame, Perception, SelfMetaGame } from '../game/Game.js';
+export type { ActionProposal, LearningEvent, Reflex } from '../reflex/Reflex.js';
+export { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
+export { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas.js';
+export type { FocusConcept, FocusOptions, FocusStepReport, FocusTask } from './Focus.js';
+export { Focus } from './Focus.js';
 export {
   featureTerm,
   focusTask,
@@ -16,23 +12,23 @@ export {
   proposalTasks,
   rewardTerm,
   stateTerm,
-} from '@senars/nar/focus/task';
-export { createFocus, FocusBag } from '@senars/nar/focus/FocusBag';
+} from './task.js';
+export { createFocus, FocusBag } from './FocusBag.js';
 export {
   createFocusScheduler,
   FocusScheduler,
   type FocusSchedulerOptions,
   type SchedulerTickResult,
-} from '@senars/nar/focus/focus-scheduler';
+} from './focus-scheduler.js';
 export {
   createFocusTree,
   FocusTree,
   type FocusTreeOptions,
   type FocusTreeRollup,
-} from '@senars/nar/focus/FocusTree';
-export type { TickPanelEntry } from '@senars/nar/focus/GameFocus';
-export { createGameFocus, GameFocus } from '@senars/nar/focus/GameFocus';
-export type { MetaFocusOptions } from '@senars/nar/focus/MetaFocus';
-export { createMetaFocus, MetaFocus } from '@senars/nar/focus/MetaFocus';
-export { type NalABResult, runNalAB } from '@senars/nar/focus/nal-ab';
-export { SchemaStore, type StoredSchema } from '@senars/nar/focus/schema-store';
+} from './FocusTree.js';
+export type { TickPanelEntry } from './GameFocus.js';
+export { createGameFocus, GameFocus } from './GameFocus.js';
+export type { MetaFocusOptions } from './MetaFocus.js';
+export { createMetaFocus, MetaFocus } from './MetaFocus.js';
+export { type NalABResult, runNalAB } from './nal-ab.js';
+export { SchemaStore, type StoredSchema } from './schema-store.js';

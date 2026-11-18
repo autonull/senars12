@@ -1,10 +1,27 @@
-export { MemoryService } from './MemoryService.js';
-export type { JsonlSessionManagerConfig } from './SessionManager.js';
+// Bag/BoundedBag removed — use PriorityBag from @senars/nar/bag instead (unified AIKR substrate).
+//
+// This barrel is an aggregator, not a second declaration: every sub-barrel below
+// owns its own surface and this file only forwards it, so a symbol can be
+// published, changed or withdrawn in one place.
+export type { CoActivationEdge, ConceptGraphOptions } from './ConceptGraph.js';
+export { ConceptGraph } from './ConceptGraph.js';
+export type { ConceptTaskType } from './concept.js';
+export { Concept, taskFromBagItem } from './concept.js';
+export type { MemoryConfig, ResolvedMemoryConfig } from './config.js';
+export { Focus } from './focus.js';
+export type { ArchiveConfig, ForgettingPolicy } from './lifecycle/index.js';
+export { Archive, Forgetting } from './lifecycle/index.js';
+export { Memory } from './memory.js';
+export { MemoryIndex } from './memory-index.js';
+export type * from './ports/index.js';
+export { evictUnderPressure } from './pressure/index.js';
+export type { ConceptStats, SerializedConcept, SerializedMemory } from './state/index.js';
 export {
-  abortSession,
-  createSession,
-  InMemorySessionManager,
-  JsonlSessionManager,
-} from './SessionManager.js';
-export type { Episode, MemoryEntry, MemoryQuery, PersistableSessionManager } from './types.js';
-export { RECALL_WINDOW, WORKING_MEMORY_CAPACITY } from './types.js';
+  calculateConceptStats,
+  decodeMemoryState,
+  deserialize,
+  encodeMemoryState,
+  repair,
+  serialize,
+  validate,
+} from './state/index.js';

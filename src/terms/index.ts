@@ -1,108 +1,88 @@
-/**
- * Terms — NAR term types and punctuation (migrated from @senars/nar/terms).
- */
-
+export type { BareInheritance, BinaryKind, TermPair, UnaryKind } from './impls/accessors.js';
 export {
-  atom,
-  TermBuilder,
-  TermFactory,
-  termParser,
-  TermParser,
-  fromNarsese,
-  parseTaskTolerant,
-  deserializeTerm,
-  serializeTerm,
-  toNarsese,
-  PUNCTUATION_BY_TASK_TYPE,
-  taskTypeForPunctuation,
-  Truth,
-  operationNameOf,
-  operationTerm,
-  readOperationTerm,
-  termKey,
-  termDepth,
-  termSize,
-  termsEqual,
-  visitTerms,
-  walkTerms,
+  atomicSymbols,
+  atomicTerms,
+  atomKey,
+  bareInheritancePair,
+  binaryOf,
+  containsSubterm,
+  foldTerm,
   getAntecedent,
+  getArgs,
   getConsequent,
   getPredicate,
   getSubject,
-  getArgs,
-  containsSubterm,
-  foldTerm,
-  isAtomic,
-  isCompound,
-  isVariableSymbol,
-  isInheritance,
-  isImplication,
-  isEquivalence,
-  isNegation,
+  hasVariable,
   isConjunction,
   isDisjunction,
-  isSimilarity,
+  isEquivalence,
+  isImplication,
+  isInheritance,
+  isNegation,
   isOperation,
   isPredictive,
   isSequence,
   isSetExt,
   isSetInt,
+  isSimilarity,
   mentionsSymbol,
-  sharesSymbol,
-  sharesInheritanceEnd,
-  sameKind,
-  bareInheritancePair,
-  atomicSymbols,
-  atomicTerms,
-  atomKey,
   rolePair,
-  binaryOf,
-  unaryOf,
+  sameKind,
+  sharesInheritanceEnd,
+  sharesSymbol,
   hasNegatedPair,
   hasRepeatedArgs,
-  canonicalTerm,
-  canonicalTask,
-  serializeStamp,
-  deserializeStamp,
-  observeStampId,
-  Stamp,
-  getTermComplexity,
-  TermCollection,
-  TermMap,
-  TermSet,
-  parseTermToEdges,
-  calculateSimilarity,
+  termDepth,
+  termKey,
+  termSize,
+  unaryOf,
+  termsEqual,
+  visitTerms,
+  walkTerms,
+} from './impls/accessors.js';
+export { getTermComplexity } from './impls/complexity.js';
+export { atom, TermBuilder, TermFactory } from './impls/factory.js';
+export { canonicalTerm, type TermReducer, TERM_REDUCERS } from './reduce.js';
+export { canonicalTask, type TaskReducer, TASK_REDUCERS } from './reduce-task.js';
+export type { OperationCall } from './impls/operation-term.js';
+export { operationNameOf, operationTerm, readOperationTerm } from './impls/operation-term.js';
+export type { ParserResult, ParseTaskResult, TaskTypeName } from './impls/parser-peggy.js';
+export {
+  deserializeTerm,
+  fromNarsese,
+  parseTaskTolerant,
+  ParseError,
+  PUNCTUATION_BY_TASK_TYPE,
+  TermParser,
+  taskTypeForPunctuation,
+  termParser,
+} from './impls/parser-peggy.js';
+export type { SerializedStamp, Source, Stamp as StampType } from './impls/Stamp.js';
+export { deserializeStamp, observeStampId, Stamp, serializeStamp } from './impls/Stamp.js';
+export { serializeTerm, toNarsese } from './impls/serialize.js';
+export type { Truth as TruthType } from './impls/Truth.js';
+export { isTruthEqual, Truth } from './impls/Truth.js';
+export { TermCollection } from './impls/term-collection.js';
+export { parseTermToEdges, type TermEdge } from './impls/term-edges.js';
+export type { TermMapEntry } from './impls/term-map.js';
+export { TermMap } from './impls/term-map.js';
+export { TermSet } from './impls/term-set.js';
+export type { Substitution } from './impls/unifier.js';
+export { applySubstitution, unify } from './impls/unifier.js';
+export { calculateSimilarity } from './impls/utils.js';
+export {
+  INVALID_ATOM_CHARS_REGEX,
   isValidAtomSymbol,
   toAtomSymbol,
   VALID_ATOM_CHARS,
-  INVALID_ATOM_CHARS_REGEX,
-  isInvalidTaskTerm,
-  isTautology,
-  validateTaskTerm,
-  applySubstitution,
-  unify,
-} from '@senars/nar/terms';
-export type {
-  AtomicTerm,
-  CompoundTerm,
-  Term,
-  OperatorKey,
-  OperatorSymbol,
-  BareInheritance,
-  BinaryKind,
-  TermPair,
-  UnaryKind,
-  SerializedStamp,
-  Source,
-  Stamp as StampType,
-  Truth as TruthType,
-  TermMapEntry,
-  TermEdge,
-  Substitution,
-  OperationCall,
-  ParserResult,
-  ParseTaskResult,
-  TaskTypeName,
-  TermReducer,
-  TaskReducer,
-} from '@senars/nar/terms';
+} from './impls/valid-atom.js';
+export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './impls/validation.js';
+export type { AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol, Term } from './types.js';
+export {
+  COPULA_SYMBOLS,
+  hasCopula,
+  isAtomic,
+  isCompound,
+  isVariableSymbol,
+  OPERATORS,
+} from './types.js';

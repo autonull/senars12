@@ -1,7 +1,65 @@
-export type { ErrorCode } from './senars-error.js';
-export { SenarsError, codedError } from './senars-error.js';
-export { EngineError } from './engine.js';
-export { ConfigurationError, OperationError, ValidationError } from './nar-errors.js';
-export { PolicyViolation } from './policy.js';
-export { ToolError } from './tool.js';
-export { TransportError, ConnectionError } from './transport.js';
+/**
+ * E1 (TODO20 Phase 3): kernel-domain error taxonomy. The base `SenarsError`
+ * (code + context + wrap) lives in `@senars/util/errors` — single definition;
+ * every class here adds typed, grep-able context for its failure mode.
+ */
+import type { GateName } from '@senars/core/schemas/gate-io';
+import type { SchemaIssue } from '@senars/util';
+import { SenarsError } from '@senars/util/errors';
+
+export { SenarsError } from '@senars/util/errors';
+
+/** E1: assembly-time failure, typed by the builder step that failed. */
+export class BuilderError extends SenarsError {
+  constructor(
+    message: string,
+    readonly step: string,
+    context?: Record<string, unknown>,
+    options?: ErrorOptions
+  ) {
+    super(message, 'BUILDER_ERROR', { step, ...context }, options);
+    this.name = 'BuilderError';
+  }
+}
+
+/** E1: per-gate denial, typed by gate and operation. */
+export class GateError extends SenarsError {
+  constructor(
+    message: string,
+    readonly gate: GateName,
+    readonly reason: string,
+    readonly operation: string,
+    context?: Record<string, unknown>
+  ) {
+    super(message, 'GATE_DENIED', { gate, reason, operation, ...context });
+    this.name = 'GateError';
+  }
+}
+
+export class PerceptionGateError extends GateError {
+  constructor(reason: string, operation: string, context?: Record<string, unknown>) {
+    super(`Perception gate denied: ${reason}`, 'perception', reason, operation, context);
+    this.name = 'PerceptionGateError';
+  }
+}
+
+export class ActionGateError extends GateError {
+  constructor(reason: string, operation: string, context?: Record<string, unknown>) {
+    super(`Action gate denied: ${reason}`, 'action', reason, operation, context);
+    this.name = 'ActionGateError';
+  }
+}
+
+export class BudgetGateError extends GateError {
+  constructor(reason: string, operation: string, context?: Record<string, unknown>) {
+    super(`Budget gate denied: ${reason}`, 'budget', reason, operation, context);
+    this.name = 'BudgetGateError';
+  }
+}
+
+export class RewardGateError extends GateError {
+  constructor(reason: string, operation: string, context?: Record<string, unknown>) {
+    super(`Reward gate denied: ${reason}`, 'reward', reason, operation, context);
+    this.name = 'RewardGateError';
+  }
+}

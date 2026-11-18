@@ -15,7 +15,7 @@ import {
   type SystemOneConfig,
   systemOneDefaults,
   systemOneSchema,
-} from '@senars/config';
+} from './index.js';
 import { z } from 'zod';
 
 // System One schema/defaults live in @senars/util/config (single definition —

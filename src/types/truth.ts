@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { unitInterval } from '@senars/config/boundary.js';
-import { clamp, clamp01, softSquash } from '@senars/util/numeric.js';
+import { unitInterval } from '../config/boundary.js';
+import { clamp, clamp01, softSquash } from '../util/numeric.js';
 
 export type Frequency = number & { readonly __brand: unique symbol };
 export type Confidence = number & { readonly __brand: unique symbol };

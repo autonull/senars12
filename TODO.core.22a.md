@@ -251,6 +251,42 @@
 - After: Consolidated into root `src/metta/` structure
 - Total export subpaths: 72 → 69 (metta package exports merged into root)
 
+### Session Log — 2026-11-18 (NAR Package Migration - Phase 1 In Progress)
+**Started migrating `@senars/nar` package to new `src/` structure:**
+- **Moved all nar source files** from `nar/src/` to `src/` preserving directory structure (43+ subdirectories)
+- **Updated `tsconfig.root.json`** with `@senars/nar` path alias pointing to `./src/index.ts`
+- **Removed `nar/` package** from `pnpm-workspace.yaml`
+- **Removed `@senars/nar`** from root `package.json` and `ui/package.json` dependencies
+- **Removed `@senars/nar`** from `core/package.json` devDependencies
+- **Added missing dependencies**: `@wasmer/wasi`, `@opentelemetry/sdk-trace`
+- **Updated gate scripts**: `typecheck-packages.ts`, `verify-exports.ts` to remove `nar` from package lists
+- **Updated `src/config/index.ts`** to export all needed config items
+- **Updated `src/util/index.ts`** to match `util/src/index.ts` (relative imports)
+- **Fixed imports** in `src/config/schema.ts`, `src/config/loader.ts`, `src/types/truth.ts` to use local paths
+
+**Current Status:**
+- `pnpm typecheck:packages` ✅ PASS (2 packages clean: util, core)
+- `pnpm lint` ✅ PASS
+- `pnpm exports:check` ✅ PASS (3 packages: util, core, ui)
+- `pnpm surface-no-legacy` ✅ PASS
+- `pnpm typecheck` (root) ❌ FAIL — 439 TypeScript errors, primarily:
+  - Type conflicts between old `nar/src/` and new `src/` locations (duplicate type declarations)
+  - Missing exports from `src/errors`, `src/config`, `src/types` that nar code depends on
+  - Implicit `any` type errors in migrated nar files
+  - Module resolution issues for `@wasmer/wasi` (added but types may need `@types/wasi`)
+
+**Export Subpaths:**
+- Before: nar: 43 subpaths
+- After: Consolidated into root `src/` structure (in progress)
+- Total export subpaths: 69 → 26 (target, nar not yet counted)
+
+**Next Steps:**
+- Resolve duplicate type declarations (remove old nar/src references from tsconfig)
+- Add missing exports to `src/errors/index.ts`, `src/types/*`, `src/config/*`
+- Fix implicit `any` errors in migrated nar files
+- Update remaining imports in `src/` that still reference `@senars/nar/*`
+- Run full test suite to verify behavioral parity
+
 **Migrated 77 test files from relative imports to path aliases using automated script:**
 - Pattern: `../../../nar/src/...` → `@senars/nar/...`, `../../../core/src/...` → `@senars/core/...`, etc.
 - 82 individual import statements fixed across nar, core, io, metta, util packages
@@ -316,7 +352,7 @@
 - ✅ **core**: Move `core/src/` → `src/` (merge: agent, engine, cortex, motor, memory, protocol, schemas, budget, etc.). Update imports. Remove `core/` package.
 - ✅ **io**: Move `io/src/` → `src/io/` (merge with existing). Update imports. Remove `io/` package.
 - ✅ **metta**: Move `metta/src/` → `src/metta/` (merge with existing). Update imports. Remove `metta/` package.
-- [ ] **nar**: Move `nar/src/` → `src/` (merge: kernel, lm, memory, rules, terms, bag, cognitive, etc.). Update imports. Remove `nar/` package.
+- 🔄 **nar**: Move `nar/src/` → `src/` (merge: kernel, lm, memory, rules, terms, bag, cognitive, etc.). Update imports. Remove `nar/` package. **IN PROGRESS** - 439 TypeScript errors, needs significant work to resolve type conflicts between old nar/src and new src/ locations.
 
 **Phase 2: UI Package Migration**
 - [ ] **ui-contract**: Move `ui-contract/src/` → `src/ui-contract/` (merge). Update imports. Remove `ui-contract/` package.
@@ -335,4 +371,4 @@
 **Dependency Order (topological):**
 util (leaf) → core → io → metta → ui-contract → ui-shell → ui-backend-2d/ui-backend-fractal → nar → ui
 
-**Current Session: ✅ Phase 1 - util package migration COMPLETE, ✅ core package migration COMPLETE, ✅ io package migration COMPLETE, ✅ metta package migration COMPLETE**
+**Current Session: ✅ Phase 1 - util package migration COMPLETE, ✅ core package migration COMPLETE, ✅ io package migration COMPLETE, ✅ metta package migration COMPLETE, 🔄 nar package migration IN PROGRESS (439 TS errors)**

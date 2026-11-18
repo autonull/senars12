@@ -1,1 +1,0 @@
-export { MAPPED_NAR_EVENTS, narEventToCognitive } from './bridge.js';

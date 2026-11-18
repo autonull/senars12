@@ -1,41 +1,133 @@
-/**
- * LM — language model configuration, providers, and system one (migrated from @senars/nar/lm).
- */
-
-export { resolveLMConfig, resolveLMSettings } from '@senars/nar/lm';
-export { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
-export { evaluateQuery } from '@senars/nar/lm/system-one';
-export { computeEvidenceId } from '@senars/nar/lm/system-one';
-export { probeEmbeddedLlama } from '@senars/nar/lm';
-export { getRouting, setRouting, getRoutingLogStatus, getRoutingStatus, getModelChain } from '@senars/nar/lm/providers';
-export { readCalibrationLockOrNull } from '@senars/nar/lm/system-one';
-export { rubricOf, ContrastiveMemory, type ContrastiveMemoryConfig, createContrastiveMemory } from '@senars/nar/lm/system-one/contrastive';
-export { StubCortex } from '@senars/nar/lm/system-one/dispatcher';
-export { createLlamaCppFetch, runWithGrammar } from '@senars/nar/lm/providers/llamacpp';
-export { loadGrammar } from '@senars/nar/lm/grammars';
-export { JudgmentDataset } from '@senars/nar/lm/system-one/distill';
-export { fitCalibrationLock as calibrateFit } from '@senars/nar/lm/system-one/calibration-fit';
-export { createSystemOneBudget } from '@senars/nar/lm/system-one/types';
-export { CALIBRATION_LOCK_PATH } from '@senars/nar/lm/system-one/calibration-fit';
-export { HEAD_SPECS } from '@senars/nar/lm/system-one/head-ontology';
-export { SystemOneManifold } from '@senars/nar/lm/system-one/manifold';
-export { cloudApiKey, endpointPath, getCircuitBreaker, getEffectiveCircuitConfig, probeJson, probeLlamaCpp, probeModelsEndpoint, resolveOfflineTier, LM_PROVIDER_NAMES, formatLMConfig, isGpuBackend, resetCircuitBreakers, resetDemotions } from '@senars/nar/lm';
-export { configureLM, createConfiguredLMRules, resolveEmbeddingGenerator, embeddingRuntime } from '@senars/nar/lm';
-export { EmbeddingCache, createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache';
-export type { TraceGradeInput, TraceGradeResult } from '@senars/nar/lm/system-one/trace-grader';
-export { mineHardNegatives, MiningBag } from '@senars/nar/lm/system-one/hard-negatives';
-export { SchemaInductor, createSchemaInductor } from '@senars/nar/learning';
-export { createFrozenEvalSet, splitOod, evalMetrics, headMetrics, writeEvalSet, loadEvalSet, digestRows } from '@senars/nar/lm/system-one/eval-set';
-export { writeCalibrationLock, fitCalibrationLock } from '@senars/nar/lm/system-one/calibration-fit';
-export { asRubricId } from '@senars/nar/decision/types';
-export type { ScoreDistribution } from '@senars/nar/decision/types';
-export { specToQuery } from '@senars/nar/lm/system-one/head-ontology';
-export { LM_TASKS } from '@senars/util';
-export type { JudgmentQuery } from '@senars/nar/lm/system-one/types';
-export type { LMTask } from '@senars/util';
-export type { LMProviderName } from '@senars/nar/lm/env-config';
-
-// System One reflexes and judges
-export { LMReflex, PlacementCascadeReflex } from '@senars/nar/lm/system-one';
-export { EpsilonGreedyReflex, TabularQReflex, Negotiator, NalVetoArbitration, WeightedQuorum, UCBReflex } from '@senars/nar/reflex';
-export { SystemOneIngressJudge } from '@senars/nar/lm/system-one/ingress-judge';
+export { admitTasks } from './admit.js';
+export type { ContextBeliefOptions } from './context.js';
+export { topBeliefTasks } from './context.js';
+export { attemptLMCorrection } from './correction.js';
+export { embeddingRuntime, resolveEmbeddingGenerator } from './embedding-runtime.js';
+export type { EnricherConfig, EnricherSystemOneDeps, EnrichmentResult } from './enrichment.js';
+export { createProactiveEnricher, ProactiveEnricher } from './enrichment.js';
+export type {
+  LMProfileName,
+  LMProviderName,
+  LMSettings,
+  LMSettingsInput,
+  ResolvedLMConfig,
+  ResolvedProvider,
+} from './env-config.js';
+export {
+  builtinModels,
+  cloudApiKey,
+  defaultModelFor,
+  detectCloudProvider,
+  formatLMConfig,
+  LM_PROFILES,
+  LM_PROVIDER_NAMES,
+  resolveLMConfig,
+  resolveLMSettings,
+} from './env-config.js';
+export type {
+  ContradictionExplanation,
+  ExtractedPattern,
+  FeedbackConfig,
+  ValidationFeedback,
+} from './feedback.js';
+export { BidirectionalFeedbackLoop, createBidirectionalFeedbackLoop } from './feedback.js';
+export { type GrammarName, loadGrammar } from './grammars/index.js';
+export {
+  CYCLE_PATH_PREFIXES,
+  IN_CYCLE_EDGE_ATTRIBUTIONS,
+  IN_CYCLE_INVENTORY,
+  type InCycleBehaviour,
+  type InCycleDisposition,
+} from './in-cycle-inventory.js';
+export type { ILMService } from './interfaces.js';
+export { isGpuBackend } from './runtime/llama-runtime.js';
+export type {
+  LMContext,
+  LMRuleConfigV2,
+  ParsedLMResponse,
+  StructuredLMOutput,
+  ValidationResult,
+} from './LMRule.js';
+export { LMResponseParser, LMRule } from './LMRule.js';
+export {
+  type ConfiguredRuleSpec,
+  createConfiguredLMRules,
+  LMRules,
+} from './lm-rule-factory.js';
+export type {
+  LMExecutionStats,
+  LMPromptGenerator,
+  LMResponseProcessor,
+  LMRuleConfig,
+  LMTaskGenerator,
+  ModelRuleStats,
+} from './lm-service.js';
+export {
+  createLMService,
+  createMockLanguageModel,
+  createMockLMService,
+  LMService,
+} from './lm-service.js';
+export { getProviderRuntime, type ProviderHealth, ProviderRuntime } from './provider-runtime.js';
+export { PROVIDER_SEAMS, type ProviderSeam } from './provider-seams.js';
+export { probeEmbeddedLlama } from './providers/embedded-llamacpp.js';
+export { resetCircuitBreakers } from './providers/health.js';
+export {
+  createLlamaCppFetch,
+  LLAMACPP_HOST_DEFAULT,
+  probeLlamaCpp,
+  runWithGrammar,
+} from './providers/llamacpp.js';
+export { endpointPath, fetchBounded, probeJson, probeModelsEndpoint } from './providers/probe.js';
+export type {
+  CandidateScore,
+  ModelReliability,
+  CircuitBreakerSettings,
+  LMTask,
+  ModelCapability,
+  QualityObjective,
+  RoutingDecision,
+  RoutingObjective,
+  RoutingPolicy,
+  RoutingTelemetryEntry,
+  SeNARSModelId,
+  SeNARSRegistry,
+} from './providers.js';
+export {
+  configureLM,
+  createSeNARSRegistry,
+  demoteModel,
+  disableRoutingTelemetry,
+  enableRoutingTelemetry,
+  getActiveProvider,
+  getCircuitBreaker,
+  getEffectiveCircuitConfig,
+  getLMSettings,
+  getLmProvider,
+  getModelCapability,
+  getModelChain,
+  getModelForTask,
+  getQualityModel,
+  getRouting,
+  getRoutingLogStatus,
+  getRoutingStatus,
+  hasCloudCredentials,
+  logRoutingDecision,
+  MODEL_CAPABILITIES,
+  pickBestModel,
+  pickModel,
+  probeOpenAICompatible,
+  recordProviderCall,
+  resetDemotions,
+  resolveActiveProvider,
+  resolveOfflineModel,
+  resolveOfflineTier,
+  setActiveProvider,
+  setRouting,
+} from './providers.js';
+export type {
+  ShadowCheckOptions,
+  ShadowSystemOneDeps,
+  ShadowValidationResult,
+} from './shadow-validation.js';
+export { ShadowValidator, shadowValidator } from './shadow-validation.js';

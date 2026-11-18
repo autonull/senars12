@@ -1,6 +1,5 @@
 packages:
   - 'core'
-  - 'nar'
   - 'ui'
   - 'util'
   - 'log'

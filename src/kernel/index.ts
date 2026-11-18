@@ -1,19 +1,3 @@
-/**
- * Kernel — interned terms, truth, stamps, step, gate, bag, reduce.
- * Also re-exports NAR kernel types (migrated from @senars/nar/kernel).
- */
-
-export * from './terms/index.js';
-export * from './types.js';
-export { createRootStamp, createDerivedStamp, createStampFromIds, mergeStamps, isBefore, isAncestor, getCausalChain, getAncestors, getCommonAncestors, stampEquals, stampCompare, formatStamp, StampStore, createStampStore, reconstructStampsFromLog } from './stamp.js';
-export type { Stamp, StampOptions, TimestampMs, LogEntryWithStamp } from './stamp.js';
-export * from './truth.js';
-export * from './step.js';
-export * from './gate.js';
-export * from './reduce.js';
-export * from './bag.js';
-
-// Re-export NAR kernel types
 export {
   BUDGET_SCOPE_IDS,
   BUDGET_SCOPES,
@@ -23,50 +7,47 @@ export {
   scopeBudget,
   scopeLimit,
   scopeSpec,
+} from './budget-scopes.js';
+export {
   type ControlBudgetOverrides,
   type ControlBudgetPort,
   UNBUDGETED,
   ControlBudgets,
-  type AutonomyClock,
-  driveCycles,
-  type GateRegistryInit,
-  type IGateRegistry,
-  createGateRegistry,
-  GateRegistry,
-  KernelGate,
-  type IActionGate,
-  type IBudgetGate,
-  type IDriveManager,
-  type IPerceptionGate,
-  type IRewardGate,
-  KernelActionGate,
-  NALVetoError,
-  createDefaultReasoningBudget,
-  KernelBudgetGate,
-  KernelLedger,
-  KernelPerceptionGate,
+} from './control-budgets.js';
+export type { AutonomyClock } from './cycle-driver.js';
+export { driveCycles } from './cycle-driver.js';
+export type { GateRegistryInit, IGateRegistry } from './GateRegistry.js';
+export { createGateRegistry, GateRegistry } from './GateRegistry.js';
+export { KernelGate } from './gate-base.js';
+export type {
+  IActionGate,
+  IBudgetGate,
+  IDriveManager,
+  IPerceptionGate,
+  IRewardGate,
+} from './interfaces.js';
+export { KernelActionGate, NALVetoError } from './KernelActionGate.js';
+export { createDefaultReasoningBudget, KernelBudgetGate } from './KernelBudgetGate.js';
+export { KernelLedger } from './KernelLedger.js';
+export { KernelPerceptionGate } from './KernelPerceptionGate.js';
+export {
   EpistemicFirewallViolation,
   ExternalRewardGate,
   KernelRewardGate,
   SelfRewardGate,
-  domainKey,
-  providerKey,
+} from './KernelRewardGate.js';
+export { domainKey, providerKey } from './reputation-keys.js';
+export {
   DEFAULT_REPUTATION_CAPACITY,
   DEFAULT_REPUTATION_PATH,
   type ReputationDeltaEntry,
   type ReputationEntry,
   SourceReputation,
   type SourceReputationOptions,
-  type ThreadScopeState,
-  ThreadScope,
-  threadScope,
-} from '@senars/nar/kernel';
+} from './source-reputation.js';
+export type { ThreadScopeState } from './thread-scope.js';
+export { ThreadScope, threadScope } from './thread-scope.js';
 
-// Re-export NAR engine
-export { NAREngine } from '@senars/nar/engine';
-export { BaseEngine } from '@senars/core';
-
-// Re-export replay utilities
 export {
   type FullReplayOptions,
   type ReplayResult,
@@ -82,4 +63,4 @@ export {
   replayTaskAdmissions,
   replayCognitiveState,
   SNAPSHOT_VERSION,
-} from '@senars/nar/kernel/replay-compat.js';
+} from './replay-compat.js';

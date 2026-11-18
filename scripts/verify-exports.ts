@@ -21,7 +21,7 @@ import { join } from 'node:path';
 import { entryTargets, readPackageJson } from './lib/pkg.js';
 import { ROOT as root } from './lib/root.js';
 
-const PACKAGES = ['util', 'core', 'nar', 'ui'];
+const PACKAGES = ['util', 'core', 'ui'];
 
 function isDirectory(p: string): boolean {
   try {
