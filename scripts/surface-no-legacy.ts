@@ -11,7 +11,7 @@ import glob from 'glob';
 import { importEdges } from './lib/imports.js';
 import { ROOT } from './lib/root.js';
 
-const LEGACY_PKGS = ['nar', 'core', 'io', 'metta', 'util'] as const;
+const LEGACY_PKGS = ['core', 'io', 'metta'] as const;
 const TARGET_DIRS = ['src/surface', 'src/bin'];
 
 const legacySpecifier = (specifier: string): string | undefined => {

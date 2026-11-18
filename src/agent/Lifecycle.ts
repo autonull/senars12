@@ -1,0 +1,79 @@
+import type {
+  BaseComponent as BaseComponentContract,
+  ComponentContext,
+  ComponentState,
+  ScopedLogger,
+} from '@senars/util';
+
+const VALID_TRANSITIONS: Record<ComponentState, ComponentState[]> = {
+  created: ['initialized', 'disposed'],
+  initialized: ['started', 'disposed'],
+  started: ['stopped', 'disposed'],
+  stopped: ['started', 'disposed'],
+  disposed: [],
+};
+
+export abstract class BaseComponent implements BaseComponentContract {
+  private readonly _context?: ComponentContext;
+
+  constructor(context?: ComponentContext) {
+    this._context = context;
+  }
+
+  private _state: ComponentState = 'created';
+
+  get state(): ComponentState {
+    return this._state;
+  }
+
+  get logger(): ScopedLogger | undefined {
+    return this._context?.logger;
+  }
+
+  get eventBus(): ComponentContext['eventBus'] | undefined {
+    return this._context?.eventBus;
+  }
+
+  async initialize(): Promise<void> {
+    if (this._state !== 'created') {
+      throw new Error(`Cannot initialize component in state: ${this._state}`);
+    }
+    this.setState('initialized');
+  }
+
+  async start(): Promise<void> {
+    if (this._state !== 'initialized') {
+      throw new Error(`Cannot start component in state: ${this._state}`);
+    }
+    this.setState('started');
+  }
+
+  async stop(): Promise<void> {
+    if (this._state !== 'started') return;
+    this.setState('stopped');
+  }
+
+  async dispose(): Promise<void> {
+    if (this._state === 'disposed') return;
+    if (this._state === 'started') await this.stop();
+    this.setState('disposed');
+  }
+
+  isRunning(): boolean {
+    return this._state === 'started';
+  }
+
+  isInitialized(): boolean {
+    return this._state === 'initialized' || this._state === 'started';
+  }
+
+  protected setState(state: ComponentState): void {
+    const validTransitions = VALID_TRANSITIONS[this._state];
+    if (!validTransitions.includes(state)) {
+      throw new Error(
+        `Invalid state transition from ${this._state} to ${state}. Valid transitions: ${validTransitions.join(', ')}`
+      );
+    }
+    this._state = state;
+  }
+}

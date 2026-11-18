@@ -1,0 +1,380 @@
+/**
+ * Agent reasoning cycle as a `MacroPhase` middleware pipeline (REFACTOR.todo1
+ * Phase A): `DEFAULT_MACRO_PIPELINE` reproduces the original `runCycleStream`
+ * step sequence exactly; narration streams through the phase chain via
+ * `MacroContext.stream`.
+ */
+
+import {
+  collectText,
+  createLogger,
+  dispatch,
+  drain,
+  egressVerdict,
+  type LMTask,
+  toolError,
+} from '@senars/util';
+import type { ChatStreamEvent } from './chat.js';
+import { SHELL_TIMEOUT_MS } from './constants.js';
+import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
+import { sweepEngines } from '../engine/sweep.js';
+import { recalledEventTypes } from '../schemas/index.js';
+import { RECALL_WINDOW } from '../memory/types.js';
+import { NAR_ORIGIN } from '../schemas/event-base.js';
+import { mintCognitiveEvent } from '../schemas/index.js';
+import {
+  type CycleHost,
+  createMacroContext,
+  type MacroContext,
+  type MacroPhase,
+  motorTools,
+} from './pipeline.js';
+
+export type { CycleHost, MacroContext, MacroPhase } from './pipeline.js';
+export { createCapturePhase, createReflectPhase } from './pipeline.js';
+
+const logger = createLogger({ scope: 'agent-phases', level: 'warn' });
+
+const EMPTY_CONTEXT: Context = { working: [], episodic: [], semantic: [] };
+
+const reportEgressRejection = (host: CycleHost, correlationId: string, score?: number): void => {
+  host.emit(
+    mintCognitiveEvent('egress.gate.rejected', {
+      engine: NAR_ORIGIN,
+      correlationId,
+      payload: { gate: 'groundedness', score },
+    })
+  );
+};
+
+/**
+ * The one `input.user` draft, stamped once. The emitted stream and the durable
+ * append built it separately: the append bypassed the schema union, gave
+ * `causationId` an empty string where the mint omits it, and recorded the
+ * stimulus's own source where the mint recorded the literal `'cycle'` — so the
+ * same turn appeared twice under two provenances.
+ */
+const inputUser = (stimulus: CognitiveStimulus) => ({
+  engine: NAR_ORIGIN,
+  correlationId: stimulus.correlationId,
+  payload: { text: stimulus.text, source: stimulus.source },
+});
+
+const perceive = (host: CycleHost, stimulus: CognitiveStimulus): void => {
+  host.emit(mintCognitiveEvent('input.user', inputUser(stimulus)));
+};
+
+const recall = async (
+  host: CycleHost,
+  stimulus: CognitiveStimulus
+): Promise<{ cid: { id?: string }; context: Context }> => {
+  const cid = await host.log.append({ ...inputUser(stimulus), type: 'input.user' });
+
+  const working = host.memory.recent(RECALL_WINDOW);
+  const episodic = await host.memory.queryEpisodic(undefined, undefined, recalledEventTypes());
+  const semantic = await host.memory.querySemantic(stimulus.text);
+  const context: Context = { working, episodic, semantic };
+  return { cid, context };
+};
+
+/**
+ * One engine down is a degraded cycle, not a fault — but silence here reads as a
+ * healthy cycle with zero derivations, so the fault is logged, tallied and
+ * surfaced by `Agent.health().errorRate`.
+ */
+const engineFault =
+  (host: CycleHost, hook: string) =>
+  (id: string, error: string): void => {
+    logger.warn(`engine.${hook} failed`, { engine: id, error });
+    host.onEngineError?.(id, error);
+  };
+
+const reason = async (
+  host: CycleHost,
+  stimulus: CognitiveStimulus,
+  context: Context
+): Promise<Derivation[]> => {
+  const derivations = await sweepEngines(
+    host.engines,
+    (engine) => engine.reason(stimulus, context),
+    engineFault(host, 'reason')
+  );
+  return derivations.flat();
+};
+
+/** Fail-safe template verbalization when the egress gate rejects or abstains. */
+const verbalizeDerivations = (derivations: Derivation[]): string =>
+  derivations.length > 0
+    ? `Derivations: ${derivations.map((d) => d.term).join('; ')}`
+    : 'No grounded derivations available.';
+
+const narrateStreaming = async (ctx: MacroContext): Promise<void> => {
+  const { host, stimulus, state, stream, opts } = ctx;
+  const tier = opts?.tier ?? host.narrateTier;
+  const cortex = host.cortex;
+  if (cortex) {
+    const s =
+      typeof cortex.synthesizeStream === 'function'
+        ? cortex.synthesizeStream(
+            {
+              stimulus,
+              context: state.context ?? EMPTY_CONTEXT,
+              derivations: state.derivations,
+              tools: motorTools(host),
+              tier,
+            },
+            opts?.signal
+          )
+        : (async function* () {
+            const res = await cortex.synthesize({
+              stimulus,
+              context: state.context ?? EMPTY_CONTEXT,
+              derivations: state.derivations,
+              tools: motorTools(host),
+              tier,
+            });
+            yield { kind: 'text-delta', text: res.text } as ChatStreamEvent;
+          })();
+    state.narrativeText += await collectText(s, (evt) => stream.push(evt));
+    if (!state.narrativeText) state.narrativeText = host.getLastResponse();
+    else if (host.groundednessGate) {
+      const verdict = egressVerdict(
+        await host.groundednessGate(state.narrativeText, stimulus.correlationId)
+      );
+      state.egress = verdict;
+      if (!verdict.grounded) {
+        reportEgressRejection(host, stimulus.correlationId, verdict.score);
+        stream.push({
+          kind: 'text-delta',
+          text: `[egress gate rejected narration${verdict.score !== undefined ? ` (score ${verdict.score.toFixed(2)})` : ''} — falling back to grounded verbalization]`,
+        } as ChatStreamEvent);
+        state.narrativeText = verbalizeDerivations(state.derivations);
+      }
+    } else {
+      host.memory.append({
+        type: 'narrative',
+        payload: state.narrativeText,
+        correlationId: stimulus.correlationId,
+      });
+    }
+  } else {
+    for (const d of state.derivations) {
+      host.memory.append({
+        type: 'derivation',
+        payload: d,
+        correlationId: stimulus.correlationId,
+      });
+    }
+  }
+};
+
+const consolidateMemory = async (ctx: MacroContext): Promise<void> => {
+  const { host, stimulus, state } = ctx;
+  if (host.episodicMemory && state.narrativeText) {
+    await host.episodicMemory.log('response', state.narrativeText, {
+      correlationId: stimulus.correlationId,
+    });
+  }
+  if (host.episodicMemory && stimulus.source === 'chat') {
+    await host.episodicMemory.log('input', stimulus.text, {
+      correlationId: stimulus.correlationId,
+    });
+  }
+};
+
+const act = async (ctx: MacroContext): Promise<Array<{ command: string; result: ToolResult }>> => {
+  const { host, stimulus, state } = ctx;
+  const toolResults: Array<{ command: string; result: ToolResult }> = [];
+  if (host.commandParser && state.narrativeText) {
+    const commands = host.commandParser(state.narrativeText);
+    for (const cmd of commands) {
+      if (cmd.command === 'send') {
+        host.setLastResponse(cmd.args[0] ?? '');
+        continue;
+      }
+
+      const policyCheck = host.policy.checkCommand(cmd.command);
+      if (!policyCheck.allowed) {
+        const result: ToolResult = toolError(policyCheck.reason ?? 'Blocked by policy');
+        toolResults.push({ command: cmd.command, result });
+        continue;
+      }
+
+      const toolArgs: Record<string, unknown> = {
+        args: cmd.args,
+        raw: cmd.raw,
+        command: cmd.command,
+      };
+      const result = await host.motor.execute(cmd.command, toolArgs, {
+        chainId: stimulus.correlationId,
+      });
+      toolResults.push({ command: cmd.command, result });
+      await host.log.append({
+        engine: NAR_ORIGIN,
+        type: 'tool.request',
+        payload: {
+          toolName: cmd.command,
+          args: { args: cmd.args },
+          timeoutMs: SHELL_TIMEOUT_MS,
+        },
+        correlationId: stimulus.correlationId,
+        causationId: state.cid?.id ?? '',
+      });
+      await sweepEngines(
+        host.engines,
+        (engine) => engine.absorb?.(result),
+        engineFault(host, 'absorb')
+      );
+    }
+  }
+  return toolResults;
+};
+
+const record = async (ctx: MacroContext): Promise<void> => {
+  const { host, stimulus, state } = ctx;
+  await host.memory.consolidate(state.cid?.id ?? '');
+  for (const tr of state.toolResults) {
+    host.memory.append({
+      type: 'tool_result',
+      payload: tr,
+      correlationId: stimulus.correlationId,
+    });
+  }
+
+  // Phase A (REFACTOR.todo2): drain the learning bags (decay + pressure-gated
+  // induction/exemplar maintenance) each cycle — best-effort, never blocks.
+  if (host.consolidateLearning && host.consolidation?.enabled !== false) {
+    try {
+      await host.consolidateLearning({ budget: host.consolidation?.budget });
+    } catch {
+      /* consolidation is best-effort; never blocks the cycle */
+    }
+  }
+
+  if (host.traceGrader && state.narrativeText) {
+    try {
+      await host.traceGrader({
+        narration: state.narrativeText,
+        toolCalls: state.toolResults.map((tr) => ({
+          command: tr.command,
+          success: tr.result.success,
+        })),
+        correlationId: stimulus.correlationId,
+        egress: state.egress,
+      });
+    } catch {
+      /* grading is best-effort; never blocks the cycle */
+    }
+  }
+};
+
+const announce = (ctx: MacroContext): void => {
+  const { host, stimulus, state } = ctx;
+  for (const d of state.derivations) {
+    host.emit(
+      mintCognitiveEvent('derivation.made', {
+        engine: NAR_ORIGIN,
+        correlationId: stimulus.correlationId,
+        payload: { rule: '', premises: [], conclusion: d.term },
+      })
+    );
+  }
+  for (const tr of state.toolResults) {
+    host.emit(
+      mintCognitiveEvent('skill.executed', {
+        engine: NAR_ORIGIN,
+        correlationId: stimulus.correlationId,
+        payload: {
+          skill: tr.command,
+          args: [],
+          result: tr.result.success ? 'success' : (tr.result.error ?? 'error'),
+          durationMs: 0,
+        },
+      })
+    );
+  }
+};
+
+const perceivePhase: MacroPhase = async (ctx, next) => {
+  perceive(ctx.host, ctx.stimulus);
+  await next();
+};
+
+const recallPhase: MacroPhase = async (ctx, next) => {
+  const { cid, context } = await recall(ctx.host, ctx.stimulus);
+  ctx.state.cid = cid;
+  ctx.state.context = context;
+  await next();
+};
+
+const reasonPhase: MacroPhase = async (ctx, next) => {
+  ctx.state.derivations = await reason(ctx.host, ctx.stimulus, ctx.state.context ?? EMPTY_CONTEXT);
+  await next();
+};
+
+const narratePhase: MacroPhase = async (ctx, next) => {
+  await narrateStreaming(ctx);
+  await next();
+};
+
+const consolidatePhase: MacroPhase = async (ctx, next) => {
+  await consolidateMemory(ctx);
+  await next();
+};
+
+const actPhase: MacroPhase = async (ctx, next) => {
+  ctx.state.toolResults = await act(ctx);
+  await next();
+};
+
+const recordPhase: MacroPhase = async (ctx, next) => {
+  await record(ctx);
+  await next();
+};
+
+const announcePhase: MacroPhase = async (ctx, next) => {
+  announce(ctx);
+  await next();
+};
+
+export const DEFAULT_MACRO_PIPELINE: MacroPhase[] = [
+  perceivePhase,
+  recallPhase,
+  reasonPhase,
+  narratePhase,
+  consolidatePhase,
+  actPhase,
+  recordPhase,
+  announcePhase,
+];
+
+export const runCycle = async (
+  host: CycleHost,
+  stimulus: CognitiveStimulus,
+  phases: readonly MacroPhase[] = host.macroPipeline ?? DEFAULT_MACRO_PIPELINE
+): Promise<string> => {
+  return drain(runCycleStream(host, stimulus, { pipeline: phases }));
+};
+
+export async function* runCycleStream(
+  host: CycleHost,
+  stimulus: CognitiveStimulus,
+  opts?: {
+    signal?: AbortSignal;
+    tier?: LMTask;
+    pipeline?: readonly MacroPhase[];
+  }
+): AsyncGenerator<ChatStreamEvent, string> {
+  host.setLastResponse('');
+  const ctx = createMacroContext(host, stimulus, opts);
+  const running = (async () => {
+    try {
+      await dispatch(opts?.pipeline ?? host.macroPipeline ?? DEFAULT_MACRO_PIPELINE, ctx);
+    } finally {
+      ctx.stream.close();
+    }
+  })();
+  yield* ctx.stream;
+  await running;
+  return host.getLastResponse() || ctx.state.narrativeText;
+}

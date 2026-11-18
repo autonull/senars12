@@ -87,7 +87,7 @@ export * from './metrics/index.js';
 export * from './nl/index.js';
 
 // Query
-export * from './query/index.js';
+export { MemoryQuery, episodeQualitySurface } from './query/index.js';
 
 // Reflex
 export * from './reflex/index.js';

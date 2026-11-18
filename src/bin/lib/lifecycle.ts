@@ -16,8 +16,8 @@ import {
   resolveEmbeddingGenerator,
   setRouting,
 } from '../../lm/index.js';
-import { EpisodicMemory } from '../../memory/index.js';
-import { type PromotionResult, consolidateEpisodes } from '../../memory/index.js';
+import { EpisodicMemory } from '@senars/nar/memory/episodic';
+import { type PromotionResult, consolidateEpisodes } from '@senars/nar/memory/retrieval-verified';
 import { cachePath, createLogger, envStr, setupGracefulShutdown } from '../../utils/common.js';
 import { type AppConfig, loadConfig } from '../../config/index.js';
 import { readEpisodicConfig } from './env-config.js';

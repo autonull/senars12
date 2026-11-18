@@ -1,0 +1,80 @@
+/**
+ * Protocol schemas barrel
+ */
+
+export {
+  CONNECTION_COLORS,
+  EDGE_LABELS,
+  EDGE_TYPES,
+  edgeTypeLabel,
+  LENS_COLORS_HEX,
+  LENS_DESCRIPTIONS,
+  LENS_FIELDS,
+  LENS_LABELS,
+  type LensFieldDescriptor,
+} from '../agent/constants.js';
+export { AgentCapabilities } from './capabilities.js';
+export {
+  ChatAgentComplete,
+  ChatAgentStream,
+  ChatMessage,
+  ChatUserMsg,
+  LMStatusRequest,
+  LMStatusMsg,
+  LMSwitchMsg,
+} from './chat.js';
+export { ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
+export { UiCommandMsg } from './ui-command.js';
+export {
+  ReasoningSubmitMsg,
+  ReasoningAskMsg,
+  ReasoningStepMsg,
+  ReasoningRunMsg,
+  ReasoningAbortMsg,
+  ReasoningRetractMsg,
+  ReasoningReviseMsg,
+  ReasoningAddGoalMsg,
+  ReasoningAdjustBudgetMsg,
+  ReasoningAdjustProviderMsg,
+  ReasoningControlResponse,
+  type ReasoningSubmit,
+  type ReasoningAsk,
+  type ReasoningStep,
+  type ReasoningRun,
+  type ReasoningAbort,
+  type ReasoningRetract,
+  type ReasoningRevise,
+  type ReasoningAddGoal,
+  type ReasoningAdjustBudget,
+  type ReasoningAdjustProvider,
+} from './reasoning-control.js';
+export { ServerError, type ServerErrorCode } from './error.js';
+export {
+  GraphNodeDataStrict,
+  MettaAtomNode,
+  MettaSkillNode,
+  NarConceptNode,
+} from './graph-nodes.js';
+export type { GraphOpType } from './graph-ops.js';
+export { CognitiveDelta, GraphOp } from './graph-ops.js';
+export { GraphNodeData, GraphNodeDataView, Lens } from './graph-view.js';
+export { NodeHistoryMsg, NodeHistoryRequestMsg } from './history.js';
+export { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './lens-msgs.js';
+export { ObjectSetMsg } from './object-patch.js';
+export {
+  CognitiveEventsMsg,
+  CognitiveMetrics,
+  FocusSet,
+  LensSet,
+  StateSnapshot,
+  SyncRequest,
+  TelemetryMsg,
+  CycleStateMsg,
+  CycleStepMsg,
+  CyclePauseMsg,
+  CycleResumeMsg,
+  CycleRewindMsg,
+} from './sync.js';
+export type { CognitiveMetricsData, TelemetryMetrics } from './sync.js';
+export type { ConfigFieldType } from './unions.js';
+export { IncomingFromClient, IncomingFromServer } from './unions.js';

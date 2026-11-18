@@ -1,8 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ChatStreamEvent } from '../../../agent/index.js';
-import { withinWorkspace } from '../../../agent/index.js';
-import type { NAR } from '../../../agent/index.js';
-import { Truth } from '../../../agent/index.js';
+import { withinWorkspace } from '../../../motor/index.js';
+import type { NAR } from '@senars/nar';
+import { Truth } from '@senars/nar/terms';
 import type { ExtendedAgent as Agent } from '../../../agent/index.js';
 import { resetDemotions } from '../../../lm/index.js';
 import { filterFolded, takeLast, positiveInt, evaluateExpression } from '../../../utils/common.js';

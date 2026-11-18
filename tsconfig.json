@@ -6,8 +6,7 @@
     "types": ["node", "vitest/globals"],
     "rootDir": ".",
     "paths": {
-      "@senars/core": ["./core/src/index.ts"],
-      "@senars/core/*": ["./core/src/*"],
+      
       "@senars/io": ["./io/src/index.ts"],
       "@senars/io/*": ["./io/src/*"],
       "@senars/nar": ["./nar/src/index.ts"],

@@ -2,17 +2,15 @@
  * Budget — budget management (migrated from @senars/core/budget).
  */
 
-export { createBudget } from '@senars/core/budget';
-export { createCapturePhase, DEFAULT_MACRO_PIPELINE } from '@senars/core/agent/phases';
+export { createBudget, snapshotBudget, zeroConsumed, createBudgetSlice, isExhausted, pressure, remainingAll, remainingCycles, type BudgetSlice } from './budget.js';
+export { createCapturePhase, createReflectPhase, DEFAULT_MACRO_PIPELINE } from '../agent/phases.js';
 export {
   ALL_RESOURCES,
   BUDGET_RESOURCES,
-  type BudgetSlice,
   type BudgetLimits,
-  type ConsumedBudget,
   type BudgetResource,
-  isExhausted,
-  pressure,
-  remainingAll,
+  type ConsumedBudget,
   traceDimensions,
-} from '@senars/core/budget';
+} from './budget-resources.js';
+export type { BudgetEventMap } from './budget-events.js';
+export { announceBudgetTrace } from './budget-otel.js';

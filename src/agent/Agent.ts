@@ -1,0 +1,343 @@
+import {
+  appendTextDelta,
+  createLogger,
+  type EpisodicMemory,
+  errMsg,
+  type EventUnsubscribe,
+  generateId,
+  incrementCount,
+  type LMTask,
+  makeId,
+  mapToRecord,
+  Signal,
+  type TraceGrader,
+} from '@senars/util';
+import { ApprovalService } from './ApprovalService.js';
+import { type CycleHost, runCycle, runCycleStream } from './phases.js';
+import type { MacroPhase } from './pipeline.js';
+import type {
+  AgentOptions,
+  CorrelationScopeStore,
+  HealthStatus,
+  ParsedCommand,
+  SkillDefinition,
+} from './types.js';
+import type { ChatOptions, ChatStreamEvent } from './chat.js';
+import type { LLMCortex } from '../cortex/LLMCortex.js';
+import type { CognitiveStimulus, Derivation, Engine } from '../engine/Engine.js';
+import { invokeEngineHook, sweepEngines } from '../engine/sweep.js';
+import type { EventLog } from '../log/index.js';
+import { isDurableEvent } from '../schemas/index.js';
+import { LogStoreEventLog } from '../log/index.js';
+import { MemoryService } from '../memory/index.js';
+import { type PersistableSessionManager, RECALL_WINDOW } from '../memory/types.js';
+import { registerBuiltinTools } from '../motor/builtin-tools.js';
+import { ToolRegistry } from '../motor/ToolRegistry.js';
+import { PolicyEngine } from './PolicyEngine.js';
+import type { AgentCapabilities } from '../protocol/index.js';
+import { NAR_ORIGIN } from '../schemas/event-base.js';
+import { type CognitiveEvent, mintCognitiveEvent } from '../schemas/index.js';
+import type { Connection } from './Transport.js';
+
+export type {
+  AgentOptions,
+  HealthStatus,
+  ParsedCommand,
+  ResolvedAgentOptions,
+  SkillDefinition,
+} from './types.js';
+
+const logger = createLogger({ scope: 'agent', level: 'warn' });
+
+export class Agent {
+  readonly id: string;
+  readonly log: EventLog;
+  readonly memory: MemoryService;
+  readonly engines: Map<string, Engine> = new Map();
+  readonly policy: PolicyEngine;
+  readonly motor: ToolRegistry;
+  readonly approval: ApprovalService;
+  readonly cortex?: LLMCortex;
+  readonly episodicMemory?: EpisodicMemory;
+  readonly sessionManager?: PersistableSessionManager;
+  readonly threadScope?: CorrelationScopeStore;
+
+  readonly #cognitive = new Signal<CognitiveEvent>();
+  #transports = new Map<string, Connection>();
+  #transportHandlers = new Map<string, (msg: { text: string }) => Promise<void>>();
+  #skills = new Map<string, SkillDefinition>();
+  #commandParser?: (text: string) => ParsedCommand[];
+  #groundednessGate?: (
+    narration: string,
+    correlationId: string
+  ) => Promise<boolean | { grounded: boolean; score?: number }>;
+  #traceGrader?: TraceGrader;
+  #narrateTier?: LMTask;
+  #macroPipeline?: MacroPhase[];
+  #consolidateLearning?: (options: { budget?: number }) => Promise<void>;
+  #consolidation?: { enabled?: boolean; budget?: number };
+  #started = false;
+  #cycleCount = 0;
+  #engineErrors = new Map<string, number>();
+  #engineErrorCount = 0;
+  #lastCycleTime = 0;
+  #lastResponse = '';
+  #host?: CycleHost;
+  #durableTail: Promise<unknown> = Promise.resolve();
+  readonly #capabilities: Partial<AgentCapabilities['supports']>;
+
+  constructor(opts: AgentOptions = {}) {
+    this.id = opts.id ?? generateId('agent');
+    if (opts.log) {
+      this.log = opts.log;
+    } else if (opts.logStore) {
+      this.log = new LogStoreEventLog(opts.logStore);
+    } else {
+      throw new Error('Either log or logStore must be provided in AgentOptions');
+    }
+    this.memory = new MemoryService();
+    this.policy = new PolicyEngine();
+    this.motor = new ToolRegistry(opts.feedbackObserver);
+    this.cortex = opts.cortex;
+    this.episodicMemory = opts.episodicMemory;
+    this.sessionManager = opts.sessionManager;
+    this.#commandParser = opts.commandParser;
+    this.#groundednessGate = opts.groundednessGate;
+    this.#traceGrader = opts.traceGrader;
+    this.#narrateTier = opts.narrateTier;
+    this.#macroPipeline = opts.macroPipeline;
+    this.#consolidateLearning = opts.consolidateLearning;
+    this.#consolidation = opts.consolidation;
+    this.threadScope = opts.threadScope;
+    this.#capabilities = opts.capabilities ?? {};
+
+    this.memory.connectLog(this.log);
+    this.memory.connectEngines(this.engines);
+    this.memory.connectMotor(this.motor);
+
+    const approvalService = new ApprovalService();
+    this.approval = approvalService;
+
+    if (opts.builtinTools !== false) {
+      registerBuiltinTools(this.motor, approvalService, {
+        episodic: this.episodicMemory,
+        metta: opts.mettaExecutor,
+        pins: opts.pinStore,
+      });
+    }
+  }
+
+  registerEngine(id: string, engine: Engine): void {
+    this.engines.set(id, engine);
+    this.memory.connectEngines(this.engines);
+  }
+
+  async cycle(stimulus: CognitiveStimulus): Promise<string> {
+    this.#cycleCount++;
+    this.#lastCycleTime = Date.now();
+    return runCycle(this.#cycleHost(), stimulus);
+  }
+
+  submit(input: string, correlationId: string): void {
+    this.#emitCognitive(
+      mintCognitiveEvent('input.user', {
+        engine: NAR_ORIGIN,
+        correlationId,
+        payload: { text: input, source: 'transport' },
+      })
+    );
+  }
+
+  mount(transport: Connection): void {
+    const handler = async (message: { text: string }) => {
+      const correlationId = makeId();
+      this.submit(message.text, correlationId);
+    };
+    transport.onMessage(handler);
+    this.#transportHandlers.set(transport.id, handler);
+    this.#transports.set(transport.id, transport);
+  }
+
+  unmount(idOrTransport: string | Connection): void {
+    const id = typeof idOrTransport === 'string' ? idOrTransport : idOrTransport.id;
+    const transport = this.#transports.get(id);
+    if (!transport) return;
+    const handler = this.#transportHandlers.get(id);
+    if (handler) {
+      transport.removeMessageHandler(handler);
+      this.#transportHandlers.delete(id);
+    }
+    this.#transports.delete(id);
+  }
+
+  on(_event: string | '*', handler: (e: CognitiveEvent) => void): EventUnsubscribe {
+    return this.#cognitive.on(handler);
+  }
+
+  off(_event: string | '*', handler: (e: CognitiveEvent) => void): void {
+    this.#cognitive.off(handler);
+  }
+
+  emitCognitive(event: CognitiveEvent): void {
+    this.#emitCognitive(event);
+  }
+
+  registerSkill(name: string, def: { execute(...args: unknown[]): unknown }): void {
+    this.#skills.set(name, { name, ...def });
+  }
+
+  capabilities(): AgentCapabilities {
+    return {
+      engine: 'nar',
+      supports: {
+        chat: true,
+        beliefs: true,
+        drives: false,
+        skills: true,
+        ltm: true,
+        rlfp: false,
+        selfReasoning: false,
+        autonomyLoop: false,
+        ...this.#capabilities,
+      },
+    };
+  }
+
+  health(): HealthStatus {
+    const byEngine = mapToRecord(this.#engineErrors);
+    return {
+      status: this.#started ? 'healthy' : 'stuck',
+      lastCycle: this.#lastCycleTime,
+      cycleCount: this.#cycleCount,
+      errorRate: this.#cycleCount ? this.#engineErrorCount / this.#cycleCount : 0,
+      byEngine,
+    };
+  }
+
+  /** Per-engine fault tally for `health()`; a cycle with no faults reports zero. */
+  onEngineError(engineId: string): void {
+    this.#engineErrorCount++;
+    incrementCount(this.#engineErrors, engineId);
+  }
+
+  async start(): Promise<void> {
+    if (this.#started) return;
+    this.#started = true;
+    await sweepEngines(this.engines, (engine) => invokeEngineHook(engine, 'initialize'));
+    await this.memory.load();
+    await this.sessionManager?.restore();
+  }
+
+  async stop(): Promise<void> {
+    if (!this.#started) return;
+    this.#started = false;
+    await this.flushDurable();
+    await this.sessionManager?.snapshot();
+    await this.memory.persist();
+    for (const [id, transport] of this.#transports) {
+      this.unmount(id);
+      await transport.disconnect('agent stopping');
+    }
+    await sweepEngines(this.engines, (engine) => invokeEngineHook(engine, 'shutdown'));
+  }
+
+  async *chat(input: string, opts?: ChatOptions): AsyncGenerator<ChatStreamEvent, string> {
+    const correlationId = makeId();
+    const stimulus: CognitiveStimulus = {
+      text: input,
+      source: 'chat',
+      timestamp: Date.now(),
+      correlationId,
+    };
+    if (opts?.signal?.aborted) {
+      yield { kind: 'aborted' };
+      return '';
+    }
+
+    let finalText = '';
+    for await (const evt of runCycleStream(this.#cycleHost(), stimulus, opts)) {
+      yield evt;
+      finalText = appendTextDelta(finalText, evt);
+    }
+    if (!finalText) {
+      finalText = `[agent] ${input}`;
+      yield { kind: 'text-delta', text: finalText };
+    }
+    yield { kind: 'finish', text: finalText };
+    return finalText;
+  }
+
+  getRecentDerivations(): Derivation[] {
+    return this.memory
+      .recent(RECALL_WINDOW)
+      .filter((e) => e.type === 'derivation')
+      .map((e) => e.payload as Derivation);
+  }
+
+  /**
+   * The cycle's view of this agent, built once.
+   *
+   * Every field is `readonly` or read through a closure over `this`, so the record
+   * stays correct for the agent's lifetime — and it was previously rebuilt as a
+   * twenty-field object with five fresh closures on *every* cycle and every chat
+   * turn, two of which are the hottest entry points in the package. The one field
+   * a caller can replace afterwards is `macroPipeline`, so that setter drops it.
+   */
+  #cycleHost(): CycleHost {
+    this.#host ??= {
+      log: this.log,
+      memory: this.memory,
+      engines: this.engines,
+      policy: this.policy,
+      motor: this.motor,
+      cortex: this.cortex,
+      episodicMemory: this.episodicMemory,
+      commandParser: this.#commandParser,
+      groundednessGate: this.#groundednessGate,
+      traceGrader: this.#traceGrader,
+      narrateTier: this.#narrateTier,
+      macroPipeline: this.#macroPipeline,
+      consolidateLearning: this.#consolidateLearning,
+      consolidation: this.#consolidation,
+      threadScope: this.threadScope,
+      emit: (e) => this.#emitCognitive(e),
+      onEngineError: (engineId) => this.onEngineError(engineId),
+      getLastResponse: () => this.#lastResponse,
+      setLastResponse: (v) => {
+        this.#lastResponse = v;
+      },
+    };
+    return this.#host;
+  }
+
+  #emitCognitive(event: CognitiveEvent): void {
+    this.#cognitive.emit(event);
+    this.#persistDurable(event);
+  }
+
+  /**
+   * Fold the single emit funnel into the durable log (D11). The append is
+   * serialized on one tail so the log keeps emit order, and a failure is logged
+   * rather than swallowed — durability is not a no-op. Only the declared families
+   * are kept; the family sets live in `eventlog/durability.ts`.
+   */
+  #persistDurable(event: CognitiveEvent): void {
+    if (!isDurableEvent(event)) return;
+    this.#durableTail = this.#durableTail
+      .then(() => this.log.append(event))
+      .catch((error: unknown) => {
+        logger.warn('durable append failed', { type: event.type, error: errMsg(error) });
+      });
+  }
+
+  /** Await every in-flight durable append. Tests and shutdown use this to read the settled log. */
+  async flushDurable(): Promise<void> {
+    await this.#durableTail;
+  }
+
+  /** Phase A (REFACTOR.todo1): install a custom macro pipeline (e.g. dialogue Capture phase). */
+  setMacroPipeline(phases: MacroPhase[]): void {
+    this.#macroPipeline = phases;
+    this.#host = undefined;
+  }
+}

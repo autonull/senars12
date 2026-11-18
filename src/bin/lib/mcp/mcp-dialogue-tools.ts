@@ -1,5 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { EpisodicMemory } from '../../../memory/index.js';
+import type { EpisodicMemory } from '@senars/nar/memory/episodic';
 import type { DialogueCapture as DialogueCaptureType } from '../../../dialogue/index.js';
 import { retrospect, selectProbes } from '../../../dialogue/index.js';
 import { parseJsonOr, type ReadOnlyLookup, takeLast, unique } from '../../../utils/common.js';
