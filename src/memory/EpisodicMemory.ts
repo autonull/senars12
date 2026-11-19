@@ -9,15 +9,15 @@ import {
   type Clock,
   cachePath,
   containsFolded,
-  EPISODE_TYPES,
   flatUnique,
   foldNeedle,
   getOrInsert,
   rankBy,
-  sortableIdSource,
   systemClock,
   takeLast,
 } from '@senars/util';
+import { EPISODE_TYPES } from '../types/episodic-memory.js';
+import { sortableIdSource } from '@senars/util/id';
 import {
   BaseLedgerEntrySchema,
   createLedger,

@@ -110,15 +110,14 @@ export type {
   AgentOptions,
   AuthDecision,
   BridgeOptions,
-  HealthLevel,
   HealthStatus,
   ParsedCommand,
   SkillDefinition,
 } from '../types/agent.js';
-export { HEALTH_STATUSES } from '../types/agent.js';
-export type { CapabilityRisk } from '../types/capability.js';
+/** @public Health status levels. */
+export { HEALTH_STATUSES, type HealthLevel } from './health-status.js';
 /** @public The shared capability risk vocabulary. */
-export { CAPABILITY_RISKS, CapabilityRiskSchema } from '../types/capability.js';
+export { CAPABILITY_RISKS, CapabilityRiskSchema, type CapabilityRisk } from './capability-risk.js';
 export type {
   AgentTrace,
   BandDecision,
@@ -128,7 +127,6 @@ export type {
   Context,
   Derivation,
   EgressVerdict,
-  EngineOrigin,
   GroundednessGate,
   TracedToolCall,
   TraceGrader,
@@ -141,11 +139,12 @@ export {
   bandOrdinal,
   COGNITIVE_AXES,
   CognitiveAxisSchema,
-  ENGINE_ORIGINS,
   egressVerdict,
   JUDGMENT_SHAPES,
   JudgmentShapeSchema,
-} from '../types/cognitive.js';
+} from './cognitive-schemas.js';
+/** @public Engine origin discriminants. */
+export { ENGINE_ORIGINS, type EngineOrigin, PROPOSER_ORIGIN, NAR_ORIGIN } from './origins.js';
 /** @public Engine contract and identifiers. */
 export type { Engine, EngineId } from '../types/engine.js';
 /** @public The one tool outcome shape and its two constructors. */
@@ -226,22 +225,25 @@ export type { BeliefTruth, Confidence, Frequency, TermTruth, TruthLike } from '.
 /** @public Truth value constructors. */
 export {
   asBeliefTruth,
-  BeliefTruthSchema,
-  confidenceToWeight,
   formatNarseseTruth,
   formatTruth,
   parseNarseseTruth,
   parseTruthLiteral,
   serializeTruth,
   stripTruthSuffix,
-  TermTruthSchema,
   toConfidence,
   toFrequency,
   toTermTruth,
-  WEIGHT_AT_CERTAINTY,
-  weakenConfidence,
-  weightToConfidence,
 } from '../types/truth.js';
+/** @public Truth schemas. */
+export { BeliefTruthSchema, TermTruthSchema } from './truth-schema.js';
+/** @public Truth algebra (confidence/weight conversion, weakening). */
+export {
+  WEIGHT_AT_CERTAINTY,
+  confidenceToWeight,
+  weightToConfidence,
+  weakenConfidence,
+} from './truth-algebra.js';
 // Utils
 /** @public Assertion helpers. */
 export { assertDefined, invariant } from './assert.js';
@@ -527,7 +529,6 @@ export {
   foldNeedle,
   isNarsese,
   limitList,
-  NARSESE_ATOM_CHARS,
   overlapCount,
   splitLines,
   splitWords,
@@ -537,6 +538,7 @@ export {
   truncateBytes,
   wordOverlap,
 } from './text.js';
+export { NARSESE_ATOM_CHARS } from './alphabet.js';
 /** @public Structural unification over an arbitrary term AST (Narsese, MeTTa). */
 export type {
   EqualityDialect,

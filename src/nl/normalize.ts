@@ -1,4 +1,5 @@
-import { escapeRegExp, getOrInsert, LruCache, splitWords } from '@senars/util';
+import { escapeRegExp } from '@senars/util/text';
+import { getOrInsert, LruCache, splitWords } from '@senars/util';
 import type { Term } from '../terms';
 import { COPULA_SYMBOLS, isValidAtomSymbol, termParser, toAtomSymbol } from '../terms';
 

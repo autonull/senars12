@@ -16,7 +16,7 @@
 
 import type { Term } from '../types.js';
 import { termKey } from './accessors.js';
-import { KeyedCollection } from '@senars/util';
+import { KeyedCollection } from '@senars/util/keyed-collection';
 
 export abstract class TermCollection<T> extends KeyedCollection<Term, T, string> {
   protected deriveKey(key: Term): string {

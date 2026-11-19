@@ -73,6 +73,7 @@ export interface UnifyOptions {
 }
 
 export type Substitution<T> = ReadonlyMap<string, T>;
+export type UnifierSubstitution<T> = Substitution<T>;
 
 /** Depth cap for the occurs check and variable dereferencing. */
 const MAX_DEPTH = 64;

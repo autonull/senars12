@@ -5,8 +5,8 @@ import {
   createLogger,
   formatTruth,
   type TermTruth,
-  TermTruthSchema,
 } from '@senars/util';
+import { TermTruthSchema } from '@senars/util/truth-schema';
 import { type ZodSchema, z } from 'zod';
 import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';

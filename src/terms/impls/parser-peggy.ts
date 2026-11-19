@@ -9,7 +9,7 @@ import {
   TOLERANT_PUNCTUATIONS,
   taskTypeForPunctuation,
 } from '@senars/schemas';
-import { type BeliefTruth, createLogger, errMsg, stripTruthSuffix } from '@senars/util';
+import { type BeliefTruth, errMsg, stripTruthSuffix } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import type { Term } from '../types.js';
 import { TermFactory } from './factory.js';
@@ -20,6 +20,10 @@ const peggyModule: {
   parse: (input: string, options?: unknown) => unknown;
 } = require('../peggy-generated.cjs');
 const peggyParse = peggyModule.parse;
+
+const log = {
+  error: (msg: string, err: Error) => console.error(`[narsese] ${msg}`, err),
+};
 
 export interface ParserResult {
   term: Term;
@@ -176,8 +180,6 @@ export class TermParser {
 }
 
 export const termParser = new TermParser();
-
-const log = createLogger({ scope: 'narsese' });
 
 export const deserializeTerm = (s: string): Term | null => {
   try {

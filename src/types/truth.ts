@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import { unitInterval } from '../config/boundary.js';
-import { clamp, clamp01, softSquash } from '../util/numeric.js';
+import { clamp, clamp01 } from '../util/numeric.js';
+import {
+  WEIGHT_AT_CERTAINTY,
+  confidenceToWeight,
+  weightToConfidence,
+  weakenConfidence,
+} from '../util/truth-algebra.js';
+import { BeliefTruthSchema, TermTruthSchema } from '../util/truth-schema.js';
 
 export type Frequency = number & { readonly __brand: unique symbol };
 export type Confidence = number & { readonly __brand: unique symbol };
@@ -15,78 +22,12 @@ export function toConfidence(value: number): Confidence {
 
 export type BeliefTruth = { frequency: number; confidence: number };
 
-/**
- * The confidence ↔ weight mapping, in both directions.
- *
- * NAL aggregates confidence additively by converting it to a non-negative
- * weight, summing, and converting back — an interval sum on the weights is what
- * makes revision associative, and nothing of the kind exists on the confidences
- * themselves. Both directions used to be written out twice, once in the engine's
- * truth algebra and once in the verifier that checks the engine's own derivation
- * records, and the duplication was worse than the maintenance: the two copies
- * carried a shared sentinel — the stand-in for a confidence of exactly 1, whose
- * weight is unbounded — and a sentinel transcribed twice is a divergence waiting
- * for the first revision that saturates.
- *
- * Sharing the curves costs the verifier nothing. It still transcribes the whole
- * truth table, which is where the independence a verifier needs actually lives;
- * a shared `w / (w + 1)` says both sides perform one multiplication, and says
- * nothing about whether they read the same rules.
- */
-
-/**
- * Weight a confidence of exactly 1 would carry, which is unbounded. Revision
- * with a certain premise saturates here rather than at infinity, so the sum
- * stays finite and the round trip back lands on a confidence the domain accepts.
- */
-export const WEIGHT_AT_CERTAINTY = 1e10;
-
-/** The weight a confidence `c` carries — the odds ratio, saturated at {@link WEIGHT_AT_CERTAINTY}. */
-export const confidenceToWeight = (c: number): number =>
-  c === 1 ? WEIGHT_AT_CERTAINTY : c / (1 - c);
-
-/** The confidence a weight `w` carries — the exact inverse of {@link confidenceToWeight}. */
-export const weightToConfidence = (w: number): number => softSquash(w);
-
-/**
- * A confidence reduced toward zero by `factor` and re-clamped — the NAL
- * weakening rule `c / (c + k)`. Ageing and weakening both land here, so the
- * curve they share is stated once rather than in each rule that uses it.
- */
-export const weakenConfidence = (c: number, factor: number): number =>
-  clamp(softSquash(c, factor), 0, 1);
-
 /** A `Truth` value in plain fields — the `{ f, c }` shape the engine speaks before
  *  `Truth` wraps it, and the half of {@link TruthLike} that has no declared name. */
 export type TermTruth = { f: number; c: number };
 
-/**
- * The runtime guard for {@link TermTruth}, paired with {@link BeliefTruthSchema}.
- *
- * The `f`/`c` pair crosses an untrusted boundary wherever an LM's structured
- * output or a remote manifold's reply carries truth, and those crossings had
- * spelled the object out inline — twice in one validator, without the `0..1`
- * bound the belief side has always declared.
- */
-export const TermTruthSchema = z.object({
-  f: unitInterval,
-  c: unitInterval,
-});
-
 /** Either truth shape in the system: a `Truth` value (f/c) or a belief's truth (frequency/confidence). */
 export type TruthLike = TermTruth | BeliefTruth;
-
-/**
- * The runtime guard for {@link BeliefTruth}, and the one place a truth value's
- * `0..1` bound is declared. The kernel's event payloads, its derivation
- * records, and the chat protocol all carry truth across an untrusted boundary;
- * three of them had spelled this object out inline, one of them without the
- * bound.
- */
-export const BeliefTruthSchema = z.object({
-  frequency: unitInterval,
-  confidence: unitInterval,
-});
 
 /**
  * The two projections between the system's two truth spellings, and the only

@@ -42,17 +42,17 @@ export async function runDerivationBenchmarks(
   const costs = new Map<string, DerivationCost>();
   const unsubscribe = nar.getSystemEventBus().on('rule:applied', (e: unknown) => {
     const event = e as NAREventMap['rule:applied'];
-    const key = `${e.ruleId}\u0000${String(e.conclusion)}`;
+    const key = `${event.ruleId}\u0000${String(event.conclusion)}`;
     const row = costs.get(key) ?? {
-      conclusion: String(e.conclusion),
-      rule: e.ruleId,
+      conclusion: String(event.conclusion),
+      rule: event.ruleId,
       calls: 0,
       cpuMs: 0,
       durationMs: 0,
     };
     row.calls++;
-    row.cpuMs += e.cpuMs ?? 0;
-    row.durationMs += e.duration ?? 0;
+    row.cpuMs += event.cpuMs ?? 0;
+    row.durationMs += event.duration ?? 0;
     costs.set(key, row);
   });
   try {

@@ -8,10 +8,6 @@
  * all three places — `low` may take effect unattended, `medium` waits for
  * validation, `high` waits for a human — which is what lets them be one type.
  */
-import { z } from 'zod';
+import { CAPABILITY_RISKS, CapabilityRiskSchema, type CapabilityRisk } from '../util/capability-risk.js';
 
-export const CAPABILITY_RISKS = ['low', 'medium', 'high'] as const;
-
-export const CapabilityRiskSchema = z.enum(CAPABILITY_RISKS);
-
-export type CapabilityRisk = (typeof CAPABILITY_RISKS)[number];
+export { CAPABILITY_RISKS, CapabilityRiskSchema, type CapabilityRisk };

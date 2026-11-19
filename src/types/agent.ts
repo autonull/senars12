@@ -11,9 +11,9 @@ export interface ParsedCommand {
  * third spelling reaching the log and a reader of the log had no way to know
  * which four words were meant.
  */
-export const HEALTH_STATUSES = ['healthy', 'degraded', 'stuck', 'crashed'] as const;
+import { HEALTH_STATUSES, type HealthLevel } from '../util/health-status.js';
 
-export type HealthLevel = (typeof HEALTH_STATUSES)[number];
+export { HEALTH_STATUSES, type HealthLevel };
 
 export interface HealthStatus {
   readonly status: HealthLevel;

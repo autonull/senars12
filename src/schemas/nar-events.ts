@@ -7,7 +7,7 @@
  * discriminated union in `cognitive-events.ts` alongside the kernel's.
  */
 
-import { HEALTH_STATUSES } from '@senars/util';
+import { HEALTH_STATUSES } from '@senars/util/health-status';
 import { z } from 'zod';
 import { CognitiveEventBaseSchema } from './event-base.js';
 import { TruthValueSchema } from './truth.js';

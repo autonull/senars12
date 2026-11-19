@@ -4,6 +4,7 @@
  * answer each across the repo rather than one each here.
  */
 import { safeRatio } from './numeric.js';
+import { NARSESE_ATOM_CHARS } from './alphabet.js';
 
 /** The one event shape that carries chat text; a stream is otherwise passed through. */
 export type TextDeltaCarrier = { readonly kind: string; readonly text?: string };
@@ -120,19 +121,6 @@ export const wordOverlap = (a: string, b: string, splitPattern?: RegExp): number
   const bWords = tokenizeWords(b, splitPattern);
   return safeRatio(overlapCount(aWords, bWords), Math.max(aWords.size, bWords.size));
 };
-
-/**
- * The characters a bare Narsese atom symbol may contain. The grammar's authority on
- * which of these `createAtom` accepts lives one layer up, but the alphabet itself is
- * lexical, and three sanitizers had each hardcoded their own copy of it — one of them
- * keeping a character the factory rejects, another silently deleting the `^` operator
- * marker, which mints a different term rather than refusing one.
- *
- * Variables (`? $ # * %`) and quoted atoms are grammar concerns, not alphabet concerns,
- * so neither appears here.
- */
-export const NARSESE_ATOM_CHARS =
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_^';
 
 /** Character class over {@link NARSESE_ATOM_CHARS}, hoisted so the pattern is not
  * recompiled per call. Only safe to derive while the alphabet holds no `]`, `\` or `-`. */

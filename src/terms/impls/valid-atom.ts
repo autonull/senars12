@@ -8,7 +8,7 @@
  * `nar` and one in `util` had each inlined a variant. What lives here is the
  * grammar's judgement about that alphabet: what `createAtom` will accept.
  */
-import { NARSESE_ATOM_CHARS } from '@senars/util';
+import { NARSESE_ATOM_CHARS } from '@senars/util/alphabet';
 
 export const VALID_ATOM_CHARS = NARSESE_ATOM_CHARS;
 

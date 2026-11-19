@@ -8,7 +8,7 @@
  * than conventional.
  */
 
-import { ENGINE_ORIGINS } from '@senars/util';
+import { ENGINE_ORIGINS } from '@senars/util/origins';
 import { timestamp } from '@senars/util/config';
 import { z } from 'zod';
 

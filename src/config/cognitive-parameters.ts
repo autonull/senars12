@@ -1,5 +1,9 @@
-import { createLogger, deepEqual, deepFreeze, deepMerge, errMsg, keyedBy } from '@senars/util';
-import { cognitiveBound, cognitiveBounds, validateAgainstBounds } from '@senars/util/config';
+import { createLogger } from '@senars/util/logger';
+import { deepEqual, deepFreeze, deepMerge } from '@senars/util/object';
+import { errMsg } from '@senars/util/error';
+import { keyedBy } from '@senars/util/collections';
+import { cognitiveBound, cognitiveBounds } from './cognitive-bounds.js';
+import { validateAgainstBounds } from './bounds.js';
 import { type BagSlotParams, bagSlotErrors } from '../bag/registration';
 import {
   type StrategyCatalog,
