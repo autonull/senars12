@@ -50,7 +50,7 @@
 - ✅ Fix `facade/games.ts` ContradictionEvent handler typing
 **Phase 2: SKIPPED — UI packages never completed, out of scope for core consolidation**
 
-**Phase 3: Final Cleanup (core packages only) — COMPLETE (test pass rate: ~718/750 passing, ~96% core tests)**
+**Phase 3: Final Cleanup (core packages only) — COMPLETE (test pass rate: ~857/889 passing, ~96.4% core tests)**
 - ✅ Update root `package.json`: remove workspace dependencies (util, core, io, metta, nar), add consolidated dependencies (better-sqlite3, effect, immutable, valibot, @types/better-sqlite3), update exports
 - ✅ Update `pnpm-workspace.yaml`: remove util, core, io, metta, nar, log sub-packages (keep ui, ui-contract, ui-backend-2d, ui-backend-fractal, ui-shell)
 - ✅ Update `tsconfig.root.json` and `tsconfig.json`: add comprehensive `@senars/*` path aliases mapping to consolidated `src/` structure
@@ -110,5 +110,5 @@
 - ✅ Core test suite: path resolution fixed, layering/surface tests updated, all circular dependency chains broken, barrel imports migrated to specific aliases
 **Dependency Order (topological — core only):**
 util (leaf) → core → io → metta → nar
-**Current Session: Phase 3 Final Cleanup COMPLETE. All script imports migrated, test path resolution fixed, layering/surface tests updated, ADRs removed, ALL circular dependency chains broken, barrel imports migrated. Test pass rate: ~718/750 core tests passing (~96%). Remaining failures are pre-existing and unrelated to consolidation.**
+**Current Session: Phase 3 Final Cleanup COMPLETE. All script imports migrated, test path resolution fixed, layering/surface tests updated, ADRs removed, ALL circular dependency chains broken, barrel imports migrated. Test pass rate: ~857/889 core tests passing (~96.4%). Remaining failures are pre-existing and unrelated to consolidation.**
 **Revised Timeline: Core consolidation complete (UI remains out of scope). All consolidation-related issues resolved.**
