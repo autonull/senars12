@@ -4,8 +4,8 @@
 import { MessageRoleSchema } from '@senars/types/memory';
 import { nonEmpty } from '@senars/util/config';
 import { z } from 'zod';
-import { TaskPunctuationSchema } from '../schemas/task.js';
-import { TruthValueSchema } from '../schemas/truth.js';
+import { TaskPunctuationSchema } from '@senars/schemas/task';
+import { BeliefTruthSchema as TruthValueSchema } from '@senars/util/truth-schema';
 import { msg } from './envelope.js';
 
 export const ChatMessage = z.object({

@@ -15,7 +15,7 @@ import { AutonomyModeSchema, permitsExecution } from '@senars/schemas/governance
 import { addToSet, pushCapped } from '@senars/util/collections';
 import type { BoundedMap } from '@senars/util/bounded-map';
 import { makeId } from '@senars/util/id';
-import { SenarsError } from '@senars/util/errors';
+import { SenarsError } from '@senars/errors';
 import { GATE_LOG_CAPACITY } from './event-ring.js';
 import { KernelGate, projectOutcome } from './gate-base.js';
 

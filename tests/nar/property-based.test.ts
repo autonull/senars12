@@ -219,7 +219,7 @@ describe('Property-Based Tests', () => {
           for (let v = 0; v < 100; v++) {
             items.add({ id: `item${v}`, priority: v });
           }
-          expect(items.size()).toBeLessThanOrEqual(capacity);
+          expect(items.size).toBeLessThanOrEqual(capacity);
         })
       );
     });
@@ -230,9 +230,9 @@ describe('Property-Based Tests', () => {
       items.add({ id: 'mid', priority: 0.5 });
       items.add({ id: 'high', priority: 0.9 });
       items.add({ id: 'incoming', priority: 0.3 });
-      const kept = items.toArray();
-      expect(kept).not.toContainEqual({ id: 'low', priority: 0.1 });
-      expect(kept).toContainEqual({ id: 'high', priority: 0.9 });
+      const kept = items.all();
+      expect(kept.some((k) => k.id === 'low')).toBe(false);
+      expect(kept.some((k) => k.id === 'high' && k.priority === 0.9)).toBe(true);
     });
   });
 

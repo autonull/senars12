@@ -10,7 +10,7 @@
 
 import { clamp } from '@senars/util/numeric';
 import { joinKey, splitKey } from '@senars/util/collections';
-import { SenarsError } from '@senars/util/errors';
+import { SenarsError } from '@senars/errors';
 
 import type { ParameterLedger, ParameterRecord } from './parameter-ledger.js';
 

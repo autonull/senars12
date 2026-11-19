@@ -1,5 +1,5 @@
 import { errMsg } from '@senars/util/error';
-import { withRetry } from '@senars/util/retry';
+import { retry, withRetry as utilWithRetry } from '@senars/util/retry';
 import { type LMTask } from '@senars/types/llm.js';
 import { SenarsError } from '@senars/errors';
 
@@ -49,7 +49,7 @@ export const withRetry = async <T>(
   task: LMTask,
   retries = 2
 ): Promise<T> =>
-  retry(fn, {
+  utilWithRetry(fn, {
     retries,
     baseMs: 250,
     isRetryable: isTransportError,

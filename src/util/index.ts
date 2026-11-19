@@ -185,7 +185,7 @@ export type {
   MockLMConfig,
   ModelRuleStats,
 } from '../types/llm.js';
-export { CIRCUIT_STATES, createLMStats, LM_TASKS, recordLMCall } from '../types/llm.js';
+export { CIRCUIT_STATES, LM_TASKS } from '../types/llm.js';
 /** @public Session/memory manager contracts. */
 export type {
   ConversationSession,

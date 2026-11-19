@@ -10,6 +10,14 @@
  * that needs one contract imports that module rather than this barrel, and a
  * module that grows a field cannot silently widen a sibling's.
  */
+/** Truth schemas — imported first to break circular dependency with cognitive-events → proposal → truth. */
+export type { CeilingLimits, CeilingReputation, SourceQuality, TruthValue } from './truth.js';
+export {
+  confidenceCeiling,
+  SOURCE_QUALITY_CONFIDENCE,
+  SourceQualitySchema,
+  TruthValueSchema,
+} from './truth.js';
 export type {
   AutonomyModeChangedEvent,
   BeliefRevisedEvent,
@@ -146,12 +154,11 @@ export {
   PROPOSAL_KINDS,
   PROPOSAL_REJECTIONS,
   PROPOSAL_SCHEMA_VERSION,
-  ProposalAdmittedEventSchema,
-  ProposalRejectedEventSchema,
   ProposalSchema,
   RuleProposalSchema,
   validateProposal,
 } from './proposal.js';
+export { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal-events.js';
 export type {
   BudgetScopeId,
   BudgetType,
@@ -200,13 +207,6 @@ export {
   TOLERANT_PUNCTUATIONS,
   taskTypeForPunctuation,
 } from './task.js';
-export type { CeilingLimits, CeilingReputation, SourceQuality, TruthValue } from './truth.js';
-export {
-  confidenceCeiling,
-  SOURCE_QUALITY_CONFIDENCE,
-  SourceQualitySchema,
-  TruthValueSchema,
-} from './truth.js';
 
 /**
  * Which cognitive events the append-only log keeps, and which of those episodic

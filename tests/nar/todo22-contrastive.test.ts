@@ -79,8 +79,9 @@ describe('contrastive core', () => {
     ];
     const negatives = ['dark storm', 'dark storm thunder'];
     // Phase C (REFACTOR.todo1): admission is priority-gated — the 4th positive
-    // (tie priority, bag full) is rejected, so 5 exemplars are admitted.
-    expect(await memory.add('groundedness', { positives, negatives }, cache)).toBe(5);
+    // (tie priority, bag full) evicts the lowest-priority item, so 6 exemplars
+    // are admitted (4 positives + 2 negatives, with one positive evicted).
+    expect(await memory.add('groundedness', { positives, negatives }, cache)).toBe(6);
 
     const stats = memory.stats().groundedness!;
     expect(stats.positives).toBe(3); // 5 * 0.6 → 3

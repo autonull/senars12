@@ -31,7 +31,7 @@
 import type { CognitiveEvent, ProposalRejection, RuleDeclaration } from '@senars/schemas/cognitive-events.js';
 import { PROPOSAL_SCHEMA_VERSION } from '@senars/schemas/proposal.js';
 import { unique } from '@senars/util/collections';
-import { SenarsError } from '@senars/util/errors';
+import { SenarsError } from '@senars/errors';
 
 /** One admission, as the log states it. */
 export interface ReplayedAdmission {

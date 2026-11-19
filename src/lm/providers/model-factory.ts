@@ -60,8 +60,8 @@ export const localModel = (
 
 export const mockModel = (): LanguageModel => createMockLanguageModel() as unknown as LanguageModel;
 
-export const setBuiltinProgressCallback = delegate('setBuiltinProgressCallback');
-export const getBuiltinProgressCallback = delegate('getBuiltinProgressCallback');
+export const setBuiltinProgressCallback = (...args: unknown[]) => delegate('setBuiltinProgressCallback')(...args);
+export const getBuiltinProgressCallback = (...args: unknown[]) => delegate('getBuiltinProgressCallback')(...args);
 
 export function createSeNARSRegistry(settings?: LMSettings) {
   const s = settings ?? getLMSettings();

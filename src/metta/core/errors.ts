@@ -9,7 +9,7 @@
  * token, an arity, a step limit. The runtime raises the reasons; the shared
  * taxonomy carries the class.
  */
-import { SenarsError } from '@senars/util/errors';
+import { SenarsError } from '@senars/errors';
 
 export enum MeTTaReason {
   UNEXPECTED_TOKEN = 'UNEXPECTED_TOKEN',

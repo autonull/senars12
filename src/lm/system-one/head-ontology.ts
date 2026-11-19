@@ -11,8 +11,19 @@
  * `feasibility` twice and had never heard of `episodic_match`.
  */
 
-import { SourceQualitySchema } from '@senars/schemas/truth.js';
 import { TASK_TYPES } from '@senars/schemas/task.js';
+import { z } from 'zod';
+
+/** Local copy of SourceQualitySchema to avoid module evaluation order issues. */
+const SourceQualitySchema = z.enum([
+  'PRIMARY',
+  'SECONDARY',
+  'GENERAL',
+  'TERTIARY',
+  'LLM_PRIOR',
+  'PEER_AGENT',
+  'SELF_METTA',
+]);
 import type {
   CognitiveAxis,
   CriticalityLevel,

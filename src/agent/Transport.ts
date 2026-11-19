@@ -7,7 +7,7 @@
  * catchable as either the class or the `CONNECTION_ERROR` code.
  */
 
-export { ConnectionError } from '@senars/util/errors';
+export { ConnectionError } from '@senars/errors';
 export type {
   Connection,
   ConnectionConfig,

@@ -8,7 +8,7 @@ import type { CapabilityRisk } from '../util';
 import { nonNegativeInt, unitInterval, uuid, validatorFor } from '../config';
 import { z } from 'zod';
 import { TaskTypeSchema } from './task.js';
-import { TruthValueSchema } from './truth.js';
+import { BeliefTruthSchema as TruthValueSchema } from '../util/truth-schema.js';
 
 /** What can be ambiguous about a parse. The LM's ambiguity schema and the kernel's
  *  flag schema named four of these eight, so four kinds of real ambiguity were

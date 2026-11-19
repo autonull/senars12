@@ -4,7 +4,7 @@
 
 import { unitInterval } from '@senars/util/config';
 import { z } from 'zod';
-import { TruthValueSchema } from '../schemas/truth.js';
+import { BeliefTruthSchema as TruthValueSchema } from '@senars/util/truth-schema';
 import { msg } from './envelope.js';
 
 export const ObjectSetMsg = msg('object.set', {

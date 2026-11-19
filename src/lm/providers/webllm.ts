@@ -1,9 +1,9 @@
 import { delegate } from '../provider-runtime.js';
 
 /** UI layer installs the WebLLM runtime at startup (browser only). */
-export const configureWebLLM = delegate('configureWebLLM');
+export const configureWebLLM = (...args: unknown[]) => delegate('configureWebLLM')(...args);
 
-export const getWebLLMRuntime = delegate('getWebLLMRuntime');
+export const getWebLLMRuntime = (...args: unknown[]) => delegate('getWebLLMRuntime')(...args);
 
 /** WebGPU auto-detection: prefer webgpu when available, else cpu. */
 export const detectDevice = (): 'webgpu' | 'cpu' =>

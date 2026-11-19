@@ -2,8 +2,8 @@
  * Graph node schemas (engine-specific)
  */
 import { z } from 'zod';
-import { TaskPunctuationSchema } from '../schemas/task.js';
-import { TruthValueSchema } from '../schemas/truth.js';
+import { TaskPunctuationSchema } from '@senars/schemas/task';
+import { BeliefTruthSchema as TruthValueSchema } from '@senars/util/truth-schema';
 import { variant } from './envelope.js';
 
 /** Optional UI lens attributes attached to any graph node. */

@@ -1,4 +1,4 @@
-import { SenarsError } from '@senars/util/errors';
+import { SenarsError } from '@senars/errors';
 import type { JudgmentProposition, JudgmentQuery, SynthesisQuery } from './types.js';
 
 export class AlgebraPurityError extends SenarsError {

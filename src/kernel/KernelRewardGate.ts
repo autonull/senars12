@@ -8,7 +8,7 @@ import type {
 } from '@senars/schemas/cognitive-events.js';
 import { proposalRisk, SelfImprovementProposalSchema } from '@senars/schemas/governance.js';
 import { makeId } from '@senars/util/id';
-import { SenarsError } from '@senars/util/errors';
+import { SenarsError } from '@senars/errors';
 import { KernelGate, projectOutcome } from './gate-base.js';
 
 /** The targets a reward signal may mutate — trust and scheduling, never a belief's

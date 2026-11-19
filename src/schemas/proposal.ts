@@ -25,7 +25,8 @@ import { RulePatternSchema } from './common.js';
 import { CognitiveEventBaseSchema, PROPOSER_ORIGIN } from './event-base.js';
 import { RuleDeclarationSchema } from './rule-table.js';
 import { TaskTypeSchema } from './task.js';
-import { TruthValueSchema } from './truth.js';
+import { BeliefTruthSchema as TruthValueSchema } from '../util/truth-schema.js';
+import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema, ProposalRejection as EventProposalRejection } from './proposal-events.js';
 
 /**
  * The wire version of the proposal contract. A run recorded against one version
@@ -119,42 +120,8 @@ export const PROPOSAL_REJECTIONS = [
 
 export type ProposalRejection = (typeof PROPOSAL_REJECTIONS)[number];
 
-export const ProposalRejectedEventSchema = CognitiveEventBaseSchema.extend({
-  type: z.literal('proposal.rejected'),
-  engine: z.literal(PROPOSER_ORIGIN),
-  payload: z.object({
-    proposalId: z.string(),
-    kind: z.enum(PROPOSAL_KINDS),
-    reason: z.enum(PROPOSAL_REJECTIONS),
-    detail: z.string(),
-    /** The revision at the boundary the proposal was judged against. */
-    observedRevision: nonNegativeInt,
-  }),
-});
-
-export const ProposalAdmittedEventSchema = CognitiveEventBaseSchema.extend({
-  type: z.literal('proposal.admitted'),
-  engine: z.literal(PROPOSER_ORIGIN),
-  payload: z.object({
-    proposalId: z.string(),
-    kind: z.enum(PROPOSAL_KINDS),
-    schemaVersion: positiveInt,
-    baseRevision: nonNegativeInt,
-    /** The revision this admission produced. The event is the source of truth for it. */
-    resultingRevision: positiveInt,
-    /**
-     * A rule admission carries the declaration it admitted, so the table can be
-     * reconstructed from the log alone (TODO29.a §5.10). Absent for a content
-     * proposal, which changes no table: its payload travels with the task it
-     * admitted rather than in the table.
-     */
-    declaration: RuleDeclarationSchema.optional(),
-    /** The proposer that issued it, for the operator-facing audit surface. */
-    producer: z.string().optional(),
-  }),
-});
-
-export type ProposalRejectedEvent = z.infer<typeof ProposalRejectedEventSchema>;
-export type ProposalAdmittedEvent = z.infer<typeof ProposalAdmittedEventSchema>;
+/** Re-export event schemas from proposal-events to avoid circular dependency. */
+export { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal-events.js';
+export type { ProposalAdmittedEvent, ProposalRejectedEvent } from './proposal-events.js';
 
 export const validateProposal = validatorFor(ProposalSchema, 'Proposal');

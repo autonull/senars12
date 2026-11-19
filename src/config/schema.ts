@@ -1,6 +1,6 @@
 import { AUTONOMY_MODES, AUTONOMY_POLICIES } from '@senars/nar';
 import { LM_PROVIDER_NAMES } from '@senars/nar/lm';
-import { LM_TASKS } from '@senars/utils';
+import { LM_TASKS } from '@senars/types/llm';
 import {
   dialogueDefaults,
   dialogueSchema,
