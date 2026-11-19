@@ -8,9 +8,8 @@ import {
 } from '@opentelemetry/sdk-trace';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { registerLogEnricher } from '@senars/util';
-import { setDomainEventSink } from '@senars/agent';
-import { errMsg } from '@senars/util';
+import { registerLogEnricher, errMsg } from '../util/index.js';
+import { setDomainEventSink } from '../agent/event-sink.js';
 
 let provider: NodeTracerProvider | null = null;
 let initialized = false;

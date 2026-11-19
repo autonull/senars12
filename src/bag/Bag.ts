@@ -1,21 +1,27 @@
 /**
- * The AIKR bag's implementation lives in `@senars/util/bag` (§22): the attention
+ * The AIKR bag's implementation lives in `../util/bag` (§22): the attention
  * substrate the UI needs is the same general-purpose container `nar` has been
  * carrying. This module is the nar-side shim — its 17 module dependencies and the
  * `@senars/nar/bag` public subpath import from here, and the existing suites
  * prove the lift did not change behaviour.
  *
  * The one thing `util` cannot own is the domain-event vocabulary, so the
- * announcement is injected here: `@senars/util` owns the policy, this layer owns
+ * announcement is injected here: `../util` owns the policy, this layer owns
  * the sink.
  */
-import { emitDomainEvent } from '@senars/agent';
+import { emitDomainEvent } from '../agent/event-sink.js';
 import {
-  type BagItem,
-  type BagOptions,
-  type PressureTransition,
+  Bag,
+  BagItem,
+  BagOptions,
+  CyclesBudget,
+  EvictStrategy,
+  InternalEntry,
+  PressureListener,
+  PressureTransition,
   PriorityBag as BasePriorityBag,
-} from '@senars/util/bag';
+  RandomSource,
+} from '../util/bag.js';
 
 /** The pressure transition as the domain-event log has always carried it. */
 const announcePressure = ({
@@ -34,7 +40,7 @@ export class PriorityBag<T extends BagItem> extends BasePriorityBag<T> {
   }
 }
 
-export type { AIKRBudget } from '@senars/budget';
+export type { AIKRBudget } from '../budget/index.js';
 
 export type {
   Bag,
@@ -46,4 +52,4 @@ export type {
   PressureListener,
   PressureTransition,
   RandomSource,
-} from '@senars/util/bag';
+} from '../util/bag.js';

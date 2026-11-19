@@ -10,10 +10,10 @@
  * Nothing else in the system constructs or selects a strategy.
  */
 
-import { emitDomainEvent } from '@senars/agent';
+import { emitDomainEvent } from '../../agent/event-sink.js';
 
 import { ConfigurationError } from '../../types';
-import { ambientRng, getOrInsert, KeyedRegistry, keyedBy } from '@senars/util';
+import { ambientRng, getOrInsert, KeyedRegistry, keyedBy, LruCache } from '../../util/index.js';
 import type { RandomSource } from '../../types/primitives.js';
 import { recordStrategyMemoSize } from '../../metrics/prometheus.js';
 import {
@@ -30,7 +30,6 @@ import type { StrategyImpl, StrategyType } from '../../strategies/types.js';
 import type { StrategyRegistry } from '../../strategies/registration.js';
 import { DEFAULT_REGISTRATIONS } from './registrations.js';
 import { composedName, composeSpec } from './composition.js';
-import { LruCache } from '@senars/util';
 import type { CognitiveParameters, StrategySlotParams } from '../../config/cognitive-parameters.js';
 import { STRATEGY_SLOTS } from '../../config/cognitive-parameters.js';
 

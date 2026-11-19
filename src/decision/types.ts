@@ -11,10 +11,10 @@
  * every existing importer is untouched and there is no second copy.
  */
 
-import { type BudgetLimits, createBudget } from '@senars/budget';
-import type { ReasoningBudget, SourceQuality } from '@senars/schemas';
-import type { BandDecision, CognitiveAxis } from '@senars/util';
-import type { CriticalityLevel } from '@senars/util/config';
+import { type BudgetLimits, createBudget } from '../budget/index.js';
+import type { ReasoningBudget, SourceQuality } from '../schemas/index.js';
+import type { BandDecision, CognitiveAxis } from '../util/index.js';
+import type { CriticalityLevel } from '../config/index.js';
 import { z } from 'zod';
 import type { ProvisionalStamp } from './provisional-stamp.js';
 
@@ -87,7 +87,7 @@ export {
   COGNITIVE_AXES,
   CognitiveAxisSchema as cognitiveAxisSchema,
   bandOrdinal,
-} from '@senars/util';
+} from '../util/index.js';
 export type { BandDecision, CognitiveAxis };
 
 export interface HeadResult {

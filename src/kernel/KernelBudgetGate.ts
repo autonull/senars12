@@ -20,7 +20,7 @@ import {
   sliceMergedPayload,
   snapshotBudget,
   zeroConsumed,
-} from '@senars/budget';
+} from '../budget/index.js';
 import type {
   BudgetExhaustedEvent,
   BudgetGateInput,
@@ -29,9 +29,9 @@ import type {
   GateOutcome,
   ReasoningBudget,
   TerminationReason,
-} from '@senars/schemas';
-import { mintCognitiveEvent, validateReasoningBudget } from '@senars/schemas';
-import { keyedBy, mapValues } from '@senars/util';
+} from '../schemas/index.js';
+import { mintCognitiveEvent, validateReasoningBudget } from '../schemas/index.js';
+import { keyedBy, mapValues } from '../util/index.js';
 import { BUDGET_SCOPES, withBudgetId } from './budget-scopes.js';
 import { KernelGate, projectOutcome } from './gate-base.js';
 

@@ -12,8 +12,8 @@
  * cannot drift into two budgets — §7 invariant 12.
  */
 
-import { ALL_RESOURCES, BUDGET_TYPES, type BudgetResource, budgetLimit } from '@senars/budget';
-import type { ReasoningBudget } from '@senars/schemas';
+import { ALL_RESOURCES, BUDGET_TYPES, type BudgetResource, budgetLimit } from '../budget/index.js';
+import type { ReasoningBudget, ConsumedBudget } from '../schemas/index.js';
 import { BUDGET_SCOPE_IDS, type BudgetScopeId, scopeBudget, scopeSpec } from './budget-scopes.js';
 import type { KernelBudgetGate } from './KernelBudgetGate.js';
 
@@ -102,9 +102,10 @@ export class ControlBudgets implements ControlBudgetPort {
     const summary: Record<string, { ceiling: number; spent: number; terminationReason: string }> =
       {};
     const spend = (id: string, budget: ReasoningBudget, resource: BudgetResource): void => {
+      const consumed = budget.consumed as ConsumedBudget;
       summary[id] = {
         ceiling: budgetLimit(budget, resource),
-        spent: budget.consumed[resource],
+        spent: consumed[resource],
         terminationReason: budget.terminationReason ?? 'none',
       };
     };

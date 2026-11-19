@@ -1,6 +1,6 @@
-import type { BudgetEventMap } from '@senars/budget';
-import type { AmbiguityReport, DerivationRecord, DerivationStep, KernelControlState } from '@senars/schemas';
-import type { TermTruth } from '@senars/util';
+import type { BudgetEventMap } from '../budget/index.js';
+import type { AmbiguityReport, DerivationRecord, DerivationStep, KernelControlState } from '../schemas/index.js';
+import type { TermTruth } from '../util/index.js';
 import type { Term, Truth } from '../terms';
 
 /**
@@ -311,9 +311,23 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
   // Budget slice events (B4)
 }
 
-export type { EventReceiver, EventUnsubscribe } from '@senars/util/events';
+export type { EventReceiver, EventUnsubscribe } from '../util/events.js';
 
-import { EventBus } from '@senars/util/events';
+import { EventBus } from '../util/events.js';
+import type { EventPublisher } from './lifecycle.js';
 
 /** NAR's event bus, keyed on {@link NAREventMap} (X4: typed bus). */
-export class NarEventBus extends EventBus<NAREventMap> {}
+export class NarEventBus extends EventBus<NAREventMap> implements EventPublisher {
+  // EventPublisher compatibility — broader signatures for structural compatibility
+  emit(event: string, data: unknown): void {
+    super.emit(event as keyof NAREventMap, data as NAREventMap[keyof NAREventMap]);
+  }
+
+  on(event: string, handler: (data: unknown) => void): () => void {
+    return super.on(event as keyof NAREventMap, handler as (data: NAREventMap[keyof NAREventMap]) => void);
+  }
+
+  off(event: string, handler: (data: unknown) => void): void {
+    super.off(event as keyof NAREventMap, handler as (data: NAREventMap[keyof NAREventMap]) => void);
+  }
+}

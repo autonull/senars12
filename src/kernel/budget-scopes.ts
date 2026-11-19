@@ -28,9 +28,9 @@ import {
   type BudgetLimits,
   type BudgetResource,
   freshBudget,
-} from '@senars/budget';
-import type { BudgetOperation, BudgetScopeId, ReasoningBudget } from '@senars/schemas';
-import { BUDGET_SCOPE_IDS } from '@senars/schemas';
+} from '../budget/index.js';
+import type { BudgetOperation, BudgetScopeId, ReasoningBudget } from '../schemas/index.js';
+import { BUDGET_SCOPE_IDS } from '../schemas/index.js';
 
 /** One budget dimension, spelled the way `ReasoningBudget` spells it. */
 export type BudgetDimension = BudgetResource;

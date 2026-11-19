@@ -38,8 +38,6 @@ export {
   SENARS_ENV_MAP,
 } from '../config/index.js';
 // Errors
-/** @public Discriminated error code union. */
-export type { ErrorCode } from '../errors/index.js';
 /** @public Unified error hierarchy for all SeNARS packages. */
 export {
   ConfigurationError,
@@ -58,6 +56,23 @@ export type { EventReceiver, EventUnsubscribe } from '../events/types.js';
 /** @public Generic typed event bus runtime. */
 export { EventBus } from '../events/event-bus.js';
 export { ListenerBag } from '../events/listener-bag.js';
+// Bag
+/** @public AIKR bag substrate — one implementation, many consumers. */
+export {
+  Bag,
+  BagItem,
+  BagOptions,
+  CyclesBudget,
+  EvictStrategy,
+  Histogram,
+  HistogramImpl,
+  InternalEntry,
+  PressureListener,
+  PressureLevel,
+  PressureTransition,
+  PriorityBag,
+  RandomSource,
+} from './bag.js';
 /** @public Push-to-async-iterator bridge shared by config views and event logs. */
 export { PushQueue } from '../events/push-queue.js';
 /** @public Single-subject fan-out with isolated listeners. */

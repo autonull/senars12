@@ -48,6 +48,19 @@ export function recordHandover(): void {
   handoversTotal.inc();
 }
 
+export function pressureToString(pressure: number): string {
+  return pressure >= 0.9 ? 'critical' : pressure >= 0.7 ? 'elevated' : 'normal';
+}
+
+export function pressureToNumber(pressure: string): number {
+  switch (pressure) {
+    case 'critical': return 1.0;
+    case 'elevated': return 0.8;
+    case 'normal': return 0.3;
+    default: return 0;
+  }
+}
+
 export function recordBagPressure(bag: string, pressure: number): void {
   bagPressure.set({ bag }, pressure);
 }

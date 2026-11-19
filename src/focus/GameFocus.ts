@@ -30,7 +30,7 @@ import {
   Negotiator,
 } from '../reflex/Negotiator.js';
 import { type ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex.js';
-import { recordBagPressure, recordHandover } from '../telemetry/index.js';
+import { recordBagPressure, recordHandover, pressureToNumber } from '../telemetry/index.js';
 import type { NarEventBus } from '../types/events.js';
 import { actionRuleBelief, type SeededBelief, seedBelief } from './belief-seeding.js';
 import { induceEpisodeSchemas, type PromotedSchema } from './episode-schemas.js';
@@ -468,8 +468,8 @@ export class GameFocus {
     }
     t.bestReflexProposal = maxBy(t.proposals, (p) => p.value * p.confidence) ?? null;
     const decision = this.negotiator.resolve(t.proposals, t.nalDerivations);
-    recordBagPressure('focus.tasks', this.focus.tasks.pressure());
-    recordBagPressure('focus.memory', this.focus.memory.pressure());
+    recordBagPressure('focus.tasks', pressureToNumber(this.focus.tasks.pressure()));
+    recordBagPressure('focus.memory', pressureToNumber(this.focus.memory.pressure()));
 
     // HANDOVER (E2): review-band decisions escalate to the heuristic baseline
     // (PlayJev handover pattern); block band yields the tick (AIKR), never a

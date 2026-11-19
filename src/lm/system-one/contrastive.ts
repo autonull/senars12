@@ -384,9 +384,9 @@ export class ContrastiveMemory {
    * `query` carries its precomputed norm so the same embedding scored against
    * two bags (or a whole routing sweep) is measured once.
    */
-  #maxCosine(bag: { all(): IterableIterator<ExemplarItem> }, query: NormalizedVector): number {
+  #maxCosine(bag: { values(): IterableIterator<ExemplarItem> }, query: NormalizedVector): number {
     let best = -1;
-    for (const item of bag.all()) best = Math.max(best, cosineNormalized(query, item.embedding));
+    for (const item of bag.values()) best = Math.max(best, cosineNormalized(query, item.embedding));
     return best;
   }
 
@@ -399,13 +399,13 @@ export class ContrastiveMemory {
   #positives(rubric: string): Float32Array[] {
     const state = this.#rubrics.get(rubric);
     if (!state) return [];
-    return [...state.pos.all()].map((e) => e.embedding);
+    return [...state.pos.values()].map((e) => e.embedding);
   }
 
   #negatives(rubric: string): Float32Array[] {
     const state = this.#rubrics.get(rubric);
     if (!state) return [];
-    return [...state.neg.all()].map((e) => e.embedding);
+    return [...state.neg.values()].map((e) => e.embedding);
   }
 }
 

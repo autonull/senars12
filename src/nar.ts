@@ -1,12 +1,12 @@
-import { BaseComponent } from '@senars/types';
+import { BaseComponent } from './agent/Lifecycle.js';
 import type {
   CognitiveEvent,
   DerivationRecord,
   DerivationStep,
   KernelControlState,
   TaskAdmittedEvent,
-} from '@senars/schemas';
-import type { ReasoningBudget } from '@senars/schemas';
+} from './schemas/index.js';
+import type { ReasoningBudget } from './schemas/index.js';
 import {
   ambientRng,
   type BeliefTruth,
@@ -19,7 +19,7 @@ import {
   installIdSource,
   primeIdCount,
   selectTopN,
-} from '@senars/util';
+} from './util/index.js';
 import {
   AutonomyHeartbeat,
   type AutonomyConfig,
@@ -46,8 +46,8 @@ import {
   injectBootstrapGoals,
 } from './facade/index.js';
 import { createOptionalSubsystems } from './facade/optional-subsystems.js';
-import { LogStoreStatePersister } from '@senars/log/StatePersister';
-import type { LogStore } from '@senars/log/store';
+import { LogStoreStatePersister } from './log/StatePersister.js';
+import type { LogStore } from './log/store.js';
 import { KernelLedger } from './kernel/KernelLedger.js';
 import { createKernelRewind, type KernelRewind, type RewindReport } from './state/checkpoint.js';
 import type { SystemOneRuntime } from './facade/system-one.js';

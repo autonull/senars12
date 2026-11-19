@@ -1,9 +1,9 @@
-import type { MettaPort } from '@senars/agent';
-import type { AutonomyMode, ReasoningBudget } from '@senars/schemas';
-import { isStatefulRandomSource, type StatefulRandomSource } from '@senars/util';
-import type { Clock, IdSource } from '@senars/util';
-import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
-import type { ToolFeedbackObserver } from '@senars/util/feedback';
+import type { MettaPort } from '../agent/index.js';
+import type { AutonomyMode, ReasoningBudget } from '../schemas/index.js';
+import { isStatefulRandomSource, type StatefulRandomSource } from '../util/index.js';
+import type { Clock, IdSource } from '../util/index.js';
+import type { SystemOneConfig as SystemOneConfigSchema } from '../config/index.js';
+import type { ToolFeedbackObserver } from '../util/feedback.js';
 import type { AutonomyConfigInput } from '../autonomy/config.js';
 import type { MetaGoalPolicy } from '../drives/meta-goals.js';
 import type { CognitiveRegistry } from '../cognitive';
@@ -64,7 +64,7 @@ export interface NARConfig extends CoreConfig {
   persistState?: boolean;
   statePath?: string;
   /** Unified LogStore for all persistence (replaces SqliteEventLog, StatePersister, KernelLedger). */
-  logStore?: import('@senars/log').LogStore;
+  logStore?: import('../log/store.js').LogStore;
 
   cognitiveParams?: CognitiveParameters;
   strategyRegistry?: CognitiveRegistry;

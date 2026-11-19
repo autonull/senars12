@@ -1,13 +1,13 @@
 /**
  * E1 (TODO20 Phase 3): kernel-domain error taxonomy. The base `SenarsError`
- * (code + context + wrap) lives in `@senars/util/errors` — single definition;
+ * (code + context + wrap) lives in `./senars-error.ts` — single definition;
  * every class here adds typed, grep-able context for its failure mode.
  */
-import type { GateName } from '@senars/schemas';
-import type { SchemaIssue } from '@senars/util';
-import { SenarsError } from '@senars/util/errors';
+import type { GateName } from '../schemas';
+import type { SchemaIssue } from '../util';
+import { SenarsError } from './senars-error.js';
 
-export { SenarsError } from '@senars/util/errors';
+export { SenarsError } from './senars-error.js';
 export { ConnectionError, type ConnectionError as ConnectionErrorType } from './transport.js';
 export { EngineError, type EngineError as EngineErrorType } from './engine.js';
 export { ValidationError, type ValidationError as ValidationErrorType } from './nar-errors.js';
@@ -16,7 +16,7 @@ export { OperationError, type OperationError as OperationErrorType } from './nar
 export { ToolError, type ToolError as ToolErrorType } from './tool.js';
 export { TransportError, type TransportError as TransportErrorType } from './transport.js';
 export { PolicyViolation } from './policy.js';
-export type { ErrorCode } from '@senars/util';
+export type { ErrorCode } from './senars-error.js';
 
 /** E1: assembly-time failure, typed by the builder step that failed. */
 export class BuilderError extends SenarsError {

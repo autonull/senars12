@@ -1,5 +1,5 @@
-import { defaultLogger, type Logger } from '@senars/util/logger.js';
-import { getOrInsert } from '@senars/util/collections.js';
+import { defaultLogger, type Logger } from '../util/logger.js';
+import { getOrInsert } from '../util/collections.js';
 import { ListenerBag } from './listener-bag.js';
 import type { EventReceiver, EventUnsubscribe } from './types.js';
 
