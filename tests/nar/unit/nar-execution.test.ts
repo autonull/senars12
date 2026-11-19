@@ -13,7 +13,7 @@ import {
   TermBuilder,
   Truth,
   termParser,
-} from '@senars/nar/';
+} from '@senars/nar';
 import type { CognitiveController } from '@senars/nar/cognitive';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters';
 import { DriveManager } from '@senars/nar/drives';

@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG, TermBuilder, Truth } from '@senars/nar/';
+import { DEFAULT_CONFIG, TermBuilder, Truth } from '@senars/nar';
 /**
  * Memory Operations Tests - Concept formation, activation, decay, consolidation
  */

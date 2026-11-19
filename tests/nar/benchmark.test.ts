@@ -1,4 +1,4 @@
-import { atom, RuleProcessor, Stamp, TermBuilder, Truth, termsEqual } from '@senars/nar/';
+import { atom, RuleProcessor, Stamp, TermBuilder, Truth, termsEqual } from '@senars/nar';
 import { createTimestamp } from '@senars/nar/types';
 
 describe('Performance benchmarks', () => {

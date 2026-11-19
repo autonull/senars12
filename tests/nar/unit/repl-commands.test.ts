@@ -3,7 +3,7 @@
  * Tests for REPL command handling and input processing
  */
 
-import { createNAR } from '@senars/nar/';
+import { createNAR } from '@senars/nar';
 import type { NAR } from '../../../src';
 import { DEFAULT_NAR_CORE_CONFIG } from '../../../src/config';
 

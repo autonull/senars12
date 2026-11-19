@@ -7,7 +7,7 @@ import {
   TermBuilder,
   Truth,
   termParser,
-} from '@senars/nar/';
+} from '@senars/nar';
 import { operationNameOf } from '@senars/nar/terms/index.js';
 
 describe('No-Bypass Contract', () => {

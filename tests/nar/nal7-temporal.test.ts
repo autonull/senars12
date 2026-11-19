@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { NALExtendedRules, TermBuilder } from '@senars/nar/';
+import { NALExtendedRules, TermBuilder } from '@senars/nar';
 import { clearTerms } from '@senars/nar/terms/impls/intern.js';
 
 describe('NAL7 Temporal Rules', () => {

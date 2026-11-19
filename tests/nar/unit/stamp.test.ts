@@ -1,4 +1,4 @@
-import { Stamp } from '@senars/nar/';
+import { Stamp } from '@senars/nar';
 import { DEPTH_MAX } from '@senars/nar/types';
 
 describe('Stamp', () => {

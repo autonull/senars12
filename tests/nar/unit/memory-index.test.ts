@@ -1,5 +1,5 @@
 import type { Concept as ConceptType } from '@senars/agent';
-import { TermBuilder, Truth } from '@senars/nar/';
+import { TermBuilder, Truth } from '@senars/nar';
 import { Concept, MemoryIndex } from '@senars/nar/memory';
 
 function createTestConcept(symbol: string): ConceptType {

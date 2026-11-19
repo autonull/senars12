@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { termParser } from '@senars/nar/';
+import { termParser } from '@senars/nar';
 
 describe('termParser.parseTask()', () => {
   it('parses (cat-->animal). as belief', () => {

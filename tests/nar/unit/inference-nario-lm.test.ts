@@ -9,7 +9,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { TaskManager, TermBuilder, Truth } from '@senars/nar/';
+import { TaskManager, TermBuilder, Truth } from '@senars/nar';
 import { NARIO } from '@senars/nar/nar-io.js';
 import { NARLM } from '@senars/nar/nar-lm.js';
 import type { InferenceController } from '@senars/nar/reason/inference-controller.js';

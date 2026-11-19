@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { createNAR, Truth, termKey, termParser } from '@senars/nar/';
+import { createNAR, Truth, termKey, termParser } from '@senars/nar';
 import { createSeNARSRegistry } from '@senars/nar/lm';
 import { createLMService } from '@senars/nar/lm/lm-service';
 import { rm, mkdir } from 'node:fs/promises';

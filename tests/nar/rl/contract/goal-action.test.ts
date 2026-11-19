@@ -7,7 +7,7 @@ import {
   TermBuilder,
   Truth,
   termParser,
-} from '@senars/nar/';
+} from '@senars/nar';
 import { operationNameOf, readOperationTerm } from '@senars/nar/terms/index.js';
 
 describe('Goal/Action Contract', () => {

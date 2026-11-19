@@ -18,6 +18,12 @@
       "@senars/io/*": ["./src/io/*"],
       "@senars/metta": ["./src/metta/index.ts"],
       "@senars/metta/*": ["./src/metta/*"],
+      "@senars/metta-runtime": ["./src/metta/index.ts"],
+      "@senars/metta-runtime/*": ["./src/metta/*"],
+      "@senars/lm": ["./src/lm/index.ts"],
+      "@senars/lm/*": ["./src/lm/*"],
+      "@senars/transport": ["./src/io/index.ts"],
+      "@senars/transport/*": ["./src/io/*"],
       "@senars/kernel": ["./src/kernel/index.ts"],
       "@senars/kernel/*": ["./src/kernel/*"],
       "@senars/logics": ["./src/logics/index.ts"],
@@ -188,6 +194,6 @@
       "@senars/schemas/truth": ["./src/schemas/truth.ts"]
     }
   },
-  "include": ["src/log/**/*.ts", "src/logics/**/*.ts", "src/verification/**/*.ts", "src/formats/**/*.ts", "src/admit/**/*.ts", "src/worlds/**/*.ts", "src/mining/**/*.ts", "src/surface/**/*.ts", "src/deck/**/*.ts", "src/ui-contract/**/*.ts", "src/economy/**/*.ts", "src/kernel/**/*.ts", "src/generated/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "tests", "src/cli/**", "src/bin/**", "src/api/**", "src/_pending/**", "src/log/EventLogAdapter.ts", "src/log/StatePersister.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
+  "exclude": ["node_modules", "dist", "tests", "src/api/**", "src/_pending/**", "src/log/EventLogAdapter.ts", "src/log/StatePersister.ts"]
 }

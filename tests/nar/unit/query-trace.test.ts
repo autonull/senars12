@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Truth, termParser } from '@senars/nar/';
+import { Truth, termParser } from '@senars/nar';
 import {
   createQueryAPI,
   createReasoningTrace,

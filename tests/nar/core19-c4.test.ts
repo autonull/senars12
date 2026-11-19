@@ -11,7 +11,7 @@ import {
   sequentialIdSource,
   type StatefulRandomSource,
 } from '@senars/utils';
-import { createNAR, NAR } from '@senars/nar/';
+import { createNAR, NAR } from '@senars/nar';
 import { e2eNARConfig } from '../e2e/fixtures.js';
 import { createSeNARSRegistry } from '@senars/nar/lm';
 import { createLMService } from '@senars/nar/lm/lm-service';

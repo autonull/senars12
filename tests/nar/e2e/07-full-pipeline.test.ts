@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { createNAR, Truth } from '@senars/nar/';
+import { createNAR, Truth } from '@senars/nar';
 import { createSeNARSRegistry } from '@senars/nar/lm';
 import { createLMService } from '@senars/nar/lm/lm-service';
 import { termParser, termKey, TermBuilder } from '@senars/nar/terms';

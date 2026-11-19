@@ -7,7 +7,7 @@ import {
   NAR,
   Truth,
   termParser,
-} from '@senars/nar/';
+} from '@senars/nar';
 import type { Perception } from '@senars/nar/game/Game.js';
 import { ActionGateTransducer } from '@senars/nar/lm/system-one/action-transducer.js';
 import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';

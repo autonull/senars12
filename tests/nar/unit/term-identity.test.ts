@@ -7,7 +7,7 @@ import {
   TermSet,
   Truth,
   termKey,
-} from '@senars/nar/';
+} from '@senars/nar';
 import { foldNary } from '@senars/nar/rules/impls/rule-builder.js';
 
 /**

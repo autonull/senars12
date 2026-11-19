@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Memory, TermBuilder } from '@senars/nar/';
+import { Memory, TermBuilder } from '@senars/nar';
 
 describe('Phase 5: Memory Integration', () => {
   describe('MemoryIndex Integration', () => {

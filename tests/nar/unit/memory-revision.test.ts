@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Concept, createTaskWeight, Memory, TermBuilder, Truth } from '@senars/nar/';
+import { Concept, createTaskWeight, Memory, TermBuilder, Truth } from '@senars/nar';
 
 describe('Phase 5.5: Belief Revision and Deduplication', () => {
   it('should add belief to concept', () => {

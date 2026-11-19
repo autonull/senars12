@@ -1,6 +1,6 @@
 import { CallTallySeries, createCallTally } from '@senars/utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { Memory, TermBuilder, Truth } from '@senars/nar/';
+import { Memory, TermBuilder, Truth } from '@senars/nar';
 import { createTimestamp } from '@senars/nar/types';
 import { type RuleInput, RuleProcessor } from '@senars/nar/rules';
 import { CognitiveRegistry } from '@senars/nar/cognitive/impls/CognitiveRegistry.js';

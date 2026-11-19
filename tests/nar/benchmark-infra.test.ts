@@ -9,7 +9,7 @@ import {
   TermBuilder,
   Truth,
   termsEqual,
-} from '@senars/nar/';
+} from '@senars/nar';
 import { createTimestamp } from '@senars/nar/types';
 import { fromNarsese, serializeTerm } from '@senars/nar/terms';
 

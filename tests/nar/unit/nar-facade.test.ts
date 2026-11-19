@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { createTask, createTaskWeight, Memory, TermBuilder, Truth } from '@senars/nar/';
+import { createTask, createTaskWeight, Memory, TermBuilder, Truth } from '@senars/nar';
 import { MetricsCollector } from '@senars/nar/metrics';
 import { QueryAPI, ReasoningTrace } from '@senars/nar/query';
 import type { Tool } from '@senars/nar/tools';

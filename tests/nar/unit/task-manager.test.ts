@@ -6,7 +6,7 @@ import {
   TaskManager,
   TermBuilder,
   Truth,
-} from '@senars/nar/';
+} from '@senars/nar';
 
 describe('TaskManager', () => {
   let mem: Memory;

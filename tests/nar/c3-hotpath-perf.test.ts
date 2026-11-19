@@ -1,7 +1,7 @@
 import { type BudgetSlice, consumeCycles, createBudgetSlice } from '@senars/budget';
 import { ConceptGraph } from '@senars/memory';
 import { beforeAll, describe, expect, test } from 'vitest';
-import { atom, Stamp, type Term, TermBuilder, Truth, type TruthType } from '@senars/nar/';
+import { atom, Stamp, type Term, TermBuilder, Truth, type TruthType } from '@senars/nar';
 import { createDefaultRegistry } from '@senars/nar/cognitive';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters.js';
 import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';

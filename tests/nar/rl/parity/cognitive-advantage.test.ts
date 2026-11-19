@@ -5,7 +5,7 @@ import {
   DEFAULT_CONFIG,
   TermBuilder,
   Truth,
-} from '@senars/nar/';
+} from '@senars/nar';
 import { BanditGame } from '@senars/nar/game/impls/BanditGame.js';
 import { NAR } from '@senars/nar/nar';
 import {

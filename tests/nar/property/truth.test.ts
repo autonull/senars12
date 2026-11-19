@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { Truth } from '@senars/nar/';
+import { Truth } from '@senars/nar';
 
 const MAX_C = Truth.MAX_CONFIDENCE;
 

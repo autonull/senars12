@@ -71,9 +71,6 @@ export {
   SharedMemoryQueue,
 } from './ipc/shared-memory.js';
 export {
-  parseMeTTa,
-} from './parser/runtime.js';
-export {
   globalJIT,
   JITCompiler,
 } from './performance/jit.js';

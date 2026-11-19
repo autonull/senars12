@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { atom, TermBuilder, termParser } from '@senars/nar/';
+import { atom, TermBuilder, termParser } from '@senars/nar';
 
 describe('term serialization', () => {
   test('negation serializes as unary prefix --b (not product (--b))', () => {

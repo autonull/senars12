@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { Memory } from '@senars/nar/memory';
-import { atom, TermBuilder, Stamp, Truth, type Term } from '@senars/nar/';
+import { atom, TermBuilder, Stamp, Truth, type Term } from '@senars/nar';
 import { LinkManager } from '@senars/nar/memory/links';
 import { ConceptGraph } from '@senars/memory';
 

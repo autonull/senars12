@@ -9,7 +9,7 @@
 3. `core/src/eventlog/` — legacy SqliteEventLog/InMemoryEventLog (replaced by LogStoreEventLog adapter) ✅
 4. `nar/src/facade/persistence.js` — deleted, replaced by LogStoreStatePersister ✅
 **Gates Status After Migration:**
-- `pnpm typecheck` ✅ PASS (core)
+- `pnpm typecheck` ❌ FAIL (many old package path references remain in scripts/bin/UI)
 - `pnpm typecheck:bin` ⚠️ FAIL (bin/UI — pre-existing, out of scope)
 - `pnpm typecheck:packages` ✅ PASS (core packages clean)
 - `pnpm lint` ✅ PASS
@@ -50,7 +50,7 @@
 - ✅ Fix `facade/games.ts` ContradictionEvent handler typing
 **Phase 2: SKIPPED — UI packages never completed, out of scope for core consolidation**
 
-**Phase 3: Final Cleanup (core packages only) — COMPLETE**
+**Phase 3: Final Cleanup (core packages only) — IN PROGRESS**
 - ✅ Update root `package.json`: remove workspace dependencies (util, core, io, metta, nar), add consolidated dependencies (better-sqlite3, effect, immutable, valibot, @types/better-sqlite3), update exports
 - ✅ Update `pnpm-workspace.yaml`: remove util, core, io, metta, nar, log sub-packages (keep ui, ui-contract, ui-backend-2d, ui-backend-fractal, ui-shell)
 - ✅ Update `tsconfig.root.json` and `tsconfig.json`: add comprehensive `@senars/*` path aliases mapping to consolidated `src/` structure
@@ -61,10 +61,24 @@
 - ✅ Fix `src/events/index.ts` exports (EventBus, EventReceiver, EventUnsubscribe, PushQueue, Signal)
 - ✅ Fix `src/config/index.ts` exports (cognitiveBounds, validateAgainstBounds, BoundProjection, etc.)
 - ✅ Fix `src/bag/index.ts` exports (Histogram, HistogramImpl)
-- ✅ Run core gates: typecheck ✅, lint ✅, exports:check ✅, exports:barrels ✅, typecheck:packages ✅
-- ✅ Verify core test suite passes (nar, kernel, lm, memory, rules, terms, etc.) — 59/71 tests pass, 12 pre-existing failures unrelated to consolidation
+- ✅ Remove old package directories: `core/`, `io/`, `metta/`, `util/`, `nar/`
+- ✅ Fix duplicate export in `src/metta/index.ts` (parseMeTTa)
+- ✅ Fix `@senars/nar/` imports in tests (removed trailing slash)
+- ❌ **REMAINING: Update all old package path references throughout codebase:**
+  - Scripts in `scripts/` and `scripts/lib/` still import from `../nar/src/`, `../../util/src/`, etc.
+  - Bin files in `src/bin/` and `src/cli/` still import from old package paths
+  - Test files reference old paths (`nar/src/`, `util/src/`, etc.) in filesystem checks
+  - UI package files (`ui/src/`) import from `@senars/core` which doesn't export needed types
+  - Path resolution in vitest not working for `@senars/util` (BoundedMap constructor issue)
+  - Missing path aliases for `@senars/dialogue`, `@senars/core/ApprovalService`, etc.
+  - `src/agent/index.ts` doesn't export all needed types (Agent, NAREngine, InMemoryEventLog, etc.)
+  - `src/capability/index.ts` exports need to be reachable via `@senars/agent` or tests updated
+  - ADR docs reference old paths (e.g., `nar/src/bag/Bag.ts`)
+  - Layering tests (`todo28-layering.test.ts`) check for old package structure
+  - Surface tests (`todo17b-surface.test.ts`) check for old `nar/src/` paths
+- ❌ Run core gates: typecheck ❌, lint ✅, exports:check ✅, exports:barrels ✅, typecheck:packages ✅
+- ❌ Verify core test suite passes (currently 67/80 tests pass, 13 failures mostly due to path issues)
 **Dependency Order (topological — core only):**
 util (leaf) → core → io → metta → nar
-**Current Session: ✅ Phase 3 Final Cleanup COMPLETE. All core packages consolidated into root src/ structure.**
-
-**Revised Timeline: ~2-3 sessions to complete (Phase 3) — DONE**
+**Current Session: Phase 3 Final Cleanup IN PROGRESS. Package directories removed, configs updated, but import path migration incomplete across scripts/bin/tests/UI.**
+**Revised Timeline: ~3-5 more sessions to complete (Phase 3 remaining work)**

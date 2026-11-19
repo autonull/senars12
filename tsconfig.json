@@ -23,6 +23,12 @@
       "@senars/io/*": ["./src/io/*"],
       "@senars/metta": ["./src/metta/index.ts"],
       "@senars/metta/*": ["./src/metta/*"],
+      "@senars/metta-runtime": ["./src/metta/index.ts"],
+      "@senars/metta-runtime/*": ["./src/metta/*"],
+      "@senars/lm": ["./src/lm/index.ts"],
+      "@senars/lm/*": ["./src/lm/*"],
+      "@senars/transport": ["./src/io/index.ts"],
+      "@senars/transport/*": ["./src/io/*"],
       "@senars/kernel": ["./src/kernel/index.ts"],
       "@senars/kernel/*": ["./src/kernel/*"],
       "@senars/logics": ["./src/logics/index.ts"],
@@ -194,5 +200,5 @@
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "tests/**/*.ts", "scripts/**/*.ts"],
-  "exclude": ["node_modules", "dist", "tests/setup", "src/cli/**", "src/bin/**", "src/api/**", "tests/obligations/**", "tests/nar/**", "src/log/GateEventLedger.ts", "src/log/DerivationLedger.ts", "src/_pending/**"]
+  "exclude": ["node_modules", "dist", "tests/setup", "src/api/**", "tests/obligations/**", "tests/nar/**", "src/log/GateEventLedger.ts", "src/log/DerivationLedger.ts", "src/_pending/**"]
 }

@@ -14,7 +14,7 @@ import type { Bag } from '@senars/agent';
 import { PriorityBag, resolveBagSlot } from '@senars/agent';
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
-import { Memory, TermBuilder, Truth } from '@senars/nar/';
+import { Memory, TermBuilder, Truth } from '@senars/nar';
 import type { CapabilitySchema } from '@senars/nar/capability/ontology.js';
 import { createCapabilityOntology } from '@senars/nar/capability/ontology.js';
 import { GovernanceResolver } from '@senars/nar/governance/pipeline.js';

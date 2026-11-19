@@ -1,4 +1,4 @@
-import { atom, serializeTerm, TermBuilder, Truth, termsEqual } from '@senars/nar/';
+import { atom, serializeTerm, TermBuilder, Truth, termsEqual } from '@senars/nar';
 
 describe('Term', () => {
   test('atom creates term', () => {

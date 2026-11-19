@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTestNAR } from '@senars/nar/';
+import { createTestNAR } from '@senars/nar';
 import { createAgent } from '@senars/nar/agent/index.js';
 import { createMockLMService } from '@senars/nar/lm';
 

@@ -7,7 +7,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDefaultRegistry } from '@senars/nar/cognitive';
-import { Memory, TermBuilder, Truth } from '@senars/nar/';
+import { Memory, TermBuilder, Truth } from '@senars/nar';
 import type { Term } from '@senars/nar/terms';
 import { createTask } from '@senars/nar/types/index.js';
 import {} from '@senars/nar/strategies/premise/selection-strategies.js';

@@ -23,7 +23,7 @@ import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, it, vi } from 'vitest';
-import { createTestNAR } from '@senars/nar/';
+import { createTestNAR } from '@senars/nar';
 import { createMockLMService } from '@senars/nar/lm';
 import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
 

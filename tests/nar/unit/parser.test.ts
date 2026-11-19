@@ -1,4 +1,4 @@
-import { termParser } from '@senars/nar/';
+import { termParser } from '@senars/nar';
 
 describe('TermParser', () => {
   describe('Variable Support', () => {

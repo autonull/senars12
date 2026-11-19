@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import type { Term } from '@senars/nar/';
+import type { Term } from '@senars/nar';
 import { canonicalTerm, TermBuilder, termsEqual } from '@senars/nar/terms';
 import { VALID_ATOM_CHARS } from '@senars/nar/terms/impls/valid-atom.js';
 

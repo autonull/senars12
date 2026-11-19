@@ -3,8 +3,8 @@ import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { NAR } from '@senars/nar/';
-import { createTestNAR } from '@senars/nar/';
+import type { NAR } from '@senars/nar';
+import { createTestNAR } from '@senars/nar';
 import { createMockLMService } from '@senars/nar/lm';
 import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
 

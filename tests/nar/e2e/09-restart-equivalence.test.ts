@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { createNAR, termKey, Truth, TermBuilder } from '@senars/nar/';
+import { createNAR, termKey, Truth, TermBuilder } from '@senars/nar';
 import { rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createSeNARSRegistry } from '@senars/nar/lm';

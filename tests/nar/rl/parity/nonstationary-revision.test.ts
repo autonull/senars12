@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { DEFAULT_CONFIG, TermBuilder } from '@senars/nar/';
+import { DEFAULT_CONFIG, TermBuilder } from '@senars/nar';
 import { BanditGame } from '@senars/nar/game/impls/BanditGame.js';
 import { NAR } from '@senars/nar/nar';
 import {

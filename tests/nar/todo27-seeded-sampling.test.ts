@@ -2,7 +2,7 @@ import { createBag, resolveBagSlot } from '@senars/agent';
 import { createDefaultRegistry } from '@senars/agent';
 import { mulberry32 } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
-import { Memory, TermBuilder } from '@senars/nar/';
+import { Memory, TermBuilder } from '@senars/nar';
 import type { SamplingStrategy } from '@senars/nar/strategies';
 
 /**

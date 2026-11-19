@@ -12,7 +12,7 @@ import {
   TaskManager,
   TermBuilder,
   Truth,
-} from '@senars/nar/';
+} from '@senars/nar';
 import type { CognitiveController } from '@senars/nar/cognitive';
 import { createGateRegistry } from '@senars/nar/kernel';
 import { createSeNARSRegistry } from '@senars/nar/lm';

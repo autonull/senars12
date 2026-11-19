@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'vitest';
-import { DEFAULT_CONFIG, NAR, TermBuilder, Truth } from '@senars/nar/';
+import { DEFAULT_CONFIG, NAR, TermBuilder, Truth } from '@senars/nar';
 import { operationNameOf } from '@senars/nar/terms/index.js';
 
 describe('Belief/Perception Contract', () => {

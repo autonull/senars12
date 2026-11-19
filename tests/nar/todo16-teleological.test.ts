@@ -7,7 +7,7 @@ import {
   NAR,
   Truth,
   termParser,
-} from '@senars/nar/';
+} from '@senars/nar';
 import { PriorityBag } from '@senars/nar/bag/Bag.js';
 import { KernelRewardGate } from '@senars/nar/kernel/KernelRewardGate.js';
 import { ActionGateTransducer } from '@senars/nar/lm/system-one/action-transducer.js';
