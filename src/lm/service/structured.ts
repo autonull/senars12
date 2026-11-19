@@ -1,5 +1,5 @@
 import type { LMGenerateOptions } from '@senars/types/llm';
-import { toError } from '@senars/errors';
+import { toError } from '@senars/util/error';
 import type { ZodSchema } from 'zod';
 import { parseJsonOrThrow, toCachedJsonSchema } from '../json.js';
 import { temperatureLadder } from './errors.js';

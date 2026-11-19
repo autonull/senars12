@@ -8,7 +8,7 @@
 
 import { proposalRisk, type SelfImprovementProposal } from '@senars/schemas/governance.js';
 import { createLogger } from '@senars/util/logger';
-import { degrade, errMsg } from '@senars/errors';
+import { degrade, errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { toolError, toolOk } from '@senars/types/engine';
 import { truncate } from '@senars/util/text';

@@ -1,4 +1,5 @@
-import { clamp01, maxScore } from '@senars/util/numeric';
+import { clamp01 } from '@senars/util/numeric';
+import { maxScore } from '@senars/util/collections';
 import { SeededRNG } from '@senars/util/random';
 import type { Game, GameOutcome, Perception } from '../Game.js';
 

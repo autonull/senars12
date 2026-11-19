@@ -2,7 +2,7 @@ import { createInterface, type Interface } from 'node:readline';
 import type { BoundedRing } from '@senars/util/collections';
 import { createLogger } from '@senars/util/logger';
 import { DisposalRegistry } from '@senars/util/disposal';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { isQuitResult, QUIT_SENTINEL } from '@senars/commands';
 import { splitWords } from '@senars/util/text';
 import { withDefaults } from '@senars/util/config';

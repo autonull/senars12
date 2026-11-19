@@ -1,5 +1,5 @@
 import type { SkillFeedback, ToolRegistryDelegate, ToolSpec } from '@senars/motor';
-import { toSkillFeedback } from '@senars/feedback';
+import { toSkillFeedback } from '@senars/feedback/ToolFeedbackObserver';
 import type { ToolContext, ToolResult } from '@senars/types/tools';
 import type { ToolManager } from './ToolManager';
 

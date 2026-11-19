@@ -132,7 +132,7 @@ describe('raceDeadline', () => {
     // deadline it was asked for can fire. In-process, the test runner's own
     // handles mask it.
     const source =
-      `import('@senars/utils').then(async ({ raceDeadline }) => {` +
+      `import('@senars/util/async').then(async ({ raceDeadline }) => {` +
       `  const outcome = await raceDeadline(new Promise(() => {}), 100);` +
       `  process.stdout.write('timedOut=' + outcome.timedOut);` +
       `});`;

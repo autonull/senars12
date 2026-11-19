@@ -5,20 +5,18 @@
  * `MacroContext.stream`.
  */
 
-import {
-  collectText,
-  dispatch,
-  drain,
-  egressVerdict,
-  type LMTask,
-  toolError,
-} from '../util';
-import { createLogger } from '../util/logger';
+import { collectText } from '@senars/util/text';
+import { dispatch } from '@senars/util/middleware';
+import { drain } from '@senars/util/async';
+import { egressVerdict } from '@senars/util/cognitive-schemas';
+import type { LMTask } from '@senars/types/llm';
+import { toolError } from '@senars/types/engine';
+import { createLogger } from '@senars/util/logger';
 import type { ChatStreamEvent } from './chat.js';
 import { SHELL_TIMEOUT_MS } from './constants.js';
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
 import { sweepEngines } from '../engine/sweep.js';
-import { recalledEventTypes } from '../schemas/cognitive-events.js';
+import { recalledEventTypes } from '@senars/schemas/recalled-events';
 import { RECALL_WINDOW } from '../memory/types.js';
 import { NAR_ORIGIN } from '../schemas/event-base.js';
 import { mintCognitiveEvent } from '../schemas/cognitive-events.js';

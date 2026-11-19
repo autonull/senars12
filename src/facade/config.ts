@@ -1,7 +1,7 @@
 import type { MettaPort } from '../agent/index.js';
-import type { AutonomyMode, ReasoningBudget } from '../schemas/index.js';
-import { isStatefulRandomSource, type StatefulRandomSource } from '../util/index.js';
-import type { Clock, IdSource } from '../util/index.js';
+import type { AutonomyMode, ReasoningBudget } from '@senars/schemas/reasoning-budget';
+import { isStatefulRandomSource, type StatefulRandomSource } from '@senars/util/random';
+import type { Clock, IdSource } from '@senars/util/clock';
 import type { SystemOneConfig as SystemOneConfigSchema } from '../config/index.js';
 import type { ToolFeedbackObserver } from '../util/feedback.js';
 import type { AutonomyConfigInput } from '../autonomy/config.js';

@@ -1,4 +1,4 @@
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { safeRatio, sumBy } from '@senars/util/numeric';
 import { tool } from 'ai';
 import { z } from 'zod';

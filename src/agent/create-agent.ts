@@ -11,7 +11,7 @@ import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import { clamp } from '@senars/util/numeric';
 import { createLogger, silentLogger } from '@senars/util/logger';
 import { deadline } from '@senars/util/async';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { parseJsonOr } from '@senars/util/fs';
 import { serializeTruth } from '@senars/util/truth-schema';

@@ -1,5 +1,8 @@
 import { promises as fs } from 'node:fs';
-import { groupBy, holdoutSplit, mulberry32, sortBy, toFiniteNumber, writeJsonFile } from '@senars/util/collections';
+import { groupBy, sortBy } from '@senars/util/collections';
+import { holdoutSplit, mulberry32 } from '@senars/util/random';
+import { toFiniteNumber } from '@senars/util/numeric';
+import { writeJsonFile } from '@senars/util/fs';
 import { sha256HexParts } from '@senars/util/hash';
 import { cachePath } from '@senars/util/config';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';

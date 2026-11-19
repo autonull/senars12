@@ -46,7 +46,7 @@ import { ROOT } from './root.js';
  * assertions nobody can reach from a test.
  */
 export const canonicalFormFailures = (): string[] => {
-  const GRAMMAR = readFileSync(join(ROOT, 'nar/src/terms/narsese.peggy'), 'utf8');
+  const GRAMMAR = readFileSync(join(ROOT, 'src/terms/narsese.peggy'), 'utf8');
   const WRAPPER_SYMBOLS = new Set(['{', '[', '--']);
 
   const failures: string[] = [];

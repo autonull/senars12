@@ -3,7 +3,7 @@ import { clamp, clampSigned, flooredRatio, roundTo } from '@senars/util/numeric'
 import { createLogger } from '@senars/util/logger';
 import { ensureArray } from '@senars/util/guards';
 import { entryKey, keyedBy } from '@senars/util/collections';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 import { buildDefaults, type CognitiveParameters } from '../config/cognitive-parameters.js';

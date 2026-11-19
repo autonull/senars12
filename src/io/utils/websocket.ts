@@ -1,7 +1,7 @@
 import { addToSet, removeFromSet } from '@senars/util/collections';
 import { makeId } from '@senars/util/id';
 import { periodic } from '@senars/util/async';
-import { toError } from '@senars/errors';
+import { toError } from '@senars/util/error';
 import { WebSocket } from 'ws';
 
 export interface WSClient {

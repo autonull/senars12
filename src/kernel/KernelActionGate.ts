@@ -10,9 +10,8 @@ import type {
 import {
   AutonomyModeChangedEventSchema,
   mintCognitiveEvent,
-  permitsExecution,
 } from '@senars/schemas/cognitive-events.js';
-import { AutonomyModeSchema } from '@senars/schemas/governance.js';
+import { AutonomyModeSchema, permitsExecution } from '@senars/schemas/governance.js';
 import { addToSet, pushCapped } from '@senars/util/collections';
 import type { BoundedMap } from '@senars/util/bounded-map';
 import { makeId } from '@senars/util/id';

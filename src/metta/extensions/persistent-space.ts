@@ -1,6 +1,6 @@
 import { ArraySpace } from '../core/space.js';
 import type { MeTTaAtom } from '../types/ast.js';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { periodic } from '@senars/util/async';
 import { writeJsonFile } from '@senars/util/fs';
 

@@ -1,8 +1,8 @@
 import { ConnectionError } from '@senars/errors';
-import { errMsg, toError } from '@senars/errors';
+import { errMsg, toError } from '@senars/util/error';
 import { generateId } from '@senars/util/id';
 import { SerialLanes } from '@senars/util/async';
-import { Signal } from '@senars/events';
+import { Signal } from '@senars/events/signal';
 import { withRetry } from '@senars/util/retry';
 import { withDefaults } from '@senars/util/config';
 import type {

@@ -7,7 +7,7 @@ import type {
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import { envBool, envStr } from '@senars/util/config';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { extractLastUserMessage } from '@senars/util/prompt';
 import { SerialQueue } from '@senars/util/async';
 import type { LanguageModel } from 'ai';

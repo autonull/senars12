@@ -1,5 +1,5 @@
 import { createLogger } from '@senars/util/logger';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { periodic } from '@senars/util/async';
 import { takeLast } from '@senars/util/collections';
 import { MetacognitiveMonitor, MONITOR_DEFAULTS } from '../cognitive/impls/MetacognitiveMonitor.js';

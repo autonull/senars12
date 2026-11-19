@@ -1,4 +1,4 @@
-import { serializeTruth } from '@senars/util/truth-schema';
+import { serializeTruth } from '@senars/types/truth';
 import { takeFirst } from '@senars/util/collections';
 import type { TranslationCacheEntry } from '../cache.js';
 

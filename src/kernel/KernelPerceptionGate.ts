@@ -9,16 +9,12 @@ import type {
   SourceQuality,
   TaskAdmittedEvent,
 } from '@senars/schemas/cognitive-events.js';
-import {
-  confidenceCeiling,
-  mintCognitiveEvent,
-  SOURCE_QUALITY_CONFIDENCE,
-  TASK_PUNCTUATION,
-  TOLERANT_PUNCTUATIONS,
-} from '@senars/schemas/cognitive-events.js';
-import { asBeliefTruth } from '@senars/util/truth-schema';
+import { mintCognitiveEvent } from '@senars/schemas/cognitive-events.js';
+import { asBeliefTruth } from '@senars/types/truth';
+import { confidenceCeiling, SOURCE_QUALITY_CONFIDENCE } from '@senars/schemas/truth';
+import { TASK_PUNCTUATION, TOLERANT_PUNCTUATIONS } from '@senars/schemas/task';
 import { clamp01 } from '@senars/util/numeric';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { TimeoutError, withDeadline } from '@senars/util/async';
 import { normalizeNarsese } from '../nl/normalize.js';

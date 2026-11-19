@@ -1,5 +1,6 @@
-import { asBeliefTruth } from '@senars/util/truth-schema';
-import { clamp01, maxScore } from '@senars/util/numeric';
+import { asBeliefTruth } from '@senars/types/truth';
+import { clamp01 } from '@senars/util/numeric';
+import { maxScore } from '@senars/util/collections';
 import { makeId } from '@senars/util/id';
 import { systemClock } from '@senars/util/clock';
 import { type Bag, type BagOptions, createBag } from '../bag/index.js';

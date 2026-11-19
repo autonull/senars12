@@ -1,4 +1,4 @@
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 
 export interface DispatchContext {
   tools: Record<string, { execute: (args: Record<string, unknown>) => Promise<unknown> }>;

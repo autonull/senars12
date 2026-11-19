@@ -1,5 +1,4 @@
-import { maxScore } from '@senars/util/numeric';
-import { rankBy } from '@senars/util/collections';
+import { maxScore, rankBy } from '@senars/util/collections';
 import { atomicSymbols, containsSubterm, type Term, termKey } from '../terms/index.js';
 
 /**

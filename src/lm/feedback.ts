@@ -1,8 +1,8 @@
-import { degrade } from '@senars/errors';
+import { degrade } from '@senars/util/error';
 import type { BoundedRing } from '@senars/util/collections';
 import { clamp01 } from '@senars/util/numeric';
 import { createLogger } from '@senars/util/logger';
-import { formatTruth } from '@senars/util/truth-schema';
+import { formatTruth } from '@senars/types/truth';
 import { TermTruthSchema } from '@senars/util/truth-schema';
 import { type ZodSchema, z } from 'zod';
 import type { GateRegistry } from '../kernel/index.js';

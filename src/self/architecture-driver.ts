@@ -252,6 +252,5 @@ export function createArchitectureDriver(nar: SelfHost, proposalsDir?: string): 
 }
 
 import { ensureParentDir } from '@senars/util/fs';
-import { formatDuration } from '@senars/util/format';
-import { pct } from '@senars/util/numeric';
-import { serializeTruth } from '@senars/util/truth-schema';
+import { formatDuration, pct } from '@senars/util/format';
+import { serializeTruth } from '@senars/types/truth';

@@ -1,4 +1,4 @@
-import { formatTruth } from '@senars/util/truth-schema';
+import { formatTruth } from '@senars/types/truth';
 import { takeFirst } from '@senars/util/collections';
 import type { BeliefInfo, ConflictInfo } from '../types.js';
 

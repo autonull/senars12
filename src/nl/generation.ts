@@ -1,5 +1,5 @@
 import { ambientRng } from '@senars/util/random';
-import { formatTruth } from '@senars/util/truth-schema';
+import { formatTruth } from '@senars/types/truth';
 import { stableKeyOf } from '@senars/util/json';
 import { takeFirst, unique } from '@senars/util/collections';
 import { getModelForTask } from '../lm';

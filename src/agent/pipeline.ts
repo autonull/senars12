@@ -1,5 +1,5 @@
 import type { CognitiveEvent } from '../schemas/index.js';
-import { PushQueue } from '@senars/events';
+import { PushQueue } from '@senars/events/push-queue';
 import type { ChatOptions, ChatStreamEvent } from './chat.js';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
 import type {

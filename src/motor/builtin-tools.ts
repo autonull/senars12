@@ -4,7 +4,7 @@ import { promisify } from 'node:util';
 import type { EpisodicMemory } from '@senars/types/episodic-memory';
 import { CAPABILITY_RISKS, CapabilityRiskSchema } from '@senars/util/capability-risk';
 import { envStr } from '@senars/util/config';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { objectSpec } from '@senars/types/tools';
 import { toolAttempt, toolError, toolOk } from '@senars/types/engine';
 import { z } from 'zod';

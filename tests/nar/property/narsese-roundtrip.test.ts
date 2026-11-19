@@ -115,7 +115,7 @@ describe('Narsese round-trip (property)', () => {
 
   it('the grammar names no kind the operator table lacks', () => {
     const grammar = readFileSync(
-      new URL('@senars/nar/terms/narsese.peggy', import.meta.url),
+      new URL('../../../src/terms/narsese.peggy', import.meta.url),
       'utf8'
     );
     const mapped = [...grammar.matchAll(/'[^']+'\s*:\s*'([^']+)'/g)].map(([, kind]) => kind);

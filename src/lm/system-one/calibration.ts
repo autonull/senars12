@@ -1,6 +1,6 @@
 import type { BoundedMap } from '@senars/util/bounded-map';
-import { lerp, maxScore, safeRatio } from '@senars/util/numeric';
-import { sortBy, trimCapped } from '@senars/util/collections';
+import { lerp, safeRatio } from '@senars/util/numeric';
+import { maxScore, sortBy, trimCapped } from '@senars/util/collections';
 import { headRubrics } from './head-ontology.js';
 import { weightedAbsoluteError } from './metrics.js';
 import type { CalibrationVersion, RubricId } from './types.js';

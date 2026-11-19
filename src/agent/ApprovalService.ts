@@ -1,5 +1,5 @@
 import { deferred, withTimeout } from '@senars/util/async';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { envBool } from '@senars/util/config';
 import { APPROVAL_TIMEOUT_MS } from './constants.js';

@@ -1,4 +1,4 @@
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { isQuitResult } from '@senars/commands';
 import { SlidingWindowRateLimiter } from '@senars/util/rate-limit';
 import { splitWords } from '@senars/util/text';

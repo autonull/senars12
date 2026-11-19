@@ -9,7 +9,7 @@
  */
 
 import type { DerivationStep, TruthValue } from '@senars/schemas';
-import { formatTruth } from '@senars/util/truth-schema';
+import { formatTruth } from '@senars/types/truth';
 import { unique } from '@senars/util/collections';
 import type { BeliefInfo, ConflictInfo, GenerationInput, GenerationOutput } from './generation.js';
 

@@ -5,7 +5,7 @@
 
 import type { BoundedRing, perPart } from '@senars/util/collections';
 import { makeId } from '@senars/util/id';
-import { toError } from '@senars/errors';
+import { toError } from '@senars/util/error';
 import {
   type BudgetAllocation,
   type BudgetSlice,

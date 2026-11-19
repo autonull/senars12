@@ -2,6 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { createFileSystemTools } from '@senars/nar/tools/adapters/filesystem.js';
+import { createRateLimiter } from '@senars/io/bridge/MiddlewarePipeline.js';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('fs tool workspace scope', () => {
@@ -50,7 +51,6 @@ describe('rate limiter window', () => {
   it('admits exactly the limit within one window, then sheds', async () => {
     vi.useFakeTimers();
     try {
-      const { createRateLimiter } = await import('@senars/io/bridge/MiddlewarePipeline.js');
       const mw = createRateLimiter(3);
       const respond = vi.fn().mockResolvedValue(undefined);
       const next = vi.fn().mockResolvedValue(undefined);

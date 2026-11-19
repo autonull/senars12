@@ -5,10 +5,10 @@ import type {
   FormalizationCandidate,
 } from '@senars/schemas/formalization.js';
 import { ambiguitySeverityOf, validateFormalizationBatch } from '@senars/schemas/formalization.js';
-import { asBeliefTruth } from '@senars/util/truth-schema';
-import { errMsg } from '@senars/errors';
+import { asBeliefTruth } from '@senars/types/truth';
+import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
-import { pct } from '@senars/util/numeric';
+import { pct } from '@senars/util/format';
 import { stableKeyOf } from '@senars/util/json';
 import { withDeadline } from '@senars/util/async';
 import type { ZodSchema } from 'zod';

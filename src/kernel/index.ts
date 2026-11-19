@@ -69,15 +69,17 @@ export {
   type Truth,
   type TruthValue,
   type TruthLike,
-  type TruthValueSchema,
   Truth,
   normalize,
   createTruth,
+  verifyTruthLaws,
+} from './truth.js';
+export {
+  type TruthValueSchema,
   toSchemaTruth,
   fromSchemaTruth,
   parseTruthLiteral,
   formatTruth,
   formatSchemaTruth,
   serializeTruth,
-  verifyTruthLaws,
-} from './truth.js';
+} from './types.js';

@@ -1,5 +1,5 @@
-import { errMsg } from '@senars/errors';
-import { SenarsError } from '@senars/util/errors';
+import { errMsg } from '@senars/util/error';
+import { SenarsError } from '@senars/errors';
 import type { Agent } from '../agent/Agent.js';
 import type { Engine, EngineId } from '../engine/Engine.js';
 import type { LensSpec } from '../protocol/lens-schema.js';

@@ -1,6 +1,6 @@
 import { uniqueBy } from '@senars/util/collections';
-import { hasNegatedPair, hasRepeatedArgs } from './impls/accessors.ts';
-import { atomOf, compoundOf, isBoolAtom, termKey } from './impls/intern.ts';
+import { hasNegatedPair, hasRepeatedArgs, termKey } from './impls/accessors.ts';
+import { atomOf, compoundOf, isBoolAtom } from './impls/intern.ts';
 import { COMMUTATIVE_OPS, NARY_OPS } from './operators.ts';
 import type { OperatorKey, Term } from './types.ts';
 import { isAtomic } from './types.ts';

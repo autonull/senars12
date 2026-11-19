@@ -1,5 +1,5 @@
 import { drain } from '@senars/util/async';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { truncate } from '@senars/util/text';
 import {
   generateText,

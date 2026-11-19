@@ -14,7 +14,8 @@
  * `budget-otel.ts`, and the four dimensions both count in live in
  * `budget-resources.ts`; this module is the accounting and the typed bus.
  */
-import { clamp, maxScore, occupancy } from '@senars/util/numeric';
+import { clamp, occupancy } from '@senars/util/numeric';
+import { maxScore } from '@senars/util/collections';
 import { announceBudgetTrace } from './budget-otel.js';
 import {
   ALL_RESOURCES,

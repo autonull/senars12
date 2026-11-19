@@ -22,7 +22,7 @@ import type {
   FormalizationBatch,
   TaskAdmittedEvent,
 } from '@senars/schemas';
-import { asBeliefTruth } from '@senars/util/truth-schema';
+import { asBeliefTruth } from '@senars/types/truth';
 import { makeId } from '@senars/util/id';
 import type { ILMService } from '../lm/interfaces.js';
 import { parseTaskTolerant } from '../terms';

@@ -1,4 +1,4 @@
-import { mean } from '@senars/util/collections';
+import { mean } from '@senars/util/numeric';
 import { appendJsonlRowAsync, readJsonlAsync } from '@senars/util/fs';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 

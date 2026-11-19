@@ -4,7 +4,7 @@
 
 export { createLogger } from '@senars/util/logger';
 export { ensureDir, readJsonlAsync, writeJsonl, writeJsonFile, parseJsonOr } from '@senars/util/fs';
-export { errMsg, degrade } from '@senars/errors';
+export { errMsg, degrade } from '@senars/util/error';
 export { makeId, generateId } from '@senars/util/id';
 export { parseFlags } from '@senars/util/cli';
 export { setupGracefulShutdown } from '@senars/util/shutdown';
@@ -17,7 +17,7 @@ export { formatDuration, formatBytes, section, divider, bar } from '@senars/util
 export { escapeRegExp, splitWords, truncate, limitList, splitLines } from '@senars/util/text';
 export { formatTruth, formatNarseseTruth } from '@senars/util/truth-schema';
 export { positiveInt } from '@senars/util/config';
-export { ConfigurationError } from '@senars/util/errors';
+export { ConfigurationError } from '@senars/errors';
 export type { LMTask, LMExecutionStats } from '@senars/types/llm';
 export type { ConversationSession, SessionManager } from '@senars/types/memory';
 export type { Teardown } from '@senars/util/disposal';

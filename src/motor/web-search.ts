@@ -13,7 +13,7 @@
 
 import { boundedFetch, readBodyBounded } from '@senars/util/async';
 import { collectUpTo } from '@senars/util/collections';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { splitLines } from '@senars/util/text';
 import { envFirst } from '@senars/util/config';
 import { WEB_FETCH_TIMEOUT_MS } from '../agent/constants.js';

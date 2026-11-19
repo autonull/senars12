@@ -14,7 +14,7 @@ import {
   parseEnvValue,
   readEnvOverrides,
   SENARS_ENV_MAP,
-} from '@senars/utils';
+} from '@senars/config/env';
 
 const KEYS = [
   'SENARS_TEST_A',

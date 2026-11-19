@@ -1,5 +1,5 @@
 import { createLogger } from '@senars/util/logger';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import type { ModelRuleStats } from '../../lm';
 import type { SelfHost } from '../../self/host.js';
 import { SelfOptimizer } from '../../self/SelfOptimizer';

@@ -1,5 +1,5 @@
 import { promises as fs } from 'node:fs';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { writeJsonFile } from '@senars/util/fs';
 import type { EventBus } from '@senars/util/events';
 import { OperationError } from '../types';

@@ -1,5 +1,5 @@
 import { flooredRatio, safeRatio } from '@senars/util/numeric';
-import { formatNarseseTruth } from '@senars/util/truth-schema';
+import { formatNarseseTruth } from '@senars/types/truth';
 import { overlapCount, tokenizeWords } from '@senars/util/text';
 import { selectTopN, takeFirst, takeLast, uniqueBy } from '@senars/util/collections';
 

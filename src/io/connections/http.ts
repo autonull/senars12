@@ -3,7 +3,7 @@ import { URL } from 'node:url';
 import type { BoundedMap } from '@senars/util/bounded-map';
 import { createLogger } from '@senars/util/logger';
 import { deadline, deferred } from '@senars/util/async';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { mapToRecord } from '@senars/util/collections';
 import { withDefaults } from '@senars/util/config';

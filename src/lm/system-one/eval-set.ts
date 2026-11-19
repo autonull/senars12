@@ -6,9 +6,10 @@
  */
 
 import { promises as fs } from 'node:fs';
-import { groupBy, mapToRecord, writeJsonFile } from '@senars/util/collections';
+import { groupBy, mapToRecord } from '@senars/util/collections';
+import { writeJsonFile } from '@senars/util/fs';
 import { sha256Prefixed } from '@senars/util/hash';
-import { SenarsError } from '@senars/util/errors';
+import { SenarsError } from '@senars/errors';
 import { identityECE, meanBrier } from './calibration-fit.js';
 import type { JudgmentDataset } from './distill.js';
 import { frozenRegression } from './metrics.js';

@@ -2,7 +2,7 @@
  * Calibration metrics — the single Brier/ECE implementation, kept in a leaf
  * module so scorers (distill, train, eval) can share it without import cycles.
  */
-import { mean } from '@senars/util/collections';
+import { mean } from '@senars/util/numeric';
 import { safeRatio } from '@senars/util/numeric';
 
 /**

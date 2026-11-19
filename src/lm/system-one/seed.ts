@@ -1,5 +1,5 @@
 import type { CeilingReputation, SourceQuality } from '@senars/schemas/cognitive-events.js';
-import { confidenceCeiling } from '@senars/schemas/cognitive-events.js';
+import { confidenceCeiling } from '@senars/schemas/truth';
 import { Truth } from '../../terms/impls/Truth.js';
 import type { Desire } from './desire.js';
 import type { JudgmentProposition } from './types.js';

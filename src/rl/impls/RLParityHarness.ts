@@ -1,4 +1,5 @@
-import { maxScore, pearson, safeRatio } from '@senars/util/numeric';
+import { maxScore } from '@senars/util/collections';
+import { pearson, safeRatio } from '@senars/util/numeric';
 import { SeededRNG } from '@senars/util/random';
 
 /**

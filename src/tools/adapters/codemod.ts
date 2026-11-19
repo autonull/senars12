@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { parseJsonOr } from '@senars/util/fs';
 import { unique } from '@senars/util/collections';
 import { tool } from 'ai';

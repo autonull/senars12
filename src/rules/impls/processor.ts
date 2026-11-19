@@ -3,10 +3,10 @@
  */
 
 import { CallTallySeries, createCallTally } from '@senars/util/tally';
-import { formatNarseseTruth } from '@senars/util/truth-schema';
+import { formatNarseseTruth } from '@senars/types/truth';
 import { keyedBy, pushCapped, takeFirst } from '@senars/util/collections';
 import { stopwatch } from '@senars/util/async';
-import { toError } from '@senars/errors';
+import { toError } from '@senars/util/error';
 import type { DerivationRecord, DerivationStep } from '@senars/schemas';
 import { countContradictions } from '../../cognitive/impls/conflict-utils.js';
 import type { DriveManager } from '../../drives';

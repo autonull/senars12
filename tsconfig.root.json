@@ -167,9 +167,11 @@
       "@senars/util/collections": ["./src/util/collections.ts"],
       "@senars/util/config": ["./src/config/index.ts"],
       "@senars/util/diagnostics": ["./src/util/diagnostics.ts"],
-      "@senars/util/errors": ["./src/errors/index.ts"],
+      "@senars/util/error": ["./src/util/error.ts"],
+      "@senars/util/errors": ["./src/util/error.ts"],
       "@senars/util/eval": ["./src/util/eval.ts"],
-      "@senars/util/events": ["./src/events/index.ts"],
+      "@senars/util/events": ["./src/events/signal.ts"],
+      "@senars/util/event-bus": ["./src/events/event-bus.ts"],
       "@senars/util/id": ["./src/util/id.ts"],
       "@senars/util/ledger": ["./src/util/ledger.ts"],
       "@senars/util/logger": ["./src/util/logger.ts"],
@@ -194,6 +196,7 @@
       "@senars/schemas/nar-events": ["./src/schemas/nar-events.ts"],
       "@senars/schemas/proposal": ["./src/schemas/proposal.ts"],
       "@senars/schemas/reasoning-budget": ["./src/schemas/reasoning-budget.ts"],
+      "@senars/schemas/recalled-events": ["./src/schemas/recalled-events.ts"],
       "@senars/schemas/rule-table": ["./src/schemas/rule-table.ts"],
       "@senars/schemas/truth": ["./src/schemas/truth.ts"]
     }

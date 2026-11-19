@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import type { SchemaStore } from '../focus/schema-store.js';
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 

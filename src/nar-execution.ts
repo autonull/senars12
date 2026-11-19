@@ -1,6 +1,7 @@
 import type { KernelControlState } from '@senars/schemas';
-import { BoundedRing, indexBy, keyedBy, mean, rankBy, roundTo } from '@senars/util/collections';
+import { BoundedRing, indexBy, keyedBy, rankBy } from '@senars/util/collections';
 import { createLogger } from '@senars/util/logger';
+import { mean, roundTo } from '@senars/util/numeric';
 import { errMsg } from '@senars/util/error';
 import { envBool } from '@senars/config';
 import type { EventBus as NarEventBus } from '@senars/events';

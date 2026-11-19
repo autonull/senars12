@@ -1,6 +1,6 @@
 import type { TaskBagKind, Verdict } from '@senars/schemas';
 import { clamp } from '@senars/util/numeric';
-import { formatTruth } from '@senars/util/truth-schema';
+import { formatTruth } from '@senars/types/truth';
 import {
   atomicSymbols,
   operationNameOf,

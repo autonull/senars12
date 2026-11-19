@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { clamp01 } from '@senars/util/numeric';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { writeJsonFile } from '@senars/util/fs';
 import { OperationError } from '../types';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';

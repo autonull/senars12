@@ -1,6 +1,6 @@
 /** Episodic + concept memory commands (`.consolidate`, `.memory-*`, `.recall`). */
 
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { finiteOr } from '@senars/util/numeric';
 import { incrementCount } from '@senars/util/collections';
 import { readJsonlAsync, writeJsonl } from '@senars/util/fs';

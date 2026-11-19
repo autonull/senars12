@@ -1,6 +1,6 @@
 import { clamp01, flooredRatio, safeRatio } from '@senars/util/numeric';
 import { createLogger } from '@senars/util/logger';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { formatDuration } from '@senars/util/format';
 import { stopwatch } from '@senars/util/async';
 import type { ILMService } from '../../lm/interfaces.js';

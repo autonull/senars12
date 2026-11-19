@@ -28,7 +28,7 @@ import {
   type SystemOneManifold,
 } from '@senars/lm/system-one';
 import { createLogger } from '@senars/util/logger';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { formatBytes } from '@senars/util/format';
 import { parseFlags } from '@senars/util/cli';
 import { pct } from '@senars/util/numeric';

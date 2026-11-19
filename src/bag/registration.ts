@@ -1,8 +1,9 @@
-import { type Clock, formatIssues } from '../util';
+import type { Clock } from '@senars/util/clock';
+import { formatIssues } from '@senars/util/diagnostics';
 import { z } from 'zod';
-import { ConfigurationError } from '../types';
-import type { RandomSource } from '../types/primitives';
-import { unitInterval } from '../config';
+import { ConfigurationError } from '@senars/errors';
+import type { RandomSource } from '@senars/types/primitives';
+import { unitInterval } from '@senars/config/boundary';
 
 /**
  * The `strategies.bag` slot's contract (TODO27 §11.4 — the last slot without one).

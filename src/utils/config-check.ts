@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { cloudApiKey, formatLMConfig, resolveLMConfig } from '@senars/nar/lm';
 import { createLogger } from '@senars/util/logger';
 import { envSet, envStr } from '@senars/util/config';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 
 const logger = createLogger({ scope: 'config:check' });
 

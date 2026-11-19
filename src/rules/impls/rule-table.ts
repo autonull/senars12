@@ -52,9 +52,8 @@ import {
   RULE_TABLE_SCHEMA_VERSION,
   validateRuleTable,
 } from '@senars/schemas/rule-table.js';
-import { indexBy, pushCapped } from '@senars/util/collections';
-import { maxScore } from '@senars/util/numeric';
-import { SenarsError } from '@senars/util/errors';
+import { indexBy, maxScore, pushCapped } from '@senars/util/collections';
+import { SenarsError } from '@senars/errors';
 
 import { type Term, Truth } from '../../terms';
 import type { InferenceTable, RegisteredRule, RuleFn, TruthFn } from '../types.js';

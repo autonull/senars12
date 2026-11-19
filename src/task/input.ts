@@ -1,8 +1,9 @@
 import { escapeRegExp } from '@senars/util/text';
-import { unique } from '../util/collections.ts';
+import { unique } from '@senars/util/collections';
 import type { Term } from '../terms';
 import { Truth, termParser } from '../terms';
 import { createTaskWeight, createTask, type Task, type TaskType } from '../types';
+import { taskTypeFromPunctuation } from './record.js';
 
 const PUNCTUATION_BY_TASK_TYPE = {
   belief: '.',

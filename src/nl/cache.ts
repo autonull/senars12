@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { collectUpTo } from '@senars/util/collections';
 import { createLogger } from '@senars/util/logger';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { LruCache } from '@senars/util/lru-cache';
 import { overlapCount, tokenizeWords } from '@senars/util/text';
 import { periodic } from '@senars/util/async';

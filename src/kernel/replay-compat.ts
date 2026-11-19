@@ -14,12 +14,14 @@ import type {
 } from '@senars/schemas/cognitive-events.js';
 import {
   CognitiveEventSchema,
-  DerivationRecordSchema,
   validateCognitiveEvent,
-  validateDerivationRecord,
 } from '@senars/schemas/cognitive-events.js';
+import {
+  DerivationRecordSchema,
+  validateDerivationRecord,
+} from '@senars/schemas/derivation-records.js';
 import { appendJsonl, readJsonlWith, writeJsonFileSync } from '@senars/util/fs';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { installIdSource } from '@senars/util/id';
 import { keyedBy } from '@senars/util/collections';
 import { sha256Hex } from '@senars/util/hash';

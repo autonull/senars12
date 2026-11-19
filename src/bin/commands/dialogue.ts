@@ -2,7 +2,7 @@
 
 import { OutcomeLinker } from '@senars/config/nar';
 import { episodeQualitySurface } from '@senars/query';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { finiteOr } from '@senars/util/numeric';
 import { makeId } from '@senars/util/id';
 import { takeLast, unique } from '@senars/util/collections';

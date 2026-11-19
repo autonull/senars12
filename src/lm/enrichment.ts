@@ -1,4 +1,4 @@
-import { degrade } from '@senars/errors';
+import { degrade } from '@senars/util/error';
 import type { BoundedRing, sortBy } from '@senars/util/collections';
 import { createLogger } from '@senars/util/logger';
 import { periodic } from '@senars/util/async';

@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { ensureDir } from '@senars/util/fs';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { intBetween } from '@senars/util/config';
 import { tool } from 'ai';
 import * as fc from 'fast-check';
