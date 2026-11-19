@@ -1,4 +1,4 @@
-import { clamp, saturationRamp } from '@senars/util';
+import { clamp, saturationRamp } from '@senars/util/numeric';
 import { Truth } from '../../terms';
 import type { DriveSpec } from '../types.js';
 

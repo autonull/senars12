@@ -1,4 +1,4 @@
-import { uniqueBy } from '@senars/util';
+import { uniqueBy } from '@senars/util/collections';
 import { hasNegatedPair, hasRepeatedArgs } from './impls/accessors.ts';
 import { atomOf, compoundOf, isBoolAtom, termKey } from './impls/intern.ts';
 import { COMMUTATIVE_OPS, NARY_OPS } from './operators.ts';

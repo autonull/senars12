@@ -1,5 +1,5 @@
-import { BoundedMap } from '../../util/bounded-map.ts';
-import { getOrInsert } from '../../util/collections.ts';
+import { BoundedMap } from '@senars/util/bounded-map';
+import { getOrInsert } from '@senars/util/collections';
 import { COMMUTATIVE_OPS, NARY_OPS, OPERATORS } from '../operators.ts';
 import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.ts';
 import { VARIABLE_SYMBOL, isAtomic } from '../types.ts';

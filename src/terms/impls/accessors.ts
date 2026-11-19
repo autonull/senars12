@@ -1,4 +1,5 @@
-import { type EqualityDialect, getOrInsert, structuralEqual } from '../../util';
+import { type EqualityDialect, structuralEqual } from '@senars/util/unify';
+import { getOrInsert } from '@senars/util/collections';
 import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.ts';
 import { isAtomic, isVariableSymbol, type OPERATORS } from '../types.ts';
 

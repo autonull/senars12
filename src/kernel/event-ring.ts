@@ -4,7 +4,7 @@
  */
 
 import type { PolicyViolationEvent } from '@senars/schemas';
-import { BoundedRing } from '@senars/util';
+import { BoundedRing } from '@senars/util/collections';
 
 export const GATE_LOG_CAPACITY = 1000;
 

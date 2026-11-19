@@ -1,4 +1,4 @@
-import { parseNarseseTruth, type TermTruth } from '@senars/util';
+import { parseNarseseTruth, type TermTruth } from '@senars/types/truth';
 import type { TaskType } from '../../types';
 
 export interface BootstrapGoal {

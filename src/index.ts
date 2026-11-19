@@ -4,7 +4,7 @@
 export type {
   ComponentContext,
   ComponentState,
-} from '@senars/util';
+} from '@senars/types';
 // Memory
 /** Concept container. @public */
 /** Main memory store. @public */
@@ -317,7 +317,7 @@ export {
   MettaSkillNode,
   NarConceptNode,
 } from './protocol/index.js';
-export { isNarsese } from '@senars/util';
+export { isNarsese } from '@senars/util/text';
 export { builtinLensSpecs } from './protocol/lens-schema.js';
 export type { Agent } from './agent/index.js';
 export type { CognitiveEvent } from './schemas/cognitive-events.js';

@@ -8,15 +8,8 @@
  */
 
 import type { DerivationRecord, DerivationStep } from '@senars/schemas';
-import {
-  BoundedMap,
-  BoundedRing,
-  getOrInsert,
-  incrementCount,
-  mean,
-  pushCapped,
-  rankBy,
-} from '@senars/util';
+import { BoundedMap, getOrInsert, incrementCount, mean, pushCapped, rankBy } from '@senars/util/collections';
+import { BoundedRing } from '@senars/util/collections';
 import { agreeByExactAlgebra } from '../reflex/algebra-vote.js';
 import type { IProposer, NegotiationInput, ProposerContribution } from '../reflex/Negotiator.js';
 import type { ActionProposal, LearningEvent } from '../reflex/Reflex.js';

@@ -10,7 +10,7 @@
  * reintroduce exactly the context bleed this class exists to prevent.
  */
 
-import { getOrInsert } from '@senars/util';
+import { getOrInsert } from '@senars/util/collections';
 import { LruCache } from '@senars/util/lru-cache';
 
 export interface ThreadScopeState {

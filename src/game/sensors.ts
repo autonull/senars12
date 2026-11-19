@@ -1,4 +1,5 @@
-import { clamp01, flooredRatio, mean, safeRatio, sumBy } from '@senars/util';
+import { mean, sumBy } from '@senars/util/collections';
+import { clamp01, flooredRatio, safeRatio } from '@senars/util/numeric';
 import type { PressureLevel } from '@senars/util/bag.js';
 
 import { type CognitionContext, failClosed, type Sensor, type SensorReading } from './types.js';

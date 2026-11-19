@@ -9,9 +9,9 @@ import {
   TOLERANT_PUNCTUATIONS,
   taskTypeForPunctuation,
 } from '@senars/schemas';
-import { type BeliefTruth, stripTruthSuffix } from '@senars/util';
+import { type BeliefTruth, stripTruthSuffix } from '@senars/types/truth';
 import { errMsg } from '@senars/util/error';
-import { SenarsError } from '@senars/util/errors';
+import { SenarsError } from '@senars/errors';
 import type { Term } from '../types.js';
 import { TermFactory } from './factory.js';
 import { Truth } from './Truth.js';

@@ -1,15 +1,8 @@
-import type { ContainerStats, EvictionOrder } from '@senars/util';
-import {
-  addToSet,
-  BoundedMap,
-  type Clock,
-  collectUpTo,
-  containerStats,
-  occupancy,
-  removeFromSet,
-  retain,
-  systemClock,
-} from '@senars/util';
+import type { ContainerStats, EvictionOrder } from '@senars/util/collections';
+import { BoundedMap } from '@senars/util/bounded-map';
+import { addToSet, collectUpTo, containerStats, occupancy, removeFromSet } from '@senars/util/collections';
+import { retain } from '@senars/util/numeric';
+import { type Clock, systemClock } from '@senars/util/clock';
 import { LINK } from '../../constants.js';
 import { type Term, termKey } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';

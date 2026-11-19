@@ -4,8 +4,8 @@ import {
   type LMTask,
   type MockLMConfig,
   recordLMCall,
-  stopwatch,
-} from '@senars/util';
+} from '@senars/types/llm';
+import { stopwatch } from '@senars/util/async';
 import type { LanguageModel } from 'ai';
 import type { ZodSchema } from 'zod';
 import { createMockModel } from '../providers/mock-model.js';

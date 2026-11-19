@@ -1,13 +1,9 @@
-import {
-  createLMStats,
-  errMsg,
-  parseJsonOr,
-  recordLMCall,
-  stopwatch,
-  type TermTruth,
-  withTimeout,
-} from '@senars/util';
-import { SenarsError } from '@senars/util/errors';
+import { createLMStats, recordLMCall, type LMExecutionStats } from '@senars/types/llm';
+import { errMsg } from '@senars/util/error';
+import { parseJsonOr } from '@senars/util/fs';
+import { stopwatch, withTimeout } from '@senars/util/async';
+import { type TermTruth } from '@senars/types/truth';
+import { SenarsError } from '@senars/errors';
 import type { ZodSchema } from 'zod';
 import type { Term } from '../../terms';
 import { Truth } from '../../terms';

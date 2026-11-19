@@ -1,14 +1,8 @@
 import type { TaskBagKind } from '@senars/schemas';
-import {
-  clamp01,
-  formatNarseseTruth,
-  lerp,
-  maxScore,
-  meanOf,
-  retain,
-  type TermTruth,
-} from '@senars/util';
-import type { EventBus as InternalEventBus } from '@senars/util/events';
+import { clamp01, lerp, meanOf, retain } from '@senars/util/numeric';
+import { maxScore } from '@senars/util/collections';
+import { formatNarseseTruth, type TermTruth } from '@senars/types/truth';
+import type { EventBus as InternalEventBus } from '@senars/events';
 import type { IDriveManager } from '../../kernel/interfaces.js';
 import { Truth, type Truth as TruthType } from '../../terms/impls/Truth.js';
 import type { DriveSpec, DriveState } from '../types.js';

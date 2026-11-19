@@ -64,3 +64,20 @@ export {
   replayCognitiveState,
   SNAPSHOT_VERSION,
 } from './replay-compat.js';
+
+export {
+  type Truth,
+  type TruthValue,
+  type TruthLike,
+  type TruthValueSchema,
+  Truth,
+  normalize,
+  createTruth,
+  toSchemaTruth,
+  fromSchemaTruth,
+  parseTruthLiteral,
+  formatTruth,
+  formatSchemaTruth,
+  serializeTruth,
+  verifyTruthLaws,
+} from './truth.js';

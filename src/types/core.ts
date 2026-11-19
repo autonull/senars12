@@ -73,7 +73,7 @@ export {
   ok,
   type Result,
   unwrapOrThrow,
-} from '@senars/util';
+} from '@senars/util/result';
 
 // Create Budget object - optimized with defaults
 export const createTaskWeight = (

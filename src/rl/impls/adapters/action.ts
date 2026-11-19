@@ -1,13 +1,5 @@
-import {
-  ambientRng,
-  anneal,
-  BoundedRing,
-  maxBy,
-  mean,
-  nextInt,
-  type RandomSource,
-  rngFrom,
-} from '@senars/util';
+import { BoundedRing, maxBy, mean } from '@senars/util/collections';
+import { ambientRng, anneal, nextInt, type RandomSource, rngFrom } from '@senars/util/random';
 import { type Term, TermBuilder, Truth } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
 import { operationNameOf, operationTerm } from '../../../terms/impls/operation-term.js';

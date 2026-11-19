@@ -1,15 +1,6 @@
-import {
-  type BeliefTruth,
-  BoundedRing,
-  getOrInsert,
-  nextInt,
-  perPart,
-  rankBy,
-  type RandomSource,
-  selectTopN,
-  shareOf,
-  sortBy,
-} from '@senars/util';
+import { type BeliefTruth } from '@senars/types/truth';
+import { BoundedRing, getOrInsert, perPart, rankBy, selectTopN, shareOf, sortBy } from '@senars/util/collections';
+import { nextInt, type RandomSource } from '@senars/util/random';
 import { LINK, PRESSURE } from '../constants.js';
 import { NullAttentionModel } from '../strategies/attention/NullAttentionModel.js';
 import type { AttentionModel } from '../strategies/types.js';

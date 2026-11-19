@@ -1,4 +1,4 @@
-**Next: Phase 3 Final Cleanup — resolve vitest module evaluation order issues blocking tests**
+**Next: Phase 3 Final Cleanup — resolve remaining vitest module evaluation order issues blocking tests (makeId, safeRatio, Clock, BoundedMap, LruCache, occupancy, keyedBy, clamp01)**
 **Export Subpaths:**
 - Before: nar: 43 subpaths
 - After: Consolidated into root `src/` structure (imports migrated)
@@ -98,10 +98,10 @@
   - UI package tests fail (out of scope)
   - WASM tests fail (pre-existing)
   - `deps:gate` shows 61 cycles (consolidation revealed pre-existing architectural cycles; baseline may need update)
-  - **Vitest module evaluation order issues**: Many tests fail due to `undefined is not a function` / `X is not a constructor` errors caused by vitest's ESM module evaluation order not matching the codebase's expected topological order. Affected: `getOrInsert`, `createLogger`, `keyedBy`, `mapValues`, `LruCache`, `BoundedMap`, `SenarsError`, `cachePath`, `COGNITIVE_AXES`, `termParser`, `unique`, `indexBy`, `getArgs`, `isAtomic`, `PUNCTUATION_BY_TASK_TYPE`, `TASK_PUNCTUATION`, `cognitiveBound`, `systemOneBound`, `SerialQueue`, `errMsg`, `COGNITIVE_AXES`, etc.
+  - **Vitest module evaluation order issues (PARTIALLY RESOLVED)**: Fixed circular dependency between `src/index.ts` → `@senars/util` → `src/types/core.ts` → `src/terms` → `@senars/util` by migrating 32+ source files from barrel `@senars/util` imports to specific path aliases (`@senars/util/collections`, `@senars/util/numeric`, `@senars/util/random`, `@senars/types/truth`, `@senars/util/result`, `@senars/util/async`, `@senars/util/error`, `@senars/errors`, `@senars/util/hash`, `@senars/util/fs`, `@senars/util/unify`, `@senars/util/keyed-collection`, `@senars/util/bounded-map`, `@senars/util/lru-cache`, `@senars/util/text`). Remaining affected functions: `makeId` (12 test failures), `safeRatio` (10), `Clock`/`systemClock` (6), `BoundedMap` (6), `LruCache` (5), `occupancy` (4), `keyedBy` (3), `clamp01` (3), `zeroConsumed` (2), `envStr` (2), `parse` (2), `softFalloff` (1), `scopeLimitKey` (1), `ensureArray` (1).
 - ⚠️ Run core gates: typecheck ❌ (UI), lint ✅, exports:check ✅, exports:barrels ✅, typecheck:packages ⚠️ (runs root)
-- ⚠️ Core test suite: path resolution fixed, layering/surface tests updated, but many tests blocked by vitest module evaluation order
+- ⚠️ Core test suite: path resolution fixed, layering/surface tests updated, circular dependency chain broken, ~70 source files still need barrel→specific alias migration
 **Dependency Order (topological — core only):**
 util (leaf) → core → io → metta → nar
-**Current Session: Phase 3 Final Cleanup MAJOR PROGRESS. All script imports migrated, test path resolution fixed, layering/surface tests updated, ADRs removed, circular dependencies resolved via shared util modules. Remaining: vitest module evaluation order blocking most tests (see REMAINING section).**
-**Revised Timeline: Core consolidation complete (UI remains out of scope). Test suite blocked by vitest module evaluation order mismatch.**
+**Current Session: Phase 3 Final Cleanup MAJOR PROGRESS. All script imports migrated, test path resolution fixed, layering/surface tests updated, ADRs removed, circular dependencies resolved via shared util modules. Main vitest module evaluation order cycle BROKEN (src/terms no longer depends on @senars/util barrel). Remaining: ~70 source files need barrel→specific alias migration (see REMAINING section).**
+**Revised Timeline: Core consolidation complete (UI remains out of scope). Main eval order cycle fixed; remaining barrel imports need systematic migration.**

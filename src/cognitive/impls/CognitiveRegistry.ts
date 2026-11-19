@@ -13,7 +13,10 @@
 import { emitDomainEvent } from '../../agent/event-sink.js';
 
 import { ConfigurationError } from '../../types';
-import { ambientRng, getOrInsert, KeyedRegistry, keyedBy, LruCache } from '../../util/index.js';
+import { ambientRng } from '@senars/util/random';
+import { getOrInsert, keyedBy } from '@senars/util/collections';
+import { KeyedRegistry } from '@senars/util/keyed-collection';
+import { LruCache } from '@senars/util/lru-cache';
 import type { RandomSource } from '../../types/primitives.js';
 import { recordStrategyMemoSize } from '../../metrics/prometheus.js';
 import {

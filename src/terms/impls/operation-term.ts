@@ -13,7 +13,7 @@
  * now a parse error and a term's `kind` is the recogniser.
  */
 
-import { mapToRecord } from '@senars/util';
+import { mapToRecord } from '@senars/util/collections';
 import { isAtomic, isCompound, type Term } from '../types.js';
 import { getArgs, termsEqual } from './accessors.js';
 import { TermBuilder } from './factory.js';

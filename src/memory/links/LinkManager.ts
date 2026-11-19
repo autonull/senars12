@@ -1,4 +1,4 @@
-import { getOrInsert } from '@senars/util';
+import { getOrInsert } from '@senars/util/collections';
 import { LINK } from '../../constants.js';
 import type { Term } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
