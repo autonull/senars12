@@ -1,4 +1,4 @@
-import type { LMService } from '@senars/util';
+import type { LMService } from '@senars/types/llm';
 import { ModelRunner } from '../agent/ModelRunner.js';
 import { LLMCortex, type PromptBuilder } from './LLMCortex.js';
 

@@ -9,7 +9,8 @@
  * added to {@link AtomKind} is read in one place, not three.
  */
 
-import { type EqualityDialect, fnv1a, fnv1aCombine, structuralEqual } from '@senars/util';
+import { fnv1a, fnv1aCombine } from '@senars/util/hash';
+import { structuralEqual } from '@senars/util/unify';
 import type {
   ExpressionAtom,
   GroundedAtom,

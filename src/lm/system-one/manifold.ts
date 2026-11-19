@@ -1,17 +1,8 @@
 import type { ReasoningBudget } from '@senars/schemas';
-import {
-  assertDefined,
-  clamp,
-  clamp01,
-  estimateTokens,
-  makeId,
-  mean,
-  monotonicNow,
-  safeRatio,
-  stopwatch,
-  unique,
-  variance,
-} from '@senars/util';
+import { clamp, clamp01, estimateTokens, mean, safeRatio, variance } from '@senars/util/numeric';
+import { makeId } from '@senars/util/id';
+import { monotonicNow, stopwatch } from '@senars/util/async';
+import { unique } from '@senars/util/collections';
 import { validateBatchQueries } from './algebra.js';
 import {
   createDefaultCalibrationSuite,

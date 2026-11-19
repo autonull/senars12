@@ -1,4 +1,4 @@
-import { getOrInsert } from '@senars/util';
+import { getOrInsert } from '@senars/util/collections';
 
 import type { Term } from '../../terms';
 import type { InferenceTable, RegisteredRule } from '../types.js';

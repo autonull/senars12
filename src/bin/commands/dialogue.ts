@@ -2,7 +2,10 @@
 
 import { OutcomeLinker } from '@senars/config/nar';
 import { episodeQualitySurface } from '@senars/query';
-import { errMsg, finiteOr, makeId, takeLast, unique } from '@senars/util';
+import { errMsg } from '@senars/errors';
+import { finiteOr } from '@senars/util/numeric';
+import { makeId } from '@senars/util/id';
+import { takeLast, unique } from '@senars/util/collections';
 import { attempted, cmd } from '@senars/cli';
 import { tokenize } from './args.js';
 import { type BotRuntime, systemOneOf } from './context.js';

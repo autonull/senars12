@@ -7,7 +7,8 @@
  * plain-name configs resolve exactly as before; expressions activate only
  * where a caller names one (`CognitiveParameters.strategies.derivation.type`).
  */
-import { clamp, raceDeadline } from '@senars/util';
+import { clamp } from '@senars/util/numeric';
+import { raceDeadline } from '@senars/util/async';
 import type { Task } from '../types/core.js';
 
 /**

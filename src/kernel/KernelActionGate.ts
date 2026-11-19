@@ -6,14 +6,16 @@ import type {
   AutonomyModeChangedEvent,
   GateOutcome,
   PolicyViolationEvent,
-} from '@senars/schemas';
+} from '@senars/schemas/cognitive-events.js';
 import {
   AutonomyModeChangedEventSchema,
-  AutonomyModeSchema,
   mintCognitiveEvent,
   permitsExecution,
-} from '@senars/schemas';
-import { addToSet, BoundedMap, makeId, pushCapped } from '@senars/util';
+} from '@senars/schemas/cognitive-events.js';
+import { AutonomyModeSchema } from '@senars/schemas/governance.js';
+import { addToSet, pushCapped } from '@senars/util/collections';
+import type { BoundedMap } from '@senars/util/bounded-map';
+import { makeId } from '@senars/util/id';
 import { SenarsError } from '@senars/util/errors';
 import { GATE_LOG_CAPACITY } from './event-ring.js';
 import { KernelGate, projectOutcome } from './gate-base.js';

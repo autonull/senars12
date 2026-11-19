@@ -1,5 +1,8 @@
 import type { ReasoningBudget } from '@senars/schemas';
-import { BoundedMap, cachePath, createLogger, randomSourceOf } from '@senars/util';
+import type { BoundedMap } from '@senars/util/bounded-map';
+import { cachePath } from '@senars/util/config';
+import { createLogger } from '@senars/util/logger';
+import { randomSourceOf } from '@senars/util/random';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
 import type { ReflexBindable } from '../focus/GameFocus.js';
 import { threadScope } from '../kernel/thread-scope.js';

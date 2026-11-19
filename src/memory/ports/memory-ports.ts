@@ -6,7 +6,7 @@
  * strategy layer.
  */
 
-import type { ContainerStats } from '@senars/util';
+import type { ContainerStats } from '@senars/util/collections';
 import type { Term } from '../../terms/index.js';
 import type { Concept } from '../concept.js';
 import type { Layer } from '../links/Layer.js';

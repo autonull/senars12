@@ -1,4 +1,4 @@
-import { trimCapped } from '@senars/util';
+import { trimCapped } from '@senars/util/collections';
 import type { SelfHost } from '../self/host.js';
 
 export interface Optimization {

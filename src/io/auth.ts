@@ -1,4 +1,4 @@
-import { addToSet, type AuthDecision } from '@senars/util';
+import { addToSet } from '@senars/util/collections';
 
 export interface AuthManagerConfig {
   defaultMode?: 'open' | 'auth';

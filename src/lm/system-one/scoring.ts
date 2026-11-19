@@ -1,4 +1,7 @@
-import { djb2, djb2Step, getOrInsert, LruCache, lerp } from '@senars/util';
+import { djb2, djb2Step } from '@senars/util/hash';
+import { getOrInsert } from '@senars/util/collections';
+import { LruCache } from '@senars/util/lru-cache';
+import { lerp } from '@senars/util/numeric';
 import type { JudgmentQuery } from './types.js';
 
 export interface ScoringOptions {

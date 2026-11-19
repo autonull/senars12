@@ -1,4 +1,4 @@
-import { filterFolded } from '@senars/util';
+import { filterFolded } from '@senars/util/text';
 
 /** Episodes matching a free-text query, newest first; empty without episodic memory. */
 export const recallEpisodes = async (

@@ -1,5 +1,5 @@
 import type { Game, GameOutcome, Perception } from '../Game.js';
-import { SeededRNG, shuffleInPlace } from '@senars/util';
+import { SeededRNG, shuffleInPlace } from '@senars/util/random';
 
 export type Cell = { r: number; c: number };
 export type Direction = 0 | 1 | 2 | 3; // up, right, down, left

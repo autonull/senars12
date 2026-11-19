@@ -1,7 +1,8 @@
 /** Health, telemetry and micro-benchmark commands (`.doctor`, `.health`, `.spend`, `.benchmarks`, …). */
 
 import { resolveLMSettings } from '@senars/lm';
-import { clamp, finiteOr, perSecond, stopwatch } from '@senars/util';
+import { clamp, finiteOr, perSecond } from '@senars/util/numeric';
+import { stopwatch } from '@senars/util/async';
 import { attempted, cmd } from '@senars/cli';
 import { configValidity, credentialSummary, embeddedProbe } from '../lib/doctor-checks.js';
 import { jsonMode } from './args.js';

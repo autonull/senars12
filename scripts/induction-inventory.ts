@@ -28,7 +28,7 @@ import {
   IN_CYCLE_INVENTORY,
 } from '@senars/lm';
 import { PROVIDER_SEAMS } from '@senars/lm';
-import { witnessFiles } from '@senars/util';
+import { witnessFiles } from '@senars/util/witness';
 import { importEdges } from './lib/imports.js';
 import {
   checkInventory,

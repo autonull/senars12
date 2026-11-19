@@ -1,4 +1,4 @@
-import { collectUpTo, getOrInsert, type TermTruth } from '@senars/util';
+import { collectUpTo, getOrInsert } from '@senars/util/collections';
 import { GRAPH_MEMORY, type RecallHit } from '../../memory/associative.js';
 import type { Concept } from '../../memory/concept.js';
 import type { EmbeddingLayer } from '../../memory/links/EmbeddingLayer.js';

@@ -1,4 +1,4 @@
-import { removeBy } from '@senars/util';
+import { removeBy } from '@senars/util/collections';
 import type { MeTTaAtom } from '../types/ast.js';
 import { matchesAtom } from './hash.js';
 

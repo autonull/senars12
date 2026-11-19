@@ -8,20 +8,14 @@
  * came through, and a parse failure was caught (or not) once per caller.
  */
 
-import { finiteOr, type TermTruth } from '@senars/util';
-import {
-  deserializeStamp,
-  type SerializedStamp,
-  type Stamp,
-  Stamp as StampFactory,
-  serializeStamp,
-  type Term,
-  Truth,
-  TASK_PUNCTUATION,
-  taskTypeForPunctuation,
-} from '@senars/schemas';
+import { finiteOr } from '@senars/util/numeric';
+import { deserializeStamp, type SerializedStamp, type Stamp, serializeStamp } from '../terms/impls/Stamp.js';
+import { Stamp as StampFactory } from '../terms/impls/Stamp.js';
+import { Truth } from '../terms/impls/Truth.js';
+import { TASK_PUNCTUATION, taskTypeForPunctuation } from '../schemas/task.js';
 import { termParser } from '../terms/index.js';
 import type { TaskOverrides } from '../types/core.js';
+import type { TermTruth } from '../types/truth.js';
 import {
   createTask,
   createTaskWeight,

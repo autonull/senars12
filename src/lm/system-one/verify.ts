@@ -5,7 +5,8 @@
  */
 
 import { budgetRemaining } from '@senars/budget';
-import { clamp, sha256Hex } from '@senars/util';
+import { clamp } from '@senars/util/numeric';
+import { sha256Hex } from '@senars/util/hash';
 import { type JudgmentProvenance, stageProvenance } from './decide.js';
 import { HEAD_SPECS } from './head-ontology.js';
 import type { BandDecision } from './policy.js';

@@ -12,7 +12,7 @@ import type {
   SelfImprovementProposal,
 } from '@senars/schemas';
 import { permitsExecution, riskLevelOf } from '@senars/schemas';
-import { makeId } from '@senars/util';
+import { makeId } from '@senars/util/id';
 
 export interface ProposalActuators {
   applyFocusWeight?: (focusId: string, weight: number) => void;

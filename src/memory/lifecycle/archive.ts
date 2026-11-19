@@ -1,4 +1,5 @@
-import { type ContainerStats, containerStats, LruCache } from '@senars/util';
+import { containerStats } from '@senars/util/collections';
+import { LruCache } from '@senars/util/lru-cache';
 import type { Term } from '../../terms';
 import type { Concept } from '../concept.js';
 

@@ -1,9 +1,4 @@
-import {
-  type LMExecutionStats,
-  type LMGenerateOptions,
-  type LMTask,
-  stopwatch,
-} from '@senars/util';
+import { stopwatch } from '@senars/util/async';
 import { generateObject, generateText, type LanguageModel, streamText, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
 import { z } from 'zod';

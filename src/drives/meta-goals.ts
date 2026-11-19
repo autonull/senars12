@@ -12,7 +12,7 @@
  * is the opt-in, and the policy is pure, so a test drives it without a kernel.
  */
 
-import { indexBy } from '@senars/util';
+import { indexBy } from '@senars/util/collections';
 import { type Term } from '../terms';
 import { termParser } from '../terms/impls/parser-peggy';
 import type { DriveState } from './types.js';

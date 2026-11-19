@@ -313,7 +313,7 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
 
 export type { EventReceiver, EventUnsubscribe } from '../events';
 
-import { EventBus } from '../events';
+import { EventBus } from '../events/event-bus.js';
 import type { EventPublisher } from './lifecycle.ts';
 
 /** NAR's event bus, keyed on {@link NAREventMap} (X4: typed bus). */

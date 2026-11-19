@@ -1,4 +1,5 @@
-import { maxScore, pearson, SeededRNG, safeRatio } from '@senars/util';
+import { maxScore, pearson, safeRatio } from '@senars/util/numeric';
+import { SeededRNG } from '@senars/util/random';
 
 /**
  * Main harness for running RL parity experiments

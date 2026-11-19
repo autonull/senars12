@@ -1,5 +1,6 @@
 import { escapeRegExp } from '@senars/util/text';
-import { getOrInsert, splitWords } from '@senars/util';
+import { getOrInsert } from '@senars/util/collections';
+import { splitWords } from '@senars/util/text';
 import { LruCache } from '@senars/util/lru-cache';
 import type { Term } from '../terms';
 import { COPULA_SYMBOLS } from '../terms/operators';

@@ -1,15 +1,11 @@
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import { URL } from 'node:url';
-import {
-  BoundedMap,
-  createLogger,
-  deadline,
-  deferred,
-  errMsg,
-  type HealthReport,
-  makeId,
-  mapToRecord,
-} from '@senars/util';
+import type { BoundedMap } from '@senars/util/bounded-map';
+import { createLogger } from '@senars/util/logger';
+import { deadline, deferred } from '@senars/util/async';
+import { errMsg } from '@senars/errors';
+import { makeId } from '@senars/util/id';
+import { mapToRecord } from '@senars/util/collections';
 import { withDefaults } from '@senars/util/config';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { parseHttpBody, setCORSHeaders, startHttpServer } from '../utils/http.js';

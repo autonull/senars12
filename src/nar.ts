@@ -10,9 +10,7 @@ import type { ReasoningBudget } from './schemas/index.js';
 import {
   ambientRng,
   type BeliefTruth,
-  BoundedRing,
   cachePath,
-  createLogger,
   currentIdCount,
   type Episode,
   errMsg,
@@ -20,6 +18,8 @@ import {
   primeIdCount,
   selectTopN,
 } from './util/index.js';
+import { BoundedRing } from './util/collections.js';
+import { createLogger } from './util/logger.js';
 import type { EventBus } from '@senars/util/events';
 import {
   AutonomyHeartbeat,

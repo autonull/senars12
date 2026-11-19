@@ -1,4 +1,4 @@
-import { CIRCUIT_STATES, type CircuitState } from '@senars/util';
+import type { CIRCUIT_STATES } from '@senars/errors';
 import {
   collectDefaultMetrics,
   Counter,

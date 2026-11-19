@@ -1,4 +1,4 @@
-import { groupBy, mapToRecord, selectTopN } from '@senars/util';
+import { groupBy, mapToRecord, selectTopN } from '@senars/util/collections';
 
 import type { ModelRule } from '../../rules/types.js';
 import { termKey } from '../../terms';

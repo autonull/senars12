@@ -1,4 +1,4 @@
-import { selectTopN } from '@senars/util';
+import { selectTopN } from '@senars/util/collections';
 
 import { calculateSimilarity, type Term } from '../terms';
 import type { Concept } from './concept.js';

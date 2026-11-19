@@ -11,8 +11,8 @@
  * every existing importer is untouched and there is no second copy.
  */
 
-import { type BudgetLimits, createBudget } from '../budget/index.js';
-import type { ReasoningBudget, SourceQuality } from '../schemas/index.js';
+import { type BudgetLimits, createBudget } from '../budget/budget.js';
+import type { ReasoningBudget, SourceQuality } from '../schemas/cognitive-events.js';
 import type { BandDecision, CognitiveAxis } from '../util/index.js';
 import type { CriticalityLevel } from '../config/index.js';
 import { z } from 'zod';

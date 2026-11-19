@@ -12,7 +12,7 @@ import type { Budget, Task, TaskType } from '../../types';
 import { createTask, type NAREventMap, type NarEventBus } from '../../types';
 import { CircuitBreaker } from '../../utils/circuit-breaker.js';
 import { parseJsonObject } from '../json.js';
-import type { LMExecutionStats, LMRuleConfig, LMService, ModelRuleStats } from '../lm-service.js';
+import type { LMRuleConfig, LMService, ModelRuleStats } from '../lm-service.js';
 import { lmTaskWeight } from '../task-weights.js';
 import { LMResponseParser } from './response-parser.js';
 import { interpolateTemplate, type LMContext, type ValidationResult } from './types.js';

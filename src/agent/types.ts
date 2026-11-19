@@ -1,14 +1,6 @@
-import type {
-  AgentOptions as UtilAgentOptions,
-  EpisodicMemory,
-  GroundednessGate,
-  HealthStatus,
-  LMTask,
-  ParsedCommand,
-  SkillDefinition,
-  TraceGrader,
-  BridgeOptions as UtilBridgeOptions,
-} from '@senars/util';
+import type { AgentOptions, HealthStatus, ParsedCommand, SkillDefinition, BridgeOptions } from '@senars/types/agent';
+import type { EpisodicMemory } from '@senars/types/episodic-memory';
+import type { LMTask } from '@senars/types/llm';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { ChatOptions, ChatStreamEvent } from './chat.js';
 /**

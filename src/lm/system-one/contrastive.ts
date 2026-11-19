@@ -1,14 +1,6 @@
-import {
-  clamp,
-  clampSigned,
-  generateId,
-  mapToRecord,
-  safeRatio,
-  shareCount,
-  sigmoid,
-  softmax,
-  sumBy,
-} from '@senars/util';
+import { clamp, clampSigned, safeRatio, sigmoid, softmax, sumBy } from '@senars/util/numeric';
+import { generateId } from '@senars/util/id';
+import { mapToRecord, shareCount } from '@senars/util/collections';
 import type { Bag, BagItem } from '../../bag/Bag.js';
 import { createBag } from '../../bag/index.js';
 import type { EmbeddingPointer } from '../../decision/types.js';

@@ -8,7 +8,7 @@
  * is behind `hasDomainEventSink` rather than allocating on every `consume`.
  */
 
-import { keyedBy } from '@senars/util';
+import { keyedBy } from '@senars/util/collections';
 import type { BudgetEventMap } from './budget-events.js';
 import {
   ALL_RESOURCES,

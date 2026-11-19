@@ -4,16 +4,10 @@
  * Migrated from: nar/src/self/MetacognitiveMonitor.ts
  */
 
-import {
-  DisposalRegistry,
-  mean,
-  periodic,
-  perSecond,
-  pushCapped,
-  softFalloff,
-  stdDev,
-  takeLast,
-} from '@senars/util';
+import { DisposalRegistry } from '@senars/util/disposal';
+import { mean, perSecond, softFalloff, stdDev } from '@senars/util/numeric';
+import { periodic } from '@senars/util/async';
+import { pushCapped, takeLast } from '@senars/util/collections';
 import type { SelfHost } from '../../self/host.js';
 import type { ReasoningStep } from '../types.js';
 

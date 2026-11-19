@@ -1,20 +1,12 @@
 import { join } from 'node:path';
 import type { DerivationRecord, ReasoningBudget } from '@senars/schemas';
-import {
-  asBeliefTruth,
-  BoundedRing,
-  type Clock,
-  clamp,
-  clampSigned,
-  envBool,
-  ensureDirSync,
-  makeId,
-  maxBy,
-  safeRatio,
-  sumBy,
-  systemClock,
-  type TermTruth,
-} from '@senars/util';
+import { asBeliefTruth } from '@senars/util/truth-schema';
+import type { BoundedRing, maxBy } from '@senars/util/collections';
+import { clamp, clampSigned, safeRatio, sumBy } from '@senars/util/numeric';
+import { envBool } from '@senars/util/config';
+import { ensureDirSync } from '@senars/util/fs';
+import { makeId } from '@senars/util/id';
+import { systemClock } from '@senars/util/clock';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 import { PriorityBag } from '../bag/Bag.js';

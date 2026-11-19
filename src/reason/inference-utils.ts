@@ -1,4 +1,4 @@
-import { BoundedMap } from '@senars/util';
+import type { BoundedMap } from '@senars/util/bounded-map';
 
 import type { RuleInput, RuleResult } from '../rules';
 import { termKey } from '../terms';

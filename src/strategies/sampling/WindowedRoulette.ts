@@ -1,4 +1,4 @@
-import { ambientRng, type RandomSource, weightedSample } from '@senars/util';
+import { ambientRng, weightedSample } from '@senars/util/random';
 
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';

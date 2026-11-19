@@ -1,6 +1,6 @@
 /** Persona profile and the bot skill registry (`.profile`, `.skill-*`). */
 
-import { removeBy } from '@senars/util';
+import { removeBy } from '@senars/util/collections';
 import { cmd } from '@senars/cli';
 import type { BotConfig } from '@senars/config';
 import { tokenize } from './args.js';

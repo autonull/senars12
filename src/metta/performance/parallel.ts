@@ -1,4 +1,4 @@
-import { chunk } from '@senars/util';
+import { chunk } from '@senars/util/collections';
 import { Effect } from 'effect';
 import type { MeTTaAtom } from '../types/ast.js';
 

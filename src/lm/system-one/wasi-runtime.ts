@@ -1,5 +1,5 @@
 import { SenarsError } from '@senars/errors';
-import { SHA256_PINNED, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+import { SHA256_PINNED, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
 
 import { createWasiSandbox } from '../../capability/wasi-sandbox.js';
 import type {

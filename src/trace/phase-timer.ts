@@ -8,7 +8,9 @@
  * pure functions over `CycleTrace.regions()`.
  */
 
-import { flooredRatio, maxScore, minScore, pct, removeBy, weightedMean } from '@senars/util';
+import { flooredRatio, maxScore, minScore, pct } from '@senars/util/numeric';
+import { removeBy } from '@senars/util/collections';
+import { weightedMean } from '@senars/util/stats';
 import type { CycleStageEvent, TraceRegion } from '../proposal/cycle-trace.js';
 
 export interface PhaseEntry {

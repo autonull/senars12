@@ -1,4 +1,4 @@
-import { collectUpTo } from '@senars/util';
+import { collectUpTo } from '@senars/util/collections';
 import type { Memory } from '../memory';
 import { Truth } from '../terms';
 import { createTask, type Task } from '../types';

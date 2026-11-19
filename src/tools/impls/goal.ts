@@ -1,4 +1,4 @@
-import { toolError } from '@senars/util';
+import { toolError } from '@senars/types/engine';
 import type { Term } from '../../terms';
 import { readOperationTerm } from '../../terms/impls/operation-term.js';
 import type { Tool, ToolContext, ToolResult } from '../types';

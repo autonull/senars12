@@ -29,8 +29,8 @@ import {
   type BudgetResource,
   freshBudget,
 } from '../budget/index.js';
-import type { BudgetOperation, BudgetScopeId, ReasoningBudget } from '../schemas/index.js';
-import { BUDGET_SCOPE_IDS } from '../schemas/index.js';
+import type { BudgetOperation, BudgetScopeId, ReasoningBudget } from '../schemas/reasoning-budget.js';
+import { BUDGET_SCOPE_IDS } from '../schemas/reasoning-budget.js';
 
 /** One budget dimension, spelled the way `ReasoningBudget` spells it. */
 export type BudgetDimension = BudgetResource;
@@ -38,7 +38,7 @@ export type BudgetDimension = BudgetResource;
 export type BudgetLimitKey = keyof BudgetLimits;
 
 /** The five bounds §5.7 names. The order is the plan's. */
-export { BUDGET_SCOPE_IDS, type BudgetScopeId } from '@senars/schemas';
+export { BUDGET_SCOPE_IDS, type BudgetScopeId } from '../schemas/reasoning-budget.js';
 
 export interface BudgetScopeSpec {
   readonly operation: BudgetOperation;

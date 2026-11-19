@@ -1,4 +1,4 @@
-**Next: Phase 3 Final Cleanup — resolve remaining vitest module evaluation order issues blocking tests (makeId, safeRatio, Clock, BoundedMap, LruCache, occupancy, keyedBy, clamp01)**
+**Next: Phase 3 Final Cleanup — resolve remaining vitest module evaluation order issues blocking tests (BoundedRing, Signal, createLogger, errMsg, createBudget, BoundedMap, LruCache, occupancy, keyedBy, clamp01, maxScore, shareCount, parse)**
 **Export Subpaths:**
 - Before: nar: 43 subpaths
 - After: Consolidated into root `src/` structure (imports migrated)
@@ -50,7 +50,7 @@
 - ✅ Fix `facade/games.ts` ContradictionEvent handler typing
 **Phase 2: SKIPPED — UI packages never completed, out of scope for core consolidation**
 
-**Phase 3: Final Cleanup (core packages only) — MAJOR PROGRESS**
+**Phase 3: Final Cleanup (core packages only) — MAJOR PROGRESS (test pass rate: ~1000/1400)**
 - ✅ Update root `package.json`: remove workspace dependencies (util, core, io, metta, nar), add consolidated dependencies (better-sqlite3, effect, immutable, valibot, @types/better-sqlite3), update exports
 - ✅ Update `pnpm-workspace.yaml`: remove util, core, io, metta, nar, log sub-packages (keep ui, ui-contract, ui-backend-2d, ui-backend-fractal, ui-shell)
 - ✅ Update `tsconfig.root.json` and `tsconfig.json`: add comprehensive `@senars/*` path aliases mapping to consolidated `src/` structure
@@ -98,10 +98,10 @@
   - UI package tests fail (out of scope)
   - WASM tests fail (pre-existing)
   - `deps:gate` shows 61 cycles (consolidation revealed pre-existing architectural cycles; baseline may need update)
-  - **Vitest module evaluation order issues (PARTIALLY RESOLVED)**: Fixed circular dependency between `src/index.ts` → `@senars/util` → `src/types/core.ts` → `src/terms` → `@senars/util` by migrating 32+ source files from barrel `@senars/util` imports to specific path aliases (`@senars/util/collections`, `@senars/util/numeric`, `@senars/util/random`, `@senars/types/truth`, `@senars/util/result`, `@senars/util/async`, `@senars/util/error`, `@senars/errors`, `@senars/util/hash`, `@senars/util/fs`, `@senars/util/unify`, `@senars/util/keyed-collection`, `@senars/util/bounded-map`, `@senars/util/lru-cache`, `@senars/util/text`). Remaining affected functions: `makeId` (12 test failures), `safeRatio` (10), `Clock`/`systemClock` (6), `BoundedMap` (6), `LruCache` (5), `occupancy` (4), `keyedBy` (3), `clamp01` (3), `zeroConsumed` (2), `envStr` (2), `parse` (2), `softFalloff` (1), `scopeLimitKey` (1), `ensureArray` (1).
+  - **Vitest module evaluation order issues (SIGNIFICANT PROGRESS)**: Main circular dependency between `schemas/index.ts` → `gate-io.ts` → `reasoning-budget.ts` → `schemas/index.ts` BROKEN by removing gate-io from schemas barrel. Remaining affected functions: `BoundedRing` (Signal, ProofStreamRing), `createLogger`, `errMsg`, `createBudget`, `BoundedMap`, `LruCache`, `occupancy`, `keyedBy`, `clamp01`, `maxScore`, `shareCount`, `parse`, `Signal`, `zeroConsumed`, `envStr`. ~40 source files still need barrel→specific alias migration.
 - ⚠️ Run core gates: typecheck ❌ (UI), lint ✅, exports:check ✅, exports:barrels ✅, typecheck:packages ⚠️ (runs root)
-- ⚠️ Core test suite: path resolution fixed, layering/surface tests updated, circular dependency chain broken, ~70 source files still need barrel→specific alias migration
+- ⚠️ Core test suite: path resolution fixed, layering/surface tests updated, main circular dependency chain broken, ~40 source files still need barrel→specific alias migration
 **Dependency Order (topological — core only):**
 util (leaf) → core → io → metta → nar
-**Current Session: Phase 3 Final Cleanup MAJOR PROGRESS. All script imports migrated, test path resolution fixed, layering/surface tests updated, ADRs removed, circular dependencies resolved via shared util modules. Main vitest module evaluation order cycle BROKEN (src/terms no longer depends on @senars/util barrel). Remaining: ~70 source files need barrel→specific alias migration (see REMAINING section).**
+**Current Session: Phase 3 Final Cleanup MAJOR PROGRESS. All script imports migrated, test path resolution fixed, layering/surface tests updated, ADRs removed, main circular dependency (schemas→gate-io→reasoning-budget→schemas) BROKEN. Test pass rate improved from ~200 to ~1000+. Remaining: ~40 source files need barrel→specific alias migration.**
 **Revised Timeline: Core consolidation complete (UI remains out of scope). Main eval order cycle fixed; remaining barrel imports need systematic migration.**

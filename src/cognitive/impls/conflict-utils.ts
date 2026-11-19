@@ -1,4 +1,4 @@
-import { getOrInsert } from '@senars/util';
+import { getOrInsert } from '@senars/util/collections';
 import { TermMap } from '../../terms';
 import type { Task } from '../../types';
 import { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '../../utils/divergence.js';

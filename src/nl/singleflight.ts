@@ -1,4 +1,4 @@
-import { LruCache } from '@senars/util';
+import { LruCache } from '@senars/util/lru-cache';
 
 /**
  * In-flight requests cap. The keys are utterances arriving on an untrusted

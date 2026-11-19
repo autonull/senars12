@@ -3,17 +3,14 @@ import type {
   AmbiguityType,
   FormalizationBatch,
   FormalizationCandidate,
-} from '@senars/schemas';
-import { ambiguitySeverityOf, validateFormalizationBatch } from '@senars/schemas';
-import {
-  asBeliefTruth,
-  errMsg,
-  makeId,
-  pct,
-  stableKeyOf,
-  type TermTruth,
-  withDeadline,
-} from '@senars/util';
+} from '@senars/schemas/formalization.js';
+import { ambiguitySeverityOf, validateFormalizationBatch } from '@senars/schemas/formalization.js';
+import { asBeliefTruth } from '@senars/util/truth-schema';
+import { errMsg } from '@senars/errors';
+import { makeId } from '@senars/util/id';
+import { pct } from '@senars/util/numeric';
+import { stableKeyOf } from '@senars/util/json';
+import { withDeadline } from '@senars/util/async';
 import type { ZodSchema } from 'zod';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';

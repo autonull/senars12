@@ -14,7 +14,7 @@
  * `budget-otel.ts`, and the four dimensions both count in live in
  * `budget-resources.ts`; this module is the accounting and the typed bus.
  */
-import { clamp, type EventBus, maxScore, occupancy } from '@senars/util';
+import { clamp, maxScore, occupancy } from '@senars/util/numeric';
 import { announceBudgetTrace } from './budget-otel.js';
 import {
   ALL_RESOURCES,
@@ -23,8 +23,8 @@ import {
   type BudgetResource,
   type ConsumedBudget,
 } from './budget-resources.js';
-import type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason } from '../schemas/index.js';
-import { zeroConsumed } from '../schemas/index.js';
+import type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason } from '../schemas/reasoning-budget.js';
+import { zeroConsumed } from '../schemas/reasoning-budget.js';
 import type { BudgetEventMap } from './budget-events.js';
 
 export type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason, BudgetEventMap };

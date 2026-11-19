@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getOrInsert } from '@senars/util';
+import { getOrInsert } from '@senars/util/collections';
 import { LruCache } from '@senars/util/lru-cache';
 
 export type GrammarName = 'narsese-term' | 'single-word';

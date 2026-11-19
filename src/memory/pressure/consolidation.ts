@@ -1,4 +1,4 @@
-import { shareOf, sortBy } from '@senars/util';
+import { shareOf, sortBy } from '@senars/util/collections';
 import { PRESSURE } from '../../constants.js';
 import type { Concept } from '../concept.js';
 import type { ConceptWriter, StatisticsView } from '../ports/index.js';

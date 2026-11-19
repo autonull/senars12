@@ -1,4 +1,4 @@
-import { stopwatch } from '@senars/util';
+import { stopwatch } from '@senars/util/async';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { runProcess } from '../proc.js';

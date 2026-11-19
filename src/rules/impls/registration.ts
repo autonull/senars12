@@ -16,7 +16,7 @@
  * absent: a future extended `analogy` that *differs* would be a distinct body
  * instead of a silent shadow of the NAL one.
  */
-import { keyedBy } from '@senars/util';
+import { keyedBy } from '@senars/util/collections';
 import { type Term, Truth } from '../../terms';
 import { NALExtendedRules } from '../extended/index.js';
 import { NALRules } from '../nal/index.js';

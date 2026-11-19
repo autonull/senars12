@@ -1,4 +1,5 @@
-import { getOrInsert, LruCache } from '@senars/util';
+import { getOrInsert } from '@senars/util/collections';
+import { LruCache } from '@senars/util/lru-cache';
 
 const escapeGbnf = (literal: string): string =>
   `"${literal.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;

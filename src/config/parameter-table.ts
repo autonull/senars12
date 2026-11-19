@@ -8,7 +8,8 @@
  * C3/Phase-B benches).
  */
 
-import { clamp, joinKey, splitKey } from '@senars/util';
+import { clamp } from '@senars/util/numeric';
+import { joinKey, splitKey } from '@senars/util/collections';
 import { SenarsError } from '@senars/util/errors';
 
 import type { ParameterLedger, ParameterRecord } from './parameter-ledger.js';

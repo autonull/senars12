@@ -14,7 +14,7 @@
  * ingress and the router agree on what parses.
  */
 
-import { isNarsese } from '@senars/util';
+import { isNarsese } from '@senars/util/text';
 import { parseTaskTolerant } from '../terms';
 
 export type NarseseIntent =

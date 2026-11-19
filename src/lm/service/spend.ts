@@ -1,4 +1,5 @@
-import { accumulate, envPositive, type LMTask, mapToRecord } from '@senars/util';
+import { accumulate, mapToRecord } from '@senars/util/collections';
+import { envPositive } from '@senars/util/config';
 import { recordLmSpend } from '../../metrics/index.js';
 import { getModelCapability } from '../providers.js';
 import { LMUnavailableError, withHint } from './errors.js';

@@ -1,4 +1,4 @@
-import { assertDefined, KeyedRegistry } from '@senars/util';
+import { KeyedRegistry } from '@senars/util/keyed-collection';
 import type { CognitionAction, CognitionContext, Reward, Sensor } from './types.js';
 
 /**

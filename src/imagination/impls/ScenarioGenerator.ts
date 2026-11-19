@@ -1,4 +1,4 @@
-import { mulberry32, nextInt } from '@senars/util';
+import { mulberry32, nextInt } from '@senars/util/random';
 import { Truth } from '../../terms/impls/Truth.js';
 import { type Term, termParser } from '../../terms/index.js';
 import type { Task } from '../../types/core.js';

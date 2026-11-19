@@ -1,4 +1,4 @@
-import type { Clock } from '@senars/util';
+import type { Clock } from '@senars/util/clock';
 import type { Term } from '../../terms';
 import type { RandomSource } from '../../types/primitives.js';
 

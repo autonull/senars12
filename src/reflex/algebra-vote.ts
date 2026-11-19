@@ -7,7 +7,7 @@
  * check, same amplification rule, same cap. A helper named after one of its two
  * callers is a file whose ownership reads wrong.
  */
-import { collectUpTo } from '@senars/util';
+import { collectUpTo } from '@senars/util/collections';
 import type { NegotiationInput, ProposerContribution } from './Negotiator.js';
 import type { ActionProposal } from './Reflex.js';
 

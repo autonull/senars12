@@ -4,7 +4,8 @@
  * `compositeScore` (normalized weighted aggregation), `judgeCascade`
  * (two-stage dependency). Code owns composition — weights are declared, never learned.
  */
-import { assertDefined, BANDS, renormalize, sumBy } from '@senars/util';
+import { BANDS } from '@senars/util/cognitive-schemas';
+import { renormalize, sumBy } from '@senars/util/numeric';
 import { HEAD_SPECS } from './head-ontology.js';
 import type {
   BandDecision,

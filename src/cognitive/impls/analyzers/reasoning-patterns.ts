@@ -2,7 +2,7 @@ import type { ModelRuleStats } from '../../../lm';
 /**
  * Reasoning pattern analysis - extracted from SelfAnalyzerService
  */
-import { takeLast } from '@senars/util';
+import { takeLast } from '@senars/util/collections';
 import type { SelfHost } from '../../../self/host.js';
 import type { InferenceChain, PatternAnalysis, ReasoningStep } from '../../types.js';
 import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';

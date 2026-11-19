@@ -2,7 +2,7 @@
  * Inference Controller - Orchestrates task sampling, secondary selection, and rule firing
  */
 
-import { sleep } from '@senars/util';
+import { sleep } from '@senars/util/async';
 import { type ControlBudgetPort, UNBUDGETED } from '../kernel/control-budgets.js';
 import type { MemoryView } from '../memory/view.js';
 import type { RuleProcessor } from '../rules';

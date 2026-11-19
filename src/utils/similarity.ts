@@ -1,4 +1,4 @@
-import { safeRatio } from '@senars/util';
+import { safeRatio } from '@senars/util/numeric';
 
 /** The membership-and-size surface a set-overlap score needs; `Set` and `TermSet` both satisfy it. */
 export interface ReadonlySetLike<T> {

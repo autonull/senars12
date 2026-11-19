@@ -1,4 +1,5 @@
-import { objectSpec, toolAttempt, toolError, toolOk } from '@senars/util';
+import { objectSpec } from '@senars/types/tools';
+import { toolAttempt, toolError, toolOk } from '@senars/types/engine';
 import type { AgentToolDeps } from '../memory/types.js';
 import type { ToolRegistry, ToolSpec } from './ToolRegistry.js';
 

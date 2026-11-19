@@ -1,4 +1,5 @@
-import { ambientRng, shareOf, shuffleInPlace } from '@senars/util';
+import { ambientRng, shuffleInPlace } from '@senars/util/random';
+import { shareOf } from '@senars/util/collections';
 import type { RuleEngine } from '../../rules/types.js';
 import type { Task } from '../../types';
 import type { RandomSource } from '../../types/primitives.js';

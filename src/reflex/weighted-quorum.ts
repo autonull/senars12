@@ -4,7 +4,8 @@
  * inline `decide()`); `WeightedQuorum` is the opt-in consensus alternative.
  */
 
-import { getOrInsert, incrementCount, LruCache } from '@senars/util';
+import { getOrInsert, incrementCount } from '@senars/util/collections';
+import { LruCache } from '@senars/util/lru-cache';
 import type { NALDerivation, NegotiationDecision } from './negotiation-types.js';
 import { type ActionProposal, expectedValue } from './Reflex.js';
 

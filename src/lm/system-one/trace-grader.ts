@@ -1,5 +1,6 @@
 import type { ReasoningBudget } from '@senars/schemas';
-import { type AgentTrace, clamp, sha256HexParts } from '@senars/util';
+import { clamp } from '@senars/util/numeric';
+import { sha256HexParts } from '@senars/util/hash';
 import type { ContrastiveMemory } from './contrastive.js';
 import type { DistillationLabel, JudgmentDataset } from './distill.js';
 import { HEAD_SPECS, specToQuery } from './head-ontology.js';

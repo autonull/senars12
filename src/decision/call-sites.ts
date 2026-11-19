@@ -16,7 +16,7 @@
  * eight call sites.
  */
 
-import { JUDGMENT_SHAPES, type Witness } from '@senars/util';
+import { JUDGMENT_SHAPES } from '@senars/util/cognitive-schemas';
 import { COGNITIVE_AXES } from '@senars/util/cognitive-schemas';
 import type { BudgetScopeId } from '../kernel/budget-scopes.js';
 import {

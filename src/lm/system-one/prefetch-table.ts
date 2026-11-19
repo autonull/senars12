@@ -4,7 +4,7 @@
  * incumbent reflex covering whatever the table did not score.
  */
 
-import { indexBy } from '@senars/util';
+import { indexBy } from '@senars/util/collections';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, Reflex } from '../../reflex/Reflex.js';
 

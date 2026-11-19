@@ -8,15 +8,10 @@
  *  used to miss is the canonical example). */
 
 import { trace } from '@opentelemetry/api';
-import {
-  CallTallySeries,
-  createLMStats,
-  incrementCount,
-  type LMExecutionStats,
-  type LMTask,
-  recordLMCall,
-  stopwatch,
-} from '@senars/util';
+import { CallTallySeries } from '@senars/util/tally';
+import { createLMStats, recordLMCall } from '@senars/types/llm';
+import { incrementCount } from '@senars/util/collections';
+import { stopwatch } from '@senars/util/async';
 import type { LMProviderName, LMSettings } from '../env-config.js';
 import type { GrammarName } from '../grammars/index.js';
 import { loadGrammar } from '../grammars/index.js';

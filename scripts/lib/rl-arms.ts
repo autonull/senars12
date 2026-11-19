@@ -1,4 +1,7 @@
-import { getOrInsert, lerpUpdate, maxBy, QTable, softmax, SeededRNG } from '@senars/util';
+import { getOrInsert, maxBy } from '@senars/util/collections';
+import { lerpUpdate, QTable } from '@senars/util/bandit';
+import { softmax } from '@senars/util/numeric';
+import { SeededRNG } from '@senars/util/random';
 
 export interface RLStep {
   action: string;

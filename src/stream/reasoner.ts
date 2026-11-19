@@ -1,4 +1,7 @@
-import { BoundedMap, occupancy, raceDeadline, trimCapped } from '@senars/util';
+import type { BoundedMap } from '@senars/util/bounded-map';
+import { occupancy } from '@senars/util/numeric';
+import { raceDeadline } from '@senars/util/async';
+import { trimCapped } from '@senars/util/collections';
 import type { GateRegistry } from '../kernel/index.js';
 import { type IndependenceStatus, Truth } from '../terms/impls/Truth.js';
 import type { Task, TruthType } from '../types/core.js';

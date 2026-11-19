@@ -1,4 +1,4 @@
-import { periodic } from '@senars/util';
+import { periodic } from '@senars/util/async';
 import { recordLmProbe } from '../../metrics/index.js';
 import { cloudApiKey, LM_PROVIDER_NAMES, type LMSettings } from '../env-config.js';
 import {

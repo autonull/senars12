@@ -1,14 +1,5 @@
 import type { CognitiveEvent } from '../schemas/index.js';
-import {
-  type EgressVerdict,
-  type EpisodicMemory,
-  type GroundednessGate,
-  type LMTask,
-  type Middleware,
-  type ParsedCommand,
-  PushQueue,
-  type TraceGrader,
-} from '@senars/util';
+import { PushQueue } from '@senars/events';
 import type { ChatOptions, ChatStreamEvent } from './chat.js';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
 import type {

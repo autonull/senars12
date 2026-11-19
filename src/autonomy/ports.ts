@@ -8,7 +8,7 @@ import type { NarEventBus } from '../types/events.js';
 import type { TaskType, TruthType } from '../types';
 import type { Term } from '../terms';
 import type { AutonomyConfigInput } from './config.js';
-import type { Clock } from '@senars/util';
+import type { Clock } from '@senars/util/clock';
 
 export interface AutonomyNAR {
   getCycleCount(): number;

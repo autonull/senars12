@@ -10,7 +10,7 @@
 
 import { serializeTerm } from '@senars/terms';
 import { PUNCTUATION_BY_TASK_TYPE, termParser } from '@senars/terms';
-import { escapeRegExp } from '@senars/util';
+import { escapeRegExp } from '@senars/util/text';
 
 /** One literal's verdict, and why it went the way it did. */
 export interface LiteralRoundTrip {

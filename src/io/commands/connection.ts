@@ -1,4 +1,4 @@
-import { silentLogger } from '@senars/util';
+import { silentLogger } from '@senars/util/logger';
 import type { ConnectionManager } from '../connection-manager.js';
 import type { CommandDefinition } from './registry.js';
 

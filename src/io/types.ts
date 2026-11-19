@@ -5,13 +5,5 @@
  * its copy of the factory made an `io` factory unassignable to the
  * `util` contract `core` builds transports against.
  */
-export type {
-  Connection,
-  ConnectionConfig,
-  ConnectionDeps,
-  ConnectionFactory,
-  ConnectionState,
-  IOMessage,
-  TransportDeps,
-} from '@senars/util';
-export { ConnectionError } from '@senars/util';
+export type { Connection, ConnectionConfig, ConnectionDeps, ConnectionFactory, ConnectionState, IOMessage, TransportDeps } from '@senars/types/transport';
+export type { ConnectionError } from '@senars/errors';

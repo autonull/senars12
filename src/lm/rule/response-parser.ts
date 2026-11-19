@@ -1,4 +1,4 @@
-import { errMsg, type TermTruth } from '@senars/util';
+import { errMsg } from '@senars/errors';
 import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Truth as TruthType } from '../../terms/impls/Truth.js';

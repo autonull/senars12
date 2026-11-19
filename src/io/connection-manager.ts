@@ -1,5 +1,5 @@
-import { createLogger } from '@senars/util';
-import { assertDefined } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
+import type { assertDefined } from '@senars/util/assert';
 import type { Connection, ConnectionConfig, ConnectionDeps, ConnectionFactory } from './types.js';
 
 export class ConnectionManager {

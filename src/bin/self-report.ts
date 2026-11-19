@@ -12,15 +12,11 @@ import { createLMService, createSeNARSRegistry } from '@senars/lm';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/rules';
 import { operationNameOf } from '@senars/terms';
 import { initializeSelfConcept } from '@senars/tools';
-import {
-  createLogger,
-  divider,
-  mean,
-  pct,
-  selectTopN,
-  bar,
-  formatNarseseTruth,
-} from '@senars/util';
+import { createLogger } from '@senars/util/logger';
+import { divider, bar } from '@senars/util/format';
+import { mean, pct } from '@senars/util/numeric';
+import { selectTopN } from '@senars/util/collections';
+import { formatNarseseTruth } from '@senars/util/truth-schema';
 import { runEntrypoint } from './lib/fatal-error.js';
 import { mettaPort } from './lib/metta.js';
 

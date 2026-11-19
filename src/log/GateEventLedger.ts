@@ -8,7 +8,7 @@
 
 import type { LogStore } from './store.js';
 import type { CognitiveEvent } from './events.js';
-import { createLogger } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
 
 /** Gate log keys — must match nar/src/kernel/event-ring.ts */
 const GATE_LOG_KEYS = ['perception', 'action', 'autonomy', 'reward', 'budget'] as const;

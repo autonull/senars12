@@ -1,4 +1,4 @@
-export { SeededRNG } from '@senars/util';
+export { SeededRNG } from '@senars/util/random';
 export {
   ASK_LM,
   actionsForTier,

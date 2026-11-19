@@ -1,5 +1,6 @@
-import type { Episode, EpisodeType, EpisodicMemory } from '@senars/util';
-import { collectUpTo, sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util';
+import type { Episode, EpisodeType, EpisodicMemory } from '@senars/types/episodic-memory';
+import { collectUpTo } from '@senars/util/collections';
+import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
 import type { DialogueConfig } from '@senars/util/config';
 import type { ContrastiveMemory } from '../../lm/system-one/contrastive.js';
 import type { JudgmentDataset } from '../../lm/system-one/distill.js';

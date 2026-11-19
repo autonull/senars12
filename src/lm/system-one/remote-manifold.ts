@@ -1,4 +1,4 @@
-import { boundedFetch } from '@senars/util';
+import { boundedFetch } from '@senars/util/async';
 import { endpointPath } from '../providers/probe.js';
 import type {
   BackendId,

@@ -1,4 +1,4 @@
-import { type EvictByScore, victimBy } from '@senars/util';
+import { victimBy } from '@senars/util/collections';
 
 import type { Concept } from '../concept.js';
 

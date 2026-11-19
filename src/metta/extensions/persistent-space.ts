@@ -1,6 +1,8 @@
 import { ArraySpace } from '../core/space.js';
 import type { MeTTaAtom } from '../types/ast.js';
-import { errMsg, periodic, writeJsonFile } from '@senars/util';
+import { errMsg } from '@senars/errors';
+import { periodic } from '@senars/util/async';
+import { writeJsonFile } from '@senars/util/fs';
 
 export interface PersistedSpaceData {
   id: string;

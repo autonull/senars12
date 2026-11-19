@@ -26,7 +26,7 @@
  * observes nothing produces a table of confident zeroes (§4 rows 7 and 9).
  */
 
-import { raceDeadline } from '@senars/util';
+import { raceDeadline } from '@senars/util/async';
 import { createGateRegistry } from '@senars/kernel';
 import { KernelPerceptionGate } from '@senars/kernel';
 import { PROVIDER_SEAMS } from '@senars/lm';

@@ -1,4 +1,4 @@
-import { safeRatio } from '@senars/util';
+import { safeRatio } from '@senars/util/numeric';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { applyAndValidate, type SelfToolsContext, unavailable } from './context.js';

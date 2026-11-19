@@ -1,4 +1,4 @@
-import type { TermTruth } from '@senars/util';
+import type { TermTruth } from '@senars/util/types/cognitive';
 import type { Concept } from '../../memory/concept.js';
 import type { FilterSpec, SampleConfig } from '../../strategies/premise/primitives';
 import { samplePremisesFromConfig } from '../../strategies/premise/primitives';

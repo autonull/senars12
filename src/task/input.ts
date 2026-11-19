@@ -1,4 +1,4 @@
-import { escapeRegExp } from '@senars/util';
+import { escapeRegExp } from '@senars/util/text';
 import { unique } from '../util/collections.ts';
 import type { Term } from '../terms';
 import { Truth, termParser } from '../terms';

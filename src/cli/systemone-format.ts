@@ -5,7 +5,8 @@
 
 import type { NAR } from '@senars/agent';
 import { readCalibrationLockOrNull } from '@senars/lm/system-one';
-import { flooredRatio, formatDuration, pct } from '@senars/util';
+import { flooredRatio, pct } from '@senars/util/numeric';
+import { formatDuration } from '@senars/util/format';
 import { type AttachedGame, reflexesOf } from '@senars/cli/conversation-game';
 
 export function formatSystemOneStatus(nar: NAR, conversationGame: AttachedGame | null): string {

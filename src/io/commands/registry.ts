@@ -4,9 +4,4 @@
  * narrowed `CommandContext` copy that dropped the `nar` handle the `nar/*`
  * command groups need.
  */
-export {
-  type CommandContext,
-  type CommandDefinition,
-  type CommandHandler,
-  CommandRegistry,
-} from '@senars/util';
+export { CommandRegistry } from '@senars/commands';

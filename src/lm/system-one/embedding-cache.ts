@@ -1,4 +1,5 @@
-import { getOrInsert, LruCache } from '@senars/util';
+import { getOrInsert } from '@senars/util/collections';
+import { LruCache } from '@senars/util/lru-cache';
 import { type EmbeddingGenerator } from '../../memory/embedding.js';
 import { resolveEmbeddingGenerator } from '../embedding-runtime.js';
 import type { EmbeddingCache as EmbeddingCacheApi, EmbeddingPointer } from './types.js';

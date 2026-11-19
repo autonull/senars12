@@ -1,13 +1,8 @@
-import {
-  clamp01,
-  createLogger,
-  errMsg,
-  flooredRatio,
-  formatDuration,
-  safeRatio,
-  stopwatch,
-  type TermTruth,
-} from '@senars/util';
+import { clamp01, flooredRatio, safeRatio } from '@senars/util/numeric';
+import { createLogger } from '@senars/util/logger';
+import { errMsg } from '@senars/errors';
+import { formatDuration } from '@senars/util/format';
+import { stopwatch } from '@senars/util/async';
 import type { ILMService } from '../../lm/interfaces.js';
 import { NLUnderstandingService } from '../../nl/understanding.js';
 import type { ScenarioProfile, ScenarioTemplateProfile } from './scenario-profiles.js';

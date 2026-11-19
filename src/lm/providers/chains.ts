@@ -1,4 +1,4 @@
-import { type LMTask, unique } from '@senars/util';
+import { unique } from '@senars/util/collections';
 import type { LanguageModel } from 'ai';
 import type { LMSettings } from '../env-config.js';
 import { cloudApiKey } from '../env-config.js';

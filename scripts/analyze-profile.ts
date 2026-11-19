@@ -4,7 +4,7 @@
  * Analyze CPU profile file (V8 format)
  */
 
-import { pct } from '@senars/util';
+import { pct } from '@senars/util/numeric';
 import * as fs from 'fs';
 
 const profileFiles = fs.readdirSync('.').filter((f) => f.endsWith('.cpuprofile'));

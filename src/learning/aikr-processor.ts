@@ -6,17 +6,10 @@
  * under pressure (AIKR); processing is interruptible via AbortSignal and
  * deterministic under an injected RandomSource.
  */
-import {
-  ambientRng,
-  incrementCount,
-  LruCache,
-  type RandomSource,
-  selectTopN,
-  softmax,
-  type Weighted,
-  weightedSample,
-  weightedSampleBy,
-} from '@senars/util';
+import { ambientRng, weightedSample, weightedSampleBy } from '@senars/util/random';
+import { incrementCount, selectTopN } from '@senars/util/collections';
+import { LruCache } from '@senars/util/lru-cache';
+import { softmax } from '@senars/util/numeric';
 import type { Bag, BagItem, BagOptions } from '../bag/Bag.js';
 import { createBag } from '../bag/index.js';
 

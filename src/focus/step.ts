@@ -1,4 +1,4 @@
-import { raceDeadline } from '@senars/util';
+import { raceDeadline } from '@senars/util/async';
 
 /**
  * Wall-clock budget for one focus step, when a driver names none. Both focus

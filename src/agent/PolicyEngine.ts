@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { Verdict } from '../schemas/gate-io.js';
-import { containsPath } from '@senars/util';
+import { containsPath } from '@senars/util/fs';
 
 export interface PolicyRule {
   readonly allowCommands?: readonly string[];

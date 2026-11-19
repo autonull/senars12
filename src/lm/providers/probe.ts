@@ -4,7 +4,7 @@
  * fail-closed semantics live in one place.
  */
 
-import { boundedFetch } from '@senars/util';
+import { boundedFetch } from '@senars/util/async';
 
 export interface ProbeOptions {
   readonly timeoutMs?: number;

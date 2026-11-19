@@ -1,14 +1,7 @@
-import {
-  ambientRng,
-  anneal,
-  lerpUpdate,
-  maxScore,
-  type QEntry,
-  QTable,
-  rampConfidence,
-  type RandomSource,
-  shuffleInPlace,
-} from '@senars/util';
+import { ambientRng, shuffleInPlace } from '@senars/util/random';
+import { anneal } from '@senars/util/numeric';
+import { maxScore } from '@senars/util/collections';
+import { lerpUpdate, QTable, rampConfidence } from '@senars/util/bandit';
 import type { Perception } from '../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
 import { byExpectedValue } from './Reflex.js';

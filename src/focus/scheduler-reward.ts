@@ -1,4 +1,4 @@
-import { clampSigned, safeRatio } from '@senars/util';
+import { clampSigned, safeRatio } from '@senars/util/numeric';
 import type { MetaGame } from '../game/impls/MetaGame.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
 import type { FocusStepReport } from './Focus.js';

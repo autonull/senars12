@@ -3,7 +3,7 @@
  * nar-internal imports) so arbitration strategies, proposers, and the Negotiator
  * can interoperate without joining the Focus/Game import cycle.
  */
-import type { TermTruth } from '@senars/util';
+import type { TermTruth } from '@senars/util/types/cognitive';
 
 export interface NALDerivation {
   action: string;

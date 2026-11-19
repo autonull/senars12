@@ -7,7 +7,7 @@
  * in `stages.ts`.
  */
 
-import { BoundedRing, removeLastBy } from '@senars/util';
+import type { BoundedRing, removeLastBy } from '@senars/util/collections';
 
 import { CYCLE_STAGES, type TraceRegion } from './stages.js';
 

@@ -1,4 +1,4 @@
-import { perPart, selectTopN, sortBy } from '@senars/util';
+import { perPart, selectTopN, sortBy } from '@senars/util/collections';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { SamplingStrategy } from '../types.js';

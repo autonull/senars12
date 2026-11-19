@@ -5,7 +5,7 @@
  * low trace-quality turns. Digests only (I6); deterministic ordering (stable
  * sort, digest tie-break); frozen-eval rows are never in this data (I1).
  */
-import { buckets, type Episode, rankBy, type ReadOnlyLookup } from '@senars/util';
+import { buckets, rankBy } from '@senars/util/collections';
 
 export type ProbeKind = 'correction' | 'low-grade' | 'lesson';
 

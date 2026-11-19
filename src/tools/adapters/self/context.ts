@@ -1,8 +1,9 @@
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { ApprovalService } from '../../../agent/ApprovalService.js';
-import type { CapabilityRisk, Result } from '@senars/util';
-import { ensureParentDir, errMsg } from '@senars/util';
+import type { CapabilityRisk } from '@senars/util/capability-risk';
+import { ensureParentDir } from '@senars/util/fs';
+import { errMsg } from '@senars/errors';
 import type { CognitiveController } from '../../../cognitive/impls/CognitiveController.js';
 import type { RLFPLearner } from '../../../rlfp/RLFPLearner.js';
 import type { RuleProcessor } from '../../../rules/impls/processor.js';

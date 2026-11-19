@@ -1,5 +1,5 @@
 import type { DerivationRecord } from '@senars/schemas';
-import { getOrInsert } from '@senars/util';
+import { getOrInsert } from '@senars/util/collections';
 import { atom, fromNarsese, getArgs, type Term } from '../../terms/index.js';
 
 export interface CriticalPathStep {

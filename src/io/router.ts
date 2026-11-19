@@ -1,4 +1,4 @@
-import { dispatch, type Middleware } from '@senars/util';
+import { dispatch } from '@senars/util/middleware';
 import type { ConnectionManager } from './connection-manager.js';
 import type { Connection, IOMessage } from './types.js';
 

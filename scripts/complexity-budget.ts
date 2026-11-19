@@ -7,7 +7,7 @@
  */
 
 import { join } from 'node:path';
-import { parseFlags } from '@senars/util';
+import { parseFlags } from '@senars/util/cli';
 import {
   compare,
   measureCurrent,

@@ -10,7 +10,8 @@
  */
 
 import { resolveLMConfig, resolveLMSettings } from '@senars/lm';
-import { errMsg, parseFlags } from '@senars/util';
+import { errMsg } from '@senars/errors';
+import { parseFlags } from '@senars/util/cli';
 import { jsonMode } from '@senars/cli/commands';
 import { appConfigSchema, loadConfig } from '@senars/config';
 import { runEntrypoint } from './lib/fatal-error.js';

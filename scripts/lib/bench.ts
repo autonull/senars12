@@ -9,7 +9,7 @@
  * both were labelled "median". One definition, and the label means one thing.
  */
 
-import { percentile } from '@senars/util';
+import { percentile } from '@senars/util/format';
 
 /**
  * Run `fn` `reps` times after one unmeasured warmup, print the median, and return

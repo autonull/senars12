@@ -14,7 +14,7 @@ import { encodeBoundary, decodeBoundary, type ConsistencyBoundary, BOUNDARY_FILE
 import type { Memory } from '../memory';
 import type { DriveManager } from '../drives';
 import type { QueryAPI } from '../query/api.js';
-import { createLogger } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
 import type { TaskType } from '../types';
 import { termParser } from '../terms';
 

@@ -1,11 +1,13 @@
-import { createLogger, takeFirst, type TermTruth } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
+import { takeFirst } from '@senars/util/collections';
 import { type Concept, taskFromBagItem } from '../memory';
 import type { Term } from '../terms';
 import { hasCopula, hasVariable, Stamp, Truth, termParser, unify, termKey } from '../terms';
 import { byRelevance, type RelevanceOptions } from './relevance.js';
 import type { Task, TaskType, TermFilter } from '../types';
 import { createTask, createTaskWeight, createTimestamp } from '../types';
-import { type DerivationRecord, TASK_BAG_KINDS } from '@senars/schemas';
+import { type DerivationRecord } from '@senars/schemas/derivation-records.js';
+import { TASK_BAG_KINDS } from '@senars/schemas/task.js';
 import { verifyRecord } from '@senars/verification';
 
 const logger = createLogger({ scope: 'QueryAPI' });

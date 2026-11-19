@@ -1,4 +1,4 @@
-import { createLogger } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
 import { isBooleanSpelling } from '@senars/util/config';
 
 const logger = createLogger({ scope: 'env:validate' });

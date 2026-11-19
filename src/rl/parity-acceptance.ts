@@ -26,7 +26,7 @@
  * above nothing else; treat a gridworld ratio below it as real.
  */
 
-import { safeRatio } from '@senars/util';
+import { safeRatio } from '@senars/util/numeric';
 
 export const PER_SEED_RATIO_FLOOR = 0.5;
 

@@ -46,13 +46,14 @@ import type {
   RuleTableDiff,
   RuleTableFault,
   RuleTableRejection,
-} from '@senars/schemas';
+} from '@senars/schemas/cognitive-events.js';
 import {
   BUILTIN_RULE_ARTIFACT_VERSION,
   RULE_TABLE_SCHEMA_VERSION,
   validateRuleTable,
-} from '@senars/schemas';
-import { indexBy, maxScore, pushCapped } from '@senars/util';
+} from '@senars/schemas/rule-table.js';
+import { indexBy, pushCapped } from '@senars/util/collections';
+import { maxScore } from '@senars/util/numeric';
 import { SenarsError } from '@senars/util/errors';
 
 import { type Term, Truth } from '../../terms';

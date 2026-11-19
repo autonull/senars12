@@ -6,7 +6,7 @@
  * Run: `pnpm tsx examples/external-env.ts`
  */
 
-import { SeededRNG } from '@senars/util';
+import { SeededRNG } from '@senars/util/random';
 import { NARBuilder } from '../nar/src/agent/builder.js';
 import { GameFocus } from '../nar/src/focus/GameFocus.js';
 import type { Game, GameOutcome, Perception } from '../nar/src/game/Game.js';

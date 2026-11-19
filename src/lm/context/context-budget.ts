@@ -1,4 +1,5 @@
-import { CHARS_PER_TOKEN, estimateTokens, rankBy } from '@senars/util';
+import { CHARS_PER_TOKEN, estimateTokens } from '@senars/util/numeric';
+import { rankBy } from '@senars/util/collections';
 
 /**
  * Context budget utilities for LM prompt construction.

@@ -44,7 +44,7 @@ export const BudgetSchema = z.object({
 
 export type Budget = Readonly<z.infer<typeof BudgetSchema>>;
 
-export type { HistoryEntry } from '@senars/util';
+export type { HistoryEntry } from '@senars/types/memory';
 /**
  * One turn of conversation history. Owned by `@senars/util`, which is where the
  * session ledger's `ConversationSession` declares it; re-exported here so the

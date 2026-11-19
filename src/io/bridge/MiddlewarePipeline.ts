@@ -1,13 +1,7 @@
-import {
-  type BridgeOptions,
-  errMsg,
-  isQuitResult,
-  type IOMessage,
-  type Logger,
-  type SessionManager,
-  SlidingWindowRateLimiter,
-  splitWords,
-} from '@senars/util';
+import { errMsg } from '@senars/errors';
+import { isQuitResult } from '@senars/commands';
+import { SlidingWindowRateLimiter } from '@senars/util/rate-limit';
+import { splitWords } from '@senars/util/text';
 import type { CommandRegistry } from '../commands/registry.js';
 import {
   ctxAsRecord,

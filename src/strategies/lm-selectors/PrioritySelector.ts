@@ -1,4 +1,4 @@
-import { selectTopN } from '@senars/util';
+import { selectTopN } from '@senars/util/collections';
 import type { ModelRule } from '../../rules/types.js';
 import type { ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
 

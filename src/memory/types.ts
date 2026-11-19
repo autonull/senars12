@@ -28,7 +28,7 @@ export interface MemoryQuery {
   readonly to?: number;
 }
 
-export type { Episode } from '@senars/util';
+export type { Episode } from '@senars/types/episodic-memory';
 export type { ConversationSession, SessionManager } from '@senars/util/types/memory';
 
 export interface PersistableSessionManager extends SessionManager {

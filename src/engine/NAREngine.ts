@@ -7,7 +7,11 @@ import type {
 } from '@senars/engine';
 import { BaseEngine } from '@senars/engine';
 import type { CognitiveEvent } from '@senars/schemas';
-import { asBeliefTruth, createLogger, DisposalRegistry, errMsg, takeLast } from '@senars/util';
+import { asBeliefTruth } from '@senars/util/truth-schema';
+import { createLogger } from '@senars/util/logger';
+import { DisposalRegistry } from '@senars/util/disposal';
+import { errMsg } from '@senars/errors';
+import { takeLast } from '@senars/util/collections';
 import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge.js';
 import { filterByTerm } from '../memory/term-filter.js';
 import { NAR } from '../nar.js';

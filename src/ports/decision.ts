@@ -29,7 +29,7 @@
  *     rather than merely to get it wrong.
  */
 
-import { withDeadline } from '@senars/util';
+import { withDeadline } from '@senars/util/async';
 import type {
   JudgmentProposition,
   JudgmentQuery,

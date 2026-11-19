@@ -27,7 +27,11 @@ import {
   HEAD_SPECS,
   type SystemOneManifold,
 } from '@senars/lm/system-one';
-import { createLogger, errMsg, formatBytes, parseFlags, pct } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
+import { errMsg } from '@senars/errors';
+import { formatBytes } from '@senars/util/format';
+import { parseFlags } from '@senars/util/cli';
+import { pct } from '@senars/util/numeric';
 import { loadConfig } from '@senars/config';
 import { renderReport } from '../commands/args.js';
 import { systemOneDefaults, systemOneSchema } from '@senars/config/schema';

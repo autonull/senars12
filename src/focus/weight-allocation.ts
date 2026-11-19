@@ -1,4 +1,5 @@
-import { mapToRecord, safeRatio, sumBy } from '@senars/util';
+import { mapToRecord } from '@senars/util/collections';
+import { safeRatio, sumBy } from '@senars/util/numeric';
 import type { Focus } from './Focus.js';
 
 /** Compute the total weight across all foci. */

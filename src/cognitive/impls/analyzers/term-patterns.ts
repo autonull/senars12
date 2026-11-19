@@ -1,7 +1,8 @@
 /**
  * Term pattern analysis - extracted from SelfAnalyzerService
  */
-import { getOrInsert, mean, selectTopN } from '@senars/util';
+import { getOrInsert, selectTopN } from '@senars/util/collections';
+import { mean } from '@senars/util/numeric';
 import type { Concept } from '../../../memory/concept.js';
 import type { TermPattern } from '../../types.js';
 

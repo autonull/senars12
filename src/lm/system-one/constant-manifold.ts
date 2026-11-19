@@ -1,4 +1,4 @@
-import { makeId } from '@senars/util';
+import { makeId } from '@senars/util/id';
 import { validateBatchQueries } from './algebra.js';
 import { composeProposition, dominantDistribution } from './distribution.js';
 import type {

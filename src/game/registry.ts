@@ -1,4 +1,4 @@
-import { KeyedRegistry } from '@senars/util';
+import { KeyedRegistry } from '@senars/util/keyed-collection';
 import { SenarsError } from '@senars/util/errors';
 import type { Game } from './Game.js';
 import { createArithmeticGame } from './impls/ArithmeticGame.js';

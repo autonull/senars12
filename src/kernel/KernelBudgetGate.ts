@@ -29,8 +29,9 @@ import type {
   GateOutcome,
   ReasoningBudget,
   TerminationReason,
-} from '../schemas/index.js';
-import { mintCognitiveEvent, validateReasoningBudget } from '../schemas/index.js';
+} from '../schemas/reasoning-budget.js';
+import { mintCognitiveEvent } from '../schemas/cognitive-events.js';
+import { validateReasoningBudget } from '../schemas/reasoning-budget.js';
 import { keyedBy, mapValues } from '../util/collections';
 import { BUDGET_SCOPES, withBudgetId } from './budget-scopes.js';
 import { KernelGate, projectOutcome } from './gate-base.js';

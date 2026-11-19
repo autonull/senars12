@@ -44,7 +44,7 @@ const fallbackOf = (id: string) => {
 };
 import { ShadowValidator } from '@senars/nar/lm/shadow-validation';
 import { NLUnderstandingService, TranslationCache } from '@senars/nar/nl';
-import { createLogger } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
 
 const logger = createLogger({ scope: 'fundamentals-bench' });
 
@@ -578,7 +578,8 @@ async function runScenario7(): Promise<boolean> {
 // ── Main ─────────────────────────────────────────────────────
 
 import { enableRoutingTelemetry, getRoutingLogStatus, resetCircuitBreakers } from '@senars/nar/lm';
-import { pct, serializeTruth } from '@senars/util';
+import { pct } from '@senars/util/numeric';
+import { serializeTruth } from '@senars/util/truth-schema';
 
 async function main() {
   const config = loadConfig();

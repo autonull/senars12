@@ -1,7 +1,7 @@
 import type { PromptBuilder } from '@senars/cortex';
 import type { PersistableSessionManager } from '@senars/memory';
 import type { MettaPort } from './metta-port.js';
-import type { LMTask } from '@senars/util';
+import type { LMTask } from '@senars/types/llm';
 import type { ConnectionConfig } from '@senars/util/types/transport';
 import type { EpisodicMemory, LMService, NAR } from '../index.js';
 import type { ThreadScope } from '../kernel/thread-scope.js';

@@ -6,7 +6,7 @@
  */
 
 import type { AutonomyMode, CognitiveEvent, TaskAdmittedEvent } from '@senars/schemas';
-import type { BeliefTruth } from '@senars/util';
+import type { BeliefTruth } from '@senars/util/types/cognitive';
 
 export function replayTaskAdmissions(
   events: CognitiveEvent[]

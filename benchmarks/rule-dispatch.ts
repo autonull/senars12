@@ -4,7 +4,7 @@
  * Run with: pnpm exec tsx benchmarks/rule-dispatch.ts
  */
 
-import { mean } from '@senars/util';
+import { mean } from '@senars/util/numeric';
 import { atom, RuleProcessor, TermBuilder, Truth } from '../src';
 
 const processor = new RuleProcessor();

@@ -34,9 +34,9 @@ import type {
   ContentProposal,
   RuleDeclaration,
   RuleProposal,
-} from '@senars/schemas';
-import { PROPOSAL_SCHEMA_VERSION } from '@senars/schemas';
-import { SerialQueue } from '@senars/util';
+} from '@senars/schemas/cognitive-events.js';
+import { PROPOSAL_SCHEMA_VERSION } from '@senars/schemas/proposal.js';
+import { SerialQueue } from '@senars/util/async';
 import { createDerivedTask } from '../reason/inference-utils.js';
 import type {
   ModelRuleWork,

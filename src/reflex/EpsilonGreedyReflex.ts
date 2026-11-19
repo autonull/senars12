@@ -1,4 +1,5 @@
-import { ambientRng, isYoung, type RandomSource } from '@senars/util';
+import { ambientRng } from '@senars/util/random';
+import { isYoung } from '@senars/util/bandit';
 import { BanditReflex } from './BanditReflex.js';
 import type { Reflex } from './Reflex.js';
 

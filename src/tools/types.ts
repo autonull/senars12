@@ -1,4 +1,4 @@
-import type { ToolCapabilities, ToolContext, ToolResult, ToolSpec as Tool } from '@senars/util';
+import type { ToolCapabilities, ToolContext, ToolResult, ToolSpec } from '@senars/types/tools';
 
 /**
  * The tool contract is util's — one declaration of identity, argument schema,
@@ -9,16 +9,7 @@ import type { ToolCapabilities, ToolContext, ToolResult, ToolSpec as Tool } from
  * `ToolSpec` answers to `Tool` here because that is the name the registry port,
  * the `@tool` decorator, and every tool implementation in this workspace speak.
  */
-export type {
-  ToolBudget,
-  ToolCapabilities,
-  ToolContext,
-  ToolFn,
-  ToolResult,
-  ToolSchema,
-  ToolSchemaProperty,
-  ToolSpec as Tool,
-} from '@senars/util';
+export type { ToolBudget, ToolCapabilities, ToolContext, ToolFn, ToolResult, ToolSchema, ToolSchemaProperty, ToolSpec } from '@senars/types/tools';
 
 export interface ToolRegistry {
   register(tool: Tool): void;

@@ -1,11 +1,7 @@
-import {
-  ambientRng,
-  formatTruth,
-  stableKeyOf,
-  takeFirst,
-  type BeliefTruth,
-  unique,
-} from '@senars/util';
+import { ambientRng } from '@senars/util/random';
+import { formatTruth } from '@senars/util/truth-schema';
+import { stableKeyOf } from '@senars/util/json';
+import { takeFirst, unique } from '@senars/util/collections';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';
 import { buildGenerationPrompt } from './prompts/generation-v1.js';

@@ -1,4 +1,5 @@
-import { clamp, SeededRNG } from '@senars/util';
+import { clamp } from '@senars/util/numeric';
+import { SeededRNG } from '@senars/util/random';
 import type { Game, GameOutcome, Perception } from '../Game.js';
 import { renderGrid } from '../render.js';
 

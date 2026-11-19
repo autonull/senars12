@@ -1,4 +1,6 @@
-import { BoundedMap, deadline, maxBy, rankBy } from '@senars/util';
+import type { BoundedMap } from '@senars/util/bounded-map';
+import { deadline } from '@senars/util/async';
+import { maxBy, rankBy } from '@senars/util/collections';
 
 import type { GateRegistry } from '../kernel/GateRegistry.js';
 import type { TaskAdmission } from '../memory/ports/index.js';

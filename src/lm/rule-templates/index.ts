@@ -8,7 +8,7 @@
  * is why `createRule` is handed a definition rather than reaching for one — the
  * builder importing the registry is what closed the seven-module cycle.
  */
-import { assertDefined } from '@senars/util';
+
 
 import { beliefRules } from './belief-rules.js';
 import type { LMRuleDefinition } from './definition.js';

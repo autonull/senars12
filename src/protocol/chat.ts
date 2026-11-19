@@ -1,7 +1,7 @@
 /**
  * Chat protocol schemas
  */
-import { MessageRoleSchema } from '@senars/util';
+import { MessageRoleSchema } from '@senars/types/memory';
 import { nonEmpty } from '@senars/util/config';
 import { z } from 'zod';
 import { TaskPunctuationSchema } from '../schemas/task.js';

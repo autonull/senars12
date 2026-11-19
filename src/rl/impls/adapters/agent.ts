@@ -1,4 +1,4 @@
-import { toolOk } from '@senars/util';
+import { toolOk } from '@senars/types/engine';
 import { type Term, TermBuilder } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
 import { operationTerm } from '../../../terms/impls/operation-term.js';

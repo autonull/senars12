@@ -14,7 +14,8 @@
  */
 
 import { z } from 'zod';
-import { clamp, keyedBy } from '../util/collections';
+import { clamp } from '../util/numeric';
+import { keyedBy } from '../util/collections';
 console.log('[bounds.ts] keyedBy type:', typeof keyedBy, keyedBy);
 
 /** One knob's admissible numbers: the range, the landing value, and the scan quantum. */

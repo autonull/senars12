@@ -1,4 +1,5 @@
-import { sleep, toolError, toolOk } from '@senars/util';
+import { sleep } from '@senars/util/async';
+import { toolError, toolOk } from '@senars/types/engine';
 import type { ToolSchema, Tool, ToolResult } from '../types';
 import { tool } from './decorator.js';
 

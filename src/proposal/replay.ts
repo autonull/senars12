@@ -28,9 +28,9 @@
  *    skipped by a caller that replays without a lifecycle.
  */
 
-import type { CognitiveEvent, ProposalRejection, RuleDeclaration } from '@senars/schemas';
-import { PROPOSAL_SCHEMA_VERSION } from '@senars/schemas';
-import { unique } from '@senars/util';
+import type { CognitiveEvent, ProposalRejection, RuleDeclaration } from '@senars/schemas/cognitive-events.js';
+import { PROPOSAL_SCHEMA_VERSION } from '@senars/schemas/proposal.js';
+import { unique } from '@senars/util/collections';
 import { SenarsError } from '@senars/util/errors';
 
 /** One admission, as the log states it. */

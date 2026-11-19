@@ -1,4 +1,5 @@
-import { parseJsonOr, splitLines, splitWords } from '@senars/util';
+import { parseJsonOr } from '@senars/util/fs';
+import { splitLines, splitWords } from '@senars/util/text';
 
 export const LLM_COMMANDS = [
   'send',

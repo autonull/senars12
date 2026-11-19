@@ -1,4 +1,5 @@
-import { flooredRatio, maxBy, normalizeToSum } from '@senars/util';
+import { flooredRatio, normalizeToSum } from '@senars/util/numeric';
+import { maxBy } from '@senars/util/collections';
 import type {
   JudgmentProposition,
   JudgmentQuery,

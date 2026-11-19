@@ -1,4 +1,4 @@
-import { mulberry32, type TermTruth } from '@senars/util';
+import { mulberry32 } from '@senars/util/random';
 import { isTruthEqual, Truth } from '../../terms/impls/Truth.js';
 import type { HiddenRule, OracleExpectation, ScenarioProfile } from '../types.js';
 

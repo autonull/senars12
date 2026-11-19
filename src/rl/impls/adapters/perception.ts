@@ -1,4 +1,4 @@
-import { SeededRNG } from '@senars/util';
+import { SeededRNG } from '@senars/util/random';
 import { Truth } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
 import { TermBuilder } from '../../../terms/index.js';

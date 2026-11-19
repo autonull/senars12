@@ -1,4 +1,6 @@
-import { type CapabilityRisk, deferred, errMsg, makeId, withTimeout } from '@senars/util';
+import { deferred, withTimeout } from '@senars/util/async';
+import { errMsg } from '@senars/errors';
+import { makeId } from '@senars/util/id';
 import { envBool } from '@senars/util/config';
 import { APPROVAL_TIMEOUT_MS } from './constants.js';
 import type { Verdict } from '../schemas/gate-io.js';

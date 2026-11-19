@@ -7,7 +7,7 @@
  * that unpacked two implications had to know that the implication builder lived
  * under the other name.
  */
-import { uniqueBy } from '@senars/util';
+import { uniqueBy } from '@senars/util/collections';
 import type { Term } from '../../terms';
 import {
   type BinaryKind,

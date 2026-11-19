@@ -1,7 +1,7 @@
 /**
  * Lens registry message schemas
  */
-import { unique } from '@senars/util';
+import { unique } from '@senars/util/collections';
 import { z } from 'zod';
 import { LENS_FIELDS, type LensFieldDescriptor } from '../agent/constants.js';
 import { LensSpecSchema } from './lens-schema.js';

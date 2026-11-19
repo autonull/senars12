@@ -1,4 +1,4 @@
-import { clamp01, roundTo, safeRatio } from '@senars/util';
+import { clamp01, roundTo, safeRatio } from '@senars/util/numeric';
 import type { SelfHost } from '../../../self/host.js';
 import { containsSubterm, getSubject } from '../../../terms';
 import type { QualityAssessment } from '../../types.js';

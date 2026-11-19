@@ -1,4 +1,5 @@
-import { containsPath, withTimeout as sharedWithTimeout } from '@senars/util';
+import { containsPath } from '@senars/util/fs';
+import { withTimeout } from '@senars/util/async';
 import { SenarsError } from '@senars/util/errors';
 
 export class SandboxTimeoutError extends SenarsError {

@@ -6,7 +6,7 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { cachePath } from '@senars/util';
+import { cachePath } from '@senars/util/config';
 import { BOUNDARY_FILENAME, type ConsistencyBoundary, decodeBoundary } from './boundary.js';
 
 /** Where the state files live when a NAR is not configured with a `statePath`. */

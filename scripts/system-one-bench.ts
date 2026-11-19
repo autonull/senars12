@@ -9,7 +9,7 @@
  *   pnpm bench:system-one                       # mock leg → .reports/system-one-onoff.{json,md}
  *   LM_PROVIDER=llamacpp-embedded ... pnpm bench:system-one   # real leg (overwrites the report)
  */
-import { percentile } from '@senars/util';
+import { percentile } from '@senars/util/format';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createNAR } from '@senars/nar';

@@ -1,5 +1,6 @@
 import type { ReasoningBudget } from '@senars/schemas';
-import { sha256Hex, rankBy } from '@senars/util';
+import { sha256Hex } from '@senars/util/hash';
+import { rankBy } from '@senars/util/collections';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import { type JudgmentProvenance, stageProvenance } from './decide.js';

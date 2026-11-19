@@ -1,5 +1,9 @@
 import type { DerivationRecord, DerivationStep, TruthValue } from '@senars/schemas';
-import { asBeliefTruth, BoundedMap, BoundedRing, makeId, PushQueue, Signal } from '@senars/util';
+import { asBeliefTruth } from '@senars/util/truth-schema';
+import { BoundedMap } from '@senars/util/bounded-map';
+import { BoundedRing } from '@senars/util/collections';
+import { makeId } from '@senars/util/id';
+import { PushQueue, Signal } from '@senars/events';
 import type { RuleInput, RuleResult } from '../types.js';
 
 type Independence = DerivationStep['independence'];

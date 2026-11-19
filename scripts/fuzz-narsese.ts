@@ -7,7 +7,9 @@
  * Or: pnpm exec tsx scripts/fuzz-narsese.ts [iterations] [--seed N]
  */
 
-import { choice, createLCG, errMsg, nextInt, serializeTruth } from '@senars/util';
+import { choice, createLCG, nextInt } from '@senars/util/random';
+import { errMsg } from '@senars/errors';
+import { serializeTruth } from '@senars/util/truth-schema';
 import { createNAR } from '@senars/nar';
 import { termParser } from '@senars/terms';
 import { Truth } from '@senars/terms';

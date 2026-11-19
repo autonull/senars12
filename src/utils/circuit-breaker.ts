@@ -6,7 +6,7 @@
  * built on this class; neither re-implements closed → open → half-open → closed.
  */
 
-import { type CircuitState, OperationError } from '@senars/util';
+import type { OperationError } from '@senars/errors';
 import { createLogger } from '@senars/util/logger';
 
 const logger = createLogger({ scope: 'circuit-breaker' });

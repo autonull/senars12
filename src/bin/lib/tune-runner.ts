@@ -10,7 +10,11 @@ import { resolve } from 'node:path';
 import type { CognitiveParameters } from '@senars/config/nar';
 import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/config/nar';
 import { createKnobSet, RLFPLearner, type TaskRewardMetrics } from '@senars/rlfp';
-import { formatDuration, parseFlags, pct, section, sleep, thaw } from '@senars/util';
+import { formatDuration, section } from '@senars/util/format';
+import { parseFlags } from '@senars/util/cli';
+import { pct } from '@senars/util/numeric';
+import { sleep } from '@senars/util/async';
+import { thaw } from '@senars/util/object';
 import { runEntrypoint } from './fatal-error.js';
 
 interface TuneOptions {

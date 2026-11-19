@@ -1,15 +1,11 @@
 import { join } from 'node:path';
-import {
-  collectUpTo,
-  createLogger,
-  errMsg,
-  LruCache,
-  overlapCount,
-  periodic,
-  readJsonFileSync,
-  tokenizeWords,
-  writeJsonFileSync,
-} from '@senars/util';
+import { collectUpTo } from '@senars/util/collections';
+import { createLogger } from '@senars/util/logger';
+import { errMsg } from '@senars/errors';
+import { LruCache } from '@senars/util/lru-cache';
+import { overlapCount, tokenizeWords } from '@senars/util/text';
+import { periodic } from '@senars/util/async';
+import { readJsonFileSync, writeJsonFileSync } from '@senars/util/fs';
 import type { TranslationResult as SchemaTranslationResult } from '../lm/rule-templates/schemas.js';
 
 export interface TranslationCacheEntry {

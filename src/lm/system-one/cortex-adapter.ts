@@ -1,5 +1,6 @@
 import type { ReasoningBudget } from '@senars/schemas';
-import { collectUpTo, splitLines, takeFirst } from '@senars/util';
+import { collectUpTo, takeFirst } from '@senars/util/collections';
+import { splitLines } from '@senars/util/text';
 import type { LMService } from '../lm-service.js';
 import type {
   CognitiveContext,

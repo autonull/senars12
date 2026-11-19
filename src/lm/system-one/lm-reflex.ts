@@ -1,5 +1,6 @@
 import type { ReasoningBudget } from '@senars/schemas';
-import { LruCache, rankBy } from '@senars/util';
+import { LruCache } from '@senars/util/lru-cache';
+import { rankBy } from '@senars/util/collections';
 import type { Perception } from '../../game/Game.js';
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import type { Truth } from '../../terms/impls/Truth.js';

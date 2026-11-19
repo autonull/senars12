@@ -1,20 +1,7 @@
-import type {
-  Episode,
-  EpisodeFilter,
-  EpisodeType,
-  EpisodicMemoryConfig,
-  EpisodicMemory as UtilEpisodicMemory,
-} from '@senars/util';
-import {
-  type Clock,
-  containsFolded,
-  flatUnique,
-  foldNeedle,
-  getOrInsert,
-  rankBy,
-  systemClock,
-  takeLast,
-} from '@senars/util';
+import type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig, EpisodicMemory } from '@senars/types/episodic-memory';
+import { containsFolded, foldNeedle } from '@senars/util/text';
+import { flatUnique, getOrInsert, rankBy, takeLast } from '@senars/util/collections';
+import { systemClock } from '@senars/util/clock';
 import { cachePath } from '@senars/util/config';
 import { EPISODE_TYPES } from '../types/episodic-memory.js';
 import { sortableIdSource } from '@senars/util/id';
@@ -28,7 +15,7 @@ import {
 import { z } from 'zod';
 import { CausalIndex } from './CausalIndex.js';
 
-export type { EpisodicMemoryConfig } from '@senars/util';
+export type { EpisodicMemoryConfig } from '@senars/types/episodic-memory';
 export type { Episode, EpisodeType };
 
 /**

@@ -8,16 +8,13 @@ import type { PersistableSessionManager } from '@senars/memory';
 import { registerAgentTools } from '@senars/motor';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
-import {
-  clamp,
-  createLogger,
-  deadline,
-  errMsg,
-  makeId,
-  parseJsonOr,
-  serializeTruth,
-  silentLogger,
-} from '@senars/util';
+import { clamp } from '@senars/util/numeric';
+import { createLogger, silentLogger } from '@senars/util/logger';
+import { deadline } from '@senars/util/async';
+import { errMsg } from '@senars/errors';
+import { makeId } from '@senars/util/id';
+import { parseJsonOr } from '@senars/util/fs';
+import { serializeTruth } from '@senars/util/truth-schema';
 import { NAREngine } from '../engine/NAREngine.js';
 import type { EpisodicMemory, LMService, NAR } from '../index.js';
 import { dispatchNarseseIntent, type NarseseIntent } from '../nl/narsese-intent.js';

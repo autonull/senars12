@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
-import { ensureParentDir, parseJsonObject } from '@senars/util';
+import { ensureParentDir } from '@senars/util/fs';
+import { parseJsonObject } from '@senars/util/json';
 import type { CodemodResult } from './codemod.js';
 import { runCodemod } from './codemod.js';
 import { runProcess } from './proc.js';

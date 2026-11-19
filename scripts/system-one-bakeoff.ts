@@ -7,7 +7,7 @@
  *
  * Usage: tsx scripts/system-one-bakeoff.ts [dataset.jsonl]
  */
-import { readJsonl } from '@senars/util';
+import { readJsonl } from '@senars/util/fs';
 import {
   runBakeOff,
   type BakeOffCase,

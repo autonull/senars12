@@ -95,32 +95,11 @@ export {
   validateFormalizationBatch,
   validateFormalizationCandidate,
 } from './formalization.js';
-export type {
-  ActionGateInput,
-  ActionGateOutput,
-  BudgetGateInput,
-  BudgetGateOutput,
-  BudgetOperation,
-  GateName,
-  GateOutcome,
-  PerceptionGateInput,
-  PerceptionGateOutput,
-  RewardGateInput,
-  RewardGateOutput,
-  Verdict,
-} from './gate-io.js';
-export {
-  ActionGateInputSchema,
-  ActionGateOutputSchema,
-  BUDGET_OPERATIONS,
-  BudgetGateInputSchema,
-  BudgetGateOutputSchema,
-  BudgetOperationSchema,
-  PerceptionGateInputSchema,
-  PerceptionGateOutputSchema,
-  RewardGateInputSchema,
-  RewardGateOutputSchema,
-} from './gate-io.js';
+/**
+ * Gate I/O types and schemas are deliberately NOT re-exported from this barrel
+ * to avoid a circular dependency with reasoning-budget. Import directly from
+ * @senars/schemas/gate-io.js instead.
+ */
 export type {
   AutonomyAuthority,
   AutonomyMode,

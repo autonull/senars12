@@ -1,4 +1,4 @@
-import { toolError, toolOk } from '@senars/util';
+import { toolError, toolOk } from '@senars/types/engine';
 import type { Concept, Memory } from '../../memory';
 import { termParser } from '../../terms';
 import type { ToolSchema, Tool, ToolContext, ToolResult } from '../types';

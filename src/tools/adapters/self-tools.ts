@@ -1,4 +1,4 @@
-import { generateId } from '@senars/util';
+import { generateId } from '@senars/util/id';
 import { applyFixTool } from './self/apply-fix.js';
 import type { SelfToolsContext, SelfToolsDeps } from './self/context.js';
 import { registerRuleTool } from './self/register-rule.js';

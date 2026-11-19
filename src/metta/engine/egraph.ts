@@ -1,4 +1,5 @@
-import { assertDefined, minBy } from '@senars/util';
+import type { assertDefined } from '@senars/util/assert';
+import { minBy } from '@senars/util/collections';
 import { Map as ImmMap, Set as ImmSet } from 'immutable';
 import { atomKey } from '../core/hash.js';
 import type { MeTTaAtom } from '../types/ast.js';

@@ -22,7 +22,8 @@ import type {
   FormalizationBatch,
   TaskAdmittedEvent,
 } from '@senars/schemas';
-import { asBeliefTruth, makeId } from '@senars/util';
+import { asBeliefTruth } from '@senars/util/truth-schema';
+import { makeId } from '@senars/util/id';
 import type { ILMService } from '../lm/interfaces.js';
 import { parseTaskTolerant } from '../terms';
 import { defaultFirewall, SymbolicFirewall } from './firewall.js';

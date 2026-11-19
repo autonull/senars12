@@ -5,7 +5,7 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
-import { extractLastUserMessage } from '@senars/util';
+import { extractLastUserMessage } from '@senars/util/prompt';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 
 export interface MockModelOptions {

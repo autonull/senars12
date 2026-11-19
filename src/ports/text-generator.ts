@@ -8,7 +8,7 @@
  * turns from a lint rule into a structural fact.
  */
 
-import type { LMGenerateOptions } from '@senars/util';
+import type { LMGenerateOptions } from '@senars/types/llm';
 
 /** The per-call option bag, in core vocabulary. */
 export type TextGenerationOptions = LMGenerateOptions;

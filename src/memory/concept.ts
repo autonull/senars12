@@ -1,12 +1,7 @@
-import {
-  asBeliefTruth,
-  type BeliefTruth,
-  clamp01,
-  type Clock,
-  makeId,
-  maxScore,
-  systemClock,
-} from '@senars/util';
+import { asBeliefTruth } from '@senars/util/truth-schema';
+import { clamp01, maxScore } from '@senars/util/numeric';
+import { makeId } from '@senars/util/id';
+import { systemClock } from '@senars/util/clock';
 import { type Bag, type BagOptions, createBag } from '../bag/index.js';
 import type { ResolvedBagSlot } from '../bag/registration.js';
 import type { Term, Truth } from '../terms';

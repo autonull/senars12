@@ -1,4 +1,4 @@
-import { type CognitiveEvent, mintCognitiveEvent as mint } from '@senars/schemas';
+import { type CognitiveEvent, mintCognitiveEvent as mint } from '@senars/schemas/cognitive-events.js';
 import type { NAREventMap } from '../types/events.js';
 
 /**

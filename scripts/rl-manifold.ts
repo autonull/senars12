@@ -4,7 +4,7 @@
  * no kernel gates. Only EmbeddingCache + JudgmentManifold (+ optional
  * JudgmentDataset labels). Run: pnpm exec tsx scripts/rl-manifold.ts [episodes]
  */
-import { mean } from '@senars/util';
+import { mean } from '@senars/util/numeric';
 import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache.js';
 import { GridWorldGame } from '@senars/game/impls/GridWorldGame.js';
 import { createManifold } from '@senars/lm/system-one/manifold.js';

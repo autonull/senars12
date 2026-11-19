@@ -7,7 +7,8 @@
  * nothing (C2').
  */
 
-import { type Clock, type Episode, rankBy, sortBy, systemClock } from '@senars/util';
+import { rankBy, sortBy } from '@senars/util/collections';
+import { systemClock } from '@senars/util/clock';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import { episodePriority } from '../memory/episode-consolidator.js';
 import type { Concept, Memory } from '../memory/index.js';

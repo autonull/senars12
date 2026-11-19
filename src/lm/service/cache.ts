@@ -1,5 +1,7 @@
-import type { LMGenerateOptions } from '@senars/util';
-import { type Clock, LruCache, sha256HexParts, systemClock } from '@senars/util';
+import type { LMGenerateOptions } from '@senars/types/llm';
+import { LruCache } from '@senars/util/lru-cache';
+import { sha256HexParts } from '@senars/util/hash';
+import { systemClock } from '@senars/util/clock';
 
 const CACHE_TTL_MS = 60_000;
 

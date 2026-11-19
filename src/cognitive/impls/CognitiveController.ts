@@ -1,4 +1,5 @@
-import { removeBy, thaw } from '@senars/util';
+import { removeBy } from '@senars/util/collections';
+import { thaw } from '@senars/util/object';
 import {
   type CognitiveParameters,
   STRATEGY_SLOTS,

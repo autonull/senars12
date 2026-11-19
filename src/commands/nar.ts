@@ -1,5 +1,5 @@
-import type { CommandDefinition } from '@senars/util';
-import { formatNarseseTruth } from '@senars/util';
+import type { CommandDefinition } from '@senars/commands';
+import { formatNarseseTruth } from '@senars/util/truth-schema';
 import { filterByTerm } from '../memory/term-filter.js';
 import { termParser } from '../terms';
 import { narOf, requiring } from './utils.js';

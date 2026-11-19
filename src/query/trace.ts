@@ -1,4 +1,6 @@
-import { BoundedMap, maxScore, pct, takeFirst, unique } from '@senars/util';
+import type { BoundedMap } from '@senars/util/bounded-map';
+import { maxScore, pct } from '@senars/util/numeric';
+import { takeFirst, unique } from '@senars/util/collections';
 import { type Concept, taskFromBagItem } from '../memory';
 import type { MemoryReader } from '../memory/ports/index.js';
 import type { Term } from '../terms';

@@ -1,4 +1,5 @@
-import { type CommandDefinition, QUIT_SENTINEL, sumBy } from '@senars/util';
+import { QUIT_SENTINEL } from '@senars/commands';
+import { sumBy } from '@senars/util/numeric';
 import { narOf, requiring } from './utils.js';
 
 export const coreCommands: CommandDefinition[] = [

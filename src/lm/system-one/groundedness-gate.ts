@@ -1,4 +1,4 @@
-import type { EgressVerdict } from '@senars/util';
+
 import type { ContrastiveMemory } from './contrastive.js';
 import { createDecider, type Decider } from './decide.js';
 import type { EmbeddingCache, JudgmentManifold, JudgmentQuery } from './types.js';

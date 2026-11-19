@@ -1,4 +1,4 @@
-import { collectText } from '@senars/util';
+import { collectText } from '@senars/util/text';
 import type { ChatStreamAgent } from './types.js';
 
 export async function aggregateChatResponse(agent: ChatStreamAgent, text: string): Promise<string> {

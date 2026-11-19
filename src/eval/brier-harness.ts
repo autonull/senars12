@@ -2,7 +2,9 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createIsotonicCalibrator } from '../lm/system-one/calibration.js';
 import { identityECE, meanBrier } from '../lm/system-one/metrics.js';
-import { ensureDir, incrementCount, mean, pct, sumBy, unique } from '@senars/util';
+import { ensureDir } from '@senars/util/fs';
+import { incrementCount, unique } from '@senars/util/collections';
+import { mean, pct, sumBy } from '@senars/util/numeric';
 
 export interface ArcadeTickRecord {
   arm: string;

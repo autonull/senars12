@@ -1,6 +1,6 @@
-import { safeRatio, sumBy } from '@senars/util';
+import { safeRatio, sumBy } from '@senars/util/numeric';
 import { SATURATION_COUNT } from '../constants.js';
-import { clamp01 } from '@senars/util';
+import { clamp01 } from '@senars/util/numeric';
 import type { CognitionContext, Reward } from './types.js';
 
 /**

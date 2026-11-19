@@ -14,7 +14,8 @@ import {
   mergeConsumption,
   sliceBudget,
 } from '@senars/budget';
-import { type RandomSource, SeededRNG, systemClock, weightedPick } from '@senars/util';
+import { SeededRNG, weightedPick } from '@senars/util/random';
+import { systemClock } from '@senars/util/clock';
 import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { FocusScheduler, FocusSchedulerOptions } from '../focus/focus-scheduler.js';

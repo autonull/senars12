@@ -1,4 +1,5 @@
-import { errMsg, withRetry as retry } from '@senars/util';
+import { errMsg } from '@senars/util/error';
+import { withRetry } from '@senars/util/retry';
 import { type LMTask } from '@senars/types/llm.js';
 import { SenarsError } from '@senars/errors';
 

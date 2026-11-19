@@ -1,4 +1,6 @@
-import { type Clock, clamp01, getOrInsert, systemClock, type TermTruth } from '@senars/util';
+import { clamp01 } from '@senars/util/numeric';
+import { getOrInsert } from '@senars/util/collections';
+import { systemClock } from '@senars/util/clock';
 import type { Bag, BagItem } from '../bag/Bag.js';
 import { createBag } from '../bag/index.js';
 import type { Game } from '../game/Game.js';

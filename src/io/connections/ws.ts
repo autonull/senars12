@@ -1,4 +1,5 @@
-import { createLogger, makeId } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
+import { makeId } from '@senars/util/id';
 import { type WebSocket, WebSocketServer } from 'ws';
 import { withDefaults } from '@senars/util/config';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';

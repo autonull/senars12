@@ -1,4 +1,4 @@
-import { uniqueBy } from '@senars/util';
+import { uniqueBy } from '@senars/util/collections';
 import type { AssociativeRegistry, RecallHit } from '../../memory/associative.js';
 import { LINK_LAYER } from '../../memory/links/types.js';
 import type { MemoryView } from '../../memory/view.js';

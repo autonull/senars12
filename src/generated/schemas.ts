@@ -2,7 +2,7 @@
 // Run: tsx src/formats/genome.ts
 
 import { z } from 'zod';
-import { generateId } from '@senars/util';
+import { generateId } from '@senars/util/id';
 
 // ============================================================================
 // PRIMITIVES

@@ -8,23 +8,19 @@ import type {
   ShadowValidationDropEvent,
   SourceQuality,
   TaskAdmittedEvent,
-} from '@senars/schemas';
+} from '@senars/schemas/cognitive-events.js';
 import {
   confidenceCeiling,
   mintCognitiveEvent,
   SOURCE_QUALITY_CONFIDENCE,
   TASK_PUNCTUATION,
   TOLERANT_PUNCTUATIONS,
-} from '@senars/schemas';
-import {
-  asBeliefTruth,
-  clamp01,
-  errMsg,
-  makeId,
-  TimeoutError,
-  type TruthLike,
-  withDeadline,
-} from '@senars/util';
+} from '@senars/schemas/cognitive-events.js';
+import { asBeliefTruth } from '@senars/util/truth-schema';
+import { clamp01 } from '@senars/util/numeric';
+import { errMsg } from '@senars/errors';
+import { makeId } from '@senars/util/id';
+import { TimeoutError, withDeadline } from '@senars/util/async';
 import { normalizeNarsese } from '../nl/normalize.js';
 import { recordGateDecision } from '../telemetry/index.js';
 import type { TaskTypeName, Term } from '../terms';

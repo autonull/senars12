@@ -14,7 +14,7 @@
  * a health tally to feed.
  */
 
-import { errMsg } from '@senars/util';
+import { errMsg } from '@senars/errors';
 import type { Engine } from './Engine.js';
 
 /**

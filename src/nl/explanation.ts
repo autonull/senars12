@@ -9,7 +9,8 @@
  */
 
 import type { DerivationStep, TruthValue } from '@senars/schemas';
-import { formatTruth, unique } from '@senars/util';
+import { formatTruth } from '@senars/util/truth-schema';
+import { unique } from '@senars/util/collections';
 import type { BeliefInfo, ConflictInfo, GenerationInput, GenerationOutput } from './generation.js';
 
 /** How many links of the derivation chain an explanation walks. */

@@ -17,7 +17,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseFlags } from '@senars/util';
+import { parseFlags } from '@senars/util/cli';
 import { readExports } from './lib/pkg.js';
 import { ROOT } from './lib/root.js';
 

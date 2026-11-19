@@ -1,4 +1,6 @@
-import { clamp01, maxScore, SeededRNG, safeRatio } from '@senars/util';
+import { clamp01, safeRatio } from '@senars/util/numeric';
+import { maxScore } from '@senars/util/collections';
+import { SeededRNG } from '@senars/util/random';
 import type { Game, GameOutcome, Perception } from '../Game.js';
 
 export interface BanditDriftConfig {

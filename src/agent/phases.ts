@@ -18,10 +18,10 @@ import type { ChatStreamEvent } from './chat.js';
 import { SHELL_TIMEOUT_MS } from './constants.js';
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
 import { sweepEngines } from '../engine/sweep.js';
-import { recalledEventTypes } from '../schemas/index.js';
+import { recalledEventTypes } from '../schemas/cognitive-events.js';
 import { RECALL_WINDOW } from '../memory/types.js';
 import { NAR_ORIGIN } from '../schemas/event-base.js';
-import { mintCognitiveEvent } from '../schemas/index.js';
+import { mintCognitiveEvent } from '../schemas/cognitive-events.js';
 import {
   type CycleHost,
   createMacroContext,

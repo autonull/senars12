@@ -1,7 +1,8 @@
 /**
  * Performance pattern analysis - extracted from SelfAnalyzerService
  */
-import { mean, rankBy, safeRatio } from '@senars/util';
+import { mean, safeRatio } from '@senars/util/numeric';
+import { rankBy } from '@senars/util/collections';
 
 import type { ModelRuleStats } from '../../../lm';
 import type { SelfHost } from '../../../self/host.js';

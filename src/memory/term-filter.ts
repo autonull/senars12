@@ -1,4 +1,4 @@
-import { collectUpTo } from '@senars/util';
+import { collectUpTo } from '@senars/util/collections';
 
 /** Shared case-insensitive term-substring matching (concepts, beliefs, goals). */
 export interface TermBearing {

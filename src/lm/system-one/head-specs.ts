@@ -5,7 +5,7 @@
  * calibrator.
  */
 
-import { getOrInsert, indexBy } from '@senars/util';
+import { getOrInsert, indexBy } from '@senars/util/collections';
 import { createIsotonicCalibrator } from './calibration.js';
 import { dominantDistribution, legendFrom, uniformDistribution } from './distribution.js';
 import {

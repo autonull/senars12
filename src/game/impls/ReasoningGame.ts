@@ -1,5 +1,5 @@
 import type { Game, GameOutcome, Perception } from '../Game.js';
-import { SeededRNG } from '@senars/util';
+import { SeededRNG } from '@senars/util/random';
 import type { CapabilityTier } from '../../agent/profiles.js';
 import type { CognitionAction, Reward, Sensor } from '../types.js';
 import { composeReward, DEFAULT_REWARDS } from '../rewards.js';

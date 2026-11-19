@@ -1,4 +1,4 @@
-import { ucb, visitConfidence } from '@senars/util';
+import { ucb, visitConfidence } from '@senars/util/bandit';
 import { SATURATION_COUNT } from '../constants.js';
 import { BanditReflex } from './BanditReflex.js';
 import type { Reflex } from './Reflex.js';

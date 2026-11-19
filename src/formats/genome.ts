@@ -255,7 +255,7 @@ function generate(): string {
   lines.push('// Run: tsx src/formats/genome.ts');
   lines.push('');
   lines.push("import { z } from 'zod';");
-  lines.push("import { generateId } from '@senars/util';");
+  lines.push("import { generateId } from '@senars/util/id';");
   lines.push('');
 
   // ============================================================================

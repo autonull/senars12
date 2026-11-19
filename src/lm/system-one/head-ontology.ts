@@ -11,7 +11,8 @@
  * `feasibility` twice and had never heard of `episodic_match`.
  */
 
-import { SourceQualitySchema, TASK_TYPES } from '@senars/schemas';
+import { SourceQualitySchema } from '@senars/schemas/truth.js';
+import { TASK_TYPES } from '@senars/schemas/task.js';
 import type {
   CognitiveAxis,
   CriticalityLevel,

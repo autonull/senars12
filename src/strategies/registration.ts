@@ -11,7 +11,11 @@
  * strategies→lm→nar SCC.
  */
 
-import { ensureArray, formatIssues, indexBy, sha256HexParts, stableStringify } from '@senars/util';
+import { ensureArray } from '@senars/util/guards';
+import { formatIssues } from '@senars/util/diagnostics';
+import { indexBy } from '@senars/util/collections';
+import { sha256HexParts } from '@senars/util/hash';
+import { stableStringify } from '@senars/util/json';
 import { type ZodError, z } from 'zod';
 import { describeStrategyExpression, type StrategyExpression } from '../reason/strategy-algebra.js';
 import type { RandomSource } from '../types/primitives.js';

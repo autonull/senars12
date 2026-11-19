@@ -1,4 +1,6 @@
-import { errMsg, serializeTruth, type TruthLike, takeFirst, takeLast } from '@senars/util';
+import { errMsg } from '@senars/errors';
+import { serializeTruth } from '@senars/util/truth-schema';
+import { takeFirst, takeLast } from '@senars/util/collections';
 import { intBetween, unitInterval } from '@senars/config';
 import { evaluateExpression } from '@senars/util/eval';
 import { tool } from 'ai';

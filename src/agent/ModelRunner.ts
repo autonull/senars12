@@ -1,4 +1,6 @@
-import { drain, errMsg, truncate as truncateText, type LMTask, type ToolCall } from '@senars/util';
+import { drain } from '@senars/util/async';
+import { errMsg } from '@senars/errors';
+import { truncate } from '@senars/util/text';
 import {
   generateText,
   type LanguageModel,

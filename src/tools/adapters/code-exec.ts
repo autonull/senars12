@@ -1,5 +1,7 @@
 import { basename, resolve } from 'node:path';
-import { envStr, stopwatch, truncateBytes } from '@senars/util';
+import { envStr } from '@senars/util/config';
+import { stopwatch } from '@senars/util/async';
+import { truncateBytes } from '@senars/util/text';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { containsPath } from '../../capability/wasi-sandbox.js';

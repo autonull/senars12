@@ -1,4 +1,5 @@
-import { joinKey, readJsonFileSync, splitKey, writeJsonFileSync } from '@senars/util';
+import { joinKey, splitKey } from '@senars/util/collections';
+import { readJsonFileSync, writeJsonFileSync } from '@senars/util/fs';
 import { withSpan } from '../otel/index.js';
 import { recordSchemaPromotion } from '../telemetry/index.js';
 import type { PromotedSchema } from './episode-schemas.js';

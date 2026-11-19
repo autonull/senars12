@@ -6,7 +6,11 @@ import {
   RUBRIC_IDS,
 } from '@senars/decision';
 import { createSystemOneBudget, evaluateQuery, HEAD_SPECS, type ScoreDistribution, specToQuery, rubricOf } from '@senars/lm/system-one';
-import { envStrOr, finiteOr, formatBytes, incrementCount, writeJsonFile } from '@senars/util';
+import { envStrOr } from '@senars/util/config';
+import { finiteOr } from '@senars/util/numeric';
+import { formatBytes } from '@senars/util/format';
+import { incrementCount } from '@senars/util/collections';
+import { writeJsonFile } from '@senars/util/fs';
 import { attempted, cmd } from '@senars/cli';
 import { type ReflexView, reflexesOf } from '@senars/cli/conversation-game';
 import {

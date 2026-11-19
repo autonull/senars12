@@ -1,4 +1,4 @@
-import { roundTo } from '@senars/util';
+import { roundTo } from '@senars/util/numeric';
 
 import { composeProposition } from './distribution.js';
 import { createRemoteManifold } from './remote-manifold.js';

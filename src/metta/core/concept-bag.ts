@@ -1,4 +1,4 @@
-import { getOrInsert } from '@senars/util';
+import { getOrInsert } from '@senars/util/collections';
 
 export class ConceptBag {
   #concepts = new Map<string, Concept>();

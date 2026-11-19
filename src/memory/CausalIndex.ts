@@ -4,8 +4,8 @@
  * Serves `getEpisodes({causedBy, leadingTo})` in O(matches) after a single
  * build pass; mirrors the lazy metadata-index pattern on `EpisodicMemory`.
  */
-import type { Episode } from '@senars/util';
-import { getOrInsert } from '@senars/util';
+import type { Episode } from '@senars/types/episodic-memory';
+import { getOrInsert } from '@senars/util/collections';
 
 const push = (index: Map<string, Episode[]>, key: string, episode: Episode): void => {
   getOrInsert(index, key, () => []).push(episode);

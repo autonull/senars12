@@ -2,17 +2,11 @@
  * Rule processor for applying inference rules
  */
 
-import {
-  CallTallySeries,
-  createCallTally,
-  formatNarseseTruth,
-  keyedBy,
-  pushCapped,
-  stopwatch,
-  takeFirst,
-  toError,
-  type ModelRuleStats,
-} from '@senars/util';
+import { CallTallySeries, createCallTally } from '@senars/util/tally';
+import { formatNarseseTruth } from '@senars/util/truth-schema';
+import { keyedBy, pushCapped, takeFirst } from '@senars/util/collections';
+import { stopwatch } from '@senars/util/async';
+import { toError } from '@senars/errors';
 import type { DerivationRecord, DerivationStep } from '@senars/schemas';
 import { countContradictions } from '../../cognitive/impls/conflict-utils.js';
 import type { DriveManager } from '../../drives';

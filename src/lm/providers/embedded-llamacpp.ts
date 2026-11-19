@@ -6,14 +6,9 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
-import {
-  envBool,
-  envStr,
-  errMsg,
-  extractLastUserMessage,
-  type LMTask,
-  mapValues,
-} from '@senars/util';
+import { envBool, envStr } from '@senars/util/config';
+import { errMsg } from '@senars/errors';
+import { extractLastUserMessage } from '@senars/util/prompt';
 import { SerialQueue } from '@senars/util/async';
 import type { LanguageModel } from 'ai';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';

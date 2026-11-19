@@ -1,4 +1,4 @@
-import type { ChatOptions as UtilChatOptions, LMTask } from '@senars/util';
+import type { LMTask } from '@senars/types/llm';
 
 /**
  * The chat option and event vocabulary — canonical, and the only thing left

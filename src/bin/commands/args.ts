@@ -1,6 +1,9 @@
 /** Raw-token access for CLI commands — the single argv-shape toolkit. */
 
-import { type Flags, getNested, parseEnvValue, parseFlags, splitWords } from '@senars/util';
+import { getNested } from '@senars/util/object';
+import { parseEnvValue } from '@senars/util/config';
+import { parseFlags } from '@senars/util/cli';
+import { splitWords } from '@senars/util/text';
 
 /** Split a command tail into positional tokens; an empty tail yields no tokens. */
 export const tokenize = (args = ''): string[] => splitWords(args);

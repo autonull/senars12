@@ -1,4 +1,5 @@
-import { clamp01, maxScore, minScore, SeededRNG, shuffleInPlace } from '@senars/util';
+import { clamp01, maxScore, minScore } from '@senars/util/numeric';
+import { SeededRNG, shuffleInPlace } from '@senars/util/random';
 import type { Game, GameOutcome, Perception } from '../Game.js';
 
 /** Placement action: 'place:r<rotation>:c<column>' (hard drop). */

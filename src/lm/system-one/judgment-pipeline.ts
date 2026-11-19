@@ -4,7 +4,7 @@
  * HEAD_SPECS already declarative; pipeline adds composition + digest, does not replace the table.
  */
 
-import { shortSha256Hex } from '@senars/util';
+import { shortSha256Hex } from '@senars/util/hash';
 import type { HeadResult } from '../../decision/types.js';
 import { HEAD_SPECS, headSpecsInGroup } from './head-ontology.js';
 import {

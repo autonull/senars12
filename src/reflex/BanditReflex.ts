@@ -1,15 +1,8 @@
-import {
-  type ConfidenceCurve,
-  type Exploration,
-  greedy,
-  meanUpdate,
-  QTable,
-  visitConfidence,
-} from '@senars/util';
+import { greedy, meanUpdate, QTable, visitConfidence } from '@senars/util/bandit';
 import { SATURATION_COUNT } from '../constants.js';
 import { type ActionProposal, byExpectedValue, type LearningEvent } from './Reflex.js';
 
-export type { QEntry } from '@senars/util';
+export type { QEntry } from '@senars/util/bandit';
 
 export interface BanditReflexOptions {
   numArms: number;

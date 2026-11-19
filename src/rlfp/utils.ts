@@ -1,4 +1,5 @@
-import { incrementCount, safeRatio, shareCount } from '@senars/util';
+import { incrementCount } from '@senars/util/collections';
+import { safeRatio } from '@senars/util/numeric';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 
 export interface TrajectoryFeatures {

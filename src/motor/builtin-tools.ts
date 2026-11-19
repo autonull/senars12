@@ -1,17 +1,12 @@
 import { exec } from 'node:child_process';
 import { access, appendFile, readFile, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
-import type { EpisodicMemory } from '@senars/util';
-import {
-  CAPABILITY_RISKS,
-  CapabilityRiskSchema,
-  envStr,
-  errMsg,
-  objectSpec,
-  toolAttempt,
-  toolError,
-  toolOk,
-} from '@senars/util';
+import type { EpisodicMemory } from '@senars/types/episodic-memory';
+import { CAPABILITY_RISKS, CapabilityRiskSchema } from '@senars/util/capability-risk';
+import { envStr } from '@senars/util/config';
+import { errMsg } from '@senars/errors';
+import { objectSpec } from '@senars/types/tools';
+import { toolAttempt, toolError, toolOk } from '@senars/types/engine';
 import { z } from 'zod';
 import type { ApprovalService } from '../agent/ApprovalService.js';
 import { APPROVAL_TIMEOUT_MS, SHELL_TIMEOUT_MS } from '../agent/constants.js';

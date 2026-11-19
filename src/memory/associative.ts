@@ -11,7 +11,7 @@
  * stays a one-way acyclic edge (same rule as `view.ts`).
  */
 
-import { getOrInsert } from '@senars/util';
+import { getOrInsert } from '@senars/util/collections';
 import type { ConceptGraph } from './ConceptGraph.js';
 import type { Layer } from './links/Layer.js';
 import type { LinkType } from './links/types.js';

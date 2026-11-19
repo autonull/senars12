@@ -8,7 +8,8 @@ import {
   resolveLMSettings,
   LMTask,
 } from '@senars/lm';
-import { removeBy, LM_TASKS } from '@senars/util';
+import { removeBy } from '@senars/util/collections';
+import { LM_TASKS } from '@senars/types/llm';
 import { attempted, cmd } from '@senars/cli';
 import type { BotConfig } from '@senars/config';
 import { tokenize } from './args.js';

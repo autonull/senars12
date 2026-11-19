@@ -1,5 +1,6 @@
 import { verifyRecord } from '@senars/verification';
-import { cachePath, createLogger, type TermTruth } from '@senars/util';
+import { cachePath } from '@senars/util/config';
+import { createLogger } from '@senars/util/logger';
 import {
   type CognitiveParameters,
   FAST_COGNITIVE_CONFIG,

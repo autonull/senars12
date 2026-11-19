@@ -1,4 +1,4 @@
-import { forget } from '@senars/util';
+import { forget } from '@senars/util/numeric';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { AttentionContext, AttentionModel } from '../types.js';

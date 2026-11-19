@@ -1,4 +1,4 @@
-import { LruCache } from '@senars/util';
+import { LruCache } from '@senars/util/lru-cache';
 import { atomKey } from '../core/hash.js';
 import type { MeTTaAtom } from '../types/ast.js';
 

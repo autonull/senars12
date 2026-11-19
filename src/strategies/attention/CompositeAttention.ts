@@ -1,4 +1,4 @@
-import { safeRatio, sumBy } from '@senars/util';
+import { safeRatio, sumBy } from '@senars/util/numeric';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import { ConfigurationError } from '../../types';

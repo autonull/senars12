@@ -1,4 +1,5 @@
-import { accumulate, maxBy, minBy, safeRatio } from '@senars/util';
+import { accumulate, maxBy, minBy } from '@senars/util/collections';
+import { safeRatio } from '@senars/util/numeric';
 /**
  * G2 — episode-level schema induction. After each episode the (action,
  * reward) history is aggregated; the worst and best action patterns are

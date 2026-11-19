@@ -4,7 +4,7 @@
  * text never persists; content survives as sha256 digests + embeddings.
  */
 import type { FormalizationCandidate } from '@senars/schemas';
-import { type BeliefTruth, keyedBy } from '@senars/util';
+import { keyedBy } from '@senars/util/collections';
 import type { JudgmentProvenance } from '../lm/system-one/decide.js';
 
 export type ReactionKind = 'accept' | 'correct' | 'reject' | 'clarify' | 'redirect' | 'abandon';

@@ -1,4 +1,6 @@
-import { perPart, periodic, type RandomSource, SeededRNG, weightedPick } from '@senars/util';
+import { perPart } from '@senars/util/collections';
+import { periodic } from '@senars/util/async';
+import { SeededRNG, weightedPick } from '@senars/util/random';
 import type { MetaGame } from '../game/impls/MetaGame.js';
 import type { SchedulerAdapter } from '../learning/domain-learners.js';
 import type { FocusStepReport } from './Focus.js';

@@ -1,7 +1,9 @@
 import { spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { errMsg, parseJsonOr, unique } from '@senars/util';
+import { errMsg } from '@senars/errors';
+import { parseJsonOr } from '@senars/util/fs';
+import { unique } from '@senars/util/collections';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { runProcess } from './proc.js';

@@ -1,4 +1,4 @@
-import type { CommandDefinition } from '@senars/util';
+import type { CommandDefinition } from '@senars/commands';
 import { narOf, requiring } from './utils.js';
 
 export const rlfpCommands: CommandDefinition[] = [

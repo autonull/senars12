@@ -1,4 +1,5 @@
-import { errMsg, selectTopN } from '@senars/util';
+import { errMsg } from '@senars/errors';
+import { selectTopN } from '@senars/util/collections';
 import { intBetween } from '@senars/util/config';
 import { tool } from 'ai';
 import { z } from 'zod';

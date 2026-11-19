@@ -25,7 +25,7 @@
  * budget scopes and A3's protocol — only whether one exists.
  */
 
-import type { WitnessList } from '@senars/util';
+import type { WitnessList } from '@senars/util/witness';
 
 /** A cycle-path await on something outside the process's own computation. */
 export interface ProviderSeam {

@@ -1,13 +1,6 @@
-import {
-  ambientRng,
-  clamp01,
-  lerp,
-  LruCache,
-  maxScore,
-  nearlyEqual,
-  nextInt,
-  type RandomSource,
-} from '@senars/util';
+import { ambientRng, nextInt } from '@senars/util/random';
+import { clamp01, lerp, maxScore, nearlyEqual } from '@senars/util/numeric';
+import { LruCache } from '@senars/util/lru-cache';
 import type { DriveManager } from '../../drives/impls/DriveManager.js';
 import { atom, type Term, TermBuilder, TermSet, Truth, termKey } from '../../index.js';
 import type { NAR } from '../../nar.js';

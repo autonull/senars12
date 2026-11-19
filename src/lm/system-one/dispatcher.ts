@@ -1,15 +1,7 @@
 import type { ReasoningBudget } from '@senars/schemas';
-import {
-  accumulate,
-  clamp01,
-  indexBy,
-  maxBy,
-  monotonicNow,
-  rankBy,
-  retain,
-  safeRatio,
-  stopwatch,
-} from '@senars/util';
+import { accumulate, indexBy, maxBy, rankBy } from '@senars/util/collections';
+import { clamp01, retain, safeRatio } from '@senars/util/numeric';
+import { monotonicNow, stopwatch } from '@senars/util/async';
 import { DECISION_DERIVATIONS_SCOPE } from '../../kernel/budget-scopes.js';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
 import { Stamp } from '../../terms/impls/Stamp.js';

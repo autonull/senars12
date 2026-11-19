@@ -1,4 +1,4 @@
-import { keyedBy } from '@senars/util';
+import { keyedBy } from '@senars/util/collections';
 import {
   createParameterTable,
   type ParameterScope,

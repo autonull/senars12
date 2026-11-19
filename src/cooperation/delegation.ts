@@ -4,7 +4,9 @@
  * Agent B runs the same universal LM rule locally; Agent A admits the result
  * through its PerceptionGate with PEER_AGENT source quality and shadow-validates.
  */
-import { errMsg, makeId, parseJsonOr } from '@senars/util';
+import { errMsg } from '@senars/errors';
+import { makeId } from '@senars/util/id';
+import { parseJsonOr } from '@senars/util/fs';
 import type { JudgmentQuery } from '../lm/system-one/types.js';
 
 export interface CognitiveTaskDelegation {

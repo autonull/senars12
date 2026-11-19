@@ -1,4 +1,4 @@
-import { makeId, type TermTruth } from '@senars/util';
+import { makeId } from '@senars/util/id';
 import { termParser } from '../terms/index.js';
 import type { Focus, FocusTask } from './Focus.js';
 import { focusTask } from './task.js';

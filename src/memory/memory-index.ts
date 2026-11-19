@@ -1,4 +1,5 @@
-import { addToSet, removeFromSet, systemClock, unique } from '@senars/util';
+import { addToSet, removeFromSet, unique } from '@senars/util/collections';
+import { systemClock } from '@senars/util/clock';
 
 import { atomKey, termKey } from '../terms';
 import type { Concept } from './concept.js';

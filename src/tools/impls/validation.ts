@@ -1,4 +1,4 @@
-import { isPlainObject } from '@senars/util';
+import { isPlainObject } from '@senars/util/guards';
 import { ToolError } from '../../types';
 import type { ToolSchema, ToolSchemaProperty } from '../types';
 

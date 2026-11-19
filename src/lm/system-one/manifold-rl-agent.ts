@@ -1,5 +1,7 @@
 import type { ReasoningBudget } from '@senars/schemas';
-import { ambientRng, maxBy, nextInt, QTable, ucb } from '@senars/util';
+import { ambientRng, nextInt } from '@senars/util/random';
+import { maxBy } from '@senars/util/collections';
+import { QTable, ucb } from '@senars/util/bandit';
 import { type Game, type GameOutcome, perceptionKey } from '../../game/Game.js';
 import type { Decider } from './decide.js';
 import type { JudgmentDataset } from './distill.js';

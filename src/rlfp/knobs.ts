@@ -1,4 +1,4 @@
-import { getNested, setNested } from '@senars/util';
+import { getNested, setNested } from '@senars/util/object';
 import { indexBy, keyedBy } from '@senars/util/collections';
 import { type BoundProjection, cognitiveBound } from '../config/cognitive-bounds';
 import { systemOneBound } from '../config/system-one';

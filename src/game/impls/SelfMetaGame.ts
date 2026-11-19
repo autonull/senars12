@@ -1,4 +1,5 @@
-import { assertDefined, clamp01, makeId } from '@senars/util';
+import { clamp01 } from '@senars/util/numeric';
+import { makeId } from '@senars/util/id';
 import { type BoundRange, cognitiveBound } from '@senars/util/config';
 import type { ParameterLedger } from '../../config/parameter-ledger.js';
 import {

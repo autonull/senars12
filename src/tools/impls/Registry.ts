@@ -1,4 +1,6 @@
-import { errMsg, KeyedRegistry, toolError } from '@senars/util';
+import { errMsg } from '@senars/util/error';
+import { KeyedRegistry } from '@senars/util/keyed-collection';
+import { toolError } from '@senars/types/engine';
 import { ToolError } from '../../types';
 import type {
   Tool,
@@ -12,7 +14,7 @@ import type {
 } from '../types';
 import { validateToolArgs } from './validation';
 
-export type { ToolDescriptor } from '@senars/util';
+export type { ToolDescriptor } from '@senars/types/tools';
 
 export class Registry extends KeyedRegistry<Tool> implements ToolRegistry {
   constructor() {

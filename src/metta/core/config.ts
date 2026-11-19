@@ -1,4 +1,4 @@
-import { deepMerge } from '@senars/util';
+import { deepMerge } from '@senars/util/object';
 
 export interface MeTTaConfig {
   readonly maxSteps: number;

@@ -1,4 +1,4 @@
-import { rankBy } from '@senars/util';
+import { rankBy } from '@senars/util/collections';
 import type { RuleEngine } from '../../rules/types.js';
 import { sharesSymbol } from '../../terms';
 import type { Task } from '../../types';

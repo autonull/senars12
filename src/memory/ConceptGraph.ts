@@ -3,7 +3,10 @@
  * Provides O(k) lookup where k = term depth, with fallback edges for non-regression.
  */
 
-import { BoundedMap, type Clock, collectUpTo, retain, selectTopN, systemClock } from '@senars/util';
+import { BoundedMap } from '@senars/util/bounded-map';
+import { collectUpTo, selectTopN } from '@senars/util/collections';
+import { retain } from '@senars/util/numeric';
+import { systemClock } from '@senars/util/clock';
 import type { Term } from '../terms/index.js';
 import { atom, getArgs, termKey } from '../terms/index.js';
 

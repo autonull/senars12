@@ -8,7 +8,7 @@ import {
   type TaskType,
   TOLERANT_PUNCTUATIONS,
   taskTypeForPunctuation,
-} from '@senars/schemas';
+} from '@senars/schemas/task.js';
 import { type BeliefTruth, stripTruthSuffix } from '@senars/types/truth';
 import { errMsg } from '@senars/util/error';
 import { SenarsError } from '@senars/errors';

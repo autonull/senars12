@@ -10,7 +10,7 @@
  * - `./providers/routing.ts`       — routing policy, demotions, scoring, offline ladder
  * - `./providers/health.ts`        — probes, circuit breakers, health probes
  */
-export type { LMTask } from '@senars/util';
+export type { LMTask } from '@senars/types/llm';
 export type { LMSettings } from './env-config.js';
 export { cloudApiKey, formatLMConfig } from './env-config.js';
 export type {

@@ -30,9 +30,10 @@ import type {
   Proposal,
   ProposalRejectedEvent,
   ProposalRejection,
-} from '@senars/schemas';
-import { PROPOSAL_SCHEMA_VERSION, validateProposal } from '@senars/schemas';
-import { BoundedRing, incrementCount, makeId, pushCapped, removeBy } from '@senars/util';
+} from '@senars/schemas/cognitive-events.js';
+import { PROPOSAL_SCHEMA_VERSION, validateProposal } from '@senars/schemas/proposal.js';
+import type { BoundedRing, incrementCount, pushCapped, removeBy } from '@senars/util/collections';
+import { makeId } from '@senars/util/id';
 
 /** Bounded depth of a seam's own log, matching the kernel gates' rings. */
 export const PROPOSAL_LOG_CAPACITY = 1000;

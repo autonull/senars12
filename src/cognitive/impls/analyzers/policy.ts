@@ -1,5 +1,6 @@
 import type { ModelRuleStats } from '../../../lm';
-import { flooredRatio, incrementCount, pushCapped } from '@senars/util';
+import { flooredRatio } from '@senars/util/numeric';
+import { incrementCount, pushCapped } from '@senars/util/collections';
 /**
  * Policy management - extracted from SelfAnalyzerService
  */

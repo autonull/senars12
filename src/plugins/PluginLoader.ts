@@ -1,4 +1,4 @@
-import { errMsg } from '@senars/util';
+import { errMsg } from '@senars/errors';
 import { SenarsError } from '@senars/util/errors';
 import type { Agent } from '../agent/Agent.js';
 import type { Engine, EngineId } from '../engine/Engine.js';

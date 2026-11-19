@@ -2,7 +2,7 @@
  * Issue identification and corrections - extracted from SelfAnalyzerService
  */
 
-import { safeRatio } from '@senars/util';
+import { safeRatio } from '@senars/util/numeric';
 import type { SelfHost } from '../../../self/host.js';
 import type { CorrectionResult, IdentifiedIssues } from '../../types.js';
 import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';

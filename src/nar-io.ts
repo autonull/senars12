@@ -5,7 +5,9 @@ import type {
   StimulusSource,
   TaskAdmittedEvent,
 } from '@senars/schemas';
-import { clamp, clampSigned, makeId, writeJsonFile } from '@senars/util';
+import { clamp, clampSigned } from '@senars/util/numeric';
+import { makeId } from '@senars/util/id';
+import { writeJsonFile } from '@senars/util/fs';
 import type { EventBus } from '@senars/util/events';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
 import type { NARConfig } from './facade/config.js';

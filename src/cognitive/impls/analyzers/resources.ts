@@ -1,7 +1,7 @@
 /**
  * Resource usage analysis - extracted from SelfAnalyzerService
  */
-import { mean } from '@senars/util';
+import { mean } from '@senars/util/numeric';
 
 import type { Concept } from '../../../memory/concept.js';
 import type { SelfHost } from '../../../self/host.js';

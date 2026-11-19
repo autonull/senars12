@@ -1,5 +1,5 @@
 import http, { type IncomingMessage } from 'node:http';
-import { deadline, type Logger, readBytesBounded } from '@senars/util';
+import { deadline, readBytesBounded } from '@senars/util/async';
 import type { WebSocketServer } from 'ws';
 
 /**

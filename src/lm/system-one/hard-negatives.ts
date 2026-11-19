@@ -1,15 +1,6 @@
-import type { Episode } from '@senars/util';
-import {
-  collectUpTo,
-  getOrInsert,
-  groupBy,
-  mapToRecord,
-  selectByPriority,
-  sha256Hex,
-  sha256Prefixed,
-  shortSha256Hex,
-  unique,
-} from '@senars/util';
+import type { Episode } from '@senars/types/episodic-memory';
+import { collectUpTo, getOrInsert, groupBy, mapToRecord, selectByPriority, unique } from '@senars/util/collections';
+import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
 import { type AikrBagOptions, AikrShell } from '../../learning/aikr-processor.js';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import type { Task } from '../../types';

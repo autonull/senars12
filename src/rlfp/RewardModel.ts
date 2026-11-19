@@ -1,13 +1,6 @@
-import {
-  ambientRng,
-  flooredRatio,
-  nextInt,
-  normalizeToSum,
-  ensureArray,
-  type RandomSource,
-  safeRatio,
-  softFalloff,
-} from '@senars/util';
+import { ambientRng, nextInt } from '@senars/util/random';
+import { flooredRatio, normalizeToSum, safeRatio, softFalloff } from '@senars/util/numeric';
+import { ensureArray } from '@senars/util/guards';
 
 import type { PreferenceData } from './PreferenceCollector.js';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';

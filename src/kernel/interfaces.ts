@@ -19,7 +19,7 @@ import type {
   SourceQuality,
   TaskAdmittedEvent,
 } from '@senars/schemas';
-import type { TruthLike } from '@senars/util';
+import type { TruthLike } from '@senars/util/types/cognitive';
 import type { TaskTypeName, Term } from '../terms';
 
 export interface IPerceptionGate extends GateEventLog<CognitiveEvent> {

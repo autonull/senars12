@@ -2,8 +2,8 @@ import { trace } from '@opentelemetry/api';
 import {
   type JudgmentResolvedEvent,
   mintCognitiveEvent,
-} from '@senars/schemas';
-import { makeId } from '@senars/util';
+} from '@senars/schemas/cognitive-events.js';
+import { makeId } from '@senars/util/id';
 import type { CognitiveAxis } from '../../decision/types.js';
 import { recordJudgmentMetric } from '../../metrics/prometheus.js';
 import type { BandDecision } from './policy.js';

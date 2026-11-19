@@ -1,4 +1,5 @@
-import { perSecond, systemClock } from '@senars/util';
+import { perSecond } from '@senars/util/numeric';
+import { systemClock } from '@senars/util/clock';
 
 /** What the kernel counts about itself. Every field is bumped in place. */
 export interface SystemStats {

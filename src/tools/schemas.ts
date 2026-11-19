@@ -1,4 +1,4 @@
-import type { ConnectionConfig } from '@senars/util';
+import type { ConnectionConfig } from '@senars/types/transport';
 import { agentOptionsSchema, nonEmpty } from '@senars/util/config';
 import { z } from 'zod';
 

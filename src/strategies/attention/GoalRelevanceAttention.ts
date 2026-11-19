@@ -1,4 +1,5 @@
-import { maxScore, TERM_SEPARATORS, wordOverlap } from '@senars/util';
+import { maxScore } from '@senars/util/numeric';
+import { TERM_SEPARATORS, wordOverlap } from '@senars/util/text';
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import type { AttentionContext } from '../types.js';

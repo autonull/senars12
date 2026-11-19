@@ -1,4 +1,4 @@
-import { incrementCount } from '@senars/util';
+import { incrementCount } from '@senars/util/collections';
 import { type ActionProposal, byExpectedValue, type LearningEvent, type Reflex } from './Reflex.js';
 
 /**

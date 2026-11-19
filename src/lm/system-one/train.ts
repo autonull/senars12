@@ -1,23 +1,12 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import {
-  accumulate,
-  BoundedMap,
-  clamp01,
-  ensureDir,
-  fillSeededUnitRange,
-  getOrInsert,
-  groupBy,
-  holdoutSplit,
-  mulberry32,
-  parseOrThrow,
-  pearson,
-  readJsonlAsync,
-  seededStringHash,
-  sha256Prefixed,
-  sigmoid,
-  writeJsonFile,
-} from '@senars/util';
+import { accumulate, getOrInsert, groupBy } from '@senars/util/collections';
+import type { BoundedMap } from '@senars/util/bounded-map';
+import { clamp01, pearson, sigmoid } from '@senars/util/numeric';
+import { ensureDir, readJsonlAsync, writeJsonFile } from '@senars/util/fs';
+import { fillSeededUnitRange, holdoutSplit, mulberry32 } from '@senars/util/random';
+import { parseOrThrow } from '@senars/util/config';
+import { seededStringHash, sha256Prefixed } from '@senars/util/hash';
 import { z } from 'zod';
 
 export { pearson };

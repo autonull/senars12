@@ -12,7 +12,9 @@
  * - Observability emission every N cycles
  */
 
-import { sleep, pct, createLogger } from '@senars/util';
+import { sleep } from '@senars/util/async';
+import { pct } from '@senars/util/numeric';
+import { createLogger } from '@senars/util/logger';
 import { operationNameOf } from '@senars/nar';
 import { createNAR } from '@senars/nar';
 import { createSeNARSRegistry } from '@senars/lm';

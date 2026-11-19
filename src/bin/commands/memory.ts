@@ -1,6 +1,9 @@
 /** Episodic + concept memory commands (`.consolidate`, `.memory-*`, `.recall`). */
 
-import { errMsg, finiteOr, incrementCount, readJsonlAsync, writeJsonl } from '@senars/util';
+import { errMsg } from '@senars/errors';
+import { finiteOr } from '@senars/util/numeric';
+import { incrementCount } from '@senars/util/collections';
+import { readJsonlAsync, writeJsonl } from '@senars/util/fs';
 import { attempted, cmd } from '@senars/cli';
 import { flagsOf, tokenize } from './args.js';
 import type { BotRuntime } from './context.js';

@@ -12,7 +12,7 @@
  * version, an enumerable table, a revert. This file asserts the *shape of the
  * code*, which no amount of runtime testing can reach.
  */
-import { escapeRegExp } from '@senars/util';
+import { escapeRegExp } from '@senars/util/text';
 import { importEdges, maskNonCode } from './imports.js';
 import type { Verdict } from './verdicts.js';
 import { lineAt, scanSubject } from './source-scan.js';

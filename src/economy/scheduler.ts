@@ -5,7 +5,7 @@
  * no parallel drive machinery exists.
  */
 
-import { weightedPick, type RandomSource, SeededRNG } from '@senars/util';
+import { weightedPick, SeededRNG } from '@senars/util/random';
 import {
   EconomyTask,
   TaskBagKind,

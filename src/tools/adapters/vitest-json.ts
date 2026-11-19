@@ -4,7 +4,8 @@
  * "find the first `{` line" fence scan and the same four counter reductions.
  */
 
-import { parseJsonObject, safeRatio } from '@senars/util';
+import { parseJsonObject } from '@senars/util/json';
+import { safeRatio } from '@senars/util/numeric';
 
 export type CoverageMetrics = {
   total: number;

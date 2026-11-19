@@ -1,5 +1,5 @@
 import type { SourceQuality } from '@senars/schemas';
-import type { TermTruth } from '@senars/util';
+import type { TermTruth } from '@senars/util/types/cognitive';
 import type { TaskTypeName } from '../terms';
 
 /**

@@ -1,4 +1,4 @@
-import type { TermTruth } from '@senars/util';
+import type { TermTruth } from '@senars/util/types/cognitive';
 import type { Truth } from '../terms/impls/Truth.js';
 import type { Task } from '../types/core.js';
 
