@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { createMeTTa, parseMeTTa } from '@senars/metta-runtime';
-import { NarEventBus } from '@senars/agent';
+import { NarEventBus } from '@senars/nar';
 import type { ContradictionEvent } from '@senars/agent';
 import { MettaProposer } from '@senars/reflex';
 import { Negotiator } from '@senars/reflex';

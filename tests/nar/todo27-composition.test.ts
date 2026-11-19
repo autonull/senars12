@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CognitiveRegistry } from '@senars/agent';
+import { CognitiveRegistry } from '@senars/cognitive';
 import { Memory } from '@senars/memory';
 import { atom, Truth } from '@senars/nar/terms/index.js';
 import { createBeliefTask, createTaskWeight } from '@senars/nar/types/index.js';

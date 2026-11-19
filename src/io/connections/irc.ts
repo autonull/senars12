@@ -1,4 +1,4 @@
-import type { BoundedRing, removeBy } from '@senars/util/collections';
+import { BoundedRing, removeBy } from '@senars/util/collections';
 import { createLogger } from '@senars/util/logger';
 import { deadline, periodic } from '@senars/util/async';
 import irc, { type Client as IRCClient } from 'irc';

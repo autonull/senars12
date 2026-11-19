@@ -1,4 +1,4 @@
-import type { BoundedMap } from '@senars/util/bounded-map';
+import { BoundedMap } from '@senars/util/bounded-map';
 import { deadline } from '@senars/util/async';
 import { maxBy, rankBy } from '@senars/util/collections';
 

@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import type { DerivationRecord, ReasoningBudget } from '@senars/schemas';
 import { asBeliefTruth } from '@senars/types/truth';
-import type { BoundedRing, maxBy } from '@senars/util/collections';
+import { BoundedRing, maxBy } from '@senars/util/collections';
 import { clamp, clampSigned, safeRatio, sumBy } from '@senars/util/numeric';
 import { envBool } from '@senars/util/config';
 import { ensureDirSync } from '@senars/util/fs';

@@ -1,4 +1,4 @@
-import type { BoundedMap } from '@senars/util/bounded-map';
+import { BoundedMap } from '@senars/util/bounded-map';
 import { occupancy } from '@senars/util/numeric';
 import { raceDeadline } from '@senars/util/async';
 import { trimCapped } from '@senars/util/collections';

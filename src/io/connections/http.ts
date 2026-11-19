@@ -1,6 +1,6 @@
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import { URL } from 'node:url';
-import type { BoundedMap } from '@senars/util/bounded-map';
+import { BoundedMap } from '@senars/util/bounded-map';
 import { createLogger } from '@senars/util/logger';
 import { deadline, deferred } from '@senars/util/async';
 import { errMsg } from '@senars/util/error';

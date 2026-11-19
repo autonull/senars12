@@ -13,7 +13,7 @@
  * reported rather than implied — the difference between a declared gap and a lie.
  */
 
-import type { BoundedRing } from '@senars/util/collections';
+import { BoundedRing } from '@senars/util/collections';
 import { currentIdCount, primeIdCount } from '@senars/util/id';
 import type { ConceptWriter } from '../memory/ports/index.js';
 import { deserialize, serialize, type SerializedMemory } from '../memory/state/serialization.js';

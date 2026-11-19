@@ -21,7 +21,7 @@ import { RuleProcessor } from '@senars/rules';
 import { MettaProposer } from '@senars/reflex';
 import { Negotiator } from '@senars/reflex';
 import { NalVetoArbitration, WeightedQuorum } from '@senars/reflex';
-import { CognitiveRegistry } from '@senars/agent';
+import { CognitiveRegistry } from '@senars/cognitive';
 import { MetricsCollector } from '@senars/metrics';
 import {
   composeStrategy,

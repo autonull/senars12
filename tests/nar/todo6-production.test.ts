@@ -20,7 +20,7 @@ import {
 } from '@senars/budget';
 import { validateCognitiveEvent } from '@senars/agent';
 import { PriorityBag } from '@senars/agent';
-import { CognitiveRegistry } from '@senars/agent';
+import { CognitiveRegistry } from '@senars/cognitive';
 import {
   computeReplayStateHash,
   type ReplaySnapshotFile,

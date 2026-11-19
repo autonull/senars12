@@ -1,4 +1,4 @@
-import type { BoundedMap } from '@senars/util/bounded-map';
+import { BoundedMap } from '@senars/util/bounded-map';
 import { selectTopN } from '@senars/util/collections';
 import { type Term, termKey } from '../../terms';
 import { cosineNormalized, normalize } from '../../utils/similarity.js';

@@ -36,7 +36,7 @@ export function sanitizePreopens(paths: string[] = []): Record<string, string> {
 
 /** Rejects with {@link SandboxTimeoutError} when the sandbox deadline elapses. */
 export const withSandboxTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> =>
-  sharedWithTimeout(promise, timeoutMs, () => new SandboxTimeoutError(timeoutMs));
+  withTimeout(promise, timeoutMs, () => new SandboxTimeoutError(timeoutMs));
 
 export { containsPath };
 

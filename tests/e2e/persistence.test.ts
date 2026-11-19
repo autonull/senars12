@@ -1,7 +1,8 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Agent, InMemoryEventLog } from '@senars/agent';
+import { Agent } from '@senars/agent';
+import { InMemoryEventLog } from '@senars/log';
 import { JsonlSessionManager } from '@senars/memory';
 import { NAREngine } from '@senars/agent';
 import { startAgentUI } from '@senars/ui/server';

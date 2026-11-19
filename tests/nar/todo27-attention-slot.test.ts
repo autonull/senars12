@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { NAR } from '@senars/agent';
-import { CognitiveRegistry, CognitiveController, resolveSlot } from '@senars/agent';
+import { NAR } from '@senars/nar';
+import { CognitiveRegistry, CognitiveController, resolveSlot } from '@senars/cognitive';
 import {
   type CognitiveParameters,
   DEFAULT_COGNITIVE_PARAMETERS,
@@ -8,9 +8,9 @@ import {
 import { Memory } from '@senars/memory';
 import { MetricsCollector } from '@senars/metrics';
 import { RuleProcessor } from '@senars/rules';
-import { NullAttentionModel } from '@senars/agent';
-import { DEFAULT_CONFIG } from '@senars/agent';
-import type { AttentionModel } from '@senars/agent';
+import { NullAttentionModel } from '@senars/cognitive';
+import { DEFAULT_CONFIG } from '@senars/nar';
+import type { AttentionModel } from '@senars/cognitive';
 
 /**
  * TODO27 — the `attention` slot is a slot.

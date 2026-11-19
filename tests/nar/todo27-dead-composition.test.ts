@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CognitiveRegistry } from '@senars/agent';
+import { CognitiveRegistry } from '@senars/cognitive';
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
   validateParameters,

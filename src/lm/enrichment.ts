@@ -1,5 +1,5 @@
 import { degrade } from '@senars/util/error';
-import type { BoundedRing, sortBy } from '@senars/util/collections';
+import { BoundedRing, sortBy } from '@senars/util/collections';
 import { createLogger } from '@senars/util/logger';
 import { periodic } from '@senars/util/async';
 import { sumBy } from '@senars/util/numeric';

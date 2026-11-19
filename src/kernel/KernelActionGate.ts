@@ -13,7 +13,7 @@ import {
 } from '@senars/schemas/cognitive-events.js';
 import { AutonomyModeSchema, permitsExecution } from '@senars/schemas/governance.js';
 import { addToSet, pushCapped } from '@senars/util/collections';
-import type { BoundedMap } from '@senars/util/bounded-map';
+import { BoundedMap } from '@senars/util/bounded-map';
 import { makeId } from '@senars/util/id';
 import { SenarsError } from '@senars/errors';
 import { GATE_LOG_CAPACITY } from './event-ring.js';

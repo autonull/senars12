@@ -1,4 +1,4 @@
-import type { BoundedRing, takeLast } from '@senars/util/collections';
+import { BoundedRing, takeLast } from '@senars/util/collections';
 import { generateId } from '@senars/util/id';
 import type { Engine } from '../engine/Engine.js';
 import { sweepEngines } from '../engine/sweep.js';

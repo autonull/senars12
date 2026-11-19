@@ -1,4 +1,4 @@
-import type { BoundedRing } from '@senars/util/collections';
+import { BoundedRing } from '@senars/util/collections';
 import { clamp01 } from '@senars/util/numeric';
 import { type Term, TermBuilder, Truth } from '../../index.js';
 import type { NAR } from '../../nar.js';

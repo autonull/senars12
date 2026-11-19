@@ -12,7 +12,7 @@ import {
 import type { NARConfig } from '@senars/agent';
 import { DriveManager } from '@senars/agent';
 import { NAR } from '@senars/agent';
-import { NarEventBus } from '@senars/agent';
+import { NarEventBus } from '@senars/nar';
 import { e2eNARConfig } from '../e2e/fixtures.js';
 
 /**

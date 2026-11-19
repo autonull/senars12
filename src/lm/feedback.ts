@@ -1,5 +1,5 @@
 import { degrade } from '@senars/util/error';
-import type { BoundedRing } from '@senars/util/collections';
+import { BoundedRing } from '@senars/util/collections';
 import { clamp01 } from '@senars/util/numeric';
 import { createLogger } from '@senars/util/logger';
 import { formatTruth } from '@senars/types/truth';

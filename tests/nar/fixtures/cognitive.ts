@@ -1,4 +1,5 @@
-import { CognitiveController, createDefaultRegistry } from '@senars/agent';
+import { CognitiveController } from '@senars/agent';
+import { createDefaultRegistry } from '@senars/cognitive';
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
   type CognitiveParameters,

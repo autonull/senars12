@@ -1,5 +1,5 @@
-import type { CycleStageEvent } from '@senars/agent';
-import { summarizeRegions } from '@senars/agent';
+import type { CycleStageEvent } from '@senars/schemas/cognitive-events.js';
+import { summarizeRegions } from '@senars/trace';
 import { describe, expect, it } from 'vitest';
 
 const region = (

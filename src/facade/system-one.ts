@@ -1,5 +1,5 @@
 import type { ReasoningBudget } from '@senars/schemas';
-import type { BoundedMap } from '@senars/util/bounded-map';
+import { BoundedMap } from '@senars/util/bounded-map';
 import { cachePath } from '@senars/util/config';
 import { createLogger } from '@senars/util/logger';
 import { randomSourceOf } from '@senars/util/random';

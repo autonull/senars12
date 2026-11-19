@@ -1,5 +1,5 @@
 import { createInterface, type Interface } from 'node:readline';
-import type { BoundedRing } from '@senars/util/collections';
+import { BoundedRing } from '@senars/util/collections';
 import { createLogger } from '@senars/util/logger';
 import { DisposalRegistry } from '@senars/util/disposal';
 import { errMsg } from '@senars/util/error';

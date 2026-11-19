@@ -1,6 +1,6 @@
 import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { initOtel, shutdownOtel, withSpan } from '@senars/otel';
-import { CognitiveRegistry } from '@senars/agent';
+import { CognitiveRegistry } from '@senars/cognitive';
 import { ConfigurationError } from '@senars/agent';
 import { canonicalJson, configDigest } from '@senars/agent';
 import { getMetricsAsJson } from '@senars/metrics';

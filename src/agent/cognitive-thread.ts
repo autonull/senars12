@@ -3,7 +3,7 @@
  * Hard budget inheritance: spawn enforces Σ(child) ≤ parent.remaining; join returns unconsumed budget.
  */
 
-import type { BoundedRing, perPart } from '@senars/util/collections';
+import { BoundedRing, perPart } from '@senars/util/collections';
 import { makeId } from '@senars/util/id';
 import { toError } from '@senars/util/error';
 import {

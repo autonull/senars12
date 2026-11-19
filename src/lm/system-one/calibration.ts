@@ -1,4 +1,4 @@
-import type { BoundedMap } from '@senars/util/bounded-map';
+import { BoundedMap } from '@senars/util/bounded-map';
 import { lerp, safeRatio } from '@senars/util/numeric';
 import { maxScore, sortBy, trimCapped } from '@senars/util/collections';
 import { headRubrics } from './head-ontology.js';

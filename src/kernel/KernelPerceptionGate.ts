@@ -9,7 +9,7 @@ import type {
   SourceQuality,
   TaskAdmittedEvent,
 } from '@senars/schemas/cognitive-events.js';
-import { mintCognitiveEvent } from '@senars/schemas/cognitive-events.js';
+import { mintCognitiveEvent } from '@senars/schemas';
 import { asBeliefTruth } from '@senars/types/truth';
 import { confidenceCeiling, SOURCE_QUALITY_CONFIDENCE } from '@senars/schemas/truth';
 import { TASK_PUNCTUATION, TOLERANT_PUNCTUATIONS } from '@senars/schemas/task';
