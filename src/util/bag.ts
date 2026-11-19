@@ -7,8 +7,6 @@
  * One substrate, one policy, one import.
  */
 
-import type { RandomSource } from '../types/primitives.js';
-
 /** Histogram for tracking distributions. */
 export interface Histogram {
   readonly edges: readonly number[];
@@ -86,8 +84,10 @@ export interface CyclesBudget {
   depth?: number;
 }
 
-/** Random source for bag operations. */
-export type RandomSource = () => number;
+import type { RandomSource } from './random.js';
+
+/** Random source for bag operations (re-exported from random). */
+export type { RandomSource };
 
 /** The bag interface — what a bag is, not how it works. */
 export interface Bag<T extends BagItem> {
@@ -159,9 +159,9 @@ export class HistogramImpl implements Histogram {
     const target = this.total * p;
     let cumulative = 0;
     for (let i = 0; i < this.counts.length; i++) {
-      cumulative += this.counts[i];
+      cumulative += this.counts[i]!;
       if (cumulative >= target) {
-        return this.edges[i] + (this.edges[i + 1] - this.edges[i]) * ((target - cumulative + this.counts[i]) / this.counts[i]);
+        return this.edges[i]! + (this.edges[i + 1]! - this.edges[i]!) * ((target - cumulative + this.counts[i]!) / this.counts[i]!);
       }
     }
     return this.max;
@@ -187,7 +187,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   readonly #rng: RandomSource;
   #decayRate: number;
   #forgetRate: number;
-  readonly #onPressure?: PressureListener;
+  #onPressure?: PressureListener;
   #items = new Map<string, InternalEntry<T>>();
   #pressure: PressureLevel = 'normal';
   #version = 0;
@@ -266,7 +266,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   removeAll(predicate: (item: T) => boolean): number {
     let count = 0;
     for (const [id, entry] of this.#items) {
-      if (predicate(entry)) {
+      if (predicate(entry as unknown as T)) {
         this.#items.delete(id);
         count++;
       }
@@ -289,17 +289,17 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
         _accessCount: entry._accessCount + 1,
       };
       this.#items.set(id, updated);
-      return updated;
+      return updated as unknown as T;
     }
     return undefined;
   }
 
   all(): T[] {
-    return Array.from(this.#items.values());
+    return Array.from(this.#items.values()) as unknown as T[];
   }
 
   values(): IterableIterator<T> {
-    return this.#items.values();
+    return this.#items.values() as unknown as IterableIterator<T>;
   }
 
   updatePriority(id: string, priority: number): boolean {
@@ -409,7 +409,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       }
       case 'random': {
         const entries = Array.from(this.#items.keys());
-        victimId = entries[Math.floor(this.#rng() * entries.length)];
+        victimId = entries[Math.floor(this.#rng() * entries.length)]!;
         break;
       }
     }

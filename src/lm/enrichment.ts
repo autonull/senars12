@@ -51,9 +51,9 @@ interface ConceptConnections {
 function findUnderconnectedConcepts(
   concepts: Iterable<{
     term: Term;
-    beliefBag: { size(): number };
-    questionBag: { size(): number };
-    goalBag: { size(): number };
+    beliefBag: { size: number };
+    questionBag: { size: number };
+    goalBag: { size: number };
   }>,
   minConnections: number
 ): ConceptConnections[] {
@@ -61,7 +61,7 @@ function findUnderconnectedConcepts(
 
   for (const concept of concepts) {
     const connectionCount =
-      concept.beliefBag.size() + concept.questionBag.size() + concept.goalBag.size();
+      concept.beliefBag.size + concept.questionBag.size + concept.goalBag.size;
 
     if (connectionCount < minConnections) {
       result.push({ term: concept.term, connections: connectionCount });

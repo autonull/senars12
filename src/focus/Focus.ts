@@ -155,8 +155,8 @@ export class Focus implements BagItem {
     let questions = 0;
     let remainingBudget = budget;
 
-    while (remainingBudget > 0 && this.tasks.size() > 0) {
-      const task = this.tasks.sample();
+    while (remainingBudget > 0 && this.tasks.size > 0) {
+      const [task] = this.tasks.sample(1);
       if (!task) break;
 
       remainingBudget--;

@@ -232,12 +232,10 @@ export class Memory implements MemoryPorts {
    */
   getGoals(): Task[] {
     const goals: Task[] = [];
-    // `forEach` rather than `all()`: this walks every resident concept once per cycle,
-    // and `all()` allocates a generator per bag to walk an array it already holds.
     for (const concept of this.concepts.values()) {
-      concept.goalBag.forEach((g) => {
+      for (const g of concept.goalBag.all()) {
         goals.push(taskFromBagItem(g, 'goal', concept.priority));
-      });
+      }
     }
     return goals;
   }

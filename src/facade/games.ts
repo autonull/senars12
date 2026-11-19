@@ -10,7 +10,8 @@ import { createGateRegistry, type GateRegistry } from '../kernel/index.js';
 import type { ProofMettaProposer } from '../meta/index.js';
 import { ProposalBag } from '../meta/proposal-bag.js';
 import type { Reflex } from '../reflex/Reflex.js';
-import type { NarEventBus } from '../types/events.js';
+import type { NarEventBus, ContradictionEvent, NAREventMap } from '../types/events.js';
+import type { EventBus } from '@senars/util/events';
 import type { RandomSource } from '../types/primitives.js';
 import type { NARConfig } from './config.js';
 import type { SystemOneRuntime } from './system-one.js';
@@ -113,7 +114,8 @@ export class GameManager {
     // disagreement drives the meta-game resolution loop (wired once, C10).
     if (this.eventBus && !this.contradictionWired) {
       this.contradictionWired = true;
-      this.eventBus.on('contradiction', (event) => this.metaGame?.handleContradiction(event));
+      // Use the typed EventBus.on from the base class to get proper event typing
+      (this.eventBus as EventBus<NAREventMap>).on('contradiction', (event: ContradictionEvent) => this.metaGame?.handleContradiction(event));
     }
     return this.metaGame;
   }

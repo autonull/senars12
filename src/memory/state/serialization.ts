@@ -90,11 +90,11 @@ export function serialize(memory: ConceptWriter): SerializedMemory {
 function serializeBag(bag: Bag<TaskData>): TaskRecord[] {
   const tasks: TaskRecord[] = [];
 
-  for (const [item, priority] of bag.entries()) {
+  for (const item of bag.all()) {
     tasks.push({
       term: item.term.toString(),
       truth: item.truth ? { f: item.truth.f, c: item.truth.c } : undefined,
-      budget: item.budget.priority ?? priority,
+      budget: item.budget.priority ?? item.priority,
       stamp: item.stamp ? serializeStamp(item.stamp) : undefined,
       occurrenceTime: item.occurrenceTime,
     });

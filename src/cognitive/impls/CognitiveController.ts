@@ -203,6 +203,7 @@ export class CognitiveController {
   }
 
   #wireRuleGraphCallbacks(ruleGraph: RuleGraph): void {
+    // biome-ignore lint/correctness/useHookAtTopLevel: not a React hook, method name coincidence
     ruleGraph.usePerformance(this.processor.rulePerformance);
     this.onAdapt(() => {
       this.processor.clearModelRuleExecutionLog();

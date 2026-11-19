@@ -224,7 +224,7 @@ export class Concept {
    * to re-test it was reading the wrong side of the bag.
    */
   topBelief(): TopBelief | undefined {
-    const top = this.beliefBag.peek();
+    const top = this.beliefBag.all()[0];
     return top?.truth ? (top as TopBelief) : undefined;
   }
 
@@ -235,7 +235,7 @@ export class Concept {
   }
 
   get totalTasks(): number {
-    return this.beliefBag.size() + this.goalBag.size() + this.questionBag.size();
+    return this.beliefBag.size + this.goalBag.size + this.questionBag.size;
   }
 
   addTask(
@@ -263,15 +263,15 @@ export class Concept {
   }
 
   getBeliefs(): TaskData[] {
-    return this.beliefBag.toArray();
+    return this.beliefBag.all();
   }
 
   getGoals(): TaskData[] {
-    return this.goalBag.toArray();
+    return this.goalBag.all();
   }
 
   getQuestions(): TaskData[] {
-    return this.questionBag.toArray();
+    return this.questionBag.all();
   }
 
   /**
@@ -301,15 +301,15 @@ export class Concept {
 
   mergeWith(others: Concept[]): ConceptMergeResult {
     for (const other of [this, ...others]) {
-      other.beliefBag.forEach((belief) => {
+      for (const belief of other.beliefBag.all()) {
         this.beliefBag.add(belief);
-      });
-      other.goalBag.forEach((goal) => {
+      }
+      for (const goal of other.goalBag.all()) {
         this.goalBag.add(goal);
-      });
-      other.questionBag.forEach((question) => {
+      }
+      for (const question of other.questionBag.all()) {
         this.questionBag.add(question);
-      });
+      }
     }
 
     this.writeAttention({
@@ -343,7 +343,7 @@ export class Concept {
       }
 
       const revisedTruth = TruthOps.revision(data.truth, existing.truth);
-      this.beliefBag.remove(existing);
+      this.beliefBag.remove(existing.id);
       const item = {
         ...data,
         id: existing.id,
@@ -393,18 +393,18 @@ export class Concept {
    */
   private findMatchingBelief(term: Term): TaskData | undefined {
     const key = termKey(term);
-    return this.beliefBag.find((item) => termKey(item.term) === key);
+    return this.beliefBag.all().find((item) => termKey(item.term) === key);
   }
 
   private calculateTaskOverlap(other: Concept): number {
     const thisSet = new TermSet();
     const otherSet = new TermSet();
-    this.beliefBag.forEach((b) => {
+    for (const b of this.beliefBag.all()) {
       thisSet.add(b.term);
-    });
-    other.beliefBag.forEach((b) => {
+    }
+    for (const b of other.beliefBag.all()) {
       otherSet.add(b.term);
-    });
+    }
     return jaccard(thisSet, otherSet);
   }
 }

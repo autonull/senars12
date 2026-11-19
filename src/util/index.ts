@@ -58,7 +58,7 @@ export { EventBus } from '../events/event-bus.js';
 export { ListenerBag } from '../events/listener-bag.js';
 // Bag
 /** @public AIKR bag substrate — one implementation, many consumers. */
-export {
+export type {
   Bag,
   BagItem,
   BagOptions,
@@ -477,7 +477,6 @@ export {
   isStatefulRandomSource,
   mulberry32,
   nextInt,
-  type RandomSource,
   randomSourceOf,
   rngFrom,
   SeededRNG,

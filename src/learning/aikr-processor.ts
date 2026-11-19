@@ -212,7 +212,8 @@ export class AIKRProcessor<TIn extends BagItem, TOut> {
 
   /** Stage 2 — accumulate (bag pressure). */
   pressure(): number {
-    return this.#bag.pressure();
+    const level = this.#bag.pressure();
+    return level === 'critical' ? 1 : level === 'elevated' ? 0.5 : 0;
   }
 
   /** Stages 3–5 — trigger, sample, process, emit. */
@@ -224,7 +225,10 @@ export class AIKRProcessor<TIn extends BagItem, TOut> {
     if (sampled.length === 0) return [];
     const results = await this.#process(sampled, options.signal);
     // An aborted batch is not consumed — items stay for a later pass.
-    if (!options.signal?.aborted) this.#bag.removeAll(sampled.map((item) => item.id));
+    if (!options.signal?.aborted) {
+      const ids = new Set(sampled.map((item) => item.id));
+      this.#bag.removeAll((item) => ids.has(item.id));
+    }
     return results;
   }
 
@@ -235,8 +239,8 @@ export class AIKRProcessor<TIn extends BagItem, TOut> {
   }
 
   /** Stage 6 — decay (forget stale items). */
-  decay(rate?: number): void {
-    this.#bag.decay(rate);
+  decay(_rate?: number): void {
+    this.#bag.decay();
   }
 
   get samplingStrategyName(): string {
@@ -244,7 +248,7 @@ export class AIKRProcessor<TIn extends BagItem, TOut> {
   }
 
   get size(): number {
-    return this.#bag.size();
+    return this.#bag.size;
   }
 }
 
@@ -322,8 +326,8 @@ export class AikrShell<TIn extends BagItem, TOut, TView = TOut, TAdmit = TIn> {
   }
 
   /** Stage 6 — decay (forget stale accumulation). */
-  decay(rate?: number): void {
-    this.processor.decay(rate);
+  decay(_rate?: number): void {
+    this.processor.decay();
   }
 
   get pressure(): number {
@@ -331,7 +335,7 @@ export class AikrShell<TIn extends BagItem, TOut, TView = TOut, TAdmit = TIn> {
   }
 
   get size(): number {
-    return this.bag.size();
+    return this.bag.size;
   }
 
   /** Bounded introspection: the bagged candidates, projected. */

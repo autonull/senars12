@@ -34,7 +34,6 @@
       "@senars/metta-runtime/*": ["./src/metta/*"],
       "@senars/generated/*": ["./src/generated/*"],
       "@senars/logics/*": ["./src/logics/*"],
-      "@senars/verification/*": ["./src/verification/*"],
       "@senars/log": ["./src/log/index.ts"],
       "@senars/log/*": ["./src/log/*"],
       "@senars/formats/*": ["./src/formats/*"],

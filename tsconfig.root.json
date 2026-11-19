@@ -21,7 +21,6 @@
       "@senars/metta/*": ["./src/metta/*"],
       "@senars/kernel/*": ["./src/kernel/*"],
       "@senars/logics/*": ["./src/logics/*"],
-      "@senars/verification/*": ["./src/verification/*"],
       "@senars/log": ["./src/log/index.ts"],
       "@senars/log/*": ["./src/log/*"],
       "@senars/formats/*": ["./src/formats/*"],

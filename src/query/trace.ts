@@ -66,7 +66,7 @@ export class ReasoningTrace {
     if (concept) {
       concepts.push(term.toString());
 
-      for (const belief of concept.beliefBag.toArray()) {
+      for (const belief of concept.beliefBag.all()) {
         history.push(taskFromBagItem(belief, 'belief', concept.priority));
       }
 

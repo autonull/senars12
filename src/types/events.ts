@@ -311,23 +311,23 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
   // Budget slice events (B4)
 }
 
-export type { EventReceiver, EventUnsubscribe } from '../util/events.js';
+export type { EventReceiver, EventUnsubscribe } from '@senars/util/events';
 
-import { EventBus } from '../util/events.js';
+import { EventBus } from '@senars/util/events';
 import type { EventPublisher } from './lifecycle.js';
 
 /** NAR's event bus, keyed on {@link NAREventMap} (X4: typed bus). */
 export class NarEventBus extends EventBus<NAREventMap> implements EventPublisher {
   // EventPublisher compatibility — broader signatures for structural compatibility
-  emit(event: string, data: unknown): void {
-    super.emit(event as keyof NAREventMap, data as NAREventMap[keyof NAREventMap]);
+  override emit(event: string, data: unknown): void {
+    super.emit(event as keyof NAREventMap & string, data as NAREventMap[keyof NAREventMap]);
   }
 
-  on(event: string, handler: (data: unknown) => void): () => void {
-    return super.on(event as keyof NAREventMap, handler as (data: NAREventMap[keyof NAREventMap]) => void);
+  override on(event: string, handler: (data: unknown) => void): () => void {
+    return super.on(event as keyof NAREventMap & string, handler as (data: NAREventMap[keyof NAREventMap]) => void);
   }
 
-  off(event: string, handler: (data: unknown) => void): void {
-    super.off(event as keyof NAREventMap, handler as (data: NAREventMap[keyof NAREventMap]) => void);
+  override off(event: string, handler: (data: unknown) => void): void {
+    super.off(event as keyof NAREventMap & string, handler as (data: NAREventMap[keyof NAREventMap]) => void);
   }
 }

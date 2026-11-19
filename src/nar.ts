@@ -20,6 +20,7 @@ import {
   primeIdCount,
   selectTopN,
 } from './util/index.js';
+import type { EventBus } from '@senars/util/events';
 import {
   AutonomyHeartbeat,
   type AutonomyConfig,
@@ -153,7 +154,7 @@ export class NAR extends BaseComponent {
   /** Phase E: GovernanceResolver for self-improvement proposals (schema promotion, etc.). */
   #governanceResolver?: GovernanceResolver;
   driveManager?: DriveManager;
-  private readonly systemEventBus: NarEventBus;
+  private readonly systemEventBus: EventBus;
   /** Restores the process id source this NAR installed (TODO28 §7.3). */
   #restoreIdSource?: () => void;
 

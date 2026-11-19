@@ -124,7 +124,7 @@ export class QueryAPI {
       if (concept.topBelief()) {
         beliefs.push(...this.applyFilters(this.extractTasks(concept, 'belief'), filter));
       }
-      if (concept.questionBag.size() > 0) {
+      if (concept.questionBag.size > 0) {
         questions.push(...this.extractTasks(concept, 'question'));
       }
     }
@@ -235,7 +235,7 @@ export class QueryAPI {
     const bag = concept.bag(type);
     if (!bag) return [];
 
-    return bag.toArray().map((item) => taskFromBagItem(item, type, concept.priority));
+    return bag.all().map((item) => taskFromBagItem(item, type, concept.priority));
   }
 
   private applyFilters(tasks: Task[], filter?: TermFilter): Task[] {

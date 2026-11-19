@@ -236,7 +236,7 @@ export class ContrastiveMemory {
 
   #scoreNormalized(query: NormalizedVector, rubric: string): number | undefined {
     const state = this.#rubrics.get(rubric);
-    if (!state || (state.pos.size() === 0 && state.neg.size() === 0)) return undefined;
+    if (!state || (state.pos.size === 0 && state.neg.size === 0)) return undefined;
 
     const maxPos = this.#maxCosine(state.pos, query);
     const maxNeg = this.#maxCosine(state.neg, query);
@@ -254,27 +254,27 @@ export class ContrastiveMemory {
     for (const state of this.#rubrics.values()) {
       best = Math.max(best, this.#maxCosine(state.pos, query));
       best = Math.max(best, this.#maxCosine(state.neg, query));
-      seen += state.pos.size() + state.neg.size();
+      seen += state.pos.size + state.neg.size;
     }
     return seen === 0 ? undefined : Math.max(0, best);
   }
 
   has(rubric = DOMAIN_RUBRIC): boolean {
     const state = this.#rubrics.get(rubric);
-    return !!state && (state.pos.size() > 0 || state.neg.size() > 0);
+    return !!state && (state.pos.size > 0 || state.neg.size > 0);
   }
 
   isEmpty(): boolean {
     for (const state of this.#rubrics.values()) {
-      if (state.pos.size() > 0 || state.neg.size() > 0) return false;
+      if (state.pos.size > 0 || state.neg.size > 0) return false;
     }
     return true;
   }
 
   stats(): Record<string, RubricExemplarStats> {
     return mapToRecord(this.#rubrics, (s, rubric) => ({
-      positives: s.pos.size(),
-      negatives: s.neg.size(),
+      positives: s.pos.size,
+      negatives: s.neg.size,
       calibrated: this.#calibrations.has(rubric),
     }));
   }
@@ -288,11 +288,11 @@ export class ContrastiveMemory {
    * Phase C: per-cycle decay — stale exemplar priority erodes; items below the
    * forget floor drop out, keeping the pool fresh (flywheel maintenance).
    */
-  decay(rate?: number): void {
+  decay(_rate?: number): void {
     for (const state of this.#rubrics.values()) {
-      state.pos.decay(rate);
-      state.neg.decay(rate);
-      state.pending.decay(rate);
+      state.pos.decay();
+      state.neg.decay();
+      state.pending.decay();
     }
   }
 
@@ -366,7 +366,7 @@ export class ContrastiveMemory {
     const opposing = exemplar.kind === 'pos' ? state.neg : state.pos;
     // Discrimination against the opposing class; 1 when unopposed.
     const margin =
-      opposing.size() === 0 ? 1 : 1 - this.#maxCosine(opposing, normalize(exemplar.embedding));
+      opposing.size === 0 ? 1 : 1 - this.#maxCosine(opposing, normalize(exemplar.embedding));
     const item: ExemplarItem = {
       id: generateId(exemplar.kind),
       priority: Math.max(1e-6, priority ?? margin),
