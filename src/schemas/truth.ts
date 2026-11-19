@@ -7,8 +7,7 @@
  * others needs to be checked against.
  */
 
-import { BeliefTruthSchema } from '@senars/util/truth-schema';
-import { clamp01 } from '@senars/util/numeric';
+import { BeliefTruthSchema, clamp01 } from '@senars/util';
 import { z } from 'zod';
 
 /**

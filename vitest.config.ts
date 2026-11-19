@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitest/config';
-import tsconfigPaths from 'vite-tsconfig-paths';
 import path from 'node:path';
 
 const aliases = {
@@ -203,8 +202,9 @@ const aliases = {
 console.log('Vitest aliases loaded:', Object.keys(aliases).length);
 
 export default defineConfig({
-  plugins: [tsconfigPaths({ projects: ['./tsconfig.root.json'] })],
+  plugins: [],
   resolve: {
+    alias: aliases,
     tsconfigPaths: true,
   },
   test: {

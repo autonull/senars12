@@ -1,4 +1,4 @@
-import { createBag, resolveBagSlot } from '@senars/agent';
+import { createBag, resolveBagSlot } from '@senars/bag';
 import { createDefaultRegistry } from '@senars/cognitive';
 import { mulberry32 } from '@senars/util/random';
 import { describe, expect, it } from 'vitest';

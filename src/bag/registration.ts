@@ -1,5 +1,5 @@
 import type { Clock } from '@senars/util/clock';
-import { formatIssues } from '@senars/util/diagnostics';
+import { formatIssues } from '@senars/util';
 import { z } from 'zod';
 import { ConfigurationError } from '@senars/errors';
 import type { RandomSource } from '@senars/types/primitives';

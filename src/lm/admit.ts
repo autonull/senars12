@@ -1,8 +1,8 @@
 import {
   mintCognitiveEvent,
   type ShadowValidationDropEvent,
-} from '@senars/schemas/cognitive-events.js';
-import { makeId } from '@senars/util/id';
+} from '@senars/schemas';
+import { makeId } from '@senars/util';
 import type { GateRegistry } from '../kernel/index.js';
 import type { Memory } from '../memory';
 import type { Task } from '../types';
