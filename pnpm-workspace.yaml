@@ -1,8 +1,5 @@
 packages:
-  - 'core'
   - 'ui'
-  - 'util'
-  - 'log'
   - 'ui-contract'
   - 'ui-backend-2d'
   - 'ui-backend-fractal'

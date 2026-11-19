@@ -16,8 +16,9 @@ import {
   createLedger,
   type Ledger,
   type LedgerQuery,
-} from '@senars/util/ledger';
-import { cachePath, mean } from '@senars/util';
+} from '../util/ledger.js';
+import { cachePath } from './paths.js';
+import { mean } from '../util/numeric.js';
 import { z } from 'zod';
 
 export interface ParameterRecord {

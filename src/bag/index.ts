@@ -9,6 +9,8 @@ export type {
 export { PriorityBag } from './Bag.js';
 export type { BagSlotParams, ResolvedBagSlot } from './registration.js';
 export { bagSlotErrors, resolveBagSlot } from './registration.js';
+export type { Histogram } from '../util/bag.js';
+export { HistogramImpl } from '../util/bag.js';
 
 import { type Bag, type BagItem, type BagOptions } from './Bag.js';
 import { PriorityBag } from './Bag.js';

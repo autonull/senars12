@@ -14,10 +14,9 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@senars/core": "workspace:*",
     "@senars/ui-contract": "workspace:*",
     "@senars/ui-shell": "workspace:*",
-    "@senars/util": "workspace:*",
+    "senars": "workspace:*",
     "cytoscape": "^3.35.0"
   },
   "devDependencies": {

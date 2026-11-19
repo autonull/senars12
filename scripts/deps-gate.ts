@@ -9,7 +9,7 @@
  * Reducing cycles? Lower BASELINE in the same commit. Adding cycles? The gate fails —
  * either break the cycle or justify + raise the baseline explicitly.
  */
-import { errMsg } from '@senars/util';
+import { errMsg } from '../src/util/index.js';
 import { checkCycleBudget } from './lib/cycles.js';
 import { circularChains } from './lib/dpdm.js';
 

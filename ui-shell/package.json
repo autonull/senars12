@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@senars/ui-contract": "workspace:*",
-    "@senars/util": "workspace:*",
+    "senars": "workspace:*",
     "lit": "^3.3.3",
     "mitt": "^3.0.1",
     "nanoid": "^6.0.2"

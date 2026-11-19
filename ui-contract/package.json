@@ -26,7 +26,7 @@
     "test:unit": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@senars/util": "workspace:*"
+    "senars": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

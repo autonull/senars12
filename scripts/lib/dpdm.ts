@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 import { ROOT } from './root.js';
 
 /** Source roots analysed for circular imports by every dpdm-based gate. */
-export const DPDM_TARGETS = ['src/', 'core/src/', 'io/src/', 'metta/src/', 'nar/src/', 'util/src/'];
+export const DPDM_TARGETS = ['src/'];
 
 /**
  * The pinned `dpdm` entry point, resolved through the installed package rather
@@ -36,6 +36,8 @@ const dpdmArgs = (outPath: string, transform: boolean): string[] => [
   '--skip-dynamic-imports',
   'circular',
   ...(transform ? ['--transform'] : ['tree']),
+  '--tsconfig',
+  'tsconfig.root.json',
   '-o',
   outPath,
   ...DPDM_TARGETS,
