@@ -13,11 +13,11 @@
  */
 
 import { checkFallbacks, type FallbackSubject } from './lib/rule-fallback.js';
-import { LMRule } from '../nar/src/lm/rule/LMRule.js';
-import { ruleDefs } from '../nar/src/lm/rule-templates/index.js';
-import { LMRules } from '../nar/src/lm/rule-selectors/factory.js';
-import { TermBuilder } from '../nar/src/terms/index.js';
-import type { NAREventMap, NarEventBus } from '../nar/src/types/index.js';
+import { LMRule } from '@senars/lm/rule/LMRule.js';
+import { ruleDefs } from '@senars/lm/rule-templates';
+import { LMRules } from '@senars/lm/rule-selectors/factory.js';
+import { TermBuilder } from '@senars/terms';
+import type { NAREventMap, NarEventBus } from '@senars/types';
 import { report } from './lib/verdicts.js';
 
 const { atom, inheritance } = TermBuilder;

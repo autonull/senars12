@@ -6,8 +6,8 @@
  * The cascade reduces (a&TRUE) to a, so (a-->(b&TRUE)) creates a task for (a-->b).
  */
 
-import { termParser, validateTaskTerm } from '../nar/src/terms';
-import { createNAR, Truth } from '../nar/src';
+import { termParser, validateTaskTerm } from '@senars/terms';
+import { createNAR, Truth } from '@senars/nar';
 
 const NARSESE_CASES = [
   // These should be INVALID (create no task)

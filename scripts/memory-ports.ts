@@ -25,15 +25,15 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { CYCLE_PATH_PREFIXES } from '../nar/src/lm/in-cycle-inventory.js';
+import { CYCLE_PATH_PREFIXES } from '@senars/lm';
 import { importEdges } from './lib/imports.js';
 import { isCyclePath, resolveInNar, scanCoreLayerSourceFiles } from './lib/layer-boundary.js';
 import { ROOT } from './lib/root.js';
 import { lineAt } from './lib/source-scan.js';
 
-const FACADE = join(ROOT, 'nar/src/memory/memory.ts');
+const FACADE = join(ROOT, 'src/memory/memory.ts');
 /** The barrel reaches the facade by re-export, so naming it is naming the facade. */
-const BARREL = join(ROOT, 'nar/src/memory/index.ts');
+const BARREL = join(ROOT, 'src/memory/index.ts');
 
 /**
  * Cycle-path modules allowed to name the facade, each with the reason. An empty

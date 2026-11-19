@@ -24,8 +24,8 @@
  * apart was not asserting much.
  */
 
-import { createNAR } from '../nar/src/nar-presets.js';
-import { Truth } from '../nar/src/terms/index.js';
+import { createNAR } from '@senars/nar';
+import { Truth } from '@senars/terms';
 
 const FACTS = ['(cat --> animal).', '(kitty --> cat).', '(animal --> mortal).'];
 

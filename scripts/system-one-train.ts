@@ -12,8 +12,8 @@
  */
 import { parseArgs } from 'node:util';
 import { join } from 'node:path';
-import { asRubricId, RUBRIC_IDS } from '../nar/src/decision/types.js';
-import { loadTrainingData, trainHead, writeHeadArtifacts } from '../nar/src/lm/system-one/train.js';
+import { asRubricId, RUBRIC_IDS } from '@senars/decision';
+import { loadTrainingData, trainHead, writeHeadArtifacts } from '@senars/lm/system-one/train.js';
 
 const { values } = parseArgs({
   options: {

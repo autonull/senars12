@@ -5,12 +5,12 @@
  * JudgmentDataset labels). Run: pnpm exec tsx scripts/rl-manifold.ts [episodes]
  */
 import { mean } from '@senars/util';
-import { EmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
-import { GridWorldGame } from '../nar/src/game/impls/GridWorldGame.js';
-import { createManifold } from '../nar/src/lm/system-one/manifold.js';
-import { ManifoldRLAgent } from '../nar/src/lm/system-one/manifold-rl-agent.js';
-import { createSystemOneBudget } from '../nar/src/lm/system-one/types.js';
-import { loadConfig } from '../src/config/index.js';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache.js';
+import { GridWorldGame } from '@senars/game/impls/GridWorldGame.js';
+import { createManifold } from '@senars/lm/system-one/manifold.js';
+import { ManifoldRLAgent } from '@senars/lm/system-one/manifold-rl-agent.js';
+import { createSystemOneBudget } from '@senars/decision';
+import { loadConfig } from '@senars/config';
 
 const episodes = Number(process.argv[2] ?? 20);
 const budget = createSystemOneBudget();

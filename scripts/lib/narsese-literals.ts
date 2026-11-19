@@ -8,9 +8,9 @@
  * whose logic is inline in the script that runs it is a gate nobody can check.
  */
 
-import { serializeTerm } from '../../nar/src/terms/impls/serialize.js';
-import { PUNCTUATION_BY_TASK_TYPE, termParser } from '../../nar/src/terms/index.js';
-import { escapeRegExp } from '../../util/src/utils/text.js';
+import { serializeTerm } from '@senars/terms';
+import { PUNCTUATION_BY_TASK_TYPE, termParser } from '@senars/terms';
+import { escapeRegExp } from '@senars/util';
 
 /** One literal's verdict, and why it went the way it did. */
 export interface LiteralRoundTrip {

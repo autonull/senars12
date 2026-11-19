@@ -9,12 +9,12 @@
  *     [--model-digest sha256:...] [--head risk --head reflex_value]
  */
 import { parseArgs } from 'node:util';
-import { JudgmentDataset } from '../nar/src/lm/system-one/distill.js';
-import { digestRows, loadEvalSet, splitOod } from '../nar/src/lm/system-one/eval-set.js';
+import { JudgmentDataset } from '@senars/lm/system-one/distill.js';
+import { digestRows, loadEvalSet, splitOod } from '@senars/lm/system-one/eval-set.js';
 import {
   fitCalibrationLock,
   writeCalibrationLock,
-} from '../nar/src/lm/system-one/calibration-fit.js';
+} from '@senars/lm/system-one/calibration-fit.js';
 
 const { values } = parseArgs({
   options: {

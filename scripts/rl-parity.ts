@@ -12,9 +12,9 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { mean, mulberry32, pct, stdDev } from '@senars/util';
 import { program } from 'commander';
-import { BanditGame } from '../nar/src/game/impls/BanditGame.js';
-import { GridWorldGame } from '../nar/src/game/impls/GridWorldGame.js';
-import { NAR, operationTerm, TermBuilder } from '../nar/src/index.js';
+import { BanditGame } from '@senars/game/impls/BanditGame.js';
+import { GridWorldGame } from '@senars/game/impls/GridWorldGame.js';
+import { NAR, operationTerm, TermBuilder } from '@senars/nar';
 import {
   BanditNativeAgent,
   BeliefPerceptionAdapter,
@@ -23,12 +23,12 @@ import {
   type NativeSenarsAgent,
   NonStationaryNativeAgent,
   RewardBeliefAdapter,
-} from '../nar/src/rl/index.js';
+} from '@senars/rl';
 import {
   computeSeedPassRate,
   meetsParityAcceptance,
   PER_SEED_RATIO_FLOOR,
-} from '../nar/src/rl/parity-acceptance.js';
+} from '@senars/rl/parity-acceptance.js';
 import { EpsilonGreedy, UCB1 } from '../tests/nar/rl/baselines/bandit.js';
 import { QLearning, SARSA } from '../tests/nar/rl/baselines/gridworld.js';
 

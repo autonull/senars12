@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /** §5.3 first cut: which index answers similarity recall, and where admission turns quadratic.
  *  Run once with `pnpm exec tsx scripts/bench-similarity.ts`. Numbers go to TODO30 §9. */
-import { Memory, TermBuilder } from '../nar/src/index.js';
+import { Memory, TermBuilder } from '@senars/nar';
 import { bench } from './lib/bench.js';
 
 const fill = (mem: Memory, n: number): void => {

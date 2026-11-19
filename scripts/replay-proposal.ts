@@ -24,7 +24,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { CognitiveEventSchema, PROPOSAL_SCHEMA_VERSION } from '@senars/core/schemas';
+import { CognitiveEventSchema, PROPOSAL_SCHEMA_VERSION } from '@senars/schemas';
 import {
   ProposalReplayError,
   isProposalEvent,
@@ -32,8 +32,8 @@ import {
   recordedSchemaVersions,
   replayProposalStream,
   staleAdmissions,
-} from '../nar/src/proposal/replay.js';
-import { replayCognitiveState } from '../nar/src/kernel/EventLogPersistence.js';
+} from '@senars/proposal';
+import { replayCognitiveState } from '@senars/kernel';
 import { moduleClosure, specifiersOf } from './lib/module-closure.js';
 import { fromRoot } from './lib/root.js';
 import { report } from './lib/verdicts.js';
@@ -42,12 +42,12 @@ const FIXTURE = fromRoot('tests/fixtures/proposal-stream.jsonl');
 
 /** The files whose closure must contain no provider module. */
 const REPLAY_MODULES = [
-  fromRoot('nar/src/proposal/replay.ts'),
-  fromRoot('nar/src/kernel/replay.ts'),
+  fromRoot('src/proposal/replay.ts'),
+  fromRoot('src/kernel/replay.ts'),
 ];
 
 /** Module prefixes that would mean a replay could ask a provider. */
-const PROVIDER_PREFIXES = ['nar/src/lm/', 'nar/src/reflex/', 'nar/src/game/', 'nar/src/focus/'];
+const PROVIDER_PREFIXES = ['src/lm/', 'src/reflex/', 'src/game/', 'src/focus/'];
 
 const load = (): CognitiveEvent[] =>
   readFileSync(FIXTURE, 'utf8')

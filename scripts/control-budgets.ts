@@ -20,12 +20,12 @@
 import { readFileSync } from 'node:fs';
 import { relative } from 'node:path';
 
-import { BUDGET_OPERATIONS } from '../core/src/schemas/index.js';
+import { BUDGET_OPERATIONS } from '@senars/schemas';
 import {
   BUDGET_SCOPE_IDS,
   BUDGET_SCOPES,
   scopeTerminationReason,
-} from '../nar/src/kernel/budget-scopes.js';
+} from '@senars/kernel';
 import {
   type BudgetSpend,
   type BudgetSubject,
@@ -37,7 +37,7 @@ import { productionSources } from './lib/source-scan.js';
 import { report } from './lib/verdicts.js';
 
 /** The production trees a declared bound's spend may live in. */
-const SCAN_ROOTS = ['nar/src', 'src'] as const;
+const SCAN_ROOTS = ['src'] as const;
 
 const sources = (): { at: string; lines: string[] }[] =>
   productionSources(SCAN_ROOTS).map((path) => {

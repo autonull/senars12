@@ -8,7 +8,7 @@
  * and it prints the bucket census so the hot cell is a number someone can quote
  * rather than a claim in a document.
  */
-import { loadBuiltinTable } from '../nar/src/rules/impls/builtin-table.js';
+import { loadBuiltinTable } from '@senars/rules';
 import { bucketCensus, kindViolations } from './lib/dispatch-table.js';
 import { report } from './lib/verdicts.js';
 

@@ -8,12 +8,12 @@
  *
  * Usage: pnpm bench:manifold  (mock embedding generator — CI-safe, deterministic)
  */
-import { createContrastiveMemory } from '../nar/src/lm/system-one/contrastive.js';
-import { createEmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
-import { createManifold } from '../nar/src/lm/system-one/manifold.js';
-import type { JudgmentQuery } from '../nar/src/lm/system-one/types.js';
-import { createSystemOneBudget } from '../nar/src/lm/system-one/types.js';
-import { l2Normalize } from '../nar/src/utils/similarity.js';
+import { createContrastiveMemory } from '@senars/lm/system-one/contrastive.js';
+import { createEmbeddingCache } from '@senars/lm/system-one/embedding-cache.js';
+import { createManifold } from '@senars/lm/system-one/manifold.js';
+import type { JudgmentQuery } from '@senars/lm/system-one/types.js';
+import { createSystemOneBudget } from '@senars/decision';
+import { l2Normalize } from '@senars/util/collections.js';
 
 const CANDIDATES = Number(process.env.BENCH_CANDIDATES ?? 100);
 const DIM = 384;

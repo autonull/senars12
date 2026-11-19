@@ -17,13 +17,13 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createTask, NEUTRAL_BUDGET } from '../../nar/src/types/index.js';
-import { termDepth, termKey, termsEqual } from '../../nar/src/terms/impls/accessors.js';
-import { TermBuilder } from '../../nar/src/terms/impls/factory.js';
-import { operationTerm, readOperationTerm } from '../../nar/src/terms/impls/operation-term.js';
-import { termParser } from '../../nar/src/terms/impls/parser-peggy.js';
-import { serializeTerm } from '../../nar/src/terms/impls/serialize.js';
-import { OPERATORS } from '../../nar/src/terms/operators.js';
+import { createTask, NEUTRAL_BUDGET } from '@senars/types';
+import { termDepth, termKey, termsEqual } from '@senars/terms';
+import { TermBuilder } from '@senars/terms';
+import { operationTerm, readOperationTerm } from '@senars/terms';
+import { termParser } from '@senars/terms';
+import { serializeTerm } from '@senars/terms';
+import { OPERATORS } from '@senars/terms';
 import {
   canonicalTask,
   canonicalTerm,
@@ -31,8 +31,8 @@ import {
   TASK_REDUCERS,
   TERM_REDUCERS,
   Truth,
-} from '../../nar/src/terms/index.js';
-import type { OperatorKey, Term } from '../../nar/src/terms/types.js';
+} from '@senars/terms';
+import type { OperatorKey, Term } from '@senars/terms';
 import { ROOT } from './root.js';
 
 /**

@@ -8,10 +8,10 @@
  */
 
 import { choice, createLCG, errMsg, nextInt, serializeTruth } from '@senars/util';
-import { createNAR } from '../nar/src/nar-presets.js';
-import { termParser } from '../nar/src/terms/impls/parser-peggy.js';
-import { Truth } from '../nar/src/terms/impls/Truth.js';
-import type { Term } from '../nar/src/terms/types.js';
+import { createNAR } from '@senars/nar';
+import { termParser } from '@senars/terms';
+import { Truth } from '@senars/terms';
+import type { Term } from '@senars/terms';
 
 const ATOMS = [
   'cat',

@@ -24,7 +24,7 @@ const walk = (dir: string): string[] => {
 
 describe('Bench 40 — Surface Truth', () => {
   it('D18 — no `undefined` rule exports remain in the rule tree', () => {
-    const offenders = walk(join(ROOT, 'nar/src/rules')).filter((f) =>
+    const offenders = walk(join(ROOT, 'src/rules')).filter((f) =>
       readFileSync(f, 'utf-8').includes('= undefined as unknown as RuleFn')
     );
     expect(offenders).toEqual([]);
@@ -39,8 +39,6 @@ describe('Bench 40 — Surface Truth', () => {
 
     const allSrc = [
       ...walk(join(ROOT, 'src')),
-      ...walk(join(ROOT, 'nar/src')),
-      ...walk(join(ROOT, 'core/src')),
     ]
       .map((f) => readFileSync(f, 'utf-8'))
       .join('\n');
@@ -63,7 +61,7 @@ describe('Bench 40 — Surface Truth', () => {
   });
 
   it('D24 — README rule-matrix claims have implementations', async () => {
-    const { NALRules, NALExtendedRules } = await import('@senars/nar/rules');
+    const { NALRules, NALExtendedRules } = await import('@senars/rules');
     const rules = { ...NALRules, ...NALExtendedRules } as Record<string, unknown>;
     for (const claimed of [
       'modusPonens',

@@ -19,8 +19,8 @@
  */
 
 import { canonicalFormFailures } from './lib/terms-canonical.js';
-import { OPERATORS } from '../nar/src/terms/operators.js';
-import { TASK_REDUCERS, TERM_REDUCERS } from '../nar/src/terms/index.js';
+import { OPERATORS } from '@senars/terms/operators.js';
+import { TASK_REDUCERS, TERM_REDUCERS } from '@senars/terms';
 
 const failures = canonicalFormFailures();
 

@@ -12,8 +12,8 @@ import {
   runBakeOff,
   type BakeOffCase,
   type HeadCandidateSpec,
-} from '../nar/src/lm/system-one/distill.js';
-import { createIsotonicCalibrator } from '../nar/src/lm/system-one/calibration.js';
+} from '@senars/lm/system-one/distill.js';
+import { createIsotonicCalibrator } from '@senars/lm/system-one/calibration.js';
 
 interface DatasetRow {
   evidenceId: string;

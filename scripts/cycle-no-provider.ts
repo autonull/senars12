@@ -27,12 +27,12 @@
  */
 
 import { raceDeadline } from '@senars/util';
-import { createGateRegistry } from '../nar/src/kernel/GateRegistry.js';
-import { KernelPerceptionGate } from '../nar/src/kernel/KernelPerceptionGate.js';
-import { PROVIDER_SEAMS } from '../nar/src/lm/provider-seams.js';
-import { LMRule } from '../nar/src/lm/rule/LMRule.js';
-import { StreamReasoner } from '../nar/src/stream/reasoner.js';
-import { TermBuilder, type Truth } from '../nar/src/terms/index.js';
+import { createGateRegistry } from '@senars/kernel';
+import { KernelPerceptionGate } from '@senars/kernel';
+import { PROVIDER_SEAMS } from '@senars/lm';
+import { LMRule } from '@senars/lm/rule/LMRule.js';
+import { StreamReasoner } from '@senars/stream';
+import { TermBuilder, type Truth } from '@senars/terms';
 import { checkSeams, type SeamProbe } from './lib/provider-dependency.js';
 import { report } from './lib/verdicts.js';
 

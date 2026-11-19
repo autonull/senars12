@@ -16,17 +16,18 @@
  *    of the text.
  * 4. **An empty table is a runnable state.** Absence is a value, not a crash.
  */
-import { BUILTIN_RULE_ARTIFACT_VERSION, RULE_TABLE_SCHEMA_VERSION } from '@senars/core/schemas';
+import { BUILTIN_RULE_ARTIFACT_VERSION, RULE_TABLE_SCHEMA_VERSION } from '@senars/schemas';
 
-import { LMProposalProducer } from '../nar/src/proposal/lm-rule-producer.js';
-import { loadBuiltinTable } from '../nar/src/rules/impls/builtin-table.js';
-import { BUILTIN_DECLARATIONS, RULE_BODIES } from '../nar/src/rules/impls/registration.js';
+import { LMProposalProducer } from '@senars/proposal';
 import {
+  loadBuiltinTable,
+  BUILTIN_DECLARATIONS,
+  RULE_BODIES,
   diffArtifacts,
   RuleTableError,
   RuleTableStore,
   tableArtifact,
-} from '../nar/src/rules/impls/rule-table.js';
+} from '@senars/rules';
 import { loadedDataViolations, scanSubject } from './lib/rule-table.js';
 import { report } from './lib/verdicts.js';
 

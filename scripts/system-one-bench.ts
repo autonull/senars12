@@ -12,11 +12,11 @@
 import { percentile } from '@senars/util';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createNAR } from '../nar/src/nar-presets.js';
-import { LMRuleFactory } from '../nar/src/lm/lm-rule-factory.js';
-import { createSystemOneLMRuleAdapter } from '../nar/src/lm/system-one/rule-adapter.js';
-import { termParser } from '../nar/src/terms/index.js';
-import type { NAR } from '../nar/src/nar.js';
+import { createNAR } from '@senars/nar';
+import { LMRuleFactory } from '@senars/lm/lm-rule-factory.js';
+import { createSystemOneLMRuleAdapter } from '@senars/lm/system-one/rule-adapter.js';
+import { termParser } from '@senars/terms';
+import type { NAR } from '@senars/nar';
 
 const UTTERANCES = [
   'the robin is a bird',

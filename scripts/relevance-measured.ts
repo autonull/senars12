@@ -18,9 +18,9 @@
  * unrelated reason — but the answer being first is not negotiable.
  */
 
-import { createNAR } from '../nar/src/nar-presets.js';
-import { byRelevance, relevanceScore, RELEVANCE_CONTAINMENT } from '../nar/src/query/index.js';
-import { termParser, Truth, type Term } from '../nar/src/terms/index.js';
+import { createNAR } from '@senars/nar';
+import { byRelevance, relevanceScore, RELEVANCE_CONTAINMENT } from '@senars/query';
+import { termParser, Truth, type Term } from '@senars/terms';
 import { report } from './lib/verdicts.js';
 
 const FOCUS = '(kitty-->mortal)';

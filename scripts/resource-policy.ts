@@ -12,7 +12,7 @@
  * The check is in `lib/resource-policy.ts`; this is the command.
  */
 
-import { RESOURCE_CONTRACTS } from '../nar/src/resources/contracts.js';
+import { RESOURCE_CONTRACTS } from '@senars/resources';
 import { resourceViolations } from './lib/resource-policy.js';
 import { report, verdictLines } from './lib/verdicts.js';
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /** §5.2 first cut: which structure maintains topK order, and at what N it matters.
  *  Run once with `pnpm exec tsx scripts/bench-topk.ts`. Numbers go to TODO30 §9. */
-import { insertByScoreDesc, selectTopN, rankBy } from '../util/src/utils/collections.js';
+import { insertByScoreDesc, selectTopN, rankBy } from '@senars/util/collections';
 import { bench } from './lib/bench.js';
 
 type Scored = { id: string; priority: number };

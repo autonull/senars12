@@ -5,10 +5,10 @@
  * Client side: `createHttpManifold({ endpoint: 'http://127.0.0.1:<port>', embeddingCache })`.
  */
 import { createServer } from 'node:http';
-import { EmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
-import { handleSystemOneRequest } from '../nar/src/lm/system-one/http-endpoint.js';
-import { createManifold } from '../nar/src/lm/system-one/manifold.js';
-import { createSystemOneBudget } from '../nar/src/lm/system-one/types.js';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache.js';
+import { handleSystemOneRequest } from '@senars/lm/system-one/http-endpoint.js';
+import { createManifold } from '@senars/lm/system-one/manifold.js';
+import { createSystemOneBudget } from '@senars/decision';
 
 const port = Number(process.argv[2] ?? process.env.SYSTEMONE_SERVER_PORT ?? 8420);
 const budget = createSystemOneBudget();

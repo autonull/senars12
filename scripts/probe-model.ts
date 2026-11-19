@@ -1,7 +1,7 @@
-import { createSeNARSRegistry } from '../nar/src/lm/providers.ts';
-import { createLMService } from '../nar/src/lm/lm-service.ts';
-import { NLUnderstandingService } from '../nar/src/nl/understanding.ts';
-import { TranslationCache } from '../nar/src/nl/cache.ts';
+import { createSeNARSRegistry } from '@senars/lm';
+import { createLMService } from '@senars/lm';
+import { NLUnderstandingService } from '@senars/nl';
+import { TranslationCache } from '@senars/nl';
 
 process.env.LM_PROVIDER = 'openai-compatible';
 process.env.LM_BASE_URL = 'http://localhost:8080/v1';

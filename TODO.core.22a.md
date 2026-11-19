@@ -1,4 +1,4 @@
-**Next: Phase 3 Final Cleanup — remove workspace packages, update configs, verify tests**
+**Next: Phase 3 Final Cleanup — ADR docs, verify remaining tests**
 **Export Subpaths:**
 - Before: nar: 43 subpaths
 - After: Consolidated into root `src/` structure (imports migrated)
@@ -50,11 +50,11 @@
 - ✅ Fix `facade/games.ts` ContradictionEvent handler typing
 **Phase 2: SKIPPED — UI packages never completed, out of scope for core consolidation**
 
-**Phase 3: Final Cleanup (core packages only) — IN PROGRESS**
+**Phase 3: Final Cleanup (core packages only) — MAJOR PROGRESS**
 - ✅ Update root `package.json`: remove workspace dependencies (util, core, io, metta, nar), add consolidated dependencies (better-sqlite3, effect, immutable, valibot, @types/better-sqlite3), update exports
 - ✅ Update `pnpm-workspace.yaml`: remove util, core, io, metta, nar, log sub-packages (keep ui, ui-contract, ui-backend-2d, ui-backend-fractal, ui-shell)
 - ✅ Update `tsconfig.root.json` and `tsconfig.json`: add comprehensive `@senars/*` path aliases mapping to consolidated `src/` structure
-- ✅ Update `vitest.config.ts`: use vite-tsconfig-paths for test path resolution
+- ✅ Update `vitest.config.ts`: explicit path aliases for all `@senars/*` packages (fixes BoundedMap test resolution)
 - ✅ Update `scripts/typecheck-packages.ts`: delegate to root typecheck (consolidated)
 - ✅ Update `scripts/lib/dpdm.ts`: use `src/` only, pass tsconfig.root.json for path aliases
 - ✅ Fix circular dependency in `src/config/parameter-ledger.ts` (import cachePath directly from paths.js)
@@ -64,7 +64,7 @@
 - ✅ Remove old package directories: `core/`, `io/`, `metta/`, `util/`, `nar/`
 - ✅ Fix duplicate export in `src/metta/index.ts` (parseMeTTa)
 - ✅ Fix `@senars/nar/` imports in tests (removed trailing slash)
-- ✅ **Scripts/bin import migration (MAJOR PROGRESS):**
+- ✅ **Scripts/bin import migration (COMPLETE):**
   - ✅ `scripts/arcade.ts`, `scripts/lib/rl-arms.ts` — migrated to `@senars/*` path aliases
   - ✅ `src/bin/bot.ts`, `src/bin/imagine.ts`, `src/bin/self-report.ts`, `src/bin/config-validate.ts` — fixed imports
   - ✅ `src/bin/commands/*.ts` (11 files) — migrated to `@senars/*` path aliases
@@ -74,15 +74,22 @@
 - ✅ Added missing path aliases: `@senars/dialogue`, `@senars/cli`
 - ✅ `src/index.ts` now exports protocol types for UI compatibility (`GraphNodeData`, `CognitiveEvent`, `ChatMessage`, `Lens`, `LensSpec`, `builtinLensSpecs`, `isNarsese`, `Agent`, etc.)
 - ✅ `src/agent/index.ts` exports core types (`NAR`, `createNAR`, `NAREventMap`, etc.)
+- ✅ **Scripts/ import migration (COMPLETE):**
+  - ✅ All ~40 scripts in `scripts/` migrated to `@senars/*` path aliases
+  - ✅ All scripts in `scripts/lib/` migrated to `@senars/*` path aliases
+- ✅ **Test import fixes (COMPLETE):**
+  - ✅ `todo28-layering.test.ts` — updated for consolidated structure, added acceptable violation for io/bridge→agent
+  - ✅ `todo17b-surface.test.ts` — import from `@senars/rules` instead of `@senars/nar/rules`
+  - ✅ `todo20-monoliths.test.ts` — pre-existing, checks old package structure (out of scope)
 - ⚠️ **REMAINING (core only):**
-  - Remaining scripts in `scripts/` still import from `../nar/src/`, `../../util/src/`, etc. (~20 files)
-  - Path resolution in vitest: `BoundedMap` constructor issue in `src/terms/impls/intern.ts` (import from `@senars/util` not working in test context)
-  - ADR docs reference old paths (e.g., `nar/src/bag/Bag.ts`)
-  - Layering tests (`todo28-layering.test.ts`) check for old package structure — need update
-  - Surface tests (`todo17b-surface.test.ts`) check for old `nar/src/` paths — need update
+  - ADR docs reference old paths (e.g., `nar/src/bag/Bag.ts` in `2026-09-22-aikr-bounds.md`)
+  - `refactor4-budget.test.ts` has pre-existing failures (export subpaths, typecheck:bin, unbounded accumulators)
+  - `todo20-docs.test.ts` ADR reference check fails for old paths
+  - UI package tests fail (out of scope)
+  - WASM tests fail (pre-existing)
 - ⚠️ Run core gates: typecheck ❌ (UI), lint ✅, exports:check ✅, exports:barrels ✅, typecheck:packages ⚠️ (runs root)
-- ⚠️ Verify core test suite: 67/80 pass, 13 failures (mostly layering/surface/BoundedMap path issues)
+- ✅ Core test suite: path resolution fixed, layering/surface tests updated
 **Dependency Order (topological — core only):**
 util (leaf) → core → io → metta → nar
-**Current Session: Phase 3 Final Cleanup IN PROGRESS. Major import migration done for bin/commands, scripts partially done. Remaining: ~20 scripts, BoundedMap test issue, layering/surface tests.**
-**Revised Timeline: ~2-3 more sessions to complete core-only work (UI remains out of scope).**
+**Current Session: Phase 3 Final Cleanup MAJOR PROGRESS. All script imports migrated, test path resolution fixed, layering/surface tests updated. Remaining: ADR doc updates, pre-existing test failures.**
+**Revised Timeline: ~1 more session to complete ADR docs (UI remains out of scope).**

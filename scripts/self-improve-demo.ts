@@ -12,17 +12,16 @@
  * - Observability emission every N cycles
  */
 
-import { sleep } from '@senars/util';
-import { operationNameOf } from '../nar/src/index.js';
-import { createNAR } from '../nar/src/nar-presets.js';
-import { createSeNARSRegistry } from '../nar/src/lm/index.js';
-import { createLMService } from '../nar/src/lm/lm-service.js';
-import { createLogger } from '@senars/util';
-import { META_REASONING_BELIEFS, registerMetaRules } from '../nar/src/rules/impls/meta-rules.js';
+import { sleep, pct, createLogger } from '@senars/util';
+import { operationNameOf } from '@senars/nar';
+import { createNAR } from '@senars/nar';
+import { createSeNARSRegistry } from '@senars/lm';
+import { createLMService } from '@senars/lm';
+import { META_REASONING_BELIEFS, registerMetaRules } from '@senars/rules';
 import {
   initializeSelfConcept,
   SELF_CONCEPT_BELIEFS,
-} from '../nar/src/tools/impls/self-concept.js';
+} from '@senars/tools';
 
 const logger = createLogger({ scope: 'self-improve-demo' });
 

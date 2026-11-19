@@ -13,7 +13,7 @@
  * one budget with two vocabularies — §4 row 9's shape.
  */
 
-import { BUDGET_SCOPE_IDS, BUDGET_SCOPES } from '../../nar/src/kernel/budget-scopes.js';
+import { BUDGET_SCOPE_IDS, BUDGET_SCOPES } from '@senars/kernel';
 import type { Verdict } from './verdicts.js';
 
 export interface BudgetSpend {

@@ -26,9 +26,9 @@ import {
   CYCLE_PATH_PREFIXES,
   IN_CYCLE_EDGE_ATTRIBUTIONS,
   IN_CYCLE_INVENTORY,
-} from '../nar/src/lm/in-cycle-inventory.js';
-import { PROVIDER_SEAMS } from '../nar/src/lm/provider-seams.js';
-import { witnessFiles } from '../util/src/index.js';
+} from '@senars/lm';
+import { PROVIDER_SEAMS } from '@senars/lm';
+import { witnessFiles } from '@senars/util';
 import { importEdges } from './lib/imports.js';
 import {
   checkInventory,
@@ -40,7 +40,7 @@ import { ROOT } from './lib/root.js';
 import { sourceFiles } from './lib/source-scan.js';
 import { report } from './lib/verdicts.js';
 
-const NAR_SRC = join(ROOT, 'nar/src');
+const NAR_SRC = join(ROOT, 'src');
 const LAYER_DIR = join(NAR_SRC, 'lm');
 
 const repoRelative = (path: string): string => relative(ROOT, path).replaceAll('\\', '/');

@@ -34,11 +34,11 @@
  *   node --cpu-prof --import tsx scripts/cycle-bench.ts --repeat 1
  */
 
-import { DEFAULT_COGNITIVE_PARAMETERS } from '../nar/src/config/cognitive-parameters.js';
-import { DEFAULT_CONFIG, Stamp, TermBuilder, Truth } from '../nar/src/index.js';
-import { Memory } from '../nar/src/memory/index.js';
-import { NAR } from '../nar/src/nar.js';
-import { RuleProcessor } from '../nar/src/rules/impls/processor.js';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/config';
+import { DEFAULT_CONFIG, Stamp, TermBuilder, Truth } from '@senars/nar';
+import { Memory } from '@senars/memory';
+import { NAR } from '@senars/nar';
+import { RuleProcessor } from '@senars/rules';
 
 interface Counter {
   name: string;
