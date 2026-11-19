@@ -40,18 +40,16 @@
 - [ ] Fix `query/api.ts` implicit any types
 - [ ] Fix `types/events.ts` EventBus import issues
 - [ ] Fix `util/bag.ts` RandomSource export & HistogramImpl issues
-**Phase 2: UI Package Migration**
-- [ ] **ui-contract**: Move `ui-contract/src/` → `src/ui-contract/` (merge). Update imports. Remove `ui-contract/` package.
-- [ ] **ui-shell**: Move `ui-shell/src/` → `src/ui-shell/` (merge). Update imports. Remove `ui-shell/` package.
-- [ ] **ui-backend-2d**: Move `ui-backend-2d/src/` → `src/ui-backend-2d/` (merge). Update imports. Remove `ui-backend-2d/` package.
-- [ ] **ui-backend-fractal**: Move `ui-backend-fractal/src/` → `src/ui-backend-fractal/` (merge). Update imports. Remove `ui-backend-fractal/` package.
-- [ ] **ui**: Move `ui/src/` → `src/ui/` (merge with existing `src/client`, `src/server`). Update imports. Remove `ui/` package.
-**Phase 3: Final Cleanup**
-- [ ] Update root `package.json`: remove workspace dependencies, add consolidated dependencies, update exports
-- [ ] Update `pnpm-workspace.yaml`: remove all sub-packages
-- [ ] Update `tsconfig.root.json`: remove all `@senars/*` path aliases, keep only `src/` structure
-- [ ] Run all gates: typecheck, lint, surface-no-legacy, exports:check, deps:gate, typecheck:packages, docs:drift
-- [ ] Verify test suite passes
-**Dependency Order (topological):**
-util (leaf) → core → io → metta → ui-contract → ui-shell → ui-backend-2d/ui-backend-fractal → nar → ui
+**Phase 2: SKIPPED — UI packages never completed, out of scope for core consolidation**
+
+**Phase 3: Final Cleanup (core packages only)**
+- [ ] Update root `package.json`: remove workspace dependencies (util, core, io, metta, nar), add consolidated dependencies, update exports
+- [ ] Update `pnpm-workspace.yaml`: remove util, core, io, metta, nar sub-packages
+- [ ] Update `tsconfig.root.json`: remove `@senars/*` path aliases, keep only `src/` structure
+- [ ] Run core gates: typecheck, lint, exports:check, deps:gate, typecheck:packages
+- [ ] Verify core test suite passes (nar, kernel, lm, memory, rules, terms, etc.)
+**Dependency Order (topological — core only):**
+util (leaf) → core → io → metta → nar
 **Current Session: ✅ Phase 1 - util/core/io/metta package migrations COMPLETE, 🔄 nar package migration IN PROGRESS (imports 95% done, API compat fixes needed across ~15 files)**
+
+**Revised Timeline: ~4-5 sessions to complete (Phase 1B + Phase 3)**
