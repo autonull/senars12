@@ -61,6 +61,8 @@ export interface InternalEntry<T extends BagItem> extends BagItem {
   readonly _lastAccessedAt: number;
   readonly _accessCount: number;
   readonly _currentPriority: number;
+  /** The original item, preserving methods and non-enumerable properties. */
+  readonly _item: T;
 }
 
 /** The pressure level the bag reports. */
@@ -242,6 +244,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       _lastAccessedAt: now,
       _accessCount: 0,
       _currentPriority: item.priority,
+      _item: item,
     };
 
     // Evict if at capacity
@@ -266,7 +269,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   removeAll(predicate: (item: T) => boolean): number {
     let count = 0;
     for (const [id, entry] of this.#items) {
-      if (predicate(entry as unknown as T)) {
+      if (predicate(entry._item)) {
         this.#items.delete(id);
         count++;
       }
@@ -287,19 +290,31 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
         ...entry,
         _lastAccessedAt: now,
         _accessCount: entry._accessCount + 1,
+        _item: entry._item,
       };
       this.#items.set(id, updated);
-      return updated as unknown as T;
+      return entry._item;
     }
     return undefined;
   }
 
   all(): T[] {
-    return Array.from(this.#items.values()) as unknown as T[];
+    return Array.from(this.#items.values(), (entry) => entry._item);
   }
 
   values(): IterableIterator<T> {
-    return this.#items.values() as unknown as IterableIterator<T>;
+    const entries = this.#items.values();
+    return {
+      [Symbol.iterator](): IterableIterator<T> {
+        return this;
+      },
+      next(): IteratorResult<T> {
+        const result = entries.next();
+        return result.done
+          ? { done: true, value: undefined }
+          : { done: false, value: result.value._item };
+      },
+    };
   }
 
   updatePriority(id: string, priority: number): boolean {
@@ -309,6 +324,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       ...entry,
       _currentPriority: priority,
       priority,
+      _item: entry._item,
     };
     this.#items.set(id, updated);
     this.#version++;

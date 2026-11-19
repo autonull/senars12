@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import fc from 'fast-check';
-import type { OperatorKey, Term } from '@senars/nar/terms';
-import { OPERATORS, serializeTerm, TermBuilder, termsEqual } from '@senars/nar/terms';
-import { termParser } from '@senars/nar/terms/impls/parser-peggy.js';
+import type { OperatorKey, Term } from '@senars/terms';
+import { OPERATORS, serializeTerm, TermBuilder, termsEqual } from '@senars/terms';
+import { termParser } from '@senars/terms/impls/parser-peggy';
 
 /** Parser-safe atom names (Narsese atoms: letters/digits, no reserved chars). */
 const atomNameArb = fc

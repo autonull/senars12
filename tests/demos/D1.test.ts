@@ -13,7 +13,7 @@ import { TermFactory, Term } from '@senars/kernel';
 import { Truth, type TruthValue } from '@senars/kernel';
 import { Stamp } from '@senars/kernel';
 import { createStepExecutor, StepExecutor, type Premise } from '@senars/kernel';
-import { NALRuleEngine } from '@senars/logics/nal/rules';
+import { NALRuleEngine } from '@senars/rules';
 import { Bag, createBag } from '@senars/kernel';
 import { GateRegistry, createGateRegistry } from '@senars/kernel';
 

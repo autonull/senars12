@@ -4,10 +4,10 @@ import { createGridWorldGame } from '@senars/focus';
 import { createSnakeGame, SnakeGame } from '@senars/focus';
 import { createTetrisGame, TetrisGame } from '@senars/focus';
 import { createTicTacToeGame, TicTacToeGame } from '@senars/focus';
-import { game2048HeuristicAction } from './rl/baselines/2048.js';
-import { snakeHeuristicAction } from './rl/baselines/snake.js';
-import { tetrisHeuristicPlacement } from './rl/baselines/tetris.js';
-import { ticTacToeHeuristicAction } from './rl/baselines/tictactoe.js';
+import { game2048HeuristicAction } from './rl/baselines/2048';
+import { snakeHeuristicAction } from './rl/baselines/snake';
+import { tetrisHeuristicPlacement } from './rl/baselines/tetris';
+import { ticTacToeHeuristicAction } from './rl/baselines/tictactoe';
 import { EpsilonGreedyReflex } from '@senars/reflex';
 import { GameFocus } from '@senars/focus';
 import {

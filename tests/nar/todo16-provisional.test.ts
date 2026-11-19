@@ -1,23 +1,23 @@
 import type { ReasoningBudget } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
-import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
-import { PriorityBag } from '@senars/nar/bag/Bag.js';
+import { KernelBudgetGate } from '@senars/kernel/KernelBudgetGate';
+import { PriorityBag } from '@senars/bag/Bag';
 import {
   DeterministicManifold,
   StubCortex,
   SystemOneDispatcher,
-} from '@senars/nar/lm/system-one/dispatcher.js';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
+} from '@senars/lm/system-one/dispatcher';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { createManifold } from '@senars/lm/system-one/manifold';
 import {
   createProvisionalStamp,
   isProvisionalStamp,
-} from '@senars/nar/lm/system-one/provisional-stamp.js';
+} from '@senars/lm/system-one/provisional-stamp';
 import type {
   EmbeddingPointer,
   JudgmentManifold,
   JudgmentProposition,
-} from '@senars/nar/lm/system-one/types.js';
+} from '@senars/lm/system-one/types';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,
@@ -142,7 +142,7 @@ describe('System One — Provisional Stamps (Bench 5)', () => {
   });
 
   it('promotion via Truth.revision caps at MAX_CONFIDENCE', async () => {
-    const { promoteProvisional } = await import('@senars/nar/lm/system-one/distill.js');
+    const { promoteProvisional } = await import('@senars/lm/system-one/distill');
     const prop: JudgmentProposition = {
       kind: 'evaluate',
       axis: 'epistemic',

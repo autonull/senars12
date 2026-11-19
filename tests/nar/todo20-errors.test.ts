@@ -11,10 +11,10 @@ import {
   PerceptionGateError,
   RewardGateError,
   SenarsError,
-} from '@senars/nar/errors/index.js';
-import { LogStoreStatePersister } from '@senars/log/StatePersister.js';
-import { createLogStore } from '@senars/log/store.js';
-import { ConnectionConfigSchema } from '@senars/nar/tools/schemas.js';
+} from '@senars/errors/index';
+import { LogStoreStatePersister } from '@senars/log/StatePersister';
+import { createLogStore } from '@senars/log/store';
+import { ConnectionConfigSchema } from '@senars/tools/schemas';
 
 /** Bench 64 — Error Taxonomy & Result (TODO20 Phase 3). */
 

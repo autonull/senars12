@@ -2,20 +2,20 @@ import { type BudgetSlice, consumeCycles, createBudgetSlice } from '@senars/budg
 import { ConceptGraph } from '@senars/memory';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { atom, Stamp, type Term, TermBuilder, Truth, type TruthType } from '@senars/nar';
-import { createDefaultRegistry } from '@senars/nar/cognitive';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters.js';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { Memory } from '@senars/nar/memory';
-import { LinkManager } from '@senars/nar/memory/links';
-import { InferenceController } from '@senars/nar/reason/inference-controller.js';
-import { RuleProcessor } from '@senars/nar/rules/impls/processor.js';
-import { rankDerivations } from '@senars/nar/rules/impls/ranking.js';
+import { createDefaultRegistry } from '@senars/cognitive';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/config/cognitive-parameters';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { Memory } from '@senars/memory';
+import { LinkManager } from '@senars/memory/links';
+import { InferenceController } from '@senars/reason/inference-controller';
+import { RuleProcessor } from '@senars/rules/impls/processor';
+import { rankDerivations } from '@senars/rules/impls/ranking';
 import type {
   DerivationStrategy,
   SamplingStrategy,
   Strategy,
-} from '@senars/nar/strategies/types.js';
-import type { Task } from '@senars/nar/types/core.js';
+} from '@senars/strategies/types';
+import type { Task } from '@senars/types/core';
 
 function time(name: string, iterations: number, fn: (i: number) => void): number {
   for (let i = 0; i < Math.min(100, iterations); i++) fn(i);

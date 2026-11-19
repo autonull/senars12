@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { comparison, sameness } from '@senars/nar/rules/extended/comparison-ext.js';
-import { getVars } from '@senars/nar/rules/impls/rule-builder.js';
-import { TermBuilder, termsEqual } from '@senars/nar/terms/index.js';
-import type { Term } from '@senars/nar/terms/types.js';
+import { comparison, sameness } from '@senars/rules/extended/comparison-ext';
+import { getVars } from '@senars/rules/impls/rule-builder';
+import { TermBuilder, termsEqual } from '@senars/terms/index';
+import type { Term } from '@senars/terms/types';
 
 const atom = (s: string): Term => TermBuilder.atom(s);
 const inh = (s: string, p: string): Term => TermBuilder.inheritance(atom(s), atom(p)) as Term;

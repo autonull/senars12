@@ -1,21 +1,21 @@
 import type { ReasoningBudget } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
-import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
-import { ContrastiveMemory } from '@senars/nar/lm/system-one/contrastive.js';
-import { createDispatcher } from '@senars/nar/lm/system-one/dispatcher.js';
-import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { createGroundednessGate } from '@senars/nar/lm/system-one/groundedness-gate.js';
-import { LMReflex } from '@senars/nar/lm/system-one/lm-reflex.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
-import { ManifoldReflex } from '@senars/nar/lm/system-one/manifold-reflex.js';
-import { createTraceGrader } from '@senars/nar/lm/system-one/trace-grader.js';
+import { KernelBudgetGate } from '@senars/kernel/KernelBudgetGate';
+import { ContrastiveMemory } from '@senars/lm/system-one/contrastive';
+import { createDispatcher } from '@senars/lm/system-one/dispatcher';
+import { createEmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { createGroundednessGate } from '@senars/lm/system-one/groundedness-gate';
+import { LMReflex } from '@senars/lm/system-one/lm-reflex';
+import { createManifold } from '@senars/lm/system-one/manifold';
+import { ManifoldReflex } from '@senars/lm/system-one/manifold-reflex';
+import { createTraceGrader } from '@senars/lm/system-one/trace-grader';
 import type {
   CognitiveDispatcher,
   JudgmentManifold,
   PEAResult,
-} from '@senars/nar/lm/system-one/types.js';
-import { EpsilonGreedyReflex } from '@senars/nar/reflex/EpsilonGreedyReflex.js';
-import type { ActionProposal, Reflex } from '@senars/nar/reflex/Reflex.js';
+} from '@senars/lm/system-one/types';
+import { EpsilonGreedyReflex } from '@senars/reflex/EpsilonGreedyReflex';
+import type { ActionProposal, Reflex } from '@senars/reflex/Reflex';
 
 const dim = 32;
 const mockBudgetGate = new KernelBudgetGate();

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createEmbeddingCache } from '@senars/lm';
 import type { EmbeddingPointer } from '@senars/lm';
-import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
+import { fakeEmbeddingGenerator } from '../helpers/fake-embedding';
 
 /**
  * Bench 17 — Cache Correctness at Scale

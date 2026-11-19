@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
-import type { JudgmentQuery, ReasoningBudget } from '@senars/nar/lm/system-one/types.js';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { createManifold } from '@senars/lm/system-one/manifold';
+import type { JudgmentQuery, ReasoningBudget } from '@senars/lm/system-one/types';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,

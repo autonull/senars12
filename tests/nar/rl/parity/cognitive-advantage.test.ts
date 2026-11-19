@@ -6,14 +6,14 @@ import {
   TermBuilder,
   Truth,
 } from '@senars/nar';
-import { BanditGame } from '@senars/nar/game/impls/BanditGame.js';
-import { NAR } from '@senars/nar/nar';
+import { BanditGame } from '@senars/game/impls/BanditGame';
+import { NAR } from '@senars/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
-} from '@senars/nar/rl/index.js';
-import { operationNameOf, operationTerm } from '@senars/nar/terms/index.js';
+} from '@senars/rl/index';
+import { operationNameOf, operationTerm } from '@senars/terms/index';
 
 describe('RL Parity - Cognitive Advantage Experiments', () => {
   const banditConfig = {
@@ -782,7 +782,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       // Just verify the schema induction module can be imported and used
       // (Full schema induction requires LM service which is disabled in tests)
       const { SchemaInductor, createSchemaInductor } = await import(
-        '@senars/nar/learning/schema-induction.js'
+        '@senars/learning/schema-induction'
       );
 
       expect(SchemaInductor).toBeDefined();

@@ -1,14 +1,14 @@
 import { createServer, type Server } from 'node:http';
 import type { ReasoningBudget } from '@senars/agent';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { createEmbeddingCache } from '@senars/lm/system-one/embedding-cache';
 import {
   admitRemotePropositions,
   handleSystemOneRequest,
-} from '@senars/nar/lm/system-one/http-endpoint.js';
-import { createHttpManifold } from '@senars/nar/lm/system-one/http-manifold.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
-import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
+} from '@senars/lm/system-one/http-endpoint';
+import { createHttpManifold } from '@senars/lm/system-one/http-manifold';
+import { createManifold } from '@senars/lm/system-one/manifold';
+import { fakeEmbeddingGenerator } from '../helpers/fake-embedding';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,

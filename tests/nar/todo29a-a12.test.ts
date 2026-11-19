@@ -6,17 +6,17 @@
  * makes a reducer that stops being sound a red test rather than a comment.
  */
 import fc from 'fast-check';
-import { canonicalFormFailures } from '../../scripts/lib/terms-canonical.js';
+import { canonicalFormFailures } from '../../scripts/lib/terms-canonical';
 import {
   canonicalTerm,
   TERM_REDUCERS,
   TermBuilder,
   termKey,
   type TermReducer,
-} from '@senars/nar/terms';
-import { OPERATORS } from '@senars/nar/terms/operators.js';
-import { serializeTerm } from '@senars/nar/terms/impls/serialize.js';
-import type { Term, OperatorKey } from '@senars/nar/terms/types.js';
+} from '@senars/terms';
+import { OPERATORS } from '@senars/terms/operators';
+import { serializeTerm } from '@senars/terms/impls/serialize';
+import type { Term, OperatorKey } from '@senars/terms/types';
 
 const kinds = () => Object.keys(OPERATORS) as (keyof typeof OPERATORS)[];
 

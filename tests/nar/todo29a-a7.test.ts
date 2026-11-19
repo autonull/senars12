@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import type { BudgetSubject } from '../../scripts/lib/control-budgets.js';
+import type { BudgetSubject } from '../../scripts/lib/control-budgets';
 import {
   budgetViolations,
   sharedOperations,
   spentScopeIds,
-} from '../../scripts/lib/control-budgets.js';
+} from '../../scripts/lib/control-budgets';
 import { BUDGET_RESOURCES } from '@senars/budget';
 import {
   BUDGET_SCOPE_IDS,
@@ -27,7 +27,7 @@ import {
 } from '@senars/kernel';
 import { DEFAULT_CONFIG, Memory, RuleProcessor, TaskManager } from '@senars/agent';
 import { NARExecution } from '@senars/agent';
-import { createTestController, inferenceParams } from './fixtures/cognitive.js';
+import { createTestController, inferenceParams } from './fixtures/cognitive';
 
 /** Derivation count per cycle — what the decision budget must not move. */
 const derivationCount = async (overrides: ControlBudgetOverrides): Promise<number> => {

@@ -2,15 +2,15 @@ import type { JudgmentResolvedEvent } from '@senars/agent';
 import { validateCognitiveEvent } from '@senars/agent';
 import { fnv1aCombine } from '@senars/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
-import { createMockLMService } from '@senars/nar/lm/lm-service.js';
-import { createSeNARSRegistry } from '@senars/nar/lm/providers.js';
-import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { SystemOneIngressJudge } from '@senars/nar/lm/system-one/ingress-judge.js';
-import type { EvaluateProposition } from '@senars/nar/lm/system-one/types.js';
-import { getMetricsAsJson } from '@senars/nar/metrics/prometheus.js';
-import { NAR } from '@senars/nar/nar.js';
-import { DEFAULT_CONFIG } from '@senars/nar/types/index.js';
+import { KernelPerceptionGate } from '@senars/kernel/KernelPerceptionGate';
+import { createMockLMService } from '@senars/lm/lm-service';
+import { createSeNARSRegistry } from '@senars/lm/providers';
+import { createEmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { SystemOneIngressJudge } from '@senars/lm/system-one/ingress-judge';
+import type { EvaluateProposition } from '@senars/lm/system-one/types';
+import { getMetricsAsJson } from '@senars/metrics/prometheus';
+import { NAR } from '@senars/nar';
+import { DEFAULT_CONFIG } from '@senars/types/index';
 
 /**
  * Deterministic fake encoder — avoids model download in the test environment

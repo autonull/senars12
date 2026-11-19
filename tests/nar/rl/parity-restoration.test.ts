@@ -29,7 +29,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import * as parityAcceptance from '@senars/nar/rl/parity-acceptance.js';
+import * as parityAcceptance from '@senars/rl/parity-acceptance';
 
 interface ParityResult {
   environment: string;

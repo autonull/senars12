@@ -1,4 +1,4 @@
-import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
+import { createGateRegistry } from '@senars/kernel/GateRegistry';
 import {
   createTaskWeight,
   createTask,

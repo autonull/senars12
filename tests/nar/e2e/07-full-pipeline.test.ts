@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createNAR, Truth } from '@senars/nar';
-import { createSeNARSRegistry } from '@senars/nar/lm';
-import { createLMService } from '@senars/nar/lm/lm-service';
-import { termParser, termKey, TermBuilder } from '@senars/nar/terms';
-import { ControlBudgets } from '@senars/nar/kernel/control-budgets';
+import { createSeNARSRegistry } from '@senars/lm';
+import { createLMService } from '@senars/lm/lm-service';
+import { termParser, termKey, TermBuilder } from '@senars/terms';
+import { ControlBudgets } from '@senars/kernel/control-budgets';
 
 describe('M1: End-to-End Pipeline — NL → PerceptionGate → NAL → QueryAPI → NL', () => {
   const registry = createSeNARSRegistry();

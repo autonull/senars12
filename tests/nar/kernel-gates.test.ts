@@ -1,11 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
-import { KernelActionGate } from '@senars/nar/kernel/KernelActionGate.js';
-import { GATE_LOG_CAPACITY } from '@senars/nar/kernel/event-ring.js';
-import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
-import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
-import { KernelRewardGate } from '@senars/nar/kernel/KernelRewardGate.js';
-import { atom, TermBuilder } from '@senars/nar/terms/index.js';
+import { KernelActionGate } from '@senars/kernel/KernelActionGate';
+import { GATE_LOG_CAPACITY } from '@senars/kernel/event-ring';
+import { KernelBudgetGate } from '@senars/kernel/KernelBudgetGate';
+import { KernelPerceptionGate } from '@senars/kernel/KernelPerceptionGate';
+import { KernelRewardGate } from '@senars/kernel/KernelRewardGate';
+import { atom, TermBuilder } from '@senars/terms/index';
 
 describe('kernel gates', () => {
   it('perception admits valid observation and admitTask preserves truth', async () => {
@@ -96,7 +96,7 @@ describe('kernel gates', () => {
 
   it('NL batch converts to FormalizationCandidates with ambiguity flags', async () => {
     const { toFormalizationBatch, detectAmbiguityFlags } = await import(
-      '@senars/nar/nl/understanding.js'
+      '@senars/nl/understanding'
     );
     expect(detectAmbiguityFlags('Cats may eat unless served fish').map((f) => f.type)).toEqual(
       expect.arrayContaining(['negation', 'modal'])
@@ -115,7 +115,7 @@ describe('kernel gates', () => {
   });
 
   it('perception gate admits formalization candidates provisionally', async () => {
-    const { toFormalizationBatch } = await import('@senars/nar/nl/understanding.js');
+    const { toFormalizationBatch } = await import('@senars/nl/understanding');
     const gate = new KernelPerceptionGate();
     const batch = toFormalizationBatch('Cats are mammals', {
       beliefs: [{ narsese: '(cat-->mammal)', source: 'user' }],

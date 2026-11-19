@@ -14,7 +14,7 @@ import {
   termSize,
   walkTerms,
 } from '@senars/nar';
-import { fromNarsese, termKey, toNarsese } from '@senars/nar/terms';
+import { fromNarsese, termKey, toNarsese } from '@senars/terms';
 
 describe('TermBuilder', () => {
   beforeEach(() => TermBuilder.clear());

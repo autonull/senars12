@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'vitest';
 import { DEFAULT_CONFIG, TermBuilder } from '@senars/nar';
-import { GridWorldGame } from '@senars/nar/game/impls/GridWorldGame.js';
-import { NAR } from '@senars/nar/nar';
+import { GridWorldGame } from '@senars/game/impls/GridWorldGame';
+import { NAR } from '@senars/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
-} from '@senars/nar/rl/index.js';
-import { operationTerm } from '@senars/nar/terms/index.js';
+} from '@senars/rl/index';
+import { operationTerm } from '@senars/terms/index';
 import { QLearning } from '../baselines/gridworld';
 
 describe('RL Parity - GridWorld Q-Learning', () => {

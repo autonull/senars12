@@ -15,7 +15,7 @@ import {
   DECISION_POSITIONS,
   DECISION_QUERIES,
 } from '@senars/agent';
-import { manifestViolations } from '../../scripts/lib/decision-manifest.js';
+import { manifestViolations } from '../../scripts/lib/decision-manifest';
 import {
   askSafely,
   DECISION_ASK_TIMEOUT_MS,

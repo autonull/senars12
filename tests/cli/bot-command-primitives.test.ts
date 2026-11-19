@@ -15,7 +15,7 @@ import {
   ratioArg,
   setPath,
   tokenize,
-} from '../../src/bin/commands/args.js';
+} from '../../src/bin/commands/args';
 
 describe('Bench 81 — bot command primitives', () => {
   describe('tokenize', () => {

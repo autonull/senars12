@@ -1,5 +1,6 @@
 import { type Confidence, type Frequency, type TruthLike } from '@senars/types/truth';
-import { formatTruth, parseTruthLiteral, serializeTruth, clamp, clamp01, nearlyEqual, safeDiv, softSquash, confidenceToWeight, weightToConfidence, weakenConfidence } from '@senars/util';
+import { formatTruth, parseTruthLiteral, serializeTruth, clamp, clamp01, nearlyEqual, safeDiv, softSquash, weakenConfidence } from '@senars/util';
+import { confidenceToWeight, weightToConfidence } from '@senars/util/truth-algebra';
 import { SenarsError } from '../../errors';
 
 export interface Truth {

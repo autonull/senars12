@@ -4,9 +4,9 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { NAR } from '@senars/nar';
 import { createTestNAR } from '@senars/nar';
-import { createAgent } from '@senars/nar/agent/index.js';
-import { createMockLMService } from '@senars/nar/lm';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
+import { createAgent } from '@senars/agent/index';
+import { createMockLMService } from '@senars/lm';
+import { EpisodicMemory } from '@senars/memory/EpisodicMemory';
 
 const scriptedLM = createMockLMService({
   available: true,

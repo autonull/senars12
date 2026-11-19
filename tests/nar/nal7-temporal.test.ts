@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { NALExtendedRules, TermBuilder } from '@senars/nar';
-import { clearTerms } from '@senars/nar/terms/impls/intern.js';
+import { clearTerms } from '@senars/terms/impls/intern';
 
 describe('NAL7 Temporal Rules', () => {
   const { inheritance, sequence, parallel, predictive, atom } = TermBuilder;

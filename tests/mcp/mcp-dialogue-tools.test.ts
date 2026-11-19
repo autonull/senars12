@@ -1,14 +1,14 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { DialogueCapture } from '@senars/dialogue';
 import { EpisodicMemory } from '@senars/memory';
 import { dialogueDefaults } from '@senars/utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { registerDialogueTools } from '../../src/bin/lib/mcp/mcp-dialogue-tools.js';
+import { registerDialogueTools } from '../../src/bin/lib/mcp/mcp-dialogue-tools';
 
 const connect = async (server: McpServer): Promise<Client> => {
   const client = new Client({ name: 'test-client', version: '0.0.1' });

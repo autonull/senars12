@@ -7,7 +7,7 @@
 
 import { parseFlags } from '@senars/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isOneShot, readOneShot, runOneShot } from '../../src/bin/lib/oneshot.js';
+import { isOneShot, readOneShot, runOneShot } from '../../src/bin/lib/oneshot';
 
 describe('CORE.19 C7.1 — one-shot input reading', () => {
   it('reads positional sentences and splits several tasks in one argument', () => {

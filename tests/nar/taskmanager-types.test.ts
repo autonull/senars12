@@ -1,10 +1,10 @@
 import { isEventType, type TaskAdmittedEvent } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
-import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
-import { Memory } from '@senars/nar/memory/memory.js';
-import { TaskManager } from '@senars/nar/task/manager.js';
-import { Truth, termParser } from '@senars/nar/terms/index.js';
-import { createTask, NEUTRAL_BUDGET } from '@senars/nar/types/core.js';
+import { createGateRegistry } from '@senars/kernel/GateRegistry';
+import { Memory } from '@senars/memory/memory';
+import { TaskManager } from '@senars/task/manager';
+import { Truth, termParser } from '@senars/terms/index';
+import { createTask, NEUTRAL_BUDGET } from '@senars/types/core';
 
 describe('todo7: taskmanager preserves task types', () => {
   it('goals/questions admitted as such, not beliefs', async () => {

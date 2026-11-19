@@ -2,9 +2,9 @@ import type { DerivationRecord } from '@senars/agent';
 import { validateDerivationRecord } from '@senars/agent';
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
-import { Memory } from '@senars/nar/memory/memory.js';
-import { hydrateRecord } from '@senars/nar/rules/impls/hydration.js';
-import { termParser } from '@senars/nar/terms/index.js';
+import { Memory } from '@senars/memory/memory';
+import { hydrateRecord } from '@senars/rules/impls/hydration';
+import { termParser } from '@senars/terms/index';
 
 const record = (conclusions: string[]): DerivationRecord =>
   validateDerivationRecord({

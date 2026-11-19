@@ -10,16 +10,16 @@
 
 import { LMRule } from '@senars/lm';
 import * as layerJson from '@senars/lm';
-import { CYCLE_PATH_PREFIXES } from '@senars/nar/lm/in-cycle-inventory.js';
+import { CYCLE_PATH_PREFIXES } from '@senars/lm/in-cycle-inventory';
 import {
   createEmbeddingGenerator,
   isMockLM,
   MockEmbeddingGenerator,
 } from '@senars/agent';
-import { RuleProcessor } from '@senars/nar/rules/impls/processor.js';
-import { loadBuiltinTable } from '@senars/nar/rules/impls/builtin-table.js';
-import { RuleTableStore } from '@senars/nar/rules/impls/rule-table.js';
-import { BUILTIN_DECLARATIONS, RULE_BODIES } from '@senars/nar/rules/impls/registration.js';
+import { RuleProcessor } from '@senars/rules/impls/processor';
+import { loadBuiltinTable } from '@senars/rules/impls/builtin-table';
+import { RuleTableStore } from '@senars/rules/impls/rule-table';
+import { BUILTIN_DECLARATIONS, RULE_BODIES } from '@senars/rules/impls/registration';
 import type { ModelRule } from '@senars/rules';
 import { parseJsonObject } from '@senars/utils';
 
@@ -29,8 +29,8 @@ import {
   coreLayerViolations,
   isCyclePath,
   resolveInNar,
-} from '../../scripts/lib/layer-boundary.js';
-import { ROOT } from '../../scripts/lib/root.js';
+} from '../../scripts/lib/layer-boundary';
+import { ROOT } from '../../scripts/lib/root';
 
 const at = (source: string, file = `${ROOT}/nar/src/memory/embedding.ts`) =>
   coreLayerViolations(file, source);
@@ -79,10 +79,10 @@ describe('A2 — the embedding runtime is injected, not read', () => {
 
 describe('A2 — the gate sees both directions and grants no exemption', () => {
   it('a relative import of the layer fails', () => {
-    expect(at("import { getLMSettings } from '../lm/providers.js';")).toEqual([
+    expect(at("import { getLMSettings } from '../lm/providers';")).toEqual([
       {
         at: 'nar/src/memory/embedding.ts:1',
-        specifier: '../lm/providers.js',
+        specifier: '../lm/providers',
         dynamic: false,
       },
     ]);
@@ -90,21 +90,21 @@ describe('A2 — the gate sees both directions and grants no exemption', () => {
 
   it('a workspace subpath of the layer fails, and both spellings resolve alike', () => {
     expect(at("import { LMRule } from '@senars/lm';")).toHaveLength(1);
-    expect(resolveInNar(`${ROOT}/nar/src/rules/x.ts`, '@senars/nar/lm/json.js')).toBe(
+    expect(resolveInNar(`${ROOT}/nar/src/rules/x.ts`, '@senars/lm/json')).toBe(
       `${ROOT}/nar/src/lm/json`
     );
   });
 
   it('a dynamic import of the layer fails — it is a value edge at runtime', () => {
-    expect(at("const m = await import('../lm/lm-service.js');")[0]?.dynamic).toBe(true);
+    expect(at("const m = await import('../lm/lm-service');")[0]?.dynamic).toBe(true);
   });
 
   it('a type-only import of the layer fails: a named layer type is the coupling', () => {
-    expect(at("import type { LMService } from '../lm/lm-service.js';")).toHaveLength(1);
+    expect(at("import type { LMService } from '../lm/lm-service';")).toHaveLength(1);
   });
 
   it('a sibling module and another package are not the layer', () => {
-    expect(at("import { cosine } from '../utils/similarity.js';")).toEqual([]);
+    expect(at("import { cosine } from '../utils/similarity';")).toEqual([]);
     expect(at("import { pushCapped } from '@senars/utils';")).toEqual([]);
     expect(at("import { Truth } from '../terms';")).toEqual([]);
   });
@@ -117,7 +117,7 @@ describe('A2 — the gate sees both directions and grants no exemption', () => {
     expect(
       coreLayerViolations(
         `${ROOT}/nar/src/lm/rule/LMRule.ts`,
-        "import { parseJsonObject } from '../json.js';"
+        "import { parseJsonObject } from '../json';"
       )
     ).toEqual([]);
   });

@@ -1,5 +1,5 @@
 import { atom, RuleProcessor, Stamp, TermBuilder, Truth, termsEqual } from '@senars/nar';
-import { createTimestamp } from '@senars/nar/types';
+import { createTimestamp } from '@senars/types';
 
 describe('Performance benchmarks', () => {
   test('term comparison benchmark <100ns', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SymbolicFirewall } from '@senars/nar/nl/firewall.js';
+import { SymbolicFirewall } from '@senars/nl/firewall';
 
 describe('SymbolicFirewall', () => {
   const fw = new SymbolicFirewall();

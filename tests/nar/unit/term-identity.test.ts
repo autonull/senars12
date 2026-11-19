@@ -8,7 +8,7 @@ import {
   Truth,
   termKey,
 } from '@senars/nar';
-import { foldNary } from '@senars/nar/rules/impls/rule-builder.js';
+import { foldNary } from '@senars/rules/impls/rule-builder';
 
 /**
  * A canonical form is injective: a term's printed form names exactly one term,

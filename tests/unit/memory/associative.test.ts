@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ConceptGraph } from '@senars/nar/memory/ConceptGraph.js';
-import { AssociativeRegistry, GraphMemory } from '@senars/nar/memory/associative.js';
-import { Layer, LinkManager } from '@senars/nar/memory/links';
-import { LINK_LAYER } from '@senars/nar/memory/links/types.js';
-import { Memory } from '@senars/nar/memory/memory.js';
-import { atom, Truth } from '@senars/nar/terms';
-import { createBeliefTask, createTaskWeight } from '@senars/nar/types';
+import { ConceptGraph } from '@senars/memory/ConceptGraph';
+import { AssociativeRegistry, GraphMemory } from '@senars/memory/associative';
+import { Layer, LinkManager } from '@senars/memory/links';
+import { LINK_LAYER } from '@senars/memory/links/types';
+import { Memory } from '@senars/memory/memory';
+import { atom, Truth } from '@senars/terms';
+import { createBeliefTask, createTaskWeight } from '@senars/types';
 
 const cat = atom('cat');
 const animal = atom('animal');

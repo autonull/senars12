@@ -1,12 +1,12 @@
 import type { ReasoningBudget } from '@senars/agent';
 import { describe, expect, it, vi } from 'vitest';
-import { GameFocus } from '@senars/nar/focus/GameFocus.js';
-import type { Perception } from '@senars/nar/game/Game.js';
-import { GridWorldGame } from '@senars/nar/game/impls/GridWorldGame.js';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
-import { ManifoldReflex } from '@senars/nar/lm/system-one/manifold-reflex.js';
-import { EpsilonGreedyReflex } from '@senars/nar/reflex/EpsilonGreedyReflex.js';
+import { GameFocus } from '@senars/focus/GameFocus';
+import type { Perception } from '@senars/game/Game';
+import { GridWorldGame } from '@senars/game/impls/GridWorldGame';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { createManifold } from '@senars/lm/system-one/manifold';
+import { ManifoldReflex } from '@senars/lm/system-one/manifold-reflex';
+import { EpsilonGreedyReflex } from '@senars/reflex/EpsilonGreedyReflex';
 import { createGateRegistry } from '@senars/kernel';
 
 const budget: ReasoningBudget = {

@@ -3,23 +3,23 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mulberry32 } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
-import { JudgmentDataset, runBakeOff } from '@senars/nar/lm/system-one/distill.js';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { createHeadById } from '@senars/nar/lm/system-one/head-specs.js';
+import { JudgmentDataset, runBakeOff } from '@senars/lm/system-one/distill';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { createHeadById } from '@senars/lm/system-one/head-specs';
 import {
   recordApprovalLabel,
   recordClarificationLabel,
-} from '@senars/nar/lm/system-one/label-sources.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
+} from '@senars/lm/system-one/label-sources';
+import { createManifold } from '@senars/lm/system-one/manifold';
 import {
   loadHeadArtifacts,
   loadTrainingData,
   TrainedLinearHead,
   trainHead,
   writeHeadArtifacts,
-} from '@senars/nar/lm/system-one/train.js';
-import type { JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
-import { DigestMismatchError, loadHeadRuntime } from '@senars/nar/lm/system-one/wasi-runtime.js';
+} from '@senars/lm/system-one/train';
+import type { JudgmentQuery } from '@senars/lm/system-one/types';
+import { DigestMismatchError, loadHeadRuntime } from '@senars/lm/system-one/wasi-runtime';
 
 /** Synthetic labeled fixtures: risk head where observed outcomes follow a learnable pattern. */
 function buildLabeledDataset(rows: number, basePath: string): JudgmentDataset {
@@ -150,7 +150,7 @@ describe('Training Round-Trip (Bench 24)', () => {
     );
 
     const { writeHeadBundle, loadHeadBundle } = await import(
-      '@senars/nar/lm/system-one/wasi-head-bundle.js'
+      '@senars/lm/system-one/wasi-head-bundle'
     );
     const { wasmPath, modelDigest } = await writeHeadBundle(tmp, {
       weights: model.weights,

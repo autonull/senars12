@@ -16,15 +16,15 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
 **Root Cause**: Vite/Rolldown resolves aliases in object key order. Shallow `@senars/util` matches before deep `@senars/util/fs`.
 
 **Fix Applied**: Converted to array format `[{find, replacement}, ...]` with explicit priority:
-- Deep sub-path aliases FIRST (283 entries)
+- Deep sub-path aliases FIRST (384 entries)
 - Top-level package aliases
 - Wildcard aliases LAST
 - Added normalize-imports plugin for trailing slash handling
-- Added explicit aliases for `@senars/types/*`, `@senars/config/*`, `@senars/ui-contract/*`, `@senars/nar/*` package roots
+- Added explicit aliases for `@senars/types/*`, `@senars/config/*`, `@senars/ui-contract/*`, `@senars/nar/*` package roots, and 100+ explicit deep paths
 
 **Verification**: `pnpm test tests/nar/todo27-seeded-sampling.test.ts -- --run` loads without import errors.
 
-**Remaining**: ~131 "Cannot find package" errors for `@senars/nar/*` deep paths with `.js` extensions in test files (fallback: fix test imports or add more explicit aliases).
+**Remaining**: ~101 "Cannot find package" errors (down from 392), mostly in UI source files and remaining test files needing explicit deep-path aliases.
 
 ---
 
@@ -32,7 +32,7 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
 
 ### A1. Fix Vitest Deep Aliases [30 min] ✅
 - Reordered `aliases` in `vitest.config.ts`: deep sub-paths → top-level → wildcards (array format)
-- Added explicit deep aliases for all `@senars/util/*`, `@senars/schemas/*`, `@senars/lm/*`, `@senars/types/*`, `@senars/config/*`, etc.
+- Added explicit deep aliases for all `@senars/util/*`, `@senars/schemas/*`, `@senars/lm/*`, `@senars/types/*`, `@senars/config/*`, etc. (384 total)
 - Added normalize-imports plugin for trailing slash handling
 - Verified: `pnpm test tests/nar/todo27-seeded-sampling.test.ts -- --run` loads
 
@@ -51,31 +51,43 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
    - Kernel/Gates: log persistence, replay
 4. **WASI/integration**: wasi-output-capture tests
 
+### A4. Extended Fixes (this session) ✅
+- Fixed circular dependency in `Truth.ts` (import `confidenceToWeight` from `@senars/util/truth-algebra`)
+- Fixed `BaseLedgerEntrySchema` import in `distill.ts` (from `@senars/util/ledger`)
+- Fixed `TermTruthSchema` import in `feedback.ts` (export from `@senars/util` barrel)
+- Fixed `toSkillFeedback` export in `@senars/feedback` barrel
+- Fixed `BudgetExhaustedEventSchema` circular dependency via new `budget-types.ts`
+- Fixed `Bag` API: `size` getter, `sample()` method, internal entry wrapping preserves methods
+- Fixed `@senars/nar/*` → `@senars/*` test imports (mechanical sed)
+- Fixed `@senars/config/nar` → `@senars/config` imports
+- Added 100+ explicit deep-path aliases for kernel, focus, nl, lm, memory, rlfp, terms, etc.
+
 ---
 
-## Phase B: Parallel Subsystem Fixes (2-3 sessions)
+## Phase B: Parallel Subsystem Fixes (2-3 sessions) — **IN PROGRESS**
 
 **Strategy**: Each subsystem is independent → can parallelize via subagents or sequential with clear handoffs.
 
-| Subsystem | Files | Failure Type | Estimated Effort | Quick Win? |
-|-----------|-------|--------------|------------------|------------|
-| **Surface D24** | `todo17b-surface.test.ts` | README vs impl audit | 30 min | ✅ Audit only |
-| **Fundamentals Gate** | `todo27-fundamentals-gate.test.ts` | Bench output format | 30 min | ✅ Config check |
-| **Runtime: BaseLedgerEntrySchema** | `src/lm/system-one/distill.ts` | Undefined schema (affects ~20 tests) | 1 hr | ✅ Fix schema import |
-| **RL/Oracle** | `rl/parity/*`, `rl/contract/*`, `bandit-epsilon-greedy.test.ts` | RNG injection, trace validation | 2-3 hr | ❌ Deep |
-| **Governance** | `todo7-domains.test.ts` | Autonomy transitions | 1 hr | ✅ Gate logic |
-| **Goal System** | `rl/contract/goal-action.test.ts`, `no-bypass.test.ts` | Dispatch pipeline | 1-2 hr | ❌ Deep |
-| **LM Service** | `todo16-batching.test.ts` | Manifold/cache wiring | 1-2 hr | ❌ Deep |
-| **Kernel/Gates** | `core19-c4/c5/c6.test.ts` | Log persistence, replay | 1 hr | ✅ Config |
-| **Memory** | `memory.test.ts`, `state-persistence.test.ts` | Bag API, codec | 30 min | ✅ API fix done |
-| **Test Import Fallback** | ~131 `@senars/nar/*` deep paths | Fix test imports or add aliases | 1-2 hr | ⚠️ Mechanical |
+| Subsystem | Files | Failure Type | Estimated Effort | Quick Win? | Status |
+|-----------|-------|--------------|------------------|------------|--------|
+| **Surface D24** | `todo17b-surface.test.ts` | README vs impl audit | 30 min | ✅ Audit only | ⏳ |
+| **Fundamentals Gate** | `todo27-fundamentals-gate.test.ts` | Bench output format | 30 min | ✅ Config check | ⏳ |
+| **Runtime: BaseLedgerEntrySchema** | `src/lm/system-one/distill.ts` | Undefined schema (affects ~20 tests) | 1 hr | ✅ Fix schema import | ✅ DONE |
+| **RL/Oracle** | `rl/parity/*`, `rl/contract/*`, `bandit-epsilon-greedy.test.ts` | RNG injection, trace validation | 2-3 hr | ❌ Deep | ⏳ |
+| **Governance** | `todo7-domains.test.ts` | Autonomy transitions | 1 hr | ✅ Gate logic | ⏳ |
+| **Goal System** | `rl/contract/goal-action.test.ts`, `no-bypass.test.ts` | Dispatch pipeline | 1-2 hr | ❌ Deep | ⏳ |
+| **LM Service** | `todo16-batching.test.ts` | Manifold/cache wiring | 1-2 hr | ❌ Deep | ⏳ |
+| **Kernel/Gates** | `core19-c4/c5/c6.test.ts` | Log persistence, replay | 1 hr | ✅ Config | ⏳ |
+| **Memory** | `memory.test.ts`, `state-persistence.test.ts` | Bag API, codec | 30 min | ✅ API fix done | ✅ DONE |
+| **Test Import Fallback** | ~101 remaining import errors | Fix test imports or add aliases | 1-2 hr | ⚠️ Mechanical | 🔄 IN PROGRESS |
 
-### B1. Quick Wins First (Parallelizable, ~1 hr total)
-- **Surface D24**: Audit rule matrix in README → update doc or add missing rules
-- **Fundamentals Gate**: Check bench runner config; ensure output format matches test expectation
-- **Runtime: BaseLedgerEntrySchema**: Fix undefined schema in `src/lm/system-one/distill.ts` (import from `@senars/schemas/truth` or `@senars/util/ledger`)
-- **Memory**: Bag API already fixed (.size, .all()); verify state codec round-trips
-- **Kernel/Gates**: Verify gate log capacity constants match test expectations
+### B1. Quick Wins First (Parallelizable, ~1 hr total) — **MOSTLY DONE**
+- **Runtime: BaseLedgerEntrySchema**: ✅ Fixed in `src/lm/system-one/distill.ts`
+- **Memory**: ✅ Bag API fixed (size getter, sample method, internal entry wrapping)
+- **Test Import Fallback**: 🔄 Mechanical fixes applied (`@senars/nar/` → `@senars/`, `.js` stripping), 100+ explicit aliases added
+- **Surface D24**: ⏳ README rule-matrix audit pending
+- **Fundamentals Gate**: ⏳ Bench output format check pending
+- **Kernel/Gates**: ⏳ Gate log capacity constants check pending
 
 ### B2. Deep Investigations (Sequential or Subagent-Parallel)
 | Task | Entry Point | Key Files to Check |
@@ -120,7 +132,7 @@ pnpm tsc --project tsconfig.root.json --noEmit 2>&1 | grep -v "ui\|UI" || true
 | Lint | **PASS** | `pnpm lint` |
 | Exports check | **PASS** | `pnpm exports:check` && `pnpm exports:barrels` |
 
-**Current Status**: Import errors ~131 (down from 392), Pass rate ~98% of loaded tests (436/444)
+**Current Status**: Import errors ~101 (down from 392), Passed: 176 test files, 1968 tests (up from 35/436)
 
 ---
 
@@ -134,15 +146,19 @@ pnpm tsc --project tsconfig.root.json --noEmit 2>&1 | grep -v "ui\|UI" || true
 4. Categorize failures ✅ done
 ```
 
-### Session 2: Quick Wins (1.5 hr)
+### Session 2: Quick Wins & Extended Fixes (2 hr) ✅ **COMPLETE**
 ```
-Parallel or sequential:
-- Runtime: Fix BaseLedgerEntrySchema in src/lm/system-one/distill.ts
-- Surface D24: grep README rule matrix → diff vs src/rules/impls/
-- Fundamentals Gate: check bench.ts output format (SCENARIOS=7)
-- Memory: verify state codec tests pass
-- Kernel/Gates: check GATE_LOG_CAPACITY constants
-- Test Import Fallback: fix @senars/nar/* imports in tests (mechanical)
+- Runtime: Fix BaseLedgerEntrySchema in src/lm/system-one/distill.ts ✅
+- Fix circular dependency in Truth.ts (confidenceToWeight import) ✅
+- Fix TermTruthSchema import in feedback.ts ✅
+- Fix toSkillFeedback export in @senars/feedback barrel ✅
+- Fix BudgetExhaustedEventSchema circular dependency via budget-types.ts ✅
+- Fix Bag API (size getter, sample method, internal entry wrapping) ✅
+- Mechanical test import fixes: @senars/nar/ → @senars/, .js stripping ✅
+- Add 100+ explicit deep-path aliases (kernel, focus, nl, lm, memory, rlfp, terms, etc.) ✅
+- Surface D24: grep README rule matrix → diff vs src/rules/impls/ ⏳
+- Fundamentals Gate: check bench.ts output format (SCENARIOS=7) ⏳
+- Kernel/Gates: check GATE_LOG_CAPACITY constants ⏳
 ```
 
 ### Session 3: Deep Fixes (2-3 hr)
@@ -196,10 +212,10 @@ Subagent-per-subsystem or sequential:
 ## Minimal Viable Next Step
 
 ```bash
-# Quick wins (Session 2):
-# 1. Fix BaseLedgerEntrySchema in src/lm/system-one/distill.ts
-# 2. Fix @senars/nar/* test imports: find tests -name "*.test.ts" -exec sed -i 's/@senars\/nar\//@senars\//g' {} +
-# 3. Surface D24: audit README rule matrix
-# 4. Fundamentals Gate: check bench.ts SCENARIOS constant
+# Remaining quick wins:
+# 1. Surface D24: audit README rule matrix (grep -n "rule.*matrix" README.md)
+# 2. Fundamentals Gate: check bench.ts SCENARIOS constant in tests/nar/todo27-fundamentals-gate.test.ts
+# 3. Kernel/Gates: check GATE_LOG_CAPACITY in src/kernel/KernelActionGate.ts
+# 4. Add remaining explicit aliases for UI source imports (@senars/ui-contract/core, @senars/nar/lm)
 # 5. Run full suite → verify >90% pass rate
 ```

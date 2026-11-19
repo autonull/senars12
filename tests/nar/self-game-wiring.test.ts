@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { FocusStepReport } from '@senars/nar/focus/Focus.js';
-import { Focus } from '@senars/nar/focus/Focus.js';
-import { FocusBag } from '@senars/nar/focus/FocusBag.js';
-import { schedulerReward } from '@senars/nar/focus/scheduler-reward.js';
-import { createSelfMetaGame, SelfMetaGameImpl } from '@senars/nar/game/impls/SelfMetaGame.js';
-import { SelfRewardGate } from '@senars/nar/kernel/KernelRewardGate.js';
-import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
-import { LearnerRegistry, SchedulerAdapter } from '@senars/nar/learning/domain-learners.js';
+import type { FocusStepReport } from '@senars/focus/Focus';
+import { Focus } from '@senars/focus/Focus';
+import { FocusBag } from '@senars/focus/FocusBag';
+import { schedulerReward } from '@senars/focus/scheduler-reward';
+import { createSelfMetaGame, SelfMetaGameImpl } from '@senars/game/impls/SelfMetaGame';
+import { SelfRewardGate } from '@senars/kernel/KernelRewardGate';
+import { createGateRegistry } from '@senars/kernel/GateRegistry';
+import { LearnerRegistry, SchedulerAdapter } from '@senars/learning/domain-learners';
 
 const report = (focusId: string, derivations: number, tasksProcessed: number): FocusStepReport => ({
   focusId,

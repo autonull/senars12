@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { Layer, LinkManager } from '@senars/nar/memory/links';
-import { Memory } from '@senars/nar/memory/memory.js';
-import { LINK_LAYER } from '@senars/nar/memory/links/types.js';
-import { createLinkLayerStrategy } from '@senars/nar/strategies/premise/term-link.js';
-import { createDefaultRegistry } from '@senars/nar/cognitive';
-import type { Strategy } from '@senars/nar/strategies/types';
-import { atom, Truth, type Term } from '@senars/nar/terms';
-import { createBeliefTask, createTaskWeight } from '@senars/nar/types';
+import { Layer, LinkManager } from '@senars/memory/links';
+import { Memory } from '@senars/memory/memory';
+import { LINK_LAYER } from '@senars/memory/links/types';
+import { createLinkLayerStrategy } from '@senars/strategies/premise/term-link';
+import { createDefaultRegistry } from '@senars/cognitive';
+import type { Strategy } from '@senars/strategies/types';
+import { atom, Truth, type Term } from '@senars/terms';
+import { createBeliefTask, createTaskWeight } from '@senars/types';
 
 /** The premise slot, by name — the registry is the only way to get a strategy. */
 const premise = (name: string): Strategy => createDefaultRegistry().get<Strategy>('premise', name);

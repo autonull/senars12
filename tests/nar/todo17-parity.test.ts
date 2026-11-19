@@ -9,9 +9,9 @@ import {
 import { JudgmentDataset } from '@senars/lm';
 import { EpsilonGreedyReflex } from '@senars/reflex';
 import { createGame2048, createSnakeGame, createTicTacToeGame, SeededRNG } from '@senars/focus';
-import { game2048HeuristicAction } from './rl/baselines/2048.js';
-import { snakeHeuristicAction } from './rl/baselines/snake.js';
-import { ticTacToeHeuristicAction } from './rl/baselines/tictactoe.js';
+import { game2048HeuristicAction } from './rl/baselines/2048';
+import { snakeHeuristicAction } from './rl/baselines/snake';
+import { ticTacToeHeuristicAction } from './rl/baselines/tictactoe';
 import type { ActionProposal, LearningEvent, Reflex } from '@senars/reflex';
 import type {
   JudgmentManifold,

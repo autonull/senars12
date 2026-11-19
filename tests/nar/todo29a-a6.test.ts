@@ -8,7 +8,7 @@ import {
 } from '@senars/rules';
 import { createRulePattern } from '@senars/rules';
 import type { InferenceTable, RegisteredRule } from '@senars/rules';
-import { bucketCensus, kindViolations } from '../../scripts/lib/dispatch-table.js';
+import { bucketCensus, kindViolations } from '../../scripts/lib/dispatch-table';
 import { OPERATORS, Stamp, TermBuilder, Truth, type Term } from '@senars/terms';
 import { createTimestamp } from '@senars/agent';
 

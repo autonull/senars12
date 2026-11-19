@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
  * injected `IngressJudge` boundary (`kernel/ingress.ts`).
  */
 
-const KERNEL_DIR = join(import.meta.dirname, '@senars/nar/kernel');
+const KERNEL_DIR = join(import.meta.dirname, '@senars/kernel');
 
 const kernelSources = readdirSync(KERNEL_DIR)
   .filter((f) => f.endsWith('.ts'))
@@ -30,8 +30,8 @@ describe('Bench 61b — Kernel Layering (X2)', () => {
   });
 
   it('ingress still fails closed on judge faults (D1 preserved)', async () => {
-    const { KernelPerceptionGate } = await import('@senars/nar/kernel/KernelPerceptionGate.js');
-    const { SystemOneIngressJudge } = await import('@senars/nar/lm/system-one/ingress-judge.js');
+    const { KernelPerceptionGate } = await import('@senars/kernel/KernelPerceptionGate');
+    const { SystemOneIngressJudge } = await import('@senars/lm/system-one/ingress-judge');
     const gate = new KernelPerceptionGate({
       systemOne: {
         enabled: true,

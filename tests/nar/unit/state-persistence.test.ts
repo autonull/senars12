@@ -13,15 +13,15 @@ import {
   TermBuilder,
   Truth,
 } from '@senars/nar';
-import type { CognitiveController } from '@senars/nar/cognitive';
-import { createGateRegistry } from '@senars/nar/kernel';
-import { createSeNARSRegistry } from '@senars/nar/lm';
-import { createLMService } from '@senars/nar/lm/lm-service';
-import { NARExecution } from '@senars/nar/nar-execution';
-import type { RLFPLearner } from '@senars/nar/rlfp';
+import type { CognitiveController } from '@senars/cognitive';
+import { createGateRegistry } from '@senars/kernel';
+import { createSeNARSRegistry } from '@senars/lm';
+import { createLMService } from '@senars/lm/lm-service';
+import { NARExecution } from '@senars/nar-execution';
+import type { RLFPLearner } from '@senars/rlfp';
 import { createTestController } from '../fixtures/cognitive';
-import { createLogStore } from '../../../src/log/store.js';
-import type { LogStore } from '../../../src/log/store.js';
+import { createLogStore } from '../../../src/log/store';
+import type { LogStore } from '../../../src/log/store';
 
 // Persistence assertions are LM-independent; default to the mock provider so
 // this file stays hermetic (avoids downloading real weights). Explicit

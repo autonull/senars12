@@ -3,7 +3,7 @@ import { createDefaultRegistry } from '@senars/cognitive';
 import { mulberry32 } from '@senars/util/random';
 import { describe, expect, it } from 'vitest';
 import { Memory, TermBuilder } from '@senars/nar';
-import type { SamplingStrategy } from '@senars/nar/strategies';
+import type { SamplingStrategy } from '@senars/strategies';
 
 /**
  * TODO27 Bench 110 — seeding a NAR seeds everything it samples from.
@@ -43,7 +43,7 @@ describe('Bench 110 — one seed, one stochastic path', () => {
         rng,
       });
       for (let i = 0; i < 4; i++) bag.add({ id: `i_${i}`, priority: 1 });
-      return bag.sampleMany(2).map((item) => item.id);
+      return bag.sample(2).map((item) => item.id);
     };
     expect(draw(mulberry32(SEED))).toEqual(draw(mulberry32(SEED)));
   });

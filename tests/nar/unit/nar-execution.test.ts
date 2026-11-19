@@ -1,5 +1,5 @@
 import type { RLFPLearner } from '@senars/reflex';
-import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
+import { createGateRegistry } from '@senars/kernel/GateRegistry';
 import { describe, expect, test, vi } from 'vitest';
 import {
   createDriveMetaGoalPolicy,
@@ -14,12 +14,12 @@ import {
   Truth,
   termParser,
 } from '@senars/nar';
-import type { CognitiveController } from '@senars/nar/cognitive';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters';
-import { DriveManager } from '@senars/nar/drives';
-import { NARExecution } from '@senars/nar/nar-execution';
-import { operationNameOf } from '@senars/nar/terms/index.js';
-import { ToolManager } from '@senars/nar/tools';
+import type { CognitiveController } from '@senars/cognitive';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/config/cognitive-parameters';
+import { DriveManager } from '@senars/drives';
+import { NARExecution } from '@senars/nar-execution';
+import { operationNameOf } from '@senars/terms/index';
+import { ToolManager } from '@senars/tools';
 import { createTestController, inferenceParams, transitivity } from '../fixtures/cognitive';
 
 const createMockProcessor = () => ({

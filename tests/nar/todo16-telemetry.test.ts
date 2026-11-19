@@ -1,11 +1,11 @@
 import type { ReasoningBudget } from '@senars/agent';
 import { validateCognitiveEvent } from '@senars/agent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { SystemOneIngressJudge } from '@senars/nar/lm/system-one/ingress-judge.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
-import type { JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
+import { KernelPerceptionGate } from '@senars/kernel/KernelPerceptionGate';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { SystemOneIngressJudge } from '@senars/lm/system-one/ingress-judge';
+import { createManifold } from '@senars/lm/system-one/manifold';
+import type { JudgmentQuery } from '@senars/lm/system-one/types';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,
@@ -97,7 +97,7 @@ describe('System One — Telemetry Emission (R2)', () => {
   });
 
   it('records Prometheus metrics for each judgment', async () => {
-    const { systemoneJudgmentsTotal } = await import('@senars/nar/metrics/prometheus.js');
+    const { systemoneJudgmentsTotal } = await import('@senars/metrics/prometheus');
 
     await gate.admit({
       rawObservation: '(test --> observation).',
@@ -142,7 +142,7 @@ describe('System One — Telemetry Emission (R2)', () => {
 
   it('proposition count == event count == metric delta for a batch', async () => {
     // Reset metrics by creating a fresh counter check
-    const { systemoneJudgmentsTotal } = await import('@senars/nar/metrics/prometheus.js');
+    const { systemoneJudgmentsTotal } = await import('@senars/metrics/prometheus');
     const metricsBefore = await systemoneJudgmentsTotal.get();
     const totalBefore = metricsBefore.values.reduce((sum, v) => sum + v.value, 0);
 

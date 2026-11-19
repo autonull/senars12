@@ -3,16 +3,16 @@ import {
   CYCLE_PATH_PREFIXES,
   IN_CYCLE_EDGE_ATTRIBUTIONS,
   IN_CYCLE_INVENTORY,
-} from '@senars/nar/lm/in-cycle-inventory.js';
-import { PROVIDER_SEAMS } from '@senars/nar/lm/provider-seams.js';
+} from '@senars/lm/in-cycle-inventory';
+import { PROVIDER_SEAMS } from '@senars/lm/provider-seams';
 import {
   checkInventory,
   type DiscoveredEdge,
   isTypeOnlyImport,
   lineOf,
-} from '../../scripts/lib/induction-inventory.js';
-import { checkSeams } from '../../scripts/lib/provider-dependency.js';
-import { type WitnessList, witnessFiles, witnessHolds } from '@senars/util/index.js';
+} from '../../scripts/lib/induction-inventory';
+import { checkSeams } from '../../scripts/lib/provider-dependency';
+import { type WitnessList, witnessFiles, witnessHolds } from '@senars/util/index';
 
 /**
  * TODO29.a A0 — the two gates' rules, and the declarations they read.
@@ -68,7 +68,7 @@ describe('TODO29.a — seam declarations must be true', () => {
 describe('TODO29.a — the inventory must account for the cycle path', () => {
   const edge = (file: string, typeOnly = false): DiscoveredEdge => ({
     file,
-    specifier: '../lm/lm-service.js',
+    specifier: '../lm/lm-service',
     typeOnly,
     line: 2,
   });
@@ -176,11 +176,11 @@ describe('TODO29.a — type-only is a lexical question', () => {
   const at = (source: string): boolean => isTypeOnlyImport(source, 0);
 
   it('recognises every shape that binds only types', () => {
-    expect(at(`import type { A } from './a.js';`)).toBe(true);
-    expect(at(`import { type A, type B } from './a.js';`)).toBe(true);
-    expect(at(`import { type A, b } from './a.js';`)).toBe(false);
-    expect(at(`import Def, { type A } from './a.js';`)).toBe(false);
-    expect(at(`import * as ns from './a.js';`)).toBe(false);
+    expect(at(`import type { A } from './a';`)).toBe(true);
+    expect(at(`import { type A, type B } from './a';`)).toBe(true);
+    expect(at(`import { type A, b } from './a';`)).toBe(false);
+    expect(at(`import Def, { type A } from './a';`)).toBe(false);
+    expect(at(`import * as ns from './a';`)).toBe(false);
   });
 });
 

@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
-import { GovernancePolicyEngine, PatchRiskClassifier } from '@senars/nar/governance/pipeline.js';
+import { GovernancePolicyEngine, PatchRiskClassifier } from '@senars/governance/pipeline';
 
 const base = {
   proposalId: uuidv4(),

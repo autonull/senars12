@@ -7,21 +7,21 @@ import {
   ingressQueries,
   actionQueries,
   selectQuery,
-} from '@senars/nar/lm/system-one/head-specs.js';
+} from '@senars/lm/system-one/head-specs';
 import {
   ALL_HEAD_SPECS,
   headRubrics,
   HEAD_SPECS,
   headSpecsInGroup,
-} from '@senars/nar/lm/system-one/head-ontology.js';
-import { createDefaultCalibrationSuite } from '@senars/nar/lm/system-one/calibration.js';
-import { DEFAULT_PIPELINE_STAGES } from '@senars/nar/lm/system-one/judgment-pipeline.js';
-import * as headsNs from '@senars/nar/lm/system-one/heads/index.js';
-import * as systemOneNs from '@senars/nar/lm/system-one/index.js';
-import { findKnobSpec, KNOB_SPECS, createKnobSet } from '@senars/nar/rlfp/knobs.js';
-import type { HeadFactoryOptions } from '@senars/nar/lm/system-one/heads/factory.js';
-import type { JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
-import type { HeadSpec } from '@senars/nar/lm/system-one/head-ontology.js';
+} from '@senars/lm/system-one/head-ontology';
+import { createDefaultCalibrationSuite } from '@senars/lm/system-one/calibration';
+import { DEFAULT_PIPELINE_STAGES } from '@senars/lm/system-one/judgment-pipeline';
+import * as headsNs from '@senars/lm/system-one/heads/index';
+import * as systemOneNs from '@senars/lm/system-one/index';
+import { findKnobSpec, KNOB_SPECS, createKnobSet } from '@senars/rlfp/knobs';
+import type { HeadFactoryOptions } from '@senars/lm/system-one/heads/factory';
+import type { JudgmentQuery } from '@senars/lm/system-one/types';
+import type { HeadSpec } from '@senars/lm/system-one/head-ontology';
 
 const makeOptions = (): HeadFactoryOptions => ({
   calibrationVersion: 'v1.0.0' as never,

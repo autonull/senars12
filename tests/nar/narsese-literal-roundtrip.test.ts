@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canonical, roundTrip, tighten } from '../../scripts/lib/narsese-literals.js';
+import { canonical, roundTrip, tighten } from '../../scripts/lib/narsese-literals';
 
 /**
  * TODO30 §2.3 T3 — the `narsese:literals` rule, and its declarations.

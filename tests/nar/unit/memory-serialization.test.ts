@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTaskWeight, Stamp, TermBuilder, Truth } from '@senars/nar';
-import { deserialize, Memory, repair, serialize, validate } from '@senars/nar/memory';
+import { deserialize, Memory, repair, serialize, validate } from '@senars/memory';
 
 describe('Phase 5.4: Memory Serialization', () => {
   it('should serialize empty memory', () => {

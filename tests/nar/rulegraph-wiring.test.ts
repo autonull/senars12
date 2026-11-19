@@ -1,14 +1,14 @@
 import { CallTallySeries, createCallTally } from '@senars/utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Memory, TermBuilder, Truth } from '@senars/nar';
-import { createTimestamp } from '@senars/nar/types';
-import { type RuleInput, RuleProcessor } from '@senars/nar/rules';
-import { CognitiveRegistry } from '@senars/nar/cognitive/impls/CognitiveRegistry.js';
-import { RuleGraph } from '@senars/nar/strategies/lm-graph/RuleGraph.js';
-import type { LMRule } from '@senars/nar/lm/LMRule.js';
-import type { ModelRuleSelector } from '@senars/nar/strategies/types.js';
-import type { Term } from '@senars/nar/terms';
-import { termsEqual } from '@senars/nar/terms';
+import { createTimestamp } from '@senars/types';
+import { type RuleInput, RuleProcessor } from '@senars/rules';
+import { CognitiveRegistry } from '@senars/cognitive/impls/CognitiveRegistry';
+import { RuleGraph } from '@senars/strategies/lm-graph/RuleGraph';
+import type { LMRule } from '@senars/lm/LMRule';
+import type { ModelRuleSelector } from '@senars/strategies/types';
+import type { Term } from '@senars/terms';
+import { termsEqual } from '@senars/terms';
 
 // Helper to create a RuleInput from a term string
 const makeInput = (termStr: string): RuleInput => ({
@@ -219,7 +219,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     graph.activate(termA, termB);
 
     // Use graph premise source via primitives
-    const { PREMISE_SOURCES } = await import('@senars/nar/strategies/premise/primitives.js');
+    const { PREMISE_SOURCES } = await import('@senars/strategies/premise/primitives');
     const task = { term: termA } as any;
     const concepts = PREMISE_SOURCES.graph(task, memory);
 
@@ -241,7 +241,7 @@ describe('RuleGraph wiring (C5 falsifying tests)', () => {
     graph.activate(termA, termB); // Second activation increases weight
 
     const { PREMISE_SCORER_REGISTRY, resolveScorer } = await import(
-      '@senars/nar/strategies/premise/primitives.js'
+      '@senars/strategies/premise/primitives'
     );
     const scorer = resolveScorer(memory, 'edgeWeight');
 

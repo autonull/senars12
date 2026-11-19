@@ -5,7 +5,7 @@ import { NAREngine } from '@senars/agent';
 import { startAgentUI } from '@senars/ui/server';
 import { afterAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import { waitFor } from './fixtures.js';
+import { waitFor } from './fixtures';
 
 async function makeAgent(): Promise<Agent> {
   const engine = new NAREngine();

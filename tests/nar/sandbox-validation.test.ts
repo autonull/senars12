@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ProposalRouter, SandboxValidator } from '@senars/nar/governance/pipeline.js';
-import { SelfRewardGate } from '@senars/nar/kernel/KernelRewardGate.js';
+import { ProposalRouter, SandboxValidator } from '@senars/governance/pipeline';
+import { SelfRewardGate } from '@senars/kernel/KernelRewardGate';
 
 describe('todo7: sandbox validation', () => {
   it('validator approves in-range known knobs; rejects unknown/out-of-range/non-knob', () => {

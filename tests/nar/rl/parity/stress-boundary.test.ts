@@ -1,15 +1,15 @@
 import { describe, expect, test } from 'vitest';
 import { DEFAULT_CONFIG, TermBuilder } from '@senars/nar';
-import { BanditGame } from '@senars/nar/game/impls/BanditGame.js';
-import { NAR } from '@senars/nar/nar';
+import { BanditGame } from '@senars/game/impls/BanditGame';
+import { NAR } from '@senars/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   type QBeliefStore,
   RewardBeliefAdapter,
-} from '@senars/nar/rl/index.js';
-import type { Term } from '@senars/nar/terms/index.js';
-import { operationNameOf, operationTerm } from '@senars/nar/terms/index.js';
+} from '@senars/rl/index';
+import type { Term } from '@senars/terms/index';
+import { operationNameOf, operationTerm } from '@senars/terms/index';
 
 const NUM_ARMS = 3;
 const STATE_ID = 'bandit_state';

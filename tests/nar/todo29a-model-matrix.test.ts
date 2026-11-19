@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createNAR, type NAR } from '@senars/agent';
 import type { LMService } from '@senars/lm';
 import { DECISION_CALL_SITES } from '@senars/agent';
-import { manifestViolations } from '../../scripts/lib/decision-manifest.js';
+import { manifestViolations } from '../../scripts/lib/decision-manifest';
 
 /**
  * TODO29.a A1 — the four S/J/P configurations, as one gate.

@@ -17,7 +17,7 @@ import { CognitiveEventBaseSchema } from './event-base.js';
 import { AutonomyAuthoritySchema, AutonomyModeSchema, PatchProposalSchema } from './governance.js';
 import { NarEventSchemas } from './nar-events.js';
 import { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal-events.js';
-import { BudgetTypeSchema, TerminationReasonSchema } from './reasoning-budget.js';
+import { BudgetTypeSchema, TerminationReasonSchema } from './budget-types.js';
 import { TaskTypeSchema } from './task.js';
 import { BeliefTruthSchema as TruthValueSchema } from '../util/truth-schema.js';
 import { DerivationRecordSchema, DerivationStepSchema, RuleCategorySchema } from './derivation-records.js';

@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { CognitiveRegistry } from '@senars/nar/cognitive/impls/CognitiveRegistry.js';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters.js';
-import { createNAR } from '@senars/nar/nar-presets.js';
-import { createSeNARSRegistry } from '@senars/nar/lm/index.js';
-import { createLMService } from '@senars/nar/lm/lm-service.js';
-import type { NAR } from '@senars/nar/nar.js';
+import { CognitiveRegistry } from '@senars/cognitive/impls/CognitiveRegistry';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/config/cognitive-parameters';
+import { createNAR } from '@senars/nar-presets';
+import { createSeNARSRegistry } from '@senars/lm/index';
+import { createLMService } from '@senars/lm/lm-service';
+import type { NAR } from '@senars/nar';
 
 describe('CognitiveController accessors', () => {
   let nar: NAR;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { locateSpan, toFormalizationBatch } from '@senars/nar/nl/understanding.js';
+import { locateSpan, toFormalizationBatch } from '@senars/nl/understanding';
 
 const meta = {
   detectedIntent: 'learning' as const,

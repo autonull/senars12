@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { OutcomeLinker, ParameterLedger } from '@senars/agent';
-import { ParameterTable } from '@senars/config/nar';
+import { ParameterTable } from '@senars/config';
 import { RetrospectiveAdapter } from '@senars/dialogue';
 import { retrospect } from '@senars/dialogue';
 import { EpisodicMemory } from '@senars/agent';

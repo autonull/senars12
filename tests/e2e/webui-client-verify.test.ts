@@ -1,7 +1,7 @@
 import type { GraphNodeData, IncomingFromServer } from '@senars/agent';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { $graphEdges, $graphNodes, $nodeHistory } from '../../ui/src/client/core/store.js';
-import { applyServerMessage } from '../../ui/src/client/core/store-bindings.js';
+import { $graphEdges, $graphNodes, $nodeHistory } from '../../ui/src/client/core/store';
+import { applyServerMessage } from '../../ui/src/client/core/store-bindings';
 
 function node(id: string, term: string): { action: 'add_node'; id: string; data: GraphNodeData } {
   return {

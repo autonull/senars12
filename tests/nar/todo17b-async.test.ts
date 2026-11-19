@@ -1,11 +1,11 @@
 process.env.LM_PROVIDER = 'mock';
 
 import { afterEach, describe, expect, it } from 'vitest';
-import { createAgent } from '@senars/nar/agent/index.js';
-import type { ExtendedAgent } from '@senars/nar/agent/index.js';
-import { LMService, LMUnavailableError } from '@senars/nar/lm/lm-service.js';
-import { consolidateEpisodes } from '@senars/nar/memory/retrieval-verified.js';
-import type { ConsolidatorDeps } from '@senars/nar/memory/retrieval-verified.js';
+import { createAgent } from '@senars/agent/index';
+import type { ExtendedAgent } from '@senars/agent/index';
+import { LMService, LMUnavailableError } from '@senars/lm/lm-service';
+import { consolidateEpisodes } from '@senars/memory/retrieval-verified';
+import type { ConsolidatorDeps } from '@senars/memory/retrieval-verified';
 import type { Episode } from '@senars/utils';
 
 /**
@@ -52,7 +52,7 @@ describe('Bench 37 — Async Honesty', () => {
 
   it('D5 — stream records spend for the served provider', async () => {
     const service = new LMService(
-      (await import('@senars/nar/lm/index.js')).createSeNARSRegistry()
+      (await import('@senars/lm/index')).createSeNARSRegistry()
     );
     if (!service.hasModel()) return; // no provider in this environment — skip
     let chunks = 0;
@@ -63,7 +63,7 @@ describe('Bench 37 — Async Honesty', () => {
 
   it('D5 — repeated stream of the same prompt is cache-served', async () => {
     const service = new LMService(
-      (await import('@senars/nar/lm/index.js')).createSeNARSRegistry()
+      (await import('@senars/lm/index')).createSeNARSRegistry()
     );
     if (!service.hasModel()) return;
     let first = '';

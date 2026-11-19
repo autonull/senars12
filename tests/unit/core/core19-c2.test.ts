@@ -5,8 +5,8 @@ import {
   handleCycleRewind,
   handleReasoningAdjustBudget,
   handleReasoningAdjustProvider,
-} from '../../../ui/src/server/handlers.js';
-import { e2eNARConfig } from '../../e2e/fixtures.js';
+} from '../../../ui/src/server/handlers';
+import { e2eNARConfig } from '../../e2e/fixtures';
 
 /**
  * CORE.19 C2 — kernel control plane.

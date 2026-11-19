@@ -2,21 +2,21 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters.js';
-import { Memory } from '@senars/nar/memory/index.js';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/config/cognitive-parameters';
+import { Memory } from '@senars/memory/index';
 import {
   decodeMemoryState,
   encodeMemoryState,
   MEMORY_VERSION,
   validate,
-} from '@senars/nar/memory/state/serialization.js';
-import { NAR_STATE_SCHEMA_VERSION } from '@senars/nar/state/codec.js';
-import { LogStoreStatePersister } from '@senars/log/StatePersister.js';
-import { createLogStore } from '@senars/log/store.js';
-import { decodeState, encodeState } from '@senars/nar/state/codec.js';
-import { appConfigSchema } from '../../src/config/schema.js';
-import { MIGRATIONS, migrateConfig, migrateConfigFile } from '../../src/utils/config-migrate.js';
-import { deepFreeze } from '@senars/util/index.js';
+} from '@senars/memory/state/serialization';
+import { NAR_STATE_SCHEMA_VERSION } from '@senars/state/codec';
+import { LogStoreStatePersister } from '@senars/log/StatePersister';
+import { createLogStore } from '@senars/log/store';
+import { decodeState, encodeState } from '@senars/state/codec';
+import { appConfigSchema } from '../../src/config/schema';
+import { MIGRATIONS, migrateConfig, migrateConfigFile } from '../../src/utils/config-migrate';
+import { deepFreeze } from '@senars/util/index';
 
 /** Bench 66 — Configuration Hardening (TODO20 Phase 5: C1/C2/C3/C4, X7). */
 

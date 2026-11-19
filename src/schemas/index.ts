@@ -18,6 +18,29 @@ export {
   SourceQualitySchema,
   TruthValueSchema,
 } from './truth.js';
+/** Budget types — shared to avoid circular dependency. */
+export type {
+  BudgetScopeId,
+  BudgetType,
+  TerminationReason,
+} from './budget-types.js';
+export {
+  BUDGET_SCOPE_IDS,
+  BUDGET_TYPES,
+  BudgetTypeSchema,
+  TerminationReasonSchema,
+} from './budget-types.js';
+/** Reasoning budget — uses budget-types. */
+export type {
+  ConsumedBudget,
+  ReasoningBudget,
+} from './reasoning-budget.js';
+export {
+  ConsumedBudgetSchema,
+  ReasoningBudgetSchema,
+  validateReasoningBudget,
+  zeroConsumed,
+} from './reasoning-budget.js';
 export type {
   AutonomyModeChangedEvent,
   BeliefRevisedEvent,
@@ -159,23 +182,6 @@ export {
   validateProposal,
 } from './proposal.js';
 export { ProposalAdmittedEventSchema, ProposalRejectedEventSchema } from './proposal-events.js';
-export type {
-  BudgetScopeId,
-  BudgetType,
-  ConsumedBudget,
-  ReasoningBudget,
-  TerminationReason,
-} from './reasoning-budget.js';
-export {
-  BUDGET_SCOPE_IDS,
-  BUDGET_TYPES,
-  BudgetTypeSchema,
-  ConsumedBudgetSchema,
-  ReasoningBudgetSchema,
-  TerminationReasonSchema,
-  validateReasoningBudget,
-  zeroConsumed,
-} from './reasoning-budget.js';
 export type {
   RuleArtifactEntry,
   RuleDeclaration,

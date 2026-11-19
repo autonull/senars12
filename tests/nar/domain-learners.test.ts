@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { Focus } from '@senars/nar/focus/Focus.js';
-import { FocusBag } from '@senars/nar/focus/FocusBag.js';
-import { SelfRewardGate } from '@senars/nar/kernel/KernelRewardGate.js';
-import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
+import { Focus } from '@senars/focus/Focus';
+import { FocusBag } from '@senars/focus/FocusBag';
+import { SelfRewardGate } from '@senars/kernel/KernelRewardGate';
+import { createGateRegistry } from '@senars/kernel/GateRegistry';
 import {
   ConfigOptimizer,
   CrossDomainError,
@@ -11,7 +11,7 @@ import {
   PreferenceRanker,
   ReflexLearner,
   SchedulerAdapter,
-} from '@senars/nar/learning/domain-learners.js';
+} from '@senars/learning/domain-learners';
 
 const focusBagWith = (id: string, weight: number): FocusBag => {
   const bag = new FocusBag({ capacity: 10 });

@@ -1,4 +1,4 @@
-import { TermBuilder, termsEqual, unify } from '@senars/nar/terms';
+import { TermBuilder, termsEqual, unify } from '@senars/terms';
 
 test('unify binds variable and enforces consistency', () => {
   const A = TermBuilder.atom('A');

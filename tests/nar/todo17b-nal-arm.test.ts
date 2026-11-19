@@ -11,7 +11,7 @@ import type { ActionProposal, LearningEvent, Reflex } from '@senars/reflex';
 import { Negotiator } from '@senars/reflex';
 import { describe, expect, it } from 'vitest';
 import { clamp01 } from '@senars/utils';
-import { pinDeterministicRNG, restoreRNG } from '../helpers/rng.js';
+import { pinDeterministicRNG, restoreRNG } from '../helpers/rng';
 import { createGateRegistry } from '@senars/kernel';
 
 /** Scripted reflex that always proposes one action at high confidence. */

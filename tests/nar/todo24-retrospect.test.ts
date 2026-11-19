@@ -2,16 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
-import { DigestMismatchError } from '@senars/nar/lm/system-one/wasi-runtime.js';
+import { EpisodicMemory } from '@senars/memory/EpisodicMemory';
+import { DigestMismatchError } from '@senars/lm/system-one/wasi-runtime';
 import {
   extractLessons,
   loadRetrospectives,
   persistRetrospective,
   retrospect,
-} from '@senars/nar/dialogue/impls/retrospect.js';
-import { DialogueCapture } from '@senars/nar/dialogue/impls/DialogueCapture.js';
-import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic.js';
+} from '@senars/dialogue/impls/retrospect';
+import { DialogueCapture } from '@senars/dialogue/impls/DialogueCapture';
+import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic';
 
 const makeEpisodic = async () =>
   new EpisodicMemory({

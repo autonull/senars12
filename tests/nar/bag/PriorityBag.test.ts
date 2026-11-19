@@ -1,6 +1,6 @@
 import { PriorityBag } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
-import { createLCG } from '../../helpers/rng.js';
+import { createLCG } from '../../helpers/rng';
 
 describe('PriorityBag', () => {
   it('should add and sample items by priority', () => {

@@ -5,9 +5,9 @@
  */
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { PriorityBag } from '@senars/nar/bag';
-import type { BagItem } from '@senars/nar/bag';
-import { Negotiator } from '@senars/nar/reflex';
+import { PriorityBag } from '@senars/bag';
+import type { BagItem } from '@senars/bag';
+import { Negotiator } from '@senars/reflex';
 import { createLCG, pinDeterministicRNG, restoreRNG, withDeterministicRNG } from '../helpers/rng';
 
 interface Item extends BagItem {
@@ -67,7 +67,7 @@ describe('Bench 63 — Determinism', () => {
 
   it('Negotiator is RNG-free (veto resolution is a pure function)', () => {
     const source = readFileSync(
-      new URL('@senars/nar/reflex/Negotiator.ts', import.meta.url),
+      new URL('@senars/reflex/Negotiator.ts', import.meta.url),
       'utf-8'
     );
     expect(source.includes('Math.random')).toBe(false);

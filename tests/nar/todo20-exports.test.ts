@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { auditPackages } from '../../scripts/exports-audit.js';
+import { auditPackages } from '../../scripts/exports-audit';
 
 /** Bench 67 — Public API Surface & Versioning (TODO20 Phase 6: A1/A3). */
 

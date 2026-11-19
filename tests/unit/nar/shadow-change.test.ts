@@ -7,11 +7,11 @@ import {
   type SelfToolsContext,
   shadowChange,
   writeAndValidate,
-} from '@senars/nar/tools/adapters/self/context.js';
+} from '@senars/tools/adapters/self/context';
 import {
   ShadowWorktreeManager,
   type TestRunResult,
-} from '@senars/nar/tools/adapters/shadow-worktree.js';
+} from '@senars/tools/adapters/shadow-worktree';
 
 const PASSING: TestRunResult = {
   success: true,

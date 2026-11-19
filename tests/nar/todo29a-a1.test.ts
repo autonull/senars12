@@ -24,7 +24,7 @@ import { KernelPerceptionGate } from '@senars/kernel';
 import type { ModelRuleWork } from '@senars/rules';
 import { createTaskWeight, createTimestamp } from '@senars/agent';
 import { Stamp, Truth } from '@senars/terms';
-import { createTestController, inferenceParams } from './fixtures/cognitive.js';
+import { createTestController, inferenceParams } from './fixtures/cognitive';
 
 /**
  * TODO29.a A1 — the cycle's dependency on a model, as tests.

@@ -4,8 +4,8 @@ import { ConfigurationError } from '@senars/agent';
 import { CompositeAttention } from '@senars/agent';
 import { validateParameters } from '@senars/reflex';
 import { Memory } from '@senars/memory';
-import { atom } from '@senars/nar/terms/index.js';
-import type { AttentionModel } from '@senars/nar/strategies/types.js';
+import { atom } from '@senars/terms/index';
+import type { AttentionModel } from '@senars/strategies/types';
 
 /**
  * TODO27 Bench 108 — a composite is a named strategy with configuration.

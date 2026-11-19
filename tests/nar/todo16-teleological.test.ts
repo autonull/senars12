@@ -8,12 +8,12 @@ import {
   Truth,
   termParser,
 } from '@senars/nar';
-import { PriorityBag } from '@senars/nar/bag/Bag.js';
-import { KernelRewardGate } from '@senars/nar/kernel/KernelRewardGate.js';
-import { ActionGateTransducer } from '@senars/nar/lm/system-one/action-transducer.js';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
-import type { ClassifyProposition, JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
+import { PriorityBag } from '@senars/bag/Bag';
+import { KernelRewardGate } from '@senars/kernel/KernelRewardGate';
+import { ActionGateTransducer } from '@senars/lm/system-one/action-transducer';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { createManifold } from '@senars/lm/system-one/manifold';
+import type { ClassifyProposition, JudgmentQuery } from '@senars/lm/system-one/types';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,

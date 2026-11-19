@@ -3,23 +3,23 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mulberry32 } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
-import { induceEpisodeSchemas } from '@senars/nar/focus/episode-schemas.js';
-import { SchemaStore } from '@senars/nar/focus/schema-store.js';
-import { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
-import { mcReturns, recordMcReturnLabels } from '@senars/nar/lm/system-one/mc-return.js';
+import { induceEpisodeSchemas } from '@senars/focus/episode-schemas';
+import { SchemaStore } from '@senars/focus/schema-store';
+import { JudgmentDataset } from '@senars/lm/system-one/distill';
+import { mcReturns, recordMcReturnLabels } from '@senars/lm/system-one/mc-return';
 import {
   actionFeatures,
   bakeOffSharedHead,
   type HeadIdentity,
   type TrainingRow,
-} from '@senars/nar/lm/system-one/train.js';
+} from '@senars/lm/system-one/train';
 import {
   type AdapterReflex,
   recordingReflex,
   vetoAwareReflex,
   wrapReflex,
-} from '@senars/nar/reflex/adapters.js';
-import type { ActionProposal, LearningEvent, Reflex } from '@senars/nar/reflex/Reflex.js';
+} from '@senars/reflex/adapters';
+import type { ActionProposal, LearningEvent, Reflex } from '@senars/reflex/Reflex';
 
 /**
  * Bench 45 — Learning Closure (TODO19 Phase C)

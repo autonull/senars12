@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { outcomeTasks, perceptionTasks, proposalTasks } from '@senars/nar/focus/task.js';
-import { isValidAtomSymbol, toAtomSymbol } from '@senars/nar/terms/impls/valid-atom.js';
-import { createTaskWeight } from '@senars/nar/types/core.js';
+import { outcomeTasks, perceptionTasks, proposalTasks } from '@senars/focus/task';
+import { isValidAtomSymbol, toAtomSymbol } from '@senars/terms/impls/valid-atom';
+import { createTaskWeight } from '@senars/types/core';
 
 /** A pinned clock: the projection reads it once per batch, so ids are reproducible. */
 const pinned = () => {

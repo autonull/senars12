@@ -1,4 +1,4 @@
-import { applySubstitution, atom, isVariableSymbol, unify } from '@senars/nar/terms/index.js';
+import { applySubstitution, atom, isVariableSymbol, unify } from '@senars/terms/index';
 import { describe, expect, it } from 'vitest';
 
 describe('variable recognition', () => {

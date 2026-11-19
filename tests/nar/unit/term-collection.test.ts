@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest';
 
-import { TermMap, TermSet } from '@senars/nar/terms';
-import { TermBuilder } from '@senars/nar/terms/impls/factory.js';
-import type { AtomicTerm, CompoundTerm } from '@senars/nar/terms/types.js';
+import { TermMap, TermSet } from '@senars/terms';
+import { TermBuilder } from '@senars/terms/impls/factory';
+import type { AtomicTerm, CompoundTerm } from '@senars/terms/types';
 
 /** Locally-built terms are not frozen or factory-cached, so collections must
  *  fall back to structural identity rather than reference identity. */

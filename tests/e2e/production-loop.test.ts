@@ -6,7 +6,7 @@ import { startAgentUI } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { z } from 'zod';
-import { waitFor } from './fixtures.js';
+import { waitFor } from './fixtures';
 
 describe('Production loop: agent deltas reach the graph', () => {
   let server: Awaited<ReturnType<typeof startAgentUI>>;

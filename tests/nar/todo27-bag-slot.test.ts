@@ -6,8 +6,8 @@ import {
 import { Memory } from '@senars/memory';
 import { ConfigurationError } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
-import { atom, Truth } from '@senars/nar/terms/index.js';
-import { createTaskWeight } from '@senars/nar/types/index.js';
+import { atom, Truth } from '@senars/terms/index';
+import { createTaskWeight } from '@senars/types/index';
 
 /**
  * TODO27 Bench 107 — the bag slot is a contract.

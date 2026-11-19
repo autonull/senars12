@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import { PriorityBag } from '@senars/nar/bag';
+import { PriorityBag } from '@senars/bag';
 import {
   canonicalTerm,
   Stamp,
@@ -7,8 +7,8 @@ import {
   TermBuilder,
   Truth,
   termsEqual,
-} from '@senars/nar/terms';
-import { VALID_ATOM_CHARS } from '@senars/nar/terms/impls/valid-atom.js';
+} from '@senars/terms';
+import { VALID_ATOM_CHARS } from '@senars/terms/impls/valid-atom';
 
 // Valid atom name arbitrary matching Narsese grammar: alphanumerics and underscore only
 const validAtomName = fc.string({

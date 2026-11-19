@@ -8,7 +8,7 @@ import {
   Truth,
   termParser,
 } from '@senars/nar';
-import { operationNameOf } from '@senars/nar/terms/index.js';
+import { operationNameOf } from '@senars/terms/index';
 
 describe('No-Bypass Contract', () => {
   let nar: NAR;

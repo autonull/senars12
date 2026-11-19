@@ -1,4 +1,4 @@
-import type { CycleStageEvent } from '@senars/schemas/cognitive-events.js';
+import type { CycleStageEvent } from '@senars/schemas/cognitive-events';
 import { summarizeRegions } from '@senars/trace';
 import { describe, expect, it } from 'vitest';
 

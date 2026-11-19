@@ -14,9 +14,9 @@ import {
   RUBRIC_IDS,
   rubricIdSchema,
   SYNTHESIS_AXIS,
-} from '@senars/nar/decision/index.js';
-import { ALL_HEAD_SPECS, HEAD_SPECS } from '@senars/nar/lm/system-one/head-ontology.js';
-import { TaskBatchSchema } from '@senars/nar/lm/rule-templates/schemas.js';
+} from '@senars/decision/index';
+import { ALL_HEAD_SPECS, HEAD_SPECS } from '@senars/lm/system-one/head-ontology';
+import { TaskBatchSchema } from '@senars/lm/rule-templates/schemas';
 
 /**
  * A vocabulary that is declared twice is a vocabulary that has already drifted.

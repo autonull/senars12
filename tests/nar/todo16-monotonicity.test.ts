@@ -1,8 +1,8 @@
 import type { ReasoningBudget } from '@senars/agent';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
-import type { JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { createManifold } from '@senars/lm/system-one/manifold';
+import type { JudgmentQuery } from '@senars/lm/system-one/types';
 
 describe('System One — Adversarial Monotonicity (Bench 8)', () => {
   let manifold: ReturnType<typeof createManifold>;

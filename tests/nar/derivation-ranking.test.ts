@@ -3,13 +3,13 @@ import {
   DEFAULT_COGNITIVE_PARAMETERS,
   mergeParameters,
   PARAMETER_SPACE,
-} from '@senars/nar/config/cognitive-parameters.js';
+} from '@senars/config/cognitive-parameters';
 import {
   DEFAULT_MAX_ADMISSIONS,
   DEFAULT_MIN_SCORE,
   rankDerivations,
   scoreDerivation,
-} from '@senars/nar/rules/impls/ranking.js';
+} from '@senars/rules/impls/ranking';
 
 const t = (s: string, f?: number, c?: number) => ({
   term: { toString: () => s },

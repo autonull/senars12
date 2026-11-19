@@ -12,10 +12,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Memory } from '@senars/memory';
 import { describe, expect, it } from 'vitest';
-import { Concept } from '@senars/nar/memory/concept.js';
-import { NullAttentionModel } from '@senars/nar/strategies/attention/NullAttentionModel.js';
-import { SimpleAttention } from '@senars/nar/strategies/attention/SimpleAttention.js';
-import { TermBuilder } from '@senars/nar/terms/impls/factory.js';
+import { Concept } from '@senars/memory/concept';
+import { NullAttentionModel } from '@senars/strategies/attention/NullAttentionModel';
+import { SimpleAttention } from '@senars/strategies/attention/SimpleAttention';
+import { TermBuilder } from '@senars/terms/impls/factory';
 import {
   ATTENTION_OWNER,
   ATTENTION_REASONS,
@@ -24,7 +24,7 @@ import {
   scanSubject,
   surfaceViolations,
   writeSites,
-} from '../../scripts/lib/attention-surface.js';
+} from '../../scripts/lib/attention-surface';
 
 const term = (name: string) => TermBuilder.atom(name);
 const rulesOf = (violations: ReturnType<typeof surfaceViolations>) =>

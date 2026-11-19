@@ -9,7 +9,7 @@ import {
   createReasoningTrace,
   QueryAPI,
   ReasoningTrace,
-} from '@senars/nar/query';
+} from '@senars/query';
 import { NAR } from '../../../src';
 
 describe('QueryAPI', () => {

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import type { NARConfig } from '@senars/agent';
 import { NAR } from '@senars/agent';
 import { NarEventBus } from '@senars/nar';
-import { e2eNARConfig } from '../e2e/fixtures.js';
+import { e2eNARConfig } from '../e2e/fixtures';
 import { createLogStore } from '../../src/log/store';
 import type { LogStore } from '../../src/log/store';
 

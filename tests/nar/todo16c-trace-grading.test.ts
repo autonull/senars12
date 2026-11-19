@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createTraceGrader } from '@senars/nar/lm/system-one/trace-grader.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
-import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
-import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
+import { createTraceGrader } from '@senars/lm/system-one/trace-grader';
+import { createManifold } from '@senars/lm/system-one/manifold';
+import { createEmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { JudgmentDataset } from '@senars/lm/system-one/distill';
+import { fakeEmbeddingGenerator } from '../helpers/fake-embedding';
 
 const fakeGenerator = fakeEmbeddingGenerator;
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Memory, TermBuilder, Truth } from '@senars/nar';
-import { createTimestamp } from '@senars/nar/types';
-import { type RuleInput, RuleProcessor } from '@senars/nar/rules';
+import { createTimestamp } from '@senars/types';
+import { type RuleInput, RuleProcessor } from '@senars/rules';
 
 // Helper to create a RuleInput from a term string
 const makeInput = (termStr: string): RuleInput => ({

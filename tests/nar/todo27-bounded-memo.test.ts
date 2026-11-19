@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CognitiveRegistry } from '@senars/cognitive';
 import { ConfigurationError } from '@senars/agent';
-import type { Strategy } from '@senars/nar/strategies/types.js';
+import type { Strategy } from '@senars/strategies/types';
 
 /**
  * TODO27 Bench 106 — the instance caches are bounded, not a leak.

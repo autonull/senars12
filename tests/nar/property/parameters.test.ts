@@ -5,7 +5,7 @@ import {
   PARAMETER_SPACE,
   validateParameters,
   type CognitiveParameters,
-} from '@senars/nar/config/cognitive-parameters';
+} from '@senars/config/cognitive-parameters';
 
 type Bound = { min: number; max: number; default: number };
 type SpaceLeaf = Bound;

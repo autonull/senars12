@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
-import { termParser } from '@senars/nar/terms';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import type { EmbeddingPointer, JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
+import { KernelPerceptionGate } from '@senars/kernel/KernelPerceptionGate';
+import { termParser } from '@senars/terms';
+import { createManifold } from '@senars/lm/system-one/manifold';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import type { EmbeddingPointer, JudgmentQuery } from '@senars/lm/system-one/types';
 
 const QUERY: JudgmentQuery[] = [
   { kind: 'evaluate', instruction: 'Evaluate relevance', rubric: 'relevance', axis: 'epistemic' },

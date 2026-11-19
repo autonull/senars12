@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { KernelActionGate } from '@senars/nar/kernel/KernelActionGate.js';
+import { KernelActionGate } from '@senars/kernel/KernelActionGate';
 import { pushCapped } from '@senars/utils';
-import { GATE_LOG_CAPACITY } from '@senars/nar/kernel/event-ring.js';
-import { MetacognitiveMonitor } from '@senars/nar/cognitive/impls/MetacognitiveMonitor.js';
-import { ProposalRouter } from '@senars/nar/governance/pipeline.js';
+import { GATE_LOG_CAPACITY } from '@senars/kernel/event-ring';
+import { MetacognitiveMonitor } from '@senars/cognitive/impls/MetacognitiveMonitor';
+import { ProposalRouter } from '@senars/governance/pipeline';
 import {
   InMemorySessionManager,
   SessionStore,
-} from '@senars/util/memory/in-memory-session-manager.js';
-import { EGraph } from '@senars/metta/engine/egraph.js';
-import { Memory } from '@senars/nar/memory/memory.js';
+} from '@senars/util/memory/in-memory-session-manager';
+import { EGraph } from '@senars/metta/engine/egraph';
+import { Memory } from '@senars/memory/memory';
 
 /**
  * Bench 38 — Bounded Runtime (TODO17b Phase B)
@@ -140,7 +140,7 @@ describe('Bench 38 — Bounded Runtime', () => {
   });
 
   it('D16 — LM cache sweep piggybacks on writes', async () => {
-    const { ResponseCache } = await import('@senars/nar/lm/service/cache.js');
+    const { ResponseCache } = await import('@senars/lm/service/cache');
     let clock = 1_000;
     const rc = new ResponseCache({ ttlMs: 60_000, now: () => clock });
     rc.set('stale', 'v');

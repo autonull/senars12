@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { v4 as uuidv4 } from 'uuid';
-import { KernelActionGate } from '@senars/nar/kernel/KernelActionGate.js';
-import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
-import { KernelRewardGate } from '@senars/nar/kernel/KernelRewardGate.js';
-import { projectOutcome } from '@senars/nar/kernel/gate-base.js';
-import { prometheusRegistry } from '@senars/nar/metrics/prometheus.js';
+import { KernelActionGate } from '@senars/kernel/KernelActionGate';
+import { KernelBudgetGate } from '@senars/kernel/KernelBudgetGate';
+import { KernelRewardGate } from '@senars/kernel/KernelRewardGate';
+import { projectOutcome } from '@senars/kernel/gate-base';
+import { prometheusRegistry } from '@senars/metrics/prometheus';
 
 /**
  * The one decision vocabulary, observed the way an operator observes it: as the

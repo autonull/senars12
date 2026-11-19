@@ -11,7 +11,7 @@ import { TermFactory } from '@senars/kernel';
 import { Truth } from '@senars/kernel';
 import { Stamp } from '@senars/kernel';
 import { createStepExecutor, StepExecutor } from '@senars/kernel';
-import { NALRuleEngine } from '@senars/logics/nal/rules';
+import { NALRuleEngine } from '@senars/rules';
 import {
   DerivationRecorder,
   DerivationRecord,

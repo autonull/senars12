@@ -1,4 +1,4 @@
-import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
+import { createGateRegistry } from '@senars/kernel/GateRegistry';
 /**
  * A5's boundary (TODO29.a §5.5) — every case failing first, per §10.1.
  *
@@ -19,13 +19,13 @@ import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
  */
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/nar/config/cognitive-parameters.js';
+import { DEFAULT_COGNITIVE_PARAMETERS } from '@senars/config/cognitive-parameters';
 
-import { AssociativeRegistry } from '@senars/nar/memory/associative.js';
-import type { ConceptGraph } from '@senars/nar/memory/ConceptGraph.js';
-import { Concept, type ConceptTaskType } from '@senars/nar/memory/concept.js';
-import { Focus } from '@senars/nar/memory/focus.js';
-import { LinkManager } from '@senars/nar/memory/links/index.js';
+import { AssociativeRegistry } from '@senars/memory/associative';
+import type { ConceptGraph } from '@senars/memory/ConceptGraph';
+import { Concept, type ConceptTaskType } from '@senars/memory/concept';
+import { Focus } from '@senars/memory/focus';
+import { LinkManager } from '@senars/memory/links/index';
 import type {
   BeliefTable,
   ConceptReader,
@@ -38,20 +38,20 @@ import type {
   StatisticsView,
   SymbolIndex,
   TaskAdmission,
-} from '@senars/nar/memory/ports/index.js';
-import { Memory } from '@senars/nar/memory/memory.js';
-import type { MemoryView } from '@senars/nar/memory/view.js';
-import { InferenceController } from '@senars/nar/reason/inference-controller.js';
-import { RuleProcessor } from '@senars/nar/rules/impls/processor.js';
-import { NullAttentionModel } from '@senars/nar/strategies/attention/NullAttentionModel.js';
-import { TaskManager } from '@senars/nar/task/manager.js';
-import { Stamp, Truth, type Term } from '@senars/nar/terms';
-import { atom } from '@senars/nar/terms/impls/factory.js';
-import type { Budget, Task } from '@senars/nar/types';
-import { createTaskWeight, createTask } from '@senars/nar/types';
+} from '@senars/memory/ports/index';
+import { Memory } from '@senars/memory/memory';
+import type { MemoryView } from '@senars/memory/view';
+import { InferenceController } from '@senars/reason/inference-controller';
+import { RuleProcessor } from '@senars/rules/impls/processor';
+import { NullAttentionModel } from '@senars/strategies/attention/NullAttentionModel';
+import { TaskManager } from '@senars/task/manager';
+import { Stamp, Truth, type Term } from '@senars/terms';
+import { atom } from '@senars/terms/impls/factory';
+import type { Budget, Task } from '@senars/types';
+import { createTaskWeight, createTask } from '@senars/types';
 
-import { isCyclePath, resolveInNar } from '../../scripts/lib/layer-boundary.js';
-import { ROOT } from '../../scripts/lib/root.js';
+import { isCyclePath, resolveInNar } from '../../scripts/lib/layer-boundary';
+import { ROOT } from '../../scripts/lib/root';
 
 /** The fake store's nominal capacity — anything, since it evicts nothing. */
 const FAKE_CAPACITY = 1000;
@@ -307,9 +307,9 @@ describe('A5 — memory is a set of ports', () => {
     // The rule the gate applies, on a file that is not one.
     const cyclePath = `${ROOT}/nar/src/reason/inference-controller.ts`;
     expect(isCyclePath(cyclePath)).toBe(true);
-    expect(resolveInNar(cyclePath, '../memory/view.js')).toBe(`${ROOT}/nar/src/memory/view`);
+    expect(resolveInNar(cyclePath, '../memory/view')).toBe(`${ROOT}/nar/src/memory/view`);
     // The ports resolve where the gate expects them to.
-    expect(resolveInNar(cyclePath, '../memory/ports/index.js')).toBe(
+    expect(resolveInNar(cyclePath, '../memory/ports/index')).toBe(
       `${ROOT}/nar/src/memory/ports/index`
     );
   });

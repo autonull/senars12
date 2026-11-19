@@ -28,8 +28,8 @@ import {
   measureCurrent,
   readBudget,
   renderTable,
-} from '../../scripts/lib/complexity-budget.js';
-import { ROOT } from '../../scripts/lib/root.js';
+} from '../../scripts/lib/complexity-budget';
+import { ROOT } from '../../scripts/lib/root';
 
 const execFileAsync = promisify(execFile);
 

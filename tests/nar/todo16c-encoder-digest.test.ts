@@ -5,7 +5,7 @@ import {
   encoderDigest,
   loadHeadRuntime,
   verifyModelDigest,
-} from '@senars/nar/lm/system-one/wasi-runtime.js';
+} from '@senars/lm/system-one/wasi-runtime';
 import {
   DEFAULT_EMBEDDING_DIMENSION,
   DEFAULT_EMBEDDING_MODEL_ID,
@@ -13,12 +13,12 @@ import {
   TransformersEmbeddingGenerator,
   createEmbeddingGenerator,
   type EmbeddingGenerator,
-} from '@senars/nar/memory/embedding.js';
+} from '@senars/memory/embedding';
 import {
   createEmbeddingCache,
   type EmbeddingCache,
-} from '@senars/nar/lm/system-one/embedding-cache.js';
-import { appConfigSchema, systemOneSchema } from '../../src/config/schema.js';
+} from '@senars/lm/system-one/embedding-cache';
+import { appConfigSchema, systemOneSchema } from '../../src/config/schema';
 
 const passThroughManifold = () => ({
   judgeBatch: async () => [],

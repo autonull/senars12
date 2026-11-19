@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { createAgent } from '@senars/nar/agent/index.js';
-import { createNAR } from '@senars/nar/nar-presets.js';
+import { createAgent } from '@senars/agent/index';
+import { createNAR } from '@senars/nar-presets';
 import { createMettaPort } from '@senars/metta-runtime';
 import { rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';

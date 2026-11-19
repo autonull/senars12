@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runDerivationBenchmarks } from '../../src/bin/lib/benchmarks.js';
+import { runDerivationBenchmarks } from '../../src/bin/lib/benchmarks';
 
 describe('runDerivationBenchmarks (CORE.19 C7.6)', () => {
   it('produces real, ranked rule-fire costs from the fixed workload', async () => {

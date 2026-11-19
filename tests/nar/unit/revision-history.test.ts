@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createTaskWeight, Memory, TermBuilder, Truth, termParser } from '@senars/nar';
-import { createMinimalNAR } from '@senars/nar/nar-presets.js';
+import { createMinimalNAR } from '@senars/nar-presets';
 
 describe('Pillar 1: revision history', () => {
   describe('Memory.getRevisionHistory', () => {

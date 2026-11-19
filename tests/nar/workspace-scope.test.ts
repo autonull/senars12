@@ -1,8 +1,8 @@
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
-import { createFileSystemTools } from '@senars/nar/tools/adapters/filesystem.js';
-import { createRateLimiter } from '@senars/io/bridge/MiddlewarePipeline.js';
+import { createFileSystemTools } from '@senars/tools/adapters/filesystem';
+import { createRateLimiter } from '@senars/io/bridge/MiddlewarePipeline';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('fs tool workspace scope', () => {

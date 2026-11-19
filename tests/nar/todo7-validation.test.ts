@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
-import { CapabilitySpace } from '@senars/nar/capability/space.js';
-import { Focus } from '@senars/nar/focus/Focus.js';
-import { FocusBag } from '@senars/nar/focus/FocusBag.js';
+import { CapabilitySpace } from '@senars/capability/space';
+import { Focus } from '@senars/focus/Focus';
+import { FocusBag } from '@senars/focus/FocusBag';
 import {
   atom,
   Concept,
@@ -11,12 +11,12 @@ import {
   Stamp,
   TermBuilder,
   Truth,
-} from '@senars/nar/index.js';
-import { createTimestamp } from '@senars/nar/types';
-import { createGateRegistry } from '@senars/nar/kernel/GateRegistry.js';
-import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
-import { KernelRewardGate } from '@senars/nar/kernel/KernelRewardGate.js';
-import { toFormalizationBatch } from '@senars/nar/nl/understanding.js';
+} from '@senars/index';
+import { createTimestamp } from '@senars/types';
+import { createGateRegistry } from '@senars/kernel/GateRegistry';
+import { KernelBudgetGate } from '@senars/kernel/KernelBudgetGate';
+import { KernelRewardGate } from '@senars/kernel/KernelRewardGate';
+import { toFormalizationBatch } from '@senars/nl/understanding';
 import { verifyRecord } from '@senars/agent';
 
 describe('TODO7 validation benchmarks', () => {

@@ -2,8 +2,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { type DistillationLabel, JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
-import { type CycleTrajectory, TrajectoryStore } from '@senars/nar/rlfp/trajectory-store.js';
+import { type DistillationLabel, JudgmentDataset } from '@senars/lm/system-one/distill';
+import { type CycleTrajectory, TrajectoryStore } from '@senars/rlfp/trajectory-store';
 
 const cycle = (correlationId: string, grounded?: number, meanRisk = 0.2): CycleTrajectory => ({
   correlationId,

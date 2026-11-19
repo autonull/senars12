@@ -5,13 +5,13 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { createNAR } from '@senars/agent';
 import type { ExtendedAgent } from '@senars/agent';
 import { afterEach, describe, expect, it } from 'vitest';
-import { registerMCPResources } from '../../src/bin/lib/mcp/mcp-resources.js';
+import { registerMCPResources } from '../../src/bin/lib/mcp/mcp-resources';
 
 const connect = async (server: McpServer): Promise<Client> => {
   const client = new Client({ name: 'test-client', version: '0.0.1' });

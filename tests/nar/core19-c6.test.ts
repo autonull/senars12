@@ -7,7 +7,7 @@ import {
 import type { NARConfig } from '@senars/agent';
 import { NAR } from '@senars/agent';
 import { NarEventBus } from '@senars/nar';
-import { e2eNARConfig } from '../e2e/fixtures.js';
+import { e2eNARConfig } from '../e2e/fixtures';
 
 /**
  * CORE.19 C6 — the neuro-symbolic voice.

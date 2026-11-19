@@ -4,9 +4,9 @@ import {
   operationNameOf,
   operationTerm,
   readOperationTerm,
-} from '@senars/nar/terms/impls/operation-term.js';
-import { termParser } from '@senars/nar/terms/impls/parser-peggy.js';
-import { isCompound, TermBuilder } from '@senars/nar/terms/index.js';
+} from '@senars/terms/impls/operation-term';
+import { termParser } from '@senars/terms/impls/parser-peggy';
+import { isCompound, TermBuilder } from '@senars/terms/index';
 
 describe('operation-term convention', () => {
   it('round-trips a named argument record', () => {

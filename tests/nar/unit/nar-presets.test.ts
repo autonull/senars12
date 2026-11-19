@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'vitest';
 import { createNAR, type NAR } from '@senars/nar';
-import type { SeNARSOptions } from '@senars/nar/nar-presets.js';
+import type { SeNARSOptions } from '@senars/nar-presets';
 
 const created: NAR[] = [];
 

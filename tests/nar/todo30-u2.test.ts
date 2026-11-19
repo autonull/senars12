@@ -7,9 +7,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createNAR } from '@senars/nar/nar-presets.js';
-import { byRelevance, relevanceScore, RELEVANCE_EXACT } from '@senars/nar/query/index.js';
-import { termParser, Truth, type Term } from '@senars/nar/terms/index.js';
+import { createNAR } from '@senars/nar-presets';
+import { byRelevance, relevanceScore, RELEVANCE_EXACT } from '@senars/query/index';
+import { termParser, Truth, type Term } from '@senars/terms/index';
 
 const FOCUS = '(kitty-->mortal)';
 

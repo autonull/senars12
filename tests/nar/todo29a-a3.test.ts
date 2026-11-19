@@ -18,7 +18,7 @@ import {
   type ProtocolSubject,
   protocolViolations,
   scanProtocol,
-} from '../../scripts/lib/proposal-protocol.js';
+} from '../../scripts/lib/proposal-protocol';
 
 /** Which gate rules a subject trips — every failure case names the rule it trips. */
 const rulesOf = (subject: ProtocolSubject): string[] =>

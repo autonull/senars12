@@ -1,2 +1,2 @@
-export { DefaultToolFeedbackObserver } from './ToolFeedbackObserver.js';
+export { DefaultToolFeedbackObserver, toSkillFeedback } from './ToolFeedbackObserver.js';
 export type { ToolFeedback, SkillFeedback, ToolFeedbackObserver, ToolFeedbackObserver as ToolFeedbackObserverType } from './ToolFeedbackObserver.js';

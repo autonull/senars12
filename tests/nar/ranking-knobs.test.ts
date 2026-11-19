@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
   mergeParameters,
-} from '@senars/nar/config/cognitive-parameters.js';
-import { createKnobSet, knobSchema } from '@senars/nar/rlfp/knobs.js';
-import { rankDerivations } from '@senars/nar/rules/impls/ranking.js';
+} from '@senars/config/cognitive-parameters';
+import { createKnobSet, knobSchema } from '@senars/rlfp/knobs';
+import { rankDerivations } from '@senars/rules/impls/ranking';
 
 const t = (s: string) => ({ term: { toString: () => s }, truth: { f: 0.9, c: 0.9 } });
 

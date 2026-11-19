@@ -371,7 +371,7 @@ describe('a rule proposal has a path to becoming a rule', () => {
 describe("the README's rule matrix is generated, not transcribed", () => {
   it('rendering the loaded table reproduces the committed matrix exactly', async () => {
     const { readFile } = await import('node:fs/promises');
-    const { renderMatrix } = await import('../../docs/readme/generate.js');
+    const { renderMatrix } = await import('../../docs/readme/generate');
     const readme = await readFile(new URL('../../README.md', import.meta.url), 'utf8');
 
     expect(readme).toContain(renderMatrix(BUILTIN_DECLARATIONS));
@@ -379,7 +379,7 @@ describe("the README's rule matrix is generated, not transcribed", () => {
 
   it('README.md is the sections in docs/readme, in order', async () => {
     const { readFile } = await import('node:fs/promises');
-    const { buildReadme } = await import('../../docs/readme/generate.js');
+    const { buildReadme } = await import('../../docs/readme/generate');
     const readme = await readFile(new URL('../../README.md', import.meta.url), 'utf8');
 
     expect(buildReadme()).toBe(readme);

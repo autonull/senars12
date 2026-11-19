@@ -1,9 +1,9 @@
 import type { ReasoningBudget } from '@senars/agent';
 import { bandOrdinal } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
-import { ActionGateTransducer } from '@senars/nar/lm/system-one/action-transducer.js';
-import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
+import { ActionGateTransducer } from '@senars/lm/system-one/action-transducer';
+import { createEmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { createManifold } from '@senars/lm/system-one/manifold';
 import {
   type CompositeEntry,
   ConfidenceRouter,
@@ -13,7 +13,7 @@ import {
   routeConfidence,
   truthProbability,
   truthProbabilityOf,
-} from '@senars/nar/lm/system-one/policy.js';
+} from '@senars/lm/system-one/policy';
 import type {
   BackendId,
   ClassifyProposition,
@@ -21,8 +21,8 @@ import type {
   JudgmentQuery,
   ModelDigest,
   QueryId,
-} from '@senars/nar/lm/system-one/types.js';
-import { fakeEmbeddingGenerator } from '../helpers/fake-embedding.js';
+} from '@senars/lm/system-one/types';
+import { fakeEmbeddingGenerator } from '../helpers/fake-embedding';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,

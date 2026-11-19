@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importEdges, maskNonCode } from '../../scripts/lib/imports.js';
+import { importEdges, maskNonCode } from '../../scripts/lib/imports';
 
 /**
  * TODO28 Bench — the layering gate sees what it claims to see.
@@ -24,47 +24,47 @@ describe('TODO28 — module specifier extraction', () => {
     const source = [
       `import { a } from '@senars/agent';`,
       `import type { B } from '@senars/agent';`,
-      `import Default from './default.js';`,
-      `import { type C, d } from './mixed.js';`,
-      `import '@senars/util/side-effect.js';`,
-      `import * as ns from './ns.js';`,
+      `import Default from './default';`,
+      `import { type C, d } from './mixed';`,
+      `import '@senars/util/side-effect';`,
+      `import * as ns from './ns';`,
     ].join('\n');
     expect(specifiersOf(source)).toEqual([
       '@senars/agent',
       '@senars/agent',
-      './default.js',
-      './mixed.js',
-      '@senars/util/side-effect.js',
-      './ns.js',
+      './default',
+      './mixed',
+      '@senars/util/side-effect',
+      './ns',
     ]);
   });
 
   it('finds re-exports', () => {
-    expect(specifiersOf(`export { x } from './x.js';\nexport * from './y.js';`)).toEqual([
-      './x.js',
-      './y.js',
+    expect(specifiersOf(`export { x } from './x';\nexport * from './y';`)).toEqual([
+      './x',
+      './y',
     ]);
   });
 
   it('finds dynamic imports, and marks them dynamic', () => {
     const edges = importEdges(
-      `const m = await import('@senars/metta-runtime');\nconst n = await import(\n  './lazy.js'\n);`
+      `const m = await import('@senars/metta-runtime');\nconst n = await import(\n  './lazy'\n);`
     );
     expect(edges.map((e) => [e.specifier, e.dynamic])).toEqual([
       ['@senars/metta-runtime', true],
-      ['./lazy.js', true],
+      ['./lazy', true],
     ]);
   });
 
   it('ignores specifiers in line and block comments', () => {
     const source = [
-      `// import { a } from './commented.js';`,
+      `// import { a } from './commented';`,
       `/*`,
-      ` * import { b } from './blocked.js';`,
+      ` * import { b } from './blocked';`,
       ` */`,
-      `import { c } from './real.js';`,
+      `import { c } from './real';`,
     ].join('\n');
-    expect(specifiersOf(source)).toEqual(['./real.js']);
+    expect(specifiersOf(source)).toEqual(['./real']);
   });
 
   it('ignores specifiers in template literals — the generators emit them as text', () => {
@@ -73,9 +73,9 @@ describe('TODO28 — module specifier extraction', () => {
       `import { TermBuilder } from '@senars/terms';`,
       'export const x = { id: `${id}_rule` };',
       '`;',
-      `import { real } from './real.js';`,
+      `import { real } from './real';`,
     ].join('\n');
-    expect(specifiersOf(source)).toEqual(['./real.js']);
+    expect(specifiersOf(source)).toEqual(['./real']);
   });
 
   it('survives a nested interpolation whose code contains braces and quotes', () => {
@@ -85,9 +85,9 @@ describe('TODO28 — module specifier extraction', () => {
       "  .map(([k, v]) => `${k}: z.${typeof v === 'string' ? 'string()' : 'unknown()'}`)",
       "  .join(',')",
       '`;',
-      `import { real } from './real.js';`,
+      `import { real } from './real';`,
     ].join('\n');
-    expect(specifiersOf(source)).toEqual(['./real.js']);
+    expect(specifiersOf(source)).toEqual(['./real']);
   });
 
   it('sees a real import nested inside an interpolation', () => {
@@ -98,8 +98,8 @@ describe('TODO28 — module specifier extraction', () => {
   });
 
   it('handles an escaped backtick without ending the literal', () => {
-    const source = ['const t = `a \\` b`;', `import { real } from './real.js';`].join('\n');
-    expect(specifiersOf(source)).toEqual(['./real.js']);
+    const source = ['const t = `a \\` b`;', `import { real } from './real';`].join('\n');
+    expect(specifiersOf(source)).toEqual(['./real']);
   });
 
   it('masks without changing length or line structure', () => {
@@ -122,8 +122,8 @@ describe('TODO28 — the repository contains the shapes the gate must survive', 
 
   it('nar generates its own package name as scaffold text, and the gate does not flag it', () => {
     const source = repoFile('src/tools/adapters/test-gen.ts');
-    expect(source).toContain(`from '@senars/nar/tools/schemas'`);
-    expect(specifiersOf(source)).not.toContain('@senars/nar/tools/schemas');
+    expect(source).toContain(`from '@senars/tools/schemas'`);
+    expect(specifiersOf(source)).not.toContain('@senars/tools/schemas');
   });
 
   it('no source file loads a package above it in the layering', () => {

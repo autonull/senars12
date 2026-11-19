@@ -4,7 +4,7 @@ import { startAgentUI } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { createAgentFromEnv } from '../../src/bin/lib/lifecycle';
-import { waitFor } from './fixtures.js';
+import { waitFor } from './fixtures';
 
 describe('Production loop with real LMService (LM_PROVIDER=mock via AI SDK)', () => {
   let server: Awaited<ReturnType<typeof startAgentUI>>;

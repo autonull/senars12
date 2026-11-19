@@ -5,13 +5,13 @@ import {
   computeEvidenceId,
   promoteProvisional,
   JudgmentDataset,
-} from '@senars/nar/lm/system-one/distill.js';
-import { seedTruth } from '@senars/nar/lm/system-one/seed.js';
-import { Truth } from '@senars/nar/terms/impls/Truth.js';
+} from '@senars/lm/system-one/distill';
+import { seedTruth } from '@senars/lm/system-one/seed';
+import { Truth } from '@senars/terms/impls/Truth';
 import type {
   JudgmentProposition,
   EvaluateProposition,
-} from '@senars/nar/lm/system-one/types.js';
+} from '@senars/lm/system-one/types';
 
 const makeEvaluateProposition = (score: number, ece = 0.02): EvaluateProposition => ({
   kind: 'evaluate',

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { ContrastiveMemory } from '@senars/nar/lm/system-one/contrastive.js';
-import { createDecider, type DecideDeps } from '@senars/nar/lm/system-one/decide.js';
-import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+import { ContrastiveMemory } from '@senars/lm/system-one/contrastive';
+import { createDecider, type DecideDeps } from '@senars/lm/system-one/decide';
+import { createEmbeddingCache } from '@senars/lm/system-one/embedding-cache';
 import type {
   EmbeddingPointer,
   EvaluateProposition,
   JudgmentProposition,
   JudgmentQuery,
-} from '@senars/nar/lm/system-one/types.js';
+} from '@senars/lm/system-one/types';
 
 const dim = 32;
 const BUDGET = {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DialogueCapture, inferReactionFromUtterance } from '@senars/dialogue';
 import type { ReactionKind } from '@senars/dialogue';
-import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic.js';
+import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic';
 
 /**
  * TODO24 Bench 76 — DQ2 falsifier: heuristic reaction attribution.

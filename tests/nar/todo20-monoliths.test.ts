@@ -116,7 +116,7 @@ describe('Bench 62: monolith split — M3 providers', () => {
     expect(factory).not.toContain("from '../lm-service");
     expect(chains).not.toContain("from '../lm-service");
     const embedded = readFileSync(join(LM_DIR, 'providers/embedded-llamacpp.ts'), 'utf-8');
-    expect(embedded).not.toContain("from '../providers.js'");
+    expect(embedded).not.toContain("from '../providers'");
   });
 });
 

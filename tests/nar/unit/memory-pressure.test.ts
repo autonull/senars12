@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Memory } from '@senars/memory';
-import { PRESSURE } from '@senars/agent';
+import { PRESSURE } from '@senars/util/config';
 import { atom, TermBuilder } from '@senars/terms';
-import { evictUnderPressure } from '@senars/kernel';
+import { evictUnderPressure } from '@senars/memory';
 
 /**
  * A concept carrying no tasks — the only kind **archiving** may shed. Forgetting

@@ -3,7 +3,7 @@ import { Agent } from '@senars/agent';
 import { startAgentUI, type TestServer } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import { waitForMessage } from './fixtures.js';
+import { waitForMessage } from './fixtures';
 
 interface ClientMessage {
   type: string;

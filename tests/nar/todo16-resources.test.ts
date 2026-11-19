@@ -4,26 +4,26 @@ import { describe, expect, it } from 'vitest';
 import {
   createJudgmentDelegation,
   JudgmentDelegationPeer,
-} from '@senars/nar/cooperation/delegation.js';
-import { KernelBudgetGate } from '@senars/nar/kernel/KernelBudgetGate.js';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
+} from '@senars/cooperation/delegation';
+import { KernelBudgetGate } from '@senars/kernel/KernelBudgetGate';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';
 import {
   admitRemotePropositions,
   handleSystemOneRequest,
-} from '@senars/nar/lm/system-one/http-endpoint.js';
+} from '@senars/lm/system-one/http-endpoint';
 import {
   createManifold,
   createManifold as createTier1Manifold,
-} from '@senars/nar/lm/system-one/manifold.js';
-import { assertCostReported, chargeJudgment } from '@senars/nar/lm/system-one/resource-gate.js';
-import type { EmbeddingPointer, JudgmentProposition } from '@senars/nar/lm/system-one/types.js';
+} from '@senars/lm/system-one/manifold';
+import { assertCostReported, chargeJudgment } from '@senars/lm/system-one/resource-gate';
+import type { EmbeddingPointer, JudgmentProposition } from '@senars/lm/system-one/types';
 import {
   DigestMismatchError,
   loadHeadRuntime,
   SandboxedHeadRuntime,
   verifyModelDigest,
-} from '@senars/nar/lm/system-one/wasi-runtime.js';
-import { prometheusRegistry, recordJudgmentMetric } from '@senars/nar/metrics/prometheus.js';
+} from '@senars/lm/system-one/wasi-runtime';
+import { prometheusRegistry, recordJudgmentMetric } from '@senars/metrics/prometheus';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,

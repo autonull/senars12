@@ -5,7 +5,7 @@ import { createMockLMService } from '@senars/lm';
 import { startAgentUI } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import { waitFor } from './fixtures.js';
+import { waitFor } from './fixtures';
 
 describe('chat-synthesis', () => {
   let server: Awaited<ReturnType<typeof startAgentUI>>;

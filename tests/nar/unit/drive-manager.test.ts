@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, type Mock, test, vi } from 'vitest';
-import { BUILTIN_DRIVES, createBootstrapTasks, DriveManager } from '@senars/nar/drives';
+import { BUILTIN_DRIVES, createBootstrapTasks, DriveManager } from '@senars/drives';
 
 describe('DriveManager', () => {
   let mockNar: { input: Mock };

@@ -3,14 +3,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createLogger } from '@senars/utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { BaseConnection } from '@senars/io/connections/base.js';
-import type { ConnectionConfig, ConnectionDeps, IOMessage } from '@senars/io/types.js';
-import { PersistentSpace } from '@senars/metta/extensions/persistent-space.js';
-import type { CognitiveTaskResult } from '@senars/nar/cooperation/delegation.js';
-import { createDelegation, handleDelegationMessage } from '@senars/nar/cooperation/delegation.js';
-import { KernelPerceptionGate } from '@senars/nar/kernel/KernelPerceptionGate.js';
-import { SystemOneIngressJudge } from '@senars/nar/lm/system-one/ingress-judge.js';
-import { EpisodicMemory } from '@senars/nar/memory/EpisodicMemory.js';
+import { BaseConnection } from '@senars/io/connections/base';
+import type { ConnectionConfig, ConnectionDeps, IOMessage } from '@senars/io/types';
+import { PersistentSpace } from '@senars/metta/extensions/persistent-space';
+import type { CognitiveTaskResult } from '@senars/cooperation/delegation';
+import { createDelegation, handleDelegationMessage } from '@senars/cooperation/delegation';
+import { KernelPerceptionGate } from '@senars/kernel/KernelPerceptionGate';
+import { SystemOneIngressJudge } from '@senars/lm/system-one/ingress-judge';
+import { EpisodicMemory } from '@senars/memory/EpisodicMemory';
 
 /**
  * Bench 36 — Fail-Closed Integrity (TODO17b Phase A)

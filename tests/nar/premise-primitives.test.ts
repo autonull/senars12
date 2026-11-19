@@ -6,14 +6,14 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createDefaultRegistry } from '@senars/nar/cognitive';
+import { createDefaultRegistry } from '@senars/cognitive';
 import { Memory, TermBuilder, Truth } from '@senars/nar';
-import type { Term } from '@senars/nar/terms';
-import { createTask } from '@senars/nar/types/index.js';
-import {} from '@senars/nar/strategies/premise/selection-strategies.js';
-import { createStrategy } from '@senars/nar/reason/strategies/base.js';
-import { samplePremisesFromConfig } from '@senars/nar/strategies/premise/primitives.js';
-import type { Strategy } from '@senars/nar/strategies/types.js';
+import type { Term } from '@senars/terms';
+import { createTask } from '@senars/types/index';
+import {} from '@senars/strategies/premise/selection-strategies';
+import { createStrategy } from '@senars/reason/strategies/base';
+import { samplePremisesFromConfig } from '@senars/strategies/premise/primitives';
+import type { Strategy } from '@senars/strategies/types';
 
 const taskFor = (term: Term) => createTask(term, 'belief', Truth.create(0.9, 0.9));
 const atom = (symbol: string): Term => TermBuilder.atom(symbol);
@@ -231,7 +231,7 @@ describe('premise strategy compositions apply their declared filters', () => {
     expect(concepts.length).toBe(50);
 
     // The concepts source should return all concepts
-    const { PREMISE_SOURCES } = await import('@senars/nar/strategies/premise/primitives.js');
+    const { PREMISE_SOURCES } = await import('@senars/strategies/premise/primitives');
     const task = taskFor(atom('concept0'));
     const allConcepts = PREMISE_SOURCES.concepts(task, memory);
     expect(allConcepts.length).toBe(50);

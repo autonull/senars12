@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { DEFAULT_CONFIG, NAR, TermBuilder, Truth } from '@senars/nar';
-import { operationNameOf, operationTerm } from '@senars/nar/terms/index.js';
+import { operationNameOf, operationTerm } from '@senars/terms/index';
 
 describe('Reward and Value Representation Contract', () => {
   let nar: NAR;

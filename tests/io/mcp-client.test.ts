@@ -1,6 +1,6 @@
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { MCPConnection } from '@senars/transport';
 import { describe, expect, it } from 'vitest';
 

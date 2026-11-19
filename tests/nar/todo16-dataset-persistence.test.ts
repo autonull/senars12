@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
+import { JudgmentDataset } from '@senars/lm/system-one/distill';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';

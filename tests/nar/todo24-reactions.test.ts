@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createEmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
-import { createFrozenEvalSet } from '@senars/nar/lm/system-one/eval-set.js';
-import { recordReactionLabel } from '@senars/nar/lm/system-one/label-sources.js';
-import { DialogueCapture, sha256 } from '@senars/nar/dialogue/impls/DialogueCapture.js';
-import { REACTION_KINDS } from '@senars/nar/dialogue/types.js';
-import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic.js';
+import { createEmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { JudgmentDataset } from '@senars/lm/system-one/distill';
+import { createFrozenEvalSet } from '@senars/lm/system-one/eval-set';
+import { recordReactionLabel } from '@senars/lm/system-one/label-sources';
+import { DialogueCapture, sha256 } from '@senars/dialogue/impls/DialogueCapture';
+import { REACTION_KINDS } from '@senars/dialogue/types';
+import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic';
 
 const embed = async (text: string): Promise<number[]> =>
   Array.from({ length: 8 }, (_, i) => (text.charCodeAt(i % text.length) % 7) / 7);
@@ -116,7 +116,7 @@ describe('TODO24 bench 71: reaction labels + exclusions + redaction', () => {
   });
 
   it('text retention off by default; opting in writes only the sidecar (I6 scoping)', async () => {
-    const { DialogueTextStore } = await import('@senars/nar/dialogue/impls/DialogueTextStore.js');
+    const { DialogueTextStore } = await import('@senars/dialogue/impls/DialogueTextStore');
     const { mkdtemp } = await import('node:fs/promises');
     const { tmpdir } = await import('node:os');
     const { join } = await import('node:path');

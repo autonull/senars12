@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { dispose, isLoaded } from '@senars/nar/lm/runtime/llama-runtime.js';
+import { dispose, isLoaded } from '@senars/lm/runtime/llama-runtime';
 
 describe('llama-runtime.dispose', () => {
   it('is a no-op when nothing was loaded (arcade runs without the lm arm)', async () => {

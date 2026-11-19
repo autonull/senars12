@@ -8,9 +8,9 @@ import { MemoryQuery } from '@senars/query';
 import { TermBuilder } from '@senars/terms';
 import { fixedClock, systemClock } from '@senars/utils';
 import { afterAll, describe, expect, it } from 'vitest';
-import { checkCycleBudget } from '../../scripts/lib/cycles.js';
+import { checkCycleBudget } from '../../scripts/lib/cycles';
 
-const NAR_DIR = join(import.meta.dirname, '@senars/nar/');
+const NAR_DIR = join(import.meta.dirname, '@senars/');
 /**
  * Code lines — the measure the M2 budget is actually about, matching
  * `todo20-monoliths`. Counting raw lines charged the module's doc comments and
@@ -30,7 +30,7 @@ describe('Bench 91 — test hygiene & monolith paydown (REFACTOR.todo3 Phase A)'
   it('M2 budget holds: nar.ts under 940 LOC with facade extraction live (Phase E adds ProofMettaProposer + GovernanceResolver wiring)', () => {
     expect(loc(join(NAR_DIR, 'nar.ts'))).toBeLessThan(940);
     const nar = readFileSync(join(NAR_DIR, 'nar.ts'), 'utf-8');
-    expect(nar).toContain("from './facade/index.js'");
+    expect(nar).toContain("from './facade/index'");
     expect(readFileSync(join(NAR_DIR, 'facade/index.ts'), 'utf-8')).toContain('initializeLMRules');
   });
 

@@ -11,9 +11,9 @@
  * The per-workstream suites assert the details; this asserts the pieces compose.
  */
 
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { SeededRNG, sequentialIdSource, stableStringify } from '@senars/utils';
@@ -22,9 +22,9 @@ import type { NARConfig } from '@senars/agent';
 import { NAR } from '@senars/agent';
 import { NarEventBus } from '@senars/nar';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { runOneShot } from '../../src/bin/lib/oneshot.js';
-import { registerMCPResources } from '../../src/bin/lib/mcp/mcp-resources.js';
-import { e2eNARConfig } from '../e2e/fixtures.js';
+import { runOneShot } from '../../src/bin/lib/oneshot';
+import { registerMCPResources } from '../../src/bin/lib/mcp/mcp-resources';
+import { e2eNARConfig } from '../e2e/fixtures';
 
 interface Captured {
   channel: string;

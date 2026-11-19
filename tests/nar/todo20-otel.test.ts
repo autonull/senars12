@@ -9,7 +9,7 @@ import { KernelActionGate, KernelBudgetGate, KernelPerceptionGate } from '@senar
 import { Negotiator } from '@senars/reflex';
 import { SchemaStore } from '@senars/focus';
 import { Truth } from '@senars/nar';
-import { CollectingProcessor } from '../helpers/otel.js';
+import { CollectingProcessor } from '../helpers/otel';
 
 const collector = new CollectingProcessor();
 initOtel({ otlpEndpoint: undefined, spanProcessors: [collector] });

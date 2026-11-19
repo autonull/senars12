@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DigestMismatchError } from '@senars/nar/lm/system-one/wasi-runtime.js';
+import { DigestMismatchError } from '@senars/lm/system-one/wasi-runtime';
 import {
   JudgmentDataset,
   runBakeOff,
   type BakeOffCase,
-} from '@senars/nar/lm/system-one/distill.js';
+} from '@senars/lm/system-one/distill';
 import {
   assertFrozenNonRegression,
   createFrozenEvalSet,
@@ -19,7 +19,7 @@ import {
   splitOod,
   writeEvalSet,
   type FrozenEvalSet,
-} from '@senars/nar/lm/system-one/eval-set.js';
+} from '@senars/lm/system-one/eval-set';
 
 const datasetWith = (
   rows: { rubric: string; score?: number; observed?: number; source: string }[]

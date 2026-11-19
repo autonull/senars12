@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type ApprovalManager, ApprovalService } from '@senars/core/ApprovalService';
+import { type ApprovalManager, ApprovalService } from '@senars/agent';
 
 const createManager = (): ApprovalManager & {
   pending: Map<string, { id: string; resolve: (r: unknown) => void }>;

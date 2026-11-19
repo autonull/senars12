@@ -9,29 +9,18 @@
 
 import { nonNegativeInt, positiveInt, validatorFor } from '../config';
 import { z } from 'zod';
+import {
+  BUDGET_SCOPE_IDS,
+  BUDGET_TYPES,
+  BudgetTypeSchema,
+  TerminationReasonSchema,
+  type BudgetScopeId,
+  type BudgetType,
+  type TerminationReason,
+} from './budget-types.js';
 
-/** The five declared budget scopes (TODO29.a §5.7). */
-export const BUDGET_SCOPE_IDS = [
-  'derivations',
-  'premises',
-  'candidate-derivations',
-  'proposal-application',
-  'control-work',
-  'decision-derivations',
-] as const;
-
-export type BudgetScopeId = (typeof BUDGET_SCOPE_IDS)[number];
-
-export const TerminationReasonSchema = z.enum([
-  'cycle-budget',
-  'depth-budget',
-  'memory-budget',
-  'llm-budget',
-  'deadline',
-  'backpressure',
-  'aborted',
-  'completed',
-]);
+export { BUDGET_SCOPE_IDS, BUDGET_TYPES, BudgetTypeSchema, TerminationReasonSchema };
+export type { BudgetScopeId, BudgetType, TerminationReason };
 
 export const ConsumedBudgetSchema = z.object({
   cycles: nonNegativeInt.default(0),
@@ -39,25 +28,6 @@ export const ConsumedBudgetSchema = z.object({
   memoryOps: nonNegativeInt.default(0),
   llmCalls: nonNegativeInt.default(0),
 });
-
-/**
- * Each consumed key's event-level name, declared beside the schema that defines
- * the consumed keys — so the two vocabularies that describe one dimension cannot
- * drift, and `satisfies` fails if a dimension is added to one and not the other.
- *
- * `budgetType` used to be spelled inline in the event schema. Its five members
- * and this table's four could not see each other, which left `wallclock` an
- * admitted event field that no dimension produces and no reader has to handle:
- * a deadline is a `wallclockDeadlineMs`, and its exhaustion reason is `deadline`.
- */
-export const BUDGET_TYPES = {
-  cycles: 'cycles',
-  depth: 'depth',
-  memoryOps: 'memory',
-  llmCalls: 'llm',
-} as const satisfies Record<keyof ConsumedBudget, string>;
-
-export const BudgetTypeSchema = z.enum(Object.values(BUDGET_TYPES));
 
 /**
  * A zeroed consumption record.

@@ -9,8 +9,8 @@
 import { fixedClock } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
-import { Layer } from '@senars/nar/memory/links/Layer.js';
-import { ConceptGraph } from '@senars/nar/memory/ConceptGraph.js';
+import { Layer } from '@senars/memory/links/Layer';
+import { ConceptGraph } from '@senars/memory/ConceptGraph';
 import { Concept, Stamp, TermBuilder, Truth } from '@senars/nar';
 
 const AT = 1_700_000_000_000;

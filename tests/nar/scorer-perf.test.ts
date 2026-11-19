@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
-import { Memory } from '@senars/nar/memory';
+import { Memory } from '@senars/memory';
 import { atom, TermBuilder, Stamp, Truth, type Term } from '@senars/nar';
-import { LinkManager } from '@senars/nar/memory/links';
+import { LinkManager } from '@senars/memory/links';
 import { ConceptGraph } from '@senars/memory';
 
 function time(name: string, iterations: number, fn: (i: number) => void): number {

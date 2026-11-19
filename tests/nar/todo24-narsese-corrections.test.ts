@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DialogueCapture } from '@senars/dialogue';
-import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic.js';
+import { InMemoryEpisodicMemory } from '../utils/in-memory-episodic';
 
 /**
  * TODO24 Bench 75 — DQ6 falsifier: Narsese-level correction formalization.

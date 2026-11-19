@@ -4,14 +4,14 @@ import { join } from 'node:path';
 import type { ReasoningBudget } from '@senars/agent';
 import { SeededRNG } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
-import type { GridWorldState } from '@senars/nar/game/impls/GridWorldGame.js';
-import { GridWorldGame } from '@senars/nar/game/impls/GridWorldGame.js';
-import { EmbeddingCache } from '@senars/nar/lm/system-one/embedding-cache.js';
-import { createManifold } from '@senars/nar/lm/system-one/manifold.js';
-import { ManifoldRLAgent } from '@senars/nar/lm/system-one/manifold-rl-agent.js';
-import { recordReflexOutcome } from '@senars/nar/lm/system-one/reflex-label-source.js';
-import type { JudgmentHead, JudgmentQuery } from '@senars/nar/lm/system-one/types.js';
-import { QLearning } from './rl/baselines/gridworld.js';
+import type { GridWorldState } from '@senars/game/impls/GridWorldGame';
+import { GridWorldGame } from '@senars/game/impls/GridWorldGame';
+import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';
+import { createManifold } from '@senars/lm/system-one/manifold';
+import { ManifoldRLAgent } from '@senars/lm/system-one/manifold-rl-agent';
+import { recordReflexOutcome } from '@senars/lm/system-one/reflex-label-source';
+import type { JudgmentHead, JudgmentQuery } from '@senars/lm/system-one/types';
+import { QLearning } from './rl/baselines/gridworld';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,
@@ -144,7 +144,7 @@ describe('System One RL Harness — no NAR in the loop (Bench 20)', () => {
     await cache.warmup(['x']);
     const manifold = createManifold(cache, { abstainThreshold: 0.05 });
     const tmp = mkdtempSync(join(tmpdir(), 's1-vectors-'));
-    const { JudgmentDataset } = await import('@senars/nar/lm/system-one/distill.js');
+    const { JudgmentDataset } = await import('@senars/lm/system-one/distill');
     const dataset = new JudgmentDataset(tmp);
 
     const agent = new ManifoldRLAgent({ cache, manifold, budget, dataset, epsilon: 0.2 });

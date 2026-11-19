@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { JudgmentDataset } from '@senars/nar/lm/system-one/distill.js';
+import { JudgmentDataset } from '@senars/lm/system-one/distill';
 import {
   recordCorrectionLabel,
   recordDerivationOutcomeLabel,
   recordApprovalLabel,
   recordShadowVerdictLabel,
-} from '@senars/nar/lm/system-one/label-sources.js';
+} from '@senars/lm/system-one/label-sources';
 
 describe('System One — Label Source Adapters (§9.1 flywheel wiring)', () => {
   it('approval and shadow-verdict adapters record teleological/epistemic labels', () => {

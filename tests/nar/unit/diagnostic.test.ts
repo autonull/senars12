@@ -9,8 +9,8 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { isTautology, termParser, validateTaskTerm } from '@senars/nar/terms';
-import { operationNameOf } from '@senars/nar/terms/index.js';
+import { isTautology, termParser, validateTaskTerm } from '@senars/terms';
+import { operationNameOf } from '@senars/terms/index';
 import { NAR } from '../../../src';
 
 describe('Diagnostic: Tautology Detection', () => {
@@ -204,7 +204,7 @@ describe('[Phase 1] Operation Operator Misuse', () => {
   });
 
   it('removed meta-rule stubs no longer exist in the export (TODO17b D18)', async () => {
-    const { NALExtendedRules } = await import('@senars/nar/index.js');
+    const { NALExtendedRules } = await import('@senars/index');
     const rules = NALExtendedRules as Record<string, unknown>;
     expect(rules['operationExecution']).toBeUndefined();
     expect(rules['goalExecution']).toBeUndefined();

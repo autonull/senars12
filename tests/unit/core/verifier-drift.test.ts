@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { safeDiv } from '@senars/utils';
 import { Truth } from '@senars/terms';
 import { resolveTruthFn, VERIFIER_TRUTH_TABLE } from '@senars/agent';
-import { BUILTIN_DECLARATIONS } from '@senars/nar/rules/impls/registration.js';
+import { BUILTIN_DECLARATIONS } from '@senars/rules/impls/registration';
 
 /**
  * TODO28 §4.1 — the verifier's transcribed truth table, pinned against the

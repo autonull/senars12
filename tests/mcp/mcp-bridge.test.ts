@@ -1,6 +1,6 @@
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import type { NAR } from '@senars/agent';
 import type { Tool } from '@senars/self';
 import { ToolManager } from '@senars/self';
@@ -9,8 +9,8 @@ import {
   registerNARRegistryTools,
   toolAnnotations,
   zodFromSchema,
-} from '../../src/bin/lib/mcp/mcp-bridge.js';
-import { registerNARTools } from '../../src/bin/lib/mcp/mcp-tools.js';
+} from '../../src/bin/lib/mcp/mcp-bridge';
+import { registerNARTools } from '../../src/bin/lib/mcp/mcp-tools';
 
 const makeTool = (overrides: Partial<Tool> = {}): Tool =>
   ({

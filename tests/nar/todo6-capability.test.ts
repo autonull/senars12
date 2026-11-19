@@ -15,14 +15,14 @@ import { PriorityBag, resolveBagSlot } from '@senars/agent';
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it } from 'vitest';
 import { Memory, TermBuilder, Truth } from '@senars/nar';
-import type { CapabilitySchema } from '@senars/nar/capability/ontology.js';
-import { createCapabilityOntology } from '@senars/nar/capability/ontology.js';
-import { GovernanceResolver } from '@senars/nar/governance/pipeline.js';
-import { ProofMettaProposer } from '@senars/nar/meta/ProofMettaProposer.js';
-import { WindowedRouletteStrategy } from '@senars/nar/strategies/sampling/WindowedRoulette.js';
-import { Stamp } from '@senars/nar/terms/index.js';
-import { createTaskWeight } from '@senars/nar/types/index.js';
-import { createLCG } from '../helpers/rng.js';
+import type { CapabilitySchema } from '@senars/capability/ontology';
+import { createCapabilityOntology } from '@senars/capability/ontology';
+import { GovernanceResolver } from '@senars/governance/pipeline';
+import { ProofMettaProposer } from '@senars/meta/ProofMettaProposer';
+import { WindowedRouletteStrategy } from '@senars/strategies/sampling/WindowedRoulette';
+import { Stamp } from '@senars/terms/index';
+import { createTaskWeight } from '@senars/types/index';
+import { createLCG } from '../helpers/rng';
 
 const lcg = createLCG;
 
