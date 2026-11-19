@@ -1,4 +1,4 @@
-import type { TetrisGame, TetrisPlacement } from '@senars/agent';
+import type { TetrisGame, TetrisPlacement } from '@senars/game';
 
 /** Lines-cleared + holes weight (the classic heuristic the community baseline uses). */
 export function tetrisHeuristicPlacement(game: TetrisGame): TetrisPlacement {

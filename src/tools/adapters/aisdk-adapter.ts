@@ -1,6 +1,6 @@
 import { errMsg, serializeTruth, type TruthLike, takeFirst, takeLast } from '@senars/util';
-import { intBetween, unitInterval } from '@senars/util/config';
-import { evaluateExpression } from '@senars/util/utils/eval';
+import { intBetween, unitInterval } from '@senars/config';
+import { evaluateExpression } from '@senars/util/eval';
 import { tool } from 'ai';
 import { z } from 'zod';
 import type { Term } from '../../terms';

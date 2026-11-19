@@ -1,5 +1,4 @@
-import { getOrInsert, lerpUpdate, maxBy, QTable, softmax } from '@senars/util';
-import type { SeededRNG } from '../../nar/src/game/index.js';
+import { getOrInsert, lerpUpdate, maxBy, QTable, softmax, SeededRNG } from '@senars/util';
 
 export interface RLStep {
   action: string;

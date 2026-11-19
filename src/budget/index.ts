@@ -13,6 +13,7 @@ export {
   remainingCycles,
   type BudgetSlice,
   type AIKRBudget,
+  mergeConsumed,
   mergeConsumption,
   sliceBudget,
   type BudgetSliceOptions,

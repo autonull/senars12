@@ -6,7 +6,7 @@
  * cross-memory variant here rather than the session-scoped one in `buildCommands`.
  */
 
-import type { CLICommand } from '../../index.js';
+import type { CLICommand } from '@senars/io';
 import { configCommandsFor } from './config.js';
 import { connectionCommandsFor } from './connection.js';
 import type { BotRuntime } from './context.js';

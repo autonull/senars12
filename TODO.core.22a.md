@@ -9,9 +9,9 @@
 3. `core/src/eventlog/` — legacy SqliteEventLog/InMemoryEventLog (replaced by LogStoreEventLog adapter) ✅
 4. `nar/src/facade/persistence.js` — deleted, replaced by LogStoreStatePersister ✅
 **Gates Status After Migration:**
-- `pnpm typecheck` ❌ FAIL (many old package path references remain in scripts/bin/UI)
+- `pnpm typecheck` ❌ FAIL (UI out of scope; core src/ mostly clean)
 - `pnpm typecheck:bin` ⚠️ FAIL (bin/UI — pre-existing, out of scope)
-- `pnpm typecheck:packages` ✅ PASS (core packages clean)
+- `pnpm typecheck:packages` ⚠️ FAIL (runs root typecheck incl. UI; core packages clean when isolated)
 - `pnpm lint` ✅ PASS
 - `pnpm exports:check` ✅ PASS
 - `pnpm exports:barrels` ✅ PASS
@@ -64,21 +64,25 @@
 - ✅ Remove old package directories: `core/`, `io/`, `metta/`, `util/`, `nar/`
 - ✅ Fix duplicate export in `src/metta/index.ts` (parseMeTTa)
 - ✅ Fix `@senars/nar/` imports in tests (removed trailing slash)
-- ❌ **REMAINING: Update all old package path references throughout codebase:**
-  - Scripts in `scripts/` and `scripts/lib/` still import from `../nar/src/`, `../../util/src/`, etc.
-  - Bin files in `src/bin/` and `src/cli/` still import from old package paths
-  - Test files reference old paths (`nar/src/`, `util/src/`, etc.) in filesystem checks
-  - UI package files (`ui/src/`) import from `@senars/core` which doesn't export needed types
-  - Path resolution in vitest not working for `@senars/util` (BoundedMap constructor issue)
-  - Missing path aliases for `@senars/dialogue`, `@senars/core/ApprovalService`, etc.
-  - `src/agent/index.ts` doesn't export all needed types (Agent, NAREngine, InMemoryEventLog, etc.)
-  - `src/capability/index.ts` exports need to be reachable via `@senars/agent` or tests updated
+- ✅ **Scripts/bin import migration (MAJOR PROGRESS):**
+  - ✅ `scripts/arcade.ts`, `scripts/lib/rl-arms.ts` — migrated to `@senars/*` path aliases
+  - ✅ `src/bin/bot.ts`, `src/bin/imagine.ts`, `src/bin/self-report.ts`, `src/bin/config-validate.ts` — fixed imports
+  - ✅ `src/bin/commands/*.ts` (11 files) — migrated to `@senars/*` path aliases
+  - ✅ `src/bin/lib/*.ts` (6 files) — migrated to `@senars/*` path aliases
+  - ✅ `src/cli/*.ts` — created `@senars/cli` alias, fixed imports
+  - ✅ Test baseline files (`2048.ts`, `snake.ts`, `tetris.ts`, `tictactoe.ts`) — import from `@senars/game`
+- ✅ Added missing path aliases: `@senars/dialogue`, `@senars/cli`
+- ✅ `src/index.ts` now exports protocol types for UI compatibility (`GraphNodeData`, `CognitiveEvent`, `ChatMessage`, `Lens`, `LensSpec`, `builtinLensSpecs`, `isNarsese`, `Agent`, etc.)
+- ✅ `src/agent/index.ts` exports core types (`NAR`, `createNAR`, `NAREventMap`, etc.)
+- ⚠️ **REMAINING (core only):**
+  - Remaining scripts in `scripts/` still import from `../nar/src/`, `../../util/src/`, etc. (~20 files)
+  - Path resolution in vitest: `BoundedMap` constructor issue in `src/terms/impls/intern.ts` (import from `@senars/util` not working in test context)
   - ADR docs reference old paths (e.g., `nar/src/bag/Bag.ts`)
-  - Layering tests (`todo28-layering.test.ts`) check for old package structure
-  - Surface tests (`todo17b-surface.test.ts`) check for old `nar/src/` paths
-- ❌ Run core gates: typecheck ❌, lint ✅, exports:check ✅, exports:barrels ✅, typecheck:packages ✅
-- ❌ Verify core test suite passes (currently 67/80 tests pass, 13 failures mostly due to path issues)
+  - Layering tests (`todo28-layering.test.ts`) check for old package structure — need update
+  - Surface tests (`todo17b-surface.test.ts`) check for old `nar/src/` paths — need update
+- ⚠️ Run core gates: typecheck ❌ (UI), lint ✅, exports:check ✅, exports:barrels ✅, typecheck:packages ⚠️ (runs root)
+- ⚠️ Verify core test suite: 67/80 pass, 13 failures (mostly layering/surface/BoundedMap path issues)
 **Dependency Order (topological — core only):**
 util (leaf) → core → io → metta → nar
-**Current Session: Phase 3 Final Cleanup IN PROGRESS. Package directories removed, configs updated, but import path migration incomplete across scripts/bin/tests/UI.**
-**Revised Timeline: ~3-5 more sessions to complete (Phase 3 remaining work)**
+**Current Session: Phase 3 Final Cleanup IN PROGRESS. Major import migration done for bin/commands, scripts partially done. Remaining: ~20 scripts, BoundedMap test issue, layering/surface tests.**
+**Revised Timeline: ~2-3 more sessions to complete core-only work (UI remains out of scope).**

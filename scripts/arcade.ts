@@ -18,24 +18,24 @@
  */
 
 import { clamp01, mean, parseFlags, pct, stdDev, type TermTruth } from '@senars/util';
-import { startArcadeTickSpan } from '../nar/src/eval/arcade-trace.js';
-import { BrierHarness } from '../nar/src/eval/brier-harness.js';
-import { loadSession } from '../nar/src/eval/session-state.js';
-import { GameFocus } from '../nar/src/focus/GameFocus.js';
-import type { Game as GameInterface } from '../nar/src/game/Game.js';
-import { createArcadeRegistry, type Game, SeededRNG } from '../nar/src/game/index.js';
-import { renderGame } from '../nar/src/game/render.js';
-import { createSystemOneBudget } from '../nar/src/lm/system-one/types.js';
-import { KernelBudgetGate } from '../nar/src/kernel/KernelBudgetGate.js';
-import { createGateRegistry } from '../nar/src/kernel/GateRegistry.js';
+import { startArcadeTickSpan } from '@senars/eval/arcade-trace.js';
+import { BrierHarness } from '@senars/eval/brier-harness.js';
+import { loadSession } from '@senars/eval/session-state.js';
+import { GameFocus } from '@senars/focus/GameFocus.js';
+import type { Game as GameInterface } from '@senars/game/Game.js';
+import { createArcadeRegistry, type Game, SeededRNG } from '@senars/game/index.js';
+import { renderGame } from '@senars/game/render.js';
+import { createSystemOneBudget } from '@senars/lm/system-one/types.js';
+import { KernelBudgetGate } from '@senars/kernel/KernelBudgetGate.js';
+import { createGateRegistry } from '@senars/kernel/GateRegistry.js';
 import {
   recordedProposals,
   recordingReflex,
   vetoAwareReflex,
   wrapReflex,
-} from '../nar/src/reflex/adapters.js';
-import { EpsilonGreedyReflex } from '../nar/src/reflex/EpsilonGreedyReflex.js';
-import type { ActionProposal, Reflex } from '../nar/src/reflex/Reflex.js';
+} from '@senars/reflex/adapters.js';
+import { EpsilonGreedyReflex } from '@senars/reflex/EpsilonGreedyReflex.js';
+import type { ActionProposal, Reflex } from '@senars/reflex/Reflex.js';
 import { game2048HeuristicAction } from '../tests/nar/rl/baselines/2048.js';
 import { snakeHeuristicAction } from '../tests/nar/rl/baselines/snake.js';
 import { tetrisHeuristicPlacement } from '../tests/nar/rl/baselines/tetris.js';
@@ -123,32 +123,32 @@ async function buildCognitiveArm(
       cache: undefined,
       headLoaded: false,
     };
-  const { createEmbeddingCache } = await import('../nar/src/lm/system-one/embedding-cache.js');
+  const { createEmbeddingCache } = await import('@senars/lm/system-one/embedding-cache.js');
   const cache = createEmbeddingCache({});
   if (arm === 'manifold' || arm === 'replica') {
     let manifold: unknown;
     if (arm === 'manifold') {
-      const { createManifold } = await import('../nar/src/lm/system-one/manifold.js');
+      const { createManifold } = await import('@senars/lm/system-one/manifold.js');
       manifold = createManifold(cache, { abstainThreshold: 0.05 });
     } else {
       const endpoint = process.env.OPEN_REPLICA_ENDPOINT;
       if (!endpoint)
         return { note: 'replica arm: OPEN_REPLICA_ENDPOINT unset — skipped (fail-closed)' };
       const { createOpenSystemOneManifold } = await import(
-        '../nar/src/lm/system-one/open-systemone-manifold.js'
+        '@senars/lm/system-one/open-systemone-manifold.js'
       );
       manifold = createOpenSystemOneManifold({ endpoint, embeddingCache: cache });
     }
     const incumbent = new EpsilonGreedyReflex('incumbent', { numArms: 10, epsilon: 0.1 });
     // Tetris placement fan-out (W7): two-stage cascade — stage-1 coarse rank
     // over all placements in one batch, stage-2 fine `reflex_value` on top-K.
-    const { ManifoldReflex } = await import('../nar/src/lm/system-one/manifold-reflex.js');
+    const { ManifoldReflex } = await import('@senars/lm/system-one/manifold-reflex.js');
     // Distilled student: a reflex_value head trained from previous lm-arm play
     // (pnpm run demo:arcade -- --distill --arms lm) replaces the untrained stub.
     const HEAD_DIR = '.reports/arcade-heads/reflex_value';
     let headLoaded = false;
     try {
-      const { loadHeadArtifacts } = await import('../nar/src/lm/system-one/train.js');
+      const { loadHeadArtifacts } = await import('@senars/lm/system-one/train.js');
       const trainedHead = await loadHeadArtifacts(HEAD_DIR);
       (manifold as { registerHead: (h: unknown) => void }).registerHead(trainedHead);
       headLoaded = true;
@@ -157,7 +157,7 @@ async function buildCognitiveArm(
     }
     const reflex =
       gameName === 'tetris'
-        ? new (await import('../nar/src/lm/system-one/cascade-reflex.js')).PlacementCascadeReflex(
+        ? new (await import('@senars/lm/system-one/cascade-reflex.js')).PlacementCascadeReflex(
             incumbent
           )
         : new ManifoldReflex(incumbent);
@@ -175,11 +175,11 @@ async function buildCognitiveArm(
     { LMReflex },
     { createManifold },
   ] = await Promise.all([
-    import('../nar/src/lm/lm-service.js'),
-    import('../nar/src/lm/system-one/cortex-adapter.js'),
-    import('../nar/src/lm/system-one/dispatcher.js'),
-    import('../nar/src/lm/system-one/lm-reflex.js'),
-    import('../nar/src/lm/system-one/manifold.js'),
+    import('@senars/lm/lm-service.js'),
+    import('@senars/lm/system-one/cortex-adapter.js'),
+    import('@senars/lm/system-one/dispatcher.js'),
+    import('@senars/lm/system-one/lm-reflex.js'),
+    import('@senars/lm/system-one/manifold.js'),
   ]);
   const lmService = createLMService();
   const manifold = createManifold(cache, { abstainThreshold: 0.05 });
@@ -225,7 +225,7 @@ async function main(): Promise<void> {
     distill,
   } = parseArgs();
   if (otel) {
-    const { initOtel } = await import('../nar/src/otel/index.js');
+    const { initOtel } = await import('@senars/otel/index.js');
     initOtel({
       serviceName: 'senars-arcade',
       otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
@@ -244,9 +244,9 @@ async function main(): Promise<void> {
   // Distillation flywheel: the lm arm records its decisions into a dataset;
   // after play, a reflex_value head is trained and picked up by the manifold
   // arm (the cheap student) on the next run.
-  let dataset: import('../nar/src/lm/system-one/distill.js').JudgmentDataset | undefined;
+  let dataset: import('@senars/lm/system-one/distill.js').JudgmentDataset | undefined;
   if (arms.includes('lm') && arms.includes('manifold') && distill) {
-    const { JudgmentDataset } = await import('../nar/src/lm/system-one/distill.js');
+    const { JudgmentDataset } = await import('@senars/lm/system-one/distill.js');
     dataset = new JudgmentDataset('.reports/arcade-dataset');
     notes.push('distill: lm arm records decisions → .reports/arcade-dataset.jsonl');
   }
@@ -268,7 +268,7 @@ async function main(): Promise<void> {
     render: boolean,
     cognitive: boolean,
     distill: boolean,
-    dataset: import('../nar/src/lm/system-one/distill.js').JudgmentDataset | undefined,
+    dataset: import('@senars/lm/system-one/distill.js').JudgmentDataset | undefined,
     rng: SeededRNG,
     notes: string[]
   ): Promise<BrierHarness> {
@@ -506,20 +506,20 @@ async function main(): Promise<void> {
     const datasetPath = '.reports/arcade-dataset.jsonl';
     const headDir = '.reports/arcade-heads/reflex_value';
     await dataset.flush(datasetPath);
-    const rows = await (await import('../nar/src/lm/system-one/train.js')).loadTrainingData({
+    const rows = await (await import('@senars/lm/system-one/train.js')).loadTrainingData({
       datasetPath,
       headId: 'reflex_value',
       averageDuplicates: true,
     });
     if (rows.length > 0) {
-      const model = (await import('../nar/src/lm/system-one/train.js')).trainHead(
+      const model = (await import('@senars/lm/system-one/train.js')).trainHead(
         rows,
         { headId: 'reflex_value', rubric: 'reflex_value', axis: 'teleological' },
         { holdoutFraction: 0 }
       );
       rmSync(headDir, { recursive: true, force: true });
       mkdirSync(headDir, { recursive: true });
-      const bundle = await (await import('../nar/src/lm/system-one/train.js')).writeHeadArtifacts(
+      const bundle = await (await import('@senars/lm/system-one/train.js')).writeHeadArtifacts(
         model,
         headDir
       );
@@ -566,7 +566,7 @@ async function main(): Promise<void> {
   // Release the embedded model/context/session handles so the process exits
   // instead of idling on GPU power (`llama-runtime.dispose` is a no-op when
   // the lm arm never loaded).
-  await (await import('../nar/src/lm/runtime/llama-runtime.js')).dispose();
+  await (await import('@senars/lm/runtime/llama-runtime.js')).dispose();
 }
 
 main().catch((e) => {

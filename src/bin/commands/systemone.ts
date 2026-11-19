@@ -3,23 +3,19 @@
 import { existsSync, statSync } from 'node:fs';
 import {
   asRubricId,
-  createSystemOneBudget,
-  evaluateQuery,
-  HEAD_SPECS,
-  type ScoreDistribution,
-  specToQuery,
-  rubricOf,
-} from '../../index.js';
-import { envStrOr, finiteOr, formatBytes, incrementCount, writeJsonFile } from '../../utils/common.js';
-import { attempted, cmd } from '../../cli/commands.js';
-import { type ReflexView, reflexesOf } from '../../cli/conversation-game.js';
+  RUBRIC_IDS,
+} from '@senars/decision';
+import { createSystemOneBudget, evaluateQuery, HEAD_SPECS, type ScoreDistribution, specToQuery, rubricOf } from '@senars/lm/system-one';
+import { envStrOr, finiteOr, formatBytes, incrementCount, writeJsonFile } from '@senars/util';
+import { attempted, cmd } from '@senars/cli';
+import { type ReflexView, reflexesOf } from '@senars/cli/conversation-game';
 import {
   formatSystemOneCortex,
   formatSystemOneDispatcher,
   formatSystemOneHeads,
   formatSystemOneReflexes,
   formatSystemOneStatus,
-} from '../../cli/systemone-format.js';
+} from '@senars/cli/systemone-format';
 import {
   coerce,
   dispatchSub,
@@ -111,7 +107,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
             reflexes: () => formatSystemOneReflexes(nar),
             'eval-set': async ([action]) => {
               const { createFrozenEvalSet, evalMetrics, headMetrics, loadEvalSet, writeEvalSet, JudgmentDataset } =
-                await import('../../lm/index.js');
+                await import('@senars/lm/system-one');
               if (action === 'create' || action === 'regenerate') {
                 const set = createFrozenEvalSet(await JudgmentDataset.load(datasetPathOf(rt)));
                 await writeEvalSet(set, EVAL_SET_PATH);
@@ -288,7 +284,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
       async (args = '') => {
         const dispatcher = nar.getSystemOneDispatcher?.() as { cortex?: unknown } | undefined;
         if (!dispatcher) return 'System One dispatcher not available';
-        const { StubCortex } = await import('../../lm/index.js');
+        const { StubCortex } = await import('@senars/lm/system-one');
         const cortex = dispatcher.cortex as {
           health?: () => { provider?: string; breakerOpen?: boolean };
           describe?: () => { grammar?: string; temperature?: number; model?: string };
@@ -339,7 +335,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
         readCalibrationLockOrNull,
         writeCalibrationLock,
         fitCalibrationLock,
-      } = await import('../../lm/index.js');
+      } = await import('@senars/lm/system-one');
       const verb = args.trim().toLowerCase();
       if (verb === 'refresh') {
         if (!nar.isSystemOneEnabled?.()) return 'System One: disabled';
@@ -354,7 +350,7 @@ export const systemOneCommandsFor = (rt: BotRuntime) => {
       if (verb === 'refit') {
         if (!nar.isSystemOneEnabled?.()) return 'System One: disabled';
         return attempted('refit', async () => {
-          const { JudgmentDataset, digestRows, loadEvalSet, splitOod } = await import('../../lm/index.js');
+          const { JudgmentDataset, digestRows, loadEvalSet, splitOod } = await import('@senars/lm/system-one');
           const dataset = await JudgmentDataset.load(datasetPathOf(rt));
           let options: Record<string, unknown> = {};
           try {

@@ -3,7 +3,7 @@ import {
   CommandRegistry,
   connectionCommands,
   createAuthCommands,
-} from '../../io/index.js';
+} from '@senars/io';
 import {
   coreCommands,
   episodesCommands,
@@ -12,7 +12,7 @@ import {
   narCommands,
   rlfpCommands,
   selfCommands,
-} from '../../agent/index.js';
+} from '@senars/commands';
 
 /**
  * Remote-transport command surface. One registry is built per bot and shared by

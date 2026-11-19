@@ -1,4 +1,4 @@
-import type { Game2048, Move2048 } from '@senars/agent';
+import type { Game2048, Move2048 } from '@senars/game';
 
 /** Corner/monotonicity greedy: empty cells + merge gain + max-tile-in-corner. */
 export function game2048HeuristicAction(game: Game2048): Move2048 {

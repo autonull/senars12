@@ -6,20 +6,20 @@
  * Mutable fields are exactly the ones the commands intentionally mutate.
  */
 
-import type { AuthManager, CommandRegistry, ConnectionManager } from '../../index.js';
-import type { ParameterLedger } from '../../config/nar.js';
-import type { DialogueCapture, RetrospectiveAdapter } from '../../dialogue/index.js';
+import type { AuthManager, CommandRegistry, ConnectionManager } from '@senars/io';
+import type { ParameterLedger } from '@senars/config/nar';
+import type { DialogueCapture, RetrospectiveAdapter } from '@senars/dialogue';
 import type {
   EmbeddingCache,
   JudgmentDataset,
   TraceGradeInput,
   TraceGradeResult,
-} from '../../index.js';
-import type { MemoryQuery } from '../../query/index.js';
-import type { ReadOnlyLookup } from '../../utils/common.js';
-import type { ChatTier } from '../../cli/commands.js';
-import type { AttachedGame } from '../../cli/conversation-game.js';
-import type { AppConfig, BotProfile } from '../../config/index.js';
+} from '@senars/lm/system-one';
+import type { MemoryQuery } from '@senars/query';
+import type { ReadOnlyLookup } from '@senars/util';
+import type { ChatTier } from '@senars/cli';
+import type { AttachedGame } from '@senars/cli/conversation-game';
+import type { AppConfig, BotProfile } from '@senars/config';
 import type { AgentFromEnvResult } from '../lib/lifecycle.js';
 
 export interface GroundednessState {

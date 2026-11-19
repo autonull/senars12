@@ -1,9 +1,9 @@
 /** Dialogue Flywheel commands (`.react`, `.turns`, `.retrospect*`, `.probes`, …). */
 
-import { OutcomeLinker } from '../../config/nar.js';
-import { episodeQualitySurface } from '../../query/index.js';
-import { errMsg, finiteOr, makeId, takeLast, unique } from '../../utils/common.js';
-import { attempted, cmd } from '../../cli/commands.js';
+import { OutcomeLinker } from '@senars/config/nar';
+import { episodeQualitySurface } from '@senars/query';
+import { errMsg, finiteOr, makeId, takeLast, unique } from '@senars/util';
+import { attempted, cmd } from '@senars/cli';
 import { tokenize } from './args.js';
 import { type BotRuntime, systemOneOf } from './context.js';
 
@@ -27,7 +27,7 @@ export const runSessionRetrospective = async (
   const { wired, strategyAdapter, memoryQuery } = rt;
   const { parameterLedger } = rt;
   if (!parameterLedger) return 'Parameter ledger not attached.';
-  const { mineHardNegatives } = await import('../../lm/index.js');
+  const { mineHardNegatives } = await import('@senars/lm/system-one');
   const miningBag = wired.nar.getMiningBag?.();
   const negatives = await mineHardNegatives(wired.nar, wired.episodicMemory, {
     limit: 16,
@@ -291,7 +291,7 @@ export const dialogueCommandsFor = (rt: BotRuntime) => [
     }
     const inductor =
       nar.getSchemaInductor() ??
-      new (await import('../../lm/index.js')).SchemaInductor(nar.memory, lmService, {
+      new (await import('@senars/learning')).SchemaInductor(nar.memory, lmService, {
         inductionIntervalMs: 0,
       });
     for (const chain of chains) inductor.onDerivation(chain as never);

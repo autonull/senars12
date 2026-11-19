@@ -1,7 +1,7 @@
 /** Application config read/write commands (`.config-*`). Mutates `rt.appConfig` in place. */
 
-import { envStrOr, thaw, writeJsonFile } from '../../utils/common.js';
-import { cmd } from '../../cli/commands.js';
+import { envStrOr, thaw, writeJsonFile } from '@senars/util';
+import { cmd } from '@senars/cli';
 import { coerce, flagsOf, setPath, tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
 
@@ -16,7 +16,7 @@ const configPath = (args = ''): string =>
  * copy of it — the dynamic import and the message included.
  */
 export const reloadAppConfig = async (rt: BotRuntime): Promise<string> => {
-  const { loadConfig } = await import('../../config/index.js');
+  const { loadConfig } = await import('@senars/config');
   rt.appConfig = await loadConfig();
   return 'Config reloaded (LM/routing changes need restart)';
 };

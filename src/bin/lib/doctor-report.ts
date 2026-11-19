@@ -12,7 +12,8 @@
  */
 
 import { cpus } from 'node:os';
-import { createBotNAR, DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '../../agent/index.js';
+import { createBotNAR } from '../../agent/index.js';
+import { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '../../state/index.js';
 import { runHealthChecks } from '../../health/index.js';
 import {
   cloudApiKey,

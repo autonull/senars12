@@ -4,6 +4,14 @@ import type { NAR, ExtendedAgent } from '../agent/index.js';
 import type { LMTask, LMExecutionStats } from '../utils/common.js';
 import { degrade, errMsg, splitWords, truncate } from '../utils/common.js';
 import type { ConversationSession, SessionManager } from '../utils/common.js';
+import { type Flags, parseFlags } from '../utils/common.js';
+
+export type { CLICommand } from '../io/index.js';
+export { QUIT_SENTINEL } from '../io/index.js';
+
+/** Check if output should be JSON (--json flag or non-TTY). */
+export const jsonMode = (args?: string): boolean =>
+  parseFlags(splitWords(args ?? '')).has('--json') || !process.stdout.isTTY;
 import {
   formatAgentStatus,
   formatAttention,

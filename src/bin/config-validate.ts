@@ -9,10 +9,10 @@
  *   senars config validate --json             # output machine-readable JSON
  */
 
-import { resolveLMConfig, resolveLMSettings } from '../lm/index.js';
-import { errMsg, parseFlags } from '../utils/common.js';
-import { jsonMode } from './commands/args.js';
-import { appConfigSchema, loadConfig } from '../config/index.js';
+import { resolveLMConfig, resolveLMSettings } from '@senars/lm';
+import { errMsg, parseFlags } from '@senars/util';
+import { jsonMode } from '@senars/cli/commands';
+import { appConfigSchema, loadConfig } from '@senars/config';
 import { runEntrypoint } from './lib/fatal-error.js';
 
 interface ValidateOptions {

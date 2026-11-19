@@ -1,6 +1,11 @@
 import { clamp01, flooredRatio, mean, safeRatio, sumBy } from '@senars/util';
+import type { PressureLevel } from '@senars/util/bag.js';
 
 import { type CognitionContext, failClosed, type Sensor, type SensorReading } from './types.js';
+
+/** Map pressure level to numeric value. */
+const pressureToNumber = (level: PressureLevel): number =>
+  level === 'critical' ? 1 : level === 'elevated' ? 0.5 : 0;
 
 /** C2-S1: capacity pressure + utilization from memory statistics. */
 export class BagPressureSensor implements Sensor {
@@ -10,7 +15,7 @@ export class BagPressureSensor implements Sensor {
       const stats = nar?.getStatistics();
       const pressure = stats?.memoryPressure ?? 0;
       const utilization = stats?.utilization ?? 0;
-      const bagPressure = focusBag ? clamp01(focusBag.pressure()) : 0;
+      const bagPressure = focusBag ? clamp01(pressureToNumber(focusBag.pressure())) : 0;
       return {
         features: { memoryPressure: pressure, utilization, bagOccupancy: bagPressure },
         confidence: stats || focusBag ? 1 : 0,

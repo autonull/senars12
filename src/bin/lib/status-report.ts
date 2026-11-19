@@ -18,18 +18,19 @@ import {
   isExhausted,
   pressure,
   remainingAll,
-} from '../../budget/index.js';
-import { createLMService, DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '../../agent/index.js';
-import { NARBuilder } from '../../agent/index.js';
+} from '@senars/budget';
+import { createLMService } from '@senars/lm';
+import { DEFAULT_NAR_STATE_PATH, readPersistedBoundary } from '@senars/state';
+import { NARBuilder } from '@senars/agent';
 import {
   CALIBRATION_LOCK_PATH,
   HEAD_SPECS,
   type SystemOneManifold,
-} from '../../lm/index.js';
-import { createLogger, errMsg, formatBytes, parseFlags, pct } from '../../utils/common.js';
-import { loadConfig } from '../../config/index.js';
+} from '@senars/lm/system-one';
+import { createLogger, errMsg, formatBytes, parseFlags, pct } from '@senars/util';
+import { loadConfig } from '@senars/config';
 import { renderReport } from '../commands/args.js';
-import { systemOneDefaults, systemOneSchema } from '../../config/schema.js';
+import { systemOneDefaults, systemOneSchema } from '@senars/config/schema';
 import { mettaPort } from './metta.js';
 
 const logger = createLogger({ scope: 'status' });

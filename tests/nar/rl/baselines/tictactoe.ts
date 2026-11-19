@@ -2,7 +2,7 @@ import {
   minimax,
   type TicTacToeAction,
   type TicTacToeGame,
-} from '@senars/agent';
+} from '@senars/game';
 
 /** Perfect play (the game-theoretic parity anchor). Memoized across episodes. */
 const cache = new Map<string, { action: number; score: number }>();

@@ -1,7 +1,7 @@
 /** Connection lifecycle (`.connect`/`.disconnect`/`.connections`) and per-connection auth secrets. */
 
-import { finiteOr } from '../../utils/common.js';
-import { attempted, cmd } from '../../cli/commands.js';
+import { finiteOr } from '@senars/util';
+import { attempted, cmd } from '@senars/cli';
 import { flagsOf, tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
 

@@ -40,7 +40,8 @@ export async function runDerivationBenchmarks(
 ): Promise<DerivationCost[]> {
   const nar = createBotNAR();
   const costs = new Map<string, DerivationCost>();
-  const unsubscribe = nar.getSystemEventBus().on('rule:applied', (e: NAREventMap['rule:applied']) => {
+  const unsubscribe = nar.getSystemEventBus().on('rule:applied', (e: unknown) => {
+    const event = e as NAREventMap['rule:applied'];
     const key = `${e.ruleId}\u0000${String(e.conclusion)}`;
     const row = costs.get(key) ?? {
       conclusion: String(e.conclusion),

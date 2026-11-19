@@ -6,11 +6,11 @@ import {
   LM_PROVIDER_NAMES,
   resolveLMConfig,
   resolveLMSettings,
-  LM_TASKS,
-} from '../../index.js';
-import { removeBy } from '../../utils/common.js';
-import { attempted, cmd } from '../../cli/commands.js';
-import type { BotConfig } from '../../config/index.js';
+  LMTask,
+} from '@senars/lm';
+import { removeBy, LM_TASKS } from '@senars/util';
+import { attempted, cmd } from '@senars/cli';
+import type { BotConfig } from '@senars/config';
 import { tokenize } from './args.js';
 import type { BotRuntime } from './context.js';
 
