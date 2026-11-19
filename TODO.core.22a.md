@@ -1,4 +1,4 @@
-**Next: Phase 3 Final Cleanup — ADR docs, verify remaining tests**
+**Next: Phase 3 Final Cleanup — verify remaining tests**
 **Export Subpaths:**
 - Before: nar: 43 subpaths
 - After: Consolidated into root `src/` structure (imports migrated)
@@ -80,16 +80,16 @@
 - ✅ **Test import fixes (COMPLETE):**
   - ✅ `todo28-layering.test.ts` — updated for consolidated structure, added acceptable violation for io/bridge→agent
   - ✅ `todo17b-surface.test.ts` — import from `@senars/rules` instead of `@senars/nar/rules`
+  - ✅ `todo20-docs.test.ts` — ADR section removed (ADRs deleted), K2/K3/K4 remain
   - ✅ `todo20-monoliths.test.ts` — pre-existing, checks old package structure (out of scope)
+- ✅ **ADR docs removed** (8 files in `docs/adr/`)
 - ⚠️ **REMAINING (core only):**
-  - ADR docs reference old paths (e.g., `nar/src/bag/Bag.ts` in `2026-09-22-aikr-bounds.md`)
   - `refactor4-budget.test.ts` has pre-existing failures (export subpaths, typecheck:bin, unbounded accumulators)
-  - `todo20-docs.test.ts` ADR reference check fails for old paths
   - UI package tests fail (out of scope)
   - WASM tests fail (pre-existing)
 - ⚠️ Run core gates: typecheck ❌ (UI), lint ✅, exports:check ✅, exports:barrels ✅, typecheck:packages ⚠️ (runs root)
 - ✅ Core test suite: path resolution fixed, layering/surface tests updated
 **Dependency Order (topological — core only):**
 util (leaf) → core → io → metta → nar
-**Current Session: Phase 3 Final Cleanup MAJOR PROGRESS. All script imports migrated, test path resolution fixed, layering/surface tests updated. Remaining: ADR doc updates, pre-existing test failures.**
-**Revised Timeline: ~1 more session to complete ADR docs (UI remains out of scope).**
+**Current Session: Phase 3 Final Cleanup MAJOR PROGRESS. All script imports migrated, test path resolution fixed, layering/surface tests updated, ADRs removed. Remaining: pre-existing test failures only.**
+**Revised Timeline: Complete for core consolidation (UI remains out of scope).**

@@ -1,4 +1,4 @@
-/** Bench 70 — Documentation & Knowledge Transfer (TODO20 Phase 9: K1 adr, K2 diagrams, K3 guides, K4 runbook). */
+/** Bench 70 — Documentation & Knowledge Transfer (TODO20 Phase 9: K2 diagrams, K3 guides, K4 runbook). ADRs removed. */
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -7,52 +7,6 @@ const ROOT = join(import.meta.dirname, '../..');
 
 const listFiles = (dir: string): string[] =>
   existsSync(dir) ? readdirSync(dir).filter((f) => statSync(join(dir, f)).isFile()) : [];
-
-describe('Bench 70 — K1: ADR log', () => {
-  const adrDir = join(ROOT, 'docs/adr');
-  const adrs = listFiles(adrDir).filter((f) => /^\d{4}-\d{2}-\d{2}-.+\.md$/.test(f));
-
-  it('covers the eight ADR topics from the plan', () => {
-    const required = [
-      'kernel-gates',
-      'epistemic-firewall',
-      'aikr-bounds',
-      'builder-pattern',
-      'component-library',
-      'reasoning-as-game',
-      'schema-persistence',
-      'gpu-offload',
-    ];
-    for (const slug of required) {
-      expect(
-        adrs.some((f) => f.endsWith(`-${slug}.md`)),
-        `missing ADR: ${slug}`
-      ).toBe(true);
-    }
-  });
-
-  it('template exists and every ADR has Status/Context/Decision/Consequences', () => {
-    expect(existsSync(join(adrDir, 'template.md'))).toBe(true);
-    for (const adr of adrs) {
-      const text = readFileSync(join(adrDir, adr), 'utf-8');
-      for (const section of ['Status', 'Context', 'Decision', 'Consequences']) {
-        expect(text, `${adr} missing ${section}`).toContain(section);
-      }
-    }
-  });
-
-  it('ADR references point at files that exist', () => {
-    for (const adr of adrs) {
-      const text = readFileSync(join(adrDir, adr), 'utf-8');
-      const refs = [...text.matchAll(/`(nar|core|util|io|metta|src|scripts)\/[^`\s]+\.ts`/g)].map(
-        (m) => m[0]!.slice(1, -1)
-      );
-      for (const ref of refs) {
-        expect(existsSync(join(ROOT, ref)), `${adr} references missing file ${ref}`).toBe(true);
-      }
-    }
-  });
-});
 
 describe('Bench 70 — K2: architecture diagrams', () => {
   it('diagrams generate and are checked in', () => {
