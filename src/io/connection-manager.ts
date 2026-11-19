@@ -1,4 +1,4 @@
-import { createLogger } from '@senars/core';
+import { createLogger } from '@senars/util';
 import { assertDefined } from '@senars/util';
 import type { Connection, ConnectionConfig, ConnectionDeps, ConnectionFactory } from './types.js';
 

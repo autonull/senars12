@@ -1,4 +1,4 @@
-import type { KernelControlState } from '@senars/core/schemas';
+import type { KernelControlState } from '@senars/schemas';
 import { BoundedRing, createLogger, errMsg, indexBy, keyedBy, mean, rankBy, roundTo } from '@senars/util';
 import { envBool } from '@senars/util/config';
 import type { EventBus as NarEventBus } from '@senars/util/events';

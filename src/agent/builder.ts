@@ -1,5 +1,6 @@
-import type { Agent, PromptBuilder } from '@senars/core';
-import type { MettaPort } from '@senars/core/metta-port';
+import type { Agent } from './Agent.js';
+import type { PromptBuilder } from '@senars/cortex';
+import type { MettaPort } from './metta-port.js';
 import { entryKey, errMsg, keyedBy } from '@senars/util';
 import type { SystemOneConfig } from '@senars/util/config';
 import { CognitiveRegistry } from '../cognitive/impls/CognitiveRegistry.js';

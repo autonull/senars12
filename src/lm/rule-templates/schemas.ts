@@ -2,7 +2,7 @@
  * Zod schemas for LM rule definitions (REFACTOR.todo4 Phase B).
  * Moved from nl/schemas.ts to break the rule-builders → rule-templates → nl → nar cycle.
  */
-import { AmbiguityReportSchema, DetectedIntentSchema } from '@senars/core/schemas';
+import { AmbiguityReportSchema, DetectedIntentSchema } from '@senars/schemas';
 import { z } from 'zod';
 import { unitInterval } from '@senars/util/config';
 

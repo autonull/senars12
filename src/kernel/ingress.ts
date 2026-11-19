@@ -1,4 +1,4 @@
-import type { SourceQuality } from '@senars/core/schemas/truth';
+import type { SourceQuality } from '@senars/schemas';
 import type { TermTruth } from '@senars/util';
 import type { TaskTypeName } from '../terms';
 

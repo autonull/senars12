@@ -1,6 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { ApprovalService } from '@senars/core';
+import type { ApprovalService } from '../../../agent/ApprovalService.js';
 import type { CapabilityRisk, Result } from '@senars/util';
 import { ensureParentDir, errMsg } from '@senars/util';
 import type { CognitiveController } from '../../../cognitive/impls/CognitiveController.js';

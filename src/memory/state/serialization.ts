@@ -9,7 +9,7 @@
  * so the format is versioned (version 1) but has a single reader/writer.
  */
 
-import type { TaskBagKind } from '@senars/core/schemas';
+import type { TaskBagKind } from '@senars/schemas';
 import { createLogger } from '@senars/util';
 import type { Bag } from '../../bag/Bag.js';
 import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from '../../state/codec.js';

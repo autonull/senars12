@@ -11,8 +11,8 @@
  * every existing importer is untouched and there is no second copy.
  */
 
-import { type BudgetLimits, createBudget } from '@senars/core/budget';
-import type { ReasoningBudget, SourceQuality } from '@senars/core/schemas';
+import { type BudgetLimits, createBudget } from '@senars/budget';
+import type { ReasoningBudget, SourceQuality } from '@senars/schemas';
 import type { BandDecision, CognitiveAxis } from '@senars/util';
 import type { CriticalityLevel } from '@senars/util/config';
 import { z } from 'zod';

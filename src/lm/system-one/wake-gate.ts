@@ -1,4 +1,4 @@
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import type { ReasoningBudget } from '@senars/schemas';
 import type { DistillationLabel, JudgmentDataset } from './distill.js';
 import { HEAD_SPECS, specToQuery } from './head-ontology.js';
 import type {

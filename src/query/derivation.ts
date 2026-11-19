@@ -7,8 +7,8 @@
  * as evidence.
  */
 
-import type { DerivationRecord } from '@senars/core/schemas';
-import { verifyRecord } from '@senars/core/verify-derivation';
+import type { DerivationRecord } from '@senars/schemas';
+import { verifyRecord } from '@senars/verification';
 import { termKey, termParser } from '../terms';
 import type { VerifiedDerivation } from './api';
 

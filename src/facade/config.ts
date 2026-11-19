@@ -1,5 +1,5 @@
-import type { MettaPort } from '@senars/core/metta-port';
-import type { AutonomyMode, ReasoningBudget } from '@senars/core/schemas';
+import type { MettaPort } from '@senars/agent';
+import type { AutonomyMode, ReasoningBudget } from '@senars/schemas';
 import { isStatefulRandomSource, type StatefulRandomSource } from '@senars/util';
 import type { Clock, IdSource } from '@senars/util';
 import type { SystemOneConfig as SystemOneConfigSchema } from '@senars/util/config';
@@ -64,7 +64,7 @@ export interface NARConfig extends CoreConfig {
   persistState?: boolean;
   statePath?: string;
   /** Unified LogStore for all persistence (replaces SqliteEventLog, StatePersister, KernelLedger). */
-  logStore?: import('../../../src/log/store').LogStore;
+  logStore?: import('@senars/log').LogStore;
 
   cognitiveParams?: CognitiveParameters;
   strategyRegistry?: CognitiveRegistry;

@@ -1,4 +1,4 @@
-import type { DerivationRecord, DerivationStep, TruthValue } from '@senars/core/schemas';
+import type { DerivationRecord, DerivationStep, TruthValue } from '@senars/schemas';
 import { asBeliefTruth, BoundedMap, BoundedRing, makeId, PushQueue, Signal } from '@senars/util';
 import type { RuleInput, RuleResult } from '../types.js';
 

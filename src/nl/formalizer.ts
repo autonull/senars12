@@ -21,7 +21,7 @@ import type {
   FormalizationCandidate,
   FormalizationBatch,
   TaskAdmittedEvent,
-} from '@senars/core/schemas';
+} from '@senars/schemas';
 import { asBeliefTruth, makeId } from '@senars/util';
 import type { ILMService } from '../lm/interfaces.js';
 import { parseTaskTolerant } from '../terms';

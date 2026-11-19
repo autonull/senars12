@@ -4,9 +4,9 @@ import type {
   Derivation,
   EngineId,
   ToolResult,
-} from '@senars/core/engine';
-import { BaseEngine } from '@senars/core/engine/base';
-import type { CognitiveEvent } from '@senars/core/schemas';
+} from '@senars/engine';
+import { BaseEngine } from '@senars/engine';
+import type { CognitiveEvent } from '@senars/schemas';
 import { asBeliefTruth, createLogger, DisposalRegistry, errMsg, takeLast } from '@senars/util';
 import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge.js';
 import { filterByTerm } from '../memory/term-filter.js';

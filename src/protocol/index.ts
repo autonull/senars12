@@ -49,6 +49,9 @@ export {
   type ReasoningAdjustProvider,
 } from './reasoning-control.js';
 export { ServerError, type ServerErrorCode } from './error.js';
+export type { ToolSpec, ToolSchema, ToolSchemaProperty, ToolResult } from '../types/tools.js';
+export { ToolSpec as Tool } from '../types/tools.js';
+export { objectSpec } from '../types/tools.js';
 export {
   GraphNodeDataStrict,
   MettaAtomNode,

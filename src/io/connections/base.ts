@@ -1,4 +1,4 @@
-import { ConnectionError } from '@senars/core';
+import { ConnectionError } from '@senars/errors';
 import {
   errMsg,
   generateId,

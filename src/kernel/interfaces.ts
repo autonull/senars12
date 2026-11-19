@@ -18,7 +18,7 @@ import type {
   ShadowValidationDropEvent,
   SourceQuality,
   TaskAdmittedEvent,
-} from '@senars/core/schemas';
+} from '@senars/schemas';
 import type { TruthLike } from '@senars/util';
 import type { TaskTypeName, Term } from '../terms';
 

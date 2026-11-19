@@ -1,4 +1,4 @@
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import type { ReasoningBudget } from '@senars/schemas';
 import { type AgentTrace, clamp, sha256HexParts } from '@senars/util';
 import type { ContrastiveMemory } from './contrastive.js';
 import type { DistillationLabel, JudgmentDataset } from './distill.js';

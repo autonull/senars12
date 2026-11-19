@@ -1,15 +1,11 @@
-import type {
-  ChatOptions,
-  ChatStreamEvent,
-  CortexSynthesizeRequest,
-  Derivation,
-  PromptBuilder,
-} from '@senars/core';
-import { Agent } from '@senars/core';
-import { createLogStore, LogStoreEventLog } from '../../../src/log/index.js';
-import { createCortexFromLM } from '@senars/core/cortex';
-import type { PersistableSessionManager } from '@senars/core/memory';
-import { registerAgentTools } from '@senars/core/motor';
+import type { ChatOptions, ChatStreamEvent } from './chat.js';
+import type { CortexSynthesizeRequest, PromptBuilder } from '@senars/cortex';
+import type { Derivation } from '@senars/types';
+import { Agent } from './Agent.js';
+import { createLogStore, LogStoreEventLog } from '@senars/log';
+import { createCortexFromLM } from '@senars/cortex';
+import type { PersistableSessionManager } from '@senars/memory';
+import { registerAgentTools } from '@senars/motor';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import {
@@ -41,7 +37,7 @@ import type {
   CognitiveTaskDelegation,
   CognitiveTaskResult,
 } from '../cooperation/delegation.js';
-import { SOURCE_QUALITY_CONFIDENCE } from '@senars/core/schemas/truth';
+import { SOURCE_QUALITY_CONFIDENCE } from '@senars/schemas';
 import { Truth } from '../terms';
 import { WebSocket } from 'ws';
 import { mkdtempSync } from 'node:fs';

@@ -13,7 +13,7 @@ import {
   mergeConsumed,
   mergeConsumption,
   sliceBudget,
-} from '@senars/core/budget';
+} from '@senars/budget';
 import { type RandomSource, SeededRNG, systemClock, weightedPick } from '@senars/util';
 import type { Focus, FocusOptions, FocusStepReport } from '../focus/Focus.js';
 import type { FocusBag } from '../focus/FocusBag.js';

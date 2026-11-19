@@ -11,7 +11,7 @@
  * `feasibility` twice and had never heard of `episodic_match`.
  */
 
-import { SourceQualitySchema, TASK_TYPES } from '@senars/core/schemas';
+import { SourceQualitySchema, TASK_TYPES } from '@senars/schemas';
 import type {
   CognitiveAxis,
   CriticalityLevel,

@@ -8,7 +8,7 @@
  * a proposal, the facts are the record).
  */
 
-import type { DerivationStep, TruthValue } from '@senars/core/schemas';
+import type { DerivationStep, TruthValue } from '@senars/schemas';
 import { formatTruth, unique } from '@senars/util';
 import type { BeliefInfo, ConflictInfo, GenerationInput, GenerationOutput } from './generation.js';
 

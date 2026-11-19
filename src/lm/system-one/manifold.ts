@@ -1,4 +1,4 @@
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import type { ReasoningBudget } from '@senars/schemas';
 import {
   assertDefined,
   clamp,

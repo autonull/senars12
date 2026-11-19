@@ -7,8 +7,8 @@
 
 import type { LogStore } from './store.js';
 import type { CognitiveEvent } from './events.js';
-import type { DerivationRecorder } from '../../nar/src/rules/impls/recorder.js';
-import type { DerivationStep, DerivationRecord } from '@senars/core/schemas';
+import type { DerivationRecorder } from '@senars/rules/impls/recorder.js';
+import type { DerivationStep, DerivationRecord } from '@senars/schemas';
 import { createLogger } from '@senars/util';
 import { isDerivationAcceptedEvent, isDerivationRecordEvent } from './events.js';
 

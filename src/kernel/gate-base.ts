@@ -1,6 +1,6 @@
-import type { CognitiveEvent, PolicyViolationEvent } from '@senars/core/schemas/cognitive-events';
-import type { GateName, GateOutcome } from '@senars/core/schemas/gate-io';
-import { mintCognitiveEvent, validateCognitiveEvent } from '@senars/core/schemas';
+import type { CognitiveEvent, PolicyViolationEvent } from '@senars/schemas';
+import type { GateName, GateOutcome } from '@senars/schemas';
+import { mintCognitiveEvent, validateCognitiveEvent } from '@senars/schemas';
 import { makeId } from '@senars/util';
 import { gateLog, type PolicyViolationInput } from './event-ring.js';
 import { recordGateDecision } from '../telemetry/index.js';

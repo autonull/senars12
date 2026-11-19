@@ -1,4 +1,4 @@
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+import type { ReasoningBudget } from '@senars/schemas';
 import { ambientRng, maxBy, nextInt, QTable, ucb } from '@senars/util';
 import { type Game, type GameOutcome, perceptionKey } from '../../game/Game.js';
 import type { Decider } from './decide.js';

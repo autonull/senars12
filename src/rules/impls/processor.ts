@@ -13,7 +13,7 @@ import {
   toError,
   type ModelRuleStats,
 } from '@senars/util';
-import type { DerivationRecord, DerivationStep } from '@senars/core/schemas';
+import type { DerivationRecord, DerivationStep } from '@senars/schemas';
 import { countContradictions } from '../../cognitive/impls/conflict-utils.js';
 import type { DriveManager } from '../../drives';
 import { type ControlBudgetPort, UNBUDGETED } from '../../kernel/control-budgets.js';

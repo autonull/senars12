@@ -1,6 +1,6 @@
-import type { PromptBuilder } from '@senars/core';
-import type { PersistableSessionManager } from '@senars/core/memory';
-import type { MettaPort } from '@senars/core/metta-port';
+import type { PromptBuilder } from '@senars/cortex';
+import type { PersistableSessionManager } from '@senars/memory';
+import type { MettaPort } from './metta-port.js';
 import type { LMTask } from '@senars/util';
 import type { ConnectionConfig } from '@senars/util/types/transport';
 import type { EpisodicMemory, LMService, NAR } from '../index.js';

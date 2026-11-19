@@ -6,13 +6,13 @@ import type {
   AutonomyModeChangedEvent,
   GateOutcome,
   PolicyViolationEvent,
-} from '@senars/core/schemas';
+} from '@senars/schemas';
 import {
   AutonomyModeChangedEventSchema,
   AutonomyModeSchema,
   mintCognitiveEvent,
   permitsExecution,
-} from '@senars/core/schemas';
+} from '@senars/schemas';
 import { addToSet, BoundedMap, makeId, pushCapped } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import { GATE_LOG_CAPACITY } from './event-ring.js';

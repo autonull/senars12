@@ -1,5 +1,5 @@
-import type { CeilingReputation, SourceQuality } from '@senars/core/schemas';
-import { confidenceCeiling } from '@senars/core/schemas';
+import type { CeilingReputation, SourceQuality } from '@senars/schemas';
+import { confidenceCeiling } from '@senars/schemas';
 import { Truth } from '../../terms/impls/Truth.js';
 import type { Desire } from './desire.js';
 import type { JudgmentProposition } from './types.js';

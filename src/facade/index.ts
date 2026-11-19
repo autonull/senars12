@@ -6,7 +6,7 @@
  * WeakSet so per-instance semantics survive the extraction.
  */
 
-import { proposalRisk, type SelfImprovementProposal } from '@senars/core/schemas/governance';
+import { proposalRisk, type SelfImprovementProposal } from '@senars/schemas';
 import { createLogger, degrade, errMsg, makeId, toolError, toolOk, truncate } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { createBootstrapTasks } from '../drives';

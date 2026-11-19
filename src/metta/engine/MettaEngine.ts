@@ -4,8 +4,8 @@ import type {
   Derivation,
   EngineId,
   ToolResult,
-} from '@senars/core/engine';
-import { BaseEngine } from '@senars/core/engine/base';
+} from '@senars/engine';
+import { BaseEngine } from '@senars/engine';
 import { Effect } from 'effect';
 import { parseMeTTa } from '../parser/runtime.js';
 import { createMeTTa, type MeTTaRuntime } from '../runtime/builder.js';

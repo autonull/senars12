@@ -1,4 +1,4 @@
-import type { SkillFeedback, ToolRegistryDelegate, ToolSpec } from '@senars/core/motor';
+import type { SkillFeedback, ToolRegistryDelegate, ToolSpec } from '@senars/motor';
 import { toSkillFeedback } from '@senars/util';
 import type { ToolContext, ToolResult } from '@senars/util';
 import type { ToolManager } from './ToolManager';

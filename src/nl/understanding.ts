@@ -3,8 +3,8 @@ import type {
   AmbiguityType,
   FormalizationBatch,
   FormalizationCandidate,
-} from '@senars/core/schemas';
-import { ambiguitySeverityOf, validateFormalizationBatch } from '@senars/core/schemas';
+} from '@senars/schemas';
+import { ambiguitySeverityOf, validateFormalizationBatch } from '@senars/schemas';
 import {
   asBeliefTruth,
   errMsg,

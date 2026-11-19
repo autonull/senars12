@@ -1,4 +1,4 @@
-import type { CortexSynthesizeRequest, PromptBuilder } from '@senars/core';
+import type { CortexSynthesizeRequest, PromptBuilder } from '@senars/cortex';
 import type { LMService } from '../lm/lm-service.js';
 
 export interface CompactionConfig {

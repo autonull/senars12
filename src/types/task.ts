@@ -6,7 +6,7 @@ import type { Term } from '../terms/types.js';
 import type { Truth } from '../terms/impls/Truth.js';
 import type { Stamp } from '../terms/impls/Stamp.js';
 import type { Timestamp } from './primitives.js';
-import type { Budget, TaskType } from '@senars/core/schemas';
+import type { Budget, TaskType } from '@senars/schemas';
 
 // Core Task interface
 export interface Task {

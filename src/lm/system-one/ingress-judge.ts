@@ -1,5 +1,5 @@
-import type { CeilingReputation, ReasoningBudget, SourceQuality } from '@senars/core/schemas';
-import { confidenceCeiling } from '@senars/core/schemas';
+import type { CeilingReputation, ReasoningBudget, SourceQuality } from '@senars/schemas';
+import { confidenceCeiling } from '@senars/schemas';
 import type { IngressJudge, IngressJudgmentRequest, IngressVerdict } from '../../kernel/ingress.js';
 import { providerKey } from '../../kernel/reputation-keys.js';
 import type { TaskTypeName } from '../../terms';

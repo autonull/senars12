@@ -15,6 +15,13 @@ export { Memory } from './memory.js';
 export { MemoryIndex } from './memory-index.js';
 export type * from './ports/index.js';
 export { evictUnderPressure } from './pressure/index.js';
+export { MemoryService } from './MemoryService.js';
+export { EpisodicMemory } from './episodic.js';
+export type { PersistableSessionManager } from './types.js';
+export { abortSession, createSession, InMemorySessionManager, JsonlSessionManager, type JsonlSessionManagerConfig } from './SessionManager.js';
+export { SessionStore, type SessionStoreOptions } from './in-memory-session-manager.js';
+export type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig } from './episodic.js';
+export { EPISODE_TYPES } from './episodic.js';
 export type { ConceptStats, SerializedConcept, SerializedMemory } from './state/index.js';
 export {
   calculateConceptStats,

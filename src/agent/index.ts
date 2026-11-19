@@ -2,16 +2,18 @@ import { createAgent, type CreateAgentConfig, type BinAgentApi, type ExtendedAge
 
 export { createAgent, type CreateAgentConfig, type BinAgentApi, type ExtendedAgent } from './create-agent.js';
 
-export type { Agent } from '@senars/core';
-export { createCortexFromLM } from '@senars/core/cortex';
-export type { JsonlSessionManagerConfig } from '@senars/core/memory';
+export type { Agent } from './Agent.js';
+export { createCortexFromLM } from '@senars/cortex';
+export type { JsonlSessionManagerConfig } from '@senars/memory';
 export {
   abortSession,
   createSession,
   InMemorySessionManager,
   JsonlSessionManager,
-} from '@senars/core/memory';
-export { dispatchToolCalls, registerAgentTools } from '@senars/core/motor';
+} from '@senars/memory';
+export { dispatchToolCalls, registerAgentTools } from '@senars/motor';
+export { emitDomainEvent, setDomainEventSink, hasDomainEventSink, type DomainEventPayload } from './event-sink.js';
+export type { MettaPort } from './metta-port.js';
 export type { CapabilitySpec, CapabilitySurface, WiredNAR } from './builder.js';
 export { BuilderError, NARBuilder } from './builder.js';
 export {
@@ -23,3 +25,10 @@ export {
 } from './cognitive-agent.js';
 export type { NARProfileName, NARProfileSpec } from './profiles.js';
 export { NAR_PROFILES, resolveProfile } from './profiles.js';
+export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from '../nar-presets.js';
+export type { NARConfig, RLFPConfig } from '../nar.js';
+export { NAR } from '../nar.js';
+export type { NAREventMap } from '../types/events.js';
+export type { Tool, ToolResult, ToolSchema, ToolSchemaProperty } from '../protocol/index.js';
+export { readPersistedBoundary } from '../state/persisted.js';
+export type { ChatStreamEvent } from './chat.js';

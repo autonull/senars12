@@ -5,7 +5,7 @@ import type {
   CognitiveEvent,
   PolicyViolationEvent,
   ReasoningBudget,
-} from '@senars/core/schemas';
+} from '@senars/schemas';
 import type { GateLogKey } from './event-ring.js';
 import type { IActionGate, IBudgetGate, IPerceptionGate, IRewardGate } from './interfaces.js';
 import { KernelActionGate, type KernelActionGateConfig } from './KernelActionGate.js';

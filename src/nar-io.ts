@@ -4,7 +4,7 @@ import type {
   SourceQuality,
   StimulusSource,
   TaskAdmittedEvent,
-} from '@senars/core/schemas';
+} from '@senars/schemas';
 import { clamp, clampSigned, makeId, writeJsonFile } from '@senars/util';
 import type { EventBus } from '@senars/util/events';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';

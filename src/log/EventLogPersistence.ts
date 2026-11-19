@@ -5,7 +5,7 @@
  * Persistence is now handled by LogStoreGateEventLedger in @senars/log/GateEventLedger.
  */
 
-import type { AutonomyMode, CognitiveEvent, TaskAdmittedEvent } from '@senars/core/schemas';
+import type { AutonomyMode, CognitiveEvent, TaskAdmittedEvent } from '@senars/schemas';
 import type { BeliefTruth } from '@senars/util';
 
 export function replayTaskAdmissions(

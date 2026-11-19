@@ -98,7 +98,7 @@ export class SystemOneLMRuleAdapter {
     }
   }
 
-  #budget(): import('@senars/core/schemas').ReasoningBudget {
+  #budget(): import('@senars/schemas').ReasoningBudget {
     return createSystemOneBudget();
   }
 

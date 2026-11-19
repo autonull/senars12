@@ -1,4 +1,4 @@
-import { verifyRecord } from '@senars/core/verify-derivation';
+import { verifyRecord } from '@senars/verification';
 import { cachePath, createLogger, type TermTruth } from '@senars/util';
 import {
   type CognitiveParameters,

@@ -30,8 +30,8 @@ import type {
   Proposal,
   ProposalRejectedEvent,
   ProposalRejection,
-} from '@senars/core/schemas';
-import { PROPOSAL_SCHEMA_VERSION, validateProposal } from '@senars/core/schemas';
+} from '@senars/schemas';
+import { PROPOSAL_SCHEMA_VERSION, validateProposal } from '@senars/schemas';
 import { BoundedRing, incrementCount, makeId, pushCapped, removeBy } from '@senars/util';
 
 /** Bounded depth of a seam's own log, matching the kernel gates' rings. */

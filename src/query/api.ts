@@ -5,8 +5,8 @@ import { hasCopula, hasVariable, Stamp, Truth, termParser, unify, termKey } from
 import { byRelevance, type RelevanceOptions } from './relevance.js';
 import type { Task, TaskType, TermFilter } from '../types';
 import { createTask, createTaskWeight, createTimestamp } from '../types';
-import { type DerivationRecord, TASK_BAG_KINDS } from '@senars/core/schemas';
-import { verifyRecord } from '@senars/core/verify-derivation';
+import { type DerivationRecord, TASK_BAG_KINDS } from '@senars/schemas';
+import { verifyRecord } from '@senars/verification';
 
 const logger = createLogger({ scope: 'QueryAPI' });
 

@@ -2,7 +2,7 @@ import { trace } from '@opentelemetry/api';
 import {
   type JudgmentResolvedEvent,
   mintCognitiveEvent,
-} from '@senars/core/schemas/cognitive-events';
+} from '@senars/schemas';
 import { makeId } from '@senars/util';
 import type { CognitiveAxis } from '../../decision/types.js';
 import { recordJudgmentMetric } from '../../metrics/prometheus.js';

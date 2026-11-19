@@ -6,3 +6,9 @@ export { lmSettingsSchema, lmSettingsShape, type LMSettingsShape } from './lm-sc
 export { systemOneBounds, systemOneBound, systemOneDefaults, systemOneSchema, type SystemOneConfig, type SystemOneBounds, type SystemOneBoundCategory, type SystemOneBoundKey, CRITICALITY_LEVELS, type CriticalityLevel, criticalitySchema } from './system-one.js';
 export { narCoreBounds, narCoreDefaults, narCoreDefaultsSchema, narCoreNumber, narCoreDefaultedNumber } from './nar-core-bounds.js';
 export { readEnvOverrides, SENARS_ENV_MAP, envBool, envCsv, envFirst, envInt, envNum, envPositive, envSet, envStr, envStrOr, isTruthy, parseEnvValue, envNumOr } from './env.js';
+export { CACHE_DIR, cachePath } from './paths.js';
+export { PRESSURE } from './pressure.js';
+export { contextOptsSchema, agentOptionsSchema, SchemaValidationError, parseOrThrow } from './validation.js';
+export type { AppConfig, BotConfig, BotProfile, LmConfig, NarCoreConfig } from './schema.js';
+export { loadConfig, loadConfigFromEnv } from './loader.js';
+export { DEFAULT_APP_CONFIG, withDefaults } from './defaults.js';

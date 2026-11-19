@@ -1,6 +1,11 @@
 export type { Source, Stamp } from '../terms/impls/Stamp.js';
 export type { Truth as TruthType } from '../terms/impls/Truth.js';
 export type { AtomicTerm, CompoundTerm, Term } from '../terms/types.js';
+export type { Engine, EngineId } from './engine.js';
+export type { CognitiveStimulus, Context, Derivation } from './cognitive.js';
+export type { ToolResult } from './engine.js';
+export { toolOk, toolError } from './engine.js';
+export type { BaseComponent } from './lifecycle.js';
 export type {
   BaseStats,
   Budget,

@@ -1,4 +1,4 @@
-import type { Verdict } from '@senars/core/schemas';
+import type { Verdict } from '@senars/schemas';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
 import type { JudgmentProposition, ResourceCost } from './types.js';
 

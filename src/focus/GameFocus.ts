@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import type { DerivationRecord, ReasoningBudget } from '@senars/core/schemas';
+import type { DerivationRecord, ReasoningBudget } from '@senars/schemas';
 import {
   asBeliefTruth,
   BoundedRing,

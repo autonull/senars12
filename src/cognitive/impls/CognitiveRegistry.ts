@@ -10,7 +10,7 @@
  * Nothing else in the system constructs or selects a strategy.
  */
 
-import { emitDomainEvent } from '@senars/core/event-sink';
+import { emitDomainEvent } from '@senars/agent';
 
 import { ConfigurationError } from '../../types';
 import { ambientRng, getOrInsert, KeyedRegistry, keyedBy } from '@senars/util';

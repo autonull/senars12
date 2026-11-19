@@ -1,5 +1,5 @@
-import type { Agent } from '@senars/core/agent';
-import { aggregateChatResponse } from '@senars/core/bridge/chat-stream-handler';
+import type { Agent } from '@senars/agent';
+import { aggregateChatResponse } from '@senars/bridge';
 import type { BridgeOptions, Connection, IOMessage } from '@senars/util';
 import { InMemorySessionManager } from '@senars/util/memory';
 import type { ConnectionManager } from '../connection-manager.js';

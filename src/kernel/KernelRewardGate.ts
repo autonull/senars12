@@ -5,8 +5,8 @@ import type {
   RewardGateInput,
   RewardGateOutput,
   SelfImprovementProposal,
-} from '@senars/core/schemas';
-import { proposalRisk, SelfImprovementProposalSchema } from '@senars/core/schemas';
+} from '@senars/schemas';
+import { proposalRisk, SelfImprovementProposalSchema } from '@senars/schemas';
 import { makeId } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import { KernelGate, projectOutcome } from './gate-base.js';

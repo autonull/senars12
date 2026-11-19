@@ -46,12 +46,12 @@ import type {
   RuleTableDiff,
   RuleTableFault,
   RuleTableRejection,
-} from '@senars/core/schemas';
+} from '@senars/schemas';
 import {
   BUILTIN_RULE_ARTIFACT_VERSION,
   RULE_TABLE_SCHEMA_VERSION,
   validateRuleTable,
-} from '@senars/core/schemas';
+} from '@senars/schemas';
 import { indexBy, maxScore, pushCapped } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 

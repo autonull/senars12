@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { dirname } from 'node:path';
-import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
+import type { SelfImprovementProposal } from '@senars/schemas';
 import {
   appendJsonlAsync,
   iterateJsonl,

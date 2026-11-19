@@ -8,14 +8,14 @@ import type {
   ShadowValidationDropEvent,
   SourceQuality,
   TaskAdmittedEvent,
-} from '@senars/core/schemas';
+} from '@senars/schemas';
 import {
   confidenceCeiling,
   mintCognitiveEvent,
   SOURCE_QUALITY_CONFIDENCE,
   TASK_PUNCTUATION,
   TOLERANT_PUNCTUATIONS,
-} from '@senars/core/schemas';
+} from '@senars/schemas';
 import {
   asBeliefTruth,
   clamp01,

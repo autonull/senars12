@@ -1,4 +1,4 @@
-import type { DerivationRecord } from '@senars/core/schemas/derivation-records';
+import type { DerivationRecord } from '@senars/schemas';
 import { getOrInsert } from '@senars/util';
 import { atom, fromNarsese, getArgs, type Term } from '../../terms/index.js';
 

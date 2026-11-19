@@ -8,15 +8,15 @@
 
 import type { LogStore } from './store.js';
 import { SnapshotManager, createSnapshotManager, type SnapshotConfig } from './snapshot.js';
-import { encodeState, decodeState, NAR_STATE_SCHEMA_VERSION } from '../../nar/src/state/codec.js';
-import { serializeTaskRecord, rehydrateTask, type TaskRecord } from '../../nar/src/task/record.js';
-import { encodeBoundary, decodeBoundary, type ConsistencyBoundary, BOUNDARY_FILENAME } from '../../nar/src/state/boundary.js';
-import type { Memory } from '../../nar/src/memory';
-import type { DriveManager } from '../../nar/src/drives';
-import type { QueryAPI } from '../../nar/src/query/api.js';
+import { encodeState, decodeState, NAR_STATE_SCHEMA_VERSION } from '../state/codec.js';
+import { serializeTaskRecord, rehydrateTask, type TaskRecord } from '../task/record.js';
+import { encodeBoundary, decodeBoundary, type ConsistencyBoundary, BOUNDARY_FILENAME } from '../state/boundary.js';
+import type { Memory } from '../memory';
+import type { DriveManager } from '../drives';
+import type { QueryAPI } from '../query/api.js';
 import { createLogger } from '@senars/util';
-import type { TaskType } from '../../nar/src/types';
-import { termParser } from '../../nar/src/terms';
+import type { TaskType } from '../types';
+import { termParser } from '../terms';
 
 /** Minimal NAR config needed by StatePersister — avoids cycle with nar/src/facade/config. */
 interface PersisterNARConfig {

@@ -3,7 +3,7 @@
  * consumes, behind the interface that lets `nar` sit below `metta` in the
  * layering. One runtime, one parser, three methods.
  */
-import type { MettaPort } from '@senars/core/metta-port';
+import type { MettaPort } from '@senars/agent';
 import { Effect } from 'effect';
 import { parseMeTTa } from '../parser/runtime.js';
 import { createMeTTa, type MeTTaRuntime } from '../runtime/builder.js';

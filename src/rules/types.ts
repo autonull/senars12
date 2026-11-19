@@ -1,4 +1,4 @@
-import type { TaskType } from '@senars/core/schemas';
+import type { TaskType } from '@senars/schemas';
 import type { ModelRuleStats } from '@senars/util';
 import type { StampType, Term, Truth } from '../terms';
 import type { NarEventBus, Task } from '../types';

@@ -3,7 +3,7 @@
  * Everything that grows has a bound; kernel logs cap at 1000 events.
  */
 
-import type { PolicyViolationEvent } from '@senars/core/schemas';
+import type { PolicyViolationEvent } from '@senars/schemas';
 import { BoundedRing } from '@senars/util';
 
 export const GATE_LOG_CAPACITY = 1000;

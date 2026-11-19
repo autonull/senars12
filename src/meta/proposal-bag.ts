@@ -6,7 +6,7 @@
  * kind + scope) decay out. Inert until wired: default processing stays
  * arrival-order.
  */
-import type { SelfImprovementProposal } from '@senars/core/schemas/governance';
+import type { SelfImprovementProposal } from '@senars/schemas';
 import { retain, selectByPriority } from '@senars/util';
 import { type AikrBagOptions, AikrShell, type ProcessOptions } from '../learning/aikr-processor.js';
 import type { RandomSource } from '../types/primitives.js';

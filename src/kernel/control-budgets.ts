@@ -12,8 +12,8 @@
  * cannot drift into two budgets — §7 invariant 12.
  */
 
-import { ALL_RESOURCES, BUDGET_TYPES, type BudgetResource, budgetLimit } from '@senars/core/budget';
-import type { ReasoningBudget } from '@senars/core/schemas';
+import { ALL_RESOURCES, BUDGET_TYPES, type BudgetResource, budgetLimit } from '@senars/budget';
+import type { ReasoningBudget } from '@senars/schemas';
 import { BUDGET_SCOPE_IDS, type BudgetScopeId, scopeBudget, scopeSpec } from './budget-scopes.js';
 import type { KernelBudgetGate } from './KernelBudgetGate.js';
 

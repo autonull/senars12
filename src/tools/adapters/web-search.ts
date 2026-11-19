@@ -1,4 +1,4 @@
-import { type SearchProvider, searchWeb, type WebSearchOutcome } from '@senars/core/motor';
+import { type SearchProvider, searchWeb, type WebSearchOutcome } from '@senars/motor';
 import { intBetween } from '@senars/util/config';
 import { tool } from 'ai';
 import { z } from 'zod';
@@ -12,7 +12,7 @@ export interface WebSearchDeps {
 }
 
 /**
- * The AI-SDK face of the shared web-search registry in `@senars/core/motor`.
+ * The AI-SDK face of the shared web-search registry in `@senars/motor`.
  * It carries no backend of its own: providers, credentials, timeouts, and the
  * response-size cap all come from the registry, so a tool added here cannot
  * drift from the motor's `search` tool on any of them.

@@ -1,4 +1,4 @@
-import type { RewardDomain } from '@senars/core/schemas/governance';
+import type { RewardDomain } from '@senars/schemas';
 import { accumulate, type CapabilityRisk, clamp, clamp01, clampSigned } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 import type { FocusBag } from '../focus/FocusBag.js';

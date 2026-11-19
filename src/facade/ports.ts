@@ -57,11 +57,11 @@ export interface NARFacadePort {
   step(signal?: AbortSignal, correlationId?: string): Promise<number>;
   pause(): void;
   resume(): void;
-  getControlState(): import('@senars/core/schemas').KernelControlState;
+  getControlState(): import('@senars/schemas').KernelControlState;
   getAutonomyConfig(): import('../autonomy').AutonomyConfig;
   getEventBus(): NarEventBus;
   getRuleTable(): import('../rules/impls/rule-table.js').RuleTableStore;
-  getProposalLog(): readonly import('@senars/core/schemas').CognitiveEvent[];
+  getProposalLog(): readonly import('@senars/schemas').CognitiveEvent[];
   getFocusBag(): import('../focus/FocusBag.js').FocusBag;
   getAttachedGames(): string[];
   getSelfMetaGame(): import('../game/impls/SelfMetaGame.js').SelfMetaGameImpl;

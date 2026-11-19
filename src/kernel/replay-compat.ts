@@ -11,13 +11,13 @@ import type {
   CognitiveEvent,
   DerivationRecord,
   TaskAdmittedEvent,
-} from '@senars/core/schemas';
+} from '@senars/schemas';
 import {
   CognitiveEventSchema,
   DerivationRecordSchema,
   validateCognitiveEvent,
   validateDerivationRecord,
-} from '@senars/core/schemas';
+} from '@senars/schemas';
 import {
   appendJsonl,
   type Clock,

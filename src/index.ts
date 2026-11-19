@@ -44,7 +44,7 @@ export {
   type TreadmillConfig,
 } from './imagination/index.js';
 /** The one component lifecycle state machine (`NAR` extends it). @public */
-export { BaseComponent } from '@senars/core';
+export { BaseComponent } from './agent/Lifecycle.js';
 // LLM Service
 /** LLM service + factory/mock. @public */
 export { createLMService, createMockLMService, LMService } from './lm/lm-service.js';

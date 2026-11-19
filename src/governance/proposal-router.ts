@@ -10,8 +10,8 @@ import type {
   PatchProposal,
   RiskAssessment,
   SelfImprovementProposal,
-} from '@senars/core/schemas';
-import { permitsExecution, riskLevelOf } from '@senars/core/schemas';
+} from '@senars/schemas';
+import { permitsExecution, riskLevelOf } from '@senars/schemas';
 import { makeId } from '@senars/util';
 
 export interface ProposalActuators {

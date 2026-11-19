@@ -9,7 +9,7 @@
  * announcement is injected here: `@senars/util` owns the policy, this layer owns
  * the sink.
  */
-import { emitDomainEvent } from '@senars/core/event-sink';
+import { emitDomainEvent } from '@senars/agent';
 import {
   type BagItem,
   type BagOptions,
@@ -34,7 +34,7 @@ export class PriorityBag<T extends BagItem> extends BasePriorityBag<T> {
   }
 }
 
-export type { AIKRBudget } from '@senars/core/budget';
+export type { AIKRBudget } from '@senars/budget';
 
 export type {
   Bag,

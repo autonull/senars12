@@ -1,4 +1,4 @@
-import type { TaskBagKind, Verdict } from '@senars/core/schemas';
+import type { TaskBagKind, Verdict } from '@senars/schemas';
 import { clamp, formatTruth } from '@senars/util';
 import {
   atomicSymbols,

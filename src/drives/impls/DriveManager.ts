@@ -1,4 +1,4 @@
-import type { TaskBagKind } from '@senars/core/schemas';
+import type { TaskBagKind } from '@senars/schemas';
 import {
   clamp01,
   formatNarseseTruth,

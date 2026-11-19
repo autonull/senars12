@@ -1,4 +1,4 @@
-import type { DerivationRecord } from '@senars/core/schemas/derivation-records';
+import type { DerivationRecord } from '@senars/schemas';
 import type { TaskAdmission } from '../../memory/ports/index.js';
 import type { Term } from '../../terms/index.js';
 import { Truth, termParser } from '../../terms/index.js';

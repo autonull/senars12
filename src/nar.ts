@@ -1,12 +1,12 @@
-import { BaseComponent } from '@senars/core';
+import { BaseComponent } from '@senars/types';
 import type {
   CognitiveEvent,
   DerivationRecord,
   DerivationStep,
   KernelControlState,
   TaskAdmittedEvent,
-} from '@senars/core/schemas';
-import type { ReasoningBudget } from '@senars/core/schemas/reasoning-budget';
+} from '@senars/schemas';
+import type { ReasoningBudget } from '@senars/schemas';
 import {
   ambientRng,
   type BeliefTruth,
@@ -978,7 +978,7 @@ export class NAR extends BaseComponent {
   async reward(
     reward: number,
     context?: string
-  ): Promise<import('@senars/core/schemas').RewardGateOutput> {
+  ): Promise<import('@senars/schemas').RewardGateOutput> {
     return this.io.reward(reward, context);
   }
 

@@ -26,7 +26,7 @@ export type Hash = number;
 export type TermSymbol = string;
 
 // Budget and priority system — one shape, validated by the schema that admits it
-import type { Budget, TaskType } from '@senars/core/schemas';
+import type { Budget, TaskType } from '@senars/schemas';
 
 export type { Budget, TaskType };
 

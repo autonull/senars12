@@ -4,7 +4,7 @@
  * self-consistency `consensus` — no new machinery.
  */
 
-import { budgetRemaining } from '@senars/core/budget';
+import { budgetRemaining } from '@senars/budget';
 import { clamp, sha256Hex } from '@senars/util';
 import { type JudgmentProvenance, stageProvenance } from './decide.js';
 import { HEAD_SPECS } from './head-ontology.js';

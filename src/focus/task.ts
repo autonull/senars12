@@ -9,7 +9,7 @@
  * and all three projections so the vocabulary has a single home.
  */
 
-import type { TaskBagKind } from '@senars/core/schemas';
+import type { TaskBagKind } from '@senars/schemas';
 import { type Clock, clamp01, systemClock, type TermTruth } from '@senars/util';
 import type { BagItem } from '../bag/Bag.js';
 import type { GameOutcome, Perception } from '../game/Game.js';

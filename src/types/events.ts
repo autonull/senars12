@@ -1,5 +1,5 @@
-import type { BudgetEventMap } from '@senars/core/budget';
-import type { AmbiguityReport, DerivationRecord, DerivationStep, KernelControlState } from '@senars/core/schemas';
+import type { BudgetEventMap } from '@senars/budget';
+import type { AmbiguityReport, DerivationRecord, DerivationStep, KernelControlState } from '@senars/schemas';
 import type { TermTruth } from '@senars/util';
 import type { Term, Truth } from '../terms';
 

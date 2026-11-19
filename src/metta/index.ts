@@ -1,5 +1,5 @@
 /**
- * MeTTa — MeTTa port and agent (migrated from @senars/metta and @senars/core/metta-port).
+ * MeTTa — MeTTa port and agent (migrated from @senars/metta and @senars/agent).
  */
 
 export {
@@ -89,8 +89,8 @@ export {
   MeTTaBuilder,
   MeTTaRuntime,
   createMeTTa as createMetta,
-  parseMeTTa as parseMetta,
 } from './runtime/builder.js';
+export { parseMeTTa, parseMeTTa as parseMetta } from './parser/runtime.js';
 export type {
   MeTTaContext,
 } from './runtime/context.js';
@@ -157,5 +157,5 @@ export {
   typefun,
   typevar,
 } from './types/type.js';
-export type { MettaPort } from '@senars/core/metta-port';
+export type { MettaPort } from '@senars/agent';
 export { createMettaPort } from './agent/index.js';

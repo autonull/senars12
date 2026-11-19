@@ -4,7 +4,7 @@
  * Consumers: delegation, curriculum probes (.probes), self-report.
  */
 
-import type { ToolSpec } from '@senars/core/motor';
+import type { ToolSpec } from '@senars/motor';
 import { addToSet, type CapabilityRisk, mapValues, shortSha256Hex } from '@senars/util';
 import type { Tool as NarTool, ToolSchema as NarSchema } from '../tools/types.js';
 import { type CapabilityDef, CapabilitySpace } from './space.js';

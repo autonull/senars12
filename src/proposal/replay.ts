@@ -28,8 +28,8 @@
  *    skipped by a caller that replays without a lifecycle.
  */
 
-import type { CognitiveEvent, ProposalRejection, RuleDeclaration } from '@senars/core/schemas';
-import { PROPOSAL_SCHEMA_VERSION } from '@senars/core/schemas';
+import type { CognitiveEvent, ProposalRejection, RuleDeclaration } from '@senars/schemas';
+import { PROPOSAL_SCHEMA_VERSION } from '@senars/schemas';
 import { unique } from '@senars/util';
 import { SenarsError } from '@senars/util/errors';
 

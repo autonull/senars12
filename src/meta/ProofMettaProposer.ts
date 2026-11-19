@@ -7,7 +7,7 @@
  * Implements IProposer for use in Negotiator.
  */
 
-import type { DerivationRecord, DerivationStep } from '@senars/core/schemas/derivation-records';
+import type { DerivationRecord, DerivationStep } from '@senars/schemas';
 import {
   BoundedMap,
   BoundedRing,

@@ -3,7 +3,7 @@
  * Extracted to break SelfMetaGame.ts <-> governance/pipeline.ts cycle.
  */
 
-import type { AutonomyMode } from '@senars/core/schemas';
+import type { AutonomyMode } from '@senars/schemas';
 
 export interface ProposalActuators {
   applyFocusWeight?: (focusId: string, weight: number) => void;
