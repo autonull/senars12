@@ -1,5 +1,9 @@
-import { getNested, indexBy, keyedBy, setNested } from '@senars/util';
-import { type BoundProjection, cognitiveBound, systemOneBound } from '@senars/util/config';
+import { getNested, setNested } from '@senars/util';
+import { indexBy, keyedBy } from '@senars/util/collections';
+import { type BoundProjection, cognitiveBound } from '../config/cognitive-bounds';
+import { systemOneBound } from '../config/system-one';
+console.log('[knobs.ts] cognitiveBound:', cognitiveBound, typeof cognitiveBound);
+console.log('[knobs.ts] systemOneBound:', systemOneBound, typeof systemOneBound);
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 
 export interface TunableKnob {

@@ -1,10 +1,29 @@
-import { BoundedMap, getOrInsert } from '@senars/util';
-import { COMMUTATIVE_OPS, NARY_OPS, OPERATORS } from '../operators.js';
-import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.js';
-import { VARIABLE_SYMBOL } from '../types.js';
-import { atomKey, termKey } from './accessors.js';
-import { serializeTerm } from './serialize.js';
-import { INVALID_ATOM_CHARS_REGEX } from './valid-atom.js';
+import { BoundedMap } from '../../util/bounded-map.ts';
+import { getOrInsert } from '../../util/collections.ts';
+import { COMMUTATIVE_OPS, NARY_OPS, OPERATORS } from '../operators.ts';
+import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.ts';
+import { VARIABLE_SYMBOL, isAtomic } from '../types.ts';
+import { serializeTerm } from './serialize.ts';
+import { INVALID_ATOM_CHARS_REGEX } from './valid-atom.ts';
+import { atomKey } from './accessors.ts';
+
+// Inline termKey to avoid module evaluation order issues
+const termKeyMap = new WeakMap<Term, string>();
+const termKey = (term: Term): string => {
+  const cached = termKeyMap.get(term);
+  if (cached) return cached;
+  const key = isAtomic(term) ? atomKey(term.symbol) : `${term.kind}:${getArgs(term).map(termKey).join(',')}`;
+  termKeyMap.set(term, key);
+  return key;
+};
+
+// Inline getArgs to avoid module evaluation order issues
+const getArgs = (term: Term): readonly Term[] => {
+  if (term.kind === 'atom') return [];
+  return (term as CompoundTerm).args ?? [];
+};
+
+const atomKey = (symbol: string): string => `atom:${symbol}`;
 
 const TERM_CACHE_MAX_SIZE = 10000;
 

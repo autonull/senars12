@@ -1,6 +1,5 @@
 import { promises as fs } from 'node:fs';
 import {
-  cachePath,
   groupBy,
   holdoutSplit,
   mulberry32,
@@ -9,6 +8,7 @@ import {
   toFiniteNumber,
   writeJsonFile,
 } from '@senars/util';
+import { cachePath } from '@senars/util/config';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from './calibration.js';
 import type { JudgmentDataset } from './distill.js';
 import { identityECE, meanBrier, meanBrierOf } from './metrics.js';

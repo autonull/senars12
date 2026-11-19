@@ -3,8 +3,8 @@
  * @public
  */
 import { z } from 'zod';
-import { SenarsError } from '@senars/errors/senars-error.js';
-import { formatIssues } from '@senars/util/diagnostics.js';
+import { SenarsError } from '../errors';
+import { formatIssues } from '../util/diagnostics';
 import { intBetween, nonEmpty, nonNegativeInt, positiveInt } from './boundary.js';
 import { cachePath } from './paths.js';
 

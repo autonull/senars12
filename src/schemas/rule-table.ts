@@ -18,7 +18,7 @@
  * reason rather than admitted as a rule that derives nothing.
  */
 
-import { nonEmpty, nonNegativeInt, positiveInt, validatorFor } from '@senars/util/config';
+import { nonEmpty, nonNegativeInt, positiveInt, validatorFor } from '../config';
 import { z } from 'zod';
 import { RulePatternSchema } from './common.js';
 import { TaskTypeSchema } from './task.js';

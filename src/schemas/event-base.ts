@@ -8,8 +8,8 @@
  * than conventional.
  */
 
-import { ENGINE_ORIGINS } from '@senars/util/origins';
-import { timestamp } from '@senars/util/config';
+import { ENGINE_ORIGINS } from '../util/origins';
+import { timestamp } from '../config';
 import { z } from 'zod';
 
 export const EngineOriginSchema = z.enum(ENGINE_ORIGINS);

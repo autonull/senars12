@@ -1,7 +1,9 @@
 import { escapeRegExp } from '@senars/util/text';
-import { getOrInsert, LruCache, splitWords } from '@senars/util';
+import { getOrInsert, splitWords } from '@senars/util';
+import { LruCache } from '@senars/util/lru-cache';
 import type { Term } from '../terms';
-import { COPULA_SYMBOLS, isValidAtomSymbol, termParser, toAtomSymbol } from '../terms';
+import { COPULA_SYMBOLS } from '../terms/operators';
+import { isValidAtomSymbol, termParser, toAtomSymbol } from '../terms';
 
 /** Built once from the operator table; every symbol here is regex-significant. */
 const escaped = COPULA_SYMBOLS.map(escapeRegExp);

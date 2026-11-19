@@ -1,6 +1,6 @@
-import { mapValues } from '@senars/util';
-import type { ConnectionState } from '@senars/util';
-import type { BuiltinLens } from '../protocol/lens-schema.js';
+import { mapValues } from '../util/collections';
+import type { ConnectionState } from '../util';
+import type { BuiltinLens } from '../protocol/lens-schema';
 
 /**
  * The lens vocabulary: one row per built-in lens, three projections below.

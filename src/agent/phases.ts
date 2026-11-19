@@ -7,13 +7,13 @@
 
 import {
   collectText,
-  createLogger,
   dispatch,
   drain,
   egressVerdict,
   type LMTask,
   toolError,
-} from '@senars/util';
+} from '../util';
+import { createLogger } from '../util/logger';
 import type { ChatStreamEvent } from './chat.js';
 import { SHELL_TIMEOUT_MS } from './constants.js';
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';

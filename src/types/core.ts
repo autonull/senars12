@@ -3,7 +3,7 @@
  * Single source of truth for foundational types
  */
 
-import { narCoreBounds, narCoreDefaults } from '@senars/util/config';
+import { narCoreBounds, narCoreDefaults } from '../config';
 import type { Term } from '../terms';
 import { Stamp, Truth } from '../terms';
 import type { Truth as TruthType } from '../terms/impls/Truth.js';
@@ -145,7 +145,7 @@ export {
   OperationError,
   ToolError,
   ValidationError,
-} from '@senars/util/errors';
+} from '../errors';
 
 // Query filter types
 /**

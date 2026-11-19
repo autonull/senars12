@@ -311,10 +311,10 @@ export interface NAREventMap extends EventMap, BudgetEventMap {
   // Budget slice events (B4)
 }
 
-export type { EventReceiver, EventUnsubscribe } from '@senars/util/events';
+export type { EventReceiver, EventUnsubscribe } from '../events';
 
-import { EventBus } from '@senars/util/events';
-import type { EventPublisher } from './lifecycle.js';
+import { EventBus } from '../events';
+import type { EventPublisher } from './lifecycle.ts';
 
 /** NAR's event bus, keyed on {@link NAREventMap} (X4: typed bus). */
 export class NarEventBus extends EventBus<NAREventMap> implements EventPublisher {

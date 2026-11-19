@@ -11,16 +11,16 @@
 import { finiteOr, type TermTruth } from '@senars/util';
 import {
   deserializeStamp,
-  PUNCTUATION_BY_TASK_TYPE,
   type SerializedStamp,
   type Stamp,
   Stamp as StampFactory,
   serializeStamp,
   type Term,
   Truth,
+  TASK_PUNCTUATION,
   taskTypeForPunctuation,
-  termParser,
-} from '../terms/index.js';
+} from '@senars/schemas';
+import { termParser } from '../terms/index.js';
 import type { TaskOverrides } from '../types/core.js';
 import {
   createTask,
@@ -36,7 +36,7 @@ import type { Timestamp } from '../types/primitives.js';
  * (`terms/impls/parser-peggy`), so rendering a task and parsing it back cannot
  * disagree — which they did, over the command mark.
  */
-export { PUNCTUATION_BY_TASK_TYPE };
+export { TASK_PUNCTUATION as PUNCTUATION_BY_TASK_TYPE };
 
 /** Task type named by Narsese sentence punctuation; `fallback` when absent or unrecognised. */
 export const taskTypeFromPunctuation = (punctuation: string, fallback: TaskType): TaskType =>

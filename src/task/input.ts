@@ -1,8 +1,15 @@
-import { escapeRegExp, unique } from '@senars/util';
+import { escapeRegExp } from '@senars/util';
+import { unique } from '../util/collections.ts';
 import type { Term } from '../terms';
 import { Truth, termParser } from '../terms';
 import { createTaskWeight, createTask, type Task, type TaskType } from '../types';
-import { PUNCTUATION_BY_TASK_TYPE, taskTypeFromPunctuation } from './record.js';
+
+const PUNCTUATION_BY_TASK_TYPE = {
+  belief: '.',
+  goal: '!',
+  question: '?',
+  command: ';',
+} as const;
 
 export interface InputProcessorConfig {
   defaultType: TaskType;

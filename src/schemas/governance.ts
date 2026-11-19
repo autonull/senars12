@@ -6,8 +6,8 @@
  * `self-mod.proposal` are two of the events it admits: the mode is a property
  * of a decision, and a patch is something a decision can be about.
  */
-import { type CapabilityRisk, CapabilityRiskSchema } from '@senars/util/capability-risk';
-import { nonNegativeInt, positiveInt, timestamp, uuid } from '@senars/util/config';
+import { type CapabilityRisk, CapabilityRiskSchema } from '../util/capability-risk';
+import { nonNegativeInt, positiveInt, timestamp, uuid } from '../config';
 import { z } from 'zod';
 
 export const AutonomyModeSchema = z.enum([

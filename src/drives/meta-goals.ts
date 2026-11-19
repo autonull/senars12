@@ -13,7 +13,8 @@
  */
 
 import { indexBy } from '@senars/util';
-import { type Term, termParser } from '../terms';
+import { type Term } from '../terms';
+import { termParser } from '../terms/impls/parser-peggy';
 import type { DriveState } from './types.js';
 
 /** Drive → self-operation goal for homeostatic injection. */

@@ -1,5 +1,5 @@
-import { HistoryEntrySchema } from '@senars/util/types/memory';
-import { nonEmpty, nonNegativeInt, unitInterval } from '@senars/util/config';
+import { HistoryEntrySchema } from '../types/memory';
+import { nonEmpty, nonNegativeInt, unitInterval } from '../config';
 import { z } from 'zod';
 
 /**

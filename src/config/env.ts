@@ -4,8 +4,8 @@
  * @public
  */
 
-import { toFiniteNumber } from '@senars/util/numeric.js';
-import { setNested } from '@senars/util/object.js';
+import { toFiniteNumber } from '../util/numeric';
+import { setNested } from '../util/object';
 
 export const SENARS_ENV_MAP: Readonly<Record<string, string>> = {
   SENARS_LM_ENABLED: 'capabilities.lm.enabled',

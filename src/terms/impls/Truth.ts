@@ -10,13 +10,13 @@ import {
   serializeTruth,
   softSquash,
   type TruthLike,
-} from '@senars/util';
-import { SenarsError } from '@senars/util/errors';
+} from '../../util';
+import { SenarsError } from '../../errors';
 import {
   confidenceToWeight,
   weightToConfidence,
   weakenConfidence,
-} from '@senars/util/truth-algebra';
+} from '../../util/truth-algebra';
 
 export interface Truth {
   readonly f: Frequency;

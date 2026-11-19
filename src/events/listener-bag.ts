@@ -1,5 +1,5 @@
-import { defaultLogger, type Logger } from '@senars/util/logger.js';
-import { errMsg } from '@senars/util/error.js';
+import { defaultLogger, type Logger } from '../util/logger';
+import { errMsg } from '../util/error';
 import type { EventReceiver, EventUnsubscribe } from './types.js';
 
 interface Listener<T> {

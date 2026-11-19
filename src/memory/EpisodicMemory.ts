@@ -7,7 +7,6 @@ import type {
 } from '@senars/util';
 import {
   type Clock,
-  cachePath,
   containsFolded,
   flatUnique,
   foldNeedle,
@@ -16,6 +15,7 @@ import {
   systemClock,
   takeLast,
 } from '@senars/util';
+import { cachePath } from '@senars/util/config';
 import { EPISODE_TYPES } from '../types/episodic-memory.js';
 import { sortableIdSource } from '@senars/util/id';
 import {

@@ -17,6 +17,7 @@
  */
 
 import { JUDGMENT_SHAPES, type Witness } from '@senars/util';
+import { COGNITIVE_AXES } from '@senars/util/cognitive-schemas';
 import type { BudgetScopeId } from '../kernel/budget-scopes.js';
 import {
   DECISION_ASK_TIMEOUT_MS,
@@ -25,7 +26,6 @@ import {
   type DecisionPosition,
   SYNTHESIS_AXIS,
 } from '../ports/decision.js';
-import { COGNITIVE_AXES } from './types.js';
 
 interface DecisionCallSiteBase extends Witness {
   /** Stable id, and the symbol a caller names in a violation message. */

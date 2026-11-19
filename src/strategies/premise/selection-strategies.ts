@@ -1,4 +1,4 @@
-import { createLogger } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
 import type { MemoryView } from '../../memory/view.js';
 import { createStrategy } from '../../reason/strategies/base';
 import type { Task } from '../../types';

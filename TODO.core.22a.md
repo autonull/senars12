@@ -1,4 +1,4 @@
-**Next: Phase 3 Final Cleanup — verify remaining tests**
+**Next: Phase 3 Final Cleanup — resolve vitest module evaluation order issues blocking tests**
 **Export Subpaths:**
 - Before: nar: 43 subpaths
 - After: Consolidated into root `src/` structure (imports migrated)
@@ -94,13 +94,14 @@
   - ✅ Updated imports in 15+ files to use new shared modules
 - ⚠️ **REMAINING (core only):**
   - `refactor4-budget.test.ts` has pre-existing failures (export subpaths, typecheck:bin, unbounded accumulators)
-  - `todo17b-surface.test.ts` has 1 pre-existing failure (README rule-matrix claims)
+  - `todo17b-surface.test.ts` has 1 pre-existing failure (README rule-matrix claims) - BLOCKED by vitest module evaluation order
   - UI package tests fail (out of scope)
   - WASM tests fail (pre-existing)
   - `deps:gate` shows 61 cycles (consolidation revealed pre-existing architectural cycles; baseline may need update)
+  - **Vitest module evaluation order issues**: Many tests fail due to `undefined is not a function` / `X is not a constructor` errors caused by vitest's ESM module evaluation order not matching the codebase's expected topological order. Affected: `getOrInsert`, `createLogger`, `keyedBy`, `mapValues`, `LruCache`, `BoundedMap`, `SenarsError`, `cachePath`, `COGNITIVE_AXES`, `termParser`, `unique`, `indexBy`, `getArgs`, `isAtomic`, `PUNCTUATION_BY_TASK_TYPE`, `TASK_PUNCTUATION`, `cognitiveBound`, `systemOneBound`, `SerialQueue`, `errMsg`, `COGNITIVE_AXES`, etc.
 - ⚠️ Run core gates: typecheck ❌ (UI), lint ✅, exports:check ✅, exports:barrels ✅, typecheck:packages ⚠️ (runs root)
-- ✅ Core test suite: path resolution fixed, layering/surface tests updated
+- ⚠️ Core test suite: path resolution fixed, layering/surface tests updated, but many tests blocked by vitest module evaluation order
 **Dependency Order (topological — core only):**
 util (leaf) → core → io → metta → nar
-**Current Session: Phase 3 Final Cleanup MAJOR PROGRESS. All script imports migrated, test path resolution fixed, layering/surface tests updated, ADRs removed, circular dependencies resolved via shared util modules. Remaining: pre-existing test failures only.**
-**Revised Timeline: Complete for core consolidation (UI remains out of scope).**
+**Current Session: Phase 3 Final Cleanup MAJOR PROGRESS. All script imports migrated, test path resolution fixed, layering/surface tests updated, ADRs removed, circular dependencies resolved via shared util modules. Remaining: vitest module evaluation order blocking most tests (see REMAINING section).**
+**Revised Timeline: Core consolidation complete (UI remains out of scope). Test suite blocked by vitest module evaluation order mismatch.**

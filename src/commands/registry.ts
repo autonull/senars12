@@ -1,4 +1,4 @@
-import { assertDefined } from '@senars/util/assert.js';
+import { assertDefined } from '../util/assert.ts';
 import type { CommandContext, CommandDefinition } from './types.js';
 
 export class CommandRegistry {

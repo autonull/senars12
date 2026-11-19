@@ -3,7 +3,7 @@
  * dependency-free derivation proof. Used by the standalone Derivation Verifier.
  */
 
-import { nonNegativeInt, timestamp, uuid, validatorFor } from '@senars/util/config';
+import { nonNegativeInt, timestamp, uuid, validatorFor } from '../config';
 import { z } from 'zod';
 import { IndependenceSchema } from './common.js';
 import { TruthValueSchema } from './truth.js';

@@ -13,8 +13,8 @@ import {
   extractLastUserMessage,
   type LMTask,
   mapValues,
-  SerialQueue,
 } from '@senars/util';
+import { SerialQueue } from '@senars/util/async';
 import type { LanguageModel } from 'ai';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import {

@@ -1,4 +1,4 @@
-import { SenarsError } from '@senars/util/errors';
+import { SenarsError } from '../errors';
 
 /**
  * StateCodec (TODO20 X7) — one schema-pinned, versioned envelope for persisted

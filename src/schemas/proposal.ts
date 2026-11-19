@@ -19,7 +19,7 @@ import {
   positiveInt,
   unitInterval,
   validatorFor,
-} from '@senars/util/config';
+} from '../config';
 import { z } from 'zod';
 import { RulePatternSchema } from './common.js';
 import { CognitiveEventBaseSchema, PROPOSER_ORIGIN } from './event-base.js';

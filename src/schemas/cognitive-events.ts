@@ -8,9 +8,9 @@ import {
   BandDecisionSchema,
   CognitiveAxisSchema,
   JudgmentShapeSchema,
-} from '@senars/util/cognitive-schemas';
-import { generateId } from '@senars/util';
-import { intBetween, nonNegativeInt, unitInterval, uuid, validatorFor } from '@senars/util/config';
+} from '../util/cognitive-schemas';
+import { generateId } from '../util';
+import { intBetween, nonNegativeInt, unitInterval, uuid, validatorFor } from '../config';
 import { z } from 'zod';
 import { BudgetSchema, IndependenceSchema } from './common.js';
 import { CognitiveEventBaseSchema } from './event-base.js';

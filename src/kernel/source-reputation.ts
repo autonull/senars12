@@ -8,7 +8,9 @@
  * REFACTOR.todo4 Phase B: now backed by the generic `Ledger<T>` primitive from `@senars/io`.
  */
 
-import { accumulate, cachePath, clamp01, flooredRatio, indexMap, LruCache } from '@senars/util';
+import { accumulate, clamp01, flooredRatio, indexMap } from '@senars/util';
+import { cachePath } from '@senars/util/config';
+import { LruCache } from '@senars/util/lru-cache';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
 

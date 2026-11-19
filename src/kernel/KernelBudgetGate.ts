@@ -31,7 +31,7 @@ import type {
   TerminationReason,
 } from '../schemas/index.js';
 import { mintCognitiveEvent, validateReasoningBudget } from '../schemas/index.js';
-import { keyedBy, mapValues } from '../util/index.js';
+import { keyedBy, mapValues } from '../util/collections';
 import { BUDGET_SCOPES, withBudgetId } from './budget-scopes.js';
 import { KernelGate, projectOutcome } from './gate-base.js';
 

@@ -14,8 +14,8 @@
  */
 
 import { z } from 'zod';
-import { keyedBy } from '@senars/util/collections.js';
-import { clamp } from '@senars/util/numeric.js';
+import { clamp, keyedBy } from '../util/collections';
+console.log('[bounds.ts] keyedBy type:', typeof keyedBy, keyedBy);
 
 /** One knob's admissible numbers: the range, the landing value, and the scan quantum. */
 export interface BoundRow {

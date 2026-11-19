@@ -1,6 +1,6 @@
-import { type EqualityDialect, getOrInsert, structuralEqual } from '@senars/util';
-import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.js';
-import { isAtomic, isVariableSymbol, type OPERATORS } from '../types.js';
+import { type EqualityDialect, getOrInsert, structuralEqual } from '../../util';
+import type { AtomicTerm, CompoundTerm, OperatorKey, Term } from '../types.ts';
+import { isAtomic, isVariableSymbol, type OPERATORS } from '../types.ts';
 
 export const isType = <K extends OperatorKey>(k: K, t: Term): t is CompoundTerm<K> => t.kind === k;
 

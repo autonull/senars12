@@ -1,6 +1,11 @@
-import { NARY_OPS, OPERATORS } from '../operators.js';
-import type { OperatorKey, Term } from '../types.js';
-import { getArgs } from './accessors.js';
+import { NARY_OPS, OPERATORS } from '../operators.ts';
+import type { OperatorKey, Term } from '../types.ts';
+import { isAtomic } from '../types.ts';
+
+const getArgs = (term: Term): readonly Term[] => {
+  if (isAtomic(term)) return [];
+  return (term as any).args ?? [];
+};
 
 const NARY_OPS_SET: ReadonlySet<string> = NARY_OPS;
 const BINARY_OPS = new Set(

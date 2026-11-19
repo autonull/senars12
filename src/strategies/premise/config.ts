@@ -9,7 +9,7 @@
  * or filter widens the schema automatically.
  */
 
-import { positiveInt, unitInterval } from '@senars/util/config';
+import { positiveInt, unitInterval } from '../../config';
 import { z } from 'zod';
 import {
   type FilterName,

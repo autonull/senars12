@@ -7,7 +7,8 @@
  */
 
 import { proposalRisk, type SelfImprovementProposal } from '@senars/schemas';
-import { createLogger, degrade, errMsg, makeId, toolError, toolOk, truncate } from '@senars/util';
+import { createLogger } from '@senars/util/logger';
+import { degrade, errMsg, makeId, toolError, toolOk, truncate } from '@senars/util';
 import type { LanguageModel } from 'ai';
 import { createBootstrapTasks } from '../drives';
 import type { LMService, SeNARSRegistry } from '../lm';

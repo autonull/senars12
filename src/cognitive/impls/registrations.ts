@@ -27,8 +27,8 @@ const ATTENTION_MODELS = {
   'goal-relevance': (boost: number) => new GoalRelevanceAttention(boost),
 } as const satisfies Record<string, (boost: number) => AttentionModel>;
 
-import { rngFrom } from '@senars/util';
-import { nonNegativeInt, positiveInt, unitInterval } from '@senars/util/config';
+import { rngFrom } from '../../util';
+import { nonNegativeInt, positiveInt, unitInterval } from '../../config';
 import {
   AllSelector,
   AnytimeDerivation,

@@ -1,4 +1,4 @@
-import { defaultLogger, type Logger } from '@senars/util/logger.js';
+import { defaultLogger, type Logger } from '../util/logger';
 import type { EventReceiver, EventUnsubscribe } from './types.js';
 import { ListenerBag } from './listener-bag.js';
 

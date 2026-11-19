@@ -7,7 +7,7 @@
  * deliberately free of any sibling schema.
  */
 
-import { nonNegativeInt, positiveInt, validatorFor } from '@senars/util/config';
+import { nonNegativeInt, positiveInt, validatorFor } from '../config';
 import { z } from 'zod';
 
 /** The five declared budget scopes (TODO29.a §5.7). */

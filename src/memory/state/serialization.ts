@@ -9,14 +9,14 @@
  * so the format is versioned (version 1) but has a single reader/writer.
  */
 
-import type { TaskBagKind } from '@senars/schemas';
-import { createLogger } from '@senars/util';
-import type { Bag } from '../../bag/Bag.js';
-import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from '../../state/codec.js';
-import { rehydrateTask, type TaskRecord } from '../../task/record.js';
+import type { TaskBagKind } from '../../schemas';
+import { createLogger } from '../../util/logger';
+import type { Bag } from '../../bag/Bag';
+import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from '../../state/codec';
+import { rehydrateTask, type TaskRecord } from '../../task/record';
 import { serializeStamp, type Term, termParser } from '../../terms';
-import type { Concept, TaskData } from '../concept.js';
-import type { ConceptWriter } from '../ports/index.js';
+import type { Concept, TaskData } from '../concept';
+import type { ConceptWriter } from '../ports';
 
 const logger = createLogger({ scope: 'Memory.State' });
 

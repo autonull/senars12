@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { LMExecutionStats } from '@senars/util';
-import { cachePath, clamp01, envStr } from '@senars/util';
+import { cachePath } from '@senars/util/config';
+import { clamp01, envStr } from '@senars/util';
 import type { LMSettings } from '../env-config.js';
 import {
   delegate,

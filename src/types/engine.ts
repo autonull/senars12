@@ -1,5 +1,5 @@
-import { errMsg } from '@senars/util/error.js';
-import { attemptAsync, match } from '@senars/util/result.js';
+import { errMsg } from '../util/error';
+import { attemptAsync, match } from '../util/result';
 import type { CognitiveStimulus, Context, Derivation } from './cognitive.js';
 
 export type { CognitiveStimulus, Context, Derivation } from './cognitive.js';

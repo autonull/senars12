@@ -4,8 +4,8 @@
  * authoritative parse; the kernel validates each candidate.
  */
 
-import type { CapabilityRisk } from '@senars/util';
-import { nonNegativeInt, unitInterval, uuid, validatorFor } from '@senars/util/config';
+import type { CapabilityRisk } from '../util';
+import { nonNegativeInt, unitInterval, uuid, validatorFor } from '../config';
 import { z } from 'zod';
 import { TaskTypeSchema } from './task.js';
 import { TruthValueSchema } from './truth.js';

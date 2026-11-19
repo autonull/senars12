@@ -9,7 +9,8 @@ import {
   TOLERANT_PUNCTUATIONS,
   taskTypeForPunctuation,
 } from '@senars/schemas';
-import { type BeliefTruth, errMsg, stripTruthSuffix } from '@senars/util';
+import { type BeliefTruth, stripTruthSuffix } from '@senars/util';
+import { errMsg } from '@senars/util/error';
 import { SenarsError } from '@senars/util/errors';
 import type { Term } from '../types.js';
 import { TermFactory } from './factory.js';
@@ -19,7 +20,9 @@ const require = createRequire(import.meta.url);
 const peggyModule: {
   parse: (input: string, options?: unknown) => unknown;
 } = require('../peggy-generated.cjs');
+console.log('[parser-peggy] peggyModule:', typeof peggyModule, Object.keys(peggyModule));
 const peggyParse = peggyModule.parse;
+console.log('[parser-peggy] peggyParse:', typeof peggyParse);
 
 const log = {
   error: (msg: string, err: Error) => console.error(`[narsese] ${msg}`, err),
@@ -97,6 +100,7 @@ export class TermParser {
 
       return result as Term;
     } catch (error: unknown) {
+      console.log('[parser-peggy] caught error:', error, typeof error);
       throw this._wrapError(error, validInput);
     }
   }

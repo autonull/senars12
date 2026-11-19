@@ -4,7 +4,7 @@
  * only place the four input/output pairs sit beside one another.
  */
 
-import { positiveInt, signedUnitInterval, unitInterval, uuid } from '@senars/util/config';
+import { positiveInt, signedUnitInterval, unitInterval, uuid } from '../config';
 import { z } from 'zod';
 import { StimulusSourceSchema, TaskAdmittedEventSchema } from './cognitive-events.js';
 import { RewardDomainSchema } from './governance.js';

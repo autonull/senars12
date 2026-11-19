@@ -1,7 +1,7 @@
-import { createLogger } from '@senars/util/logger';
-import { deepEqual, deepFreeze, deepMerge } from '@senars/util/object';
-import { errMsg } from '@senars/util/error';
-import { keyedBy } from '@senars/util/collections';
+import { createLogger } from '../util/logger';
+import { deepEqual, deepFreeze, deepMerge } from '../util/object';
+import { errMsg } from '../util/error';
+import { keyedBy } from '../util/collections';
 import { cognitiveBound, cognitiveBounds } from './cognitive-bounds.js';
 import { validateAgainstBounds } from './bounds.js';
 import { type BagSlotParams, bagSlotErrors } from '../bag/registration';

@@ -1,8 +1,14 @@
 import { uniqueBy } from '@senars/util';
-import { getArgs, hasNegatedPair, hasRepeatedArgs, termKey } from './impls/accessors.js';
-import { atomOf, compoundOf, isBoolAtom } from './impls/intern.js';
-import { COMMUTATIVE_OPS, NARY_OPS } from './operators.js';
-import type { OperatorKey, Term } from './types.js';
+import { hasNegatedPair, hasRepeatedArgs } from './impls/accessors.ts';
+import { atomOf, compoundOf, isBoolAtom, termKey } from './impls/intern.ts';
+import { COMMUTATIVE_OPS, NARY_OPS } from './operators.ts';
+import type { OperatorKey, Term } from './types.ts';
+import { isAtomic } from './types.ts';
+
+const getArgs = (term: Term): readonly Term[] => {
+  if (isAtomic(term)) return [];
+  return (term as any).args ?? [];
+};
 
 /**
  * One NAL rewrite, declared and enumerable (TODO29.a §5.12).
