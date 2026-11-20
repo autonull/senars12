@@ -130,6 +130,7 @@ export type {
   SystemOneFileConfig,
   SystemOneRuntimeConfig,
 } from './facade/config.js';
+export { NarEventBus } from './types/events.js';
 
 export class NAR extends BaseComponent {
   readonly id = 'nar';

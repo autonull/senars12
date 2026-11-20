@@ -28,7 +28,7 @@ export { abortSession, createSession, InMemorySessionManager, JsonlSessionManage
 export { SessionStore, type SessionStoreOptions } from './in-memory-session-manager.js';
 export type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig } from './episodic.js';
 export { EPISODE_TYPES, EpisodeSchema } from './episodic.js';
-export { MockEmbeddingGenerator, type EmbeddingGenerator } from './embedding.js';
+export { MockEmbeddingGenerator, type EmbeddingGenerator, createEmbeddingGenerator, isMockLM } from './embedding.js';
 export { LINK_LAYER, type KnownLinkLayer } from './links/types.js';
 export { Layer } from './links/Layer.js';
 export { AssociativeRegistry, LinkLayerMemory, type AssociativeMemory } from './associative.js';

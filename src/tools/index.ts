@@ -1,6 +1,7 @@
 import { discoverTools } from './impls/decorator.js';
 import { ExplainTool } from './impls/ExplainTool.js';
 import { SleepTool } from './impls/SleepTool.js';
+import { AgentOptionsSchema, ConnectionConfigSchema, type AgentOptions, type ConnectionConfig } from './schemas.js';
 import {
   FIX_PATTERN_MAPPINGS,
   type FixPatternMapping,
@@ -42,4 +43,8 @@ export {
   SELF_CONCEPT_BELIEFS,
   SleepTool,
   ToolManager,
+  AgentOptionsSchema,
+  ConnectionConfigSchema,
+  type AgentOptions,
+  type ConnectionConfig,
 };

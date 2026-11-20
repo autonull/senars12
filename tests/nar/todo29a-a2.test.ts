@@ -9,13 +9,13 @@
  */
 
 import { LMRule } from '@senars/lm';
-import * as layerJson from '@senars/lm';
+import { parseJsonObject as layerParseJsonObject } from '@senars/utils';
 import { CYCLE_PATH_PREFIXES } from '@senars/lm/in-cycle-inventory';
 import {
   createEmbeddingGenerator,
   isMockLM,
   MockEmbeddingGenerator,
-} from '@senars/agent';
+} from '@senars/memory';
 import { RuleProcessor } from '@senars/rules/impls/processor';
 import { loadBuiltinTable } from '@senars/rules/impls/builtin-table';
 import { RuleTableStore } from '@senars/rules/impls/rule-table';
@@ -50,7 +50,7 @@ describe('A2 — the core extension contract is typed in core vocabulary', () =>
   it('JSON extraction is util, and the layer re-exports the same function', () => {
     const text = 'sure!\n```json\n{"a": 1}\n```\ntrailing prose with a } brace';
     expect(parseJsonObject(text)).toEqual({ a: 1 });
-    expect(layerJson.parseJsonObject).toBe(parseJsonObject);
+    expect(layerParseJsonObject).toBe(parseJsonObject);
     expect(parseJsonObject('no object here')).toBeNull();
   });
 });

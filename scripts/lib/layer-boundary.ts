@@ -20,7 +20,7 @@
 
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { CYCLE_PATH_PREFIXES } from '../../nar/src/lm/in-cycle-inventory.js';
+import { CYCLE_PATH_PREFIXES } from '../../src/lm/in-cycle-inventory.js';
 import { importEdges } from './imports.js';
 import { ROOT } from './root.js';
 import { lineAt, sourceFiles } from './source-scan.js';
@@ -42,11 +42,16 @@ export const isCyclePath = (absolutePath: string): boolean =>
  * else's boundary, and `@senars/util` is not the layer.
  */
 export const resolveInNar = (from: string, specifier: string): string | null => {
-  const target = specifier.startsWith('@senars/nar/')
-    ? join(NAR_SRC, specifier.slice('@senars/nar/'.length))
-    : specifier.startsWith('.')
-      ? resolve(dirname(from), specifier)
-      : null;
+  let target: string | null = null;
+  if (specifier.startsWith('@senars/nar/')) {
+    target = join(NAR_SRC, specifier.slice('@senars/nar/'.length));
+  } else if (specifier.startsWith('@senars/lm/')) {
+    target = join(LAYER_PREFIX, specifier.slice('@senars/lm/'.length));
+  } else if (specifier === '@senars/lm') {
+    target = LAYER_PREFIX;
+  } else if (specifier.startsWith('.')) {
+    target = resolve(dirname(from), specifier);
+  }
   return target === null ? null : target.replace(/\.js$/, '');
 };
 

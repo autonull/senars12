@@ -61,8 +61,8 @@ const between = (source: string, start: string, end: string): string => {
 
 export const scanProtocol = (): ProtocolSubject => {
   const read = (path: string): string => readFileSync(join(ROOT, path), 'utf8');
-  const proposal = read('core/src/schemas/proposal.ts');
-  const lifecycle = read('nar/src/proposal/lifecycle.ts');
+  const proposal = read('src/schemas/proposal.ts');
+  const lifecycle = read('src/proposal/lifecycle.ts');
   return {
     doc: read(PROTOCOL_DOC),
     reasons: [

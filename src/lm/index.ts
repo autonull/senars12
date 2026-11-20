@@ -150,6 +150,7 @@ export {
   ConfidenceRouter,
   createSystemOneLMRuleAdapter,
   createLMServiceCortex,
+  verifyCascade,
 } from './system-one/index.js';
 export { BrierHarness, loadSession, startArcadeTickSpan, saveSession } from '../eval/index.js';
 export { MiningBag, type MiningBagOptions, mineHardNegatives } from './system-one/hard-negatives.js';

@@ -312,7 +312,7 @@ export { ProposalBag } from './meta/proposal-bag.js';
 export type { NARConfig, RLFPConfig } from './nar.js';
 // Main NAR class
 /** The NAR reasoning engine. @public */
-export { NAR } from './nar.js';
+export { NAR, NarEventBus } from './nar.js';
 // NAR-LM integration
 /** NAR with LM capabilities. @public */
 export { NARLM } from './nar-lm.js';

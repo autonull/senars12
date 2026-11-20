@@ -1,4 +1,5 @@
-import { cognitiveBounds, narCoreBounds } from '@senars/utils';
+import { cognitiveBounds } from '@senars/config';
+import { narCoreBounds } from '@senars/config';
 import { describe, expect, it } from 'vitest';
 
 /**
