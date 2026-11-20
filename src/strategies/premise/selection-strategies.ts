@@ -4,7 +4,12 @@ import { createStrategy } from '../../reason/strategies/base';
 import type { Task } from '../../types';
 import type { ComponentMetadata, Strategy } from '../types.js';
 import type { PremiseOverrides, PremiseSampleSpec } from './config.js';
-import { type FilterSpec, keepStrongestByTerm } from './primitives.js';
+import { type FilterSpec } from './primitives.js';
+import {
+  createConcatenationComposite,
+  createDedupeByTerm,
+  type Composable,
+} from '../composite.js';
 import {
   EmbeddingLinkStrategy as RealEmbeddingLinkStrategy,
   TermLinkStrategy as RealTermLinkStrategy,
@@ -116,6 +121,21 @@ export class DecompositionStrategy implements Strategy {
  */
 export type CompositeMode = 'concatenate' | 'dedup';
 
+/** Adapts a Strategy to the Composable interface. */
+function asComposable(strategy: Strategy): Composable<[Task, MemoryView], Task[]> {
+  return {
+    metadata: { name: strategy.name, description: strategy.metadata?.description ?? '' },
+    execute([task, memory]) {
+      try {
+        return strategy.selectSecondary(task, memory);
+      } catch (error) {
+        logger.warn(`Strategy ${strategy.name} failed: ${error}`);
+        return [];
+      }
+    },
+  };
+}
+
 export class CompositeStrategy implements Strategy {
   readonly metadata: ComponentMetadata = {
     name: 'composite',
@@ -123,25 +143,27 @@ export class CompositeStrategy implements Strategy {
   };
   readonly name = 'composite';
 
+  private readonly composite: Composable<[Task, MemoryView], Task[]>;
+
   constructor(
     private strategies: Strategy[],
     private mode: CompositeMode = 'concatenate'
-  ) {}
+  ) {
+    const composables = strategies.map(asComposable);
+    this.composite =
+      mode === 'dedup'
+        ? createDedupeByTerm(composables, (t) => t.budget.priority, {
+            name: 'composite',
+            description: 'Deduplicated union of premise strategies',
+          })
+        : createConcatenationComposite(composables, {
+            name: 'composite',
+            description: 'Concatenated premise strategies',
+          });
+  }
 
   selectSecondary(task: Task, memory: MemoryView): Task[] {
-    const contributions = this.strategies.flatMap((strategy) => {
-      try {
-        return strategy.selectSecondary(task, memory);
-      } catch (error) {
-        logger.warn(`Strategy ${strategy.name} failed: ${error}`);
-        return [];
-      }
-    });
-
-    if (this.mode !== 'dedup') return contributions;
-
-    // Highest link/priority wins, deduped on the canonical structural identity.
-    return keepStrongestByTerm(contributions, (candidate) => candidate.budget.priority);
+    return this.composite.execute([task, memory]);
   }
 }
 

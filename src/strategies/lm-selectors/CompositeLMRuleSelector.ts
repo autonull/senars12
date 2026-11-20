@@ -1,8 +1,6 @@
-import { groupBy, mapToRecord, selectTopN } from '@senars/util/collections';
-
 import type { ModelRule } from '../../rules/types.js';
-import { termKey } from '../../terms';
 import type { ComponentMetadata, ModelRuleSelectionContext, ModelRuleSelector } from '../types.js';
+import { createCappedUnionComposite, type Composable } from '../composite.js';
 
 /**
  * Union of several LM-rule selectors: every selector proposes, the union is
@@ -15,14 +13,29 @@ export class CompositeLMRuleSelector implements ModelRuleSelector {
     description: 'Union of several LM-rule selectors',
   };
 
-  constructor(private readonly selectors: ModelRuleSelector[]) {}
+  private readonly selectors: ModelRuleSelector[];
+
+  constructor(selectors: ModelRuleSelector[]) {
+    this.selectors = selectors;
+  }
 
   select(rules: ModelRule[], ctx: ModelRuleSelectionContext): ModelRule[] {
-    const proposed = this.selectors.flatMap((selector) => selector.select(rules, ctx));
-    const union = mapToRecord(
-      groupBy(proposed, (rule) => rule.id),
-      (sameRule) => sameRule[0]!
+    const composables: Composable<[ModelRule[], ModelRuleSelectionContext], ModelRule[]>[] =
+      this.selectors.map((selector) => ({
+        metadata: { name: selector.metadata.name, description: selector.metadata.description },
+        execute([rs, context]) {
+          return selector.select(rs, context);
+        },
+      }));
+
+    const composite = createCappedUnionComposite(
+      composables,
+      (r) => r.id, // dedupe by rule id
+      (r) => r.priority,
+      ctx.maxRules,
+      { name: 'composite', description: 'Capped union of LM-rule selectors' }
     );
-    return selectTopN(Object.values(union), ctx.maxRules, (rule) => rule.priority);
+
+    return composite.execute([rules, ctx]);
   }
 }

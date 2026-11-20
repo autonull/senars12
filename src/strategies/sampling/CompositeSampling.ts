@@ -1,9 +1,7 @@
-import { selectTopN } from '@senars/util/collections';
-
 import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
-import { keepStrongestByTerm } from '../premise/primitives.js';
 import type { ComponentMetadata, SamplingStrategy } from '../types.js';
+import { createCappedUnionByTerm, type Composable } from '../composite.js';
 
 /**
  * Union of several sampling strategies: each proposes `count` concepts, the
@@ -16,12 +14,29 @@ export class CompositeSampling implements SamplingStrategy {
     description: 'Union of several sampling strategies',
   };
 
-  constructor(private readonly samplers: SamplingStrategy[]) {}
+  private readonly samplers: SamplingStrategy[];
+
+  constructor(samplers: SamplingStrategy[]) {
+    this.samplers = samplers;
+  }
 
   sample(memory: MemoryView, count: number): Concept[] {
     if (count <= 0) return [];
-    const candidates = this.samplers.flatMap((sampler) => sampler.sample(memory, count));
-    const deduped = keepStrongestByTerm(candidates, (concept) => concept.priority);
-    return selectTopN(deduped, count, (concept) => concept.priority);
+    const composables: Composable<[MemoryView, number], Concept[]>[] = this.samplers.map(
+      (sampler) => ({
+        metadata: { name: sampler.metadata.name, description: sampler.metadata.description },
+        execute([mem, cnt]) {
+          if (cnt <= 0) return [];
+          return sampler.sample(mem, cnt);
+        },
+      })
+    );
+    const composite = createCappedUnionByTerm(
+      composables,
+      (c) => c.priority,
+      count,
+      { name: 'composite', description: 'Capped union of sampling strategies' }
+    );
+    return composite.execute([memory, count]);
   }
 }

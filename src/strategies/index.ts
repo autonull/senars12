@@ -35,6 +35,16 @@ export {
   WindowedRouletteStrategy,
   createWindowedRouletteStrategy,
 } from './sampling/index.js';
+export {
+  CompositeBase,
+  createConcatenationComposite,
+  createDedupeComposite,
+  createDedupeByTerm,
+  createCappedUnionComposite,
+  createCappedUnionByTerm,
+  createWeightedMeanComposite,
+  type Composable,
+} from './composite.js';
 
 export type {
   AttentionContext,
