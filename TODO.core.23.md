@@ -7,7 +7,7 @@
 - Fixed: Updated `docs/readme/generate.ts` import path from `nar/src` to `src/`
 ---
 ## Success Criteria (Definition of Done)
-**Current Status**: Import errors 0 (down from 392), File handle leaks 0, Passed: 344 test files, 3192 tests, Failed: 56 test files, 185 tests. Pass rate: ~93.2% (target >90%)
+**Current Status**: Import errors 0 (down from 392), File handle leaks 0, Passed: 344 test files, 3195 tests, Failed: 56 test files, 182 tests. Pass rate: ~93.3% (target >90%)
 ---
 ## Execution Playbook
 ### Session 1: Unblock (45 min) ✅ **COMPLETE**
@@ -142,15 +142,17 @@
 # Major test logic fixes COMPLETE (LogStore, CognitiveController, exports, ModelRunner, bag tests, fundamentals bench, todo29a-a1 cycle tests, kernel terms).
 # Pass rate: ~93.2% (target >90%) — EXCEEDS TARGET!
 # Kernel terms: 36/36 tests now PASSING (fixed Narsese parser, standardizeApart, canonicalEquals, termEquals)
-# Remaining work (~56 failed test files / 185 failed tests):
+# todo16-provisional: 7/7 tests now PASSING (fixed test to use mock clock for bag decay)
+# Remaining work (~56 failed test files / 182 failed tests):
 # 1. NAL veto mechanism: todo17b-nal-arm (3), todo19-reasoning (1) — core veto logic bug
 # 2. LogStore/ThreadPool persistence: gate-log-persistence, focustree-cognitivethread, full-replay
 # 3. Episode graph: refactor3-episode-graph (3)
 # 4. Budget gate: refactor4-budget (3)
 # 5. MCP bridge: mcp-bridge (4)
-# 6. todo16 family: provisional, device-profile, dispositions, cortex
+# 6. todo16 family: device-profile, dispositions, cortex
 # 7. Security: todo20-security
 # 8. NARLM: inference-nario-lm
 # 9. RL parity: cognitive-advantage (1)
-# 10. Final full suite run → verify >90% pass rate (currently ~93.2%)
+# 10. todo26-cognitive-agent: timeout issue
+# 11. Final full suite run → verify >90% pass rate (currently ~93.3%)
 ```
