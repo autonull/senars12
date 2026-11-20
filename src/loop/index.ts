@@ -68,7 +68,23 @@ export {
   type ActionResult,
   type EffectResult,
   type JudgmentResult,
+  type LoopEventType,
+  type LoopEvent,
+  type FacultyInvoker,
 } from './loop.js';
+
+export {
+  createLoopContext,
+  initializeFacultyInvokers,
+} from './context.js';
+
+export {
+  createLoopEventEmitter,
+} from './events.js';
+
+export {
+  runIteration,
+} from './iteration.js';
 
 export {
   createSelfModelManager,

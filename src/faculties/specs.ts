@@ -9,6 +9,7 @@ import type { Term } from '../kernel/terms/term.js';
 import type { Task } from '../kernel/types.js';
 import type { Truth } from '../kernel/truth.js';
 import type { OracleOperation } from '../oracles/oracle.js';
+import { NameRegistry } from '../util/registry.js';
 
 /** Faculty categories. */
 export const FACULTY_CATEGORIES = [
@@ -150,29 +151,19 @@ export interface FacultySpec {
 export type FacultyFallback = (input: FacultyInput) => Promise<FacultyOutput | null>;
 
 /** Faculty registry. */
-export class FacultyRegistry {
-  private specs = new Map<FacultyName, FacultySpec>();
+export class FacultyRegistry extends NameRegistry<FacultySpec> {
   private fallbacks = new Map<FacultyName, FacultyFallback>();
 
+  constructor() {
+    super({ unique: true, duplicateError: (name) => `Faculty ${name} already registered` });
+  }
+
   /** Register a faculty specification. */
-  register(spec: FacultySpec): void {
-    if (this.specs.has(spec.name)) {
-      throw new Error(`Faculty ${spec.name} already registered`);
-    }
-    this.specs.set(spec.name, spec);
+  override register(spec: FacultySpec): void {
+    super.register(spec);
     if (spec.fallback) {
       this.fallbacks.set(spec.name, spec.fallback);
     }
-  }
-
-  /** Get a faculty specification. */
-  get(name: FacultyName): FacultySpec | undefined {
-    return this.specs.get(name);
-  }
-
-  /** Get all faculty specifications. */
-  getAll(): FacultySpec[] {
-    return Array.from(this.specs.values());
   }
 
   /** Get faculties by category. */
@@ -188,11 +179,6 @@ export class FacultyRegistry {
   /** Get fallback for a faculty. */
   getFallback(name: FacultyName): FacultyFallback | undefined {
     return this.fallbacks.get(name);
-  }
-
-  /** Check if a faculty is registered. */
-  has(name: FacultyName): boolean {
-    return this.specs.has(name);
   }
 }
 

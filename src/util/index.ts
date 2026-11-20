@@ -542,6 +542,8 @@ export {
   wordOverlap,
 } from './text.js';
 export { NARSESE_ATOM_CHARS } from './alphabet.js';
+/** @public Base registry classes for type-safe registries. */
+export { BaseRegistry, IdRegistry, NameRegistry, FunctionRegistry } from './registry.js';
 /** @public Structural unification over an arbitrary term AST (Narsese, MeTTa). */
 export type {
   EqualityDialect,

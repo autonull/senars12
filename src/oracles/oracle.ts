@@ -8,6 +8,7 @@
 import type { UUID, TimestampMs } from '../generated/schemas.js';
 import type { Term } from '../kernel/terms/term.js';
 import type { Task } from '../kernel/types.js';
+import { FunctionRegistry } from '../util/registry.js';
 
 /** Oracle operation categories. */
 export const ORACLE_OPERATIONS = [
@@ -197,31 +198,11 @@ export abstract class BaseOracle<TInput extends OracleInput, TOutput> implements
 }
 
 /** Oracle registry — manages all oracle instances. */
-export class OracleRegistry {
-  private oracles = new Map<OracleOperation, Oracle>();
+export class OracleRegistry extends FunctionRegistry<OracleOperation, Oracle> {
   private pinStore: PinStore | null = null;
 
-  /** Register an oracle. */
-  register(oracle: Oracle): void {
-    if (this.oracles.has(oracle.operation)) {
-      throw new Error(`Oracle for ${oracle.operation} already registered`);
-    }
-    this.oracles.set(oracle.operation, oracle);
-  }
-
-  /** Get an oracle by operation. */
-  get(operation: OracleOperation): Oracle | undefined {
-    return this.oracles.get(operation);
-  }
-
-  /** Get all registered oracles. */
-  getAll(): Oracle[] {
-    return Array.from(this.oracles.values());
-  }
-
-  /** Check if an operation has a registered oracle. */
-  has(operation: OracleOperation): boolean {
-    return this.oracles.has(operation);
+  constructor() {
+    super((oracle) => oracle.operation, { unique: true, duplicateError: (op) => `Oracle for ${op} already registered` });
   }
 
   /** Execute an oracle call with optional pinning. */
@@ -230,7 +211,7 @@ export class OracleRegistry {
     input: TInput,
     pinning = false
   ): Promise<OracleOutput<TOutput>> {
-    const oracle = this.oracles.get(operation);
+    const oracle = this.get(operation);
     if (!oracle) {
       throw new Error(`No oracle registered for ${operation}`);
     }
@@ -272,8 +253,8 @@ export class OracleRegistry {
   /** Get aggregate statistics. */
   getAggregateStats(): Record<OracleOperation, OracleStats> {
     const stats: Partial<Record<OracleOperation, OracleStats>> = {};
-    for (const [op, oracle] of this.oracles) {
-      stats[op] = oracle.getStats();
+    for (const oracle of this.getAll()) {
+      stats[oracle.operation] = oracle.getStats();
     }
     return stats as Record<OracleOperation, OracleStats>;
   }
