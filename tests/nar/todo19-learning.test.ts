@@ -242,7 +242,7 @@ describe('Bench 45 — Learning Closure', () => {
   });
 
   it('L1 — vetoAware lands in reflex adapters (arcade plumbing), not per-reflex', () => {
-    const source = readFileSync('nar/src/reflex/adapters.ts', 'utf8');
+    const source = readFileSync('src/reflex/adapters.ts', 'utf8');
     expect(source).toContain('vetoAwareReflex');
   });
 

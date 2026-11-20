@@ -1,7 +1,8 @@
 import { join } from 'node:path';
 import { cachePath } from '@senars/util/config';
 import { parseJsonOr } from '@senars/util/fs';
-import { mean, sortBy, takeFirst } from '@senars/util/collections';
+import { mean } from '@senars/util/numeric';
+import { sortBy, takeFirst } from '@senars/util/collections';
 import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';

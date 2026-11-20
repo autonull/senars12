@@ -32,5 +32,5 @@ export {
   PrologResolutionStrategy,
 } from './selection-strategies';
 export type { PremisePrimitiveSpec } from './selection-strategies.js';
-export { createLinkLayerStrategy, LinkLayerStrategy } from './term-link';
+export { createLinkLayerStrategy, LinkLayerStrategy, TermLinkStrategy } from './term-link';
 export type { Strategy } from '../types';

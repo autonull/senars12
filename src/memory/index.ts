@@ -14,7 +14,13 @@ export { Archive, Forgetting } from './lifecycle/index.js';
 export { Memory } from './memory.js';
 export { MemoryIndex } from './memory-index.js';
 export type * from './ports/index.js';
-export { evictUnderPressure } from './pressure/index.js';
+export {
+  evictUnderPressure,
+  conceptValue,
+  evictionOrder,
+  type EvictionReason,
+  type EvictionReport,
+} from './pressure/index.js';
 export { MemoryService } from './MemoryService.js';
 export { EpisodicMemory } from './episodic.js';
 export type { PersistableSessionManager } from './types.js';
@@ -23,6 +29,9 @@ export { SessionStore, type SessionStoreOptions } from './in-memory-session-mana
 export type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig } from './episodic.js';
 export { EPISODE_TYPES } from './episodic.js';
 export { MockEmbeddingGenerator, type EmbeddingGenerator } from './embedding.js';
+export { LINK_LAYER, type KnownLinkLayer } from './links/types.js';
+export { Layer } from './links/Layer.js';
+export { AssociativeRegistry, LinkLayerMemory, type AssociativeMemory } from './associative.js';
 export { consolidateEpisodes } from './retrieval-verified.js';
 export type { ConceptStats, SerializedConcept, SerializedMemory } from './state/index.js';
 export {

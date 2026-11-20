@@ -10,6 +10,7 @@ export {
   GoalRelevanceAttention,
   NullAttentionModel,
   NoveltySampling,
+  PREMISE_PRIMITIVES,
   PrioritySampling,
   PrioritySelector,
   RotationSelector,

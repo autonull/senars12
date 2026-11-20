@@ -3,6 +3,7 @@ import { clamp, clamp01, estimateTokens, mean, safeRatio, variance } from '@sena
 import { makeId } from '@senars/util/id';
 import { monotonicNow, stopwatch } from '@senars/util/async';
 import { unique } from '@senars/util/collections';
+import { assertDefined } from '@senars/util/assert';
 import { validateBatchQueries } from './algebra.js';
 import {
   createDefaultCalibrationSuite,

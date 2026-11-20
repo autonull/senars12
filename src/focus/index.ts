@@ -32,3 +32,12 @@ export type { MetaFocusOptions } from './MetaFocus.js';
 export { createMetaFocus, MetaFocus } from './MetaFocus.js';
 export { type NalABResult, runNalAB } from './nal-ab.js';
 export { SchemaStore, type StoredSchema } from './schema-store.js';
+export {
+  createGridWorldGame,
+  createBanditGame,
+  createSnakeGame,
+  createTetrisGame,
+  createGame2048,
+  createTicTacToeGame,
+} from '../game/index.js';
+export { SeededRNG } from '../util/random.js';

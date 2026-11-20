@@ -1,4 +1,5 @@
 export type { Game, GameOutcome, MetaGame, Perception, SelfMetaGame } from '../game/Game.js';
+export { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters, validateParameters, mergeParameters } from '../config/cognitive-parameters.js';
 export {
   forwardingReflex,
   type PrefetchingReflex,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGateRegistry } from '@senars/kernel/GateRegistry';
 import { readFileSync } from 'node:fs';
-import { cognitiveBounds } from '@senars/utils';
+import { cognitiveBounds } from '@senars/config';
 import {
   ActionRegistry,
   RewardRegistry,
@@ -121,7 +121,7 @@ describe('Bench 43 — Component Contracts', () => {
   });
 
   it('ParameterTable adopted by SelfMetaGame: knobs actuate, applyKnob switch deleted', () => {
-    const source = readFileSync('nar/src/game/impls/SelfMetaGame.ts', 'utf8');
+    const source = readFileSync('src/game/impls/SelfMetaGame.ts', 'utf8');
     expect(source).toContain('createParameterTable');
     expect(source).not.toMatch(/private applyKnob/);
 

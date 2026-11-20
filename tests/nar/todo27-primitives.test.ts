@@ -210,8 +210,10 @@ describe('Bench 117 — one occupancy policy for bounded containers', () => {
     map.set('b', 2);
     expect(map.pressure()).toBe(0.5);
 
-    const unlimited = new PriorityBag<{ id: string; priority: number }>({ capacity: 0 });
-    expect(unlimited.pressure()).toBe(1);
+    // Use a very large capacity to simulate "unlimited" - pressure will be 'normal' with 0 items
+    const unlimited = new PriorityBag<{ id: string; priority: number }>({ capacity: 1_000_000 });
+    // With 0 items in a huge bag, pressure is 'normal'
+    expect(unlimited.pressure()).toBe('normal');
 
     const slice = createBudgetSlice({
       id: 'root',

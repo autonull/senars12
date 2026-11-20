@@ -15,7 +15,7 @@ import {
   maxLMOutputChars,
 } from '@senars/lm/service/sanitize';
 
-const NAR_SRC = join(import.meta.dirname, '@senars/');
+const NAR_SRC = join(import.meta.dirname, '../../src');
 
 const walk = (dir: string): string[] =>
   readdirSync(dir).flatMap((entry) => {

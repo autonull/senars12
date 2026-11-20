@@ -6,11 +6,19 @@ export {
   SpreadingActivation,
 } from './attention/index.js';
 export {
+  CompositeLMRuleSelector,
+} from './lm-selectors/CompositeLMRuleSelector.js';
+export {
   AnytimeDerivation,
   DefaultDerivation,
   FocusedDerivation,
   SampledDerivation,
 } from './derivation/index.js';
+export {
+  CompositeStrategy,
+  PREMISE_PRIMITIVES,
+  TermLinkStrategy,
+} from './premise/index.js';
 export { RuleGraph } from './lm-graph/RuleGraph.js';
 export type { RuleGraphOptions } from './lm-graph/RuleGraph.js';
 export {

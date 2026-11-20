@@ -422,6 +422,7 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     const wsLogger = createLogger({ scope: 'agent:ws' });
     const ws = new WSConnection(wsConfig, { emit: () => undefined, logger: wsLogger } as any);
     await agent.mount(ws);
+    await ws.connect();
   }
 
   // Wrap agent.stop to close logStore and clean up temp directory

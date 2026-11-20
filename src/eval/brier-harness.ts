@@ -4,7 +4,8 @@ import { createIsotonicCalibrator } from '../lm/system-one/calibration.js';
 import { identityECE, meanBrier } from '../lm/system-one/metrics.js';
 import { ensureDir } from '@senars/util/fs';
 import { incrementCount, unique } from '@senars/util/collections';
-import { mean, pct, sumBy } from '@senars/util/numeric';
+import { mean, sumBy } from '@senars/util/numeric';
+import { pct } from '@senars/util/format';
 
 export interface ArcadeTickRecord {
   arm: string;

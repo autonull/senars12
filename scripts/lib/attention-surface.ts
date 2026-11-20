@@ -44,7 +44,7 @@ export interface WriteSite {
 }
 
 /** The one module allowed to touch a concept's priority outside the write surface. */
-export const ATTENTION_OWNER = 'nar/src/memory/concept.ts';
+export const ATTENTION_OWNER = 'src/memory/concept.ts';
 
 /** Where the reads and the decay sweep live; both rules are about this one file. */
 export const MEMORY_OWNER = 'nar/src/memory/memory.ts';

@@ -1,6 +1,7 @@
 import { verifyRecord } from '@senars/verification';
 import { cachePath } from '@senars/util/config';
 import { createLogger } from '@senars/util/logger';
+import { createLogStore } from '@senars/log/store';
 import {
   type CognitiveParameters,
   FAST_COGNITIVE_CONFIG,
@@ -115,10 +116,17 @@ export async function createCognitiveAgent(config: CognitiveAgentConfig): Promis
 
   const statePath = config.statePath ?? cachePath('nar-state');
 
+  // Create a logStore for persistence
+  const logStore = await createLogStore({
+    dir: statePath,
+    flushIntervalMs: 1000,
+  });
+
   const narInstance = new NAR({
     ...DEFAULT_CONFIG,
     persistState: true,
     statePath,
+    logStore,
     cognitiveParams,
     enableEmbeddingLayer: false,
     metta: config.metta,

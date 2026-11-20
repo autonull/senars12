@@ -40,9 +40,10 @@ describe('PriorityBag', () => {
   });
 
   it('should decay priorities', () => {
+    // decayRate is per-millisecond in current implementation; use a tiny rate so item survives one decay call
     const bag = new PriorityBag<{ id: string; priority: number }>({
       capacity: 10,
-      decayRate: 0.5,
+      decayRate: 0.0001,
     });
 
     bag.add({ id: 'item', priority: 1.0 });

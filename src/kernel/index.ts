@@ -9,6 +9,7 @@ export {
   scopeLimitKey,
   scopeSpec,
   scopeTerminationReason,
+  DECISION_DERIVATIONS_SCOPE,
 } from './budget-scopes.js';
 export {
   type ControlBudgetOverrides,
@@ -85,3 +86,11 @@ export {
   formatSchemaTruth,
   serializeTruth,
 } from './types.js';
+
+export {
+  conceptValue,
+  evictionOrder,
+  evictUnderPressure,
+  type EvictionReason,
+  type EvictionReport,
+} from '../memory/pressure/index.js';

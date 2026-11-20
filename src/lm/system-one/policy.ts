@@ -6,6 +6,7 @@
  */
 import { BANDS } from '@senars/util/cognitive-schemas';
 import { renormalize, sumBy } from '@senars/util/numeric';
+import { assertDefined } from '@senars/util/assert';
 import { HEAD_SPECS } from './head-ontology.js';
 import type {
   BandDecision,

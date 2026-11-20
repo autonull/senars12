@@ -61,5 +61,6 @@ export const resolveBagSlot = (
   const errors = bagSlotErrors(slot);
   if (errors.length) throw new ConfigurationError(errors.join('; '));
   const parsed = slot?.config === undefined ? undefined : bagConfig.parse(slot.config);
-  return { decayRate: parsed?.decayRate, forgetRate: parsed?.forgetRate, rng, clock };
+  // Default decay rate of 0.01 matches Focus/task bag default when no config provided
+  return { decayRate: parsed?.decayRate ?? 0.01, forgetRate: parsed?.forgetRate, rng, clock };
 };

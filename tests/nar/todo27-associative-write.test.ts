@@ -74,7 +74,7 @@ describe('Bench 104 — the associative port is read-write', () => {
 
   it('the embedding layer keeps no document store', () => {
     const source = readFileSync(
-      join(process.cwd(), 'nar/src/memory/links/EmbeddingLayer.ts'),
+      join(process.cwd(), 'src/memory/links/EmbeddingLayer.ts'),
       'utf8'
     );
     expect(source).not.toContain('storedEntries');

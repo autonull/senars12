@@ -132,3 +132,19 @@ export type {
 } from './shadow-validation.js';
 export { ShadowValidator, shadowValidator } from './shadow-validation.js';
 export { EmbeddingCache, createEmbeddingCache, type EmbeddingCacheConfig, type EmbeddingCacheMetrics } from './system-one/index.js';
+export {
+  createManifold,
+  createOpenSystemOneManifold,
+  canonicalState,
+  LMReflex,
+  JudgmentDataset,
+  actionGrammar,
+  ManifoldReflex,
+  PlacementCascadeReflex,
+  ConfidenceRouter,
+  createSystemOneLMRuleAdapter,
+  createLMServiceCortex,
+} from './system-one/index.js';
+export { BrierHarness, loadSession, startArcadeTickSpan, saveSession } from '../eval/index.js';
+export { SeededRNG } from '../util/random.js';
+export { SchemaInductor } from '../learning/index.js';

@@ -46,7 +46,7 @@ const derivationCount = async (overrides: ControlBudgetOverrides): Promise<numbe
     budgets: new ControlBudgets(gates.getBudgetGate() as KernelBudgetGate, overrides),
     memory,
     taskManager: new TaskManager(memory, { gateRegistry: gates }),
-    config: DEFAULT_CONFIG,
+    config: { ...DEFAULT_CONFIG, decision: undefined },
     cognitiveController: createTestController(
       memory,
       inferenceParams(3),
