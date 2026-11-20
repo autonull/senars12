@@ -12,13 +12,10 @@ export type {
   ConceptLike,
   CoreConfig,
   Duration,
-  Err,
   Hash,
   Nullable,
-  Ok,
   Optional,
   QueryOptions,
-  Result,
   Task,
   TaskType,
   TermFilter,
@@ -27,9 +24,6 @@ export type {
   TruthFilter,
 } from './core.js';
 export {
-  attempt,
-  attemptAsync,
-  ConfigurationError,
   createBeliefTask,
   createTaskWeight,
   createDuration,
@@ -38,18 +32,32 @@ export {
   createTimestamp,
   DEFAULT_CONFIG,
   DEPTH_MAX,
+  NEUTRAL_BUDGET,
+} from './core.js';
+export type { EventMap, EventReceiver, EventUnsubscribe, NAREventMap } from './events.js';
+export { NarEventBus } from './events.js';
+
+// Re-export utility types/functions from @senars/util (single source of truth)
+export type {
+  Err,
+  Ok,
+  Result,
+} from '@senars/util/result';
+export {
+  attempt,
+  attemptAsync,
   err,
   flatMap,
   getOrElse,
   isErr,
   isOk,
   map,
-  NEUTRAL_BUDGET,
-  OperationError,
   ok,
-  ToolError,
   unwrapOrThrow,
+} from '@senars/util/result';
+export {
+  ConfigurationError,
+  OperationError,
+  ToolError,
   ValidationError,
-} from './core.js';
-export type { EventMap, EventReceiver, EventUnsubscribe, NAREventMap } from './events.js';
-export { NarEventBus } from './events.js';
+} from '@senars/errors';
