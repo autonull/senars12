@@ -390,7 +390,7 @@ const aliases = [
   // @senars/cooperation/*
   { find: '@senars/cooperation/delegation', replacement: path.resolve(__dirname, './src/cooperation/delegation.ts') },
   // @senars/nar-lm
-  { find: '@senars/nar-lm', replacement: path.resolve(__dirname, './src/lm/index.ts') },
+  { find: '@senars/nar-lm', replacement: path.resolve(__dirname, './src/nar-lm.ts') },
   // @senars/nar-io
   { find: '@senars/nar-io', replacement: path.resolve(__dirname, './src/nar-io.ts') },
   { find: '@senars/nar-presets', replacement: path.resolve(__dirname, './src/nar-presets.ts') },

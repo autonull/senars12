@@ -12,6 +12,6 @@ export type {
   EventLogQuery,
   CognitiveEvent,
 } from './events.js';
-export { LogStoreEventLog } from './EventLogAdapter.js';
+export { LogStoreEventLog, InMemoryEventLog } from './EventLogAdapter.js';
 export { createLogStoreEventLog, createLogStoreEventLogFromStore } from './EventLogAdapter.js';
 export { createLogStore } from './store.js';

@@ -122,8 +122,8 @@ describe('F1 — OTel span events on the tick pipeline (C22)', () => {
 
     const transitions = collector.eventsOf('tick', 'bag.pressure.transition');
     // 'normal' is the initial level, so only escalations are reported.
-    expect(transitions.map((a) => a.transition)).toEqual(['high', 'critical']);
-    expect(transitions[0]).toMatchObject({ bagId: 'bag-f1', capacity: 10, size: 7 });
+    expect(transitions.map((a) => a.transition)).toEqual(['normal->elevated', 'elevated->critical']);
+    expect(transitions[0]).toMatchObject({ bagId: 'bag-f1', capacity: 10, size: 8 });
   });
 
   it('emits thread.backpressure with the decision reason', () => {

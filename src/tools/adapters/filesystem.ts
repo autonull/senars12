@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { normalize, resolve } from 'node:path';
 import { containsPath, ensureParentDir } from '@senars/util/fs';
-import { errMsg } from '@senars/errors';
+import { errMsg } from '@senars/util/error';
 import { tool } from 'ai';
 import { z } from 'zod';
 

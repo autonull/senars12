@@ -14,7 +14,7 @@ export {
 export { dispatchToolCalls, registerAgentTools, ToolRegistry, type ToolRegistryDelegate, type ToolSpec } from '@senars/motor';
 export { emitDomainEvent, setDomainEventSink, hasDomainEventSink, type DomainEventPayload } from './event-sink.js';
 export { PolicyEngine } from './PolicyEngine.js';
-export { ApprovalService, type ApprovalManager } from './ApprovalService.js';
+export { ApprovalService, type ApprovalManager, InMemoryApprovalManager } from './ApprovalService.js';
 export { ModelRunner, type ModelRunnerDeps } from './ModelRunner.js';
 export type { MettaPort } from './metta-port.js';
 export type { CapabilitySpec, CapabilitySurface, WiredNAR } from './builder.js';
@@ -40,6 +40,16 @@ export { createLogger } from '@senars/util/logger';
 export { CommandRegistry } from '@senars/commands';
 export { validateParameters } from '../config/cognitive-parameters.js';
 export { resolveBagSlot, bagSlotErrors } from '../bag/index.js';
+export { TASK_BAG_KINDS, TASK_TYPES, TOLERANT_PUNCTUATIONS, taskTypeForPunctuation, TASK_PUNCTUATION, TASK_PUNCTUATIONS, TaskTypeSchema, FormalizationCandidateSchema, FormalizationBatchSchema } from '../schemas/index.js';
+export { DETECTED_INTENTS, DetectedIntentSchema } from '../schemas/index.js';
+export { ChatMessage, NarConceptNode, GraphNodeDataView } from '../protocol/index.js';
+export { CognitiveRegistry, createDefaultRegistry } from '../cognitive/index.js';
+export { verifyRecord } from '../verification/index.js';
+export {
+  VERIFIER_TRUTH_TABLE,
+  resolveTruthFn,
+} from '../rules/index.js';
+export { NAREngine } from '../engine/index.js';
 export { CompositeSampling } from '../strategies/sampling/CompositeSampling.js';
 export { CognitiveController } from '../cognitive/index.js';
 export { Memory } from '../memory/index.js';

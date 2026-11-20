@@ -1,5 +1,6 @@
 import { Agent } from '@senars/agent';
 import { NAR } from '@senars/agent';
+import { InMemoryEventLog } from '@senars/log';
 import { describe, expect, it, vi } from 'vitest';
 import {
   handleCycleRewind,
@@ -90,7 +91,7 @@ describe('CORE.19 C2.4 — adjust-budget / adjust-provider', () => {
 
 describe('CORE.19 C2.5 — honest capabilities', () => {
   it('reports the baseline when nothing is wired', () => {
-    const agent = new Agent();
+    const agent = new Agent({ log: new InMemoryEventLog() });
     expect(agent.capabilities().supports).toMatchObject({
       drives: false,
       rlfp: false,
@@ -100,7 +101,7 @@ describe('CORE.19 C2.5 — honest capabilities', () => {
   });
 
   it('reflects the subsystems the composition root wired', () => {
-    const agent = new Agent({ capabilities: { drives: true, rlfp: true, selfReasoning: true } });
+    const agent = new Agent({ log: new InMemoryEventLog(), capabilities: { drives: true, rlfp: true, selfReasoning: true } });
     expect(agent.capabilities().supports).toMatchObject({
       drives: true,
       rlfp: true,

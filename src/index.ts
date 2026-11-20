@@ -45,6 +45,10 @@ export {
 } from './imagination/index.js';
 /** The one component lifecycle state machine (`NAR` extends it). @public */
 export { BaseComponent } from './agent/Lifecycle.js';
+// Log
+/** Event log adapter over LogStore. @public */
+export { LogStoreEventLog, InMemoryEventLog, createLogStoreEventLog, createLogStoreEventLogFromStore } from './log/index.js';
+export { createLogStore, type LogStore } from './log/store.js';
 // LLM Service
 /** LLM service + factory/mock. @public */
 export { createLMService, createMockLMService, LMService } from './lm/lm-service.js';
@@ -71,6 +75,9 @@ export type { NARConfig, RLFPConfig } from './nar.js';
 // Main NAR class
 /** The NAR reasoning engine. @public */
 export { NAR } from './nar.js';
+// NAR-LM integration
+/** NAR with LM capabilities. @public */
+export { NARLM } from './nar-lm.js';
 // Factory for creating NAR instances
 /** Kernel construction presets (tests/benches). @public */
 export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from './nar-presets.js';

@@ -56,7 +56,7 @@ interface SegmentHandle {
 }
 
 /** FinalizationRegistry for safety-net cleanup of unclosed LogStore instances. */
-const logStoreFinalization = new FinalizationRegistry<LogStore>((store) => {
+const logStoreFinalization = new FinalizationRegistry<{ store: LogStore }>(({ store }) => {
   if (!store.closed && store.segments.length > 0) {
     // Best-effort close during GC to prevent "FileHandle closed during GC" errors
     for (const segment of store.segments) {
@@ -81,7 +81,7 @@ export class LogStore {
 
   constructor(config: Partial<LogStoreConfig> = {}) {
     this.config = { ...defaultLogStoreConfig, ...config };
-    logStoreFinalization.register(this, this);
+    logStoreFinalization.register(this, { store: this });
   }
 
   /** Initialize the store, creating directories and loading existing segments. */

@@ -12,6 +12,18 @@
     ".": {
       "types": "./src/index.ts",
       "import": "./src/index.ts"
+    },
+    "./nar-lm": {
+      "types": "./src/nar-lm.ts",
+      "import": "./src/nar-lm.ts"
+    },
+    "./nar-io": {
+      "types": "./src/nar-io.ts",
+      "import": "./src/nar-io.ts"
+    },
+    "./nar": {
+      "types": "./src/nar.ts",
+      "import": "./src/nar.ts"
     }
   },
   "scripts": {

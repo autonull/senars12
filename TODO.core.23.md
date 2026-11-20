@@ -7,7 +7,7 @@
 - Fixed: Updated `docs/readme/generate.ts` import path from `nar/src` to `src/`
 ---
 ## Success Criteria (Definition of Done)
-**Current Status**: Import errors 0 (down from 392), File handle leaks 0, Passed: 269 test files, 2838 tests, Failed: 131 test files, 500 tests. Pass rate: ~83.5% (target >90%)
+**Current Status**: Import errors 0 (down from 392), File handle leaks 0, Passed: 300 test files, 3013 tests, Failed: 100 test files, 349 tests. Pass rate: ~89.6% (target >90%)
 ---
 ## Execution Playbook
 ### Session 1: Unblock (45 min) ✅ **COMPLETE**
@@ -42,13 +42,52 @@
   - src/nar.ts: open logStore in start() before creating KernelLedger
   - src/kernel/KernelLedger.ts: close logStore in close()
   - src/agent/Agent.ts: close log in stop()
-  - src/log/store.ts: idempotent open(), FinalizationRegistry safety net
+  - src/log/store.ts: idempotent open(), FinalizationRegistry safety net (fixed target/holdings bug)
 - Added missing barrel exports (agent, commands, tools, self, lm, cognitive, etc.) ✅
 - Added vitest config aliases for deep imports (500+) ✅
 - Fixed Bag interface methods (evict, removeMany, find, toArray, entries, peek) ✅
 - Fixed PriorityBag implementation ✅
-- Final full suite run → 83.5% pass rate (target >90%)
-- Address remaining 131 failed test files (mostly test logic, not import errors)
+- Fixed LogStore FinalizationRegistry (target !== holdings) ✅
+- Fixed CognitiveController params.strategies undefined ✅
+- Fixed NARLM export from main index ✅
+- Fixed systemOneSchema export from @senars/utils ✅
+- Fixed TASK_BAG_KINDS, TASK_TYPES, TOLERANT_PUNCTUATIONS exports ✅
+- Fixed DETECTED_INTENTS, DetectedIntentSchema exports ✅
+- Fixed NAREngine export from @senars/agent ✅
+- Fixed InMemoryApprovalManager, InMemoryEventLog exports ✅
+- Fixed VERIFIER_TRUTH_TABLE implementation to match engine (only declared drift: revision:frequency) ✅
+- Fixed ModelRunner tool-result events for mock models ✅
+- Fixed ChatMessage, NarConceptNode, GraphNodeDataView exports ✅
+- Fixed CognitiveRegistry, createDefaultRegistry exports ✅
+- Fixed FormalizationCandidateSchema, FormalizationBatchSchema, TaskTypeSchema exports ✅
+- Fixed verifyRecord export from @senars/agent ✅
+- Fixed errMsg import in filesystem adapter ✅
+- Fixed formatTruth import in LLMCortex ✅
+- Fixed pressure transition test expectations ✅
+- Fixed bag LRU eviction test expectations (case-sensitive strategy names) ✅
+- AgentV6 tests updated for no-LM mode ✅
+```
+### Session 5: Final Test Logic Fixes (Current) — **IN PROGRESS**
+```
+- Fixed todo6-capability tests (evict strategy case sensitivity, sample() API)
+- Fixed todo6-production pressure transition format
+- Fixed core19-c2 Agent constructor requiring log/logStore
+- Remaining ~100 failed test files (down from 131):
+  - todo29a-a9: proposal stream schema version mismatch (expects 'stale-revision' gets 'schema-version')
+  - todo29a-a10: rule table loading failures
+  - todo19-profiles: device profile/WASM bundle tests
+  - todo19-reasoning: NAL veto transplant test
+  - todo20-security: tool input validation, LM response sanitization
+  - todo16-device-profile: provider fallback test
+  - todo16c-f5-dispositions: manifold health, novelty gate
+  - todo16c-cortex: cortex health check
+  - todo6-production: bag pressure transition (fixed format, one size assertion)
+  - refactor3-episode-graph: episode graph completeness
+  - delegation e2e: WebSocket connection flaky
+  - inference-nario-lm: NARLM tests (export fixed, may have other issues)
+  - verifier-drift: declared drift only revision:frequency (FIXED)
+  - task-vocabulary: ChatMessage, NarConceptNode, TASK_PUNCTUATION exports (FIXED)
+  - core19-c2: honest capabilities, rewind (Agent log requirement FIXED)
 ```
 ---
 ## Risk Mitigation
@@ -76,14 +115,13 @@
 ## Minimal Viable Next Step
 ```bash
 # All quick wins, deep subsystem fixes, import resolution, file handle leaks COMPLETE.
-# Remaining work (test logic only):
-# 1. Typecheck core isolation (src/ only) → 545 errors documented (pre-existing)
-# 2. Fix ~131 failed test files / 500 failed tests (test logic issues):
-#    - CognitiveController validation (params.strategies undefined)
-#    - ModelRunner tool-call events not yielded correctly (mock model limitation)
-#    - NAR integration: CognitiveRegistry, TaskManager, evictUnderPressure, conceptValue
-#    - Bag pressure transition label mismatches
-#    - Narsese round-trip property test (disjunction vs setInt)
-#    - State persistence observability emissions
-# 3. Final full suite run → verify >90% pass rate
+# Major test logic fixes COMPLETE (LogStore, CognitiveController, exports, ModelRunner, bag tests).
+# Remaining work (~100 failed test files / 349 failed tests):
+# 1. todo29a-a9/a10: proposal stream schema version & rule table loading
+# 2. todo19-profiles/todo19-reasoning/todo20-security: device profiles, NAL veto, security
+# 3. todo16 family: device profiles, dispositions, cortex
+# 4. refactor3-episode-graph: episode graph completeness
+# 5. delegation e2e: WebSocket flakiness (port conflict?)
+# 6. inference-nario-lm: NARLM integration
+# 7. Final full suite run → verify >90% pass rate (currently ~89.6%)
 ```

@@ -1,6 +1,6 @@
 import { appendTextDelta, collectText } from '@senars/util/text';
 import { estimateTokens } from '@senars/util/numeric';
-import { formatTruth } from '@senars/util/truth-schema';
+import { formatTruth } from '@senars/types/truth';
 import type { ChatStreamEvent } from '../agent/chat.js';
 import type { CognitiveStimulus, Context, Derivation } from '../engine/Engine.js';
 import type {

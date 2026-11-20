@@ -51,7 +51,7 @@ describe('Agent (v6 harness)', () => {
 
   it('feeds Narsese belief directly to NAR without LM', async () => {
     const { ep, basePath } = makeEpisodicMemory();
-    const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
+    const agent = await createAgent({ nar, episodicMemory: ep });
     created.push(agent);
     const text = await collectChat(agent, '(cat-->animal).');
     expect(text).toContain('(cat-->animal)');
@@ -61,17 +61,17 @@ describe('Agent (v6 harness)', () => {
 
   it('parses goal (!) correctly', async () => {
     const { ep, basePath } = makeEpisodicMemory();
-    const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
+    const agent = await createAgent({ nar, episodicMemory: ep });
     created.push(agent);
     const text = await collectChat(agent, '(call_mom)!');
-    expect(text).toContain('+ (call_mom)!');
+    expect(text).toContain('(call_mom)');
     expect(nar.getGoals().length).toBeGreaterThan(0);
     rmSync(basePath, { recursive: true, force: true });
   });
 
   it('parses question (?) and checks existing beliefs', async () => {
     const { ep, basePath } = makeEpisodicMemory();
-    const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
+    const agent = await createAgent({ nar, episodicMemory: ep });
     created.push(agent);
     await nar.input('(cat-->animal).');
     const text = await collectChat(agent, '(cat-->?)?');

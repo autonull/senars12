@@ -156,6 +156,9 @@ const narrateStreaming = async (ctx: MacroContext): Promise<void> => {
       });
     }
   } else {
+    const text = verbalizeDerivations(state.derivations);
+    state.narrativeText = text;
+    stream.push({ kind: 'text-delta', text } as ChatStreamEvent);
     for (const d of state.derivations) {
       host.memory.append({
         type: 'derivation',

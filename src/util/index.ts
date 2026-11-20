@@ -36,6 +36,9 @@ export {
   readEnvOverrides,
   SchemaValidationError,
   SENARS_ENV_MAP,
+  systemOneDefaults,
+  systemOneSchema,
+  type SystemOneConfig,
 } from '../config/index.js';
 // Errors
 /** @public Unified error hierarchy for all SeNARS packages. */

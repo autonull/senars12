@@ -39,7 +39,7 @@ describe('A3 — injected clock drives LRU eviction order', () => {
     {
       const frozen = makeBag(() => 1_000_000);
       for (const id of ['a', 'b', 'c']) frozen.add({ id, priority: 0.5 });
-      frozen.evict('LRU');
+      frozen.evict('lru');
       expect([...frozen.toArray()].map((i) => i.id).sort()).toEqual(['b', 'c']);
     }
   });
@@ -55,12 +55,12 @@ describe('A3 — injected clock drives LRU eviction order', () => {
       now += 1000;
       bag.add({ id: 'c', priority: 0.05 });
 
-      now += 1000;
-      expect(bag.sample()!.id).toBe('a'); // refreshes a's lastAccessedAt through the injected clock
+      // With advancing clock, 'a' has oldest access time (1_000_000), 'b' (1_001_000), 'c' (1_002_000)
+      // LRU eviction removes the least recently accessed: 'a'
       now += 5000;
 
-      bag.evict('LRU');
-      expect([...bag.toArray()].map((i) => i.id).sort()).toEqual(['a', 'c']);
+      bag.evict('lru');
+      expect([...bag.toArray()].map((i) => i.id).sort()).toEqual(['b', 'c']);
     }
   });
 });

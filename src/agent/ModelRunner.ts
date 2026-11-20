@@ -186,7 +186,7 @@ export class ModelRunner {
             const call = outcome.toolCalls.find((c) => c.toolCallId === tr.toolCallId);
             const output =
               typeof tr.output === 'string' ? tr.output : JSON.stringify(tr.output ?? null);
-            const capped = truncateText(output, this.maxToolResultChars);
+            const capped = truncate(output, this.maxToolResultChars);
             if (call) {
               outcome.artifacts.push({
                 type: 'tool_result',
@@ -225,17 +225,67 @@ export class ModelRunner {
         /* steps unavailable (e.g. aborted) */
       }
 
+      // Ensure all tool calls have results (for mocks that don't trigger onStepFinish tool execution)
+      const tools = composed.tools;
+      for (const c of outcome.toolCalls) {
+        const hasArtifact = outcome.artifacts.some((a) => a.metadata?.toolCallId === c.toolCallId);
+        if (!hasArtifact && tools[c.toolName]) {
+          try {
+            const tool = tools[c.toolName] as { execute: (args: Record<string, unknown>) => Promise<unknown> };
+            const result = await tool.execute(c.args);
+            const capped = truncateText(typeof result === 'string' ? result : JSON.stringify(result), this.maxToolResultChars);
+            outcome.artifacts.push({
+              type: 'tool_result',
+              content: capped,
+              timestamp: Date.now(),
+              metadata: { toolName: c.toolName, toolCallId: c.toolCallId },
+            });
+          } catch (e) {
+            outcome.errors.push({
+              toolCallId: c.toolCallId,
+              toolName: c.toolName,
+              message: errMsg(e),
+            });
+          }
+        }
+      }
+
+      // Yield tool-call and tool-result events for all tool calls
       for (const c of outcome.toolCalls.slice(0, this.maxToolResultEntries)) {
         yield { kind: 'tool-call', call: c };
-      }
-      const artifacts = outcome.artifacts.slice(0, this.maxToolResultEntries);
-      for (const a of artifacts) {
-        const call = outcome.toolCalls.find((c) => c.toolCallId === a.metadata?.toolCallId) ?? {
-          toolName: String(a.metadata?.toolName ?? 'tool'),
-          toolCallId: String(a.metadata?.toolCallId ?? ''),
-          args: {},
-        };
-        yield { kind: 'tool-result', call, result: a.content };
+        // Find or create artifact for this tool call
+        let artifact = outcome.artifacts.find((a) => a.metadata?.toolCallId === c.toolCallId);
+        if (!artifact && tools[c.toolName]) {
+          // Execute tool now if not already done
+          try {
+            const tool = tools[c.toolName] as { execute: (args: Record<string, unknown>) => Promise<unknown> };
+            const result = await tool.execute(c.args);
+            const capped = truncateText(typeof result === 'string' ? result : JSON.stringify(result), this.maxToolResultChars);
+            artifact = {
+              type: 'tool_result',
+              content: capped,
+              timestamp: Date.now(),
+              metadata: { toolName: c.toolName, toolCallId: c.toolCallId },
+            };
+            outcome.artifacts.push(artifact);
+          } catch (e) {
+            outcome.errors.push({
+              toolCallId: c.toolCallId,
+              toolName: c.toolName,
+              message: errMsg(e),
+            });
+            artifact = {
+              type: 'tool_result',
+              content: `Error: ${errMsg(e)}`,
+              timestamp: Date.now(),
+              metadata: { toolName: c.toolName, toolCallId: c.toolCallId },
+            };
+            outcome.artifacts.push(artifact);
+          }
+        }
+        if (artifact) {
+          yield { kind: 'tool-result', call: c, result: artifact.content };
+        }
       }
 
       if (signal?.aborted)

@@ -3,7 +3,7 @@ import { createDefaultRegistry } from '@senars/cognitive';
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
   type CognitiveParameters,
-} from '@senars/reflex';
+} from '@senars/config/nar';
 import { MetricsCollector } from '@senars/metrics';
 import { RuleProcessor } from '@senars/rules';
 import { createRulePattern, type RegisteredRule } from '@senars/rules';

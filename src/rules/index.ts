@@ -9,6 +9,13 @@ export {
   registerMetaRules,
   shouldActivateMetaReasoning,
 } from './impls/meta-rules.js';
+// Verifier truth table (independent of engine)
+export {
+  BINARY_TRUTH,
+  UNARY_TRUTH,
+  VERIFIER_TRUTH_TABLE,
+  resolveTruthFn,
+} from './verifier-truth-table.js';
 export { RuleProcessor } from './impls/processor.js';
 export type { RecorderOptions } from './impls/recorder.js';
 export { DerivationRecorder, inferRuleCategory } from './impls/recorder.js';
