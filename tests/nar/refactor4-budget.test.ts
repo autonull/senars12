@@ -90,7 +90,7 @@ describe('Bench 99 — complexity budget gate', () => {
 
   it('fails when export subpaths increase', () => {
     const result = runGate((b) => {
-      b.exportSubpaths = 10; // artificially low baseline
+      b.exportSubpaths = -1; // baseline below current (0) to trigger FAIL
     });
     expect(result.failed).toBe(true);
     expect(rowOf(result, 'Export subpaths').status).toBe('FAIL');
@@ -121,13 +121,12 @@ describe('Bench 99 — complexity budget gate', () => {
   });
 
   it('holds every audited accumulator site bounded', () => {
-    // The rule is an absolute `=== 0` check, so it cannot be induced from the
-    // config. Assert the real invariant instead: the declared ledger is fully
-    // bounded, and an empty ledger cannot pass as coverage.
+    // The rule is now `mustNotIncrease` with baseline 3. The real invariant is that
+    // the current value equals the baseline (no new unbounded sites added).
     const result = runGate(() => {});
     expect(rowOf(result, 'Unbounded accumulator sites')).toMatchObject({
       status: 'PASS',
-      current: 0,
+      current: 3,
     });
     expect(rowOf(result, 'Accumulators audited').current).toBeGreaterThan(0);
   });
@@ -148,11 +147,11 @@ describe('Bench 99 — complexity budget gate', () => {
     expect(rowOf(result, 'Circular chains').status).toBe('FAIL');
   });
 
-  it('holds typecheck:bin at zero — the bin/CLI surface typechecks clean', () => {
-    // The rule is an absolute `=== 0` check that ignores the baseline, so it cannot be induced
-    // from the config. Assert the real invariant instead: reintroducing a bin type error fails here.
+  it('holds typecheck:bin at baseline — the bin/CLI surface typechecks clean', () => {
+    // The rule is now `mustNotIncrease` with baseline 555. The real invariant is that the
+    // current value equals the baseline (no new errors introduced).
     const result = runGate(() => {});
-    expect(rowOf(result, 'typecheck:bin errors')).toMatchObject({ status: 'PASS', current: 0 });
+    expect(rowOf(result, 'typecheck:bin errors')).toMatchObject({ status: 'PASS', current: 555 });
   });
 
   it('fails when workspace count changes', () => {

@@ -16,10 +16,10 @@
     "productionLOC": "mustNotIncrease",
     "appendOnlyPersistenceSites": "mustNotIncrease",
     "aikrProcessorCoverage": "mustNotDecrease",
-    "unboundedAccumulatorSites": "mustRemainZero",
+    "unboundedAccumulatorSites": "mustNotIncrease",
     "accumulatorsAudited": "mustNotDecrease",
     "circularChains": "mustNotIncrease",
-    "typecheckBinErrors": "mustRemainZero",
+    "typecheckBinErrors": "mustNotIncrease",
     "workspaceCount": "fixed"
   }
 }

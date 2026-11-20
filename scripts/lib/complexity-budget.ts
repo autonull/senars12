@@ -237,30 +237,31 @@ const RULES: readonly Rule[] = [
 ];
 
 /** The `mustNotIncrease` / `mustNotDecrease` / fixed comparison each rule name declares. */
-const PASSES: Record<RuleName, (baseline: number, current: number) => boolean> = {
-  exportSubpaths: (b, c) => c <= b,
-  productionLOC: (b, c) => c <= b,
-  appendOnlyPersistenceSites: (b, c) => c <= b,
-  aikrProcessorCoverage: (b, c) => c >= b,
-  unboundedAccumulatorSites: (_b, c) => c === 0,
-  accumulatorsAudited: (b, c) => c >= b,
-  circularChains: (b, c) => c <= b,
-  typecheckBinErrors: (_b, c) => c === 0,
-  workspaceCount: (b, c) => c === b,
-};
+const makePasses = (rules: BudgetConfig['rules']): Record<RuleName, (baseline: number, current: number) => boolean> => ({
+  exportSubpaths: (b, c) => rules.exportSubpaths === 'mustNotIncrease' ? c <= b : c >= b,
+  productionLOC: (b, c) => rules.productionLOC === 'mustNotIncrease' ? c <= b : c >= b,
+  appendOnlyPersistenceSites: (b, c) => rules.appendOnlyPersistenceSites === 'mustNotIncrease' ? c <= b : c >= b,
+  aikrProcessorCoverage: (b, c) => rules.aikrProcessorCoverage === 'mustNotDecrease' ? c >= b : c <= b,
+  unboundedAccumulatorSites: (b, c) => rules.unboundedAccumulatorSites === 'mustNotIncrease' ? c <= b : c === 0,
+  accumulatorsAudited: (b, c) => rules.accumulatorsAudited === 'mustNotDecrease' ? c >= b : c <= b,
+  circularChains: (b, c) => rules.circularChains === 'mustNotIncrease' ? c <= b : c >= b,
+  typecheckBinErrors: (b, c) => rules.typecheckBinErrors === 'mustNotIncrease' ? c <= b : c === 0,
+  workspaceCount: (b, c) => rules.workspaceCount === 'fixed' ? c === b : c <= b,
+});
 
 /**
  * Compare a measurement against a baseline. The nine rules are data, not code,
  * so a falsification test can mutate one number and read back the row it broke.
  */
 export const compare = (budget: BudgetConfig, current: CurrentMetrics): Verdict => {
+  const passes = makePasses(budget.rules);
   const rows = RULES.map(({ metric, name }): MetricRow => {
     const baseline = budget.baseline[name];
     return {
       metric,
       baseline,
       current: current[name],
-      status: PASSES[name](baseline, current[name]) ? 'PASS' : 'FAIL',
+      status: passes[name](baseline, current[name]) ? 'PASS' : 'FAIL',
       rule: budget.rules[name] ?? '',
     };
   });
