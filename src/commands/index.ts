@@ -7,3 +7,5 @@ export { rlfpCommands } from './rlfp.js';
 export { selfCommands } from './self.js';
 export type { NarCommandContext } from './utils.js';
 export { narOf, requiring } from './utils.js';
+export { CommandRegistry } from './registry.js';
+export { isQuitResult, QUIT_SENTINEL } from './types.js';

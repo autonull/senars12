@@ -1,6 +1,6 @@
 import type { Clock } from '@senars/util/clock';
 import { clamp01, flooredRatio } from '@senars/util/numeric';
-import { incrementCount, selectTopN } from '@senars/util/collections';
+import { incrementCount, selectTopN, shareCount } from '@senars/util/collections';
 
 /**
  * Selection weights: how often a rule worked dominates, how fast it answered

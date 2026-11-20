@@ -140,6 +140,7 @@ const aliases = [
   { find: '@senars/config/env', replacement: path.resolve(__dirname, './src/config/env.ts') },
   { find: '@senars/config/defaults', replacement: path.resolve(__dirname, './src/config/defaults.ts') },
   { find: '@senars/config/nar', replacement: path.resolve(__dirname, './src/config/nar.ts') },
+  { find: '@senars/config/parameter-table', replacement: path.resolve(__dirname, './src/config/parameter-table.ts') },
   // @senars/ui-contract/*
   { find: '@senars/ui-contract/core', replacement: path.resolve(__dirname, './ui-contract/src/core/index.ts') },
   // @senars/schemas/*
@@ -259,9 +260,13 @@ const aliases = [
   { find: '@senars/learning/domain-learners', replacement: path.resolve(__dirname, './src/learning/domain-learners.ts') },
   { find: '@senars/kernel/gate-base', replacement: path.resolve(__dirname, './src/kernel/gate-base.ts') },
   { find: '@senars/strategies/premise/selection-strategies', replacement: path.resolve(__dirname, './src/strategies/premise/selection-strategies.ts') },
+  { find: '@senars/strategies/lm-graph/RuleGraph', replacement: path.resolve(__dirname, './src/strategies/lm-graph/RuleGraph.ts') },
+  { find: '@senars/strategies/premise/primitives', replacement: path.resolve(__dirname, './src/strategies/premise/primitives.ts') },
   { find: '@senars/memory/memory', replacement: path.resolve(__dirname, './src/memory/memory.ts') },
   { find: '@senars/rl/impls/QBeliefStore', replacement: path.resolve(__dirname, './src/rl/impls/QBeliefStore.ts') },
   { find: '@senars/cognitive/impls/CognitiveRegistry', replacement: path.resolve(__dirname, './src/cognitive/impls/CognitiveRegistry.ts') },
+  { find: '@senars/cognitive/index', replacement: path.resolve(__dirname, './src/cognitive/index.ts') },
+  { find: '@senars/cognitive/impls/MetacognitiveMonitor', replacement: path.resolve(__dirname, './src/cognitive/impls/MetacognitiveMonitor.ts') },
   { find: '@senars/kernel/event-ring', replacement: path.resolve(__dirname, './src/kernel/event-ring.ts') },
   { find: '@senars/lm/service/accounting', replacement: path.resolve(__dirname, './src/lm/service/accounting.ts') },
   { find: '@senars/lm/lm-service', replacement: path.resolve(__dirname, './src/lm/lm-service.ts') },
@@ -271,6 +276,111 @@ const aliases = [
   // @senars/bag/*
   { find: '@senars/bag/Bag', replacement: path.resolve(__dirname, './src/bag/Bag.ts') },
   { find: '@senars/bag/PriorityBag', replacement: path.resolve(__dirname, './src/bag/Bag.ts') },
+  // @senars/reflex/*
+  { find: '@senars/reflex/EpsilonGreedyReflex', replacement: path.resolve(__dirname, './src/reflex/EpsilonGreedyReflex.ts') },
+  { find: '@senars/reflex/Negotiator', replacement: path.resolve(__dirname, './src/reflex/Negotiator.ts') },
+  // @senars/rl/*
+  { find: '@senars/rl/index', replacement: path.resolve(__dirname, './src/rl/index.ts') },
+  // @senars/reason/*
+  { find: '@senars/reason/inference-controller', replacement: path.resolve(__dirname, './src/reason/inference-controller.ts') },
+  { find: '@senars/reason/strategies/base', replacement: path.resolve(__dirname, './src/reason/strategies/base.ts') },
+  // @senars/rl/*
+  { find: '@senars/rl/parity-acceptance', replacement: path.resolve(__dirname, './src/rl/parity-acceptance.ts') },
+  { find: '@senars/rl/impls/reward-term', replacement: path.resolve(__dirname, './src/rl/impls/reward-term.ts') },
+  // @senars/dialogue/*
+  { find: '@senars/dialogue/impls/DialogueCapture', replacement: path.resolve(__dirname, './src/dialogue/impls/DialogueCapture.ts') },
+  { find: '@senars/dialogue/impls/retrospect', replacement: path.resolve(__dirname, './src/dialogue/impls/retrospect.ts') },
+  // @senars/nar-execution
+  { find: '@senars/nar-execution', replacement: path.resolve(__dirname, './src/nar-execution.ts') },
+  // @senars/memory/*
+  { find: '@senars/memory/state/serialization', replacement: path.resolve(__dirname, './src/memory/state/serialization.ts') },
+  { find: '@senars/memory/links/types', replacement: path.resolve(__dirname, './src/memory/links/types.ts') },
+  { find: '@senars/memory/links/index', replacement: path.resolve(__dirname, './src/memory/links/index.ts') },
+  { find: '@senars/memory/term-filter', replacement: path.resolve(__dirname, './src/memory/term-filter.ts') },
+  { find: '@senars/memory/retrieval-verified', replacement: path.resolve(__dirname, './src/memory/retrieval-verified.ts') },
+  { find: '@senars/memory/focus', replacement: path.resolve(__dirname, './src/memory/focus.ts') },
+  // @senars/tools/*
+  { find: '@senars/tools/impls/Registry', replacement: path.resolve(__dirname, './src/tools/impls/Registry.ts') },
+  { find: '@senars/tools/adapters/self/context', replacement: path.resolve(__dirname, './src/tools/adapters/self/context.ts') },
+  { find: '@senars/tools/adapters/filesystem', replacement: path.resolve(__dirname, './src/tools/adapters/filesystem.ts') },
+  { find: '@senars/tools/impls/self-concept', replacement: path.resolve(__dirname, './src/tools/impls/self-concept.ts') },
+  { find: '@senars/tools/adapters/shadow-worktree', replacement: path.resolve(__dirname, './src/tools/adapters/shadow-worktree.ts') },
+  { find: '@senars/tools/adapters/code-exec', replacement: path.resolve(__dirname, './src/tools/adapters/code-exec.ts') },
+  // @senars/terms/*
+  { find: '@senars/terms/impls/Truth', replacement: path.resolve(__dirname, './src/terms/impls/Truth.ts') },
+  { find: '@senars/terms/impls/serialize', replacement: path.resolve(__dirname, './src/terms/impls/serialize.ts') },
+  // @senars/task/*
+  { find: '@senars/task/manager', replacement: path.resolve(__dirname, './src/task/manager.ts') },
+  { find: '@senars/task/input', replacement: path.resolve(__dirname, './src/task/input.ts') },
+  { find: '@senars/task/record', replacement: path.resolve(__dirname, './src/task/record.ts') },
+  // @senars/strategies/*
+  { find: '@senars/strategies/premise', replacement: path.resolve(__dirname, './src/strategies/premise/index.ts') },
+  { find: '@senars/strategies/attention/NullAttentionModel', replacement: path.resolve(__dirname, './src/strategies/attention/NullAttentionModel.ts') },
+  { find: '@senars/strategies/attention/SimpleAttention', replacement: path.resolve(__dirname, './src/strategies/attention/SimpleAttention.ts') },
+  // @senars/state/*
+  { find: '@senars/state/codec', replacement: path.resolve(__dirname, './src/state/codec.ts') },
+  // @senars/rules/*
+  { find: '@senars/rules/impls/rule-builder', replacement: path.resolve(__dirname, './src/rules/impls/rule-builder.ts') },
+  { find: '@senars/rules/impls/registration', replacement: path.resolve(__dirname, './src/rules/impls/registration.ts') },
+  { find: '@senars/rules/impls/processor', replacement: path.resolve(__dirname, './src/rules/impls/processor.ts') },
+  { find: '@senars/rules/impls/meta-rules', replacement: path.resolve(__dirname, './src/rules/impls/meta-rules.ts') },
+  { find: '@senars/rules/impls/hydration', replacement: path.resolve(__dirname, './src/rules/impls/hydration.ts') },
+  { find: '@senars/rules/extended/comparison-ext', replacement: path.resolve(__dirname, './src/rules/extended/comparison-ext.ts') },
+  { find: '@senars/rules/impls/builtin-table', replacement: path.resolve(__dirname, './src/rules/impls/builtin-table.ts') },
+  // @senars/rlfp/*
+  { find: '@senars/rlfp/trajectory-store', replacement: path.resolve(__dirname, './src/rlfp/trajectory-store.ts') },
+  // @senars/metta/*
+  { find: '@senars/metta/extensions/persistent-space', replacement: path.resolve(__dirname, './src/metta/extensions/persistent-space.ts') },
+  // @senars/query/*
+  { find: '@senars/query/index', replacement: path.resolve(__dirname, './src/query/index.ts') },
+  // @senars/ports/*
+  { find: '@senars/ports/decision', replacement: path.resolve(__dirname, './src/ports/decision.ts') },
+  // @senars/memory/*
+  { find: '@senars/memory/term-filter', replacement: path.resolve(__dirname, './src/memory/term-filter.ts') },
+  { find: '@senars/memory/retrieval-verified', replacement: path.resolve(__dirname, './src/memory/retrieval-verified.ts') },
+  { find: '@senars/memory/focus', replacement: path.resolve(__dirname, './src/memory/focus.ts') },
+  // @senars/log/*
+  { find: '@senars/log/StatePersister', replacement: path.resolve(__dirname, './src/log/StatePersister.ts') },
+  { find: '@senars/log/store', replacement: path.resolve(__dirname, './src/log/store.ts') },
+  // @senars/lm/*
+  { find: '@senars/lm/providers/llamacpp', replacement: path.resolve(__dirname, './src/lm/providers/llamacpp.ts') },
+  { find: '@senars/lm/provider-seams', replacement: path.resolve(__dirname, './src/lm/provider-seams.ts') },
+  { find: '@senars/lm/rule-templates/schemas', replacement: path.resolve(__dirname, './src/lm/rule-templates/schemas.ts') },
+  // @senars/kernel/*
+  { find: '@senars/kernel/index', replacement: path.resolve(__dirname, './src/kernel/index.ts') },
+  // @senars/io/*
+  { find: '@senars/io/bridge/MiddlewarePipeline', replacement: path.resolve(__dirname, './src/io/bridge/MiddlewarePipeline.ts') },
+  // @senars/game/*
+  { find: '@senars/game/registry', replacement: path.resolve(__dirname, './src/game/registry.ts') },
+  { find: '@senars/game/index', replacement: path.resolve(__dirname, './src/game/index.ts') },
+  { find: '@senars/game/impls/ReasoningMetaGame', replacement: path.resolve(__dirname, './src/game/impls/ReasoningMetaGame.ts') },
+  // @senars/focus/*
+  { find: '@senars/focus/schema-store', replacement: path.resolve(__dirname, './src/focus/schema-store.ts') },
+  // @senars/errors/*
+  { find: '@senars/errors/index', replacement: path.resolve(__dirname, './src/errors/index.ts') },
+  // @senars/dialogue/*
+  { find: '@senars/dialogue/types', replacement: path.resolve(__dirname, './src/dialogue/types.ts') },
+  // @senars/decision/*
+  { find: '@senars/decision/index', replacement: path.resolve(__dirname, './src/decision/index.ts') },
+  // @senars/core/*
+  { find: '@senars/core/schemas', replacement: path.resolve(__dirname, './src/schemas/index.ts') },
+  { find: '@senars/core/lens-schema', replacement: path.resolve(__dirname, './src/protocol/lens-schema.ts') },
+  { find: '@senars/core/protocol', replacement: path.resolve(__dirname, './src/protocol/index.ts') },
+  // @senars/cooperation/*
+  { find: '@senars/cooperation/delegation', replacement: path.resolve(__dirname, './src/cooperation/delegation.ts') },
+  // @senars/nar-lm
+  { find: '@senars/nar-lm', replacement: path.resolve(__dirname, './src/lm/index.ts') },
+  // @senars/nar-io
+  { find: '@senars/nar-io', replacement: path.resolve(__dirname, './src/nar-io.ts') },
+  { find: '@senars/nar-presets', replacement: path.resolve(__dirname, './src/nar-presets.ts') },
+  { find: '@senars/nar/lm', replacement: path.resolve(__dirname, './src/lm/index.ts') },
+  { find: '@senars/lm/index', replacement: path.resolve(__dirname, './src/lm/index.ts') },
+  { find: '@senars/lm/in-cycle-inventory', replacement: path.resolve(__dirname, './src/lm/in-cycle-inventory.ts') },
+  { find: '@senars/memory/associative', replacement: path.resolve(__dirname, './src/memory/associative.ts') },
+  { find: '@senars/memory/index', replacement: path.resolve(__dirname, './src/memory/index.ts') },
+  { find: '@senars/agent/index', replacement: path.resolve(__dirname, './src/agent/index.ts') },
+  { find: '@senars/agent/builder', replacement: path.resolve(__dirname, './src/agent/builder.ts') },
+  { find: '@senars/agent/phases', replacement: path.resolve(__dirname, './src/agent/phases.ts') },
   // @senars/memory/*
   { find: '@senars/memory/Memory', replacement: path.resolve(__dirname, './src/memory/memory.ts') },
   // @senars/agent/*
@@ -278,6 +388,10 @@ const aliases = [
   { find: '@senars/agent/PolicyEngine', replacement: path.resolve(__dirname, './src/agent/PolicyEngine.ts') },
   // @senars/game/*
   { find: '@senars/game/createGridWorldGame', replacement: path.resolve(__dirname, './src/game/impls/GridWorldGame.ts') },
+  { find: '@senars/game/impls/BanditGame', replacement: path.resolve(__dirname, './src/game/impls/BanditGame.ts') },
+  { find: '@senars/game/impls/GridWorldGame', replacement: path.resolve(__dirname, './src/game/impls/GridWorldGame.ts') },
+  { find: '@senars/game/impls/SelfMetaGame', replacement: path.resolve(__dirname, './src/game/impls/SelfMetaGame.ts') },
+  { find: '@senars/game/impls/ReasoningGame', replacement: path.resolve(__dirname, './src/game/impls/ReasoningGame.ts') },
   // @senars/motor/*
   { find: '@senars/motor/ToolRegistry', replacement: path.resolve(__dirname, './src/motor/ToolRegistry.ts') },
   // @senars/commands/*
@@ -463,7 +577,18 @@ const aliases = [
   { find: '@senars/trace/*', replacement: path.resolve(__dirname, './src/trace/*') },
   { find: '@senars/telemetry/*', replacement: path.resolve(__dirname, './src/telemetry/*') },
   { find: '@senars/capability/*', replacement: path.resolve(__dirname, './src/capability/*') },
+  { find: '@senars/capability/wasi-sandbox', replacement: path.resolve(__dirname, './src/capability/wasi-sandbox.ts') },
+  { find: '@senars/capability/space', replacement: path.resolve(__dirname, './src/capability/space.ts') },
+  { find: '@senars/capability/ontology', replacement: path.resolve(__dirname, './src/capability/ontology.ts') },
   { find: '@senars/dialogue/*', replacement: path.resolve(__dirname, './src/dialogue/*') },
+  { find: '@senars/dialogue/impls/DialogueTextStore', replacement: path.resolve(__dirname, './src/dialogue/impls/DialogueTextStore.ts') },
+  { find: '@senars/agent/recall', replacement: path.resolve(__dirname, './src/agent/recall.ts') },
+  { find: '@senars/agent/compaction', replacement: path.resolve(__dirname, './src/agent/compaction.ts') },
+  { find: '@senars/agent/index', replacement: path.resolve(__dirname, './src/agent/index.ts') },
+  { find: '@senars/rules/impls/rule-table', replacement: path.resolve(__dirname, './src/rules/impls/rule-table.ts') },
+  { find: '@senars/reflex/adapters', replacement: path.resolve(__dirname, './src/reflex/adapters.ts') },
+  { find: '@senars/util/utils/unify', replacement: path.resolve(__dirname, './src/util/unify.ts') },
+  { find: '@senars/util/index', replacement: path.resolve(__dirname, './src/util/index.ts') },
 ];
 
 console.log('Vitest aliases loaded:', aliases.length);

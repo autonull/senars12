@@ -112,20 +112,32 @@ export interface Bag<T extends BagItem> {
   remove(id: string): boolean;
   /** Remove all items matching a predicate. */
   removeAll(predicate: (item: T) => boolean): number;
+  /** Alias for removeAll. */
+  removeMany(predicate: (item: T) => boolean): number;
   /** Get an item by id. */
   get(id: string): T | undefined;
   /** Get all items as array. */
   all(): T[];
+  /** Alias for all(). */
+  toArray(): T[];
   /** Get all items as iterator. */
   values(): IterableIterator<T>;
+  /** Iterate entries as [item, priority] pairs. */
+  entries(): IterableIterator<[T, number]>;
   /** Update an item's priority. */
   updatePriority(id: string, priority: number): boolean;
   /** Set the eviction strategy. */
   setEvictStrategy(strategy: EvictStrategy): void;
+  /** Evict one item using the given strategy (or current strategy if not provided). */
+  evict(strategy?: EvictStrategy): boolean;
   /** Decay all priorities by the configured rate. */
   decay(): void;
   /** Sample items from the bag. */
   sample(count: number): T[];
+  /** Get the highest-priority item without removing it. */
+  peek(): T | undefined;
+  /** Find first item matching predicate. */
+  find(predicate: (item: T) => boolean): T | undefined;
   /** Get the bag version (for synchronization). */
   readonly version: number;
   /** Register a pressure listener. */
@@ -386,6 +398,69 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     this.#items.clear();
     this.#version++;
     this.#updatePressure();
+  }
+
+  /** Alias for removeAll. */
+  removeMany(predicate: (item: T) => boolean): number {
+    return this.removeAll(predicate);
+  }
+
+  /** Alias for all(). */
+  toArray(): T[] {
+    return this.all();
+  }
+
+  /** Iterate entries as [item, priority] pairs. */
+  entries(): IterableIterator<[T, number]> {
+    const entries = this.#items.entries();
+    return {
+      [Symbol.iterator](): IterableIterator<[T, number]> {
+        return this;
+      },
+      next(): IteratorResult<[T, number]> {
+        const result = entries.next();
+        return result.done
+          ? { done: true, value: undefined }
+          : { done: false, value: [result.value[1]._item, result.value[1]._currentPriority] };
+      },
+    };
+  }
+
+  /** Evict one item using the given strategy (or current strategy if not provided). */
+  evict(strategy?: EvictStrategy): boolean {
+    const originalStrategy = this.#evictStrategy;
+    if (strategy) {
+      this.#evictStrategy = strategy;
+    }
+    const result = this.#evict();
+    if (strategy) {
+      this.#evictStrategy = originalStrategy;
+    }
+    return result;
+  }
+
+  /** Get the highest-priority item without removing it. */
+  peek(): T | undefined {
+    if (this.#items.size === 0) return undefined;
+    let bestEntry: InternalEntry<T> | null = null;
+    let bestPriority = -Infinity;
+    for (const entry of this.#items.values()) {
+      if (entry._currentPriority > bestPriority) {
+        bestPriority = entry._currentPriority;
+        bestEntry = entry;
+      }
+    }
+    return bestEntry?._item;
+  }
+
+  /** Find first item matching predicate. */
+  find(predicate: (item: T) => boolean): T | undefined {
+    for (const entry of this.#items.values()) {
+      if (predicate(entry._item)) {
+        return entry._item;
+      }
+    }
+    return undefined;
   }
 
   #evict(): boolean {

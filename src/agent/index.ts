@@ -11,7 +11,7 @@ export {
   InMemorySessionManager,
   JsonlSessionManager,
 } from '@senars/memory';
-export { dispatchToolCalls, registerAgentTools } from '@senars/motor';
+export { dispatchToolCalls, registerAgentTools, ToolRegistry, type ToolRegistryDelegate, type ToolSpec } from '@senars/motor';
 export { emitDomainEvent, setDomainEventSink, hasDomainEventSink, type DomainEventPayload } from './event-sink.js';
 export { PolicyEngine } from './PolicyEngine.js';
 export { ApprovalService, type ApprovalManager } from './ApprovalService.js';
@@ -35,3 +35,17 @@ export type { NAREventMap } from '../types/events.js';
 export type { Tool, ToolResult, ToolSchema, ToolSchemaProperty } from '../protocol/index.js';
 export { readPersistedBoundary } from '../state/persisted.js';
 export type { ChatStreamEvent } from './chat.js';
+export { createCognitiveThread, type ThreadMessage, type ThreadStatus, type BackpressureReason } from './cognitive-thread.js';
+export { createLogger } from '@senars/util/logger';
+export { CommandRegistry } from '@senars/commands';
+export { validateParameters } from '../config/cognitive-parameters.js';
+export { resolveBagSlot, bagSlotErrors } from '../bag/index.js';
+export { CompositeSampling } from '../strategies/sampling/CompositeSampling.js';
+export { CognitiveController } from '../cognitive/index.js';
+export { Memory } from '../memory/index.js';
+export { PriorityBag } from '../bag/index.js';
+export { validateCognitiveEvent } from '../schemas/cognitive-events.js';
+export { StreamReasoner } from '../stream/index.js';
+export { createMockLMService } from '../lm/lm-service.js';
+export { narEventToCognitive, MAPPED_NAR_EVENTS } from '../events/index.js';
+export { EmbeddingCache, createEmbeddingCache } from '../lm/system-one/index.js';

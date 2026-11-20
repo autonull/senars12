@@ -7,7 +7,7 @@
 - Fixed: Updated `docs/readme/generate.ts` import path from `nar/src` to `src/`
 ---
 ## Success Criteria (Definition of Done)
-**Current Status**: Import errors ~0 (down from 392), Passed: 226 test files, 2291 tests, Failed: 177 test files, 426 tests. Pass rate: ~84% (target >90%)
+**Current Status**: Import errors ~0 (down from 392), Passed: 272 test files, 2741 tests, Failed: 128 test files, 425 tests. Pass rate: ~85.4% (target >90%)
 ---
 ## Execution Playbook
 ### Session 1: Unblock (45 min) ✅ **COMPLETE**
@@ -42,8 +42,12 @@
   - src/nar.ts: open logStore in start() before creating KernelLedger
   - src/kernel/KernelLedger.ts: close logStore in close()
   - src/agent/Agent.ts: close log in stop()
-- Final full suite run → verify >90% pass rate
-- Address remaining 177 failed test files (mostly test logic, not import errors)
+- Added missing barrel exports (agent, commands, tools, self, lm, cognitive, etc.) ✅
+- Added vitest config aliases for deep imports (100+) ✅
+- Fixed Bag interface methods (evict, removeMany, find, toArray, entries, peek) ✅
+- Fixed PriorityBag implementation ✅
+- Final full suite run → 85.4% pass rate (target >90%)
+- Address remaining 128 failed test files (mostly test logic, not import errors)
 ```
 ---
 ## Risk Mitigation
@@ -75,11 +79,13 @@
 # 2. Deps gate baseline update (document pre-existing cycles) ✅ BASELINE=5
 # 3. Docs drift fix (valid-atom.ts runtime error) ✅ COMPLETE
 # 4. Fixed logStore persistence and file handle leaks ✅
-# 5. Address remaining 177 failed test files (mostly test logic issues, not import errors)
-#    - Missing barrel exports: validateParameters, resolveBagSlot, CompositeSampling, CognitiveController, Memory, PriorityBag, createCognitiveThread, validateCognitiveEvent, ToolRegistry, CommandRegistry, createLogger, StreamReasoner, etc.
+# 5. Address remaining 128 failed test files (mostly test logic issues, not import errors)
+#    - Missing barrel exports: validateParameters, resolveBagSlot, CompositeSampling, CognitiveController, Memory, PriorityBag, createCognitiveThread, validateCognitiveEvent, ToolRegistry, CommandRegistry, createLogger, StreamReasoner, etc. ✅ DONE
 # 6. Final full suite run → verify >90% pass rate
 # Known test logic issues (not import errors):
 # - ModelRunner tool-call events not yielded correctly (mock model limitation)
-# - Various NAR integration tests need logic fixes
-# - Some e2e tests have flaky file handle issues
+# - Various NAR integration tests need logic fixes (CognitiveRegistry, TaskManager, evictUnderPressure, conceptValue, etc.)
+# - Some e2e tests have flaky file handle issues (10 unhandled errors)
+# - Bag pressure transition test expects different labels
+# - Narsese round-trip property test (disjunction vs setInt)
 ```
