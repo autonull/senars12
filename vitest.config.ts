@@ -608,6 +608,7 @@ const aliases = [
   { find: '@senars/cooperation/*', replacement: path.resolve(__dirname, './src/cooperation/*') },
   { find: '@senars/reason/*', replacement: path.resolve(__dirname, './src/reason/*') },
   { find: '@senars/decision/*', replacement: path.resolve(__dirname, './src/decision/*') },
+  { find: '@senars/decision/call-sites', replacement: path.resolve(__dirname, './src/decision/call-sites.ts') },
   { find: '@senars/loop/*', replacement: path.resolve(__dirname, './src/loop/*') },
   { find: '@senars/tools/*', replacement: path.resolve(__dirname, './src/tools/*') },
   { find: '@senars/faculties/*', replacement: path.resolve(__dirname, './src/faculties/*') },
@@ -639,6 +640,9 @@ const aliases = [
   { find: '@senars/reflex/adapters', replacement: path.resolve(__dirname, './src/reflex/adapters.ts') },
   { find: '@senars/util/utils/unify', replacement: path.resolve(__dirname, './src/util/unify.ts') },
   { find: '@senars/util/index', replacement: path.resolve(__dirname, './src/util/index.ts') },
+  // Scripts aliases for test helpers
+  { find: '@senars/scripts/lib', replacement: path.resolve(__dirname, './scripts/lib') },
+  { find: '@senars/scripts/lib/*', replacement: path.resolve(__dirname, './scripts/lib/*') },
 ];
 
 console.log('Vitest aliases loaded:', aliases.length);
@@ -652,7 +656,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'scripts/lib/**/*.ts'],
     exclude: [
       '**/node_modules/**',
       '**/dist/**',

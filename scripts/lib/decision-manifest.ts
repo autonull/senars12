@@ -28,8 +28,8 @@ import {
   DECISION_CALL_SITES,
   DECISION_POSITIONS,
   DECISION_QUERIES,
-} from '../../nar/src/decision/call-sites.js';
-import { BUDGET_SCOPE_IDS } from '../../nar/src/kernel/budget-scopes.js';
+} from '@senars/decision';
+import { BUDGET_SCOPE_IDS } from '@senars/kernel';
 import { collector, type Verdict } from './verdicts.js';
 
 /** A manifest finding, addressed by the call-site id it is about. */

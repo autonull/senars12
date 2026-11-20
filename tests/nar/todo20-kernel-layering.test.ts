@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
  * injected `IngressJudge` boundary (`kernel/ingress.ts`).
  */
 
-const KERNEL_DIR = join(import.meta.dirname, '@senars/kernel');
+const KERNEL_DIR = join(import.meta.dirname, '..', '..', 'src', 'kernel');
 
 const kernelSources = readdirSync(KERNEL_DIR)
   .filter((f) => f.endsWith('.ts'))

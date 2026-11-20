@@ -44,7 +44,7 @@ const CONSTRUCTION_SITES: Record<string, string> = {
  */
 const SUBSTRATE_DEFAULTS = new Set(['NullAttentionModel']);
 
-const ROOT = join(__dirname, '@senars/');
+const ROOT = join(__dirname, '..', '..', 'src');
 
 const sources = (dir: string): string[] =>
   readdirSync(dir).flatMap((entry) => {

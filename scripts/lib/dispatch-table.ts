@@ -11,7 +11,7 @@
  * Pure verdict logic: the census and one predicate per rule, so a failure reads
  * as a sentence about the table rather than a stack trace.
  */
-import { OPERATORS } from '../../nar/src/terms/operators.js';
+import { OPERATORS } from '@senars/terms';
 
 /**
  * A rule's dispatch cell, read structurally so the gate works on a *loaded*

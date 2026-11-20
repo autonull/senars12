@@ -28,6 +28,15 @@ export {
 } from './cognitive-agent.js';
 export type { NARProfileName, NARProfileSpec } from './profiles.js';
 export { NAR_PROFILES, resolveProfile } from './profiles.js';
+export {
+  ADMISSION_ORDER_CALL_SITE,
+  DECISION_AXES,
+  DECISION_CALL_SITE_IDS,
+  DECISION_CALL_SITES,
+  DECISION_POSITIONS,
+  DECISION_QUERIES,
+  type DecisionCallSite,
+} from '../decision/index.js';
 export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from '../nar-presets.js';
 export type { NARConfig, RLFPConfig } from '../nar.js';
 export { NAR } from '../nar.js';
@@ -94,12 +103,13 @@ export {
   SandboxTimeoutError,
   assertWasmPathContained,
 } from '../capability/index.js';
+export { askSafely, DECISION_ASK_TIMEOUT_MS } from '../ports/decision.js';
 export { createTetrisGame, TetrisGame, createSelfMetaGame } from '../game/index.js';
 export { SOURCE_QUALITY_CONFIDENCE } from '../schemas/index.js';
 export { SchedulerAdapter, SchemaInductor, AIKRProcessor } from '../learning/index.js';
 export { TaskManager, createTask, createTaskWeight, NEUTRAL_BUDGET, createSecondaryTask, type Budget } from '../task/index.js';
 export { AgentOptionsSchema, ConnectionConfigSchema, type AgentOptions, type ConnectionConfig } from '../tools/index.js';
-export { RuleProcessor, ProofStreamRing } from '../rules/index.js';
+export { RuleProcessor, ProofStreamRing, rankDerivations } from '../rules/index.js';
 export { DEFAULT_CONFIG } from '../types/core.js';
 export {
   atom,
