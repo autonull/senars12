@@ -1,35 +1,55 @@
 graph TD
   _["."]
-  ______src_log["../../src/log"]
+  admit["admit"]
   agent["agent"]
   autonomy["autonomy"]
   bag["bag"]
+  bin["bin"]
+  bin_commands["bin/commands"]
+  bin_lib["bin/lib"]
+  bin_lib_mcp["bin/lib/mcp"]
+  bridge["bridge"]
+  budget["budget"]
   capability["capability"]
+  cli["cli"]
   cognitive["cognitive"]
   cognitive_impls["cognitive/impls"]
   cognitive_impls_analyzers["cognitive/impls/analyzers"]
   commands["commands"]
   config["config"]
   cooperation["cooperation"]
+  cortex["cortex"]
   decision["decision"]
   dialogue["dialogue"]
   dialogue_impls["dialogue/impls"]
   dialogue_impls_consumers["dialogue/impls/consumers"]
   drives["drives"]
   drives_impls["drives/impls"]
+  economy["economy"]
   engine["engine"]
   errors["errors"]
   eval["eval"]
   events["events"]
   facade["facade"]
+  faculties["faculties"]
+  faculties_judgment["faculties/judgment"]
+  feedback["feedback"]
   focus["focus"]
   game["game"]
   game_impls["game/impls"]
+  generated["generated"]
   governance["governance"]
   health["health"]
   imagination["imagination"]
   imagination_impls["imagination/impls"]
+  io["io"]
+  io_bridge["io/bridge"]
+  io_commands["io/commands"]
+  io_connections["io/connections"]
+  io_utils["io/utils"]
   kernel["kernel"]
+  kernel_terms["kernel/terms"]
+  kernel_terms_codec["kernel/terms/codec"]
   learning["learning"]
   lm["lm"]
   lm_context["lm/context"]
@@ -42,6 +62,11 @@ graph TD
   lm_service["lm/service"]
   lm_system-one["lm/system-one"]
   lm_system-one_heads["lm/system-one/heads"]
+  log["log"]
+  logics["logics"]
+  logics_axiomatic["logics/axiomatic"]
+  logics_nal["logics/nal"]
+  loop["loop"]
   memory["memory"]
   memory_lifecycle["memory/lifecycle"]
   memory_links["memory/links"]
@@ -50,11 +75,28 @@ graph TD
   memory_state["memory/state"]
   meta["meta"]
   metrics["metrics"]
+  metta["metta"]
+  metta_agent["metta/agent"]
+  metta_core["metta/core"]
+  metta_engine["metta/engine"]
+  metta_extensions["metta/extensions"]
+  metta_ipc["metta/ipc"]
+  metta_parser["metta/parser"]
+  metta_performance["metta/performance"]
+  metta_runtime["metta/runtime"]
+  metta_stdlib["metta/stdlib"]
+  metta_types["metta/types"]
+  mining["mining"]
+  motor["motor"]
   nl["nl"]
   nl_prompts["nl/prompts"]
+  oracles["oracles"]
+  oracles_engines["oracles/engines"]
   otel["otel"]
+  plugins["plugins"]
   ports["ports"]
   proposal["proposal"]
+  protocol["protocol"]
   query["query"]
   reason["reason"]
   reason_strategies["reason/strategies"]
@@ -68,6 +110,7 @@ graph TD
   rules_extended["rules/extended"]
   rules_impls["rules/impls"]
   rules_nal["rules/nal"]
+  schemas["schemas"]
   self["self"]
   state["state"]
   strategies["strategies"]
@@ -78,6 +121,10 @@ graph TD
   strategies_premise["strategies/premise"]
   strategies_sampling["strategies/sampling"]
   stream["stream"]
+  surface["surface"]
+  surface_cli["surface/cli"]
+  surface_mcp["surface/mcp"]
+  surface_transports["surface/transports"]
   task["task"]
   telemetry["telemetry"]
   terms["terms"]
@@ -88,7 +135,12 @@ graph TD
   tools_impls["tools/impls"]
   trace["trace"]
   types["types"]
+  ui-contract["ui-contract"]
+  util["util"]
   utils["utils"]
+  verification["verification"]
+  worlds["worlds"]
+  _ --> agent
   _ --> autonomy
   _ --> bag
   _ --> cognitive
@@ -105,16 +157,19 @@ graph TD
   _ --> learning
   _ --> lm
   _ --> lm_system-one
+  _ --> log
   _ --> memory
   _ --> memory_ports
   _ --> meta
   _ --> nl
   _ --> ports
   _ --> proposal
+  _ --> protocol
   _ --> reason
   _ --> reflex
   _ --> rules
   _ --> rules_impls
+  _ --> schemas
   _ --> self
   _ --> state
   _ --> stream
@@ -122,28 +177,87 @@ graph TD
   _ --> terms
   _ --> terms_impls
   _ --> types
+  _ --> util
+  admit --> kernel
+  admit --> kernel_terms
+  admit --> worlds
   agent --> _
-  agent --> ______src_log
+  agent --> budget
   agent --> cognitive_impls
   agent --> config
   agent --> cooperation
+  agent --> cortex
   agent --> engine
   agent --> errors
   agent --> kernel
   agent --> lm
   agent --> lm_system-one
+  agent --> log
   agent --> memory
+  agent --> motor
   agent --> nl
   agent --> otel
+  agent --> protocol
   agent --> rlfp
+  agent --> schemas
+  agent --> state
   agent --> terms
   agent --> types
   autonomy --> memory
   autonomy --> types
-  bag --> types
+  bag --> agent
+  bag --> budget
+  bag --> util
+  bin --> bin_commands
+  bin --> bin_lib
+  bin --> bin_lib_mcp
+  bin --> budget
+  bin --> cli
+  bin --> config
+  bin --> dialogue
+  bin --> io
+  bin --> kernel
+  bin --> lm
+  bin --> lm_system-one
+  bin --> metrics
+  bin --> metta
+  bin --> nl
+  bin --> query
+  bin --> reflex
+  bin --> utils
+  bin_commands --> bin_lib
+  bin_lib --> agent
+  bin_lib --> bin_commands
+  bin_lib --> cli
+  bin_lib --> config
+  bin_lib --> health
+  bin_lib --> io
+  bin_lib --> kernel
+  bin_lib --> lm
+  bin_lib --> memory
+  bin_lib --> metta
+  bin_lib --> otel
+  bin_lib --> state
+  bin_lib --> terms
+  bin_lib --> utils
+  bin_lib_mcp --> agent
+  bin_lib_mcp --> dialogue
+  bin_lib_mcp --> lm
+  bin_lib_mcp --> motor
+  bin_lib_mcp --> utils
+  bridge --> protocol
+  bridge --> schemas
+  budget --> agent
+  budget --> schemas
+  capability --> agent
   capability --> tools
+  cli --> agent
+  cli --> focus
+  cli --> io
+  cli --> utils
   cognitive --> cognitive_impls
   cognitive --> strategies
+  cognitive_impls --> agent
   cognitive_impls --> cognitive
   cognitive_impls --> cognitive_impls_analyzers
   cognitive_impls --> config
@@ -167,10 +281,21 @@ graph TD
   commands --> _
   commands --> memory
   commands --> self
+  commands --> types
+  commands --> util
+  config --> lm
+  config --> util
+  config --> utils
   cooperation --> lm_system-one
+  cortex --> agent
+  cortex --> engine
+  decision --> budget
+  decision --> config
   decision --> kernel
   decision --> ports
+  decision --> schemas
   decision --> terms_impls
+  decision --> util
   dialogue --> dialogue_impls
   dialogue --> dialogue_impls_consumers
   dialogue --> lm_system-one
@@ -185,16 +310,22 @@ graph TD
   drives_impls --> drives
   drives_impls --> kernel
   drives_impls --> terms_impls
+  economy --> kernel
+  economy --> kernel_terms
   engine --> _
   engine --> events
   engine --> memory
   engine --> nl
   engine --> types
+  errors --> util
   eval --> lm_system-one
   eval --> otel
   events --> types
+  events --> util
   facade --> _
+  facade --> agent
   facade --> autonomy
+  facade --> config
   facade --> drives
   facade --> focus
   facade --> game_impls
@@ -216,6 +347,15 @@ graph TD
   facade --> tools_adapters
   facade --> tools_impls
   facade --> types
+  facade --> util
+  faculties --> faculties_judgment
+  faculties --> kernel
+  faculties --> kernel_terms
+  faculties --> oracles
+  faculties_judgment --> faculties
+  faculties_judgment --> kernel
+  faculties_judgment --> kernel_terms
+  faculties_judgment --> oracles
   focus --> _
   focus --> bag
   focus --> game
@@ -256,19 +396,36 @@ graph TD
   imagination_impls --> terms
   imagination_impls --> terms_impls
   imagination_impls --> types
+  io --> io_bridge
+  io --> io_commands
+  io --> io_connections
+  io --> io_utils
+  io_bridge --> io
+  io_bridge --> io_commands
+  io_commands --> io
+  io_connections --> io
+  io_connections --> io_utils
+  kernel --> budget
   kernel --> cognitive_impls
   kernel --> config
+  kernel --> generated
+  kernel --> kernel_terms
   kernel --> memory
   kernel --> memory_ports
   kernel --> memory_state
   kernel --> nl
   kernel --> proposal
   kernel --> rules_impls
+  kernel --> schemas
   kernel --> strategies
   kernel --> task
   kernel --> telemetry
   kernel --> terms
   kernel --> types
+  kernel_terms --> kernel
+  kernel_terms --> kernel_terms_codec
+  kernel_terms_codec --> kernel
+  kernel_terms_codec --> kernel_terms
   learning --> bag
   learning --> focus
   learning --> kernel
@@ -324,14 +481,38 @@ graph TD
   lm_system-one --> types
   lm_system-one --> utils
   lm_system-one_heads --> lm_system-one
+  log --> generated
+  log --> query
+  log --> rules_impls
+  log --> schemas
+  log --> state
+  log --> task
+  log --> util
+  logics --> kernel
+  logics --> kernel_terms
+  logics --> logics_axiomatic
+  logics --> logics_nal
+  logics_axiomatic --> kernel_terms
+  logics_nal --> kernel
+  logics_nal --> kernel_terms
+  loop --> economy
+  loop --> faculties
+  loop --> faculties_judgment
+  loop --> kernel
+  loop --> kernel_terms
+  loop --> oracles
   memory --> _
   memory --> bag
+  memory --> engine
   memory --> learning
+  memory --> log
   memory --> memory_lifecycle
   memory --> memory_links
   memory --> memory_ports
   memory --> memory_pressure
   memory --> memory_state
+  memory --> motor
+  memory --> schemas
   memory --> strategies
   memory --> strategies_attention
   memory --> terms
@@ -351,15 +532,49 @@ graph TD
   memory_pressure --> _
   memory_pressure --> memory
   memory_pressure --> memory_ports
-  memory_state --> bag
   memory_state --> memory
   memory_state --> memory_ports
-  memory_state --> state
-  memory_state --> task
   meta --> learning
   meta --> reflex
   meta --> terms
   meta --> types
+  metta --> metta_agent
+  metta --> metta_core
+  metta --> metta_engine
+  metta --> metta_extensions
+  metta --> metta_ipc
+  metta --> metta_parser
+  metta --> metta_performance
+  metta --> metta_runtime
+  metta --> metta_stdlib
+  metta --> metta_types
+  metta_agent --> metta_engine
+  metta_agent --> metta_parser
+  metta_agent --> metta_runtime
+  metta_core --> metta_types
+  metta_engine --> metta_core
+  metta_engine --> metta_parser
+  metta_engine --> metta_runtime
+  metta_engine --> metta_types
+  metta_extensions --> metta_core
+  metta_extensions --> metta_types
+  metta_ipc --> metta_types
+  metta_parser --> metta_core
+  metta_parser --> metta_types
+  metta_performance --> metta_core
+  metta_performance --> metta_types
+  metta_runtime --> metta_core
+  metta_runtime --> metta_engine
+  metta_runtime --> metta_stdlib
+  metta_runtime --> metta_types
+  metta_stdlib --> metta_core
+  metta_stdlib --> metta_types
+  mining --> admit
+  mining --> kernel
+  mining --> kernel_terms
+  motor --> agent
+  motor --> engine
+  motor --> memory
   nl --> _
   nl --> lm
   nl --> lm_context
@@ -368,11 +583,26 @@ graph TD
   nl --> terms
   nl --> types
   nl_prompts --> nl
+  oracles --> generated
+  oracles --> kernel
+  oracles --> kernel_terms
+  oracles --> oracles_engines
+  oracles_engines --> oracles
+  otel --> agent
+  otel --> util
+  plugins --> agent
+  plugins --> engine
+  plugins --> motor
+  plugins --> protocol
+  plugins --> schemas
   ports --> decision
   ports --> kernel
   proposal --> reason
   proposal --> rules
   proposal --> stream
+  protocol --> agent
+  protocol --> schemas
+  protocol --> types
   query --> memory
   query --> memory_ports
   query --> terms
@@ -426,6 +656,7 @@ graph TD
   rules_impls --> terms_impls
   rules_nal --> rules
   rules_nal --> rules_impls
+  schemas --> util
   self --> cognitive
   self --> cognitive_impls
   self --> imagination
@@ -468,9 +699,19 @@ graph TD
   stream --> kernel
   stream --> terms_impls
   stream --> types
+  surface --> surface_cli
+  surface --> surface_mcp
+  surface --> surface_transports
+  surface_cli --> surface_mcp
+  surface_mcp --> admit
+  surface_mcp --> mining
+  surface_mcp --> worlds
+  surface_transports --> surface_mcp
   task --> kernel
   task --> memory_ports
+  task --> schemas
   task --> terms
+  task --> terms_impls
   task --> types
   telemetry --> metrics
   telemetry --> otel
@@ -486,6 +727,7 @@ graph TD
   tools_adapters --> nl
   tools_adapters --> tools_adapters_self
   tools_adapters_self --> _
+  tools_adapters_self --> agent
   tools_adapters_self --> cognitive_impls
   tools_adapters_self --> config
   tools_adapters_self --> rlfp
@@ -496,5 +738,25 @@ graph TD
   tools_impls --> tools
   tools_impls --> types
   trace --> proposal
+  types --> budget
+  types --> config
+  types --> events
+  types --> schemas
   types --> terms
   types --> terms_impls
+  types --> util
+  ui-contract --> kernel
+  ui-contract --> kernel_terms
+  util --> commands
+  util --> config
+  util --> errors
+  util --> events
+  util --> feedback
+  util --> memory
+  util --> types
+  utils --> bin_commands
+  verification --> kernel
+  verification --> kernel_terms
+  verification --> schemas
+  worlds --> kernel
+  worlds --> kernel_terms

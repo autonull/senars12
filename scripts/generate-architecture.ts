@@ -9,14 +9,14 @@ import { dirname, join, relative } from 'node:path';
 import { ROOT } from './lib/root.js';
 import { excludingGenerated, sourceFiles } from './lib/source-scan.js';
 
-const NAR_SRC = join(ROOT, 'nar/src');
+const SRC = join(ROOT, 'src');
 const OUT_DIR = join(ROOT, 'docs/architecture');
 
 const walk = (dir: string): string[] => sourceFiles(dir, excludingGenerated('peggy-generated'));
 
 const IMPORT_RE = /from\s+['"](\.[^'"]+)['"]/g;
 
-/** folder of a file relative to nar/src ('' for root files); unknown targets → null */
+/** folder of a file relative to src ('' for root files); unknown targets → null */
 function resolveTarget(fromFile: string, spec: string): string | null {
   const target = join(dirname(fromFile), spec).replace(/\.js$/, '.ts');
   try {
@@ -30,12 +30,12 @@ function resolveTarget(fromFile: string, spec: string): string | null {
   }
 }
 
-/** folder of a file relative to nar/src ('' for root files) */
-const folderOf = (file: string): string => dirname(relative(NAR_SRC, file));
+/** folder of a file relative to src ('' for root files) */
+const folderOf = (file: string): string => dirname(relative(SRC, file));
 
 function collectEdges(): Map<string, Set<string>> {
   const edges = new Map<string, Set<string>>();
-  for (const file of walk(NAR_SRC)) {
+  for (const file of walk(SRC)) {
     const from = folderOf(file);
     const src = readFileSync(file, 'utf-8');
     for (const m of src.matchAll(IMPORT_RE)) {
@@ -59,7 +59,7 @@ function mermaid(edges: Map<string, Set<string>>, keep: (folder: string) => bool
     for (const to of tos) if (keep(to)) nodes.add(to);
   }
   const lines = ['graph TD'];
-  for (const n of [...nodes].sort()) lines.push(`  ${sanitize(n)}["${n || 'nar/src (root)'}"]`);
+  for (const n of [...nodes].sort()) lines.push(`  ${sanitize(n)}["${n || 'src (root)'}"]`);
   for (const from of [...nodes].sort())
     for (const to of [...(edges.get(from) ?? [])].sort())
       if (nodes.has(to)) lines.push(`  ${sanitize(from)} --> ${sanitize(to)}`);
@@ -85,7 +85,7 @@ writeFileSync(
 Generated from real imports by \`pnpm docs:architecture\` (\`scripts/generate-architecture.ts\`).
 Do not edit by hand — regenerate and review the diff.
 
-- \`nar-modules.mmd\` — folder-level import graph of all \`nar/src\` modules.
+- \`nar-modules.mmd\` — folder-level import graph of all \`src\` modules.
 - \`kernel-boundaries.mmd\` — the kernel boundary view: kernel plus root surface only.
 
 Render with any Mermaid viewer (GitHub renders \`.mmd\` in markdown fences).

@@ -19,7 +19,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { BUILTIN_DECLARATIONS } from '../../nar/src/rules/impls/registration.js';
+import { BUILTIN_DECLARATIONS } from '../../src/rules/impls/registration.js';
 import { fromRoot } from '../../scripts/lib/root.js';
 
 const DIR = fromRoot('docs/readme');
