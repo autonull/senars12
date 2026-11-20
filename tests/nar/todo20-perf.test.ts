@@ -18,7 +18,7 @@ describe('Bench 69 — P1: Bag seeded LCG', () => {
         rng: createLCG(seed),
       });
       fill(bag, 50);
-      return Array.from({ length: 20 }, () => bag.sample()?.id);
+      return Array.from({ length: 20 }, () => bag.sample(1)[0]?.id);
     };
     expect(sample(42)).toEqual(sample(42));
     expect(sample(42)).not.toEqual(sample(43));

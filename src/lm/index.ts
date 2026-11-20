@@ -131,11 +131,17 @@ export type {
   ShadowValidationResult,
 } from './shadow-validation.js';
 export { ShadowValidator, shadowValidator } from './shadow-validation.js';
-export { EmbeddingCache, createEmbeddingCache, type EmbeddingCacheConfig, type EmbeddingCacheMetrics } from './system-one/index.js';
 export {
+  EmbeddingCache,
+  createEmbeddingCache,
+  type EmbeddingCacheConfig,
+  type EmbeddingCacheMetrics,
+  seedTruth,
+  fitCalibrationLock,
+  identityECE,
+  canonicalState,
   createManifold,
   createOpenSystemOneManifold,
-  canonicalState,
   LMReflex,
   JudgmentDataset,
   actionGrammar,

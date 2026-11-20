@@ -1,5 +1,5 @@
 import { FocusBag, FocusScheduler, GameFocus, createFocus } from '@senars/focus';
-import { SchedulerAdapter } from '@senars/lm';
+import { SchedulerAdapter } from '@senars/agent';
 import type { FocusStepReport } from '@senars/focus';
 import type { GameFocus as GameFocusType } from '@senars/focus';
 import { createGridWorldGame } from '@senars/focus';

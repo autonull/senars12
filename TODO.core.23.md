@@ -7,7 +7,7 @@
 - Fixed: Updated `docs/readme/generate.ts` import path from `nar/src` to `src/`
 ---
 ## Success Criteria (Definition of Done)
-**Current Status**: Import errors 0 (down from 392), File handle leaks 0, Passed: 335 test files, 3152 tests, Failed: 65 test files, 209 tests. Pass rate: ~93.8% (target >90%)
+**Current Status**: Import errors 0 (down from 392), File handle leaks 0, Passed: 344 test files, 3183 tests, Failed: 56 test files, 194 tests. Pass rate: ~94.2% (target >90%)
 ---
 ## Execution Playbook
 ### Session 1: Unblock (45 min) ✅ **COMPLETE**
@@ -74,30 +74,42 @@
 - Fixed core19-c2 Agent constructor requiring log/logStore
 - Fixed todo29a-a8: resource inventory & eviction tests (exports: conceptValue, evictionOrder, evictUnderPressure, RESOURCE_CONTRACTS, RESOURCE_IDS, DEFAULT_MEMORY_CONFIG)
 - Fixed todo29a-a9: proposal stream schema version (PROPOSAL_SCHEMA_VERSION export)
+- Fixed todo29a-a1: cycle dependency on model (createTimestamp, createTaskWeight, NEUTRAL_BUDGET, CYCLE_STAGES, findStageOverlaps, findInCycleProposals, LMProposalProducer, StreamReasoner, CycleTrace exports)
 - Fixed todo27-attention-slot, todo27-bag-slot, todo27-composition, etc.: cognitive parameter exports (DEFAULT_COGNITIVE_PARAMETERS, validateParameters, canonicalJson, configDigest, CompositeStrategy, CompositeLMRuleSelector, CompositeAttention, TermLinkStrategy)
 - Fixed todo27-associative-write: associative memory exports (LINK_LAYER, Layer, AssociativeRegistry, LinkLayerMemory)
-- Fixed todo17-scheduler, todo17-parity, todo17-games: game function exports (createGridWorldGame, createBanditGame, createSnakeGame, etc.)
+- Fixed todo17-scheduler, todo17-parity, todo17-games, todo17-open-replica: game function exports (createGridWorldGame, createBanditGame, createSnakeGame, createTetrisGame, etc.), seedTruth, fitCalibrationLock, identityECE, isResumable, SchedulerAdapter
 - Fixed todo19-components: assertDefined import, cognitiveBounds import
 - Fixed todo27-primitives: Bag capacity validation
-- Fixed todo27-fundamentals-gate: fundamentals bench script (BrierHarness, SeededRNG, loadSession, startArcadeTickSpan exports)
+- Fixed todo27-fundamentals-gate: fundamentals bench script (BrierHarness, SeededRNG, loadSession, startArcadeTickSpan, mean, sumBy imports; game/sensors.ts fixes)
 - Fixed todo26-cognitive-agent: logStore creation for persistState
 - Fixed todo25-derivation-capture: SchemaInductor export
 - Fixed todo27-bag-slot: default decayRate in resolveBagSlot
 - Fixed todo28-layering: test expectation for test-gen tool
 - Fixed todo19-components: registries assertDefined, cognitiveBounds import
 - Fixed todo20-errors, todo20-security, todo27-associative-write, todo19-learning: nar/src path fixes
+- Fixed todo20-perf: Bag seeded LCG sample() API (sample(1)[0] instead of sample())
 - Fixed delegation e2e: WebSocket server connect() call
 - Skipped delegation e2e test (delegation logic not implemented)
-- Remaining ~65 failed test files (down from 100):
-  - todo29a-a10: rule table loading failures (schema version, LMProposalProducer, artifactVersion)
-  - todo19-reasoning: NAL veto transplant test
-  - todo17b-nal-arm: NAL veto transplant test
-  - todo20-perf: Bag seeded LCG issue
-  - todo20-security: tool input validation, LM response sanitization (path issues)
+- Fixed sandbox-hardening: capability exports (sanitizePreopens, containsPath, withSandboxTimeout, createNodeVMSandbox, SandboxTimeoutError, assertWasmPathContained)
+- Fixed taskmanager-types: isEventType export
+- Fixed retract: TermBuilder exports
+- Fixed mcp-bridge: zodFromSchema, registerNARRegistryTools, registerNARTools exports (partial)
+- Remaining ~56 failed test files (down from 100):
+  - todo17b-nal-arm: NAL veto transplant test (3) — veto mechanism not working
+  - todo19-reasoning: NAL veto transplant test (1) — veto mechanism not working
+  - kernel/terms: 12 failures — Narsese parser, standardizeApart, canonicalEquals bugs
+  - gate-log-persistence: LogStore replay (1)
+  - focustree-cognitivethread: ThreadPool tests (5)
+  - full-replay: LogStore replay tests (3)
+  - refactor3-episode-graph: episode graph completeness (3)
+  - refactor4-budget: complexity budget gate tests (3)
+  - mcp-bridge: 4 failures
+  - todo16-provisional: provisional priority decay (1)
   - todo16-device-profile: provider fallback test
   - todo16c-f5-dispositions: manifold health, novelty gate
   - todo16c-cortex: cortex health check
-  - refactor3-episode-graph: episode graph completeness
+  - todo20-security: tool input validation, LM response sanitization
+  - todo19-profiles/todo19-reasoning: device profiles, NAL veto
   - inference-nario-lm: NARLM tests
   - Various other test logic issues
 ```
@@ -127,13 +139,17 @@
 ## Minimal Viable Next Step
 ```bash
 # All quick wins, deep subsystem fixes, import resolution, file handle leaks COMPLETE.
-# Major test logic fixes COMPLETE (LogStore, CognitiveController, exports, ModelRunner, bag tests).
-# Remaining work (~100 failed test files / 349 failed tests):
-# 1. todo29a-a9/a10: proposal stream schema version & rule table loading
-# 2. todo19-profiles/todo19-reasoning/todo20-security: device profiles, NAL veto, security
-# 3. todo16 family: device profiles, dispositions, cortex
-# 4. refactor3-episode-graph: episode graph completeness
-# 5. delegation e2e: WebSocket flakiness (port conflict?)
-# 6. inference-nario-lm: NARLM integration
-# 7. Final full suite run → verify >90% pass rate (currently ~89.6%)
+# Major test logic fixes COMPLETE (LogStore, CognitiveController, exports, ModelRunner, bag tests, fundamentals bench, todo29a-a1 cycle tests).
+# Pass rate: ~94.2% (target >90%) — EXCEEDS TARGET!
+# Remaining work (~56 failed test files / 194 failed tests):
+# 1. NAL veto mechanism: todo17b-nal-arm (3), todo19-reasoning (1) — core veto logic bug
+# 2. Kernel terms: 12 failures — Narsese parser, standardizeApart, canonicalEquals implementation bugs
+# 3. LogStore/ThreadPool persistence: gate-log-persistence, focustree-cognitivethread, full-replay
+# 4. Episode graph: refactor3-episode-graph (3)
+# 5. Budget gate: refactor4-budget (3)
+# 6. MCP bridge: mcp-bridge (4)
+# 7. todo16 family: provisional, device-profile, dispositions, cortex
+# 8. Security: todo20-security
+# 9. NARLM: inference-nario-lm
+# 10. Final full suite run → verify >90% pass rate (currently ~94.2%)
 ```
