@@ -32,8 +32,8 @@ import {
   canonicalEquals,
   canonicalHash,
   isCompound,
-} from '@senars/kernel';
-import { canonicalize as canonicalizeTerm } from '@senars/kernel';
+} from '@senars/kernel/terms';
+import { canonicalize as canonicalizeTerm } from '@senars/kernel/terms';
 
 describe('TermFactory', () => {
   beforeEach(() => {

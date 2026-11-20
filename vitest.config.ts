@@ -273,6 +273,7 @@ const aliases = [
   { find: '@senars/io/connections/reply-target', replacement: path.resolve(__dirname, './src/io/connections/reply-target.ts') },
   // Top-level package aliases
   { find: '@senars/nar', replacement: path.resolve(__dirname, './src/index.ts') },
+  { find: '@senars/index', replacement: path.resolve(__dirname, './src/index.ts') },
   { find: '@senars/core', replacement: path.resolve(__dirname, './src/index.ts') },
   { find: '@senars/util', replacement: path.resolve(__dirname, './src/util/index.ts') },
   { find: '@senars/utils', replacement: path.resolve(__dirname, './src/util/index.ts') },
@@ -281,6 +282,7 @@ const aliases = [
   { find: '@senars/metta-runtime', replacement: path.resolve(__dirname, './src/metta/index.ts') },
   { find: '@senars/lm', replacement: path.resolve(__dirname, './src/lm/index.ts') },
   { find: '@senars/transport', replacement: path.resolve(__dirname, './src/io/index.ts') },
+  { find: '@senars/kernel/terms', replacement: path.resolve(__dirname, './src/kernel/terms/index.ts') },
   { find: '@senars/kernel', replacement: path.resolve(__dirname, './src/kernel/index.ts') },
   { find: '@senars/logics', replacement: path.resolve(__dirname, './src/logics/index.ts') },
   { find: '@senars/log', replacement: path.resolve(__dirname, './src/log/index.ts') },

@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { validateCognitiveEvent } from '@senars/agent';
+import { validateCognitiveEvent } from '@senars/schemas/cognitive-events';
 import { v4 as uuidv4 } from 'uuid';
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { createLogStore } from '../../src/log/store';

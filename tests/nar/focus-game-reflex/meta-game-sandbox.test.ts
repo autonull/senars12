@@ -1,13 +1,7 @@
 import { createFocus, createGameFocus, createMetaFocus, FocusBag } from '@senars/focus';
-import {
-  createGridWorldGame,
-  createMetaGame,
-  createSelfMetaGame,
-  MetaGame as MetaGameClass,
-  SelfMetaGameImpl,
-} from '@senars/focus';
+import { createMetaGame, MetaGame as MetaGameClass, createSelfMetaGame, SelfMetaGameImpl, createGridWorldGame } from '@senars/game';
 import { TabularQReflex } from '@senars/reflex';
-import { cognitiveBounds } from '@senars/utils';
+import { cognitiveBounds } from '@senars/config';
 import { describe, expect, it } from 'vitest';
 import { createGateRegistry } from '@senars/kernel';
 

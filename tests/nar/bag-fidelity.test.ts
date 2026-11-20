@@ -93,7 +93,7 @@ describe('Bag fidelity tests @load-sensitive', () => {
 
       const samples = 20000;
       expect(tvDistance(observe(bag, samples), { a: 0.2, c: 0.5 }, samples)).toBeLessThan(0.02);
-      expect(bag.size()).toBe(2);
+      expect(bag.size).toBe(2);
     });
 
     it('maintains fidelity after removeMany', () => {
@@ -103,7 +103,7 @@ describe('Bag fidelity tests @load-sensitive', () => {
 
       const samples = 20000;
       expect(tvDistance(observe(bag, samples), { c: 0.3, d: 0.4 }, samples)).toBeLessThan(0.02);
-      expect(bag.size()).toBe(2);
+      expect(bag.size).toBe(2);
     });
 
     it('is unaffected by insert position — append, prepend and middle splices alike', () => {
@@ -208,7 +208,7 @@ describe('Bag fidelity tests @load-sensitive', () => {
 
       bag.decay();
 
-      expect(bag.size()).toBe(1);
+      expect(bag.size).toBe(1);
       expect(bag.find((e) => e.id === 'a')).toBeDefined();
       expect(bag.find((e) => e.id === 'b')).toBeUndefined();
     });
@@ -227,7 +227,7 @@ describe('Bag fidelity tests @load-sensitive', () => {
           expect(arr[i]!.priority).toBeGreaterThanOrEqual(arr[i + 1]!.priority);
         }
         expect(bag.peek()?.priority).toBe(Math.max(...arr.map((e) => e.priority)));
-        expect(bag.size()).toBe(4);
+        expect(bag.size).toBe(4);
       });
     }
 
@@ -237,7 +237,7 @@ describe('Bag fidelity tests @load-sensitive', () => {
       expect(bag.add(makeItem('d', 0.3))).toBe(true);
       expect(sortedIds(bag)).toEqual(['a', 'b', 'd']);
       expect(bag.add(makeItem('e', 0.2))).toBe(false);
-      expect(bag.size()).toBe(3);
+      expect(bag.size).toBe(3);
     });
   });
 

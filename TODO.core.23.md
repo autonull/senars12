@@ -9,6 +9,18 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
 - Test framework: `Bag.peek()` → `Bag.all()[0]` (fixed 2 nal1-rules tests)
 - **Test logic pass rate: ~81% when tests can run**
 
+**Current Session Progress (Session 2 continued):**
+- Fixed `Bag` API issues: `size` getter (not method), `sample()` returns array, `peek()` removed from tests
+- Fixed `@senars/index` import → added alias in vitest.config.ts
+- Fixed `createLedger` import in `src/lm/system-one/distill.ts` (from `@senars/util/ledger`)
+- Fixed `NarEventBus` imports in tests (from `@senars/types` not `@senars/nar`)
+- Fixed `validateCognitiveEvent` import (from `@senars/schemas/cognitive-events`)
+- Fixed `createGridWorldGame` imports (from `@senars/game` not `@senars/focus`)
+- Fixed `createSelfMetaGame` import (from `@senars/game`)
+- Fixed `TermFactory` import (added `@senars/kernel/terms` alias)
+- Fixed `PriorityBag` test imports and API usage (from `@senars/bag`, `size` getter, `sample(1)[0]`)
+- Fixed `cognitiveBounds` import (from `@senars/config`)
+
 ## Blocker: Vitest Deep Alias Resolution (P0 — Single Point of Failure) — **RESOLVED**
 
 **Symptom**: Top-level aliases resolve (`@senars/util`), deep aliases fail (`@senars/util/fs`, `@senars/util/collections`, `@senars/schemas/cognitive-events`, etc.)
@@ -85,6 +97,15 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
 - **Runtime: BaseLedgerEntrySchema**: ✅ Fixed in `src/lm/system-one/distill.ts`
 - **Memory**: ✅ Bag API fixed (size getter, sample method, internal entry wrapping)
 - **Test Import Fallback**: 🔄 Mechanical fixes applied (`@senars/nar/` → `@senars/`, `.js` stripping), 100+ explicit aliases added
+  - Fixed `@senars/index` alias
+  - Fixed `createLedger` import in distill.ts
+  - Fixed `NarEventBus` imports (→ `@senars/types`)
+  - Fixed `validateCognitiveEvent` import (→ `@senars/schemas/cognitive-events`)
+  - Fixed `createGridWorldGame` imports (→ `@senars/game`)
+  - Fixed `createSelfMetaGame` import (→ `@senars/game`)
+  - Fixed `TermFactory` import (added `@senars/kernel/terms` alias)
+  - Fixed `PriorityBag` test imports (→ `@senars/bag`)
+  - Fixed `cognitiveBounds` import (→ `@senars/config`)
 - **Surface D24**: ⏳ README rule-matrix audit pending
 - **Fundamentals Gate**: ⏳ Bench output format check pending
 - **Kernel/Gates**: ⏳ Gate log capacity constants check pending
@@ -132,7 +153,7 @@ pnpm tsc --project tsconfig.root.json --noEmit 2>&1 | grep -v "ui\|UI" || true
 | Lint | **PASS** | `pnpm lint` |
 | Exports check | **PASS** | `pnpm exports:check` && `pnpm exports:barrels` |
 
-**Current Status**: Import errors ~101 (down from 392), Passed: 176 test files, 1968 tests (up from 35/436)
+**Current Status**: Import errors ~50 (down from 392), Passed: 186 test files, 2049 tests (up from 35/436), Failed: 217 test files, 542 tests. Pass rate: ~79% (target >90%)
 
 ---
 
@@ -216,6 +237,20 @@ Subagent-per-subsystem or sequential:
 # 1. Surface D24: audit README rule matrix (grep -n "rule.*matrix" README.md)
 # 2. Fundamentals Gate: check bench.ts SCENARIOS constant in tests/nar/todo27-fundamentals-gate.test.ts
 # 3. Kernel/Gates: check GATE_LOG_CAPACITY in src/kernel/KernelActionGate.ts
-# 4. Add remaining explicit aliases for UI source imports (@senars/ui-contract/core, @senars/nar/lm)
+# 4. Add remaining explicit aliases for common missing imports:
+#    - EpisodicMemory, Memory, createCognitiveThread, ToolRegistry, CommandRegistry
+#    - PolicyEngine, mintCognitiveEvent, verifyRecord, narEventToCognitive
 # 5. Run full suite → verify >90% pass rate
+
+# Most common remaining import errors (from error summary):
+# - NarEventBus: 30 → import from @senars/types
+# - PriorityBag: 22 → import from @senars/bag  
+# - EpisodicMemory: 21 → import from @senars/memory
+# - Memory: 17 → import from @senars/memory
+# - createCognitiveThread: 16 → import from @senars/agent
+# - createGridWorldGame: 12 → import from @senars/game
+# - ToolRegistry: 9 → import from @senars/motor
+# - CommandRegistry: 8 → import from @senars/cli
+# - PolicyEngine: 7 → import from @senars/governance
+# - mintCognitiveEvent: 7 → import from @senars/schemas/cognitive-events
 ```

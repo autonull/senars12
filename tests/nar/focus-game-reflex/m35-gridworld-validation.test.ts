@@ -1,5 +1,5 @@
 import { createGameFocus } from '@senars/focus';
-import { createGridWorldGame } from '@senars/focus';
+import { createGridWorldGame } from '@senars/game';
 import { TabularQReflex } from '@senars/reflex';
 import { describe, expect, it } from 'vitest';
 import { createGateRegistry } from '@senars/kernel';

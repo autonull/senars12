@@ -186,8 +186,8 @@ describe('ReasoningTrace', () => {
       const concepts = nar.memory.listConcepts();
       const concept = concepts.find((c) => c.term.toString() === '(conclusion-->test)');
 
-      if (concept && concept.beliefBag.size() > 0) {
-        const belief = concept.beliefBag.peek();
+      if (concept && concept.beliefBag.size > 0) {
+        const belief = concept.beliefBag.all()[0];
         if (belief) {
           const task: any = {
             term: concept.term,
@@ -216,8 +216,8 @@ describe('ReasoningTrace', () => {
       const concepts = nar.memory.listConcepts();
       const concept = concepts.find((c) => c.term.toString() === '(simple-->fact)');
 
-      if (concept && concept.beliefBag.size() > 0) {
-        const belief = concept.beliefBag.peek();
+      if (concept && concept.beliefBag.size > 0) {
+        const belief = concept.beliefBag.all()[0];
         if (belief) {
           const task: any = {
             term: concept.term,
@@ -243,8 +243,8 @@ describe('ReasoningTrace', () => {
       const concepts = nar.memory.listConcepts();
       const concept = concepts.find((c) => c.term.toString() === '(tree-->root)');
 
-      if (concept && concept.beliefBag.size() > 0) {
-        const belief = concept.beliefBag.peek();
+      if (concept && concept.beliefBag.size > 0) {
+        const belief = concept.beliefBag.all()[0];
         if (belief) {
           const task: any = {
             term: concept.term,
@@ -271,8 +271,8 @@ describe('ReasoningTrace', () => {
       const concepts = nar.memory.listConcepts();
       const concept = concepts.find((c) => c.term.toString() === '(path-->test)');
 
-      if (concept && concept.beliefBag.size() > 0) {
-        const belief = concept.beliefBag.peek();
+      if (concept && concept.beliefBag.size > 0) {
+        const belief = concept.beliefBag.all()[0];
         if (belief) {
           const task: any = {
             term: concept.term,
@@ -298,8 +298,8 @@ describe('ReasoningTrace', () => {
       const concepts = nar.memory.listConcepts();
       const concept = concepts.find((c) => c.term.toString() === '(recorded-->derivation)');
 
-      if (concept && concept.beliefBag.size() > 0) {
-        const belief = concept.beliefBag.peek();
+      if (concept && concept.beliefBag.size > 0) {
+        const belief = concept.beliefBag.all()[0];
         if (belief) {
           const task: any = {
             term: concept.term,

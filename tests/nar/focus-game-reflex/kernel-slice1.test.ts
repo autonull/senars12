@@ -1,5 +1,5 @@
 import { createFocus, createGameFocus, Focus, FocusBag, GameFocus } from '@senars/focus';
-import { createGridWorldGame, GridWorldGame } from '@senars/focus';
+import { createGridWorldGame, GridWorldGame } from '@senars/game';
 import { Negotiator, TabularQReflex } from '@senars/reflex';
 import { describe, expect, it } from 'vitest';
 import { createGateRegistry } from '@senars/kernel';
@@ -17,8 +17,8 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
 
       expect(focus.id).toBe('test-focus');
       expect(focus.weight).toBe(1.0);
-      expect(focus.tasks.size()).toBe(0);
-      expect(focus.memory.size()).toBe(0);
+      expect(focus.tasks.size).toBe(0);
+      expect(focus.memory.size).toBe(0);
     });
 
     it('should step and process tasks', async () => {

@@ -20,7 +20,7 @@ import { SeededRNG, sequentialIdSource, stableStringify } from '@senars/utils';
 import { createNAR, Truth } from '@senars/agent';
 import type { NARConfig } from '@senars/agent';
 import { NAR } from '@senars/agent';
-import { NarEventBus } from '@senars/nar';
+import { NarEventBus } from '@senars/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runOneShot } from '../../src/bin/lib/oneshot';
 import { registerMCPResources } from '../../src/bin/lib/mcp/mcp-resources';
