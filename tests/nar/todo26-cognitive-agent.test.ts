@@ -20,7 +20,7 @@ describe('TODO26 T1 — createCognitiveAgent demo @load-sensitive', () => {
   // ~5s in isolation and well past 15s under contention. Its sibling in
   // tests/nar/rl/parity/stress-boundary.test.ts sets its own timeout for the
   // same reason; this one had no timeout override and inherited the 15s default.
-  it('teach/ask/checkpoint/resume equivalence', { timeout: 60000 }, async () => {
+  it('teach/ask/checkpoint/resume equivalence', { timeout: 120000 }, async () => {
     const agent = await createCognitiveAgent({ preset: 'chat' });
     await agent.teach('(cat-->animal). %1.00;0.90%');
     const a = await agent.ask('(cat-->animal)?');

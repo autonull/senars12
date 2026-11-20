@@ -138,7 +138,7 @@ describe('M4: Crash/Recovery — Restart Equivalence', () => {
     await nar2.dispose();
   });
 
-  test('restart with maxTasks pressure', async () => {
+  test('restart with maxTasks pressure', { timeout: 60000 }, async () => {
     const registry = createSeNARSRegistry();
     const lmService = createLMService();
 

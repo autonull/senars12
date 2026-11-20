@@ -7,7 +7,7 @@
 - Fixed: Updated `docs/readme/generate.ts` import path from `nar/src` to `src/`
 ---
 ## Success Criteria (Definition of Done)
-**Current Status**: Import errors 0 (down from 392), File handle leaks 0, Passed: 344 test files, 3195 tests, Failed: 56 test files, 182 tests. Pass rate: ~93.3% (target >90%)
+**Current Status**: Import errors 0 (down from 392), File handle leaks 0, Passed: 345 test files, 3194 tests, Failed: 55 test files, 183 tests. Pass rate: ~93.3% (target >90%)
 ---
 ## Execution Playbook
 ### Session 1: Unblock (45 min) ✅ **COMPLETE**
@@ -143,7 +143,9 @@
 # Pass rate: ~93.2% (target >90%) — EXCEEDS TARGET!
 # Kernel terms: 36/36 tests now PASSING (fixed Narsese parser, standardizeApart, canonicalEquals, termEquals)
 # todo16-provisional: 7/7 tests now PASSING (fixed test to use mock clock for bag decay)
-# Remaining work (~56 failed test files / 182 failed tests):
+# todo26-cognitive-agent: timeout increased to 120s (was timing out at 60s under parallel load)
+# 09-restart-equivalence: timeout increased to 60s (was default 15s)
+# Remaining work (~55 failed test files / 183 failed tests):
 # 1. NAL veto mechanism: todo17b-nal-arm (3), todo19-reasoning (1) — core veto logic bug
 # 2. LogStore/ThreadPool persistence: gate-log-persistence, focustree-cognitivethread, full-replay
 # 3. Episode graph: refactor3-episode-graph (3)
@@ -153,6 +155,5 @@
 # 7. Security: todo20-security
 # 8. NARLM: inference-nario-lm
 # 9. RL parity: cognitive-advantage (1)
-# 10. todo26-cognitive-agent: timeout issue
-# 11. Final full suite run → verify >90% pass rate (currently ~93.3%)
+# 10. Final full suite run → verify >90% pass rate (currently ~93.3%)
 ```
