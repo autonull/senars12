@@ -7,7 +7,7 @@
 - Fixed: Updated `docs/readme/generate.ts` import path from `nar/src` to `src/`
 ---
 ## Success Criteria (Definition of Done)
-**Current Status**: Import errors 0 (down from 392), File handle leaks 0, Passed: 349 test files, 3154 tests, Failed: 37 test files, 102 tests (unit suite). Pass rate: ~96.9% (target >90%). Full suite: 404 files, 3425 tests. Default `test` runs unit only (~26s), load-sensitive via `test:load-sensitive` (~183s).
+**Current Status**: Import errors 0 (down from 392), File handle leaks 0, Passed: 360 test files, 3308 tests, Failed: 26 test files, 56 tests (unit suite). Pass rate: ~97.3% (target >90%). Full suite: 404 files, 3425 tests. Default `test` runs unit only (~16s), load-sensitive via `test:load-sensitive` (~183s).
 ---
 ## Execution Playbook
 ### Session 1: Unblock (45 min) ✅ **COMPLETE**
@@ -134,15 +134,17 @@
 ```bash
 # All quick wins, deep subsystem fixes, import resolution, file handle leaks COMPLETE.
 # Major test logic fixes COMPLETE (LogStore, CognitiveController, exports, ModelRunner, bag tests, fundamentals bench, todo29a-a1 cycle tests, kernel terms, NAL veto).
-# Test suite OPTIMIZED: default `test` now runs unit tests only (~26s vs ~189s), load-sensitive tests run separately via `test:load-sensitive`.
-# Pass rate: ~94.7% (target >90%) — EXCEEDS TARGET!
+# Test suite OPTIMIZED: default `test` now runs unit tests only (~16s vs ~189s), load-sensitive tests run separately via `test:load-sensitive`.
+# Pass rate: ~97.3% (3308/3401 tests passing) — EXCEEDS TARGET!
 # Kernel terms: 36/36 tests now PASSING (fixed Narsese parser, standardizeApart, canonicalEquals, termEquals)
 # todo16-provisional: 7/7 tests now PASSING (fixed test to use mock clock for bag decay)
 # todo26-cognitive-agent: timeout increased to 180s (was timing out at 60s under parallel load)
 # 09-restart-equivalence: timeout increased to 60s (was default 15s)
 # NAL veto: FIXED — PriorityBag.decay() double-counting bug caused seeded concepts to evaporate after ~18 cycles
-# Fixed: gate-log-persistence (1), full-replay (3), refactor3-episode-graph (3), refactor2-episode-consolidator (1), refactor1-timeline (3), refactor2-proposal-mining-bags (3), refactor2-memory-query (11), refactor2-residual-causal (10), refactor4-ledger (13/14), knob-bounds (31)
-# Remaining work (~37 failed test files / 102 failed tests in unit suite):
+# Fixed exports: verifyCascade, NarEventBus, AgentOptionsSchema, ConnectionConfigSchema, ProposalLifecycle, ProposalQueueLimits, ProposalSchema, PROPOSAL_KINDS, createEmbeddingGenerator, isMockLM, EPISODE_TYPES, SystemOneIngressJudge, etc.
+# Fixed test logic: decay tests use mock clock, layer-boundary handles @senars/lm imports
+# Fixed: gate-log-persistence (1), full-replay (3), refactor3-episode-graph (3), refactor2-episode-consolidator (1), refactor1-timeline (3), refactor2-proposal-mining-bags (3), refactor2-memory-query (11), refactor2-residual-causal (10), refactor4-ledger (14/14), knob-bounds (31), bound-tables (5), refactor4-bounded-aikr (17/17), refactor3-consensus-proof (4/4), todo27-fundamentals-gate (2/2)
+# Remaining work (~26 failed test files / 56 failed tests in unit suite):
 # 1. LogStore/ThreadPool persistence: focustree-cognitivethread (5)
 # 2. Budget gate: refactor4-budget (3) — pre-existing baseline drift (update complexity-budget.json)
 # 3. MCP bridge: mcp-bridge (4)
@@ -151,10 +153,16 @@
 # 6. NARLM: inference-nario-lm
 # 7. RL parity: cognitive-advantage (1)
 # 8. kernel/terms: 12 failures — Narsese parser, standardizeApart, canonicalEquals bugs
-# 9. refactor4-bounded-aikr: verifyCascade not exported (2)
-# 10. todo27-fundamentals-gate: scenarios not found (1)
-# 11. integration/multi-agent: 2 failures
-# 12. refactor4-ledger: 1 test (EpisodicMemory parity)
-# 13. generated tests: agentoptions, connectionconfig (12)
-# 14. unit tests: component-lifecycle, core, server/* (6)
+# 9. todo16 family tests: a11, a6, model-matrix
+# 10. core19 tests: c1, c3, c4, c5, c6, acceptance, m0
+# 11. MCP resources: 1 failure
+# 12. derivation-verifier: 2 failures
+# 13. game-registry: 3 failures
+# 14. integration/multi-agent: 2 failures
+# 15. server tests: event-catalog, field-catalog, layout-registry, lens-catalog (UI package issue — deferred, see TODO.core.24.md)
 ```
+
+---
+
+## Next Phase
+See **TODO.core.24.md** for detailed remaining work after Core 23 completion.
