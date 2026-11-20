@@ -1,4 +1,4 @@
-import { type BoundSpec, cognitiveBounds } from '@senars/utils';
+import { type BoundSpec, cognitiveBounds } from '@senars/config';
 import { describe, expect, it } from 'vitest';
 
 import { KNOB_SPECS } from '@senars/rlfp/knobs';

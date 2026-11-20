@@ -112,6 +112,8 @@ export interface HardNegativeCandidate {
 export interface MiningBagOptions extends AikrBagOptions {
   /** Drop candidates below this margin at drain time (default 0 — keep all). */
   marginFloor?: number;
+  /** Injected clock for deterministic timestamps (default Date.now). */
+  clock?: () => number;
 }
 
 /** Candidates examined per mining pass. */
@@ -129,6 +131,7 @@ export class MiningBag extends AikrShell<
       capacity: options.capacity ?? 128,
       forgetRate: options.forgetRate,
       rng: options.rng,
+      clock: options.clock,
       budget: options.budget ?? MINING_BUDGET,
       pressureThreshold: options.pressureThreshold,
       view: (candidate) => candidate.negative,

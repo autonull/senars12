@@ -27,11 +27,12 @@ export type { PersistableSessionManager } from './types.js';
 export { abortSession, createSession, InMemorySessionManager, JsonlSessionManager, type JsonlSessionManagerConfig } from './SessionManager.js';
 export { SessionStore, type SessionStoreOptions } from './in-memory-session-manager.js';
 export type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig } from './episodic.js';
-export { EPISODE_TYPES } from './episodic.js';
+export { EPISODE_TYPES, EpisodeSchema } from './episodic.js';
 export { MockEmbeddingGenerator, type EmbeddingGenerator } from './embedding.js';
 export { LINK_LAYER, type KnownLinkLayer } from './links/types.js';
 export { Layer } from './links/Layer.js';
 export { AssociativeRegistry, LinkLayerMemory, type AssociativeMemory } from './associative.js';
+export { EpisodeConsolidator, symbolicSummary, episodeSalience, causalConnections } from './episode-consolidator.js';
 export { consolidateEpisodes } from './retrieval-verified.js';
 export type { ConceptStats, SerializedConcept, SerializedMemory } from './state/index.js';
 export {

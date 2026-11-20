@@ -18,7 +18,7 @@ export {
 } from './verifier-truth-table.js';
 export { RuleProcessor } from './impls/processor.js';
 export type { RecorderOptions } from './impls/recorder.js';
-export { DerivationRecorder, inferRuleCategory } from './impls/recorder.js';
+export { DerivationRecorder, inferRuleCategory, ProofStreamRing } from './impls/recorder.js';
 export { RuleIndex } from './impls/RuleIndex.js';
 // The loaded table (TODO29.a §5.10)
 export { loadBuiltinTable } from './impls/builtin-table.js';

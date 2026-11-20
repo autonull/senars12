@@ -39,6 +39,7 @@ export { createCognitiveThread, type ThreadMessage, type ThreadStatus, type Back
 export { createLogger } from '@senars/util/logger';
 export { CommandRegistry } from '@senars/commands';
 export { validateParameters, DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from '../config/cognitive-parameters.js';
+export { ProposalBag } from '../meta/index.js';
 export { resolveBagSlot, bagSlotErrors } from '../bag/index.js';
 export { TASK_BAG_KINDS, TASK_TYPES, TOLERANT_PUNCTUATIONS, taskTypeForPunctuation, TASK_PUNCTUATION, TASK_PUNCTUATIONS, TaskTypeSchema, FormalizationCandidateSchema, FormalizationBatchSchema } from '../schemas/index.js';
 export { DETECTED_INTENTS, DetectedIntentSchema } from '../schemas/index.js';
@@ -52,16 +53,17 @@ export {
 export { NAREngine } from '../engine/index.js';
 export { CompositeSampling } from '../strategies/sampling/CompositeSampling.js';
 export { CognitiveController } from '../cognitive/index.js';
-export { Memory } from '../memory/index.js';
+export { Memory, EpisodicMemory, EpisodeSchema } from '../memory/index.js';
 export { PriorityBag } from '../bag/index.js';
 export { isEventType, validateCognitiveEvent } from '../schemas/cognitive-events.js';
+export { validateDerivationRecord } from '../schemas/derivation-records.js';
 export { StreamReasoner } from '../stream/index.js';
 export { LMProposalProducer, CycleTrace, findInCycleProposals, findStageOverlaps, CYCLE_STAGES, type CycleStageEvent, type StageOverlap } from '../proposal/index.js';
 export { canonicalJson, configDigest } from '../strategies/index.js';
 export { CompositeStrategy, CompositeLMRuleSelector, CompositeAttention, TermLinkStrategy } from '../strategies/index.js';
 export { LINK_LAYER, type KnownLinkLayer } from '../memory/index.js';
 export { Layer } from '../memory/index.js';
-export { AssociativeRegistry, LinkLayerMemory, type AssociativeMemory } from '../memory/index.js';
+export { AssociativeRegistry, LinkLayerMemory, type AssociativeMemory, EpisodeConsolidator, symbolicSummary, episodeSalience, causalConnections } from '../memory/index.js';
 export { BrierHarness, isResumable, loadSession, startArcadeTickSpan, saveSession } from '../eval/index.js';
 export { SeededRNG } from '../util/random.js';
 export { createTimestamp, type Timestamp } from '../types/primitives.js';
@@ -73,12 +75,11 @@ export {
   SandboxTimeoutError,
   assertWasmPathContained,
 } from '../capability/index.js';
-export { createTetrisGame, TetrisGame } from '../game/index.js';
+export { createTetrisGame, TetrisGame, createSelfMetaGame } from '../game/index.js';
 export { SOURCE_QUALITY_CONFIDENCE } from '../schemas/index.js';
-export { SchedulerAdapter } from '../learning/index.js';
-export { SchemaInductor } from '../learning/index.js';
+export { SchedulerAdapter, SchemaInductor, AIKRProcessor } from '../learning/index.js';
 export { TaskManager, createTask, createTaskWeight, NEUTRAL_BUDGET, createSecondaryTask } from '../task/index.js';
-export { RuleProcessor } from '../rules/index.js';
+export { RuleProcessor, ProofStreamRing } from '../rules/index.js';
 export { DEFAULT_CONFIG } from '../types/core.js';
 export {
   atom,

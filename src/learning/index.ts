@@ -11,3 +11,4 @@ export {
 } from './domain-learners.js';
 export type { InductionResult, SchemaInductionConfig, SchemaPattern } from './schema-induction.js';
 export { createSchemaInductor, SchemaInductor } from './schema-induction.js';
+export { AIKRProcessor, createAikrBag, type AikrBagOptions, type AikrShellOptions, type ProcessOptions } from './aikr-processor.js';

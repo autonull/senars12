@@ -77,9 +77,12 @@ describe('Bench 89 — ProposalBag (AIKR pattern #4)', () => {
     ).toEqual(['low-risk', 'next']);
 
     // Decay forgets stale accumulation.
-    const decayer = new ProposalBag({ capacity: 4, forgetRate: 0.3 });
+    let time = 1_000_000;
+    const clock = () => time;
+    const decayer = new ProposalBag({ capacity: 4, forgetRate: 0.3, clock });
     decayer.admit(proposal('stale', 'test-generate', 'high'));
-    decayer.decay(0.5);
+    time += 4;
+    decayer.decay();
     expect(decayer.size).toBe(0);
   });
 
@@ -129,9 +132,12 @@ describe('Bench 89 — MiningBag (AIKR pattern #5)', () => {
     expect(bag.pressure).toBeLessThan(0.5);
     await expect(bag.drainIfPressured()).resolves.toEqual([]);
 
-    const decayer = new MiningBag({ capacity: 4, forgetRate: 0.3 });
+    let time = 1_000_000;
+    const clock = () => time;
+    const decayer = new MiningBag({ capacity: 4, forgetRate: 0.3, clock });
     decayer.admit(negative('stale', 'groundedness', 0.4));
-    decayer.decay(0.5); // 0.4 × 0.8 × 0.5 = 0.16 < 0.3 → forgotten
+    time += 4;
+    decayer.decay();
     expect(decayer.size).toBe(0);
 
     const run = async (): Promise<string[]> => {

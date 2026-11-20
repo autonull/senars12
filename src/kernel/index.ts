@@ -94,3 +94,4 @@ export {
   type EvictionReason,
   type EvictionReport,
 } from '../memory/pressure/index.js';
+export { PriorityBag } from '../bag/index.js';

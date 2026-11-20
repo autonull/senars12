@@ -559,3 +559,12 @@ export {
   witnessFiles,
   witnessHolds,
 } from './witness.js';
+/** @public Append-only ledger with content-addressable entries. */
+export {
+  BaseLedgerEntrySchema,
+  type BaseLedgerEntry,
+  type LedgerEntry,
+  type LedgerConfig,
+  createLedger,
+  Ledger,
+} from './ledger.js';

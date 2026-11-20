@@ -66,9 +66,14 @@ describe('Bench 87 — EpisodeConsolidator (AIKR pattern #1)', () => {
   });
 
   it('decay forgets stale candidates', () => {
-    const c = new EpisodeConsolidator({ capacity: 4, forgetRate: 0.3 });
+    let time = 1_000_000;
+    const clock = () => time;
+    const c = new EpisodeConsolidator({ capacity: 4, forgetRate: 0.3, clock });
     c.admit(episode('x', 'input', 'stale', {}, 's9'));
-    c.decay(0.5); // 0.5 × 0.5 = 0.25 < forgetRate 0.3 → forgotten
+    // Advance time enough for forgetRate * age > priority (default priority ~1)
+    // forgetRate = 0.3, need age > 1/0.3 ≈ 3.33, so advance by 4
+    time += 4;
+    c.decay();
     expect(c.size).toBe(0);
   });
 

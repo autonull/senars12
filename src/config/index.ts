@@ -14,5 +14,6 @@ export { appConfigSchema } from './schema.js';
 export { loadConfig, loadConfigFromEnv } from './loader.js';
 export { DEFAULT_APP_CONFIG, withDefaults } from './defaults.js';
 export { cognitiveBounds, cognitiveBound, type CognitiveBounds } from './cognitive-bounds.js';
+export { DEFAULT_COGNITIVE_PARAMETERS, type CognitiveParameters } from './cognitive-parameters.js';
 export type { BoundRange, BoundProjection, FlatBoundProjection } from './bounds.js';
 export { flatBounds, nestedBounds, validateAgainstBounds } from './bounds.js';

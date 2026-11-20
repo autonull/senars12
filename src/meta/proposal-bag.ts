@@ -59,6 +59,8 @@ const PROPOSAL_PRESSURE_THRESHOLD = 0.4;
 export interface ProposalBagOptions extends AikrBagOptions {
   /** Optional drive-alignment multiplier (default neutral 1). */
   alignmentOf?: (proposal: SelfImprovementProposal) => number;
+  /** Injected clock for deterministic timestamps (default Date.now). */
+  clock?: () => number;
 }
 
 /**
@@ -78,6 +80,7 @@ export class ProposalBag {
       capacity: options.capacity ?? 64,
       forgetRate: options.forgetRate,
       rng: options.rng,
+      clock: options.clock,
       pressureThreshold: options.pressureThreshold ?? PROPOSAL_PRESSURE_THRESHOLD,
       budget: options.budget,
       view: (candidate) => candidate.proposal,

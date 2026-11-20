@@ -15,3 +15,4 @@ export type {
 export { LogStoreEventLog, InMemoryEventLog } from './EventLogAdapter.js';
 export { createLogStoreEventLog, createLogStoreEventLogFromStore } from './EventLogAdapter.js';
 export { createLogStore } from './store.js';
+export { replayTaskAdmissions } from './EventLogPersistence.js';

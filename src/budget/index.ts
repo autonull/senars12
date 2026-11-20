@@ -40,7 +40,7 @@ export {
   sliceMergedPayload,
 } from './budget.js';
 export { BUDGET_TYPES, BudgetTypeSchema } from '../schemas/reasoning-budget.js';
-export { createCapturePhase, createReflectPhase, DEFAULT_MACRO_PIPELINE } from '../agent/phases.js';
+export { createCapturePhase, createReflectPhase, DEFAULT_MACRO_PIPELINE, runCycle } from '../agent/phases.js';
 export {
   ALL_RESOURCES,
   BUDGET_RESOURCES,

@@ -80,7 +80,7 @@ const makeLearningHook = (capacity = 10, forgetRate = 0.2) => {
   const budgets: (number | undefined)[] = [];
   const processor = new AIKRProcessor<BagItem, string>({
     bag,
-    pressureThreshold: 0.7,
+    pressureThreshold: 0.5, // match 'elevated' pressure level (0.5)
     process: (picked) => {
       for (const i of picked) drained.push(i.id);
       return picked.map((i) => i.id);
@@ -105,14 +105,15 @@ describe('Bench 86 — consolidation hook (recordPhase)', () => {
   it('default-on: hook drains bags under pressure, decays per cycle, budget forwarded', async () => {
     const learning = makeLearningHook();
     for (let i = 0; i < 8; i++) learning.bag.add({ id: `t${i}`, priority: 0.9 });
-    expect(learning.pressure()).toBeGreaterThanOrEqual(0.7);
+    // 8/10 = 0.8 utilization => 'elevated' => pressure() returns 0.5
+    expect(learning.pressure()).toBe(0.5);
 
     const host = makeHost({ consolidateLearning: learning.hook, consolidation: { budget: 3 } });
     await runCycle(host, stimulus);
 
     expect(host.trace).toContain('learning-consolidation');
     expect(learning.drained).toHaveLength(3); // budget-bounded drain
-    expect(learning.bag.size()).toBe(5);
+    expect(learning.bag.size).toBe(5);
     expect(learning.decayCycles()).toBe(1); // decay per cycle
     expect(learning.budgets).toEqual([3]);
   });
@@ -126,7 +127,7 @@ describe('Bench 86 — consolidation hook (recordPhase)', () => {
     await runCycle(host, stimulus);
     expect(host.trace).toContain('learning-consolidation');
     expect(learning.drained).toHaveLength(0);
-    expect(learning.bag.size()).toBe(1);
+    expect(learning.bag.size).toBe(1);
   });
 
   it('disabled: consolidation config opts out — trace identical to the hook-less pipeline', async () => {
@@ -140,7 +141,7 @@ describe('Bench 86 — consolidation hook (recordPhase)', () => {
     await runCycle(disabled, stimulus);
     await runCycle(hookless, stimulus);
     expect(learning.decayCycles()).toBe(0);
-    expect(learning.bag.size()).toBe(8);
+    expect(learning.bag.size).toBe(8);
     expect(disabled.trace).toEqual(hookless.trace);
     expect(disabled.trace).not.toContain('learning-consolidation');
   });
