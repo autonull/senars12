@@ -231,6 +231,7 @@ export class Agent {
       await transport.disconnect('agent stopping');
     }
     await sweepEngines(this.engines, (engine) => invokeEngineHook(engine, 'shutdown'));
+    await this.log.close();
   }
 
   async *chat(input: string, opts?: ChatOptions): AsyncGenerator<ChatStreamEvent, string> {

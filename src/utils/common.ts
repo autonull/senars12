@@ -26,6 +26,7 @@ export { SlidingWindowRateLimiter } from '@senars/util/rate-limit';
 export type { keyedBy, mapValues, selectTopN, entryKey } from '@senars/util/collections';
 export { LM_TASKS } from '@senars/types/llm';
 export type { BoundedMap } from '@senars/util/bounded-map';
+export { BoundedMap } from '@senars/util/bounded-map';
 export { mean, sumBy } from '@senars/util/numeric';
 export { filterFolded } from '@senars/util/text';
 export { evaluateExpression } from '@senars/util/eval.js';

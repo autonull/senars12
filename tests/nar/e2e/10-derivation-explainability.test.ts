@@ -4,7 +4,7 @@ import { createSeNARSRegistry } from '@senars/lm';
 import { createLMService } from '@senars/lm/lm-service';
 import { rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { verifyRecord } from '@senars/agent';
+import { verifyRecord } from '@senars/verification';
 
 const testStateDir = join(process.cwd(), '.cache', 'test-derivation-explainability');
 

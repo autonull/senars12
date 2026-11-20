@@ -61,5 +61,6 @@ export class KernelLedger {
   close(): void {
     this.gates.close();
     this.derivations.close();
+    this.#logStore.close();
   }
 }

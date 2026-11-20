@@ -428,6 +428,8 @@ export class NAR extends BaseComponent {
       if (!this.config.logStore) {
         throw new Error('persistState requires logStore to be configured');
       }
+      // Open the logStore before using it
+      await this.config.logStore.open();
       this.#ledgers = new KernelLedger(
         this.config.statePath ?? cachePath('nar-state'),
         this.processor.getRecorder(),

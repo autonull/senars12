@@ -11,6 +11,7 @@ import { NAR } from './nar.js';
 import type { CoreConfig } from './types';
 import { DEFAULT_CONFIG, NarEventBus } from './types';
 import type { DecisionPort } from './ports/decision.js';
+import { createLogStore } from './log/store.js';
 
 export interface SeNARSOptions {
   core?: Partial<CoreConfig>;
@@ -59,6 +60,11 @@ const TEST_CONFIG: CoreConfig = {
 
 /** Default kernel: LM rules on, isolated provider registry/event bus. */
 export function createNAR(options: SeNARSOptions = {}): NAR {
+  // Auto-create logStore when persistState is true and statePath is provided but no logStore given
+  let logStore = options.logStore;
+  if (options.persistState && options.statePath && !logStore) {
+    logStore = createLogStore({ dir: options.statePath });
+  }
   const config = {
     ...DEFAULT_CONFIG,
     ...options.core,
@@ -69,7 +75,7 @@ export function createNAR(options: SeNARSOptions = {}): NAR {
     ...(options.rlfp !== undefined ? { rlfp: options.rlfp } : {}),
     ...(options.persistState !== undefined ? { persistState: options.persistState } : {}),
     ...(options.statePath !== undefined ? { statePath: options.statePath } : {}),
-    ...(options.logStore !== undefined ? { logStore: options.logStore } : {}),
+    ...(logStore !== undefined ? { logStore } : {}),
     ...(options.maxConcepts !== undefined ? { maxConcepts: options.maxConcepts } : {}),
     ...(options.maxTasks !== undefined ? { maxTasks: options.maxTasks } : {}),
     ...(options.cognitiveParams !== undefined ? { cognitiveParams: options.cognitiveParams } : {}),
