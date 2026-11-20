@@ -578,8 +578,8 @@ async function runScenario7(): Promise<boolean> {
 // ── Main ─────────────────────────────────────────────────────
 
 import { enableRoutingTelemetry, getRoutingLogStatus, resetCircuitBreakers } from '@senars/nar/lm';
-import { pct } from '@senars/util/numeric';
-import { serializeTruth } from '@senars/util/truth-schema';
+import { pct } from '@senars/util/format';
+import { serializeTruth } from '@senars/types/truth';
 
 async function main() {
   const config = loadConfig();

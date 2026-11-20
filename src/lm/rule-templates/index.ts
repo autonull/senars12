@@ -10,6 +10,7 @@
  */
 
 
+import { assertDefined } from '@senars/util/assert';
 import { beliefRules } from './belief-rules.js';
 import type { LMRuleDefinition } from './definition.js';
 import { goalRules } from './goal-rules.js';

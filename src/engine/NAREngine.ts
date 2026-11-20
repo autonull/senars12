@@ -4,8 +4,8 @@ import type {
   Derivation,
   EngineId,
   ToolResult,
-} from '@senars/engine';
-import { BaseEngine } from '@senars/engine';
+} from '@senars/types';
+import { BaseEngine } from './BaseEngine.js';
 import type { CognitiveEvent } from '@senars/schemas';
 import { asBeliefTruth } from '@senars/types/truth';
 import { createLogger } from '@senars/util/logger';

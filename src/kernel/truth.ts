@@ -105,6 +105,9 @@ export const Truth: {
   /** Normalize a truth value (clamp to valid domain). */
   normalize: normalizeTruth,
 
+  /** Create a truth value with validation. Alias for createTruth (test compatibility). */
+  create: createTruth,
+
   /** Negation: ~(f, c) = (1-f, c). */
   negation: (t: Truth): Truth => normalizeTruth(1 - t.f, t.c),
 

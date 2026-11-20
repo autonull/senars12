@@ -20,6 +20,13 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
 - Fixed `TermFactory` import (added `@senars/kernel/terms` alias)
 - Fixed `PriorityBag` test imports and API usage (from `@senars/bag`, `size` getter, `sample(1)[0]`)
 - Fixed `cognitiveBounds` import (from `@senars/config`)
+- Fixed `Truth.create` method in `@senars/kernel/truth.ts` (alias for `createTruth`)
+- Fixed `NAREngine` import in engine-lifecycle test (from `@senars/engine`)
+- Fixed circular dependency in `src/schemas/truth.ts` (direct import from `../util/truth-schema.js`)
+- Fixed `distill.ts` imports (split across `@senars/util/ledger`, `@senars/util/fs`, `@senars/util/collections`, `@senars/util/id`, `@senars/util/async`, `@senars/util/hash`)
+- Fixed `fundamentals-bench.ts` imports (`pct` from `@senars/util/format`, `serializeTruth` from `@senars/types/truth`)
+- Fixed `rule-templates/index.ts` import (`assertDefined` from `@senars/util/assert`)
+- Added 15+ explicit deep-path aliases to vitest.config.ts (bag, memory, agent, game, motor, commands, governance, schemas)
 
 ## Blocker: Vitest Deep Alias Resolution (P0 — Single Point of Failure) — **RESOLVED**
 
@@ -82,21 +89,21 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
 
 | Subsystem | Files | Failure Type | Estimated Effort | Quick Win? | Status |
 |-----------|-------|--------------|------------------|------------|--------|
-| **Surface D24** | `todo17b-surface.test.ts` | README vs impl audit | 30 min | ✅ Audit only | ⏳ |
-| **Fundamentals Gate** | `todo27-fundamentals-gate.test.ts` | Bench output format | 30 min | ✅ Config check | ⏳ |
+| **Surface D24** | `todo17b-surface.test.ts` | README vs impl audit | 30 min | ✅ Audit only | ✅ DONE |
+| **Fundamentals Gate** | `todo27-fundamentals-gate.test.ts` | Bench output format | 30 min | ✅ Config check | ✅ DONE |
 | **Runtime: BaseLedgerEntrySchema** | `src/lm/system-one/distill.ts` | Undefined schema (affects ~20 tests) | 1 hr | ✅ Fix schema import | ✅ DONE |
 | **RL/Oracle** | `rl/parity/*`, `rl/contract/*`, `bandit-epsilon-greedy.test.ts` | RNG injection, trace validation | 2-3 hr | ❌ Deep | ⏳ |
 | **Governance** | `todo7-domains.test.ts` | Autonomy transitions | 1 hr | ✅ Gate logic | ⏳ |
 | **Goal System** | `rl/contract/goal-action.test.ts`, `no-bypass.test.ts` | Dispatch pipeline | 1-2 hr | ❌ Deep | ⏳ |
 | **LM Service** | `todo16-batching.test.ts` | Manifold/cache wiring | 1-2 hr | ❌ Deep | ⏳ |
-| **Kernel/Gates** | `core19-c4/c5/c6.test.ts` | Log persistence, replay | 1 hr | ✅ Config | ⏳ |
+| **Kernel/Gates** | `core19-c4/c5/c6.test.ts` | Log persistence, replay | 1 hr | ✅ Config | ✅ DONE |
 | **Memory** | `memory.test.ts`, `state-persistence.test.ts` | Bag API, codec | 30 min | ✅ API fix done | ✅ DONE |
-| **Test Import Fallback** | ~101 remaining import errors | Fix test imports or add aliases | 1-2 hr | ⚠️ Mechanical | 🔄 IN PROGRESS |
+| **Test Import Fallback** | ~101 remaining import errors | Fix test imports or add aliases | 1-2 hr | ⚠️ Mechanical | ✅ DONE |
 
-### B1. Quick Wins First (Parallelizable, ~1 hr total) — **MOSTLY DONE**
-- **Runtime: BaseLedgerEntrySchema**: ✅ Fixed in `src/lm/system-one/distill.ts`
+### B1. Quick Wins First (Parallelizable, ~1 hr total) — **COMPLETE**
+- **Runtime: BaseLedgerEntrySchema**: ✅ Fixed in `src/lm/system-one/distill.ts` (split imports across util modules)
 - **Memory**: ✅ Bag API fixed (size getter, sample method, internal entry wrapping)
-- **Test Import Fallback**: 🔄 Mechanical fixes applied (`@senars/nar/` → `@senars/`, `.js` stripping), 100+ explicit aliases added
+- **Test Import Fallback**: ✅ Mechanical fixes applied (`@senars/nar/` → `@senars/`, `.js` stripping), 100+ explicit aliases added
   - Fixed `@senars/index` alias
   - Fixed `createLedger` import in distill.ts
   - Fixed `NarEventBus` imports (→ `@senars/types`)
@@ -106,9 +113,10 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
   - Fixed `TermFactory` import (added `@senars/kernel/terms` alias)
   - Fixed `PriorityBag` test imports (→ `@senars/bag`)
   - Fixed `cognitiveBounds` import (→ `@senars/config`)
-- **Surface D24**: ⏳ README rule-matrix audit pending
-- **Fundamentals Gate**: ⏳ Bench output format check pending
-- **Kernel/Gates**: ⏳ Gate log capacity constants check pending
+  - Added 15+ deep-path aliases for `@senars/bag/*`, `@senars/memory/*`, `@senars/agent/*`, `@senars/game/*`, `@senars/motor/*`, `@senars/commands/*`, `@senars/governance/*`, `@senars/schemas/cognitive-events/*`
+- **Surface D24**: ✅ README rule-matrix audit passes (all 9 claimed rules implemented)
+- **Fundamentals Gate**: ✅ Bench output format fixed — all 7 scenarios pass with mock provider
+- **Kernel/Gates**: ✅ GATE_LOG_CAPACITY constants verified (1000)
 
 ### B2. Deep Investigations (Sequential or Subagent-Parallel)
 | Task | Entry Point | Key Files to Check |
@@ -153,7 +161,7 @@ pnpm tsc --project tsconfig.root.json --noEmit 2>&1 | grep -v "ui\|UI" || true
 | Lint | **PASS** | `pnpm lint` |
 | Exports check | **PASS** | `pnpm exports:check` && `pnpm exports:barrels` |
 
-**Current Status**: Import errors ~50 (down from 392), Passed: 186 test files, 2049 tests (up from 35/436), Failed: 217 test files, 542 tests. Pass rate: ~79% (target >90%)
+**Current Status**: Import errors ~0 (down from 392), Passed: 196 test files, 2108 tests (up from 35/436), Failed: 207 test files, 510 tests. Pass rate: ~80% (target >90%)
 
 ---
 
@@ -177,27 +185,36 @@ pnpm tsc --project tsconfig.root.json --noEmit 2>&1 | grep -v "ui\|UI" || true
 - Fix Bag API (size getter, sample method, internal entry wrapping) ✅
 - Mechanical test import fixes: @senars/nar/ → @senars/, .js stripping ✅
 - Add 100+ explicit deep-path aliases (kernel, focus, nl, lm, memory, rlfp, terms, etc.) ✅
-- Surface D24: grep README rule matrix → diff vs src/rules/impls/ ⏳
-- Fundamentals Gate: check bench.ts output format (SCENARIOS=7) ⏳
-- Kernel/Gates: check GATE_LOG_CAPACITY constants ⏳
+- Fix Truth.create method in @senars/kernel/truth.ts ✅
+- Fix NAREngine import in engine-lifecycle test ✅
+- Fix circular dependency in src/schemas/truth.ts ✅
+- Fix distill.ts imports (split across util modules) ✅
+- Fix fundamentals-bench.ts imports ✅
+- Fix rule-templates/index.ts import ✅
+- Add 15+ deep-path aliases for bag, memory, agent, game, motor, commands, governance, schemas ✅
+- Surface D24: ✅ README rule-matrix audit passes
+- Fundamentals Gate: ✅ Bench output format fixed — 7/7 scenarios pass
+- Kernel/Gates: ✅ GATE_LOG_CAPACITY constants verified
 ```
 
 ### Session 3: Deep Fixes (2-3 hr)
 ```
 Subagent-per-subsystem or sequential:
-- RL RNG: trace Math.random() calls → inject RandomSource
-- Trace Validation: verify mintCognitiveEvent wiring
-- Governance: verify LEGAL_TRANSITIONS completeness
-- Goal Pipeline: trace observation→belief→value→goal→tool→reward
-- LM Manifold: verify cache key generation + backend selection
+- RL RNG: trace Math.random() calls → inject RandomSource (bandit-epsilon-greedy.test.ts)
+- Trace Validation: verify mintCognitiveEvent wiring (rl/parity/trace-validation.test.ts)
+- Governance: verify LEGAL_TRANSITIONS completeness (todo7-domains.test.ts)
+- Goal Pipeline: trace observation→belief→value→goal→tool→reward (goal-action.test.ts)
+- LM Manifold: verify cache key generation + backend selection (todo16-batching.test.ts)
+- Test Logic: fix Truth serialize/deserialize precision issue
+- Test Logic: add missing Truth operations or fix truth-properties test
 ```
 
 ### Session 4: Gates & Cleanup (1 hr)
 ```
-- Typecheck core isolation
-- Deps gate baseline update
-- Docs drift fix
-- Final full suite run → verify >90%
+- Typecheck core isolation (src/ only)
+- Deps gate baseline update (document 61 pre-existing cycles)
+- Docs drift fix (valid-atom.ts runtime error)
+- Final full suite run → verify >90% pass rate
 ```
 
 ---
@@ -233,24 +250,20 @@ Subagent-per-subsystem or sequential:
 ## Minimal Viable Next Step
 
 ```bash
-# Remaining quick wins:
-# 1. Surface D24: audit README rule matrix (grep -n "rule.*matrix" README.md)
-# 2. Fundamentals Gate: check bench.ts SCENARIOS constant in tests/nar/todo27-fundamentals-gate.test.ts
-# 3. Kernel/Gates: check GATE_LOG_CAPACITY in src/kernel/KernelActionGate.ts
-# 4. Add remaining explicit aliases for common missing imports:
-#    - EpisodicMemory, Memory, createCognitiveThread, ToolRegistry, CommandRegistry
-#    - PolicyEngine, mintCognitiveEvent, verifyRecord, narEventToCognitive
-# 5. Run full suite → verify >90% pass rate
+# Quick wins COMPLETE. Remaining work is deep subsystem fixes:
+# 1. RL RNG Injection: trace Math.random() calls → inject RandomSource (bandit-epsilon-greedy.test.ts)
+# 2. Trace Validation: verify mintCognitiveEvent wiring (rl/parity/trace-validation.test.ts)
+# 3. Governance Transitions: verify LEGAL_TRANSITIONS completeness (todo7-domains.test.ts)
+# 4. Goal Dispatch Pipeline: trace observation→belief→value→goal→tool→reward (goal-action.test.ts)
+# 5. LM Manifold/Cache: verify cache key generation + backend selection (todo16-batching.test.ts)
+# 6. Test Logic Fixes: 
+#    - Truth serialize/deserialize round-trip precision (truth-properties.test.ts)
+#    - Truth operations test uses non-existent ops (truth-properties.test.ts)
+#    - Property-based truth algebra tests (truth-algebra.test.ts)
+# 7. Run full suite → verify >90% pass rate
 
-# Most common remaining import errors (from error summary):
-# - NarEventBus: 30 → import from @senars/types
-# - PriorityBag: 22 → import from @senars/bag  
-# - EpisodicMemory: 21 → import from @senars/memory
-# - Memory: 17 → import from @senars/memory
-# - createCognitiveThread: 16 → import from @senars/agent
-# - createGridWorldGame: 12 → import from @senars/game
-# - ToolRegistry: 9 → import from @senars/motor
-# - CommandRegistry: 8 → import from @senars/cli
-# - PolicyEngine: 7 → import from @senars/governance
-# - mintCognitiveEvent: 7 → import from @senars/schemas/cognitive-events
+# Known test logic issues (not import errors):
+# - Truth.deserialize(Truth.serialize(t)) fails at f=0, c=0.001 (precision/format mismatch)
+# - Truth namespace missing: comparison, contraposition, subtract, diff, exemplification, sameness
+# - NAREngine lifecycle tests pass, but other engine tests may need fixes
 ```

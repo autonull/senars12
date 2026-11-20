@@ -1,4 +1,4 @@
-import { NAREngine } from '@senars/agent';
+import { NAREngine } from '@senars/engine';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('NAREngine lifecycle', () => {

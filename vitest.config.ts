@@ -256,6 +256,25 @@ const aliases = [
   { find: '@senars/lm/service/accounting', replacement: path.resolve(__dirname, './src/lm/service/accounting.ts') },
   { find: '@senars/types/index', replacement: path.resolve(__dirname, './src/types/index.ts') },
   { find: '@senars/config/cognitive-parameters', replacement: path.resolve(__dirname, './src/config/cognitive-parameters.ts') },
+  // @senars/bag/*
+  { find: '@senars/bag/Bag', replacement: path.resolve(__dirname, './src/bag/Bag.ts') },
+  { find: '@senars/bag/PriorityBag', replacement: path.resolve(__dirname, './src/bag/Bag.ts') },
+  // @senars/memory/*
+  { find: '@senars/memory/Memory', replacement: path.resolve(__dirname, './src/memory/memory.ts') },
+  // @senars/agent/*
+  { find: '@senars/agent/createCognitiveThread', replacement: path.resolve(__dirname, './src/agent/cognitive-thread.ts') },
+  { find: '@senars/agent/PolicyEngine', replacement: path.resolve(__dirname, './src/agent/PolicyEngine.ts') },
+  // @senars/game/*
+  { find: '@senars/game/createGridWorldGame', replacement: path.resolve(__dirname, './src/game/impls/GridWorldGame.ts') },
+  // @senars/motor/*
+  { find: '@senars/motor/ToolRegistry', replacement: path.resolve(__dirname, './src/motor/ToolRegistry.ts') },
+  // @senars/commands/*
+  { find: '@senars/commands/CommandRegistry', replacement: path.resolve(__dirname, './src/commands/registry.ts') },
+  // @senars/governance/*
+  { find: '@senars/governance/PolicyEngine', replacement: path.resolve(__dirname, './src/governance/pipeline.ts') },
+  // @senars/schemas/cognitive-events/*
+  { find: '@senars/schemas/cognitive-events/mintCognitiveEvent', replacement: path.resolve(__dirname, './src/schemas/cognitive-events.ts') },
+  { find: '@senars/schemas/cognitive-events/validateCognitiveEvent', replacement: path.resolve(__dirname, './src/schemas/cognitive-events.ts') },
   // @senars/core/*
   { find: '@senars/core/budget', replacement: path.resolve(__dirname, './src/budget/index.ts') },
   // @senars/agent/*
