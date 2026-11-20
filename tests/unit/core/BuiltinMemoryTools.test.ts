@@ -1,4 +1,4 @@
-import { type CmdArgSet, createBuiltinTools, type ToolResult } from '@senars/agent';
+import { type CmdArgSet, createBuiltinTools, type ToolResult } from '@senars/motor';
 import { describe, expect, it } from 'vitest';
 
 interface Episode {

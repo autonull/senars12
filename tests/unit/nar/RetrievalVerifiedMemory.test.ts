@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
-import type { EpisodeType } from '@senars/agent';
+import type { EpisodeType } from '@senars/memory';
 import { createMockLMService } from '@senars/lm';
-import { MockEmbeddingGenerator } from '@senars/lm';
+import { MockEmbeddingGenerator } from '@senars/memory';
 import { consolidateEpisodes } from '@senars/memory';
 import { afterAll, describe, expect, it } from 'vitest';
 import { EpisodicMemory } from '@senars/memory';

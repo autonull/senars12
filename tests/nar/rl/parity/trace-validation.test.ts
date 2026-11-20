@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import { createTask, DEFAULT_CONFIG, TermBuilder, Truth } from '@senars/nar';
-import { BanditGame } from '@senars/game/impls/BanditGame';
+import { BanditGame } from '@senars/game';
 import { NAR } from '@senars/nar';
 import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
-} from '@senars/rl/index';
+} from '@senars/rl';
 import { operationTerm } from '@senars/terms/index';
 
 describe('RL Parity - Trace Validation', () => {

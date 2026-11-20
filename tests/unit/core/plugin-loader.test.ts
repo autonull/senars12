@@ -1,13 +1,33 @@
+import { Agent } from '@senars/agent';
 import {
-  Agent,
   builtinLensPlugins,
   createLensPlugin,
   createTransportPlugin,
   PluginLoader,
   type TransportRegistry,
-} from '@senars/agent';
+} from '@senars/plugins';
 import type { Connection, ConnectionConfig, ConnectionDeps } from '@senars/utils';
+import type { EventLog } from '@senars/log';
 import { describe, expect, it, vi } from 'vitest';
+
+function createMockEventLog(): EventLog {
+  const events: any[] = [];
+  return {
+    append: vi.fn().mockImplementation(async (event) => {
+      const e = { ...event, id: `evt-${events.length}`, timestamp: Date.now() };
+      events.push(e);
+      return e;
+    }),
+    subscribe: vi.fn().mockImplementation(async function* () {
+      for (const e of events) yield e;
+    }),
+    query: vi.fn().mockResolvedValue([]),
+    getRange: vi.fn().mockResolvedValue([]),
+    close: vi.fn().mockResolvedValue(undefined),
+    getSnapshot: vi.fn().mockResolvedValue(null),
+    saveSnapshot: vi.fn().mockResolvedValue(undefined),
+  };
+}
 
 function dummyConnection(config: ConnectionConfig, _deps: ConnectionDeps): Connection {
   return {
@@ -28,9 +48,11 @@ function dummyConnection(config: ConnectionConfig, _deps: ConnectionDeps): Conne
   };
 }
 
+const mockLog = createMockEventLog();
+
 describe('PluginLoader integration', () => {
   it('registers a transport plugin into a connection manager', () => {
-    const agent = new Agent({ id: 'p' });
+    const agent = new Agent({ id: 'p', log: mockLog });
     const loader = new PluginLoader(agent);
     const plugin = createTransportPlugin({
       id: 'tp-cli',
@@ -55,7 +77,7 @@ describe('PluginLoader integration', () => {
   });
 
   it('registers built-in lens plugins', () => {
-    const agent = new Agent({ id: 'l' });
+    const agent = new Agent({ id: 'l', log: mockLog });
     const loader = new PluginLoader(agent);
     loader.load(builtinLensPlugins());
     expect(loader.lenses.length).toBeGreaterThan(0);
@@ -69,7 +91,7 @@ describe('PluginLoader integration', () => {
       name: 'Dummy Transport',
       ctor: dummyConnection as never,
     });
-    const agent = new Agent({ id: 'd' });
+    const agent = new Agent({ id: 'd', log: mockLog });
     const loader = new PluginLoader(agent);
     loader.load([plugin]);
     const transports = loader.transports;
@@ -98,7 +120,7 @@ describe('PluginLoader integration', () => {
   });
 
   it('createLensPlugin registers the lens spec through PluginContext', () => {
-    const agent = new Agent({ id: 'lp' });
+    const agent = new Agent({ id: 'lp', log: mockLog });
     const loader = new PluginLoader(agent);
     const plugin = createLensPlugin({
       id: 'custom',

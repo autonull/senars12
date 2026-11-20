@@ -22,6 +22,8 @@ export { abortSession, createSession, InMemorySessionManager, JsonlSessionManage
 export { SessionStore, type SessionStoreOptions } from './in-memory-session-manager.js';
 export type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig } from './episodic.js';
 export { EPISODE_TYPES } from './episodic.js';
+export { MockEmbeddingGenerator, type EmbeddingGenerator } from './embedding.js';
+export { consolidateEpisodes } from './retrieval-verified.js';
 export type { ConceptStats, SerializedConcept, SerializedMemory } from './state/index.js';
 export {
   calculateConceptStats,

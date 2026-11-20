@@ -21,7 +21,7 @@ const seedBag = (rng: () => number, n = 50): string[] => {
   for (let i = 0; i < n; i++) bag.add(item(i, (i % 7) + 1));
   const sampled: string[] = [];
   for (let i = 0; i < 30; i++) {
-    const s = bag.sample();
+    const s = bag.sample(1)[0];
     if (s) sampled.push(s.id);
   }
   return sampled;
@@ -67,7 +67,7 @@ describe('Bench 63 — Determinism', () => {
 
   it('Negotiator is RNG-free (veto resolution is a pure function)', () => {
     const source = readFileSync(
-      new URL('@senars/reflex/Negotiator.ts', import.meta.url),
+      new URL('../../src/reflex/Negotiator.ts', import.meta.url),
       'utf-8'
     );
     expect(source.includes('Math.random')).toBe(false);
@@ -81,7 +81,7 @@ describe('Bench 63 — Determinism', () => {
   });
 
   it('RNG call sites use RandomSource injection (no bare Math.random calls)', () => {
-    for (const rel of ['nar/src/bag/Bag.ts', 'nar/src/learning/schema-induction.ts']) {
+    for (const rel of ['src/bag/Bag.ts', 'src/learning/schema-induction.ts']) {
       const source = readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf-8');
       const bare = [...source.matchAll(/Math\.random\(\)/g)].filter(
         (m) => !source.slice(Math.max(0, m.index! - 40), m.index!).includes('??')

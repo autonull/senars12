@@ -1,5 +1,5 @@
-import type { JudgmentResolvedEvent } from '@senars/agent';
-import { validateCognitiveEvent } from '@senars/agent';
+import type { JudgmentResolvedEvent } from '@senars/schemas';
+import { validateCognitiveEvent } from '@senars/schemas';
 import { fnv1aCombine } from '@senars/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { KernelPerceptionGate } from '@senars/kernel/KernelPerceptionGate';

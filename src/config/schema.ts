@@ -1,5 +1,5 @@
 import { AUTONOMY_MODES, AUTONOMY_POLICIES } from '@senars/autonomy';
-import { LM_PROVIDER_NAMES } from '@senars/lm';
+import { LM_PROVIDER_NAMES } from '../lm/env-config.js';
 import { LM_TASKS } from '@senars/types/llm';
 import {
   dialogueDefaults,

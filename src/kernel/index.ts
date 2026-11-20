@@ -6,7 +6,9 @@ export {
   type BudgetScopeSpec,
   scopeBudget,
   scopeLimit,
+  scopeLimitKey,
   scopeSpec,
+  scopeTerminationReason,
 } from './budget-scopes.js';
 export {
   type ControlBudgetOverrides,

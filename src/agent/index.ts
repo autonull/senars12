@@ -2,7 +2,7 @@ import { createAgent, type CreateAgentConfig, type BinAgentApi, type ExtendedAge
 
 export { createAgent, type CreateAgentConfig, type BinAgentApi, type ExtendedAgent } from './create-agent.js';
 
-export type { Agent } from './Agent.js';
+export { Agent } from './Agent.js';
 export { createCortexFromLM } from '@senars/cortex';
 export type { JsonlSessionManagerConfig } from '@senars/memory';
 export {
@@ -13,6 +13,9 @@ export {
 } from '@senars/memory';
 export { dispatchToolCalls, registerAgentTools } from '@senars/motor';
 export { emitDomainEvent, setDomainEventSink, hasDomainEventSink, type DomainEventPayload } from './event-sink.js';
+export { PolicyEngine } from './PolicyEngine.js';
+export { ApprovalService, type ApprovalManager } from './ApprovalService.js';
+export { ModelRunner, type ModelRunnerDeps } from './ModelRunner.js';
 export type { MettaPort } from './metta-port.js';
 export type { CapabilitySpec, CapabilitySurface, WiredNAR } from './builder.js';
 export { BuilderError, NARBuilder } from './builder.js';

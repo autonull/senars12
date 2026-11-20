@@ -4,8 +4,8 @@ import {
   type SearchProvider,
   searchWeb,
   type WebSearchResult,
-} from '@senars/agent';
-import { createWebSearchTools } from '@senars/agent';
+} from '@senars/motor';
+import { createWebSearchTools } from '@senars/tools/adapters';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const results = (n: number): WebSearchResult[] =>

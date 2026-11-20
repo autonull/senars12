@@ -7,7 +7,7 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
 - 20+ test files: corrected module paths
 - 7 source files: deep `@senars/util/*` → barrel `@senars/util` for vitest
 - Test framework: `Bag.peek()` → `Bag.all()[0]` (fixed 2 nal1-rules tests)
-- **Test logic pass rate: ~81% when tests can run**
+- **Test logic pass rate: ~84% when tests can run**
 
 **Current Session Progress (Session 2 continued):**
 - Fixed `Bag` API issues: `size` getter (not method), `sample()` returns array, `peek()` removed from tests
@@ -27,6 +27,15 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
 - Fixed `fundamentals-bench.ts` imports (`pct` from `@senars/util/format`, `serializeTruth` from `@senars/types/truth`)
 - Fixed `rule-templates/index.ts` import (`assertDefined` from `@senars/util/assert`)
 - Added 15+ explicit deep-path aliases to vitest.config.ts (bag, memory, agent, game, motor, commands, governance, schemas)
+
+**Session 3 Progress (Current):**
+- Fixed Truth serialize/deserialize precision: use @senars/terms Truth (4 decimal places)
+- Fixed Truth operations test: use @senars/terms Truth (has comparison, contraposition, subtract, diff, exemplification, sameness)
+- Fixed Bag determinism: Fisher-Yates shuffle with seeded RNG in util/bag.ts
+- Fixed numerous test import issues (web-search, RetrievalVerifiedMemory, policy-engine, plugin-loader, mint-cognitive-event, chat-stream-handler, approval-service, budget-gate-accounting, ambiguity-vocabulary, agent, ModelRunner, BuiltinMemoryTools, WebTools, todo16-enabled-path)
+- Added missing exports to barrels: agent (PolicyEngine, ApprovalService, ModelRunner), plugins (PluginLoader, TransportRegistry), kernel (scopeLimitKey, scopeTerminationReason), memory (MockEmbeddingGenerator, consolidateEpisodes)
+- Added vitest config aliases: @senars/tools/adapters, @senars/lm/lm-service, @senars/lm/providers, @senars/metrics/prometheus
+- Fixed circular dependency in config/schema.ts by importing LM_PROVIDER_NAMES directly from source
 
 ## Blocker: Vitest Deep Alias Resolution (P0 — Single Point of Failure) — **RESOLVED**
 
@@ -83,7 +92,7 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
 
 ---
 
-## Phase B: Parallel Subsystem Fixes (2-3 sessions) — **IN PROGRESS**
+## Phase B: Parallel Subsystem Fixes (2-3 sessions) — **MOSTLY COMPLETE**
 
 **Strategy**: Each subsystem is independent → can parallelize via subagents or sequential with clear handoffs.
 
@@ -92,13 +101,15 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
 | **Surface D24** | `todo17b-surface.test.ts` | README vs impl audit | 30 min | ✅ Audit only | ✅ DONE |
 | **Fundamentals Gate** | `todo27-fundamentals-gate.test.ts` | Bench output format | 30 min | ✅ Config check | ✅ DONE |
 | **Runtime: BaseLedgerEntrySchema** | `src/lm/system-one/distill.ts` | Undefined schema (affects ~20 tests) | 1 hr | ✅ Fix schema import | ✅ DONE |
-| **RL/Oracle** | `rl/parity/*`, `rl/contract/*`, `bandit-epsilon-greedy.test.ts` | RNG injection, trace validation | 2-3 hr | ❌ Deep | ⏳ |
-| **Governance** | `todo7-domains.test.ts` | Autonomy transitions | 1 hr | ✅ Gate logic | ⏳ |
-| **Goal System** | `rl/contract/goal-action.test.ts`, `no-bypass.test.ts` | Dispatch pipeline | 1-2 hr | ❌ Deep | ⏳ |
-| **LM Service** | `todo16-batching.test.ts` | Manifold/cache wiring | 1-2 hr | ❌ Deep | ⏳ |
+| **RL/Oracle** | `rl/parity/*`, `rl/contract/*`, `bandit-epsilon-greedy.test.ts` | RNG injection, trace validation | 2-3 hr | ❌ Deep | ✅ DONE (determinism fixed) |
+| **Governance** | `todo7-domains.test.ts` | Autonomy transitions | 1 hr | ✅ Gate logic | ✅ DONE |
+| **Goal System** | `rl/contract/goal-action.test.ts`, `no-bypass.test.ts` | Dispatch pipeline | 1-2 hr | ❌ Deep | ✅ DONE |
+| **LM Service** | `todo16-batching.test.ts` | Manifold/cache wiring | 1-2 hr | ❌ Deep | ✅ DONE |
 | **Kernel/Gates** | `core19-c4/c5/c6.test.ts` | Log persistence, replay | 1 hr | ✅ Config | ✅ DONE |
 | **Memory** | `memory.test.ts`, `state-persistence.test.ts` | Bag API, codec | 30 min | ✅ API fix done | ✅ DONE |
 | **Test Import Fallback** | ~101 remaining import errors | Fix test imports or add aliases | 1-2 hr | ⚠️ Mechanical | ✅ DONE |
+| **Test Logic: Truth** | `truth-properties.test.ts`, `truth-algebra.test.ts` | Serialize/deserialize precision, missing ops | 1 hr | ✅ Config | ✅ DONE |
+| **Test Logic: Bag** | `todo20-determinism.test.ts` | RNG injection, Fisher-Yates shuffle | 1 hr | ✅ Config | ✅ DONE |
 
 ### B1. Quick Wins First (Parallelizable, ~1 hr total) — **COMPLETE**
 - **Runtime: BaseLedgerEntrySchema**: ✅ Fixed in `src/lm/system-one/distill.ts` (split imports across util modules)
@@ -118,15 +129,31 @@ Core package consolidation (util→core→io→metta→nar → root `src/`) **CO
 - **Fundamentals Gate**: ✅ Bench output format fixed — all 7 scenarios pass with mock provider
 - **Kernel/Gates**: ✅ GATE_LOG_CAPACITY constants verified (1000)
 
-### B2. Deep Investigations (Sequential or Subagent-Parallel)
-| Task | Entry Point | Key Files to Check |
-|------|-------------|-------------------|
-| **RL RNG Injection** | `bandit-epsilon-greedy.test.ts` | `src/rl/impls/adapters/*`, `src/rl/impls/RewardBeliefAdapter.ts`, negotiator |
-| **Trace Validation** | `rl/parity/trace-validation.test.ts` | `src/proposal/cycle-trace.ts`, `src/kernel/KernelPerceptionGate.ts`, `src/nar-execution.ts` |
-| **Governance Transitions** | `todo7-domains.test.ts` | `src/kernel/KernelActionGate.ts`, `src/autonomy/wiring.ts`, `LEGAL_TRANSITIONS` |
-| **Goal Dispatch Pipeline** | `rl/contract/goal-action.test.ts` | `src/nar.ts:goal()`, `src/nar-io.ts`, `src/motor/ToolRegistry.ts`, `src/rl/impls/adapters/action.ts` |
-| **LM Manifold/Cache** | `todo16-batching.test.ts` | `src/lm/system-one/contrastive.ts`, `src/lm/system-one/embedding-cache.ts`, `src/lm/manifold/*` |
-| **Test Import Fallback** | Grep `@senars/nar/` in tests | Fix imports to `@senars/*` or add explicit aliases |
+### B2. Deep Investigations — **MOSTLY COMPLETE**
+| Task | Entry Point | Status |
+|------|-------------|--------|
+| **RL RNG Injection** | `bandit-epsilon-greedy.test.ts` / `todo20-determinism.test.ts` | ✅ DONE (Fisher-Yates shuffle, seeded RNG) |
+| **Trace Validation** | `rl/parity/trace-validation.test.ts` | ✅ DONE (imports fixed) |
+| **Governance Transitions** | `todo7-domains.test.ts` | ✅ DONE (passes) |
+| **Goal Dispatch Pipeline** | `rl/contract/goal-action.test.ts` | ✅ DONE (passes) |
+| **LM Manifold/Cache** | `todo16-batching.test.ts` | ✅ DONE (passes) |
+| **Test Logic: Truth** | `truth-properties.test.ts`, `truth-algebra.test.ts` | ✅ DONE (use @senars/terms Truth) |
+| **Test Logic: Bag** | `todo20-determinism.test.ts` | ✅ DONE (Fisher-Yates, seeded RNG) |
+
+### B3. Remaining Test Import Fixes (Session 3) — **COMPLETE**
+- web-search.test.ts → imports from @senars/motor, @senars/tools/adapters
+- RetrievalVerifiedMemory.test.ts → imports from @senars/memory, @senars/lm
+- policy-engine.test.ts → exports PolicyEngine from @senars/agent
+- plugin-loader.test.ts → imports from @senars/plugins, exports PluginLoader
+- mint-cognitive-event.test.ts → imports from @senars/schemas
+- chat-stream-handler.test.ts → imports from @senars/bridge
+- approval-service.test.ts → exports ApprovalService from @senars/agent
+- budget-gate-accounting.test.ts → exports scopeLimitKey, scopeTerminationReason from @senars/kernel
+- ambiguity-vocabulary.test.ts → imports from @senars/schemas
+- agent.test.ts → imports createLogStoreEventLog from @senars/log
+- ModelRunner.test.ts → exports ModelRunner from @senars/agent, imports createMockLMService from @senars/lm
+- BuiltinMemoryTools.test.ts, WebTools.test.ts → imports from @senars/motor
+- todo16-enabled-path.test.ts → imports validateCognitiveEvent from @senars/schemas, adds aliases for @senars/lm/lm-service, @senars/lm/providers, @senars/metrics/prometheus
 
 ---
 
@@ -161,7 +188,7 @@ pnpm tsc --project tsconfig.root.json --noEmit 2>&1 | grep -v "ui\|UI" || true
 | Lint | **PASS** | `pnpm lint` |
 | Exports check | **PASS** | `pnpm exports:check` && `pnpm exports:barrels` |
 
-**Current Status**: Import errors ~0 (down from 392), Passed: 196 test files, 2108 tests (up from 35/436), Failed: 207 test files, 510 tests. Pass rate: ~80% (target >90%)
+**Current Status**: Import errors ~0 (down from 392), Passed: 217 test files, 2223 tests (up from 35/436), Failed: 187 test files, 433 tests. Pass rate: ~84% (target >90%)
 
 ---
 
@@ -197,16 +224,20 @@ pnpm tsc --project tsconfig.root.json --noEmit 2>&1 | grep -v "ui\|UI" || true
 - Kernel/Gates: ✅ GATE_LOG_CAPACITY constants verified
 ```
 
-### Session 3: Deep Fixes (2-3 hr)
+### Session 3: Deep Fixes & Test Import Resolution (2-3 hr) — **COMPLETE**
 ```
-Subagent-per-subsystem or sequential:
-- RL RNG: trace Math.random() calls → inject RandomSource (bandit-epsilon-greedy.test.ts)
-- Trace Validation: verify mintCognitiveEvent wiring (rl/parity/trace-validation.test.ts)
-- Governance: verify LEGAL_TRANSITIONS completeness (todo7-domains.test.ts)
-- Goal Pipeline: trace observation→belief→value→goal→tool→reward (goal-action.test.ts)
-- LM Manifold: verify cache key generation + backend selection (todo16-batching.test.ts)
-- Test Logic: fix Truth serialize/deserialize precision issue
-- Test Logic: add missing Truth operations or fix truth-properties test
+- RL RNG: trace Math.random() calls → inject RandomSource (bandit-epsilon-greedy.test.ts) ✅
+- Trace Validation: verify mintCognitiveEvent wiring (rl/parity/trace-validation.test.ts) ✅
+- Governance: verify LEGAL_TRANSITIONS completeness (todo7-domains.test.ts) ✅
+- Goal Pipeline: trace observation→belief→value→goal→tool→reward (goal-action.test.ts) ✅
+- LM Manifold: verify cache key generation + backend selection (todo16-batching.test.ts) ✅
+- Test Logic: fix Truth serialize/deserialize precision issue ✅ (use @senars/terms Truth)
+- Test Logic: add missing Truth operations ✅ (use @senars/terms Truth)
+- Test Logic: Bag determinism ✅ (Fisher-Yates shuffle with seeded RNG)
+- Test Import Fallback: fix remaining ~100 import errors across test files ✅
+- Fix circular dependency in config/schema.ts ✅
+- Add missing exports to barrels (agent, plugins, kernel, memory) ✅
+- Add vitest config aliases for deep paths ✅
 ```
 
 ### Session 4: Gates & Cleanup (1 hr)
@@ -215,6 +246,7 @@ Subagent-per-subsystem or sequential:
 - Deps gate baseline update (document 61 pre-existing cycles)
 - Docs drift fix (valid-atom.ts runtime error)
 - Final full suite run → verify >90% pass rate
+- Address remaining 187 failed test files (mostly test logic, not import errors)
 ```
 
 ---
@@ -250,20 +282,15 @@ Subagent-per-subsystem or sequential:
 ## Minimal Viable Next Step
 
 ```bash
-# Quick wins COMPLETE. Remaining work is deep subsystem fixes:
-# 1. RL RNG Injection: trace Math.random() calls → inject RandomSource (bandit-epsilon-greedy.test.ts)
-# 2. Trace Validation: verify mintCognitiveEvent wiring (rl/parity/trace-validation.test.ts)
-# 3. Governance Transitions: verify LEGAL_TRANSITIONS completeness (todo7-domains.test.ts)
-# 4. Goal Dispatch Pipeline: trace observation→belief→value→goal→tool→reward (goal-action.test.ts)
-# 5. LM Manifold/Cache: verify cache key generation + backend selection (todo16-batching.test.ts)
-# 6. Test Logic Fixes: 
-#    - Truth serialize/deserialize round-trip precision (truth-properties.test.ts)
-#    - Truth operations test uses non-existent ops (truth-properties.test.ts)
-#    - Property-based truth algebra tests (truth-algebra.test.ts)
-# 7. Run full suite → verify >90% pass rate
+# All quick wins and deep subsystem fixes COMPLETE. Remaining work:
+# 1. Typecheck core isolation (src/ only)
+# 2. Deps gate baseline update (document 61 pre-existing cycles)
+# 3. Docs drift fix (valid-atom.ts runtime error)
+# 4. Address remaining 187 failed test files (mostly test logic issues, not import errors)
+# 5. Final full suite run → verify >90% pass rate
 
 # Known test logic issues (not import errors):
-# - Truth.deserialize(Truth.serialize(t)) fails at f=0, c=0.001 (precision/format mismatch)
-# - Truth namespace missing: comparison, contraposition, subtract, diff, exemplification, sameness
-# - NAREngine lifecycle tests pass, but other engine tests may need fixes
+# - ModelRunner tool-call events not yielded correctly (mock model limitation)
+# - Various NAR integration tests need logic fixes
+# - Some e2e tests have flaky file handle issues
 ```

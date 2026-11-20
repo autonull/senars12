@@ -2,7 +2,7 @@ import {
   type CognitiveEventOf,
   mintCognitiveEvent,
   validateCognitiveEvent,
-} from '@senars/agent';
+} from '@senars/schemas';
 import { describe, expect, it } from 'vitest';
 
 const cycleDraft = () => ({

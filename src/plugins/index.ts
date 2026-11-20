@@ -58,3 +58,5 @@ export function createToolPlugin(spec: ToolSpec): SenarsPlugin {
 export function builtinLensPlugins(): SenarsPlugin[] {
   return builtinLensSpecs().map(createLensPlugin);
 }
+
+export { PluginLoader, type TransportRegistry } from './PluginLoader.js';

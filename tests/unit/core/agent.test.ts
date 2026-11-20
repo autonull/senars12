@@ -1,5 +1,5 @@
 import { Agent } from '@senars/agent';
-import { createLogStoreEventLog } from '@senars/agent';
+import { createLogStoreEventLog } from '@senars/log';
 import type { Engine } from '@senars/utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync } from 'node:fs';

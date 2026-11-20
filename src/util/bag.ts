@@ -87,6 +87,7 @@ export interface CyclesBudget {
 }
 
 import type { RandomSource } from './random.js';
+import { shuffleInPlace, ambientRng } from './random.js';
 
 /** Random source for bag operations (re-exported from random). */
 export type { RandomSource };
@@ -198,11 +199,11 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     if (!options.capacity || options.capacity <= 0) {
       throw new Error('Bag capacity must be a positive number');
     }
-    this.id = options.id ?? `bag-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    this.id = options.id ?? `bag-${Date.now()}-${ambientRng().toString(36).slice(2, 8)}`;
     this.capacity = options.capacity;
     this.#evictStrategy = options.evictStrategy ?? 'priority';
     this.#clock = options.clock ?? (() => Date.now());
-    this.#rng = options.rng ?? Math.random;
+    this.#rng = options.rng ?? ambientRng;
     this.#decayRate = options.decayRate ?? 0;
     this.#forgetRate = options.forgetRate ?? 0;
     this.#onPressure = options.onPressure;
@@ -362,7 +363,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   sample(count: number): T[] {
     const items = this.all();
     if (items.length <= count) return items;
-    const shuffled = [...items].sort(() => this.#rng() - 0.5);
+    const shuffled = shuffleInPlace([...items], this.#rng);
     return shuffled.slice(0, count);
   }
 
