@@ -7,7 +7,7 @@
 - Fixed: Updated `docs/readme/generate.ts` import path from `nar/src` to `src/`
 ---
 ## Success Criteria (Definition of Done)
-**Current Status**: Import errors 0 (down from 392), File handle leaks 0, Passed: 345 test files, 3194 tests, Failed: 55 test files, 183 tests. Pass rate: ~93.3% (target >90%)
+**Current Status**: Import errors 0 (down from 392), File handle leaks 0, Passed: 347 test files, 3199 tests, Failed: 54 test files, 180 tests. Pass rate: ~94.7% (target >90%)
 ---
 ## Execution Playbook
 ### Session 1: Unblock (45 min) ✅ **COMPLETE**
@@ -94,22 +94,21 @@
 - Fixed taskmanager-types: isEventType export
 - Fixed retract: TermBuilder exports
 - Fixed mcp-bridge: zodFromSchema, registerNARRegistryTools, registerNARTools exports (partial)
-- Remaining ~56 failed test files (down from 100):
-  - todo17b-nal-arm: NAL veto transplant test (3) — veto mechanism not working
-  - todo19-reasoning: NAL veto transplant test (1) — veto mechanism not working
+- Fixed NAL veto mechanism: PriorityBag.decay() double-counting bug (src/util/bag.ts:364) — was using already-decayed priority minus total decay, causing premature eviction of seeded concepts
+- Remaining ~54 failed test files (down from 100):
   - kernel/terms: 12 failures — Narsese parser, standardizeApart, canonicalEquals bugs
   - gate-log-persistence: LogStore replay (1)
   - focustree-cognitivethread: ThreadPool tests (5)
   - full-replay: LogStore replay tests (3)
   - refactor3-episode-graph: episode graph completeness (3)
-  - refactor4-budget: complexity budget gate tests (3)
+  - refactor4-budget: complexity budget gate tests (3) — pre-existing baseline drift
   - mcp-bridge: 4 failures
   - todo16-provisional: provisional priority decay (1)
   - todo16-device-profile: provider fallback test
   - todo16c-f5-dispositions: manifold health, novelty gate
   - todo16c-cortex: cortex health check
   - todo20-security: tool input validation, LM response sanitization
-  - todo19-profiles/todo19-reasoning: device profiles, NAL veto
+  - todo19-profiles/todo19-reasoning: device profiles
   - inference-nario-lm: NARLM tests
   - Various other test logic issues
 ```
@@ -139,21 +138,22 @@
 ## Minimal Viable Next Step
 ```bash
 # All quick wins, deep subsystem fixes, import resolution, file handle leaks COMPLETE.
-# Major test logic fixes COMPLETE (LogStore, CognitiveController, exports, ModelRunner, bag tests, fundamentals bench, todo29a-a1 cycle tests, kernel terms).
-# Pass rate: ~93.2% (target >90%) — EXCEEDS TARGET!
+# Major test logic fixes COMPLETE (LogStore, CognitiveController, exports, ModelRunner, bag tests, fundamentals bench, todo29a-a1 cycle tests, kernel terms, NAL veto).
+# Pass rate: ~94.7% (target >90%) — EXCEEDS TARGET!
 # Kernel terms: 36/36 tests now PASSING (fixed Narsese parser, standardizeApart, canonicalEquals, termEquals)
 # todo16-provisional: 7/7 tests now PASSING (fixed test to use mock clock for bag decay)
 # todo26-cognitive-agent: timeout increased to 180s (was timing out at 60s under parallel load)
 # 09-restart-equivalence: timeout increased to 60s (was default 15s)
-# Remaining work (~55 failed test files / 183 failed tests):
-# 1. NAL veto mechanism: todo17b-nal-arm (3), todo19-reasoning (1) — core veto logic bug
-# 2. LogStore/ThreadPool persistence: gate-log-persistence, focustree-cognitivethread, full-replay
-# 3. Episode graph: refactor3-episode-graph (3)
-# 4. Budget gate: refactor4-budget (3)
-# 5. MCP bridge: mcp-bridge (4)
-# 6. todo16 family: device-profile, dispositions, cortex
-# 7. Security: todo20-security
-# 8. NARLM: inference-nario-lm
-# 9. RL parity: cognitive-advantage (1)
-# 10. Final full suite run → verify >90% pass rate (currently ~93.3%)
+# NAL veto: FIXED — PriorityBag.decay() double-counting bug caused seeded concepts to evaporate after ~18 cycles
+# Remaining work (~54 failed test files / 180 failed tests):
+# 1. LogStore/ThreadPool persistence: gate-log-persistence, focustree-cognitivethread, full-replay
+# 2. Episode graph: refactor3-episode-graph (3)
+# 3. Budget gate: refactor4-budget (3) — pre-existing baseline drift (update complexity-budget.json)
+# 4. MCP bridge: mcp-bridge (4)
+# 5. todo16 family: device-profile, dispositions, cortex
+# 6. Security: todo20-security
+# 7. NARLM: inference-nario-lm
+# 8. RL parity: cognitive-advantage (1)
+# 9. kernel/terms: 12 failures — Narsese parser, standardizeApart, canonicalEquals bugs
+# 10. Final full suite run → verify >90% pass rate (currently ~94.7%)
 ```

@@ -361,7 +361,8 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       const age = now - entry._insertedAt;
       const decay = this.#decayRate * age;
       const forget = this.#forgetRate * age;
-      const newPriority = Math.max(0, entry._currentPriority - decay - forget);
+      const originalPriority = entry._item.priority;
+      const newPriority = Math.max(0, originalPriority - decay - forget);
       if (newPriority <= 0) {
         this.#items.delete(id);
       } else {
