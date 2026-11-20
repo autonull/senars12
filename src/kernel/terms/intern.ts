@@ -171,11 +171,25 @@ termInterner.goal = (term: Term) => termInterner.compound(TermOp.GOAL, term);
 termInterner.getHash = (term: Term) => termInterner.hash(term);
 
 /**
- * Term equality that respects interning.
- * Returns true iff a and b are the exact same interned object.
+ * Term structural equality.
+ * Returns true if a and b have the same structure and values.
  */
 export function termEquals(a: Term, b: Term): boolean {
-  return termInterner.equals(a, b);
+  if (a === b) return true;
+  if (a.op !== b.op) return false;
+  if (a.op === TermOp.CONSTANT && b.op === TermOp.CONSTANT) {
+    return (a as ConstantTerm).value === (b as ConstantTerm).value;
+  }
+  if (a.op === TermOp.VARIABLE && b.op === TermOp.VARIABLE) {
+    return (a as VariableTerm).name === (b as VariableTerm).name;
+  }
+  const ca = a as CompoundTerm;
+  const cb = b as CompoundTerm;
+  if (ca.arity !== cb.arity) return false;
+  for (let i = 0; i < ca.arity; i++) {
+    if (!termEquals(ca.args[i]!, cb.args[i]!)) return false;
+  }
+  return true;
 }
 
 /**
@@ -337,7 +351,7 @@ export function getVariableSet(term: Term): Set<VariableTerm> {
 /**
  * Rename variables in a term to avoid capture.
  */
-export function renameVariables(term: Term, prefix = 'v'): Term {
+export function renameVariables(term: Term, prefix = '_v'): Term {
   const mapping = new Map<VariableTerm, VariableTerm>();
   let counter = 0;
 

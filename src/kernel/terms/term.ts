@@ -320,6 +320,10 @@ class NarseseParser {
     const start = this.pos;
     const term = this.parseCompound();
     this.skipWhitespace();
+    // Handle postfix punctuation (. ? !)
+    if (this.match('.')) return this.factory.statement(term);
+    if (this.match('?')) return this.factory.question(term);
+    if (this.match('!')) return this.factory.goal(term);
     if (this.pos < this.input.length) {
       throw new Error(`Unexpected character at position ${this.pos}: ${this.input[this.pos]}`);
     }
@@ -328,11 +332,12 @@ class NarseseParser {
 
   private parseCompound(): Term {
     this.skipWhitespace();
+    const left = this.parsePrimary();
+    return this.parseBinary(left, 0);
+  }
 
-    // Check for punctuation
-    if (this.match('.')) return this.factory.statement(this.parseCompound());
-    if (this.match('?')) return this.factory.question(this.parseCompound());
-    if (this.match('!')) return this.factory.goal(this.parseCompound());
+  private parsePrimary(): Term {
+    this.skipWhitespace();
 
     // Parenthesized
     if (this.match('(')) {
@@ -343,7 +348,7 @@ class NarseseParser {
 
     // Negation
     if (this.match('~')) {
-      return this.factory.negation(this.parseCompound());
+      return this.factory.negation(this.parsePrimary());
     }
 
     // Variable
@@ -362,65 +367,78 @@ class NarseseParser {
     // Constant/word
     const word = this.parseWord();
     if (!word) throw new Error(`Expected term at position ${this.pos}`);
+    return this.factory.constant(word);
+  }
 
+  private parseBinary(left: Term, minPrec: number): Term {
     this.skipWhitespace();
 
-    // Check for binary operators
-    if (this.match('-->')) {
-      const right = this.parseCompound();
-      return this.factory.inheritance(this.factory.constant(word), right);
-    }
-    if (this.match('<->')) {
-      const right = this.parseCompound();
-      return this.factory.similarity(this.factory.constant(word), right);
-    }
-    if (this.match('==>')) {
-      const right = this.parseCompound();
-      return this.factory.implication(this.factory.constant(word), right);
-    }
-    if (this.match('<=>')) {
-      const right = this.parseCompound();
-      return this.factory.equivalence(this.factory.constant(word), right);
-    }
-    if (this.match('@')) {
-      const right = this.parseCompound();
-      return this.factory.extensionalImage(this.factory.constant(word), right);
-    }
-    if (this.match('#')) {
-      const right = this.parseCompound();
-      return this.factory.intensionalImage(this.factory.constant(word), right);
-    }
-    if (this.match('|>')) {
-      const right = this.parseCompound();
-      return this.factory.prediction(this.factory.constant(word), right);
-    }
-    if (this.match('&')) {
-      const right = this.parseCompound();
-      return this.factory.conjunction(this.factory.constant(word), right);
-    }
-    if (this.match('|')) {
-      const right = this.parseCompound();
-      return this.factory.disjunction(this.factory.constant(word), right);
-    }
-    if (this.match('*')) {
-      const right = this.parseCompound();
-      return this.factory.product(this.factory.constant(word), right);
-    }
-    if (this.match('||')) {
-      const right = this.parseCompound();
-      return this.factory.concurrent(this.factory.constant(word), right);
-    }
-    if (this.match(';')) {
-      const right = this.parseCompound();
-      return this.factory.sequential(this.factory.constant(word), right);
-    }
-    if (this.match('|~')) {
-      const right = this.parseCompound();
-      return this.factory.parallel(this.factory.constant(word), right);
+    const ops: Array<{ op: string; prec: number; assoc: 'left' | 'right'; factory: (l: Term, r: Term) => Term; nary: boolean }> = [
+      { op: '-->', prec: 10, assoc: 'right', factory: (l, r) => this.factory.inheritance(l, r), nary: false },
+      { op: '<->', prec: 10, assoc: 'right', factory: (l, r) => this.factory.similarity(l, r), nary: false },
+      { op: '==>', prec: 10, assoc: 'right', factory: (l, r) => this.factory.implication(l, r), nary: false },
+      { op: '<=>', prec: 10, assoc: 'right', factory: (l, r) => this.factory.equivalence(l, r), nary: false },
+      { op: '@', prec: 10, assoc: 'right', factory: (l, r) => this.factory.extensionalImage(l, r), nary: false },
+      { op: '#', prec: 10, assoc: 'right', factory: (l, r) => this.factory.intensionalImage(l, r), nary: false },
+      { op: '|>', prec: 10, assoc: 'right', factory: (l, r) => this.factory.prediction(l, r), nary: false },
+      { op: '&', prec: 20, assoc: 'left', factory: (l, r) => this.factory.conjunction(l, r), nary: true },
+      { op: '|', prec: 20, assoc: 'left', factory: (l, r) => this.factory.disjunction(l, r), nary: true },
+      { op: '*', prec: 20, assoc: 'left', factory: (l, r) => this.factory.product(l, r), nary: true },
+      { op: '||', prec: 20, assoc: 'left', factory: (l, r) => this.factory.concurrent(l, r), nary: true },
+      { op: ';', prec: 20, assoc: 'left', factory: (l, r) => this.factory.sequential(l, r), nary: true },
+      { op: '|~', prec: 20, assoc: 'left', factory: (l, r) => this.factory.parallel(l, r), nary: true },
+    ];
+
+    let current = left;
+
+    while (true) {
+      this.skipWhitespace();
+      let matched = false;
+
+      for (const { op, prec, assoc, factory, nary } of ops) {
+        if (prec < minPrec) continue;
+        if (this.match(op)) {
+          if (nary) {
+            // Collect all consecutive same operators
+            const args: Term[] = [current];
+            while (true) {
+              const nextMinPrec = assoc === 'left' ? prec + 1 : prec;
+              const right = this.parseBinary(this.parsePrimary(), nextMinPrec);
+              args.push(right);
+              this.skipWhitespace();
+              if (!this.match(op)) break;
+            }
+            // Create n-ary compound
+            current = this.factory.compound(
+              this.opStringToTermOp(op),
+              ...args
+            );
+          } else {
+            const nextMinPrec = assoc === 'left' ? prec + 1 : prec;
+            const right = this.parseBinary(this.parsePrimary(), nextMinPrec);
+            current = factory(current, right);
+          }
+          matched = true;
+          break;
+        }
+      }
+
+      if (!matched) break;
     }
 
-    // Plain constant
-    return this.factory.constant(word);
+    return current;
+  }
+
+  private opStringToTermOp(op: string): TermOp {
+    switch (op) {
+      case '&': return TermOp.CONJUNCTION;
+      case '|': return TermOp.DISJUNCTION;
+      case '*': return TermOp.PRODUCT;
+      case '||': return TermOp.CONCURRENT;
+      case ';': return TermOp.SEQUENTIAL;
+      case '|~': return TermOp.PARALLEL;
+      default: throw new Error(`Unknown n-ary operator: ${op}`);
+    }
   }
 
   private parseWord(): string {

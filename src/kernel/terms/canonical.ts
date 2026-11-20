@@ -72,8 +72,8 @@ const ASSOCIATIVE_OPS = new Set([
 export function canonicalize(term: Term, options: Partial<CanonicalOptions> = {}): CanonicalTerm {
   const opts = { ...defaultCanonicalOptions, ...options };
 
-  // Step 1: Normalize (associative flattening, double negation, etc.)
-  let normalized = normalizeTerm(term, opts);
+  // Step 1: Full normalization pipeline (implication, associative flattening, commutative sorting, double negation)
+  let normalized = normalizeTermPipeline(term, opts);
 
   // Step 2: Convert to de Bruijn indices
   const { debruijn, freeVars } = toDebrTerm(normalized);
