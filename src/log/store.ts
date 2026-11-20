@@ -55,6 +55,19 @@ interface SegmentHandle {
   entryCount: number;
 }
 
+/** FinalizationRegistry for safety-net cleanup of unclosed LogStore instances. */
+const logStoreFinalization = new FinalizationRegistry<LogStore>((store) => {
+  if (!store.closed && store.segments.length > 0) {
+    // Best-effort close during GC to prevent "FileHandle closed during GC" errors
+    for (const segment of store.segments) {
+      segment.fd.close().catch(() => {});
+    }
+    store.segments = [];
+    store.index = [];
+    store.closed = true;
+  }
+});
+
 /**
  * Append-only log store with segment rotation and indexing.
  */
@@ -68,10 +81,16 @@ export class LogStore {
 
   constructor(config: Partial<LogStoreConfig> = {}) {
     this.config = { ...defaultLogStoreConfig, ...config };
+    logStoreFinalization.register(this, this);
   }
 
   /** Initialize the store, creating directories and loading existing segments. */
   async open(): Promise<void> {
+    if (!this.closed && this.segments.length > 0) {
+      // Already open - idempotent
+      return;
+    }
+    this.closed = false;
     await fs.mkdir(this.config.dir, { recursive: true });
     await this.loadSegments();
     await this.openCurrentSegment();
@@ -262,11 +281,14 @@ export class LogStore {
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;
+    logStoreFinalization.unregister(this);
 
     for (const segment of this.segments) {
       await segment.fd.datasync();
       await segment.fd.close();
     }
+    this.segments = [];
+    this.index = [];
   }
 
   /** Get store statistics. */

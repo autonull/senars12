@@ -13,9 +13,30 @@ const normalizeImportsPlugin = {
   },
 };
 
+// Debug plugin to trace import resolution
+const debugResolverPlugin = {
+  name: 'debug-resolver',
+  enforce: 'pre' as const,
+  resolveId(id, importer) {
+    if (id.includes('llamacpp') || id.includes('ui-contract') || id.includes('in-memory-session-manager') || id.includes('unify')) {
+      console.log('[DEBUG] Resolving:', id, 'from', importer);
+    }
+    return null;
+  },
+};
+
 // Aliases as array for explicit priority order.
 // Deep sub-paths FIRST, then top-level, then wildcards with regex for .js -> .ts
 const aliases = [
+  // Critical explicit aliases that must come FIRST
+  { find: '@senars/core/verify-derivation', replacement: path.resolve(__dirname, './src/verification/verify-derivation.ts') },
+  { find: '@senars/metta/engine/egraph', replacement: path.resolve(__dirname, './src/metta/engine/egraph.ts') },
+  { find: '@senars/strategies/premise/term-link', replacement: path.resolve(__dirname, './src/strategies/premise/term-link.ts') },
+  { find: '@senars/strategies/sampling/WindowedRoulette', replacement: path.resolve(__dirname, './src/strategies/sampling/WindowedRoulette.ts') },
+  { find: '@senars/util/index', replacement: path.resolve(__dirname, './src/util/index.ts') },
+  { find: '@senars/util/memory/in-memory-session-manager', replacement: path.resolve(__dirname, './src/memory/in-memory-session-manager.ts') },
+  { find: '@senars/util/utils/unify', replacement: path.resolve(__dirname, './src/util/unify.ts') },
+  { find: '@senars/util/utils/unify.js', replacement: path.resolve(__dirname, './src/util/unify.ts') },
   // Specific sub-path aliases (must come FIRST — before top-level and wildcards)
   { find: '@senars/util/assert', replacement: path.resolve(__dirname, './src/util/assert.ts') },
   { find: '@senars/util/async', replacement: path.resolve(__dirname, './src/util/async.ts') },
@@ -254,7 +275,7 @@ const aliases = [
   { find: '@senars/focus/FocusBag', replacement: path.resolve(__dirname, './src/focus/FocusBag.ts') },
   { find: '@senars/kernel/KernelRewardGate', replacement: path.resolve(__dirname, './src/kernel/KernelRewardGate.ts') },
   // Missing deep path aliases from test imports
-  { find: '@senars/memory/links', replacement: path.resolve(__dirname, './src/memory/links/index.ts') },
+  // { find: '@senars/memory/links', replacement: path.resolve(__dirname, './src/memory/links/index.ts') }, // Disabled: breaks subpath resolution
   { find: '@senars/state/boundary', replacement: path.resolve(__dirname, './src/state/boundary.ts') },
   { find: '@senars/rules/impls/ranking', replacement: path.resolve(__dirname, './src/rules/impls/ranking.ts') },
   { find: '@senars/learning/domain-learners', replacement: path.resolve(__dirname, './src/learning/domain-learners.ts') },
@@ -270,7 +291,7 @@ const aliases = [
   { find: '@senars/kernel/event-ring', replacement: path.resolve(__dirname, './src/kernel/event-ring.ts') },
   { find: '@senars/lm/service/accounting', replacement: path.resolve(__dirname, './src/lm/service/accounting.ts') },
   { find: '@senars/lm/lm-service', replacement: path.resolve(__dirname, './src/lm/lm-service.ts') },
-  { find: '@senars/lm/providers', replacement: path.resolve(__dirname, './src/lm/providers.ts') },
+  // { find: '@senars/lm/providers', replacement: path.resolve(__dirname, './src/lm/providers.ts') }, // Disabled: breaks subpath resolution
   { find: '@senars/types/index', replacement: path.resolve(__dirname, './src/types/index.ts') },
   { find: '@senars/config/cognitive-parameters', replacement: path.resolve(__dirname, './src/config/cognitive-parameters.ts') },
   // @senars/bag/*
@@ -343,7 +364,7 @@ const aliases = [
   { find: '@senars/log/StatePersister', replacement: path.resolve(__dirname, './src/log/StatePersister.ts') },
   { find: '@senars/log/store', replacement: path.resolve(__dirname, './src/log/store.ts') },
   // @senars/lm/*
-  { find: '@senars/lm/providers/llamacpp', replacement: path.resolve(__dirname, './src/lm/providers/llamacpp.ts') },
+  // { find: /^@senars\/lm\/providers\/llamacpp$/, replacement: path.resolve(__dirname, './src/lm/providers/llamacpp.ts') }, // Moved to explicit section below
   { find: '@senars/lm/provider-seams', replacement: path.resolve(__dirname, './src/lm/provider-seams.ts') },
   { find: '@senars/lm/rule-templates/schemas', replacement: path.resolve(__dirname, './src/lm/rule-templates/schemas.ts') },
   // @senars/kernel/*
@@ -405,9 +426,32 @@ const aliases = [
   { find: '@senars/core/budget', replacement: path.resolve(__dirname, './src/budget/index.ts') },
   // @senars/agent/*
   { find: '@senars/agent/phases', replacement: path.resolve(__dirname, './src/agent/phases.ts') },
-  // @senars/util/ (trailing slash fallback)
-  { find: '@senars/util/', replacement: path.resolve(__dirname, './src/util/index.ts') },
+  // @senars/util explicit aliases (no trailing slash fallback to avoid subpath issues)
+  { find: '@senars/util', replacement: path.resolve(__dirname, './src/util/index.ts') },
+  { find: '@senars/util/utils/unify', replacement: path.resolve(__dirname, './src/util/unify.ts') },
   { find: '@senars/util/utils/unify.js', replacement: path.resolve(__dirname, './src/util/unify.ts') },
+  // Missing deep path aliases for test imports
+  { find: '@senars/agent/compaction', replacement: path.resolve(__dirname, './src/agent/compaction.ts') },
+  { find: '@senars/agent/recall', replacement: path.resolve(__dirname, './src/agent/recall.ts') },
+  { find: '@senars/capability/ontology', replacement: path.resolve(__dirname, './src/capability/ontology.ts') },
+  { find: '@senars/capability/space', replacement: path.resolve(__dirname, './src/capability/space.ts') },
+  { find: '@senars/capability/wasi-sandbox', replacement: path.resolve(__dirname, './src/capability/wasi-sandbox.ts') },
+  { find: '@senars/dialogue/impls/DialogueTextStore', replacement: path.resolve(__dirname, './src/dialogue/impls/DialogueTextStore.ts') },
+  { find: '@senars/game/impls/MetaGame', replacement: path.resolve(__dirname, './src/game/impls/MetaGame.ts') },
+  { find: '@senars/game/meta-spec', replacement: path.resolve(__dirname, './src/game/meta-spec.ts') },
+  { find: '@senars/learning/schema-induction', replacement: path.resolve(__dirname, './src/learning/schema-induction.ts') },
+  { find: '@senars/lm/providers/llamacpp', replacement: path.resolve(__dirname, './src/lm/providers/llamacpp.ts') },
+  { find: '@senars/lm/service/sanitize', replacement: path.resolve(__dirname, './src/lm/service/sanitize.ts') },
+  { find: '@senars/memory/links/index', replacement: path.resolve(__dirname, './src/memory/links/index.ts') },
+  { find: '@senars/memory/links/types', replacement: path.resolve(__dirname, './src/memory/links/types.ts') },
+  { find: '@senars/memory/links', replacement: path.resolve(__dirname, './src/memory/links/index.ts') },
+  { find: '@senars/meta/ProofMettaProposer', replacement: path.resolve(__dirname, './src/meta/ProofMettaProposer.ts') },
+  { find: '@senars/reflex/adapters', replacement: path.resolve(__dirname, './src/reflex/adapters.ts') },
+  { find: '@senars/rules/impls/rule-table', replacement: path.resolve(__dirname, './src/rules/impls/rule-table.ts') },
+  { find: '@senars/tools/schemas', replacement: path.resolve(__dirname, './src/tools/schemas.ts') },
+  { find: '@senars/util/index', replacement: path.resolve(__dirname, './src/util/index.ts') },
+  { find: '@senars/util/memory/in-memory-session-manager', replacement: path.resolve(__dirname, './src/memory/in-memory-session-manager.ts') },
+  { find: '@senars/util/utils/unify', replacement: path.resolve(__dirname, './src/util/unify.ts') },
   // @senars/io/connections/*
   { find: '@senars/io/connections/ws', replacement: path.resolve(__dirname, './src/io/connections/ws.ts') },
   { find: '@senars/io/connections/http', replacement: path.resolve(__dirname, './src/io/connections/http.ts') },
@@ -420,12 +464,12 @@ const aliases = [
   { find: '@senars/nar', replacement: path.resolve(__dirname, './src/index.ts') },
   { find: '@senars/index', replacement: path.resolve(__dirname, './src/index.ts') },
   { find: '@senars/core', replacement: path.resolve(__dirname, './src/index.ts') },
-  { find: '@senars/util', replacement: path.resolve(__dirname, './src/util/index.ts') },
-  { find: '@senars/utils', replacement: path.resolve(__dirname, './src/util/index.ts') },
+  // { find: '@senars/util', replacement: path.resolve(__dirname, './src/util/index.ts') }, // Disabled: use wildcard
+  // { find: '@senars/utils', replacement: path.resolve(__dirname, './src/util/index.ts') }, // Disabled: use wildcard
   { find: '@senars/io', replacement: path.resolve(__dirname, './src/io/index.ts') },
   { find: '@senars/metta', replacement: path.resolve(__dirname, './src/metta/index.ts') },
   { find: '@senars/metta-runtime', replacement: path.resolve(__dirname, './src/metta/index.ts') },
-  { find: '@senars/lm', replacement: path.resolve(__dirname, './src/lm/index.ts') },
+  // { find: '@senars/lm', replacement: path.resolve(__dirname, './src/lm/index.ts') }, // Disabled: breaks subpath resolution
   { find: '@senars/transport', replacement: path.resolve(__dirname, './src/io/index.ts') },
   { find: '@senars/kernel/terms', replacement: path.resolve(__dirname, './src/kernel/terms/index.ts') },
   { find: '@senars/kernel', replacement: path.resolve(__dirname, './src/kernel/index.ts') },
@@ -438,7 +482,13 @@ const aliases = [
   { find: '@senars/surface', replacement: path.resolve(__dirname, './src/surface/index.ts') },
   { find: '@senars/cli', replacement: path.resolve(__dirname, './src/cli/index.ts') },
   { find: '@senars/deck', replacement: path.resolve(__dirname, './src/deck/index.ts') },
-  { find: '@senars/ui-contract', replacement: path.resolve(__dirname, './src/ui-contract/index.ts') },
+  // { find: '@senars/ui-contract', replacement: path.resolve(__dirname, './ui-contract/src/index.ts') }, // Disabled: breaks subpath resolution
+  { find: /^@senars\/ui-contract\/framework$/, replacement: path.resolve(__dirname, './ui-contract/src/framework/index.ts') },
+  { find: /^@senars\/ui-contract\/modulation$/, replacement: path.resolve(__dirname, './ui-contract/src/modulation/index.ts') },
+  { find: /^@senars\/ui-contract\/core$/, replacement: path.resolve(__dirname, './ui-contract/src/core/index.ts') },
+  { find: /^@senars\/ui-shell\/framework$/, replacement: path.resolve(__dirname, './ui-shell/src/framework/index.ts') },
+  { find: /^@senars\/ui-shell\/core$/, replacement: path.resolve(__dirname, './ui-shell/src/core/index.ts') },
+  { find: '@senars/ui-shell', replacement: path.resolve(__dirname, './ui-shell/src/index.ts') },
   { find: '@senars/economy', replacement: path.resolve(__dirname, './src/economy/index.ts') },
   { find: '@senars/generated', replacement: path.resolve(__dirname, './src/generated/index.ts') },
   { find: '@senars/events', replacement: path.resolve(__dirname, './src/events/index.ts') },
@@ -502,8 +552,8 @@ const aliases = [
   // Standard wildcards (without .js)
   { find: '@senars/nar/*', replacement: path.resolve(__dirname, './src/*') },
   { find: '@senars/core/*', replacement: path.resolve(__dirname, './src/*') },
-  { find: '@senars/util/*', replacement: path.resolve(__dirname, './src/util/*') },
-  { find: '@senars/utils/*', replacement: path.resolve(__dirname, './src/util/*') },
+  { find: /^@senars\/util\/(.*)$/, replacement: (match, subpath) => { console.log('[ALIAS] util wildcard:', match, '->', subpath); return path.resolve(__dirname, './src/util', subpath); } },
+  { find: /^@senars\/utils\/(.*)$/, replacement: (match, subpath) => { console.log('[ALIAS] utils wildcard:', match, '->', subpath); return path.resolve(__dirname, './src/util', subpath); } },
   { find: '@senars/io/*', replacement: path.resolve(__dirname, './src/io/*') },
   { find: '@senars/metta/*', replacement: path.resolve(__dirname, './src/metta/*') },
   { find: '@senars/metta-runtime/*', replacement: path.resolve(__dirname, './src/metta/*') },
@@ -594,7 +644,7 @@ const aliases = [
 console.log('Vitest aliases loaded:', aliases.length);
 
 export default defineConfig({
-  plugins: [normalizeImportsPlugin],
+  plugins: [normalizeImportsPlugin, debugResolverPlugin],
   resolve: {
     alias: aliases,
     tsconfigPaths: true,
