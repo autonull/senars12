@@ -7,7 +7,7 @@
 - Fixed: Updated `docs/readme/generate.ts` import path from `nar/src` to `src/`
 ---
 ## Success Criteria (Definition of Done)
-**Current Status**: Import errors ~0 (down from 392), Passed: 216 test files, 2224 tests, Failed: 187 test files, 431 tests. Pass rate: ~84% (target >90%)
+**Current Status**: Import errors ~0 (down from 392), Passed: 226 test files, 2291 tests, Failed: 177 test files, 426 tests. Pass rate: ~84% (target >90%)
 ---
 ## Execution Playbook
 ### Session 1: Unblock (45 min) ✅ **COMPLETE**
@@ -37,8 +37,13 @@
 - Typecheck core isolation (src/ only) → 545 errors (pre-existing, not blocking)
 - Deps gate baseline update (document pre-existing cycles) ✅ BASELINE=5 (44 raw, 5 with --transform)
 - Docs drift fix (valid-atom.ts runtime error) ✅ COMPLETE
+- Fixed logStore persistence and file handle leaks ✅
+  - src/nar-presets.ts: auto-create logStore when persistState=true
+  - src/nar.ts: open logStore in start() before creating KernelLedger
+  - src/kernel/KernelLedger.ts: close logStore in close()
+  - src/agent/Agent.ts: close log in stop()
 - Final full suite run → verify >90% pass rate
-- Address remaining 187 failed test files (mostly test logic, not import errors)
+- Address remaining 177 failed test files (mostly test logic, not import errors)
 ```
 ---
 ## Risk Mitigation
@@ -51,7 +56,7 @@
 | `@senars/nar/*` test imports remain | Mechanical fix: sed replace `@senars/nar/` → `@senars/` in test files |
 ---
 ## File Index (Quick Ref)
-**Config**: `vitest.config.ts` (283 aliases — **array format, deep first**)
+**Config**: `vitest.config.ts` (419 aliases — **array format, deep first**)
 **Framework**: `tests/nar/framework/ReasoningTestBuilder.ts`
 **Key Source**:
 - `src/kernel/KernelActionGate.ts` — BoundedMap, autonomy transitions
@@ -69,8 +74,10 @@
 # 1. Typecheck core isolation (src/ only) → 545 errors documented (pre-existing)
 # 2. Deps gate baseline update (document pre-existing cycles) ✅ BASELINE=5
 # 3. Docs drift fix (valid-atom.ts runtime error) ✅ COMPLETE
-# 4. Address remaining 187 failed test files (mostly test logic issues, not import errors)
-# 5. Final full suite run → verify >90% pass rate
+# 4. Fixed logStore persistence and file handle leaks ✅
+# 5. Address remaining 177 failed test files (mostly test logic issues, not import errors)
+#    - Missing barrel exports: validateParameters, resolveBagSlot, CompositeSampling, CognitiveController, Memory, PriorityBag, createCognitiveThread, validateCognitiveEvent, ToolRegistry, CommandRegistry, createLogger, StreamReasoner, etc.
+# 6. Final full suite run → verify >90% pass rate
 # Known test logic issues (not import errors):
 # - ModelRunner tool-call events not yielded correctly (mock model limitation)
 # - Various NAR integration tests need logic fixes
