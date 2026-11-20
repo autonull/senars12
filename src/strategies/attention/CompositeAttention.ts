@@ -3,6 +3,7 @@ import type { Concept } from '../../memory/concept.js';
 import type { MemoryView } from '../../memory/view.js';
 import { ConfigurationError } from '../../types';
 import type { AttentionContext, AttentionModel } from '../types.js';
+import { createWeightedMeanComposite, type Composable } from '../composite.js';
 
 export interface WeightedAttention {
   model: AttentionModel;
@@ -10,15 +11,8 @@ export interface WeightedAttention {
 }
 
 /**
- * A weighted *mean* of its members, not a sum.
- *
- * The members are alternative sources of the same boost — three models that each
- * return "how hard should this concept be primed" — so accumulating them would
- * make the attention slot's magnitude a function of how many names the user
- * listed. Normalizing makes `weight` a ratio, which is what "config-driven
- * attention" needs: `{ simple: 1, 'goal-relevance': 3 }` reads as three parts
- * goal-relevance to one part simple, and the composite still primes in the same
- * range as any single member.
+ * A composite attention model using the generic weighted-mean composite
+ * for `prime` and `decay`, and delegating `tick` to all members.
  */
 export class CompositeAttention implements AttentionModel {
   readonly metadata = {
@@ -26,8 +20,9 @@ export class CompositeAttention implements AttentionModel {
     description: 'Weighted mean of several attention models',
   };
 
-  private readonly members: WeightedAttention[];
-  private readonly totalWeight: number;
+  private readonly primeComposite: Composable<[Concept, AttentionContext], number>;
+  private readonly decayComposite: Composable<[Concept, number, number], number>;
+  private readonly members: AttentionModel[];
 
   constructor(models: WeightedAttention[]) {
     if (models.length === 0) {
@@ -37,26 +32,44 @@ export class CompositeAttention implements AttentionModel {
     if (!(total > 0)) {
       throw new ConfigurationError('CompositeAttention needs at least one positive weight');
     }
-    this.members = models;
-    this.totalWeight = total;
+
+    this.members = models.map((m) => m.model);
+
+    // Build weighted-mean composites for prime and decay
+    const weightedMembers: Array<Composable<[Concept, AttentionContext], number> & { weight: number }> =
+      models.map((m) => ({
+        weight: m.weight,
+        execute: ([concept, ctx]) => m.model.prime(concept, ctx),
+        metadata: { name: m.model.metadata?.name ?? 'unknown', description: m.model.metadata?.description ?? '' },
+      }));
+
+    const weightedDecayMembers: Array<Composable<[Concept, number, number], number> & { weight: number }> =
+      models.map((m) => ({
+        weight: m.weight,
+        execute: ([concept, cycles, rate]) => m.model.decay(concept, cycles, rate),
+        metadata: { name: m.model.metadata?.name ?? 'unknown', description: m.model.metadata?.description ?? '' },
+      }));
+
+    this.primeComposite = createWeightedMeanComposite(
+      weightedMembers,
+      { name: 'composite-prime', description: 'Weighted mean of attention prime' }
+    );
+
+    this.decayComposite = createWeightedMeanComposite(
+      weightedDecayMembers,
+      { name: 'composite-decay', description: 'Weighted mean of attention decay' }
+    );
   }
 
   prime(concept: Concept, ctx: AttentionContext): number {
-    return this.#weighted((model) => model.prime(concept, ctx));
+    return this.primeComposite.execute([concept, ctx]);
   }
 
   decay(concept: Concept, cycles: number, rate: number): number {
-    return this.#weighted((model) => model.decay(concept, cycles, rate));
+    return this.decayComposite.execute([concept, cycles, rate]);
   }
 
   tick(memory: MemoryView, cycleCount: number): void {
-    for (const { model } of this.members) model.tick(memory, cycleCount);
-  }
-
-  #weighted(read: (model: AttentionModel) => number): number {
-    return safeRatio(
-      sumBy(this.members, (m) => read(m.model) * m.weight),
-      this.totalWeight
-    );
+    for (const model of this.members) model.tick(memory, cycleCount);
   }
 }

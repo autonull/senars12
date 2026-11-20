@@ -198,6 +198,8 @@ export class NAR extends BaseComponent {
   #autonomy: AutonomyHeartbeat | null = null;
   /** The neuro-symbolic formalizer (CORE.19 C6); lazily bound to the LM at first use. */
   #formalizer: Formalizer | null = null;
+  /** Cached explanation generator (C6.4/C6.5): built once with the current LM paraphrase. */
+  #explanationGenerator: ExplanationGenerator | null = null;
   /** Bounded rewind checkpoints (CORE.19 C2.3) — the graph a `rewind` can reach. */
   #rewind!: KernelRewind;
 
@@ -1298,12 +1300,15 @@ export class NAR extends BaseComponent {
 
   /** The explanation generator bound to this runtime (C6.4/C6.5): LM paraphrase when configured, engine facts always. */
   private explanationGenerator(): ExplanationGenerator {
-    const paraphrase = this._lmService
-      ? (input: Parameters<Formalizer['formalToNl']>[0]) => this.getFormalizer().formalToNl(input)
-      : undefined;
-    return new ExplanationGenerator({
-      source: { firesByConclusion: (term) => this.processor.getRecorder().firesByConclusion(term) },
-      ...(paraphrase ? { paraphrase } : {}),
-    });
+    if (!this.#explanationGenerator) {
+      const paraphrase = this._lmService
+        ? (input: Parameters<Formalizer['formalToNl']>[0]) => this.getFormalizer().formalToNl(input)
+        : undefined;
+      this.#explanationGenerator = new ExplanationGenerator({
+        source: { firesByConclusion: (term) => this.processor.getRecorder().firesByConclusion(term) },
+        ...(paraphrase ? { paraphrase } : {}),
+      });
+    }
+    return this.#explanationGenerator;
   }
 }
