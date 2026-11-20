@@ -10,6 +10,7 @@
 import type { Cell, LayoutId } from './composition.js';
 import type { Shape } from '../core/view-spec.js';
 import { layoutTemplate, cellAreaNames } from './layout.js';
+import { createRegistry } from '../core/registry-factory.js';
 
 /** Context passed to arrangement strategies. */
 export interface ArrangementContext {
@@ -42,37 +43,6 @@ export interface Arrangement {
   /** Arrange cells into a layout. */
   arrange(cells: readonly Cell[], ctx: ArrangementContext): Layout;
 }
-
-const arrangementRegistry = new Map<string, Arrangement>();
-const registrationOrder: string[] = [];
-
-/** Register an arrangement strategy. */
-export const registerArrangement = (arrangement: Arrangement): void => {
-  if (arrangementRegistry.has(arrangement.kind)) {
-    console.warn(`Arrangement ${arrangement.kind} already registered; overwriting`);
-  } else {
-    registrationOrder.push(arrangement.kind);
-  }
-  arrangementRegistry.set(arrangement.kind, arrangement);
-};
-
-/** Get a registered arrangement. */
-export const getArrangement = (kind: string): Arrangement | undefined => arrangementRegistry.get(kind);
-
-/** All registered arrangements in registration order. */
-export const getArrangements = (): readonly Arrangement[] => registrationOrder.map((id) => arrangementRegistry.get(id)!);
-
-/** Whether an arrangement is registered. */
-export const hasArrangement = (kind: string): boolean => arrangementRegistry.has(kind);
-
-/** Arrangement IDs in registration order. */
-export const arrangementIds = (): readonly string[] => [...registrationOrder];
-
-/** Clear the registry (test-only). */
-export const resetArrangements = (): void => {
-  arrangementRegistry.clear();
-  registrationOrder.length = 0;
-};
 
 /** Default arrangement function — uses the layout engine. */
 function defaultArrange(cells: readonly Cell[], _ctx: ArrangementContext, layout: LayoutId): Layout {
@@ -167,6 +137,36 @@ export const CORE_ARRANGEMENTS: readonly Arrangement[] = [
   },
 ] as const;
 
+// Create the registry using the generic factory
+// Key is `kind` not `id`, so we provide a custom keyOf
+const arrangementRegistry = createRegistry<Arrangement>({
+  registryName: 'Arrangement',
+  coreEntries: CORE_ARRANGEMENTS,
+  keyOf: (a) => a.kind,
+});
+
+// Add extra queries after creation to avoid circular references
+const arrangementsForLayout = (layout: LayoutId): readonly Arrangement[] =>
+  arrangementRegistry.getAll().filter((a) => a.layout === layout);
+
+const arrangementsForShape = (shape: Shape): readonly Arrangement[] =>
+  arrangementRegistry.getAll().filter(
+    (a) => a.shape === shape || (a.cellShapes && Object.values(a.cellShapes).includes(shape))
+  );
+
+// Re-export the standard registry API
+export const {
+  register: registerArrangement,
+  get: getArrangement,
+  getAll: getArrangements,
+  has: hasArrangement,
+  ids: arrangementIds,
+  reset: resetArrangements,
+} = arrangementRegistry;
+
+// Re-export extra queries
+export { arrangementsForLayout, arrangementsForShape };
+
 /** Register the core SeNARS arrangements. */
 export const registerCoreArrangements = (): void => {
   for (const arrangement of CORE_ARRANGEMENTS) registerArrangement(arrangement);
@@ -174,14 +174,6 @@ export const registerCoreArrangements = (): void => {
 
 /** Type of registered arrangement IDs (for exhaustiveness). */
 export type RegisteredArrangement = Arrangement['kind'];
-
-/** Get arrangements that use a specific layout. */
-export const arrangementsForLayout = (layout: LayoutId): readonly Arrangement[] =>
-  getArrangements().filter((a) => a.layout === layout);
-
-/** Get arrangements that project to a specific shape. */
-export const arrangementsForShape = (shape: Shape): readonly Arrangement[] =>
-  getArrangements().filter((a) => a.shape === shape || (a.cellShapes && Object.values(a.cellShapes).includes(shape)));
 
 /** Ensure core arrangements are registered on first import. */
 registerCoreArrangements();

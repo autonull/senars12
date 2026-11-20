@@ -6,8 +6,9 @@
  * are registered by default; extensions add their own.
  */
 
-import type { FocusResolution } from '../framework/resolver.js';
+import type { FocusResolution } from './resolver.js';
 import type { WorkspaceGraph } from '../core/workspace-graph.js';
+import { createRegistry } from '../core/registry-factory.js';
 
 /** Context passed to aspect projectors. */
 export interface ProjectionContext {
@@ -27,37 +28,6 @@ export interface AspectProjector<A = unknown> {
   /** Whether this aspect applies to a given focus kind. */
   appliesTo?(focusKind: string): boolean;
 }
-
-const aspectRegistry = new Map<string, AspectProjector>();
-const registrationOrder: string[] = [];
-
-/** Register an aspect projector. */
-export const registerAspectProjection = (projector: AspectProjector): void => {
-  if (aspectRegistry.has(projector.aspect)) {
-    console.warn(`Aspect ${projector.aspect} already registered; overwriting`);
-  } else {
-    registrationOrder.push(projector.aspect);
-  }
-  aspectRegistry.set(projector.aspect, projector);
-};
-
-/** Get a registered aspect projector. */
-export const getAspectProjection = (aspect: string): AspectProjector | undefined => aspectRegistry.get(aspect);
-
-/** All registered aspect projectors in registration order. */
-export const getAspectProjections = (): readonly AspectProjector[] => registrationOrder.map((id) => aspectRegistry.get(id)!);
-
-/** Whether an aspect is registered. */
-export const hasAspectProjection = (aspect: string): boolean => aspectRegistry.has(aspect);
-
-/** Aspect IDs in registration order. */
-export const aspectProjectionIds = (): readonly string[] => [...registrationOrder];
-
-/** Clear the registry (test-only). */
-export const resetAspectProjections = (): void => {
-  aspectRegistry.clear();
-  registrationOrder.length = 0;
-};
 
 /** The core aspects SeNARS registers by default. */
 export const CORE_ASPECTS: readonly AspectProjector[] = [
@@ -112,6 +82,31 @@ export const CORE_ASPECTS: readonly AspectProjector[] = [
   },
 ] as const;
 
+// Create the registry using the generic factory
+// Key is `aspect` not `id`, so we provide a custom keyOf
+const aspectRegistry = createRegistry<AspectProjector>({
+  registryName: 'Aspect',
+  coreEntries: CORE_ASPECTS,
+  keyOf: (p) => p.aspect,
+});
+
+// Add extra queries after creation to avoid circular references
+const aspectsForFocus = (focusKind: string): readonly AspectProjector[] =>
+  aspectRegistry.getAll().filter((a) => a.appliesTo?.(focusKind) ?? true);
+
+// Re-export the standard registry API
+export const {
+  register: registerAspectProjection,
+  get: getAspectProjection,
+  getAll: getAspectProjections,
+  has: hasAspectProjection,
+  ids: aspectProjectionIds,
+  reset: resetAspectProjections,
+} = aspectRegistry;
+
+// Re-export extra queries
+export { aspectsForFocus };
+
 /** Register the core SeNARS aspects. */
 export const registerCoreAspects = (): void => {
   for (const projector of CORE_ASPECTS) registerAspectProjection(projector);
@@ -119,7 +114,3 @@ export const registerCoreAspects = (): void => {
 
 /** Type of registered aspect IDs (for exhaustiveness). */
 export type RegisteredAspect = AspectProjector['aspect'];
-
-/** Get aspects applicable to a focus kind. */
-export const aspectsForFocus = (focusKind: string): readonly AspectProjector[] =>
-  getAspectProjections().filter((a) => a.appliesTo?.(focusKind) ?? true);

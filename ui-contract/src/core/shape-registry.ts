@@ -7,6 +7,7 @@
  */
 
 import type { Budget, Interaction } from './view-spec.js';
+import { createRegistry } from './registry-factory.js';
 
 /** A shape specification — what a shape can render and how. */
 export interface ShapeSpec {
@@ -18,37 +19,6 @@ export interface ShapeSpec {
   /** Optional: fidelity range this shape supports (e.g., 'glyph' to 'full'). */
   readonly fidelityRange?: readonly string[];
 }
-
-const shapeRegistry = new Map<string, ShapeSpec>();
-const registrationOrder: string[] = [];
-
-/** Register a shape specification. */
-export const registerShape = (spec: ShapeSpec): void => {
-  if (shapeRegistry.has(spec.id)) {
-    console.warn(`Shape ${spec.id} already registered; overwriting`);
-  } else {
-    registrationOrder.push(spec.id);
-  }
-  shapeRegistry.set(spec.id, spec);
-};
-
-/** Get a registered shape specification. */
-export const getShape = (id: string): ShapeSpec | undefined => shapeRegistry.get(id);
-
-/** All registered shape specifications in registration order. */
-export const getShapes = (): readonly ShapeSpec[] => registrationOrder.map((id) => shapeRegistry.get(id)!);
-
-/** Whether a shape is registered. */
-export const hasShape = (id: string): boolean => shapeRegistry.has(id);
-
-/** Shape IDs in registration order. */
-export const shapeIds = (): readonly string[] => [...registrationOrder];
-
-/** Clear the registry (test-only). */
-export const resetShapes = (): void => {
-  shapeRegistry.clear();
-  registrationOrder.length = 0;
-};
 
 /** The core shape specifications SeNARS registers by default. */
 export const CORE_SHAPES: readonly ShapeSpec[] = [
@@ -110,6 +80,37 @@ export const CORE_SHAPES: readonly ShapeSpec[] = [
   },
 ] as const;
 
+// Create the registry using the generic factory
+const shapeRegistry = createRegistry<ShapeSpec>({
+  registryName: 'Shape',
+  coreEntries: CORE_SHAPES,
+  keyOf: (s) => s.id,
+});
+
+// Add extra queries after creation to avoid circular references
+const shapesForBudget = (budget: Budget): readonly ShapeSpec[] =>
+  shapeRegistry.getAll().filter((s) => s.budgets.includes(budget));
+
+const shapesForInteraction = (interaction: Interaction): readonly ShapeSpec[] =>
+  shapeRegistry.getAll().filter((s) => s.interactions.includes(interaction));
+
+const shapeTag = (id: string): string | undefined => shapeRegistry.get(id)?.tag;
+
+const shapeFidelityRange = (id: string): readonly string[] | undefined => shapeRegistry.get(id)?.fidelityRange;
+
+// Re-export the standard registry API
+export const {
+  register: registerShape,
+  get: getShape,
+  getAll: getShapes,
+  has: hasShape,
+  ids: shapeIds,
+  reset: resetShapes,
+} = shapeRegistry;
+
+// Re-export extra queries
+export { shapesForBudget, shapesForInteraction, shapeTag, shapeFidelityRange };
+
 /** Register the core SeNARS shapes. */
 export const registerCoreShapes = (): void => {
   for (const spec of CORE_SHAPES) registerShape(spec);
@@ -117,17 +118,3 @@ export const registerCoreShapes = (): void => {
 
 /** Type of registered shape IDs (for exhaustiveness). */
 export type RegisteredShape = ShapeSpec['id'];
-
-/** Get shapes that support a given budget. */
-export const shapesForBudget = (budget: Budget): readonly ShapeSpec[] =>
-  getShapes().filter((s) => s.budgets.includes(budget));
-
-/** Get shapes that support a given interaction. */
-export const shapesForInteraction = (interaction: Interaction): readonly ShapeSpec[] =>
-  getShapes().filter((s) => s.interactions.includes(interaction));
-
-/** Get the custom element tag for a shape. */
-export const shapeTag = (id: string): string | undefined => getShape(id)?.tag;
-
-/** Get the fidelity range for a shape. */
-export const shapeFidelityRange = (id: string): readonly string[] | undefined => getShape(id)?.fidelityRange;

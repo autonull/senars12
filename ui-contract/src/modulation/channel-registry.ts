@@ -7,6 +7,7 @@
  */
 
 import type { ChannelValue } from './types.js';
+import { createRegistry } from '../core/registry-factory.js';
 
 export interface ChannelSpec {
   readonly id: string;
@@ -15,37 +16,6 @@ export interface ChannelSpec {
   readonly fallback?: ChannelValue;
   readonly description?: string;
 }
-
-const channelRegistry = new Map<string, ChannelSpec>();
-const registrationOrder: string[] = [];
-
-/** Register a modulation channel. */
-export const registerChannel = (spec: ChannelSpec): void => {
-  if (channelRegistry.has(spec.id)) {
-    console.warn(`Channel ${spec.id} already registered; overwriting`);
-  } else {
-    registrationOrder.push(spec.id);
-  }
-  channelRegistry.set(spec.id, spec);
-};
-
-/** Get a registered channel spec. */
-export const getChannel = (id: string): ChannelSpec | undefined => channelRegistry.get(id);
-
-/** All registered channels in registration order. */
-export const getChannels = (): readonly ChannelSpec[] => registrationOrder.map((id) => channelRegistry.get(id)!);
-
-/** Whether a channel is registered. */
-export const hasChannel = (id: string): boolean => channelRegistry.has(id);
-
-/** Channel IDs in registration order. */
-export const channelIds = (): readonly string[] => [...registrationOrder];
-
-/** Clear the registry (test-only). */
-export const resetChannels = (): void => {
-  channelRegistry.clear();
-  registrationOrder.length = 0;
-};
 
 /** The core channels SeNARS registers by default. */
 export const CORE_CHANNELS: readonly ChannelSpec[] = [
@@ -62,17 +32,36 @@ export const CORE_CHANNELS: readonly ChannelSpec[] = [
   { id: 'edge-color', of: 'edge', value: 'string', fallback: '#6366f1', description: 'Edge color by relation' },
 ] as const;
 
+// Create the registry using the generic factory
+const channelRegistry = createRegistry<ChannelSpec>({
+  registryName: 'Channel',
+  coreEntries: CORE_CHANNELS,
+  keyOf: (c) => c.id,
+});
+
+// Add extra queries after creation to avoid circular references
+const channelFallback = (id: string): ChannelValue | undefined => channelRegistry.get(id)?.fallback;
+
+const channelsFor = (target: 'node' | 'edge'): readonly ChannelSpec[] =>
+  channelRegistry.getAll().filter((c) => c.of === target || c.of === 'both');
+
+// Re-export the standard registry API
+export const {
+  register: registerChannel,
+  get: getChannel,
+  getAll: getChannels,
+  has: hasChannel,
+  ids: channelIds,
+  reset: resetChannels,
+} = channelRegistry;
+
+// Re-export extra queries
+export { channelFallback, channelsFor };
+
 /** Register the core SeNARS channels. */
 export const registerCoreChannels = (): void => {
   for (const spec of CORE_CHANNELS) registerChannel(spec);
-};
+}
 
 /** Type of registered channel IDs (for exhaustiveness in adapters). */
 export type RegisteredChannel = ChannelSpec['id'];
-
-/** Get the fallback value for a channel. */
-export const channelFallback = (id: string): ChannelValue | undefined => getChannel(id)?.fallback;
-
-/** Get channels applicable to a target kind. */
-export const channelsFor = (target: 'node' | 'edge'): readonly ChannelSpec[] =>
-  getChannels().filter((c) => c.of === target || c.of === 'both');
