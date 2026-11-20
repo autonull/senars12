@@ -89,6 +89,10 @@ export interface ContrastiveMemoryConfig {
   positiveShare?: number;
   /** Zero-shot logit scale before calibration. */
   scale?: number;
+  /** Base decay rate for exemplars (per second). Defaults to 0. */
+  decayRate?: number;
+  /** Base forget rate for exemplars (per second). Defaults to 0. */
+  forgetRate?: number;
 }
 
 export interface RubricExemplarStats {
@@ -120,6 +124,8 @@ export class ContrastiveMemory {
   readonly #maxPerRubric: number;
   readonly #positiveShare: number;
   readonly #zeroShotScale: number;
+  readonly #decayRate: number;
+  readonly #forgetRate: number;
   /** Phase C: per-rubric exemplar bags (priority eviction, decay, 40/60 caps). */
   readonly #rubrics = new Map<string, RubricState>();
   #calibrations = new Map<string, InfoNCECalibration>();
@@ -128,6 +134,8 @@ export class ContrastiveMemory {
     this.#maxPerRubric = config.maxPerRubric ?? 128;
     this.#positiveShare = config.positiveShare ?? 0.6;
     this.#zeroShotScale = config.scale ?? 10;
+    this.#decayRate = config.decayRate ?? 0;
+    this.#forgetRate = config.forgetRate ?? 0;
   }
 
   /** Add exemplar texts (embedded via the shared cache) under a rubric; returns added count. */
@@ -279,9 +287,15 @@ export class ContrastiveMemory {
   /**
    * Phase C: per-cycle decay — stale exemplar priority erodes; items below the
    * forget floor drop out, keeping the pool fresh (flywheel maintenance).
+   * @param rate Optional decay rate override for this call (per second).
    */
-  decay(_rate?: number): void {
+  decay(rate?: number): void {
+    const decayRate = rate ?? this.#decayRate;
+    const forgetRate = rate !== undefined ? rate : this.#forgetRate;
     for (const state of this.#rubrics.values()) {
+      state.pos.decayRateValue = decayRate;
+      state.neg.decayRateValue = decayRate;
+      state.pending.decayRateValue = decayRate;
       state.pos.decay();
       state.neg.decay();
       state.pending.decay();
@@ -325,9 +339,9 @@ export class ContrastiveMemory {
     if (!state) {
       const posCap = shareCount(this.#maxPerRubric, this.#positiveShare, 1, Math.round);
       const negCap = shareCount(this.#maxPerRubric - posCap, 1, 1);
-      const pos = createBag<ExemplarItem>({ capacity: posCap });
-      const neg = createBag<ExemplarItem>({ capacity: negCap });
-      const pending = createBag<ExemplarItem>({ capacity: 64 });
+      const pos = createBag<ExemplarItem>({ capacity: posCap, decayRate: this.#decayRate, forgetRate: this.#forgetRate });
+      const neg = createBag<ExemplarItem>({ capacity: negCap, decayRate: this.#decayRate, forgetRate: this.#forgetRate });
+      const pending = createBag<ExemplarItem>({ capacity: 64, decayRate: this.#decayRate, forgetRate: this.#forgetRate });
       // Phase C: the second AIKRProcessor instantiation — pending judgments
       // promote into the exemplar bags under pressure (flywheel closure).
       const maintainer = new AIKRProcessor<ExemplarItem, number>({

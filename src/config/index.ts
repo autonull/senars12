@@ -1,5 +1,6 @@
 export type { ParameterImprovement, ParameterRecord } from './parameter-ledger.js';
 export { DEFAULT_LEDGER_PATH, OutcomeLinker, ParameterLedger } from './parameter-ledger.js';
+export { ParameterTable, type ParameterSpec, type ParameterScope, ParameterScopeError } from './parameter-table.js';
 export { dialogueDefaults, dialogueSchema, type DialogueConfig } from './dialogue.js';
 export { intBetween, nonEmpty, positiveInt, unitInterval, uuid, nonNegativeInt, timestamp, intAtLeast, signedUnitInterval } from './boundary.js';
 export { lmSettingsSchema, lmSettingsShape, type LMSettingsShape } from './lm-schema.js';

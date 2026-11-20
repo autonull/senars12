@@ -39,5 +39,11 @@ export {
   createTetrisGame,
   createGame2048,
   createTicTacToeGame,
+  createCatchGame,
+  createArithmeticGame,
+  createRPSGame,
+  createArcadeRegistry,
+  GameRegistry,
+  UnknownGameError,
 } from '../game/index.js';
 export { SeededRNG } from '../util/random.js';

@@ -36,7 +36,22 @@ export { NarEventBus } from '../types/events.js';
 export type { Tool, ToolResult, ToolSchema, ToolSchemaProperty } from '../protocol/index.js';
 export { readPersistedBoundary } from '../state/persisted.js';
 export type { ChatStreamEvent } from './chat.js';
-export { createCognitiveThread, type ThreadMessage, type ThreadStatus, type BackpressureReason } from './cognitive-thread.js';
+export { createCognitiveThread, ThreadPool, type ThreadMessage, type ThreadStatus, type BackpressureReason, type SpawnResult, type JoinResult } from './cognitive-thread.js';
+export { composeStrategy, describeStrategyExpression } from '../reason/strategy-algebra.js';
+export { ParameterLedger, OutcomeLinker } from '../config/parameter-ledger.js';
+export { createDriveMetaGoalPolicy, DriveManager, DRIVE_META_GOAL_TABLE } from '../drives/index.js';
+export { validateInterpretation, type PerceivedInterpretation } from '../nl/formalizer.js';
+export { IncomingFromClient, type IncomingFromClient as IncomingFromClientType } from '../protocol/unions.js';
+export { createLogStoreEventLog, LogStoreEventLog, createLogStore } from '../log/index.js';
+export { mintCognitiveEvent, isDurableEvent, recalledEventTypes } from '../schemas/index.js';
+export { withinWorkspace } from '../motor/workspace.js';
+export {
+  AUTONOMY_MODES,
+  AUTONOMY_POLICIES,
+  DEFAULT_AUTONOMY_CONFIG,
+  resolveAutonomyConfig,
+  type AutonomyConfigInput,
+} from '../autonomy/config.js';
 export { createLogger } from '@senars/util/logger';
 export { BaseComponent } from './Lifecycle.js';
 export { CommandRegistry } from '@senars/commands';

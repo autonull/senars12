@@ -67,7 +67,10 @@ function gateFromCausationId(causationId: string | undefined): (typeof GATE_LOG_
 export class LogStoreGateEventLedger {
   readonly #store: LogStore;
   readonly #logger: ReturnType<typeof createLogger>;
-  readonly #seen = new Set<string>();
+  /** Events flushed in the current run (prevents re-flushing within the run). */
+  readonly #flushedKeys = new Set<string>();
+  /** Events replayed from the log (prevents re-replaying and re-flushing after restart). */
+  readonly #replayedKeys = new Set<string>();
 
   constructor(store: LogStore, options: GateEventLedgerOptions = {}) {
     this.#store = store;
@@ -86,8 +89,11 @@ export class LogStoreGateEventLedger {
 
         // Stable deduplication key: hash of event content (legacy events lack id)
         const eventKey = this.#eventKey(event);
-        if (this.#seen.has(eventKey)) continue;
-        this.#seen.add(eventKey);
+        // Skip if already replayed from a previous run
+        if (this.#replayedKeys.has(eventKey)) continue;
+        // Skip if already flushed in this run
+        if (this.#flushedKeys.has(eventKey)) continue;
+        this.#flushedKeys.add(eventKey);
 
         // Encode gate in causationId for replay routing
         const eventWithGate = {
@@ -165,18 +171,12 @@ export class LogStoreGateEventLedger {
     return results;
   }
 
-  /** Mark events read back from disk as already-written. */
+  /** Mark events read back from disk as already-replayed. */
   adopt(entries: ReadonlyArray<{ event: CognitiveEvent }>): void {
     for (const entry of entries) {
-      const id = entry.event.id;
-      if (id) this.#seen.add(id);
+      const key = this.#eventKey(entry.event);
+      this.#replayedKeys.add(key);
     }
-  }
-
-  /** Check if an event has been seen. */
-  #isSeen(event: CognitiveEvent): boolean {
-    const id = event.id;
-    return id ? this.#seen.has(id) : false;
   }
 
   /**
@@ -187,15 +187,15 @@ export class LogStoreGateEventLedger {
     const entries = await this.readWithGate();
     if (entries.length === 0) return 0;
 
-    // Filter out already-seen events
-    const unseenEntries = entries.filter((e) => !this.#isSeen(e.event));
+    // Filter out already-replayed events
+    const unseenEntries = entries.filter((e) => !this.#replayedKeys.has(this.#eventKey(e.event)));
     if (unseenEntries.length === 0) return 0;
 
     // Convert to GateLogEntry format for public restoreEventLogs method
     const gateEntries = unseenEntries.map(({ gate, event }) => ({ gate, event })) as GateLogEntry[];
     const restored = registry.restoreEventLogs(gateEntries);
 
-    // Mark restored events as seen so they are not re-appended on next flush
+    // Mark restored events as replayed so they are not re-replayed or re-flushed
     this.adopt(unseenEntries);
 
     if (restored > 0) {

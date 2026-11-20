@@ -10,7 +10,7 @@ describe('llama-runtime.dispose', () => {
   });
 
   it('releases native handles instead of dropping references (the post-run hang)', () => {
-    const src = readFileSync('nar/src/lm/runtime/llama-runtime.ts', 'utf8');
+    const src = readFileSync('src/lm/runtime/llama-runtime.ts', 'utf8');
     expect(src).toContain('context?.dispose()');
     expect(src).toContain('model?.dispose()');
     expect(src).toContain('llama?.dispose()');

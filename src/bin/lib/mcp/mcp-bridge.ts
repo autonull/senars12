@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { NAR } from '../../../agent/index.js';
 import type { Tool, ToolResult, ToolSchema, ToolSchemaProperty } from '../../../agent/index.js';
-import { entryKey, keyedBy } from '../../../utils/common.js';
+import { entryKey, keyedBy } from '@senars/util/collections';
 import { type ZodTypeAny, z } from 'zod';
 import { createMCPResponse, stringifyMCP } from './mcp-response.js';
 

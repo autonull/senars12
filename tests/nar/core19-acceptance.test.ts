@@ -17,7 +17,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { SeededRNG, sequentialIdSource, stableStringify } from '@senars/utils';
-import { createNAR, Truth } from '@senars/agent';
+import { createNAR, Truth, createLogStore } from '@senars/agent';
 import type { NARConfig } from '@senars/agent';
 import { NAR } from '@senars/agent';
 import { NarEventBus } from '@senars/types';
@@ -73,8 +73,10 @@ describe('CORE.19 §8 — acceptance walkthrough', () => {
   it('runs one continuous headless session: believe, step, ask, explain, flag a contradiction, restart', async () => {
     const bus = new NarEventBus();
     const events: Captured[] = [];
+    const logStore = createLogStore({ dir: join(stateDir, 'log') });
+    await logStore.open();
     const nar = new NAR(
-      e2eNARConfig({ eventBus: bus, persistState: true, statePath: stateDir })
+      e2eNARConfig({ eventBus: bus, persistState: true, statePath: stateDir, logStore })
     );
     stopped.push(nar);
     capture(bus, events);
@@ -130,12 +132,15 @@ describe('CORE.19 §8 — acceptance walkthrough', () => {
     const cycles = nar.getCycleCount();
     await nar.stop();
     await nar.dispose();
+    await logStore.close();
     stopped.length = 0;
 
     const bus2 = new NarEventBus();
     const restored: Array<{ cycleCount: number; concepts: number; pendingTasks: number }> = [];
     bus2.on('restore:state', (event) => restored.push(event));
-    const resumed = new NAR(e2eNARConfig({ eventBus: bus2, persistState: true, statePath: stateDir }));
+    const logStore2 = createLogStore({ dir: join(stateDir, 'log') });
+    await logStore2.open();
+    const resumed = new NAR(e2eNARConfig({ eventBus: bus2, persistState: true, statePath: stateDir, logStore: logStore2 }));
     stopped.push(resumed);
     await resumed.start();
 

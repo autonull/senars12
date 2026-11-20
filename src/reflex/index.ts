@@ -21,3 +21,4 @@ export { TabularQReflex } from './TabularQReflex.js';
 export { UCBReflex } from './UCBReflex.js';
 export type { ArbitrationStrategy } from './weighted-quorum.js';
 export { NalVetoArbitration, WeightedQuorum } from './weighted-quorum.js';
+export { RLFPLearner, type TaskOutcome, type TaskRewardMetrics } from '../rlfp/RLFPLearner.js';

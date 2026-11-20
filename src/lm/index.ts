@@ -151,6 +151,11 @@ export {
   createSystemOneLMRuleAdapter,
   createLMServiceCortex,
   verifyCascade,
+  ContrastiveMemory,
+  type ContrastiveMemoryConfig,
+  createContrastiveMemory,
+  SystemOneIngressJudge,
+  type SystemOneIngressJudgeConfig,
 } from './system-one/index.js';
 export { BrierHarness, loadSession, startArcadeTickSpan, saveSession } from '../eval/index.js';
 export { MiningBag, type MiningBagOptions, mineHardNegatives } from './system-one/hard-negatives.js';
