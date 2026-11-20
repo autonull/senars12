@@ -143,7 +143,7 @@
 # Pass rate: ~93.2% (target >90%) — EXCEEDS TARGET!
 # Kernel terms: 36/36 tests now PASSING (fixed Narsese parser, standardizeApart, canonicalEquals, termEquals)
 # todo16-provisional: 7/7 tests now PASSING (fixed test to use mock clock for bag decay)
-# todo26-cognitive-agent: timeout increased to 120s (was timing out at 60s under parallel load)
+# todo26-cognitive-agent: timeout increased to 180s (was timing out at 60s under parallel load)
 # 09-restart-equivalence: timeout increased to 60s (was default 15s)
 # Remaining work (~55 failed test files / 183 failed tests):
 # 1. NAL veto mechanism: todo17b-nal-arm (3), todo19-reasoning (1) — core veto logic bug
