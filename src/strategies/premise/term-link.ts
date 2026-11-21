@@ -5,7 +5,7 @@ import type { MemoryView } from '../../memory/view.js';
 import { getPredicate, getSubject, type Term, termKey } from '../../terms';
 import type { Task } from '../../types';
 import { createSecondaryTask } from '../../types';
-import type { Strategy } from '../types.js';
+import type { Strategy, ComponentMetadata } from '../types.js';
 
 /** Minimum belief priority for a link to be promoted to a secondary task. */
 const MIN_TASK_PRIORITY = 0.3;
@@ -24,6 +24,7 @@ export interface LinkLayerStrategyConfig {
  */
 export class LinkLayerStrategy implements Strategy {
   readonly name: string;
+  readonly metadata: ComponentMetadata;
 
   constructor(
     readonly layer: string,
@@ -31,6 +32,7 @@ export class LinkLayerStrategy implements Strategy {
     private readonly config: LinkLayerStrategyConfig = {}
   ) {
     this.name = name ?? `${layer}-link`;
+    this.metadata = { name: this.name, description: `Link-layer premise selection (${this.layer})` };
   }
 
   selectSecondary(task: Task, memory: MemoryView): Task[] {

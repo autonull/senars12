@@ -11,6 +11,11 @@ export interface ComponentMetadata {
   readonly version?: string;
 }
 
+/** Common shape every strategy implementation carries. */
+export interface WithMetadata {
+  readonly metadata: ComponentMetadata;
+}
+
 export type StrategyType = 'sampling' | 'premise' | 'derivation' | 'lm-rule' | 'attention';
 
 /** Every plugin shape the registry can hold. */
@@ -22,15 +27,12 @@ export type StrategyImpl =
   | AttentionModel;
 
 // ── 1. SamplingStrategy ──────────────────────
-export interface SamplingStrategy {
-  readonly metadata: ComponentMetadata;
-
+export interface SamplingStrategy extends WithMetadata {
   sample(memory: MemoryView, count: number): Concept[];
 }
 
 // ── 2. Strategy (Premise Selection) ───────────
-export interface Strategy {
-  readonly metadata?: ComponentMetadata;
+export interface Strategy extends WithMetadata {
   readonly name: string;
   readonly sampleSize?: number;
   readonly limit?: number;
@@ -47,9 +49,7 @@ export interface DerivationContext {
   signal?: AbortSignal;
 }
 
-export interface DerivationStrategy {
-  readonly metadata: ComponentMetadata;
-
+export interface DerivationStrategy extends WithMetadata {
   derive(
     primary: Task,
     secondaries: Task[],
@@ -74,9 +74,7 @@ export interface ModelRuleSelectionContext {
  * the cycle stages work unconditionally and the selector runs in the off-cycle
  * pass, so nothing on the cycle path is decided here.
  */
-export interface ModelRuleSelector {
-  readonly metadata: ComponentMetadata;
-
+export interface ModelRuleSelector extends WithMetadata {
   select(rules: ModelRule[], context: ModelRuleSelectionContext): ModelRule[];
 }
 
@@ -88,9 +86,7 @@ export interface AttentionContext {
   memory: MemoryView;
 }
 
-export interface AttentionModel {
-  readonly metadata: ComponentMetadata;
-
+export interface AttentionModel extends WithMetadata {
   prime(concept: Concept, context: AttentionContext): number;
 
   decay(concept: Concept, cyclesElapsed: number, baseDecayRate: number): number;

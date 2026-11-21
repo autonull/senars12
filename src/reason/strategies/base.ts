@@ -37,10 +37,11 @@ export const createStrategy = (config: StrategyConfig): Strategy => {
     name,
     sampleSize,
     limit,
+    metadata: { name, description: `Premise strategy: ${name}` },
     selectSecondary(task, memory) {
       return samplePremisesFromConfig(memory, task, sample);
     },
-  } as Strategy & { sampleSize: number; limit: number };
+  };
 };
 
 export type { FilterSpec, StrategyConfig };
