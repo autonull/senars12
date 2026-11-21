@@ -8,6 +8,8 @@
 import type { Term } from '../kernel/terms/term.js';
 import type { TruthValue } from '../kernel/truth.js';
 import type { Stamp } from '../kernel/types.js';
+import type { Clock, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock } from '../kernel/env.js';
 
 /** Artifact kinds. */
 export const ARTIFACT_KINDS = [
@@ -118,6 +120,8 @@ export interface RepertoireConfig {
   quarantineOnContradiction: boolean;
   /** Rollback enabled. */
   rollbackEnabled: boolean;
+  /** Clock for deterministic timestamps. */
+  clock?: Clock;
 }
 
 /** Default repertoire config. */
@@ -143,15 +147,22 @@ export class Repertoire {
   private byStatus: Map<ArtifactStatus, Set<string>> = new Map();
   private events: AdmissionEvent[] = [];
   private config: RepertoireConfig;
+  private clock: Clock;
 
   constructor(config: RepertoireConfig = defaultRepertoireConfig) {
     this.config = config;
+    this.clock = config.clock ?? createDefaultClock();
     for (const kind of ARTIFACT_KINDS) {
       this.byKind.set(kind, new Set());
     }
     for (const status of ARTIFACT_STATUS) {
       this.byStatus.set(status, new Set());
     }
+  }
+
+  /** Get the clock. */
+  getClock(): Clock {
+    return this.clock;
   }
 
   /** Get current config. */
@@ -182,7 +193,7 @@ export class Repertoire {
       throw new Error(`Capacity exceeded for kind: ${kind}`);
     }
 
-    const now = Date.now();
+    const now = this.clock.now();
     const artifact: Artifact = {
       id,
       kind,
@@ -234,7 +245,7 @@ export class Repertoire {
       return null;
     }
 
-    const now = Date.now();
+    const now = this.clock.now();
     const event: AdmissionEvent = {
       type: 'demote',
       artifactId: id,
@@ -264,7 +275,7 @@ export class Repertoire {
       return null;
     }
 
-    const now = Date.now();
+    const now = this.clock.now();
     const event: AdmissionEvent = {
       type: 'retire',
       artifactId: id,
@@ -305,7 +316,7 @@ export class Repertoire {
     }
 
     // Revert to previous status
-    const now = Date.now();
+    const now = this.clock.now();
     const event: AdmissionEvent = {
       type: 'rollback',
       artifactId: id,
@@ -335,7 +346,7 @@ export class Repertoire {
       return null;
     }
 
-    const now = Date.now();
+    const now = this.clock.now();
     const event: AdmissionEvent = {
       type: 'retire',
       artifactId: id,
@@ -362,7 +373,7 @@ export class Repertoire {
       return null;
     }
 
-    const now = Date.now();
+    const now = this.clock.now();
     const event: AdmissionEvent = {
       type: 'quarantine',
       artifactId: id,
@@ -392,7 +403,7 @@ export class Repertoire {
       return null;
     }
 
-    const now = Date.now();
+    const now = this.clock.now();
     const event: AdmissionEvent = {
       type: 'promote',
       artifactId: id,
@@ -458,7 +469,7 @@ export class Repertoire {
     if (!artifact) return;
 
     artifact.metrics.usageCount++;
-    artifact.metrics.lastUsed = Date.now();
+    artifact.metrics.lastUsed = this.clock.now();
     artifact.metrics.avgUtility =
       (artifact.metrics.avgUtility * (artifact.metrics.usageCount - 1) + utility) /
       artifact.metrics.usageCount;

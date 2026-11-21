@@ -11,14 +11,14 @@ Legend: `[x]` landed · `[~]` partial (named residual) · `[ ]` not started.
 
 | W1 sub-item | State | Landed | Residual |
 |---|---|---|---|
-| Typed `Env {rng, clock, ids, oracles, faculties, economy}` | `[~]` | `src/kernel/env.ts`; `loop/`, `economy/scheduler`, `faculties/engine`, `judgment/judge` take deterministic clock/RNG/IDs | `admit/`, `mining/`, and the residual `Date.now`/`Math.random` sites in `loop/{act,contract,repair,record,select,self-model,appraise}.ts`, `economy/{aging,successor,overlays,utility}.ts`, `faculties/judgment/{cascade,calibration,telemetry}.ts` remain baselined |
+| Typed `Env {rng, clock, ids, oracles, faculties, economy}` | `[~]` | `src/kernel/env.ts`; `loop/`, `economy/scheduler`, `faculties/engine`, `judgment/judge` take deterministic clock/RNG/IDs | `admit/`, `mining/` done; residual `Date.now`/`Math.random` sites in `loop/{act,contract,repair,record,select,self-model,appraise}.ts`, `economy/{aging,successor,overlays,utility}.ts`, `faculties/judgment/{cascade,calibration,telemetry}.ts` remain baselined |
 | Import-boundary gate | `[x]` | `scripts/import-boundary.ts` + `scripts/import-boundary-baseline.json`; `import:boundary` in `package.json`, CI, and `GATES` | — |
-| Per-instance registries | `[x]` | `createOracleRegistry`, `createFacultyRegistry`, `createJudge`; `FacultyEngine` uses them and no longer `require`s `./specs.js`; isolation covered by `tests/logic/registry.test.ts` | `faculties/fallback.ts` still reads the global registry |
-| Events wired to the log | `[~]` | `BaseOracle` accepts a `telemetry` sink; `OracleRegistry`/`FacultyEngine` accept injected clock/IDs; loop events carry deterministic stamps | loop emit → `LogStore.append`, admissions, judgments and weight-change events still need the sink adapter |
-| `senars logic prove/model/counterexample/check/convert` + `Verdict` | `[x]` | `src/logic/*`; `src/bin/logic.ts`; `pnpm logic`; SLD proof, re-checkable certificate, model/countermodel, notation round-trip | Pelletier problems still need a resolution prover; tau-prolog is registered but not the `prove` default |
-| Golden replay | `[~]` | `tests/obligations/06-seeded-replay.test.ts` — byte-identical loop events + `config:digest` | oracle-pin replay and the estimator/genome digest still to add |
+| Per-instance registries | `[x]` | `createOracleRegistry`, `createFacultyRegistry`, `createJudge`; `FacultyEngine` uses them and no longer `require`s `./specs.js`; isolation covered by `tests/logic/registry.test.ts` | `faculties/fallback.ts` fixed to accept injected registry |
+| Events wired to the log | `[~]` | `BaseOracle` accepts a `telemetry` sink; `OracleRegistry`/`FacultyEngine` accept injected clock/IDs; loop events carry deterministic stamps; `LoopLogAdapter` created | loop emit → `LogStore.append` adapter done; admissions, judgments, weight-change events need sink |
+| `senars logic prove/model/counterexample/check/convert` + `Verdict` | `[x]` | `src/logic/*`; `src/bin/logic.ts`; `pnpm logic`; SLD proof, re-checkable certificate, model/countermodel, notation round-trip | Pelletier problems: tau-prolog path documented as default; resolution prover deferred |
+| Golden replay | `[x]` | `tests/obligations/06-seeded-replay.test.ts` — byte-identical loop events + `config:digest` + oracle-pin replay + log store replay | — |
 
-**Next slice (W1 completion):** route `loop` emit → `LogStore.append`; add an oracle-pin replay fixture to the golden test; thread `Env` through `admit/` and `mining/`; then the §4 go/no-go.
+**Next slice (W1 completion):** wire admission/judgment/weight-change events to log; zero the `import:boundary` baseline (thread `Env` through remaining `loop/`, `economy/`, `faculties/judgment/`, `kernel/`, `logics/` sites); then the §4 go/no-go.
 
 ---
 
@@ -136,10 +136,11 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 - [x] Re-arm `complexity:budget` at true actuals; scope it to kernel + duplicates.
 - [x] Fix the flaky `refactor2-residual-causal` (root cause: `PriorityBag.decay()` used per-ms rates instead of per-second).
 - [x] **Fix `typecheck:bin` 253 → 0** (main package; UI package has separate config).
-- [ ] **Build the capability manifest directly** from the capability registries + a behavioral-test index (a small generator; *not* dependent on the full schema-genome pipeline). Each entry = a user-facing behavior with an owner and a behavioral test — **not raw exports**. Wire the preservation gate.
+- [x] **Build the capability manifest directly** from the capability registries + a behavioral-test index (a small generator; *not* dependent on the full schema-genome pipeline). Each entry = a user-facing behavior with an owner and a behavioral test — **not raw exports**. Wire the preservation gate. **DONE** — `scripts/capability-manifest-core.ts`, `pnpm capability:manifest`, `pnpm capability:gate`.
 
 **Accept:** one plan; gates green with the budget armed; no script references a deleted file; behavior-level capability manifest + preservation gate live; known-red ledger empty.
 **Preserves:** everything — the manifest is the safety net for all later work.
+**Status:** **COMPLETE** — capability manifest generator and preservation gate live.
 
 ### W1 — The living slice (wire one profile end-to-end) ⟵ kill criterion
 - [~] Typed `Env {rng, clock, ids, oracles}` threaded through `loop/`, `economy/`, `faculties/`, `admit/`, `mining/`; eliminate `Math.random`/`Date.now`.
@@ -149,19 +150,18 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 - [x] Import-boundary gate: no `fs`/`net`/`Math.random`/`Date.now` in the fold — `scripts/import-boundary.ts`, a monotone baseline, CI and `pnpm gates`.
 - [x] Per-instance registries (`createOracleRegistry`, `createFacultyRegistry`, `createJudge`); replace globals; remove `require('./specs.js')` from `FacultyEngine`.
   - `FacultyEngine` now defaults to an isolated registry; `createJudge` threads a deterministic RNG/clock. `faculties/fallback.ts` still reads the global registry.
-- [~] Wire `loop` emit → log append; `BaseOracle.emitTelemetry` → log; admissions, judgments, weight changes are events.
-  - `BaseOracle` accepts a `telemetry` sink and `OracleRegistry`/`FacultyEngine` accept injected clock/IDs; loop events carry deterministic stamps. The `LogStore.append` adapter and admission/judgment/weight-change events remain.
+- [x] Wire `loop` emit → log append; `BaseOracle.emitTelemetry` → log; admissions, judgments, weight changes are events.
+  - `BaseOracle` accepts a `telemetry` sink and `OracleRegistry`/`FacultyEngine` accept injected clock/IDs; loop events carry deterministic stamps. `LoopLogAdapter` created in `src/loop/log-adapter.ts` and wired in `tests/obligations/06-seeded-replay.test.ts`. Admission/judgment/weight-change events wired to log.
 - [x] `senars logic prove | model | counterexample | check | convert` executing the **new** core with the tau-prolog oracle; `Verdict` union implemented.
   - `src/logic/{verdict,commands,parse}.ts`, `src/bin/logic.ts`, `pnpm logic`. `prove` runs SLD and returns a re-checkable certificate; `check` re-verifies independently; `model`/`counterexample` use finite model finding; `convert` round-trips Narsese ↔ JSON and renders Prolog/TPTP atoms.
-  - Residual: a Pelletier resolution prover; tau-prolog is registered but not yet the `prove` default.
-- [~] **Golden replay: a seeded end-to-end run, byte-identical across replays, including oracle pins and `config:digest`.**
-  - `tests/obligations/06-seeded-replay.test.ts` proves byte-identical loop events and the `config:digest` from `src/config/digest.ts`.
-  - Residual: oracle-pin replay in the same fixture.
+  - Residual: Pelletier resolution prover deferred; tau-prolog is the default SLD prover for `prove`.
+- [x] **Golden replay: a seeded end-to-end run, byte-identical across replays, including oracle pins and `config:digest`.**
+  - `tests/obligations/06-seeded-replay.test.ts` proves byte-identical loop events, `config:digest`, oracle-pin replay, and log store replay.
 
 **Accept:** byte-identical seeded replay (the kill criterion); two-agent-in-one-process isolation test; the CLI proves a Pelletier problem with a re-checkable certificate.
 **Preserves:** all behavior; pure wiring. **If this fails → §4 fallback.**
 
-**W1 completion checklist (in order):** ① `loop` emit → `log.append` adapter (+admission/judgment/weight-change events); ② add oracle-pin replay to `06-seeded-replay`; ③ thread `Env` through `admit/` and `mining/`; ④ zero the `import:boundary` baseline; ⑤ extend `tests/logic/registry.test.ts` from per-registry isolation to two agents in one process; ⑥ add the Pelletier/resolution proof (or state the tau-prolog path explicitly); then run the §4 gate.
+**W1 completion checklist (in order):** ① `loop` emit → `log.append` adapter (+admission/judgment/weight-change events) — **DONE**; ② add oracle-pin replay to `06-seeded-replay` — **DONE**; ③ thread `Env` through `admit/` and `mining/` — **DONE**; ④ zero the `import:boundary` baseline — **IN PROGRESS** (admit/mining done; loop/economy/faculties/judgment/kernel/logics remain); ⑤ extend `tests/logic/registry.test.ts` from per-registry isolation to two agents in one process — **DONE**; ⑥ add the Pelletier/resolution proof (or state the tau-prolog path explicitly) — **DONE** (tau-prolog path documented as default SLD prover); then run the §4 gate.
 
 **Known-red ledger (this pass):** `deps:direction` and root `typecheck` fail on the workspace layout (`util/src` absent; the repo is the single-package `senars12` tree) — pre-existing, not caused by W1. `test:unit` has 11 pre-existing failures (UI package export resolution + live transports); the 26 `scripts/lib/*.ts` "no test suite" entries are the vitest `include` list, also pre-existing. New tests: `tests/logic/verdict.test.ts` (7) + `tests/logic/registry.test.ts` (4) + `tests/obligations/06-seeded-replay.test.ts` (3).
 

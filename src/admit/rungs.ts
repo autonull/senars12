@@ -11,6 +11,8 @@
 
 import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire.js';
 import type { GateResult } from './lifecycle.js';
+import type { Clock, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock } from '../kernel/env.js';
 
 /** Admission rung. */
 export const RUNGS = [
@@ -142,7 +144,8 @@ export function meetsRungRequirements(
   artifact: Artifact,
   rung: Rung,
   gateResults: GateResult[] = [],
-  requirements: RungRequirements[] = defaultRungRequirements
+  requirements: RungRequirements[] = defaultRungRequirements,
+  clock?: Clock
 ): { met: boolean; failures: string[] } {
   const req = requirements.find(r => r.rung === rung);
   if (!req) {
@@ -150,6 +153,7 @@ export function meetsRungRequirements(
   }
 
   const failures: string[] = [];
+  const now = (clock ?? createDefaultClock()).now();
 
   // Truth checks
   if (artifact.truth.c < req.minConfidence) {
@@ -177,7 +181,7 @@ export function meetsRungRequirements(
 
   // Age check
   if (req.maxAge) {
-    const age = Date.now() - artifact.createdAt;
+    const age = now - artifact.createdAt;
     if (age > req.maxAge) {
       failures.push(`Age ${age}ms > ${req.maxAge}ms`);
     }

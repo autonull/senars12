@@ -90,3 +90,9 @@ export {
 export {
   createSelfModelManager,
 } from './self-model.js';
+
+export {
+  LoopLogAdapter,
+  createLoopLogAdapter,
+  wireLoopToLog,
+} from './log-adapter.js';

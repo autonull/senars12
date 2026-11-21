@@ -7,14 +7,18 @@
  * premise is false.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { configDigest } from '../../src/config/digest.js';
 import { createEconomyScheduler, type Economy, type EconomyTask, type SchedulerConfig } from '../../src/economy/index.js';
 import { createFacultyRegistry } from '../../src/faculties/specs.js';
 import { createOracleRegistry } from '../../src/oracles/oracle.js';
 import { createEnv, createEnvCore, type Env } from '../../src/kernel/env.js';
 import { createCognitiveLoop, LOOP_EVENTS, type LoopEvent } from '../../src/loop/index.js';
+import { createLogStore } from '../../src/log/store.js';
+import { createOraclePinStore, withOraclePin } from '../../src/oracles/pins.js';
 import { termInterner } from '../../src/kernel/terms/intern.js';
+import { rmSync } from 'node:fs';
+import { join } from 'node:path';
 
 const makeTask = (id: string, term: string, createdAt: number): EconomyTask => ({
   id,
@@ -35,10 +39,20 @@ const makeTask = (id: string, term: string, createdAt: number): EconomyTask => (
 interface Replay {
   readonly env: Env;
   readonly events: LoopEvent[];
+  readonly logEvents: any[];
   readonly digest: string;
+  readonly oraclePins: any[];
 }
 
-const replay = async (seed: number, initialTime = 0): Promise<Replay> => {
+const LOG_DIR = join(process.cwd(), 'data', 'test-log');
+const PIN_DIR = join(process.cwd(), 'data', 'test-oracle-pins');
+
+const cleanup = () => {
+  try { rmSync(LOG_DIR, { recursive: true, force: true }); } catch {}
+  try { rmSync(PIN_DIR, { recursive: true, force: true }); } catch {}
+};
+
+const replay = async (seed: number, initialTime = 0, logStore?: any, pinStore?: any): Promise<Replay> => {
   const core = createEnvCore({ seed, initialTime: initialTime as never });
   const scheduler = createEconomyScheduler({ seed, clock: core.clock } satisfies Partial<SchedulerConfig>);
   const economy: Economy = {
@@ -77,13 +91,25 @@ const replay = async (seed: number, initialTime = 0): Promise<Replay> => {
   const events: LoopEvent[] = [];
   for (const type of LOOP_EVENTS) loop.onEvent(type, (event) => events.push(event));
 
+  // Wire loop events to log if logStore provided
+  if (logStore) {
+    const { wireLoopToLog } = await import('../../src/loop/log-adapter.js');
+    wireLoopToLog(loop, { handleEvent: (e: LoopEvent) => logStore.append(e as any) } as any);
+  }
+
   await loop.run(3);
   await loop.close();
 
-  return { env, events, digest: configDigest({ events, seed }) };
+  // Collect oracle pins if pinStore provided
+  const oraclePins = pinStore ? await pinStore.getPinsForOperation('engine.tau-prolog') : [];
+
+  return { env, events, logEvents: [], digest: configDigest({ events, seed }), oraclePins };
 };
 
 describe('W1 — seeded end-to-end replay', () => {
+  beforeEach(() => cleanup());
+  afterEach(() => cleanup());
+
   it('replays byte-identically from the same seed', async () => {
     const first = await replay(42);
     const second = await replay(42);
@@ -102,5 +128,74 @@ describe('W1 — seeded end-to-end replay', () => {
     const start = core.clock.now();
     core.clock.advance(10);
     expect(core.clock.now()).toBe(start + 10);
+  });
+
+  it('replays byte-identically with log store', async () => {
+    const logStore1 = createLogStore({ dir: join(LOG_DIR, 'run1'), syncOnAppend: false });
+    const logStore2 = createLogStore({ dir: join(LOG_DIR, 'run2'), syncOnAppend: false });
+    await logStore1.open();
+    await logStore2.open();
+
+    const first = await replay(42, 0, logStore1);
+    const second = await replay(42, 0, logStore2);
+
+    await logStore1.close();
+    await logStore2.close();
+
+    // Read all log entries and compare
+    const firstEntries = await logStore1.readRange(1, logStore1.getCurrentSeq());
+    const secondEntries = await logStore2.readRange(1, logStore2.getCurrentSeq());
+
+    expect(JSON.stringify(secondEntries)).toBe(JSON.stringify(firstEntries));
+    expect(second.digest).toBe(first.digest);
+  });
+
+  it('replays byte-identically with oracle pins', async () => {
+    const pinStore1 = createOraclePinStore({ dir: join(PIN_DIR, 'run1') });
+    const pinStore2 = createOraclePinStore({ dir: join(PIN_DIR, 'run2') });
+    await pinStore1.open();
+    await pinStore2.open();
+
+    const first = await replay(42, 0, undefined, pinStore1);
+    const second = await replay(42, 0, undefined, pinStore2);
+
+    await pinStore1.close();
+    await pinStore2.close();
+
+    // Compare oracle pins
+    expect(JSON.stringify(second.oraclePins)).toBe(JSON.stringify(first.oraclePins));
+    expect(second.digest).toBe(first.digest);
+  });
+
+  it('replays byte-identically with both log store and oracle pins', async () => {
+    const logStore1 = createLogStore({ dir: join(LOG_DIR, 'run1-full'), syncOnAppend: false });
+    const logStore2 = createLogStore({ dir: join(LOG_DIR, 'run2-full'), syncOnAppend: false });
+    const pinStore1 = createOraclePinStore({ dir: join(PIN_DIR, 'run1-full') });
+    const pinStore2 = createOraclePinStore({ dir: join(PIN_DIR, 'run2-full') });
+
+    await logStore1.open();
+    await logStore2.open();
+    await pinStore1.open();
+    await pinStore2.open();
+
+    const first = await replay(42, 0, logStore1, pinStore1);
+    const second = await replay(42, 0, logStore2, pinStore2);
+
+    await logStore1.close();
+    await logStore2.close();
+    await pinStore1.close();
+    await pinStore2.close();
+
+    // Compare log entries
+    const firstEntries = await logStore1.readRange(1, logStore1.getCurrentSeq());
+    const secondEntries = await logStore2.readRange(1, logStore2.getCurrentSeq());
+    expect(JSON.stringify(secondEntries)).toBe(JSON.stringify(firstEntries));
+
+    // Compare oracle pins
+    const firstPins = await pinStore1.getPinsForOperation('engine.tau-prolog');
+    const secondPins = await pinStore2.getPinsForOperation('engine.tau-prolog');
+    expect(JSON.stringify(secondPins)).toBe(JSON.stringify(firstPins));
+
+    expect(second.digest).toBe(first.digest);
   });
 });

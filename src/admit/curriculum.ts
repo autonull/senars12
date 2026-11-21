@@ -9,6 +9,8 @@ import type { Artifact, ArtifactKind } from './repertoire.js';
 import type { EvaluationCertificate } from '../worlds/scorecard.js';
 import type { Term } from '../kernel/terms/term.js';
 import type { TruthValue } from '../kernel/truth.js';
+import type { Clock, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock } from '../kernel/env.js';
 
 /** Curriculum item. */
 export interface CurriculumItem {
@@ -72,9 +74,11 @@ export class CurriculumGenerator {
   private config: CurriculumConfig;
   private certificates: Map<string, EvaluationCertificate> = new Map();
   private artifacts: Artifact[] = [];
+  private clock: Clock;
 
-  constructor(config: CurriculumConfig = defaultCurriculumConfig) {
+  constructor(config: CurriculumConfig = defaultCurriculumConfig, clock?: Clock) {
     this.config = config;
+    this.clock = clock ?? createDefaultClock();
   }
 
   /** Update config. */
@@ -135,7 +139,7 @@ export class CurriculumGenerator {
       name,
       items: limitedItems,
       metadata: {
-        generatedAt: Date.now(),
+        generatedAt: this.clock.now(),
         certificateCount: this.certificates.size,
         artifactCount: this.artifacts.length,
         config: this.config,
@@ -214,6 +218,6 @@ export class CurriculumGenerator {
 }
 
 /** Create a curriculum generator. */
-export function createCurriculumGenerator(config?: CurriculumConfig): CurriculumGenerator {
-  return new CurriculumGenerator(config);
+export function createCurriculumGenerator(config?: CurriculumConfig, clock?: Clock): CurriculumGenerator {
+  return new CurriculumGenerator(config, clock);
 }

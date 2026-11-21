@@ -8,6 +8,8 @@
 import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire.js';
 import type { Term } from '../kernel/terms/term.js';
 import type { TruthValue } from '../kernel/truth.js';
+import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
 
 /** Book entry. */
 export interface BookEntry {
@@ -74,6 +76,13 @@ export class BookBuilder {
   private metadata: Partial<BookMetadata> = {};
   private entries: BookEntry[] = [];
   private artifactMap: Map<string, Artifact> = new Map();
+  private clock: Clock;
+  private rng: RNG;
+
+  constructor(clock?: Clock, rng?: RNG) {
+    this.clock = clock ?? createDefaultClock();
+    this.rng = rng ?? createDefaultRNG();
+  }
 
   /** Set book metadata. */
   setMetadata(metadata: Partial<BookMetadata>): this {
@@ -90,7 +99,7 @@ export class BookBuilder {
       term: artifact.term,
       truth: artifact.truth,
       status: artifact.status,
-      includedAt: Date.now(),
+      includedAt: this.clock.now(),
       tags: artifact.tags,
     });
     return this;
@@ -106,8 +115,8 @@ export class BookBuilder {
 
   /** Build the book. */
   build(): Book {
-    const now = Date.now();
-    const id = this.metadata.id ?? `book-${now}-${Math.random().toString(36).slice(2, 8)}`;
+    const now = this.clock.now();
+    const id = this.metadata.id ?? `book-${now}-${this.rng.next().toString(36).slice(2, 8)}`;
     const version = this.metadata.version ?? '1.0.0';
 
     const fullMetadata: BookMetadata = {
@@ -138,6 +147,13 @@ export class BookBuilder {
 export class BookLibrary {
   private books: Map<string, Book> = new Map();
   private byTag: Map<string, Set<string>> = new Map();
+  private clock: Clock;
+  private rng: RNG;
+
+  constructor(clock?: Clock, rng?: RNG) {
+    this.clock = clock ?? createDefaultClock();
+    this.rng = rng ?? createDefaultRNG();
+  }
 
   /** Add a book. */
   addBook(book: Book): void {
@@ -190,7 +206,7 @@ export class BookLibrary {
           term: artifact.term,
           truth: artifact.truth,
           status: artifact.status,
-          includedAt: Date.now(),
+          includedAt: this.clock.now(),
           tags: artifact.tags,
         });
         existingIds.add(artifact.id);
@@ -198,7 +214,7 @@ export class BookLibrary {
     }
 
     // Build derived book
-    const builder = new BookBuilder()
+    const builder = new BookBuilder(this.clock, this.rng)
       .setMetadata({
         title: newTitle,
         description: `Derived from ${parent.metadata.title}`,
@@ -252,11 +268,11 @@ export class BookLibrary {
 }
 
 /** Create a book builder. */
-export function createBookBuilder(): BookBuilder {
-  return new BookBuilder();
+export function createBookBuilder(clock?: Clock, rng?: RNG): BookBuilder {
+  return new BookBuilder(clock, rng);
 }
 
 /** Create a book library. */
-export function createBookLibrary(): BookLibrary {
-  return new BookLibrary();
+export function createBookLibrary(clock?: Clock, rng?: RNG): BookLibrary {
+  return new BookLibrary(clock, rng);
 }

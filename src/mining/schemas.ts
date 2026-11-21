@@ -7,6 +7,8 @@
 import type { Term } from '../kernel/terms/term.js';
 import type { TruthValue } from '../kernel/truth.js';
 import type { Stamp } from '../kernel/types.js';
+import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
 
 /** Convert term to string key. */
 function termToKey(term: Term): string {
@@ -77,9 +79,13 @@ export const defaultMiningConfig: MiningConfig = {
 export class SchemaMiner {
   private config: MiningConfig;
   private schemas: Map<string, MinedSchema> = new Map();
+  private clock: Clock;
+  private rng: RNG;
 
-  constructor(config: MiningConfig = defaultMiningConfig) {
+  constructor(config: MiningConfig = defaultMiningConfig, clock?: Clock, rng?: RNG) {
     this.config = config;
+    this.clock = clock ?? createDefaultClock();
+    this.rng = rng ?? createDefaultRNG();
   }
 
   /** Mine schemas from log entries. */
@@ -264,8 +270,9 @@ export class SchemaMiner {
 
   /** Convert log entry to schema example. */
   private entryToExample(entries: LogEntry[]): SchemaExample {
+    const now = this.clock.now();
     return {
-      id: `ex-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `ex-${now}-${this.rng.next().toString(36).slice(2, 8)}`,
       terms: entries.map(e => e.term),
       truths: entries.map(e => e.truth),
       timestamps: entries.map(e => e.timestamp),
@@ -314,6 +321,6 @@ export interface LogEntry {
 }
 
 /** Create a schema miner. */
-export function createSchemaMiner(config?: MiningConfig): SchemaMiner {
-  return new SchemaMiner(config);
+export function createSchemaMiner(config?: MiningConfig, clock?: Clock, rng?: RNG): SchemaMiner {
+  return new SchemaMiner(config, clock, rng);
 }

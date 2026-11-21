@@ -7,7 +7,7 @@
 import type { Term } from '../kernel/terms/term.js';
 import type { Truth } from '../kernel/truth.js';
 import type { Task } from '../kernel/types.js';
-import type { FacultyInput, FacultyOutput, FacultyFallback } from './specs.js';
+import type { FacultyInput, FacultyOutput, FacultyFallback, FacultyRegistry } from './specs.js';
 import { Truth as TruthOps, createTruth } from '../kernel/truth.js';
 import { fromNarsese, getArgs, isInheritance, isConjunction, isDisjunction, visitTerms } from '../kernel/terms/term.js';
 import { createTask, type TaskType } from '../kernel/types.js';
@@ -421,10 +421,9 @@ export function getFallback(faculty: string): FacultyFallback | undefined {
 }
 
 /** Register all fallbacks with the faculty registry. */
-export function registerAllFallbacks(): void {
-  const { facultyRegistry } = require('./specs.js');
+export function registerAllFallbacks(registry: FacultyRegistry): void {
   for (const [name, fallback] of Object.entries(facultyFallbacks)) {
-    const spec = facultyRegistry.get(name as any);
+    const spec = registry.get(name as any);
     if (spec) {
       // The spec already has the fallback, but we ensure it's registered
       // This is a no-op if already registered

@@ -11,6 +11,9 @@ import type { OracleRegistry } from '../oracles/oracle.js';
 import type { FacultyRegistry } from '../faculties/specs.js';
 import type { Economy } from '../economy/index.js';
 
+/** Re-export TimestampMs for consumers. */
+export type { TimestampMs } from '../generated/schemas.js';
+
 /** Random number generator interface. */
 export interface RNG {
   /** Next random float in [0, 1). */
@@ -217,4 +220,14 @@ export function createReplayEnv(
   initialTime: TimestampMs = 0 as TimestampMs
 ): Env {
   return createEnv({ seed, initialTime, ...parts });
+}
+
+/** Create a default clock for non-deterministic contexts (e.g., testing). */
+export function createDefaultClock(): Clock {
+  return new DeterministicClock();
+}
+
+/** Create a default RNG for non-deterministic contexts (e.g., testing). */
+export function createDefaultRNG(): RNG {
+  return new DeterministicRNG();
 }

@@ -7,6 +7,8 @@
 
 import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire.js';
 import type { AdmissionEvent, AdmissionEventType } from './repertoire.js';
+import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
 
 /** Governance policy. */
 export interface GovernancePolicy {
@@ -93,6 +95,13 @@ export class GovernanceEngine {
   private policies: Map<string, GovernancePolicy> = new Map();
   private log: GovernanceLogEntry[] = [];
   private runner: GovernanceRunner | null = null;
+  private clock: Clock;
+  private rng: RNG;
+
+  constructor(clock?: Clock, rng?: RNG) {
+    this.clock = clock ?? createDefaultClock();
+    this.rng = rng ?? createDefaultRNG();
+  }
 
   /** Set external runner. */
   setRunner(runner: GovernanceRunner): void {
@@ -122,15 +131,16 @@ export class GovernanceEngine {
   /** Evaluate artifact against all active policies. */
   async evaluate(artifact: Artifact, actor = 'agent'): Promise<GovernanceDecision[]> {
     const activePolicies = this.getActivePolicies();
+    const now = this.clock.now();
     if (activePolicies.length === 0) {
       return [{
-        id: `dec-${Date.now()}`,
+        id: `dec-${now}`,
         artifactId: artifact.id,
         policyId: 'none',
         ruleId: 'none',
         verdict: 'allow',
         reason: 'No active policies',
-        timestamp: Date.now(),
+        timestamp: now,
         decidedBy: actor,
       }];
     }
@@ -167,14 +177,15 @@ export class GovernanceEngine {
           : 'allow';
 
         if (verdict !== 'allow') {
+          const now = this.clock.now();
           const decision: GovernanceDecision = {
-            id: `dec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            id: `dec-${now}-${this.rng.next().toString(36).slice(2, 8)}`,
             artifactId: artifact.id,
             policyId: policy.id,
             ruleId: rule.id,
             verdict,
             reason: `Rule ${rule.id}: ${rule.description}`,
-            timestamp: Date.now(),
+            timestamp: now,
             decidedBy: actor,
           };
           decisions.push(decision);
@@ -184,14 +195,15 @@ export class GovernanceEngine {
     }
 
     if (decisions.length === 0) {
+      const now = this.clock.now();
       decisions.push({
-        id: `dec-${Date.now()}`,
+        id: `dec-${now}`,
         artifactId: artifact.id,
         policyId: 'none',
         ruleId: 'none',
         verdict: 'allow',
         reason: 'No applicable rules',
-        timestamp: Date.now(),
+        timestamp: now,
         decidedBy: actor,
       });
     }
@@ -334,8 +346,8 @@ export const DEFAULT_POLICIES: GovernancePolicy[] = [
 ];
 
 /** Create a governance engine. */
-export function createGovernanceEngine(): GovernanceEngine {
-  const engine = new GovernanceEngine();
+export function createGovernanceEngine(clock?: Clock, rng?: RNG): GovernanceEngine {
+  const engine = new GovernanceEngine(clock, rng);
   for (const policy of DEFAULT_POLICIES) {
     engine.addPolicy(policy);
   }

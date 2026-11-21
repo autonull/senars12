@@ -10,6 +10,8 @@ import type { SurpriseEvent } from './surprise.js';
 import type { Term } from '../kernel/terms/term.js';
 import type { TruthValue } from '../kernel/truth.js';
 import type { Stamp } from '../kernel/types.js';
+import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
 
 /** Learning event. */
 export interface LearningEvent {
@@ -60,13 +62,19 @@ export class Learner {
   private config: LearningConfig;
   private events: LearningEvent[] = [];
   private artifactFactory: ArtifactFactory;
+  private clock: Clock;
+  private rng: RNG;
 
   constructor(
     config: LearningConfig = defaultLearningConfig,
-    artifactFactory?: ArtifactFactory
+    artifactFactory?: ArtifactFactory,
+    clock?: Clock,
+    rng?: RNG
   ) {
     this.config = config;
-    this.artifactFactory = artifactFactory ?? createArtifactFactory();
+    this.artifactFactory = artifactFactory ?? createArtifactFactory(clock, rng);
+    this.clock = clock ?? createDefaultClock();
+    this.rng = rng ?? createDefaultRNG();
   }
 
   /** Learn from mined schemas. */
@@ -85,13 +93,14 @@ export class Learner {
       }
     }
 
+    const now = this.clock.now();
     const event: LearningEvent = {
-      id: `learn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `learn-${now}-${this.rng.next().toString(36).slice(2, 8)}`,
       source: 'schema',
       sourceId: schemas.map(s => s.id).join(','),
       artifactsCreated,
       artifactsModified,
-      timestamp: Date.now(),
+      timestamp: now,
       metadata: { schemaCount: schemas.length },
     };
 
@@ -126,13 +135,14 @@ export class Learner {
       }
     }
 
+    const now = this.clock.now();
     const event: LearningEvent = {
-      id: `learn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `learn-${now}-${this.rng.next().toString(36).slice(2, 8)}`,
       source: 'surprise',
       sourceId: surprises.map(s => s.id).join(','),
       artifactsCreated,
       artifactsModified,
-      timestamp: Date.now(),
+      timestamp: now,
       metadata: { surpriseCount: surprises.length },
     };
 
@@ -160,13 +170,14 @@ export class Learner {
       artifactsCreated.push(artifact.id);
     }
 
+    const now = this.clock.now();
     const event: LearningEvent = {
-      id: `learn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `learn-${now}-${this.rng.next().toString(36).slice(2, 8)}`,
       source: 'curriculum',
       sourceId: curriculumItems.map((_, i) => i.toString()).join(','),
       artifactsCreated,
       artifactsModified: [],
-      timestamp: Date.now(),
+      timestamp: now,
       metadata: { itemCount: curriculumItems.length },
     };
 
@@ -242,13 +253,15 @@ export interface ArtifactFactory {
 }
 
 /** Create artifact factory. */
-export function createArtifactFactory(): ArtifactFactory {
+export function createArtifactFactory(clock?: Clock, rng?: RNG): ArtifactFactory {
   let counter = 0;
+  const clk = clock ?? { now: () => Date.now() as TimestampMs };
+  const rand = rng ?? { next: () => Math.random(), nextInt: (max: number) => Math.floor(Math.random() * max), nextBytes: (length: number) => crypto.getRandomValues(new Uint8Array(length)), setSeed: () => {}, getSeed: () => 0 };
 
   return {
     create(params) {
-      const id = `artifact-${Date.now()}-${counter++}`;
-      const now = Date.now();
+      const id = `artifact-${clk.now()}-${rand.next().toString(36).slice(2, 8)}`;
+      const now = clk.now();
       return {
         id,
         kind: params.kind,
@@ -273,6 +286,6 @@ export function createArtifactFactory(): ArtifactFactory {
 }
 
 /** Create a learner. */
-export function createLearner(config?: LearningConfig, factory?: ArtifactFactory): Learner {
-  return new Learner(config, factory);
+export function createLearner(config?: LearningConfig, factory?: ArtifactFactory, clock?: Clock, rng?: RNG): Learner {
+  return new Learner(config, factory, clock, rng);
 }

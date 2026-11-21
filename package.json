@@ -87,6 +87,8 @@
     "deps:check": "dpdm --circular --warning false src/ core/src/ nar/src/ io/src/ metta/src/",
     "deps:gate": "tsx --tsconfig tsconfig.root.json scripts/deps-gate.ts",
     "import:boundary": "tsx --tsconfig tsconfig.root.json scripts/import-boundary.ts",
+    "capability:manifest": "tsx --tsconfig tsconfig.root.json scripts/capability-manifest.ts",
+    "capability:gate": "tsx --tsconfig tsconfig.root.json scripts/capability-manifest.ts --gate",
     "core:no-lm": "tsx --tsconfig tsconfig.root.json scripts/core-no-lm.ts",
     "memory:ports": "tsx --tsconfig tsconfig.root.json scripts/memory-ports.ts",
     "attention:write-surface": "tsx --tsconfig tsconfig.root.json scripts/attention-write-surface.ts",

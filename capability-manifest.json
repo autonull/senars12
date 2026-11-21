@@ -1,0 +1,738 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-21T19:13:37.535Z",
+  "capabilities": [
+    {
+      "id": "faculty.grounding",
+      "name": "grounding",
+      "category": "perception",
+      "owner": "faculty-engine",
+      "behavior": "Grounds symbols in concrete referents through perception or retrieval",
+      "tests": [
+        {
+          "path": "tests/e2e/belief-import-export.test.ts",
+          "suite": "Belief Import/Export",
+          "case": "grounding round-trips",
+          "verifies": "Perceptual grounding produces stable referents"
+        },
+        {
+          "path": "tests/obligations/06-seeded-replay.test.ts",
+          "suite": "W1 — seeded end-to-end replay",
+          "case": "replays byte-identically from the same seed",
+          "verifies": "Grounding integrates with deterministic replay"
+        }
+      ],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.retrieval.query"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "35cfdca66f680f4d"
+    },
+    {
+      "id": "faculty.inference",
+      "name": "inference",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Performs NAL inference (deduction, induction, abduction)",
+      "tests": [
+        {
+          "path": "tests/logic/verdict.test.ts",
+          "suite": "Logic verdict",
+          "case": "proves a simple inheritance chain",
+          "verifies": "SLD resolution derives correct conclusions"
+        }
+      ],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.engine.tau-prolog"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "e8682c1bb885cb8f"
+    },
+    {
+      "id": "faculty.abduction",
+      "name": "abduction",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Generates explanatory hypotheses for observations",
+      "tests": [
+        {
+          "path": "tests/logic/registry.test.ts",
+          "suite": "W1 — per-instance registries",
+          "case": "creates an isolated faculty registry with the core faculties",
+          "verifies": "Abduction faculty registers and isolates correctly"
+        }
+      ],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "afecbcb891e43396"
+    },
+    {
+      "id": "faculty.induction",
+      "name": "induction",
+      "category": "learning",
+      "owner": "faculty-engine",
+      "behavior": "Induces general patterns from specific examples",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6655add755f54a36"
+    },
+    {
+      "id": "faculty.analogy",
+      "name": "analogy",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Finds structural analogies between domains",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b2836a3b0457d633"
+    },
+    {
+      "id": "faculty.revision",
+      "name": "revision",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Revises beliefs based on new evidence",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.engine.z3"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "3371c1af688a57c7"
+    },
+    {
+      "id": "faculty.planning",
+      "name": "planning",
+      "category": "planning",
+      "owner": "faculty-engine",
+      "behavior": "Decomposes goals into executable plans",
+      "tests": [
+        {
+          "path": "tests/unit/nar/weighted-sample.test.ts",
+          "suite": "Weighted sampling",
+          "case": "samples proportionally to weights",
+          "verifies": "Planning selects actions by utility"
+        }
+      ],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.engine.clingo"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "8505fb4ad545f253"
+    },
+    {
+      "id": "faculty.evaluation",
+      "name": "evaluation",
+      "category": "evaluation",
+      "owner": "faculty-engine",
+      "behavior": "Evaluates outcomes and assigns value",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "63ee6a359549091d"
+    },
+    {
+      "id": "faculty.communication",
+      "name": "communication",
+      "category": "communication",
+      "owner": "faculty-engine",
+      "behavior": "Translates between Narsese and natural language",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateText"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ed973623aa382ffc"
+    },
+    {
+      "id": "faculty.governance",
+      "name": "governance",
+      "category": "governance",
+      "owner": "faculty-engine",
+      "behavior": "Checks policy compliance and safety constraints",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.engine.z3"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6d94c2f7b859f538"
+    },
+    {
+      "id": "oracle.lm.generateText",
+      "name": "lm.generateText",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Text generation via language model",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/lm.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "df78e8178a9cdf25"
+    },
+    {
+      "id": "oracle.lm.generateObject",
+      "name": "lm.generateObject",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Structured object generation via language model",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/lm.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "96eaa1c31f2560f7"
+    },
+    {
+      "id": "oracle.lm.stream",
+      "name": "lm.stream",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Streaming language model output",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/lm.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5649cf8b76f0a6be"
+    },
+    {
+      "id": "oracle.retrieval.query",
+      "name": "retrieval.query",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Semantic retrieval query",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/retrieval.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a07c823b2218f2b8"
+    },
+    {
+      "id": "oracle.engine.z3",
+      "name": "engine.z3",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "SMT solving via Z3",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/z3.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "342ea303cfbe47ad"
+    },
+    {
+      "id": "oracle.engine.clingo",
+      "name": "engine.clingo",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "ASP solving via Clingo",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/clingo.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5235150b3789d153"
+    },
+    {
+      "id": "oracle.engine.minisat",
+      "name": "engine.minisat",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "SAT solving via MiniSat",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/minisat.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "d66f5b3033a73198"
+    },
+    {
+      "id": "oracle.engine.tau-prolog",
+      "name": "engine.tau-prolog",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Prolog reasoning via Tau Prolog",
+      "tests": [
+        {
+          "path": "tests/logic/verdict.test.ts",
+          "suite": "Logic verdict",
+          "case": "proves a simple inheritance chain",
+          "verifies": "Tau Prolog resolves SLD proofs correctly"
+        }
+      ],
+      "sources": [
+        "src/oracles/engines/tau-prolog.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f28db8c4b1dfac20"
+    },
+    {
+      "id": "oracle.engine.custom",
+      "name": "engine.custom",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Custom engine oracle",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/custom.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "94d68fdd30f95496"
+    }
+  ],
+  "byId": {
+    "faculty.grounding": {
+      "id": "faculty.grounding",
+      "name": "grounding",
+      "category": "perception",
+      "owner": "faculty-engine",
+      "behavior": "Grounds symbols in concrete referents through perception or retrieval",
+      "tests": [
+        {
+          "path": "tests/e2e/belief-import-export.test.ts",
+          "suite": "Belief Import/Export",
+          "case": "grounding round-trips",
+          "verifies": "Perceptual grounding produces stable referents"
+        },
+        {
+          "path": "tests/obligations/06-seeded-replay.test.ts",
+          "suite": "W1 — seeded end-to-end replay",
+          "case": "replays byte-identically from the same seed",
+          "verifies": "Grounding integrates with deterministic replay"
+        }
+      ],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.retrieval.query"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "35cfdca66f680f4d"
+    },
+    "faculty.inference": {
+      "id": "faculty.inference",
+      "name": "inference",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Performs NAL inference (deduction, induction, abduction)",
+      "tests": [
+        {
+          "path": "tests/logic/verdict.test.ts",
+          "suite": "Logic verdict",
+          "case": "proves a simple inheritance chain",
+          "verifies": "SLD resolution derives correct conclusions"
+        }
+      ],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.engine.tau-prolog"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "e8682c1bb885cb8f"
+    },
+    "faculty.abduction": {
+      "id": "faculty.abduction",
+      "name": "abduction",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Generates explanatory hypotheses for observations",
+      "tests": [
+        {
+          "path": "tests/logic/registry.test.ts",
+          "suite": "W1 — per-instance registries",
+          "case": "creates an isolated faculty registry with the core faculties",
+          "verifies": "Abduction faculty registers and isolates correctly"
+        }
+      ],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "afecbcb891e43396"
+    },
+    "faculty.induction": {
+      "id": "faculty.induction",
+      "name": "induction",
+      "category": "learning",
+      "owner": "faculty-engine",
+      "behavior": "Induces general patterns from specific examples",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6655add755f54a36"
+    },
+    "faculty.analogy": {
+      "id": "faculty.analogy",
+      "name": "analogy",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Finds structural analogies between domains",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b2836a3b0457d633"
+    },
+    "faculty.revision": {
+      "id": "faculty.revision",
+      "name": "revision",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Revises beliefs based on new evidence",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.engine.z3"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "3371c1af688a57c7"
+    },
+    "faculty.planning": {
+      "id": "faculty.planning",
+      "name": "planning",
+      "category": "planning",
+      "owner": "faculty-engine",
+      "behavior": "Decomposes goals into executable plans",
+      "tests": [
+        {
+          "path": "tests/unit/nar/weighted-sample.test.ts",
+          "suite": "Weighted sampling",
+          "case": "samples proportionally to weights",
+          "verifies": "Planning selects actions by utility"
+        }
+      ],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.engine.clingo"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "8505fb4ad545f253"
+    },
+    "faculty.evaluation": {
+      "id": "faculty.evaluation",
+      "name": "evaluation",
+      "category": "evaluation",
+      "owner": "faculty-engine",
+      "behavior": "Evaluates outcomes and assigns value",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "63ee6a359549091d"
+    },
+    "faculty.communication": {
+      "id": "faculty.communication",
+      "name": "communication",
+      "category": "communication",
+      "owner": "faculty-engine",
+      "behavior": "Translates between Narsese and natural language",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateText"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ed973623aa382ffc"
+    },
+    "faculty.governance": {
+      "id": "faculty.governance",
+      "name": "governance",
+      "category": "governance",
+      "owner": "faculty-engine",
+      "behavior": "Checks policy compliance and safety constraints",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.engine.z3"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6d94c2f7b859f538"
+    },
+    "oracle.lm.generateText": {
+      "id": "oracle.lm.generateText",
+      "name": "lm.generateText",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Text generation via language model",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/lm.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "df78e8178a9cdf25"
+    },
+    "oracle.lm.generateObject": {
+      "id": "oracle.lm.generateObject",
+      "name": "lm.generateObject",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Structured object generation via language model",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/lm.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "96eaa1c31f2560f7"
+    },
+    "oracle.lm.stream": {
+      "id": "oracle.lm.stream",
+      "name": "lm.stream",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Streaming language model output",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/lm.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5649cf8b76f0a6be"
+    },
+    "oracle.retrieval.query": {
+      "id": "oracle.retrieval.query",
+      "name": "retrieval.query",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Semantic retrieval query",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/retrieval.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a07c823b2218f2b8"
+    },
+    "oracle.engine.z3": {
+      "id": "oracle.engine.z3",
+      "name": "engine.z3",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "SMT solving via Z3",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/z3.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "342ea303cfbe47ad"
+    },
+    "oracle.engine.clingo": {
+      "id": "oracle.engine.clingo",
+      "name": "engine.clingo",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "ASP solving via Clingo",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/clingo.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5235150b3789d153"
+    },
+    "oracle.engine.minisat": {
+      "id": "oracle.engine.minisat",
+      "name": "engine.minisat",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "SAT solving via MiniSat",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/minisat.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "d66f5b3033a73198"
+    },
+    "oracle.engine.tau-prolog": {
+      "id": "oracle.engine.tau-prolog",
+      "name": "engine.tau-prolog",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Prolog reasoning via Tau Prolog",
+      "tests": [
+        {
+          "path": "tests/logic/verdict.test.ts",
+          "suite": "Logic verdict",
+          "case": "proves a simple inheritance chain",
+          "verifies": "Tau Prolog resolves SLD proofs correctly"
+        }
+      ],
+      "sources": [
+        "src/oracles/engines/tau-prolog.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f28db8c4b1dfac20"
+    },
+    "oracle.engine.custom": {
+      "id": "oracle.engine.custom",
+      "name": "engine.custom",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Custom engine oracle",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/custom.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "94d68fdd30f95496"
+    }
+  }
+}

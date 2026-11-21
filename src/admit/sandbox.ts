@@ -7,6 +7,8 @@
 
 import type { Term } from '../kernel/terms/term.js';
 import type { TruthValue } from '../kernel/truth.js';
+import type { Clock, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock } from '../kernel/env.js';
 
 /** Sandbox fuel. */
 export interface Fuel {
@@ -136,9 +138,11 @@ export class Sandbox {
   private context: SandboxContext;
   private trace: SandboxTraceEntry[] = [];
   private stepCounter = 0;
+  private clock: Clock;
 
-  constructor(limits: SandboxLimits = defaultSandboxLimits) {
+  constructor(limits: SandboxLimits = defaultSandboxLimits, clock?: Clock) {
     this.limits = limits;
+    this.clock = clock ?? createDefaultClock();
     this.context = this.createContext();
   }
 
@@ -150,7 +154,7 @@ export class Sandbox {
       fuel: { remaining: this.limits.maxFuel, total: this.limits.maxFuel, consumed: 0 },
       limits: this.limits,
       depth: 0,
-      startTime: Date.now(),
+      startTime: this.clock.now(),
     };
   }
 
@@ -182,11 +186,11 @@ export class Sandbox {
   /** Execute AST. */
   execute(ast: SandboxAST): SandboxResult {
     this.reset();
-    const startTime = Date.now();
+    const startTime = this.clock.now();
 
     try {
       const value = this.eval(ast);
-      const timeMs = Date.now() - startTime;
+      const timeMs = this.clock.now() - startTime;
       return {
         success: true,
         value,
@@ -195,7 +199,7 @@ export class Sandbox {
         trace: this.trace,
       };
     } catch (error) {
-      const timeMs = Date.now() - startTime;
+      const timeMs = this.clock.now() - startTime;
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -365,7 +369,7 @@ export class Sandbox {
 
   /** Check fuel and limits. */
   private checkLimits(): void {
-    const elapsed = Date.now() - this.context.startTime;
+    const elapsed = this.clock.now() - this.context.startTime;
     if (elapsed > this.limits.maxTimeMs) {
       throw new Error('Execution time limit exceeded');
     }
@@ -394,7 +398,7 @@ export class Sandbox {
       fuelBefore,
       fuelAfter: this.context.fuel.remaining,
       depth: this.context.depth,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
     });
     return value;
   }
@@ -411,6 +415,6 @@ export class Sandbox {
 }
 
 /** Create a sandbox. */
-export function createSandbox(limits?: SandboxLimits): Sandbox {
-  return new Sandbox(limits);
+export function createSandbox(limits?: SandboxLimits, clock?: Clock): Sandbox {
+  return new Sandbox(limits, clock);
 }

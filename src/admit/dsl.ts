@@ -9,6 +9,8 @@ import type { Term } from '../kernel/terms/term.js';
 import type { TruthValue } from '../kernel/truth.js';
 import type { SandboxAST, SandboxFunction, SandboxLimits, Sandbox } from './sandbox.js';
 import { createSandbox } from './sandbox.js';
+import type { Clock, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock } from '../kernel/env.js';
 
 /** DSL expression. */
 export type DSLExpr =
@@ -247,11 +249,12 @@ export function createDSLCompiler(limits?: SandboxLimits): DSLCompiler {
 }
 
 /** Parse DSL from string (simplified). */
-export function parseDSL(source: string): DSLProgram {
+export function parseDSL(source: string, clock?: Clock): DSLProgram {
   // In a real implementation, use a proper parser (e.g., peggy)
   // This is a placeholder that returns an empty program
+  const now = clock?.now() ?? createDefaultClock().now();
   return {
-    id: `dsl-${Date.now()}`,
+    id: `dsl-${now}`,
     name: 'parsed',
     body: [],
     metadata: { source },

@@ -9,6 +9,8 @@ import type { Artifact, ArtifactKind, ArtifactStatus, AdmissionEvent, AdmissionE
 import type { Term } from '../kernel/terms/term.js';
 import type { TruthValue } from '../kernel/truth.js';
 import type { Stamp } from '../kernel/types.js';
+import type { Clock, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock } from '../kernel/env.js';
 
 /** Lifecycle phase. */
 export const LIFECYCLE_PHASES = [
@@ -38,7 +40,7 @@ export interface GateResult {
   /** Evidence. */
   evidence: Record<string, unknown>;
   /** Timestamp. */
-  timestamp: number;
+  timestamp: TimestampMs;
 }
 
 /** Verifier function. */
@@ -106,6 +108,11 @@ async function runGates(
 export class LifecycleManager {
   private gates: Map<string, Gate> = new Map();
   private phaseHooks: Map<LifecyclePhase, Array<(artifact: Artifact) => void>> = new Map();
+  private clock: Clock;
+
+  constructor(clock?: Clock) {
+    this.clock = clock ?? createDefaultClock();
+  }
 
   /** Register a gate. */
   registerGate(gate: Gate): void {
@@ -194,8 +201,9 @@ export class LifecycleManager {
 }
 
 /** Create a lifecycle manager with default gates. */
-export function createLifecycleManager(): LifecycleManager {
-  const manager = new LifecycleManager();
+export function createLifecycleManager(clock?: Clock): LifecycleManager {
+  const manager = new LifecycleManager(clock);
+  const getTime = () => manager['clock'].now();
 
   // Default admission gates
   manager.registerGate({
@@ -212,7 +220,7 @@ export function createLifecycleManager(): LifecycleManager {
           gate: 'truthThreshold',
           reason: `Truth below threshold: f=${artifact.truth.f}, c=${artifact.truth.c}`,
           evidence: { truth: artifact.truth, minConfidence, minFrequency },
-          timestamp: Date.now(),
+          timestamp: getTime(),
         };
       }
       return {
@@ -220,7 +228,7 @@ export function createLifecycleManager(): LifecycleManager {
         gate: 'truthThreshold',
         reason: 'Truth threshold met',
         evidence: { truth: artifact.truth },
-        timestamp: Date.now(),
+        timestamp: getTime(),
       };
     },
   });
@@ -244,7 +252,7 @@ export function createLifecycleManager(): LifecycleManager {
               gate: 'noContradiction',
               reason: `Contradiction with ${existing.id}`,
               evidence: { existingId: existing.id, freqDiff },
-              timestamp: Date.now(),
+              timestamp: getTime(),
             };
           }
         }
@@ -254,7 +262,7 @@ export function createLifecycleManager(): LifecycleManager {
         gate: 'noContradiction',
         reason: 'No contradictions found',
         evidence: {},
-        timestamp: Date.now(),
+        timestamp: getTime(),
       };
     },
   });
@@ -274,7 +282,7 @@ export function createLifecycleManager(): LifecycleManager {
           gate: 'dependencyCheck',
           reason: `Missing dependencies: ${missing.join(', ')}`,
           evidence: { missing },
-          timestamp: Date.now(),
+          timestamp: getTime(),
         };
       }
       return {
@@ -282,7 +290,7 @@ export function createLifecycleManager(): LifecycleManager {
         gate: 'dependencyCheck',
         reason: 'All dependencies satisfied',
         evidence: {},
-        timestamp: Date.now(),
+        timestamp: getTime(),
       };
     },
   });
@@ -302,7 +310,7 @@ export function createLifecycleManager(): LifecycleManager {
           gate: 'performanceReview',
           reason: `Insufficient usage: ${artifact.metrics.usageCount} < ${minUsage}`,
           evidence: { usageCount: artifact.metrics.usageCount, minUsage },
-          timestamp: Date.now(),
+          timestamp: getTime(),
         };
       }
       if (artifact.metrics.successRate < minSuccessRate) {
@@ -311,7 +319,7 @@ export function createLifecycleManager(): LifecycleManager {
           gate: 'performanceReview',
           reason: `Success rate too low: ${artifact.metrics.successRate} < ${minSuccessRate}`,
           evidence: { successRate: artifact.metrics.successRate, minSuccessRate },
-          timestamp: Date.now(),
+          timestamp: getTime(),
         };
       }
       return {
@@ -319,7 +327,7 @@ export function createLifecycleManager(): LifecycleManager {
         gate: 'performanceReview',
         reason: 'Performance review passed',
         evidence: { usageCount: artifact.metrics.usageCount, successRate: artifact.metrics.successRate },
-        timestamp: Date.now(),
+        timestamp: getTime(),
       };
     },
   });

@@ -6,6 +6,8 @@
 
 import type { Term } from '../kernel/terms/term.js';
 import type { TruthValue } from '../kernel/truth.js';
+import type { Clock, RNG, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock, createDefaultRNG } from '../kernel/env.js';
 
 /** Surprise type. */
 export const SURPRISE_TYPES = [
@@ -82,9 +84,13 @@ export interface ExpectationTracker {
 export class SurpriseDetector {
   private config: SurpriseConfig;
   private tracker: ExpectationTracker;
+  private clock: Clock;
+  private rng: RNG;
 
-  constructor(config: SurpriseConfig = defaultSurpriseConfig) {
+  constructor(config: SurpriseConfig = defaultSurpriseConfig, clock?: Clock, rng?: RNG) {
     this.config = config;
+    this.clock = clock ?? createDefaultClock();
+    this.rng = rng ?? createDefaultRNG();
     this.tracker = {
       expectations: new Map(),
       confidence: new Map(),
@@ -188,14 +194,15 @@ export class SurpriseDetector {
     source: SurpriseEvent['source'],
     context: Record<string, unknown>
   ): SurpriseEvent {
+    const now = this.clock.now();
     return {
-      id: `surprise-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `surprise-${now}-${this.rng.next().toString(36).slice(2, 8)}`,
       type,
       term,
       expected,
       actual,
       magnitude: Math.min(1, magnitude),
-      timestamp: Date.now(),
+      timestamp: now,
       context,
       source,
     };
@@ -216,7 +223,7 @@ export class SurpriseDetector {
 
   /** Update expectation with new observation. */
   private updateExpectation(termKey: string, truth: TruthValue): void {
-    const now = Date.now();
+    const now = this.clock.now();
     const history = this.tracker.history.get(termKey) ?? [];
     history.push(truth);
     if (history.length > 100) history.shift();
@@ -319,6 +326,6 @@ export class SurpriseDetector {
 }
 
 /** Create a surprise detector. */
-export function createSurpriseDetector(config?: SurpriseConfig): SurpriseDetector {
-  return new SurpriseDetector(config);
+export function createSurpriseDetector(config?: SurpriseConfig, clock?: Clock, rng?: RNG): SurpriseDetector {
+  return new SurpriseDetector(config, clock, rng);
 }
