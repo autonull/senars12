@@ -3,8 +3,9 @@ import { errMsg, toError } from '@senars/util/error';
 import { generateId } from '@senars/util/id';
 import { SerialLanes } from '@senars/util/async';
 import { Signal } from '@senars/events/signal';
-import { withRetry } from '@senars/util/retry';
-import { withDefaults } from '@senars/util/config';
+import { withRetry } from '@senars/util/retry.js';
+import { withDefaults } from '@senars/config';
+import type { Logger } from '@senars/util/logger.js';
 import type {
   Connection,
   ConnectionConfig,
@@ -190,6 +191,6 @@ export abstract class BaseConnection implements Connection {
   }
 
   protected withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
-    return retry(fn, { retries: maxRetries });
+    return withRetry(fn, { retries: maxRetries, baseMs: 100 });
   }
 }

@@ -1,14 +1,25 @@
 import type {
-  Budget,
   CognitiveEvent,
-  FormalizationBatch,
+  ShadowValidationDropEvent,
+  TaskAdmittedEvent,
+} from '@senars/schemas/cognitive-events.js';
+import type {
   GateOutcome,
   PerceptionGateInput,
   PerceptionGateOutput,
-  ShadowValidationDropEvent,
+} from '@senars/schemas/gate-io.js';
+import type {
+  FormalizationBatch,
+} from '@senars/schemas/formalization.js';
+import type {
+  Budget,
+} from '@senars/schemas/common.js';
+import type {
   SourceQuality,
-  TaskAdmittedEvent,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/truth.js';
+import type {
+  TruthLike,
+} from '@senars/types/truth.js';
 import { mintCognitiveEvent } from '@senars/schemas';
 import { asBeliefTruth } from '@senars/types/truth';
 import { confidenceCeiling, SOURCE_QUALITY_CONFIDENCE } from '@senars/schemas/truth';

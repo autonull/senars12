@@ -137,8 +137,8 @@ export class CapabilityOntology {
     // Convert NAR's Schema to the flat format expected by CapabilitySchema.input
     const required = new Set(tool.parameters?.required ?? []);
     const inputSchema = tool.parameters
-      ? mapValues(tool.parameters.properties, (v, k) => ({
-          type: v.type,
+      ? mapValues(tool.parameters.properties, (v: { type?: string; description?: string }, k: string) => ({
+          type: v.type ?? 'string',
           required: required.has(k),
           description: v.description,
         }))

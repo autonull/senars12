@@ -19,7 +19,7 @@ export {
 export { createAuthCommands } from './commands/auth.js';
 /** Builtin connection-management commands. @public */
 export { connectionCommands } from './commands/connection.js';
-export type { CommandContext, CommandDefinition, CommandHandler } from './commands/registry.js';
+export type { CommandContext, CommandDefinition, CommandHandler } from '../commands/types.js';
 /** Command registry. @public */
 export { CommandRegistry } from './commands/registry.js';
 /** Connection registry/lookup. @public */
@@ -53,7 +53,7 @@ export type {
   ConnectionState,
   IOMessage,
 } from './types.js';
-export { ConnectionError } from './types.js';
+export type { ConnectionError } from './types.js';
 export type { ServerStartupOptions } from './utils/http.js';
 /** HTTP/WS server helpers. @public */
 export {

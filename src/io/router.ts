@@ -1,4 +1,5 @@
 import { dispatch } from '@senars/util/middleware';
+import type { Middleware } from '@senars/util/middleware.js';
 import type { ConnectionManager } from './connection-manager.js';
 import type { Connection, IOMessage } from './types.js';
 
@@ -46,7 +47,7 @@ export class MessageRouter {
   private readonly chain: Middleware<MessageDispatch>[] = [];
 
   use(middleware: MessageMiddleware): void {
-    this.chain.push((dispatchCtx, next) =>
+    this.chain.push((dispatchCtx: { message: IOMessage; context: MessageContext }, next: () => Promise<void>) =>
       middleware(dispatchCtx.message, dispatchCtx.context, next)
     );
   }

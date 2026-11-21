@@ -1,24 +1,35 @@
 import type {
   ActionGateInput,
   ActionGateOutput,
-  AutonomyAuthority,
-  AutonomyMode,
-  AutonomyModeChangedEvent,
-  BudgetExhaustedEvent,
   BudgetGateInput,
   BudgetGateOutput,
-  CognitiveEvent,
-  FormalizationBatch,
+  GateOutcome,
   PerceptionGateInput,
   PerceptionGateOutput,
-  PolicyViolationEvent,
-  ReasoningBudget,
   RewardGateInput,
   RewardGateOutput,
+} from '@senars/schemas/gate-io.js';
+import type {
+  AutonomyModeChangedEvent,
+  BudgetExhaustedEvent,
+  CognitiveEvent,
+  PolicyViolationEvent,
   ShadowValidationDropEvent,
-  SourceQuality,
   TaskAdmittedEvent,
-} from '@senars/schemas';
+} from '@senars/schemas/cognitive-events.js';
+import type {
+  AutonomyAuthority,
+  AutonomyMode,
+} from '@senars/schemas/governance.js';
+import type {
+  FormalizationBatch,
+} from '@senars/schemas/formalization.js';
+import type {
+  ReasoningBudget,
+} from '@senars/schemas/reasoning-budget.js';
+import type {
+  SourceQuality,
+} from '@senars/schemas/truth.js';
 import type { TruthLike } from '../types/truth.js';
 import type { TaskTypeName, Term } from '../terms';
 
@@ -92,5 +103,5 @@ export interface IDriveManager {
   getAllStates(): import('../drives/types').DriveState[];
   getMaxIntensity(): number;
   getUrgency(): number;
-  setSystemEventBus(bus: import('@senars/util/events').EventBus): void;
+  setSystemEventBus(bus: import('@senars/util/event-bus').EventBus): void;
 }

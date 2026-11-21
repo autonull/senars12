@@ -1,6 +1,7 @@
 import http, { type IncomingMessage } from 'node:http';
 import { deadline, readBytesBounded } from '@senars/util/async';
 import type { WebSocketServer } from 'ws';
+import type { Logger } from '@senars/util/logger.js';
 
 /**
  * Default cap on an inbound request body. A handler that trusted the peer to be

@@ -86,7 +86,8 @@ export { PriorityBag } from '../bag/index.js';
 export { isEventType, validateCognitiveEvent } from '../schemas/cognitive-events.js';
 export { validateDerivationRecord } from '../schemas/derivation-records.js';
 export { StreamReasoner } from '../stream/index.js';
-export { LMProposalProducer, CycleTrace, findInCycleProposals, findStageOverlaps, CYCLE_STAGES, type CycleStageEvent, type StageOverlap, ProposalLifecycle, ProposalQueueLimits } from '../proposal/index.js';
+export { LMProposalProducer, CycleTrace, findInCycleProposals, findStageOverlaps, CYCLE_STAGES, ProposalLifecycle } from '../proposal/index.js';
+export type { CycleStageEvent, StageOverlap, ProposalQueueLimits } from '../proposal/index.js';
 export { canonicalJson, configDigest } from '../strategies/index.js';
 export { CompositeStrategy, CompositeLMRuleSelector, CompositeAttention, TermLinkStrategy } from '../strategies/index.js';
 export { LINK_LAYER, type KnownLinkLayer } from '../memory/index.js';
@@ -107,7 +108,8 @@ export { askSafely, DECISION_ASK_TIMEOUT_MS } from '../ports/decision.js';
 export { createTetrisGame, TetrisGame, createSelfMetaGame } from '../game/index.js';
 export { SOURCE_QUALITY_CONFIDENCE } from '../schemas/index.js';
 export { SchedulerAdapter, SchemaInductor, AIKRProcessor } from '../learning/index.js';
-export { TaskManager, createTask, createTaskWeight, NEUTRAL_BUDGET, createSecondaryTask, type Budget } from '../task/index.js';
+export { TaskManager, type Budget } from '../task/index.js';
+export { createTask, createTaskWeight, NEUTRAL_BUDGET, createSecondaryTask } from '../types/core.js';
 export { AgentOptionsSchema, ConnectionConfigSchema, type AgentOptions, type ConnectionConfig } from '../tools/index.js';
 export { RuleProcessor, ProofStreamRing, rankDerivations } from '../rules/index.js';
 export { DEFAULT_CONFIG } from '../types/core.js';
@@ -160,8 +162,8 @@ export {
   type AtomicTerm,
   type CompoundTerm,
   type Term,
-  type TermSymbol,
 } from '../terms/index.js';
+export { type TermSymbol } from '../types/core.js';
 export { isTruthEqual, Truth } from '../terms/impls/Truth.js';
 export { deserializeStamp, observeStampId, Stamp, serializeStamp, type SerializedStamp } from '../terms/impls/Stamp.js';
 export { NARExecution } from '../nar-execution.js';

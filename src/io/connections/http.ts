@@ -6,10 +6,11 @@ import { deadline, deferred } from '@senars/util/async';
 import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { mapToRecord } from '@senars/util/collections';
-import { withDefaults } from '@senars/util/config';
+import { withDefaults } from '@senars/config';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { parseHttpBody, setCORSHeaders, startHttpServer } from '../utils/http.js';
 import { BaseConnection } from './base.js';
+import type { HealthReport } from '@senars/types/health.js';
 
 /** In-flight handler callbacks a single HTTP connection may hold before dropping the oldest. */
 const MAX_INFLIGHT_REQUESTS = 256;

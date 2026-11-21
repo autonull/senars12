@@ -1,5 +1,5 @@
 import type { AuthManager } from '../auth.js';
-import type { CommandDefinition } from './registry.js';
+import type { CommandDefinition } from '../../commands/types.js';
 
 /**
  * D19 (TODO17b): /auth actually binds the sender via the AuthManager —

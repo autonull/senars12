@@ -25,11 +25,9 @@ export type ProposalKind = (typeof PROPOSAL_KINDS)[number];
 
 /** Rejection reasons — stable codes for programmatic handling. */
 export const PROPOSAL_REJECTIONS = [
-  'stale-base',
-  'budget-exceeded',
-  'schema-invalid',
-  'duplicate',
-  'conflict',
+  'schema-version',
+  'stale-revision',
+  'evicted-reference',
   'queue-overflow',
   'cancelled',
   'failed-schema',

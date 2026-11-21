@@ -1,11 +1,15 @@
 import type {
-  GateOutcome,
   PolicyViolationEvent,
-  RewardDomain,
+} from '@senars/schemas/cognitive-events.js';
+import type {
+  GateOutcome,
   RewardGateInput,
   RewardGateOutput,
+} from '@senars/schemas/gate-io.js';
+import type {
+  RewardDomain,
   SelfImprovementProposal,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/governance.js';
 import { proposalRisk, SelfImprovementProposalSchema } from '@senars/schemas/governance.js';
 import { makeId } from '@senars/util/id';
 import { SenarsError } from '@senars/errors';

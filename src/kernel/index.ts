@@ -69,14 +69,13 @@ export {
 } from './replay-compat.js';
 
 export {
-  type Truth,
   type TruthValue,
-  type TruthLike,
   Truth,
   normalize,
   createTruth,
   verifyTruthLaws,
 } from './truth.js';
+export type { TruthLike } from './types.js';
 export {
   type TruthValueSchema,
   toSchemaTruth,

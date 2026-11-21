@@ -18,6 +18,7 @@
 
 import { JUDGMENT_SHAPES } from '@senars/util/cognitive-schemas';
 import { COGNITIVE_AXES } from '@senars/util/cognitive-schemas';
+import type { Witness } from '@senars/util/witness.js';
 import type { BudgetScopeId } from '../kernel/budget-scopes.js';
 import {
   DECISION_ASK_TIMEOUT_MS,
@@ -28,6 +29,13 @@ import {
 } from '../ports/decision.js';
 
 interface DecisionCallSiteBase extends Witness {
+  /** Repo-relative path of the file the call must live in. */
+  readonly file: string;
+  /**
+   * Text that must still appear in that file — distinctive enough to name one
+   * call, not a token the file also uses elsewhere.
+   */
+  readonly contains: string;
   /** Stable id, and the symbol a caller names in a violation message. */
   readonly id: string;
   /** Per-site bound on one ask in ms — a second site with different latency

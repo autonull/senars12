@@ -1,5 +1,5 @@
 import { errMsg } from '@senars/util/error';
-import { isQuitResult } from '@senars/commands';
+import { isQuitResult } from '../../commands/types.js';
 import { SlidingWindowRateLimiter } from '@senars/util/rate-limit';
 import { splitWords } from '@senars/util/text';
 import type { CommandRegistry } from '../commands/registry.js';
@@ -9,6 +9,11 @@ import {
   type MessageMiddleware,
   resolveSessionKey,
 } from '../router.js';
+import type { BridgeOptions } from '@senars/types/agent.js';
+import type { IOMessage } from '@senars/types/transport.js';
+import type { SessionManager } from '@senars/memory/types.js';
+import type { Middleware } from '@senars/util/middleware.js';
+import type { Logger } from '@senars/util/logger.js';
 
 /** The auth contract `BridgeOptions.auth` exposes — any compatible implementation qualifies. */
 type BridgeAuth = NonNullable<BridgeOptions['auth']>;

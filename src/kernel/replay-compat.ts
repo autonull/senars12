@@ -8,8 +8,10 @@
 
 import type {
   AutonomyMode,
+} from '@senars/schemas/governance.js';
+import type {
   CognitiveEvent,
-  DerivationRecord,
+  DerivationRecordEvent,
   TaskAdmittedEvent,
 } from '@senars/schemas/cognitive-events.js';
 import {
@@ -20,6 +22,9 @@ import {
   DerivationRecordSchema,
   validateDerivationRecord,
 } from '@senars/schemas/derivation-records.js';
+import type { IdSource } from '@senars/util/id.js';
+import type { RandomSource } from '@senars/util/random.js';
+import type { Clock } from '@senars/util/clock.js';
 import { appendJsonl, readJsonlWith, writeJsonFileSync } from '@senars/util/fs';
 import { errMsg } from '@senars/util/error';
 import { installIdSource } from '@senars/util/id';
@@ -124,7 +129,7 @@ async function replayWithInjectedEntropy(options: FullReplayOptions): Promise<Re
       range?.to === undefined ? allGateEvents.slice(from) : allGateEvents.slice(from, range.to + 1);
   }
 
-  const derivationRecords: DerivationRecord[] = derivationRecordsPath
+  const derivationRecords: DerivationRecordEvent[] = derivationRecordsPath
     ? readJsonlWith(derivationRecordsPath, DerivationRecordSchema).rows
     : [];
 
@@ -367,7 +372,7 @@ export async function serializeReplayResult(
 }
 
 export function persistDerivationRecords(
-  records: DerivationRecord[],
+  records: DerivationRecordEvent[],
   path: string
 ): { appended: number } {
   return { appended: appendJsonl(path, records) };

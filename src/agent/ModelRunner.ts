@@ -8,11 +8,17 @@ import {
   stepCountIs,
   streamText,
   type ToolSet,
-  type ToolCall,
 } from 'ai';
 import type { LMTask } from '@senars/types/llm.js';
 
-export type { LanguageModel, ModelMessage, ToolSet, ToolCall };
+/** Local ToolCall type matching the ai SDK structure. */
+export interface ToolCall {
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, unknown>;
+}
+
+export type { LanguageModel, ModelMessage, ToolSet };
 
 export interface ToolError {
   toolCallId: string;
@@ -231,7 +237,7 @@ export class ModelRunner {
         const hasArtifact = outcome.artifacts.some((a) => a.metadata?.toolCallId === c.toolCallId);
         if (!hasArtifact && tools[c.toolName]) {
           try {
-            const tool = tools[c.toolName] as { execute: (args: Record<string, unknown>) => Promise<unknown> };
+            const tool = tools[c.toolName] as unknown as { execute: (args: Record<string, unknown>) => Promise<unknown> };
             const result = await tool.execute(c.args);
             const capped = truncate(typeof result === 'string' ? result : JSON.stringify(result), this.maxToolResultChars);
             outcome.artifacts.push({
@@ -258,7 +264,7 @@ export class ModelRunner {
         if (!artifact && tools[c.toolName]) {
           // Execute tool now if not already done
           try {
-            const tool = tools[c.toolName] as { execute: (args: Record<string, unknown>) => Promise<unknown> };
+            const tool = tools[c.toolName] as unknown as { execute: (args: Record<string, unknown>) => Promise<unknown> };
             const result = await tool.execute(c.args);
             const capped = truncate(typeof result === 'string' ? result : JSON.stringify(result), this.maxToolResultChars);
             artifact = {

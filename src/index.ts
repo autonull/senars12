@@ -80,7 +80,7 @@ export {
   createTicTacToeGame,
   TicTacToeGame,
   minimax,
-  type Player as TicTacToePlayer,
+  type TicTacToePlayer,
   type TicTacToeAction,
   type TicTacToeConfig,
   type TicTacToeState,

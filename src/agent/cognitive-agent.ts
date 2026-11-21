@@ -120,7 +120,7 @@ export async function createCognitiveAgent(config: CognitiveAgentConfig): Promis
   // Create a logStore for persistence
   const logStore = await createLogStore({
     dir: statePath,
-    flushIntervalMs: 1000,
+    syncOnAppend: true,
   });
 
   const narInstance = new NAR({

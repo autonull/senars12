@@ -14,7 +14,7 @@ import { deadline } from '@senars/util/async';
 import { errMsg } from '@senars/util/error';
 import { makeId } from '@senars/util/id';
 import { parseJsonOr } from '@senars/util/fs';
-import { serializeTruth } from '@senars/util/truth-schema';
+import { serializeTruth } from '@senars/types/truth.js';
 import { NAREngine } from '../engine/NAREngine.js';
 import type { EpisodicMemory, LMService, NAR } from '../index.js';
 import { dispatchNarseseIntent, type NarseseIntent } from '../nl/narsese-intent.js';
@@ -346,7 +346,7 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
         timestamp: Date.now(),
         steps: [
           { timestamp: Date.now(), type: 'narrative', data: trace.narration },
-          ...trace.toolCalls.map((c) => ({
+          ...trace.toolCalls.map((c: { command: string; success: boolean }) => ({
             timestamp: Date.now(),
             type: 'tool_call',
             data: { name: c.command, success: c.success },

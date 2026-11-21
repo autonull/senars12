@@ -29,8 +29,11 @@ import {
   type BudgetResource,
   freshBudget,
 } from '../budget/index.js';
-import type { BudgetOperation, BudgetScopeId, ReasoningBudget } from '../schemas/reasoning-budget.js';
+import type { BudgetScopeId, ReasoningBudget } from '../schemas/reasoning-budget.js';
 import { BUDGET_SCOPE_IDS } from '../schemas/reasoning-budget.js';
+
+/** The operation a budget scope performs — one of the declared scope keys. */
+export type BudgetOperation = 'derivation' | 'premise-selection' | 'candidate-derivation' | 'proposal-application' | 'control-work' | 'decision-derivation';
 
 /** One budget dimension, spelled the way `ReasoningBudget` spells it. */
 export type BudgetDimension = BudgetResource;
