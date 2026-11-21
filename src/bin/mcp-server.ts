@@ -20,7 +20,7 @@ import {
   type Teardown,
   BoundedMap,
   generateId,
-} from '../utils/common.js';
+} from '@senars/util';
 import { runEntrypoint } from './lib/fatal-error.js';
 import { HttpGuard, rejectWithStatus } from './lib/http-guards.js';
 import { createAgentFromEnv } from './lib/lifecycle.js';

@@ -1,4 +1,4 @@
-import { jaccard } from '../../utils/similarity.js';
+import { jaccard } from '@senars/util/similarity.js';
 import type { Term } from '../types.js';
 import { atomicSymbols, termsEqual } from './accessors.js';
 

@@ -12,7 +12,7 @@ import { systemClock } from '@senars/util/clock';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import { episodePriority } from '../memory/episode-consolidator.js';
 import type { Concept, Memory } from '../memory/index.js';
-import { cosine } from '../utils/similarity.js';
+import { cosine } from '@senars/util/similarity.js';
 
 export interface MemoryQueryFilter {
   /** Substring/symbol filter over concept terms. */

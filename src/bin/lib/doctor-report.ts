@@ -35,15 +35,9 @@ import {
   resolveOfflineTier,
   setRouting,
 } from '../../lm/index.js';
-import {
-  createLogger,
-  errMsg,
-  type HealthReport,
-  keyedBy,
-  LM_TASKS,
-  mapValues,
-  parseFlags,
-} from '../../utils/common.js';
+import { createLogger, errMsg, keyedBy, mapValues, parseFlags } from '@senars/util';
+import type { HealthReport } from '@senars/types/health.js';
+import { LM_TASKS } from '@senars/types/llm.js';
 import { loadConfig } from '../../config/index.js';
 import { jsonMode } from '../commands/args.js';
 import { credentialReport } from './doctor-checks.js';

@@ -4,8 +4,8 @@
  */
 
 import type { NAR, ExtendedAgent } from '../agent/index.js';
-import type { LMExecutionStats } from '../utils/common.js';
-import { formatDuration, formatTruth, limitList } from '../utils/common.js';
+import type { LMExecutionStats } from '@senars/types/llm';
+import { formatDuration, formatTruth, limitList } from '@senars/util';
 import type { LMHandle } from './commands.js';
 
 export interface FormattedStats {

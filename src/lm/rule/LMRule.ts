@@ -10,7 +10,7 @@ import { Truth } from '../../terms';
 import type { Truth as TruthType } from '../../terms/impls/Truth.js';
 import type { Budget, Task, TaskType } from '../../types';
 import { createTask, type NAREventMap, type NarEventBus } from '../../types';
-import { CircuitBreaker } from '../../utils/circuit-breaker.js';
+import { CircuitBreaker } from '@senars/util/circuit-breaker.js';
 import { parseJsonObject } from '../json.js';
 import type { LMRuleConfig, LMService, ModelRuleStats } from '../lm-service.js';
 import { lmTaskWeight } from '../task-weights.js';

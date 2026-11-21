@@ -10,7 +10,7 @@ import {
   cosineNormalized,
   type NormalizedVector,
   normalize,
-} from '../../utils/similarity.js';
+} from '@senars/util/similarity.js';
 import { embedCached } from './embedding-cache.js';
 import type { EmbeddingCache, JudgmentQuery } from './types.js';
 

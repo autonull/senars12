@@ -4,7 +4,8 @@
  */
 import { basename } from 'node:path';
 import { initOtel, shutdownOtel, withSpan } from '../../otel/index.js';
-import { errMsg, ConfigurationError } from '../../utils/common.js';
+import { errMsg } from '@senars/util/error.js';
+import { ConfigurationError } from '@senars/errors/index.js';
 
 interface Remediation {
   match: (err: unknown) => boolean;

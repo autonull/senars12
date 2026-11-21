@@ -4,7 +4,7 @@ import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
 import { type AikrBagOptions, AikrShell } from '../../learning/aikr-processor.js';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import type { Task } from '../../types';
-import { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '../../utils/divergence.js';
+import { DEFAULT_DIVERGENCE_GAP, hasDivergence } from '@senars/util/divergence.js';
 import type { ContrastiveMemory } from './contrastive.js';
 import { cosineF32 } from './contrastive.js';
 import type { EmbeddingCache } from './types.js';

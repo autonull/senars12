@@ -37,7 +37,7 @@ import { createReasoningRoute, handleMetricsRequest, type ReasoningHttpEngine } 
 import { NLUnderstandingService, TranslationCache } from '../nl/index.js';
 import { MemoryQuery } from '../query/index.js';
 import { MettaProposer } from '../reflex/index.js';
-import type { LMTask } from '../utils/common.js';
+import type { LMTask } from '@senars/types/llm';
 import {
   createLogger,
   ensureDir,
@@ -49,11 +49,11 @@ import {
   thaw,
   unique,
   envBool,
-} from '../utils/common.js';
+} from '@senars/util';
 import { Effect } from 'effect';
 import { buildCommands } from '../cli/commands.js';
 import { reflexesOf } from '../cli/conversation-game.js';
-import { assertValidEnv } from '../utils/env-validate.js';
+import { assertValidEnv } from '@senars/util/env-validate.js';
 import {
   type BotRuntime,
   buildBotCommands,

@@ -1,10 +1,10 @@
 import type { CLICommand } from '../io/index.js';
 import { QUIT_SENTINEL } from '../io/index.js';
 import type { NAR, ExtendedAgent } from '../agent/index.js';
-import type { LMTask, LMExecutionStats } from '../utils/common.js';
-import { degrade, errMsg, splitWords, truncate } from '../utils/common.js';
-import type { ConversationSession, SessionManager } from '../utils/common.js';
-import { type Flags, parseFlags } from '../utils/common.js';
+import type { LMTask, LMExecutionStats } from '@senars/types/llm';
+import { degrade, errMsg, splitWords, truncate } from '@senars/util';
+import type { ConversationSession, SessionManager } from '@senars/types/memory';
+import { type Flags, parseFlags } from '@senars/util/cli';
 
 export type { CLICommand } from '../io/index.js';
 export { QUIT_SENTINEL } from '../io/index.js';

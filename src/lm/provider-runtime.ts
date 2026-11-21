@@ -23,7 +23,7 @@ import {
   type CircuitBreakerSettings,
   type CircuitSnapshot,
   type TransitionReason,
-} from '../utils/circuit-breaker.js';
+} from '@senars/util/circuit-breaker.js';
 import {
   type CircuitState,
   type LMProviderName,

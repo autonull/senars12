@@ -9,7 +9,8 @@
  */
 
 import { probeEmbeddedLlama } from '../../lm/index.js';
-import { envSet, errMsg } from '../../utils/common.js';
+import { envSet } from '@senars/util/config.js';
+import { errMsg } from '@senars/util/error.js';
 import { loadConfig } from '../../config/index.js';
 import { attempted } from '../../cli/commands.js';
 

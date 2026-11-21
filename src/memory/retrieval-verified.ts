@@ -2,7 +2,7 @@ import type { Episode, EpisodeType } from '@senars/types/episodic-memory';
 import { parseJsonOr } from '@senars/util/fs';
 import { takeFirst } from '@senars/util/collections';
 import type { TextGenerator } from '../ports';
-import { cosineUnit, l2Normalize } from '../utils/similarity.js';
+import { cosineUnit, l2Normalize } from '@senars/util/similarity.js';
 import type { EpisodicMemory } from './EpisodicMemory.js';
 import type { EmbeddingGenerator } from './embedding.js';
 

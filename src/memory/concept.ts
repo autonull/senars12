@@ -17,7 +17,7 @@ import {
   type TaskType,
   type Timestamp,
 } from '../types';
-import { jaccard } from '../utils/similarity.js';
+import { jaccard } from '@senars/util/similarity.js';
 
 export type { IndependenceStatus };
 

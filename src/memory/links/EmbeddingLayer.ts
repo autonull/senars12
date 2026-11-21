@@ -1,7 +1,7 @@
 import { BoundedMap } from '@senars/util/bounded-map';
 import { selectTopN } from '@senars/util/collections';
 import { type Term, termKey } from '../../terms';
-import { cosineNormalized, normalize } from '../../utils/similarity.js';
+import { cosineNormalized, normalize } from '@senars/util/similarity.js';
 import type { EmbeddingGenerator } from '../embedding.js';
 import { Layer } from './Layer.js';
 import { LINK_LAYER } from './types.js';

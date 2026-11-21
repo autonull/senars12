@@ -5,7 +5,8 @@
 
 import { CLIConnection, WSConnection } from '../../io/index.js';
 import type { WiredNAR } from '../../agent/index.js';
-import { createLogger, setupGracefulShutdown } from '../../utils/common.js';
+import { createLogger } from '@senars/util/logger.js';
+import { setupGracefulShutdown } from '@senars/util/shutdown.js';
 
 export interface MultiAgentRunnerOptions {
   scope: string;

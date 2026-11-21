@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
-import { SlidingWindowRateLimiter } from '../../utils/common.js';
+import { SlidingWindowRateLimiter } from '@senars/util/rate-limit.js';
 
 export interface HttpGuardOptions {
   apiKey?: string;

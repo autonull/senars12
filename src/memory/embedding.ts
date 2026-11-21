@@ -1,5 +1,5 @@
 import { TransformersJSEmbeddingModel } from '@browser-ai/transformers-js';
-import { l2Normalize } from '../utils/similarity.js';
+import { l2Normalize } from '@senars/util/similarity.js';
 
 export interface EmbeddingGenerator {
   dimension: number;
@@ -120,4 +120,4 @@ export function createEmbeddingGenerator(
   );
 }
 
-export { cosine as cosineSimilarity } from '../utils/similarity.js';
+export { cosine as cosineSimilarity } from '@senars/util/similarity.js';

@@ -1,12 +1,12 @@
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
-import { deepMerge, envStrOr } from '@senars/utils';
+import { deepMerge, envStrOr } from '@senars/util';
 import { readEnvOverrides } from './index.js';
 import {
   CURRENT_CONFIG_VERSION,
   type MigrationOutcome,
   migrateConfigFile,
-} from '../utils/config-migrate.js';
+} from '@senars/util/config-migrate.js';
 import type { AppConfig } from './schema.js';
 import { appConfigSchema } from './schema.js';
 

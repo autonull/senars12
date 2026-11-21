@@ -356,6 +356,26 @@ export {
   victimBy,
 } from './collections.js';
 export { formatIssues, type SchemaIssue } from './diagnostics.js';
+/** @public Circuit breaker state machine for provider routing health. */
+export type {
+  CircuitBreakerConfig,
+  CircuitBreakerSettings,
+  CircuitSnapshot,
+  CircuitState,
+  TransitionReason,
+} from './circuit-breaker.js';
+export { CircuitBreaker } from './circuit-breaker.js';
+/** @public Config migration utilities. */
+export {
+  CURRENT_CONFIG_VERSION,
+  migrateConfig,
+  migrateConfigFile,
+  type MigrationOutcome,
+} from './config-migrate.js';
+/** @public Frequency divergence detection for contradiction mining. */
+export { DEFAULT_DIVERGENCE_GAP, hasDivergence } from './divergence.js';
+/** @public Environment variable validation against declared grammar. */
+export { validateEnv, assertValidEnv, type ValidationResult } from './env-validate.js';
 /** @public The registry every component records its teardown in. */
 export type { Teardown } from './disposal.js';
 export { DisposalRegistry } from './disposal.js';
@@ -519,6 +539,16 @@ export { withRetry } from './retry.js';
 /** @public Process signal → graceful shutdown for every binary; returns its own uninstall. */
 export { setupGracefulShutdown } from './shutdown.js';
 export { weightedMean } from './stats.js';
+/** @public Vector and set similarity functions (cosine, Jaccard, L2 normalization). */
+export type { NormalizedVector, ReadonlySetLike } from './similarity.js';
+export {
+  cosine,
+  cosineNormalized,
+  cosineUnit,
+  jaccard,
+  l2Normalize,
+  normalize,
+} from './similarity.js';
 /** @public One tally of attempts, and the bounded per-key series of them. */
 export type { CallTally, CallTallySeriesOptions } from './tally.js';
 export { CallTallySeries, createCallTally, recordCall } from './tally.js';

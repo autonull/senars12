@@ -1,10 +1,8 @@
 import { existsSync } from 'node:fs';
 import { envFirst, envNumOr, envSet, envStr, isTruthy } from '@senars/util/config';
-import type { CircuitBreakerSettings } from '../utils/circuit-breaker.js';
+import type { CircuitBreakerSettings, CircuitState } from '@senars/util/circuit-breaker.js';
 import { endpointPath } from './providers/probe.js';
 import { type GpuSetting, gpuSettingFrom } from './runtime/llama-runtime.js';
-
-export type { CircuitState } from '../utils/circuit-breaker.js';
 
 export const LM_PROVIDER_NAMES = [
   'transformers',
