@@ -1,5 +1,13 @@
-import { createRegistry, type Registry } from './registry.js';
-import type { Budget, Interaction, Shape, ShapeCaps } from './view-spec.js';
+import { createRegistry, type Registry } from './registry-factory.js';
+import {
+  viewAdapterCatalog,
+  type Budget,
+  type Interaction,
+  type Shape,
+  type ShapeCaps,
+  type ViewAdapterFacets,
+  type ViewAdapterCatalog,
+} from './view-spec.js';
 
 /**
  * The view-adapter registry. An adapter owns exactly one shape and names the
@@ -66,4 +74,5 @@ export const supportedShapes = (budget: Budget = 'full'): Shape[] => [
 ];
 
 /** Get the catalog entry for a shape (tag, budgets, interactions from the catalog). */
-export const viewAdapterCatalogEntry = (_shape: Shape): unknown | undefined => undefined;
+export const viewAdapterCatalogEntry = (shape: Shape): ViewAdapterFacets | undefined =>
+  viewAdapterCatalog.has(shape as ViewAdapterCatalog['ids'][number]) ? viewAdapterCatalog.get(shape as ViewAdapterCatalog['ids'][number]) : undefined;

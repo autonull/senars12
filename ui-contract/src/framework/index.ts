@@ -138,3 +138,18 @@ export {
 } from './intent.js';
 export { AREA_LETTERS, LAYOUT_IDS, layoutTemplate, layoutOf, areaName, cellAreaNames } from './layout.js';
 export type { LayoutTemplate } from './layout.js';
+
+export {
+  defineCatalog,
+  catalogFromContributions,
+  type Catalog,
+  type CatalogDefinition,
+  type CatalogEntry,
+  type CatalogKey,
+  type CatalogEntryOf,
+  type KeyOf,
+  type EntryOf,
+  type FacetsOf,
+} from './catalog.js';
+export type { Contribution } from './contribution.js';
+export { registerContribution, unregisterContribution, createContribution } from './contribution.js';

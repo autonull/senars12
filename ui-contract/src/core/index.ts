@@ -47,6 +47,8 @@ export {
   registerViewAdapter,
   capabilitiesFor,
   supportedShapes,
+  viewAdapterCatalogEntry,
+  adaptersFor,
   type ViewAdapter,
   viewAdapterFor,
   viewAdapters,
@@ -92,6 +94,9 @@ export {
   type DiffLine,
   type DiffDataset,
   type ShapeCaps,
+  type ViewAdapterFacets,
+  type ViewAdapterCatalog,
+  viewAdapterCatalog,
   BUDGETS,
   DISCLOSURES,
   INTERACTIONS,
@@ -132,4 +137,6 @@ export {
   createLabelRegistry,
   type Registry,
   type RegistryOptions,
-} from './registry.js';
+  type RegistryFactoryOptions,
+  type RegistryAPI,
+} from './registry-factory.js';

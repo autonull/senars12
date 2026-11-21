@@ -10,7 +10,7 @@
  * composition, so variety is unbounded without new code.
  */
 
-import { createIdRegistry, type Registry } from '../core/registry.js';
+import { createIdRegistry, type Registry } from '../core/registry-factory.js';
 import type {
   Arrangement,
   ArrangementContext,
