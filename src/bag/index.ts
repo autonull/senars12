@@ -1,20 +1,33 @@
 export type {
-  AIKRBudget,
   Bag,
   BagItem,
   BagOptions,
   EvictStrategy,
   InternalEntry,
-} from './Bag.js';
-export { PriorityBag } from './Bag.js';
+  Histogram,
+  PressureLevel,
+  PressureListener,
+  PressureTransition,
+  CyclesBudget,
+  RandomSource,
+} from '../util/bag.js';
+export { PriorityBag, HistogramImpl } from '../util/bag.js';
 export type { BagSlotParams, ResolvedBagSlot } from './registration.js';
 export { bagSlotErrors, resolveBagSlot } from './registration.js';
-export type { Histogram } from '../util/bag.js';
-export { HistogramImpl } from '../util/bag.js';
 
-import { type Bag, type BagItem, type BagOptions } from './Bag.js';
-import { PriorityBag } from './Bag.js';
+import { emitDomainEvent } from '../agent/event-sink.js';
+import { PriorityBag, type Bag, type BagOptions, type BagItem, type PressureTransition } from '../util/bag.js';
+
+/** Announce pressure transitions as domain events. */
+const announcePressure = ({
+  bagId,
+  pressure,
+  capacity,
+  size,
+  transition,
+}: PressureTransition): void =>
+  emitDomainEvent('bag.pressure.transition', '', { bagId, pressure, capacity, size, transition });
 
 /** The one construction path for an AIKR bag: capacity is the caller's bound, the rest is knobs. */
 export const createBag = <T extends BagItem>(options: BagOptions): Bag<T> =>
-  new PriorityBag<T>(options);
+  new PriorityBag<T>({ onPressure: announcePressure, ...options });

@@ -1,5 +1,5 @@
-import type { BagOptions } from '../bag/Bag.js';
-import { PriorityBag } from '../bag/Bag.js';
+import type { BagOptions } from '../bag/index.js';
+import { PriorityBag } from '../bag/index.js';
 import { Focus, type FocusOptions } from './Focus.js';
 import {
   allocateFocusBudget,

@@ -81,7 +81,7 @@ describe('Bench 63 — Determinism', () => {
   });
 
   it('RNG call sites use RandomSource injection (no bare Math.random calls)', () => {
-    for (const rel of ['src/bag/Bag.ts', 'src/learning/schema-induction.ts']) {
+    for (const rel of ['src/util/bag.ts', 'src/learning/schema-induction.ts']) {
       const source = readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf-8');
       const bare = [...source.matchAll(/Math\.random\(\)/g)].filter(
         (m) => !source.slice(Math.max(0, m.index! - 40), m.index!).includes('??')
