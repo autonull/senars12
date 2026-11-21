@@ -264,3 +264,21 @@ export function parseFuzzyTruth(s: string): FuzzyTruth | null {
   if (!match) return null;
   return createFuzzyTruth(parseFloat(match[1]!), parseFloat(match[2]!));
 }
+
+/** Fuzzy Logic implementation of the Logic port. */
+export const FUZZY_LOGIC: import('../port.js').Logic<FuzzyTruth> = {
+  id: 'fuzzy',
+  version: '1.0.0',
+  codec: {
+    encode: (t: FuzzyTruth) => formatFuzzyTruth(t),
+    decode: (s: string) => parseFuzzyTruth(s),
+  },
+  expect: (t: FuzzyTruth) => t.membership,
+  conf: (t: FuzzyTruth) => 1 - t.uncertainty,
+  contradicts: (a: FuzzyTruth, b: FuzzyTruth) => {
+    // Contradiction if membership values are far apart with low uncertainty
+    return Math.abs(a.membership - b.membership) > 0.5 && a.uncertainty < 0.3 && b.uncertainty < 0.3;
+  },
+  policy: 'coexist',
+  rules: [], // Fuzzy logic uses function-based rules, not formula-ASTs
+} as const;

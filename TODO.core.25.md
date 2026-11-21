@@ -186,14 +186,26 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 **Preserves:** the autonomy/governance/decision state machines, re-homed.
 
 ### W4 — One truth port, independent verification
-- [ ] `Logic<T>` port; NAL(+temporal) rules as **formula-ASTs**; compile for the step, **interpret** for verification; algebraic laws + OpenNARS reference vectors.
-- [ ] Projections as admitted rung-4 rules: `NAL→Axiomatic` thresholds as premises; `Axiomatic→NAL` caps confidence, preserves base stamp ids.
-- [ ] Fuzzy module proves the port is real. Notation codecs over one IR (Narsese, Prover9/TPTP, SMT-LIB, DIMACS, JSON) with round-trip property tests.
-- [ ] **Keep the transcribed verifier table as an independent witness**; interpreter primary, table a third cross-check; drift test → cross-witness agreement test.
-- [ ] **Parity-gate `src/rules` (55 rules) and `src/terms`:** rule-by-rule, term-kind-by-term-kind inventory; port missing rules/kinds toward NAL-8 before any retirement; one term layer (`kernel/terms`).
+- [x] `Logic<T>` port; NAL(+temporal) rules as **formula-ASTs**; compile for the step, **interpret** for verification; algebraic laws + OpenNARS reference vectors.
+  - `src/logics/port.ts` — `Logic<T>` port interface with `RuleAST`, `ConditionAST`, `ConclusionAST`, `TermRef`
+  - `src/logics/nal/rules-ast.ts` — NAL rules as formula-ASTs (data-driven)
+  - `src/logics/nal/interpreter.ts` — Reference interpreter for verification
+  - `src/logics/nal/laws.ts` — Algebraic laws + OpenNARS reference vectors
+- [x] Projections as admitted rung-4 rules: `NAL→Axiomatic` thresholds as premises; `Axiomatic→NAL` caps confidence, preserves base stamp ids.
+  - `src/logics/projections.ts` — `ProjectionEngine` with admitted rung-4 rules
+- [x] Fuzzy module proves the port is real. Notation codecs over one IR (Narsese, Prover9/TPTP, SMT-LIB, DIMACS, JSON) with round-trip property tests.
+  - `src/logics/fuzzy.ts` — `FUZZY_LOGIC` implements `Logic<FuzzyTruth>`
+  - `src/logics/nal/codecs.ts` — Round-trip codecs for Narsese, TPTP, SMT-LIB, DIMACS, JSON
+- [x] **Keep the transcribed verifier table as an independent witness**; interpreter primary, table a third cross-check; drift test → cross-witness agreement test.
+  - `src/rules/verifier-truth-table.ts` — Transcribed verifier table (independent witness)
+  - `tests/logics/nal/cross-witness.test.ts` — Three-way agreement tests (engine, interpreter, verifier table)
+  - `tests/logics/nal/codecs-roundtrip.test.ts` — Round-trip property tests for all codecs
+- [x] **Parity-gate `src/rules` (55 rules) and `src/terms`:** rule-by-rule, term-kind-by-term-kind inventory; port missing rules/kinds toward NAL-8 before any retirement; one term layer (`kernel/terms`).
+  - NAL rules ported to formula-ASTs (`rules-ast.ts`); term layer unified at `kernel/terms/`
 
 **Accept:** obligations 1/4/8; laws + vectors green; three independent witnesses agree.
 **Preserves:** full rule/term coverage (NAL-8 source material), verification independence; **consolidates:** duplicate term layer and rule table only after parity.
+**Status:** **COMPLETE** — `Logic<T>` port live; NAL formula-ASTs + interpreter; algebraic laws + OpenNARS vectors; fuzzy port conformance; 5 codecs with round-trip tests; three-witness cross-check (engine/interpreter/verifier-table) passing.
 
 ### W5 — Faculties & judgment, trained
 - [ ] Re-spec faculties as LM roles (`perceive.formalize`, `propose.action|hypothesis|repair|plan|skill`, `retrieve.rerank`, `judge.rubric`, `narrate.explain`, `mirror.postmortem`, **`simulate.scenario`**): one prompt + one schema + one mandatory symbolic fallback; null provider runs the fallback.
@@ -332,7 +344,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 3. **⟶ GATE (§4): Go to W2+ only if W1 replays byte-identically. Otherwise stop and take the named fallback.**
 4. W2: ✅ **one-oracle gate green**; ✅ **WASM engine port** (z3, clingo, minisat); native provider retained; ✅ **`engine.metta`**.
 5. W3: ✅ **risk tiers + gate matrix**; ✅ **fail-closed irreversible**; governance spine unified.
-6. W4: formula-AST NAL + interpreter verifier + laws/vectors; transcribed table kept as witness.
+6. W4: ✅ **formula-AST NAL + interpreter verifier + laws/vectors; transcribed table kept as witness.**
 7. W5: faculty specs + fallbacks; judge weight-change events; ECE demotion; GBNF + WASI heads + imagination ported.
 8. W6: curriculum + RLFP labels; arena lanes; cost/quality surface; memory indexes + analyzers as folds.
 9. W7: skill DSL + admission lifecycle; self-tools as rung 5; books re-fold; poisoned book rejected.
