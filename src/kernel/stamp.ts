@@ -11,9 +11,14 @@
 
 import { randomUUID } from 'crypto';
 import type { UUID } from './types.js';
+import type { Clock } from './env.js';
+import { createDefaultClock } from './env.js';
 
 /** Timestamp in milliseconds since epoch. */
 export type TimestampMs = number;
+
+/** Get current timestamp from clock or default. */
+export const nowOf = (clock?: Clock): TimestampMs => (clock ?? createDefaultClock()).now();
 
 /** Stamp for a term/belief. */
 export interface Stamp {
@@ -44,10 +49,10 @@ export interface StampOptions {
 }
 
 /** Create a new root stamp (observation/axiom). */
-export function createRootStamp(options: { ts?: TimestampMs; ruleId?: string } = {}): Stamp {
+export function createRootStamp(options: { ts?: TimestampMs; ruleId?: string; clock?: Clock } = {}): Stamp {
   return {
     id: randomUUID(),
-    ts: options.ts ?? Date.now(),
+    ts: options.ts ?? nowOf(options.clock),
     parents: [],
     derivation: options.ruleId ? [options.ruleId] : [],
     evidence: 0,
@@ -58,7 +63,7 @@ export function createRootStamp(options: { ts?: TimestampMs; ruleId?: string } =
 export function createDerivedStamp(
   parents: readonly Stamp[],
   ruleId: string,
-  options: { ts?: TimestampMs; additionalRules?: readonly string[] } = {}
+  options: { ts?: TimestampMs; additionalRules?: readonly string[]; clock?: Clock } = {}
 ): Stamp {
   const parentIds = parents.map(p => p.id);
   const maxEvidence = parents.reduce((max, p) => Math.max(max, p.evidence), 0);
@@ -66,7 +71,7 @@ export function createDerivedStamp(
 
   return {
     id: randomUUID(),
-    ts: options.ts ?? Date.now(),
+    ts: options.ts ?? nowOf(options.clock),
     parents: parentIds,
     derivation: allRules,
     evidence: maxEvidence + 1,
@@ -78,13 +83,13 @@ export function createStampFromIds(
   parentIds: readonly UUID[],
   ruleId: string,
   evidence: number,
-  options: { ts?: TimestampMs; additionalRules?: readonly string[] } = {}
+  options: { ts?: TimestampMs; additionalRules?: readonly string[]; clock?: Clock } = {}
 ): Stamp {
   const allRules = [ruleId, ...(options.additionalRules ?? [])];
 
   return {
     id: randomUUID(),
-    ts: options.ts ?? Date.now(),
+    ts: options.ts ?? nowOf(options.clock),
     parents: parentIds,
     derivation: allRules,
     evidence,
@@ -92,7 +97,7 @@ export function createStampFromIds(
 }
 
 /** Merge multiple stamps (for revision/confluence). */
-export function mergeStamps(stamps: readonly Stamp[], ruleId: string): Stamp {
+export function mergeStamps(stamps: readonly Stamp[], ruleId: string, clock?: Clock): Stamp {
   if (stamps.length === 0) throw new Error('Cannot merge empty stamp set');
   if (stamps.length === 1) return stamps[0]!;
 
@@ -104,7 +109,7 @@ export function mergeStamps(stamps: readonly Stamp[], ruleId: string): Stamp {
 
   return {
     id: randomUUID(),
-    ts: Date.now(),
+    ts: nowOf(clock),
     parents: uniqueParents,
     derivation: uniqueDerivations,
     evidence: maxEvidence + 1,

@@ -10,6 +10,8 @@ import { Stamp } from './stamp.js';
 import type { TruthValue } from './types.js';
 import type { TruthOp } from './truth.js';
 import { Truth } from './truth.js';
+import type { Clock } from './env.js';
+import { createDefaultClock } from './env.js';
 
 /** Inference rule identifier. */
 export type RuleId = string;
@@ -100,6 +102,11 @@ export interface InferenceRule {
 export class StepExecutor {
   private rules = new Map<RuleId, InferenceRule>();
   private seq = 0;
+  private clock: Clock;
+
+  constructor(clock?: Clock) {
+    this.clock = clock ?? createDefaultClock();
+  }
 
   /** Register a rule. */
   registerRule(rule: InferenceRule): void {
@@ -187,7 +194,7 @@ export class StepExecutor {
       truthOp,
       meta: {
         seq: this.seq,
-        ts: Date.now(),
+        ts: this.clock.now(),
         depth: Math.max(...premises.map(p => p.stamp.evidence)) + 1,
         selected: false,
         priority: options.priority ?? rule.priority,
@@ -199,7 +206,7 @@ export class StepExecutor {
   /** Derive stamp from parent stamps. */
   private deriveStamp(parents: Stamp[], ruleId: string): Stamp {
     if (parents.length === 0) {
-      return { id: '', ts: Date.now(), parents: [], derivation: [ruleId], evidence: 0 };
+      return { id: '', ts: this.clock.now(), parents: [], derivation: [ruleId], evidence: 0 };
     }
 
     const parentIds = parents.map(p => p.id);
@@ -208,7 +215,7 @@ export class StepExecutor {
 
     return {
       id: '', // Will be filled by bag
-      ts: Date.now(),
+      ts: this.clock.now(),
       parents: parentIds,
       derivation: allDerivations,
       evidence: maxEvidence + 1,
@@ -284,8 +291,8 @@ export class StepExecutor {
 }
 
 /** Create a step executor with built-in NAL rules. */
-export function createStepExecutor(): StepExecutor {
-  const executor = new StepExecutor();
+export function createStepExecutor(clock?: Clock): StepExecutor {
+  const executor = new StepExecutor(clock);
 
   // Register built-in NAL rules
   registerBuiltinRules(executor);

@@ -7,6 +7,8 @@
 
 import type { EconomyTask, TaskUtility, TaskVoI, Successor, Overlay, SchedulerConfig } from './types.js';
 import type { Truth } from '../kernel/truth.js';
+import type { Clock } from '../kernel/env.js';
+import { createDefaultClock } from '../kernel/env.js';
 
 /** Utility weights for different task kinds. */
 export const KIND_UTILITY_WEIGHTS: Record<string, number> = {
@@ -108,7 +110,7 @@ export function calculateCost(task: EconomyTask, config: SchedulerConfig): numbe
 /**
  * Calculate risk estimate: ρ·risk
  */
-export function calculateRisk(task: EconomyTask): number {
+export function calculateRisk(task: EconomyTask, clock?: Clock): number {
   let risk = 0;
 
   // Uncertainty risk (inverse of confidence)
@@ -118,7 +120,7 @@ export function calculateRisk(task: EconomyTask): number {
   if (task.activation < 0.1) risk += 0.2;
 
   // Age risk
-  const age = Date.now() - task.createdAt;
+  const age = (clock ?? createDefaultClock()).now() - task.createdAt;
   const ageHours = age / (1000 * 60 * 60);
   if (ageHours > 24) risk += Math.min(1, ageHours / 168) * 0.5; // Up to 0.5 after a week
 

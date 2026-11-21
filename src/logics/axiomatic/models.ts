@@ -8,6 +8,8 @@
 import { Term, ConstantTerm, VariableTerm, TermOp, termInterner } from '../../kernel/terms/intern.js';
 import { Formula, Atom, Model, Clause, Literal, CNFFormula, isAtom, freeVariables } from './ast.js';
 import { toCNF } from './cnf.js';
+import type { Clock } from '../../kernel/env.js';
+import { createDefaultClock } from '../../kernel/env.js';
 
 /** Model finder configuration. */
 export interface ModelFinderConfig {
@@ -86,8 +88,8 @@ export class ModelFinder {
   }
 
   /** Find models for a formula. */
-  findModels(formula: Formula): ModelResult {
-    const startTime = Date.now();
+  findModels(formula: Formula, clock?: Clock): ModelResult {
+    const startTime = (clock ?? createDefaultClock()).now();
     this.extractSignature(formula);
 
     // Ensure we have at least one constant
@@ -98,15 +100,16 @@ export class ModelFinder {
     const models: Model[] = [];
     let domainsTried = 0;
     let nodesVisited = 0;
+    const clockInst = clock ?? createDefaultClock();
 
     // Try increasing domain sizes
     for (let domainSize = 1; domainSize <= this.config.maxDomainSize; domainSize++) {
-      if (Date.now() - startTime > this.config.timeoutMs) break;
+      if (clockInst.now() - startTime > this.config.timeoutMs) break;
       if (models.length >= this.config.maxModels) break;
 
       domainsTried++;
       const domain = this.buildDomain(domainSize);
-      const domainModels = this.searchModels(formula, domain, startTime);
+      const domainModels = this.searchModels(formula, domain, startTime, clockInst);
       models.push(...domainModels);
       nodesVisited += domainModels.length;
 
@@ -119,7 +122,7 @@ export class ModelFinder {
       statistics: {
         domainsTried,
         modelsFound: models.length,
-        timeMs: Date.now() - startTime,
+        timeMs: clockInst.now() - startTime,
         nodesVisited,
       },
     };
@@ -135,7 +138,7 @@ export class ModelFinder {
   }
 
   /** Search for models in a given domain. */
-  private searchModels(formula: Formula, domain: ConstantTerm[], startTime: number): Model[] {
+  private searchModels(formula: Formula, domain: ConstantTerm[], startTime: number, clock: Clock): Model[] {
     const models: Model[] = [];
     const groundAtoms = this.groundAtoms(domain);
 
@@ -145,7 +148,7 @@ export class ModelFinder {
 
     // Simple DPLL-style search
     const assignment = new Map<string, boolean>();
-    this.dpll(cnf, variables, assignment, domain, models, startTime);
+    this.dpll(cnf, variables, assignment, domain, models, startTime, clock);
 
     return models;
   }
@@ -178,9 +181,10 @@ export class ModelFinder {
     assignment: Map<string, boolean>,
     domain: ConstantTerm[],
     models: Model[],
-    startTime: number
+    startTime: number,
+    clock: Clock
   ): boolean {
-    if (Date.now() - startTime > this.config.timeoutMs) return false;
+    if (clock.now() - startTime > this.config.timeoutMs) return false;
     if (models.length >= this.config.maxModels) return false;
 
     // Unit propagation

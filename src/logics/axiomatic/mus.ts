@@ -7,6 +7,8 @@
 
 import { TermOp } from '../../kernel/terms/intern.js';
 import { Clause, CNFFormula, MUS, Literal } from './ast.js';
+import type { Clock } from '../../kernel/env.js';
+import { createDefaultClock } from '../../kernel/env.js';
 
 /** MUS extraction configuration. */
 export interface MUSConfig {
@@ -36,10 +38,11 @@ export class MUSExtractor {
   }
 
   /** Extract all MUSes from an unsatisfiable CNF. */
-  extractAll(cnf: CNFFormula): MUS[] {
+  extractAll(cnf: CNFFormula, clock?: Clock): MUS[] {
+    const clockInst = clock ?? createDefaultClock();
     const muses: MUS[] = [];
     const clauses = [...cnf.clauses];
-    const startTime = Date.now();
+    const startTime = clockInst.now();
 
     // Quick check: if SAT, no MUS
     if (this.satChecker.isSatisfiable(clauses)) {
@@ -47,7 +50,7 @@ export class MUSExtractor {
     }
 
     // Find first MUS using deletion-based approach
-    const firstMUS = this.findOneMUS(clauses);
+    const firstMUS = this.findOneMUS(clauses, clockInst);
     if (firstMUS) {
       muses.push(firstMUS);
 
@@ -59,13 +62,14 @@ export class MUSExtractor {
   }
 
   /** Find a single MUS using deletion-based algorithm. */
-  findOneMUS(clauses: readonly Clause[]): MUS | null {
-    const startTime = Date.now();
+  findOneMUS(clauses: readonly Clause[], clock?: Clock): MUS | null {
+    const clockInst = clock ?? createDefaultClock();
+    const startTime = clockInst.now();
     let currentClauses = [...clauses];
 
     // Try to remove each clause
     for (let i = 0; i < currentClauses.length; i++) {
-      if (Date.now() - startTime > this.config.timeoutMs) break;
+      if (clockInst.now() - startTime > this.config.timeoutMs) break;
 
       const candidate = currentClauses.slice(0, i).concat(currentClauses.slice(i + 1));
       if (!this.satChecker.isSatisfiable(candidate)) {

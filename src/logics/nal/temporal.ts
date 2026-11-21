@@ -10,6 +10,8 @@ import { Truth, type TruthValue } from '../../kernel/truth.js';
 import { getArgs } from '../../kernel/terms/term.js';
 import { Stamp } from '../../kernel/stamp.js';
 import type { Premise } from '../../kernel/step.js';
+import type { Clock } from '../../kernel/env.js';
+import { createDefaultClock } from '../../kernel/env.js';
 
 /** Wrap a function to check premises length matches arity. */
 function withArity<const N extends 1 | 2, R>(
@@ -393,8 +395,9 @@ export interface TemporalProjection {
 export function projectTemporal(
   beliefs: Array<{ term: Term; truth: TruthValue; timestamp: number }>,
   horizon: number,
-  now: number = Date.now()
+  clock?: Clock
 ): TemporalProjection {
+  const now = (clock ?? createDefaultClock()).now();
   const predictions: TemporalProjection['predictions'] = [];
 
   for (const belief of beliefs) {
@@ -482,8 +485,9 @@ export function mineSequentialPatterns(
 export function reviseTemporalBeliefs(
   beliefs: Array<{ term: Term; truth: TruthValue; timestamp: number }>,
   decayRate: number = 0.001, // per millisecond
-  now: number = Date.now()
+  clock?: Clock
 ): Array<{ term: Term; truth: TruthValue; timestamp: number }> {
+  const now = (clock ?? createDefaultClock()).now();
   return beliefs.map(belief => {
     const age = now - belief.timestamp;
     const decay = Math.exp(-decayRate * age);

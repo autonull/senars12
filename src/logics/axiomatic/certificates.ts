@@ -6,6 +6,8 @@
 
 import { Term, VariableTerm, TermOp, termInterner } from '../../kernel/terms/intern.js';
 import { Formula, Atom, ProofCertificate, ProofStep, Clause, Literal, Model, isAtom } from './ast.js';
+import type { Clock } from '../../kernel/env.js';
+import { createDefaultClock } from '../../kernel/env.js';
 
 /** Certificate format version. */
 export const CERTIFICATE_VERSION = '1.0';
@@ -32,12 +34,12 @@ export class CertificateGenerator {
   }
 
   /** Generate the certificate. */
-  generate(verified = true): ProofCertificate {
+  generate(verified = true, clock?: Clock): ProofCertificate {
     return {
       theorem: this.theorem,
       proof: [...this.steps],
       engine: this.engine,
-      timestamp: Date.now(),
+      timestamp: (clock ?? createDefaultClock()).now(),
       verified,
     };
   }

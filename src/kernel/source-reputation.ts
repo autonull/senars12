@@ -14,6 +14,8 @@ import { cachePath } from '@senars/config';
 import { LruCache } from '@senars/util/lru-cache';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
+import type { Clock } from './env.js';
+import { createDefaultClock } from './env.js';
 
 export interface ReputationEntry {
   confirmed: number;
@@ -29,6 +31,8 @@ export interface SourceReputationOptions {
   contradictionsBeforeDecay?: number;
   /** Maximum entries in memory (AIKR bound; default 10000). LRU eviction applies. */
   capacity?: number;
+  /** Clock for deterministic ledger timestamps. */
+  clock?: Clock;
 }
 
 const ReputationDeltaSchema = BaseLedgerEntrySchema.extend({
@@ -55,12 +59,14 @@ export class SourceReputation {
   readonly #entries: LruCache<string, ReputationEntry>;
   readonly #floor: number;
   readonly #decayGate: number;
+  readonly #clock: Clock;
   /** Resolves once the persisted ledger has been folded into `#entries`. */
   readonly ready: Promise<void>;
 
   constructor(options: SourceReputationOptions = {}) {
     this.#floor = options.floor ?? 0.5;
     this.#decayGate = options.contradictionsBeforeDecay ?? 2;
+    this.#clock = options.clock ?? createDefaultClock();
     this.#entries = new LruCache({ maxSize: options.capacity ?? DEFAULT_REPUTATION_CAPACITY });
 
     const path = options.path ?? DEFAULT_REPUTATION_PATH;
@@ -90,7 +96,7 @@ export class SourceReputation {
         : { confirmed: 0, contradicted: 1 };
 
     this.#ledger.append({
-      at: Date.now(),
+      at: this.#clock.now(),
       key,
       delta,
     });

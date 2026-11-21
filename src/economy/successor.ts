@@ -9,6 +9,8 @@ import type { Term } from '../kernel/terms/term.js';
 import type { Truth } from '../kernel/truth.js';
 import { termFactory, TermOp } from '../kernel/terms/term.js';
 import { TaskType } from '../kernel/types.js';
+import type { Clock, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock } from '../kernel/env.js';
 
 /** Successor generation context. */
 export interface SuccessorContext {
@@ -37,29 +39,29 @@ export interface GeneratedSuccessor extends Successor {
 /**
  * Generate successors for a task.
  */
-export function generateSuccessors(context: SuccessorContext): GeneratedSuccessor[] {
+export function generateSuccessors(context: SuccessorContext, clock?: Clock): GeneratedSuccessor[] {
   const { task, tasks, oracleOperations, facultyNames, iteration } = context;
   const successors: GeneratedSuccessor[] = [];
 
   // Generate based on task kind
   switch (task.kind) {
     case 'goal':
-      successors.push(...generateGoalSuccessors(task, tasks, oracleOperations, facultyNames));
+      successors.push(...generateGoalSuccessors(task, tasks, oracleOperations, facultyNames, clock));
       break;
     case 'belief':
-      successors.push(...generateBeliefSuccessors(task, tasks, iteration));
+      successors.push(...generateBeliefSuccessors(task, tasks, iteration, clock));
       break;
     case 'skill':
-      successors.push(...generateSkillSuccessors(task, tasks, facultyNames));
+      successors.push(...generateSkillSuccessors(task, tasks, facultyNames, clock));
       break;
     case 'faculty':
-      successors.push(...generateFacultySuccessors(task, tasks, facultyNames));
+      successors.push(...generateFacultySuccessors(task, tasks, facultyNames, clock));
       break;
     case 'rule':
-      successors.push(...generateRuleSuccessors(task, tasks));
+      successors.push(...generateRuleSuccessors(task, tasks, clock));
       break;
     case 'plan':
-      successors.push(...generatePlanSuccessors(task, tasks, oracleOperations, facultyNames));
+      successors.push(...generatePlanSuccessors(task, tasks, oracleOperations, facultyNames, clock));
       break;
   }
 
@@ -90,8 +92,9 @@ function generateGoalSuccessors(
   _tasks: EconomyTask[],
   oracleOperations: string[],
   facultyNames: string[]
-): GeneratedSuccessor[] {
+, clock?: Clock): GeneratedSuccessor[] {
   const successors: GeneratedSuccessor[] = [];
+  const createTask = createTaskFactory(clock);
 
   // Oracle-based achievement
   for (const op of oracleOperations) {
@@ -148,8 +151,9 @@ function generateBeliefSuccessors(
   task: EconomyTask,
   tasks: EconomyTask[],
   iteration: number
-): GeneratedSuccessor[] {
+, clock?: Clock): GeneratedSuccessor[] {
   const successors: GeneratedSuccessor[] = [];
+  const createTask = createTaskFactory(clock);
 
   // Belief revision (strengthening)
   if (task.truth.c < 0.9) {
@@ -203,8 +207,9 @@ function generateSkillSuccessors(
   task: EconomyTask,
   _tasks: EconomyTask[],
   facultyNames: string[]
-): GeneratedSuccessor[] {
+, clock?: Clock): GeneratedSuccessor[] {
   const successors: GeneratedSuccessor[] = [];
+  const createTask = createTaskFactory(clock);
 
   // Skill execution via faculty
   for (const faculty of facultyNames) {
@@ -242,8 +247,9 @@ function generateFacultySuccessors(
   task: EconomyTask,
   _tasks: EconomyTask[],
   facultyNames: string[]
-): GeneratedSuccessor[] {
+, clock?: Clock): GeneratedSuccessor[] {
   const successors: GeneratedSuccessor[] = [];
+  const createTask = createTaskFactory(clock);
 
   // Faculty invocation
   for (const faculty of facultyNames) {
@@ -272,8 +278,9 @@ function generateFacultySuccessors(
 function generateRuleSuccessors(
   task: EconomyTask,
   tasks: EconomyTask[]
-): GeneratedSuccessor[] {
+, clock?: Clock): GeneratedSuccessor[] {
   const successors: GeneratedSuccessor[] = [];
+  const createTask = createTaskFactory(clock);
 
   // Rule application (forward chaining)
   const applicable = findApplicableRules(task, tasks);
@@ -299,8 +306,9 @@ function generatePlanSuccessors(
   tasks: EconomyTask[],
   oracleOperations: string[],
   facultyNames: string[]
-): GeneratedSuccessor[] {
+, clock?: Clock): GeneratedSuccessor[] {
   const successors: GeneratedSuccessor[] = [];
+  const createTask = createTaskFactory(clock);
 
   // Plan execution steps
   const steps = extractPlanSteps(task.term);
@@ -341,16 +349,17 @@ function generatePlanSuccessors(
   return successors;
 }
 
-/** Create a new task. */
-function createTask(
+/** Create a task factory bound to a clock (one timestamp per successor batch). */
+function createTaskFactory(clock?: Clock): (
   id: string,
   term: Term,
   kind: TaskBagKind,
   truth: Truth,
   weight: number,
   source: TaskSource
-): EconomyTask {
-  return {
+) => EconomyTask {
+  const ts: TimestampMs = (clock ?? createDefaultClock()).now();
+  return (id, term, kind, truth, weight, source) => ({
     id,
     term,
     kind,
@@ -358,8 +367,8 @@ function createTask(
     weight,
     activation: 0.5,
     source,
-    createdAt: Date.now(),
-    lastAccessed: Date.now(),
+    createdAt: ts,
+    lastAccessed: ts,
     accessCount: 0,
     dependencies: [],
     derived: true,
@@ -367,7 +376,7 @@ function createTask(
     type: TaskType.GOAL,
     priority: weight,
     stamp: undefined,
-  };
+  });
 }
 
 /** Decompose a goal term into sub-goals. */

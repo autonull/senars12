@@ -6,6 +6,8 @@ import type { Term } from '../kernel/terms/term.js';
 import type { Truth } from '../kernel/truth.js';
 import type { Task, TaskType } from '../kernel/types.js';
 import type { SelectionResult, SelectionCandidate } from './select.js';
+import type { Clock } from '../kernel/env.js';
+import { createDefaultClock } from '../kernel/env.js';
 
 /** Action types. */
 export const ACTION_TYPES = [
@@ -171,14 +173,16 @@ export class ActionExecutor {
   private activeActions = new Map<string, Action>();
   private executionHistory: ActionResult[] = [];
   private maxHistory = 1000;
+  private clock: Clock;
 
-  constructor(context: ActContext) {
+  constructor(context: ActContext, clock?: Clock) {
     this.context = context;
+    this.clock = clock ?? createDefaultClock();
   }
 
   /** Execute an action. */
   async execute(action: Action): Promise<ActionResult> {
-    const startTs = Date.now();
+    const startTs = this.clock.now();
     this.activeActions.set(action.id, action);
 
     // Check preconditions
@@ -188,7 +192,7 @@ export class ActionExecutor {
         actionId: action.id,
         status: 'failed',
         effects: [],
-        durationMs: Date.now() - startTs,
+        durationMs: this.clock.now() - startTs,
         error: `Precondition failed: ${precheck.failed?.description}`,
         needsCompensation: false,
       };
@@ -223,7 +227,7 @@ export class ActionExecutor {
       actionId: action.id,
       status: 'failed',
       effects: [],
-      durationMs: Date.now() - startTs,
+      durationMs: this.clock.now() - startTs,
       error: lastError?.message ?? 'Max retries exceeded',
       needsCompensation: this.needsCompensation(action),
     };
@@ -235,7 +239,7 @@ export class ActionExecutor {
 
   /** Execute action once (single attempt). */
   private async executeOnce(action: Action): Promise<ActionResult> {
-    const startTs = Date.now();
+    const startTs = this.clock.now();
     const effects: ActionEffectResult[] = [];
     let oracleResults: any[] = [];
 
@@ -272,7 +276,7 @@ export class ActionExecutor {
       actionId: action.id,
       status: allSucceeded ? 'completed' : 'failed',
       effects,
-      durationMs: Date.now() - startTs,
+      durationMs: this.clock.now() - startTs,
       error: allSucceeded ? undefined : effects.find(e => !e.succeeded)?.error,
       oracleResults,
       needsCompensation: !allSucceeded && this.needsCompensation(action),

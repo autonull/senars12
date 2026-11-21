@@ -6,6 +6,8 @@
  */
 
 import type { Overlay, TaskBagKind, TaskSource, EconomyTask, SchedulerConfig } from './types.js';
+import type { Clock, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock } from '../kernel/env.js';
 
 /** Built-in overlay IDs. */
 export const BUILTIN_OVERLAYS = {
@@ -254,9 +256,10 @@ export function hasActiveOverlays(config: SchedulerConfig): boolean {
 }
 
 /** Merge multiple overlay configs. */
-export function mergeOverlays(overlays: Overlay[]): Overlay {
+export function mergeOverlays(overlays: Overlay[], clock?: Clock): Overlay {
+  const now: TimestampMs = (clock ?? createDefaultClock()).now();
   const merged: Overlay = {
-    id: 'merged-' + Date.now(),
+    id: 'merged-' + now,
     name: 'Merged Overlay',
     kindWeights: {},
     sourceWeights: {},

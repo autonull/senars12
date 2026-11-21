@@ -6,6 +6,10 @@
 
 import type { EconomyTask, AgingPolicy, TaskBagKind } from './types.js';
 import type { Histogram } from '@senars/util/bag';
+import type { Clock, TimestampMs } from '../kernel/env.js';
+import { createDefaultClock } from '../kernel/env.js';
+
+const nowOf = (clock?: Clock): TimestampMs => (clock ?? createDefaultClock()).now();
 
 /** Aging statistics. */
 export interface AgingStats {
@@ -47,9 +51,10 @@ export const KIND_AGING_MODIFIERS: Record<TaskBagKind, { decayMult: number; boos
 export function applyAging(
   tasks: Map<string, EconomyTask>,
   policy: AgingPolicy = defaultAgingPolicy,
-  currentIteration: number
+  currentIteration: number,
+  clock?: Clock
 ): AgingStats {
-  const now = Date.now();
+  const now = nowOf(clock);
   const toRemove: string[] = [];
   let activationSum = 0;
   let tasksAged = 0;
@@ -160,14 +165,14 @@ function computeHistogram(values: number[], bins: number): Histogram {
 /**
  * Calculate task priority with aging considered.
  */
-export function calculateAgedPriority(task: EconomyTask, policy: AgingPolicy = defaultAgingPolicy): number {
+export function calculateAgedPriority(task: EconomyTask, policy: AgingPolicy = defaultAgingPolicy, clock?: Clock): number {
   const modifier = KIND_AGING_MODIFIERS[task.kind] ?? { decayMult: 1, boostMult: 1, maxAgeMult: 1 };
 
   // Base priority from weight and activation
   let priority = task.weight * task.activation;
 
   // Age bonus for old but still relevant tasks
-  const ageHours = (Date.now() - task.createdAt) / (1000 * 60 * 60);
+  const ageHours = (nowOf(clock) - task.createdAt) / (1000 * 60 * 60);
   if (ageHours > 24 && task.activation > policy.minActivation * 2) {
     priority *= 1 + Math.min(0.5, ageHours / 1000); // Up to 50% bonus
   }
@@ -196,10 +201,10 @@ export function getAgingPolicyForKind(kind: TaskBagKind, basePolicy: AgingPolicy
 /**
  * Check if a task is stale (should be considered for removal).
  */
-export function isStale(task: EconomyTask, policy: AgingPolicy = defaultAgingPolicy): boolean {
+export function isStale(task: EconomyTask, policy: AgingPolicy = defaultAgingPolicy, clock?: Clock): boolean {
   const modifier = KIND_AGING_MODIFIERS[task.kind] ?? { decayMult: 1, boostMult: 1, maxAgeMult: 1 };
   const effectiveMaxAge = policy.maxAge * modifier.maxAgeMult;
-  const ageHours = (Date.now() - task.createdAt) / (1000 * 60 * 60);
+  const ageHours = (nowOf(clock) - task.createdAt) / (1000 * 60 * 60);
 
   return ageHours > effectiveMaxAge && task.activation <= policy.minActivation * 1.5;
 }
@@ -210,10 +215,12 @@ export function isStale(task: EconomyTask, policy: AgingPolicy = defaultAgingPol
 export function getTasksForReview(
   tasks: EconomyTask[],
   policy: AgingPolicy = defaultAgingPolicy,
-  maxAgeHours = 168 // 1 week
+  maxAgeHours = 168, // 1 week
+  clock?: Clock
 ): EconomyTask[] {
+  const now = nowOf(clock);
   return tasks.filter(task => {
-    const ageHours = (Date.now() - task.createdAt) / (1000 * 60 * 60);
+    const ageHours = (now - task.createdAt) / (1000 * 60 * 60);
     return ageHours > maxAgeHours && task.activation > policy.minActivation * 2;
   });
 }

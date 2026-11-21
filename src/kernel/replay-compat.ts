@@ -25,6 +25,7 @@ import {
 import type { IdSource } from '@senars/util/id.js';
 import type { RandomSource } from '@senars/util/random.js';
 import type { Clock } from '@senars/util/clock.js';
+import { createDefaultClock } from './env.js';
 import { appendJsonl, readJsonlWith, writeJsonFileSync } from '@senars/util/fs';
 import { errMsg } from '@senars/util/error';
 import { installIdSource } from '@senars/util/id';
@@ -105,7 +106,7 @@ export async function replayIntoMemory(options: FullReplayOptions): Promise<Repl
 async function replayWithInjectedEntropy(options: FullReplayOptions): Promise<ReplayResult> {
   const { gateEventsPath, derivationRecordsPath, memoryConfig, range, idRange, rng, clock } =
     options;
-  const now = clock ?? Date.now;
+  const now = () => (clock ?? createDefaultClock()).now();
 
   const { events: allGateEvents, invalid: gateInvalid } = loadGateEvents(gateEventsPath);
   if (gateInvalid > 0) {
@@ -340,7 +341,8 @@ export interface ReplaySnapshotFile {
 
 export async function serializeReplayResult(
   result: ReplayResult,
-  outputPath: string
+  outputPath: string,
+  clock?: Clock
 ): Promise<void> {
   const {
     gateSnapshot,
@@ -358,7 +360,7 @@ export async function serializeReplayResult(
   const canonicalMemory = { ...memorySerialized, timestamp: 0 };
   const snapshot: ReplaySnapshotFile = {
     version: 2,
-    timestamp: Date.now(),
+    timestamp: (clock ?? createDefaultClock()).now(),
     stateHash: computeReplayStateHash(result, memorySerialized),
     gateSnapshot,
     proposalState,

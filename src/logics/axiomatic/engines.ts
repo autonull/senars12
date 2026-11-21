@@ -10,6 +10,8 @@ import { SLDResolver, createSLDResolver, SLDConfig, SLDResult } from './sld.js';
 import { ModelFinder, createModelFinder, ModelFinderConfig, ModelResult } from './models.js';
 import { MUSExtractor, createMUSExtractor, MUSConfig } from './mus.js';
 import { CertificateGenerator, createCertificateGenerator, CertificateVerifier, createCertificateVerifier } from './certificates.js';
+import type { Clock } from '../../kernel/env.js';
+import { createDefaultClock } from '../../kernel/env.js';
 
 /** Unified engine interface. */
 export interface ReasoningEngine {
