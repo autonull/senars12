@@ -22,6 +22,21 @@ Legend: `[x]` landed · `[~]` partial (named residual) · `[ ]` not started.
 
 ---
 
+### W5 Implementation Status
+
+| W5 sub-item | State | Landed |
+|---|---|---|
+| Faculty specs (10 core) | `[x]` | `src/faculties/specs.ts` — grounding, inference, abduction, induction, analogy, revision, planning, evaluation, communication, governance |
+| Faculty fallbacks (pure NAL) | `[x]` | `src/faculties/fallback.ts` — deterministic LM-free fallbacks for all 10 faculties |
+| Judge weight-change events | `[x]` | `LogisticJudge.train()` emits `judge.weight-change` per epoch + `judge.model-trained` on completion |
+| ECE demotion | `[x]` | `CalibrationManager` emits `demotion.triggered` when ECE > threshold; `calibration.update` on recalibration |
+| GBNF + WASI heads | `[x]` | `src/lm/system-one/{wasi-runtime,wasi-head-bundle,action-grammar}.ts` — portable WASM encoder heads |
+| Imagination ported | `[x]` | `src/imagination/{ScenarioGenerator,CognitiveTreadmill,HiddenModelOracle}.ts` — scenario profiles + stress testing |
+
+**Next slice (W5 completion):** ✅ **COMPLETE** — judgment telemetry live; `judge.weight-change`, `judge.model-trained`, `demotion.triggered`, `calibration.update` events wired; tests in `tests/faculties/judgment-telemetry.test.ts`.
+
+---
+
 ## 0. Where we are (verified on `main`)
 
 - **Consolidation is done.** One `src/`; ~392 import errors → 0; **3,417 unit tests passing / 0 failing**; utilities, registries, catalogs, sampling strategies, and config defaults single-sourced; LogStore/GateEventLedger persistence repaired.
@@ -345,7 +360,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 4. W2: ✅ **one-oracle gate green**; ✅ **WASM engine port** (z3, clingo, minisat); native provider retained; ✅ **`engine.metta`**.
 5. W3: ✅ **risk tiers + gate matrix**; ✅ **fail-closed irreversible**; governance spine unified.
 6. W4: ✅ **formula-AST NAL + interpreter verifier + laws/vectors; transcribed table kept as witness.**
-7. W5: faculty specs + fallbacks; judge weight-change events; ECE demotion; GBNF + WASI heads + imagination ported.
+7. W5: ✅ **COMPLETE** — faculty specs + fallbacks; judge weight-change events; ECE demotion; GBNF + WASI heads + imagination ported.
 8. W6: curriculum + RLFP labels; arena lanes; cost/quality surface; memory indexes + analyzers as folds.
 9. W7: skill DSL + admission lifecycle; self-tools as rung 5; books re-fold; poisoned book rejected.
 10. W8: generated MCP + profiles + npx + playground.

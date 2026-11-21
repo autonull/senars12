@@ -7,6 +7,7 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import type { JudgmentCandidate, JudgmentContext, JudgmentCalibration } from './cascade.js';
+import type { TelemetryCollector } from './telemetry.js';
 
 /** Judge training example. */
 export interface JudgeTrainingExample {
@@ -89,10 +90,12 @@ export class LogisticJudge implements JudgeModel {
   private lastTrained = 0;
   private readonly rng: () => number;
   private readonly now: () => number;
+  private readonly telemetry?: TelemetryCollector;
 
-  constructor(options: { rng?: () => number; now?: () => number } = {}) {
+  constructor(options: { rng?: () => number; now?: () => number; telemetry?: TelemetryCollector } = {}) {
     this.rng = options.rng ?? (() => Math.random());
     this.now = options.now ?? (() => Date.now());
+    this.telemetry = options.telemetry;
   }
 
   /** Extract features from candidate and context. */
@@ -211,6 +214,10 @@ export class LogisticJudge implements JudgeModel {
     const epochs = 100;
     const numFeatures = 11;
 
+    // Store old weights for delta calculation
+    const oldWeights = [...this.weights];
+    const oldBias = this.bias;
+
     // Initialize weights if needed
     if (this.weights.length !== numFeatures) {
       this.weights = new Array(numFeatures).fill(0).map(() => (this.rng() - 0.5) * 0.1);
@@ -245,11 +252,29 @@ export class LogisticJudge implements JudgeModel {
         this.bias -= learningRate * error;
       }
 
+      // Emit weight-change telemetry per epoch
+      if (this.telemetry) {
+        const weightDelta = this.weights.reduce((sum, w, idx) => sum + Math.abs(w - (oldWeights[idx] ?? 0)), 0)
+          + Math.abs(this.bias - oldBias);
+        await this.telemetry.judgeWeightChange('logistic', weightDelta, examples.length, epoch, totalLoss);
+      }
+
       if (totalLoss < 1e-4) break;
     }
 
     this.trainingExamples = examples.length;
     this.lastTrained = this.now();
+
+    // Emit model-trained telemetry
+    if (this.telemetry) {
+      await this.telemetry.judgeModelTrained(
+        'logistic',
+        this.version,
+        this.trainingExamples,
+        this.lastTrained,
+        undefined // metrics would be computed separately
+      );
+    }
   }
 
   /** Predict from feature array. */
@@ -432,7 +457,9 @@ export class IsotonicCalibrator {
 }
 
 /** Create an isolated judge ensemble (deterministic when `rng`/`now` are supplied). */
-export function createJudge(options: { rng?: () => number; now?: () => number } = {}): JudgeEnsemble {
+export function createJudge(
+  options: { rng?: () => number; now?: () => number; telemetry?: TelemetryCollector } = {}
+): JudgeEnsemble {
   const ensemble = new JudgeEnsemble();
   ensemble.addModel(new LogisticJudge(options), 1.0);
   return ensemble;

@@ -11,7 +11,9 @@ import type { Task } from '../../kernel/types.js';
 import type { FacultyInput, FacultyOutput } from '../specs.js';
 import { facultyEngine } from '../engine.js';
 import { OracleOutput } from '../../oracles/oracle.js';
-import type { Clock, IDGenerator } from '../../kernel/env.js';
+import type { Clock, IDGenerator, TimestampMs } from '../../kernel/env.js';
+import { createCalibrationManager, type CalibrationManager } from './calibration.js';
+import { createTelemetryCollector, type TelemetryCollector } from './telemetry.js';
 
 /** Judgment stages. */
 export const JUDGMENT_STAGES = [
@@ -19,7 +21,6 @@ export const JUDGMENT_STAGES = [
   'filter',
   'score',
   'select',
-  'calibrate',
 ] as const;
 
 export type JudgmentStage = (typeof JUDGMENT_STAGES)[number];
@@ -119,7 +120,7 @@ export interface JudgmentCascadeConfig {
   /** Enable calibration. */
   enableCalibration?: boolean;
   /** Calibration method. */
-  calibrationMethod?: 'isotonic' | 'platt' | 'temperature' | 'none';
+  calibrationMethod?: 'isotonic' | 'platt' | 'temperature' | 'beta' | 'none';
   /** Timeout per stage (ms). */
   stageTimeoutMs?: number;
   /** Fallback judgment if all fails. */
@@ -139,7 +140,6 @@ export const defaultJudgmentCascadeConfig: JudgmentCascadeConfig = {
 export class JudgmentCascade {
   private config: JudgmentCascadeConfig;
   private stages = new Map<JudgmentStage, StageFunction>();
-  private calibrationData: Array<{ confidence: number; correct: boolean }> = [];
   private stats = {
     totalJudgments: 0,
     fallbackJudgments: 0,
@@ -149,14 +149,18 @@ export class JudgmentCascade {
   };
   private readonly clock: Clock;
   private readonly ids: IDGenerator;
+  private readonly calibrationManager: CalibrationManager;
+  private readonly telemetry?: TelemetryCollector;
 
   constructor(
     config: JudgmentCascadeConfig = {},
-    options: { clock?: Clock; ids?: IDGenerator } = {}
+    options: { clock?: Clock; ids?: IDGenerator; calibrationManager?: CalibrationManager; telemetry?: TelemetryCollector } = {}
   ) {
     this.config = { ...defaultJudgmentCascadeConfig, ...config };
     this.clock = options.clock ?? { now: () => Date.now() as TimestampMs, setTime: () => {}, advance: () => {} };
     this.ids = options.ids ?? { uuid: () => crypto.randomUUID(), short: () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` };
+    this.calibrationManager = options.calibrationManager ?? createCalibrationManager({ method: this.config.calibrationMethod });
+    this.telemetry = options.telemetry;
     this.registerDefaultStages();
   }
 
@@ -166,7 +170,7 @@ export class JudgmentCascade {
     this.registerStage('filter', this.filterCandidates.bind(this));
     this.registerStage('score', this.scoreCandidates.bind(this));
     this.registerStage('select', this.selectCandidate.bind(this));
-    this.registerStage('calibrate', this.calibrateCandidate.bind(this));
+    // Calibration is now handled in judge() via CalibrationManager
   }
 
   /** Register a custom stage function. */
@@ -178,6 +182,11 @@ export class JudgmentCascade {
   async judge(context: JudgmentContext): Promise<JudgmentResult> {
     const startTs = this.clock.now();
     this.stats.totalJudgments++;
+
+    // Emit judgment start telemetry
+    if (this.telemetry) {
+      await this.telemetry.judgmentStart(context);
+    }
 
     let candidates: JudgmentCandidate[] = [];
     const timings: Record<JudgmentStage, number> = {} as Record<JudgmentStage, number>;
@@ -194,8 +203,21 @@ export class JudgmentCascade {
       }
 
       try {
+        const inputCount = candidates.length;
         candidates = await this.withTimeout(stageFn(candidates, context), this.config.stageTimeoutMs ?? 5000);
         timings[stage] = this.clock.now() - stageStart;
+
+        // Emit stage telemetry
+        if (this.telemetry) {
+          await this.telemetry.judgmentStage(stage, inputCount, candidates.length, timings[stage]);
+        }
+
+        // Emit candidate telemetry for candidates generated
+        if (this.telemetry && stage === 'candidates') {
+          for (const candidate of candidates) {
+            await this.telemetry.candidate(candidate, stage);
+          }
+        }
 
         // Update stage stats
         const stageStats = this.stats.byStage.get(stage) ?? { calls: 0, avgDurationMs: 0 };
@@ -204,6 +226,9 @@ export class JudgmentCascade {
         this.stats.byStage.set(stage, stageStats);
       } catch (error) {
         timings[stage] = this.clock.now() - stageStart;
+        if (this.telemetry) {
+          await this.telemetry.judgmentStage(stage, candidates.length, candidates.length, timings[stage], String(error));
+        }
         console.warn(`Judgment stage ${stage} failed:`, error);
         // Continue with current candidates
       }
@@ -222,7 +247,12 @@ export class JudgmentCascade {
       this.stats.fallbackJudgments++;
     }
 
-    // Calibration
+    // Emit selected telemetry
+    if (this.telemetry && selected) {
+      await this.telemetry.selected(selected, 1, candidates.length);
+    }
+
+    // Calibration using CalibrationManager
     let calibration: JudgmentCalibration = {
       applied: false,
       factor: 1.0,
@@ -232,15 +262,26 @@ export class JudgmentCascade {
     };
 
     if (this.config.enableCalibration && selected) {
-      calibration = this.applyCalibration(selected.confidence);
+      calibration = this.calibrationManager.calibrate(selected.confidence);
       selected.confidence = calibration.postConfidence;
+
+      // Emit calibration telemetry
+      if (this.telemetry) {
+        await this.telemetry.calibrated(
+          selected.id,
+          calibration.preConfidence,
+          calibration.postConfidence,
+          calibration.method,
+          calibration.factor
+        );
+      }
     }
 
     const totalDuration = this.clock.now() - startTs;
     this.stats.avgDurationMs = (this.stats.avgDurationMs * (this.stats.totalJudgments - 1) + totalDuration) / this.stats.totalJudgments;
     this.stats.avgCandidates = (this.stats.avgCandidates * (this.stats.totalJudgments - 1) + candidates.length) / this.stats.totalJudgments;
 
-    return {
+    const result: JudgmentResult = {
       selected,
       candidates,
       confidence: selected?.confidence ?? 0,
@@ -248,6 +289,13 @@ export class JudgmentCascade {
       timings,
       fallbackUsed,
     };
+
+    // Emit completion telemetry
+    if (this.telemetry) {
+      await this.telemetry.complete(result);
+    }
+
+    return result;
   }
 
   /** Stage 1: Generate candidates using faculties. */
@@ -429,72 +477,9 @@ export class JudgmentCascade {
     return candidates; // Already sorted by score
   }
 
-  /** Stage 5: Calibrate confidence. */
-  private async calibrateCandidate(candidates: JudgmentCandidate[], _context: JudgmentContext): Promise<JudgmentCandidate[]> {
-    for (const candidate of candidates) {
-      const calibration = this.applyCalibration(candidate.confidence);
-      candidate.confidence = calibration.postConfidence;
-      candidate.stageReached = 'calibrate';
-    }
-    return candidates;
-  }
-
-  /** Apply calibration to confidence. */
-  private applyCalibration(confidence: number): JudgmentCalibration {
-    if (!this.config.enableCalibration || this.calibrationData.length < 10) {
-      return {
-        applied: false,
-        factor: 1.0,
-        preConfidence: confidence,
-        postConfidence: confidence,
-        method: 'none',
-      };
-    }
-
-    let calibrated = confidence;
-
-    switch (this.config.calibrationMethod) {
-      case 'temperature': {
-        // Temperature scaling
-        const avgConfidence = this.calibrationData.reduce((sum, d) => sum + d.confidence, 0) / this.calibrationData.length;
-        const accuracy = this.calibrationData.filter(d => d.correct).length / this.calibrationData.length;
-        const temperature = avgConfidence > 0 ? avgConfidence / Math.max(0.01, accuracy) : 1.0;
-        calibrated = Math.min(1, confidence * temperature);
-        break;
-      }
-      case 'isotonic': {
-        // Simple isotonic: bin by confidence and use empirical accuracy
-        const bin = Math.floor(confidence * 10) / 10;
-        const binData = this.calibrationData.filter(d => Math.floor(d.confidence * 10) / 10 === bin);
-        if (binData.length > 0) {
-          calibrated = binData.filter(d => d.correct).length / binData.length;
-        }
-        break;
-      }
-      case 'platt': {
-        // Simplified Platt scaling (logistic)
-        const a = -1.5, b = 0.5; // Would be learned
-        calibrated = 1 / (1 + Math.exp(a * confidence + b));
-        break;
-      }
-    }
-
-    return {
-      applied: true,
-      factor: calibrated / Math.max(0.001, confidence),
-      preConfidence: confidence,
-      postConfidence: calibrated,
-      method: this.config.calibrationMethod ?? 'temperature',
-    };
-  }
-
   /** Record judgment outcome for calibration. */
-  recordOutcome(confidence: number, correct: boolean): void {
-    this.calibrationData.push({ confidence, correct });
-    // Keep only recent data
-    if (this.calibrationData.length > 1000) {
-      this.calibrationData.shift();
-    }
+  async recordOutcome(confidence: number, correct: boolean): Promise<void> {
+    await this.calibrationManager.recordOutcome(confidence, correct ? 1 : 0);
   }
 
   /** Timeout wrapper. */
@@ -512,7 +497,7 @@ export class JudgmentCascade {
     return {
       ...this.stats,
       byStage: Object.fromEntries(this.stats.byStage),
-      calibrationDataPoints: this.calibrationData.length,
+      calibrationDataPoints: this.calibrationManager.getStats().dataPoints,
     };
   }
 }
@@ -520,7 +505,7 @@ export class JudgmentCascade {
 /** Create a judgment cascade. */
 export function createJudgmentCascade(
   config?: JudgmentCascadeConfig,
-  options?: { clock?: Clock; ids?: IDGenerator }
+  options?: { clock?: Clock; ids?: IDGenerator; calibrationManager?: CalibrationManager; telemetry?: TelemetryCollector }
 ): JudgmentCascade {
   return new JudgmentCascade(config, options);
 }

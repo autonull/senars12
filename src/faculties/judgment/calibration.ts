@@ -7,7 +7,8 @@
 
 import type { JudgmentCalibration } from './cascade.js';
 import { IsotonicCalibrator } from './judge.js';
-import type { Clock } from '../../kernel/env.js';
+import type { Clock, TimestampMs } from '../../kernel/env.js';
+import type { TelemetryCollector } from './telemetry.js';
 
 /** Calibration method. */
 export type CalibrationMethod = 'temperature' | 'isotonic' | 'platt' | 'beta' | 'none';
@@ -326,17 +327,19 @@ export class CalibrationManager {
   private demoted = false;
   private demotionFactor = 1.0;
   private readonly clock: Clock;
+  private readonly telemetry?: TelemetryCollector;
 
   constructor(
     config: Partial<CalibrationConfig> = {},
-    options: { clock?: Clock } = {}
+    options: { clock?: Clock; telemetry?: TelemetryCollector } = {}
   ) {
     this.config = { ...defaultCalibrationConfig, ...config };
     this.clock = options.clock ?? { now: () => Date.now() as TimestampMs, setTime: () => {}, advance: () => {} };
+    this.telemetry = options.telemetry;
   }
 
   /** Record a judgment outcome. */
-  recordOutcome(predicted: number, actual: number, metadata?: Record<string, unknown>): void {
+  async recordOutcome(predicted: number, actual: number, metadata?: Record<string, unknown>): Promise<void> {
     const point: CalibrationPoint = {
       predicted,
       actual,
@@ -351,7 +354,17 @@ export class CalibrationManager {
     // Check for recalibration
     const now = this.clock.now();
     if (now - this.lastRecalibrated > this.config.recalibrateIntervalMs) {
-      this.recalibrate();
+      const recalResult = await this.recalibrate();
+      // Emit calibration update telemetry
+      if (this.telemetry) {
+        await this.telemetry.calibrationUpdate(
+          this.config.method,
+          { temperature: recalResult.temperature, betaA: recalResult.beta.a, betaB: recalResult.beta.b },
+          this.temperatureScaler.computeECE(),
+          this.temperatureScaler.computeMCE(),
+          this.temperatureScaler.getDataCount()
+        );
+      }
     }
 
     // Check for demotion
@@ -360,23 +373,39 @@ export class CalibrationManager {
       if (ece > this.config.demotionThreshold) {
         this.demoted = true;
         this.demotionFactor = this.config.demotionFactor;
-        console.warn(`Judge demoted: ECE=${ece.toFixed(3)} > ${this.config.demotionThreshold}`);
+        // Emit demotion telemetry instead of console.warn
+        if (this.telemetry) {
+          await this.telemetry.demotion(ece, this.config.demotionThreshold, this.config.demotionFactor);
+        }
       }
     }
   }
 
   /** Recalibrate all calibrators. */
-  recalibrate(): { temperature: number; beta: { a: number; b: number }; isotonic: number } {
+  async recalibrate(): Promise<{ temperature: number; beta: { a: number; b: number }; isotonic: number }> {
     const tempResult = this.temperatureScaler.recalibrate();
     const betaResult = this.betaCalibrator.recalibrate();
     this.isotonicCalibrator.recompute();
     this.lastRecalibrated = this.clock.now();
 
-    return {
+    const result = {
       temperature: tempResult.temperature,
       beta: { a: betaResult.a, b: betaResult.b },
       isotonic: 0, // No single param
     };
+
+    // Emit calibration update telemetry
+    if (this.telemetry) {
+      await this.telemetry.calibrationUpdate(
+        this.config.method,
+        { temperature: result.temperature, betaA: result.beta.a, betaB: result.beta.b },
+        this.temperatureScaler.computeECE(),
+        this.temperatureScaler.computeMCE(),
+        this.temperatureScaler.getDataCount()
+      );
+    }
+
+    return result;
   }
 
   /** Calibrate a confidence value. */
@@ -465,7 +494,7 @@ export class CalibrationManager {
 /** Create a calibration manager. */
 export function createCalibrationManager(
   config?: Partial<CalibrationConfig>,
-  options?: { clock?: Clock }
+  options?: { clock?: Clock; telemetry?: TelemetryCollector }
 ): CalibrationManager {
   return new CalibrationManager(config, options);
 }

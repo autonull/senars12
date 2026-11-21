@@ -6,7 +6,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import type { JudgmentContext, JudgmentResult, JudgmentCandidate, JudgmentStage } from './cascade.js';
 import type { CalibrationResult } from './calibration.js';
-import type { Clock, IDGenerator } from '../../kernel/env.js';
+import type { Clock, IDGenerator, TimestampMs } from '../../kernel/env.js';
 
 /** Telemetry event types. */
 export const TELEMETRY_EVENT_TYPES = [
@@ -20,6 +20,8 @@ export const TELEMETRY_EVENT_TYPES = [
   'judgment.outcome',
   'calibration.update',
   'demotion.triggered',
+  'judge.weight-change',
+  'judge.model-trained',
 ] as const;
 
 export type TelemetryEventType = (typeof TELEMETRY_EVENT_TYPES)[number];
@@ -152,6 +154,35 @@ export interface DemotionEvent extends TelemetryEvent {
   };
 }
 
+/** Judge weight change event. */
+export interface JudgeWeightChangeEvent extends TelemetryEvent {
+  type: 'judge.weight-change';
+  payload: {
+    modelType: string;
+    weightDelta: number;
+    trainingExamples: number;
+    epoch: number;
+    loss: number;
+  };
+}
+
+/** Judge model trained event. */
+export interface JudgeModelTrainedEvent extends TelemetryEvent {
+  type: 'judge.model-trained';
+  payload: {
+    modelType: string;
+    version: string;
+    trainingExamples: number;
+    lastTrained: number;
+    metrics?: {
+      accuracy: number;
+      auc: number;
+      calibrationError: number;
+      brierScore: number;
+    };
+  };
+}
+
 /** Union of all telemetry events. */
 export type AnyTelemetryEvent =
   | JudgmentStartEvent
@@ -163,7 +194,9 @@ export type AnyTelemetryEvent =
   | JudgmentCompleteEvent
   | OutcomeEvent
   | CalibrationUpdateEvent
-  | DemotionEvent;
+  | DemotionEvent
+  | JudgeWeightChangeEvent
+  | JudgeModelTrainedEvent;
 
 /** Telemetry sink interface. */
 export interface TelemetrySink {
@@ -454,6 +487,32 @@ export class TelemetryCollector {
     await this.emit({
       type: 'demotion.triggered',
       payload: { ece, threshold, demotionFactor },
+    });
+  }
+
+  async judgeWeightChange(
+    modelType: string,
+    weightDelta: number,
+    trainingExamples: number,
+    epoch: number,
+    loss: number
+  ): Promise<void> {
+    await this.emit({
+      type: 'judge.weight-change',
+      payload: { modelType, weightDelta, trainingExamples, epoch, loss },
+    });
+  }
+
+  async judgeModelTrained(
+    modelType: string,
+    version: string,
+    trainingExamples: number,
+    lastTrained: number,
+    metrics?: { accuracy: number; auc: number; calibrationError: number; brierScore: number }
+  ): Promise<void> {
+    await this.emit({
+      type: 'judge.model-trained',
+      payload: { modelType, version, trainingExamples, lastTrained, metrics },
     });
   }
 
