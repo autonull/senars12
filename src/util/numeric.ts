@@ -278,6 +278,24 @@ export const softmax = (values: readonly number[]): number[] => {
   return exps.map((e) => safeRatio(e, total));
 };
 
+/**
+ * Convert items with scores to weighted items using softmax.
+ * Useful for temperature-controlled sampling strategies.
+ */
+export const softmaxWeights = <T>(
+  items: readonly T[],
+  scoreOf: (item: T) => number
+): Array<{ item: T; weight: number }> => {
+  const exps = softmax(items.map(scoreOf));
+  return items.map((item, i) => ({ item, weight: exps[i]! }));
+};
+
+/**
+ * Inverse temperature: `1 / T`, floored so a zero temperature degrades to greedy
+ * rather than dividing by zero.
+ */
+export const invTemperature = (temperature: number): number => 1 / Math.max(temperature, 1e-9);
+
 /** Arithmetic mean of a projection; 0 for an empty collection (rates, scores, sums). */
 export const mean = <T>(
   items: Iterable<T>,

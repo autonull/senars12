@@ -6,10 +6,10 @@
  * under pressure (AIKR); processing is interruptible via AbortSignal and
  * deterministic under an injected RandomSource.
  */
-import { ambientRng, weightedSample, weightedSampleBy } from '@senars/util/random';
+import { ambientRng, type RandomSource, type Weighted, weightedSample, weightedSampleBy } from '@senars/util/random';
 import { incrementCount, selectTopN } from '@senars/util/collections';
 import { LruCache } from '@senars/util/lru-cache';
-import { softmax } from '@senars/util/numeric';
+import { invTemperature, softmax, softmaxWeights } from '@senars/util/numeric';
 import type { Bag, BagItem, BagOptions } from '../bag/Bag.js';
 import { createBag } from '../bag/index.js';
 
@@ -23,6 +23,7 @@ export const DEFAULT_AIKR_BUDGET = 4;
 
 export interface BagSamplingStrategy<T extends BagItem> {
   readonly name: string;
+  readonly description: string;
   /** Select up to `budget` items; never mutates the source array. */
   select(items: T[], budget: number, rng: RandomSource): T[];
 }
@@ -56,14 +57,6 @@ export const createAikrBag = <T extends BagItem>(
     ...(options.id ? { id: options.id } : {}),
   });
 
-const softmaxWeights = <T>(items: T[], scoreOf: (item: T) => number): Weighted<T>[] => {
-  const exps = softmax(items.map(scoreOf));
-  return items.map((item, i) => ({ item, weight: exps[i]! }));
-};
-
-/** `1 / T`, floored so a zero temperature degrades to greedy rather than dividing by zero. */
-const invTemperature = (temperature: number): number => 1 / Math.max(temperature, 1e-9);
-
 export const FAIRNESS_TRACKED_CAPACITY = 1024;
 
 /**
@@ -72,6 +65,7 @@ export const FAIRNESS_TRACKED_CAPACITY = 1024;
  */
 export class BagPrioritySampling<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'priority-softmax';
+  readonly description = 'Softmax over priority with temperature';
   constructor(private readonly temperature = 1.0) {}
   select(items: T[], budget: number, rng: RandomSource): T[] {
     const t = invTemperature(this.temperature);
@@ -86,6 +80,7 @@ export class BagPrioritySampling<T extends BagItem> implements BagSamplingStrate
 /** Power-law weights `priority^α` — α>1 exploits the tail, α<1 explores. */
 export class PowerLawSampling<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'power-law';
+  readonly description = 'Power-law weights over priority';
   constructor(private readonly alpha = 1.5) {}
   select(items: T[], budget: number, rng: RandomSource): T[] {
     return weightedSampleBy(
@@ -103,6 +98,7 @@ export class PowerLawSampling<T extends BagItem> implements BagSamplingStrategy<
  */
 export class FairnessSampling<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'fairness';
+  readonly description = 'Aging boost for stale item fairness';
   /** Aging counters, bounded by recency: unbounded, this grew with every id the bag ever admitted. */
   readonly #sinceSampled: LruCache<string, number> = new LruCache({
     maxSize: FAIRNESS_TRACKED_CAPACITY,
@@ -139,6 +135,7 @@ export class FairnessSampling<T extends BagItem> implements BagSamplingStrategy<
 /** Truncate to the top-k priorities, then softmax within the truncated set. */
 export class TopKSampling<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'top-k';
+  readonly description = 'Top-k truncation with softmax';
   constructor(
     private readonly temperature = 1.0,
     private readonly k?: number
@@ -158,6 +155,7 @@ export class TopKSampling<T extends BagItem> implements BagSamplingStrategy<T> {
 /** Legacy raw proportional sampling — exact `PriorityBag.sample()` parity. */
 export class PriorityProportional<T extends BagItem> implements BagSamplingStrategy<T> {
   readonly name = 'priority-proportional';
+  readonly description = 'Raw priority-proportional sampling';
   select(items: T[], budget: number, rng: RandomSource): T[] {
     return weightedSample(items, budget, (item) => item.priority, rng);
   }
@@ -295,7 +293,7 @@ export class AikrShell<TIn extends BagItem, TOut, TView = TOut, TAdmit = TIn> {
       bag,
       pressureThreshold: options.pressureThreshold,
       rng: options.rng,
-      samplingStrategy: { name: options.samplingStrategy, select: options.select },
+      samplingStrategy: { name: options.samplingStrategy, description: options.samplingStrategy, select: options.select },
       process: options.process,
     });
   }

@@ -483,12 +483,14 @@ export {
   sigmoid,
   softFalloff,
   softmax,
+  softmaxWeights,
   softSquash,
   stdDev,
   sumBy,
   toFiniteNumber,
   ucb1,
   variance,
+  invTemperature,
 } from './numeric.js';
 export { deepEqual, deepFreeze, deepMerge, getNested, setNested, thaw } from './object.js';
 export { extractLastUserMessage } from './prompt.js';
