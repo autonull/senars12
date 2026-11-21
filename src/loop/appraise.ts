@@ -6,6 +6,7 @@
 
 import type { Task } from '../kernel/types.js';
 import type { ContractCheckResult } from './contract.js';
+import type { Clock } from '../kernel/env.js';
 
 /** Appraisal dimensions. */
 export const APPRAISAL_DIMENSIONS = [
@@ -120,9 +121,14 @@ export class LoopAppraiser {
   private history: LoopAppraisal[] = [];
   private metricsHistory: AppraisalMetrics[] = [];
   private iteration = 0;
+  private readonly clock: Clock;
 
-  constructor(config: Partial<AppraisalConfig> = {}) {
+  constructor(
+    config: Partial<AppraisalConfig> = {},
+    options: { clock?: Clock } = {}
+  ) {
     this.config = { ...defaultAppraisalConfig, ...config };
+    this.clock = options.clock ?? { now: () => Date.now() as TimestampMs, setTime: () => {}, advance: () => {} };
   }
 
   /** Record metrics for an iteration. */
@@ -151,7 +157,7 @@ export class LoopAppraiser {
     const appraisal: LoopAppraisal = {
       overallScore,
       dimensions,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
       iteration,
       summary,
       recommendations,
@@ -573,11 +579,14 @@ export class LoopAppraiser {
 }
 
 /** Create a loop appraiser. */
-export function createLoopAppraiser(config?: Partial<AppraisalConfig>): LoopAppraiser {
-  return new LoopAppraiser(config);
+export function createLoopAppraiser(
+  config?: Partial<AppraisalConfig>,
+  options?: { clock?: Clock }
+): LoopAppraiser {
+  return new LoopAppraiser(config, options);
 }
 
-/** Global loop appraiser instance. */
+/** Global loop appraiser instance (non-deterministic; prefer {@link createLoopAppraiser}). */
 export const loopAppraiser = createLoopAppraiser();
 
 /** Metrics collector for appraisal. */

@@ -10,6 +10,7 @@ import type { Task } from '../kernel/types.js';
 import type { FacultyInput, FacultyOutput } from '../faculties/specs.js';
 import { facultyEngine } from '../faculties/engine.js';
 import { judgmentCascade, type JudgmentContext, type JudgmentResult } from '../faculties/judgment/cascade.js';
+import type { Clock } from '../kernel/env.js';
 
 /** Anomaly types. */
 export const ANOMALY_TYPES = [
@@ -62,6 +63,8 @@ export interface RepairContext {
   oracleHealth: OracleHealth[];
   /** Gate states. */
   gateStates: GateState[];
+  /** Deterministic clock for timestamps. */
+  clock: Clock;
 }
 
 /** Resource usage. */
@@ -270,8 +273,12 @@ export class RepairLoop {
   private anomalyHistory: Anomaly[] = [];
   private retryCounts = new Map<string, number>();
   private lastRepairTime = new Map<string, number>();
+  private readonly clock: Clock;
 
-  constructor(config: Partial<RepairLoopConfig> = {}) {
+  constructor(
+    config: Partial<RepairLoopConfig> = {},
+    options: { clock?: Clock } = {}
+  ) {
     this.config = {
       policies: config.policies ?? defaultRepairPolicies,
       detectors: config.detectors ?? [],
@@ -279,6 +286,7 @@ export class RepairLoop {
       repairTimeoutMs: config.repairTimeoutMs ?? 30000,
       autoRepair: config.autoRepair ?? true,
     };
+    this.clock = options.clock ?? { now: () => Date.now() as TimestampMs, setTime: () => {}, advance: () => {} };
   }
 
   /** Add a custom anomaly detector. */
@@ -317,7 +325,7 @@ export class RepairLoop {
 
       // Check cooldown
       const lastRepair = this.lastRepairTime.get(retryKey) ?? 0;
-      if (Date.now() - lastRepair < policy.cooldownMs) continue;
+      if (this.clock.now() - lastRepair < policy.cooldownMs) continue;
 
       // Check severity
       const severityOrder = { low: 0, medium: 1, high: 2, critical: 3 };
@@ -329,7 +337,7 @@ export class RepairLoop {
 
       // Update tracking
       this.retryCounts.set(retryKey, retries + 1);
-      this.lastRepairTime.set(retryKey, Date.now());
+      this.lastRepairTime.set(retryKey, this.clock.now());
       this.activeRepairs.set(anomaly.id, result);
       this.repairHistory.push(result);
       this.anomalyHistory.push(anomaly);
@@ -379,7 +387,7 @@ export class RepairLoop {
     policy: RepairPolicy,
     context: RepairContext
   ): Promise<RepairResult> {
-    const startTs = Date.now();
+    const startTs = this.clock.now();
     const actionsTaken: RepairAction[] = [];
     let success = true;
     let error: string | undefined;
@@ -396,7 +404,7 @@ export class RepairLoop {
       }
     }
 
-    const durationMs = Date.now() - startTs;
+    const durationMs = this.clock.now() - startTs;
 
     return {
       anomalyId: anomaly.id,
@@ -570,7 +578,7 @@ export const stallDetector: AnomalyDetector = async (context): Promise<Anomaly[]
         type: 'stall',
         severity: 'medium',
         description: 'No progress in recent iterations - same terms repeating',
-        detectedAt: Date.now(),
+        detectedAt: context.clock.now(),
         context,
         suggestedRepairs: [],
         id: crypto.randomUUID(),
@@ -604,7 +612,7 @@ export const divergenceDetector: AnomalyDetector = async (context): Promise<Anom
       type: 'divergence',
       severity: 'high',
       description: `High contradiction count: ${contradictions}`,
-      detectedAt: Date.now(),
+      detectedAt: context.clock.now(),
       context,
       suggestedRepairs: [],
       id: crypto.randomUUID(),
@@ -623,7 +631,7 @@ export const resourceExhaustionDetector: AnomalyDetector = async (context): Prom
       type: 'resource_exhaustion',
       severity: 'high',
       description: `Memory usage high: ${(resources.memory / 1e9).toFixed(2)}GB`,
-      detectedAt: Date.now(),
+      detectedAt: context.clock.now(),
       context,
       suggestedRepairs: [],
       id: crypto.randomUUID(),
@@ -635,7 +643,7 @@ export const resourceExhaustionDetector: AnomalyDetector = async (context): Prom
       type: 'resource_exhaustion',
       severity: 'high',
       description: 'Token budget nearly exhausted',
-      detectedAt: Date.now(),
+      detectedAt: context.clock.now(),
       context,
       suggestedRepairs: [],
       id: crypto.randomUUID(),
@@ -654,7 +662,7 @@ export const oracleFailureDetector: AnomalyDetector = async (context): Promise<A
         type: 'oracle_failure',
         severity: oracle.available ? 'medium' : 'high',
         description: `Oracle ${oracle.operation} unhealthy: available=${oracle.available}, errorRate=${oracle.errorRate.toFixed(2)}`,
-        detectedAt: Date.now(),
+        detectedAt: context.clock.now(),
         context,
         suggestedRepairs: [],
         id: crypto.randomUUID(),
@@ -674,7 +682,7 @@ export const gateFailureDetector: AnomalyDetector = async (context): Promise<Ano
         type: 'gate_failure',
         severity: 'high',
         description: `Gate ${gate.name} failed ${gate.consecutiveFailures} times consecutively`,
-        detectedAt: Date.now(),
+        detectedAt: context.clock.now(),
         context,
         suggestedRepairs: [],
         id: crypto.randomUUID(),
@@ -686,8 +694,11 @@ export const gateFailureDetector: AnomalyDetector = async (context): Promise<Ano
 };
 
 /** Create a repair loop with default detectors. */
-export function createRepairLoop(config?: Partial<RepairLoopConfig>): RepairLoop {
-  const loop = new RepairLoop(config);
+export function createRepairLoop(
+  config?: Partial<RepairLoopConfig>,
+  options?: { clock?: Clock }
+): RepairLoop {
+  const loop = new RepairLoop(config, options);
 
   // Add default detectors
   loop.addDetector(stallDetector);
@@ -699,5 +710,5 @@ export function createRepairLoop(config?: Partial<RepairLoopConfig>): RepairLoop
   return loop;
 }
 
-/** Global repair loop instance. */
+/** Global repair loop instance (non-deterministic; prefer {@link createRepairLoop}). */
 export const repairLoop = createRepairLoop();

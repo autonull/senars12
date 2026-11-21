@@ -8,6 +8,7 @@ import type { Term } from '../kernel/terms/term.js';
 import type { Truth } from '../kernel/truth.js';
 import type { Task } from '../kernel/types.js';
 import type { FacultyOutput } from '../faculties/specs.js';
+import type { RNG, Clock } from '../kernel/env.js';
 
 /** Selection strategies. */
 export const SELECTION_STRATEGIES = [
@@ -175,16 +176,23 @@ export class ActionSelector {
   private selectionCounts = new Map<string, number>();
   private rewardSums = new Map<string, number>();
   private rewardCounts = new Map<string, number>();
+  private readonly rng: RNG;
+  private readonly clock: Clock;
 
-  constructor(config: Partial<SelectorConfig> = {}) {
+  constructor(
+    config: Partial<SelectorConfig> = {},
+    options: { rng?: RNG; clock?: Clock } = {}
+  ) {
     this.config = { ...defaultSelectorConfig, ...config };
     this.currentEpsilon = config.epsilon ?? 0.1;
     this.currentTemperature = config.temperature ?? 1.0;
+    this.rng = options.rng ?? { next: () => Math.random(), nextInt: (max: number) => Math.floor(Math.random() * max), nextBytes: (length: number) => crypto.getRandomValues(new Uint8Array(length)), setSeed: () => {}, getSeed: () => 0 };
+    this.clock = options.clock ?? { now: () => Date.now() as TimestampMs, setTime: () => {}, advance: () => {} };
   }
 
   /** Select an action. */
   async select(context: SelectionContext): Promise<SelectionResult> {
-    const startTs = Date.now();
+    const startTs = this.clock.now();
 
     // Filter candidates by budget
     const affordable = context.candidates.filter(c => c.cost <= context.budget);
@@ -210,7 +218,7 @@ export class ActionSelector {
       strategy,
       metadata: {
         candidatesConsidered: candidates.length,
-        durationMs: Date.now() - startTs,
+        durationMs: this.clock.now() - startTs,
         explored: strategy !== 'utility' && strategy !== 'priority',
         explorationParam: strategy === 'epsilon_greedy' ? this.currentEpsilon :
                          strategy === 'softmax' ? this.currentTemperature : 0,
@@ -301,7 +309,7 @@ export class ActionSelector {
     const trials = this.rewardCounts.get(id) ?? 0;
 
     if (trials === 0) {
-      return Math.random(); // Explore
+      return this.rng.next(); // Explore
     }
 
     // Beta distribution sample
@@ -344,20 +352,20 @@ export class ActionSelector {
           v = 1 + c * x;
         } while (v <= 0);
         v = v * v * v;
-        const u = Math.random();
+        const u = this.rng.next();
         if (u < 1 - 0.0331 * x * x * x * x) return d * v * scale;
         if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v * scale;
       }
     } else {
-      return this.sampleGamma(shape + 1, scale) * Math.pow(Math.random(), 1 / shape);
+      return this.sampleGamma(shape + 1, scale) * Math.pow(this.rng.next(), 1 / shape);
     }
   }
 
   /** Generate normal random (Box-Muller). */
   private normalRandom(): number {
     let u = 0, v = 0;
-    while (u === 0) u = Math.random();
-    while (v === 0) v = Math.random();
+    while (u === 0) u = this.rng.next();
+    while (v === 0) v = this.rng.next();
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   }
 
@@ -384,10 +392,10 @@ export class ActionSelector {
 
   /** Epsilon-greedy selection. */
   private epsilonGreedySelect(scored: ScoredCandidate[], _context: SelectionContext): SelectionCandidate {
-    if (Math.random() < this.currentEpsilon) {
+    if (this.rng.next() < this.currentEpsilon) {
       // Explore: pick randomly (weighted by score)
       const total = scored.reduce((sum, s) => sum + s.score, 0);
-      let r = Math.random() * total;
+      let r = this.rng.next() * total;
       for (const s of scored) {
         r -= s.score;
         if (r <= 0) return s.candidate;
@@ -399,7 +407,7 @@ export class ActionSelector {
   /** Softmax selection. */
   private softmaxSelect(scored: ScoredCandidate[]): SelectionCandidate {
     // Already softmax-transformed, sample from distribution
-    let r = Math.random();
+    let r = this.rng.next();
     for (const s of scored) {
       r -= s.score;
       if (r <= 0) return s.candidate;
@@ -462,7 +470,7 @@ export class ActionSelector {
       strategy: this.config.defaultStrategy,
       metadata: {
         candidatesConsidered: context.candidates.length,
-        durationMs: Date.now() - startTs,
+        durationMs: this.clock.now() - startTs,
         explored: false,
         explorationParam: 0,
       },
@@ -471,11 +479,14 @@ export class ActionSelector {
 }
 
 /** Create an action selector. */
-export function createActionSelector(config?: Partial<SelectorConfig>): ActionSelector {
-  return new ActionSelector(config);
+export function createActionSelector(
+  config?: Partial<SelectorConfig>,
+  options?: { rng?: RNG; clock?: Clock }
+): ActionSelector {
+  return new ActionSelector(config, options);
 }
 
-/** Global action selector instance. */
+/** Global action selector instance (non-deterministic; prefer {@link createActionSelector}). */
 export const actionSelector = createActionSelector();
 
 /** VoI (Value of Information) calculator. */

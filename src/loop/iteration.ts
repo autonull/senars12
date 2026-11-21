@@ -264,6 +264,7 @@ async function checkContracts(
     selectedAction: task as unknown as import('../kernel/types.js').Task,
     oracleCalls: [],
     resources: { tokensUsed: 0, tokensRemaining: 1000, wallTimeMs: 0, cpuTimeMs: 0 },
+    clock: context.env.clock,
   };
 
   const { checkContracts: checkContractsFn } = await import('./contract.js');
@@ -290,6 +291,7 @@ async function runRepairs(
     resources: { cpu: 0, memory: 0, tokensUsed: 0, tokensRemaining: 1000, wallTimeMs: 0 },
     oracleHealth: [],
     gateStates: [],
+    clock: context.env.clock,
   };
 
   return context.repair.tick(repairContext);

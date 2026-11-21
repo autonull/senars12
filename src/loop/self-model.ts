@@ -7,6 +7,7 @@
 import type { Task, TaskType } from '../kernel/types.js';
 import type { Truth } from '../kernel/truth.js';
 import type { LoopAppraisal } from './appraise.js';
+import type { Clock } from '../kernel/env.js';
 
 /** Self-model aspects. */
 export const SELF_MODEL_ASPECTS = [
@@ -209,9 +210,14 @@ export class SelfModelManager {
   private model: SelfModel;
   private iteration = 0;
   private pendingUpdates: Partial<SelfModel> = {};
+  private readonly clock: Clock;
 
-  constructor(config: Partial<SelfModelConfig> = {}) {
+  constructor(
+    config: Partial<SelfModelConfig> = {},
+    options: { clock?: Clock } = {}
+  ) {
     this.config = { ...defaultSelfModelConfig, ...config };
+    this.clock = options.clock ?? { now: () => Date.now() as TimestampMs, setTime: () => {}, advance: () => {} };
     this.model = this.createInitialModel();
   }
 
@@ -233,7 +239,7 @@ export class SelfModelManager {
       limitations: [],
       history: [],
       metaConfidence: 0.5,
-      lastUpdated: Date.now(),
+      lastUpdated: this.clock.now(),
     };
   }
 
@@ -249,7 +255,7 @@ export class SelfModelManager {
       weaknesses: this.extractWeaknesses(appraisal),
       benchmarks: this.model.performance.benchmarks,
     };
-    this.model.lastUpdated = Date.now();
+    this.model.lastUpdated = this.clock.now();
   }
 
   /** Update capability from outcome. */
@@ -266,7 +272,7 @@ export class SelfModelManager {
         proficiency: 0.5,
         confidence: 0.5,
         evidence: [],
-        lastUpdated: Date.now(),
+        lastUpdated: this.clock.now(),
         trend: 'stable',
       };
       this.model.capabilities.push(cap);
@@ -276,7 +282,7 @@ export class SelfModelManager {
     const alpha = 0.1;
     cap.proficiency = cap.proficiency * (1 - alpha) + (success ? 1 : 0) * alpha;
     cap.confidence = Math.min(1, cap.confidence + 0.05);
-    cap.lastUpdated = Date.now();
+    cap.lastUpdated = this.clock.now();
     cap.trend = this.computeCapabilityTrend(cap);
 
     // Add evidence
@@ -284,7 +290,7 @@ export class SelfModelManager {
       source: success ? 'success' : 'failure',
       description: evidence.description ?? (success ? 'Successful execution' : 'Failed execution'),
       weight: evidence.weight ?? 1,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
     });
 
     // Trim evidence
@@ -304,7 +310,7 @@ export class SelfModelManager {
         certainty: 0,
         concepts: [],
         gaps: [],
-        lastUpdated: Date.now(),
+        lastUpdated: this.clock.now(),
       };
       this.model.knowledge.push(knowledge);
     }
@@ -313,7 +319,7 @@ export class SelfModelManager {
     knowledge.gaps = Array.from(new Set([...knowledge.gaps, ...gaps]));
     knowledge.coverage = Math.min(1, knowledge.concepts.length / 100); // Heuristic
     knowledge.certainty = Math.min(1, knowledge.coverage * 1.2);
-    knowledge.lastUpdated = Date.now();
+    knowledge.lastUpdated = this.clock.now();
   }
 
   /** Add preference. */
@@ -457,7 +463,7 @@ export class SelfModelManager {
 
   /** Decay confidence over time. */
   decayConfidence(): void {
-    const now = Date.now();
+    const now = this.clock.now();
     const decay = this.config.confidenceDecay;
 
     for (const cap of this.model.capabilities) {
@@ -494,9 +500,12 @@ export class SelfModelManager {
 }
 
 /** Create a self-model manager. */
-export function createSelfModelManager(config?: Partial<SelfModelConfig>): SelfModelManager {
-  return new SelfModelManager(config);
+export function createSelfModelManager(
+  config?: Partial<SelfModelConfig>,
+  options?: { clock?: Clock }
+): SelfModelManager {
+  return new SelfModelManager(config, options);
 }
 
-/** Global self-model manager. */
+/** Global self-model manager (non-deterministic; prefer {@link createSelfModelManager}). */
 export const selfModelManager = createSelfModelManager();

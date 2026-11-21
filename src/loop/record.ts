@@ -9,6 +9,7 @@ import type { Truth } from '../kernel/truth.js';
 import type { SelectionResult } from './select.js';
 import type { ActionResult } from './act.js';
 import type { JudgmentResult } from '../faculties/judgment/cascade.js';
+import type { Clock, IDGenerator } from '../kernel/env.js';
 
 /** Record types. */
 export const RECORD_TYPES = [
@@ -390,10 +391,18 @@ export class LoopRecorder {
   private correlationId: string;
   private iteration = 0;
   private enabled = true;
+  private readonly clock: Clock;
+  private readonly ids: IDGenerator;
 
-  constructor(store: LoopRecordStore, correlationId?: string) {
+  constructor(
+    store: LoopRecordStore,
+    correlationId?: string,
+    options: { clock?: Clock; ids?: IDGenerator } = {}
+  ) {
     this.store = store;
-    this.correlationId = correlationId ?? crypto.randomUUID();
+    this.clock = options.clock ?? { now: () => Date.now() as TimestampMs, setTime: () => {}, advance: () => {} };
+    this.ids = options.ids ?? { uuid: () => crypto.randomUUID(), short: () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` };
+    this.correlationId = correlationId ?? this.ids.uuid();
   }
 
   /** Set enabled state. */
@@ -416,9 +425,9 @@ export class LoopRecorder {
     if (!this.enabled) return;
     await this.store.write({
       type: 'iteration',
-      id: crypto.randomUUID(),
+      id: this.ids.uuid(),
       iteration: this.iteration,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
       correlationId: this.correlationId,
       payload,
     });
@@ -429,9 +438,9 @@ export class LoopRecorder {
     if (!this.enabled) return;
     await this.store.write({
       type: 'selection',
-      id: crypto.randomUUID(),
+      id: this.ids.uuid(),
       iteration: this.iteration,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
       correlationId: this.correlationId,
       payload,
     });
@@ -442,9 +451,9 @@ export class LoopRecorder {
     if (!this.enabled) return;
     await this.store.write({
       type: 'action',
-      id: crypto.randomUUID(),
+      id: this.ids.uuid(),
       iteration: this.iteration,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
       correlationId: this.correlationId,
       payload,
     });
@@ -455,9 +464,9 @@ export class LoopRecorder {
     if (!this.enabled) return;
     await this.store.write({
       type: 'judgment',
-      id: crypto.randomUUID(),
+      id: this.ids.uuid(),
       iteration: this.iteration,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
       correlationId: this.correlationId,
       payload,
     });
@@ -468,9 +477,9 @@ export class LoopRecorder {
     if (!this.enabled) return;
     await this.store.write({
       type: 'oracle',
-      id: crypto.randomUUID(),
+      id: this.ids.uuid(),
       iteration: this.iteration,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
       correlationId: this.correlationId,
       payload,
     });
@@ -481,9 +490,9 @@ export class LoopRecorder {
     if (!this.enabled) return;
     await this.store.write({
       type: 'contract',
-      id: crypto.randomUUID(),
+      id: this.ids.uuid(),
       iteration: this.iteration,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
       correlationId: this.correlationId,
       payload,
     });
@@ -494,9 +503,9 @@ export class LoopRecorder {
     if (!this.enabled) return;
     await this.store.write({
       type: 'repair',
-      id: crypto.randomUUID(),
+      id: this.ids.uuid(),
       iteration: this.iteration,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
       correlationId: this.correlationId,
       payload,
     });
@@ -507,9 +516,9 @@ export class LoopRecorder {
     if (!this.enabled) return;
     await this.store.write({
       type: 'appraisal',
-      id: crypto.randomUUID(),
+      id: this.ids.uuid(),
       iteration: this.iteration,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
       correlationId: this.correlationId,
       payload,
     });
@@ -527,8 +536,12 @@ export class LoopRecorder {
 }
 
 /** Create a loop recorder. */
-export function createLoopRecorder(store?: LoopRecordStore, correlationId?: string): LoopRecorder {
+export function createLoopRecorder(
+  store?: LoopRecordStore,
+  correlationId?: string,
+  options?: { clock?: Clock; ids?: IDGenerator }
+): LoopRecorder {
   const recordStore = store ?? createLoopRecordStore();
-  return new LoopRecorder(recordStore, correlationId);
+  return new LoopRecorder(recordStore, correlationId, options);
 }
 

@@ -7,6 +7,7 @@
 
 import type { JudgmentCalibration } from './cascade.js';
 import { IsotonicCalibrator } from './judge.js';
+import type { Clock } from '../../kernel/env.js';
 
 /** Calibration method. */
 export type CalibrationMethod = 'temperature' | 'isotonic' | 'platt' | 'beta' | 'none';
@@ -324,9 +325,14 @@ export class CalibrationManager {
   private lastRecalibrated = 0;
   private demoted = false;
   private demotionFactor = 1.0;
+  private readonly clock: Clock;
 
-  constructor(config: Partial<CalibrationConfig> = {}) {
+  constructor(
+    config: Partial<CalibrationConfig> = {},
+    options: { clock?: Clock } = {}
+  ) {
     this.config = { ...defaultCalibrationConfig, ...config };
+    this.clock = options.clock ?? { now: () => Date.now() as TimestampMs, setTime: () => {}, advance: () => {} };
   }
 
   /** Record a judgment outcome. */
@@ -334,7 +340,7 @@ export class CalibrationManager {
     const point: CalibrationPoint = {
       predicted,
       actual,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
       metadata,
     };
 
@@ -343,7 +349,7 @@ export class CalibrationManager {
     this.isotonicCalibrator.record(predicted, actual === 1);
 
     // Check for recalibration
-    const now = Date.now();
+    const now = this.clock.now();
     if (now - this.lastRecalibrated > this.config.recalibrateIntervalMs) {
       this.recalibrate();
     }
@@ -364,7 +370,7 @@ export class CalibrationManager {
     const tempResult = this.temperatureScaler.recalibrate();
     const betaResult = this.betaCalibrator.recalibrate();
     this.isotonicCalibrator.recompute();
-    this.lastRecalibrated = Date.now();
+    this.lastRecalibrated = this.clock.now();
 
     return {
       temperature: tempResult.temperature,
@@ -457,9 +463,12 @@ export class CalibrationManager {
 }
 
 /** Create a calibration manager. */
-export function createCalibrationManager(config?: Partial<CalibrationConfig>): CalibrationManager {
-  return new CalibrationManager(config);
+export function createCalibrationManager(
+  config?: Partial<CalibrationConfig>,
+  options?: { clock?: Clock }
+): CalibrationManager {
+  return new CalibrationManager(config, options);
 }
 
-/** Global calibration manager. */
+/** Global calibration manager (non-deterministic; prefer {@link createCalibrationManager}). */
 export const calibrationManager = createCalibrationManager();

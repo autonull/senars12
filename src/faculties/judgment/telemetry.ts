@@ -6,6 +6,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import type { JudgmentContext, JudgmentResult, JudgmentCandidate, JudgmentStage } from './cascade.js';
 import type { CalibrationResult } from './calibration.js';
+import type { Clock, IDGenerator } from '../../kernel/env.js';
 
 /** Telemetry event types. */
 export const TELEMETRY_EVENT_TYPES = [
@@ -305,9 +306,16 @@ export class TelemetryCollector {
   private sinks: TelemetrySink[] = [];
   private correlationId: string;
   private enabled = true;
+  private readonly clock: Clock;
+  private readonly ids: IDGenerator;
 
-  constructor(correlationId?: string) {
-    this.correlationId = correlationId ?? crypto.randomUUID();
+  constructor(
+    correlationId?: string,
+    options: { clock?: Clock; ids?: IDGenerator } = {}
+  ) {
+    this.clock = options.clock ?? { now: () => Date.now() as TimestampMs, setTime: () => {}, advance: () => {} };
+    this.ids = options.ids ?? { uuid: () => crypto.randomUUID(), short: () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` };
+    this.correlationId = correlationId ?? this.ids.uuid();
   }
 
   /** Add a sink. */
@@ -332,8 +340,8 @@ export class TelemetryCollector {
 
     const fullEvent = {
       ...event,
-      timestamp: Date.now(),
-      eventId: crypto.randomUUID(),
+      timestamp: this.clock.now(),
+      eventId: this.ids.uuid(),
       correlationId: this.correlationId,
     } as AnyTelemetryEvent;
 

@@ -85,9 +85,14 @@ export class SLDEngine implements ReasoningEngine {
 
   private resolver: SLDResolver;
   private stats: EngineStatistics = { queries: 0, totalTimeMs: 0, satCalls: 0, unsatCalls: 0, unknownCalls: 0 };
+  private readonly clock: Clock;
 
-  constructor(config?: Partial<SLDConfig>) {
+  constructor(
+    config?: Partial<SLDConfig>,
+    options?: { clock?: Clock }
+  ) {
     this.resolver = createSLDResolver([], config);
+    this.clock = options?.clock ?? createDefaultClock();
   }
 
   /** Set clauses. */
@@ -97,14 +102,14 @@ export class SLDEngine implements ReasoningEngine {
   }
 
   async checkSat(formula: Formula): Promise<QueryResult> {
-    const start = Date.now();
+    const start = this.clock.now();
     this.stats.queries++;
 
     // Convert formula to query (conjunction of atoms)
     // For SLD, we query the negation of the formula
     const result = this.resolver.resolve([]);
 
-    const timeMs = Date.now() - start;
+    const timeMs = this.clock.now() - start;
     this.stats.totalTimeMs += timeMs;
 
     if (result.success) {
@@ -148,13 +153,18 @@ export class SMTEngine implements ReasoningEngine {
 
   private stats: EngineStatistics = { queries: 0, totalTimeMs: 0, satCalls: 0, unsatCalls: 0, unknownCalls: 0 };
   private config: EngineConfig;
+  private readonly clock: Clock;
 
-  constructor(config: EngineConfig = { type: 'smt' }) {
+  constructor(
+    config: EngineConfig = { type: 'smt' },
+    options?: { clock?: Clock }
+  ) {
     this.config = config;
+    this.clock = options?.clock ?? createDefaultClock();
   }
 
   async checkSat(formula: Formula): Promise<QueryResult> {
-    const start = Date.now();
+    const start = this.clock.now();
     this.stats.queries++;
 
     // In a real implementation, this would call Z3, CVC5, etc.
@@ -162,7 +172,7 @@ export class SMTEngine implements ReasoningEngine {
     const finder = createModelFinder({ maxModels: 1, timeoutMs: this.config.timeoutMs ?? 30000 });
     const result = finder.findModels(formula);
 
-    const timeMs = Date.now() - start;
+    const timeMs = this.clock.now() - start;
     this.stats.totalTimeMs += timeMs;
 
     if (result.satisfiable) {
@@ -203,16 +213,21 @@ export class ASPEngine implements ReasoningEngine {
   readonly name = 'ASP Solver (Clingo)';
 
   private stats: EngineStatistics = { queries: 0, totalTimeMs: 0, satCalls: 0, unsatCalls: 0, unknownCalls: 0 };
+  private readonly clock: Clock;
+
+  constructor(options?: { clock?: Clock }) {
+    this.clock = options?.clock ?? createDefaultClock();
+  }
 
   async checkSat(formula: Formula): Promise<QueryResult> {
-    const start = Date.now();
+    const start = this.clock.now();
     this.stats.queries++;
 
     // Placeholder - would call Clingo
     const finder = createModelFinder({ maxModels: 1 });
     const result = finder.findModels(formula);
 
-    const timeMs = Date.now() - start;
+    const timeMs = this.clock.now() - start;
     this.stats.totalTimeMs += timeMs;
 
     if (result.satisfiable) {
@@ -252,16 +267,21 @@ export class PrologEngine implements ReasoningEngine {
   readonly name = 'Prolog (Tau Prolog)';
 
   private stats: EngineStatistics = { queries: 0, totalTimeMs: 0, satCalls: 0, unsatCalls: 0, unknownCalls: 0 };
+  private readonly clock: Clock;
+
+  constructor(options?: { clock?: Clock }) {
+    this.clock = options?.clock ?? createDefaultClock();
+  }
 
   async checkSat(formula: Formula): Promise<QueryResult> {
-    const start = Date.now();
+    const start = this.clock.now();
     this.stats.queries++;
 
     // Placeholder - would call Tau Prolog
     const finder = createModelFinder({ maxModels: 1 });
     const result = finder.findModels(formula);
 
-    const timeMs = Date.now() - start;
+    const timeMs = this.clock.now() - start;
     this.stats.totalTimeMs += timeMs;
 
     if (result.satisfiable) {

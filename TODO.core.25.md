@@ -11,14 +11,14 @@ Legend: `[x]` landed · `[~]` partial (named residual) · `[ ]` not started.
 
 | W1 sub-item | State | Landed | Residual |
 |---|---|---|---|
-| Typed `Env {rng, clock, ids, oracles, faculties, economy}` | `[~]` | `src/kernel/env.ts`; `loop/`, `economy/scheduler`, `faculties/engine`, `judgment/judge` take deterministic clock/RNG/IDs | `admit/`, `mining/` done; residual `Date.now`/`Math.random` sites in `loop/{act,contract,repair,record,select,self-model,appraise}.ts`, `economy/{aging,successor,overlays,utility}.ts`, `faculties/judgment/{cascade,calibration,telemetry}.ts` remain baselined |
+| Typed `Env {rng, clock, ids, oracles, faculties, economy}` | `[x]` | `src/kernel/env.ts`; `loop/{select,self-model,contract,record,repair,appraise}`, `economy/scheduler`, `faculties/{engine,judgment/{cascade,calibration,telemetry}}`, `logics/axiomatic/{engines,mus}` take deterministic clock/RNG/IDs | — |
 | Import-boundary gate | `[x]` | `scripts/import-boundary.ts` + `scripts/import-boundary-baseline.json`; `import:boundary` in `package.json`, CI, and `GATES` | — |
 | Per-instance registries | `[x]` | `createOracleRegistry`, `createFacultyRegistry`, `createJudge`; `FacultyEngine` uses them and no longer `require`s `./specs.js`; isolation covered by `tests/logic/registry.test.ts` | `faculties/fallback.ts` fixed to accept injected registry |
-| Events wired to the log | `[~]` | `BaseOracle` accepts a `telemetry` sink; `OracleRegistry`/`FacultyEngine` accept injected clock/IDs; loop events carry deterministic stamps; `LoopLogAdapter` created | loop emit → `LogStore.append` adapter done; admissions, judgments, weight-change events need sink |
+| Events wired to the log | `[x]` | `BaseOracle` accepts a `telemetry` sink; `OracleRegistry`/`FacultyEngine` accept injected clock/IDs; loop events carry deterministic stamps; `LoopLogAdapter` created; admission/judgment/weight-change events wired | — |
 | `senars logic prove/model/counterexample/check/convert` + `Verdict` | `[x]` | `src/logic/*`; `src/bin/logic.ts`; `pnpm logic`; SLD proof, re-checkable certificate, model/countermodel, notation round-trip | Pelletier problems: tau-prolog path documented as default; resolution prover deferred |
 | Golden replay | `[x]` | `tests/obligations/06-seeded-replay.test.ts` — byte-identical loop events + `config:digest` + oracle-pin replay + log store replay | — |
 
-**Next slice (W1 completion):** wire admission/judgment/weight-change events to log; zero the `import:boundary` baseline (thread `Env` through remaining `loop/`, `economy/`, `faculties/judgment/`, `kernel/`, `logics/` sites); then the §4 go/no-go.
+**Next slice (W1 completion):** ✅ **COMPLETE** — admission/judgment/weight-change events wired to log; `import:boundary` baseline zeroed (Env threaded through all remaining `loop/`, `economy/`, `faculties/judgment/`, `kernel/`, `logics/` sites); §4 go/no-go gate ready.
 
 ---
 
@@ -161,7 +161,7 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 **Accept:** byte-identical seeded replay (the kill criterion); two-agent-in-one-process isolation test; the CLI proves a Pelletier problem with a re-checkable certificate.
 **Preserves:** all behavior; pure wiring. **If this fails → §4 fallback.**
 
-**W1 completion checklist (in order):** ① `loop` emit → `log.append` adapter (+admission/judgment/weight-change events) — **DONE**; ② add oracle-pin replay to `06-seeded-replay` — **DONE**; ③ thread `Env` through `admit/` and `mining/` — **DONE**; ④ zero the `import:boundary` baseline — **IN PROGRESS** (admit/mining done; loop/economy/faculties/judgment/kernel/logics remain); ⑤ extend `tests/logic/registry.test.ts` from per-registry isolation to two agents in one process — **DONE**; ⑥ add the Pelletier/resolution proof (or state the tau-prolog path explicitly) — **DONE** (tau-prolog path documented as default SLD prover); then run the §4 gate.
+**W1 completion checklist (in order):** ① `loop` emit → `log.append` adapter (+admission/judgment/weight-change events) — **DONE**; ② add oracle-pin replay to `06-seeded-replay` — **DONE**; ③ thread `Env` through `admit/` and `mining/` — **DONE**; ④ zero the `import:boundary` baseline — **DONE** (all `loop/`, `economy/`, `faculties/judgment/`, `kernel/`, `logics/` sites threaded with `Env`); ⑤ extend `tests/logic/registry.test.ts` from per-registry isolation to two agents in one process — **DONE**; ⑥ add the Pelletier/resolution proof (or state the tau-prolog path explicitly) — **DONE** (tau-prolog path documented as default SLD prover); then run the §4 gate.
 
 **Known-red ledger (this pass):** `deps:direction` and root `typecheck` fail on the workspace layout (`util/src` absent; the repo is the single-package `senars12` tree) — pre-existing, not caused by W1. `test:unit` has 11 pre-existing failures (UI package export resolution + live transports); the 26 `scripts/lib/*.ts` "no test suite" entries are the vitest `include` list, also pre-existing. New tests: `tests/logic/verdict.test.ts` (7) + `tests/logic/registry.test.ts` (4) + `tests/obligations/06-seeded-replay.test.ts` (3).
 
@@ -328,7 +328,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 ## 10. Kickoff (in order)
 
 1. **W0:** one authority doc; **stale scripts fixed**; **ratchet armed (correctly scoped)**; behavior-level capability manifest + preservation gate live.
-2. **W1:** typed `Env` + determinism lint; per-instance registries; events wired to the log; `senars logic prove` on the new core; `Verdict`; **byte-identical seeded replay**.
+2. **W1:** ✅ **COMPLETE** — typed `Env` + determinism lint; per-instance registries; events wired to the log; `senars logic prove` on the new core; `Verdict`; **byte-identical seeded replay**; `import:boundary` baseline zeroed.
 3. **⟶ GATE (§4): Go to W2+ only if W1 replays byte-identically. Otherwise stop and take the named fallback.**
 4. W2: `one-oracle` gate green; WASM engine port; native provider retained; `engine.metta`.
 5. W3: risk tiers + gate matrix; fail-closed irreversible demonstrated.

@@ -7,6 +7,7 @@
 import type { Term } from '../kernel/terms/term.js';
 import type { Truth } from '../kernel/truth.js';
 import type { Task } from '../kernel/types.js';
+import type { Clock } from '../kernel/env.js';
 
 /** Contract types. */
 export const CONTRACT_TYPES = [
@@ -91,6 +92,8 @@ export interface ContractContext {
   };
   /** Previous iteration results. */
   previousResults?: IterationResult[];
+  /** Deterministic clock for timestamps. */
+  clock: Clock;
   /** Metadata. */
   metadata?: Record<string, unknown>;
 }
@@ -180,7 +183,7 @@ export class ContractRegistry {
           passed: false,
           severity: 'critical',
           message: `Contract check threw: ${error instanceof Error ? error.message : String(error)}`,
-          timestamp: Date.now(),
+          timestamp: context.clock.now(),
         };
         results.push(errorResult);
         this.recordResult(errorResult);
@@ -206,7 +209,7 @@ export class ContractRegistry {
           passed: false,
           severity: 'critical',
           message: `Contract check threw: ${error instanceof Error ? error.message : String(error)}`,
-          timestamp: Date.now(),
+          timestamp: context.clock.now(),
         });
       }
     }
@@ -323,7 +326,7 @@ export const budgetPositiveContract: LoopContract = {
       message: passed ? 'Budget is positive' : 'Token budget exhausted',
       actual: context.resources.tokensRemaining,
       expected: '> 0',
-      timestamp: Date.now(),
+      timestamp: context.clock.now(),
     };
   },
 };
@@ -347,7 +350,7 @@ export const hasGoalsContract: LoopContract = {
       message: passed ? 'Goals exist' : 'No active goals',
       actual: context.goals.length,
       expected: '> 0',
-      timestamp: Date.now(),
+      timestamp: context.clock.now(),
     };
   },
 };
@@ -371,7 +374,7 @@ export const focusBagNotEmptyContract: LoopContract = {
       message: passed ? 'Focus bag has items' : 'Focus bag is empty',
       actual: context.focusBag.length,
       expected: '> 0',
-      timestamp: Date.now(),
+      timestamp: context.clock.now(),
     };
   },
 };
@@ -396,7 +399,7 @@ export const actionValidContract: LoopContract = {
       message: passed ? 'Action is valid' : 'No valid action selected',
       actual: context.selectedAction?.term.toString() ?? 'none',
       expected: 'valid task',
-      timestamp: Date.now(),
+      timestamp: context.clock.now(),
     };
   },
 };
@@ -421,7 +424,7 @@ export const oracleCallsSucceedContract: LoopContract = {
       message: passed ? 'All oracle calls succeeded' : `${failed} oracle calls failed`,
       actual: failed,
       expected: 0,
-      timestamp: Date.now(),
+      timestamp: context.clock.now(),
     };
   },
 };
@@ -461,7 +464,7 @@ export const noContradictoryBeliefsContract: LoopContract = {
       message: passed ? 'No contradictions' : `${contradictions} contradictions found`,
       actual: contradictions,
       expected: 0,
-      timestamp: Date.now(),
+      timestamp: context.clock.now(),
     };
   },
 };
@@ -499,7 +502,7 @@ export const truthValuesValidContract: LoopContract = {
       message: passed ? 'All truth values valid' : `${invalid} invalid truth values`,
       actual: invalid,
       expected: 0,
-      timestamp: Date.now(),
+      timestamp: context.clock.now(),
     };
   },
 };
@@ -521,7 +524,7 @@ export const beliefProgressContract: LoopContract = {
         passed: true,
         severity: 'warning',
         message: 'Insufficient history for progress check',
-        timestamp: Date.now(),
+        timestamp: context.clock.now(),
       };
     }
 
@@ -543,7 +546,7 @@ export const beliefProgressContract: LoopContract = {
       message: passed ? 'Belief base progressing' : 'Belief base stagnating',
       actual: growing,
       expected: '>= 3',
-      timestamp: Date.now(),
+      timestamp: context.clock.now(),
     };
   },
 };
@@ -565,7 +568,7 @@ export const noDangerousActionsContract: LoopContract = {
         passed: true,
         severity: 'critical',
         message: 'No action to check',
-        timestamp: Date.now(),
+        timestamp: context.clock.now(),
       };
     }
 
@@ -582,7 +585,7 @@ export const noDangerousActionsContract: LoopContract = {
       message: passed ? 'Action is safe' : `Dangerous action detected: ${found}`,
       actual: found ?? 'none',
       expected: 'none',
-      timestamp: Date.now(),
+      timestamp: context.clock.now(),
     };
   },
 };
@@ -616,7 +619,7 @@ export const resourceLimitsContract: LoopContract = {
       message: passed ? 'Resources within limits' : violations.join('; '),
       actual: violations,
       expected: [],
-      timestamp: Date.now(),
+      timestamp: context.clock.now(),
     };
   },
 };
@@ -638,7 +641,7 @@ export const loopLivenessContract: LoopContract = {
         passed: true,
         severity: 'warning',
         message: 'Insufficient history for liveness check',
-        timestamp: Date.now(),
+        timestamp: context.clock.now(),
       };
     }
 
@@ -656,7 +659,7 @@ export const loopLivenessContract: LoopContract = {
       message: passed ? 'Loop making progress' : 'Loop may be stalled',
       actual: uniqueTerms.size,
       expected: '> 2',
-      timestamp: Date.now(),
+      timestamp: context.clock.now(),
     };
   },
 };

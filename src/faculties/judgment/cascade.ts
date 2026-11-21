@@ -11,6 +11,7 @@ import type { Task } from '../../kernel/types.js';
 import type { FacultyInput, FacultyOutput } from '../specs.js';
 import { facultyEngine } from '../engine.js';
 import { OracleOutput } from '../../oracles/oracle.js';
+import type { Clock, IDGenerator } from '../../kernel/env.js';
 
 /** Judgment stages. */
 export const JUDGMENT_STAGES = [
@@ -146,9 +147,16 @@ export class JudgmentCascade {
     avgDurationMs: 0,
     byStage: new Map<JudgmentStage, { calls: number; avgDurationMs: number }>(),
   };
+  private readonly clock: Clock;
+  private readonly ids: IDGenerator;
 
-  constructor(config: JudgmentCascadeConfig = {}) {
+  constructor(
+    config: JudgmentCascadeConfig = {},
+    options: { clock?: Clock; ids?: IDGenerator } = {}
+  ) {
     this.config = { ...defaultJudgmentCascadeConfig, ...config };
+    this.clock = options.clock ?? { now: () => Date.now() as TimestampMs, setTime: () => {}, advance: () => {} };
+    this.ids = options.ids ?? { uuid: () => crypto.randomUUID(), short: () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` };
     this.registerDefaultStages();
   }
 
@@ -168,7 +176,7 @@ export class JudgmentCascade {
 
   /** Run the full judgment cascade. */
   async judge(context: JudgmentContext): Promise<JudgmentResult> {
-    const startTs = Date.now();
+    const startTs = this.clock.now();
     this.stats.totalJudgments++;
 
     let candidates: JudgmentCandidate[] = [];
@@ -177,7 +185,7 @@ export class JudgmentCascade {
 
     // Run each stage in sequence
     for (const stage of JUDGMENT_STAGES) {
-      const stageStart = Date.now();
+      const stageStart = this.clock.now();
       const stageFn = this.stages.get(stage);
 
       if (!stageFn) {
@@ -187,7 +195,7 @@ export class JudgmentCascade {
 
       try {
         candidates = await this.withTimeout(stageFn(candidates, context), this.config.stageTimeoutMs ?? 5000);
-        timings[stage] = Date.now() - stageStart;
+        timings[stage] = this.clock.now() - stageStart;
 
         // Update stage stats
         const stageStats = this.stats.byStage.get(stage) ?? { calls: 0, avgDurationMs: 0 };
@@ -195,7 +203,7 @@ export class JudgmentCascade {
         stageStats.avgDurationMs = (stageStats.avgDurationMs * (stageStats.calls - 1) + timings[stage]) / stageStats.calls;
         this.stats.byStage.set(stage, stageStats);
       } catch (error) {
-        timings[stage] = Date.now() - stageStart;
+        timings[stage] = this.clock.now() - stageStart;
         console.warn(`Judgment stage ${stage} failed:`, error);
         // Continue with current candidates
       }
@@ -228,7 +236,7 @@ export class JudgmentCascade {
       selected.confidence = calibration.postConfidence;
     }
 
-    const totalDuration = Date.now() - startTs;
+    const totalDuration = this.clock.now() - startTs;
     this.stats.avgDurationMs = (this.stats.avgDurationMs * (this.stats.totalJudgments - 1) + totalDuration) / this.stats.totalJudgments;
     this.stats.avgCandidates = (this.stats.avgCandidates * (this.stats.totalJudgments - 1) + candidates.length) / this.stats.totalJudgments;
 
@@ -274,7 +282,7 @@ export class JudgmentCascade {
     // Also add direct candidates from goals/beliefs
     for (const goal of context.goals.slice(0, 3)) {
       candidates.push({
-        id: crypto.randomUUID(),
+        id: this.ids.uuid(),
         proposal: goal,
         sourceFaculty: 'goal',
         confidence: 0.7,
@@ -297,7 +305,7 @@ export class JudgmentCascade {
     if (result.hypotheses) {
       for (const h of result.hypotheses) {
         candidates.push({
-          id: crypto.randomUUID(),
+          id: this.ids.uuid(),
           proposal: h.term,
           sourceFaculty: faculty,
           confidence: h.truth ? Truth.expectation(h.truth) : 0.3,
@@ -308,7 +316,7 @@ export class JudgmentCascade {
     } else if (result.conclusions) {
       for (const c of result.conclusions) {
         candidates.push({
-          id: crypto.randomUUID(),
+          id: this.ids.uuid(),
           proposal: c.term,
           sourceFaculty: faculty,
           confidence: c.truth ? Truth.expectation(c.truth) : 0.3,
@@ -319,7 +327,7 @@ export class JudgmentCascade {
     } else if (result.mappings) {
       for (const m of result.mappings) {
         candidates.push({
-          id: crypto.randomUUID(),
+          id: this.ids.uuid(),
           proposal: m.target,
           sourceFaculty: faculty,
           confidence: m.confidence,
@@ -330,7 +338,7 @@ export class JudgmentCascade {
     } else if (result.plan) {
       for (const step of result.plan) {
         candidates.push({
-          id: crypto.randomUUID(),
+          id: this.ids.uuid(),
           proposal: step.step,
           sourceFaculty: faculty,
           confidence: 0.5,
@@ -510,11 +518,14 @@ export class JudgmentCascade {
 }
 
 /** Create a judgment cascade. */
-export function createJudgmentCascade(config?: JudgmentCascadeConfig): JudgmentCascade {
-  return new JudgmentCascade(config);
+export function createJudgmentCascade(
+  config?: JudgmentCascadeConfig,
+  options?: { clock?: Clock; ids?: IDGenerator }
+): JudgmentCascade {
+  return new JudgmentCascade(config, options);
 }
 
-/** Global judgment cascade instance. */
+/** Global judgment cascade instance (non-deterministic; prefer {@link createJudgmentCascade}). */
 export const judgmentCascade = createJudgmentCascade();
 
 /** Convenience function to run judgment. */

@@ -123,13 +123,14 @@ export class MUSExtractor {
   }
 
   /** Find all MUSes using MARCO algorithm (simplified). */
-  findAllMARCO(cnf: CNFFormula): MUS[] {
+  findAllMARCO(cnf: CNFFormula, clock?: Clock): MUS[] {
+    const clockInst = clock ?? createDefaultClock();
     const muses: MUS[] = [];
     const clauses = [...cnf.clauses];
-    const startTime = Date.now();
+    const startTime = clockInst.now();
 
     // Seed with first MUS
-    const firstMUS = this.findOneMUS(clauses);
+    const firstMUS = this.findOneMUS(clauses, clockInst);
     if (!firstMUS) return [];
 
     muses.push(firstMUS);
