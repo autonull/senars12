@@ -58,21 +58,6 @@ export interface Stamp {
   readonly evidence: number;
 }
 
-/** Clamp a number to a range. */
-export function clamp(n: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, n));
-}
-
-/** Clamp to [0, 1]. */
-export function clamp01(n: number): number {
-  return clamp(n, 0, 1);
-}
-
-/** Safe division with zero check. */
-export function safeDiv(n: number, d: number): number {
-  return d === 0 ? 0 : n / d;
-}
-
 /** Soft squash function for confidence weakening. */
 export function softSquash(c: number, factor = 10): number {
   return c / (1 + c * factor);
@@ -113,11 +98,6 @@ export function formatSchemaTruth(t: TruthValueSchema, digits = 2): string {
 /** Serialize truth. */
 export function serializeTruth(t: TruthValue): string {
   return formatTruth(t);
-}
-
-/** Nearly equal comparison. */
-export function nearlyEqual(a: number, b: number, epsilon = 1e-3): boolean {
-  return Math.abs(a - b) < epsilon;
 }
 
 /** Task type enumeration. */
