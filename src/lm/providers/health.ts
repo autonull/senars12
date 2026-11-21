@@ -58,17 +58,17 @@ export async function resolveActiveProvider(): Promise<LMProviderName> {
 // Breaker state lives on `ProviderRuntime`; the module functions delegate to
 // the process-wide default instance (pass an explicit runtime to scope state).
 
-export const getCircuitBreaker = (...args: unknown[]) => delegate('getCircuitBreaker')(...args);
-export const getAllCircuitBreakers = (...args: unknown[]) => delegate('getAllCircuitBreakers')(...args);
+export const getCircuitBreaker = delegate('getCircuitBreaker');
+export const getAllCircuitBreakers = delegate('getAllCircuitBreakers');
 
 /** Close all breakers and clear failure counts (test/bench isolation between independent scenarios). */
-export const resetCircuitBreakers = (...args: unknown[]) => delegate('resetCircuitBreakers')(...args);
+export const resetCircuitBreakers = delegate('resetCircuitBreakers');
 
 /** Effective circuit breaker config for a provider (settings > provider defaults > global defaults). */
-export const getEffectiveCircuitConfig = (...args: unknown[]) => delegate('getEffectiveCircuitConfig')(...args);
+export const getEffectiveCircuitConfig = delegate('getEffectiveCircuitConfig');
 
-export const recordProviderCall = (...args: unknown[]) => delegate('recordProviderCall')(...args);
-export const canUseProvider = (...args: unknown[]) => delegate('canUseProvider')(...args);
+export const recordProviderCall = delegate('recordProviderCall');
+export const canUseProvider = delegate('canUseProvider');
 
 export async function probeCloudProvider(settings?: LMSettings): Promise<boolean> {
   const s = settings ?? getLMSettings();

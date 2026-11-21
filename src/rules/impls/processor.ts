@@ -23,6 +23,7 @@ import type {
   ModelRule,
   ModelRuleWork,
   ModelRuleWorkSink,
+  ModelRuleStats,
   RegisteredRule,
   RuleInput,
   RulePromptContext,

@@ -2,6 +2,8 @@ import { ambientRng } from '@senars/util/random';
 import { isYoung } from '@senars/util/bandit';
 import { BanditReflex } from './BanditReflex.js';
 import type { Reflex } from './Reflex.js';
+import type { RandomSource } from '@senars/util';
+import type { QEntry } from '@senars/util/bandit';
 
 interface EpsilonGreedyOptions {
   numArms: number;
@@ -21,7 +23,7 @@ export class EpsilonGreedyReflex
   constructor(id: string, options: EpsilonGreedyOptions = { numArms: 10 }) {
     const epsilon = options.epsilon ?? 0.1;
     const rng = options.rng ?? ambientRng;
-    super(id, options, (entry) =>
+    super(id, options, (entry: QEntry) =>
       isYoung(entry, YOUNG_VISITS) && rng() < epsilon ? rng() : entry.value
     );
   }

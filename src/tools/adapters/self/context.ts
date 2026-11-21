@@ -10,6 +10,7 @@ import type { RuleProcessor } from '../../../rules/impls/processor.js';
 import type { ToolManager } from '../../impls/tool-registry.js';
 import type { ShadowWorktreeManager, TestRunResult } from '../shadow-worktree.js';
 import type { SelfToolsDeps, SelfToolsNAR } from './context-port.js';
+import type { Result } from '@senars/util/result';
 
 export type { SelfToolsDeps, SelfToolsNAR } from './context-port.js';
 

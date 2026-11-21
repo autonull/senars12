@@ -13,6 +13,7 @@ export {
   createEmbeddingCache,
   EmbeddingCache,
   type EmbeddingCacheConfig,
+  type EmbeddingCacheMetrics,
 } from './embedding-cache.js';
 export * from './eval-set.js';
 export * from './groundedness-gate.js';
@@ -22,7 +23,7 @@ export * from './heads/index.js';
 export * from './http-endpoint.js';
 export * from './http-manifold.js';
 export * from './open-systemone-manifold.js';
-export { SystemOneIngressJudge } from './ingress-judge.js';
+export { SystemOneIngressJudge, type SystemOneIngressJudgeConfig } from './ingress-judge.js';
 export * from './judgment-pipeline.js';
 export * from './label-sources.js';
 export * from './lm-reflex.js';

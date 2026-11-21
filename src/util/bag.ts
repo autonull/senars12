@@ -197,7 +197,7 @@ export class HistogramImpl implements Histogram {
 export class PriorityBag<T extends BagItem> implements Bag<T> {
   readonly id: string;
   readonly capacity: number;
-  readonly #evictStrategy: EvictStrategy;
+  #evictStrategy: EvictStrategy;
   readonly #clock: () => number;
   readonly #rng: RandomSource;
   #decayRate: number;

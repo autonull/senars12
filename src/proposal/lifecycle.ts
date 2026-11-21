@@ -25,12 +25,12 @@
  *    reachable from here.
  */
 
+import type { CognitiveEvent } from '@senars/schemas/cognitive-events.js';
 import type {
-  CognitiveEvent,
   Proposal,
   ProposalRejectedEvent,
   ProposalRejection,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/proposal.js';
 import { PROPOSAL_SCHEMA_VERSION, validateProposal } from '@senars/schemas/proposal.js';
 import { BoundedRing, incrementCount, pushCapped, removeBy } from '@senars/util/collections';
 import { makeId } from '@senars/util/id';

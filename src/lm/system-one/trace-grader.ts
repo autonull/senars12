@@ -13,6 +13,7 @@ import type {
   JudgmentQuery,
 } from './types.js';
 import { createSystemOneBudget } from './types.js';
+import type { AgentTrace } from '@senars/types/cognitive';
 
 /** The graded cycle. `AgentTrace` is `util`'s record; the grader adds no fields. */
 export type TraceGradeInput = AgentTrace;

@@ -2,6 +2,7 @@ import type { SkillFeedback, ToolRegistryDelegate, ToolSpec } from '@senars/moto
 import { toSkillFeedback } from '@senars/feedback';
 import type { ToolContext, ToolResult } from '@senars/types/tools';
 import type { ToolManager } from './ToolManager';
+import type { Tool } from '../types';
 
 /**
  * Makes nar's `ToolManager` satisfy core's `ToolRegistryDelegate`.
@@ -16,7 +17,7 @@ export class CoreToolRegistryAdapter implements ToolRegistryDelegate {
   constructor(private readonly manager: ToolManager) {}
 
   register(spec: ToolSpec): void {
-    this.manager.register(spec);
+    this.manager.register(spec as Tool);
   }
 
   unregister(name: string): void {

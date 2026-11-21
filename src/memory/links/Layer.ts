@@ -1,4 +1,5 @@
-import type { ContainerStats, EvictionOrder } from '@senars/util/collections';
+import type { ContainerStats } from '@senars/util/collections';
+import type { EvictionOrder } from '@senars/util/bounded-map';
 import { BoundedMap } from '@senars/util/bounded-map';
 import { addToSet, collectUpTo, containerStats, removeFromSet } from '@senars/util/collections';
 import { occupancy, retain } from '@senars/util/numeric';

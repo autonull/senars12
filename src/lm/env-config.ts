@@ -4,6 +4,8 @@ import type { CircuitBreakerSettings, CircuitState } from '@senars/util/circuit-
 import { endpointPath } from './providers/probe.js';
 import { type GpuSetting, gpuSettingFrom } from './runtime/llama-runtime.js';
 
+export type { CircuitState };
+
 export const LM_PROVIDER_NAMES = [
   'transformers',
   'llamacpp',

@@ -5,6 +5,8 @@ import type { NarEventBus, Task } from '../types';
 
 import type { Timestamp } from '../types/primitives.js';
 
+export type { ModelRuleStats };
+
 export interface RuleInput {
   term: Term;
   truth: Truth;

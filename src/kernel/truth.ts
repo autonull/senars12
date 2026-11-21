@@ -55,6 +55,7 @@ export const Truth: {
   readonly MAX_CONFIDENCE: number;
   readonly WEAKENING_FACTOR: number;
   readonly fromUnknown: (t: TruthLike | undefined, fallback?: Truth) => Truth;
+  readonly create: (f: number, c: number) => Truth;
   readonly normalize: (f: number, c: number) => Truth;
   readonly negation: (t: Truth) => Truth;
   readonly conversion: (t: Truth) => Truth;

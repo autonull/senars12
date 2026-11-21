@@ -1,7 +1,7 @@
 import { flooredRatio, safeRatio } from '@senars/util/numeric';
 import { formatNarseseTruth } from '@senars/types/truth';
 import { overlapCount, tokenizeWords } from '@senars/util/text';
-import { selectTopN, takeFirst, takeLast, uniqueBy } from '@senars/util/collections';
+import { selectTopN, takeFirst, takeLast, uniqueBy, shareCount } from '@senars/util/collections';
 
 import { estimateTokens } from '../lm/context/context-budget.js';
 import type { NAR } from '../nar.js';

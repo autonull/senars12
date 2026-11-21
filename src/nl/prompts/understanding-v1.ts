@@ -1,5 +1,6 @@
 import { serializeTruth } from '@senars/types/truth';
 import { takeFirst } from '@senars/util/collections';
+import type { TermTruth } from '@senars/util';
 import type { TranslationCacheEntry } from '../cache.js';
 
 const NARSESE_GRAMMAR = `Narsese syntax:

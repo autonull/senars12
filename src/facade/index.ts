@@ -23,6 +23,7 @@ import type { ProofMettaProposer } from '../meta/index.js';
 import type { NARFacadePort } from './ports.js';
 import type { Answer } from '../query/api';
 import { selectVerifiedDerivation } from '../query/derivation.js';
+import type { Tool } from '../tools';
 import {
   containsSubterm,
   getArgs,
@@ -145,7 +146,7 @@ export const initializeTools = (nar: NARFacadePort): void => {
         return toolError(errMsg(e));
       }
     },
-  } as ToolSpec);
+  } as Tool);
 
   // Self-improvement tools (goal→tool dispatch target) — registered when self-reasoning is enabled.
   if (nar.getConfig().enableSelf) {
@@ -160,7 +161,7 @@ export const initializeTools = (nar: NARFacadePort): void => {
     for (const [name, selfTool] of Object.entries(selfTools)) {
       try {
         // ai-style tools carry no name — inject the registry key.
-        nar.tools.register({ ...(selfTool as object), name } as ToolSpec);
+        nar.tools.register({ ...(selfTool as object), name } as Tool);
       } catch (e) {
         nar.logger?.warn('Self-tool registration skipped', { name, error: errMsg(e) });
       }

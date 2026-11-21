@@ -1,4 +1,4 @@
-import { PriorityBag } from '../bag/Bag.js';
+import { PriorityBag } from '@senars/bag';
 import { META_FOCUS_DEFAULTS } from '../constants.js';
 import type { SelfMetaGameImpl } from '../game/impls/SelfMetaGame.js';
 import { atom } from '../terms';

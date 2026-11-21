@@ -11,7 +11,7 @@
 
 import type { TaskBagKind } from '../../schemas';
 import { createLogger } from '../../util/logger';
-import type { Bag } from '../../bag/Bag';
+import type { Bag } from '@senars/bag';
 import { decodeState, encodeState, NAR_STATE_SCHEMA_VERSION } from '../../state/codec';
 import { rehydrateTask, type TaskRecord } from '../../task/record';
 import { serializeStamp, type Term, termParser } from '../../terms';

@@ -10,6 +10,7 @@ import { envBool, envStr } from '@senars/util/config';
 import { errMsg } from '@senars/util/error';
 import { extractLastUserMessage } from '@senars/util/prompt';
 import { SerialQueue } from '@senars/util/async';
+import { mapValues } from '@senars/util/collections';
 import type { LanguageModel } from 'ai';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import {
@@ -32,6 +33,7 @@ import {
 } from '../runtime/llama-runtime.js';
 import { grammarScope } from './llamacpp.js';
 import { getLMSettings } from './settings.js';
+import type { LMTask } from '@senars/util';
 
 function extractSystemPrompt(prompt: LanguageModelV3CallOptions['prompt']): string | undefined {
   if (!prompt || prompt.length === 0) return undefined;

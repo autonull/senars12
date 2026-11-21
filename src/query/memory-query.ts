@@ -8,10 +8,10 @@
  */
 
 import { rankBy, sortBy } from '@senars/util/collections';
-import { systemClock } from '@senars/util/clock';
+import { systemClock, type Clock } from '@senars/util/clock';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import { episodePriority } from '../memory/episode-consolidator.js';
-import type { Concept, Memory } from '../memory/index.js';
+import type { Concept, Memory, Episode } from '../memory/index.js';
 import { cosine } from '@senars/util/similarity.js';
 
 export interface MemoryQueryFilter {

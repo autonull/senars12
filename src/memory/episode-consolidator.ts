@@ -10,7 +10,7 @@ import type { Episode, EpisodeType } from '@senars/types/episodic-memory';
 import { groupBy, rankBy, selectByPriority, takeFirst } from '@senars/util/collections';
 import { sha256Hex, sha256Prefixed, shortSha256Hex } from '@senars/util/hash';
 import { softFalloff } from '@senars/util/numeric';
-import { systemClock } from '@senars/util/clock';
+import { systemClock, type Clock } from '@senars/util/clock';
 import { type AikrBagOptions, AikrShell, type ProcessOptions } from '../learning/aikr-processor.js';
 import type { RandomSource } from '../types/primitives.js';
 

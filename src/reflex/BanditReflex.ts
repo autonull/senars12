@@ -1,4 +1,4 @@
-import { greedy, meanUpdate, QTable, visitConfidence } from '@senars/util/bandit';
+import { greedy, meanUpdate, QTable, visitConfidence, type Exploration, type ConfidenceCurve } from '@senars/util/bandit';
 import { SATURATION_COUNT } from '../constants.js';
 import { type ActionProposal, byExpectedValue, type LearningEvent } from './Reflex.js';
 

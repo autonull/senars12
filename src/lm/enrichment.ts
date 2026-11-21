@@ -1,6 +1,6 @@
 import { degrade } from '@senars/util/error';
 import { BoundedRing, sortBy } from '@senars/util/collections';
-import { createLogger } from '@senars/util/logger';
+import { createLogger, type Logger } from '@senars/util/logger';
 import { periodic } from '@senars/util/async';
 import { sumBy } from '@senars/util/numeric';
 import type { GateRegistry } from '../kernel/index.js';

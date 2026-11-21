@@ -984,7 +984,7 @@ export class NAR extends BaseComponent {
   async reward(
     reward: number,
     context?: string
-  ): Promise<import('@senars/schemas').RewardGateOutput> {
+  ): Promise<import('@senars/schemas/gate-io').RewardGateOutput> {
     return this.io.reward(reward, context);
   }
 

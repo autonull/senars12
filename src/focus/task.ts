@@ -12,7 +12,7 @@
 import type { TaskBagKind } from '@senars/schemas';
 import { clamp01 } from '@senars/util/numeric';
 import { systemClock, type Clock } from '@senars/util/clock';
-import type { BagItem } from '../bag/Bag.js';
+import type { BagItem } from '@senars/bag';
 import type { GameOutcome, Perception } from '../game/Game.js';
 import { type ActionProposal, expectedValue } from '../reflex/Reflex.js';
 import type { Term } from '../terms';

@@ -11,8 +11,10 @@
  * revision:frequency (saturated revision branch).
  */
 
-import type { Truth, TruthFn } from '../terms';
+import type { Truth } from '../terms';
 import { Truth as EngineTruth } from '../terms';
+
+type TruthFn = (t1: Truth, t2?: Truth, ...args: unknown[]) => Truth | null | number;
 
 // Constants copied from Truth.ts
 const WEAKENING_FACTOR = 10;

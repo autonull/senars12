@@ -14,6 +14,7 @@ import { Stamp as StampFactory } from '../terms/impls/Stamp.js';
 import { Truth } from '../terms/impls/Truth.js';
 import { TASK_PUNCTUATION, taskTypeForPunctuation } from '../schemas/task.js';
 import { termParser } from '../terms/index.js';
+import type { Term } from '../terms';
 import type { TaskOverrides } from '../types/core.js';
 import type { TermTruth } from '../types/truth.js';
 import {

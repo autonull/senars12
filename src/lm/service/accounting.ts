@@ -21,6 +21,7 @@ import { getLmProvider, getModelChain } from '../providers.js';
 import { ResponseCache } from './cache.js';
 import { isTransportError, LMUnavailableError, withHint, withRetry } from './errors.js';
 import { type ProviderSpend, SpendLedger } from './spend.js';
+import type { LMTask, LMExecutionStats } from '@senars/util';
 
 /** How many models keep a reliability signal; a peer cannot list its way past it. */
 const MAX_TRACKED_MODELS = 256;

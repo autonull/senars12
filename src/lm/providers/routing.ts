@@ -14,13 +14,13 @@ import {
 } from '../provider-runtime.js';
 import { MODEL_CAPABILITIES, type ModelCapability } from './capabilities.js';
 
-export const setRouting = (...args: unknown[]) => delegate('setRouting')(...args);
-export const getRouting = (...args: unknown[]) => delegate('getRouting')(...args);
-export const demoteModel = (...args: unknown[]) => delegate('demoteModel')(...args);
-export const resetDemotions = (...args: unknown[]) => delegate('resetDemotions')(...args);
-export const getRoutingStatus = (...args: unknown[]) => delegate('getRoutingStatus')(...args);
-export const getDemotions = (...args: unknown[]) => readField('demotions')(...args);
-export const getLastRoutingDecision = (...args: unknown[]) => readField('lastDecision')(...args);
+export const setRouting = delegate('setRouting');
+export const getRouting = delegate('getRouting');
+export const demoteModel = delegate('demoteModel');
+export const resetDemotions = delegate('resetDemotions');
+export const getRoutingStatus = delegate('getRoutingStatus');
+export const getDemotions = readField('demotions');
+export const getLastRoutingDecision = readField('lastDecision');
 
 const OBJECTIVE_WEIGHTS: Record<
   QualityObjective,
@@ -138,7 +138,7 @@ export const resolveOfflineTier = (
 
 // ---- Routing telemetry (1B) — state on `ProviderRuntime`; delegates below ----
 
-export const enableRoutingTelemetry = (...args: unknown[]) => delegate('enableRoutingTelemetry')(...args);
-export const disableRoutingTelemetry = (...args: unknown[]) => delegate('disableRoutingTelemetry')(...args);
-export const logRoutingDecision = (...args: unknown[]) => delegate('logRoutingDecision')(...args);
-export const getRoutingLogStatus = (...args: unknown[]) => delegate('getRoutingLogStatus')(...args);
+export const enableRoutingTelemetry = delegate('enableRoutingTelemetry');
+export const disableRoutingTelemetry = delegate('disableRoutingTelemetry');
+export const logRoutingDecision = delegate('logRoutingDecision');
+export const getRoutingLogStatus = delegate('getRoutingLogStatus');

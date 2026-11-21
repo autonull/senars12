@@ -1,4 +1,4 @@
-import type { CeilingReputation, SourceQuality } from '@senars/schemas/cognitive-events.js';
+import type { CeilingReputation, SourceQuality } from '@senars/schemas';
 import { confidenceCeiling } from '@senars/schemas/truth';
 import { Truth } from '../../terms/impls/Truth.js';
 import type { Desire } from './desire.js';

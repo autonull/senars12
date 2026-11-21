@@ -11,6 +11,7 @@ import { latencyClassOf } from './capabilities.js';
 import type { SeNARSModelId, SeNARSRegistry } from './model-factory.js';
 import { type ModelReliability, pickModel } from './routing.js';
 import { getLMSettings, getLmProvider } from './settings.js';
+import type { LMTask } from '@senars/util';
 
 /**
  * One rung per (provider, task) the model factory registers.

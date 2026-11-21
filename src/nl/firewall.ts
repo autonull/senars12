@@ -1,4 +1,5 @@
-import type { TaskBagKind, Verdict } from '@senars/schemas';
+import type { TaskBagKind } from '@senars/schemas';
+import type { Verdict } from '@senars/schemas/gate-io';
 import { clamp } from '@senars/util/numeric';
 import { formatTruth } from '@senars/types/truth';
 import {

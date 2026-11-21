@@ -1,4 +1,4 @@
-import { Unifier } from '@senars/util/unify';
+import { Unifier, type UnifierDialect } from '@senars/util/unify';
 import { ATOM_EQUALITY, atomKey } from '../core/hash.js';
 import type { GroundedAtom, MeTTaAtom } from '../types/ast.js';
 import { AtomKind } from '../types/ast.js';
@@ -15,7 +15,7 @@ export type Substitution = Map<string, MeTTaAtom>;
 const DIALECT: UnifierDialect<MeTTaAtom> = {
   ...ATOM_EQUALITY,
   key: atomKey,
-  rebuild: (a, kids) =>
+  rebuild: (a: MeTTaAtom, kids: readonly MeTTaAtom[]) =>
     a.kind === AtomKind.Expression
       ? { kind: AtomKind.Expression, operator: kids[0] as MeTTaAtom, args: kids.slice(1) }
       : { kind: AtomKind.Grounded, op: (a as GroundedAtom).op, args: kids },

@@ -57,14 +57,10 @@ interface SegmentHandle {
 
 /** FinalizationRegistry for safety-net cleanup of unclosed LogStore instances. */
 const logStoreFinalization = new FinalizationRegistry<{ store: LogStore }>(({ store }) => {
-  if (!store.closed && store.segments.length > 0) {
-    // Best-effort close during GC to prevent "FileHandle closed during GC" errors
-    for (const segment of store.segments) {
-      segment.fd.close().catch(() => {});
-    }
-    store.segments = [];
-    store.index = [];
-    store.closed = true;
+  // Use a safe method to close if available
+  const closeFn = store.close;
+  if (typeof closeFn === 'function') {
+    closeFn().catch(() => {});
   }
 });
 
@@ -81,6 +77,7 @@ export class LogStore {
 
   constructor(config: Partial<LogStoreConfig> = {}) {
     this.config = { ...defaultLogStoreConfig, ...config };
+    // Use a separate object as the held value to avoid "target and holdings must not be same"
     logStoreFinalization.register(this, { store: this });
   }
 

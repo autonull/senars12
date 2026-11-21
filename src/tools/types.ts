@@ -1,4 +1,4 @@
-import type { ToolCapabilities, ToolContext, ToolResult, ToolSpec } from '@senars/types/tools';
+import type { ToolCapabilities, ToolContext, ToolFn, ToolResult, ToolSpec } from '@senars/types/tools';
 
 /**
  * The tool contract is util's — one declaration of identity, argument schema,
@@ -10,6 +10,11 @@ import type { ToolCapabilities, ToolContext, ToolResult, ToolSpec } from '@senar
  * the `@tool` decorator, and every tool implementation in this workspace speak.
  */
 export type { ToolBudget, ToolCapabilities, ToolContext, ToolFn, ToolResult, ToolSchema, ToolSchemaProperty, ToolSpec } from '@senars/types/tools';
+
+/** A tool implementation: a `ToolSpec` with an `execute` method. */
+export interface Tool extends ToolSpec {
+  execute(args: Record<string, unknown>, context?: ToolContext): Promise<ToolResult>;
+}
 
 export interface ToolRegistry {
   register(tool: Tool): void;

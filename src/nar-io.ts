@@ -1,10 +1,10 @@
 import { promises as fs } from 'node:fs';
 import type {
-  RewardGateOutput,
   SourceQuality,
   StimulusSource,
   TaskAdmittedEvent,
 } from '@senars/schemas';
+import type { RewardGateOutput } from '@senars/schemas/gate-io';
 import { clamp, clampSigned } from '@senars/util/numeric';
 import { makeId } from '@senars/util/id';
 import { writeJsonFile } from '@senars/util/fs';

@@ -176,7 +176,6 @@ export type {
 } from '../types/lifecycle.js';
 /** @public LM service contract. */
 export type {
-  CircuitState,
   LMExecutionStats,
   LMGenerateOptions,
   LMPromptGenerator,
@@ -597,7 +596,6 @@ export {
 export {
   BaseLedgerEntrySchema,
   type BaseLedgerEntry,
-  type LedgerEntry,
   type LedgerConfig,
   createLedger,
   Ledger,

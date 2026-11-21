@@ -10,7 +10,7 @@
  */
 
 import { fnv1a, fnv1aCombine } from '@senars/util/hash';
-import { structuralEqual } from '@senars/util/unify';
+import { structuralEqual, type EqualityDialect } from '@senars/util/unify';
 import type {
   ExpressionAtom,
   GroundedAtom,
@@ -95,8 +95,8 @@ const sameAtom = (a: MeTTaAtom, b: MeTTaAtom): boolean => {
 
 /** How a structural comparison reads a MeTTa atom. */
 export const ATOM_EQUALITY: EqualityDialect<MeTTaAtom> = {
-  variableName: (a) => (isVariable(a) ? a.name : null),
-  sameHead: (a, b) => a.kind === b.kind,
+  variableName: (a: MeTTaAtom) => (isVariable(a) ? a.name : null),
+  sameHead: (a: MeTTaAtom, b: MeTTaAtom) => a.kind === b.kind,
   equal: sameAtom,
   children: atomChildren,
 };

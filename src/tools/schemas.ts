@@ -13,6 +13,8 @@ export const ConnectionConfigSchema: z.ZodType<ConnectionConfig> = z
   })
   .strict();
 
+export type { ConnectionConfig } from '@senars/types/transport';
+
 export const AgentOptionsSchema = agentOptionsSchema;
 
 export type AgentOptions = z.infer<typeof AgentOptionsSchema>;

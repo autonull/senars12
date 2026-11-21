@@ -11,12 +11,12 @@
 import { ambientRng } from '@senars/util/random';
 import { parseJsonObject } from '@senars/util/json';
 import { clamp01 } from '@senars/util/numeric';
-import { createLogger } from '@senars/util/logger';
+import { createLogger, type Logger } from '@senars/util/logger';
 import { generateId } from '@senars/util/id';
 import { LruCache } from '@senars/util/lru-cache';
 import { minBy, sortBy } from '@senars/util/collections';
 import { errMsg } from '@senars/util/error';
-import type { BagItem } from '../bag/Bag.js';
+import type { BagItem } from '@senars/bag';
 import type { MemoryReader } from '../memory/ports/index.js';
 import type { TextGenerator } from '../ports';
 import type { Term } from '../terms';

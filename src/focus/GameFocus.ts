@@ -9,7 +9,7 @@ import { makeId } from '@senars/util/id';
 import { systemClock, type Clock } from '@senars/util/clock';
 import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/ledger';
 import { z } from 'zod';
-import { PriorityBag } from '../bag/Bag.js';
+import { PriorityBag } from '@senars/bag';
 import { FOCUS_DEFAULTS } from '../constants.js';
 import type { TermTruth } from '../types/truth.js';
 import { type Game, type GameOutcome, perceptionKey, type Perception } from '../game/Game.js';

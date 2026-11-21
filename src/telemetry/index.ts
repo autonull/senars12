@@ -1,4 +1,4 @@
-import type { GateName, GateOutcome } from '@senars/schemas';
+import type { GateName, GateOutcome } from '@senars/schemas/gate-io';
 import { decisionSpan, tracingEnabled } from '../otel/index.js';
 import {
   bagPressure,

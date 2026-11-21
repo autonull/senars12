@@ -1,4 +1,4 @@
-import type { CIRCUIT_STATES } from '@senars/types/llm';
+import { CIRCUIT_STATES, type CircuitState } from '@senars/types/llm';
 import {
   collectDefaultMetrics,
   Counter,

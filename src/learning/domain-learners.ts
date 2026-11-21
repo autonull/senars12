@@ -2,6 +2,7 @@ import type { RewardDomain } from '@senars/schemas';
 import { accumulate } from '@senars/util/collections';
 import { clamp, clamp01, clampSigned } from '@senars/util/numeric';
 import { SenarsError } from '@senars/errors';
+import type { CapabilityRisk } from '@senars/util';
 import type { FocusBag } from '../focus/FocusBag.js';
 import type { SelfRewardGate } from '../kernel/KernelRewardGate.js';
 import type { LearningEvent, Reflex } from '../reflex/Reflex.js';

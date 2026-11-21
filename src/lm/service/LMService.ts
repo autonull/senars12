@@ -12,6 +12,11 @@ import type {
   ModelDownloadProgressCallback,
   SeNARSRegistry,
 } from '../providers.js';
+import type {
+  LMGenerateOptions,
+  LMTask,
+  LMExecutionStats,
+} from '@senars/util';
 import {
   createSeNARSRegistry,
   getLMSettings,

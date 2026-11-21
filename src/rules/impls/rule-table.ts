@@ -38,15 +38,15 @@ export const RULE_TABLE_MAX_HISTORY = 50;
  * body it names.
  */
 
+import type { CognitiveEvent } from '@senars/schemas/cognitive-events.js';
 import type {
-  CognitiveEvent,
   RuleArtifactEntry,
   RuleDeclaration,
   RuleTable as RuleTableArtifact,
   RuleTableDiff,
   RuleTableFault,
   RuleTableRejection,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/rule-table.js';
 import {
   BUILTIN_RULE_ARTIFACT_VERSION,
   RULE_TABLE_SCHEMA_VERSION,

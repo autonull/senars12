@@ -1,8 +1,8 @@
 import { clamp01 } from '@senars/util/numeric';
 import { getOrInsert } from '@senars/util/collections';
 import { systemClock, type Clock } from '@senars/util/clock';
-import type { Bag, BagItem } from '../bag/Bag.js';
-import { createBag } from '../bag/index.js';
+import type { Bag, BagItem } from '@senars/bag';
+import { createBag } from '@senars/bag';
 import type { Game } from '../game/Game.js';
 import type { GateRegistry } from '../kernel/index.js';
 import type { NALDerivation } from '../reflex/negotiation-types.js';

@@ -6,12 +6,13 @@
  * built on this class; neither re-implements closed → open → half-open → closed.
  */
 
-import type { OperationError } from '@senars/errors';
+import { OperationError } from '@senars/errors';
 import { createLogger } from '@senars/util/logger';
 
 const logger = createLogger({ scope: 'circuit-breaker' });
 
-export type { CircuitState };
+/** Circuit breaker state. */
+export type CircuitState = 'closed' | 'open' | 'half-open';
 
 export type TransitionReason =
   | 'failure_threshold_exceeded'

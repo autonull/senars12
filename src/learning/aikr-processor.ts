@@ -10,8 +10,8 @@ import { ambientRng, type RandomSource, type Weighted, weightedSample, weightedS
 import { incrementCount, selectTopN } from '@senars/util/collections';
 import { LruCache } from '@senars/util/lru-cache';
 import { invTemperature, softmax, softmaxWeights } from '@senars/util/numeric';
-import type { Bag, BagItem, BagOptions } from '../bag/Bag.js';
-import { createBag } from '../bag/index.js';
+import type { Bag, BagItem, BagOptions } from '@senars/bag';
+import { createBag } from '@senars/bag';
 
 /**
  * One answer for the AIKR pressure gate. A process that declares a different

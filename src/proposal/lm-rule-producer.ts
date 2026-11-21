@@ -29,12 +29,12 @@
  * outside this producer commits, which is exactly the case the rule is for.
  */
 
+import type { CognitiveEvent } from '@senars/schemas/cognitive-events.js';
 import type {
-  CognitiveEvent,
   ContentProposal,
-  RuleDeclaration,
   RuleProposal,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/proposal.js';
+import type { RuleDeclaration } from '@senars/schemas/rule-table.js';
 import { PROPOSAL_SCHEMA_VERSION } from '@senars/schemas/proposal.js';
 import { SerialQueue } from '@senars/util/async';
 import { createDerivedTask } from '../reason/inference-utils.js';

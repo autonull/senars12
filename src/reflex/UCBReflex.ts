@@ -2,6 +2,7 @@ import { ucb, visitConfidence } from '@senars/util/bandit';
 import { SATURATION_COUNT } from '../constants.js';
 import { BanditReflex } from './BanditReflex.js';
 import type { Reflex } from './Reflex.js';
+import type { QEntry } from '@senars/util/bandit';
 
 interface UCBOptions {
   numArms: number;
@@ -19,8 +20,8 @@ export class UCBReflex extends BanditReflex<UCBOptions> implements Reflex<string
     super(
       id,
       options,
-      (entry, totalVisits) => score(entry, totalVisits + 1),
-      (count) => (count === 0 ? 0.1 : confidence(count))
+      (entry: QEntry, totalVisits: number) => score(entry, totalVisits + 1),
+      (count: number) => (count === 0 ? 0.1 : confidence(count))
     );
   }
 }

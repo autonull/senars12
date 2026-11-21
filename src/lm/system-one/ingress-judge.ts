@@ -1,4 +1,4 @@
-import type { CeilingReputation, ReasoningBudget, SourceQuality } from '@senars/schemas/cognitive-events.js';
+import type { CeilingReputation, ReasoningBudget, SourceQuality } from '@senars/schemas';
 import { confidenceCeiling } from '@senars/schemas/truth';
 import type { IngressJudge, IngressJudgmentRequest, IngressVerdict } from '../../kernel/ingress.js';
 import { providerKey } from '../../kernel/reputation-keys.js';
