@@ -17,8 +17,8 @@
  * - `data` — domain-specific payload (modulation for lenses, visible fn for layers, etc.)
  */
 
-import type { Contribution } from './contribution.js';
-import { defineCatalog, type Catalog, type CatalogDefinition } from './catalog.js';
+import type { Contribution, Catalog, CatalogDefinition } from '@senars/ui-contract/framework';
+import { defineCatalog } from '@senars/ui-contract/framework';
 
 /** The semantic kind of a facet — determines selection UI and behavior. */
 export type FacetKind = 'lens' | 'layer' | 'mode' | 'filter';

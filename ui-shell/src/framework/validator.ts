@@ -6,8 +6,7 @@
  *   - with one generic validator over Contribution + catalog uniqueness
  */
 
-import type { Contribution } from './contribution.js';
-import type { Catalog } from './catalog.js';
+import type { Contribution, Catalog } from '@senars/ui-contract/framework';
 
 export interface ValidationError {
   catalog: string;

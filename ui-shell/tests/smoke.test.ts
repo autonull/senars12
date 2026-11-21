@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createContribution } from '../src/framework/contribution.js';
-import { defineCatalog, catalogFromContributions } from '../src/framework/catalog.js';
-import { FacetKind } from '../src/framework/facet.js';
 import {
+  createContribution,
+  defineCatalog,
+  catalogFromContributions,
+  FacetKind,
   registerSurface,
   resetSurfaces,
   surfaceFor,
   surfaceTag,
   surfacesByPlacement,
   resolvedPresentation,
-} from '../src/framework/surface.js';
-import { assertValid, createDefaultValidator, validateContribution } from '../src/framework/validator.js';
+  assertValid,
+  createDefaultValidator,
+  validateContribution,
+} from '../src/framework/index.js';
 
 describe('ui-shell relocation smoke', () => {
   beforeEach(() => {
