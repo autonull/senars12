@@ -20,6 +20,7 @@ export const ORACLE_OPERATIONS = [
   'engine.clingo',
   'engine.minisat',
   'engine.tau-prolog',
+  'engine.metta',
   'engine.custom',
 ] as const;
 
