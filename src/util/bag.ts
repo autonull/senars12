@@ -358,9 +358,9 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     if (this.#decayRate <= 0 && this.#forgetRate <= 0) return;
     const now = this.#clock();
     for (const [id, entry] of this.#items) {
-      const age = now - entry._insertedAt;
-      const decay = this.#decayRate * age;
-      const forget = this.#forgetRate * age;
+      const ageSeconds = (now - entry._insertedAt) / 1000;
+      const decay = this.#decayRate * ageSeconds;
+      const forget = this.#forgetRate * ageSeconds;
       const originalPriority = entry._item.priority;
       const newPriority = Math.max(0, originalPriority - decay - forget);
       if (newPriority <= 0) {

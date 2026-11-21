@@ -13,6 +13,15 @@ export {
   LENS_LABELS,
   type LensFieldDescriptor,
 } from '../agent/constants.js';
+export {
+  BUILTIN_LENS_IDS,
+  type BuiltinLens,
+  builtinLensSpecs,
+  isBuiltinLens,
+  type LensSpec,
+  type ModulationSpec,
+  lensSpecToJsonSchema,
+} from './lens-schema.js';
 export { AgentCapabilities } from './capabilities.js';
 export {
   ChatAgentComplete,

@@ -81,7 +81,7 @@ describe('Bench 89 — ProposalBag (AIKR pattern #4)', () => {
     const clock = () => time;
     const decayer = new ProposalBag({ capacity: 4, forgetRate: 0.3, clock });
     decayer.admit(proposal('stale', 'test-generate', 'high'));
-    time += 4;
+    time += 4000;
     decayer.decay();
     expect(decayer.size).toBe(0);
   });
@@ -136,7 +136,7 @@ describe('Bench 89 — MiningBag (AIKR pattern #5)', () => {
     const clock = () => time;
     const decayer = new MiningBag({ capacity: 4, forgetRate: 0.3, clock });
     decayer.admit(negative('stale', 'groundedness', 0.4));
-    time += 4;
+    time += 4000;
     decayer.decay();
     expect(decayer.size).toBe(0);
 

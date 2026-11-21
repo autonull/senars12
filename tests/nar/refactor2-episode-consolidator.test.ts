@@ -70,9 +70,9 @@ describe('Bench 87 — EpisodeConsolidator (AIKR pattern #1)', () => {
     const clock = () => time;
     const c = new EpisodeConsolidator({ capacity: 4, forgetRate: 0.3, clock });
     c.admit(episode('x', 'input', 'stale', {}, 's9'));
-    // Advance time enough for forgetRate * age > priority (default priority ~1)
-    // forgetRate = 0.3, need age > 1/0.3 ≈ 3.33, so advance by 4
-    time += 4;
+    // Advance time enough for forgetRate * ageSeconds > priority (default priority ~1)
+    // forgetRate = 0.3 per second, need ageSeconds > 1/0.3 ≈ 3.33, so advance by 4000ms
+    time += 4000;
     c.decay();
     expect(c.size).toBe(0);
   });

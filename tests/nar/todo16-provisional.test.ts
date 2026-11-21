@@ -134,12 +134,12 @@ describe('System One — Provisional Stamps (Bench 5)', () => {
     const bag = new PriorityBag<{ id: string; priority: number }>({
       capacity: 10,
       decayRate: 0,
-      forgetRate: 0.0001,
+      forgetRate: 0.1, // per second (was 0.0001/ms = 0.1/s)
       clock: () => clockTime,
     });
     bag.add({ id: stamp.stamp.id, priority: stamp.confidence(stamp.createdAt) });
     // Advance clock by 500ms per decay call, 200 times = 100s total
-    // forgetRate = 0.0001/ms, so after 100,000ms: forget = 10, priority 0.1 -> 0
+    // forgetRate = 0.1/s, so after 100s: forget = 10, priority 0.1 -> 0
     for (let i = 0; i < 200; i++) {
       clockTime += 500;
       bag.decay();

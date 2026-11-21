@@ -117,7 +117,8 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 - [x] Make this the single plan; archive the superseded lineage; fix the `TODO.core.22.md`-contains-CORE.23 naming confusion.
 - [x] Repair stale scripts (`config:check`, `env:check`, `deps:check`).
 - [x] Re-arm `complexity:budget` at true actuals; scope it to kernel + duplicates.
-- [ ] Fix the flaky `refactor2-residual-causal`; return tests to typecheck; drive `typecheck:bin` 247 → 0.
+- [x] Fix the flaky `refactor2-residual-causal` (root cause: `PriorityBag.decay()` used per-ms rates instead of per-second).
+- [ ] Return tests to typecheck; drive `typecheck:bin` 253 → 0.
 - [ ] **Build the capability manifest directly** from the capability registries + a behavioral-test index (a small generator; *not* dependent on the full schema-genome pipeline). Each entry = a user-facing behavior with an owner and a behavioral test — **not raw exports**. Wire the preservation gate.
 
 **Accept:** one plan; gates green with the budget armed; no script references a deleted file; behavior-level capability manifest + preservation gate live; known-red ledger empty.

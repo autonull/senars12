@@ -39,6 +39,18 @@
     "./webllm": {
       "types": "./src/webllm.ts",
       "import": "./src/webllm.ts"
+    },
+    "./client/modulation/types": {
+      "types": "./src/client/modulation/types.ts",
+      "import": "./src/client/modulation/types.ts"
+    },
+    "./client/utils/lens-catalog": {
+      "types": "./src/client/utils/lens-catalog.ts",
+      "import": "./src/client/utils/lens-catalog.ts"
+    },
+    "./client/utils/renderer-capabilities": {
+      "types": "./src/client/utils/renderer-capabilities.ts",
+      "import": "./src/client/utils/renderer-capabilities.ts"
     }
   },
   "scripts": {

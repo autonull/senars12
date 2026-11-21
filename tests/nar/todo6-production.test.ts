@@ -19,7 +19,8 @@ import {
   sliceBudget,
 } from '@senars/budget';
 import { validateCognitiveEvent } from '@senars/agent';
-import { PriorityBag } from '@senars/agent';
+import { createBag } from '@senars/bag';
+import type { BagOptions } from '@senars/bag';
 import { CognitiveRegistry } from '@senars/cognitive';
 import {
   computeReplayStateHash,
@@ -108,7 +109,7 @@ describe('F1 — OTel span events on the tick pipeline (C22)', () => {
 
   it('emits bag.pressure.transition only on level change', () => {
     withSpan('tick', {}, () => {
-      const bag = new PriorityBag<{ id: string; priority: number }>({ capacity: 10, id: 'bag-f1' });
+      const bag = createBag<{ id: string; priority: number }>({ capacity: 10, id: 'bag-f1' } as BagOptions<{ id: string; priority: number }>);
       bag.pressure();
       for (let i = 0; i < 8; i++) {
         bag.add({ id: `n${i}`, priority: 0.5 });

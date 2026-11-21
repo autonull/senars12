@@ -1,4 +1,4 @@
-import { BUILTIN_LENS_IDS, builtinLensSpecs } from '@senars/agent';
+import { BUILTIN_LENS_IDS, builtinLensSpecs } from '@senars/protocol';
 import { CHANNELS, type Delta } from '@senars/ui/client/modulation/types';
 import {
   builtinLensSpec,
