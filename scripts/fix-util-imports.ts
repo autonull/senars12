@@ -707,10 +707,10 @@ function processFile(filePath: string): boolean {
   const utilImportRegex = /import\s+(?:type\s+)?\{([^}]+)\}\s+from\s+['"]@senars\/util['"];?/g;
   // Find all re-exports from @senars/util
   const utilExportRegex = /export\s+(?:type\s+)?\{([^}]+)\}\s+from\s+['"]@senars\/util['"];?/g;
-  let match;
   const importsToReplace: Array<{match: string; start: number; end: number; imports: string[]; isExport: boolean; isType: boolean}> = [];
   
-  while ((match = utilImportRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = utilImportRegex.exec(content);
+  while (match !== null) {
     const importList = match[1].split(',').map(s => s.trim().split(/\s+as\s+/)[0]).filter(Boolean);
     importsToReplace.push({
       match: match[0],
@@ -720,9 +720,11 @@ function processFile(filePath: string): boolean {
       isExport: false,
       isType: match[0].includes('import type')
     });
+    match = utilImportRegex.exec(content);
   }
   
-  while ((match = utilExportRegex.exec(content)) !== null) {
+  match = utilExportRegex.exec(content);
+  while (match !== null) {
     const exportList = match[1].split(',').map(s => s.trim().split(/\s+as\s+/)[0]).filter(Boolean);
     const isTypeExport = match[0].includes('export type');
     importsToReplace.push({
@@ -733,6 +735,7 @@ function processFile(filePath: string): boolean {
       isExport: true,
       isType: isTypeExport
     });
+    match = utilExportRegex.exec(content);
   }
   
   if (importsToReplace.length === 0) return false;

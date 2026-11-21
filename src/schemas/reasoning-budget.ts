@@ -58,7 +58,5 @@ export const ReasoningBudgetSchema = z.object({
 
 export type ReasoningBudget = z.infer<typeof ReasoningBudgetSchema>;
 export type ConsumedBudget = z.infer<typeof ConsumedBudgetSchema>;
-export type TerminationReason = z.infer<typeof TerminationReasonSchema>;
-export type BudgetType = z.infer<typeof BudgetTypeSchema>;
 
 export const validateReasoningBudget = validatorFor(ReasoningBudgetSchema, 'ReasoningBudget');

@@ -1,4 +1,4 @@
-import type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig, EpisodicMemory } from '@senars/types/episodic-memory';
+import type { Episode, EpisodeFilter, EpisodeType, EpisodicMemoryConfig, EpisodicMemory as UtilEpisodicMemory } from '@senars/types/episodic-memory';
 import { containsFolded, foldNeedle } from '@senars/util/text';
 import { flatUnique, getOrInsert, rankBy, takeLast } from '@senars/util/collections';
 import { systemClock } from '@senars/util/clock';

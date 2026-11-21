@@ -23,8 +23,6 @@ const getArgs = (term: Term): readonly Term[] => {
   return (term as CompoundTerm).args ?? [];
 };
 
-const atomKey = (symbol: string): string => `atom:${symbol}`;
-
 const TERM_CACHE_MAX_SIZE = 10000;
 
 // FIFO, not LRU: a term is immutable and interned, so a hit's recency carries
