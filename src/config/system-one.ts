@@ -4,7 +4,7 @@
  */
 import { z } from 'zod';
 import { positiveInt, unitInterval } from './boundary.js';
-import { nestedBounds } from './bounds.js';
+import { nestedBounds, buildDefaultsFromBounds } from './bounds.js';
 
 /** How much a judgment is trusted to decide on its own. Declared once because it was
  *  written out six times — as a type in the decision layer, four times as an inline
@@ -55,6 +55,23 @@ export type SystemOneBoundKey<C extends SystemOneBoundCategory> = keyof SystemOn
  */
 export const systemOneBound = nestedBounds(systemOneBounds);
 
+/** Paths in the systemOne bounds table that contribute to defaults. */
+const SYSTEM_ONE_DEFAULT_PATHS = [
+  'budgets.maxJudgmentCallsPerCycle',
+  'budgets.maxConsensusPerCycle',
+  'budgets.maxLatencyMsPerJudgment',
+  'budgets.maxTokensPerCycle',
+  'budgets.maxMemoryMbPerCycle',
+  'provisional.cInitial',
+  'provisional.decayRate',
+  'provisional.maxTtlMs',
+] as const;
+
+const boundDefaults = buildDefaultsFromBounds(systemOneBound, [...SYSTEM_ONE_DEFAULT_PATHS]) as {
+  budgets: { maxJudgmentCallsPerCycle: number; maxConsensusPerCycle: number; maxLatencyMsPerJudgment: number; maxTokensPerCycle: number; maxMemoryMbPerCycle: number };
+  provisional: { cInitial: number; decayRate: number; maxTtlMs: number };
+};
+
 export const systemOneDefaults = {
   enabled: false,
   /** The bound on one ingress judgment (TODO29.a A1): a judge that hangs is refused, not awaited. */
@@ -76,16 +93,16 @@ export const systemOneDefaults = {
   },
   cortex: { provider: 'off' as const, model: undefined as string | undefined },
   budgets: {
-    maxJudgmentCallsPerCycle: systemOneBound.at('budgets.maxJudgmentCallsPerCycle', 'default'),
-    maxConsensusPerCycle: systemOneBound.at('budgets.maxConsensusPerCycle', 'default'),
-    maxLatencyMsPerJudgment: systemOneBound.at('budgets.maxLatencyMsPerJudgment', 'default'),
-    maxTokensPerCycle: systemOneBound.at('budgets.maxTokensPerCycle', 'default'),
-    maxMemoryMbPerCycle: systemOneBound.at('budgets.maxMemoryMbPerCycle', 'default'),
+    maxJudgmentCallsPerCycle: boundDefaults.budgets.maxJudgmentCallsPerCycle,
+    maxConsensusPerCycle: boundDefaults.budgets.maxConsensusPerCycle,
+    maxLatencyMsPerJudgment: boundDefaults.budgets.maxLatencyMsPerJudgment,
+    maxTokensPerCycle: boundDefaults.budgets.maxTokensPerCycle,
+    maxMemoryMbPerCycle: boundDefaults.budgets.maxMemoryMbPerCycle,
   },
   provisional: {
-    cInitial: systemOneBound.at('provisional.cInitial', 'default'),
-    decayRate: systemOneBound.at('provisional.decayRate', 'default'),
-    maxTtlMs: systemOneBound.at('provisional.maxTtlMs', 'default'),
+    cInitial: boundDefaults.provisional.cInitial,
+    decayRate: boundDefaults.provisional.decayRate,
+    maxTtlMs: boundDefaults.provisional.maxTtlMs,
   },
   distillation: {
     datasetPath: './data/systemone-distillation.jsonl',

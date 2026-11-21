@@ -3,7 +3,7 @@ import { deepEqual, deepFreeze, deepMerge } from '../util/object';
 import { errMsg } from '../util/error';
 import { keyedBy } from '../util/collections';
 import { cognitiveBound, cognitiveBounds } from './cognitive-bounds.js';
-import { validateAgainstBounds } from './bounds.js';
+import { validateAgainstBounds, buildDefaultsFromBounds } from './bounds.js';
 import { type BagSlotParams, bagSlotErrors } from '../bag/registration';
 import {
   type StrategyCatalog,
@@ -240,22 +240,53 @@ export interface MemoryParams {
   [key: string]: unknown;
 }
 
+/** Paths in the cognitive bounds table that contribute to defaults. */
+const COGNITIVE_DEFAULT_PATHS = [
+  'priority.initialPriority',
+  'priority.maxPriority',
+  'priority.directMentionBoost',
+  'priority.relatedConceptBoost',
+  'priority.decayRate',
+  'priority.propagationStrength',
+  'lm.maxRulesPerCycle',
+  'lm.callTimeoutMs',
+  'attention.primeBoost',
+  'attention.relatedBoost',
+  'attention.propagationIterations',
+  'inference.maxDerivationsPerStep',
+  'inference.maxDerivationDepth',
+  'inference.cpuThrottleMs',
+  'inference.maxSampledConcepts',
+  'inference.rankingMaxAdmissions',
+  'inference.rankingMinScore',
+  'modelRunner.maxLoops',
+  'memory.activationDecayRate',
+] as const;
+
 /** Build default parameters from the shared cognitive bounds. */
 export function buildDefaults(): CognitiveParameters {
+  const boundDefaults = buildDefaultsFromBounds(cognitiveBound, [...COGNITIVE_DEFAULT_PATHS]) as {
+    priority: { initialPriority: number; maxPriority: number; directMentionBoost: number; relatedConceptBoost: number; decayRate: number; propagationStrength: number };
+    lm: { maxRulesPerCycle: number; callTimeoutMs: number };
+    attention: { primeBoost: number; relatedBoost: number; propagationIterations: number };
+    inference: { maxDerivationsPerStep: number; maxDerivationDepth: number; cpuThrottleMs: number; maxSampledConcepts: number; rankingMaxAdmissions: number; rankingMinScore: number };
+    modelRunner: { maxLoops: number };
+    memory: { activationDecayRate: number };
+  };
   return {
     priority: {
-      initialPriority: cognitiveBound.at('priority.initialPriority', 'default'),
-      maxPriority: cognitiveBound.at('priority.maxPriority', 'default'),
-      directMentionBoost: cognitiveBound.at('priority.directMentionBoost', 'default'),
-      relatedConceptBoost: cognitiveBound.at('priority.relatedConceptBoost', 'default'),
-      decayRate: cognitiveBound.at('priority.decayRate', 'default'),
-      propagationStrength: cognitiveBound.at('priority.propagationStrength', 'default'),
+      initialPriority: boundDefaults.priority.initialPriority,
+      maxPriority: boundDefaults.priority.maxPriority,
+      directMentionBoost: boundDefaults.priority.directMentionBoost,
+      relatedConceptBoost: boundDefaults.priority.relatedConceptBoost,
+      decayRate: boundDefaults.priority.decayRate,
+      propagationStrength: boundDefaults.priority.propagationStrength,
     },
     lm: {
       enabled: true,
       singlePremiseEnabled: true,
-      maxRulesPerCycle: cognitiveBound.at('lm.maxRulesPerCycle', 'default'),
-      callTimeoutMs: cognitiveBound.at('lm.callTimeoutMs', 'default'),
+      maxRulesPerCycle: boundDefaults.lm.maxRulesPerCycle,
+      callTimeoutMs: boundDefaults.lm.callTimeoutMs,
       ruleCategories: {
         translation: true,
         explanation: true,
@@ -270,30 +301,30 @@ export function buildDefaults(): CognitiveParameters {
     },
     attention: {
       autoPrime: true,
-      primeBoost: cognitiveBound.at('attention.primeBoost', 'default'),
-      relatedBoost: cognitiveBound.at('attention.relatedBoost', 'default'),
+      primeBoost: boundDefaults.attention.primeBoost,
+      relatedBoost: boundDefaults.attention.relatedBoost,
       structuralSimilarity: true,
       semanticRelatedness: false,
       propagateActivation: true,
-      propagationIterations: cognitiveBound.at('attention.propagationIterations', 'default'),
+      propagationIterations: boundDefaults.attention.propagationIterations,
     },
     inference: {
-      maxDerivationsPerStep: cognitiveBound.at('inference.maxDerivationsPerStep', 'default'),
-      maxDerivationDepth: cognitiveBound.at('inference.maxDerivationDepth', 'default'),
+      maxDerivationsPerStep: boundDefaults.inference.maxDerivationsPerStep,
+      maxDerivationDepth: boundDefaults.inference.maxDerivationDepth,
       enableCircularDetection: true,
       enableTraceCollection: false,
-      cpuThrottleMs: cognitiveBound.at('inference.cpuThrottleMs', 'default'),
-      maxSampledConcepts: cognitiveBound.at('inference.maxSampledConcepts', 'default'),
+      cpuThrottleMs: boundDefaults.inference.cpuThrottleMs,
+      maxSampledConcepts: boundDefaults.inference.maxSampledConcepts,
       ranking: {
-        maxAdmissions: cognitiveBound.at('inference.rankingMaxAdmissions', 'default'),
-        minScore: cognitiveBound.at('inference.rankingMinScore', 'default'),
+        maxAdmissions: boundDefaults.inference.rankingMaxAdmissions,
+        minScore: boundDefaults.inference.rankingMinScore,
       },
     },
     modelRunner: {
-      maxLoops: cognitiveBound.at('modelRunner.maxLoops', 'default'),
+      maxLoops: boundDefaults.modelRunner.maxLoops,
     },
     memory: {
-      activationDecayRate: cognitiveBound.at('memory.activationDecayRate', 'default'),
+      activationDecayRate: boundDefaults.memory.activationDecayRate,
     },
     strategies: {
       sampling: { type: 'priority' },

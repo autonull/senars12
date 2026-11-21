@@ -16,7 +16,6 @@
 import { z } from 'zod';
 import { clamp } from '../util/numeric';
 import { keyedBy } from '../util/collections';
-console.log('[bounds.ts] keyedBy type:', typeof keyedBy, keyedBy);
 
 /** One knob's admissible numbers: the range, the landing value, and the scan quantum. */
 export interface BoundRow {
@@ -144,6 +143,42 @@ export const flatBounds = <const T extends FlatBoundTable>(table: T): FlatBoundP
 export const nestedBounds = <const T extends NestedBoundTable>(
   table: T
 ): BoundProjection<NestedBoundPath<T>> => project((path) => rowAt(table, path));
+
+/**
+ * Build a defaults object from a bound projection by reading every row's default value.
+ * Eliminates manual `projection.at('path', 'default')` calls.
+ *
+ * @param projection - The bound projection from flatBounds() or nestedBounds()
+ * @param paths - Array of paths to read defaults for (e.g., ['priority.initialPriority', 'lm.maxRulesPerCycle'])
+ * @returns Object with the same nested structure as the paths, populated with defaults
+ */
+export function buildDefaultsFromBounds(
+  projection: BoundProjection<string>,
+  paths: readonly string[]
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const path of paths) {
+    const value = projection.at(path, 'default');
+    setNested(result, path, value);
+  }
+  return result;
+}
+
+/**
+ * Set a nested value in an object using dot-notation path.
+ */
+function setNested(obj: Record<string, unknown>, path: string, value: unknown): void {
+  const parts = path.split('.');
+  let current: Record<string, unknown> = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i]!; // parts is non-empty from split on non-empty path
+    if (!(part in current) || typeof current[part] !== 'object' || current[part] === null) {
+      current[part] = {};
+    }
+    current = current[part] as Record<string, unknown>;
+  }
+  current[parts[parts.length - 1]!] = value;
+}
 
 /**
  * Validate a config object against a bound table's rows.
