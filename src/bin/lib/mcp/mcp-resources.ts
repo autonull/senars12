@@ -4,7 +4,8 @@ import type { NAR } from '../../../agent/index.js';
 import { readPersistedBoundary } from '../../../agent/index.js';
 import type { ExtendedAgent as Agent } from '../../../agent/index.js';
 import { cloudApiKey, getRoutingStatus } from '../../../lm/index.js';
-import { keyedBy, LM_TASKS, sumBy } from '../../../utils/common.js';
+import { keyedBy, sumBy } from '@senars/util/collections.js';
+import { LM_TASKS } from '@senars/types/llm.js';
 import type { JobManager } from './job-manager.js';
 import {
   formatBeliefsForMCP,

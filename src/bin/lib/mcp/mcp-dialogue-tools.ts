@@ -2,8 +2,10 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { EpisodicMemory } from '@senars/nar/memory/episodic';
 import type { DialogueCapture as DialogueCaptureType } from '../../../dialogue/index.js';
 import { retrospect, selectProbes } from '../../../dialogue/index.js';
-import { parseJsonOr, type ReadOnlyLookup, takeLast, unique } from '../../../utils/common.js';
-import { positiveInt } from '../../../utils/common.js';
+import { parseJsonOr } from '@senars/util/fs.js';
+import type { ReadOnlyLookup } from '@senars/util/collections.js';
+import { takeLast, unique } from '@senars/util/collections.js';
+import { positiveInt } from '@senars/util/config.js';
 import { z } from 'zod';
 import { ANNOTATIONS, createMCPResponse, stringifyMCP } from './mcp-response.js';
 

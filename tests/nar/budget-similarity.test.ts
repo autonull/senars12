@@ -9,7 +9,7 @@ import {
   remainingAll,
 } from '@senars/core/budget';
 import { describe, expect, it } from 'vitest';
-import { cosine, cosineNormalized, jaccard, normalize } from '@senars/utils/similarity';
+import { cosine, cosineNormalized, jaccard, normalize } from '@senars/util/similarity';
 
 const slice = (cycles: number, depth: number, memoryOps: number, llmCalls: number) =>
   createBudgetSlice({

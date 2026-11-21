@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { readAppEnvConfig } from '../../src/bin/lib/env-config';
 import { loadConfig } from '../../src/config/loader';
-import { validateEnv } from '../../src/utils/env-validate';
+import { validateEnv } from '@senars/util/env-validate';
 
 const MAPPED = [
   'SENARS_LM_ENABLED',

@@ -94,7 +94,11 @@ const aliases = [
   { find: '@senars/util/witness', replacement: path.resolve(__dirname, './src/util/witness.ts') },
   // .js extension variants for util
   { find: '@senars/util/bag.js', replacement: path.resolve(__dirname, './src/bag/index.ts') },
+  { find: '@senars/util/bounded-map.js', replacement: path.resolve(__dirname, './src/util/bounded-map.ts') },
+  { find: '@senars/util/cli.js', replacement: path.resolve(__dirname, './src/util/cli.ts') },
   { find: '@senars/util/collections.js', replacement: path.resolve(__dirname, './src/util/collections.ts') },
+  { find: '@senars/util/error.js', replacement: path.resolve(__dirname, './src/util/error.ts') },
+  { find: '@senars/util/config.js', replacement: path.resolve(__dirname, './src/config/index.ts') },
   { find: '@senars/util/config-migrate.js', replacement: path.resolve(__dirname, './src/util/config-migrate.ts') },
   { find: '@senars/util/circuit-breaker.js', replacement: path.resolve(__dirname, './src/util/circuit-breaker.ts') },
   { find: '@senars/util/divergence.js', replacement: path.resolve(__dirname, './src/util/divergence.ts') },
@@ -103,8 +107,11 @@ const aliases = [
   { find: '@senars/util/id.js', replacement: path.resolve(__dirname, './src/util/id.ts') },
   { find: '@senars/util/lru-cache.js', replacement: path.resolve(__dirname, './src/util/lru-cache.ts') },
   { find: '@senars/util/object.js', replacement: path.resolve(__dirname, './src/util/object.ts') },
+  { find: '@senars/util/shutdown.js', replacement: path.resolve(__dirname, './src/util/shutdown.ts') },
   { find: '@senars/util/similarity.js', replacement: path.resolve(__dirname, './src/util/similarity.ts') },
+  { find: '@senars/util/text.js', replacement: path.resolve(__dirname, './src/util/text.ts') },
   { find: '@senars/util/tally.js', replacement: path.resolve(__dirname, './src/util/tally.ts') },
+  { find: '@senars/util/fs.js', replacement: path.resolve(__dirname, './src/util/fs.ts') },
   // Other packages .js variants
   { find: '@senars/admit/repertoire.js', replacement: path.resolve(__dirname, './src/admit/repertoire.ts') },
   { find: '@senars/economy/types.js', replacement: path.resolve(__dirname, './src/economy/types.ts') },
