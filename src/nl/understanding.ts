@@ -11,6 +11,7 @@ import { makeId } from '@senars/util/id';
 import { pct } from '@senars/util/format';
 import { stableKeyOf } from '@senars/util/json';
 import { withDeadline } from '@senars/util/async';
+import type { TermTruth } from '@senars/types/truth.js';
 import type { ZodSchema } from 'zod';
 import { getModelForTask } from '../lm';
 import type { ILMService } from '../lm/interfaces.js';

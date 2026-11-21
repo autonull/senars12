@@ -12,7 +12,8 @@
  */
 
 import { type BudgetLimits, createBudget } from '../budget/budget.js';
-import type { ReasoningBudget, SourceQuality } from '../schemas/cognitive-events.js';
+import type { ReasoningBudget } from '../schemas/reasoning-budget.js';
+import type { SourceQuality } from '../schemas/truth.js';
 import type { BandDecision, CognitiveAxis } from '../util/index.js';
 import type { CriticalityLevel } from '../config/index.js';
 import { z } from 'zod';

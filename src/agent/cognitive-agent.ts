@@ -1,5 +1,5 @@
 import { verifyRecord } from '@senars/verification';
-import { cachePath } from '@senars/util/config';
+import { cachePath } from '@senars/config';
 import { createLogger } from '@senars/util/logger';
 import { createLogStore } from '@senars/log/store';
 import {
@@ -14,6 +14,7 @@ import { Truth, termParser } from '../terms/index.js';
 import type { Task } from '../types/index.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
 import { type CreateAgentConfig, createAgent } from './create-agent.js';
+import type { TermTruth } from '../types/truth.js';
 
 const log = createLogger({ scope: 'CognitiveAgent' });
 

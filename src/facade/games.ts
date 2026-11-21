@@ -11,7 +11,7 @@ import type { ProofMettaProposer } from '../meta/index.js';
 import { ProposalBag } from '../meta/proposal-bag.js';
 import type { Reflex } from '../reflex/Reflex.js';
 import type { NarEventBus, ContradictionEvent, NAREventMap } from '../types/events.js';
-import type { EventBus } from '@senars/util/events';
+import type { EventBus } from '@senars/util';
 import type { RandomSource } from '../types/primitives.js';
 import type { NARConfig } from './config.js';
 import type { SystemOneRuntime } from './system-one.js';

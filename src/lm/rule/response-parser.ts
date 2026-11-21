@@ -3,6 +3,7 @@ import type { Term } from '../../terms';
 import { Truth, termParser } from '../../terms';
 import type { Truth as TruthType } from '../../terms/impls/Truth.js';
 import { parseJsonObject } from '../json.js';
+import type { TermTruth } from '../../types/truth.js';
 
 export interface ParsedLMResponse {
   term: Term;

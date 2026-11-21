@@ -8,6 +8,7 @@ import type { Term } from '../../terms';
 import { getArgs, sharesSymbol, Stamp, TermMap, termsEqual } from '../../terms';
 import type { Task } from '../../types';
 import { ConfigurationError, createSecondaryTask } from '../../types';
+import type { TermTruth } from '../../types/truth.js';
 
 export type PremiseSource = (task: Task, memory: MemoryView, n?: number) => Concept[];
 

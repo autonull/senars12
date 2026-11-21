@@ -17,7 +17,7 @@ import { divider, bar } from '@senars/util/format';
 import { mean } from '@senars/util/numeric';
 import { pct } from '@senars/util/format';
 import { selectTopN } from '@senars/util/collections';
-import { formatNarseseTruth } from '@senars/util/truth-schema';
+import { formatNarseseTruth } from '@senars/types/truth.js';
 import { runEntrypoint } from './lib/fatal-error.js';
 import { mettaPort } from './lib/metta.js';
 

@@ -1,4 +1,4 @@
-import type { TermTruth } from '@senars/util/types/cognitive';
+import type { TermTruth } from '@senars/types/truth.js';
 import { criticalitySchema } from '@senars/util/config';
 import { z } from 'zod';
 import { seedTruth } from './seed.js';

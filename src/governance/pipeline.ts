@@ -5,7 +5,7 @@ import type {
   PatchProposal,
   RiskAssessment,
   SelfImprovementProposal,
-} from '@senars/schemas/cognitive-events.js';
+} from '@senars/schemas/governance.js';
 import { permitsExecution, riskLevelOf } from '@senars/schemas/governance.js';
 import { makeId } from '@senars/util/id';
 import type { FocusStepReport } from '../focus/Focus.js';

@@ -6,6 +6,7 @@
 import type { FormalizationCandidate } from '@senars/schemas';
 import { keyedBy } from '@senars/util/collections';
 import type { JudgmentProvenance } from '../lm/system-one/decide.js';
+import type { BeliefTruth } from '@senars/types/truth.js';
 
 export type ReactionKind = 'accept' | 'correct' | 'reject' | 'clarify' | 'redirect' | 'abandon';
 

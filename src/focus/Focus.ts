@@ -1,6 +1,6 @@
 import { clamp01 } from '@senars/util/numeric';
 import { getOrInsert } from '@senars/util/collections';
-import { systemClock } from '@senars/util/clock';
+import { systemClock, type Clock } from '@senars/util/clock';
 import type { Bag, BagItem } from '../bag/Bag.js';
 import { createBag } from '../bag/index.js';
 import type { Game } from '../game/Game.js';
@@ -9,6 +9,7 @@ import type { NALDerivation } from '../reflex/negotiation-types.js';
 import type { LearningEvent, Reflex } from '../reflex/Reflex.js';
 import { FOCUS_DEFAULTS } from '../constants.js';
 import type { Term } from '../terms/index.js';
+import type { TermTruth } from '../types/truth.js';
 import {
   getAntecedent,
   getSubject,

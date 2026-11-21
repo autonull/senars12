@@ -5,7 +5,7 @@ import { retrospect, selectProbes } from '../../../dialogue/index.js';
 import { parseJsonOr } from '@senars/util/fs.js';
 import type { ReadOnlyLookup } from '@senars/util/collections.js';
 import { takeLast, unique } from '@senars/util/collections.js';
-import { positiveInt } from '@senars/util/config.js';
+import { positiveInt } from '@senars/config';
 import { z } from 'zod';
 import { ANNOTATIONS, createMCPResponse, stringifyMCP } from './mcp-response.js';
 

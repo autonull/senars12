@@ -4,7 +4,7 @@
 export type {
   ComponentContext,
   ComponentState,
-} from '@senars/types';
+} from '@senars/types/lifecycle.js';
 
 // Bag (AIKR substrate)
 export {

@@ -20,6 +20,7 @@
 import { clamp01, mean, stdDev } from '@senars/util/numeric';
 import { pct } from '@senars/util/format';
 import { parseFlags } from '@senars/util/cli';
+import type { TermTruth } from '@senars/types/truth.js';
 import { startArcadeTickSpan } from '@senars/eval/arcade-trace.js';
 import { BrierHarness } from '@senars/eval/brier-harness.js';
 import { loadSession } from '@senars/eval/session-state.js';

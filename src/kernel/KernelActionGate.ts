@@ -1,10 +1,14 @@
 import type {
   ActionGateInput,
   ActionGateOutput,
+  GateOutcome,
+} from '@senars/schemas/gate-io.js';
+import type {
   AutonomyAuthority,
   AutonomyMode,
+} from '@senars/schemas/governance.js';
+import type {
   AutonomyModeChangedEvent,
-  GateOutcome,
   PolicyViolationEvent,
 } from '@senars/schemas/cognitive-events.js';
 import {

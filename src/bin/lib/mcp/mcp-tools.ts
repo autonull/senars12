@@ -7,7 +7,7 @@ import type { ExtendedAgent as Agent } from '../../../agent/index.js';
 import { resetDemotions } from '../../../lm/index.js';
 import { filterFolded } from '@senars/util/text.js';
 import { takeLast } from '@senars/util/collections.js';
-import { positiveInt } from '@senars/util/config.js';
+import { positiveInt } from '@senars/config';
 import { evaluateExpression } from '@senars/util/eval.js';
 import { z } from 'zod';
 import type { JobManager } from './job-manager.js';

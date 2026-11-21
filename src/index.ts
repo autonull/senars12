@@ -4,7 +4,7 @@
 export type {
   ComponentContext,
   ComponentState,
-} from '@senars/types';
+} from '@senars/types/lifecycle.js';
 // Capability
 /** WASI sandbox, path containment, and timeout utilities. @public */
 export {
@@ -322,8 +322,6 @@ export { createBotNAR, createMinimalNAR, createNAR, createTestNAR } from './nar-
 // NL Translation
 /** Natural-language translation schemas. @public */
 export * from './nl/schemas.js';
-// Reason
-export type { Strategy } from './reason/index.js';
 // Rules
 /** Rule type definitions. @public */
 export type { RegisteredRule, RuleFn, RulePattern, RuleResult } from './rules/index.js';

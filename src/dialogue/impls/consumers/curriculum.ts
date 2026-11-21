@@ -6,6 +6,8 @@
  * sort, digest tie-break); frozen-eval rows are never in this data (I1).
  */
 import { buckets, rankBy } from '@senars/util/collections';
+import type { Episode } from '@senars/types/episodic-memory';
+import type { ReadOnlyLookup } from '@senars/util/collections.js';
 
 export type ProbeKind = 'correction' | 'low-grade' | 'lesson';
 

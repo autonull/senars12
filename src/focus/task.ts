@@ -11,7 +11,7 @@
 
 import type { TaskBagKind } from '@senars/schemas';
 import { clamp01 } from '@senars/util/numeric';
-import { systemClock } from '@senars/util/clock';
+import { systemClock, type Clock } from '@senars/util/clock';
 import type { BagItem } from '../bag/Bag.js';
 import type { GameOutcome, Perception } from '../game/Game.js';
 import { type ActionProposal, expectedValue } from '../reflex/Reflex.js';
@@ -19,6 +19,7 @@ import type { Term } from '../terms';
 import { operationTerm, TermBuilder, toAtomSymbol } from '../terms';
 import { createTaskWeight } from '../types/core.js';
 import type { Budget } from '../types/index.js';
+import type { TermTruth } from '../types/truth.js';
 
 export interface FocusTask extends BagItem {
   term: Term;

@@ -10,6 +10,7 @@ import {
 } from '../cognitive/impls/SelfAnalyzerService.js';
 import type { QualityAssessment } from '../cognitive/types.js';
 import type { SelfHost } from '../self/host.js';
+import type { TermTruth } from '../types/truth.js';
 
 export interface GapReport {
   missingRules: string[];

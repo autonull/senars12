@@ -8,6 +8,9 @@ import { BaseLedgerEntrySchema, createLedger, type Ledger } from '@senars/util/l
 import { z } from 'zod';
 import { DigestMismatchError } from '../../lm/system-one/wasi-runtime.js';
 import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
+import type { Episode } from '@senars/types/episodic-memory';
+import type { ReadOnlyLookup } from '@senars/util/collections.js';
+import type { BeliefTruth } from '@senars/types/truth.js';
 import {
   type CausalChainEdge,
   type CorrectionAnalysis,

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { errMsg } from '@senars/util/error';
 import type { SchemaStore } from '../focus/schema-store.js';
 import type { GateRegistry } from '../kernel/GateRegistry.js';
+import type { HealthCheckResult, HealthReport } from '@senars/types/health.js';
 
 /**
  * O3 (TODO20): shared readiness checks. Consumed by the HTTP `/health/ready`

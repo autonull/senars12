@@ -32,7 +32,7 @@ import {
   termParser,
   termsEqual,
 } from '../terms';
-import type { Tool } from '../tools/types.js';
+import type { ToolSpec } from '@senars/types/tools.js';
 import { discoverTools } from '../tools/impls/decorator.js';
 import { createSelfTools } from '../tools/adapters/self-tools.js';
 
@@ -145,7 +145,7 @@ export const initializeTools = (nar: NARFacadePort): void => {
         return toolError(errMsg(e));
       }
     },
-  } as Tool);
+  } as ToolSpec);
 
   // Self-improvement tools (goal→tool dispatch target) — registered when self-reasoning is enabled.
   if (nar.getConfig().enableSelf) {
@@ -160,7 +160,7 @@ export const initializeTools = (nar: NARFacadePort): void => {
     for (const [name, selfTool] of Object.entries(selfTools)) {
       try {
         // ai-style tools carry no name — inject the registry key.
-        nar.tools.register({ ...(selfTool as object), name } as Tool);
+        nar.tools.register({ ...(selfTool as object), name } as ToolSpec);
       } catch (e) {
         nar.logger?.warn('Self-tool registration skipped', { name, error: errMsg(e) });
       }

@@ -1,4 +1,4 @@
-import type { CommandContext, CommandHandler } from '@senars/commands';
+import type { CommandContext, CommandHandler } from './types.js';
 import type { NAR } from '../nar.js';
 
 export interface NarCommandContext extends CommandContext {

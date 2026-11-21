@@ -3,7 +3,7 @@
  * (code + context + wrap) lives in `./senars-error.ts` — single definition;
  * every class here adds typed, grep-able context for its failure mode.
  */
-import type { GateName } from '../schemas';
+import type { GateName } from '../schemas/gate-io.js';
 import type { SchemaIssue } from '../util';
 import { SenarsError } from './senars-error.js';
 

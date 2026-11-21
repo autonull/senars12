@@ -9,6 +9,7 @@ import { createTask, createTaskWeight, createTimestamp } from '../types';
 import { type DerivationRecord } from '@senars/schemas/derivation-records.js';
 import { TASK_BAG_KINDS } from '@senars/schemas/task.js';
 import { verifyRecord } from '@senars/verification';
+import type { TermTruth } from '../types/truth.js';
 
 const logger = createLogger({ scope: 'QueryAPI' });
 

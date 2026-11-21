@@ -18,7 +18,7 @@ import {
 } from '../../lm/index.js';
 import { EpisodicMemory } from '@senars/nar/memory/episodic';
 import { type PromotionResult, consolidateEpisodes } from '@senars/nar/memory/retrieval-verified';
-import { cachePath, envStr } from '@senars/util/config.js';
+import { cachePath, envStr } from '@senars/config';
 import { createLogger } from '@senars/util/logger.js';
 import { setupGracefulShutdown } from '@senars/util/shutdown.js';
 import { type AppConfig, loadConfig } from '../../config/index.js';

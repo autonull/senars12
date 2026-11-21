@@ -24,9 +24,11 @@ import {
   type BudgetResource,
   type ConsumedBudget,
 } from './budget-resources.js';
-import type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason } from '../schemas/reasoning-budget.js';
+import type { BudgetExhaustedEvent } from '../schemas/cognitive-events.js';
+import type { ReasoningBudget, TerminationReason } from '../schemas/reasoning-budget.js';
 import { zeroConsumed } from '../schemas/reasoning-budget.js';
 import type { BudgetEventMap } from './budget-events.js';
+import type { EventBus } from '@senars/util';
 
 export type { BudgetExhaustedEvent, ReasoningBudget, TerminationReason, BudgetEventMap };
 

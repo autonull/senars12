@@ -1,4 +1,4 @@
-import type { CommandDefinition } from '@senars/commands';
+import type { CommandDefinition } from './types.js';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import { requiring } from './utils.js';
 

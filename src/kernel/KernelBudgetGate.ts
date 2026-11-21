@@ -23,10 +23,14 @@ import {
 } from '../budget/index.js';
 import type {
   BudgetExhaustedEvent,
+  CognitiveEvent,
+} from '../schemas/cognitive-events.js';
+import type {
   BudgetGateInput,
   BudgetGateOutput,
-  CognitiveEvent,
   GateOutcome,
+} from '../schemas/gate-io.js';
+import type {
   ReasoningBudget,
   TerminationReason,
 } from '../schemas/reasoning-budget.js';
