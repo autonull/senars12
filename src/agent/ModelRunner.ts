@@ -8,11 +8,11 @@ import {
   stepCountIs,
   streamText,
   type ToolSet,
+  type ToolCall,
 } from 'ai';
+import type { LMTask } from '@senars/types/llm.js';
 
-export type { LanguageModel, ModelMessage, ToolSet };
-/** The one tool-call record: util owns it, the runner and the dispatcher both read it. */
-export type { ToolCall };
+export type { LanguageModel, ModelMessage, ToolSet, ToolCall };
 
 export interface ToolError {
   toolCallId: string;
@@ -233,7 +233,7 @@ export class ModelRunner {
           try {
             const tool = tools[c.toolName] as { execute: (args: Record<string, unknown>) => Promise<unknown> };
             const result = await tool.execute(c.args);
-            const capped = truncateText(typeof result === 'string' ? result : JSON.stringify(result), this.maxToolResultChars);
+            const capped = truncate(typeof result === 'string' ? result : JSON.stringify(result), this.maxToolResultChars);
             outcome.artifacts.push({
               type: 'tool_result',
               content: capped,
@@ -260,7 +260,7 @@ export class ModelRunner {
           try {
             const tool = tools[c.toolName] as { execute: (args: Record<string, unknown>) => Promise<unknown> };
             const result = await tool.execute(c.args);
-            const capped = truncateText(typeof result === 'string' ? result : JSON.stringify(result), this.maxToolResultChars);
+            const capped = truncate(typeof result === 'string' ? result : JSON.stringify(result), this.maxToolResultChars);
             artifact = {
               type: 'tool_result',
               content: capped,

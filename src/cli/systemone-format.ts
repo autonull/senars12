@@ -5,7 +5,8 @@
 
 import type { NAR } from '@senars/agent';
 import { readCalibrationLockOrNull } from '@senars/lm/system-one';
-import { flooredRatio, pct } from '@senars/util/numeric';
+import { flooredRatio } from '@senars/util/numeric';
+import { pct } from '@senars/util/format';
 import { formatDuration } from '@senars/util/format';
 import { type AttachedGame, reflexesOf } from '@senars/cli/conversation-game';
 

@@ -13,7 +13,7 @@
  */
 
 import { sleep } from '@senars/util/async';
-import { pct } from '@senars/util/numeric';
+import { pct } from '@senars/util/format';
 import { createLogger } from '@senars/util/logger';
 import { operationNameOf } from '@senars/nar';
 import { createNAR } from '@senars/nar';

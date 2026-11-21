@@ -10,9 +10,8 @@ import { DEFAULT_CONFIG } from '@senars/types/core';
 import type { ScenarioProfile } from '@senars/imagination';
 import { CognitiveTreadmill, ScenarioGenerator } from '@senars/imagination';
 import { ArchitectureDriver } from '@senars/self';
-import { divider, formatDuration, section } from '@senars/util/format';
+import { divider, formatDuration, pct, section } from '@senars/util/format';
 import { parseFlags } from '@senars/util/cli';
-import { pct } from '@senars/util/numeric';
 import { writeJsonFile } from '@senars/util/fs';
 import { runEntrypoint } from './lib/fatal-error.js';
 

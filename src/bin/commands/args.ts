@@ -2,7 +2,7 @@
 
 import { getNested } from '@senars/util/object';
 import { parseEnvValue } from '@senars/util/config';
-import { parseFlags } from '@senars/util/cli';
+import { parseFlags, type Flags } from '@senars/util/cli';
 import { splitWords } from '@senars/util/text';
 
 /** Split a command tail into positional tokens; an empty tail yields no tokens. */

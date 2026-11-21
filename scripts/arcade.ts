@@ -17,7 +17,8 @@
  * is a `Game` implementation + one GameSpec (name, description, actionLegend).
  */
 
-import { clamp01, mean, pct, stdDev } from '@senars/util/numeric';
+import { clamp01, mean, stdDev } from '@senars/util/numeric';
+import { pct } from '@senars/util/format';
 import { parseFlags } from '@senars/util/cli';
 import { startArcadeTickSpan } from '@senars/eval/arcade-trace.js';
 import { BrierHarness } from '@senars/eval/brier-harness.js';

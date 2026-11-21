@@ -4,3 +4,4 @@
  */
 export type { Engine, EngineId } from '@senars/types/engine';
 export type { ToolResult } from '@senars/types/tools';
+export type { CognitiveStimulus, Context, Derivation } from '@senars/types/cognitive.js';

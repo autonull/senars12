@@ -9,6 +9,7 @@ import { addToSet } from '@senars/util/collections';
 import { shortSha256Hex } from '@senars/util/hash';
 import type { Tool as NarTool, ToolSchema as NarSchema } from '../tools/types.js';
 import { type CapabilityDef, CapabilitySpace } from './space.js';
+import type { CapabilityRisk } from '@senars/util/capability-risk.js';
 
 export type CapabilityType = 'tool' | 'rule' | 'metta' | 'skill';
 

@@ -10,7 +10,7 @@
 
 import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { pct } from '@senars/util/numeric';
+import { pct } from '@senars/util/format';
 import { getLlama, resolveModelFile } from 'node-llama-cpp';
 import { ROOT as PROJECT_ROOT } from './lib/root.js';
 

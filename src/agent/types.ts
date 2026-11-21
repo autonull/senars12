@@ -3,18 +3,15 @@ import type { EpisodicMemory } from '@senars/types/episodic-memory';
 import type { LMTask } from '@senars/types/llm';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { ChatOptions, ChatStreamEvent } from './chat.js';
+import type { GroundednessGate, TraceGrader } from '@senars/types/cognitive.js';
 /**
  * Agent public type definitions.
  */
 
 import type { LLMCortex } from '../cortex/LLMCortex.js';
-import type {
-  CognitiveStimulus,
-  Context,
-  Derivation,
-  Engine,
-  ToolResult,
-} from '../engine/Engine.js';
+import type { CognitiveStimulus, Context, Derivation } from '@senars/types/cognitive.js';
+import type { Engine } from '@senars/types/engine.js';
+import type { ToolResult } from '@senars/types/engine.js';
 import type { PersistableSessionManager } from '../memory/types.js';
 import type { LogStore } from '@senars/log/store';
 import type { PinStore } from '../motor/builtin-tools.js';

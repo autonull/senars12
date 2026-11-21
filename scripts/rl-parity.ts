@@ -10,7 +10,8 @@
 
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { mean, pct, stdDev } from '@senars/util/numeric';
+import { mean, stdDev } from '@senars/util/numeric';
+import { pct } from '@senars/util/format';
 import { mulberry32 } from '@senars/util/random';
 import { program } from 'commander';
 import { BanditGame } from '@senars/game/impls/BanditGame.js';
