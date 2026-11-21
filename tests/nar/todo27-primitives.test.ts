@@ -16,7 +16,7 @@ import {
 } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { PriorityBag } from '@senars/bag/Bag';
+import { PriorityBag } from '@senars/bag';
 import { SingleFlight } from '@senars/nl/singleflight';
 
 /**

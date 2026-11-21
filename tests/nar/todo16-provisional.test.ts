@@ -1,7 +1,7 @@
 import type { ReasoningBudget } from '@senars/agent';
 import { describe, expect, it } from 'vitest';
 import { KernelBudgetGate } from '@senars/kernel/KernelBudgetGate';
-import { PriorityBag } from '@senars/bag/Bag';
+import { PriorityBag } from '@senars/bag';
 import {
   DeterministicManifold,
   StubCortex,

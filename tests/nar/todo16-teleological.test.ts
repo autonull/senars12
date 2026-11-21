@@ -8,7 +8,7 @@ import {
   Truth,
   termParser,
 } from '@senars/nar';
-import { PriorityBag } from '@senars/bag/Bag';
+import { PriorityBag } from '@senars/bag';
 import { KernelRewardGate } from '@senars/kernel/KernelRewardGate';
 import { ActionGateTransducer } from '@senars/lm/system-one/action-transducer';
 import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';

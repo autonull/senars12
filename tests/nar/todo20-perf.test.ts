@@ -1,6 +1,6 @@
 /** Bench 69 — Performance Hot Paths (TODO20 Phase 8: P1 bag-lcg, P2 cache, P3 negotiator, P4 param-batch). */
 import { describe, expect, it, vi } from 'vitest';
-import { PriorityBag } from '@senars/bag/Bag';
+import { PriorityBag } from '@senars/bag';
 import { EmbeddingCache } from '@senars/lm/system-one/embedding-cache';
 import { Negotiator, type NALDerivation } from '@senars/reflex/Negotiator';
 import { createParameterTable } from '@senars/config/parameter-table';
