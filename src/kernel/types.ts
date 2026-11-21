@@ -63,11 +63,6 @@ export function softSquash(c: number, factor = 10): number {
   return c / (1 + c * factor);
 }
 
-/** Weaken confidence by factor. */
-export function weakenConfidence(c: number, factor: number): number {
-  return c / (c + factor);
-}
-
 /** Convert confidence to weight (evidence count). */
 export function confidenceToWeight(c: number): number {
   return c === 1 ? Infinity : c / (1 - c);

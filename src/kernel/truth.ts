@@ -10,7 +10,8 @@
 
 import type { Frequency, Confidence, TruthLike, TruthValue } from './types.js';
 import { clamp, clamp01, safeDiv } from '@senars/util/numeric';
-import { softSquash, weakenConfidence, confidenceToWeight, weightToConfidence } from './types.js';
+import { softSquash } from './types.js';
+import { weakenConfidence, confidenceToWeight, weightToConfidence } from '@senars/util/truth-algebra';
 
 // Re-export TruthValue from types
 export type { TruthValue } from './types.js';
