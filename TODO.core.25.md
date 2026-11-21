@@ -178,9 +178,9 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 **Preserves:** full solver power (native option), MeTTa; **consolidates:** the duplicate engine wrapper layer only.
 
 ### W3 — Verdicts, risk, governance spine
-- [ ] Operator risk classes `reversible | bounded | irreversible`; risk × verdict gate matrix; `unchecked` on irreversible ⇒ escalate or refuse with explanation.
-- [ ] Governance-owned artifacts unwritable by the agent *by construction*; mission overlays admit scoped, expiring weight deltas with provenance.
-- [ ] Port `autonomy/`, `governance/`, `decision/`, `capability/` semantics into this spine.
+- [x] Operator risk classes `reversible | bounded | irreversible`; risk × verdict gate matrix; `unchecked` on irreversible ⇒ escalate or refuse with explanation.
+- [x] Governance-owned artifacts unwritable by the agent *by construction*; mission overlays admit scoped, expiring weight deltas with provenance.
+- [x] Port `autonomy/`, `governance/`, `decision/`, `capability/` semantics into this spine.
 
 **Accept:** obligations 9/10 — fail-closed irreversible, live reversible; agent writes to governance rejected; overlays expire.
 **Preserves:** the autonomy/governance/decision state machines, re-homed.
@@ -331,7 +331,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 2. **W1:** ✅ **COMPLETE** — typed `Env` + determinism lint; per-instance registries; events wired to the log; `senars logic prove` on the new core; `Verdict`; **byte-identical seeded replay**; `import:boundary` baseline zeroed.
 3. **⟶ GATE (§4): Go to W2+ only if W1 replays byte-identically. Otherwise stop and take the named fallback.**
 4. W2: ✅ **one-oracle gate green**; ✅ **WASM engine port** (z3, clingo, minisat); native provider retained; ✅ **`engine.metta`**.
-5. W3: risk tiers + gate matrix; fail-closed irreversible demonstrated.
+5. W3: ✅ **risk tiers + gate matrix**; ✅ **fail-closed irreversible**; governance spine unified.
 6. W4: formula-AST NAL + interpreter verifier + laws/vectors; transcribed table kept as witness.
 7. W5: faculty specs + fallbacks; judge weight-change events; ECE demotion; GBNF + WASI heads + imagination ported.
 8. W6: curriculum + RLFP labels; arena lanes; cost/quality surface; memory indexes + analyzers as folds.
