@@ -114,9 +114,9 @@ type Verdict =
 Each workstream: **Actions · Accept · Preserves / consolidates.**
 
 ### W0 — Authority, hygiene, and the safety net
-- [ ] Make this the single plan; archive the superseded lineage; fix the `TODO.core.22.md`-contains-CORE.23 naming confusion.
-- [ ] Repair stale scripts (`config:check`, `env:check`, `deps:check`).
-- [ ] Re-arm `complexity:budget` at true actuals; scope it to kernel + duplicates.
+- [x] Make this the single plan; archive the superseded lineage; fix the `TODO.core.22.md`-contains-CORE.23 naming confusion.
+- [x] Repair stale scripts (`config:check`, `env:check`, `deps:check`).
+- [x] Re-arm `complexity:budget` at true actuals; scope it to kernel + duplicates.
 - [ ] Fix the flaky `refactor2-residual-causal`; return tests to typecheck; drive `typecheck:bin` 247 → 0.
 - [ ] **Build the capability manifest directly** from the capability registries + a behavioral-test index (a small generator; *not* dependent on the full schema-genome pipeline). Each entry = a user-facing behavior with an owner and a behavioral test — **not raw exports**. Wire the preservation gate.
 
@@ -296,7 +296,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 
 ## 10. Kickoff (in order)
 
-1. **W0:** one authority doc; stale scripts fixed; ratchet armed (correctly scoped); **behavior-level capability manifest + preservation gate live**.
+1. **W0:** one authority doc; **stale scripts fixed**; **ratchet armed (correctly scoped)**; behavior-level capability manifest + preservation gate live.
 2. **W1:** typed `Env` + determinism lint; per-instance registries; events wired to the log; `senars logic prove` on the new core; `Verdict`; **byte-identical seeded replay**.
 3. **⟶ GATE (§4): Go to W2+ only if W1 replays byte-identically. Otherwise stop and take the named fallback.**
 4. W2: `one-oracle` gate green; WASM engine port; native provider retained; `engine.metta`.
