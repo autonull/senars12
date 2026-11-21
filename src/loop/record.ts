@@ -4,7 +4,7 @@
 
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import type { Task, TaskType } from '../kernel/types.js';
+import type { Task, TaskType, TimestampMs } from '../kernel/types.js';
 import type { Truth } from '../kernel/truth.js';
 import type { SelectionResult } from './select.js';
 import type { ActionResult } from './act.js';

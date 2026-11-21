@@ -10,6 +10,7 @@ import { Truth, type TruthValue } from '../../kernel/truth.js';
 /** Test case for a binary law. */
 interface BinaryLawCase {
   readonly name: string;
+  readonly arity: 2;
   readonly fn: (t1: TruthValue, t2: TruthValue) => TruthValue | null;
   readonly gen: () => [TruthValue, TruthValue];
   readonly check: (r1: TruthValue | null, r2: TruthValue | null) => boolean;
@@ -18,6 +19,7 @@ interface BinaryLawCase {
 /** Test case for a unary law. */
 interface UnaryLawCase {
   readonly name: string;
+  readonly arity: 1;
   readonly fn: (t: TruthValue) => TruthValue;
   readonly gen: () => TruthValue;
   readonly check: (r1: TruthValue, r2: TruthValue) => boolean;
@@ -60,33 +62,37 @@ export const NAL_LAWS: readonly (BinaryLawCase | UnaryLawCase)[] = [
   // Negation involution: ~~A = A
   {
     name: 'negation_involution',
-    fn: (t) => Truth.negation(Truth.negation(t)),
+    arity: 1,
+    fn: (t: TruthValue) => Truth.negation(Truth.negation(t)),
     gen: genTruth,
-    check: (r1, r2) => truthEqual(r1, r2),
+    check: (r1: TruthValue, r2: TruthValue) => truthEqual(r1, r2),
   },
 
   // Conversion idempotence at boundaries: convert(convert(TRUE)) = convert(TRUE)
   {
     name: 'conversion_idempotence_true',
-    fn: (t) => Truth.conversion(Truth.conversion(t)),
+    arity: 1,
+    fn: (t: TruthValue) => Truth.conversion(Truth.conversion(t)),
     gen: () => Truth.TRUE,
-    check: (r1, r2) => truthEqual(r1, r2),
+    check: (r1: TruthValue, r2: TruthValue) => truthEqual(r1, r2),
   },
 
   // Conversion idempotence at boundaries: convert(convert(FALSE)) = convert(FALSE)
   {
     name: 'conversion_idempotence_false',
-    fn: (t) => Truth.conversion(Truth.conversion(t)),
+    arity: 1,
+    fn: (t: TruthValue) => Truth.conversion(Truth.conversion(t)),
     gen: () => Truth.FALSE,
-    check: (r1, r2) => truthEqual(r1, r2),
+    check: (r1: TruthValue, r2: TruthValue) => truthEqual(r1, r2),
   },
 
   // Structural deduction then reduction
   {
     name: 'structural_deduction_reduction',
-    fn: (t) => Truth.structuralReduction(Truth.structuralDeduction(t)),
+    arity: 1,
+    fn: (t: TruthValue) => Truth.structuralReduction(Truth.structuralDeduction(t)),
     gen: genTruth,
-    check: (r1, r2) => truthEqual(r1, r2),
+    check: (r1: TruthValue, r2: TruthValue) => truthEqual(r1, r2),
   },
 
   // ========================================================================
@@ -96,9 +102,10 @@ export const NAL_LAWS: readonly (BinaryLawCase | UnaryLawCase)[] = [
   // Revision commutativity: rev(A, B) = rev(B, A)
   {
     name: 'revision_commutativity',
-    fn: (t1, t2) => Truth.revision(t1, t2),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.revision(t1, t2),
     gen: genTwoTruths,
-    check: (r1, r2) => {
+    check: (r1: TruthValue | null, r2: TruthValue | null) => {
       const [t1, t2] = genTwoTruths();
       const rev1 = Truth.revision(t1, t2);
       const rev2 = Truth.revision(t2, t1);
@@ -109,9 +116,10 @@ export const NAL_LAWS: readonly (BinaryLawCase | UnaryLawCase)[] = [
   // Revision associativity: rev(rev(A, B), C) = rev(A, rev(B, C))
   {
     name: 'revision_associativity',
-    fn: (t1, t2) => Truth.revision(Truth.revision(t1, t2), genTruth()),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.revision(Truth.revision(t1, t2), genTruth()),
     gen: () => [genTruth(), genTruth()],
-    check: (r1, r2) => {
+    check: (_r1: TruthValue | null, _r2: TruthValue | null) => {
       const t1 = genTruth();
       const t2 = genTruth();
       const t3 = genTruth();
@@ -124,25 +132,28 @@ export const NAL_LAWS: readonly (BinaryLawCase | UnaryLawCase)[] = [
   // Deduction with TRUE preserves truth: ded(TRUE, TRUE) = TRUE (frequency)
   {
     name: 'deduction_preserves_true_frequency',
-    fn: (t1, t2) => Truth.deduction(t1, t2),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.deduction(t1, t2),
     gen: () => [Truth.TRUE, Truth.TRUE],
-    check: (r1, r2) => truthEqual(r1, Truth.TRUE),
+    check: (r1: TruthValue | null, r2: TruthValue | null) => truthEqual(r1, Truth.TRUE),
   },
 
   // Deduction with FALSE yields frequency 0
   {
     name: 'deduction_false_frequency_zero',
-    fn: (t1, t2) => Truth.deduction(t1, t2),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.deduction(t1, t2),
     gen: () => [Truth.FALSE, Truth.TRUE],
-    check: (r1, r2) => Math.abs(r1.f - 0) < 1e-9,
+    check: (r1: TruthValue | null, r2: TruthValue | null) => Math.abs((r1?.f ?? 0) - 0) < 1e-9,
   },
 
   // Analogy commutativity: ana(A, B) = ana(B, A)
   {
     name: 'analogy_commutativity',
-    fn: (t1, t2) => Truth.analogy(t1, t2),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.analogy(t1, t2),
     gen: genTwoTruths,
-    check: (r1, r2) => {
+    check: (r1: TruthValue | null, r2: TruthValue | null) => {
       const [t1, t2] = genTwoTruths();
       return truthEqual(Truth.analogy(t1, t2), Truth.analogy(t2, t1));
     },
@@ -151,9 +162,10 @@ export const NAL_LAWS: readonly (BinaryLawCase | UnaryLawCase)[] = [
   // Resemblance commutativity: res(A, B) = res(B, A)
   {
     name: 'resemblance_commutativity',
-    fn: (t1, t2) => Truth.resemblance(t1, t2),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.resemblance(t1, t2),
     gen: genTwoTruths,
-    check: (r1, r2) => {
+    check: (r1: TruthValue | null, r2: TruthValue | null) => {
       const [t1, t2] = genTwoTruths();
       return truthEqual(Truth.resemblance(t1, t2), Truth.resemblance(t2, t1));
     },
@@ -162,9 +174,10 @@ export const NAL_LAWS: readonly (BinaryLawCase | UnaryLawCase)[] = [
   // Intersection commutativity: inter(A, B) = inter(B, A)
   {
     name: 'intersection_commutativity',
-    fn: (t1, t2) => Truth.intersection(t1, t2),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.intersection(t1, t2),
     gen: genTwoTruths,
-    check: (r1, r2) => {
+    check: (r1: TruthValue | null, r2: TruthValue | null) => {
       const [t1, t2] = genTwoTruths();
       return truthEqual(Truth.intersection(t1, t2), Truth.intersection(t2, t1));
     },
@@ -173,9 +186,10 @@ export const NAL_LAWS: readonly (BinaryLawCase | UnaryLawCase)[] = [
   // Union commutativity: union(A, B) = union(B, A)
   {
     name: 'union_commutativity',
-    fn: (t1, t2) => Truth.union(t1, t2),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.union(t1, t2),
     gen: genTwoTruths,
-    check: (r1, r2) => {
+    check: (r1: TruthValue | null, r2: TruthValue | null) => {
       const [t1, t2] = genTwoTruths();
       return truthEqual(Truth.union(t1, t2), Truth.union(t2, t1));
     },
@@ -184,9 +198,10 @@ export const NAL_LAWS: readonly (BinaryLawCase | UnaryLawCase)[] = [
   // De Morgan: neg(inter(A, B)) = union(neg(A), neg(B))
   {
     name: 'de_morgan_intersection',
-    fn: (t1, t2) => Truth.negation(Truth.intersection(t1, t2)),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.negation(Truth.intersection(t1, t2)),
     gen: genTwoTruths,
-    check: (r1, r2) => {
+    check: (r1: TruthValue | null, r2: TruthValue | null) => {
       const [t1, t2] = genTwoTruths();
       const left = Truth.negation(Truth.intersection(t1, t2));
       const right = Truth.union(Truth.negation(t1), Truth.negation(t2));
@@ -197,9 +212,10 @@ export const NAL_LAWS: readonly (BinaryLawCase | UnaryLawCase)[] = [
   // De Morgan: neg(union(A, B)) = inter(neg(A), neg(B))
   {
     name: 'de_morgan_union',
-    fn: (t1, t2) => Truth.negation(Truth.union(t1, t2)),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.negation(Truth.union(t1, t2)),
     gen: genTwoTruths,
-    check: (r1, r2) => {
+    check: (r1: TruthValue | null, r2: TruthValue | null) => {
       const [t1, t2] = genTwoTruths();
       const left = Truth.negation(Truth.union(t1, t2));
       const right = Truth.intersection(Truth.negation(t1), Truth.negation(t2));
@@ -210,9 +226,10 @@ export const NAL_LAWS: readonly (BinaryLawCase | UnaryLawCase)[] = [
   // Induction/Abduction symmetry with same premises
   {
     name: 'induction_abduction_same_premises',
-    fn: (t1, t2) => Truth.induction(t1, t2),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.induction(t1, t2),
     gen: genTwoTruths,
-    check: (r1, r2) => {
+    check: (r1: TruthValue | null, r2: TruthValue | null) => {
       const [t1, t2] = genTwoTruths();
       const ind = Truth.induction(t1, t2);
       const abd = Truth.abduction(t1, t2);
@@ -225,9 +242,10 @@ export const NAL_LAWS: readonly (BinaryLawCase | UnaryLawCase)[] = [
   // Detachment: det(ded(A, B), A) = B (approximately)
   {
     name: 'detachment_deduction',
-    fn: (t1, t2) => Truth.detachment(Truth.deduction(t1, t2), t1),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.detachment(Truth.deduction(t1, t2), t1),
     gen: genTwoTruths,
-    check: (r1, r2) => {
+    check: (r1: TruthValue | null, r2: TruthValue | null) => {
       const [t1, t2] = genTwoTruths();
       const ded = Truth.deduction(t1, t2);
       const det = Truth.detachment(ded, t1);
@@ -239,17 +257,19 @@ export const NAL_LAWS: readonly (BinaryLawCase | UnaryLawCase)[] = [
   // Confidence bounds: all operations produce c <= MAX_CONFIDENCE
   {
     name: 'confidence_bounds',
-    fn: (t1, t2) => Truth.revision(t1, t2),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.revision(t1, t2),
     gen: () => [{ f: 0.9, c: 0.99 }, { f: 0.8, c: 0.99 }],
-    check: (r1, r2) => r1.c <= Truth.MAX_CONFIDENCE + 1e-9,
+    check: (r1: TruthValue | null, r2: TruthValue | null) => (r1?.c ?? 0) <= Truth.MAX_CONFIDENCE + 1e-9,
   },
 
   // Frequency bounds: all operations produce f in [0, 1]
   {
     name: 'frequency_bounds',
-    fn: (t1, t2) => Truth.revision(t1, t2),
+    arity: 2,
+    fn: (t1: TruthValue, t2: TruthValue) => Truth.revision(t1, t2),
     gen: genTwoTruths,
-    check: (r1, r2) => r1.f >= 0 && r1.f <= 1,
+    check: (r1: TruthValue | null, r2: TruthValue | null) => (r1?.f ?? 0) >= 0 && (r1?.f ?? 0) <= 1,
   },
 ];
 
@@ -312,7 +332,7 @@ export function verifyLaws(engine: typeof Truth): LawResult[] {
 
     // Run multiple iterations for property-based testing
     for (let i = 0; i < 100; i++) {
-      if ('fn' in law && law.fn.length === 1) {
+      if (law.arity === 1) {
         // Unary law
         const t = law.gen();
         const r1 = law.fn(t);

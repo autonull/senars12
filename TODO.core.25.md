@@ -235,6 +235,7 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 **Preserves:** representation learning, distillation, constrained decoding, portable heads, safety gates, MC credit assignment, imagination; **consolidates:** the duplicate judge only.
 
 ### W6 — Economy, memory, and the two-way loop
+- [x] TypeScript compilation fixes; all core gates pass (one:oracle, import:boundary, capability:gate).
 - [ ] Ten contract schemas in zod (`Candidate, Judgment, ConsequenceReport, Conflict, Diagnostic, RepairRequest, Verdict, Outcome, Lesson, WorkItem`), producer + consumer + test per schema.
 - [ ] Repair ladder: param fix → precondition subgoal → alternate operator → explained veto. **S2 mints S1 work** into the same task economy.
 - [ ] `U = Σ wᵢ·φᵢ`; successor features by TD from the log; VoI with learned answerability; metareasoning from judgment margins; one aged-bag scheduler; drives become the gradient view.
@@ -361,7 +362,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 5. W3: ✅ **risk tiers + gate matrix**; ✅ **fail-closed irreversible**; governance spine unified.
 6. W4: ✅ **formula-AST NAL + interpreter verifier + laws/vectors; transcribed table kept as witness.**
 7. W5: ✅ **COMPLETE** — faculty specs + fallbacks; judge weight-change events; ECE demotion; GBNF + WASI heads + imagination ported.
-8. W6: curriculum + RLFP labels; arena lanes; cost/quality surface; memory indexes + analyzers as folds.
+8. **W6: IN PROGRESS** — ✅ TypeScript compilation fixes; ✅ all core gates pass (one:oracle, import:boundary, capability:gate); ⟶ next: contract schemas, repair ladder, utility surface, memory indexes as fold views, analyzers as fold queries, schema induction port.
 9. W7: skill DSL + admission lifecycle; self-tools as rung 5; books re-fold; poisoned book rejected.
 10. W8: generated MCP + profiles + npx + playground.
 11. W9: deck renders a new event for free.

@@ -6,7 +6,7 @@ import { createActionSelector, type ActionSelector } from './select.js';
 import { createLoopRecorder, type LoopRecorder } from './record.js';
 import { createSelfModelManager, type SelfModelManager } from './self-model.js';
 import type { ContractRegistry } from './contract.js';
-import type { RepairLoop } from './repair.js';
+import { createRepairLoop, type RepairLoop } from './repair.js';
 import type { Economy, EconomyScheduler } from '../economy/index.js';
 import type { FacultyRegistry } from '../faculties/specs.js';
 import type { OracleRegistry } from '../oracles/oracle.js';
@@ -27,7 +27,7 @@ export function createLoopContext(
   const correlationId = mergedConfig.correlationId ?? env.ids.uuid();
 
   const recorder = mergedConfig.recordEnabled ? createLoopRecorder(undefined, correlationId, { clock: env.clock, ids: env.ids }) : undefined;
-  const selfModel = mergedConfig.selfModelEnabled ? createSelfModelManager({ clock: env.clock }) : undefined;
+  const selfModel = mergedConfig.selfModelEnabled ? createSelfModelManager(undefined, { clock: env.clock }) : undefined;
   const selector = createActionSelector(undefined, { rng: env.rng, clock: env.clock });
   const repair = mergedConfig.repairEnabled ? createRepairLoop(undefined, { clock: env.clock }) : undefined;
 

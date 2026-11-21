@@ -6,7 +6,7 @@
 
 import type { Term } from '../kernel/terms/term.js';
 import type { Truth } from '../kernel/truth.js';
-import type { Task } from '../kernel/types.js';
+import type { Task, TimestampMs } from '../kernel/types.js';
 import type { FacultyOutput } from '../faculties/specs.js';
 import type { RNG, Clock } from '../kernel/env.js';
 

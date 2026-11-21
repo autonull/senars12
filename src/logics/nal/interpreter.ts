@@ -11,6 +11,7 @@ import { Truth, type TruthValue } from '../../kernel/truth.js';
 import { Stamp } from '../../kernel/stamp.js';
 import type { RuleAST, ConditionAST, ConclusionAST, TermRef, Premise, StepResult, Logic } from '../port.js';
 import type { NALTerm, NALPremise, NALStepResult } from './rules-ast.js';
+import { NAL_RULES_AST } from './rules-ast.js';
 
 /** Evaluation context for the interpreter. */
 interface EvalContext {
@@ -169,7 +170,7 @@ function deriveStamp(parents: readonly Stamp[], ruleId: string): Stamp {
 
 /** Interpret a single rule application. */
 export function interpretRule(
-  rule: RuleAST<NAlTerm>,
+  rule: RuleAST<NALTerm>,
   premises: readonly NALPremise[],
   stamp: Stamp
 ): NALStepResult | null {
@@ -205,7 +206,7 @@ export function interpretRule(
 
 /** Apply all applicable rules to premises. */
 export function interpretAllRules(
-  rules: readonly RuleAST<NAlTerm>[],
+  rules: readonly RuleAST<NALTerm>[],
   premises: readonly NALPremise[],
   stamp: Stamp,
   options: { categories?: string[]; limit?: number } = {}
@@ -233,7 +234,7 @@ export function interpretAllRules(
 
 /** Generate all possible steps from a bag (pairwise). */
 export function interpretGenerateSteps(
-  rules: readonly RuleAST<NAlTerm>[],
+  rules: readonly RuleAST<NALTerm>[],
   bagEntries: readonly { term: NALTerm; truth: TruthValue; stamp: Stamp }[],
   options: { maxPairs?: number; categories?: string[] } = {}
 ): NALStepResult[] {
@@ -277,9 +278,9 @@ export function interpretGenerateSteps(
 
 /** NAL interpreter using the formula-AST rules. */
 export class NALInterpreter {
-  private rules: readonly RuleAST<NAlTerm>[];
+  private rules: readonly RuleAST<NALTerm>[];
 
-  constructor(rules: readonly RuleAST<NAlTerm>[] = NAL_RULES_AST) {
+  constructor(rules: readonly RuleAST<NALTerm>[] = NAL_RULES_AST) {
     this.rules = rules;
   }
 
@@ -301,17 +302,17 @@ export class NALInterpreter {
   }
 
   /** Get all rules. */
-  getRules(): readonly RuleAST<NAlTerm>[] {
+  getRules(): readonly RuleAST<NALTerm>[] {
     return this.rules;
   }
 
   /** Get rule by ID. */
-  getRule(id: string): RuleAST<NAlTerm> | undefined {
+  getRule(id: string): RuleAST<NALTerm> | undefined {
     return this.rules.find(r => r.id === id);
   }
 }
 
 /** Create a NAL interpreter. */
-export function createNALInterpreter(rules?: readonly RuleAST<NAlTerm>[]): NALInterpreter {
+export function createNALInterpreter(rules?: readonly RuleAST<NALTerm>[]): NALInterpreter {
   return new NALInterpreter(rules);
 }

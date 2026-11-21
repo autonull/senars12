@@ -52,7 +52,7 @@ export class LoopLogAdapter {
   }
 
   /** Convert loop event to cognitive event. */
-  private toCognitiveEvent(event: LoopEvent, type: CognitiveEvent['type']): Omit<CognitiveEvent, 'id' | 'timestamp'> {
+  private toCognitiveEvent(event: LoopEvent, type: CognitiveEvent['type']): CognitiveEvent {
     const base = {
       type,
       engine: 'nar' as const,
@@ -68,83 +68,98 @@ export class LoopLogAdapter {
           ...base,
           payload: {
             taskId: event.data.taskId as string ?? `task-${event.iteration}`,
-            term: event.data.term as any,
-            truth: event.data.truth as any,
-            weight: event.data.weight as number ?? 1,
-            source: 'loop',
+            term: String(event.data.term ?? ''),
+            taskType: event.data.taskType ?? 'belief',
+            truth: event.data.truth,
+            source: event.data.source ?? 'loop',
+            budget: event.data.budget ?? { cycles: 100, depth: 10, memory: 1000, llm: 10 },
           },
-        };
+        } as CognitiveEvent;
 
       case 'derivation.accepted':
         return {
           ...base,
           payload: {
             derivationId: `deriv-${event.iteration}-${event.type}`,
-            premises: event.data.premises as any[] ?? [],
-            conclusion: event.data.conclusion as any,
-            truth: event.data.truth as any,
-            rule: event.data.rule as string ?? 'loop',
+            ruleId: event.data.rule ?? 'loop',
+            ruleCategory: event.data.ruleCategory,
+            premises: (event.data.premises as any[] ?? []).map(String),
+            conclusion: String(event.data.conclusion ?? ''),
+            truth: event.data.truth ?? { frequency: 0.5, confidence: 0.5 },
+            premiseTruths: event.data.premiseTruths,
+            truthFn: event.data.truthFn,
+            evidenceLineage: event.data.evidenceLineage ?? [],
+            independenceCheck: event.data.independenceCheck ?? 'unknown',
+            cycle: event.iteration,
+            correlationId: event.correlationId,
           },
-        };
+        } as CognitiveEvent;
 
       case 'derivation.record':
         return {
           ...base,
           payload: {
             derivationId: `deriv-${event.iteration}-${event.type}`,
-            step: event.data.step as any,
-            inferenceType: event.data.inferenceType as string ?? 'loop',
+            step: event.data.step,
+            inferenceType: event.data.inferenceType ?? 'loop',
           },
-        };
+        } as CognitiveEvent;
 
       case 'judgment.resolved':
         return {
           ...base,
           payload: {
-            judgmentId: event.data.judgmentId as string ?? `judgment-${event.iteration}`,
-            taskId: event.data.taskId as string ?? `task-${event.iteration}`,
-            score: event.data.score as number ?? 0,
-            confidence: event.data.confidence as number ?? 0,
-            verdict: event.data.verdict as 'allow' | 'deny' | 'defer' ?? 'allow',
+            queryId: event.data.judgmentId as string ?? `judgment-${event.iteration}`,
+            shape: event.data.shape ?? 'propositional',
+            axis: event.data.axis ?? 'truth',
+            premiseTerms: event.data.premiseTerms ?? [],
+            conclusionTerm: event.data.conclusionTerm ?? '',
+            verdict: event.data.verdict ?? 'allow',
+            confidence: event.data.confidence ?? 0,
+            model: event.data.model,
+            ruleMatches: event.data.ruleMatches ?? [],
+            theorySnapshot: event.data.theorySnapshot,
+            consistencyProof: event.data.consistencyProof,
           },
-        };
+        } as CognitiveEvent;
 
       case 'gate.passed':
         return {
           ...base,
           payload: {
-            gate: event.data.gate as string ?? 'loop',
-            artifactId: event.data.artifactId as string ?? `artifact-${event.iteration}`,
-            evidence: event.data.evidence as Record<string, unknown> ?? {},
+            gate: event.data.gate ?? 'loop',
+            artifactId: event.data.artifactId ?? `artifact-${event.iteration}`,
+            evidence: event.data.evidence ?? {},
           },
-        };
+        } as CognitiveEvent;
 
       case 'gate.failed':
         return {
           ...base,
           payload: {
-            gate: event.data.gate as string ?? 'loop',
-            artifactId: event.data.artifactId as string ?? `artifact-${event.iteration}`,
-            reason: event.data.reason as string ?? 'Loop iteration failed',
-            evidence: event.data.evidence as Record<string, unknown> ?? {},
+            gate: event.data.gate ?? 'loop',
+            artifactId: event.data.artifactId ?? `artifact-${event.iteration}`,
+            reason: event.data.reason ?? 'Loop iteration failed',
+            evidence: event.data.evidence ?? {},
           },
-        };
+        } as CognitiveEvent;
 
       case 'budget.exhausted':
         return {
           ...base,
           payload: {
-            scope: event.data.scope as string ?? 'loop',
-            consumed: event.data.consumed as number ?? 0,
-            limit: event.data.limit as number ?? 1000,
+            budgetType: event.data.budgetType ?? 'cycles',
+            remaining: event.data.remaining ?? 0,
+            limit: event.data.limit ?? 1000,
+            terminationReason: event.data.terminationReason ?? 'exhausted',
           },
-        };
+        } as CognitiveEvent;
 
       default:
         return {
           ...base,
           payload: event.data as any,
-        };
+        } as CognitiveEvent;
     }
   }
 }

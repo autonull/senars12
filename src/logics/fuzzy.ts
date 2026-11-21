@@ -6,6 +6,7 @@
  */
 
 import { Frequency, Confidence, TruthValue, TruthLike } from '../kernel/types.js';
+import type { Logic } from './port.js';
 
 /** Fuzzy truth value extends standard truth with membership degree. */
 export interface FuzzyTruth extends TruthValue {
@@ -266,7 +267,7 @@ export function parseFuzzyTruth(s: string): FuzzyTruth | null {
 }
 
 /** Fuzzy Logic implementation of the Logic port. */
-export const FUZZY_LOGIC: import('../port.js').Logic<FuzzyTruth> = {
+export const FUZZY_LOGIC: Logic<FuzzyTruth> = {
   id: 'fuzzy',
   version: '1.0.0',
   codec: {

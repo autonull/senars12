@@ -1,5 +1,3 @@
-import { errMsg } from '@senars/errors';
-import { serializeTruth } from '@senars/util/truth-schema';
 import { takeFirst, takeLast } from '@senars/util/collections';
 import { intBetween, unitInterval } from '@senars/config';
 import { evaluateExpression } from '@senars/util/eval';
@@ -7,6 +5,21 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import type { Term } from '../../terms';
 import { mentionsSymbol } from '../../terms';
+import type { TruthLike } from '../../types/truth.js';
+import { asBeliefTruth } from '../../types/truth.js';
+
+/** Format error message. */
+function errMsg(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** Serialize truth value to Narsese format. */
+function serializeTruth(truth: TruthLike, fractionDigits = 4): string {
+  const bt = asBeliefTruth(truth);
+  const f = bt.frequency.toFixed(fractionDigits);
+  const c = bt.confidence.toFixed(fractionDigits);
+  return `%${f};${c}%`;
+}
 
 export interface NARSToolDeps {
   workingMemory: { size(): number };

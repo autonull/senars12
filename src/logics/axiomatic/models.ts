@@ -256,14 +256,14 @@ export class ModelFinder {
 
     // Try true
     assignment.set(branchVar, true);
-    if (this.dpll(cnf, variables, assignment, domain, models, startTime)) {
+    if (this.dpll(cnf, variables, assignment, domain, models, startTime, clock)) {
       if (models.length >= this.config.maxModels) return false;
     }
     assignment.delete(branchVar);
 
     // Try false
     assignment.set(branchVar, false);
-    if (this.dpll(cnf, variables, assignment, domain, models, startTime)) {
+    if (this.dpll(cnf, variables, assignment, domain, models, startTime, clock)) {
       if (models.length >= this.config.maxModels) return false;
     }
     assignment.delete(branchVar);

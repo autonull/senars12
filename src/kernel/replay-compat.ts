@@ -24,7 +24,8 @@ import {
 } from '@senars/schemas/derivation-records.js';
 import type { IdSource } from '@senars/util/id.js';
 import type { RandomSource } from '@senars/util/random.js';
-import type { Clock } from '@senars/util/clock.js';
+import type { Clock as UtilClock } from '@senars/util/clock.js';
+import type { Clock } from './env.js';
 import { createDefaultClock } from './env.js';
 import { appendJsonl, readJsonlWith, writeJsonFileSync } from '@senars/util/fs';
 import { errMsg } from '@senars/util/error';
@@ -140,8 +141,10 @@ async function replayWithInjectedEntropy(options: FullReplayOptions): Promise<Re
     : [];
 
   const { cognitiveParams, strategyRegistry } = options;
+  // Convert kernel Clock (with now/setTime/advance) to util Clock (() => number)
+  const utilClock: UtilClock | undefined = clock ? () => clock.now() : undefined;
   const memory = new Memory(
-    rng || clock ? { ...memoryConfig, bag: { ...memoryConfig?.bag, rng, clock } } : memoryConfig,
+    rng || clock ? { ...memoryConfig, bag: { ...memoryConfig?.bag, rng, clock: utilClock } } : memoryConfig,
     {
       attentionModel: cognitiveParams
         ? resolveSlot<AttentionModel>(

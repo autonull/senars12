@@ -1,5 +1,18 @@
-import { BoundedRing, maxBy, mean } from '@senars/util/collections';
-import { ambientRng, anneal, nextInt, type RandomSource, rngFrom } from '@senars/util/random';
+import { BoundedRing, maxBy } from '@senars/util/collections';
+import { ambientRng, nextInt, type RandomSource, rngFrom } from '@senars/util/random';
+
+/** Compute arithmetic mean. */
+function mean(values: readonly number[]): number {
+  if (values.length === 0) return 0;
+  let sum = 0;
+  for (const v of values) sum += v;
+  return sum / values.length;
+}
+
+/** Simulated annealing schedule. */
+function anneal(temp: number, iter: number, coolingRate = 0.995): number {
+  return temp * Math.pow(coolingRate, iter);
+}
 import { type Term, TermBuilder, Truth } from '../../../index.js';
 import type { NAR } from '../../../nar.js';
 import { operationNameOf, operationTerm } from '../../../terms/impls/operation-term.js';

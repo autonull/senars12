@@ -13,11 +13,14 @@ import type { RuleAST, ConditionAST, ConclusionAST, TermRef, Premise, StepResult
 /** Type for NAL terms. */
 export type NALTerm = Term;
 
+/** Alias for backward compatibility. */
+export type NAlTerm = NALTerm;
+
 /** NAL premise. */
-export type NALPremise = Premise<NAlTerm>;
+export type NALPremise = Premise<NALTerm>;
 
 /** NAL step result. */
-export type NALStepResult = StepResult<NAlTerm>;
+export type NALStepResult = StepResult<NALTerm>;
 
 /** Build a term reference to a premise field. */
 const prem = (index: 0 | 1, field: 'subject' | 'predicate' | 'term'): TermRef => ({
@@ -108,7 +111,7 @@ const and = (...args: ConditionAST[]): ConditionAST => ({ op: 'and', args });
 const or = (...args: ConditionAST[]): ConditionAST => ({ op: 'or', args });
 
 /** All NAL rules as formula-ASTs. */
-export const NAL_RULES_AST: readonly RuleAST<NAlTerm>[] = [
+export const NAL_RULES_AST: readonly RuleAST<NALTerm>[] = [
   // ========================================================================
   // CORE SYLLOGISTIC RULES (NAL-1 to NAL-4)
   // ========================================================================
@@ -367,18 +370,18 @@ export const NAL_RULES_AST: readonly RuleAST<NAlTerm>[] = [
 ];
 
 /** Rule table: maps rule IDs to rule ASTs. */
-export const RULE_TABLE_AST = new Map<string, RuleAST<NAlTerm>>();
+export const RULE_TABLE_AST = new Map<string, RuleAST<NALTerm>>();
 for (const rule of NAL_RULES_AST) {
   RULE_TABLE_AST.set(rule.id, rule);
 }
 
 /** Get rule AST by ID. */
-export function getRuleAST(id: string): RuleAST<NAlTerm> | undefined {
+export function getRuleAST(id: string): RuleAST<NALTerm> | undefined {
   return RULE_TABLE_AST.get(id);
 }
 
 /** Get rule ASTs by category. */
-export function getRuleASTsByCategory(category: string): RuleAST<NAlTerm>[] {
+export function getRuleASTsByCategory(category: string): RuleAST<NALTerm>[] {
   return NAL_RULES_AST.filter(r => r.category === category);
 }
 

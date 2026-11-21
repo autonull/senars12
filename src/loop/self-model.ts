@@ -4,7 +4,7 @@
  * Maintains a continuously updated model for meta-reasoning and self-improvement.
  */
 
-import type { Task, TaskType } from '../kernel/types.js';
+import type { Task, TaskType, TimestampMs } from '../kernel/types.js';
 import type { Truth } from '../kernel/truth.js';
 import type { LoopAppraisal } from './appraise.js';
 import type { Clock } from '../kernel/env.js';
