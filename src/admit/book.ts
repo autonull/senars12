@@ -59,6 +59,16 @@ export interface Book {
   entries: BookEntry[];
 }
 
+/** Compute simple hash for book integrity. */
+function computeHash(content: string): string {
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    hash = ((hash << 5) - hash) + content.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16);
+}
+
 /** Book builder for constructing books. */
 export class BookBuilder {
   private metadata: Partial<BookMetadata> = {};
@@ -115,22 +125,12 @@ export class BookBuilder {
 
     // Compute hash
     const content = JSON.stringify({ metadata: { ...fullMetadata, hash: '' }, entries: this.entries });
-    fullMetadata.hash = this.computeHash(content);
+    fullMetadata.hash = computeHash(content);
 
     return {
       metadata: fullMetadata,
       entries: this.entries,
     };
-  }
-
-  /** Compute simple hash. */
-  private computeHash(content: string): string {
-    let hash = 0;
-    for (let i = 0; i < content.length; i++) {
-      hash = ((hash << 5) - hash) + content.charCodeAt(i);
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16);
   }
 }
 
@@ -241,22 +241,13 @@ export class BookLibrary {
 
     const errors: string[] = [];
     const content = JSON.stringify({ metadata: { ...book.metadata, hash: '' }, entries: book.entries });
-    const computedHash = this.computeHash(content);
+    const computedHash = computeHash(content);
 
     if (computedHash !== book.metadata.hash) {
       errors.push('Hash mismatch: book may have been modified');
     }
 
     return { valid: errors.length === 0, errors };
-  }
-
-  private computeHash(content: string): string {
-    let hash = 0;
-    for (let i = 0; i < content.length; i++) {
-      hash = ((hash << 5) - hash) + content.charCodeAt(i);
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16);
   }
 }
 

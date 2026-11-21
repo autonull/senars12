@@ -383,7 +383,22 @@ function registerBuiltinRules(executor: StepExecutor): void {
     buildConclusion: (premises) => premises[0]!.term,
   });
 
-  // Comparison: S1-->P1, S2-->P2 => (S1*S2)-->(P1*P2)
+  // Comparison & Analogy: S1-->P1, S2-->P2 => (S1*S2)-->(P1*P2) | (S1*S2)<->(P1*P2)
+  const twoInheritanceCondition = (premises: Premise[]) =>
+    isInheritance(premises[0]!.term) && isInheritance(premises[1]!.term);
+
+  const buildProductPairConclusion = (
+    createRelation: (subject: Term, predicate: Term) => Term
+  ) => (premises: Premise[]) => {
+    const m = premises[0]!;
+    const n = premises[1]!;
+    const s1 = getSubject(m.term);
+    const s2 = getSubject(n.term);
+    const p1 = getPredicate(m.term);
+    const p2 = getPredicate(n.term);
+    return createRelation(createProduct(s1, s2), createProduct(p1, p2));
+  };
+
   executor.registerRule({
     id: 'comparison',
     name: 'Comparison',
@@ -393,26 +408,10 @@ function registerBuiltinRules(executor: StepExecutor): void {
     truthOp: 'analogy',
     priority: 70,
     builtin: true,
-    condition: (premises) => {
-      const m = premises[0]!;
-      const n = premises[1]!;
-      return isInheritance(m.term) && isInheritance(n.term);
-    },
-    buildConclusion: (premises) => {
-      const m = premises[0]!;
-      const n = premises[1]!;
-      const s1 = getSubject(m.term);
-      const s2 = getSubject(n.term);
-      const p1 = getPredicate(m.term);
-      const p2 = getPredicate(n.term);
-      return createInheritance(
-        createProduct(s1, s2),
-        createProduct(p1, p2)
-      );
-    },
+    condition: twoInheritanceCondition,
+    buildConclusion: buildProductPairConclusion(createInheritance),
   });
 
-  // Analogy: S1-->P1, S2-->P2 => (S1*S2)<->(P1*P2)
   executor.registerRule({
     id: 'analogy',
     name: 'Analogy',
@@ -422,23 +421,8 @@ function registerBuiltinRules(executor: StepExecutor): void {
     truthOp: 'analogy',
     priority: 65,
     builtin: true,
-    condition: (premises) => {
-      const m = premises[0]!;
-      const n = premises[1]!;
-      return isInheritance(m.term) && isInheritance(n.term);
-    },
-    buildConclusion: (premises) => {
-      const m = premises[0]!;
-      const n = premises[1]!;
-      const s1 = getSubject(m.term);
-      const s2 = getSubject(n.term);
-      const p1 = getPredicate(m.term);
-      const p2 = getPredicate(n.term);
-      return createSimilarity(
-        createProduct(s1, s2),
-        createProduct(p1, p2)
-      );
-    },
+    condition: twoInheritanceCondition,
+    buildConclusion: buildProductPairConclusion(createSimilarity),
   });
 
   // Resemblance: S1-->P, S2-->P => S1<->S2

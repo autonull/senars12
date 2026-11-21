@@ -8,6 +8,11 @@
 import { Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm, termInterner, termToJSON, termFromJSON } from '../intern.js';
 import { getArgs } from '../term.js';
 import type { TruthValue } from '../../types.js';
+import {
+  formatTerm as sharedFormatTerm,
+  getPunctuation,
+  escapeConstant,
+} from './formatters.js';
 
 /** Narsese codec options. */
 export interface NarseseCodecOptions {
@@ -50,10 +55,9 @@ export interface EncodedTerm {
  */
 export function encodeNarsese(term: Term, options: Partial<NarseseCodecOptions> = {}): string {
   const opts = { ...defaultNarseseCodecOptions, ...options };
-  let result = formatTerm(term, opts);
+  let result = sharedFormatTerm(term);
 
   if (opts.includePunctuation) {
-    // Determine punctuation from term type
     const punct = getPunctuation(term);
     if (punct) result += punct;
   }
@@ -70,7 +74,7 @@ export function encodeNarseseWithTruth(
   options: Partial<NarseseCodecOptions> = {}
 ): string {
   const opts = { ...defaultNarseseCodecOptions, ...options, includeTruth: true };
-  let result = formatTerm(term, opts);
+  let result = sharedFormatTerm(term);
 
   if (opts.includeTruth) {
     result = `${result}%${truth.f.toFixed(2)};${truth.c.toFixed(2)}%`;
@@ -84,160 +88,8 @@ export function encodeNarseseWithTruth(
   return result;
 }
 
-/**
- * Format a term recursively.
- */
-function formatTerm(term: Term, options: NarseseCodecOptions): string {
-  const args = getArgs(term);
-  switch (term.op) {
-    case TermOp.VARIABLE:
-      return (term as VariableTerm).name;
-
-    case TermOp.CONSTANT:
-      return escapeConstant((term as ConstantTerm).value);
-
-    case TermOp.NEGATION:
-      return `~${formatTerm(args![0]!, options)}`;
-
-    case TermOp.INHERITANCE:
-      return formatBinary(term as CompoundTerm, '-->', options);
-
-    case TermOp.SIMILARITY:
-      return formatBinary(term as CompoundTerm, '<->', options);
-
-    case TermOp.IMPLICATION:
-      return formatBinary(term as CompoundTerm, '==>', options);
-
-    case TermOp.EQUIVALENCE:
-      return formatBinary(term as CompoundTerm, '<=>', options);
-
-    case TermOp.CONJUNCTION:
-      return formatNary(term as CompoundTerm, '&', options);
-
-    case TermOp.DISJUNCTION:
-      return formatNary(term as CompoundTerm, '|', options);
-
-    case TermOp.PRODUCT:
-      return formatNary(term as CompoundTerm, '*', options);
-
-    case TermOp.EXTENSIONAL_IMAGE:
-      return formatBinary(term as CompoundTerm, '@', options);
-
-    case TermOp.INTENSIONAL_IMAGE:
-      return formatBinary(term as CompoundTerm, '#', options);
-
-    case TermOp.PREDICTION:
-      return formatBinary(term as CompoundTerm, '|>', options);
-
-    case TermOp.CONCURRENT:
-      return formatNary(term as CompoundTerm, '||', options);
-
-    case TermOp.SEQUENTIAL:
-      return formatNary(term as CompoundTerm, ';', options);
-
-    case TermOp.PARALLEL:
-      return formatNary(term as CompoundTerm, '|~', options);
-
-    case TermOp.STATEMENT:
-      return `${formatTerm(args![0]!, options)}.`;
-
-    case TermOp.QUESTION:
-      return `${formatTerm(args![0]!, options)}?`;
-
-    case TermOp.GOAL:
-      return `${formatTerm(args![0]!, options)}!`;
-
-    default:
-      // This should never be reached if all TermOp cases are handled
-      // Use a type assertion to satisfy TypeScript
-      return '' as never;
-  }
-}
-
-function formatBinary(term: CompoundTerm, op: string, options: NarseseCodecOptions): string {
-  const left = term.args[0]!;
-  const right = term.args[1]!;
-  const leftStr = formatTerm(left, options);
-  const rightStr = formatTerm(right, options);
-
-  // Add parentheses if needed
-  const leftPrec = getPrecedence(left.op);
-  const rightPrec = getPrecedence(right.op);
-  const opPrec = getOperatorPrecedence(op);
-
-  const leftWrapped = leftPrec < opPrec ? `(${leftStr})` : leftStr;
-  const rightWrapped = rightPrec <= opPrec ? `(${rightStr})` : rightStr;
-
-  return `${leftWrapped} ${op} ${rightWrapped}`;
-}
-
-function formatNary(term: CompoundTerm, op: string, options: NarseseCodecOptions): string {
-  const parts = term.args.map(arg => formatTerm(arg, options));
-  const opPrec = getOperatorPrecedence(op);
-
-  return parts.map((part, i) => {
-    const termOp = term.args[i]!.op;
-    const termPrec = getPrecedence(termOp);
-    return termPrec < opPrec ? `(${part})` : part;
-  }).join(` ${op} `);
-}
-
-function getPrecedence(op: TermOp): number {
-  switch (op) {
-    case TermOp.VARIABLE:
-    case TermOp.CONSTANT:
-      return 100;
-    case TermOp.NEGATION:
-      return 90;
-    case TermOp.INHERITANCE:
-    case TermOp.SIMILARITY:
-    case TermOp.IMPLICATION:
-    case TermOp.EQUIVALENCE:
-    case TermOp.EXTENSIONAL_IMAGE:
-    case TermOp.INTENSIONAL_IMAGE:
-    case TermOp.PREDICTION:
-      return 80;
-    case TermOp.CONJUNCTION:
-    case TermOp.DISJUNCTION:
-    case TermOp.PRODUCT:
-      return 70;
-    case TermOp.CONCURRENT:
-    case TermOp.SEQUENTIAL:
-    case TermOp.PARALLEL:
-      return 60;
-    case TermOp.STATEMENT:
-    case TermOp.QUESTION:
-    case TermOp.GOAL:
-      return 50;
-    default:
-      return 0;
-  }
-}
-
-function getOperatorPrecedence(op: string): number {
-  switch (op) {
-    case '-->': case '<->': case '==>': case '<=>': case '@': case '#': case '|>':
-      return 80;
-    case '&': case '|': case '*':
-      return 70;
-    case '||': case ';': case '|~':
-      return 60;
-    default:
-      return 0;
-  }
-}
-
-function getPunctuation(term: Term): string | null {
-  if (term.op === TermOp.STATEMENT) return '.';
-  if (term.op === TermOp.QUESTION) return '?';
-  if (term.op === TermOp.GOAL) return '!';
-  return null;
-}
-
-function escapeConstant(value: string): string {
-  if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) return value;
-  return `'${value.replace(/'/g, "\\'")}'`;
-}
+// Re-export shared utilities for backward compatibility
+export { escapeConstant, getPunctuation } from './formatters.js';
 
 /**
  * Decode a Narsese string to a term.

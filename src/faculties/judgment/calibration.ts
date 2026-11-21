@@ -66,6 +66,70 @@ export interface CalibrationResult {
   mce: number;
 }
 
+/** Shared binning logic for calibration error computation. */
+const BINS = 10;
+
+interface BinStats {
+  correct: number;
+  total: number;
+}
+
+/** Compute bin statistics for a set of calibration points using a calibration function. */
+function computeBinStats(
+  data: CalibrationPoint[],
+  calibrateFn: (predicted: number) => number
+): BinStats[] {
+  const bins: BinStats[] = Array.from({ length: BINS }, () => ({ correct: 0, total: 0 }));
+
+  for (const point of data) {
+    const calibrated = calibrateFn(point.predicted);
+    const binIndex = Math.min(Math.floor(calibrated * BINS), BINS - 1);
+    const bin = bins[binIndex]!;
+    bin.total++;
+    bin.correct += point.actual;
+  }
+
+  return bins;
+}
+
+/** Compute ECE from bin statistics. */
+function computeECEFromBins(bins: BinStats[], dataLength: number): number {
+  if (dataLength === 0) return 0;
+
+  let ece = 0;
+  let total = 0;
+
+  for (let b = 0; b < BINS; b++) {
+    const bin = bins[b]!;
+    const { correct, total: binTotal } = bin;
+    if (binTotal > 0) {
+      const accuracy = correct / binTotal;
+      const confidence = (b + 0.5) / BINS;
+      ece += (binTotal / dataLength) * Math.abs(accuracy - confidence);
+      total += binTotal;
+    }
+  }
+
+  return total > 0 ? ece : 1.0;
+}
+
+/** Compute MCE from bin statistics. */
+function computeMCEFromBins(bins: BinStats[]): number {
+  let mce = 0;
+
+  for (let b = 0; b < BINS; b++) {
+    const bin = bins[b]!;
+    const { correct, total: binTotal } = bin;
+    if (binTotal > 0) {
+      const accuracy = correct / binTotal;
+      const confidence = (b + 0.5) / BINS;
+      mce = Math.max(mce, Math.abs(accuracy - confidence));
+    }
+  }
+
+  return mce;
+}
+
 /** Temperature scaler. */
 export class TemperatureScaler {
   private temperature = 1.0;
@@ -120,35 +184,8 @@ export class TemperatureScaler {
 
   /** Compute ECE for a given temperature. */
   private computeECEForTemp(temp: number): number {
-    if (this.data.length === 0) return 0;
-
-    const bins = 10;
-    let ece = 0;
-    let total = 0;
-
-    for (let b = 0; b < bins; b++) {
-      const binLow = b / bins;
-      const binHigh = (b + 1) / bins;
-      let binCorrect = 0;
-      let binTotal = 0;
-
-      for (const point of this.data) {
-        const calibrated = this.applyTemperature(point.predicted, temp);
-        if (calibrated >= binLow && calibrated < binHigh) {
-          binTotal++;
-          binCorrect += point.actual;
-        }
-      }
-
-      if (binTotal > 0) {
-        const accuracy = binCorrect / binTotal;
-        const confidence = (binLow + binHigh) / 2;
-        ece += (binTotal / this.data.length) * Math.abs(accuracy - confidence);
-        total += binTotal;
-      }
-    }
-
-    return total > 0 ? ece : 1.0;
+    const bins = computeBinStats(this.data, p => this.applyTemperature(p, temp));
+    return computeECEFromBins(bins, this.data.length);
   }
 
   /** Apply temperature scaling. */
@@ -167,8 +204,9 @@ export class TemperatureScaler {
   /** Calibrate a confidence value. */
   calibrate(confidence: number): CalibrationResult {
     const calibrated = this.applyTemperature(confidence);
-    const ece = this.computeECE();
-    const mce = this.computeMCE();
+    const bins = computeBinStats(this.data, p => this.applyTemperature(p));
+    const ece = computeECEFromBins(bins, this.data.length);
+    const mce = computeMCEFromBins(bins);
 
     return {
       calibrated,
@@ -181,38 +219,14 @@ export class TemperatureScaler {
 
   /** Compute ECE with current temperature. */
   computeECE(): number {
-    return this.computeECEForTemp(this.temperature);
+    const bins = computeBinStats(this.data, p => this.applyTemperature(p));
+    return computeECEFromBins(bins, this.data.length);
   }
 
   /** Compute MCE (Maximum Calibration Error). */
   computeMCE(): number {
-    if (this.data.length === 0) return 0;
-
-    const bins = 10;
-    let mce = 0;
-
-    for (let b = 0; b < bins; b++) {
-      const binLow = b / bins;
-      const binHigh = (b + 1) / bins;
-      let binCorrect = 0;
-      let binTotal = 0;
-
-      for (const point of this.data) {
-        const calibrated = this.applyTemperature(point.predicted);
-        if (calibrated >= binLow && calibrated < binHigh) {
-          binTotal++;
-          binCorrect += point.actual;
-        }
-      }
-
-      if (binTotal > 0) {
-        const accuracy = binCorrect / binTotal;
-        const confidence = (binLow + binHigh) / 2;
-        mce = Math.max(mce, Math.abs(accuracy - confidence));
-      }
-    }
-
-    return mce;
+    const bins = computeBinStats(this.data, p => this.applyTemperature(p));
+    return computeMCEFromBins(bins);
   }
 
   /** Get current temperature. */
@@ -275,77 +289,29 @@ export class BetaCalibrator {
   /** Calibrate a confidence value. */
   calibrate(confidence: number): CalibrationResult {
     const calibrated = this.applyBeta(confidence);
-    const ece = this.computeECE();
+    const bins = computeBinStats(this.data, p => this.applyBeta(p));
+    const ece = computeECEFromBins(bins, this.data.length);
+    const mce = computeMCEFromBins(bins);
 
     return {
       calibrated,
       method: 'beta',
       params: { a: this.a, b: this.b },
       ece,
-      mce: this.computeMCE(),
+      mce,
     };
   }
 
   /** Compute ECE. */
   computeECE(): number {
-    if (this.data.length === 0) return 0;
-
-    const bins = 10;
-    let ece = 0;
-
-    for (let b = 0; b < bins; b++) {
-      const binLow = b / bins;
-      const binHigh = (b + 1) / bins;
-      let binCorrect = 0;
-      let binTotal = 0;
-
-      for (const point of this.data) {
-        const calibrated = this.applyBeta(point.predicted);
-        if (calibrated >= binLow && calibrated < binHigh) {
-          binTotal++;
-          binCorrect += point.actual;
-        }
-      }
-
-      if (binTotal > 0) {
-        const accuracy = binCorrect / binTotal;
-        const confidence = (binLow + binHigh) / 2;
-        ece += (binTotal / this.data.length) * Math.abs(accuracy - confidence);
-      }
-    }
-
-    return ece;
+    const bins = computeBinStats(this.data, p => this.applyBeta(p));
+    return computeECEFromBins(bins, this.data.length);
   }
 
   /** Compute MCE. */
   computeMCE(): number {
-    if (this.data.length === 0) return 0;
-
-    const bins = 10;
-    let mce = 0;
-
-    for (let b = 0; b < bins; b++) {
-      const binLow = b / bins;
-      const binHigh = (b + 1) / bins;
-      let binCorrect = 0;
-      let binTotal = 0;
-
-      for (const point of this.data) {
-        const calibrated = this.applyBeta(point.predicted);
-        if (calibrated >= binLow && calibrated < binHigh) {
-          binTotal++;
-          binCorrect += point.actual;
-        }
-      }
-
-      if (binTotal > 0) {
-        const accuracy = binCorrect / binTotal;
-        const confidence = (binLow + binHigh) / 2;
-        mce = Math.max(mce, Math.abs(accuracy - confidence));
-      }
-    }
-
-    return mce;
+    const bins = computeBinStats(this.data, p => this.applyBeta(p));
+    return computeMCEFromBins(bins);
   }
 }
 

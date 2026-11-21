@@ -11,7 +11,6 @@ import type {
 } from '@senars/schemas/governance.js';
 import type {
   CognitiveEvent,
-  DerivationRecordEvent,
   TaskAdmittedEvent,
 } from '@senars/schemas/cognitive-events.js';
 import {
@@ -21,6 +20,7 @@ import {
 import {
   DerivationRecordSchema,
   validateDerivationRecord,
+  type DerivationRecord,
 } from '@senars/schemas/derivation-records.js';
 import type { IdSource } from '@senars/util/id.js';
 import type { RandomSource } from '@senars/util/random.js';
@@ -45,6 +45,11 @@ import type { Term } from '../terms/index.js';
 import { Stamp, Truth, termParser, termsEqual } from '../terms/index.js';
 import type { Budget, Timestamp } from '../types/index.js';
 import { NEUTRAL_BUDGET } from '../types/index.js';
+import {
+  replayTaskAdmissions,
+  type CognitiveStateSnapshot,
+  replayCognitiveState,
+} from '../log/replay-reducers.js';
 
 function makeDerivedStamp(id: string): Stamp {
   return {
@@ -80,7 +85,7 @@ export interface ReplayTally {
 
 export interface ReplayResult extends ReplayTally {
   memory: MemoryPorts;
-  gateSnapshot: ReturnType<typeof replayCognitiveState>;
+  gateSnapshot: CognitiveStateSnapshot;
   proposalState?: ProposalReplayState;
 }
 
@@ -129,7 +134,7 @@ async function replayWithInjectedEntropy(options: FullReplayOptions): Promise<Re
       range?.to === undefined ? allGateEvents.slice(from) : allGateEvents.slice(from, range.to + 1);
   }
 
-  const derivationRecords: DerivationRecordEvent[] = derivationRecordsPath
+  const derivationRecords: DerivationRecord[] = derivationRecordsPath
     ? readJsonlWith(derivationRecordsPath, DerivationRecordSchema).rows
     : [];
 
@@ -372,7 +377,7 @@ export async function serializeReplayResult(
 }
 
 export function persistDerivationRecords(
-  records: DerivationRecordEvent[],
+  records: DerivationRecord[],
   path: string
 ): { appended: number } {
   return { appended: appendJsonl(path, records) };
@@ -383,135 +388,4 @@ export function loadGateEvents(path: string): { events: CognitiveEvent[]; invali
   return { events: rows, invalid };
 }
 
-export function replayTaskAdmissions(
-  events: CognitiveEvent[]
-): Array<TaskAdmittedEvent['payload']> {
-  return events
-    .filter((e) => e.type === 'task.admitted')
-    .map((e) => (e as TaskAdmittedEvent).payload);
-}
-
-export const SNAPSHOT_VERSION = 2;
-
-export interface CognitiveStateSnapshot {
-  version: number;
-  tasks: Array<{
-    term: string;
-    taskType: string;
-    truth?: { frequency: number; confidence: number };
-  }>;
-  beliefs: Record<string, { frequency: number; confidence: number }>;
-  revisions: Record<
-    string,
-    Array<{
-      oldTruth: { frequency: number; confidence: number };
-      newTruth: { frequency: number; confidence: number };
-    }>
-  >;
-  derivations: Array<{
-    derivationId: string;
-    ruleId: string;
-    conclusion: string;
-    truth: { frequency: number; confidence: number };
-  }>;
-  priorities: Record<string, number>;
-  violations: Array<{ policyId: string; violationType: string; severity: string }>;
-  budgets: Array<{ budgetType: string; terminationReason: string }>;
-  autonomyMode: AutonomyMode | null;
-  proposals: {
-    revision: number;
-    admissions: Array<{
-      proposalId: string;
-      kind: 'content' | 'rule';
-      baseRevision: number;
-      resultingRevision: number;
-      producer?: string;
-    }>;
-    rejections: Array<{
-      proposalId: string;
-      kind: 'content' | 'rule';
-      reason: string;
-      observedRevision: number;
-    }>;
-  };
-}
-
-const emptySnapshot = (): CognitiveStateSnapshot => ({
-  version: SNAPSHOT_VERSION,
-  tasks: [],
-  beliefs: {},
-  revisions: {},
-  derivations: [],
-  priorities: {},
-  violations: [],
-  budgets: [],
-  autonomyMode: null,
-  proposals: { revision: 0, admissions: [], rejections: [] },
-});
-
-export function replayCognitiveState(events: CognitiveEvent[]): CognitiveStateSnapshot {
-  const state = emptySnapshot();
-  for (const event of events) {
-    switch (event.type) {
-      case 'task.admitted':
-        state.tasks.push({
-          term: event.payload.term,
-          taskType: event.payload.taskType,
-          truth: event.payload.truth,
-        });
-        break;
-      case 'belief.revised': {
-        state.beliefs[event.payload.term] = { ...event.payload.newTruth };
-        const chain = state.revisions[event.payload.term] ?? [];
-        chain.push({
-          oldTruth: { ...event.payload.oldTruth },
-          newTruth: { ...event.payload.newTruth },
-        });
-        state.revisions[event.payload.term] = chain;
-        break;
-      }
-      case 'derivation.accepted':
-        state.derivations.push({
-          derivationId: event.payload.derivationId,
-          ruleId: event.payload.ruleId,
-          conclusion: event.payload.conclusion,
-          truth: { ...event.payload.truth },
-        });
-        break;
-      case 'concept.activated':
-        state.priorities[event.payload.term] = event.payload.priority;
-        break;
-      case 'policy.violation':
-        state.violations.push({ ...event.payload });
-        break;
-      case 'budget.exhausted':
-        state.budgets.push({
-          budgetType: event.payload.budgetType,
-          terminationReason: event.payload.terminationReason,
-        });
-        break;
-      case 'autonomy.mode.changed':
-        state.autonomyMode = event.payload.newMode;
-        break;
-      case 'proposal.admitted':
-        state.proposals.admissions.push({
-          proposalId: event.payload.proposalId,
-          kind: event.payload.kind,
-          baseRevision: event.payload.baseRevision,
-          resultingRevision: event.payload.resultingRevision,
-          producer: event.payload.producer,
-        });
-        state.proposals.revision = event.payload.resultingRevision;
-        break;
-      case 'proposal.rejected':
-        state.proposals.rejections.push({
-          proposalId: event.payload.proposalId,
-          kind: event.payload.kind,
-          reason: event.payload.reason,
-          observedRevision: event.payload.observedRevision,
-        });
-        break;
-    }
-  }
-  return state;
-}
+export { replayTaskAdmissions, replayCognitiveState, type CognitiveStateSnapshot } from '../log/replay-reducers.js';

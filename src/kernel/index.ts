@@ -65,8 +65,8 @@ export {
   loadGateEvents,
   replayTaskAdmissions,
   replayCognitiveState,
-  SNAPSHOT_VERSION,
 } from './replay-compat.js';
+export { SNAPSHOT_VERSION, type CognitiveStateSnapshot as KernelCognitiveStateSnapshot } from '../log/replay-reducers.js';
 
 export {
   type TruthValue,

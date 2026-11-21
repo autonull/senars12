@@ -6,7 +6,8 @@
  * TermFactory which interns all created terms.
  */
 
-import { TermFactory, Term, TermOp, VariableTerm, ConstantTerm, CompoundTerm } from './term.js';
+import { TermFactory, Term, VariableTerm, ConstantTerm, CompoundTerm } from './term.js';
+import { TermOp } from './term-ops.js';
 import type { Frequency, Confidence, TruthLike } from '../types.js';
 
 /** Interning statistics. */

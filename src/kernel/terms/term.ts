@@ -7,29 +7,9 @@
 
 import type { TruthValue, Stamp } from '../types.js';
 import type { UUID, TimestampMs } from '../types.js';
+import { TermOp } from './term-ops.js';
 
-/** Term operator types. */
-export enum TermOp {
-  VARIABLE = 'var',
-  CONSTANT = 'const',
-  INHERITANCE = '-->',
-  SIMILARITY = '<->',
-  IMPLICATION = '==>',
-  EQUIVALENCE = '<=>',
-  CONJUNCTION = '&',
-  DISJUNCTION = '|',
-  NEGATION = '~',
-  PRODUCT = '*',
-  EXTENSIONAL_IMAGE = '@',
-  INTENSIONAL_IMAGE = '#',
-  PREDICTION = '|>',
-  CONCURRENT = '||',
-  SEQUENTIAL = ';',
-  PARALLEL = '|~',
-  STATEMENT = '.',
-  QUESTION = '?',
-  GOAL = '!',
-}
+export { TermOp } from './term-ops.js';
 
 /** Base term interface. */
 export interface TermBase {
@@ -492,128 +472,13 @@ class NarseseParser {
 
 /**
  * Narsese Formatter — formats terms as Narsese strings.
+ * Uses shared formatters from ./codec/formatters.ts
  */
+import { formatTerm as sharedFormatTerm } from './codec/formatters.js';
+
 class NarseseFormatter {
   static format(term: Term): string {
-    return this.formatTerm(term, 0);
-  }
-
-  private static getArgs(term: Term): readonly Term[] | null {
-    return term.op !== TermOp.VARIABLE && term.op !== TermOp.CONSTANT ? (term as CompoundTerm).args : null;
-  }
-
-  private static formatTerm(term: Term, precedence: number): string {
-    const opPrec = this.getPrecedence(term.op);
-    const needsParens = opPrec < precedence;
-    const args = this.getArgs(term);
-
-    let result: string;
-    switch (term.op) {
-      case TermOp.VARIABLE:
-        result = (term as VariableTerm).name;
-        break;
-      case TermOp.CONSTANT:
-        result = this.escapeConstant((term as ConstantTerm).value);
-        break;
-      case TermOp.NEGATION:
-        result = '~' + this.formatTerm(args![0]!, this.getPrecedence(TermOp.NEGATION));
-        break;
-      case TermOp.INHERITANCE:
-        result = this.formatBinary(args![0]!, args![1]!, '-->', opPrec);
-        break;
-      case TermOp.SIMILARITY:
-        result = this.formatBinary(args![0]!, args![1]!, '<->', opPrec);
-        break;
-      case TermOp.IMPLICATION:
-        result = this.formatBinary(args![0]!, args![1]!, '==>', opPrec);
-        break;
-      case TermOp.EQUIVALENCE:
-        result = this.formatBinary(args![0]!, args![1]!, '<=>', opPrec);
-        break;
-      case TermOp.CONJUNCTION:
-        result = args!.map(a => this.formatTerm(a, opPrec + 1)).join(' & ');
-        break;
-      case TermOp.DISJUNCTION:
-        result = args!.map(a => this.formatTerm(a, opPrec + 1)).join(' | ');
-        break;
-      case TermOp.PRODUCT:
-        result = args!.map(a => this.formatTerm(a, opPrec + 1)).join(' * ');
-        break;
-      case TermOp.EXTENSIONAL_IMAGE:
-        result = this.formatBinary(args![0]!, args![1]!, '@', opPrec);
-        break;
-      case TermOp.INTENSIONAL_IMAGE:
-        result = this.formatBinary(args![0]!, args![1]!, '#', opPrec);
-        break;
-      case TermOp.PREDICTION:
-        result = this.formatBinary(args![0]!, args![1]!, '|>', opPrec);
-        break;
-      case TermOp.CONCURRENT:
-        result = args!.map(a => this.formatTerm(a, opPrec + 1)).join(' || ');
-        break;
-      case TermOp.SEQUENTIAL:
-        result = args!.map(a => this.formatTerm(a, opPrec + 1)).join(' ; ');
-        break;
-      case TermOp.PARALLEL:
-        result = args!.map(a => this.formatTerm(a, opPrec + 1)).join(' |~ ');
-        break;
-      case TermOp.STATEMENT:
-        result = this.formatTerm(args![0]!, opPrec) + '.';
-        break;
-      case TermOp.QUESTION:
-        result = this.formatTerm(args![0]!, opPrec) + '?';
-        break;
-      case TermOp.GOAL:
-        result = this.formatTerm(args![0]!, opPrec) + '!';
-        break;
-      default:
-        // Exhaustiveness check - all TermOp cases should be handled
-        return '' as never;
-    }
-
-    return needsParens ? `(${result})` : result;
-  }
-
-  private static formatBinary(left: Term, right: Term, op: string, prec: number): string {
-    const nextPrec = this.getPrecedence(TermOp.INHERITANCE); // All binary ops same precedence
-    return `${this.formatTerm(left, nextPrec + 1)} ${op} ${this.formatTerm(right, nextPrec + 1)}`;
-  }
-
-  private static getPrecedence(op: TermOp): number {
-    switch (op) {
-      case TermOp.VARIABLE:
-      case TermOp.CONSTANT:
-        return 100;
-      case TermOp.NEGATION:
-        return 90;
-      case TermOp.INHERITANCE:
-      case TermOp.SIMILARITY:
-      case TermOp.IMPLICATION:
-      case TermOp.EQUIVALENCE:
-      case TermOp.EXTENSIONAL_IMAGE:
-      case TermOp.INTENSIONAL_IMAGE:
-      case TermOp.PREDICTION:
-        return 80;
-      case TermOp.CONJUNCTION:
-      case TermOp.DISJUNCTION:
-      case TermOp.PRODUCT:
-        return 70;
-      case TermOp.CONCURRENT:
-      case TermOp.SEQUENTIAL:
-      case TermOp.PARALLEL:
-        return 60;
-      case TermOp.STATEMENT:
-      case TermOp.QUESTION:
-      case TermOp.GOAL:
-        return 50;
-      default:
-        return 0;
-    }
-  }
-
-  private static escapeConstant(value: string): string {
-    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) return value;
-    return `'${value.replace(/'/g, "\\'")}'`;
+    return sharedFormatTerm(term);
   }
 }
 

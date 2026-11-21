@@ -68,6 +68,40 @@ export interface Gate {
   description: string;
 }
 
+/** Options for running gates. */
+interface RunGatesOptions {
+  /** Gate kinds to run. */
+  kinds: Gate['kind'][];
+  /** Whether to stop on required gate failure. */
+  stopOnRequiredFail: boolean;
+  /** Whether to stop on quarantine verdict. */
+  stopOnQuarantine: boolean;
+}
+
+/** Run gates of specified kinds with common logic. */
+async function runGates(
+  gates: Map<string, Gate>,
+  artifact: Artifact,
+  context: VerifierContext,
+  options: RunGatesOptions
+): Promise<{ passed: boolean; results: GateResult[] }> {
+  const filteredGates = Array.from(gates.values()).filter(g => options.kinds.includes(g.kind));
+  const results: GateResult[] = [];
+
+  for (const gate of filteredGates) {
+    const result = await gate.verifier(artifact, context);
+    results.push(result);
+    if (options.stopOnRequiredFail && gate.required && result.verdict === 'fail') {
+      return { passed: false, results };
+    }
+    if (options.stopOnQuarantine && result.verdict === 'quarantine') {
+      return { passed: false, results };
+    }
+  }
+
+  return { passed: true, results };
+}
+
 /** Lifecycle manager. */
 export class LifecycleManager {
   private gates: Map<string, Gate> = new Map();
@@ -105,23 +139,11 @@ export class LifecycleManager {
     artifact: Artifact,
     context: VerifierContext
   ): Promise<{ passed: boolean; results: GateResult[] }> {
-    const admissionGates = Array.from(this.gates.values()).filter(
-      g => g.kind === 'admission'
-    );
-    const results: GateResult[] = [];
-
-    for (const gate of admissionGates) {
-      const result = await gate.verifier(artifact, context);
-      results.push(result);
-      if (gate.required && result.verdict === 'fail') {
-        return { passed: false, results };
-      }
-      if (result.verdict === 'quarantine') {
-        return { passed: false, results };
-      }
-    }
-
-    return { passed: true, results };
+    return runGates(this.gates, artifact, context, {
+      kinds: ['admission'],
+      stopOnRequiredFail: true,
+      stopOnQuarantine: true,
+    });
   }
 
   /** Run promotion gates. */
@@ -129,20 +151,11 @@ export class LifecycleManager {
     artifact: Artifact,
     context: VerifierContext
   ): Promise<{ passed: boolean; results: GateResult[] }> {
-    const gates = Array.from(this.gates.values()).filter(
-      g => g.kind === 'promotion'
-    );
-    const results: GateResult[] = [];
-
-    for (const gate of gates) {
-      const result = await gate.verifier(artifact, context);
-      results.push(result);
-      if (gate.required && result.verdict === 'fail') {
-        return { passed: false, results };
-      }
-    }
-
-    return { passed: true, results };
+    return runGates(this.gates, artifact, context, {
+      kinds: ['promotion'],
+      stopOnRequiredFail: true,
+      stopOnQuarantine: false,
+    });
   }
 
   /** Run demotion gates. */
@@ -150,17 +163,11 @@ export class LifecycleManager {
     artifact: Artifact,
     context: VerifierContext
   ): Promise<{ passed: boolean; results: GateResult[] }> {
-    const gates = Array.from(this.gates.values()).filter(
-      g => g.kind === 'demotion'
-    );
-    const results: GateResult[] = [];
-
-    for (const gate of gates) {
-      const result = await gate.verifier(artifact, context);
-      results.push(result);
-    }
-
-    return { passed: true, results };
+    return runGates(this.gates, artifact, context, {
+      kinds: ['demotion'],
+      stopOnRequiredFail: false,
+      stopOnQuarantine: false,
+    });
   }
 
   /** Run retirement gates. */
@@ -168,17 +175,11 @@ export class LifecycleManager {
     artifact: Artifact,
     context: VerifierContext
   ): Promise<{ passed: boolean; results: GateResult[] }> {
-    const gates = Array.from(this.gates.values()).filter(
-      g => g.kind === 'retirement'
-    );
-    const results: GateResult[] = [];
-
-    for (const gate of gates) {
-      const result = await gate.verifier(artifact, context);
-      results.push(result);
-    }
-
-    return { passed: true, results };
+    return runGates(this.gates, artifact, context, {
+      kinds: ['retirement'],
+      stopOnRequiredFail: false,
+      stopOnQuarantine: false,
+    });
   }
 
   /** Trigger phase hooks. */
