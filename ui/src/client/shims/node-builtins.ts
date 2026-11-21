@@ -44,6 +44,17 @@ export const rm = async (): Promise<void> => undefined;
 export const readdir = async (): Promise<string[]> => [];
 export const stat = async () => ({ isDirectory: () => false, isFile: () => false, size: 0 });
 
+// node:fs/promises namespace
+export const promises = {
+  readFile,
+  writeFile,
+  appendFile,
+  mkdir,
+  rm,
+  readdir,
+  stat,
+};
+
 // node:crypto
 export const createHash = (): { update(data: string): unknown; digest(encoding?: string): string } => {
   let accumulated = '';

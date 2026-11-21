@@ -17,7 +17,7 @@ const coreSubpathMap: Record<string, string> = {
   'schemas': 'schemas/index.ts',
   'event-sink': 'event-sink.ts',
   'budget': 'budget.ts',
-  'verify-derivation': 'verify-derivation.ts',
+  'verify-derivation': 'verification/verify-derivation.ts',
   'metta-port': 'metta-port.ts',
   'memory': 'memory/index.ts',
   'cortex': 'cortex/index.ts',
