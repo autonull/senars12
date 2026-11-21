@@ -77,6 +77,7 @@ interface PickRecord {
 export class EconomyScheduler {
   private config: SchedulerConfig;
   private rng: SeededRNG;
+  private clock: { now(): number };
   private state: EconomyState;
   private pickHistory: PickRecord[] = [];
   private eventListeners: Map<EconomyEventType, Set<(event: EconomyEvent) => void>> = new Map();
@@ -84,7 +85,8 @@ export class EconomyScheduler {
 
   constructor(config: Partial<SchedulerConfig> = {}) {
     this.config = { ...defaultSchedulerConfig, ...config };
-    this.rng = new SeededRNG(1);
+    this.rng = new SeededRNG(this.config.seed ?? 1);
+    this.clock = this.config.clock ?? { now: () => Date.now() };
     this.state = this.createInitialState();
     this.initializeEventListeners();
   }
@@ -143,7 +145,7 @@ export class EconomyScheduler {
     const task = this.state.tasks.get(taskId);
     if (!task) return false;
 
-    const updated = { ...task, ...updates, lastAccessed: Date.now(), accessCount: task.accessCount + 1 };
+    const updated = { ...task, ...updates, lastAccessed: this.clock.now(), accessCount: task.accessCount + 1 };
     this.state.tasks.set(taskId, updated);
     this.emit('task_updated', taskId, updates);
     return true;
@@ -168,7 +170,7 @@ export class EconomyScheduler {
 
   /** Schedule one task for the next iteration. */
   schedule(successors: Map<string, Successor[]> = new Map()): SchedulerResult {
-    const startTs = Date.now();
+    const startTs = this.clock.now();
     this.iteration++;
     this.state.iteration = this.iteration;
 
@@ -232,7 +234,7 @@ export class EconomyScheduler {
 
     if (selected) {
       // Update task access
-      this.updateTask(selected.id, { lastAccessed: Date.now(), accessCount: selected.accessCount + 1 });
+      this.updateTask(selected.id, { lastAccessed: this.clock.now(), accessCount: selected.accessCount + 1 });
 
       // Record pick for fairness
       this.pickHistory.push({
@@ -251,7 +253,7 @@ export class EconomyScheduler {
       this.emit('task_scheduled', selected.id, { utility: ranked.find(r => r.task.id === selected.id)?.utility });
     }
 
-    const durationMs = Date.now() - startTs;
+    const durationMs = this.clock.now() - startTs;
 
     return {
       task: selected,
@@ -270,7 +272,7 @@ export class EconomyScheduler {
   /** Apply aging to all tasks. */
   private applyAging(): void {
     const { decayRate, minActivation, accessBoost, maxAge } = this.config.aging;
-    const now = Date.now();
+    const now = this.clock.now();
 
     for (const task of this.state.tasks.values()) {
       // Decay activation
@@ -382,7 +384,7 @@ export class EconomyScheduler {
     const listeners = this.eventListeners.get(type);
     if (!listeners) return;
 
-    const event: EconomyEvent = { type, taskId, iteration: this.iteration, timestamp: Date.now(), data };
+    const event: EconomyEvent = { type, taskId, iteration: this.iteration, timestamp: this.clock.now(), data };
     for (const listener of listeners) {
       try {
         listener(event);
@@ -410,7 +412,7 @@ export class EconomyScheduler {
         iteration: this.iteration,
         budgetUsed: 0,
         budgetRemaining: this.config.budgetPerIteration,
-        durationMs: Date.now() - startTs,
+        durationMs: this.clock.now() - startTs,
         fairnessCheck: { passed: true, violations: [], windowStats: new Map() },
       },
     };

@@ -87,6 +87,13 @@ export class LogisticJudge implements JudgeModel {
   private version = '1.0.0';
   private trainingExamples = 0;
   private lastTrained = 0;
+  private readonly rng: () => number;
+  private readonly now: () => number;
+
+  constructor(options: { rng?: () => number; now?: () => number } = {}) {
+    this.rng = options.rng ?? (() => Math.random());
+    this.now = options.now ?? (() => Date.now());
+  }
 
   /** Extract features from candidate and context. */
   extractFeatures(candidate: JudgmentCandidate, context: JudgmentContext, numCandidates: number): JudgeFeatures {
@@ -206,7 +213,7 @@ export class LogisticJudge implements JudgeModel {
 
     // Initialize weights if needed
     if (this.weights.length !== numFeatures) {
-      this.weights = new Array(numFeatures).fill(0).map(() => (Math.random() - 0.5) * 0.1);
+      this.weights = new Array(numFeatures).fill(0).map(() => (this.rng() - 0.5) * 0.1);
       this.bias = 0;
     }
 
@@ -242,7 +249,7 @@ export class LogisticJudge implements JudgeModel {
     }
 
     this.trainingExamples = examples.length;
-    this.lastTrained = Date.now();
+    this.lastTrained = this.now();
   }
 
   /** Predict from feature array. */
@@ -424,12 +431,17 @@ export class IsotonicCalibrator {
   }
 }
 
-/** Create a default judge ensemble. */
-export function createDefaultJudge(): JudgeEnsemble {
+/** Create an isolated judge ensemble (deterministic when `rng`/`now` are supplied). */
+export function createJudge(options: { rng?: () => number; now?: () => number } = {}): JudgeEnsemble {
   const ensemble = new JudgeEnsemble();
-  ensemble.addModel(new LogisticJudge(), 1.0);
+  ensemble.addModel(new LogisticJudge(options), 1.0);
   return ensemble;
 }
 
-/** Global judge instance. */
+/** Create a default judge ensemble. */
+export function createDefaultJudge(): JudgeEnsemble {
+  return createJudge();
+}
+
+/** Global judge instance (convenience; prefer {@link createJudge}). */
 export const learnedJudge = createDefaultJudge();

@@ -10,11 +10,13 @@ import type { RepairLoop } from './repair.js';
 import type { Economy, EconomyScheduler } from '../economy/index.js';
 import type { FacultyRegistry } from '../faculties/specs.js';
 import type { OracleRegistry } from '../oracles/oracle.js';
+import type { Env } from '../kernel/env.js';
 import type { LoopConfig, LoopContext, FacultyInvoker, FacultySpec, FacultyInput, FacultyOutput } from './types.js';
 import { defaultLoopConfig } from './types.js';
 
 /** Creates the loop context with all dependencies. */
 export function createLoopContext(
+  env: Env,
   economy: Economy,
   scheduler: EconomyScheduler,
   faculties: FacultyRegistry,
@@ -22,7 +24,7 @@ export function createLoopContext(
   config: Partial<LoopConfig> = {}
 ): LoopContext {
   const mergedConfig = { ...defaultLoopConfig, ...config };
-  const correlationId = mergedConfig.correlationId ?? crypto.randomUUID();
+  const correlationId = mergedConfig.correlationId ?? env.ids.uuid();
 
   const recorder = mergedConfig.recordEnabled ? createLoopRecorder(undefined, correlationId) : undefined;
   const selfModel = mergedConfig.selfModelEnabled ? createSelfModelManager() : undefined;
@@ -30,6 +32,7 @@ export function createLoopContext(
 
   return {
     iteration: 0,
+    env,
     economy,
     scheduler,
     faculties,

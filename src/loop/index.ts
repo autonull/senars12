@@ -59,19 +59,20 @@ export * from './appraise.js';
 export * from './self-model.js';
 
 // Re-export loop types with explicit naming to avoid conflict with contract.js IterationResult
-export {
-  CognitiveLoop,
-  createCognitiveLoop,
-  type LoopConfig,
-  type IterationResult as LoopIterationResult,
-  type LoopContext,
-  type ActionResult,
-  type EffectResult,
-  type JudgmentResult,
-  type LoopEventType,
-  type LoopEvent,
-  type FacultyInvoker,
-} from './loop.js';
+export { CognitiveLoop, createCognitiveLoop } from './loop.js';
+export type {
+  LoopConfig,
+  IterationResult as LoopIterationResult,
+  LoopContext,
+  ActionResult,
+  EffectResult,
+  JudgmentResult,
+  LoopEventType,
+  LoopEvent,
+  FacultyInvoker,
+} from './types.js';
+
+export { LOOP_EVENTS } from './types.js';
 
 export {
   createLoopContext,

@@ -39,6 +39,10 @@ export const GATES: readonly Gate[] = [
   script('schema:grammar'),
   script('deps:gate'),
   script('deps:direction'),
+  // W1: the pure fold has no ambient I/O or entropy — clock/RNG/IDs flow through
+  // `Env`, so a seeded run can replay byte-identically. A baseline ratchets the
+  // existing sites down; a new one fails here.
+  script('import:boundary'),
   // TODO29.a A2: the cycle path names a ModelRule, a TextGenerator and an
   // EmbeddingRuntime — never the induction layer it was reaching into.
   script('core:no-lm'),

@@ -2,6 +2,7 @@
  * Loop Events — event emission and subscription for the cognitive loop.
  */
 
+import type { Clock } from '../kernel/env.js';
 import { LOOP_EVENTS } from './types.js';
 import type { LoopEvent, LoopEventType } from './types.js';
 
@@ -9,7 +10,7 @@ import type { LoopEvent, LoopEventType } from './types.js';
 type ListenerMap = Map<LoopEventType, Set<(event: LoopEvent) => void>>;
 
 /** Creates a new event emitter for loop events. */
-export function createLoopEventEmitter(defaultIteration = 0, defaultCorrelationId = ''): {
+export function createLoopEventEmitter(clock: Clock, defaultIteration = 0, defaultCorrelationId = ''): {
   emit: (type: LoopEventType, data: Record<string, unknown>) => void;
   on: (type: LoopEventType, listener: (event: LoopEvent) => void) => () => void;
   getListeners: () => ListenerMap;
@@ -30,7 +31,7 @@ export function createLoopEventEmitter(defaultIteration = 0, defaultCorrelationI
     const event: LoopEvent = {
       type,
       iteration: currentIteration,
-      timestamp: Date.now(),
+      timestamp: clock.now(),
       correlationId: currentCorrelationId,
       data,
     };

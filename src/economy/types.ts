@@ -165,6 +165,10 @@ export interface SchedulerConfig {
   metareasoningEnabled: boolean;
   /** Margin threshold for think vs act. */
   marginThreshold: number;
+  /** Clock (inject for deterministic replay). */
+  clock?: { now(): number };
+  /** RNG seed (inject for deterministic replay). */
+  seed?: number;
 }
 
 /** Default scheduler config. */

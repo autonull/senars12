@@ -4,15 +4,23 @@
 
 import { createHash } from 'crypto';
 import type { FacultySpec, FacultyInput, FacultyOutput, FacultyRegistry, FacultyOracleMeta } from './specs.js';
-import { facultyRegistry } from './specs.js';
-import type { Oracle, OracleInput, OracleOutput } from '../oracles/oracle.js';
-import { oracleRegistry } from '../oracles/oracle.js';
+import { createFacultyRegistry } from './specs.js';
+import type { Clock, IDGenerator } from '../kernel/env.js';
+import { DeterministicClock, DeterministicIDGenerator, DeterministicRNG } from '../kernel/env.js';
+import type { Oracle, OracleInput, OracleOutput, OracleRegistry } from '../oracles/oracle.js';
+import { createOracleRegistry } from '../oracles/oracle.js';
 import { OraclePinStore } from '../oracles/pins.js';
 
 /** Faculty engine configuration. */
 export interface FacultyEngineConfig {
-  /** Faculty registry to use. */
+  /** Faculty registry to use (isolated by default). */
   registry?: FacultyRegistry;
+  /** Oracle registry to use (isolated by default). */
+  oracles?: OracleRegistry;
+  /** Clock (deterministic clock by default). */
+  clock?: Clock;
+  /** ID generator (deterministic by default). */
+  ids?: IDGenerator;
   /** Pin store for deterministic replay. */
   pinStore?: OraclePinStore;
   /** Default timeout for faculty calls. */
@@ -58,6 +66,9 @@ export interface FacultyEngineStats {
 /** Faculty engine. */
 export class FacultyEngine {
   private registry: FacultyRegistry;
+  private oracles: OracleRegistry;
+  private clock: Clock;
+  private ids: IDGenerator;
   private pinStore: OraclePinStore | null;
   private defaultTimeoutMs: number;
   private enableFallback: boolean;
@@ -77,22 +88,14 @@ export class FacultyEngine {
   private telemetryCallbacks: Array<(context: FacultyInvocationContext, output: FacultyOutput) => void> = [];
 
   constructor(config: FacultyEngineConfig = {}) {
-    this.registry = config.registry ?? facultyRegistry;
+    this.registry = config.registry ?? createFacultyRegistry();
+    this.oracles = config.oracles ?? createOracleRegistry();
+    this.clock = config.clock ?? new DeterministicClock();
+    this.ids = config.ids ?? new DeterministicIDGenerator(new DeterministicRNG());
     this.pinStore = config.pinStore ?? null;
     this.defaultTimeoutMs = config.defaultTimeoutMs ?? 30000;
     this.enableFallback = config.enableFallback ?? true;
     this.telemetry = config.telemetry ?? true;
-
-    // Register core faculties if registry is empty
-    if (this.registry.getAll().length === 0) {
-      this.registerCoreFaculties();
-    }
-  }
-
-  /** Register core faculties. */
-  private registerCoreFaculties(): void {
-    const { registerCoreFaculties } = require('./specs.js');
-    registerCoreFaculties();
   }
 
   /** Set the pin store. */
@@ -112,8 +115,8 @@ export class FacultyEngine {
 
   /** Invoke a faculty. */
   async invoke<T = unknown>(input: FacultyInput): Promise<FacultyOutput<T>> {
-    const invocationId = crypto.randomUUID();
-    const startTs = Date.now();
+    const invocationId = this.ids.uuid();
+    const startTs = this.clock.now();
     const facultyName = input.faculty;
 
     const spec = this.registry.get(facultyName);
@@ -197,7 +200,7 @@ export class FacultyEngine {
         throw error;
       }
     } finally {
-      const durationMs = Date.now() - startTs;
+      const durationMs = this.clock.now() - startTs;
       this.stats.totalDurationMs += durationMs;
       this.updateFacultyAvgDuration(facultyName, durationMs);
     }
@@ -214,7 +217,7 @@ export class FacultyEngine {
     context: FacultyInvocationContext,
     oracleInput: OracleInput
   ): Promise<FacultyOutput<T>> {
-    const oracle = oracleRegistry.get(spec.oracleOperation);
+    const oracle = this.oracles.get(spec.oracleOperation);
     if (!oracle) {
       throw new Error(`No oracle registered for ${spec.oracleOperation}`);
     }

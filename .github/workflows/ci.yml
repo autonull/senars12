@@ -26,6 +26,7 @@ jobs:
       - run: pnpm primitives:grammar
       - run: pnpm schema:grammar
       - run: pnpm deps:gate
+      - run: pnpm import:boundary
       # TODO28 §4.2: deps:gate counts cycles and cannot see an inversion.
       - run: pnpm deps:direction
       # TODO29.a A2: the reasoning cycle reaches the induction layer through a

@@ -19,7 +19,7 @@ export async function runIteration(
   invokers: Map<string, FacultyInvoker>,
   emit: (type: LoopEventType, data: Record<string, unknown>) => void
 ): Promise<IterationResult> {
-  const startTs = Date.now();
+  const startTs = context.env.clock.now();
   const iteration = context.iteration;
 
   emit('iteration_start', { iteration });
@@ -29,7 +29,7 @@ export async function runIteration(
   emit('selection_made', { iteration, taskId: scheduleResult.task?.id });
 
   if (!scheduleResult.task) {
-    return createEmptyResult(iteration, startTs, 'No task scheduled');
+    return createEmptyResult(iteration, 'No task scheduled');
   }
 
   // 2. Build selection context and select action
@@ -66,7 +66,7 @@ export async function runIteration(
     context.selfModel.tick();
   }
 
-  const durationMs = Date.now() - startTs;
+  const durationMs = context.env.clock.now() - startTs;
 
   const result: IterationResult = {
     iteration,
@@ -132,7 +132,7 @@ async function executeActions(
   // Try faculty invokers
   for (const [name, invoker] of invokers) {
     if (taskMatchesFaculty(task, invoker.spec)) {
-      const actionStart = Date.now();
+      const actionStart = context.env.clock.now();
       try {
         const input = {
           faculty: invoker.spec.name,
@@ -143,7 +143,7 @@ async function executeActions(
         } satisfies import('../faculties/specs.js').FacultyInput;
 
         const output = await invoker.invoke(input);
-        const durationMs = Date.now() - actionStart;
+        const durationMs = context.env.clock.now() - actionStart;
 
         results.push({
           actionId: `faculty-${name}-${task.id}`,
@@ -162,7 +162,7 @@ async function executeActions(
           success: false,
           error: error instanceof Error ? error.message : String(error),
           effects: [],
-          durationMs: Date.now() - actionStart,
+          durationMs: context.env.clock.now() - actionStart,
         });
       }
     }
@@ -173,11 +173,11 @@ async function executeActions(
     const oraclesMap = (context.oracles as unknown as { oracles: Map<string, Oracle> }).oracles;
     for (const [op, oracle] of oraclesMap) {
       if (taskMatchesOracle(task, oracle)) {
-        const actionStart = Date.now();
+        const actionStart = context.env.clock.now();
 
         try {
           const output = await oracle.call({ operation: oracle.operation, args: [task.term] });
-          const durationMs = Date.now() - actionStart;
+          const durationMs = context.env.clock.now() - actionStart;
 
           results.push({
             actionId: `oracle-${op}-${task.id}`,
@@ -197,7 +197,7 @@ async function executeActions(
             success: false,
             error: error instanceof Error ? error.message : String(error),
             effects: [],
-            durationMs: Date.now() - actionStart,
+            durationMs: context.env.clock.now() - actionStart,
           });
         }
       }
@@ -311,7 +311,7 @@ async function appraiseIteration(
 
   return {
     iteration: context.iteration,
-    timestamp: Date.now(),
+    timestamp: context.env.clock.now(),
     overallScore,
     dimensions: [
       { dimension: 'effectiveness', score: success ? 1.0 : 0.5, confidence: 0.8, evidence: [], trend: 'stable' },
@@ -336,13 +336,13 @@ async function recordIteration(
 ): Promise<void> {
   if (!context.recorder) return;
 
-  const now = Date.now();
+  const now = context.env.clock.now();
   const iteration = context.iteration;
   const correlationId = context.correlationId;
 
   const contractRecords = contracts.map((c, i) => ({
     type: 'contract' as const,
-    id: crypto.randomUUID(),
+    id: context.env.ids.uuid(),
     iteration,
     timestamp: now,
     correlationId,
@@ -374,7 +374,7 @@ async function recordIteration(
 }
 
 /** Creates empty result for no task scheduled. */
-function createEmptyResult(iteration: number, startTs: number, error: string): IterationResult {
+function createEmptyResult(iteration: number, error: string): IterationResult {
   return {
     iteration,
     selectedTask: null,
@@ -388,7 +388,7 @@ function createEmptyResult(iteration: number, startTs: number, error: string): I
     judgments: [],
     contracts: [],
     repairs: [],
-    durationMs: Date.now() - startTs,
+    durationMs: 0,
     success: false,
     error,
   };

@@ -8,6 +8,7 @@ import type { OracleRegistry, Oracle, OracleInput, OracleOutput } from '../oracl
 import type { Term } from '../kernel/terms/term.js';
 import type { Task } from '../kernel/types.js';
 import type { Truth } from '../kernel/truth.js';
+import type { Env } from '../kernel/env.js';
 import type { LoopAppraisal } from './appraise.js';
 import type { RepairLoop, RepairContext, RepairResult as LoopRepairResult } from './repair.js';
 import type { ContractCheckResult, ContractContext } from './contract.js';
@@ -151,6 +152,8 @@ export interface JudgmentResult {
 export interface LoopContext {
   /** Current iteration. */
   iteration: number;
+  /** Deterministic environment. */
+  env: Env;
   /** Economy instance. */
   economy: Economy;
   /** Economy scheduler. */

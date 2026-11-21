@@ -182,7 +182,16 @@ export class FacultyRegistry extends NameRegistry<FacultySpec> {
   }
 }
 
-/** Global faculty registry. */
+/** Create an isolated faculty registry. */
+export function createFacultyRegistry(): FacultyRegistry {
+  const registry = new FacultyRegistry();
+  for (const spec of CORE_FACULTIES) {
+    registry.register(spec);
+  }
+  return registry;
+}
+
+/** Global faculty registry (convenience; prefer {@link createFacultyRegistry}). */
 export const facultyRegistry = new FacultyRegistry();
 
 /** Register a faculty globally. */
@@ -698,16 +707,21 @@ export const governanceSpec: FacultySpec = {
   timeoutMs: 5000,
 };
 
-/** Register all core faculties. */
-export function registerCoreFaculties(): void {
-  registerFaculty(groundingSpec);
-  registerFaculty(inferenceSpec);
-  registerFaculty(abductionSpec);
-  registerFaculty(inductionSpec);
-  registerFaculty(analogySpec);
-  registerFaculty(revisionSpec);
-  registerFaculty(planningSpec);
-  registerFaculty(evaluationSpec);
-  registerFaculty(communicationSpec);
-  registerFaculty(governanceSpec);
+/** The ten core faculty specifications, in registration order. */
+export const CORE_FACULTIES: readonly FacultySpec[] = [
+  groundingSpec,
+  inferenceSpec,
+  abductionSpec,
+  inductionSpec,
+  analogySpec,
+  revisionSpec,
+  planningSpec,
+  evaluationSpec,
+  communicationSpec,
+  governanceSpec,
+];
+
+/** Register all core faculties, into `registry` (global by default). */
+export function registerCoreFaculties(registry: FacultyRegistry = facultyRegistry): void {
+  for (const spec of CORE_FACULTIES) registry.register(spec);
 }

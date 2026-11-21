@@ -60,6 +60,9 @@ export interface OracleMeta {
   error?: string;
 }
 
+/** Telemetry sink for oracle calls — wired to the log by the caller. */
+export type OracleTelemetrySink = (meta: OracleMeta) => void;
+
 /** Configuration for an oracle. */
 export interface OracleConfig {
   /** Operation name this oracle handles. */
@@ -74,6 +77,12 @@ export interface OracleConfig {
   timeoutMs?: number;
   /** Retry configuration. */
   retry?: { attempts: number; backoffMs: number };
+  /** Telemetry sink for every call (integrated into the event log). */
+  telemetry?: OracleTelemetrySink;
+  /** Clock (defaults to a monotonic source; inject for replay). */
+  clock?: { now(): TimestampMs };
+  /** ID generator (defaults to `crypto.randomUUID`; inject for replay). */
+  ids?: { uuid(): UUID };
 }
 
 /** The Oracle interface — all external calls implement this. */
@@ -112,6 +121,10 @@ export abstract class BaseOracle<TInput extends OracleInput, TOutput> implements
   public readonly provider: string;
   public readonly version?: string;
 
+  private readonly telemetrySink?: OracleTelemetrySink;
+  private readonly clock: { now(): TimestampMs };
+  private readonly ids: { uuid(): UUID };
+
   protected stats: OracleStats = {
     totalCalls: 0,
     successfulCalls: 0,
@@ -124,11 +137,14 @@ export abstract class BaseOracle<TInput extends OracleInput, TOutput> implements
     this.operation = config.operation;
     this.provider = config.provider;
     this.version = config.version;
+    this.telemetrySink = config.telemetry;
+    this.clock = config.clock ?? { now: () => Date.now() as TimestampMs };
+    this.ids = config.ids ?? { uuid: () => crypto.randomUUID() as UUID };
   }
 
   async call(input: TInput): Promise<OracleOutput<TOutput>> {
-    const callId = crypto.randomUUID() as UUID;
-    const startTs = Date.now() as TimestampMs;
+    const callId = this.ids.uuid();
+    const startTs = this.clock.now();
     const durationMs = 0;
     let pinned = false;
     let error: string | undefined;
@@ -145,7 +161,7 @@ export abstract class BaseOracle<TInput extends OracleInput, TOutput> implements
       // Fail-closed: return a safe default or rethrow based on operation
       value = await this.failClosed(input, error);
     } finally {
-      const endTs = Date.now();
+      const endTs = this.clock.now();
       const actualDuration = endTs - startTs;
       this.stats.totalDurationMs += actualDuration;
 
@@ -183,9 +199,9 @@ export abstract class BaseOracle<TInput extends OracleInput, TOutput> implements
     throw new Error(`Oracle ${this.operation} failed: ${error}`);
   }
 
-  /** Emit telemetry event. Override to integrate with log/events. */
+  /** Emit telemetry event — forwarded to the wired log sink. */
   protected emitTelemetry(meta: OracleMeta): void {
-    // Hook for log integration
+    this.telemetrySink?.(meta);
   }
 
   async isAvailable(): Promise<boolean> {
@@ -200,9 +216,13 @@ export abstract class BaseOracle<TInput extends OracleInput, TOutput> implements
 /** Oracle registry — manages all oracle instances. */
 export class OracleRegistry extends FunctionRegistry<OracleOperation, Oracle> {
   private pinStore: PinStore | null = null;
+  private readonly clock: { now(): TimestampMs };
+  private readonly ids: { uuid(): UUID };
 
-  constructor() {
+  constructor(options: { clock?: { now(): TimestampMs }; ids?: { uuid(): UUID } } = {}) {
     super((oracle) => oracle.operation, { unique: true, duplicateError: (op) => `Oracle for ${op} already registered` });
+    this.clock = options.clock ?? { now: () => Date.now() as TimestampMs };
+    this.ids = options.ids ?? { uuid: () => crypto.randomUUID() as UUID };
   }
 
   /** Execute an oracle call with optional pinning. */
@@ -224,8 +244,8 @@ export class OracleRegistry extends FunctionRegistry<OracleOperation, Oracle> {
         return {
           value: pinned as TOutput,
           meta: {
-            callId: crypto.randomUUID() as UUID,
-            ts: Date.now() as TimestampMs,
+            callId: this.ids.uuid(),
+            ts: this.clock.now(),
             durationMs: 0,
             provider: oracle.provider,
             version: oracle.version,
@@ -270,7 +290,12 @@ export interface PinStore {
   hasPin(key: string): boolean;
 }
 
-/** Global oracle registry instance. */
+/** Create an isolated oracle registry. */
+export function createOracleRegistry(options?: ConstructorParameters<typeof OracleRegistry>[0]): OracleRegistry {
+  return new OracleRegistry(options);
+}
+
+/** Global oracle registry instance (convenience; prefer {@link createOracleRegistry}). */
 export const oracleRegistry = new OracleRegistry();
 
 /** Convenience function to call an oracle. */

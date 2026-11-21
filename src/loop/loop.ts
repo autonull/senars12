@@ -5,6 +5,7 @@
  * into a single coherent iteration.
  */
 
+import type { Env } from '../kernel/env.js';
 import type { Economy, EconomyScheduler } from '../economy/index.js';
 import type { FacultyRegistry } from '../faculties/specs.js';
 import type { OracleRegistry } from '../oracles/oracle.js';
@@ -31,6 +32,7 @@ export class CognitiveLoop {
   private eventEmitterSetDefaults: (iteration: number, correlationId: string) => void;
 
   constructor(
+    env: Env,
     economy: Economy,
     scheduler: EconomyScheduler,
     faculties: FacultyRegistry,
@@ -38,10 +40,10 @@ export class CognitiveLoop {
     config: Partial<LoopConfig> = {}
   ) {
     this.config = { ...defaultLoopConfig, ...config };
-    this.context = createLoopContext(economy, scheduler, faculties, oracles, this.config);
+    this.context = createLoopContext(env, economy, scheduler, faculties, oracles, this.config);
     this.invokers = initializeFacultyInvokers(faculties);
 
-    const eventEmitter = createLoopEventEmitter(0, this.context.correlationId);
+    const eventEmitter = createLoopEventEmitter(env.clock, 0, this.context.correlationId);
     this.emit = eventEmitter.emit;
     this.on = eventEmitter.on;
     this.eventEmitterSetDefaults = eventEmitter.setDefaults;
@@ -187,11 +189,12 @@ export class CognitiveLoop {
 
 /** Create a cognitive loop. */
 export function createCognitiveLoop(
+  env: Env,
   economy: Economy,
   scheduler: EconomyScheduler,
   faculties: FacultyRegistry,
   oracles: OracleRegistry,
   config?: Partial<LoopConfig>
 ): CognitiveLoop {
-  return new CognitiveLoop(economy, scheduler, faculties, oracles, config);
+  return new CognitiveLoop(env, economy, scheduler, faculties, oracles, config);
 }
