@@ -43,6 +43,8 @@ export const GATES: readonly Gate[] = [
   // `Env`, so a seeded run can replay byte-identically. A baseline ratchets the
   // existing sites down; a new one fails here.
   script('import:boundary'),
+  // W2: one-oracle — all external/nondeterministic calls go through the oracle seam.
+  script('one:oracle'),
   // TODO29.a A2: the cycle path names a ModelRule, a TextGenerator and an
   // EmbeddingRuntime — never the induction layer it was reaching into.
   script('core:no-lm'),

@@ -1,0 +1,5 @@
+{
+  "src/motor/builtin-tools.ts:child_process-import": 1,
+  "src/tools/adapters/codemod.ts:child_process-import": 1,
+  "src/tools/adapters/proc.ts:child_process-import": 1
+}

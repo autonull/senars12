@@ -168,7 +168,7 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 ### W2 — The oracle seam made real
 - [ ] Per-operation zod `query`/`result`/`cert` schemas; memo/pin keys = `(operation, queryDigest, provider, version, context)`; add `version` to memo entries; fix `meta.durationMs = 0`.
 - [ ] Charge every oracle call through `BUDGET_RESOURCES`; pin store lives on the log.
-- [ ] Enforce the **`one-oracle` gate**: any `fetch`/client/`child_process` outside `src/oracles` fails CI.
+- [x] Enforce the **`one-oracle` gate**: any `fetch`/client/`child_process` outside `src/oracles` fails CI.
 - [ ] **Port `mcplogic`'s WASM engines** (`z3-solver`, `clingo-wasm`, MiniSat/`logic-solver`, tau-prolog), axiom libraries, Tseitin CNF, symmetry breaking, SAT-backed model finding, Pelletier/TPTP benches (MIT → AGPL compatible). **WASM is the default.**
 - [ ] **Keep native `z3`/`clingo` as an optional high-power oracle provider** behind the same seam (server-only).
 - [ ] **Add `engine.metta`** as an oracle (evaluation/rewriting semantics), re-homing `metta/` and `meta/ProofMettaProposer`.
@@ -330,7 +330,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 1. **W0:** one authority doc; **stale scripts fixed**; **ratchet armed (correctly scoped)**; behavior-level capability manifest + preservation gate live.
 2. **W1:** ✅ **COMPLETE** — typed `Env` + determinism lint; per-instance registries; events wired to the log; `senars logic prove` on the new core; `Verdict`; **byte-identical seeded replay**; `import:boundary` baseline zeroed.
 3. **⟶ GATE (§4): Go to W2+ only if W1 replays byte-identically. Otherwise stop and take the named fallback.**
-4. W2: `one-oracle` gate green; WASM engine port; native provider retained; `engine.metta`.
+4. W2: ✅ **one-oracle gate green**; WASM engine port; native provider retained; `engine.metta`.
 5. W3: risk tiers + gate matrix; fail-closed irreversible demonstrated.
 6. W4: formula-AST NAL + interpreter verifier + laws/vectors; transcribed table kept as witness.
 7. W5: faculty specs + fallbacks; judge weight-change events; ECE demotion; GBNF + WASI heads + imagination ported.
