@@ -250,7 +250,7 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 
 ### W7 — Repertoire & federation
 - [ ] One lifecycle: `propose → validate → trial(shadow) → admit(event) → use → measure → refine|demote|retire(event)`.
-- [ ] Rung 2: the real skill DSL — composition + conditionals + bounded loops, fuel-metered, effects only via admitted operators; **the language has no dangerous words**. Real interpreter + real dry-run episodes replace placeholders.
+- [x] Rung 2: the real skill DSL — composition + conditionals + bounded loops, fuel-metered, effects only via admitted operators; **the language has no dangerous words**. Real interpreter + real dry-run episodes replace placeholders.
 - [ ] Rung 3: faculties/profiles/oracle policies, A/B trial, auto-rollback. Rung 4: rules/projections via the W4 verifier. **Rung 5: port the self-modification tooling** (`tools/adapters/self/*`, shadow-worktree, code-exec, codemod, test-gen, test-runner) as admission machinery — external runner + human merge only.
 - [ ] Frequent oracle results promote from memo-cache to admitted lemma-rules. **Books** = exported repertoire + derivations; receiver **re-folds and re-verifies**, rejecting poisoned imports.
 - [ ] Autonomy dial governance-owned; the agent requests freedom with its measured track record.
@@ -363,7 +363,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 6. W4: ✅ **formula-AST NAL + interpreter verifier + laws/vectors; transcribed table kept as witness.**
 7. W5: ✅ **COMPLETE** — faculty specs + fallbacks; judge weight-change events; ECE demotion; GBNF + WASI heads + imagination ported.
 8. **W6: COMPLETE** — ✅ TypeScript compilation fixes; ✅ all core gates pass (one:oracle, import:boundary, capability:gate); ✅ contract schemas, repair ladder, utility surface, memory indexes as fold views, analyzers as fold queries, schema induction port.
-9. W7: skill DSL + admission lifecycle; self-tools as rung 5; books re-fold; poisoned book rejected.
+9. W7: ✅ **Rung 2 (skill DSL) COMPLETE** — composition + conditionals + bounded loops, fuel-metered, no dangerous words, real interpreter + dry-run episodes; admission lifecycle + Rungs 3/4/5 + books re-fold in progress.
 10. W8: generated MCP + profiles + npx + playground.
 11. W9: deck renders a new event for free.
 12. W10–W11: consolidation + deps; games/focus/dialogue as packs; soak.

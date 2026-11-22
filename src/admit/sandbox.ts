@@ -140,8 +140,8 @@ export class Sandbox {
   private stepCounter = 0;
   private clock: Clock;
 
-  constructor(limits: SandboxLimits = defaultSandboxLimits, clock?: Clock) {
-    this.limits = limits;
+  constructor(limits: Partial<SandboxLimits> = {}, clock?: Clock) {
+    this.limits = { ...defaultSandboxLimits, ...limits };
     this.clock = clock ?? createDefaultClock();
     this.context = this.createContext();
   }
@@ -160,7 +160,9 @@ export class Sandbox {
 
   /** Reset sandbox. */
   reset(): void {
+    const oldFunctions = this.context.functions;
     this.context = this.createContext();
+    this.context.functions = oldFunctions;
     this.trace = [];
     this.stepCounter = 0;
   }
@@ -270,12 +272,145 @@ export class Sandbox {
       throw new Error('Max recursion depth exceeded');
     }
 
-    const args = node.args.map(arg => this.eval(arg));
-    // In a real implementation, execute the function body
-    // For now, return a placeholder
+    let result: unknown;
+
+    // Special built-in implementations that need unevaluated args
+    switch (node.function) {
+      case 'internal_range': {
+        const n = this.eval(node.args[0]!) as number;
+        result = Array.from({ length: Math.max(0, Math.floor(n)) }, (_, i) => i);
+        break;
+      }
+      case 'internal_for_impl': {
+        const varName = this.eval(node.args[0]!) as string;
+        const range = this.eval(node.args[1]!) as unknown[];
+        const body = node.args[2]!; // Pass unevaluated AST
+        const maxIterations = this.eval(node.args[3]!) as number;
+        result = this.evalForLoop(varName, range, body, maxIterations);
+        break;
+      }
+      case 'internal_while_impl': {
+        const cond = node.args[0]!; // Pass unevaluated AST
+        const body = node.args[1]!; // Pass unevaluated AST
+        const maxIterations = this.eval(node.args[2]!) as number;
+        result = this.evalWhileLoop(cond, body, maxIterations);
+        break;
+      }
+      case 'internal_map': {
+        const list = this.eval(node.args[0]!) as unknown[];
+        const fn = this.eval(node.args[1]!); // Evaluated lambda object
+        result = list.map(item => this.applyLambda(fn, [item]));
+        break;
+      }
+      case 'internal_filter': {
+        const list = this.eval(node.args[0]!) as unknown[];
+        const fn = this.eval(node.args[1]!); // Evaluated lambda object
+        result = list.filter(item => this.applyLambda(fn, [item]) as boolean);
+        break;
+      }
+      case 'internal_reduce': {
+        const list = this.eval(node.args[0]!) as unknown[];
+        const fn = this.eval(node.args[1]!); // Evaluated lambda object
+        const init = this.eval(node.args[2]!);
+        let acc = init;
+        for (const item of list) {
+          acc = this.applyLambda(fn, [acc, item]);
+        }
+        result = acc;
+        break;
+      }
+      case 'internal_head': {
+        const list = this.eval(node.args[0]!) as unknown[];
+        result = list[0];
+        break;
+      }
+      case 'internal_tail': {
+        const list = this.eval(node.args[0]!) as unknown[];
+        result = list.slice(1);
+        break;
+      }
+      default: {
+        // Evaluate args for user-defined functions
+        const args = node.args.map(arg => this.eval(arg));
+        // Execute user-defined function body with parameter bindings
+        const prevVars = new Map<string, unknown>();
+        for (let i = 0; i < fn.params.length; i++) {
+          const param = fn.params[i]!;
+          const prev = this.context.variables.get(param);
+          prevVars.set(param, prev);
+          this.context.variables.set(param, args[i]);
+        }
+        result = this.eval(fn.body);
+        // Restore previous variable values
+        for (const [param, prev] of prevVars) {
+          if (prev === undefined) {
+            this.context.variables.delete(param);
+          } else {
+            this.context.variables.set(param, prev);
+          }
+        }
+        break;
+      }
+    }
+
     this.context.depth--;
 
-    return this.consumeFuel(fn.fuelCost, `call:${node.function}`, args);
+    return this.consumeFuel(fn.fuelCost, `call:${node.function}`, result);
+  }
+
+  /** Evaluate for loop. */
+  private evalForLoop(varName: string, range: unknown[], body: SandboxAST, maxIterations: number): unknown {
+    let result: unknown = undefined;
+    const iterations = Math.min(range.length, maxIterations);
+
+    for (let i = 0; i < iterations; i++) {
+      this.checkLimits();
+      const prev = this.context.variables.get(varName);
+      this.context.variables.set(varName, range[i]!);
+      result = this.eval(body);
+      if (prev === undefined) {
+        this.context.variables.delete(varName);
+      } else {
+        this.context.variables.set(varName, prev);
+      }
+    }
+    return result;
+  }
+
+  /** Evaluate while loop. */
+  private evalWhileLoop(cond: SandboxAST, body: SandboxAST, maxIterations: number): unknown {
+    let result: unknown = undefined;
+    let iterations = 0;
+
+    while (iterations < maxIterations) {
+      this.checkLimits();
+      const condition = this.eval(cond);
+      if (!condition) break;
+      result = this.eval(body);
+      iterations++;
+    }
+    return result;
+  }
+
+  /** Apply a lambda (AST or evaluated lambda object) with arguments. */
+  private applyLambda(lambda: { params: string[]; body: SandboxAST } | SandboxAST, args: unknown[]): unknown {
+    const lambdaObj = lambda.type === 'lambda' ? lambda : lambda as { params: string[]; body: SandboxAST };
+    const prevVars = new Map<string, unknown>();
+    for (let i = 0; i < lambdaObj.params.length; i++) {
+      const param = lambdaObj.params[i]!;
+      const prev = this.context.variables.get(param);
+      prevVars.set(param, prev);
+      this.context.variables.set(param, args[i]);
+    }
+    const result = this.eval(lambdaObj.body);
+    for (const [param, prev] of prevVars) {
+      if (prev === undefined) {
+        this.context.variables.delete(param);
+      } else {
+        this.context.variables.set(param, prev);
+      }
+    }
+    return result;
   }
 
   /** Evaluate operator. */
