@@ -15,7 +15,7 @@ export interface EmbeddingLayerConfig {
   generator: EmbeddingGenerator;
 }
 
-interface IndexedEmbedding {
+export interface IndexedEmbedding {
   term: Term;
   embedding: number[];
 }

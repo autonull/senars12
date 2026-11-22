@@ -145,7 +145,7 @@ export function computeSuccessorFeatures(
   const featureDim = featureNames.length;
 
   // Initialize successor feature vector
-  let psi = new Array(featureDim).fill(0);
+  let psi: number[] = new Array(featureDim).fill(0);
   let count = 0;
 
   // Find transitions from this task
@@ -153,25 +153,25 @@ export function computeSuccessorFeatures(
 
   for (const trans of relevantTransitions) {
     // Average features of successor states
-    let succFeatures = new Array(featureDim).fill(0);
+    let succFeatures: number[] = new Array(featureDim).fill(0);
     for (const succTask of trans.to) {
       const f = extractFeatures(succTask, featureNames);
       for (let i = 0; i < featureDim; i++) {
-        succFeatures[i] += f[i];
+        succFeatures[i]! += f[i]!;
       }
     }
 
     // Average over successors
     if (trans.to.length > 0) {
       for (let i = 0; i < featureDim; i++) {
-        succFeatures[i] /= trans.to.length;
+        succFeatures[i]! /= trans.to.length;
       }
     }
 
     // Add immediate features + discounted successor features
     const immediateFeatures = extractFeatures(task, featureNames);
     for (let i = 0; i < featureDim; i++) {
-      psi[i] += immediateFeatures[i] + gamma * succFeatures[i];
+      psi[i]! += immediateFeatures[i]! + gamma * succFeatures[i]!;
     }
     count++;
   }
@@ -179,7 +179,7 @@ export function computeSuccessorFeatures(
   // Average over transitions
   if (count > 0) {
     for (let i = 0; i < featureDim; i++) {
-      psi[i] /= count;
+      psi[i]! /= count;
     }
   } else {
     // No transitions: use immediate features only
@@ -204,7 +204,7 @@ export function learnValueWeights(
   const featureNames = featureDimensions;
   const featureDim = featureNames.length;
 
-  let weights = initialWeights?.weights ?? new Array(featureDim).fill(0);
+  let weights: number[] = initialWeights?.weights ?? new Array(featureDim).fill(0);
   let samples = initialWeights?.samples ?? 0;
 
   for (const trans of transitions) {
@@ -217,7 +217,7 @@ export function learnValueWeights(
       const succFeatures = extractFeatures(succ, featureNames);
       let v = 0;
       for (let i = 0; i < featureDim; i++) {
-        v += weights[i] * succFeatures[i];
+        v += weights[i]! * succFeatures[i]!;
       }
       nextValue += v;
     }
@@ -226,12 +226,12 @@ export function learnValueWeights(
     }
 
     const target = trans.reward + gamma * nextValue;
-    const currentValue = weights.reduce((sum, w, i) => sum + w * fromFeatures[i], 0);
+    const currentValue = weights.reduce((sum, w, i) => sum + w * fromFeatures[i]!, 0);
     const tdError = target - currentValue;
 
     // Update weights
     for (let i = 0; i < featureDim; i++) {
-      weights[i] += alpha * tdError * fromFeatures[i];
+      weights[i]! += alpha * tdError * fromFeatures[i]!;
     }
     samples++;
   }
@@ -252,8 +252,9 @@ export function predictValue(
 ): number {
   const features = extractFeatures(task, valueWeights.featureNames);
   let value = 0;
+  const weights = valueWeights.weights;
   for (let i = 0; i < features.length; i++) {
-    value += valueWeights.weights[i] * features[i];
+    value += weights[i]! * features[i]!;
   }
   return value;
 }
@@ -264,8 +265,9 @@ export function predictValueFromSF(
   valueWeights: ValueWeights
 ): number {
   let value = 0;
+  const weights = valueWeights.weights;
   for (let i = 0; i < sf.features.length; i++) {
-    value += valueWeights.weights[i] * sf.features[i];
+    value += weights[i]! * sf.features[i]!;
   }
   return value;
 }
@@ -289,8 +291,9 @@ export function tdStep(
   for (const succ of to) {
     const succFeatures = extractFeatures(succ, featureNames);
     let v = 0;
+    const weights = valueWeights.weights;
     for (let i = 0; i < featureDim; i++) {
-      v += valueWeights.weights[i] * succFeatures[i];
+      v += weights[i]! * succFeatures[i]!;
     }
     nextValue += v;
   }
@@ -299,13 +302,13 @@ export function tdStep(
   }
 
   const target = reward + gamma * nextValue;
-  const currentValue = valueWeights.weights.reduce((sum, w, i) => sum + w * fromFeatures[i], 0);
+  const currentValue = valueWeights.weights.reduce((sum, w, i) => sum + w * fromFeatures[i]!, 0);
   const tdError = target - currentValue;
 
   // Update weights
   const newWeights = [...valueWeights.weights];
   for (let i = 0; i < featureDim; i++) {
-    newWeights[i] += alpha * tdError * fromFeatures[i];
+    newWeights[i]! += alpha * tdError * fromFeatures[i]!;
   }
 
   return {
@@ -338,18 +341,20 @@ export function mergeSuccessorFeatures(
     throw new Error('No features to merge');
   }
 
-  const featureDim = features[0].features.length;
-  const merged = new Array(featureDim).fill(0);
+  const featureDim = features[0]!.features.length;
+  const merged: number[] = new Array(featureDim).fill(0);
   const w = weights ?? new Array(features.length).fill(1 / features.length);
 
   for (let i = 0; i < features.length; i++) {
     for (let j = 0; j < featureDim; j++) {
-      merged[j] += w[i] * features[i].features[j];
+      merged[j]! += w[i]! * features[i]!.features[j]!;
     }
   }
 
   return {
-    ...features[0],
+    taskId: features[0]!.taskId,
+    featureNames: features[0]!.featureNames,
+    gamma: features[0]!.gamma,
     features: merged,
   };
 }

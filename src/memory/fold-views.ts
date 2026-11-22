@@ -6,11 +6,23 @@
  * Forgetting/archive → view eviction.
  */
 
-import type { Term } from '../kernel/terms/term.js';
+import type { Term } from '../terms/index.js';
+import { atom, getArgs, termKey, fromNarsese } from '../terms/index.js';
+import { cosineNormalized, normalize } from '../util/similarity.js';
 import type { Episode } from '@senars/types/episodic-memory';
 import type { CoActivationEdge } from './ConceptGraph.js';
 import type { RecallHit } from './associative.js';
 import type { IndexedEmbedding } from './links/EmbeddingLayer.js';
+
+/** Parse context strings to Terms, skipping invalid ones. */
+function parseContext(context: string[]): Term[] {
+  const terms: Term[] = [];
+  for (const s of context) {
+    const term = fromNarsese(s);
+    if (term) terms.push(term);
+  }
+  return terms;
+}
 
 /** Base fold view interface. */
 export interface FoldView<T> {
@@ -118,7 +130,7 @@ export function createConceptGraphView(
 ): ConceptGraphView {
   const { maxNodes = 10000, maxEdgesPerNode = 50, decayRate = 0.001, minEdgeWeight = 0.01 } = options;
   let data: ConceptGraphData = {
-    root: { term: { toString: () => 'ROOT', hash: 'ROOT' } as Term, children: new Map(), coActivations: new Map(), activationCount: 0, lastActivated: 0 },
+    root: { term: atom('ROOT'), children: new Map(), coActivations: new Map(), activationCount: 0, lastActivated: 0 },
     nodeCount: 1,
     edgeCount: 0,
   };
@@ -126,19 +138,7 @@ export function createConceptGraphView(
   let lastUpdated = 0;
   let stale = true;
 
-  // We need term utilities; import lazily
-  let termUtils: { getArgs: (t: Term) => Term[]; termKey: (t: Term) => string; atom: (s: string) => Term } | null = null;
-
-  const ensureUtils = async () => {
-    if (!termUtils) {
-      const { getArgs, termKey, atom } = await import('../kernel/terms/term.js');
-      termUtils = { getArgs, termKey, atom };
-    }
-  };
-
-  const rebuild = async (): Promise<void> => {
-    await ensureUtils();
-    const { getArgs, termKey, atom } = termUtils!;
+  const rebuild = (): void => {
     const log = getLog();
 
     data.root = { term: atom('ROOT'), children: new Map(), coActivations: new Map(), activationCount: 0, lastActivated: 0 };
@@ -146,10 +146,10 @@ export function createConceptGraphView(
     data.edgeCount = 0;
 
     for (const episode of log) {
-      // Extract terms from episode context
-      const terms = episode.context ?? [];
+      // Extract terms from episode context (parse strings to Terms)
+      const terms = parseContext(episode.context ?? []);
       for (let i = 0; i < terms.length; i++) {
-        const term = terms[i];
+        const term = terms[i]!;
         let node = data.root;
         const args = getArgs(term);
 
@@ -170,7 +170,7 @@ export function createConceptGraphView(
 
         // Co-activation with next term
         if (i + 1 < terms.length) {
-          const coActive = terms[i + 1];
+          const coActive = terms[i + 1]!;
           const coActiveKey = termKey(coActive);
           let edge = node.coActivations.get(coActiveKey);
           if (!edge) {
@@ -204,9 +204,7 @@ export function createConceptGraphView(
       stale = true;
     },
     getData() { return data; },
-    async activate(term: Term, coActiveWith?: Term) {
-      await ensureUtils();
-      const { getArgs, termKey, atom } = termUtils!;
+    activate(term: Term, coActiveWith?: Term) {
       let node = data.root;
       const args = getArgs(term);
 
@@ -239,10 +237,8 @@ export function createConceptGraphView(
         }
       }
     },
-    async getCoActivations(term: Term, limit = 10) {
-      await ensureUtils();
-      const { getArgs, termKey } = termUtils!;
-      let node = data.root;
+    getCoActivations(term: Term, limit = 10) {
+      let node: ConceptNodeView | undefined = data.root;
       const args = getArgs(term);
 
       for (const arg of args) {
@@ -251,17 +247,15 @@ export function createConceptGraphView(
         if (!node) return [];
       }
 
-      const edges = [...node.coActivations.values()]
+      const edges = [...node!.coActivations.values()]
         .filter(e => e.weight >= minEdgeWeight)
         .sort((a, b) => b.weight - a.weight)
         .slice(0, limit);
 
       return edges;
     },
-    async getActivationCount(term: Term) {
-      await ensureUtils();
-      const { getArgs, termKey } = termUtils!;
-      let node = data.root;
+    getActivationCount(term: Term) {
+      let node: ConceptNodeView | undefined = data.root;
       const args = getArgs(term);
 
       for (const arg of args) {
@@ -269,7 +263,7 @@ export function createConceptGraphView(
         node = node.children.get(key);
         if (!node) return 0;
       }
-      return node.activationCount;
+      return node!.activationCount;
     },
     decayAll(rate: number) {
       const decay = (node: ConceptNodeView) => {
@@ -302,27 +296,17 @@ export function createAssociativeMemoryView(
   let lastUpdated = 0;
   let stale = true;
 
-  let termKeyFn: (t: Term) => string | null = null;
-
-  const ensureUtils = async () => {
-    if (!termKeyFn) {
-      const { termKey } = await import('../kernel/terms/term.js');
-      termKeyFn = termKey;
-    }
-  };
-
-  const rebuild = async (): Promise<void> => {
-    await ensureUtils();
+  const rebuild = (): void => {
     const log = getLog();
     data.links.clear();
 
     for (const episode of log) {
-      const terms = episode.context ?? [];
+      const terms = parseContext(episode.context ?? []);
       for (let i = 0; i < terms.length - 1; i++) {
-        const from = terms[i];
-        const to = terms[i + 1];
-        const fromKey = termKeyFn!(from);
-        const toKey = termKeyFn!(to);
+        const from = terms[i]!;
+        const to = terms[i + 1]!;
+        const fromKey = termKey(from);
+        const toKey = termKey(to);
 
         if (!fromKey || !toKey) continue;
 
@@ -341,15 +325,14 @@ export function createAssociativeMemoryView(
     get version() { return version; },
     get lastUpdated() { return lastUpdated; },
     get stale() { return stale; },
-    async refresh() { await rebuild(); },
+    async refresh() { rebuild(); },
     evict() {
       data.links.clear();
       stale = true;
     },
     getData() { return data; },
-    async recall(term: Term, { limit = 10, minStrength = 0 } = {}) {
-      await ensureUtils();
-      const key = termKeyFn!(term);
+    recall(term: Term, { limit = 10, minStrength = 0 } = {}) {
+      const key = termKey(term);
       if (!key) return [];
 
       const links = data.links.get(key);
@@ -361,10 +344,9 @@ export function createAssociativeMemoryView(
         .slice(0, limit)
         .map(l => ({ term: l.target, strength: l.strength }));
     },
-    async associate(from: Term, to: Term, { strength = 1.0 } = {}) {
-      await ensureUtils();
-      const fromKey = termKeyFn!(from);
-      const toKey = termKeyFn!(to);
+    associate(from: Term, to: Term, { strength = 1.0 } = {}) {
+      const fromKey = termKey(from);
+      const toKey = termKey(to);
       if (!fromKey || !toKey) return false;
 
       const fromLinks = data.links.get(fromKey) ?? new Map();
@@ -397,30 +379,16 @@ export function createEmbeddingLayerView(
   let lastUpdated = 0;
   let stale = true;
 
-  let termKeyFn: (t: Term) => string | null = null;
-  let cosineNormalized: (a: number[], b: number[]) => number | null = null;
-  let normalize: (v: number[]) => number[] | null = null;
-
-  const ensureUtils = async () => {
-    if (!termKeyFn) {
-      const { termKey } = await import('../kernel/terms/term.js');
-      const { cosineNormalized: cn, normalize: n } = await import('../util/similarity.js');
-      termKeyFn = termKey;
-      cosineNormalized = cn;
-      normalize = n;
-    }
-  };
-
   const rebuild = async (): Promise<void> => {
-    await ensureUtils();
     const log = getLog();
     data.embeddings.clear();
 
     // Index all unique terms from log
     const uniqueTerms = new Map<string, Term>();
     for (const episode of log) {
-      for (const term of episode.context ?? []) {
-        const key = termKeyFn!(term);
+      const terms = parseContext(episode.context ?? []);
+      for (const term of terms) {
+        const key = termKey(term);
         if (key && !uniqueTerms.has(key)) {
           uniqueTerms.set(key, term);
         }
@@ -438,8 +406,7 @@ export function createEmbeddingLayerView(
   };
 
   const indexConceptInternal = async (term: Term): Promise<void> => {
-    await ensureUtils();
-    const key = termKeyFn!(term);
+    const key = termKey(term);
     if (!key) return;
 
     const embedding = await data.generator.generate(term.toString());
@@ -463,29 +430,29 @@ export function createEmbeddingLayerView(
       lastUpdated = Date.now();
     },
     async findSimilarTerms(queryTerm: Term, topK = 10) {
-      await ensureUtils();
       const queryEmbedding = await data.generator.generate(queryTerm.toString());
-      const query = normalize!(queryEmbedding);
+      const query = normalize(queryEmbedding);
       const results: Array<{ term: Term; similarity: number }> = [];
+      const queryKey = termKey(queryTerm);
 
       for (const [key, indexed] of data.embeddings) {
-        if (key === termKeyFn!(queryTerm)) continue;
-        const similarity = cosineNormalized!(query, indexed.embedding);
+        if (key === queryKey) continue;
+        const similarity = cosineNormalized(query, indexed.embedding);
         results.push({ term: indexed.term, similarity });
       }
 
       return results.sort((a, b) => b.similarity - a.similarity).slice(0, topK);
     },
     similarity(termA: Term, termB: Term) {
-      const keyA = termKeyFn!(termA);
-      const keyB = termKeyFn!(termB);
+      const keyA = termKey(termA);
+      const keyB = termKey(termB);
       if (!keyA || !keyB) return 0;
 
       const embA = data.embeddings.get(keyA)?.embedding;
       const embB = data.embeddings.get(keyB)?.embedding;
       if (!embA || !embB) return 0;
 
-      return cosineNormalized!(normalize!(embA), normalize!(embB));
+      return cosineNormalized(normalize(embA), embB);
     },
   };
 }
@@ -526,7 +493,7 @@ export function createEpisodeConsolidatorView(
     const log = getLog();
     data.candidates = log
       .filter(e => !data.emittedSummaries.some(s => s.id === e.id)) // Skip already consolidated
-      .map(e => ({ id: e.id, priority: calculateEpisodePriority(e), episode: e }))
+      .map(e => ({ id: e.id ?? `ep-${e.timestamp}-${Math.random().toString(36).slice(2)}`, priority: calculateEpisodePriority(e), episode: e }))
       .sort((a, b) => b.priority - a.priority);
     version++;
     lastUpdated = Date.now();
@@ -607,10 +574,11 @@ function calculateEpisodePriority(episode: Episode): number {
 }
 
 function mergeEpisodes(episodes: Episode[]): Episode {
-  const first = episodes[0];
+  const first = episodes[0]!;
   return {
     id: `summary-${first.id}-${Date.now()}`,
     type: 'belief_added',
+    content: `Summary of ${episodes.length} episodes`,
     timestamp: Date.now(),
     context: episodes.flatMap(e => e.context ?? []).slice(0, 20),
     causes: episodes.flatMap(e => e.causes ?? []),

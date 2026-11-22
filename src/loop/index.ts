@@ -54,7 +54,42 @@ export {
 } from './record.js';
 
 export * from './contract.js';
-export * from './contracts/index.js';
+export {
+  CandidateSchema,
+  JudgmentSchema,
+  ConsequenceReportSchema,
+  ConflictSchema,
+  DiagnosticSchema,
+  RepairRequestSchema,
+  VerdictSchema,
+  OutcomeSchema,
+  LessonSchema,
+  WorkItemSchema,
+  IdSchema,
+  TimestampSchema,
+  TermRefSchema,
+  TruthRefSchema,
+  TaskBagKindSchema,
+  TaskSourceSchema,
+  CONTRACT_SCHEMAS,
+  getContractSchema,
+  validateContract,
+  safeValidateContract,
+} from './contracts/index.js';
+export type {
+  ContractType,
+  AnyContract,
+  Candidate,
+  Judgment,
+  ConsequenceReport,
+  Conflict,
+  Diagnostic,
+  RepairRequest,
+  Verdict,
+  Outcome,
+  Lesson,
+  WorkItem,
+} from './contracts/index.js';
 export * from './repair.js';
 export * from './appraise.js';
 export * from './self-model.js';

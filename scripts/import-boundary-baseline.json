@@ -1,5 +1,7 @@
 {
   "src/admit/governance.ts:clock": 3,
+  "src/economy/td-learning.ts:clock": 3,
+  "src/economy/voi.ts:clock": 3,
   "src/faculties/judgment/calibration.ts:clock": 2,
   "src/faculties/judgment/cascade.ts:clock": 2,
   "src/faculties/judgment/cascade.ts:random": 1,
@@ -10,6 +12,8 @@
   "src/logics/nal/interpreter.ts:clock": 2,
   "src/logics/nal/laws.ts:random": 2,
   "src/loop/appraise.ts:clock": 1,
+  "src/loop/contracts/consumers.ts:clock": 4,
+  "src/loop/contracts/producers.ts:clock": 1,
   "src/loop/record.ts:clock": 2,
   "src/loop/record.ts:fs": 1,
   "src/loop/record.ts:random": 1,
@@ -18,5 +22,6 @@
   "src/loop/select.ts:random": 2,
   "src/loop/self-model.ts:clock": 1,
   "src/mining/learn.ts:clock": 1,
-  "src/mining/learn.ts:random": 2
+  "src/mining/learn.ts:random": 2,
+  "src/mining/schema-mining.ts:clock": 7
 }

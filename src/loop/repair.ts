@@ -284,12 +284,14 @@ export function generateRepairLadder(
   baseParams: Record<string, unknown> = {}
 ): RepairAction[] {
   const ladderActions: RepairLadderActionType[] = ['param_fix', 'precondition_subgoal', 'alternate_operator', 'explained_veto'];
+  const recoveryTimes: readonly number[] = [50, 500, 1000, 0];
+  const target = (baseParams.target as string) ?? 'loop';
   return ladderActions.map((type, index) => ({
     type,
-    target: baseParams.target ?? 'loop',
+    target,
     params: { ...baseParams, ...ladderParams(type) },
     priority: 10 - index * 2,
-    estimatedRecoveryMs: [50, 500, 1000, 0][index],
+    estimatedRecoveryMs: recoveryTimes[index]!,
     safe: true,
   }));
 }

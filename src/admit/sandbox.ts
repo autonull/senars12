@@ -74,6 +74,12 @@ export interface SandboxContext {
   startTime: number;
 }
 
+/** Runtime lambda object (evaluated from a lambda AST). */
+export interface RuntimeLambda {
+  params: string[];
+  body: SandboxAST;
+}
+
 /** Sandbox function. */
 export interface SandboxFunction {
   /** Function name. */
@@ -298,19 +304,19 @@ export class Sandbox {
       }
       case 'internal_map': {
         const list = this.eval(node.args[0]!) as unknown[];
-        const fn = this.eval(node.args[1]!); // Evaluated lambda object
+        const fn = this.eval(node.args[1]!) as RuntimeLambda; // Evaluated lambda object
         result = list.map(item => this.applyLambda(fn, [item]));
         break;
       }
       case 'internal_filter': {
         const list = this.eval(node.args[0]!) as unknown[];
-        const fn = this.eval(node.args[1]!); // Evaluated lambda object
+        const fn = this.eval(node.args[1]!) as RuntimeLambda; // Evaluated lambda object
         result = list.filter(item => this.applyLambda(fn, [item]) as boolean);
         break;
       }
       case 'internal_reduce': {
         const list = this.eval(node.args[0]!) as unknown[];
-        const fn = this.eval(node.args[1]!); // Evaluated lambda object
+        const fn = this.eval(node.args[1]!) as RuntimeLambda; // Evaluated lambda object
         const init = this.eval(node.args[2]!);
         let acc = init;
         for (const item of list) {
@@ -377,6 +383,12 @@ export class Sandbox {
     return result;
   }
 
+  /** Type guard for runtime lambda object. */
+  private isRuntimeLambda(value: unknown): value is RuntimeLambda {
+    return typeof value === 'object' && value !== null && 'params' in value && 'body' in value &&
+      Array.isArray((value as RuntimeLambda).params) && typeof (value as RuntimeLambda).body === 'object';
+  }
+
   /** Evaluate while loop. */
   private evalWhileLoop(cond: SandboxAST, body: SandboxAST, maxIterations: number): unknown {
     let result: unknown = undefined;
@@ -393,8 +405,17 @@ export class Sandbox {
   }
 
   /** Apply a lambda (AST or evaluated lambda object) with arguments. */
-  private applyLambda(lambda: { params: string[]; body: SandboxAST } | SandboxAST, args: unknown[]): unknown {
-    const lambdaObj = lambda.type === 'lambda' ? lambda : lambda as { params: string[]; body: SandboxAST };
+  private applyLambda(lambda: RuntimeLambda | SandboxAST, args: unknown[]): unknown {
+    let lambdaObj: { params: string[]; body: SandboxAST };
+    if (this.isRuntimeLambda(lambda)) {
+      lambdaObj = lambda;
+    } else {
+      const ast = lambda as SandboxAST;
+      if (ast.type !== 'lambda') {
+        throw new Error('Expected lambda AST node');
+      }
+      lambdaObj = { params: ast.params, body: ast.body };
+    }
     const prevVars = new Map<string, unknown>();
     for (let i = 0; i < lambdaObj.params.length; i++) {
       const param = lambdaObj.params[i]!;

@@ -105,7 +105,7 @@ export const JudgmentSchema = z.object({
   /** Confidence in judgment [0,1]. */
   confidence: z.number().min(0).max(1),
   /** Judgment details. */
-  details: z.record(z.unknown()),
+  details: z.record(z.string(), z.unknown()),
   /** Faculty that produced this judgment. */
   faculty: z.string(),
   /** Timestamp. */
@@ -214,7 +214,7 @@ export const DiagnosticSchema = z.object({
   /** Detected at timestamp. */
   detectedAt: TimestampSchema,
   /** Context snapshot. */
-  context: z.record(z.unknown()),
+  context: z.record(z.string(), z.unknown()),
   /** Suggested repairs. */
   suggestedRepairs: z.array(z.object({
     type: z.enum(['param_fix', 'precondition_subgoal', 'alternate_operator', 'explained_veto']),
@@ -246,7 +246,7 @@ export const RepairRequestSchema = z.object({
   /** Target candidate/task ID. */
   targetId: IdSchema,
   /** Repair parameters. */
-  parameters: z.record(z.unknown()),
+  parameters: z.record(z.string(), z.unknown()),
   /** Priority. */
   priority: z.number(),
   /** Created at timestamp. */
@@ -357,8 +357,8 @@ export const LessonSchema = z.object({
   /** Lesson content. */
   content: z.object({
     pattern: z.string(),
-    condition: z.record(z.unknown()),
-    prediction: z.record(z.unknown()),
+    condition: z.record(z.string(), z.unknown()),
+    prediction: z.record(z.string(), z.unknown()),
     confidence: z.number().min(0).max(1),
   }),
   /** Supporting outcome IDs. */
@@ -416,7 +416,7 @@ export const WorkItemSchema = z.object({
   /** Completed at timestamp. */
   completedAt: TimestampSchema.optional(),
   /** Result data. */
-  result: z.record(z.unknown()).optional(),
+  result: z.record(z.string(), z.unknown()).optional(),
   /** Error if failed. */
   error: z.string().optional(),
   /** Parent work item (for subgoals). */
@@ -472,7 +472,7 @@ export function getContractSchema(type: ContractType): z.ZodSchema {
 /** Validate a contract object. */
 export function validateContract<T extends AnyContract>(type: ContractType, data: unknown): T {
   const schema = getContractSchema(type);
-  return schema.parse(data);
+  return schema.parse(data) as T;
 }
 
 /** Safe validate a contract object. */

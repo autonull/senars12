@@ -2,6 +2,7 @@
  * Contract Producers — factory functions for creating contract instances.
  */
 
+import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import type { Term } from '../../kernel/terms/term.js';
 import type { Truth } from '../../kernel/truth.js';
@@ -38,15 +39,15 @@ import {
 function termRef(term: Term): z.infer<typeof TermRefSchema> {
   return {
     term: term.toString(),
-    hash: term.hash ?? '',
+    hash: String(term.hash ?? ''),
   };
 }
 
 /** Create a truth reference from a Truth. */
 function truthRef(truth: Truth): z.infer<typeof TruthRefSchema> {
   return {
-    frequency: truth.frequency,
-    confidence: truth.confidence,
+    frequency: truth.f,
+    confidence: truth.c,
   };
 }
 

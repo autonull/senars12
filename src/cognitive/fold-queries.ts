@@ -7,6 +7,7 @@
 
 import type { Episode } from '@senars/types/episodic-memory';
 import type { Term } from '../kernel/terms/term.js';
+import { fromNarsese } from '../kernel/terms/term.js';
 import type { Truth } from '../kernel/truth.js';
 import type { Concept } from '../memory/concept.js';
 import type { ModelRuleStats } from '../lm';
@@ -308,7 +309,7 @@ export async function analyzeTermPatternsFold(
 
   for (const concept of concepts) {
     const termStr = concept.term.toString();
-    const entry = termFreq.get(termStr) ?? { count: 0, priorities: [], coOccurrences: new Map() };
+    const entry = termFreq.get(termStr) ?? { count: 0, priorities: [], coOccurrences: new Map<string, number>() };
     entry.count++;
     entry.priorities.push(concept.priority);
     termFreq.set(termStr, entry);
@@ -321,10 +322,12 @@ export async function analyzeTermPatternsFold(
       const terms = entry.payload.terms as string[];
       for (let i = 0; i < terms.length; i++) {
         for (let j = i + 1; j < terms.length; j++) {
-          const entry1 = termFreq.get(terms[i]);
-          if (entry1) entry1.coOccurrences.set(terms[j], (entry1.coOccurrences.get(terms[j]) ?? 0) + 1);
-          const entry2 = termFreq.get(terms[j]);
-          if (entry2) entry2.coOccurrences.set(terms[i], (entry2.coOccurrences.get(terms[i]) ?? 0) + 1);
+          const termI = terms[i]!;
+          const termJ = terms[j]!;
+          const entry1 = termFreq.get(termI);
+          if (entry1) entry1.coOccurrences.set(termJ, (entry1.coOccurrences.get(termJ) ?? 0) + 1);
+          const entry2 = termFreq.get(termJ);
+          if (entry2) entry2.coOccurrences.set(termI, (entry2.coOccurrences.get(termI) ?? 0) + 1);
         }
       }
     }
@@ -477,8 +480,9 @@ export async function recomputePolicyFold(
   // Adjust by rule performance if available
   if (ruleStats) {
     for (const rule of ruleStats) {
-      if (routingWeights[rule.id]) {
-        routingWeights[rule.id] *= 0.5 + rule.stats.successRate * 0.5;
+      const weight = routingWeights[rule.id];
+      if (weight !== undefined) {
+        routingWeights[rule.id] = weight * (0.5 + rule.stats.successRate * 0.5);
       }
     }
   }
@@ -526,8 +530,11 @@ export async function assessQualityFold(
     let relevant = 0;
     for (const goal of goals) {
       const goalSubject = extractSubject(goal.term);
-      if (goalSubject && beliefs.some(b => containsSubterm(b.term, goalSubject))) {
-        relevant++;
+      if (goalSubject) {
+        const subjectTerm = fromNarsese(goalSubject);
+        if (subjectTerm && beliefs.some(b => containsSubterm(b.term, subjectTerm))) {
+          relevant++;
+        }
       }
     }
     relevance = relevant / goals.length;
@@ -678,7 +685,7 @@ export async function generateCounterfactualsFold(
     .slice(0, maxScenarios);
 
   for (let i = 0; i < Math.min(maxScenarios, similarEpisodes.length); i++) {
-    const episode = similarEpisodes[i];
+    const episode = similarEpisodes[i]!;
     const outcomes = (episode.payload.outcomes as Array<{ term: string; probability: number; utility: number }>) ?? [];
 
     scenarios.push({
@@ -693,7 +700,7 @@ export async function generateCounterfactualsFold(
   // If no similar episodes, generate from concept combinations
   if (scenarios.length === 0 && relevantConcepts.length > 0) {
     for (let i = 0; i < Math.min(maxScenarios, relevantConcepts.length); i++) {
-      const c = relevantConcepts[i];
+      const c = relevantConcepts[i]!;
       scenarios.push({
         id: `cf-${Date.now()}-${i}`,
         description: `What if ${premise} leads to ${c.term}?`,
@@ -717,9 +724,9 @@ export async function generateCounterfactualsFold(
 function extractSubject(term: Term): string | null {
   const str = term.toString();
   const match = str.match(/<(.*?)\s/);
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 }
 
-function containsSubterm(haystack: Term, needle: string): boolean {
-  return haystack.toString().includes(needle);
+function containsSubterm(haystack: Term, needle: Term): boolean {
+  return haystack.toString().includes(needle.toString());
 }
