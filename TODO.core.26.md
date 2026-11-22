@@ -56,7 +56,7 @@
 
 **The gap is wiring, hardening, and giving every capability one elegant home.**
 
-**Phase 2 progress:** 2/20 capabilities re-homed
+**Phase 2 progress:** 3/20 capabilities re-homed
 1. **Games (14) → World packs (data)** **COMPLETE**
    - `src/worlds/world-packs.ts`: 14 habitat packs with enhanced configs
    - `src/worlds/game-transitions.ts`: All 14 transition/reward functions registered
@@ -72,6 +72,13 @@
    **Planned:** Add minimal PPO arm (discrete-action, GridWorld) as policy-gradient spike to expand beyond value-based methods. Infrastructure ready — just register new `BaselineArmConfig` with `algorithm: 'ppo'`.
 
 - Preservation gate live: 30 capabilities tracked (20 faculties + 10 oracles)
+
+3. **Premise selection → Rule-application strategy** **COMPLETE**
+   - Premise strategies (`strategies/premise/`) registered in strategy registry under 'premise' type
+   - Derivation strategies (`strategies/derivation/`) registered under 'derivation' type
+   - `InferenceController` wires premise selection + derivation together
+   - Parity gate: "Inference trace identical" — existing tests verify premise/derivation behavior
+
 - All 3,667 tests pass; typecheck clean
 
 ---
@@ -198,8 +205,9 @@ One capability at a time, parity-gated by the preservation gate. **No bulk conso
 **Completed:** 
 1. **Games (14) → World packs (data)** — `world-packs.ts`, `game-transitions.ts`, habitat registry
 2. **RL baselines → Arena arms (config)** — `src/rl/baselines/` (EpsilonGreedy, UCB1, QLearning, SARSA), arena-lanes integration
+3. **Premise selection → Rule-application strategy** — Already registered in strategy registry (`premise` + `derivation` types), InferenceController wires them together, parity gate "inference trace identical" satisfied by existing tests
 
-**Next:** Premise selection → Rule-application strategy
+**Next:** Memory indexes → Fold queries + embedding oracle
 
 | Capability | Current Home | New Home | Parity Gate |
 |------------|-------------|----------|-------------|
@@ -373,7 +381,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 | P1 | K2: Memory as Fold Views | — | 2w ✅ |
 | P1 | K3: Economy → Scheduler pure function | — | 1w ✅ |
 | P1 | K4: Portals (Oracle + Logic interfaces frozen) | — | 1w ✅ |
-| P2 | Re-home 20 capabilities (Phase 2) | — | 4w | 🔄 Games (14) + RL baselines (4) DONE; Premise selection next |
+| P2 | Re-home 20 capabilities (Phase 2) | — | 4w | 🔄 Games (14) + RL baselines (4) + Premise selection DONE; Memory indexes next |
 | P2 | 7 missing gates as CI jobs (Phase 3) | — | 2w |
 | P2 | 12 demo scripts (Phase 4) | — | 1w |
 | P3 | Final 2-hour soak (Phase 5) | — | 2h |
