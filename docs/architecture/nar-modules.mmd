@@ -38,6 +38,7 @@ graph TD
   game["game"]
   game_impls["game/impls"]
   generated["generated"]
+  genome["genome"]
   governance["governance"]
   health["health"]
   imagination["imagination"]
@@ -68,6 +69,7 @@ graph TD
   logics_axiomatic["logics/axiomatic"]
   logics_nal["logics/nal"]
   loop["loop"]
+  loop_contracts["loop/contracts"]
   memory["memory"]
   memory_lifecycle["memory/lifecycle"]
   memory_links["memory/links"]
@@ -96,6 +98,7 @@ graph TD
   otel["otel"]
   plugins["plugins"]
   ports["ports"]
+  profiles["profiles"]
   proposal["proposal"]
   protocol["protocol"]
   query["query"]
@@ -185,6 +188,8 @@ graph TD
   _ --> util
   admit --> kernel
   admit --> kernel_terms
+  admit --> rules
+  admit --> tools_adapters
   admit --> worlds
   agent --> _
   agent --> autonomy
@@ -243,6 +248,7 @@ graph TD
   bin --> cli
   bin --> config
   bin --> dialogue
+  bin --> genome
   bin --> io
   bin --> kernel
   bin --> lm
@@ -252,8 +258,10 @@ graph TD
   bin --> metrics
   bin --> metta
   bin --> nl
+  bin --> profiles
   bin --> query
   bin --> reflex
+  bin --> surface_mcp
   bin --> util
   bin_commands --> bin_lib
   bin_lib --> agent
@@ -282,6 +290,9 @@ graph TD
   cli --> focus
   cli --> io
   cognitive --> cognitive_impls
+  cognitive --> kernel
+  cognitive --> kernel_terms
+  cognitive --> memory
   cognitive --> strategies
   cognitive_impls --> agent
   cognitive_impls --> cognitive
@@ -412,7 +423,9 @@ graph TD
   game_impls --> types
   governance --> focus
   governance --> game_impls
+  governance --> logic
   governance --> rlfp
+  governance --> schemas
   health --> focus
   health --> kernel
   imagination --> imagination_impls
@@ -531,15 +544,22 @@ graph TD
   logics --> kernel_terms
   logics --> logics_axiomatic
   logics --> logics_nal
+  logics_axiomatic --> kernel
   logics_axiomatic --> kernel_terms
   logics_nal --> kernel
   logics_nal --> kernel_terms
+  logics_nal --> logics
   loop --> economy
   loop --> faculties
   loop --> faculties_judgment
+  loop --> generated
   loop --> kernel
   loop --> kernel_terms
+  loop --> log
+  loop --> loop_contracts
   loop --> oracles
+  loop_contracts --> kernel
+  loop_contracts --> kernel_terms
   memory --> _
   memory --> bag
   memory --> engine
@@ -557,6 +577,7 @@ graph TD
   memory --> terms
   memory --> terms_impls
   memory --> types
+  memory --> util
   memory_lifecycle --> memory
   memory_links --> _
   memory_links --> memory
@@ -609,6 +630,8 @@ graph TD
   mining --> admit
   mining --> kernel
   mining --> kernel_terms
+  mining --> learning
+  mining --> types
   motor --> agent
   motor --> engine
   motor --> memory
@@ -625,6 +648,9 @@ graph TD
   oracles --> kernel_terms
   oracles --> oracles_engines
   oracles --> util
+  oracles_engines --> metta_parser
+  oracles_engines --> metta_runtime
+  oracles_engines --> metta_types
   oracles_engines --> oracles
   otel --> agent
   otel --> util
@@ -635,6 +661,8 @@ graph TD
   plugins --> schemas
   ports --> decision
   ports --> kernel
+  profiles --> kernel
+  profiles --> util
   proposal --> reason
   proposal --> rules
   proposal --> stream
@@ -748,7 +776,9 @@ graph TD
   surface --> surface_transports
   surface_cli --> surface_mcp
   surface_mcp --> admit
+  surface_mcp --> genome
   surface_mcp --> mining
+  surface_mcp --> profiles
   surface_mcp --> worlds
   surface_transports --> surface_mcp
   task --> kernel
