@@ -148,7 +148,10 @@ const aliases = [
   { find: '@senars/cognitive/index', replacement: path.resolve(__dirname, './src/cognitive/index.ts') },
   // Kernel index
   { find: '@senars/kernel/index', replacement: path.resolve(__dirname, './src/kernel/index.ts') },
+  { find: '@senars/kernel/env', replacement: path.resolve(__dirname, './src/kernel/env.ts') },
+  { find: '@senars/kernel/terms/codec/narsese', replacement: path.resolve(__dirname, './src/kernel/terms/codec/narsese.ts') },
   { find: '@senars/kernel/terms/intern', replacement: path.resolve(__dirname, './src/kernel/terms/intern.ts') },
+  { find: '@senars/kernel/truth', replacement: path.resolve(__dirname, './src/kernel/truth.ts') },
   // Game index
   { find: '@senars/game/index', replacement: path.resolve(__dirname, './src/game/index.ts') },
   { find: '@senars/game/meta-spec', replacement: path.resolve(__dirname, './src/game/meta-spec.ts') },
@@ -175,6 +178,13 @@ const aliases = [
   { find: '@senars/logics/nal/laws', replacement: path.resolve(__dirname, './src/logics/nal/laws.ts') },
   { find: '@senars/logics/nal/temporal', replacement: path.resolve(__dirname, './src/logics/nal/temporal.ts') },
   { find: '@senars/logics/nal/index', replacement: path.resolve(__dirname, './src/logics/nal/index.ts') },
+  { find: '@senars/logics/nal/logic', replacement: path.resolve(__dirname, './src/logics/nal/logic.ts') },
+  { find: '@senars/logics/axiomatic/logic', replacement: path.resolve(__dirname, './src/logics/axiomatic/logic.ts') },
+  { find: '@senars/logics/axiomatic/ast', replacement: path.resolve(__dirname, './src/logics/axiomatic/ast.ts') },
+  { find: '@senars/logics/axiomatic/sld', replacement: path.resolve(__dirname, './src/logics/axiomatic/sld.ts') },
+  { find: '@senars/logics/axiomatic/models', replacement: path.resolve(__dirname, './src/logics/axiomatic/models.ts') },
+  { find: '@senars/logics/port', replacement: path.resolve(__dirname, './src/logics/port.ts') },
+  { find: '@senars/logics/fuzzy', replacement: path.resolve(__dirname, './src/logics/fuzzy.ts') },
   // Terms/impls
   { find: '@senars/terms/impls/accessors', replacement: path.resolve(__dirname, './src/terms/impls/accessors.ts') },
   { find: '@senars/terms/impls/intern', replacement: path.resolve(__dirname, './src/terms/impls/intern.ts') },
@@ -531,6 +541,7 @@ const aliases = [
   { find: '@senars/commands', replacement: path.resolve(__dirname, './src/commands/index.ts') },
   { find: '@senars/feedback', replacement: path.resolve(__dirname, './src/feedback/index.ts') },
   { find: '@senars/bag', replacement: path.resolve(__dirname, './src/bag/index.ts') },
+  { find: '@senars/config/digest', replacement: path.resolve(__dirname, './src/config/digest.ts') },
   { find: '@senars/config', replacement: path.resolve(__dirname, './src/config/index.ts') },
   { find: '@senars/types', replacement: path.resolve(__dirname, './src/types/index.ts') },
   { find: '@senars/memory', replacement: path.resolve(__dirname, './src/memory/index.ts') },
@@ -547,6 +558,8 @@ const aliases = [
   { find: '@senars/deck', replacement: path.resolve(__dirname, './src/deck/index.ts') },
   { find: '@senars/ui-shell', replacement: path.resolve(__dirname, './ui-shell/src/index.ts') },
   { find: '@senars/economy', replacement: path.resolve(__dirname, './src/economy/index.ts') },
+  { find: '@senars/oracles/pins', replacement: path.resolve(__dirname, './src/oracles/pins.ts') },
+  { find: '@senars/oracles', replacement: path.resolve(__dirname, './src/oracles/index.ts') },
   { find: '@senars/generated', replacement: path.resolve(__dirname, './src/generated/index.ts') },
   { find: '@senars/metta-runtime', replacement: path.resolve(__dirname, './src/metta/index.ts') },
   { find: '@senars/transport', replacement: path.resolve(__dirname, './src/io/index.ts') },
@@ -569,6 +582,8 @@ const aliases = [
   { find: '@senars/lm/index', replacement: path.resolve(__dirname, './src/lm/index.ts') },
   { find: '@senars/kernel/index', replacement: path.resolve(__dirname, './src/kernel/index.ts') },
   { find: '@senars/logics/index', replacement: path.resolve(__dirname, './src/logics/index.ts') },
+  { find: '@senars/logic/commands', replacement: path.resolve(__dirname, './src/logic/commands.ts') },
+  { find: '@senars/logic/parse', replacement: path.resolve(__dirname, './src/logic/parse.ts') },
   { find: '@senars/log/index', replacement: path.resolve(__dirname, './src/log/index.ts') },
   { find: '@senars/formats/index', replacement: path.resolve(__dirname, './src/formats/index.ts') },
   { find: '@senars/admit/index', replacement: path.resolve(__dirname, './src/admit/index.ts') },
@@ -639,6 +654,7 @@ const aliases = [
   // Dialogue wildcard (tsconfig has it but explicit is fine)
   { find: '@senars/dialogue/*', replacement: path.resolve(__dirname, './src/dialogue/*') },
   // Scripts aliases for test helpers
+  { find: '@senars/scripts/capability-manifest-core', replacement: path.resolve(__dirname, './scripts/capability-manifest-core.ts') },
   { find: '@senars/scripts/lib', replacement: path.resolve(__dirname, './scripts/lib') },
   { find: '@senars/scripts/lib/*', replacement: path.resolve(__dirname, './scripts/lib/*') },
   // lit decorators (for esbuild UI builds)

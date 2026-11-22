@@ -1,10 +1,13 @@
 {
+  "src/admit/curriculum.ts:random": 1,
   "src/admit/governance.ts:clock": 3,
   "src/economy/td-learning.ts:clock": 3,
   "src/economy/voi.ts:clock": 3,
   "src/faculties/judgment/calibration.ts:clock": 2,
   "src/faculties/judgment/cascade.ts:clock": 2,
   "src/faculties/judgment/cascade.ts:random": 1,
+  "src/faculties/judgment/consolidation.ts:clock": 2,
+  "src/faculties/judgment/consolidation.ts:random": 1,
   "src/faculties/judgment/telemetry.ts:clock": 2,
   "src/faculties/judgment/telemetry.ts:fs": 1,
   "src/faculties/judgment/telemetry.ts:random": 1,
