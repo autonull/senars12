@@ -13,3 +13,7 @@ export * from './governance.js';
 export * from './sandbox.js';
 export * from './dsl.js';
 export * from './rungs.js';
+export * from './policies.js';
+export * from './projections.js';
+export * from './admission-machinery.js';
+export * from './books-re-fold.js';

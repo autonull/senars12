@@ -5,8 +5,9 @@
   "type": "module",
   "packageManager": "pnpm@12.3.4",
   "bin": {
-    "senars": "./dist/bin/bot.js",
-    "senars-mcp": "./dist/bin/mcp-server.js"
+    "senars": "./dist/bin/senars-cli.js",
+    "senars-mcp": "./dist/bin/mcp-server.js",
+    "senars-legacy": "./dist/bin/bot.js"
   },
   "exports": {
     ".": {
@@ -102,7 +103,8 @@
     "bot:http": "ENABLE_HTTP=true pnpm run bot",
     "bot:mcp": "ENABLE_MCP=true pnpm run bot",
     "multi-agent": "pnpm run bot -- --multiagent",
-    "senars": "NODE_NO_WARNINGS=1 tsx --tsconfig tsconfig.root.json src/bin/senars.ts",
+    "senars": "NODE_NO_WARNINGS=1 tsx --tsconfig tsconfig.root.json src/bin/senars-cli.ts",
+    "senars:legacy": "NODE_NO_WARNINGS=1 tsx --tsconfig tsconfig.root.json src/bin/senars.ts",
     "logic": "NODE_NO_WARNINGS=1 tsx --tsconfig tsconfig.root.json src/bin/logic.ts",
     "tune": "pnpm run bot -- --tune",
     "config:check": "pnpm run config:validate",
