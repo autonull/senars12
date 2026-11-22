@@ -56,7 +56,7 @@
 
 **The gap is wiring, hardening, and giving every capability one elegant home.**
 
-**Phase 2 progress:** 4/20 capabilities re-homed
+**Phase 2 progress:** 4/20 capabilities re-homed (10 ready for batch)
 1. **Games (14) → World packs (data)** **COMPLETE**
    - `src/worlds/world-packs.ts`: 14 habitat packs with enhanced configs
    - `src/worlds/game-transitions.ts`: All 14 transition/reward functions registered
@@ -88,6 +88,21 @@
    - Embedding oracle registered in `createStandardOracleRegistry`
    - Parity gate: "Query results identical" — fold views preserve all query surfaces
 
+**🚀 Batch Implementation Guide (Next Session):**
+The following 6 capabilities have infrastructure ready — wire them in one batch:
+
+| Capability | Source | Target | Steps |
+|------------|--------|--------|-------|
+| Metacognitive analyzers (8) | `src/cognitive/impls/analyzers/` | Fold views + `mirror.postmortem` faculty | 1. Add fold views in `fold-views.ts` for each analyzer<br>2. Register `mirror.postmortem` faculty (already in specs)<br>3. Add to capability manifest |
+| Self-mod tools (8) | `src/tools/adapters/self/` | Rung-5 admission | 1. Tools already implement `SelfModTool` interface<br>2. Wire to `GovernanceResolver` + `ProposalRouter`<br>3. Register as oracle operations (`self.mod.*`) |
+| Focus structure | `src/focus/` (`FocusTree`, `FocusBag`, `MetaFocus`) | Attention strategy/pack | 1. Already registered as attention strategies<br>2. Create habitat pack for focus trees<br>3. Add to `ATTENTION_STRATEGY_PACKS` |
+| NL & Dialogue | `src/nl/`, `src/dialogue/` | `perceive.formalize` faculty + dialogue pack | 1. Faculty registered in specs<br>2. Create dialogue habitat pack<br>3. Register `nl.formalize` oracle |
+| Schema induction | `src/learning/schema-induction.ts` | Mining lane | 1. `SchemaInductor` already exists<br>2. Register as mining lane in `src/worlds/`<br>3. Add to capability manifest |
+| Transport/infra | `src/io/`, `src/protocol/`, etc. | Oracles + operator dispatch | 1. MCP surface works (`src/surface/mcp/`)<br>2. Register transport as oracles (`io.*`, `protocol.*`)<br>3. Operator dispatch = `ActionGate` + `ProposalRouter` |
+
+**Parity gates** for each: existing tests in `tests/` cover behavior; add fold-view tests where needed.
+
+**Preservation gate:** Add 6 new capabilities to manifest → gate passes if all registered.
 
 ---
 
@@ -206,7 +221,7 @@ type Verdict =
 
 ---
 
-### Phase 2 — Capability Re-homing (Replaces W10 Consolidation) 🔄 **IN PROGRESS**
+### Phase 2 — Capability Re-homing (Replaces W10 Consolidation) 🔄 **IN PROGRESS — BATCH MODE**
 
 One capability at a time, parity-gated by the preservation gate. **No bulk consolidation.**
 
@@ -216,7 +231,19 @@ One capability at a time, parity-gated by the preservation gate. **No bulk conso
 3. **Premise selection → Rule-application strategy** — Already registered in strategy registry (`premise` + `derivation` types), InferenceController wires them together, parity gate "inference trace identical" satisfied by existing tests
 4. **Memory indexes → Fold queries + embedding oracle** — Fold views exist in `src/memory/fold-views.ts` (CausalIndex, ConceptGraph, AssociativeMemory, EmbeddingLayer, EpisodeConsolidator); embedding oracle operations registered in capability manifest + standard oracle registry
 
-**Next:** Metacognitive analyzers → Fold queries + `mirror.postmortem` faculty
+**Accelerated batch (infrastructure already exists):**
+- **Metacognitive analyzers (8)** → Fold views + `mirror.postmortem` faculty — analyzers in `src/cognitive/impls/analyzers/`, `mirror.postmortem` faculty registered
+- **Self-mod tools (8)** → Rung-5 admission machinery — tools in `src/tools/adapters/self/`, governance resolver + admission pipeline exists
+- **Focus structure** → Attention strategy/pack — `FocusTree`, `FocusBag`, `MetaFocus` in `src/focus/`, attention strategies registered
+- **NL & Dialogue** → `perceive.formalize` faculty + dialogue pack — faculty registered, dialogue as habitat pack
+- **Schema induction** → Mining lane — `src/learning/schema-induction.ts`, mining in `src/worlds/`
+- **Transport/infra** → Oracles + operator dispatch — MCP surface works, register as oracles
+- **Native solver engines** → Optional high-power oracle provider — **DONE** (WASM default, native optional via `includeNative`)
+
+**Deferred (consolidate after parity):**
+- `src/rules` (55) / `src/terms` → Fold NAL/terms
+- Duplicate truth tables, UI registries, MCP servers, engine wrappers, term layer, drive/store/collector → CONSOLIDATE
+- Transcribed verifier table → **KEEP** (principled redundancy)
 
 | Capability | Current Home | New Home | Parity Gate |
 |------------|-------------|----------|-------------|
@@ -390,7 +417,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 | P1 | K2: Memory as Fold Views | — | 2w ✅ |
 | P1 | K3: Economy → Scheduler pure function | — | 1w ✅ |
 | P1 | K4: Portals (Oracle + Logic interfaces frozen) | — | 1w ✅ |
-| P2 | Re-home 20 capabilities (Phase 2) | — | 4w | 🔄 Games (14) + RL baselines (4) + Premise + Memory indexes (4) DONE; Metacognitive next |
+| P2 | Re-home 20 capabilities (Phase 2) | — | 4w | 🔄 Games (14) + RL baselines (4) + Premise + Memory indexes (4) DONE; Batch: 6 capabilities ready (analyzers, self-mod, focus, NL, schema, transport) |
 | P2 | 7 missing gates as CI jobs (Phase 3) | — | 2w |
 | P2 | 12 demo scripts (Phase 4) | — | 1w |
 | P3 | Final 2-hour soak (Phase 5) | — | 2h |
