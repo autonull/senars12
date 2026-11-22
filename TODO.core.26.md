@@ -344,7 +344,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 |----------|------|-------|----------|
 | P0 | Fix `typecheck:packages` (world-packs.ts branded types) | — | 1h ✅ |
 | P0 | Re-arm `complexity:budget` at true baseline | — | 30m ✅ |
-| P0 | Collapse vitest aliases (tsconfigPaths enabled, explicit aliases remain) | — | 2h 🔄 | tsconfig-paths active; 17 /index paths added; duplicates identified; `.js` variants and duplicate schemas removed (~163 aliases, 627→464); remaining deduplication needs careful sub-path analysis
+| P0 | Collapse vitest aliases (tsconfigPaths enabled, explicit aliases remain) | — | 2h ✅ | `vite-tsconfig-paths` + native `tsconfigPaths`; 627→90 explicit aliases; all standard paths via tsconfig; only non-standard, index mappings, regex, UI, lit, scripts remain
 | P1 | K1: Loop Contracts zod schemas | — | 2w ✅ |
 | P1 | K2: Memory as Fold Views | — | 2w ✅ |
 | P1 | K3: Economy → Scheduler pure function | — | 1w ✅ |
@@ -363,11 +363,10 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 
 **Typecheck:packages** — ✅ **FIXED** (branded types resolved in `world-packs.ts`; all type errors resolved across src/)
 
-**Vitest aliases (560+)** — 🔄 **SIGNIFICANT PROGRESS** (`vite-tsconfig-paths` enabled; explicit /index paths added to tsconfig.root.json; duplicate schemas identified)
-- `vite-tsconfig-paths` installed and active; tsconfigPaths resolves standard paths; explicit aliases cover external deps, non-standard mappings
-- 17 explicit `/index` sub-path entries added to `tsconfig.root.json` to fix dynamic import resolution
-- Duplicate schemas section (17 entries), `.js` variants (~87 entries), duplicate wildcard aliases removed; 627→464 aliases (163 removed)
-- Remaining 464 aliases: non-standard mappings, deep paths for dynamic imports, top-level packages, scripts/lit
+**Vitest aliases** — ✅ **COMPLETED** (collapsed from 627→90 explicit aliases)
+- `vite-tsconfig-paths` + native `resolve.tsconfigPaths: true` handle standard `@senars/pkg/*` → `./src/pkg/*` mappings
+- Only 90 explicit aliases remain for: non-standard mappings (e.g., `@senars/util/bag` → `./src/bag`), directory index mappings (e.g., `@senars/nar/terms` → `./src/terms/index.ts`), regex exact matches, UI contract/shell, lit decorators, scripts
+- Duplicate schemas (17), `.js` variants (~87), duplicate wildcards, and all tsconfig-covered paths removed
 
 **Complexity budget** — ✅ **RE-ARMED** at true baseline (productionLOC: 123843→125816)
 - Baseline updated to current actuals; ratchet active
