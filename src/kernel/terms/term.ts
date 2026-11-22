@@ -332,7 +332,7 @@ class NarseseParser {
     }
 
     // Variable
-    if (this.match('$') || this.match('#')) {
+    if (this.match('$') || this.match('#') || this.match('?')) {
       const prefix = this.input[this.pos - 1]!;
       const name = this.parseIdentifier();
       const fullName = prefix + name;
@@ -550,7 +550,13 @@ function getPrecedence(op: TermOp): number {
   return PRECEDENCE[op] ?? 0;
 }
 
-function formatTerm(term: Term, parentPrec = 0): string {
+interface FormatOptions {
+  narsese?: boolean;
+  parentPrec?: number;
+}
+
+function formatTerm(term: Term, options: FormatOptions = {}): string {
+  const { narsese = false, parentPrec = 0 } = options;
   const opPrec = getPrecedence(term.op);
   const needsParens = opPrec < parentPrec;
   const args = getArgs(term);
@@ -559,7 +565,7 @@ function formatTerm(term: Term, parentPrec = 0): string {
 
   switch (term.op) {
     case TermOp.VARIABLE:
-      result = (term as VariableTerm).name;
+      result = narsese ? `?${(term as VariableTerm).name}` : (term as VariableTerm).name;
       break;
 
     case TermOp.CONSTANT:
@@ -567,19 +573,19 @@ function formatTerm(term: Term, parentPrec = 0): string {
       break;
 
     case TermOp.NEGATION:
-      result = '~' + formatTerm(args![0]!, getPrecedence(TermOp.NEGATION));
+      result = '~' + formatTerm(args![0]!, { narsese, parentPrec: getPrecedence(TermOp.NEGATION) });
       break;
 
     case TermOp.STATEMENT:
-      result = formatTerm(args![0]!, opPrec) + '.';
+      result = formatTerm(args![0]!, { narsese, parentPrec: opPrec }) + '.';
       break;
 
     case TermOp.QUESTION:
-      result = formatTerm(args![0]!, opPrec) + '?';
+      result = formatTerm(args![0]!, { narsese, parentPrec: opPrec }) + '?';
       break;
 
     case TermOp.GOAL:
-      result = formatTerm(args![0]!, opPrec) + '!';
+      result = formatTerm(args![0]!, { narsese, parentPrec: opPrec }) + '!';
       break;
 
     default: {
@@ -587,12 +593,12 @@ function formatTerm(term: Term, parentPrec = 0): string {
         const op = getOperatorSymbol(term.op);
         const left = args![0]!;
         const right = args![1]!;
-        const leftStr = formatTerm(left, opPrec + 1);
-        const rightStr = formatTerm(right, opPrec + 1);
+        const leftStr = formatTerm(left, { narsese, parentPrec: opPrec + 1 });
+        const rightStr = formatTerm(right, { narsese, parentPrec: opPrec + 1 });
         result = `${leftStr} ${op} ${rightStr}`;
       } else if (NARY_OPS.has(term.op)) {
         const op = getOperatorSymbol(term.op);
-        const parts = args!.map(arg => formatTerm(arg, opPrec + 1));
+        const parts = args!.map(arg => formatTerm(arg, { narsese, parentPrec: opPrec + 1 }));
         result = parts.join(` ${op} `);
       } else {
         result = '';
@@ -601,12 +607,19 @@ function formatTerm(term: Term, parentPrec = 0): string {
     }
   }
 
+  // In Narsese mode, always wrap compound terms in parentheses
+  // But not STATEMENT/QUESTION/GOAL which have their own punctuation
+  if (narsese && term.op !== TermOp.VARIABLE && term.op !== TermOp.CONSTANT &&
+      term.op !== TermOp.STATEMENT && term.op !== TermOp.QUESTION && term.op !== TermOp.GOAL) {
+    return `(${result})`;
+  }
+
   return needsParens ? `(${result})` : result;
 }
 
 class NarseseFormatter {
   static format(term: Term): string {
-    return formatTerm(term);
+    return formatTerm(term, { narsese: true });
   }
 }
 

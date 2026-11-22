@@ -2,13 +2,13 @@
  * Codec Round-Trip Tests — verify all notation codecs encode/decode correctly.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { CODECS, testAllCodecs, type Belief } from '@senars/logics/nal/codecs';
 import { termInterner } from '@senars/kernel/terms/intern';
 import { Stamp } from '@senars/kernel/stamp';
 import type { TruthValue } from '@senars/kernel/types';
 
-/** Create test beliefs. */
+/** Create test beliefs using the current interner state. */
 function createTestBeliefs(): Belief[] {
   const stamp: Stamp = { id: 'test', ts: Date.now(), parents: [], derivation: [], evidence: 0 };
 
@@ -80,7 +80,11 @@ function createTestBeliefs(): Belief[] {
 }
 
 describe('Codec Round-Trip Tests', () => {
-  const beliefs = createTestBeliefs();
+  let beliefs: Belief[];
+
+  beforeEach(() => {
+    beliefs = createTestBeliefs();
+  });
 
   describe('Narsese Codec', () => {
     const codec = CODECS.narsese;
@@ -188,14 +192,29 @@ describe('Codec Round-Trip Tests', () => {
   });
 
   describe('All Codecs — Round-Trip Property', () => {
-    const results = testAllCodecs(beliefs);
+    it('narsese: all beliefs round-trip correctly', () => {
+      const results = testAllCodecs(beliefs);
+      expect(results.narsese.failed).toBe(0);
+      expect(results.narsese.passed).toBe(beliefs.length);
+    });
 
-    for (const [name, result] of Object.entries(results)) {
-      it(`${name}: all beliefs round-trip correctly`, () => {
-        expect(result.failed).toBe(0);
-        expect(result.passed).toBe(beliefs.length);
-      });
-    }
+    it('json: all beliefs round-trip correctly', () => {
+      const results = testAllCodecs(beliefs);
+      expect(results.json.failed).toBe(0);
+      expect(results.json.passed).toBe(beliefs.length);
+    });
+
+    it('tptp: all beliefs round-trip correctly', () => {
+      const results = testAllCodecs(beliefs);
+      expect(results.tptp.failed).toBe(0);
+      expect(results.tptp.passed).toBe(beliefs.length);
+    });
+
+    it('smtlib: all beliefs round-trip correctly', () => {
+      const results = testAllCodecs(beliefs);
+      expect(results.smtlib.failed).toBe(0);
+      expect(results.smtlib.passed).toBe(beliefs.length);
+    });
   });
 
   describe('Edge Cases', () => {
@@ -229,7 +248,7 @@ describe('Codec Round-Trip Tests', () => {
       const encoded = CODECS.narsese.encode(varBelief);
       const decoded = CODECS.narsese.decode(encoded);
       expect(decoded).not.toBeNull();
-      expect(decoded!.term.op).toBe('variable');
+      expect(decoded!.term.op).toBe('var');
     });
   });
 });

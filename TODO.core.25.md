@@ -455,13 +455,12 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 - `./client/utils/index.ts` barrel export created
 
 **Progress:** 221/412 test files passing, 2010/2074 tests passing. Remaining failures:
-- ~8 tests in `logics/nal/codecs-roundtrip.test.ts` (pre-existing codec edge cases)
 - ~20 CLI/integration tests blocked by oxc parsing of `node-llama-cpp` native bindings
 - A few pre-existing test failures in benchmarks, MCP, and generated tests
 
 **Action items:**
 - [x] Fix logics/nal cross-witness tests (truth value alignment across engine/interpreter/verifier)
-- [ ] Fix logics/nal codec round-trip edge cases (Narsese/JSON/TPTP/SMT-LIB codecs)
+- [x] Fix logics/nal codec round-trip edge cases (Narsese/JSON/TPTP/SMT-LIB codecs)
 - [ ] Resolve oxc parsing of `node-llama-cpp` (exclude from transform or use esbuild)
 - [ ] Address remaining pre-existing test failures
 

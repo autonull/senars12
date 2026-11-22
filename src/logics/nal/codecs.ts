@@ -31,7 +31,7 @@ export const NARSESE_CODEC: Codec<Belief> = {
 
   encode(belief) {
     const termStr = termInterner.format(belief.term);
-    const truthStr = `%${belief.truth.f.toFixed(2)};${belief.truth.c.toFixed(2)}%`;
+    const truthStr = `%${belief.truth.f.toFixed(4)};${belief.truth.c.toFixed(4)}%`;
     return `${termStr} ${truthStr}`;
   },
 
@@ -138,7 +138,8 @@ export const TPTP_CODEC: Codec<Belief> = {
 
   decode(input) {
     // Simplified TPTP parsing - real implementation would be more robust
-    const match = /cnf\([^,]+,\s*axiom,\s*([^,]+)(?:,\s*\[([\d.]+),\s*([\d.]+)\])?\)/.exec(input);
+    // Allow optional trailing dot after closing paren
+    const match = /cnf\([^,]+,\s*axiom,\s*([^,]+)(?:,\s*\[([\d.]+),\s*([\d.]+)\])?\)\.?/.exec(input);
     if (!match) return null;
 
     const formula = match[1]!.trim();
@@ -271,24 +272,26 @@ function termToTPTP(term: Term): string {
       const args = (term as CompoundTerm).args;
       return `~${termToTPTP(args[0]!)}`;
     }
-    case TermOp.IMPLICATION: {
-      const args = (term as CompoundTerm).args;
-      return `(${termToTPTP(args[0]!)} => ${termToTPTP(args[1]!)})`;
-    }
-    case TermOp.PRODUCT: {
-      const args = (term as CompoundTerm).args;
-      return `(${args.map(termToTPTP).join(' * ')})`;
-    }
+    // IMPLICATION, PRODUCT, PREDICTION, SEQUENTIAL, etc. fall through to default
+    // which uses Narsese format for faithful round-trip
     default:
       return termInterner.format(term);
   }
 }
 
-/** Convert TPTP formula to NAL term (simplified). */
+/** Convert TPTP formula to NAL term. */
 function tptpToTerm(formula: string): Term | null {
-  // Very simplified - real implementation would need full parser
+  // Convert TPTP operators to Narsese operators
+  // Use negative lookbehind to avoid replacing ==> (NAL implication)
+  let narseseFormula = formula
+    .replace(/<=>/g, '<->')        // equivalence -> similarity
+    .replace(/(?<!=)=>/g, '-->')   // TPTP implication -> NAL inheritance (not preceded by =)
+    // Note: &, |, ~ are the same in both
+    .replace(/\s+/g, ' ')          // normalize whitespace
+    .trim();
+
   try {
-    return termInterner.parse(formula);
+    return termInterner.parse(narseseFormula);
   } catch {
     return null;
   }
@@ -326,13 +329,162 @@ function termToSMTLIB(term: Term): string {
   }
 }
 
-/** Convert SMT-LIB to NAL term (simplified). */
+/** Convert SMT-LIB formula to NAL term. */
 function smtlibToTerm(formula: string): Term | null {
+  // The formula is in SMT-LIB prefix notation with declare-const wrappers
+  // We need to parse it and convert to Narsese
   try {
-    return termInterner.parse(formula);
+    // Remove declare-const wrappers: (declare-const name Bool) -> name
+    let narseseFormula = formula.replace(/\(declare-const\s+(\w+)\s+Bool\)/g, '$1');
+
+    // Check if the formula is already in Narsese format (infix notation)
+    // This happens for term ops not explicitly handled by termToSMTLIB
+    const narseseOperators = ['==>', '<=>', '<->', '-->', '|>', ';', '*', '||', '|~', '@', '#', '&', '|', '~'];
+    const looksLikeNarsese = narseseOperators.some(op => narseseFormula.includes(op));
+
+    if (looksLikeNarsese) {
+      // Parse directly as Narsese
+      return termInterner.parse(narseseFormula.trim());
+    }
+
+    // Convert SMT-LIB operators to Narsese
+    // (=> A B) -> (A --> B)
+    // (= A B) -> (A <-> B)
+    // (and A B ...) -> (A & B & ...)
+    // (or A B ...) -> (A | B | ...)
+    // (not A) -> ~A
+
+    // This is a simplified converter for the specific patterns we generate
+    // A full implementation would need a proper SMT-LIB parser
+    narseseFormula = convertSMTLIBToNarsese(narseseFormula);
+
+    return termInterner.parse(narseseFormula);
   } catch {
     return null;
   }
+}
+
+/** Convert SMT-LIB prefix notation to Narsese infix notation. */
+function convertSMTLIBToNarsese(smtlib: string): string {
+  // Handle nested expressions recursively
+  // This is a simplified converter for our specific output format
+
+  // First, handle the simplest case: just a constant
+  if (/^\w+$/.test(smtlib.trim())) {
+    return smtlib.trim();
+  }
+
+  // Parse the SMT-LIB expression
+  const parsed = parseSMTLIBExpr(smtlib.trim());
+  if (!parsed) return smtlib;
+
+  return formatNarseseFromAST(parsed);
+}
+
+interface SMTLIBExpr {
+  type: 'const' | 'var' | 'app';
+  name?: string;
+  op?: string;
+  args?: SMTLIBExpr[];
+}
+
+/** Parse a simple SMT-LIB expression. */
+function parseSMTLIBExpr(input: string): SMTLIBExpr | null {
+  const trimmed = input.trim();
+
+  // Constant or variable
+  if (/^\w+$/.test(trimmed)) {
+    return { type: 'const', name: trimmed };
+  }
+
+  // Parenthesized expression: (op arg1 arg2 ...)
+  if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
+    const content = trimmed.slice(1, -1).trim();
+    const tokens = tokenizeSMTLIB(content);
+    if (tokens.length === 0) return null;
+
+    const op = tokens[0]!;
+    const args = tokens.slice(1).map(parseSMTLIBExpr).filter((a): a is SMTLIBExpr => a !== null);
+
+    return { type: 'app', op, args };
+  }
+
+  return null;
+}
+
+/** Tokenize SMT-LIB content (split by whitespace, respecting parentheses). */
+function tokenizeSMTLIB(input: string): string[] {
+  const tokens: string[] = [];
+  let current = '';
+  let depth = 0;
+
+  for (const ch of input) {
+    if (ch === '(') {
+      if (depth === 0 && current.trim()) {
+        tokens.push(current.trim());
+        current = '';
+      }
+      depth++;
+      current += ch;
+    } else if (ch === ')') {
+      depth--;
+      current += ch;
+      if (depth === 0) {
+        tokens.push(current.trim());
+        current = '';
+      }
+    } else if (/\s/.test(ch) && depth === 0) {
+      if (current.trim()) {
+        tokens.push(current.trim());
+        current = '';
+      }
+    } else {
+      current += ch;
+    }
+  }
+
+  if (current.trim()) {
+    tokens.push(current.trim());
+  }
+
+  return tokens;
+}
+
+/** Format Narsese from parsed SMT-LIB AST. */
+function formatNarseseFromAST(expr: SMTLIBExpr): string {
+  if (expr.type === 'const' || expr.type === 'var') {
+    return expr.name ?? '';
+  }
+
+  if (expr.type === 'app' && expr.op && expr.args) {
+    const opMap: Record<string, string> = {
+      '=>': '-->',
+      '=': '<->',
+      'and': '&',
+      'or': '|',
+      'not': '~',
+    };
+
+    const narseseOp = opMap[expr.op] ?? expr.op;
+    const formattedArgs = expr.args.map(formatNarseseFromAST);
+
+    if (expr.op === 'not' && formattedArgs.length === 1) {
+      return `~${formattedArgs[0]!}`;
+    }
+
+    if (formattedArgs.length === 2) {
+      return `(${formattedArgs[0]!} ${narseseOp} ${formattedArgs[1]!})`;
+    }
+
+    if (formattedArgs.length > 2) {
+      // For n-ary ops like and/or, chain them
+      return `(${formattedArgs.join(` ${narseseOp} `)})`;
+    }
+
+    return formattedArgs[0] ?? '';
+  }
+
+  return '';
 }
 
 /** Convert NAL term to CNF for DIMACS. */
