@@ -27,6 +27,7 @@ async function run(seed: number, path: string) {
   for (const [, task] of tasks) loop.getContext().economyState.bags.get('belief')?.add(task.id);
   await loop.run(30);
   await loop.close();
+  await logStore.close();
   return configDigest({ demo: 'd7', seed, steps: 30 });
 }
 
@@ -37,6 +38,7 @@ async function main() {
     run(seed, '.data/demo-d7-run2.log'),
   ]);
   console.log(JSON.stringify({ demo: 'd7', seed, digest1, digest2, replayIdentical: digest1 === digest2 }, null, 2));
+  process.exit(0);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

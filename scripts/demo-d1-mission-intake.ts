@@ -28,9 +28,11 @@ async function main() {
 
   await loop.run(5);
   await loop.close();
+  await logStore.close();
 
   const digest = configDigest({ demo: 'd1', seed, steps: 5 });
   console.log(JSON.stringify({ demo: 'd1', seed, digest, steps: 5 }, null, 2));
+  process.exit(0);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

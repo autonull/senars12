@@ -48,9 +48,11 @@ async function main() {
   await loopB.run(10);
   await loopA.close();
   await loopB.close();
+  await logStore.close();
 
   const digest = configDigest({ demo: 'd6', seed, steps: 20 });
   console.log(JSON.stringify({ demo: 'd6', seed, digest, steps: 20 }, null, 2));
+  process.exit(0);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

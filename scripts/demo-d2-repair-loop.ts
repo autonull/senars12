@@ -30,9 +30,11 @@ async function main() {
 
   await loop.run(10);
   await loop.close();
+  await logStore.close();
 
   const digest = configDigest({ demo: 'd2', seed, steps: 10 });
   console.log(JSON.stringify({ demo: 'd2', seed, digest, steps: 10 }, null, 2));
+  process.exit(0);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
