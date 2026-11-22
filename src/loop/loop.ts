@@ -6,7 +6,6 @@
  */
 
 import type { Env } from '../kernel/env';
-import type { Economy, EconomyScheduler } from '../economy/index';
 import type { FacultyRegistry } from '../faculties/specs';
 import type { OracleRegistry } from '../oracles/oracle';
 import type { LoopConfig, IterationResult, LoopContext, LoopEventType, LoopEvent, FacultyInvoker } from './types';
@@ -28,50 +27,24 @@ export class CognitiveLoop {
   private stopped = false;
   private readonly emit: (type: LoopEventType, data: Record<string, unknown>) => void;
   private readonly on: (type: LoopEventType, listener: (event: LoopEvent) => void) => () => void;
-  private readonly economyEventUnsub: (() => void)[] = [];
   private eventEmitterSetDefaults: (iteration: number, correlationId: string) => void;
 
   constructor(
     env: Env,
-    economy: Economy,
-    scheduler: EconomyScheduler,
+    _economy: unknown,
+    _scheduler: unknown,
     faculties: FacultyRegistry,
     oracles: OracleRegistry,
     config: Partial<LoopConfig> = {}
   ) {
     this.config = { ...defaultLoopConfig, ...config };
-    this.context = createLoopContext(env, economy, scheduler, faculties, oracles, this.config);
+    this.context = createLoopContext(env, _economy, _scheduler, faculties, oracles, this.config);
     this.invokers = initializeFacultyInvokers(faculties);
 
     const eventEmitter = createLoopEventEmitter(env.clock, 0, this.context.correlationId);
     this.emit = eventEmitter.emit;
     this.on = eventEmitter.on;
     this.eventEmitterSetDefaults = eventEmitter.setDefaults;
-
-    this.subscribeToEconomyEvents();
-  }
-
-  private subscribeToEconomyEvents(): void {
-    const economyEvents = [
-      'task_scheduled',
-      'task_completed',
-      'task_failed',
-      'fairness_violation',
-      'overlay_activated',
-      'overlay_deactivated',
-    ] as const;
-
-    for (const eventType of economyEvents) {
-      this.economyEventUnsub.push(
-        this.context.economy.on(eventType, (event) => {
-          this.eventEmitterSetDefaults(this.context.iteration, this.context.correlationId);
-          this.emit('iteration_complete', {
-            economyEvent: eventType,
-            ...event.data,
-          });
-        })
-      );
-    }
   }
 
   /** Run the loop for a number of iterations. */
@@ -178,9 +151,6 @@ export class CognitiveLoop {
   /** Cleanup. */
   async close(): Promise<void> {
     this.stop();
-    for (const unsub of this.economyEventUnsub) {
-      unsub();
-    }
     if (this.context.recorder) {
       await this.context.recorder.close();
     }
@@ -190,11 +160,11 @@ export class CognitiveLoop {
 /** Create a cognitive loop. */
 export function createCognitiveLoop(
   env: Env,
-  economy: Economy,
-  scheduler: EconomyScheduler,
+  _economy: unknown,
+  _scheduler: unknown,
   faculties: FacultyRegistry,
   oracles: OracleRegistry,
   config?: Partial<LoopConfig>
 ): CognitiveLoop {
-  return new CognitiveLoop(env, economy, scheduler, faculties, oracles, config);
+  return new CognitiveLoop(env, _economy, _scheduler, faculties, oracles, config);
 }

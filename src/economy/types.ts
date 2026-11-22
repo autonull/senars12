@@ -205,6 +205,22 @@ export interface EconomyState {
   schedulerStats: SchedulerStats;
   /** Active overlays. */
   activeOverlays: Overlay[];
+  /** Pick history for fairness tracking. */
+  pickHistory: PickRecord[];
+  /** Scheduler configuration (embedded for pure functions). */
+  config: SchedulerConfig;
+}
+
+/** Task pick record for fairness tracking. */
+export interface PickRecord {
+  /** Task ID. */
+  taskId: string;
+  /** Task kind. */
+  kind: TaskBagKind;
+  /** Iteration when picked. */
+  iteration: number;
+  /** Utility at pick time. */
+  utility: number;
 }
 
 /** Scheduler statistics. */

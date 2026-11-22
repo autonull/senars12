@@ -7,7 +7,24 @@ import { createLoopRecorder, type LoopRecorder } from './record';
 import { createSelfModelManager, type SelfModelManager } from './self-model';
 import type { ContractRegistry } from './contract';
 import { createRepairLoop, type RepairLoop } from './repair';
-import type { Economy, EconomyScheduler } from '../economy/index';
+import {
+  createEconomyState,
+  createEconomyStateFromEnv,
+  type EconomyState,
+  schedule,
+  addTask,
+  removeTask,
+  updateTask,
+  getTask,
+  getTasksByKind,
+  getAllTasks,
+  activateOverlay,
+  deactivateOverlay,
+  getStats,
+  getPickHistory,
+  setSeed,
+  type Overlay,
+} from '../economy/index';
 import type { FacultyRegistry } from '../faculties/specs';
 import type { OracleRegistry } from '../oracles/oracle';
 import type { Env, RNG, Clock } from '../kernel/env';
@@ -17,14 +34,16 @@ import { defaultLoopConfig } from './types';
 /** Creates the loop context with all dependencies. */
 export function createLoopContext(
   env: Env,
-  economy: Economy,
-  scheduler: EconomyScheduler,
+  _economy: unknown,
+  _scheduler: unknown,
   faculties: FacultyRegistry,
   oracles: OracleRegistry,
   config: Partial<LoopConfig> = {}
 ): LoopContext {
   const mergedConfig = { ...defaultLoopConfig, ...config };
   const correlationId = mergedConfig.correlationId ?? env.ids.uuid();
+
+  const economyState = createEconomyStateFromEnv(env, {});
 
   const recorder = mergedConfig.recordEnabled ? createLoopRecorder(undefined, correlationId, { clock: env.clock, ids: env.ids }) : undefined;
   const selfModel = mergedConfig.selfModelEnabled ? createSelfModelManager(undefined, { clock: env.clock }) : undefined;
@@ -34,8 +53,21 @@ export function createLoopContext(
   return {
     iteration: 0,
     env,
-    economy,
-    scheduler,
+    economyState,
+    schedule,
+    economy: {
+      addTask,
+      removeTask,
+      updateTask,
+      getTask,
+      getTasksByKind,
+      getAllTasks,
+      activateOverlay,
+      deactivateOverlay,
+      getStats,
+      getPickHistory,
+      setSeed,
+    },
     faculties,
     oracles,
     contracts: undefined,

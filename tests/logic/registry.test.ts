@@ -11,7 +11,6 @@ import { createFacultyRegistry, FacultyEngine } from '../../src/faculties/index'
 import { createOracleRegistry, type Oracle, type OracleInput, type OracleOutput } from '../../src/oracles/oracle';
 import { createJudge } from '../../src/faculties/judgment/judge';
 import { createEnv, createEnvCore, type Env } from '../../src/kernel/env';
-import { createEconomyScheduler, type Economy } from '../../src/economy/index';
 import { createCognitiveLoop } from '../../src/loop/index';
 import { termInterner } from '../../src/kernel/terms/intern';
 
@@ -26,14 +25,14 @@ const makeOracle = (operation: Oracle['operation']): Oracle => ({
   getStats: () => ({ totalCalls: 0, successfulCalls: 0, failedCalls: 0, pinnedCalls: 0, totalDurationMs: 0 }),
 });
 
-const makeTask = (id: string, term: string, createdAt: number): EconomyTask => ({
+const makeTask = (id: string, term: string, createdAt: number) => ({
   id,
   term: termInterner.constant(term),
-  kind: 'belief',
+  kind: 'belief' as const,
   truth: { f: 1, c: 0.9 },
   weight: 1,
   activation: 1,
-  source: 'perception',
+  source: 'perception' as const,
   createdAt,
   lastAccessed: createdAt,
   accessCount: 0,
@@ -73,71 +72,38 @@ describe('W1 — per-instance registries', () => {
   it('runs two agents in one process with isolated registries', async () => {
     // Agent 1
     const core1 = createEnvCore({ seed: 1 });
-    const scheduler1 = createEconomyScheduler({ seed: 1, clock: core1.clock });
-    const economy1: Economy = {
-      addTask: (task) => scheduler1.addTask(task),
-      removeTask: (id) => scheduler1.removeTask(id),
-      updateTask: (id, updates) => scheduler1.updateTask(id, updates),
-      getTask: (id) => scheduler1.getTask(id),
-      getTasksByKind: (kind) => scheduler1.getTasksByKind(kind),
-      getAllTasks: () => scheduler1.getAllTasks(),
-      schedule: (successors) => scheduler1.schedule(successors),
-      getState: () => scheduler1.getState(),
-      getStats: () => scheduler1.getStats(),
-      activateOverlay: (overlay) => scheduler1.activateOverlay(overlay),
-      deactivateOverlay: (id) => scheduler1.deactivateOverlay(id),
-      setSeed: (next) => scheduler1.setSeed(next),
-      on: (type, listener) => scheduler1.on(type, listener),
-    };
     const env1 = createEnv({
       ...core1,
       oracles: createOracleRegistry(),
       faculties: createFacultyRegistry(),
-      economy: economy1,
     });
     const task1 = makeTask('task-1', 'agent1-grounding', env1.clock.now());
-    economy1.addTask(task1);
-    const loop1 = createCognitiveLoop(env1, economy1, scheduler1, createFacultyRegistry(), createOracleRegistry(), {
+    const loop1 = createCognitiveLoop(env1, null as any, null as any, createFacultyRegistry(), createOracleRegistry(), {
       maxIterations: 2,
       recordEnabled: false,
       contractsEnabled: false,
       repairEnabled: false,
       selfModelEnabled: false,
     });
+    // Add task via context economy
+    loop1.getContext().economy.addTask(loop1.getContext().economyState, task1);
 
     // Agent 2
     const core2 = createEnvCore({ seed: 2 });
-    const scheduler2 = createEconomyScheduler({ seed: 2, clock: core2.clock });
-    const economy2: Economy = {
-      addTask: (task) => scheduler2.addTask(task),
-      removeTask: (id) => scheduler2.removeTask(id),
-      updateTask: (id, updates) => scheduler2.updateTask(id, updates),
-      getTask: (id) => scheduler2.getTask(id),
-      getTasksByKind: (kind) => scheduler2.getTasksByKind(kind),
-      getAllTasks: () => scheduler2.getAllTasks(),
-      schedule: (successors) => scheduler2.schedule(successors),
-      getState: () => scheduler2.getState(),
-      getStats: () => scheduler2.getStats(),
-      activateOverlay: (overlay) => scheduler2.activateOverlay(overlay),
-      deactivateOverlay: (id) => scheduler2.deactivateOverlay(id),
-      setSeed: (next) => scheduler2.setSeed(next),
-      on: (type, listener) => scheduler2.on(type, listener),
-    };
     const env2 = createEnv({
       ...core2,
       oracles: createOracleRegistry(),
       faculties: createFacultyRegistry(),
-      economy: economy2,
     });
     const task2 = makeTask('task-2', 'agent2-grounding', env2.clock.now());
-    economy2.addTask(task2);
-    const loop2 = createCognitiveLoop(env2, economy2, scheduler2, createFacultyRegistry(), createOracleRegistry(), {
+    const loop2 = createCognitiveLoop(env2, null as any, null as any, createFacultyRegistry(), createOracleRegistry(), {
       maxIterations: 2,
       recordEnabled: false,
       contractsEnabled: false,
       repairEnabled: false,
       selfModelEnabled: false,
     });
+    loop2.getContext().economy.addTask(loop2.getContext().economyState, task2);
 
     // Register a custom oracle in agent 1 only
     env1.oracles.register(makeOracle('engine.custom'));
@@ -184,5 +150,3 @@ describe('W1 — per-instance registries', () => {
     expect(JSON.stringify(events1)).not.toBe(JSON.stringify(events2));
   });
 });
-
-import { type EconomyTask } from '../../src/economy/index';

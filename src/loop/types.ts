@@ -2,7 +2,7 @@
  * Loop Types — shared type definitions for the cognitive loop.
  */
 
-import type { Economy, EconomyTask, EconomyScheduler, SchedulerResult, EconomyEvent, EconomyEventType } from '../economy/index';
+import type { EconomyTask, EconomyState, SchedulerResult, SchedulerConfig, Successor } from '../economy/index';
 import type { FacultyRegistry, FacultySpec, FacultyInput, FacultyOutput } from '../faculties/specs';
 import type { OracleRegistry, Oracle, OracleInput, OracleOutput } from '../oracles/oracle';
 import type { Term } from '../kernel/terms/term';
@@ -16,13 +16,14 @@ import type { SelectionResult, SelectionCandidate, SelectionContext, ActionSelec
 import type { ContractRegistry } from './contract';
 import type { LoopRecorder } from './record';
 import type { SelfModelManager } from './self-model';
+import type { RNG, Clock } from '../kernel/env';
 
 /** Re-export commonly used types. */
 export type {
-  Economy,
   EconomyTask,
-  EconomyScheduler,
+  EconomyState,
   SchedulerResult,
+  SchedulerConfig,
   FacultyRegistry,
   FacultySpec,
   FacultyInput,
@@ -45,6 +46,8 @@ export type {
   ContractRegistry,
   LoopRecorder,
   SelfModelManager,
+  RNG,
+  Clock,
 };
 
 /** Loop configuration. */
@@ -154,10 +157,24 @@ export interface LoopContext {
   iteration: number;
   /** Deterministic environment. */
   env: Env;
-  /** Economy instance. */
-  economy: Economy;
-  /** Economy scheduler. */
-  scheduler: EconomyScheduler;
+  /** Economy state. */
+  economyState: EconomyState;
+  /** Pure schedule function. */
+  schedule: (state: EconomyState, rng: RNG, clock: Clock, successors?: Map<string, Successor[]>) => SchedulerResult;
+  /** Pure economy functions. */
+  economy: {
+    addTask: (state: EconomyState, task: EconomyTask) => EconomyState;
+    removeTask: (state: EconomyState, taskId: string) => EconomyState;
+    updateTask: (state: EconomyState, taskId: string, updates: Partial<EconomyTask>, clock: Clock) => EconomyState;
+    getTask: (state: EconomyState, taskId: string) => EconomyTask | undefined;
+    getTasksByKind: (state: EconomyState, kind: EconomyTask['kind']) => EconomyTask[];
+    getAllTasks: (state: EconomyState) => EconomyTask[];
+    activateOverlay: (state: EconomyState, overlay: import('../economy/index').Overlay) => EconomyState;
+    deactivateOverlay: (state: EconomyState, overlayId: string) => EconomyState;
+    getStats: (state: EconomyState) => import('../economy/index').SchedulerStats;
+    getPickHistory: (state: EconomyState) => import('../economy/index').PickRecord[];
+    setSeed: (state: EconomyState, seed: number, rng: RNG) => EconomyState;
+  };
   /** Faculty registry. */
   faculties: FacultyRegistry;
   /** Oracle registry. */

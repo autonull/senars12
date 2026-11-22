@@ -9,7 +9,7 @@
 
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { configDigest } from '../../src/config/digest';
-import { createEconomyScheduler, type Economy, type EconomyTask, type SchedulerConfig } from '../../src/economy/index';
+import { type EconomyTask, type EconomyState, createEconomyStateFromEnv } from '../../src/economy/index';
 import { createFacultyRegistry } from '../../src/faculties/specs';
 import { createOracleRegistry } from '../../src/oracles/oracle';
 import { createEnv, createEnvCore, type Env } from '../../src/kernel/env';
@@ -54,39 +54,26 @@ const cleanup = () => {
 
 const replay = async (seed: number, initialTime = 0, logStore?: any, pinStore?: any): Promise<Replay> => {
   const core = createEnvCore({ seed, initialTime: initialTime as never });
-  const scheduler = createEconomyScheduler({ rng: core.rng, clock: core.clock } satisfies Partial<SchedulerConfig>);
-  const economy: Economy = {
-    addTask: (task) => scheduler.addTask(task),
-    removeTask: (id) => scheduler.removeTask(id),
-    updateTask: (id, updates) => scheduler.updateTask(id, updates),
-    getTask: (id) => scheduler.getTask(id),
-    getTasksByKind: (kind) => scheduler.getTasksByKind(kind),
-    getAllTasks: () => scheduler.getAllTasks(),
-    schedule: (successors) => scheduler.schedule(successors),
-    getState: () => scheduler.getState(),
-    getStats: () => scheduler.getStats(),
-    activateOverlay: (overlay) => scheduler.activateOverlay(overlay),
-    deactivateOverlay: (id) => scheduler.deactivateOverlay(id),
-    setSeed: (next) => scheduler.setSeed(next),
-    on: (type, listener) => scheduler.on(type, listener),
-  };
   const env = createEnv({
     ...core,
     oracles: createOracleRegistry(),
     faculties: createFacultyRegistry(),
-    economy,
   });
+  const economyState = createEconomyStateFromEnv(env, {});
 
   const task = makeTask('task-1', 'grounding', env.clock.now());
-  economy.addTask(task);
+  const newEconomyState = { ...economyState, tasks: new Map(economyState.tasks).set(task.id, task) };
+  newEconomyState.bags.get('belief')?.add(task.id);
 
-  const loop = createCognitiveLoop(env, economy, scheduler, createFacultyRegistry(), createOracleRegistry(), {
+  const loop = createCognitiveLoop(env, null as any, null as any, createFacultyRegistry(), createOracleRegistry(), {
     maxIterations: 3,
     recordEnabled: false,
     contractsEnabled: false,
     repairEnabled: false,
     selfModelEnabled: false,
   });
+  // Replace the economy state with our initialized one
+  loop.getContext().economyState = newEconomyState;
 
   const events: LoopEvent[] = [];
   for (const type of LOOP_EVENTS) loop.onEvent(type, (event) => events.push(event));

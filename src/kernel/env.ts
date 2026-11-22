@@ -9,7 +9,6 @@
 import type { UUID, TimestampMs } from '../generated/schemas';
 import type { OracleRegistry } from '../oracles/oracle';
 import type { FacultyRegistry } from '../faculties/specs';
-import type { Economy } from '../economy/index';
 
 /** Re-export TimestampMs for consumers. */
 export type { TimestampMs } from '../generated/schemas';
@@ -52,9 +51,6 @@ export interface EnvOracleRegistry extends OracleRegistry {}
 /** Faculty provider for the environment. */
 export interface EnvFacultyRegistry extends FacultyRegistry {}
 
-/** Economy provider for the environment. */
-export interface EnvEconomy extends Economy {}
-
 /** Complete environment for the fold. */
 export interface Env {
   /** Random number generator. */
@@ -67,8 +63,6 @@ export interface Env {
   oracles: EnvOracleRegistry;
   /** Faculty registry. */
   faculties: EnvFacultyRegistry;
-  /** Economy. */
-  economy: EnvEconomy;
 }
 
 /** The deterministic sources an environment provides. */
@@ -91,8 +85,6 @@ export interface EnvConfig extends Partial<EnvCore> {
   oracles: EnvOracleRegistry;
   /** Faculty registry. */
   faculties: EnvFacultyRegistry;
-  /** Economy. */
-  economy: EnvEconomy;
 }
 
 /** Default deterministic RNG implementation (xorshift128+). */
@@ -209,14 +201,13 @@ export function createEnv(config: EnvConfig): Env {
     ...core,
     oracles: config.oracles,
     faculties: config.faculties,
-    economy: config.economy,
   };
 }
 
 /** Create an Env for replay (fixed seed, fixed time). */
 export function createReplayEnv(
   seed: number,
-  parts: Pick<EnvConfig, 'oracles' | 'faculties' | 'economy'>,
+  parts: Pick<EnvConfig, 'oracles' | 'faculties'>,
   initialTime: TimestampMs = 0 as TimestampMs
 ): Env {
   return createEnv({ seed, initialTime, ...parts });

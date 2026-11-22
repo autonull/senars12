@@ -2,8 +2,7 @@
  * Loop Iteration — core iteration execution logic.
  */
 
-import type { LoopContext, IterationResult, ActionResult, SelectionResult, SelectionContext, SelectionCandidate, EconomyTask, LoopEventType } from './types';
-import type { Economy, EconomyScheduler, SchedulerResult } from '../economy/index';
+import type { LoopContext, IterationResult, ActionResult, SelectionResult, SelectionContext, SelectionCandidate, EconomyTask, LoopEventType, SchedulerResult } from './types';
 import type { FacultyInvoker } from './types';
 import type { Oracle } from '../oracles/oracle';
 import type { ContractRegistry, ContractCheckResult, ContractContext } from './contract';
@@ -11,6 +10,7 @@ import type { RepairLoop, RepairContext, RepairResult as LoopRepairResult } from
 import type { LoopAppraisal } from './appraise';
 import type { LoopRecorder } from './record';
 import type { SelfModelManager } from './self-model';
+import type { Successor } from '../economy/index';
 import { defaultLoopConfig } from './types';
 
 /** Runs a single loop iteration. */
@@ -24,8 +24,10 @@ export async function runIteration(
 
   emit('iteration_start', { iteration });
 
-  // 1. Schedule task from economy
-  const scheduleResult = context.scheduler.schedule();
+  // 1. Schedule task from economy (pure function)
+  const scheduleResult = context.schedule(context.economyState, context.env.rng, context.env.clock);
+  // Update economy state with the new state from scheduling
+  context.economyState = scheduleResult.newState;
   emit('selection_made', { iteration, taskId: scheduleResult.task?.id });
 
   if (!scheduleResult.task) {
@@ -87,7 +89,7 @@ export async function runIteration(
 
 /** Builds selection context from economy state. */
 function buildSelectionContext(context: LoopContext, scheduleResult: SchedulerResult): SelectionContext {
-  const tasks = context.economy.getAllTasks();
+  const tasks = context.economy.getAllTasks(context.economyState);
   const beliefs = tasks.filter(t => t.kind === 'belief');
   const goals = tasks.filter(t => t.kind === 'goal');
 
@@ -126,7 +128,7 @@ async function executeActions(
 ): Promise<ActionResult[]> {
   if (!selected) return [];
 
-  const task = context.economy.getTask(selected.id) ?? scheduledTask;
+  const task = context.economy.getTask(context.economyState, selected.id) ?? scheduledTask;
   const results: ActionResult[] = [];
 
   // Try faculty invokers
@@ -258,9 +260,9 @@ async function checkContracts(
   const contractContext: ContractContext = {
     iteration: context.iteration,
     currentTask: task as unknown as import('../kernel/types').Task,
-    focusBag: context.economy.getAllTasks() as unknown as import('../kernel/types').Task[],
-    beliefs: context.economy.getTasksByKind('belief') as unknown as import('../kernel/types').Task[],
-    goals: context.economy.getTasksByKind('goal') as unknown as import('../kernel/types').Task[],
+    focusBag: context.economy.getAllTasks(context.economyState) as unknown as import('../kernel/types').Task[],
+    beliefs: context.economy.getTasksByKind(context.economyState, 'belief') as unknown as import('../kernel/types').Task[],
+    goals: context.economy.getTasksByKind(context.economyState, 'goal') as unknown as import('../kernel/types').Task[],
     selectedAction: task as unknown as import('../kernel/types').Task,
     oracleCalls: [],
     resources: { tokensUsed: 0, tokensRemaining: 1000, wallTimeMs: 0, cpuTimeMs: 0 },
@@ -286,8 +288,8 @@ async function runRepairs(
   const repairContext: RepairContext = {
     iteration: context.iteration,
     recentTasks: [],
-    beliefs: context.economy.getTasksByKind('belief') as unknown as import('../kernel/types').Task[],
-    goals: context.economy.getTasksByKind('goal') as unknown as import('../kernel/types').Task[],
+    beliefs: context.economy.getTasksByKind(context.economyState, 'belief') as unknown as import('../kernel/types').Task[],
+    goals: context.economy.getTasksByKind(context.economyState, 'goal') as unknown as import('../kernel/types').Task[],
     resources: { cpu: 0, memory: 0, tokensUsed: 0, tokensRemaining: 1000, wallTimeMs: 0 },
     oracleHealth: [],
     gateStates: [],
