@@ -77,14 +77,7 @@ export async function generateWasmBundle(
     ' * Run: pnpm wasm:bundle',
     ' */',
     '',
-    'export interface WasmModule {',
-    '  id: string;',
-    '  name: string;',
-    '  base64: string;',
-    '  bytes: Uint8Array;',
-    '}',
-    '',
-    'const MODULES: WasmModule[] = [',
+    'const MODULES = [',
   ];
 
   let hasAnyModule = false;
@@ -95,7 +88,7 @@ export async function generateWasmBundle(
 
     if (base64) {
       hasAnyModule = true;
-      bundleParts.push(`  { id: '${mod.id}', name: '${mod.name}', base64: \`${base64}\`, bytes: null as any },`);
+      bundleParts.push(`  { id: '${mod.id}', name: '${mod.name}', base64: \`${base64}\`, bytes: null },`);
       console.log(`  ✓ ${mod.name} (${mod.id}) - ${Math.round(base64.length * 3 / 4 / 1024)} KB`);
     } else if (mod.required) {
       throw new Error(`Required WASM module not found: ${mod.glob}`);
@@ -112,10 +105,10 @@ export async function generateWasmBundle(
   bundleParts.push(
     '];',
     '',
-    'let loadedModules = new Map<string, WebAssembly.Module>();',
+    'let loadedModules = new Map();',
     '',
-    'export async function loadWasmModule(id: string): Promise<WebAssembly.Module> {',
-    '  if (loadedModules.has(id)) return loadedModules.get(id)!;',
+    'export async function loadWasmModule(id) {',
+    '  if (loadedModules.has(id)) return loadedModules.get(id);',
     '',
     '  const mod = MODULES.find(m => m.id === id);',
     '  if (!mod) throw new Error(`WASM module not found in bundle: ${id}`);',
@@ -133,16 +126,16 @@ export async function generateWasmBundle(
     '  return module;',
     '}',
     '',
-    'export async function instantiateWasmModule(id: string, imports?: WebAssembly.Imports): Promise<WebAssembly.Instance> {',
+    'export async function instantiateWasmModule(id, imports) {',
     '  const module = await loadWasmModule(id);',
     '  return await WebAssembly.instantiate(module, imports);',
     '}',
     '',
-    'export function listWasmModules(): string[] {',
+    'export function listWasmModules() {',
     '  return MODULES.map(m => m.id);',
     '}',
     '',
-    'export function getWasmModuleInfo(id: string): WasmModule | undefined {',
+    'export function getWasmModuleInfo(id) {',
     '  return MODULES.find(m => m.id === id);',
     '}',
     '',
