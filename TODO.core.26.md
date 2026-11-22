@@ -69,6 +69,8 @@
    - `src/worlds/arena-lanes.ts`: `createBaselineArms`, `runBaselineArms`, `registerBaselineArmsAsLane`
    - Baseline arms registered as symmetric arena arms (config, not code)
 
+   **Planned:** Add minimal PPO arm (discrete-action, GridWorld) as policy-gradient spike to expand beyond value-based methods. Infrastructure ready — just register new `BaselineArmConfig` with `algorithm: 'ppo'`.
+
 - Preservation gate live: 30 capabilities tracked (20 faculties + 10 oracles)
 - All 3,667 tests pass; typecheck clean
 
