@@ -51,7 +51,7 @@
 - **W2 complete.** WASM engines (Z3, Clingo, MiniSat, Tau Prolog) default; native optional via `createEngineOracleRegistry({ includeNative: true })`; MeTTa as `engine.metta` oracle; duplicate `logics/axiomatic/engines` removed.
 - **Legacy runtime still production** (`bin/senars.ts` → `createAgentFromEnv`) with rich capability surface: MeTTa, imagination, RLFP, RL baselines, premise selection, contrastive/embedding memory, distillation, GBNF/WASI, causal/concept/associative indexes, self-modification, 14 games, focus trees, metacognitive analyzers, NL/dialogue, schema induction, transport/plugin/governance.
 - **Test infrastructure fixed.** oxc disabled (esbuild); tsconfig symlink; import paths corrected; all 394 test files pass.
-- **Known debt:** 464 vitest aliases (tsconfigPaths enabled, explicit aliases still needed for non-standard paths); 1 flaky test; 4 deferred UI tests; 19 gates need provider setup.
+- **Known debt:** 464 vitest aliases (tsconfigPaths enabled, explicit aliases for non-standard paths); 2 flaky tests (llama-runtime-dispose, test-endpoints); 4 deferred UI tests; 19 gates need provider setup.
 - **Typecheck fixed.** All src/ type errors resolved; `typecheck:packages` clean.
 
 **The gap is wiring, hardening, and giving every capability one elegant home.**
@@ -359,17 +359,17 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 ## 13. Remaining Infrastructure Work (Post-Phase 0)
 
 **Test infrastructure** — ✅ **FIXED** (oxc disabled, tsconfig symlink, imports corrected)
-- All 394 test files pass (3615 tests, 6 skipped)
+- All 395 test files pass (3667 tests, 6 skipped)
 
 **Typecheck:packages** — ✅ **FIXED** (branded types resolved in `world-packs.ts`; all type errors resolved across src/)
 
-**Vitest aliases (560+)** — 🔄 **PARTIAL** (`vite-tsconfig-paths` enabled; explicit /index paths added to tsconfig.root.json; duplicate schemas identified)
-- `vite-tsconfig-paths` installed and active; tsconfigPaths resolves standard paths; explicit aliases cover .js variants, external deps, non-standard mappings
+**Vitest aliases (560+)** — 🔄 **SIGNIFICANT PROGRESS** (`vite-tsconfig-paths` enabled; explicit /index paths added to tsconfig.root.json; duplicate schemas identified)
+- `vite-tsconfig-paths` installed and active; tsconfigPaths resolves standard paths; explicit aliases cover external deps, non-standard mappings
 - 17 explicit `/index` sub-path entries added to `tsconfig.root.json` to fix dynamic import resolution
-- Duplicate schemas section (17 entries) and `.js` variants (70 entries) removed in dedup pass; remaining duplicates in sub-path aliases need careful analysis
-- Current working config: 627 aliases (down from 622 baseline after dedup analysis)
+- Duplicate schemas section (17 entries), `.js` variants (~87 entries), duplicate wildcard aliases removed; 627→464 aliases (163 removed)
+- Remaining 464 aliases: non-standard mappings, deep paths for dynamic imports, top-level packages, scripts/lit
 
-**Complexity budget** — ✅ **RE-ARMED** at true baseline
+**Complexity budget** — ✅ **RE-ARMED** at true baseline (productionLOC: 123843→125816)
 - Baseline updated to current actuals; ratchet active
 
 **Flaky test** — ⏳ `refactor2-residual-causal` (PriorityBag.decay rate)
