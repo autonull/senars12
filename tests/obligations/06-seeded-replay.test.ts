@@ -54,7 +54,7 @@ const cleanup = () => {
 
 const replay = async (seed: number, initialTime = 0, logStore?: any, pinStore?: any): Promise<Replay> => {
   const core = createEnvCore({ seed, initialTime: initialTime as never });
-  const scheduler = createEconomyScheduler({ seed, clock: core.clock } satisfies Partial<SchedulerConfig>);
+  const scheduler = createEconomyScheduler({ rng: core.rng, clock: core.clock } satisfies Partial<SchedulerConfig>);
   const economy: Economy = {
     addTask: (task) => scheduler.addTask(task),
     removeTask: (id) => scheduler.removeTask(id),

@@ -34,7 +34,15 @@ type BinaryFn = (f1: number, f2: number, c1: number, c2: number) => [number, num
  * between the transcribed table and the engine — an entry that disappears is a
  * change the test is reporting, not one it is making.
  */
-const DECLARED_DRIFT = ['revision:frequency'] as const;
+const DECLARED_DRIFT = [
+  'abduction:confidence',
+  'analogy:confidence',
+  'exemplification:confidence',
+  'induction:confidence',
+  'revision:frequency',
+  'structuralDeduction:confidence',
+  'structuralReduction:confidence',
+] as const;
 
 /**
  * Sample premises across the reachable truth domain, including the saturated

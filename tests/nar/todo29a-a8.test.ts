@@ -57,7 +57,7 @@ describe('TODO29.a A8 — the resource inventory', () => {
   });
 
   it('covers both of TODO28’s audited accumulator sites', () => {
-    for (const file of ['nar/src/kernel/source-reputation.ts', 'nar/src/rl/impls/QBeliefStore.ts'])
+    for (const file of ['src/kernel/source-reputation.ts', 'src/rl/impls/QBeliefStore.ts'])
       expect(
         RESOURCE_CONTRACTS.some(
           (contract) => contract.owner === file || contract.capacity.module === file

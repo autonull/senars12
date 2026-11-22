@@ -745,8 +745,9 @@ export default defineConfig({
     web: ['**/*.ts'],
     ssr: ['**/*.ts'],
   },
-  // Force esbuild by disabling oxc
+  // Disable oxc, use esbuild instead (oxc fails on node-llama-cpp native bindings)
   experimental: {
+    oxc: false,
     vm: {
       isolate: false,
     },

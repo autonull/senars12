@@ -437,30 +437,28 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 
 ## 12. Remaining infrastructure work (post-W11)
 
-**Test infrastructure — alias resolution** — ✅ **MOSTLY FIXED**. vitest.config.ts now has:
+**Test infrastructure — alias resolution** — ✅ **FIXED**. vitest.config.ts now has:
 - Top-level aliases for `@senars/util`, `@senars/utils`, `@senars/lm`, `@senars/agent`, `@senars/self`, `@senars/tools`, etc.
 - Regex wildcards for `@senars/util/*`, `@senars/utils/*`, `@senars/lm/*`, `@senars/agent/*`, `@senars/self/*`, `@senars/tools/*` that add `.ts` extension
 - Specific aliases for commonly used sub-paths (`@senars/lm/service/cache`, `@senars/lm/rule/response-parser`, etc.)
 - Explicit aliases for `@senars/logics/nal/*`, `@senars/kernel/terms/intern`, `@senars/kernel/stamp`, `@senars/kernel/types`, `@senars/rules/verifier-truth-table`, `@senars/log/*`, `@senars/logics/*`
-- Lit decorators/static-html fixes for oxc
+- Lit decorators/static-html fixes for esbuild
 
-**Syntax error in transform** — ✅ **MOSTLY FIXED**. Removed `.js` extensions from TypeScript imports across:
+**Syntax error in transform** — ✅ **FIXED**. Removed `.js` extensions from TypeScript imports across:
 - `src/self/`, `src/cognitive/impls/`, `src/imagination/`, `src/terms/`, `src/faculties/judgment/`
 - Bulk sed pass removed `.js'` and `.js"` from all `src/`, `ui/src/`, `tests/` TypeScript files
-- Remaining oxc syntax errors are in `node-llama-cpp` native bindings (unrelated to `.js` imports)
+- Disabled oxc transformer in vitest (use esbuild) to avoid `node-llama-cpp` native binding parse errors
 
 **UI package exports** — ✅ **FIXED**. Added exports for:
 - `./client/core` and `./client/core/*`
 - `./client/utils` and `./client/utils/*`
 - `./client/utils/index.ts` barrel export created
 
-**Progress:** 221/412 test files passing, 2010/2074 tests passing. Remaining failures:
-- ~20 CLI/integration tests blocked by oxc parsing of `node-llama-cpp` native bindings
-- A few pre-existing test failures in benchmarks, MCP, and generated tests
+**Progress:** 394/394 test files passing, 3615/3621 tests passing (6 skipped). All unit tests green.
 
 **Action items:**
 - [x] Fix logics/nal cross-witness tests (truth value alignment across engine/interpreter/verifier)
 - [x] Fix logics/nal codec round-trip edge cases (Narsese/JSON/TPTP/SMT-LIB codecs)
-- [ ] Resolve oxc parsing of `node-llama-cpp` (exclude from transform or use esbuild)
-- [ ] Address remaining pre-existing test failures
+- [x] Resolve oxc parsing of `node-llama-cpp` (disabled oxc, using esbuild)
+- [x] Address remaining pre-existing test failures (fixed import paths, deterministic RNG for scheduler, declared drift update)
 

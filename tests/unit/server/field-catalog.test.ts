@@ -1,9 +1,9 @@
-import { CognitiveMetrics, TelemetryMsg } from '@senars/agent';
+import { CognitiveMetrics, TelemetryMsg } from '@senars/protocol';
 import {
   ConsumedBudgetSchema,
   ReasoningBudgetSchema,
   TruthValueSchema,
-} from '@senars/agent';
+} from '@senars/schemas';
 import {
   FIELD_CATALOG,
   FIELD_IDS,
