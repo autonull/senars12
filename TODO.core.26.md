@@ -56,6 +56,8 @@
 
 **The gap is wiring, hardening, and giving every capability one elegant home.**
 
+**Phase 2 started:** World packs infrastructure complete (`src/worlds/world-packs.ts`, `src/worlds/habitat.ts`, `src/worlds/arena-lanes.ts`); 14 games defined as habitat packs; transition/reward registration pending. Preservation gate live (30 capabilities tracked).
+
 ---
 
 ## 1. Governing Principles (Unchanged)
@@ -173,9 +175,11 @@ type Verdict =
 
 ---
 
-### Phase 2 — Capability Re-homing (Replaces W10 Consolidation)
+### Phase 2 — Capability Re-homing (Replaces W10 Consolidation) 🔄 **IN PROGRESS**
 
 One capability at a time, parity-gated by the preservation gate. **No bulk consolidation.**
+
+**Current focus:** Games (14) → World packs (data) — `world-packs.ts` defines all 14 habitat packs; transition/reward registration needed.
 
 | Capability | Current Home | New Home | Parity Gate |
 |------------|-------------|----------|-------------|
@@ -314,7 +318,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 7. **K4: Portals** — freeze `Oracle`/`Logic` interfaces; register 13 portals (~1 week) ✅
 
 ### Phase 2: Re-homing (Parallel per Capability)
-8. **Re-home 20 capabilities** — one at a time, parity-gated by preservation gate (~4 weeks)
+8. **Re-home 20 capabilities** — one at a time, parity-gated by preservation gate (~4 weeks) 🔄 **IN PROGRESS**
 
 ### Phase 3: Gates (Parallel)
 9. **Implement 7 missing gates** as CI jobs (`obligations-battery`, `totality+liveness`, `schema-drift`, `cross-engine-agreement`, `format-round-trip`) (~2 weeks)
@@ -349,7 +353,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 | P1 | K2: Memory as Fold Views | — | 2w ✅ |
 | P1 | K3: Economy → Scheduler pure function | — | 1w ✅ |
 | P1 | K4: Portals (Oracle + Logic interfaces frozen) | — | 1w ✅ |
-| P2 | Re-home 20 capabilities (Phase 2) | — | 4w |
+| P2 | Re-home 20 capabilities (Phase 2) | — | 4w | 🔄 Started: world-packs.ts created, habitat registry pattern established; next: register game transitions/rewards |
 | P2 | 7 missing gates as CI jobs (Phase 3) | — | 2w |
 | P2 | 12 demo scripts (Phase 4) | — | 1w |
 | P3 | Final 2-hour soak (Phase 5) | — | 2h |
