@@ -35,6 +35,8 @@ export interface DeckTreadmillState {
   config: TreadmillConfig;
   /** Running state. */
   running: boolean;
+  /** Treadmill instance for event log access. */
+  treadmill?: CognitiveTreadmill;
 }
 
 /**
@@ -48,11 +50,19 @@ export function createDeckTreadmill(nar: NAR, config?: Partial<TreadmillConfig>)
   setViewMode: (mode: TreadmillViewMode) => void;
 } {
   const treadmill = createTreadmill(nar, config);
+  const mergedConfig: TreadmillConfig = {
+    rate: config?.rate ?? 10,
+    burstProbability: config?.burstProbability ?? 0.1,
+    burstSize: config?.burstSize ?? 5,
+    maxSteps: config?.maxSteps ?? 1000,
+    mixedEventRatio: config?.mixedEventRatio ?? { belief: 0.6, goal: 0.2, question: 0.2 },
+  };
 
   const state: DeckTreadmillState = {
     viewMode: 'scenario',
-    config: treadmill.config as TreadmillConfig,
+    config: mergedConfig,
     running: false,
+    treadmill,
   };
 
   async function runScenario(scenario: Scenario): Promise<void> {

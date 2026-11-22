@@ -8,15 +8,16 @@
 
 import type { Artifact, ArtifactKind, ArtifactStatus, AdmissionEvent } from '../admit/repertoire';
 import type { Book, BookEntry, BookMetadata } from '../admit/book';
-import type { Term } from '../kernel/terms/term';
+import type { Term, ConstantTerm } from '../kernel/terms/term';
+import { termFactory } from '../kernel/terms/term';
 import type { TruthValue } from '../kernel/truth';
 import type { Stamp } from '../kernel/types';
 import type { Clock, RNG, TimestampMs } from '../kernel/env';
 import { createDefaultClock, createDefaultRNG } from '../kernel/env';
 import type { OraclePin, OraclePinStore } from './pins';
 import { createOraclePinStore } from './pins';
-import type { LogStore } from '../log/log-store';
-import { createLogStore } from '../log/log-store';
+import type { LogStore } from '../log/store';
+import { createLogStore } from '../log/store';
 import { createBookBuilder, createBookLibrary } from '../admit/book';
 
 /** Lemma candidate from oracle pin. */
@@ -252,13 +253,11 @@ export class LemmaPromotionManager {
   /** Create lemma artifact from candidate. */
   private async createLemmaFromCandidate(candidate: LemmaCandidate): Promise<PromotedLemma | null> {
     try {
-      // Create a term representing the lemma
+      // Create a constant term representing the lemma
       // The term encodes the oracle operation and its verified output
-      const term: Term = {
-        op: 'LEMMA' as any,
-        value: `${candidate.operation}:${candidate.queryDigest.slice(0, 8)}`,
-        args: [candidate.output as any],
-      } as Term;
+      const term: ConstantTerm = termFactory.constant(
+        `lemma:${candidate.operation}:${candidate.queryDigest.slice(0, 8)}`
+      );
 
       // High confidence for promoted lemmas
       const truth: TruthValue = {

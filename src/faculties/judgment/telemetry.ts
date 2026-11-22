@@ -523,6 +523,34 @@ export class TelemetryCollector {
     });
   }
 
+  async parityEvaluated(path: string, status: { brierScore: number; ece: number; parityAchieved: boolean }): Promise<void> {
+    await this.emit({
+      type: 'judgment.complete',
+      payload: {
+        selected: status.parityAchieved,
+        finalConfidence: 1 - status.brierScore,
+        totalCandidates: 1,
+        totalDurationMs: 0,
+        fallbackUsed: !status.parityAchieved,
+        timings: { candidates: 0, symbolic_veto: 0, evidence_support: 0, lm_rubric: 0, learned_judge: 0, calibrate: 0 },
+      },
+    });
+  }
+
+  async consolidationComplete(pathsConsolidated: number): Promise<void> {
+    await this.emit({
+      type: 'judgment.complete',
+      payload: {
+        selected: true,
+        finalConfidence: 1,
+        totalCandidates: pathsConsolidated,
+        totalDurationMs: 0,
+        fallbackUsed: false,
+        timings: { candidates: 0, symbolic_veto: 0, evidence_support: 0, lm_rubric: 0, learned_judge: 0, calibrate: 0 },
+      },
+    });
+  }
+
   /** Flush all sinks. */
   async flush(): Promise<void> {
     await Promise.all(this.sinks.map(s => s.flush()));

@@ -53,8 +53,8 @@ export function renderDeckCatalog<Def extends CatalogDefinition>(
     lines.push(`║ (empty)                                                   ║`);
   } else {
     for (let i = 0; i < view.keys.length; i++) {
-      const key = view.keys[i];
-      const entry = view.entries[i];
+      const key = view.keys[i]!;
+      const entry = view.entries[i]!;
       const formatted = formatEntry(key, entry);
       // Truncate to fit
       const truncated = formatted.length > 56 ? formatted.slice(0, 53) + '...' : formatted;
@@ -77,8 +77,8 @@ export function filterDeckCatalog<Def extends CatalogDefinition>(
   const filteredEntries: Def[CatalogKey<Def>][] = [];
 
   for (let i = 0; i < view.keys.length; i++) {
-    const key = view.keys[i];
-    const entry = view.entries[i];
+    const key = view.keys[i]!;
+    const entry = view.entries[i]!;
     if (predicate(key, entry)) {
       filteredKeys.push(key);
       filteredEntries.push(entry);

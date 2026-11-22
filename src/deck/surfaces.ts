@@ -88,10 +88,10 @@ export function renderSurfaceGroup(group: SurfaceGroup): string {
  */
 export function renderDeckSurfaces(registry: DeckSurfaceRegistry): string {
   const groups: SurfaceGroup[] = [
-    { placement: 'viewport', surfaces: registry.byPlacement.viewport, count: registry.counts.viewport },
-    { placement: 'panel', surfaces: registry.byPlacement.panel, count: registry.counts.panel },
-    { placement: 'overlay', surfaces: registry.byPlacement.overlay, count: registry.counts.overlay },
-    { placement: 'inline', surfaces: registry.byPlacement.inline, count: registry.counts.inline },
+    { placement: 'viewport' as DeckPlacement, surfaces: registry.byPlacement.viewport, count: registry.counts.viewport },
+    { placement: 'panel' as DeckPlacement, surfaces: registry.byPlacement.panel, count: registry.counts.panel },
+    { placement: 'overlay' as DeckPlacement, surfaces: registry.byPlacement.overlay, count: registry.counts.overlay },
+    { placement: 'inline' as DeckPlacement, surfaces: registry.byPlacement.inline, count: registry.counts.inline },
   ].filter(g => g.count > 0);
 
   const lines = [

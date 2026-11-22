@@ -12,7 +12,7 @@ import { createHabitatPack } from './habitat';
 export type LaneId = string & { readonly __brand: unique symbol };
 
 /** Lane configuration. */
-export interface LaneConfig {
+export interface PackLaneConfig {
   /** Lane ID. */
   id: LaneId;
   /** Lane name. */
@@ -31,7 +31,7 @@ export interface LaneConfig {
 export const LANE_A: LaneId = 'lane-a' as LaneId;
 
 /** Default lane A configuration. */
-export const defaultLaneAConfig: LaneConfig = {
+export const defaultLaneAConfig: PackLaneConfig = {
   id: LANE_A,
   name: 'Primary Learning Lane',
   habitats: [],
@@ -47,7 +47,7 @@ export interface PackScheduler {
   /** Steps in current lane. */
   stepsInLane: number;
   /** Lane configs. */
-  lanes: Map<LaneId, LaneConfig>;
+  lanes: Map<LaneId, PackLaneConfig>;
   /** Habitat pack. */
   pack: HabitatPack;
   /** Fairness violation count. */
@@ -59,9 +59,9 @@ export interface PackScheduler {
 /** Create a pack scheduler. */
 export function createPackScheduler(
   pack: HabitatPack,
-  lanes: LaneConfig[]
+  lanes: PackLaneConfig[]
 ): PackScheduler {
-  const laneMap = new Map<LaneId, LaneConfig>();
+  const laneMap = new Map<LaneId, PackLaneConfig>();
   for (const lane of lanes) {
     laneMap.set(lane.id, lane);
   }
@@ -177,6 +177,8 @@ export interface EpisodeResult {
   stepRewards: number[];
   /** Lane used. */
   lane: LaneId;
+  /** Optional metadata. */
+  metadata?: Record<string, unknown>;
 }
 
 /** Scorecard aggregate metrics. */

@@ -8,6 +8,7 @@
 
 import type { Artifact, ArtifactKind, ArtifactStatus } from './repertoire';
 import type { GovernancePolicy, GovernanceRule, GovernanceDecision, GovernanceRunner } from './governance';
+import { GovernanceEngine } from './governance';
 import type { Clock, RNG, TimestampMs } from '../kernel/env';
 import { createDefaultClock, createDefaultRNG } from '../kernel/env';
 import type { Repertoire } from './repertoire';

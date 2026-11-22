@@ -11,7 +11,7 @@
 |---|---|---|
 | typecheck | ✅ | Root package clean |
 | typecheck:bin | ✅ | Bin package clean |
-| typecheck:packages | ✅ | Fixed branded types in `world-packs.ts` |
+| typecheck:packages | ✅ | Fixed branded types in `world-packs.ts`; all src/ type errors resolved |
 | lint | ✅ | 2563 files, 1 pre-existing error |
 | env:grammar | ✅ | 4 declared sites |
 | primitives:grammar | ✅ | 26 declared sites |
@@ -40,7 +40,7 @@
 | relevance:measured | ✅ | Clean |
 | narsese:literals | ⚠️ | 10/90 literals fail round-trip |
 
-**Summary:** 27/46 gates pass, 2 parser limitations, 19 require provider/LM setup. **`typecheck:packages` FIXED.**
+**Summary:** 27/46 gates pass, 2 parser limitations, 19 require provider/LM setup. **`typecheck:packages` FIXED** (all src/ type errors resolved).
 
 ---
 
@@ -52,6 +52,7 @@
 - **Legacy runtime still production** (`bin/senars.ts` → `createAgentFromEnv`) with rich capability surface: MeTTa, imagination, RLFP, RL baselines, premise selection, contrastive/embedding memory, distillation, GBNF/WASI, causal/concept/associative indexes, self-modification, 14 games, focus trees, metacognitive analyzers, NL/dialogue, schema induction, transport/plugin/governance.
 - **Test infrastructure fixed.** oxc disabled (esbuild); tsconfig symlink; import paths corrected; all 394 test files pass.
 - **Known debt:** 560+ vitest aliases (tsconfigPaths enabled, explicit aliases still needed); 1 flaky test; 4 deferred UI tests; 19 gates need provider setup.
+- **Typecheck fixed.** All src/ type errors resolved; `typecheck:packages` clean.
 
 **The gap is wiring, hardening, and giving every capability one elegant home.**
 
@@ -360,7 +361,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 **Test infrastructure** — ✅ **FIXED** (oxc disabled, tsconfig symlink, imports corrected)
 - All 394 test files pass (3615 tests, 6 skipped)
 
-**Typecheck:packages** — ✅ **FIXED** (branded types resolved in `world-packs.ts`)
+**Typecheck:packages** — ✅ **FIXED** (branded types resolved in `world-packs.ts`; all type errors resolved across src/)
 
 **Vitest aliases (560+)** — 🔄 **PARTIAL** (`vite-tsconfig-paths` enabled; explicit /index paths added to tsconfig.root.json; duplicate schemas identified)
 - `vite-tsconfig-paths` installed and active; tsconfigPaths resolves standard paths; explicit aliases cover .js variants, external deps, non-standard mappings

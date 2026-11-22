@@ -6,9 +6,8 @@
  * to the cascade's learned judge after trained parity is achieved.
  */
 
-import type { JudgmentCandidate, JudgmentContext, JudgmentResult, JudgeModel, JudgeTrainingExample } from './cascade';
-import { createJudge, type JudgeEnsemble } from './judge';
-import type { IsotonicCalibrator } from './calibration';
+import type { JudgmentCandidate, JudgmentContext, JudgmentResult } from './cascade';
+import { createJudge, type JudgeEnsemble, type JudgeModel, type JudgeTrainingExample, type IsotonicCalibrator } from './judge';
 import type { CalibrationManager } from './calibration';
 import type { TelemetryCollector } from './telemetry';
 import type { Clock, IDGenerator, TimestampMs } from '../../kernel/env';

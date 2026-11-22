@@ -42,6 +42,10 @@ export interface SoakConfig {
   evolutionInterval: number;
   /** Output directory for logs/checkpoints. */
   outputDir: string;
+  /** Optional clock (defaults to system clock). */
+  clock?: Clock;
+  /** Optional RNG (defaults to system RNG). */
+  rng?: RNG;
 }
 
 /** Default soak config (1 hour). */
@@ -60,7 +64,7 @@ export const defaultSoakConfig: SoakConfig = {
       episode: 0,
       entities: new Map(),
       agent: { position: { x: 0, y: 0 }, inventory: [], energy: 100, internal: new Map() },
-      env: new Map([['size', 10], ['goal', { x: 9, y: 9 }]]),
+      env: new Map<string, unknown>([['size', 10], ['goal', { x: 9, y: 9 }]]),
       rngState: '42',
     },
     transition: 'gridworld',
@@ -245,7 +249,7 @@ export class SoakRunner {
 
         // Evolution step
         if (this.config.enableEvolution && this.evolutionCycle % this.config.evolutionInterval === 0) {
-          await this.runEvolutionStep(seed);
+          await this.runEvolutionStep(seed!);
         }
         this.evolutionCycle++;
 

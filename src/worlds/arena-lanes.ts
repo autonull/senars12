@@ -6,8 +6,8 @@
  */
 
 import type { HabitatConfig, HabitatRegistry } from './habitat';
-import type { ArenaAgent, ArenaMatch, ArenaTournament, EpisodeResult } from './arena';
-import type { ReasoningBudget } from '../lm/system-one/types';
+import type { ArenaAgent, ArenaMatch, ArenaTournament } from './arena';
+import type { EpisodeResult } from './pack';
 import { createHabitatRegistry } from './habitat';
 import { createArenaAgent } from './arena';
 
@@ -17,6 +17,18 @@ export type ArenaLaneId = 'A' | 'B' | 'C' | 'D';
 /** Deliberation tier. */
 export type DeliberationTier = 'fast' | 'balanced' | 'deliberate';
 
+/** Lane-specific budget (distinct from kernel ReasoningBudget). */
+export interface LaneBudget {
+  /** Maximum tokens per call. */
+  maxTokens: number;
+  /** Maximum latency in ms. */
+  maxLatencyMs: number;
+  /** Maximum cost per call. */
+  maxCost: number;
+  /** Maximum calls per episode. */
+  maxCalls: number;
+}
+
 /** Lane configuration. */
 export interface LaneConfig {
   /** Lane ID (A–D). */
@@ -24,7 +36,7 @@ export interface LaneConfig {
   /** Deliberation tier. */
   tier: DeliberationTier;
   /** Reasoning budget for this lane. */
-  budget: ReasoningBudget;
+  budget: LaneBudget;
   /** Model tier for LM calls. */
   modelTier: 'fast' | 'balanced' | 'quality';
   /** Max oracle calls per step. */
@@ -77,6 +89,8 @@ export interface CostQualityPoint {
   brierScore?: number;
   /** ECE (if judged). */
   ece?: number;
+  /** Optional metadata. */
+  metadata?: Record<string, unknown>;
 }
 
 /** Cost/quality surface — published results. */
@@ -167,7 +181,7 @@ export class LaneArenaRunner {
     agent: ArenaAgent,
     habitat: HabitatConfig,
     laneConfig: LaneConfig,
-    agentActFn: (agent: ArenaAgent, state: any, habitat: HabitatConfig, budget: ReasoningBudget) => Promise<any>
+    agentActFn: (agent: ArenaAgent, state: any, habitat: HabitatConfig, budget: LaneBudget) => Promise<any>
   ): Promise<EpisodeResult> {
     const startTime = Date.now();
     let state = {
@@ -238,7 +252,7 @@ export class LaneArenaRunner {
     tier: DeliberationTier,
     habitat: HabitatConfig,
     agentFactory: (laneConfig: LaneConfig) => ArenaAgent,
-    agentActFn: (agent: ArenaAgent, state: any, habitat: HabitatConfig, budget: ReasoningBudget) => Promise<any>,
+    agentActFn: (agent: ArenaAgent, state: any, habitat: HabitatConfig, budget: LaneBudget) => Promise<any>,
     seeds: number[] = [42, 123, 456, 789],
     episodesPerSeed = 5
   ): Promise<CostQualityPoint> {
@@ -256,9 +270,9 @@ export class LaneArenaRunner {
         const agent = agentFactory(laneConfig);
         const episode = await this.runEpisode(agent, seededHabitat, laneConfig, agentActFn);
         allEpisodes.push(episode);
-        totalLmCalls += episode.metadata?.totalLmCalls ?? 0;
-        totalOracleCalls += episode.metadata?.totalOracleCalls ?? 0;
-        totalWallTime += episode.metadata?.wallTimeMs ?? 0;
+        totalLmCalls += (episode.metadata?.totalLmCalls as number) ?? 0;
+        totalOracleCalls += (episode.metadata?.totalOracleCalls as number) ?? 0;
+        totalWallTime += (episode.metadata?.wallTimeMs as number) ?? 0;
       }
     }
 
@@ -284,7 +298,7 @@ export class LaneArenaRunner {
   async evaluateSurface(
     habitat: HabitatConfig,
     agentFactory: (laneConfig: LaneConfig) => ArenaAgent,
-    agentActFn: (agent: ArenaAgent, state: any, habitat: HabitatConfig, budget: ReasoningBudget) => Promise<any>,
+    agentActFn: (agent: ArenaAgent, state: any, habitat: HabitatConfig, budget: LaneBudget) => Promise<any>,
     seeds: number[] = [42, 123, 456, 789],
     episodesPerSeed = 5,
     modelProvider = 'builtin',
