@@ -114,3 +114,7 @@ export class ConversationGame implements Game<ConversationState, ConversationAct
     this._state.openTasks = this._state.openTasks.filter((t) => t !== task);
   }
 }
+
+export function createConversationGame(): ConversationGame {
+  return new ConversationGame();
+}

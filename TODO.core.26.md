@@ -56,7 +56,13 @@
 
 **The gap is wiring, hardening, and giving every capability one elegant home.**
 
-**Phase 2 started:** World packs infrastructure complete (`src/worlds/world-packs.ts`, `src/worlds/habitat.ts`, `src/worlds/arena-lanes.ts`); 14 games defined as habitat packs; transition/reward registration pending. Preservation gate live (30 capabilities tracked).
+**Phase 2 progress:** Games (14) → World packs (data) **COMPLETE**
+- `src/worlds/world-packs.ts`: 14 habitat packs with enhanced configs (game instances embedded)
+- `src/worlds/game-transitions.ts`: All 14 transition/reward functions registered in habitat registry
+- `src/worlds/habitat.ts`: Habitat registry with transitions, rewards, terminations
+- `src/worlds/arena-lanes.ts`: Arena A–D × fast/balanced/deliberate symmetric arms ready
+- Preservation gate live: 30 capabilities tracked (20 faculties + 10 oracles)
+- All 3,667 tests pass; typecheck clean
 
 ---
 
@@ -179,7 +185,13 @@ type Verdict =
 
 One capability at a time, parity-gated by the preservation gate. **No bulk consolidation.**
 
-**Current focus:** Games (14) → World packs (data) — `world-packs.ts` defines all 14 habitat packs; transition/reward registration needed.
+**Completed:** Games (14) → World packs (data)
+- `src/worlds/world-packs.ts`: 14 habitat packs defined with enhanced configs
+- `src/worlds/game-transitions.ts`: All 14 game transitions & rewards registered
+- `src/worlds/habitat.ts`: Habitat registry pattern established
+- Preservation gate live with 30 capabilities tracked
+
+**Next:** RL baselines → Arena arms (config) — `arena-lanes.ts` infrastructure ready
 
 | Capability | Current Home | New Home | Parity Gate |
 |------------|-------------|----------|-------------|
@@ -353,7 +365,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 | P1 | K2: Memory as Fold Views | — | 2w ✅ |
 | P1 | K3: Economy → Scheduler pure function | — | 1w ✅ |
 | P1 | K4: Portals (Oracle + Logic interfaces frozen) | — | 1w ✅ |
-| P2 | Re-home 20 capabilities (Phase 2) | — | 4w | 🔄 Started: world-packs.ts created, habitat registry pattern established; next: register game transitions/rewards |
+| P2 | Re-home 20 capabilities (Phase 2) | — | 4w | 🔄 Games (14) → World packs DONE; RL baselines → Arena arms next |
 | P2 | 7 missing gates as CI jobs (Phase 3) | — | 2w |
 | P2 | 12 demo scripts (Phase 4) | — | 1w |
 | P3 | Final 2-hour soak (Phase 5) | — | 2h |

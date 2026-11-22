@@ -9,6 +9,7 @@
 
 import type { HabitatConfig, HabitatPack, HabitatId, HabitatKind } from './habitat';
 import { createHabitatPack } from './habitat';
+import { createGameHabitatRegistry, enhanceHabitatConfig } from './game-transitions';
 import type { EvaluationCertificate, EvaluationFold, FoldId } from './scorecard';
 import type { Term } from '../kernel/terms/term';
 import type { TruthValue } from '../kernel/truth';
@@ -171,7 +172,7 @@ export const GAME_PACKS: Record<string, () => HabitatPack> = {
 
 /** Create arithmetic habitat. */
 function createArithmeticHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  return {
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'logic',
@@ -189,12 +190,12 @@ function createArithmeticHabitat(id: HabitatId, seed: number, maxSteps: number):
     reward: 'accuracy',
     termination: { maxSteps: true, goalAchieved: true },
     metadata: { game: 'arithmetic' },
-  };
+  });
 }
 
 /** Create bandit habitat. */
 function createBanditHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  return {
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'bandit',
@@ -205,19 +206,23 @@ function createBanditHabitat(id: HabitatId, seed: number, maxSteps: number): Hab
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map<string, unknown>([['arms', 10], ['drift', id.includes('drift')]]),
+      env: new Map<string, unknown>([
+        ['arms', 3],
+        ['armMeans', [0.2, 0.5, 0.8]],
+        ['drift', id.includes('drift')],
+      ]),
       rngState: seed.toString(),
     },
     transition: 'bandit',
     reward: 'regret',
     termination: { maxSteps: true },
     metadata: { game: 'bandit' },
-  };
+  });
 }
 
 /** Create catch habitat. */
 function createCatchHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  return {
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'gridworld',
@@ -228,19 +233,19 @@ function createCatchHabitat(id: HabitatId, seed: number, maxSteps: number): Habi
       episode: 0,
       entities: new Map(),
       agent: { position: { x: 5, y: 0 }, inventory: [], energy: 100, internal: new Map() },
-      env: new Map<string, unknown>([['width', 10], ['height', 10], ['fallSpeed', id.includes('fast') ? 2 : 1]]),
+      env: new Map<string, unknown>([['width', 7], ['height', 5], ['fallSpeed', id.includes('fast') ? 2 : 1]]),
       rngState: seed.toString(),
     },
     transition: 'catch',
     reward: 'caught',
     termination: { maxSteps: true, energyDepleted: true },
     metadata: { game: 'catch' },
-  };
+  });
 }
 
 /** Create conversation habitat. */
 function createConversationHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  return {
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'dialogue',
@@ -258,12 +263,12 @@ function createConversationHabitat(id: HabitatId, seed: number, maxSteps: number
     reward: 'coherence',
     termination: { maxSteps: true, goalAchieved: true },
     metadata: { game: 'conversation' },
-  };
+  });
 }
 
 /** Create 2048 habitat. */
 function create2048Habitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  return {
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'gridworld',
@@ -281,13 +286,18 @@ function create2048Habitat(id: HabitatId, seed: number, maxSteps: number): Habit
     reward: 'score',
     termination: { maxSteps: true, goalAchieved: true },
     metadata: { game: '2048' },
-  };
+  });
 }
 
 /** Create GridWorld habitat. */
 function createGridWorldHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
   const size = id.includes('3x3') ? 3 : id.includes('5x5') ? 5 : 10;
-  return {
+  const grid = size === 3
+    ? ['S..', '..G']
+    : size === 5
+    ? ['S....', '.....', '.....', '.....', '....G']
+    : ['S........', '.........', '.........', '.........', '.........', '.........', '.........', '.........', '........G'];
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'gridworld',
@@ -298,19 +308,20 @@ function createGridWorldHabitat(id: HabitatId, seed: number, maxSteps: number): 
       episode: 0,
       entities: new Map(),
       agent: { position: { x: 0, y: 0 }, inventory: [], energy: 100, internal: new Map() },
-      env: new Map<string, unknown>([['size', size], ['goal', { x: size - 1, y: size - 1 }]]),
+      env: new Map<string, unknown>([['size', size], ['grid', grid]]),
       rngState: seed.toString(),
     },
     transition: 'gridworld',
     reward: 'sparse',
     termination: { maxSteps: true, goalAchieved: true },
     metadata: { game: 'gridworld' },
-  };
+  });
 }
 
 /** Create reasoning habitat. */
 function createReasoningHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  return {
+  const specId = id.includes('complex') ? 'reasoning:research' : 'reasoning:conversation';
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'logic',
@@ -321,19 +332,19 @@ function createReasoningHabitat(id: HabitatId, seed: number, maxSteps: number): 
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map<string, unknown>([['complexity', id.includes('complex') ? 'high' : 'low']]),
+      env: new Map<string, unknown>([['complexity', id.includes('complex') ? 'high' : 'low'], ['specId', specId]]),
       rngState: seed.toString(),
     },
     transition: 'reasoning',
     reward: 'validity',
     termination: { maxSteps: true, goalAchieved: true },
     metadata: { game: 'reasoning' },
-  };
+  });
 }
 
 /** Create RPS habitat. */
 function createRPSHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  return {
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'bandit',
@@ -344,20 +355,20 @@ function createRPSHabitat(id: HabitatId, seed: number, maxSteps: number): Habita
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map<string, unknown>([['opponent', 'random']]),
+      env: new Map<string, unknown>([['opponent', 'random'], ['rounds', 30]]),
       rngState: seed.toString(),
     },
     transition: 'rps',
     reward: 'winrate',
     termination: { maxSteps: true },
     metadata: { game: 'rps' },
-  };
+  });
 }
 
 /** Create snake habitat. */
 function createSnakeHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  const size = id.includes('small') ? 10 : 20;
-  return {
+  const size = id.includes('small') ? 8 : 15;
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'gridworld',
@@ -375,12 +386,12 @@ function createSnakeHabitat(id: HabitatId, seed: number, maxSteps: number): Habi
     reward: 'length',
     termination: { maxSteps: true, energyDepleted: true },
     metadata: { game: 'snake' },
-  };
+  });
 }
 
 /** Create tetris habitat. */
 function createTetrisHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  return {
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'gridworld',
@@ -391,19 +402,19 @@ function createTetrisHabitat(id: HabitatId, seed: number, maxSteps: number): Hab
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map<string, unknown>([['width', 10], ['height', 20]]),
+      env: new Map<string, unknown>([['width', 10], ['height', 10], ['pieceCap', 30]]),
       rngState: seed.toString(),
     },
     transition: 'tetris',
     reward: 'lines',
     termination: { maxSteps: true, energyDepleted: true },
     metadata: { game: 'tetris' },
-  };
+  });
 }
 
 /** Create TicTacToe habitat. */
 function createTicTacToeHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  return {
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'logic',
@@ -414,19 +425,19 @@ function createTicTacToeHabitat(id: HabitatId, seed: number, maxSteps: number): 
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map<string, unknown>([['player', 'X']]),
+      env: new Map<string, unknown>([['player', 'X'], ['opponent', 'random']]),
       rngState: seed.toString(),
     },
     transition: 'tictactoe',
     reward: 'win',
     termination: { maxSteps: true, goalAchieved: true },
     metadata: { game: 'tictactoe' },
-  };
+  });
 }
 
 /** Create SelfMeta habitat. */
 function createSelfMetaHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  return {
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'composite',
@@ -444,12 +455,12 @@ function createSelfMetaHabitat(id: HabitatId, seed: number, maxSteps: number): H
     reward: 'coherence',
     termination: { maxSteps: true },
     metadata: { game: 'selfmetagame' },
-  };
+  });
 }
 
 /** Create Meta habitat. */
 function createMetaHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  return {
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'composite',
@@ -460,19 +471,19 @@ function createMetaHabitat(id: HabitatId, seed: number, maxSteps: number): Habit
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map<string, unknown>([['game', 'reasoning']]),
+      env: new Map<string, unknown>([['game', 'reasoning'], ['observesFocuses', ['reasoning', 'planning']]]),
       rngState: seed.toString(),
     },
     transition: 'metagame',
     reward: 'parameter_quality',
     termination: { maxSteps: true },
     metadata: { game: 'metagame' },
-  };
+  });
 }
 
 /** Create ReasoningMeta habitat. */
 function createReasoningMetaHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
-  return {
+  return enhanceHabitatConfig({
     id,
     name: id,
     kind: 'composite',
@@ -483,14 +494,14 @@ function createReasoningMetaHabitat(id: HabitatId, seed: number, maxSteps: numbe
       episode: 0,
       entities: new Map(),
       agent: { inventory: [], energy: 100, internal: new Map() },
-      env: new Map<string, unknown>([['baseGame', 'reasoning']]),
+      env: new Map<string, unknown>([['baseGame', 'reasoning'], ['observesFocuses', ['reasoning', 'planning']]]),
       rngState: seed.toString(),
     },
     transition: 'reasoningmeta',
     reward: 'parameter_quality',
     termination: { maxSteps: true },
     metadata: { game: 'reasoningmetagame' },
-  };
+  });
 }
 
 /** Attention strategy packs. */
