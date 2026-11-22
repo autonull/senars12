@@ -23,6 +23,7 @@ import { createConversationGame, ConversationState } from '../game/impls/Convers
 import { createMetaGame, MetaGameState } from '../game/impls/MetaGame';
 import { createSelfMetaGame, SelfMetaGameConfig } from '../game/impls/SelfMetaGame';
 import { SeededRNG } from '@senars/util/random';
+import { flooredRatio } from '@senars/util/numeric';
 
 /** Internal game instance stored in habitat entities. */
 interface GameEntity extends EntityState {
@@ -277,7 +278,7 @@ function reasoningReward(
   const entity = nextState.entities.get(config.id)!;
   const props = entity.properties as GameEntityProps;
   const gameState = props.get('gameState') as ReasoningState;
-  return gameState.settled / Math.max(1, gameState.taskIndex);
+  return flooredRatio(gameState.settled, gameState.taskIndex);
 }
 
 /** RPS transition. */

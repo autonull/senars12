@@ -91,6 +91,23 @@ jobs:
       # not an acceptance gate while the tree is under significant engineering.
       # Re-enter by removing the SUSPENDED_GATES entry and ratcheting the baseline.
       # - run: pnpm complexity:budget
+      # gate:check — typecheck, lint, grammars, deps
+      # gate:architecture — import:boundary, one:oracle, core:no-lm, memory:ports, attention, proposal, dispatch, rules, control-budgets, replay, resource, cycle, fallback, cycle-path, induction, model-matrix
+      # gate:terms — terms:canonical, answer:no-fabrication, relevance:measured, terms:no-bool-task, narsese:literals
+      # gate:exports — exports:audit, exports:check, exports:barrels
+      # gate:e2e — e2e:pipeline, persistence:replay, derivation:verifiable, reward:policy-only, derivation:clean, egress:invariant
+      # gate:legacy — no-new-legacy, surface-no-legacy
+      # gate:schema — schema:drift, generated:artifacts, docs:drift
+      # gate:tests — test:unit, test:determinism, test:hermetic, test:load-sensitive
+      # gate:capability — capability:gate (preservation)
+      # Phase 3: 7 gates as CI jobs (TODO.core.26)
+      - run: pnpm gate:obligations-battery
+      - run: pnpm gate:totality-liveness
+      - run: pnpm gate:schema-drift
+      - run: pnpm gate:cross-engine-agreement
+      - run: pnpm gate:format-round-trip
+      - run: pnpm gate:import-boundary
+      - run: pnpm gate:capability-preservation
       - run: pnpm test:unit
       # The UI registries are exhaustive by `satisfies`; this runs the UI
       # typecheck (missing catalog row → failure) and the UI unit suite.

@@ -30,6 +30,14 @@ export const GATES: readonly Gate[] = [
   script('gate:schema'),       // schema:drift, generated:artifacts, docs:drift
   script('gate:tests'),        // test:unit, test:determinism, test:hermetic, test:load-sensitive
   script('gate:capability'),   // capability:gate (preservation)
+  // Phase 3: individual gate jobs
+  script('gate:obligations-battery'),
+  script('gate:totality-liveness'),
+  script('gate:schema-drift'),
+  script('gate:cross-engine-agreement'),
+  script('gate:format-round-trip'),
+  script('gate:import-boundary'),
+  script('gate:capability-preservation'),
 ];
 
 /** The gate names a `pnpm` script in the root manifest is missing. */

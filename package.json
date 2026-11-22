@@ -244,6 +244,13 @@
     "no-new-legacy": "tsx --tsconfig tsconfig.root.json scripts/no-new-legacy.ts",
     "surface-no-legacy": "tsx --tsconfig tsconfig.root.json scripts/surface-no-legacy.ts",
     "schema:drift": "tsx --tsconfig tsconfig.root.json scripts/schema-drift.ts",
+    "gate:obligations-battery": "vitest run tests/gates/obligations-battery.test.ts",
+    "gate:totality-liveness": "vitest run tests/gates/totality-liveness.test.ts",
+    "gate:schema-drift": "vitest run tests/gates/schema-drift.test.ts",
+    "gate:cross-engine-agreement": "vitest run tests/gates/cross-engine-agreement.test.ts",
+    "gate:format-round-trip": "vitest run tests/gates/format-round-trip.test.ts",
+    "gate:import-boundary": "vitest run tests/gates/import-boundary.test.ts",
+    "gate:capability-preservation": "vitest run tests/gates/capability-preservation.test.ts",
     "generated:artifacts": "tsx --tsconfig tsconfig.root.json scripts/generated-artifacts.ts"
   },
   "dependencies": {
