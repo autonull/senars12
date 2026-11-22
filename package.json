@@ -7,7 +7,9 @@
   "bin": {
     "senars": "./dist/bin/senars-cli.js",
     "senars-mcp": "./dist/bin/mcp-server.js",
-    "senars-legacy": "./dist/bin/bot.js"
+    "senars-legacy": "./dist/bin/bot.js",
+    "senars-edge": "./dist/bin/edge-worker.js",
+    "senars-wasm-bundle": "./dist/bin/wasm-bundle.js"
   },
   "exports": {
     ".": {
@@ -133,6 +135,8 @@
     "multi-agent": "pnpm run bot -- --multiagent",
     "senars": "NODE_NO_WARNINGS=1 tsx --tsconfig tsconfig.root.json src/bin/senars-cli.ts",
     "senars:legacy": "NODE_NO_WARNINGS=1 tsx --tsconfig tsconfig.root.json src/bin/senars.ts",
+    "senars:edge": "NODE_NO_WARNINGS=1 tsx --tsconfig tsconfig.root.json src/bin/edge-worker.ts",
+    "senars:wasm-bundle": "tsx --tsconfig tsconfig.root.json src/bin/wasm-bundle.ts",
     "logic": "NODE_NO_WARNINGS=1 tsx --tsconfig tsconfig.root.json src/bin/logic.ts",
     "tune": "pnpm run bot -- --tune",
     "config:check": "pnpm run config:validate",
