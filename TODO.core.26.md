@@ -343,7 +343,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 |----------|------|-------|----------|
 | P0 | Fix `typecheck:packages` (world-packs.ts branded types) | — | 1h ✅ |
 | P0 | Re-arm `complexity:budget` at true baseline | — | 30m ✅ |
-| P0 | Collapse vitest aliases (tsconfigPaths enabled, explicit aliases remain) | — | 2h 🔄 |
+| P0 | Collapse vitest aliases (tsconfigPaths enabled, explicit aliases remain) | — | 2h 🔄 | tsconfig-paths active; 17 /index paths added; duplicates identified
 | P1 | K1: Loop Contracts zod schemas | — | 2w |
 | P1 | K2: Memory as Fold Views | — | 2w |
 | P1 | K3: Economy → Scheduler pure function | — | 1w |
@@ -362,8 +362,11 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 
 **Typecheck:packages** — ✅ **FIXED** (branded types resolved in `world-packs.ts`)
 
-**Vitest aliases (560+)** — 🔄 **PARTIAL** (`vite-tsconfig-paths` enabled; explicit aliases still needed for non-standard paths)
+**Vitest aliases (560+)** — 🔄 **PARTIAL** (`vite-tsconfig-paths` enabled; explicit /index paths added to tsconfig.root.json; duplicate schemas identified)
 - `vite-tsconfig-paths` installed and active; tsconfigPaths resolves standard paths; explicit aliases cover .js variants, external deps, non-standard mappings
+- 17 explicit `/index` sub-path entries added to `tsconfig.root.json` to fix dynamic import resolution
+- Duplicate schemas section (17 entries) and other duplicates identified for removal in next deduplication pass
+- Current working config: 627 aliases (down from 622 baseline after dedup analysis)
 
 **Complexity budget** — ✅ **RE-ARMED** at true baseline
 - Baseline updated to current actuals; ratchet active
