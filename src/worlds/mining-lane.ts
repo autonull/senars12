@@ -5,6 +5,11 @@
  * Runs AIKR-bounded induction on derivation chains from the log.
  */
 
+import type { MiningContext, SchemaMiningConfig, MiningEvent, SchemaMiner } from '../mining/schema-mining';
+import { createSchemaMiner } from '../mining/schema-mining';
+import type { InductionResult } from '../learning/schema-induction';
+import type { Task } from '../types/task';
+
 export {
   SchemaMiner,
   createSchemaMiner,
@@ -87,9 +92,3 @@ export function admitDerivationChain(
 ): void {
   miner.admitDerivationChain(chain);
 }
-
-import type { Task } from '../types/task';
-import type { InductionResult } from '../learning/schema-induction';
-import type { MiningEvent } from '../mining/schema-mining';
-import { SchemaMiner, createSchemaMiner, type MiningContext, type SchemaMiningConfig, type MiningEvent } from '../mining/schema-mining';
-import { SchemaInductor, createSchemaInductor, type SchemaInductionConfig, type DerivationChainItem, type SchemaPattern, type InductionResult } from '../learning/schema-induction';

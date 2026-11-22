@@ -19,6 +19,7 @@ export const HABITAT_KINDS = [
   'dialogue',
   'logic',
   'composite',
+  'focus',
 ] as const;
 
 export type HabitatKind = (typeof HABITAT_KINDS)[number];

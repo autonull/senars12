@@ -446,8 +446,8 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 | P1 | K4: Portals (Oracle + Logic interfaces frozen) | — | 1w ✅ |
 | P2 | Re-home 20 capabilities (Phase 2) | — | 4w | ✅ DONE — Games (14), RL baselines (4), Premise (4), Memory indexes (7), Batch: analyzers (8), self-mod (7), focus (10), NL (10), schema (10), transport (6) — all 128 capabilities registered in manifest; preservation gate PASS |
 | P2 | 7 missing gates as CI jobs (Phase 3) | — | 2w | ✅ DONE — obligations-battery, totality-liveness, schema-drift, cross-engine-agreement, format-round-trip, import-boundary, capability-preservation as vitest gates + CI jobs |
-| P2 | 12 demo scripts (Phase 4) | — | 1w |
-| P3 | Final 2-hour soak (Phase 5) | — | 2h |
+| P2 | 12 demo scripts (Phase 4) | — | 1w | ✅ DONE — demo-d1..d12 all run with seeds, emit log digests |
+| P3 | Final 2-hour soak (Phase 5) | — | 2h | 🔄 Next |
 
 ---
 

@@ -677,7 +677,7 @@ export function createPerformanceAnalyzerView(getLog: () => Episode[]): Performa
     const log = getLog();
     data.metrics.clear();
     for (const episode of log) {
-      const metrics = episode.metrics as Record<string, number> ?? {};
+      const metrics = episode.metadata as Record<string, number> ?? {};
       for (const [key, value] of Object.entries(metrics)) {
         const entry = data.metrics.get(key) ?? { mean: 0, count: 0 };
         entry.mean = (entry.mean * entry.count + value) / (entry.count + 1);
@@ -701,7 +701,7 @@ export function createQualityAnalyzerView(getLog: () => Episode[]): QualityAnaly
   let version = 0; let lastUpdated = 0; let stale = true;
   const rebuild = (): void => {
     const log = getLog();
-    data.qualityScores = log.map(e => e.metrics?.quality ?? 0).filter(q => q > 0);
+    data.qualityScores = log.map(e => (e.metadata?.quality as number) ?? 0).filter(q => q > 0);
     data.meanQuality = data.qualityScores.length > 0 ? data.qualityScores.reduce((a, b) => a + b, 0) / data.qualityScores.length : 0;
     version++; lastUpdated = Date.now(); stale = false;
   };
@@ -730,7 +730,7 @@ export function createReasoningPatternsAnalyzerView(getLog: () => Episode[]): Re
 
 /** Resources analyzer fold view. */
 export interface ResourcesAnalyzerData {
-  resourceUsage: Map<string, { mean: number; peak: number }>;
+  resourceUsage: Map<string, { mean: number; peak: number; count: number }>;
 }
 export interface ResourcesAnalyzerView extends AnalyzerFoldView<ResourcesAnalyzerData> {}
 export function createResourcesAnalyzerView(getLog: () => Episode[]): ResourcesAnalyzerView {
