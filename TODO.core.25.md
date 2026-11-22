@@ -266,9 +266,9 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 - [x] Cascade with a hard floor: symbolic veto (never learned) → evidence support → LM rubric judge (async, cached) → learned logistic judge. **Every weight change is an event** with before/after and triggering episodes; per-judge ECE; drifting judge auto-demoted with an event; learned calibration replaces hardcoded Platt constants.
 - [x] **Port the unique System One capabilities:** contrastive + embedding-cache + hard-negatives → embedding/representation oracle (`src/oracles/embedding.ts`); distill + train + label-sources → distillation lane (`src/oracles/distillation.ts`); action-grammar + `lm/grammars` → **GBNF-constrained decoding oracle** (`src/oracles/gbnf.ts`); **wasi-head-bundle + wasi-runtime → portable learned-head runtime** (`src/oracles/learned-head.ts`); groundedness/trace/wake/resource gates → cascade gates (`src/oracles/cascade-gates.ts`); mc-return + manifold-rl-agent → credit-assignment strategy (`src/oracles/credit-assignment.ts`).
 - [x] **Port imagination** (`ScenarioGenerator`, `HiddenModelOracle`, `CognitiveTreadmill`) → `simulate.scenario` faculty + internal-simulation oracle (`src/oracles/imagination.ts`, `src/faculties/specs.ts`).
-- [ ] Curriculum generator: **certificate-labeled** problems; **RLFP preferences as a second label source**.
-- [ ] Arena lanes **A–D × fast/balanced/deliberate**, symmetric arms, same model/tools/seeds/schemas; publish the cost/quality surface. Re-run the pre-registered comparison with *trained* judges; append the result whatever it says.
-- [ ] Consolidate **only the duplicate judgment path** into the cascade's learned judge, after trained parity. Arena Brier picks the *default judge*, not whether other capabilities exist.
+- [x] Curriculum generator: **certificate-labeled** problems; **RLFP preferences as a second label source**.
+- [x] Arena lanes **A–D × fast/balanced/deliberate**, symmetric arms, same model/tools/seeds/schemas; publish the cost/quality surface. Re-run the pre-registered comparison with *trained* judges; append the result whatever it says.
+- [x] Consolidate **only the duplicate judgment path** into the cascade's learned judge, after trained parity. Arena Brier picks the *default judge*, not whether other capabilities exist.
 
 **Accept:** D5 learning lift; ECE tracked with demotion events; cost/quality surface published; GBNF + WASI heads + distillation + imagination executing through the seam.
 **Preserves:** representation learning, distillation, constrained decoding, portable heads, safety gates, MC credit assignment, imagination; **consolidates:** the duplicate judge only.
@@ -294,8 +294,8 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 - [x] Rung 4: rules/projections via the W4 verifier. Implemented in `src/admit/projections.ts`.
 - [x] Rung 5: port the self-modification tooling (`tools/adapters/self/*`, shadow-worktree, code-exec, codemod, test-gen, test-runner) as admission machinery — external runner + human merge only. Implemented in `src/admit/admission-machinery.ts`.
 - [x] Books re-fold integration. Implemented in `src/admit/books-re-fold.ts`.
-- [ ] Frequent oracle results promote from memo-cache to admitted lemma-rules. **Books** = exported repertoire + derivations; receiver **re-folds and re-verifies**, rejecting poisoned imports.
-- [ ] Autonomy dial governance-owned; the agent requests freedom with its measured track record.
+- [x] Frequent oracle results promote from memo-cache to admitted lemma-rules. **Books** = exported repertoire + derivations; receiver **re-folds and re-verifies**, rejecting poisoned imports.
+- [x] Autonomy dial governance-owned; the agent requests freedom with its measured track record.
 
 **Accept:** D3, D9, D10, D12; obligations 7/12; rollback is one event.
 **Preserves:** the entire self-modification toolchain, re-homed as rung 5.
@@ -328,9 +328,9 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 **Preserves:** all capabilities; **consolidates:** proven duplicates and redundant deps only.
 
 ### W11 — Worlds, arena, soak
-- [ ] Habitat/Probe as packs behind `serve --profile world`; evaluator checks FOL pre/post with the Axiomatic module directly — SeNARS grades neither itself nor rivals; fairness a gate; scorecards folds over evaluator logs.
-- [ ] **Keep all 14 games as world packs / curriculum sources**; **keep focus trees / MetaFocus / belief-seeding / weight-allocation as an attention strategy/pack**; `nal-ab` → arena A/B lane.
-- [ ] D7 continuous seeded world; D8 side-by-side lanes; one-hour unattended soak, replayable and recoverable — **evolution included**.
+- [x] Habitat/Probe as packs behind `serve --profile world`; evaluator checks FOL pre/post with the Axiomatic module directly — SeNARS grades neither itself nor rivals; fairness a gate; scorecards folds over evaluator logs.
+- [x] **Keep all 14 games as world packs / curriculum sources**; **keep focus trees / MetaFocus / belief-seeding / weight-allocation as an attention strategy/pack**; `nal-ab` → arena A/B lane.
+- [x] D7 continuous seeded world; D8 side-by-side lanes; one-hour unattended soak, replayable and recoverable — **evolution included**.
 
 **Accept:** D7/D8; the soak; evolution replays byte-for-byte.
 **Preserves:** games, focus structure, A/B testing.

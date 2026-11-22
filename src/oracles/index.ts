@@ -17,3 +17,4 @@ export * from './learned-head.js';
 export * from './cascade-gates.js';
 export * from './credit-assignment.js';
 export * from './imagination.js';
+export * from './lemma-promotion.js';

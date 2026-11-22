@@ -2,7 +2,7 @@
  * Curriculum Generator — creates learning curricula from certificates.
  *
  * Curriculum positives have proofs, negatives have countermodels;
- * no human annotation required.
+ * no human annotation required. RLFP preferences provide a second label source.
  */
 
 import type { Artifact, ArtifactKind } from './repertoire.js';
@@ -11,6 +11,26 @@ import type { Term } from '../kernel/terms/term.js';
 import type { TruthValue } from '../kernel/truth.js';
 import type { Clock, TimestampMs } from '../kernel/env.js';
 import { createDefaultClock } from '../kernel/env.js';
+import type { PreferenceData } from '../rlfp/PreferenceCollector.js';
+import type { TrajectoryStep } from '../rlfp/ReasoningTrajectoryLogger.js';
+
+/** RLFP preference label. */
+export interface RlfpPreferenceLabel {
+  /** Preference ID. */
+  id: string;
+  /** Trajectory A. */
+  trajectoryA: TrajectoryStep[];
+  /** Trajectory B. */
+  trajectoryB: TrajectoryStep[];
+  /** Preference: 'A' | 'B' | 'SKIP'. */
+  preference: 'A' | 'B' | 'SKIP';
+  /** Timestamp. */
+  timestamp: number;
+  /** Derived label for curriculum. */
+  label: 'preferred' | 'rejected' | 'neutral';
+  /** Confidence [0, 1]. */
+  confidence: number;
+}
 
 /** Curriculum item. */
 export interface CurriculumItem {
@@ -22,10 +42,12 @@ export interface CurriculumItem {
   term: Term;
   /** Expected truth. */
   expectedTruth: TruthValue;
-  /** Source: 'proof' | 'countermodel' | 'certificate' | 'exploration'. */
-  source: 'proof' | 'countermodel' | 'certificate' | 'exploration';
+  /** Source: 'proof' | 'countermodel' | 'certificate' | 'exploration' | 'rlfp-preference'. */
+  source: 'proof' | 'countermodel' | 'certificate' | 'exploration' | 'rlfp-preference';
   /** Source certificate ID (if applicable). */
   certificateId?: string;
+  /** Source RLFP preference ID (if applicable). */
+  preferenceId?: string;
   /** Difficulty [0, 1]. */
   difficulty: number;
   /** Prerequisites (item IDs). */
@@ -58,6 +80,10 @@ export interface CurriculumConfig {
   certificateWeight: number;
   /** Exploration weight. */
   explorationWeight: number;
+  /** RLFP preference weight. */
+  rlfpWeight: number;
+  /** Include RLFP preferences. */
+  includeRlfp: boolean;
 }
 
 /** Default curriculum config. */
@@ -65,8 +91,10 @@ export const defaultCurriculumConfig: CurriculumConfig = {
   maxItems: 100,
   difficultyProgression: 'adaptive',
   includeCountermodels: true,
-  certificateWeight: 0.7,
-  explorationWeight: 0.3,
+  certificateWeight: 0.5,
+  explorationWeight: 0.2,
+  rlfpWeight: 0.3,
+  includeRlfp: true,
 };
 
 /** Curriculum generator. */
@@ -74,6 +102,7 @@ export class CurriculumGenerator {
   private config: CurriculumConfig;
   private certificates: Map<string, EvaluationCertificate> = new Map();
   private artifacts: Artifact[] = [];
+  private rlfpPreferences: RlfpPreferenceLabel[] = [];
   private clock: Clock;
 
   constructor(config: CurriculumConfig = defaultCurriculumConfig, clock?: Clock) {
@@ -96,7 +125,54 @@ export class CurriculumGenerator {
     this.artifacts = artifacts;
   }
 
-  /** Generate curriculum from certificates and artifacts. */
+  /** Add RLFP preferences for curriculum generation. */
+  addRlfpPreferences(preferences: RlfpPreferenceLabel[]): void {
+    this.rlfpPreferences = preferences;
+  }
+
+  /** Add RLFP preference from raw preference data. */
+  addRlfpPreference(preference: PreferenceData): void {
+    const label = this.deriveLabelFromPreference(preference);
+    this.rlfpPreferences.push({
+      id: `pref-${preference.timestamp}-${Math.random().toString(36).slice(2, 8)}`,
+      trajectoryA: preference.trajectoryA,
+      trajectoryB: preference.trajectoryB,
+      preference: preference.preference,
+      timestamp: preference.timestamp,
+      label,
+      confidence: this.computePreferenceConfidence(preference),
+    });
+  }
+
+  /** Derive curriculum label from preference. */
+  private deriveLabelFromPreference(preference: PreferenceData): 'preferred' | 'rejected' | 'neutral' {
+    if (preference.preference === 'A') return 'preferred';
+    if (preference.preference === 'B') return 'rejected';
+    return 'neutral';
+  }
+
+  /** Compute confidence from preference. */
+  private computePreferenceConfidence(preference: PreferenceData): number {
+    if (preference.preference === 'SKIP') return 0;
+    // Confidence based on trajectory difference
+    const scoreA = this.scoreTrajectory(preference.trajectoryA);
+    const scoreB = this.scoreTrajectory(preference.trajectoryB);
+    const diff = Math.abs(scoreA - scoreB);
+    return Math.min(1, diff / 10); // Normalize
+  }
+
+  /** Score a trajectory for confidence computation. */
+  private scoreTrajectory(trajectory: TrajectoryStep[]): number {
+    let score = 0;
+    for (const step of trajectory) {
+      if (step.type === 'tool_call') score += 0.2;
+      if (step.type === 'lm_response') score += 0.3;
+      if (step.type === 'error') score -= 0.5;
+    }
+    return score;
+  }
+
+  /** Generate curriculum from certificates, artifacts, and RLFP preferences. */
   generateCurriculum(id: string, name: string): Curriculum {
     const items: CurriculumItem[] = [];
 
@@ -125,13 +201,22 @@ export class CurriculumGenerator {
       }
     }
 
-    // 4. Sort by difficulty
+    // 4. Generate from RLFP preferences (second label source)
+    if (this.config.includeRlfp) {
+      for (const pref of this.rlfpPreferences) {
+        if (pref.label !== 'neutral' && pref.confidence > 0.3) {
+          items.push(this.createItemFromRlfpPreference(pref));
+        }
+      }
+    }
+
+    // 5. Sort by difficulty
     items.sort((a, b) => a.difficulty - b.difficulty);
 
-    // 5. Assign prerequisites
+    // 6. Assign prerequisites
     this.assignPrerequisites(items);
 
-    // 6. Limit items
+    // 7. Limit items
     const limitedItems = items.slice(0, this.config.maxItems);
 
     return {
@@ -142,6 +227,7 @@ export class CurriculumGenerator {
         generatedAt: this.clock.now(),
         certificateCount: this.certificates.size,
         artifactCount: this.artifacts.length,
+        rlfpPreferenceCount: this.rlfpPreferences.length,
         config: this.config,
       },
     };
@@ -186,6 +272,26 @@ export class CurriculumGenerator {
       difficulty,
       prerequisites: [],
       tags: [source, artifact.kind, ...artifact.tags],
+    };
+  }
+
+  /** Create curriculum item from RLFP preference. */
+  private createItemFromRlfpPreference(pref: RlfpPreferenceLabel): CurriculumItem {
+    const difficulty = pref.label === 'preferred' ? 0.3 : 0.7;
+    const expectedTruth = pref.label === 'preferred'
+      ? { f: 0.8, c: pref.confidence }
+      : { f: 0.2, c: pref.confidence };
+
+    return {
+      id: `cur-${pref.id}`,
+      kind: 'skill',
+      term: { op: 'CONSTANT' as any, value: `rlfp-${pref.label}` } as Term,
+      expectedTruth,
+      source: 'rlfp-preference',
+      preferenceId: pref.id,
+      difficulty,
+      prerequisites: [],
+      tags: ['rlfp', pref.label, `confidence-${pref.confidence.toFixed(2)}`],
     };
   }
 

@@ -17,3 +17,4 @@ export * from './policies.js';
 export * from './projections.js';
 export * from './admission-machinery.js';
 export * from './books-re-fold.js';
+export * from './autonomy-dial.js';
