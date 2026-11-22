@@ -76,7 +76,7 @@ describe('Bench 109 — nothing outside the catalogue constructs a strategy', ()
     // would be the regression).
     const offenders = files
       .filter(
-        (path) => !CONSTRUCTION_SITES[relative(path)] && relative(path) !== 'memory/memory.ts'
+        (path) => !CONSTRUCTION_SITES[relative(path)] && relative(path) !== 'memory/memory.ts' && relative(path) !== 'memory/fold-memory.ts'
       )
       .filter((path) => /strategies\/attention\/(?!types)/.test(readFileSync(path, 'utf8')))
       .map(relative);

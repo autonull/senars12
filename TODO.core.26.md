@@ -163,7 +163,7 @@ type Verdict =
 | Stream | Scope | Acceptance |
 |--------|-------|------------|
 | **K1: Loop Contracts** | `loop/contracts` — zod schemas for every iteration artifact (selection, action, judgment, contract, repair, appraisal) | All contracts validate; invalid input rejected at boundary; zero `any` in contract path | ✅
-| **K2: Memory as Fold Views** | Replace `Memory` class with projections over log: `concepts`, `tasks`, `links`, `revisions`, `archive` | Same public API; `capacityPressure` = max of bound ratios; eviction = log append; zero mutable state in `Memory` |
+| **K2: Memory as Fold Views** | Replace `Memory` class with projections over log: `concepts`, `tasks`, `links`, `revisions`, `archive` | Same public API; `capacityPressure` = max of bound ratios; eviction = log append; zero mutable state in `Memory` | ✅
 | **K3: Economy → Scheduler Only** | Remove `Economy` interface; scheduler = pure function `(state, rng) → (task, newState)` | Deterministic; fairness = property test; no event bus; `EconomyTask` = data, not class |
 | **K4: Portals (Oracles + Truth Port)** | Freeze `Oracle` + `Logic` interfaces; register 10 core oracles + 3 logics | All external calls logged, pinned, replayable; `engine.metta` + NAL + Axiomatic + Fuzzy behind seam |
 
@@ -309,7 +309,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 
 ### Phase 1: Kernel (Sequential)
 4. **K1: Loop Contracts** — zod schemas for all iteration artifacts (~2 weeks) ✅
-5. **K2: Memory as Fold Views** — projections over log; `Memory` becomes pure API (~2 weeks)
+5. **K2: Memory as Fold Views** — projections over log; `Memory` becomes pure API (~2 weeks) ✅
 6. **K3: Economy → Scheduler** — pure function `(state, rng) → (task, newState)` (~1 week)
 7. **K4: Portals** — freeze `Oracle`/`Logic` interfaces; register 13 portals (~1 week)
 
@@ -346,7 +346,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 | P0 | Re-arm `complexity:budget` at true baseline | — | 30m ✅ |
 | P0 | Collapse vitest aliases (tsconfigPaths enabled, explicit aliases remain) | — | 2h 🔄 | tsconfig-paths active; 17 /index paths added; duplicates identified; `.js` variants and duplicate schemas removed (~87 aliases); remaining deduplication needs careful sub-path analysis
 | P1 | K1: Loop Contracts zod schemas | — | 2w ✅ |
-| P1 | K2: Memory as Fold Views | — | 2w |
+| P1 | K2: Memory as Fold Views | — | 2w ✅ |
 | P1 | K3: Economy → Scheduler pure function | — | 1w |
 | P1 | K4: Portals (Oracle + Logic interfaces frozen) | — | 1w |
 | P2 | Re-home 20 capabilities (Phase 2) | — | 4w |
