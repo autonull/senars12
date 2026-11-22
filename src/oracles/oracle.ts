@@ -9,6 +9,9 @@ import type { UUID, TimestampMs } from '../generated/schemas.js';
 import type { Term } from '../kernel/terms/term.js';
 import type { Task } from '../kernel/types.js';
 import { FunctionRegistry } from '../util/registry.js';
+import { createLMGenerateTextOracle, createLMGenerateObjectOracle, createLMStreamOracle } from './lm.js';
+import { createNLToFormalOracle, createFormalToNlOracle } from './formalization.js';
+import { OraclePinStore } from './pins.js';
 
 /** Oracle operation categories. */
 export const ORACLE_OPERATIONS = [
@@ -22,6 +25,8 @@ export const ORACLE_OPERATIONS = [
   'engine.tau-prolog',
   'engine.metta',
   'engine.custom',
+  'formalization.nlToFormal',
+  'formalization.formalToNl',
 ] as const;
 
 export type OracleOperation = (typeof ORACLE_OPERATIONS)[number];
@@ -294,6 +299,44 @@ export interface PinStore {
 /** Create an isolated oracle registry. */
 export function createOracleRegistry(options?: ConstructorParameters<typeof OracleRegistry>[0]): OracleRegistry {
   return new OracleRegistry(options);
+}
+
+/** Create a fully configured oracle registry with standard oracles. */
+export function createStandardOracleRegistry(
+  lmService?: { hasModel(): boolean; getModel(task: string): unknown; provider?: string; model?: string } | null,
+  pinStore?: OraclePinStore
+): OracleRegistry {
+  const registry = new OracleRegistry();
+
+  if (lmService && lmService.hasModel()) {
+    const textOracle = createLMGenerateTextOracle(lmService as any);
+    const objectOracle = createLMGenerateObjectOracle(lmService as any);
+    const streamOracle = createLMStreamOracle(lmService as any);
+
+    if (pinStore) {
+      textOracle.setPinStore(pinStore);
+      objectOracle.setPinStore(pinStore);
+      streamOracle.setPinStore(pinStore);
+    }
+
+    registry.register(textOracle);
+    registry.register(objectOracle);
+    registry.register(streamOracle);
+  }
+
+  // Always register formalization oracles (they work with or without LM)
+  const nlToFormalOracle = createNLToFormalOracle(lmService as any);
+  const formalToNlOracle = createFormalToNlOracle(lmService as any);
+
+  if (pinStore) {
+    nlToFormalOracle.setPinStore(pinStore);
+    formalToNlOracle.setPinStore(pinStore);
+  }
+
+  registry.register(nlToFormalOracle);
+  registry.register(formalToNlOracle);
+
+  return registry;
 }
 
 /** Global oracle registry instance (convenience; prefer {@link createOracleRegistry}). */

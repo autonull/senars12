@@ -8,8 +8,9 @@ import { createFacultyRegistry } from './specs.js';
 import type { Clock, IDGenerator } from '../kernel/env.js';
 import { DeterministicClock, DeterministicIDGenerator, DeterministicRNG } from '../kernel/env.js';
 import type { Oracle, OracleInput, OracleOutput, OracleRegistry } from '../oracles/oracle.js';
-import { createOracleRegistry } from '../oracles/oracle.js';
+import { createOracleRegistry, createStandardOracleRegistry } from '../oracles/oracle.js';
 import { OraclePinStore } from '../oracles/pins.js';
+import type { ILMService } from '../lm/interfaces.js';
 
 /** Faculty engine configuration. */
 export interface FacultyEngineConfig {
@@ -17,6 +18,8 @@ export interface FacultyEngineConfig {
   registry?: FacultyRegistry;
   /** Oracle registry to use (isolated by default). */
   oracles?: OracleRegistry;
+  /** LM service for standard oracle registry (if not providing custom oracles). */
+  lmService?: ILMService | null;
   /** Clock (deterministic clock by default). */
   clock?: Clock;
   /** ID generator (deterministic by default). */
@@ -89,7 +92,7 @@ export class FacultyEngine {
 
   constructor(config: FacultyEngineConfig = {}) {
     this.registry = config.registry ?? createFacultyRegistry();
-    this.oracles = config.oracles ?? createOracleRegistry();
+    this.oracles = config.oracles ?? createStandardOracleRegistry(config.lmService as any, config.pinStore);
     this.clock = config.clock ?? new DeterministicClock();
     this.ids = config.ids ?? new DeterministicIDGenerator(new DeterministicRNG());
     this.pinStore = config.pinStore ?? null;
@@ -286,6 +289,21 @@ export class FacultyEngine {
         return {
           operation: 'engine.tau-prolog',
           args: [program, query, { timeoutMs: spec.timeoutMs, maxSolutions: 10 }],
+        };
+      }
+      case 'formalization.nlToFormal': {
+        const text = primary.toString();
+        const ctx = context as any;
+        return {
+          operation: 'formalization.nlToFormal',
+          args: [text, ctx],
+        };
+      }
+      case 'formalization.formalToNl': {
+        const genInput = context?.metadata?.generationInput as any ?? { term: primary.toString(), direction: 'to-natural' };
+        return {
+          operation: 'formalization.formalToNl',
+          args: [genInput],
         };
       }
       default:

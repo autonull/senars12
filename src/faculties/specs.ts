@@ -27,7 +27,7 @@ export const FACULTY_CATEGORIES = [
 
 export type FacultyCategory = (typeof FACULTY_CATEGORIES)[number];
 
-/** The 10 core faculties. */
+/** The 11 core faculties (10 original + perceive.formalize). */
 export const FACULTIES = [
   'grounding',
   'inference',
@@ -39,6 +39,7 @@ export const FACULTIES = [
   'evaluation',
   'communication',
   'governance',
+  'perceive.formalize',
 ] as const;
 
 export type FacultyName = (typeof FACULTIES)[number];
@@ -71,6 +72,8 @@ export interface FacultyContext {
   useFallback?: boolean;
   /** Additional metadata. */
   metadata?: Record<string, unknown>;
+  /** Mode for perceive.formalize faculty. */
+  mode?: 'nl-to-formal' | 'formal-to-nl';
 }
 
 /** Faculty output. */
@@ -707,7 +710,76 @@ export const governanceSpec: FacultySpec = {
   timeoutMs: 5000,
 };
 
-/** The ten core faculty specifications, in registration order. */
+// 11. Perceive Formalize Faculty - natural language to formal Narsese
+export const perceiveFormalizeSpec: FacultySpec = {
+  name: 'perceive.formalize',
+  description: 'Formalizes natural language or Narsese into perceived interpretations with provenance',
+  category: 'perception',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      primary: { type: 'string' }, // text to formalize
+      context: {
+        type: 'object',
+        properties: {
+          mode: { type: 'string', enum: ['nl-to-formal', 'formal-to-nl'] },
+          sourceText: { type: 'string' },
+        },
+      },
+    },
+    required: ['primary'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      interpretation: { type: 'object' }, // PerceivedInterpretation
+      translation: { type: 'string' }, // for formal-to-nl
+      confidence: { type: 'number' },
+    },
+  },
+  oracleOperation: 'formalization.nlToFormal',
+  fallback: async (input) => {
+    const { primary, context } = input;
+    const text = typeof primary === 'string' ? primary : primary.toString();
+    const mode = context?.mode ?? 'nl-to-formal';
+
+    if (mode === 'nl-to-formal') {
+      // Use structured formalizer as fallback
+      const { StructuredFormalizer } = await import('../nl/formalizer.js');
+      const formalizer = new StructuredFormalizer();
+      const interpretation = await formalizer.nlToFormal(text);
+      return {
+        faculty: 'perceive.formalize',
+        result: { interpretation, translation: '', confidence: interpretation.candidates.length > 0 ? 0.8 : 0.1 },
+        confidence: interpretation.candidates.length > 0 ? 0.8 : 0.1,
+        evidence: [{ source: 'fallback', description: 'Structured formalization fallback', strength: interpretation.candidates.length > 0 ? 0.8 : 0.1 }],
+        fallbackUsed: true,
+        durationMs: 0,
+      };
+    } else {
+      // formal-to-nl fallback
+      const { StructuredFormalizer } = await import('../nl/formalizer.js');
+      const formalizer = new StructuredFormalizer();
+      const generationInput = { query: text, derivation: null, beliefs: [], conflicts: [], userProfile: { expertise: 'technical' as const, verbosity: 'concise' as const } };
+      const translation = await formalizer.formalToNl(generationInput);
+      return {
+        faculty: 'perceive.formalize',
+        result: { interpretation: null as any, translation: translation.response, confidence: 0.5 },
+        confidence: 0.5,
+        evidence: [{ source: 'fallback', description: 'Structured generation fallback', strength: 0.5 }],
+        fallbackUsed: true,
+        durationMs: 0,
+      };
+    }
+  },
+  enabled: true,
+  priority: 0.95,
+  budgetCost: 0.2,
+  maxConcurrency: 10,
+  timeoutMs: 10000,
+};
+
+/** The eleven core faculty specifications, in registration order. */
 export const CORE_FACULTIES: readonly FacultySpec[] = [
   groundingSpec,
   inferenceSpec,
@@ -719,6 +791,7 @@ export const CORE_FACULTIES: readonly FacultySpec[] = [
   evaluationSpec,
   communicationSpec,
   governanceSpec,
+  perceiveFormalizeSpec,
 ];
 
 /** Register all core faculties, into `registry` (global by default). */
