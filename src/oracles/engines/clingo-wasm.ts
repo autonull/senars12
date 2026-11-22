@@ -5,6 +5,7 @@
 import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle.js';
 import { OraclePinStore } from '../pins.js';
+import type { BudgetSlice, BudgetResource } from '../../budget/budget.js';
 
 /** Input for Clingo ASP solving. */
 export interface ClingoWasmInput extends OracleInput {
@@ -70,12 +71,14 @@ export class ClingoWasmOracle implements Oracle<ClingoWasmInput, ClingoWasmResul
   public readonly operation: 'engine.clingo' = 'engine.clingo';
   public readonly provider: string = 'clingo-wasm';
   public readonly version?: string;
+  public readonly budgetResource?: BudgetResource;
 
   private defaultTimeoutMs: number;
   private defaultModels: number;
   private defaultFormat: 'json' | 'text';
   private pinStore: OraclePinStore | null = null;
   private isReplay = false;
+  private defaultBudgetSlice?: BudgetSlice;
 
   private stats = {
     totalCalls: 0,
@@ -87,6 +90,8 @@ export class ClingoWasmOracle implements Oracle<ClingoWasmInput, ClingoWasmResul
 
   constructor(config: ClingoWasmOracleConfig) {
     this.version = config.version;
+    this.budgetResource = config.budgetResource;
+    this.defaultBudgetSlice = config.budgetSlice;
     this.defaultTimeoutMs = config.defaultTimeoutMs ?? 30000;
     this.defaultModels = config.defaultModels ?? 0;
     this.defaultFormat = config.defaultFormat ?? 'json';
@@ -100,7 +105,33 @@ export class ClingoWasmOracle implements Oracle<ClingoWasmInput, ClingoWasmResul
     this.isReplay = replay;
   }
 
-  async call(input: ClingoWasmInput): Promise<OracleOutput<ClingoWasmResult>> {
+  async call(input: ClingoWasmInput, budgetSlice?: BudgetSlice): Promise<OracleOutput<ClingoWasmResult>> {
+    // Charge budget if configured
+    const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
+    if (effectiveBudgetSlice && this.budgetResource) {
+      const { consume } = await import('../../budget/budget.js');
+      const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
+      if (!charged) {
+        const callId = crypto.randomUUID();
+        const startTs = Date.now();
+        this.stats.totalCalls++;
+        this.stats.failedCalls++;
+        const error = `Budget exhausted for ${this.budgetResource}`;
+        return {
+          value: { result: 'UNKNOWN', models: [], stdout: '', stderr: '', exitCode: -1, durationMs: 0 },
+          meta: {
+            callId,
+            ts: startTs,
+            durationMs: 0,
+            provider: this.provider,
+            version: this.version,
+            pinned: false,
+            error,
+          },
+        };
+      }
+    }
+
     const callId = crypto.randomUUID();
     const startTs = Date.now();
     let pinned = false;

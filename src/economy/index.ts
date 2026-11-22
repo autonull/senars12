@@ -16,8 +16,9 @@ export * from './overlays.js';
 export * from './drives.js';
 export * from './td-learning.js';
 
-import { EconomyScheduler, createEconomyScheduler, economyScheduler, type SchedulerResult } from './scheduler.js';
+import { EconomyScheduler, createEconomyScheduler, createEconomySchedulerFromEnv, economyScheduler, type SchedulerResult } from './scheduler.js';
 import type { EconomyTask, SchedulerConfig, EconomyState, Successor } from './types.js';
+import type { Env } from '../kernel/env.js';
 import { applyAging, calculateAgedPriority, getAgingPolicyForKind, isStale, getTasksForReview } from './aging.js';
 import { calculateTaskUtility, calculateTotalUtility, rankTasksByUtility, calculateVoI } from './utility.js';
 import { metareason, calculateMetareasoningBudget, evaluateMetareasoningOutcome } from './metareasoning.js';
@@ -58,6 +59,27 @@ export interface Economy {
 /** Create a full economy instance. */
 export function createEconomy(config?: Partial<SchedulerConfig>): Economy {
   const scheduler = createEconomyScheduler(config);
+
+  return {
+    addTask: (task) => scheduler.addTask(task),
+    removeTask: (id) => scheduler.removeTask(id),
+    updateTask: (id, updates) => scheduler.updateTask(id, updates),
+    getTask: (id) => scheduler.getTask(id),
+    getTasksByKind: (kind) => scheduler.getTasksByKind(kind),
+    getAllTasks: () => scheduler.getAllTasks(),
+    schedule: (successors) => scheduler.schedule(successors),
+    getState: () => scheduler.getState(),
+    getStats: () => scheduler.getStats(),
+    activateOverlay: (overlay) => scheduler.activateOverlay(overlay),
+    deactivateOverlay: (id) => scheduler.deactivateOverlay(id),
+    setSeed: (seed) => scheduler.setSeed(seed),
+    on: (type, listener) => scheduler.on(type, listener),
+  };
+}
+
+/** Create a full economy instance from an Env. */
+export function createEconomyFromEnv(env: Env, config?: Partial<SchedulerConfig>): Economy {
+  const scheduler = createEconomySchedulerFromEnv(env, config);
 
   return {
     addTask: (task) => scheduler.addTask(task),

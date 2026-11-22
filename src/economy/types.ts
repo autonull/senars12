@@ -8,6 +8,7 @@
 import type { Term } from '../kernel/terms/term.js';
 import type { Truth } from '../kernel/truth.js';
 import type { Task, TaskType } from '../kernel/types.js';
+import type { RNG, Clock } from '../kernel/env.js';
 
 /** Task bag kinds — unified from focus, goals, beliefs. */
 export const TASK_BAG_KINDS = [
@@ -166,7 +167,9 @@ export interface SchedulerConfig {
   /** Margin threshold for think vs act. */
   marginThreshold: number;
   /** Clock (inject for deterministic replay). */
-  clock?: { now(): number };
+  clock?: Clock;
+  /** RNG (inject for deterministic replay). */
+  rng?: RNG;
   /** RNG seed (inject for deterministic replay). */
   seed?: number;
 }

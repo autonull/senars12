@@ -8,6 +8,7 @@ import { OraclePinStore } from '../pins.js';
 import { parseMeTTa } from '../../metta/parser/runtime.js';
 import { createMeTTa, type MeTTaRuntime } from '../../metta/runtime/builder.js';
 import type { MeTTaAtom } from '../../metta/types/ast.js';
+import type { BudgetSlice, BudgetResource } from '../../budget/budget.js';
 
 /** Input for MeTTa evaluation. */
 export interface MettaInput extends OracleInput {
@@ -61,12 +62,14 @@ export class MettaOracle implements Oracle<MettaInput, MettaResult> {
   public readonly operation: 'engine.metta' = 'engine.metta';
   public readonly provider: string = 'metta';
   public readonly version?: string;
+  public readonly budgetResource?: BudgetResource;
 
   private runtime: MeTTaRuntime;
   private defaultTimeoutMs: number;
   private defaultMaxSteps: number;
   private pinStore: OraclePinStore | null = null;
   private isReplay = false;
+  private defaultBudgetSlice?: BudgetSlice;
 
   private stats = {
     totalCalls: 0,
@@ -78,6 +81,8 @@ export class MettaOracle implements Oracle<MettaInput, MettaResult> {
 
   constructor(config: MettaOracleConfig) {
     this.version = config.version;
+    this.budgetResource = config.budgetResource;
+    this.defaultBudgetSlice = config.budgetSlice;
     this.defaultTimeoutMs = config.defaultTimeoutMs ?? 30000;
     this.defaultMaxSteps = config.defaultMaxSteps ?? 1000;
     this.runtime = createMeTTa();
@@ -91,7 +96,33 @@ export class MettaOracle implements Oracle<MettaInput, MettaResult> {
     this.isReplay = replay;
   }
 
-  async call(input: MettaInput): Promise<OracleOutput<MettaResult>> {
+  async call(input: MettaInput, budgetSlice?: BudgetSlice): Promise<OracleOutput<MettaResult>> {
+    // Charge budget if configured
+    const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
+    if (effectiveBudgetSlice && this.budgetResource) {
+      const { consume } = await import('../../budget/budget.js');
+      const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
+      if (!charged) {
+        const callId = crypto.randomUUID();
+        const startTs = Date.now();
+        this.stats.totalCalls++;
+        this.stats.failedCalls++;
+        const error = `Budget exhausted for ${this.budgetResource}`;
+        return {
+          value: { success: false, results: [], error, durationMs: 0 },
+          meta: {
+            callId,
+            ts: startTs,
+            durationMs: 0,
+            provider: this.provider,
+            version: this.version,
+            pinned: false,
+            error,
+          },
+        };
+      }
+    }
+
     const callId = crypto.randomUUID();
     const startTs = Date.now();
     let pinned = false;

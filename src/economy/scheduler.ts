@@ -5,7 +5,8 @@
  * no parallel drive machinery exists.
  */
 
-import { weightedPick, SeededRNG } from '@senars/util/random';
+import { weightedPick } from '@senars/util/random';
+import type { RandomSource } from '@senars/util/random';
 import {
   EconomyTask,
   TaskBagKind,
@@ -24,6 +25,7 @@ import {
 import type { Truth } from '../kernel/truth.js';
 import { calculateTaskUtility, calculateTotalUtility } from './utility.js';
 import { Successor } from './types.js';
+import type { Env, RNG } from '../kernel/env.js';
 
 /** Scheduler result. */
 export interface SchedulerResult {
@@ -76,7 +78,7 @@ interface PickRecord {
 /** Economy scheduler. */
 export class EconomyScheduler {
   private config: SchedulerConfig;
-  private rng: SeededRNG;
+  private rng: RNG;
   private clock: { now(): number };
   private state: EconomyState;
   private pickHistory: PickRecord[] = [];
@@ -85,8 +87,8 @@ export class EconomyScheduler {
 
   constructor(config: Partial<SchedulerConfig> = {}) {
     this.config = { ...defaultSchedulerConfig, ...config };
-    this.rng = new SeededRNG(this.config.seed ?? 1);
-    this.clock = this.config.clock ?? { now: () => Date.now() };
+    this.rng = config.rng ?? { next: () => Math.random(), nextInt: (max: number) => Math.floor(Math.random() * max), nextBytes: (length: number) => crypto.getRandomValues(new Uint8Array(length)), setSeed: () => {}, getSeed: () => 0 };
+    this.clock = config.clock ?? { now: () => Date.now() };
     this.state = this.createInitialState();
     this.initializeEventListeners();
   }
@@ -212,10 +214,11 @@ export class EconomyScheduler {
       if (margin < this.config.marginThreshold) {
         // Small margin: think (explore)
         this.state.schedulerStats.thinkDecisions++;
-        if (this.rng.source() < this.config.explorationRate) {
+        const rngSource: RandomSource = this.rng.next.bind(this.rng);
+        if (rngSource() < this.config.explorationRate) {
           // Explore: weighted random from top candidates
           const topCandidates = ranked.slice(0, Math.min(5, ranked.length));
-          selected = weightedPick(topCandidates, c => c.utility, this.rng.source)?.task ?? null;
+          selected = weightedPick(topCandidates, c => c.utility, rngSource)?.task ?? null;
           explored = true;
           this.state.schedulerStats.explorationPicks++;
         } else {
@@ -376,7 +379,9 @@ export class EconomyScheduler {
 
   /** Set RNG seed for determinism. */
   setSeed(seed: number): void {
-    this.rng = new SeededRNG(seed);
+    if ('setSeed' in this.rng && typeof this.rng.setSeed === 'function') {
+      this.rng.setSeed(seed);
+    }
   }
 
   /** Event emission. */
@@ -422,6 +427,15 @@ export class EconomyScheduler {
 /** Create an economy scheduler. */
 export function createEconomyScheduler(config?: Partial<SchedulerConfig>): EconomyScheduler {
   return new EconomyScheduler(config);
+}
+
+/** Create an economy scheduler from an Env. */
+export function createEconomySchedulerFromEnv(env: Env, config?: Partial<SchedulerConfig>): EconomyScheduler {
+  return new EconomyScheduler({
+    ...config,
+    rng: env.rng,
+    clock: env.clock,
+  });
 }
 
 /** Default scheduler instance. */

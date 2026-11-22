@@ -5,6 +5,7 @@
 import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle.js';
 import { OraclePinStore } from '../pins.js';
+import type { BudgetSlice, BudgetResource } from '../../budget/budget.js';
 
 /** Input for MiniSat SAT solving. */
 export interface MiniSatWasmInput extends OracleInput {
@@ -50,10 +51,12 @@ export class MiniSatWasmOracle implements Oracle<MiniSatWasmInput, MiniSatWasmRe
   public readonly operation: 'engine.minisat' = 'engine.minisat';
   public readonly provider: string = 'minisat-wasm';
   public readonly version?: string;
+  public readonly budgetResource?: BudgetResource;
 
   private defaultTimeoutMs: number;
   private pinStore: OraclePinStore | null = null;
   private isReplay = false;
+  private defaultBudgetSlice?: BudgetSlice;
 
   private stats = {
     totalCalls: 0,
@@ -65,6 +68,8 @@ export class MiniSatWasmOracle implements Oracle<MiniSatWasmInput, MiniSatWasmRe
 
   constructor(config: MiniSatWasmOracleConfig) {
     this.version = config.version;
+    this.budgetResource = config.budgetResource;
+    this.defaultBudgetSlice = config.budgetSlice;
     this.defaultTimeoutMs = config.defaultTimeoutMs ?? 30000;
   }
 
@@ -76,7 +81,33 @@ export class MiniSatWasmOracle implements Oracle<MiniSatWasmInput, MiniSatWasmRe
     this.isReplay = replay;
   }
 
-  async call(input: MiniSatWasmInput): Promise<OracleOutput<MiniSatWasmResult>> {
+  async call(input: MiniSatWasmInput, budgetSlice?: BudgetSlice): Promise<OracleOutput<MiniSatWasmResult>> {
+    // Charge budget if configured
+    const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
+    if (effectiveBudgetSlice && this.budgetResource) {
+      const { consume } = await import('../../budget/budget.js');
+      const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
+      if (!charged) {
+        const callId = crypto.randomUUID();
+        const startTs = Date.now();
+        this.stats.totalCalls++;
+        this.stats.failedCalls++;
+        const error = `Budget exhausted for ${this.budgetResource}`;
+        return {
+          value: { result: 'UNKNOWN', stdout: '', stderr: '', exitCode: -1, durationMs: 0 },
+          meta: {
+            callId,
+            ts: startTs,
+            durationMs: 0,
+            provider: this.provider,
+            version: this.version,
+            pinned: false,
+            error,
+          },
+        };
+      }
+    }
+
     const callId = crypto.randomUUID();
     const startTs = Date.now();
     let pinned = false;

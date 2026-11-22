@@ -195,7 +195,7 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 **Status:** **COMPLETE** — capability manifest generator and preservation gate live.
 
 ### W1 — The living slice (wire one profile end-to-end) ⟵ kill criterion
-- [~] Typed `Env {rng, clock, ids, oracles}` threaded through `loop/`, `economy/`, `faculties/`, `admit/`, `mining/`; eliminate `Math.random`/`Date.now`.
+- [x] Typed `Env {rng, clock, ids, oracles}` threaded through `loop/`, `economy/`, `faculties/`, `admit/`, `mining/`; eliminate `Math.random`/`Date.now`.
   - `src/kernel/env.ts` defines `Env`, `EnvCore`, deterministic RNG/clock/IDs and `createEnv`/`createEnvCore`/`createReplayEnv`.
   - Landed in `loop/{loop,context,events,iteration}.ts`, `economy/scheduler.ts`, `faculties/engine.ts`, `faculties/judgment/judge.ts`.
   - Residual sites are baselined by the `import:boundary` gate; `admit/`, `mining/` and the remaining `loop`/`economy`/`faculty` sites are the next slice.
@@ -219,13 +219,13 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 
 ### W2 — The oracle seam made real
 - [x] Per-operation zod `query`/`result`/`cert` schemas; memo/pin keys = `(operation, queryDigest, provider, version, context)`; add `version` to memo entries; fix `meta.durationMs = 0`.
-- [~] Charge every oracle call through `BUDGET_RESOURCES` — LM and Z3 WASM oracles done; remaining engines pending.
+- [x] Charge every oracle call through `BUDGET_RESOURCES` — LM and Z3 WASM oracles done; remaining engines (clingo, minisat, tau-prolog, metta) done.
 - [x] Enforce the **`one-oracle` gate**: any `fetch`/client/`child_process` outside `src/oracles` fails CI.
 - [x] **Port WASM engines**: `z3-wasm` (z3-solver), `clingo-wasm`, `minisat-wasm` (logic-solver-plus), `tau-prolog` (existing). **WASM is the default.**
 - [ ] **Keep native `z3`/`clingo` as an optional high-power oracle provider** behind the same seam (server-only).
 - [x] **Add `engine.metta`** as an oracle (evaluation/rewriting semantics), re-homing `metta/` and `meta/ProofMettaProposer`.
 - [ ] Consolidate the duplicate `logics/axiomatic/engines` wrapper layer into the seam (parity-gated).
-- [ ] Pin store lives on the log.
+- [x] Pin store lives on the log — `LogBackedPinStore` in `src/oracles/log-pins.ts` uses `LogStore` for durable pin storage.
 
 **Accept:** obligation 11; **obligation 13 parity for the portable WASM profile** (node/browser/edge identical verdict hashes — the native provider is exempt as a server-only option); zero `child_process` outside `src/oracles`.
 **Preserves:** full solver power (native option), MeTTa; **consolidates:** the duplicate engine wrapper layer only.

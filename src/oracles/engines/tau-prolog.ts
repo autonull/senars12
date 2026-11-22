@@ -5,6 +5,7 @@
 import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from '../oracle.js';
 import { OraclePinStore } from '../pins.js';
+import type { BudgetSlice, BudgetResource } from '../../budget/budget.js';
 
 /** Input for Tau Prolog query. */
 export interface TauPrologInput extends OracleInput {
@@ -58,11 +59,13 @@ export class TauPrologOracle implements Oracle<TauPrologInput, TauPrologResult> 
   public readonly operation: 'engine.tau-prolog' = 'engine.tau-prolog';
   public readonly provider: string = 'tau-prolog';
   public readonly version?: string;
+  public readonly budgetResource?: BudgetResource;
 
   private defaultTimeoutMs: number;
   private defaultMaxSolutions: number;
   private pinStore: OraclePinStore | null = null;
   private isReplay = false;
+  private defaultBudgetSlice?: BudgetSlice;
 
   private stats = {
     totalCalls: 0,
@@ -74,6 +77,8 @@ export class TauPrologOracle implements Oracle<TauPrologInput, TauPrologResult> 
 
   constructor(config: TauPrologOracleConfig) {
     this.version = config.version;
+    this.budgetResource = config.budgetResource;
+    this.defaultBudgetSlice = config.budgetSlice;
     this.defaultTimeoutMs = config.defaultTimeoutMs ?? 30000;
     this.defaultMaxSolutions = config.defaultMaxSolutions ?? 100;
   }
@@ -86,7 +91,33 @@ export class TauPrologOracle implements Oracle<TauPrologInput, TauPrologResult> 
     this.isReplay = replay;
   }
 
-  async call(input: TauPrologInput): Promise<OracleOutput<TauPrologResult>> {
+  async call(input: TauPrologInput, budgetSlice?: BudgetSlice): Promise<OracleOutput<TauPrologResult>> {
+    // Charge budget if configured
+    const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
+    if (effectiveBudgetSlice && this.budgetResource) {
+      const { consume } = await import('../../budget/budget.js');
+      const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
+      if (!charged) {
+        const callId = crypto.randomUUID();
+        const startTs = Date.now();
+        this.stats.totalCalls++;
+        this.stats.failedCalls++;
+        const error = `Budget exhausted for ${this.budgetResource}`;
+        return {
+          value: { success: false, solutions: [], error, durationMs: 0 },
+          meta: {
+            callId,
+            ts: startTs,
+            durationMs: 0,
+            provider: this.provider,
+            version: this.version,
+            pinned: false,
+            error,
+          },
+        };
+      }
+    }
+
     const callId = crypto.randomUUID();
     const startTs = Date.now();
     let pinned = false;
