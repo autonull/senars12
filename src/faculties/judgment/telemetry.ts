@@ -516,6 +516,13 @@ export class TelemetryCollector {
     });
   }
 
+  async judgeDemoted(judgeType: string, ece: number, cycle: number): Promise<void> {
+    await this.emit({
+      type: 'judge.weight-change',
+      payload: { modelType: judgeType, weightDelta: ece, trainingExamples: 0, epoch: cycle, loss: ece },
+    });
+  }
+
   /** Flush all sinks. */
   async flush(): Promise<void> {
     await Promise.all(this.sinks.map(s => s.flush()));

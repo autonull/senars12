@@ -61,6 +61,8 @@ export interface JudgeModel {
   load(): Promise<void>;
   /** Get model info. */
   getInfo(): JudgeModelInfo;
+  /** Extract features from candidate and context. */
+  extractFeatures(candidate: JudgmentCandidate, context: JudgmentContext, numCandidates: number): JudgeFeatures;
 }
 
 /** Judge model info. */
@@ -378,6 +380,27 @@ export class JudgeEnsemble implements JudgeModel {
       trainingExamples: this.models[0]?.getInfo().trainingExamples ?? 0,
       lastTrained: Math.max(...this.models.map(m => m.getInfo().lastTrained)),
     };
+  }
+
+  /** Extract features from candidate and context (delegates to first model). */
+  extractFeatures(candidate: JudgmentCandidate, context: JudgmentContext, numCandidates: number): JudgeFeatures {
+    if (this.models.length === 0) {
+      // Return default features
+      return {
+        candidateConfidence: candidate.confidence,
+        evidenceCount: candidate.evidence.length,
+        avgEvidenceStrength: candidate.evidence.reduce((sum, e) => sum + e.strength, 0) / Math.max(1, candidate.evidence.length),
+        sourceFaculty: -1,
+        goalAlignment: 0,
+        beliefSupport: 0,
+        urgency: context.urgency,
+        riskTolerance: context.riskTolerance,
+        budgetFraction: context.budget > 0 ? 0.5 : 0,
+        numCandidates,
+        stageReached: 0,
+      };
+    }
+    return this.models[0]!.extractFeatures(candidate, context, numCandidates);
   }
 }
 

@@ -1,6 +1,7 @@
 import type { Verdict } from '@senars/schemas/gate-io';
 import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
 import type { JudgmentProposition, ResourceCost } from './types.js';
+export type { ResourceCost };
 
 /** The one `Verdict`, carrying the budget gate's own refusal field name. */
 export type JudgmentBudgetVerdict = Verdict<'granted', 'terminationReason'>;

@@ -27,7 +27,7 @@ export const FACULTY_CATEGORIES = [
 
 export type FacultyCategory = (typeof FACULTY_CATEGORIES)[number];
 
-/** The 11 core faculties (10 original + perceive.formalize). */
+/** The 18 core faculties (10 original + perceive.formalize + 7 LM roles). */
 export const FACULTIES = [
   'grounding',
   'inference',
@@ -40,6 +40,16 @@ export const FACULTIES = [
   'communication',
   'governance',
   'perceive.formalize',
+  'propose.action',
+  'propose.hypothesis',
+  'propose.repair',
+  'propose.plan',
+  'propose.skill',
+  'retrieve.rerank',
+  'judge.rubric',
+  'narrate.explain',
+  'mirror.postmortem',
+  'simulate.scenario',
 ] as const;
 
 export type FacultyName = (typeof FACULTIES)[number];
@@ -779,7 +789,529 @@ export const perceiveFormalizeSpec: FacultySpec = {
   timeoutMs: 10000,
 };
 
-/** The eleven core faculty specifications, in registration order. */
+// 12. Propose Action Faculty - proposes executable actions
+export const proposeActionSpec: FacultySpec = {
+  name: 'propose.action',
+  description: 'Proposes concrete executable actions given a goal and context',
+  category: 'action',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      primary: { type: 'object' }, // Task (goal)
+      context: {
+        type: 'object',
+        properties: {
+          legalActions: { type: 'array', items: { type: 'string' } },
+          constraints: { type: 'array', items: { type: 'object' } },
+          maxProposals: { type: 'number' },
+        },
+      },
+    },
+    required: ['primary'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      proposals: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            action: { type: 'string' },
+            confidence: { type: 'number' },
+            precondition: { type: 'object' },
+            estimatedCost: { type: 'number' },
+          },
+        },
+      },
+    },
+  },
+  oracleOperation: 'lm.generateObject',
+  fallback: async (input) => ({
+    faculty: 'propose.action',
+    result: { proposals: [] },
+    confidence: 0.1,
+    evidence: [{ source: 'fallback', description: 'Action proposal fallback', strength: 0.1 }],
+    fallbackUsed: true,
+    durationMs: 0,
+  }),
+  enabled: true,
+  priority: 0.85,
+  budgetCost: 0.3,
+  maxConcurrency: 5,
+  timeoutMs: 10000,
+};
+
+// 13. Propose Hypothesis Faculty - generates explanatory hypotheses
+export const proposeHypothesisSpec: FacultySpec = {
+  name: 'propose.hypothesis',
+  description: 'Generates explanatory hypotheses for observations or anomalies',
+  category: 'reasoning',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      primary: { type: 'object' }, // Term (observation)
+      secondary: { type: 'object' }, // Term[] (context beliefs)
+      context: {
+        type: 'object',
+        properties: {
+          maxHypotheses: { type: 'number' },
+          noveltyThreshold: { type: 'number' },
+        },
+      },
+    },
+    required: ['primary'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      hypotheses: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            term: { type: 'object' },
+            explanation: { type: 'string' },
+            confidence: { type: 'number' },
+            testable: { type: 'boolean' },
+          },
+        },
+      },
+    },
+  },
+  oracleOperation: 'lm.generateObject',
+  fallback: async (input) => ({
+    faculty: 'propose.hypothesis',
+    result: { hypotheses: [] },
+    confidence: 0.15,
+    evidence: [{ source: 'fallback', description: 'Hypothesis proposal fallback', strength: 0.15 }],
+    fallbackUsed: true,
+    durationMs: 0,
+  }),
+  enabled: true,
+  priority: 0.7,
+  budgetCost: 0.25,
+  maxConcurrency: 3,
+  timeoutMs: 15000,
+};
+
+// 14. Propose Repair Faculty - suggests fixes for failures
+export const proposeRepairSpec: FacultySpec = {
+  name: 'propose.repair',
+  description: 'Proposes repair strategies for failed operations or contradictions',
+  category: 'action',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      primary: { type: 'object' }, // Task (failed operation)
+      secondary: { type: 'object' }, // Term (error/contradiction)
+      context: {
+        type: 'object',
+        properties: {
+          failureType: { type: 'string', enum: ['contradiction', 'tool_error', 'timeout', 'resource_exhausted'] },
+          maxRepairs: { type: 'number' },
+        },
+      },
+    },
+    required: ['primary', 'secondary'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      repairs: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            strategy: { type: 'string' },
+            steps: { type: 'array', items: { type: 'object' } },
+            confidence: { type: 'number' },
+            riskLevel: { type: 'string', enum: ['low', 'medium', 'high'] },
+          },
+        },
+      },
+    },
+  },
+  oracleOperation: 'lm.generateObject',
+  fallback: async (input) => ({
+    faculty: 'propose.repair',
+    result: { repairs: [] },
+    confidence: 0.1,
+    evidence: [{ source: 'fallback', description: 'Repair proposal fallback', strength: 0.1 }],
+    fallbackUsed: true,
+    durationMs: 0,
+  }),
+  enabled: true,
+  priority: 0.8,
+  budgetCost: 0.3,
+  maxConcurrency: 3,
+  timeoutMs: 15000,
+};
+
+// 15. Propose Plan Faculty - decomposes goals into plans
+export const proposePlanSpec: FacultySpec = {
+  name: 'propose.plan',
+  description: 'Decomposes high-level goals into executable multi-step plans',
+  category: 'planning',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      primary: { type: 'object' }, // Task (goal)
+      context: {
+        type: 'object',
+        properties: {
+          horizon: { type: 'number' },
+          availableSkills: { type: 'array', items: { type: 'string' } },
+          constraints: { type: 'array', items: { type: 'object' } },
+        },
+      },
+    },
+    required: ['primary'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      plan: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            step: { type: 'object' },
+            skill: { type: 'string' },
+            precondition: { type: 'object' },
+            effect: { type: 'object' },
+            estimatedCost: { type: 'number' },
+          },
+        },
+      },
+    },
+  },
+  oracleOperation: 'engine.clingo',
+  fallback: async (input) => ({
+    faculty: 'propose.plan',
+    result: { plan: [] },
+    confidence: 0.1,
+    evidence: [{ source: 'fallback', description: 'Plan proposal fallback', strength: 0.1 }],
+    fallbackUsed: true,
+    durationMs: 0,
+  }),
+  enabled: true,
+  priority: 0.8,
+  budgetCost: 0.4,
+  maxConcurrency: 2,
+  timeoutMs: 30000,
+};
+
+// 16. Propose Skill Faculty - synthesizes new skills
+export const proposeSkillSpec: FacultySpec = {
+  name: 'propose.skill',
+  description: 'Synthesizes new reusable skills from successful patterns',
+  category: 'learning',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      primary: { type: 'object' }, // Term (pattern/episodes)
+      context: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          examples: { type: 'array', items: { type: 'object' } },
+        },
+      },
+    },
+    required: ['primary', 'context'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      skill: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          dsl: { type: 'string' },
+          preconditions: { type: 'array', items: { type: 'object' } },
+          effects: { type: 'array', items: { type: 'object' } },
+          confidence: { type: 'number' },
+        },
+      },
+    },
+  },
+  oracleOperation: 'lm.generateObject',
+  fallback: async (input) => ({
+    faculty: 'propose.skill',
+    result: { skill: null },
+    confidence: 0.05,
+    evidence: [{ source: 'fallback', description: 'Skill proposal fallback', strength: 0.05 }],
+    fallbackUsed: true,
+    durationMs: 0,
+  }),
+  enabled: true,
+  priority: 0.5,
+  budgetCost: 0.5,
+  maxConcurrency: 1,
+  timeoutMs: 60000,
+};
+
+// 17. Retrieve Rerank Faculty - reranks retrieval results
+export const retrieveRerankSpec: FacultySpec = {
+  name: 'retrieve.rerank',
+  description: 'Reranks retrieval candidates using learned relevance',
+  category: 'memory',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      primary: { type: 'array', items: { type: 'object' } }, // candidates
+      secondary: { type: 'object' }, // Term (query)
+      context: {
+        type: 'object',
+        properties: {
+          topK: { type: 'number' },
+          useEmbeddings: { type: 'boolean' },
+        },
+      },
+    },
+    required: ['primary', 'secondary'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      reranked: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            candidate: { type: 'object' },
+            score: { type: 'number' },
+            reason: { type: 'string' },
+          },
+        },
+      },
+    },
+  },
+  oracleOperation: 'embedding.rerank',
+  fallback: async (input) => ({
+    faculty: 'retrieve.rerank',
+    result: { reranked: input.primary },
+    confidence: 0.3,
+    evidence: [{ source: 'fallback', description: 'Identity rerank fallback', strength: 0.3 }],
+    fallbackUsed: true,
+    durationMs: 0,
+  }),
+  enabled: true,
+  priority: 0.75,
+  budgetCost: 0.2,
+  maxConcurrency: 10,
+  timeoutMs: 5000,
+};
+
+// 18. Judge Rubric Faculty - evaluates against rubric criteria
+export const judgeRubricSpec: FacultySpec = {
+  name: 'judge.rubric',
+  description: 'Evaluates candidates against a structured rubric using LM judgment',
+  category: 'evaluation',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      primary: { type: 'array', items: { type: 'object' } }, // candidates
+      secondary: { type: 'object' }, // Term (rubric criteria)
+      context: {
+        type: 'object',
+        properties: {
+          rubricName: { type: 'string' },
+          criteria: { type: 'array', items: { type: 'object' } },
+          calibrationVersion: { type: 'string' },
+        },
+      },
+    },
+    required: ['primary', 'secondary', 'context'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      judgments: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            candidate: { type: 'object' },
+            scores: { type: 'object', additionalProperties: { type: 'number' } },
+            overall: { type: 'number' },
+            rationale: { type: 'string' },
+            calibrated: { type: 'boolean' },
+          },
+        },
+      },
+    },
+  },
+  oracleOperation: 'lm.generateObject',
+  fallback: async (input) => {
+    const candidates = Array.isArray(input.primary) ? input.primary : [];
+    return {
+      faculty: 'judge.rubric',
+      result: { judgments: candidates.map((c: any) => ({ candidate: c, overall: 0.5, calibrated: false })) },
+      confidence: 0.2,
+      evidence: [{ source: 'fallback', description: 'Rubric judgment fallback', strength: 0.2 }],
+      fallbackUsed: true,
+      durationMs: 0,
+    };
+  },
+  enabled: true,
+  priority: 0.9,
+  budgetCost: 0.35,
+  maxConcurrency: 3,
+  timeoutMs: 20000,
+};
+
+// 19. Narrate Explain Faculty - generates explanations
+export const narrateExplainSpec: FacultySpec = {
+  name: 'narrate.explain',
+  description: 'Generates natural language explanations for decisions or beliefs',
+  category: 'communication',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      primary: { type: 'object' }, // Term or Task to explain
+      context: {
+        type: 'object',
+        properties: {
+          audience: { type: 'string', enum: ['expert', 'layperson', 'system'] },
+          verbosity: { type: 'string', enum: ['concise', 'standard', 'verbose'] },
+          includeEvidence: { type: 'boolean' },
+        },
+      },
+    },
+    required: ['primary'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      explanation: { type: 'string' },
+      confidence: { type: 'number' },
+      evidence: { type: 'array', items: { type: 'object' } },
+    },
+  },
+  oracleOperation: 'lm.generateText',
+  fallback: async (input) => ({
+    faculty: 'narrate.explain',
+    result: { explanation: '', confidence: 0.1, evidence: [] },
+    confidence: 0.1,
+    evidence: [{ source: 'fallback', description: 'Explanation fallback', strength: 0.1 }],
+    fallbackUsed: true,
+    durationMs: 0,
+  }),
+  enabled: true,
+  priority: 0.7,
+  budgetCost: 0.15,
+  maxConcurrency: 10,
+  timeoutMs: 10000,
+};
+
+// 20. Mirror Postmortem Faculty - analyzes past episodes
+export const mirrorPostmortemSpec: FacultySpec = {
+  name: 'mirror.postmortem',
+  description: 'Analyzes past episodes to extract lessons and patterns',
+  category: 'meta',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      primary: { type: 'array', items: { type: 'object' } }, // episodes
+      context: {
+        type: 'object',
+        properties: {
+          focus: { type: 'string', enum: ['failure', 'success', 'pattern', 'all'] },
+          timeWindow: { type: 'number' },
+        },
+      },
+    },
+    required: ['primary'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      insights: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            pattern: { type: 'string' },
+            frequency: { type: 'number' },
+            lesson: { type: 'string' },
+            confidence: { type: 'number' },
+          },
+        },
+      },
+    },
+  },
+  oracleOperation: 'lm.generateObject',
+  fallback: async (input) => ({
+    faculty: 'mirror.postmortem',
+    result: { insights: [] },
+    confidence: 0.1,
+    evidence: [{ source: 'fallback', description: 'Postmortem fallback', strength: 0.1 }],
+    fallbackUsed: true,
+    durationMs: 0,
+  }),
+  enabled: true,
+  priority: 0.6,
+  budgetCost: 0.4,
+  maxConcurrency: 2,
+  timeoutMs: 30000,
+};
+
+// 21. Simulate Scenario Faculty - runs internal simulations
+export const simulateScenarioSpec: FacultySpec = {
+  name: 'simulate.scenario',
+  description: 'Runs internal scenario simulations using imagination engine',
+  category: 'reasoning',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      primary: { type: 'string' }, // scenario seed/intent
+      context: {
+        type: 'object',
+        properties: {
+          profile: { type: 'string' },
+          steps: { type: 'number' },
+          injectEpisodes: { type: 'boolean' },
+        },
+      },
+    },
+    required: ['primary'],
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      scenarios: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            spec: { type: 'object' },
+            result: { type: 'object' },
+            reward: { type: 'number' },
+          },
+        },
+      },
+    },
+  },
+  oracleOperation: 'imagination.generate',
+  fallback: async (input) => ({
+    faculty: 'simulate.scenario',
+    result: { scenarios: [] },
+    confidence: 0.05,
+    evidence: [{ source: 'fallback', description: 'Simulation fallback', strength: 0.05 }],
+    fallbackUsed: true,
+    durationMs: 0,
+  }),
+  enabled: true,
+  priority: 0.5,
+  budgetCost: 0.5,
+  maxConcurrency: 2,
+  timeoutMs: 60000,
+};
+
+/** The eighteen core faculty specifications, in registration order. */
 export const CORE_FACULTIES: readonly FacultySpec[] = [
   groundingSpec,
   inferenceSpec,
@@ -792,6 +1324,16 @@ export const CORE_FACULTIES: readonly FacultySpec[] = [
   communicationSpec,
   governanceSpec,
   perceiveFormalizeSpec,
+  proposeActionSpec,
+  proposeHypothesisSpec,
+  proposeRepairSpec,
+  proposePlanSpec,
+  proposeSkillSpec,
+  retrieveRerankSpec,
+  judgeRubricSpec,
+  narrateExplainSpec,
+  mirrorPostmortemSpec,
+  simulateScenarioSpec,
 ];
 
 /** Register all core faculties, into `registry` (global by default). */

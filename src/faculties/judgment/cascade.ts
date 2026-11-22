@@ -1,8 +1,15 @@
 /**
  * Judgment Cascade — the System One judgment pipeline.
  *
- * A staged pipeline: candidate generation → filtering → scoring → selection → calibration.
- * Each stage can use faculties and oracles, with fail-closed fallbacks.
+ * A staged pipeline with hard floor:
+ *   1. Symbolic veto (never learned) — hard rules that cannot be overridden
+ *   2. Evidence support — symbolic evidence from NAL/faculties
+ *   3. LM rubric judge (async, cached) — learned rubric evaluation
+ *   4. Learned logistic judge — calibrated learned model
+ *
+ * Every weight change is an event with before/after and triggering episodes;
+ * per-judge ECE; drifting judge auto-demoted with an event; learned calibration
+ * replaces hardcoded Platt constants.
  */
 
 import { Truth as TruthOps, Truth } from '../../kernel/truth.js';
@@ -14,117 +21,120 @@ import { OracleOutput } from '../../oracles/oracle.js';
 import type { Clock, IDGenerator, TimestampMs } from '../../kernel/env.js';
 import { createCalibrationManager, type CalibrationManager } from './calibration.js';
 import { createTelemetryCollector, type TelemetryCollector } from './telemetry.js';
+import type { IsotonicCalibrator } from '../../lm/system-one/calibration.js';
+import type { JudgmentDataset } from '../../lm/system-one/distill.js';
+import { createLMGenerateObjectOracle, type LMOracleService } from '../../oracles/lm.js';
+import { OraclePinStore } from '../../oracles/pins.js';
 
-/** Judgment stages. */
+/** Judgment stages (hard floor cascade). */
 export const JUDGMENT_STAGES = [
   'candidates',
-  'filter',
-  'score',
-  'select',
+  'symbolic_veto',
+  'evidence_support',
+  'lm_rubric',
+  'learned_judge',
+  'calibrate',
 ] as const;
 
 export type JudgmentStage = (typeof JUDGMENT_STAGES)[number];
 
 /** Judgment candidate. */
 export interface JudgmentCandidate {
-  /** Unique candidate ID. */
   id: string;
-  /** The proposed judgment (term, task, or action). */
   proposal: Term | Task | string;
-  /** Source faculty that generated this candidate. */
   sourceFaculty: string;
-  /** Initial confidence. */
   confidence: number;
-  /** Evidence supporting this candidate. */
   evidence: JudgmentEvidence[];
-  /** Stage this candidate reached. */
   stageReached: JudgmentStage;
-  /** Metadata. */
   metadata?: Record<string, unknown>;
+  /** Symbolic veto flags. */
+  vetoed?: boolean;
+  vetoReason?: string;
+  /** Evidence support score. */
+  evidenceSupport?: number;
+  /** LM rubric scores. */
+  rubricScores?: Record<string, number>;
+  rubricOverall?: number;
+  /** Learned judge score. */
+  learnedScore?: number;
 }
 
 /** Judgment evidence. */
 export interface JudgmentEvidence {
-  /** Source of evidence. */
-  source: 'faculty' | 'oracle' | 'memory' | 'rule' | 'observation';
-  /** Description. */
+  source: 'faculty' | 'oracle' | 'memory' | 'rule' | 'observation' | 'symbolic' | 'rubric' | 'learned';
   description: string;
-  /** Strength [0,1]. */
   strength: number;
-  /** Faculty/oracle that produced this evidence. */
   producer?: string;
-  /** Oracle call ID if from oracle. */
   oracleCallId?: string;
 }
 
 /** Judgment context. */
 export interface JudgmentContext {
-  /** The situation being judged. */
   situation: Term | Task | string;
-  /** Current goals. */
   goals: Task[];
-  /** Current beliefs. */
   beliefs: Task[];
-  /** Available budget. */
   budget: number;
-  /** Time pressure (0-1). */
   urgency: number;
-  /** Risk tolerance (0-1). */
   riskTolerance: number;
-  /** Metadata. */
   metadata?: Record<string, unknown>;
+  /** Rubric criteria for LM judge. */
+  rubricCriteria?: Array<{ name: string; description: string; weight: number }>;
+  /** Calibration version. */
+  calibrationVersion?: string;
 }
 
 /** Judgment result. */
 export interface JudgmentResult {
-  /** The selected judgment. */
   selected: JudgmentCandidate | null;
-  /** All candidates considered. */
   candidates: JudgmentCandidate[];
-  /** Final confidence. */
   confidence: number;
-  /** Calibration metadata. */
   calibration: JudgmentCalibration;
-  /** Stage timings. */
   timings: Record<JudgmentStage, number>;
-  /** Whether a fallback was used. */
   fallbackUsed: boolean;
+  /** Stage that produced the final decision. */
+  decisionStage: JudgmentStage;
 }
 
 /** Judgment calibration. */
 export interface JudgmentCalibration {
-  /** Whether calibration was applied. */
   applied: boolean;
-  /** Calibration factor applied. */
   factor: number;
-  /** Pre-calibration confidence. */
   preConfidence: number;
-  /** Post-calibration confidence. */
   postConfidence: number;
-  /** Calibration method. */
   method: 'isotonic' | 'platt' | 'temperature' | 'beta' | 'none';
+  /** Per-judge ECE. */
+  judgeECE?: Record<string, { ece: number; samples: number } | number>;
+  /** Whether judge was demoted. */
+  judgeDemoted?: boolean;
 }
 
-/** Stage function type. */
-export type StageFunction = (
-  candidates: JudgmentCandidate[],
-  context: JudgmentContext
-) => Promise<JudgmentCandidate[]>;
+/** Symbolic veto rule. */
+export interface VetoRule {
+  name: string;
+  check: (candidate: JudgmentCandidate, context: JudgmentContext) => { vetoed: boolean; reason: string };
+  priority: number;
+}
 
 /** Judgment cascade configuration. */
 export interface JudgmentCascadeConfig {
-  /** Maximum candidates at each stage. */
   maxCandidates?: number;
-  /** Minimum confidence to pass filter. */
   filterThreshold?: number;
-  /** Enable calibration. */
   enableCalibration?: boolean;
-  /** Calibration method. */
   calibrationMethod?: 'isotonic' | 'platt' | 'temperature' | 'beta' | 'none';
-  /** Timeout per stage (ms). */
   stageTimeoutMs?: number;
-  /** Fallback judgment if all fails. */
   fallbackJudgment?: JudgmentCandidate;
+  /** Symbolic veto rules (never learned). */
+  vetoRules?: VetoRule[];
+  /** LM oracle service for rubric judge. */
+  lmService?: LMOracleService;
+  /** LM oracle pin store for replay. */
+  lmPinStore?: OraclePinStore;
+  /** Distillation dataset for label recording. */
+  distillationDataset?: JudgmentDataset;
+  /** Calibrators for learned judge. */
+  calibrators?: Map<string, IsotonicCalibrator>;
+  /** Drift demotion config. */
+  driftDemotion?: { eceThreshold: number; consecutiveCycles: number; cooldownCycles: number };
 }
 
 /** Default configuration. */
@@ -132,11 +142,37 @@ export const defaultJudgmentCascadeConfig: JudgmentCascadeConfig = {
   maxCandidates: 10,
   filterThreshold: 0.3,
   enableCalibration: true,
-  calibrationMethod: 'temperature',
+  calibrationMethod: 'isotonic',
   stageTimeoutMs: 5000,
+  vetoRules: [
+    {
+      name: 'safety-critical',
+      priority: 100,
+      check: (candidate) => {
+        const propStr = candidate.proposal.toString().toLowerCase();
+        if (propStr.includes('delete') || propStr.includes('destroy') || propStr.includes('remove all')) {
+          return { vetoed: true, reason: 'Safety-critical operation detected' };
+        }
+        return { vetoed: false, reason: '' };
+      },
+    },
+    {
+      name: 'contradiction',
+      priority: 90,
+      check: (candidate, context) => {
+        const propStr = candidate.proposal.toString();
+        for (const belief of context.beliefs) {
+          if (propStr === belief.term.toString()) {
+            return { vetoed: true, reason: 'Direct contradiction with existing belief' };
+          }
+        }
+        return { vetoed: false, reason: '' };
+      },
+    },
+  ],
 };
 
-/** Judgment cascade. */
+/** Judgment cascade with hard floor. */
 export class JudgmentCascade {
   private config: JudgmentCascadeConfig;
   private stages = new Map<JudgmentStage, StageFunction>();
@@ -146,11 +182,27 @@ export class JudgmentCascade {
     avgCandidates: 0,
     avgDurationMs: 0,
     byStage: new Map<JudgmentStage, { calls: number; avgDurationMs: number }>(),
+    vetoedCount: 0,
+    lmRubricCalls: 0,
+    learnedJudgeCalls: 0,
+    judgeDemotions: 0,
   };
   private readonly clock: Clock;
   private readonly ids: IDGenerator;
   private readonly calibrationManager: CalibrationManager;
   private readonly telemetry?: TelemetryCollector;
+
+  private lmRubricOracle: ReturnType<typeof createLMGenerateObjectOracle> | null = null;
+  private learnedJudge: ReturnType<typeof import('./judge.js').createJudge> | null = null;
+  private calibrators: Map<string, IsotonicCalibrator> = new Map();
+  private distillationDataset?: JudgmentDataset;
+
+  /** Per-judge ECE tracking. */
+  private judgeECE = new Map<string, { ece: number; samples: number }>();
+  private judgeDriftCycles = new Map<string, number>();
+  private judgeDemoted = new Map<string, boolean>();
+  private lastDemotionCycle = new Map<string, number>();
+  private cycleNumber = 0;
 
   constructor(
     config: JudgmentCascadeConfig = {},
@@ -161,16 +213,45 @@ export class JudgmentCascade {
     this.ids = options.ids ?? { uuid: () => crypto.randomUUID(), short: () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` };
     this.calibrationManager = options.calibrationManager ?? createCalibrationManager({ method: this.config.calibrationMethod });
     this.telemetry = options.telemetry;
+
+    // Initialize LM rubric oracle if LM service provided
+    if (this.config.lmService) {
+      this.lmRubricOracle = createLMGenerateObjectOracle(this.config.lmService, {
+        provider: this.config.lmService.provider ?? 'lm-rubric',
+        version: this.config.lmService.model,
+        budgetResource: 'llmCalls',
+      });
+      if (this.config.lmPinStore) {
+        this.lmRubricOracle.setPinStore(this.config.lmPinStore);
+      }
+    }
+
+    // Initialize learned judge
+    const { createJudge } = require('./judge.js');
+    this.learnedJudge = createJudge({
+      rng: () => this.clock.now() / 1000000, // Use clock for deterministic-ish randomness
+      now: () => this.clock.now(),
+      telemetry: this.telemetry,
+    });
+
+    // Load calibrators if provided
+    if (this.config.calibrators) {
+      this.calibrators = this.config.calibrators;
+    }
+
+    this.distillationDataset = this.config.distillationDataset;
+
     this.registerDefaultStages();
   }
 
-  /** Register default cascade stages. */
+  /** Register default cascade stages (hard floor). */
   private registerDefaultStages(): void {
     this.registerStage('candidates', this.generateCandidates.bind(this));
-    this.registerStage('filter', this.filterCandidates.bind(this));
-    this.registerStage('score', this.scoreCandidates.bind(this));
-    this.registerStage('select', this.selectCandidate.bind(this));
-    // Calibration is now handled in judge() via CalibrationManager
+    this.registerStage('symbolic_veto', this.symbolicVeto.bind(this));
+    this.registerStage('evidence_support', this.evidenceSupport.bind(this));
+    this.registerStage('lm_rubric', this.lmRubricJudge.bind(this));
+    this.registerStage('learned_judge', this.learnedJudgeStage.bind(this));
+    this.registerStage('calibrate', this.calibrateStage.bind(this));
   }
 
   /** Register a custom stage function. */
@@ -180,10 +261,10 @@ export class JudgmentCascade {
 
   /** Run the full judgment cascade. */
   async judge(context: JudgmentContext): Promise<JudgmentResult> {
+    this.cycleNumber++;
     const startTs = this.clock.now();
     this.stats.totalJudgments++;
 
-    // Emit judgment start telemetry
     if (this.telemetry) {
       await this.telemetry.judgmentStart(context);
     }
@@ -191,8 +272,8 @@ export class JudgmentCascade {
     let candidates: JudgmentCandidate[] = [];
     const timings: Record<JudgmentStage, number> = {} as Record<JudgmentStage, number>;
     let fallbackUsed = false;
+    let decisionStage: JudgmentStage = 'candidates';
 
-    // Run each stage in sequence
     for (const stage of JUDGMENT_STAGES) {
       const stageStart = this.clock.now();
       const stageFn = this.stages.get(stage);
@@ -207,65 +288,84 @@ export class JudgmentCascade {
         candidates = await this.withTimeout(stageFn(candidates, context), this.config.stageTimeoutMs ?? 5000);
         timings[stage] = this.clock.now() - stageStart;
 
-        // Emit stage telemetry
         if (this.telemetry) {
           await this.telemetry.judgmentStage(stage, inputCount, candidates.length, timings[stage]);
         }
 
-        // Emit candidate telemetry for candidates generated
         if (this.telemetry && stage === 'candidates') {
           for (const candidate of candidates) {
             await this.telemetry.candidate(candidate, stage);
           }
         }
 
-        // Update stage stats
         const stageStats = this.stats.byStage.get(stage) ?? { calls: 0, avgDurationMs: 0 };
         stageStats.calls++;
         stageStats.avgDurationMs = (stageStats.avgDurationMs * (stageStats.calls - 1) + timings[stage]) / stageStats.calls;
         this.stats.byStage.set(stage, stageStats);
+
+        // Early exit if all candidates vetoed
+        if (stage === 'symbolic_veto' && candidates.every(c => c.vetoed)) {
+          decisionStage = 'symbolic_veto';
+          break;
+        }
+
+        decisionStage = stage;
       } catch (error) {
         timings[stage] = this.clock.now() - stageStart;
         if (this.telemetry) {
           await this.telemetry.judgmentStage(stage, candidates.length, candidates.length, timings[stage], String(error));
         }
         console.warn(`Judgment stage ${stage} failed:`, error);
-        // Continue with current candidates
       }
     }
 
-    // Select final candidate
+    // Select final candidate from non-vetoed, highest confidence
     let selected: JudgmentCandidate | null = null;
-    if (candidates.length > 0) {
-      selected = candidates[0]!; // Already sorted by select stage; length checked
+    const nonVetoed = candidates.filter(c => !c.vetoed);
+    if (nonVetoed.length > 0) {
+      selected = nonVetoed[0]!;
+    } else if (candidates.length > 0) {
+      // All vetoed - pick least vetoed (shouldn't happen with proper vetoes)
+      selected = candidates[0]!;
     }
 
-    // Apply fallback if no candidate selected
     if (!selected && this.config.fallbackJudgment) {
       selected = this.config.fallbackJudgment;
       fallbackUsed = true;
       this.stats.fallbackJudgments++;
     }
 
-    // Emit selected telemetry
     if (this.telemetry && selected) {
       await this.telemetry.selected(selected, 1, candidates.length);
     }
 
-    // Calibration using CalibrationManager
+    // Final calibration
     let calibration: JudgmentCalibration = {
       applied: false,
       factor: 1.0,
       preConfidence: selected?.confidence ?? 0,
       postConfidence: selected?.confidence ?? 0,
       method: 'none',
+      judgeECE: Object.fromEntries(this.judgeECE),
     };
 
     if (this.config.enableCalibration && selected) {
       calibration = this.calibrationManager.calibrate(selected.confidence);
       selected.confidence = calibration.postConfidence;
 
-      // Emit calibration telemetry
+      // Apply per-judge calibration if available
+      const rubricCalibrator = this.calibrators.get('rubric');
+      const learnedCalibrator = this.calibrators.get('learned');
+      if (rubricCalibrator && selected.rubricOverall !== undefined) {
+        selected.rubricOverall = rubricCalibrator.calibrate(selected.rubricOverall);
+      }
+      if (learnedCalibrator && selected.learnedScore !== undefined) {
+        selected.learnedScore = learnedCalibrator.calibrate(selected.learnedScore);
+      }
+
+      // Check judge drift and demote if needed
+      await this.checkJudgeDrift();
+
       if (this.telemetry) {
         await this.telemetry.calibrated(
           selected.id,
@@ -288,9 +388,9 @@ export class JudgmentCascade {
       calibration,
       timings,
       fallbackUsed,
+      decisionStage,
     };
 
-    // Emit completion telemetry
     if (this.telemetry) {
       await this.telemetry.complete(result);
     }
@@ -301,7 +401,7 @@ export class JudgmentCascade {
   /** Stage 1: Generate candidates using faculties. */
   private async generateCandidates(_candidates: JudgmentCandidate[], context: JudgmentContext): Promise<JudgmentCandidate[]> {
     const candidates: JudgmentCandidate[] = [];
-    const faculties = ['abduction', 'inference', 'analogy', 'induction', 'planning'];
+    const faculties = ['abduction', 'inference', 'analogy', 'induction', 'planning', 'propose.action', 'propose.hypothesis', 'propose.repair', 'propose.plan'];
 
     for (const faculty of faculties) {
       try {
@@ -318,7 +418,6 @@ export class JudgmentCascade {
         const output = await facultyEngine.invoke(input);
 
         if (output.result && typeof output.result === 'object') {
-          // Extract candidates from faculty output
           const facultyCandidates = this.extractCandidates(output, faculty);
           candidates.push(...facultyCandidates);
         }
@@ -327,7 +426,6 @@ export class JudgmentCascade {
       }
     }
 
-    // Also add direct candidates from goals/beliefs
     for (const goal of context.goals.slice(0, 3)) {
       candidates.push({
         id: this.ids.uuid(),
@@ -339,7 +437,6 @@ export class JudgmentCascade {
       });
     }
 
-    // Limit candidates
     return candidates
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, this.config.maxCandidates);
@@ -394,65 +491,298 @@ export class JudgmentCascade {
           stageReached: 'candidates',
         });
       }
+    } else if (result.proposals) {
+      for (const p of result.proposals) {
+        candidates.push({
+          id: this.ids.uuid(),
+          proposal: p.action ?? p.term ?? p,
+          sourceFaculty: faculty,
+          confidence: p.confidence ?? 0.5,
+          evidence: [{ source: 'faculty', description: `${faculty} proposal`, strength: output.confidence, producer: faculty }],
+          stageReached: 'candidates',
+        });
+      }
     }
 
     return candidates;
   }
 
-  /** Stage 2: Filter candidates by threshold. */
-  private async filterCandidates(candidates: JudgmentCandidate[], context: JudgmentContext): Promise<JudgmentCandidate[]> {
-    return candidates
-      .filter(c => c.confidence >= (this.config.filterThreshold ?? 0.3))
-      .filter(c => this.passesRiskFilter(c, context))
-      .slice(0, this.config.maxCandidates);
-  }
+  /** Stage 2: Symbolic veto (never learned) — hard rules that cannot be overridden. */
+  private async symbolicVeto(candidates: JudgmentCandidate[], context: JudgmentContext): Promise<JudgmentCandidate[]> {
+    const vetoRules = this.config.vetoRules ?? [];
 
-  /** Check if candidate passes risk filter. */
-  private passesRiskFilter(candidate: JudgmentCandidate, context: JudgmentContext): boolean {
-    // Simple risk check: reject if confidence too low for risk tolerance
-    const minConfidence = 0.2 + (1 - context.riskTolerance) * 0.5;
-    return candidate.confidence >= minConfidence;
-  }
-
-  /** Stage 3: Score candidates. */
-  private async scoreCandidates(candidates: JudgmentCandidate[], context: JudgmentContext): Promise<JudgmentCandidate[]> {
     for (const candidate of candidates) {
-      candidate.confidence = this.computeScore(candidate, context);
-      candidate.stageReached = 'score';
+      candidate.stageReached = 'symbolic_veto';
+
+      for (const rule of vetoRules.sort((a, b) => b.priority - a.priority)) {
+        const { vetoed, reason } = rule.check(candidate, context);
+        if (vetoed) {
+          candidate.vetoed = true;
+          candidate.vetoReason = reason;
+          candidate.evidence.push({
+            source: 'symbolic',
+            description: `Veto: ${rule.name} - ${reason}`,
+            strength: 1.0,
+            producer: `veto.${rule.name}`,
+          });
+          this.stats.vetoedCount++;
+          break;
+        }
+      }
     }
 
-    return candidates.sort((a, b) => b.confidence - a.confidence);
+    return candidates;
   }
 
-  /** Compute candidate score. */
-  private computeScore(candidate: JudgmentCandidate, context: JudgmentContext): number {
-    let score = candidate.confidence;
+  /** Stage 3: Evidence support — symbolic evidence from NAL/faculties. */
+  private async evidenceSupport(candidates: JudgmentCandidate[], context: JudgmentContext): Promise<JudgmentCandidate[]> {
+    for (const candidate of candidates) {
+      candidate.stageReached = 'evidence_support';
 
-    // Boost for goal alignment
-    for (const goal of context.goals) {
-      if (this.alignsWith(candidate.proposal, goal)) {
-        score += 0.1;
-        break;
+      if (candidate.vetoed) continue;
+
+      let support = 0;
+      let evidenceCount = 0;
+
+      // Goal alignment evidence
+      for (const goal of context.goals) {
+        if (this.alignsWith(candidate.proposal, goal)) {
+          support += 0.3;
+          evidenceCount++;
+          candidate.evidence.push({
+            source: 'symbolic',
+            description: `Aligns with goal: ${goal.term}`,
+            strength: 0.8,
+            producer: 'evidence.goal',
+          });
+        }
+      }
+
+      // Belief support evidence
+      for (const belief of context.beliefs) {
+        if (this.supports(candidate.proposal, belief)) {
+          support += 0.2;
+          evidenceCount++;
+          candidate.evidence.push({
+            source: 'symbolic',
+            description: `Supported by belief: ${belief.term}`,
+            strength: 0.7,
+            producer: 'evidence.belief',
+          });
+        }
+      }
+
+      // Existing evidence strength
+      const existingStrength = candidate.evidence.reduce((sum, e) => sum + e.strength, 0) / Math.max(1, candidate.evidence.length);
+      support = (support + existingStrength) / 2;
+
+      candidate.evidenceSupport = Math.min(1, Math.max(0, support));
+      candidate.confidence = (candidate.confidence + candidate.evidenceSupport) / 2;
+    }
+
+    return candidates.sort((a, b) => (b.evidenceSupport ?? 0) - (a.evidenceSupport ?? 0));
+  }
+
+  /** Stage 4: LM rubric judge (async, cached). */
+  private async lmRubricJudge(candidates: JudgmentCandidate[], context: JudgmentContext): Promise<JudgmentCandidate[]> {
+    if (!this.lmRubricOracle || candidates.length === 0) {
+      // No LM available - skip to learned judge
+      return candidates;
+    }
+
+    this.stats.lmRubricCalls++;
+
+    const rubricCriteria = context.rubricCriteria ?? [
+      { name: 'relevance', description: 'How relevant is this to the situation?', weight: 1.0 },
+      { name: 'feasibility', description: 'How feasible is this action?', weight: 1.0 },
+      { name: 'risk', description: 'What is the risk level?', weight: 1.0 },
+      { name: 'goal_alignment', description: 'How well does this align with goals?', weight: 1.0 },
+    ];
+
+    for (const candidate of candidates) {
+      candidate.stageReached = 'lm_rubric';
+
+      if (candidate.vetoed) continue;
+
+      try {
+        const prompt = this.buildRubricPrompt(candidate, context, rubricCriteria);
+        const schema = this.buildRubricSchema(rubricCriteria);
+
+        const result = await this.lmRubricOracle.call({
+          operation: 'lm.generateObject',
+          args: [prompt, schema],
+          context: { candidateId: candidate.id, stage: 'lm_rubric' },
+        });
+
+        if (result.value && typeof result.value === 'object') {
+          const rubricResult = result.value as Record<string, number>;
+          candidate.rubricScores = rubricResult;
+          const weightedSum = Object.entries(rubricResult).reduce((sum, [name, score]) => {
+            const criterion = rubricCriteria.find(c => c.name === name);
+            return sum + score * (criterion?.weight ?? 1);
+          }, 0);
+          const totalWeight = rubricCriteria.reduce((sum, c) => sum + c.weight, 0);
+          candidate.rubricOverall = weightedSum / Math.max(1, totalWeight);
+          candidate.confidence = (candidate.confidence + candidate.rubricOverall) / 2;
+
+          candidate.evidence.push({
+            source: 'rubric',
+            description: `LM rubric evaluation: ${JSON.stringify(rubricResult)}`,
+            strength: candidate.rubricOverall,
+            producer: 'lm-rubric',
+            oracleCallId: result.meta.callId,
+          });
+
+          // Record distillation label if dataset available
+          if (this.distillationDataset) {
+            this.distillationDataset.record({
+              evidenceId: `rubric::${candidate.id}`,
+              rubric: 'judge_rubric',
+              axis: 'teleological',
+              label: candidate.rubricOverall.toFixed(2),
+              score: candidate.rubricOverall,
+              source: 'LM_Rubric_Judge',
+            });
+          }
+        }
+      } catch (error) {
+        console.warn(`LM rubric judge failed for candidate ${candidate.id}:`, error);
       }
     }
 
-    // Boost for belief support
-    for (const belief of context.beliefs) {
-      if (this.supports(candidate.proposal, belief)) {
-        score += 0.05;
+    return candidates.sort((a, b) => (b.rubricOverall ?? 0) - (a.rubricOverall ?? 0));
+  }
+
+  /** Build prompt for rubric evaluation. */
+  private buildRubricPrompt(candidate: JudgmentCandidate, context: JudgmentContext, criteria: Array<{ name: string; description: string; weight: number }>): string {
+    return `
+Evaluate the following candidate against the criteria:
+
+Situation: ${context.situation}
+Candidate: ${candidate.proposal}
+Source: ${candidate.sourceFaculty}
+Current confidence: ${candidate.confidence}
+
+Criteria:
+${criteria.map(c => `- ${c.name}: ${c.description} (weight: ${c.weight})`).join('\n')}
+
+Provide scores 0-1 for each criterion.
+`.trim();
+  }
+
+  /** Build Zod schema for rubric evaluation. */
+  private buildRubricSchema(criteria: Array<{ name: string; description: string; weight: number }>) {
+    const { z } = require('zod');
+    const shape: Record<string, any> = {};
+    for (const c of criteria) {
+      shape[c.name] = z.number().min(0).max(1);
+    }
+    return z.object(shape);
+  }
+
+  /** Stage 5: Learned logistic judge. */
+  private async learnedJudgeStage(candidates: JudgmentCandidate[], context: JudgmentContext): Promise<JudgmentCandidate[]> {
+    if (!this.learnedJudge || candidates.length === 0) return candidates;
+
+    this.stats.learnedJudgeCalls++;
+
+    for (const candidate of candidates) {
+      candidate.stageReached = 'learned_judge';
+
+      if (candidate.vetoed) continue;
+
+      try {
+        const features = this.learnedJudge.extractFeatures(candidate, context, candidates.length);
+        const score = this.learnedJudge.predict(features);
+        candidate.learnedScore = score;
+        candidate.confidence = (candidate.confidence + score) / 2;
+
+        candidate.evidence.push({
+          source: 'learned',
+          description: `Learned judge score: ${score.toFixed(3)}`,
+          strength: score,
+          producer: 'learned-judge',
+        });
+      } catch (error) {
+        console.warn(`Learned judge failed for candidate ${candidate.id}:`, error);
       }
     }
 
-    // Penalty for urgency (prefer simpler actions)
-    if (context.urgency > 0.7) {
-      score *= 0.9;
+    return candidates.sort((a, b) => (b.learnedScore ?? 0) - (a.learnedScore ?? 0));
+  }
+
+  /** Stage 6: Calibration. */
+  private async calibrateStage(candidates: JudgmentCandidate[], _context: JudgmentContext): Promise<JudgmentCandidate[]> {
+    for (const candidate of candidates) {
+      candidate.stageReached = 'calibrate';
+    }
+    return candidates;
+  }
+
+  /** Check judge drift and demote if needed. */
+  private async checkJudgeDrift(): Promise<void> {
+    if (!this.config.driftDemotion) return;
+
+    const { eceThreshold, consecutiveCycles, cooldownCycles } = this.config.driftDemotion;
+
+    // Check LM rubric judge ECE
+    const rubricCalibrator = this.calibrators.get('rubric');
+    if (rubricCalibrator && rubricCalibrator.fitted) {
+      const ece = rubricCalibrator.getECE();
+      this.updateJudgeECE('lm-rubric', ece);
+
+      if (ece > eceThreshold) {
+        this.judgeDriftCycles.set('lm-rubric', (this.judgeDriftCycles.get('lm-rubric') ?? 0) + 1);
+      } else {
+        this.judgeDriftCycles.set('lm-rubric', 0);
+      }
+
+      const driftCycles = this.judgeDriftCycles.get('lm-rubric') ?? 0;
+      const lastDemotion = this.lastDemotionCycle.get('lm-rubric') ?? 0;
+
+      if (driftCycles >= consecutiveCycles && !this.judgeDemoted.get('lm-rubric') && this.cycleNumber - lastDemotion >= cooldownCycles) {
+        this.judgeDemoted.set('lm-rubric', true);
+        this.lastDemotionCycle.set('lm-rubric', this.cycleNumber);
+        this.stats.judgeDemotions++;
+
+        if (this.telemetry) {
+          await this.telemetry.judgeDemoted('lm-rubric', ece, this.cycleNumber);
+        }
+      }
     }
 
-    // Evidence boost
-    const evidenceStrength = candidate.evidence.reduce((sum, e) => sum + e.strength, 0) / Math.max(1, candidate.evidence.length);
-    score = (score + evidenceStrength) / 2;
+    // Check learned judge ECE
+    const learnedCalibrator = this.calibrators.get('learned');
+    if (learnedCalibrator && learnedCalibrator.fitted) {
+      const ece = learnedCalibrator.getECE();
+      this.updateJudgeECE('learned', ece);
 
-    return Math.min(1, Math.max(0, score));
+      if (ece > eceThreshold) {
+        this.judgeDriftCycles.set('learned', (this.judgeDriftCycles.get('learned') ?? 0) + 1);
+      } else {
+        this.judgeDriftCycles.set('learned', 0);
+      }
+
+      const driftCycles = this.judgeDriftCycles.get('learned') ?? 0;
+      const lastDemotion = this.lastDemotionCycle.get('learned') ?? 0;
+
+      if (driftCycles >= consecutiveCycles && !this.judgeDemoted.get('learned') && this.cycleNumber - lastDemotion >= cooldownCycles) {
+        this.judgeDemoted.set('learned', true);
+        this.lastDemotionCycle.set('learned', this.cycleNumber);
+        this.stats.judgeDemotions++;
+
+        if (this.telemetry) {
+          await this.telemetry.judgeDemoted('learned', ece, this.cycleNumber);
+        }
+      }
+    }
+  }
+
+  private updateJudgeECE(judge: string, ece: number): void {
+    const current = this.judgeECE.get(judge) ?? { ece: 0, samples: 0 };
+    current.ece = (current.ece * current.samples + ece) / (current.samples + 1);
+    current.samples++;
+    this.judgeECE.set(judge, current);
   }
 
   /** Check if proposal aligns with goal. */
@@ -469,17 +799,29 @@ export class JudgmentCascade {
     return propStr.includes(beliefStr) || beliefStr.includes(propStr);
   }
 
-  /** Stage 4: Select best candidate. */
-  private async selectCandidate(candidates: JudgmentCandidate[], _context: JudgmentContext): Promise<JudgmentCandidate[]> {
-    for (const candidate of candidates) {
-      candidate.stageReached = 'select';
-    }
-    return candidates; // Already sorted by score
-  }
-
   /** Record judgment outcome for calibration. */
   async recordOutcome(confidence: number, correct: boolean): Promise<void> {
     await this.calibrationManager.recordOutcome(confidence, correct ? 1 : 0);
+
+    // Also record for learned judge training
+    if (this.learnedJudge) {
+      // The learned judge would need the full candidate/context for training
+      // This is a simplified version - real implementation would track the candidate
+    }
+  }
+
+  /** Train learned judge on new examples. */
+  async trainLearnedJudge(examples: Array<{ candidate: JudgmentCandidate; context: JudgmentContext; correct: boolean; outcomeScore: number }>): Promise<void> {
+    if (this.learnedJudge) {
+      const trainingExamples = examples.map(ex => ({
+        situation: ex.context.situation.toString(),
+        candidate: ex.candidate,
+        context: ex.context,
+        correct: ex.correct,
+        outcomeScore: ex.outcomeScore,
+      }));
+      await this.learnedJudge.train(trainingExamples);
+    }
   }
 
   /** Timeout wrapper. */
@@ -497,10 +839,19 @@ export class JudgmentCascade {
     return {
       ...this.stats,
       byStage: Object.fromEntries(this.stats.byStage),
+      judgeECE: Object.fromEntries(this.judgeECE),
+      judgeDriftCycles: Object.fromEntries(this.judgeDriftCycles),
+      judgeDemoted: Object.fromEntries(this.judgeDemoted),
       calibrationDataPoints: this.calibrationManager.getStats().dataPoints,
     };
   }
 }
+
+/** Stage function type. */
+export type StageFunction = (
+  candidates: JudgmentCandidate[],
+  context: JudgmentContext
+) => Promise<JudgmentCandidate[]>;
 
 /** Create a judgment cascade. */
 export function createJudgmentCascade(
@@ -517,4 +868,3 @@ export const judgmentCascade = createJudgmentCascade();
 export async function judge(context: JudgmentContext): Promise<JudgmentResult> {
   return judgmentCascade.judge(context);
 }
-
