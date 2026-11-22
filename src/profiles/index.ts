@@ -4,6 +4,7 @@
  */
 
 import type { Env } from '../kernel/env.js';
+import { unique } from '../util/collections.js';
 
 /** Profile kinds. */
 export const PROFILE_KINDS = [
@@ -236,9 +237,9 @@ export function mergeProfiles(base: ProfileConfig, overlay: Partial<ProfileConfi
   return {
     ...base,
     ...overlay,
-    faculties: [...new Set([...base.faculties, ...(overlay.faculties ?? [])])],
-    oracles: [...new Set([...base.oracles, ...(overlay.oracles ?? [])])],
-    packs: [...new Set([...base.packs, ...(overlay.packs ?? [])])],
+    faculties: unique([...base.faculties, ...(overlay.faculties ?? [])]),
+    oracles: unique([...base.oracles, ...(overlay.oracles ?? [])]),
+    packs: unique([...base.packs, ...(overlay.packs ?? [])]),
     defaults: { ...base.defaults, ...overlay.defaults },
     envOverrides: { ...base.envOverrides, ...overlay.envOverrides },
   };

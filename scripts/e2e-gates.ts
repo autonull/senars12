@@ -49,4 +49,9 @@ const examples = files.filter((file) => file.startsWith('examples/'));
 const tests = files.filter((file) => !file.startsWith('examples/'));
 
 run(['vitest', 'run', ...tests]);
-if (examples.length) run(['tsx', ...examples]);
+if (examples.length) {
+  // Run examples with tsx using the root tsconfig
+  for (const example of examples) {
+    run(['tsx', '--tsconfig', 'tsconfig.root.json', example]);
+  }
+}

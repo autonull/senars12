@@ -12,6 +12,7 @@ import { createGeneratedMCPServer, type GeneratedMCPServerConfig } from '../surf
 import { z } from 'zod';
 import { readAppEnvConfig } from './lib/env-config.js';
 import { createAgentFromEnv, runAgent } from './lib/lifecycle.js';
+import { intBetween, nonNegativeInt, unitInterval } from '../config/boundary.js';
 
 /** CLI arguments schema. */
 const CLISchema = z.object({
@@ -131,7 +132,7 @@ async function startMCPServer(port?: number): Promise<void> {
     schema: z.object({
       id: z.string(),
       description: z.string(),
-      priority: z.number().min(0).max(10),
+      priority: intBetween(0, 10),
       tags: z.array(z.string()).optional(),
     }),
     description: 'A task to execute',
@@ -144,7 +145,7 @@ async function startMCPServer(port?: number): Promise<void> {
     name: 'Belief',
     schema: z.object({
       term: z.string(),
-      truth: z.object({ f: z.number().min(0).max(1), c: z.number().min(0).max(1) }),
+      truth: z.object({ f: unitInterval, c: unitInterval }),
       tags: z.array(z.string()).optional(),
     }),
     description: 'A belief statement',

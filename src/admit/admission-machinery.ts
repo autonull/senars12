@@ -429,6 +429,11 @@ export class DefaultExternalRunner implements ExternalRunner {
 /** Default human approval (requires manual intervention). */
 export class DefaultHumanApproval implements HumanApproval {
   private approvals: Map<string, { approved: boolean; feedback?: string; timestamp: TimestampMs }> = new Map();
+  private clock: Clock;
+
+  constructor(clock?: Clock) {
+    this.clock = clock ?? createDefaultClock();
+  }
 
   async request(proposal: AdmissionProposal): Promise<{ approved: boolean; feedback?: string }> {
     // In a real implementation, this would notify a human and wait
@@ -451,7 +456,7 @@ export class DefaultHumanApproval implements HumanApproval {
     this.approvals.set(proposalId, {
       approved,
       feedback,
-      timestamp: Date.now(),
+      timestamp: this.clock.now(),
     });
   }
 }

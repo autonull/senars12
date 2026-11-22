@@ -317,10 +317,10 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 **Preserves:** every view's information content; **consolidates:** duplicate registry/catalog machinery.
 
 ### W10 — Consolidation & dependency hygiene
-- [ ] Freeze the legacy runtime (`no-new-legacy` enforced); retire duplicates per the ledger **only as parity proofs land**.
-- [ ] Collapse gates **45 → ~8 + preservation** where types/generation subsume them.
-- [ ] Retire the 560+ vitest aliases as real exports/paths land.
-- [ ] Dependencies: one schema library (zod), one UI library (lit), one runner (vitest), one linter (biome), one WASM story (in-process; drop wasmtime + @wasmer/wasi); `node-llama-cpp`/`better-sqlite3` optional peers; remove jest/ts-jest/eslint remnants.
+- [x] Freeze the legacy runtime (`no-new-legacy` enforced); retire duplicates per the ledger **only as parity proofs land**.
+- [x] Collapse gates **45 → ~8 + preservation** where types/generation subsume them. Implemented in `scripts/gates-consolidated.ts` and `scripts/lib/gates.ts`.
+- [x] Retire the 560+ vitest aliases as real exports/paths land. Exports added to `package.json`, tsconfig paths in `tsconfig.root.json`.
+- [x] Dependencies: one schema library (zod), one UI library (lit), one runner (vitest), one linter (biome), one WASM story (in-process; drop wasmtime + @wasmer/wasi); `node-llama-cpp`/`better-sqlite3` optional peers; remove jest/ts-jest/eslint remnants.
 
 **Accept:** ~8 gates + preservation; one IR/port/seam/economy/ratchet/log; clean install with no native toolchain for logic/device profiles; duplication count and kernel coherence ratcheting down; **capability count unchanged or grown**.
 **Preserves:** all capabilities; **consolidates:** proven duplicates and redundant deps only.

@@ -4,8 +4,8 @@
  *
  * This demonstrates the minimal pipeline: natural language → PerceptionGate → NAL → answer.
  */
-import { createNAR } from '../nar/src/nar-presets.js';
-import { Truth, termParser } from '../nar/src/terms/index.js';
+import { createNAR } from '@senars/nar-presets';
+import { Truth, termParser } from '@senars/terms';
 
 async function main() {
   // Create NAR with default settings (no LM required — symbolic path only)

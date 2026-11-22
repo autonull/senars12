@@ -89,6 +89,30 @@
     "./lens-schema": {
       "types": "./src/protocol/lens-schema.ts",
       "import": "./src/protocol/lens-schema.ts"
+    },
+    "./nar-presets": {
+      "types": "./src/nar-presets.ts",
+      "import": "./src/nar-presets.ts"
+    },
+    "./terms": {
+      "types": "./src/terms/index.ts",
+      "import": "./src/terms/index.ts"
+    },
+    "./verification": {
+      "types": "./src/verification/index.ts",
+      "import": "./src/verification/index.ts"
+    },
+    "./ports/decision": {
+      "types": "./src/ports/decision.ts",
+      "import": "./src/ports/decision.ts"
+    },
+    "./types": {
+      "types": "./src/types/index.ts",
+      "import": "./src/types/index.ts"
+    },
+    "./types/llm": {
+      "types": "./src/types/llm.ts",
+      "import": "./src/types/llm.ts"
     }
   },
   "scripts": {
@@ -162,6 +186,16 @@
     "exports:check": "tsx --tsconfig tsconfig.root.json scripts/verify-exports.ts",
     "exports:barrels": "tsx --tsconfig tsconfig.root.json scripts/verify-barrels.ts",
     "gates": "tsx --tsconfig tsconfig.root.json scripts/gates.ts",
+    "gates:consolidated": "tsx --tsconfig tsconfig.root.json scripts/gates-consolidated.ts",
+    "gate:check": "tsx --tsconfig tsconfig.root.json scripts/gates-consolidated.ts check",
+    "gate:architecture": "tsx --tsconfig tsconfig.root.json scripts/gates-consolidated.ts architecture",
+    "gate:terms": "tsx --tsconfig tsconfig.root.json scripts/gates-consolidated.ts terms",
+    "gate:exports": "tsx --tsconfig tsconfig.root.json scripts/gates-consolidated.ts exports",
+    "gate:e2e": "tsx --tsconfig tsconfig.root.json scripts/gates-consolidated.ts e2e",
+    "gate:legacy": "tsx --tsconfig tsconfig.root.json scripts/gates-consolidated.ts legacy",
+    "gate:schema": "tsx --tsconfig tsconfig.root.json scripts/gates-consolidated.ts schema",
+    "gate:tests": "tsx --tsconfig tsconfig.root.json scripts/gates-consolidated.ts tests",
+    "gate:capability": "tsx --tsconfig tsconfig.root.json scripts/gates-consolidated.ts capability",
     "bench": "vitest run tests/nar/benchmark.test.ts tests/nar/benchmark-infra.test.ts",
     "bench:fundamentals": "tsx --tsconfig tsconfig.root.json scripts/fundamentals-bench.ts",
     "bench:fundamentals:mock": "LM_PROVIDER=mock tsx --tsconfig tsconfig.root.json scripts/fundamentals-bench.ts",
@@ -211,9 +245,7 @@
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@opentelemetry/sdk-trace": "^3.1.1",
     "@senars/ui": "workspace:*",
-    "@wasmer/wasi": "^1.2.2",
     "ai": "^7.0.173",
-    "better-sqlite3": "^13.2.0",
     "blessed": "^0.1.81",
     "cli-table3": "^0.6.5",
     "clingo-wasm": "^0.6.0",
@@ -231,17 +263,20 @@
     "marked": "^18.2.1",
     "marked-highlight": "^2.2.4",
     "nanostores": "^1.5.5",
-    "node-llama-cpp": "^3.22.3",
     "ora": "^10.0.0",
     "prom-client": "^15.1.3",
     "react": "^19.3.1",
     "tau-prolog": "^0.3.4",
     "ulid": "^3.0.2",
     "valibot": "^1.5.0",
-    "wasmtime": "^0.0.2",
     "ws": "^8.23.0",
     "z3-solver": "^5.4.1",
     "zod": "^4.6.7"
+  },
+  "optionalDependencies": {
+    "@wasmer/wasi": "^1.2.2",
+    "better-sqlite3": "^13.2.0",
+    "node-llama-cpp": "^3.22.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.8",
@@ -253,22 +288,15 @@
     "@opentelemetry/sdk-node": "^0.301.2",
     "@opentelemetry/sdk-trace-node": "^2.12.0",
     "@opentelemetry/semantic-conventions": "^1.45.0",
-    "@types/better-sqlite3": "^9.6.0",
     "@types/irc": "^0.5.4",
-    "@types/jest": "^30.0.0",
     "@types/json-schema": "^7.0.15",
     "@types/node": "^26.6.6",
     "@types/ws": "^8.18.2",
-    "@typescript-eslint/eslint-plugin": "^8.73.0",
-    "@typescript-eslint/parser": "^8.73.0",
     "@vitest/coverage-v8": "^5.1.0",
     "dpdm": "^4.3.0",
-    "eslint": "^10.15.0",
     "fast-check": "^4.10.2",
-    "jest": "^30.5.2",
     "peggy": "^5.1.1",
     "pi-mcp-adapter": "^7.0.1",
-    "ts-jest": "^29.4.15",
     "tsconfig-paths": "^4.2.0",
     "tsup": "^9.0.0",
     "tsx": "^4.23.15",

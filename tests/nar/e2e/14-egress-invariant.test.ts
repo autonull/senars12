@@ -14,10 +14,10 @@
 
 import { describe, expect, it } from 'vitest';
 import { createNAR } from '@senars/nar-presets';
-import { termKey, Truth } from '@senars/terms/index';
+import { termKey, Truth } from '@senars/terms';
 import { NO_DECISION_PORT } from '@senars/ports/decision';
 import type { DecisionResult } from '@senars/ports/decision';
-import { systemOneDefaults, systemOneSchema } from '@senars/utils';
+import { systemOneDefaults, systemOneSchema } from '@senars/types';
 
 /**
  * The port serves both cycle call sites, so a test about egress must select its

@@ -319,13 +319,15 @@ export function createDefaultRefoldConfig(
   const projectionEngine = createProjectionEngine();
   const { ShadowWorktreeManager } = require('../tools/adapters/shadow-worktree.js');
   const { DefaultExternalRunner, DefaultHumanApproval, createAdmissionMachinery } = require('./admission-machinery.js');
+  const { createDefaultClock } = require('../kernel/env.js');
 
+  const clock = createDefaultClock();
   const shadowMgr = new ShadowWorktreeManager(workspaceRoot);
 
   const admissionMachinery = createAdmissionMachinery({
     workspaceRoot,
     externalRunner: new DefaultExternalRunner(shadowMgr),
-    humanApproval: new DefaultHumanApproval(),
+    humanApproval: new DefaultHumanApproval(clock),
     autoMerge: false,
     maxConcurrent: 10,
     proposalTtl: 7 * 24 * 60 * 60 * 1000, // 7 days

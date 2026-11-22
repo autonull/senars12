@@ -110,7 +110,7 @@ for (const violation of violations) {
 }
 
 report('import:boundary', findings.verdicts, {
-  lines: (finding) => [finding.detail],
+  lines: (finding) => [`${finding.at} — ${finding.detail}`],
   remedy:
     'Route the effect through `Env` (clock/RNG/IDs) or move the I/O to the oracle seam. ' +
     'If the growth is deliberate, re-record with `pnpm run import:boundary -- --update`.',
