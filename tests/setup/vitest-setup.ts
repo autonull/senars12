@@ -1,6 +1,8 @@
 // Global test utilities setup
 
 import { termInterner } from '../../src/kernel/terms/intern';
+// Register tsconfig paths for runtime resolution (dynamic imports, etc.)
+import 'tsconfig-paths/register';
 
 // Reset term interner before each test to ensure deterministic term IDs
 beforeEach(() => {
