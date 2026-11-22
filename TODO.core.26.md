@@ -51,7 +51,7 @@
 - **W2 complete.** WASM engines (Z3, Clingo, MiniSat, Tau Prolog) default; native optional via `createEngineOracleRegistry({ includeNative: true })`; MeTTa as `engine.metta` oracle; duplicate `logics/axiomatic/engines` removed.
 - **Legacy runtime still production** (`bin/senars.ts` → `createAgentFromEnv`) with rich capability surface: MeTTa, imagination, RLFP, RL baselines, premise selection, contrastive/embedding memory, distillation, GBNF/WASI, causal/concept/associative indexes, self-modification, 14 games, focus trees, metacognitive analyzers, NL/dialogue, schema induction, transport/plugin/governance.
 - **Test infrastructure fixed.** oxc disabled (esbuild); tsconfig symlink; import paths corrected; all 394 test files pass.
-- **Known debt:** 560+ vitest aliases (tsconfigPaths enabled, explicit aliases still needed); 1 flaky test; 4 deferred UI tests; 19 gates need provider setup.
+- **Known debt:** 464 vitest aliases (tsconfigPaths enabled, explicit aliases still needed for non-standard paths); 1 flaky test; 4 deferred UI tests; 19 gates need provider setup.
 - **Typecheck fixed.** All src/ type errors resolved; `typecheck:packages` clean.
 
 **The gap is wiring, hardening, and giving every capability one elegant home.**
@@ -305,7 +305,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 ### Immediate (Blocking)
 1. ~~**Fix `typecheck:packages`** — 15 branded type errors in `src/worlds/world-packs.ts` (1 hour)~~ ✅ DONE
 2. ~~**Re-arm `complexity:budget`** — baseline at true actuals; add to CI with ratchet (30 min)~~ ✅ DONE
-3. **Collapse 560+ vitest aliases** — `vite-tsconfig-paths` enabled; explicit aliases still needed for non-standard paths (ongoing)
+3. **Collapse 464 vitest aliases** — `vite-tsconfig-paths` enabled; explicit aliases still needed for non-standard paths (ongoing)
 
 ### Phase 1: Kernel (Sequential)
 4. **K1: Loop Contracts** — zod schemas for all iteration artifacts (~2 weeks) ✅
@@ -344,7 +344,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 |----------|------|-------|----------|
 | P0 | Fix `typecheck:packages` (world-packs.ts branded types) | — | 1h ✅ |
 | P0 | Re-arm `complexity:budget` at true baseline | — | 30m ✅ |
-| P0 | Collapse vitest aliases (tsconfigPaths enabled, explicit aliases remain) | — | 2h 🔄 | tsconfig-paths active; 17 /index paths added; duplicates identified; `.js` variants and duplicate schemas removed (~87 aliases); remaining deduplication needs careful sub-path analysis
+| P0 | Collapse vitest aliases (tsconfigPaths enabled, explicit aliases remain) | — | 2h 🔄 | tsconfig-paths active; 17 /index paths added; duplicates identified; `.js` variants and duplicate schemas removed (~163 aliases, 627→464); remaining deduplication needs careful sub-path analysis
 | P1 | K1: Loop Contracts zod schemas | — | 2w ✅ |
 | P1 | K2: Memory as Fold Views | — | 2w ✅ |
 | P1 | K3: Economy → Scheduler pure function | — | 1w ✅ |
