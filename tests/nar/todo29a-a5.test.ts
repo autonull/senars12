@@ -305,12 +305,12 @@ describe('A5 — memory is a set of ports', () => {
 
   it('no cycle-path module names the facade, except declared composition sites', () => {
     // The rule the gate applies, on a file that is not one.
-    const cyclePath = `${ROOT}/nar/src/reason/inference-controller.ts`;
+    const cyclePath = `${ROOT}/src/reason/inference-controller.ts`;
     expect(isCyclePath(cyclePath)).toBe(true);
-    expect(resolveInNar(cyclePath, '../memory/view')).toBe(`${ROOT}/nar/src/memory/view`);
+    expect(resolveInNar(cyclePath, '../memory/view')).toBe(`${ROOT}/src/memory/view`);
     // The ports resolve where the gate expects them to.
     expect(resolveInNar(cyclePath, '../memory/ports/index')).toBe(
-      `${ROOT}/nar/src/memory/ports/index`
+      `${ROOT}/src/memory/ports/index`
     );
   });
 });

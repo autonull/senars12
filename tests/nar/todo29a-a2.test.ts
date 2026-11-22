@@ -32,7 +32,7 @@ import {
 } from '../../scripts/lib/layer-boundary';
 import { ROOT } from '../../scripts/lib/root';
 
-const at = (source: string, file = `${ROOT}/nar/src/memory/embedding.ts`) =>
+const at = (source: string, file = `${ROOT}/src/memory/embedding.ts`) =>
   coreLayerViolations(file, source);
 
 describe('A2 — the core extension contract is typed in core vocabulary', () => {
@@ -81,7 +81,7 @@ describe('A2 — the gate sees both directions and grants no exemption', () => {
   it('a relative import of the layer fails', () => {
     expect(at("import { getLMSettings } from '../lm/providers';")).toEqual([
       {
-        at: 'nar/src/memory/embedding.ts:1',
+        at: 'src/memory/embedding.ts:1',
         specifier: '../lm/providers',
         dynamic: false,
       },
@@ -90,8 +90,8 @@ describe('A2 — the gate sees both directions and grants no exemption', () => {
 
   it('a workspace subpath of the layer fails, and both spellings resolve alike', () => {
     expect(at("import { LMRule } from '@senars/lm';")).toHaveLength(1);
-    expect(resolveInNar(`${ROOT}/nar/src/rules/x.ts`, '@senars/lm/json')).toBe(
-      `${ROOT}/nar/src/lm/json`
+    expect(resolveInNar(`${ROOT}/src/rules/x.ts`, '@senars/lm/json')).toBe(
+      `${ROOT}/src/lm/json`
     );
   });
 
@@ -116,7 +116,7 @@ describe('A2 — the gate sees both directions and grants no exemption', () => {
   it('the layer is exempt — it is not a consumer of itself', () => {
     expect(
       coreLayerViolations(
-        `${ROOT}/nar/src/lm/rule/LMRule.ts`,
+        `${ROOT}/src/lm/rule/LMRule.ts`,
         "import { parseJsonObject } from '../json';"
       )
     ).toEqual([]);
@@ -132,8 +132,8 @@ describe('A2 — the cycle path is the inventory list, not a second copy', () =>
   });
 
   it('assembly and the layer itself are not the cycle path', () => {
-    expect(isCyclePath(`${ROOT}/nar/src/facade/system-one.ts`)).toBe(false);
-    expect(isCyclePath(`${ROOT}/nar/src/lm/lm-service.ts`)).toBe(false);
+    expect(isCyclePath(`${ROOT}/src/facade/system-one.ts`)).toBe(false);
+    expect(isCyclePath(`${ROOT}/src/lm/lm-service.ts`)).toBe(false);
   });
 });
 describe(A2_TABLE, () => {

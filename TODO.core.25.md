@@ -433,3 +433,17 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 
 **The sentence to keep on the wall:** *freedom in an unbounded proposal space, reliability in a monotone verified ratchet, every capability with one elegant home, and all of it running on one log.* Wire it, harden it, give everything a home — one verified slice at a time — and the fold compounds.
 
+---
+
+## 12. Remaining infrastructure work (post-W11)
+
+**Test infrastructure** — vitest alias resolution for `@senars/*` sub-path imports is incomplete in `vitest.config.ts`. The specific aliases cover most util sub-paths but the regex wildcards for `@senars/util/*` and `@senars/utils/*` are not being applied correctly, causing "Cannot find package" errors for imports like `@senars/util/numeric`, `@senars/util/text`, etc. in transitive dependencies.
+
+**Syntax error in transform** — some test files that import `@senars/agent` (and transitively `@senars/cortex`, `@senars/memory`, etc.) fail with "SyntaxError: Invalid or unexpected token" during esbuild transform. Root cause unknown; works with `tsx` but not vitest/esbuild.
+
+**Action items:**
+- [ ] Audit vitest.config.ts aliases: ensure all `@senars/util/*` and `@senars/utils/*` sub-paths are covered by specific aliases or working regex wildcards
+- [ ] Debug esbuild transform syntax error: isolate minimal reproduction, check for unsupported TypeScript syntax in dependency chain
+- [ ] Run full test suite with `pnpm test:unit` and verify 0 failures
+- [ ] Remove test files that are no longer relevant (marked as excluded in test:unit script)
+

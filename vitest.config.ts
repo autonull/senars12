@@ -320,7 +320,7 @@ const aliases = [
   { find: '@senars/nar/tools/adapters/self/context', replacement: path.resolve(__dirname, './src/tools/adapters/self/context.ts') },
   { find: '@senars/nar/tools/impls/Registry', replacement: path.resolve(__dirname, './src/tools/impls/Registry.ts') },
   { find: '@senars/verification/record', replacement: path.resolve(__dirname, './src/verification/record.ts') },
-  { find: '@senars/utils/similarity', replacement: path.resolve(__dirname, './src/utils/similarity.ts') },
+  { find: '@senars/utils/similarity', replacement: path.resolve(__dirname, './src/util/similarity.ts') },
   { find: '@senars/terms/index', replacement: path.resolve(__dirname, './src/terms/index.ts') },
   { find: '@senars/terms/operators', replacement: path.resolve(__dirname, './src/terms/operators.ts') },
   { find: '@senars/verification/vectors', replacement: path.resolve(__dirname, './src/verification/vectors.ts') },
@@ -519,8 +519,8 @@ const aliases = [
   { find: '@senars/nar', replacement: path.resolve(__dirname, './src/index.ts') },
   { find: '@senars/index', replacement: path.resolve(__dirname, './src/index.ts') },
   { find: '@senars/core', replacement: path.resolve(__dirname, './src/index.ts') },
-  // { find: '@senars/util', replacement: path.resolve(__dirname, './src/util/index.ts') }, // Disabled: use wildcard
-  // { find: '@senars/utils', replacement: path.resolve(__dirname, './src/util/index.ts') }, // Disabled: use wildcard
+  { find: '@senars/util', replacement: path.resolve(__dirname, './src/util/index.ts') },
+  { find: '@senars/utils', replacement: path.resolve(__dirname, './src/util/index.ts') },
   { find: '@senars/io', replacement: path.resolve(__dirname, './src/io/index.ts') },
   { find: '@senars/metta', replacement: path.resolve(__dirname, './src/metta/index.ts') },
   { find: '@senars/metta-runtime', replacement: path.resolve(__dirname, './src/metta/index.ts') },

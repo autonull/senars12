@@ -19,6 +19,7 @@ import { TermBuilder } from '@senars/terms/impls/factory';
 import {
   ATTENTION_OWNER,
   ATTENTION_REASONS,
+  MEMORY_OWNER,
   methodBody,
   type SurfaceSubject,
   scanSubject,
@@ -88,7 +89,7 @@ describe('A4 — reads are observational', () => {
     const violations = surfaceViolations({
       files: [
         {
-          path: 'nar/src/memory/memory.ts',
+          path: MEMORY_OWNER,
           source: memorySource('topConcepts(limit: number) { this.decayAll(); return []; }'),
         },
       ],
@@ -101,7 +102,7 @@ describe('A4 — reads are observational', () => {
       surfaceViolations({
         files: [
           {
-            path: 'nar/src/memory/memory.ts',
+            path: MEMORY_OWNER,
             source: memorySource(
               `topConcepts(limit: number) { return this.topConcepts(limit); } sampleWindow(size: number) { return []; }`
             ),
@@ -118,13 +119,13 @@ describe('A4 — reads are observational', () => {
   it('a second decay call site fails, and a missing sweep fails', () => {
     const withTwo = `${memorySource('sample(limit: number) { return []; }')}  tick() { this.decayAll(1); }\n`;
     expect(
-      rulesOf(surfaceViolations({ files: [{ path: 'nar/src/memory/memory.ts', source: withTwo }] }))
+      rulesOf(surfaceViolations({ files: [{ path: MEMORY_OWNER, source: withTwo }] }))
     ).toContain('decay-call-site-count');
     expect(
       rulesOf(
         surfaceViolations({
           files: [
-            { path: 'nar/src/memory/memory.ts', source: '  sample(limit: number) { return []; }' },
+            { path: MEMORY_OWNER, source: '  sample(limit: number) { return []; }' },
           ],
         })
       )

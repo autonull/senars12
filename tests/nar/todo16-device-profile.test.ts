@@ -1,3 +1,4 @@
+import { SOURCE_QUALITY_CONFIDENCE, validateCognitiveEvent } from '@senars/agent';
 import type { ReasoningBudget } from '@senars/agent';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { KernelBudgetGate } from '@senars/kernel/KernelBudgetGate';
@@ -132,10 +133,8 @@ describe('System One — No-Cloud Device Profile E2E (H3)', () => {
     expect(injectionQuery.rubric).toBe('injection');
   });
 
-  it('No provider fallback - untrusted HTTP results re-enter at LLM_PRIOR ceiling', async () => {
+  it('No provider fallback - untrusted HTTP results re-enter at LLM_PRIOR ceiling', () => {
     // From http-endpoint.ts: untrusted results are seeded at LLM_PRIOR (0.5) ceiling
-    const { SOURCE_QUALITY_CONFIDENCE } = await import('@senars/agent');
-
     // Verify LLM_PRIOR ceiling is 0.5
     expect(SOURCE_QUALITY_CONFIDENCE.LLM_PRIOR).toBe(0.5);
 
@@ -143,10 +142,8 @@ describe('System One — No-Cloud Device Profile E2E (H3)', () => {
     expect(SOURCE_QUALITY_CONFIDENCE.PEER_AGENT).toBe(0.6);
   });
 
-  it('Policy violation event emitted on safety-floor veto', async () => {
+  it('Policy violation event emitted on safety-floor veto', () => {
     // This verifies the kernel event structure for safety-floor veto
-    const { validateCognitiveEvent } = await import('@senars/agent');
-
     // Create a mock event matching the safety-floor veto pattern
     const vetoEvent = {
       type: 'judgment.resolved' as const,

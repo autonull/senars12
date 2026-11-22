@@ -40,7 +40,7 @@ describe('Bench 67 — A1 consumer-aware export audit', () => {
   });
 
   it('exports:audit CLI is green (CI gate parity)', () => {
-    execFileSync('npx', ['tsx', 'scripts/exports-audit.ts'], { cwd: ROOT, stdio: 'pipe' });
+    execFileSync('npx', ['tsx', '--tsconfig', 'tsconfig.root.json', 'scripts/exports-audit.ts'], { cwd: ROOT, stdio: 'pipe' });
   });
 });
 
