@@ -16,7 +16,7 @@ import { Truth as EngineTruth } from '../terms';
 
 type TruthFn = (t1: Truth, t2?: Truth, ...args: unknown[]) => Truth | null | number;
 
-// Constants copied from Truth.ts
+// Constants copied from kernel Truth (src/kernel/truth.ts)
 const WEAKENING_FACTOR = 10;
 const MAX_CONFIDENCE = 0.999;
 const CONFIRM_GAIN = 1.1;
@@ -26,7 +26,8 @@ const OUTCOME_GAIN = 0.1;
 const clamp = (v: number, min: number, max: number): number => Math.max(min, Math.min(max, v));
 const clamp01 = (v: number): number => clamp(v, 0, 1);
 const safeDiv = (num: number, den: number): number => (den === 0 ? 0 : num / den);
-const softSquash = (c: number, factor = 1): number => c / (c + factor);
+// Matches kernel/types.ts softSquash: c / (1 + c * factor) with default factor=10
+const softSquash = (c: number, factor = 10): number => c / (1 + c * factor);
 
 // Weight conversion (copied from Truth.ts)
 const c2w = (c: number): number => {
@@ -52,7 +53,7 @@ export const BINARY_TRUTH: Readonly<Record<string, (f1: number, f2: number, c1: 
     return [n.f, n.c];
   },
   analogy: (f1, f2, c1, c2) => {
-    const [f, c] = [f1 * f2, c1 * c2 * f2];
+    const [f, c] = [f1 * f2, c1 * c2];
     const n = normalizeTruth(f, c);
     return [n.f, n.c];
   },

@@ -1,0 +1,3 @@
+[submodule "ui/spacegraphjs7"]
+	path = ui/spacegraphjs7
+	url = https://github.com/autonull/spacegraphjs7.git
