@@ -113,6 +113,10 @@
     "./types/llm": {
       "types": "./src/types/llm.ts",
       "import": "./src/types/llm.ts"
+    },
+    "./errors": {
+      "types": "./src/errors/index.ts",
+      "import": "./src/errors/index.ts"
     }
   },
   "scripts": {

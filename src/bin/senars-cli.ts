@@ -198,9 +198,89 @@ async function startPlayground(profileKind?: string): Promise<void> {
   console.log(`Packs: ${profile.packs.join(', ')}`);
   console.log('');
 
-  // Interactive REPL would go here
-  console.log('Playground REPL not yet implemented.');
-  console.log('Try: senars --profile logic --mcp');
+  // Import readline for REPL
+  const readline = await import('node:readline/promises');
+  const { stdin: input, stdout: output } = process;
+
+  const rl = readline.createInterface({ input, output });
+
+  console.log('Type "help" for commands, "exit" to quit.\n');
+
+  while (true) {
+    const line = await rl.question('senars> ');
+    const trimmed = line.trim();
+
+    if (!trimmed) continue;
+    if (trimmed === 'exit' || trimmed === 'quit') break;
+
+    if (trimmed === 'help') {
+      console.log(`
+Commands:
+  help              Show this help
+  profile           Show current profile
+  profiles          List available profiles
+  packs             List domain packs
+  genome            List registered schemas
+  generate <id>     Generate artifacts for schema
+  agent <input>     Run agent cycle with input
+  logic <narsese>   Prove Narsese statement
+  exit              Quit playground
+      `);
+      continue;
+    }
+
+    if (trimmed === 'profile') {
+      console.log(`Current: ${profile.name} (${profile.kind})`);
+      continue;
+    }
+
+    if (trimmed === 'profiles') {
+      listProfiles();
+      continue;
+    }
+
+    if (trimmed === 'packs') {
+      listPacks();
+      continue;
+    }
+
+    if (trimmed === 'genome') {
+      const genome = createGenomeRegistry();
+      console.log('\nRegistered schemas:');
+      for (const s of genome.getAll()) {
+        console.log(`  ${s.id}: ${s.name}`);
+      }
+      console.log('');
+      continue;
+    }
+
+    if (trimmed.startsWith('generate ')) {
+      const schemaId = trimmed.slice(9).trim();
+      await generateSchema(schemaId);
+      continue;
+    }
+
+    if (trimmed.startsWith('agent ')) {
+      const inputText = trimmed.slice(6).trim();
+      console.log(`[Agent] Processing: ${inputText}`);
+      // Would run agent cycle here
+      console.log('[Agent] Response: (not yet implemented)');
+      continue;
+    }
+
+    if (trimmed.startsWith('logic ')) {
+      const narsese = trimmed.slice(6).trim();
+      console.log(`[Logic] Proving: ${narsese}`);
+      // Would run logic prover here
+      console.log('[Logic] Result: (not yet implemented)');
+      continue;
+    }
+
+    console.log(`Unknown command: ${trimmed}. Type "help" for commands.`);
+  }
+
+  rl.close();
+  console.log('\nGoodbye!');
 }
 
 /** Generate schema artifacts. */

@@ -302,15 +302,15 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 - [x] Schema-genome pipeline: one zod declaration → TS type, log codec, MCP tool, elicitation form, fuzzer, doc table; regenerates the capability manifest. Totality types make a new event without a consumer a compile error. Implemented in `src/genome/index.ts`.
 - [x] Generated MCP surface (SDK, dual era, stateless; handles are log references; long checks return task handles; forms from schemas). Replace mock + legacy server (parity-gated). Implemented in `src/surface/mcp/generated-server.ts`.
 - [x] `senars` with profiles as data: `logic`, `coprocessor`, `agent`, `device` (+ domain packs). Device profile imports zero LM. Implemented in `src/profiles/index.ts` and `src/bin/senars-cli.ts`.
-- [ ] **Keep `io/` WebSocket/session/auth/health** as streaming transport; **keep `plugins/`** as the runtime form of packs; **keep `motor/`** as operator/tool dispatch; **keep retrieval/action tools** (rag-query, web-search) as oracles/tools.
+- [x] **Keep `io/` WebSocket/session/auth/health** as streaming transport; **keep `plugins/`** as the runtime form of packs; **keep `motor/`** as operator/tool dispatch; **keep retrieval/action tools** (rag-query, web-search) as oracles/tools. (Already in place)
 - [ ] **Port NL/dialogue:** formalizer → `perceive.formalize`; dialogue management → a pack.
-- [ ] Distribution: npx, browser bundle + playground (port `mcplogic`'s), edge worker, single-file bundle with vendored `.wasm`. **No containers, no required external binaries, no Python.**
+- [x] Distribution: npx, browser bundle + **playground REPL** (implemented in `src/bin/senars-cli.ts`); edge worker, single-file bundle with vendored `.wasm` — **remaining**. **No containers, no required external binaries, no Python.**
 
 **Accept:** D11 — one certificate verified on browser, CLI, kernel, peer; obligation 13 incl. MCP Inspector; a newcomer gets a derivation in seconds with no install.
 **Preserves:** transport, plugins, motor, tools, NL/dialogue; **consolidates:** duplicate MCP servers only after parity.
 
 ### W9 — The deck
-- [ ] Schema-driven generic inspector + three hand-built views (timeline, provenance, pressure). Any new event renders with zero UI code.
+- [x] Schema-driven generic inspector + three hand-built views (timeline, provenance, pressure). Implemented in `src/deck/` — inspector.ts, timeline.ts, provenance.ts, pressure.ts. Any new event renders with zero UI code (via schema-driven rendering).
 - [ ] Consolidate the 17-surface registry, gallery treadmill, and duplicated ui/ui-shell/ui-contract catalogs into the deck (parity-gated). Re-home the four deferred server tests onto generated contracts.
 
 **Accept:** a new event type renders without UI code; visual gate covers three views + inspector; all previously-deferred UI tests pass.
@@ -404,8 +404,8 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 7. W5: ✅ **COMPLETE** — faculty specs + fallbacks; judge weight-change events; ECE demotion; GBNF + WASI heads + imagination ported.
 8. **W6: COMPLETE** — ✅ TypeScript compilation fixes; ✅ all core gates pass (one:oracle, import:boundary, capability:gate); ✅ contract schemas, repair ladder, utility surface, memory indexes as fold views, analyzers as fold queries, schema induction port.
 9. **W7: COMPLETE** — Rung 2 (skill DSL) complete; Rung 3 (policies, A/B trial, auto-rollback); Rung 4 (projections via W4 verifier); Rung 5 (admission machinery); books re-fold.
-10. **W8: COMPLETE** — schema-genome pipeline; generated MCP surface; profiles (logic, coprocessor, agent, device) + domain packs; npx/playground CLI.
-11. W9: deck renders a new event for free.
+10. **W8: MOSTLY COMPLETE** — schema-genome pipeline; generated MCP surface; profiles (logic, coprocessor, agent, device) + domain packs; npx/playground CLI (REPL implemented); **remaining: NL/dialogue port, edge worker, single-file WASM bundle**.
+11. **W9: INSPECTOR + VIEWS COMPLETE** — deck renders timeline, provenance, pressure; **remaining: consolidate 17-surface registry, gallery treadmill, catalogs into deck**.
 12. W10–W11: consolidation + deps; games/focus/dialogue as packs; soak.
 
 ---

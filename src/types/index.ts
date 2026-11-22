@@ -61,3 +61,5 @@ export {
   ToolError,
   ValidationError,
 } from '@senars/errors';
+
+export { MESSAGE_ROLES, MessageRoleSchema, type MessageRole, HistoryEntrySchema, type HistoryEntry, type ConversationSession, type SessionManager } from './memory.js';

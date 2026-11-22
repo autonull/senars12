@@ -64,7 +64,7 @@ export default defineConfig({
         },
       },
       preserveEntrySignatures: 'strict',
-      external: (id) => id === '@senars/nar' || id.startsWith('@senars/nar/') || id.includes('/nar/src/') || id.includes('node-llama-cpp') || id.includes('@node-llama-cpp') || id.includes('ora') || id.includes('cli-cursor') || id.includes('signal-exit') || id.includes('cross-spawn') || id.includes('which') || id.includes('isexe') || id.includes('graceful-fs') || id.includes('fs-extra') || id.includes('jsonfile') || id.includes('proper-lockfile') || id.includes('simple-git') || id.includes('stdin-discarder') || id.includes('restore-cursor') || id.includes('ansi-escapes'),
+      external: (id) => id === '@senars/nar' || id.startsWith('@senars/nar/') || id.startsWith('@senars/core') || id.startsWith('@senars/errors') || id.startsWith('@senars/util') || id.startsWith('@senars/types') || id.includes('/nar/src/') || id.includes('node-llama-cpp') || id.includes('@node-llama-cpp') || id.includes('ora') || id.includes('cli-cursor') || id.includes('signal-exit') || id.includes('cross-spawn') || id.includes('which') || id.includes('isexe') || id.includes('graceful-fs') || id.includes('fs-extra') || id.includes('jsonfile') || id.includes('proper-lockfile') || id.includes('simple-git') || id.includes('stdin-discarder') || id.includes('restore-cursor') || id.includes('ansi-escapes'),
     },
     target: 'es2020',
     minify: 'terser',
