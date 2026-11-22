@@ -358,3 +358,12 @@ export const askNaturalLanguage = async (nar: NARFacadePort, question: string): 
 
   return lm.generateText(explainPrompt);
 };
+
+export {
+  getFormalizer,
+  formalize,
+  perceive,
+  explainDerivation,
+  findContradictions,
+  explainConflict,
+} from './formalization';

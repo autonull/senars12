@@ -41,10 +41,16 @@ import {
   askWithDerivation,
   consolidateLearning,
   contradicts,
+  explainConflict,
+  explainDerivation,
+  findContradictions,
+  formalize,
+  getFormalizer,
   getModelWithFallback,
   initializeLMRules,
   initializeTools,
   injectBootstrapGoals,
+  perceive,
 } from './facade/index';
 import { createOptionalSubsystems } from './facade/optional-subsystems';
 import { LogStoreStatePersister } from './log/StatePersister';
@@ -86,14 +92,8 @@ import { PROPOSAL_LOG_CAPACITY } from './proposal/lifecycle';
 import { LMProposalProducer } from './proposal/lm-rule-producer';
 import { type Answer, QueryAPI, ReasoningTrace } from './query';
 import type { Reflex } from './reflex/Reflex';
-import { ExplanationGenerator, type ConflictExplanation, type Explanation } from './nl/explanation';
-import {
-  createFormalizer,
-  type Formalizer,
-  type PerceivedAdmission,
-  type PerceivedInterpretation,
-  validateInterpretation,
-} from './nl/formalizer';
+import type { Formalizer, PerceivedAdmission, PerceivedInterpretation } from './nl/formalizer';
+import type { Explanation, ConflictExplanation } from './nl/explanation';
 import type { NLContext } from './nl/understanding';
 import type { RLFPLearner } from './rlfp';
 import { loadBuiltinTable, RuleProcessor, type RuleTableStore } from './rules';
@@ -105,7 +105,6 @@ import { TaskManager } from './task';
 import { rehydrateTask } from './task/record';
 import type { Term } from './terms';
 import {
-  containsSubterm,
   fromNarsese,
   getSubject,
   Truth,
@@ -159,7 +158,7 @@ export class NAR extends BaseComponent {
   /** Restores the process id source this NAR installed (TODO28 §7.3). */
   #restoreIdSource?: () => void;
 
-  private readonly io: NARIO;
+  readonly io: NARIO;
   private execution: NARExecution;
   private readonly lm: NARLM;
   private readonly config: NARConfig;
@@ -198,8 +197,6 @@ export class NAR extends BaseComponent {
   #autonomy: AutonomyHeartbeat | null = null;
   /** The neuro-symbolic formalizer (CORE.19 C6); lazily bound to the LM at first use. */
   #formalizer: Formalizer | null = null;
-  /** Cached explanation generator (C6.4/C6.5): built once with the current LM paraphrase. */
-  #explanationGenerator: ExplanationGenerator | null = null;
   /** Bounded rewind checkpoints (CORE.19 C2.3) — the graph a `rewind` can reach. */
   #rewind!: KernelRewind;
 
@@ -700,6 +697,10 @@ export class NAR extends BaseComponent {
     return this.processor;
   }
 
+  getPerceptionGate(): import('./kernel/KernelPerceptionGate').KernelPerceptionGate {
+    return this.gates.getPerceptionGate() as import('./kernel/KernelPerceptionGate').KernelPerceptionGate;
+  }
+
   getExecution(): NARExecution {
     return this.execution;
   }
@@ -1035,7 +1036,7 @@ export class NAR extends BaseComponent {
   }
 
   checkConstitutionViolation(belief: Task): boolean {
-    return this._constitution.some((c) => this.contradicts(belief.term, c.term));
+    return this._constitution.some((c) => contradicts(belief.term, c.term));
   }
 
   attentionReport(): { concepts: Array<{ term: string; priority: number }>; total: number } {
@@ -1106,13 +1107,12 @@ export class NAR extends BaseComponent {
    * when an LM is configured, the deterministic provider otherwise (D10).
    */
   getFormalizer(): Formalizer {
-    this.#formalizer ??= createFormalizer(this._lmService);
-    return this.#formalizer;
+    return getFormalizer(this);
   }
 
   /** Perceive an utterance as a formalization proposal, without admitting it. */
   formalize(text: string, ctx?: NLContext): Promise<PerceivedInterpretation> {
-    return this.getFormalizer().nlToFormal(text, ctx);
+    return formalize(this, text, ctx);
   }
 
   /**
@@ -1121,24 +1121,7 @@ export class NAR extends BaseComponent {
    * admitted. Invalid candidates are rejected with a reason rather than faked.
    */
   async perceive(text: string, ctx?: NLContext): Promise<PerceivedAdmission> {
-    const raw = await this.getFormalizer().nlToFormal(text, ctx);
-    const { interpretation, rejected: invalid } = validateInterpretation(raw);
-    const llm = interpretation.createdBy === 'llm-proposed';
-    const { admitted, rejected: gateRejected } = this.gates
-      .getPerceptionGate()
-      .admitFormalization(interpretation, llm ? 'LLM_PRIOR' : 'GENERAL', llm ? 'llm' : 'user');
-    for (const task of admitted) this.io.storeAdmitted(task);
-    return {
-      interpretation,
-      admitted,
-      rejected: [
-        ...(interpretation.rejection
-          ? [{ candidateId: '', reason: interpretation.rejection }]
-          : []),
-        ...invalid,
-        ...gateRejected,
-      ],
-    };
+    return perceive(this, text, ctx);
   }
 
   /**
@@ -1148,16 +1131,7 @@ export class NAR extends BaseComponent {
    * on the bus so a consumer can follow it without new contract surface.
    */
   async explainDerivation(conclusion: string | Term): Promise<Explanation> {
-    const term = typeof conclusion === 'string' ? conclusion : conclusion.toString();
-    const explanation = await this.explanationGenerator().explain(term);
-    this.systemEventBus.emit('explanation', {
-      conclusion: explanation.conclusion,
-      derivationIds: explanation.derivationIds,
-      rules: explanation.rules,
-      steps: explanation.steps,
-      paraphrased: explanation.paraphrase !== undefined,
-    });
-    return explanation;
+    return explainDerivation(this, conclusion);
   }
 
   /**
@@ -1167,20 +1141,7 @@ export class NAR extends BaseComponent {
    * keeps only concepts that hold a belief.
    */
   findContradictions(): Array<{ a: string; b: string }> {
-    const terms = this.memory
-      .listConcepts()
-      .filter((concept) => concept.topBelief() !== undefined)
-      .map((concept) => concept.term);
-    const pairs: Array<{ a: string; b: string }> = [];
-    for (let i = 0; i < terms.length; i++) {
-      for (let j = i + 1; j < terms.length; j++) {
-        const [a, b] = [terms[i]!, terms[j]!];
-        if (!termsEqual(a, b) && this.contradicts(a, b)) {
-          pairs.push({ a: a.toString(), b: b.toString() });
-        }
-      }
-    }
-    return pairs;
+    return findContradictions(this);
   }
 
   /**
@@ -1190,17 +1151,7 @@ export class NAR extends BaseComponent {
    * without new contract surface.
    */
   async explainConflict(a: string | Term, b: string | Term): Promise<ConflictExplanation> {
-    const asString = (term: string | Term) => (typeof term === 'string' ? term : term.toString());
-    const conflict = await this.explanationGenerator().explainConflict(asString(a), asString(b));
-    this.systemEventBus.emit('explanation', {
-      conclusion: `${conflict.terms[0]} \u2295 ${conflict.terms[1]}`,
-      derivationIds: conflict.derivationIds,
-      rules: conflict.rules,
-      steps: conflict.steps,
-      paraphrased: false,
-      conflict: true,
-    });
-    return conflict;
+    return explainConflict(this, a, b);
   }
 
   recordDerivations(count?: number) {
@@ -1293,22 +1244,5 @@ export class NAR extends BaseComponent {
   }
   private initializeTools(): void {
     initializeTools(this);
-  }
-  private contradicts(a: Term, b: Term): boolean {
-    return contradicts(a, b);
-  }
-
-  /** The explanation generator bound to this runtime (C6.4/C6.5): LM paraphrase when configured, engine facts always. */
-  private explanationGenerator(): ExplanationGenerator {
-    if (!this.#explanationGenerator) {
-      const paraphrase = this._lmService
-        ? (input: Parameters<Formalizer['formalToNl']>[0]) => this.getFormalizer().formalToNl(input)
-        : undefined;
-      this.#explanationGenerator = new ExplanationGenerator({
-        source: { firesByConclusion: (term) => this.processor.getRecorder().firesByConclusion(term) },
-        ...(paraphrase ? { paraphrase } : {}),
-      });
-    }
-    return this.#explanationGenerator;
   }
 }

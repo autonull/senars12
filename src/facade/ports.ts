@@ -28,6 +28,8 @@ import type { NARConfig } from './config';
 import type { TaskType, TruthType, Task } from '../types';
 import type { NARExecution } from '../nar-execution';
 import type { GateRegistry } from '../kernel/GateRegistry';
+import type { NARIO } from '../nar-io';
+import type { KernelPerceptionGate } from '../kernel/KernelPerceptionGate';
 
 export interface NARFacadePort {
   getProviderRegistry(): SeNARSRegistry | undefined;
@@ -70,4 +72,6 @@ export interface NARFacadePort {
   gates: GateRegistry;
   checkConstitutionViolation(belief: Task): boolean;
   getConstitution(): Task[];
+  io: NARIO;
+  getPerceptionGate(): KernelPerceptionGate;
 }

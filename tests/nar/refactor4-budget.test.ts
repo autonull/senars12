@@ -121,12 +121,12 @@ describe('Bench 99 — complexity budget gate', () => {
   });
 
   it('holds every audited accumulator site bounded', () => {
-    // The rule is now `mustNotIncrease` with baseline 3. The real invariant is that
+    // The rule is `mustNotIncrease` with baseline 0. The real invariant is that
     // the current value equals the baseline (no new unbounded sites added).
     const result = runGate(() => {});
     expect(rowOf(result, 'Unbounded accumulator sites')).toMatchObject({
       status: 'PASS',
-      current: 3,
+      current: 0,
     });
     expect(rowOf(result, 'Accumulators audited').current).toBeGreaterThan(0);
   });
@@ -148,10 +148,10 @@ describe('Bench 99 — complexity budget gate', () => {
   });
 
   it('holds typecheck:bin at baseline — the bin/CLI surface typechecks clean', () => {
-    // The rule is now `mustNotIncrease` with baseline 555. The real invariant is that the
+    // The rule is `mustNotIncrease` with baseline 0. The real invariant is that the
     // current value equals the baseline (no new errors introduced).
     const result = runGate(() => {});
-    expect(rowOf(result, 'typecheck:bin errors')).toMatchObject({ status: 'PASS', current: 555 });
+    expect(rowOf(result, 'typecheck:bin errors')).toMatchObject({ status: 'PASS', current: 0 });
   });
 
   it('fails when workspace count changes', () => {
