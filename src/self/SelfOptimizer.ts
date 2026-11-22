@@ -1,5 +1,5 @@
 import { trimCapped } from '@senars/util/collections';
-import type { SelfHost } from '../self/host.js';
+import type { SelfHost } from '../self/host';
 
 export interface Optimization {
   type: string;

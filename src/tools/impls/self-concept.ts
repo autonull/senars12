@@ -7,7 +7,7 @@
  */
 
 import { Truth, type TruthType } from '../../terms';
-import type { SelfConceptNAR } from './self-concept-port.js';
+import type { SelfConceptNAR } from './self-concept-port';
 
 /** Semantic truth values for self-beliefs (high confidence, moderate frequency) */
 const SELF_TRUTH: TruthType = Truth.create(0.7, 0.9);

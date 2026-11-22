@@ -1,8 +1,8 @@
 /**
  * Capability snapshot and diff - extracted from SelfAnalyzerService
  */
-import type { SelfHost } from '../../../self/host.js';
-import type { CapabilityDiff, CapabilitySnapshot } from '../../types.js';
+import type { SelfHost } from '../../../self/host';
+import type { CapabilityDiff, CapabilitySnapshot } from '../../types';
 
 export const getCapabilitySnapshot = async (nar: SelfHost | null): Promise<CapabilitySnapshot> => {
   if (!nar) {

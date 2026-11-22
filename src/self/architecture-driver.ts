@@ -1,8 +1,8 @@
 import { promises as fs } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import type { ArchitectureGap, DegradationCurve, StressMetrics } from '../imagination/types.js';
-import type { SelfHost } from '../self/host.js';
-import { ReasoningAboutReasoning } from './ReasoningAboutReasoning.js';
+import type { ArchitectureGap, DegradationCurve, StressMetrics } from '../imagination/types';
+import type { SelfHost } from '../self/host';
+import { ReasoningAboutReasoning } from './ReasoningAboutReasoning';
 
 export class ArchitectureDriver {
   private readonly nar: SelfHost;

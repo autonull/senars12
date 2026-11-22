@@ -1,6 +1,6 @@
-import type { TermTruth } from '@senars/types/truth.js';
-import type { Truth } from '../terms/impls/Truth.js';
-import type { Task } from '../types/core.js';
+import type { TermTruth } from '@senars/types/truth';
+import type { Truth } from '../terms/impls/Truth';
+import type { Task } from '../types/core';
 
 export interface HiddenRule {
   term: string;

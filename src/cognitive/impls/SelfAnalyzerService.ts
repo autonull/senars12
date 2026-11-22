@@ -1,7 +1,7 @@
 import { createLogger } from '@senars/util/logger';
 import { errMsg } from '@senars/util/error';
 import type { ModelRuleStats } from '../../lm';
-import type { SelfHost } from '../../self/host.js';
+import type { SelfHost } from '../../self/host';
 import { SelfOptimizer } from '../../self/SelfOptimizer';
 import type {
   AgentPolicy,
@@ -16,8 +16,8 @@ import type {
   QualityAssessment,
   ResourceUsage,
   SelfAnalyzerConfig,
-} from '../types.js';
-import { diffCapabilities, getCapabilitySnapshot } from './analyzers/capabilities.js';
+} from '../types';
+import { diffCapabilities, getCapabilitySnapshot } from './analyzers/capabilities';
 import { applyCorrections, identifyIssues } from './analyzers/corrections.js';
 import { analyzePerformancePatterns } from './analyzers/performance.js';
 import { createPolicyManager } from './analyzers/policy.js';

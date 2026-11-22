@@ -1,4 +1,4 @@
-export { ArchitectureDriver } from './architecture-driver.js';
-export type { ReasoningAboutReasoningConfig } from './ReasoningAboutReasoning.js';
-export { ReasoningAboutReasoning } from './ReasoningAboutReasoning.js';
-export { ToolManager } from '../tools/index.js';
+export { ArchitectureDriver } from './architecture-driver';
+export type { ReasoningAboutReasoningConfig } from './ReasoningAboutReasoning';
+export { ReasoningAboutReasoning } from './ReasoningAboutReasoning';
+export { ToolManager } from '../tools/index';

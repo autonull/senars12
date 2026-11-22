@@ -8,8 +8,8 @@ import { DisposalRegistry } from '@senars/util/disposal';
 import { mean, perSecond, softFalloff, stdDev } from '@senars/util/numeric';
 import { periodic } from '@senars/util/async';
 import { pushCapped, takeLast } from '@senars/util/collections';
-import type { SelfHost } from '../../self/host.js';
-import type { ReasoningStep } from '../types.js';
+import type { SelfHost } from '../../self/host';
+import type { ReasoningStep } from '../types';
 
 /** Rolling window of per-metric values kept for stability/trend analysis. */
 const MONITOR_HISTORY = 50;

@@ -10,7 +10,7 @@ import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import type { Term } from '../../terms';
 import type { EventBus } from '@senars/util/events';
 import type { NAREventMap } from '../../types';
-import type { RandomSource } from '../../types/primitives.js';
+import type { RandomSource } from '../../types/primitives';
 import type {
   Tool,
   ToolChainResult,

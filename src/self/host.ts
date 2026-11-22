@@ -8,11 +8,11 @@
  * satisfies it structurally and the direction of the edge is one-way.
  */
 
-import type { LMService } from '../lm/service/LMService.js';
-import type { Concept } from '../memory/concept.js';
-import type { MetricsSummary } from '../metrics/index.js';
-import type { Term, Truth } from '../terms/index.js';
-import type { CoreConfig, Task } from '../types/index.js';
+import type { LMService } from '../lm/service/LMService';
+import type { Concept } from '../memory/concept';
+import type { MetricsSummary } from '../metrics/index';
+import type { Term, Truth } from '../terms/index';
+import type { CoreConfig, Task } from '../types/index';
 
 export interface SelfHostEventBus {
   on(event: string, handler: (...args: unknown[]) => void): void;

@@ -1,7 +1,7 @@
-import { discoverTools } from './impls/decorator.js';
-import { ExplainTool } from './impls/ExplainTool.js';
-import { SleepTool } from './impls/SleepTool.js';
-import { AgentOptionsSchema, ConnectionConfigSchema, type AgentOptions, type ConnectionConfig } from './schemas.js';
+import { discoverTools } from './impls/decorator';
+import { ExplainTool } from './impls/ExplainTool';
+import { SleepTool } from './impls/SleepTool';
+import { AgentOptionsSchema, ConnectionConfigSchema, type AgentOptions, type ConnectionConfig } from './schemas';
 import {
   FIX_PATTERN_MAPPINGS,
   type FixPatternMapping,
@@ -9,9 +9,9 @@ import {
   getFixPatternMapping,
   initializeSelfConcept,
   SELF_CONCEPT_BELIEFS,
-} from './impls/self-concept.js';
-import { CoreToolRegistryAdapter, Registry, ToolManager } from './impls/tool-registry.js';
-import { createToolEvent } from './types.js';
+} from './impls/self-concept';
+import { CoreToolRegistryAdapter, Registry, ToolManager } from './impls/tool-registry';
+import { createToolEvent } from './types';
 
 // Type re-exports for TypeScript consumers
 export type {
@@ -28,7 +28,7 @@ export type {
   ToolResult,
   ToolSchema,
   ToolSchemaProperty,
-} from './types.js';
+} from './types';
 export {
   CoreToolRegistryAdapter,
   createToolEvent,

@@ -437,13 +437,22 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 
 ## 12. Remaining infrastructure work (post-W11)
 
-**Test infrastructure** — vitest alias resolution for `@senars/*` sub-path imports is incomplete in `vitest.config.ts`. The specific aliases cover most util sub-paths but the regex wildcards for `@senars/util/*` and `@senars/utils/*` are not being applied correctly, causing "Cannot find package" errors for imports like `@senars/util/numeric`, `@senars/util/text`, etc. in transitive dependencies.
+**Test infrastructure — alias resolution** — ✅ **MOSTLY FIXED**. vitest.config.ts now has:
+- Top-level aliases for `@senars/util`, `@senars/utils`, `@senars/lm`, `@senars/agent`, `@senars/self`, `@senars/tools`, etc.
+- Regex wildcards for `@senars/util/*`, `@senars/utils/*`, `@senars/lm/*`, `@senars/agent/*`, `@senars/self/*`, `@senars/tools/*` that add `.ts` extension
+- Specific aliases for commonly used sub-paths (`@senars/lm/service/cache`, `@senars/lm/rule/response-parser`, etc.)
 
-**Syntax error in transform** — some test files that import `@senars/agent` (and transitively `@senars/cortex`, `@senars/memory`, etc.) fail with "SyntaxError: Invalid or unexpected token" during esbuild transform. Root cause unknown; works with `tsx` but not vitest/esbuild.
+**Syntax error in transform** — ❌ **PARTIALLY FIXED**. Oxc (vitest 5.x default transformer) fails with "SyntaxError: Invalid or unexpected token" on files with `.js` extension imports in TypeScript source. This affects the `@senars/agent` → `@senars/self` → `@senars/tools/impls` dependency chain. The `.js` extensions are required for Node.js ESM runtime but oxc doesn't parse them in `.ts` files.
+
+**UI package exports** — ❌ **UNFIXED**. Some `@senars/ui` sub-paths (e.g., `./client/core/store`) are not exported correctly.
+
+**Progress:** 211/394 test files passing, 1851/1853 tests passing. Remaining failures are:
+- ~30 test files with oxc syntax errors (import `@senars/agent`/`@senars/self`)
+- ~150 UI test files with export issues
+- A few alias resolution edge cases
 
 **Action items:**
-- [ ] Audit vitest.config.ts aliases: ensure all `@senars/util/*` and `@senars/utils/*` sub-paths are covered by specific aliases or working regex wildcards
-- [ ] Debug esbuild transform syntax error: isolate minimal reproduction, check for unsupported TypeScript syntax in dependency chain
+- [ ] Fix oxc syntax errors: remove `.js` extensions from TypeScript imports in `src/tools/impls/`, `src/self/`, `src/cognitive/impls/`, `src/imagination/` (or configure oxc to handle them)
+- [ ] Fix UI package exports: ensure all required sub-paths are exported in `@senars/ui/package.json`
 - [ ] Run full test suite with `pnpm test:unit` and verify 0 failures
-- [ ] Remove test files that are no longer relevant (marked as excluded in test:unit script)
 

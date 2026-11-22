@@ -1,5 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { writeFileSync, rmSync } from 'node:fs';
 import { boundedDeadline, TimeoutError, withDeadline } from '@senars/utils';
 import { describe, expect, it } from 'vitest';
 
@@ -131,15 +133,23 @@ describe('raceDeadline', () => {
     // not hold one either empties the loop and the process exits 13 before the
     // deadline it was asked for can fire. In-process, the test runner's own
     // handles mask it.
-    const source =
-      `import('@senars/util/async').then(async ({ raceDeadline }) => {` +
-      `  const outcome = await raceDeadline(new Promise(() => {}), 100);` +
-      `  process.stdout.write('timedOut=' + outcome.timedOut);` +
-      `});`;
-    const stdout = execFileSync(process.execPath, ['--import', 'tsx', '--eval', source], {
-      cwd: ROOT,
-      encoding: 'utf8',
-    });
-    expect(stdout).toBe('timedOut=true');
+    const source = `
+import('@senars/util/async').then(async ({ raceDeadline }) => {
+  const outcome = await raceDeadline(new Promise(() => {}), 2000);
+  process.stdout.write('timedOut=' + outcome.timedOut);
+});
+`;
+    const testFile = join(tmpdir(), 'race-deadline-test.ts');
+    writeFileSync(testFile, source);
+    try {
+      const stdout = execFileSync('npx', ['tsx', '--tsconfig', 'tsconfig.root.json', testFile], {
+        cwd: ROOT,
+        encoding: 'utf8',
+        timeout: 5000,
+      });
+      expect(stdout).toBe('timedOut=true');
+    } finally {
+      rmSync(testFile, { force: true });
+    }
   });
 });

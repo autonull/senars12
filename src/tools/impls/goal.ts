@@ -1,8 +1,8 @@
 import { toolError } from '@senars/types/engine';
 import type { Term } from '../../terms';
-import { readOperationTerm } from '../../terms/impls/operation-term.js';
+import { readOperationTerm } from '../../terms/impls/operation-term';
 import type { Tool, ToolContext, ToolResult } from '../types';
-import { getFixPatternMapping } from './self-concept.js';
+import { getFixPatternMapping } from './self-concept';
 
 /** Minimal manager surface needed for goal execution. */
 export interface ToolExecutor {

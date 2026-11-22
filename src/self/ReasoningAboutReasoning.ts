@@ -2,15 +2,15 @@ import { createLogger } from '@senars/util/logger';
 import { errMsg } from '@senars/util/error';
 import { periodic } from '@senars/util/async';
 import { takeLast } from '@senars/util/collections';
-import { MetacognitiveMonitor, MONITOR_DEFAULTS } from '../cognitive/impls/MetacognitiveMonitor.js';
+import { MetacognitiveMonitor, MONITOR_DEFAULTS } from '../cognitive/impls/MetacognitiveMonitor';
 import {
   type MetaCognitiveResult,
   type MonitorState,
   SelfAnalyzerService as SelfAnalyzer,
-} from '../cognitive/impls/SelfAnalyzerService.js';
-import type { QualityAssessment } from '../cognitive/types.js';
-import type { SelfHost } from '../self/host.js';
-import type { TermTruth } from '../types/truth.js';
+} from '../cognitive/impls/SelfAnalyzerService';
+import type { QualityAssessment } from '../cognitive/types';
+import type { SelfHost } from '../self/host';
+import type { TermTruth } from '../types/truth';
 
 export interface GapReport {
   missingRules: string[];

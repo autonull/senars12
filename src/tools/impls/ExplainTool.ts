@@ -2,7 +2,7 @@ import { toolError, toolOk } from '@senars/types/engine';
 import type { Concept, Memory } from '../../memory';
 import { termParser } from '../../terms';
 import type { ToolSchema, Tool, ToolContext, ToolResult } from '../types';
-import { tool } from './decorator.js';
+import { tool } from './decorator';
 
 @tool({
   name: 'explain',

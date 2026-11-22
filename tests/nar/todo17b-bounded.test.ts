@@ -10,6 +10,7 @@ import {
 } from '@senars/util/memory/in-memory-session-manager';
 import { EGraph } from '@senars/metta/engine/egraph';
 import { Memory } from '@senars/memory/memory';
+import { ResponseCache } from '@senars/lm/service/cache';
 
 /**
  * Bench 38 — Bounded Runtime (TODO17b Phase B)
@@ -139,8 +140,7 @@ describe('Bench 38 — Bounded Runtime', () => {
     expect(store.getOrCreate('a').history).toEqual([]); // LRU-evicted, recreated fresh
   });
 
-  it('D16 — LM cache sweep piggybacks on writes', async () => {
-    const { ResponseCache } = await import('@senars/lm/service/cache');
+  it('D16 — LM cache sweep piggybacks on writes', () => {
     let clock = 1_000;
     const rc = new ResponseCache({ ttlMs: 60_000, now: () => clock });
     rc.set('stale', 'v');
