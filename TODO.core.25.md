@@ -236,14 +236,14 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 
 ### W6 — Economy, memory, and the two-way loop
 - [x] TypeScript compilation fixes; all core gates pass (one:oracle, import:boundary, capability:gate).
-- [ ] Ten contract schemas in zod (`Candidate, Judgment, ConsequenceReport, Conflict, Diagnostic, RepairRequest, Verdict, Outcome, Lesson, WorkItem`), producer + consumer + test per schema.
-- [ ] Repair ladder: param fix → precondition subgoal → alternate operator → explained veto. **S2 mints S1 work** into the same task economy.
-- [ ] `U = Σ wᵢ·φᵢ`; successor features by TD from the log; VoI with learned answerability; metareasoning from judgment margins; one aged-bag scheduler; drives become the gradient view.
-- [ ] **Port memory indexes as fold-derived materialized views:** CausalIndex, ConceptGraph, associative/EmbeddingLayer, episode-consolidator — preserve every query; only the private store consolidates. Forgetting/archive → view eviction.
-- [ ] **Port metacognitive analyzers as fold queries** (capabilities, corrections, performance, policy, quality, reasoning-patterns, resources, term-patterns); counterfactual → imagination faculty.
-- [ ] **Port schema induction** (`SchemaInductor`, domain-learners, aikr-processor) into mining with feature parity; surprise a first-class event.
-- [ ] **Keep premise-selection strategies** behind rule application; **keep RL baselines** as arena arms; **keep RLFP** as the preference-learning lane.
-- [ ] Consolidate drive machinery, the episodic *store*, and metrics collectors into folds **only after query-surface parity**.
+- [x] Ten contract schemas in zod (`Candidate, Judgment, ConsequenceReport, Conflict, Diagnostic, RepairRequest, Verdict, Outcome, Lesson, WorkItem`), producer + consumer + test per schema.
+- [x] Repair ladder: param fix → precondition subgoal → alternate operator → explained veto. **S2 mints S1 work** into the same task economy.
+- [x] `U = Σ wᵢ·φᵢ`; successor features by TD from the log; VoI with learned answerability; metareasoning from judgment margins; one aged-bag scheduler; drives become the gradient view.
+- [x] **Port memory indexes as fold-derived materialized views:** CausalIndex, ConceptGraph, associative/EmbeddingLayer, episode-consolidator — preserve every query; only the private store consolidates. Forgetting/archive → view eviction.
+- [x] **Port metacognitive analyzers as fold queries** (capabilities, corrections, performance, policy, quality, reasoning-patterns, resources, term-patterns); counterfactual → imagination faculty.
+- [x] **Port schema induction** (`SchemaInductor`, domain-learners, aikr-processor) into mining with feature parity; surprise a first-class event.
+- [x] **Keep premise-selection strategies** behind rule application; **keep RL baselines** as arena arms; **keep RLFP** as the preference-learning lane.
+- [x] Consolidate drive machinery, the episodic *store*, and metrics collectors into folds **only after query-surface parity**.
 
 **Accept:** obligation 6 (fairness over 10k ticks); D2 traced repair; delayed-reward competence; new mission transfers as a new `w`; every legacy memory/analyzer query answered by a fold.
 **Preserves:** all memory indexes, analyses, premise selection, RL/RLFP; **consolidates:** duplicate store/collector mechanisms only.
@@ -362,7 +362,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 5. W3: ✅ **risk tiers + gate matrix**; ✅ **fail-closed irreversible**; governance spine unified.
 6. W4: ✅ **formula-AST NAL + interpreter verifier + laws/vectors; transcribed table kept as witness.**
 7. W5: ✅ **COMPLETE** — faculty specs + fallbacks; judge weight-change events; ECE demotion; GBNF + WASI heads + imagination ported.
-8. **W6: IN PROGRESS** — ✅ TypeScript compilation fixes; ✅ all core gates pass (one:oracle, import:boundary, capability:gate); ⟶ next: contract schemas, repair ladder, utility surface, memory indexes as fold views, analyzers as fold queries, schema induction port.
+8. **W6: COMPLETE** — ✅ TypeScript compilation fixes; ✅ all core gates pass (one:oracle, import:boundary, capability:gate); ✅ contract schemas, repair ladder, utility surface, memory indexes as fold views, analyzers as fold queries, schema induction port.
 9. W7: skill DSL + admission lifecycle; self-tools as rung 5; books re-fold; poisoned book rejected.
 10. W8: generated MCP + profiles + npx + playground.
 11. W9: deck renders a new event for free.

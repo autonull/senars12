@@ -293,3 +293,204 @@ export function selectByVoI(
 
   return ranked[0]?.task ?? null;
 }
+
+/** Answerability — learned estimate of whether a task can be answered/resolved. */
+export interface AnswerabilityModel {
+  /** Task features that predict answerability. */
+  featureWeights: Record<string, number>;
+  /** Bias term. */
+  bias: number;
+  /** Training samples. */
+  samples: number;
+  /** Accuracy on validation. */
+  accuracy: number;
+  /** Updated at. */
+  updatedAt: number;
+}
+
+/** Default answerability model (uninformative prior). */
+export const defaultAnswerabilityModel: AnswerabilityModel = {
+  featureWeights: {
+    has_oracle: 0.5,
+    has_faculty: 0.3,
+    truth_confidence: 0.2,
+    task_kind_goal: 0.1,
+    task_kind_belief: 0.1,
+    task_kind_skill: 0.1,
+  },
+  bias: 0.5,
+  samples: 0,
+  accuracy: 0.5,
+  updatedAt: Date.now(),
+};
+
+/** Task features for answerability prediction. */
+export interface AnswerabilityFeatures {
+  /** Has matching oracle. */
+  hasOracle: number;
+  /** Has matching faculty. */
+  hasFaculty: number;
+  /** Truth confidence. */
+  truthConfidence: number;
+  /** Task kind one-hot. */
+  taskKind: Record<TaskBagKind, number>;
+  /** Task age (normalized). */
+  ageNormalized: number;
+  /** Access count (normalized). */
+  accessNormalized: number;
+}
+
+/** Extract answerability features from a task. */
+export function extractAnswerabilityFeatures(
+  task: EconomyTask,
+  oracleCapabilities: string[],
+  facultyCapabilities: string[]
+): AnswerabilityFeatures {
+  const taskStr = task.term.toString();
+  const taskPrefix = taskStr.split('(')[0] ?? taskStr;
+
+  let hasOracle = 0;
+  for (const cap of oracleCapabilities) {
+    if (taskStr.includes(cap) || cap.includes(taskPrefix)) {
+      hasOracle = 1;
+      break;
+    }
+  }
+
+  let hasFaculty = 0;
+  for (const cap of facultyCapabilities) {
+    if (taskStr.includes(cap) || cap.includes(taskPrefix)) {
+      hasFaculty = 1;
+      break;
+    }
+  }
+
+  const taskKind: Record<TaskBagKind, number> = {
+    belief: 0,
+    goal: 0,
+    skill: 0,
+    faculty: 0,
+    rule: 0,
+    plan: 0,
+  };
+  taskKind[task.kind] = 1;
+
+  const ageHours = (Date.now() - task.createdAt) / (1000 * 60 * 60);
+
+  return {
+    hasOracle,
+    hasFaculty,
+    truthConfidence: task.truth.c,
+    taskKind,
+    ageNormalized: Math.min(1, ageHours / 168),
+    accessNormalized: Math.min(1, task.accessCount / 100),
+  };
+}
+
+/** Predict answerability (probability task can be resolved). */
+export function predictAnswerability(
+  features: AnswerabilityFeatures,
+  model: AnswerabilityModel = defaultAnswerabilityModel
+): number {
+  let logit = model.bias;
+  logit += model.featureWeights.has_oracle ?? 0 * features.hasOracle;
+  logit += model.featureWeights.has_faculty ?? 0 * features.hasFaculty;
+  logit += model.featureWeights.truth_confidence ?? 0 * features.truthConfidence;
+  logit += model.featureWeights.task_kind_goal ?? 0 * features.taskKind.goal;
+  logit += model.featureWeights.task_kind_belief ?? 0 * features.taskKind.belief;
+  logit += model.featureWeights.task_kind_skill ?? 0 * features.taskKind.skill;
+
+  // Sigmoid
+  return 1 / (1 + Math.exp(-logit));
+}
+
+/** Train answerability model from outcomes. */
+export function trainAnswerabilityModel(
+  outcomes: Array<{ task: EconomyTask; resolved: boolean }>,
+  oracleCapabilities: string[],
+  facultyCapabilities: string[],
+  initialModel?: AnswerabilityModel
+): AnswerabilityModel {
+  const model = initialModel ?? { ...defaultAnswerabilityModel };
+  const learningRate = 0.01;
+
+  for (const { task, resolved } of outcomes) {
+    const features = extractAnswerabilityFeatures(task, oracleCapabilities, facultyCapabilities);
+    const prediction = predictAnswerability(features, model);
+    const target = resolved ? 1 : 0;
+    const error = target - prediction;
+
+    // Gradient descent on logit
+    const grad = error * prediction * (1 - prediction); // derivative of sigmoid
+
+    model.bias += learningRate * grad;
+    model.featureWeights.has_oracle = (model.featureWeights.has_oracle ?? 0) + learningRate * grad * features.hasOracle;
+    model.featureWeights.has_faculty = (model.featureWeights.has_faculty ?? 0) + learningRate * grad * features.hasFaculty;
+    model.featureWeights.truth_confidence = (model.featureWeights.truth_confidence ?? 0) + learningRate * grad * features.truthConfidence;
+    model.featureWeights.task_kind_goal = (model.featureWeights.task_kind_goal ?? 0) + learningRate * grad * features.taskKind.goal;
+    model.featureWeights.task_kind_belief = (model.featureWeights.task_kind_belief ?? 0) + learningRate * grad * features.taskKind.belief;
+    model.featureWeights.task_kind_skill = (model.featureWeights.task_kind_skill ?? 0) + learningRate * grad * features.taskKind.skill;
+
+    model.samples++;
+  }
+
+  model.updatedAt = Date.now();
+  return model;
+}
+
+/** VoI with learned answerability. */
+export interface VoIWithAnswerability extends VoIBreakdown {
+  /** Predicted answerability. */
+  answerability: number;
+  /** Answerability-weighted VoI. */
+  adjustedTotal: number;
+}
+
+/** Calculate VoI with answerability weighting. */
+export function calculateVoIWithAnswerability(
+  context: VoIContext,
+  answerabilityModel: AnswerabilityModel = defaultAnswerabilityModel
+): VoIWithAnswerability {
+  const baseVoI = calculateDetailedVoI(context);
+
+  const features = extractAnswerabilityFeatures(
+    context.task,
+    context.oracleCapabilities,
+    context.facultyCapabilities
+  );
+  const answerability = predictAnswerability(features, answerabilityModel);
+
+  // Downweight VoI for unanswerable tasks
+  const adjustedTotal = baseVoI.total * answerability;
+
+  return {
+    ...baseVoI,
+    answerability,
+    adjustedTotal,
+  };
+}
+
+/** Rank tasks by answerability-adjusted VoI. */
+export function rankByVoIWithAnswerability(
+  tasks: EconomyTask[],
+  goals: EconomyTask[],
+  beliefs: EconomyTask[],
+  skills: EconomyTask[],
+  oracleCapabilities: string[],
+  facultyCapabilities: string[],
+  iteration: number,
+  answerabilityModel: AnswerabilityModel = defaultAnswerabilityModel
+): Array<{ task: EconomyTask; voi: VoIWithAnswerability }> {
+  const ranked: Array<{ task: EconomyTask; voi: VoIWithAnswerability }> = [];
+
+  for (const task of tasks) {
+    const voi = calculateVoIWithAnswerability(
+      { task, goals, beliefs, skills, oracleCapabilities, facultyCapabilities, iteration },
+      answerabilityModel
+    );
+    ranked.push({ task, voi });
+  }
+
+  ranked.sort((a, b) => b.voi.adjustedTotal - a.voi.adjustedTotal);
+  return ranked;
+}

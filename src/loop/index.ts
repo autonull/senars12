@@ -54,6 +54,7 @@ export {
 } from './record.js';
 
 export * from './contract.js';
+export * from './contracts/index.js';
 export * from './repair.js';
 export * from './appraise.js';
 export * from './self-model.js';

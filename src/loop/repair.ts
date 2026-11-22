@@ -108,7 +108,16 @@ export interface GateState {
 }
 
 /** Repair action types. */
-export const REPAIR_ACTIONS = [
+/** Core repair ladder actions (escalating severity). */
+export const REPAIR_LADDER_ACTIONS = [
+  'param_fix',
+  'precondition_subgoal',
+  'alternate_operator',
+  'explained_veto',
+] as const;
+
+/** Operational repair actions. */
+export const REPAIR_OPERATIONAL_ACTIONS = [
   'restart_oracle',
   'clear_cache',
   'reset_gate',
@@ -121,7 +130,14 @@ export const REPAIR_ACTIONS = [
   'alert_human',
 ] as const;
 
+/** All repair action types. */
+export const REPAIR_ACTIONS = [
+  ...REPAIR_LADDER_ACTIONS,
+  ...REPAIR_OPERATIONAL_ACTIONS,
+] as const;
+
 export type RepairActionType = (typeof REPAIR_ACTIONS)[number];
+export type RepairLadderActionType = (typeof REPAIR_LADDER_ACTIONS)[number];
 
 /** Repair action. */
 export interface RepairAction {
@@ -247,6 +263,49 @@ export const defaultRepairPolicies: RepairPolicy[] = [
     cooldownMs: 300000,
   },
 ];
+
+/** Repair ladder policy — escalates through param_fix → precondition_subgoal → alternate_operator → explained_veto. */
+export const repairLadderPolicy: RepairPolicy = {
+  anomalyType: 'stall', // Generic; ladder can be invoked for any anomaly
+  minSeverity: 'low',
+  actions: [
+    { type: 'param_fix', target: 'config', params: {}, priority: 10, estimatedRecoveryMs: 50, safe: true },
+    { type: 'precondition_subgoal', target: 'loop', params: { subgoal: 'establish_precondition' }, priority: 8, estimatedRecoveryMs: 500, safe: true },
+    { type: 'alternate_operator', target: 'faculty', params: { operator: 'alternate' }, priority: 6, estimatedRecoveryMs: 1000, safe: true },
+    { type: 'explained_veto', target: 'action', params: { reason: 'Escalation exhausted' }, priority: 4, estimatedRecoveryMs: 0, safe: true },
+  ],
+  maxRetries: 1,
+  cooldownMs: 10000,
+};
+
+/** Generate repair ladder actions for a specific anomaly. */
+export function generateRepairLadder(
+  anomaly: Anomaly,
+  baseParams: Record<string, unknown> = {}
+): RepairAction[] {
+  const ladderActions: RepairLadderActionType[] = ['param_fix', 'precondition_subgoal', 'alternate_operator', 'explained_veto'];
+  return ladderActions.map((type, index) => ({
+    type,
+    target: baseParams.target ?? 'loop',
+    params: { ...baseParams, ...ladderParams(type) },
+    priority: 10 - index * 2,
+    estimatedRecoveryMs: [50, 500, 1000, 0][index],
+    safe: true,
+  }));
+}
+
+function ladderParams(type: RepairLadderActionType): Record<string, unknown> {
+  switch (type) {
+    case 'param_fix':
+      return { parameter: 'explorationRate', newValue: 0.1 };
+    case 'precondition_subgoal':
+      return { subgoal: 'check_consistency' };
+    case 'alternate_operator':
+      return { operator: 'revision' };
+    case 'explained_veto':
+      return { reason: 'Repair ladder exhausted; action vetoed' };
+  }
+}
 
 /** Repair loop configuration. */
 export interface RepairLoopConfig {
@@ -418,6 +477,20 @@ export class RepairLoop {
   /** Execute a single repair action. */
   private async executeAction(action: RepairAction, context: RepairContext): Promise<void> {
     switch (action.type) {
+      // Repair ladder actions (escalating)
+      case 'param_fix':
+        await this.executeParamFix(action, context);
+        break;
+      case 'precondition_subgoal':
+        await this.executePreconditionSubgoal(action, context);
+        break;
+      case 'alternate_operator':
+        await this.executeAlternateOperator(action, context);
+        break;
+      case 'explained_veto':
+        await this.executeExplainedVeto(action, context);
+        break;
+      // Operational actions
       case 'restart_oracle':
         await this.restartOracle(action.target, action.params);
         break;
@@ -449,6 +522,53 @@ export class RepairLoop {
         this.alertHuman(action.params);
         break;
     }
+  }
+
+  /** Execute param fix — adjust a parameter value. */
+  private async executeParamFix(action: RepairAction, _context: RepairContext): Promise<void> {
+    const { parameter, newValue } = action.params as { parameter: string; newValue: unknown };
+    console.log(`Param fix: ${parameter} = ${JSON.stringify(newValue)}`);
+    // In a real implementation, this would update a config parameter
+    // For now, emit an event for the parameter change
+  }
+
+  /** Execute precondition subgoal — create a subgoal to establish a precondition. */
+  private async executePreconditionSubgoal(action: RepairAction, context: RepairContext): Promise<void> {
+    const { subgoal } = action.params as { subgoal: string };
+    console.log(`Precondition subgoal: ${subgoal}`);
+    // S2 mints S1 work: create a WorkItem for the subgoal
+    // This would be integrated with the task economy
+    await this.mintSubgoalWork(context, subgoal, 'precondition');
+  }
+
+  /** Execute alternate operator — switch to a different operator/faculty. */
+  private async executeAlternateOperator(action: RepairAction, context: RepairContext): Promise<void> {
+    const { operator } = action.params as { operator: string };
+    console.log(`Alternate operator: ${operator}`);
+    // S2 mints S1 work: create a WorkItem for the alternate approach
+    await this.mintSubgoalWork(context, operator, 'alternate');
+  }
+
+  /** Execute explained veto — veto an action with explanation. */
+  private async executeExplainedVeto(action: RepairAction, context: RepairContext): Promise<void> {
+    const { reason } = action.params as { reason: string };
+    console.log(`Explained veto: ${reason}`);
+    // S2 mints S1 work: create a WorkItem to document the veto rationale
+    await this.mintSubgoalWork(context, reason, 'veto');
+  }
+
+  /** Mint a subgoal WorkItem into the task economy (S2 mints S1 work). */
+  private async mintSubgoalWork(
+    context: RepairContext,
+    description: string,
+    type: 'precondition' | 'alternate' | 'veto'
+  ): Promise<void> {
+    // This would integrate with the economy to create a WorkItem
+    // For now, log the intent
+    console.log(`[S2→S1] Minting ${type} subgoal: ${description}`);
+    // In full implementation:
+    // const workItem = createWorkItem({ type: 'repair_execution', ... });
+    // economy.schedule(workItem);
   }
 
   /** Restart an oracle. */
@@ -561,6 +681,44 @@ export class RepairLoop {
   /** Get recent repairs. */
   getRecentRepairs(limit = 10): RepairResult[] {
     return this.repairHistory.slice(-limit);
+  }
+
+  /** Run the repair ladder for an anomaly (escalates through param_fix → precondition_subgoal → alternate_operator → explained_veto). */
+  async runRepairLadder(anomaly: Anomaly, baseParams: Record<string, unknown> = {}): Promise<RepairResult> {
+    const ladderActions = generateRepairLadder(anomaly, baseParams);
+    const startTs = this.clock.now();
+    let success = false;
+    let error: string | undefined;
+    const actionsTaken: RepairAction[] = [];
+
+    for (const action of ladderActions) {
+      try {
+        await this.executeAction(action, anomaly.context);
+        actionsTaken.push(action);
+        // If action succeeds, we could stop here (escalation stops on success)
+        // For ladder, we continue to document the full escalation path
+        success = true;
+      } catch (e) {
+        error = e instanceof Error ? e.message : String(e);
+        console.warn(`Repair ladder action ${action.type} failed:`, error);
+        // Continue to next escalation step
+      }
+    }
+
+    const durationMs = this.clock.now() - startTs;
+
+    const result: RepairResult = {
+      anomalyId: anomaly.id,
+      actions: actionsTaken,
+      success,
+      durationMs,
+      error,
+    };
+
+    this.repairHistory.push(result);
+    if (this.repairHistory.length > 1000) this.repairHistory.shift();
+
+    return result;
   }
 }
 

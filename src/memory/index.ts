@@ -34,6 +34,7 @@ export { Layer } from './links/Layer.js';
 export { AssociativeRegistry, LinkLayerMemory, type AssociativeMemory } from './associative.js';
 export { EpisodeConsolidator, symbolicSummary, episodeSalience, causalConnections } from './episode-consolidator.js';
 export { consolidateEpisodes } from './retrieval-verified.js';
+export * from './fold-views.js';
 export type { ConceptStats, SerializedConcept, SerializedMemory } from './state/index.js';
 export {
   calculateConceptStats,

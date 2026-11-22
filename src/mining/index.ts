@@ -8,3 +8,4 @@
 export * from './schemas.js';
 export * from './surprise.js';
 export * from './learn.js';
+export * from './schema-mining.js';

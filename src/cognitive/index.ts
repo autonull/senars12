@@ -48,3 +48,4 @@ export {
   createDefaultRegistry,
   resolveSlot,
 } from './impls/CognitiveRegistry.js';
+export * from './fold-queries.js';

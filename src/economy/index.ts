@@ -13,6 +13,8 @@ export * from './successor.js';
 export * from './voi.js';
 export * from './aging.js';
 export * from './overlays.js';
+export * from './drives.js';
+export * from './td-learning.js';
 
 import { EconomyScheduler, createEconomyScheduler, economyScheduler, type SchedulerResult } from './scheduler.js';
 import type { EconomyTask, SchedulerConfig, EconomyState, Successor } from './types.js';
