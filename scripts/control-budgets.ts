@@ -20,7 +20,7 @@
 import { readFileSync } from 'node:fs';
 import { relative } from 'node:path';
 
-import { BUDGET_OPERATIONS } from '@senars/schemas';
+import { BUDGET_OPERATIONS } from '@senars/schemas/gate-io';
 import {
   BUDGET_SCOPE_IDS,
   BUDGET_SCOPES,

@@ -122,10 +122,11 @@ export function extractFeatures(task: EconomyTask, featureNames: string[]): numb
       case 'access_count':
         features.push(Math.min(1, task.accessCount / 100));
         break;
-      case 'age_hours':
+      case 'age_hours': {
         const ageHours = (Date.now() - task.createdAt) / (1000 * 60 * 60);
         features.push(Math.min(1, ageHours / 168)); // Normalize to week
         break;
+      }
       default:
         features.push(0);
     }

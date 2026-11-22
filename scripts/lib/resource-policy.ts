@@ -26,7 +26,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { RESOURCE_CONTRACTS, type CapacitySource } from '../../nar/src/resources/contracts.js';
+import { RESOURCE_CONTRACTS, type CapacitySource } from '../../src/resources/contracts.js';
 import { ACCUMULATOR_LEDGER } from './accumulator-ledger.js';
 import { maskNonCode } from './imports.js';
 import { sourceFiles } from './source-scan.js';
@@ -80,7 +80,7 @@ export const mentionsInPackage = (symbol: string): number => {
   const cached = mentionCache.get(symbol);
   if (cached !== undefined) return cached;
   const pattern = new RegExp(String.raw`\b${symbol}\b`, 'g');
-  const total = sourceFiles(fromRoot('nar/src')).reduce(
+  const total = sourceFiles(fromRoot('src')).reduce(
     (count, file) => count + (maskNonCode(readFileSync(file, 'utf8')).match(pattern)?.length ?? 0),
     0
   );

@@ -87,6 +87,7 @@ function evalTermRef(ref: TermRef, ctx: EvalContext): Term {
           return premise.term.args[1]!;
         }
       }
+      break;
     }
     case 'constant':
       return termInterner.constant(ref.value);

@@ -83,7 +83,7 @@ export interface ResourceContract {
 }
 
 const memory = (field: string): CapacitySource => ({
-  module: 'nar/src/memory/config.ts',
+  module: 'src/memory/config.ts',
   symbol: 'DEFAULT_MEMORY_CONFIG',
   field,
 });
@@ -92,7 +92,7 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'memory.concepts',
     holds: 'resident concepts, one per known term',
-    owner: 'nar/src/memory/memory.ts',
+    owner: 'src/memory/memory.ts',
     capacity: memory('maxConcepts'),
     retention: 'archive-then-forget',
     overflow:
@@ -103,7 +103,7 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
     id: 'memory.tasks',
     holds:
       'tasks held across every resident concept — the dominant consumer, not the concept count',
-    owner: 'nar/src/memory/memory.ts',
+    owner: 'src/memory/memory.ts',
     capacity: memory('maxTasks'),
     unbounded:
       'no measured bound exists, and an unmeasured one is dangerous rather than merely absent: pressure is the max over the bounds, so too low a maxTasks evicts healthy concepts exactly when the store has grown enough to be useful. TODO30 §5.9 measures it; until then the absence is the honest default',
@@ -115,7 +115,7 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'memory.archive',
     holds: 'archived concepts, evictable again by term',
-    owner: 'nar/src/memory/lifecycle/archive.ts',
+    owner: 'src/memory/lifecycle/archive.ts',
     capacity: memory('archiveMaxConcepts'),
     retention: 'drop-oldest',
     overflow:
@@ -125,7 +125,7 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'memory.focus',
     holds: 'the focused working set every topK read serves',
-    owner: 'nar/src/memory/focus.ts',
+    owner: 'src/memory/focus.ts',
     capacity: memory('focusMaxConcepts'),
     retention: 'drop-lowest-value',
     overflow: 'the lowest-priority concept leaves focus; focus is a projection, so nothing is lost',
@@ -134,9 +134,9 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'memory.revision-log',
     holds: 'revision entries, keyed by term key',
-    owner: 'nar/src/memory/memory.ts',
+    owner: 'src/memory/memory.ts',
     capacity: {
-      module: 'nar/src/memory/memory.ts',
+      module: 'src/memory/memory.ts',
       symbol: 'Memory',
       field: 'REVISION_LOG_CAP',
     },
@@ -148,7 +148,7 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'memory.links',
     holds: 'term-to-term association links, per layer',
-    owner: 'nar/src/memory/links/LinkManager.ts',
+    owner: 'src/memory/links/LinkManager.ts',
     capacity: memory('linkCapacity'),
     retention: 'drop-lowest-value',
     overflow: `the configured forgetPolicy (${'priority'} by default) sheds the weakest link at capacity`,
@@ -157,8 +157,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'kernel.gate-logs',
     holds: 'per-gate event rings — perception, action, autonomy, reward, budget',
-    owner: 'nar/src/kernel/event-ring.ts',
-    capacity: { module: 'nar/src/kernel/event-ring.ts', symbol: 'GATE_LOG_CAPACITY' },
+    owner: 'src/kernel/event-ring.ts',
+    capacity: { module: 'src/kernel/event-ring.ts', symbol: 'GATE_LOG_CAPACITY' },
     retention: 'drop-oldest',
     overflow:
       'BoundedRing drops the oldest event; the ring is an audit window, not the source of truth',
@@ -167,8 +167,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'kernel.rule-fires',
     holds: 'individual inference-rule fires, one row per fire (CORE.19 C3.1)',
-    owner: 'nar/src/rules/impls/recorder.ts',
-    capacity: { module: 'nar/src/rules/impls/recorder.ts', symbol: 'RULE_FIRE_RING_CAP' },
+    owner: 'src/rules/impls/recorder.ts',
+    capacity: { module: 'src/rules/impls/recorder.ts', symbol: 'RULE_FIRE_RING_CAP' },
     retention: 'drop-oldest',
     overflow:
       'BoundedRing drops the oldest fire; the completed-chain ring keeps the grouped records',
@@ -177,8 +177,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'kernel.checkpoints',
     holds: 'rewind checkpoints — whole-graph memory dumps taken every interval (CORE.19 C2.3)',
-    owner: 'nar/src/state/checkpoint.ts',
-    capacity: { module: 'nar/src/state/checkpoint.ts', symbol: 'CHECKPOINT_RING_CAP' },
+    owner: 'src/state/checkpoint.ts',
+    capacity: { module: 'src/state/checkpoint.ts', symbol: 'CHECKPOINT_RING_CAP' },
     retention: 'drop-oldest',
     overflow:
       'BoundedRing drops the oldest checkpoint; a rewind whose target predates the window restores the nearest survivor or reports none',
@@ -186,9 +186,9 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   },
   {
     id: 'kernel.source-reputation',    holds: 'per-source reputation, keyed by a source id that arrives on the wire',
-    owner: 'nar/src/kernel/source-reputation.ts',
+    owner: 'src/kernel/source-reputation.ts',
     capacity: {
-      module: 'nar/src/kernel/source-reputation.ts',
+      module: 'src/kernel/source-reputation.ts',
       symbol: 'DEFAULT_REPUTATION_CAPACITY',
     },
     retention: 'drop-oldest',
@@ -198,8 +198,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'stream.reasoner-queue',
     holds: 'in-flight synthesis requests awaiting a provider',
-    owner: 'nar/src/stream/reasoner.ts',
-    capacity: { module: 'nar/src/stream/reasoner.ts', symbol: 'REASONER_QUEUE_CAPACITY' },
+    owner: 'src/stream/reasoner.ts',
+    capacity: { module: 'src/stream/reasoner.ts', symbol: 'REASONER_QUEUE_CAPACITY' },
     retention: 'drop-newest',
     overflow:
       'a queued request above capacity is refused and counted in stats().dropped — the request already paid for its place, so dropping the oldest would refund a decision the system acted on',
@@ -208,9 +208,9 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'proposal.content-queue',
     holds: 'content proposals awaiting the next boundary',
-    owner: 'nar/src/proposal/lifecycle.ts',
+    owner: 'src/proposal/lifecycle.ts',
     capacity: {
-      module: 'nar/src/proposal/lifecycle.ts',
+      module: 'src/proposal/lifecycle.ts',
       symbol: 'DEFAULT_QUEUE_LIMITS',
       field: 'maxPendingContent',
     },
@@ -221,9 +221,9 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'proposal.rule-queue',
     holds: 'rule proposals awaiting the next boundary',
-    owner: 'nar/src/proposal/lifecycle.ts',
+    owner: 'src/proposal/lifecycle.ts',
     capacity: {
-      module: 'nar/src/proposal/lifecycle.ts',
+      module: 'src/proposal/lifecycle.ts',
       symbol: 'DEFAULT_QUEUE_LIMITS',
       field: 'maxPendingRules',
     },
@@ -235,8 +235,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'decision.port-await',
     holds: 'one in-flight decision ask, while its deadline runs',
-    owner: 'nar/src/ports/decision.ts',
-    capacity: { module: 'nar/src/ports/decision.ts', symbol: 'DECISION_ASK_TIMEOUT_MS' },
+    owner: 'src/ports/decision.ts',
+    capacity: { module: 'src/ports/decision.ts', symbol: 'DECISION_ASK_TIMEOUT_MS' },
     retention: 'drop-newest',
     overflow:
       'a decision that misses its deadline is abandoned and the caller takes its own path — a decision is advisory, so nothing is owed when one does not arrive',
@@ -246,8 +246,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'proposal.log',
     holds: "the seam's own audit log of admissions and rejections",
-    owner: 'nar/src/proposal/lifecycle.ts',
-    capacity: { module: 'nar/src/proposal/lifecycle.ts', symbol: 'PROPOSAL_LOG_CAPACITY' },
+    owner: 'src/proposal/lifecycle.ts',
+    capacity: { module: 'src/proposal/lifecycle.ts', symbol: 'PROPOSAL_LOG_CAPACITY' },
     retention: 'drop-oldest',
     overflow: 'BoundedRing drops the oldest; the kernel event log is what a replay reads',
     pressureSignal: null,
@@ -255,8 +255,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'learning.fairness-counters',
     holds: 'fairness aging counters, keyed by bag item id',
-    owner: 'nar/src/learning/aikr-processor.ts',
-    capacity: { module: 'nar/src/learning/aikr-processor.ts', symbol: 'FAIRNESS_TRACKED_CAPACITY' },
+    owner: 'src/learning/aikr-processor.ts',
+    capacity: { module: 'src/learning/aikr-processor.ts', symbol: 'FAIRNESS_TRACKED_CAPACITY' },
     retention: 'drop-oldest',
     overflow: 'LruCache evicts the longest-unaged id; the bag has already evicted its own items',
     pressureSignal: null,
@@ -264,8 +264,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'rl.qbelief-store',
     holds: 'beliefs over state-action pairs, keyed by an untrusted stream',
-    owner: 'nar/src/rl/impls/QBeliefStore.ts',
-    capacity: { module: 'nar/src/rl/impls/QBeliefStore.ts', symbol: 'DEFAULT_QBELIEF_CAPACITY' },
+    owner: 'src/rl/impls/QBeliefStore.ts',
+    capacity: { module: 'src/rl/impls/QBeliefStore.ts', symbol: 'DEFAULT_QBELIEF_CAPACITY' },
     retention: 'drop-oldest',
     overflow: 'LruCache evicts the least recently used state',
     pressureSignal: null,
@@ -273,8 +273,8 @@ export const RESOURCE_CONTRACTS: readonly ResourceContract[] = [
   {
     id: 'rule-table.revisions',
     holds: 'past rule table artifacts for revert capability',
-    owner: 'nar/src/rules/impls/rule-table.ts',
-    capacity: { module: 'nar/src/rules/impls/rule-table.ts', symbol: 'RULE_TABLE_MAX_HISTORY' },
+    owner: 'src/rules/impls/rule-table.ts',
+    capacity: { module: 'src/rules/impls/rule-table.ts', symbol: 'RULE_TABLE_MAX_HISTORY' },
     retention: 'drop-oldest',
     overflow:
       'oldest revision is dropped when history exceeds RULE_TABLE_MAX_HISTORY; revert to a dropped revision fails with artifact-version error',

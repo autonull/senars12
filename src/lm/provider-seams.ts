@@ -52,7 +52,7 @@ export const PROVIDER_SEAMS: readonly ProviderSeam[] = [
   {
     id: 'lm-rule-apply',
     call: 'LMRule.apply',
-    callSites: [{ file: 'nar/src/lm/rule/LMRule.ts', contains: 'await withTimeout(' }],
+    callSites: [{ file: 'src/lm/rule/LMRule.ts', contains: 'await withTimeout(' }],
     onCyclePath: false,
     bounded: true,
     bound: 'LMRule.callTimeoutMs — the deadline on one provider call, default 8s',
@@ -62,7 +62,7 @@ export const PROVIDER_SEAMS: readonly ProviderSeam[] = [
     id: 'ingress-judge',
     call: 'IngressJudge.judge',
     callSites: [
-      { file: 'nar/src/kernel/KernelPerceptionGate.ts', contains: 'await withDeadline(' },
+      { file: 'src/kernel/KernelPerceptionGate.ts', contains: 'await withDeadline(' },
     ],
     onCyclePath: true,
     bounded: true,
@@ -73,7 +73,7 @@ export const PROVIDER_SEAMS: readonly ProviderSeam[] = [
   {
     id: 'stream-reasoner-backend',
     call: 'LMBackend',
-    callSites: [{ file: 'nar/src/stream/reasoner.ts', contains: 'await raceDeadline(' }],
+    callSites: [{ file: 'src/stream/reasoner.ts', contains: 'await raceDeadline(' }],
     onCyclePath: false,
     bounded: true,
     bound: 'StreamReasoner.backendTimeoutMs — the deadline on one flush, default 8s',

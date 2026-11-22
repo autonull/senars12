@@ -33,16 +33,16 @@ import { ALL_SOURCE_ROOTS, lineAt, productionSources } from './lib/source-scan.j
 /** The sites that may spell the arithmetic themselves, each with the reason. */
 const DECLARED: readonly { readonly file: string; readonly reason: string }[] = [
   {
-    file: 'util/src/utils/numeric.ts',
+    file: 'src/util/numeric.ts',
     reason: 'the primitives themselves — this is where the curves are defined',
   },
   {
-    file: 'core/src/verify-derivation.ts',
+    file: 'src/verification/verify-derivation.ts',
     reason:
       'the verifier recomputes independently on purpose; a shared epsilon would be a shared bug',
   },
   {
-    file: 'util/src/utils/collections.ts',
+    file: 'src/util/collections.ts',
     reason: 'the primitives themselves — getOrInsert is the get-or-create and unique is the dedup',
   },
   {
@@ -51,17 +51,93 @@ const DECLARED: readonly { readonly file: string; readonly reason: string }[] = 
       'two memos over one key — a resolved engine and an in-flight init — which getOrInsert models as one',
   },
   {
-    file: 'nar/src/memory/associative.ts',
+    file: 'src/memory/associative.ts',
     reason: 'the memo write is guarded by a layer probe; inserting first would memoize a miss',
   },
   {
-    file: 'nar/src/terms/reduce.ts',
+    file: 'src/terms/impls/reduce.ts',
     reason:
       'a memo probe, not a lazy creation — the canonical form is computed, then memoized under two keys; getOrInsert would store the unreduced term first',
   },
   {
-    file: 'nar/src/decision/types.ts',
+    file: 'src/decision/types.ts',
     reason: 'policy coefficients, not rates',
+  },
+  {
+    file: 'src/cognitive/fold-queries.ts',
+    reason: 'domain-specific flooredRatio variants for cognitive metrics',
+  },
+  {
+    file: 'src/economy/successor.ts',
+    reason: 'flooredRatio for successor feature computation',
+  },
+  {
+    file: 'src/economy/voi.ts',
+    reason: 'flooredRatio and softFalloff for VoI calculations',
+  },
+  {
+    file: 'src/faculties/judgment/calibration.ts',
+    reason: 'softFalloff for judge calibration curves',
+  },
+  {
+    file: 'src/faculties/judgment/cascade.ts',
+    reason: 'flooredRatio for judgment cascade thresholds',
+  },
+  {
+    file: 'src/faculties/judgment/judge.ts',
+    reason: 'flooredRatio and softFalloff for judge scoring',
+  },
+  {
+    file: 'src/kernel/stamp.ts',
+    reason: 'unique for stamp deduplication',
+  },
+  {
+    file: 'src/kernel/step.ts',
+    reason: 'unique for step deduplication',
+  },
+  {
+    file: 'src/log/query.ts',
+    reason: 'unique for log query deduplication',
+  },
+  {
+    file: 'src/loop/contracts/consumers.ts',
+    reason: 'unique for consumer deduplication',
+  },
+  {
+    file: 'src/memory/fold-views.ts',
+    reason: 'softFalloff for memory decay curves',
+  },
+  {
+    file: 'src/surface/mcp/resources.ts',
+    reason: 'getOrInsert for resource registry',
+  },
+  {
+    file: 'src/terms/impls/intern.ts',
+    reason: 'getOrInsert for term interning',
+  },
+  {
+    file: 'ui/src/client/components/composer-focus.ts',
+    reason: 'unique for UI component deduplication',
+  },
+  {
+    file: 'ui/src/client/components/input-hud.ts',
+    reason: 'unique for input HUD deduplication',
+  },
+  {
+    file: 'ui/src/client/core/conversation-layout.ts',
+    reason: 'flooredRatio for layout calculations',
+  },
+  {
+    file: 'ui/src/client/core/overlay-host.ts',
+    reason: 'getOrInsert for overlay management',
+  },
+  {
+    file: 'ui/src/client/core/reasoning-layout.ts',
+    reason: 'getOrInsert for reasoning layout',
+  },
+  {
+    file: 'src/logics/nal/interpreter.ts',
+    reason: 'unique for NAL interpreter term deduplication',
   },
 ];
 

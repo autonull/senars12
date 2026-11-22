@@ -106,6 +106,7 @@ describe('W7 — Skill DSL', () => {
 
     it('compiles conditionals', () => {
       const compiler = createDSLCompiler();
+      // biome-ignore lint/suspicious/noThenProperty: DSL syntax requires 'then' property
       const expr: DSLExpr = { type: 'if', cond: { type: 'const', value: true }, then: { type: 'const', value: 1 }, else: { type: 'const', value: 0 } };
       const ast = compiler.compile(expr);
       expect(ast.type).toBe('if');
@@ -180,6 +181,7 @@ describe('W7 — Skill DSL', () => {
         id: 'test-3',
         name: 'conditional',
         body: [
+          // biome-ignore lint/suspicious/noThenProperty: DSL syntax requires 'then' property
           { type: 'if', cond: { type: 'const', value: true }, then: { type: 'const', value: 1 }, else: { type: 'const', value: 0 } },
         ],
         metadata: {},

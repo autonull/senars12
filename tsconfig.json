@@ -205,5 +205,5 @@
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "tests/**/*.ts", "scripts/**/*.ts"],
-  "exclude": ["node_modules", "dist", "tests/setup", "src/api/**", "tests/obligations/**", "tests/nar/**", "src/log/GateEventLedger.ts", "src/log/DerivationLedger.ts", "src/_pending/**"]
+  "exclude": ["node_modules", "dist", "tests/setup", "src/api/**", "tests/obligations/**", "tests/nar/**", "src/log/GateEventLedger.ts", "src/log/DerivationLedger.ts", "src/_pending**", "ui", "ui-contract", "ui-backend-2d", "ui-backend-fractal", "ui-shell"]
 }

@@ -31,15 +31,15 @@ export interface AccumulatorSite {
 
 export const ACCUMULATOR_LEDGER: readonly AccumulatorSite[] = [
   {
-    file: 'nar/src/kernel/source-reputation.ts',
+    file: 'src/kernel/source-reputation.ts',
     holds: 'per-source reputation, keyed by a source id that arrives on the wire',
   },
   {
-    file: 'nar/src/rl/impls/QBeliefStore.ts',
+    file: 'src/rl/impls/QBeliefStore.ts',
     holds: 'beliefs over state-action pairs, keyed by an untrusted stream',
   },
   {
-    file: 'nar/src/learning/aikr-processor.ts',
+    file: 'src/learning/aikr-processor.ts',
     holds: 'fairness aging counters, keyed by bag item id',
   },
 ];

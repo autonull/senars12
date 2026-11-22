@@ -20,8 +20,10 @@ export const runtimeCommandsFor = (rt: BotRuntime) => [
     }
     if (rt.webuiHandle) return 'Web UI already running';
     const port = finiteOr(sub, 3001);
-    const { startAgentUI } = await import('@senars/ui/server');
-    rt.webuiHandle = await startAgentUI(rt.wired.agent as never, { port } as never);
+    // Use Function constructor to avoid TypeScript resolving the import at compile time
+    const dynamicImport = new Function('specifier', 'return import(specifier)');
+    const uiServer = await dynamicImport('@senars/ui/server') as { startAgentUI: (agent: unknown, options: unknown) => Promise<unknown> };
+    rt.webuiHandle = await uiServer.startAgentUI(rt.wired.agent, { port });
     return `Web UI on :${port}`;
   }),
   cmd('arcade', 'Run arcade games: [games] [arms] [episodes] [seed]', async (args = '') => {

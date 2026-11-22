@@ -230,9 +230,20 @@
       "@senars/schemas/reasoning-budget": ["./src/schemas/reasoning-budget.ts"],
       "@senars/schemas/recalled-events": ["./src/schemas/recalled-events.ts"],
       "@senars/schemas/rule-table": ["./src/schemas/rule-table.ts"],
-      "@senars/schemas/truth": ["./src/schemas/truth.ts"]
+      "@senars/schemas/truth": ["./src/schemas/truth.ts"],
+      "@senars/core/lens-schema": ["./src/protocol/lens-schema.ts"],
+      "@senars/core/verify-derivation": ["./src/rules/verifier-truth-table.ts"],
+      "@senars/core/protocol": ["./src/protocol/index.ts"],
+      "@senars/core/schemas": ["./src/schemas/index.ts"],
+      "@senars/core/schemas/governance": ["./src/schemas/governance.ts"],
+      "@senars/core/schemas/formalization": ["./src/schemas/formalization.ts"],
+      "@senars/core/schemas/truth": ["./src/schemas/truth.ts"],
+      "@senars/core/schemas/cognitive-events": ["./src/schemas/cognitive-events.ts"],
+      "@senars/core/schemas/gate-io": ["./src/schemas/gate-io.ts"],
+      "@senars/core/schemas/reasoning-budget": ["./src/schemas/reasoning-budget.ts"],
+      "@senars/core/schemas/derivation-records": ["./src/schemas/derivation-records.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "tests", "src/api/**", "src/_pending/**", "src/log/EventLogAdapter.ts", "src/log/StatePersister.ts"]
+  "exclude": ["node_modules", "dist", "tests", "src/api/**", "src/_pending/**", "src/log/EventLogAdapter.ts", "src/log/StatePersister.ts", "ui", "ui-contract", "ui-backend-2d", "ui-backend-fractal", "ui-shell", "src/bin"]
 }

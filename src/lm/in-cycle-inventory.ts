@@ -125,16 +125,16 @@ export const IN_CYCLE_INVENTORY: readonly InCycleBehaviour[] = [
  * and is A2's subject rather than this inventory's.
  */
 export const CYCLE_PATH_PREFIXES: readonly string[] = [
-  'nar/src/cognitive/',
-  'nar/src/kernel/',
-  'nar/src/learning/',
-  'nar/src/memory/',
-  'nar/src/reason/',
-  'nar/src/rules/',
-  'nar/src/stream/',
-  'nar/src/strategies/',
-  'nar/src/terms/',
-  'nar/src/nar-execution.ts',
+  'src/cognitive/',
+  'src/kernel/',
+  'src/learning/',
+  'src/memory/',
+  'src/reason/',
+  'src/rules/',
+  'src/stream/',
+  'src/strategies/',
+  'src/terms/',
+  'src/nar-execution.ts',
 ];
 
 /**

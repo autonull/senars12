@@ -5,7 +5,7 @@
  * and the Term class's toString method.
  */
 
-import { Term, VariableTerm, ConstantTerm, CompoundTerm } from '../term.js';
+import type { Term, VariableTerm, ConstantTerm, CompoundTerm } from '../term.js';
 import { TermOp } from '../term-ops.js';
 import { getArgs } from '../term.js';
 

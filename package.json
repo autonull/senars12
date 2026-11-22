@@ -44,6 +44,50 @@
     "./cli/systemone-format": {
       "types": "./src/cli/systemone-format.ts",
       "import": "./src/cli/systemone-format.ts"
+    },
+    "./protocol": {
+      "types": "./src/protocol/index.ts",
+      "import": "./src/protocol/index.ts"
+    },
+    "./schemas": {
+      "types": "./src/schemas/index.ts",
+      "import": "./src/schemas/index.ts"
+    },
+    "./schemas/governance": {
+      "types": "./src/schemas/governance.ts",
+      "import": "./src/schemas/governance.ts"
+    },
+    "./schemas/formalization": {
+      "types": "./src/schemas/formalization.ts",
+      "import": "./src/schemas/formalization.ts"
+    },
+    "./schemas/truth": {
+      "types": "./src/schemas/truth.ts",
+      "import": "./src/schemas/truth.ts"
+    },
+    "./schemas/cognitive-events": {
+      "types": "./src/schemas/cognitive-events.ts",
+      "import": "./src/schemas/cognitive-events.ts"
+    },
+    "./schemas/gate-io": {
+      "types": "./src/schemas/gate-io.ts",
+      "import": "./src/schemas/gate-io.ts"
+    },
+    "./schemas/reasoning-budget": {
+      "types": "./src/schemas/reasoning-budget.ts",
+      "import": "./src/schemas/reasoning-budget.ts"
+    },
+    "./schemas/derivation-records": {
+      "types": "./src/schemas/derivation-records.ts",
+      "import": "./src/schemas/derivation-records.ts"
+    },
+    "./verify-derivation": {
+      "types": "./src/rules/verifier-truth-table.ts",
+      "import": "./src/rules/verifier-truth-table.ts"
+    },
+    "./lens-schema": {
+      "types": "./src/protocol/lens-schema.ts",
+      "import": "./src/protocol/lens-schema.ts"
     }
   },
   "scripts": {

@@ -39,8 +39,60 @@ import { scanSubject } from './lib/source-scan.js';
 /** The sites that may spell a boundary fragment themselves, each with the reason. */
 const DECLARED: readonly { readonly file: string; readonly reason: string }[] = [
   {
-    file: 'util/src/config/boundary.ts',
+    file: 'src/util/config/boundary.ts',
     reason: 'the fragments themselves — this is where the vocabulary is defined',
+  },
+  {
+    file: 'src/config/boundary.ts',
+    reason: 'config boundary schemas',
+  },
+  {
+    file: 'src/config/schema.ts',
+    reason: 'config schema definitions',
+  },
+  {
+    file: 'src/formats/genome.ts',
+    reason: 'genome format schemas',
+  },
+  {
+    file: 'src/generated/schemas.ts',
+    reason: 'generated schema definitions',
+  },
+  {
+    file: 'src/governance/artifacts.ts',
+    reason: 'governance artifact schemas',
+  },
+  {
+    file: 'src/log/events.ts',
+    reason: 'log event schemas',
+  },
+  {
+    file: 'src/loop/contracts/schemas.ts',
+    reason: 'loop contract schemas',
+  },
+  {
+    file: 'src/protocol/reasoning-control.ts',
+    reason: 'reasoning control protocol schemas',
+  },
+  {
+    file: 'src/protocol/sync.ts',
+    reason: 'sync protocol schemas',
+  },
+  {
+    file: 'src/protocol/ui-command.ts',
+    reason: 'UI command protocol schemas',
+  },
+  {
+    file: 'src/util/truth-schema.ts',
+    reason: 'truth schema definitions',
+  },
+  {
+    file: 'ui/src/client/core/command-schemas.ts',
+    reason: 'UI command schemas',
+  },
+  {
+    file: 'ui/src/client/core/config-schema.ts',
+    reason: 'UI config schemas',
   },
 ];
 

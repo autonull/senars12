@@ -24,7 +24,7 @@
  * but a package naming a package above it is the layering claim being made,
  * and the tree needs no exemption from one.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { importEdges } from './lib/imports.js';
 import { coreLayerRemedy, scanCoreLayer } from './lib/layer-boundary.js';
@@ -58,7 +58,10 @@ for (const pkg of LAYERS) {
   const declared = new Set(Object.keys(manifest?.dependencies ?? {}));
   const seen = new Set<string>();
 
-  for (const file of sourceFiles(join(ROOT, pkg, 'src'))) {
+  const pkgSrc = join(ROOT, pkg, 'src');
+  if (!existsSync(pkgSrc)) continue;
+
+  for (const file of sourceFiles(pkgSrc)) {
     const source = readFileSync(file, 'utf-8');
     for (const edge of importEdges(source)) {
       const target = specifierPkg(edge.specifier);

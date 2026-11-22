@@ -2,10 +2,10 @@ import { lineAt, scanSubject as readSubject } from './source-scan.js';
 import type { Verdict } from './verdicts.js';
 
 /** The production trees the surface is declared over. */
-const SCAN_ROOTS = ['nar/src', 'src'] as const;
+const SCAN_ROOTS = ['src'] as const;
 
 /** Every production source file with its text. One reader, so gate and test cannot disagree. */
-export const scanSubject = (): SurfaceSubject => ({ files: readSubject() });
+export const scanSubject = (): SurfaceSubject => ({ files: readSubject(SCAN_ROOTS) });
 
 /**
  * The attention write surface: who may write `Concept.priority`, and what else
@@ -47,7 +47,7 @@ export interface WriteSite {
 export const ATTENTION_OWNER = 'src/memory/concept.ts';
 
 /** Where the reads and the decay sweep live; both rules are about this one file. */
-export const MEMORY_OWNER = 'nar/src/memory/memory.ts';
+export const MEMORY_OWNER = 'src/memory/memory.ts';
 
 /** Repo-relative source text for every scanned file — the gate's and the test's shared input. */
 export interface SurfaceFile {

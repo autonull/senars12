@@ -18,14 +18,14 @@
  * read the same array.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { CYCLE_PATH_PREFIXES } from '../../src/lm/in-cycle-inventory.js';
 import { importEdges } from './imports.js';
 import { ROOT } from './root.js';
 import { lineAt, sourceFiles } from './source-scan.js';
 
-const NAR_SRC = join(ROOT, 'nar/src');
+const NAR_SRC = join(ROOT, 'src');
 const LAYER_PREFIX = `${NAR_SRC}/lm/`;
 
 /** Whether `absolutePath` is *inside* the layer — which is exempt, being not a consumer of itself. */
@@ -77,8 +77,10 @@ export const coreLayerViolations = (from: string, source: string): CoreLayerViol
   });
 
 /** Every cycle-path source file, so a rule over them is written once. */
-export const scanCoreLayerSourceFiles = (): string[] =>
-  sourceFiles(NAR_SRC).filter(isCyclePath);
+export const scanCoreLayerSourceFiles = (): string[] => {
+  if (!existsSync(NAR_SRC)) return [];
+  return sourceFiles(NAR_SRC).filter(isCyclePath);
+};
 
 /** Every violation on the tree, cycle path only. */
 export const scanCoreLayer = (): CoreLayerViolation[] =>

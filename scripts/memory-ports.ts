@@ -41,12 +41,16 @@ const BARREL = join(ROOT, 'src/memory/index.ts');
  */
 const COMPOSITION_SITES: readonly { readonly file: string; readonly reason: string }[] = [
   {
-    file: 'nar/src/memory/index.ts',
+    file: 'src/memory/index.ts',
     reason: "memory's own barrel: the module that composes the ports publishes the facade",
   },
   {
-    file: 'nar/src/kernel/replay.ts',
+    file: 'src/kernel/replay.ts',
     reason: 'reconstructs a store from an event log, so it must construct one',
+  },
+  {
+    file: 'src/kernel/replay-compat.ts',
+    reason: 'file-based replay compatibility: reconstructs a store from JSONL event logs',
   },
 ];
 

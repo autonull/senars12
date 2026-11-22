@@ -37,16 +37,20 @@ import { ALL_SOURCE_ROOTS, lineAt, productionSources } from './lib/source-scan.j
  */
 const RAW_ENV_SITES: readonly { readonly file: string; readonly reason: string }[] = [
   {
-    file: 'util/src/config/env.ts',
+    file: 'src/config/env.ts',
     reason: 'the accessors themselves — this is where the grammar is defined',
   },
   {
-    file: 'src/utils/env-validate.ts',
+    file: 'src/util/env-validate.ts',
     reason: 'census: the validator must enumerate the whole table to report unknown vars',
   },
   {
     file: 'src/bin/commands/lm.ts',
     reason: '`.lm use <provider> <model>` installs the override the accessors then read',
+  },
+  {
+    file: 'ui/src/server/index.ts',
+    reason: 'UI server reads NODE_ENV for production checks and test endpoints flag',
   },
 ];
 

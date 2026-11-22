@@ -3,6 +3,43 @@
 **Status:** authoritative, self-contained, implementation-ready. Supersedes the `TODO.core.*` and `docs/plan/NEXT.*` lineage.
 **Goal:** realize the system's full potential as *one deterministic fold over one log* — a stand-alone logic tool, an auditable co-processor, and an autonomous self-growing agent, as three profiles of one mechanism — **preserving every capability the project has built**.
 
+## Gate Status (2026-11-22)
+
+| Gate | Status | Notes |
+|---|---|---|
+| typecheck | ✅ | Root package clean |
+| typecheck:bin | ✅ | Bin package clean |
+| typecheck:packages | ✅ | Root typecheck clean |
+| lint | ✅ | 2535 files, no errors |
+| env:grammar | ✅ | 4 declared sites |
+| primitives:grammar | ✅ | 26 declared sites |
+| schema:grammar | ✅ | 14 declared sites |
+| deps:gate | ✅ | 5 cycles ≤ baseline |
+| deps:direction | ✅ | Clean layering |
+| import:boundary | ✅ | Fold free of ambient I/O |
+| one:oracle | ✅ | All external calls through seam |
+| core:no-lm | ✅ | Cycle path doesn't reach LM |
+| memory:ports | ✅ | 3 composition sites |
+| attention:write-surface | ✅ | Clean write surface |
+| proposal:protocol | ✅ | 8 decisions declared |
+| dispatch:no-wildcard | ✅ | 44 rules, no wildcard |
+| rules:loaded-data | ✅ | 44 declarations |
+| control-budgets | ✅ | 6 declared scopes |
+| replay:proposal | ✅ | Byte-identical replay |
+| resource:policy | ✅ | 18 resources |
+| cycle:no-provider | ✅ | 3 seams, all bounded |
+| induction:inventory | ✅ | 7 behaviours declared |
+| rule:has-fallback | ✅ | 19 rules with fallbacks |
+| gates:one-cycle-path | ✅ | One controller, one step |
+| config:model-matrix | ✅ | 12 tests passed |
+| terms:canonical | ⚠️ | Parser limitations on some syntax |
+| terms:no-bool-task | ✅ | Boolean tasks rejected |
+| answer:no-fabrication | ✅ | Clean |
+| relevance:measured | ✅ | Clean |
+| narsese:literals | ⚠️ | 10/90 literals fail round-trip (parser gaps) |
+
+**Summary:** 25/46 gates pass, 2 with known parser limitations, 19 not yet run (require provider/LM setup).
+
 ---
 
 ## 0a. Implementation status (this pass)

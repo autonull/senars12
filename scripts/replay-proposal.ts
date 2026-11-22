@@ -43,7 +43,7 @@ const FIXTURE = fromRoot('tests/fixtures/proposal-stream.jsonl');
 /** The files whose closure must contain no provider module. */
 const REPLAY_MODULES = [
   fromRoot('src/proposal/replay.ts'),
-  fromRoot('src/kernel/replay.ts'),
+  fromRoot('src/kernel/replay-compat.ts'),
 ];
 
 /** Module prefixes that would mean a replay could ask a provider. */

@@ -377,6 +377,7 @@ export {
 } from './protocol/index.js';
 export { isNarsese } from '@senars/util/text';
 export { builtinLensSpecs } from './protocol/lens-schema.js';
+export type { LensSpec, ModulationSpec, BuiltinLens } from './protocol/lens-schema.js';
 export type { Agent } from './agent/Agent.js';
 export type { CognitiveEvent } from './schemas/cognitive-events.js';
 
