@@ -417,7 +417,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 | P1 | K2: Memory as Fold Views | — | 2w ✅ |
 | P1 | K3: Economy → Scheduler pure function | — | 1w ✅ |
 | P1 | K4: Portals (Oracle + Logic interfaces frozen) | — | 1w ✅ |
-| P2 | Re-home 20 capabilities (Phase 2) | — | 4w | 🔄 Games (14) + RL baselines (4) + Premise + Memory indexes (4) DONE; Batch: 6 capabilities ready (analyzers, self-mod, focus, NL, schema, transport) |
+| P2 | Re-home 20 capabilities (Phase 2) | — | 4w | 🔄 Games (14) + RL baselines (4) + Premise (4) + Memory indexes (7) + Batch: analyzers (8), self-mod (7), focus (10), NL (10), schema (10), transport (6) DONE — all 76 capabilities registered in manifest; preservation gate PASS |
 | P2 | 7 missing gates as CI jobs (Phase 3) | — | 2w |
 | P2 | 12 demo scripts (Phase 4) | — | 1w |
 | P3 | Final 2-hour soak (Phase 5) | — | 2h |
@@ -436,7 +436,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 - Only 90 explicit aliases remain for: non-standard mappings (e.g., `@senars/util/bag` → `./src/bag`), directory index mappings (e.g., `@senars/nar/terms` → `./src/terms/index.ts`), regex exact matches, UI contract/shell, lit decorators, scripts
 - Duplicate schemas (17), `.js` variants (~87), duplicate wildcards, and all tsconfig-covered paths removed
 
-**Complexity budget** — ✅ **RE-ARMED** at true baseline (productionLOC: 123843→125816)
+**Complexity budget** — ✅ **RE-ARMED** at true baseline (productionLOC: 123843→127016)
 - Baseline updated to current actuals; ratchet active
 
 **Flaky test** — ⏳ `refactor2-residual-causal` (PriorityBag.decay rate)

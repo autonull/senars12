@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-22T08:55:30.117Z",
+  "generatedAt": "2026-11-22T21:50:11.380Z",
   "capabilities": [
     {
       "id": "faculty.grounding",
@@ -217,6 +217,204 @@
       "hash": "6d94c2f7b859f538"
     },
     {
+      "id": "faculty.perceive.formalize",
+      "name": "perceive.formalize",
+      "category": "perception",
+      "owner": "faculty-engine",
+      "behavior": "Formalizes natural language or Narsese into perceived interpretations with provenance",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.formalization.nlToFormal"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "4b00521ed625d992"
+    },
+    {
+      "id": "faculty.propose.action",
+      "name": "propose.action",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Proposes concrete executable actions given a goal and context",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5572d9543a1ffa26"
+    },
+    {
+      "id": "faculty.propose.hypothesis",
+      "name": "propose.hypothesis",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Generates explanatory hypotheses for observations or anomalies",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "dc4517db2e11aafd"
+    },
+    {
+      "id": "faculty.propose.repair",
+      "name": "propose.repair",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Proposes repair strategies for failed operations or contradictions",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "765d44a40cbb71b0"
+    },
+    {
+      "id": "faculty.propose.plan",
+      "name": "propose.plan",
+      "category": "planning",
+      "owner": "faculty-engine",
+      "behavior": "Decomposes high-level goals into executable multi-step plans",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.engine.clingo"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6446e17cfdb0da26"
+    },
+    {
+      "id": "faculty.propose.skill",
+      "name": "propose.skill",
+      "category": "learning",
+      "owner": "faculty-engine",
+      "behavior": "Synthesizes new reusable skills from successful patterns",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b45cf73fdd9c7d0a"
+    },
+    {
+      "id": "faculty.retrieve.rerank",
+      "name": "retrieve.rerank",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Reranks retrieval candidates using learned relevance",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.embedding.rerank"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f0de90473e55a7b3"
+    },
+    {
+      "id": "faculty.judge.rubric",
+      "name": "judge.rubric",
+      "category": "evaluation",
+      "owner": "faculty-engine",
+      "behavior": "Evaluates candidates against a structured rubric using LM judgment",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "3e0957f088d3279d"
+    },
+    {
+      "id": "faculty.narrate.explain",
+      "name": "narrate.explain",
+      "category": "communication",
+      "owner": "faculty-engine",
+      "behavior": "Generates natural language explanations for decisions or beliefs",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateText"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "329b08476d929fd2"
+    },
+    {
+      "id": "faculty.mirror.postmortem",
+      "name": "mirror.postmortem",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Analyzes past episodes to extract lessons and patterns",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "657b532a51874480"
+    },
+    {
+      "id": "faculty.simulate.scenario",
+      "name": "simulate.scenario",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Runs internal scenario simulations using imagination engine",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.imagination.generate"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "74216b1f27d6743c"
+    },
+    {
       "id": "oracle.lm.generateText",
       "name": "lm.generateText",
       "category": "coordination",
@@ -366,6 +564,1788 @@
       "since": "0.1.0",
       "active": true,
       "hash": "94d68fdd30f95496"
+    },
+    {
+      "id": "oracle.embedding.generate",
+      "name": "embedding.generate",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Embedding vector generation",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/embedding.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "36e0c5f38b7c2e68"
+    },
+    {
+      "id": "oracle.embedding.rerank",
+      "name": "embedding.rerank",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Embedding-based reranking",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/embedding.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b131e83a58195396"
+    },
+    {
+      "id": "oracle.embedding.contrastiveScore",
+      "name": "embedding.contrastiveScore",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Contrastive similarity scoring",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/embedding.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "dfc7941e59d4e79e"
+    },
+    {
+      "id": "oracle.embedding.mineHardNegatives",
+      "name": "embedding.mineHardNegatives",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Hard negative mining via embeddings",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/embedding.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "210f4bdcf38f83e7"
+    },
+    {
+      "id": "game.snake",
+      "name": "Snake",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Snake on a bounded grid eats apples; body/wall hits end the episode",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (snake)",
+          "verifies": "Game Snake produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/SnakeGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "805bd50282a7b289"
+    },
+    {
+      "id": "game.tetris",
+      "name": "Tetris",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Tetris placements (hard drop); clear lines score, topping out ends the episode",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (tetris)",
+          "verifies": "Game Tetris produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/TetrisGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "83dc232087d5f7e4"
+    },
+    {
+      "id": "game.2048",
+      "name": "2048",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Slide tiles to merge equals; illegal (no-op) moves end the episode",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (2048)",
+          "verifies": "Game 2048 produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/2048Game.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "324c86df168ec3b3"
+    },
+    {
+      "id": "game.tictactoe",
+      "name": "TicTacToe",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "X vs a built-in opponent; +1 win, 0 draw, −1 loss",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (tictactoe)",
+          "verifies": "Game TicTacToe produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/TictactoeGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "04b3e8d4b9191cd8"
+    },
+    {
+      "id": "game.gridworld",
+      "name": "GridWorld",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Grid maze to the goal (+1); each non-goal step costs −0.01",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (gridworld)",
+          "verifies": "Game GridWorld produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/GridworldGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "2f13b8895f697aa3"
+    },
+    {
+      "id": "game.bandit",
+      "name": "Multi-Armed Bandit",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Multi-armed bandit, Bernoulli rewards with known arm means",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (bandit)",
+          "verifies": "Game Multi-Armed Bandit produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/BanditGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "20c76262579d9590"
+    },
+    {
+      "id": "game.catch",
+      "name": "Catch",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Catch falling targets with the paddle: +1 catch, −1 miss",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (catch)",
+          "verifies": "Game Catch produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/CatchGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "7153ee9805cc465c"
+    },
+    {
+      "id": "game.arithmetic",
+      "name": "Arithmetic",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Answer a+b / a−b by picking a candidate: +1 correct, 0 wrong",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (arithmetic)",
+          "verifies": "Game Arithmetic produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/ArithmeticGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6c529b8cae384a31"
+    },
+    {
+      "id": "game.rps",
+      "name": "Rock-Paper-Scissors",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Repeated rock-paper-scissors vs a rotating deterministic opponent",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (rps)",
+          "verifies": "Game Rock-Paper-Scissors produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/RpsGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "4bbc36c732bb2a50"
+    },
+    {
+      "id": "game.reasoning:conversation",
+      "name": "Reasoning: Conversation",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Cognitive operations over conversation eval tasks",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (reasoning:conversation)",
+          "verifies": "Game Reasoning: Conversation produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/ReasoningGameGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c93ede755e20df13"
+    },
+    {
+      "id": "game.reasoning:tool-use",
+      "name": "Reasoning: Tool Use",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Cognitive operations over tool-use eval tasks",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (reasoning:tool-use)",
+          "verifies": "Game Reasoning: Tool Use produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/ReasoningGameGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "87bb32b24695ebc2"
+    },
+    {
+      "id": "game.reasoning:research",
+      "name": "Reasoning: Research",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Cognitive operations over research eval tasks",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (reasoning:research)",
+          "verifies": "Game Reasoning: Research produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/ReasoningGameGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c708c9fac1af3c9c"
+    },
+    {
+      "id": "game.conversation",
+      "name": "ConversationGame",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Multi-turn dialogue game with reflexes and contrastive vetoes",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (conversation)",
+          "verifies": "Game ConversationGame produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/ConversationGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "96512b00532940b8"
+    },
+    {
+      "id": "game.metagame",
+      "name": "MetaGame",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Meta-game over multiple game instances",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (metagame)",
+          "verifies": "Game MetaGame produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/MetagameGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "8472910422313601"
+    },
+    {
+      "id": "rl.epsilon-greedy",
+      "name": "Epsilon-Greedy",
+      "category": "rl",
+      "owner": "rl-baselines",
+      "behavior": "Epsilon-greedy bandit algorithm with configurable exploration",
+      "tests": [
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed and zero slip",
+          "verifies": "Epsilon-Greedy produces deterministic episodes from seed"
+        },
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed",
+          "verifies": "Epsilon-Greedy bandit/gridworld is deterministic from seed"
+        }
+      ],
+      "sources": [
+        "src/rl/baselines/index.ts"
+      ],
+      "dependsOn": [
+        "game.bandit",
+        "game.gridworld"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "3262710377df48d0"
+    },
+    {
+      "id": "rl.ucb1",
+      "name": "UCB1",
+      "category": "rl",
+      "owner": "rl-baselines",
+      "behavior": "Upper Confidence Bound bandit algorithm",
+      "tests": [
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed and zero slip",
+          "verifies": "UCB1 produces deterministic episodes from seed"
+        },
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed",
+          "verifies": "UCB1 bandit/gridworld is deterministic from seed"
+        }
+      ],
+      "sources": [
+        "src/rl/baselines/index.ts"
+      ],
+      "dependsOn": [
+        "game.bandit",
+        "game.gridworld"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "1c2f961a91487d26"
+    },
+    {
+      "id": "rl.q-learning",
+      "name": "Q-Learning",
+      "category": "rl",
+      "owner": "rl-baselines",
+      "behavior": "Q-Learning for gridworld environments",
+      "tests": [
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed and zero slip",
+          "verifies": "Q-Learning produces deterministic episodes from seed"
+        },
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed",
+          "verifies": "Q-Learning bandit/gridworld is deterministic from seed"
+        }
+      ],
+      "sources": [
+        "src/rl/baselines/index.ts"
+      ],
+      "dependsOn": [
+        "game.bandit",
+        "game.gridworld"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "11881c2a23553f8e"
+    },
+    {
+      "id": "rl.sarsa",
+      "name": "SARSA",
+      "category": "rl",
+      "owner": "rl-baselines",
+      "behavior": "SARSA for gridworld environments",
+      "tests": [
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed and zero slip",
+          "verifies": "SARSA produces deterministic episodes from seed"
+        },
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed",
+          "verifies": "SARSA bandit/gridworld is deterministic from seed"
+        }
+      ],
+      "sources": [
+        "src/rl/baselines/index.ts"
+      ],
+      "dependsOn": [
+        "game.bandit",
+        "game.gridworld"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "52478f41c97e69ca"
+    },
+    {
+      "id": "analyzer.capabilities",
+      "name": "Capabilities Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Analyzes agent capability utilization and coverage",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Capabilities Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/capabilities.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "e02b25d6ad014fe6"
+    },
+    {
+      "id": "analyzer.constants",
+      "name": "Constants Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Detects and tracks constant values in reasoning",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Constants Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/constants.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "cff6af7e4a0379a0"
+    },
+    {
+      "id": "analyzer.corrections",
+      "name": "Corrections Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Analyzes belief corrections and revisions",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Corrections Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/corrections.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "1f6b71d25b3e3e81"
+    },
+    {
+      "id": "analyzer.performance",
+      "name": "Performance Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Measures reasoning performance metrics",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Performance Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/performance.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "d1834d352e10fdec"
+    },
+    {
+      "id": "analyzer.quality",
+      "name": "Quality Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Assesses reasoning quality and coherence",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Quality Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/quality.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c9929afa1d50ec12"
+    },
+    {
+      "id": "analyzer.reasoning-patterns",
+      "name": "Reasoning Patterns Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Detects recurring reasoning patterns",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Reasoning Patterns Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/reasoning-patterns.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "0318ff850848b45b"
+    },
+    {
+      "id": "analyzer.resources",
+      "name": "Resources Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Tracks computational resource usage",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Resources Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/resources.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a310c9e65d83ac7d"
+    },
+    {
+      "id": "analyzer.term-patterns",
+      "name": "Term Patterns Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Analyzes term usage patterns in memory",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Term Patterns Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/term-patterns.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c314855f7b33b838"
+    },
+    {
+      "id": "self-mod.tune-knob",
+      "name": "Tune Knob",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Adjusts hyperparameter knobs via self-modification",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Tune Knob is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/tune-knob.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "2272da5cbfc33376"
+    },
+    {
+      "id": "self-mod.switch-strategy",
+      "name": "Switch Strategy",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Switches reasoning strategies at runtime",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Switch Strategy is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/switch-strategy.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f3df3ebc55f2f708"
+    },
+    {
+      "id": "self-mod.shadow-run",
+      "name": "Shadow Run",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Runs shadow episodes for safe policy evaluation",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Shadow Run is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/shadow-run.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "8a61921812aafce1"
+    },
+    {
+      "id": "self-mod.scaffold-capability",
+      "name": "Scaffold Capability",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Generates capability scaffolding from templates",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Scaffold Capability is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/scaffold-capability.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "fac45d23c9e45f18"
+    },
+    {
+      "id": "self-mod.register-tool",
+      "name": "Register Tool",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Registers new tools in the tool registry",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Register Tool is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/register-tool.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "1b30f249652dc7b6"
+    },
+    {
+      "id": "self-mod.register-rule",
+      "name": "Register Rule",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Registers new derivation rules",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Register Rule is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/register-rule.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "967f40693e5fb550"
+    },
+    {
+      "id": "self-mod.apply-fix",
+      "name": "Apply Fix",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Applies automated fixes to code",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Apply Fix is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/apply-fix.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ee14d0c8a61ae71a"
+    },
+    {
+      "id": "focus.focus",
+      "name": "Focus",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Core focus mechanism for attention allocation",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "Focus integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/Focus.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a23de65a37b62d4d"
+    },
+    {
+      "id": "focus.focus-bag",
+      "name": "FocusBag",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Priority bag for focus tasks with decay",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "FocusBag integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/FocusBag.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "968fc4f8afa8be07"
+    },
+    {
+      "id": "focus.focus-tree",
+      "name": "FocusTree",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Hierarchical focus tree for structured attention",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "FocusTree integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/FocusTree.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "359e1eb7595d64d4"
+    },
+    {
+      "id": "focus.focus-scheduler",
+      "name": "FocusScheduler",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Schedules focus ticks across episodes",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "FocusScheduler integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/focus-scheduler.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5057395649232da3"
+    },
+    {
+      "id": "focus.game-focus",
+      "name": "GameFocus",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Focus integration with game environments",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "GameFocus integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/GameFocus.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b1f17eb472568f17"
+    },
+    {
+      "id": "focus.meta-focus",
+      "name": "MetaFocus",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Meta-level focus for strategy selection",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "MetaFocus integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/MetaFocus.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "db87c993259cfa16"
+    },
+    {
+      "id": "focus.schema-store",
+      "name": "SchemaStore",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Stores and retrieves induced schemas",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "SchemaStore integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/schema-store.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "080fe2bc58cb3bf9"
+    },
+    {
+      "id": "focus.belief-seeding",
+      "name": "Belief Seeding",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Seeds initial beliefs for new concepts",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "Belief Seeding integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/belief-seeding.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "bb078e19de57cb71"
+    },
+    {
+      "id": "focus.episode-schemas",
+      "name": "Episode Schemas",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Induces schemas from episode traces",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "Episode Schemas integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/episode-schemas.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f4639c694fa87c8b"
+    },
+    {
+      "id": "focus.nal-ab",
+      "name": "NAL A/B Test",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "A/B testing for NAL rule variants",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "NAL A/B Test integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/nal-ab.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "9ca3dd1c23020c26"
+    },
+    {
+      "id": "nl.understanding",
+      "name": "NL Understanding",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Parses and understands natural language input",
+      "tests": [],
+      "sources": [
+        "src/nl/understanding.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "7b4a652c2ec0ebbf"
+    },
+    {
+      "id": "nl.formalizer",
+      "name": "Formalizer",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Converts natural language to formal NARS terms",
+      "tests": [],
+      "sources": [
+        "src/nl/formalizer.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "9ba0a023d03c9bdd"
+    },
+    {
+      "id": "nl.generation",
+      "name": "NL Generation",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Generates natural language from formal terms",
+      "tests": [],
+      "sources": [
+        "src/nl/generation.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "0cd88ac5169140ce"
+    },
+    {
+      "id": "nl.explanation",
+      "name": "Explanation Generator",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Generates explanations for reasoning traces",
+      "tests": [],
+      "sources": [
+        "src/nl/explanation.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b68a5bf99c6c38cc"
+    },
+    {
+      "id": "nl.clarification",
+      "name": "Clarification Handler",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Handles clarification dialogs for ambiguous input",
+      "tests": [],
+      "sources": [
+        "src/nl/clarification.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "22feded781c1f246"
+    },
+    {
+      "id": "nl.firewall",
+      "name": "Symbolic Firewall",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Filters and validates formalizations",
+      "tests": [],
+      "sources": [
+        "src/nl/firewall.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "20ec27c7d16da8fa"
+    },
+    {
+      "id": "nl.classifier",
+      "name": "Input Classifier",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Classifies input type and intent",
+      "tests": [],
+      "sources": [
+        "src/nl/classifier.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f800cf920a5894b4"
+    },
+    {
+      "id": "nl.context-assembler",
+      "name": "Context Assembler",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Assembles context for NL processing",
+      "tests": [],
+      "sources": [
+        "src/nl/context-assembler.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c3b9d9f9239f5da1"
+    },
+    {
+      "id": "nl.cache",
+      "name": "Translation Cache",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Caches NL translations for efficiency",
+      "tests": [],
+      "sources": [
+        "src/nl/cache.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f4acc9bf3fc4109a"
+    },
+    {
+      "id": "nl.narsese-intent",
+      "name": "Narsese Intent Dispatcher",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Dispatches Narsese intent to handlers",
+      "tests": [],
+      "sources": [
+        "src/nl/narsese-intent.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b8bfda9c2695b1c0"
+    },
+    {
+      "id": "schema.truth",
+      "name": "Truth Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates truth values and source quality",
+      "tests": [],
+      "sources": [
+        "src/schemas/truth.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "4c941639a25ec39f"
+    },
+    {
+      "id": "schema.reasoning-budget",
+      "name": "Reasoning Budget Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates reasoning budget constraints",
+      "tests": [],
+      "sources": [
+        "src/schemas/reasoning-budget.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "8008a7cffafd300e"
+    },
+    {
+      "id": "schema.cognitive-events",
+      "name": "Cognitive Events Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates cognitive event log entries",
+      "tests": [],
+      "sources": [
+        "src/schemas/cognitive-events.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f62b7284575fd48f"
+    },
+    {
+      "id": "schema.governance",
+      "name": "Governance Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates governance proposals and decisions",
+      "tests": [],
+      "sources": [
+        "src/schemas/governance.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "8686e2de08903154"
+    },
+    {
+      "id": "schema.gate-io",
+      "name": "Gate I/O Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates gate inputs and outputs",
+      "tests": [],
+      "sources": [
+        "src/schemas/gate-io.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6ae441702cc8cd10"
+    },
+    {
+      "id": "schema.proposal",
+      "name": "Proposal Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates self-modification proposals",
+      "tests": [],
+      "sources": [
+        "src/schemas/proposal.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "4306afffb51be54d"
+    },
+    {
+      "id": "schema.rule-table",
+      "name": "Rule Table Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates rule table structure",
+      "tests": [],
+      "sources": [
+        "src/schemas/rule-table.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5594584ee4f7a465"
+    },
+    {
+      "id": "schema.task",
+      "name": "Task Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates task types and punctuation",
+      "tests": [],
+      "sources": [
+        "src/schemas/task.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "35d35548d77235d9"
+    },
+    {
+      "id": "schema.derivation-records",
+      "name": "Derivation Records Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates derivation step records",
+      "tests": [],
+      "sources": [
+        "src/schemas/derivation-records.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "28675f61fa2549b3"
+    },
+    {
+      "id": "schema.formalization",
+      "name": "Formalization Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates formalization candidates",
+      "tests": [],
+      "sources": [
+        "src/schemas/formalization.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "3c5a11a9050316ac"
+    },
+    {
+      "id": "transport.cli",
+      "name": "CLI Transport",
+      "category": "transport",
+      "owner": "surface-transports",
+      "behavior": "Command-line interface transport",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/cli.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6dfdc80b1f040131"
+    },
+    {
+      "id": "transport.http",
+      "name": "HTTP Transport",
+      "category": "transport",
+      "owner": "surface-transports",
+      "behavior": "HTTP/REST transport for remote access",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/http.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b2d7bb989d8d2b29"
+    },
+    {
+      "id": "transport.ws",
+      "name": "WebSocket Transport",
+      "category": "transport",
+      "owner": "surface-transports",
+      "behavior": "WebSocket transport for real-time communication",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/ws.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "af74912efbe88176"
+    },
+    {
+      "id": "transport.irc",
+      "name": "IRC Transport",
+      "category": "transport",
+      "owner": "surface-transports",
+      "behavior": "IRC transport for chat integration",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/irc.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c250edb26ccef769"
+    },
+    {
+      "id": "transport.mcp",
+      "name": "MCP Transport",
+      "category": "transport",
+      "owner": "surface-transports",
+      "behavior": "Model Context Protocol transport",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/mcp.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6351098fc994042b"
+    },
+    {
+      "id": "transport.stdio",
+      "name": "Stdio Transport",
+      "category": "transport",
+      "owner": "surface-transports",
+      "behavior": "Standard I/O transport for subprocess communication",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/stdio.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "0a7784edffa6858a"
+    },
+    {
+      "id": "premise.selection",
+      "name": "Premise Selection",
+      "category": "reasoning",
+      "owner": "premise-strategies",
+      "behavior": "Selects premises for inference steps",
+      "tests": [],
+      "sources": [
+        "src/strategies/premise/selection.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ffa9dd93f93d036c"
+    },
+    {
+      "id": "premise.term-link",
+      "name": "Term Link Premise",
+      "category": "reasoning",
+      "owner": "premise-strategies",
+      "behavior": "Links premises via term relationships",
+      "tests": [],
+      "sources": [
+        "src/strategies/premise/term-link.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "9c2136af094fd498"
+    },
+    {
+      "id": "premise.prolog-resolution",
+      "name": "Prolog Resolution Premise",
+      "category": "reasoning",
+      "owner": "premise-strategies",
+      "behavior": "Uses Prolog-style resolution for premises",
+      "tests": [],
+      "sources": [
+        "src/strategies/premise/prolog-resolution.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "652d18a54c0f63c4"
+    },
+    {
+      "id": "premise.primitives",
+      "name": "Premise Primitives",
+      "category": "reasoning",
+      "owner": "premise-strategies",
+      "behavior": "Primitive premise operations",
+      "tests": [],
+      "sources": [
+        "src/strategies/premise/primitives.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "73197a742fdbf9f5"
+    },
+    {
+      "id": "memory.memory-index",
+      "name": "Memory Index",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Atomic and temporal indexes for concept retrieval",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Memory Index maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/memory-index.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "af02b87b45b8d297"
+    },
+    {
+      "id": "memory.causal-index",
+      "name": "Causal Index",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Indexes causal relationships between concepts",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Causal Index maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/CausalIndex.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "40bac4accbc7afc5"
+    },
+    {
+      "id": "memory.episodic-memory",
+      "name": "Episodic Memory",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Stores and retrieves episodic traces",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Episodic Memory maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/EpisodicMemory.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ef330b8f2d3578f4"
+    },
+    {
+      "id": "memory.concept-graph",
+      "name": "Concept Graph",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Graph structure over concepts and links",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Concept Graph maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/ConceptGraph.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "19c20cc3f838b1ca"
+    },
+    {
+      "id": "memory.associative",
+      "name": "Associative Memory",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Associative retrieval via embedding layers",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Associative Memory maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/associative.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "4f7676b861a76635"
+    },
+    {
+      "id": "memory.fold-memory",
+      "name": "Fold Memory",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Memory as fold views over event log",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Fold Memory maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/fold-memory.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "2904d30625bc1bac"
+    },
+    {
+      "id": "memory.focus-memory",
+      "name": "Focus Memory",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Memory integration with focus system",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Focus Memory maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/focus.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "7327d75f5d7c1b54"
     }
   ],
   "byId": {
@@ -583,6 +2563,204 @@
       "active": true,
       "hash": "6d94c2f7b859f538"
     },
+    "faculty.perceive.formalize": {
+      "id": "faculty.perceive.formalize",
+      "name": "perceive.formalize",
+      "category": "perception",
+      "owner": "faculty-engine",
+      "behavior": "Formalizes natural language or Narsese into perceived interpretations with provenance",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.formalization.nlToFormal"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "4b00521ed625d992"
+    },
+    "faculty.propose.action": {
+      "id": "faculty.propose.action",
+      "name": "propose.action",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Proposes concrete executable actions given a goal and context",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5572d9543a1ffa26"
+    },
+    "faculty.propose.hypothesis": {
+      "id": "faculty.propose.hypothesis",
+      "name": "propose.hypothesis",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Generates explanatory hypotheses for observations or anomalies",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "dc4517db2e11aafd"
+    },
+    "faculty.propose.repair": {
+      "id": "faculty.propose.repair",
+      "name": "propose.repair",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Proposes repair strategies for failed operations or contradictions",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "765d44a40cbb71b0"
+    },
+    "faculty.propose.plan": {
+      "id": "faculty.propose.plan",
+      "name": "propose.plan",
+      "category": "planning",
+      "owner": "faculty-engine",
+      "behavior": "Decomposes high-level goals into executable multi-step plans",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.engine.clingo"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6446e17cfdb0da26"
+    },
+    "faculty.propose.skill": {
+      "id": "faculty.propose.skill",
+      "name": "propose.skill",
+      "category": "learning",
+      "owner": "faculty-engine",
+      "behavior": "Synthesizes new reusable skills from successful patterns",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b45cf73fdd9c7d0a"
+    },
+    "faculty.retrieve.rerank": {
+      "id": "faculty.retrieve.rerank",
+      "name": "retrieve.rerank",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Reranks retrieval candidates using learned relevance",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.embedding.rerank"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f0de90473e55a7b3"
+    },
+    "faculty.judge.rubric": {
+      "id": "faculty.judge.rubric",
+      "name": "judge.rubric",
+      "category": "evaluation",
+      "owner": "faculty-engine",
+      "behavior": "Evaluates candidates against a structured rubric using LM judgment",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "3e0957f088d3279d"
+    },
+    "faculty.narrate.explain": {
+      "id": "faculty.narrate.explain",
+      "name": "narrate.explain",
+      "category": "communication",
+      "owner": "faculty-engine",
+      "behavior": "Generates natural language explanations for decisions or beliefs",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateText"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "329b08476d929fd2"
+    },
+    "faculty.mirror.postmortem": {
+      "id": "faculty.mirror.postmortem",
+      "name": "mirror.postmortem",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Analyzes past episodes to extract lessons and patterns",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.lm.generateObject"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "657b532a51874480"
+    },
+    "faculty.simulate.scenario": {
+      "id": "faculty.simulate.scenario",
+      "name": "simulate.scenario",
+      "category": "reasoning",
+      "owner": "faculty-engine",
+      "behavior": "Runs internal scenario simulations using imagination engine",
+      "tests": [],
+      "sources": [
+        "src/faculties/fallback.ts",
+        "src/faculties/specs.ts"
+      ],
+      "dependsOn": [
+        "oracle.imagination.generate"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "74216b1f27d6743c"
+    },
     "oracle.lm.generateText": {
       "id": "oracle.lm.generateText",
       "name": "lm.generateText",
@@ -733,6 +2911,1788 @@
       "since": "0.1.0",
       "active": true,
       "hash": "94d68fdd30f95496"
+    },
+    "oracle.embedding.generate": {
+      "id": "oracle.embedding.generate",
+      "name": "embedding.generate",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Embedding vector generation",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/embedding.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "36e0c5f38b7c2e68"
+    },
+    "oracle.embedding.rerank": {
+      "id": "oracle.embedding.rerank",
+      "name": "embedding.rerank",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Embedding-based reranking",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/embedding.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b131e83a58195396"
+    },
+    "oracle.embedding.contrastiveScore": {
+      "id": "oracle.embedding.contrastiveScore",
+      "name": "embedding.contrastiveScore",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Contrastive similarity scoring",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/embedding.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "dfc7941e59d4e79e"
+    },
+    "oracle.embedding.mineHardNegatives": {
+      "id": "oracle.embedding.mineHardNegatives",
+      "name": "embedding.mineHardNegatives",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Hard negative mining via embeddings",
+      "tests": [],
+      "sources": [
+        "src/oracles/engines/embedding.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "210f4bdcf38f83e7"
+    },
+    "game.snake": {
+      "id": "game.snake",
+      "name": "Snake",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Snake on a bounded grid eats apples; body/wall hits end the episode",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (snake)",
+          "verifies": "Game Snake produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/SnakeGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "805bd50282a7b289"
+    },
+    "game.tetris": {
+      "id": "game.tetris",
+      "name": "Tetris",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Tetris placements (hard drop); clear lines score, topping out ends the episode",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (tetris)",
+          "verifies": "Game Tetris produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/TetrisGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "83dc232087d5f7e4"
+    },
+    "game.2048": {
+      "id": "game.2048",
+      "name": "2048",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Slide tiles to merge equals; illegal (no-op) moves end the episode",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (2048)",
+          "verifies": "Game 2048 produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/2048Game.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "324c86df168ec3b3"
+    },
+    "game.tictactoe": {
+      "id": "game.tictactoe",
+      "name": "TicTacToe",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "X vs a built-in opponent; +1 win, 0 draw, −1 loss",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (tictactoe)",
+          "verifies": "Game TicTacToe produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/TictactoeGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "04b3e8d4b9191cd8"
+    },
+    "game.gridworld": {
+      "id": "game.gridworld",
+      "name": "GridWorld",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Grid maze to the goal (+1); each non-goal step costs −0.01",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (gridworld)",
+          "verifies": "Game GridWorld produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/GridworldGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "2f13b8895f697aa3"
+    },
+    "game.bandit": {
+      "id": "game.bandit",
+      "name": "Multi-Armed Bandit",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Multi-armed bandit, Bernoulli rewards with known arm means",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (bandit)",
+          "verifies": "Game Multi-Armed Bandit produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/BanditGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "20c76262579d9590"
+    },
+    "game.catch": {
+      "id": "game.catch",
+      "name": "Catch",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Catch falling targets with the paddle: +1 catch, −1 miss",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (catch)",
+          "verifies": "Game Catch produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/CatchGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "7153ee9805cc465c"
+    },
+    "game.arithmetic": {
+      "id": "game.arithmetic",
+      "name": "Arithmetic",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Answer a+b / a−b by picking a candidate: +1 correct, 0 wrong",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (arithmetic)",
+          "verifies": "Game Arithmetic produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/ArithmeticGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6c529b8cae384a31"
+    },
+    "game.rps": {
+      "id": "game.rps",
+      "name": "Rock-Paper-Scissors",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Repeated rock-paper-scissors vs a rotating deterministic opponent",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (rps)",
+          "verifies": "Game Rock-Paper-Scissors produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/RpsGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "4bbc36c732bb2a50"
+    },
+    "game.reasoning:conversation": {
+      "id": "game.reasoning:conversation",
+      "name": "Reasoning: Conversation",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Cognitive operations over conversation eval tasks",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (reasoning:conversation)",
+          "verifies": "Game Reasoning: Conversation produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/ReasoningGameGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c93ede755e20df13"
+    },
+    "game.reasoning:tool-use": {
+      "id": "game.reasoning:tool-use",
+      "name": "Reasoning: Tool Use",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Cognitive operations over tool-use eval tasks",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (reasoning:tool-use)",
+          "verifies": "Game Reasoning: Tool Use produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/ReasoningGameGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "87bb32b24695ebc2"
+    },
+    "game.reasoning:research": {
+      "id": "game.reasoning:research",
+      "name": "Reasoning: Research",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Cognitive operations over research eval tasks",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (reasoning:research)",
+          "verifies": "Game Reasoning: Research produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/ReasoningGameGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c708c9fac1af3c9c"
+    },
+    "game.conversation": {
+      "id": "game.conversation",
+      "name": "ConversationGame",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Multi-turn dialogue game with reflexes and contrastive vetoes",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (conversation)",
+          "verifies": "Game ConversationGame produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/ConversationGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "96512b00532940b8"
+    },
+    "game.metagame": {
+      "id": "game.metagame",
+      "name": "MetaGame",
+      "category": "games",
+      "owner": "game-engine",
+      "behavior": "Meta-game over multiple game instances",
+      "tests": [
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "same seed ⇒ identical episode for every registered game (metagame)",
+          "verifies": "Game MetaGame produces deterministic replay from seed"
+        },
+        {
+          "path": "tests/nar/game-registry.test.ts",
+          "suite": "GameRegistry",
+          "case": "default arcade collection ships every game with a description + action legend",
+          "verifies": "Game registry provides complete specs for all games"
+        }
+      ],
+      "sources": [
+        "src/game/registry.ts",
+        "src/game/impls/MetagameGame.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "8472910422313601"
+    },
+    "rl.epsilon-greedy": {
+      "id": "rl.epsilon-greedy",
+      "name": "Epsilon-Greedy",
+      "category": "rl",
+      "owner": "rl-baselines",
+      "behavior": "Epsilon-greedy bandit algorithm with configurable exploration",
+      "tests": [
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed and zero slip",
+          "verifies": "Epsilon-Greedy produces deterministic episodes from seed"
+        },
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed",
+          "verifies": "Epsilon-Greedy bandit/gridworld is deterministic from seed"
+        }
+      ],
+      "sources": [
+        "src/rl/baselines/index.ts"
+      ],
+      "dependsOn": [
+        "game.bandit",
+        "game.gridworld"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "3262710377df48d0"
+    },
+    "rl.ucb1": {
+      "id": "rl.ucb1",
+      "name": "UCB1",
+      "category": "rl",
+      "owner": "rl-baselines",
+      "behavior": "Upper Confidence Bound bandit algorithm",
+      "tests": [
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed and zero slip",
+          "verifies": "UCB1 produces deterministic episodes from seed"
+        },
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed",
+          "verifies": "UCB1 bandit/gridworld is deterministic from seed"
+        }
+      ],
+      "sources": [
+        "src/rl/baselines/index.ts"
+      ],
+      "dependsOn": [
+        "game.bandit",
+        "game.gridworld"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "1c2f961a91487d26"
+    },
+    "rl.q-learning": {
+      "id": "rl.q-learning",
+      "name": "Q-Learning",
+      "category": "rl",
+      "owner": "rl-baselines",
+      "behavior": "Q-Learning for gridworld environments",
+      "tests": [
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed and zero slip",
+          "verifies": "Q-Learning produces deterministic episodes from seed"
+        },
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed",
+          "verifies": "Q-Learning bandit/gridworld is deterministic from seed"
+        }
+      ],
+      "sources": [
+        "src/rl/baselines/index.ts"
+      ],
+      "dependsOn": [
+        "game.bandit",
+        "game.gridworld"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "11881c2a23553f8e"
+    },
+    "rl.sarsa": {
+      "id": "rl.sarsa",
+      "name": "SARSA",
+      "category": "rl",
+      "owner": "rl-baselines",
+      "behavior": "SARSA for gridworld environments",
+      "tests": [
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed and zero slip",
+          "verifies": "SARSA produces deterministic episodes from seed"
+        },
+        {
+          "path": "tests/nar/rl/games.test.ts",
+          "suite": "Games (DQ2: Game is the only environment interface)",
+          "case": "deterministic with same seed",
+          "verifies": "SARSA bandit/gridworld is deterministic from seed"
+        }
+      ],
+      "sources": [
+        "src/rl/baselines/index.ts"
+      ],
+      "dependsOn": [
+        "game.bandit",
+        "game.gridworld"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "52478f41c97e69ca"
+    },
+    "analyzer.capabilities": {
+      "id": "analyzer.capabilities",
+      "name": "Capabilities Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Analyzes agent capability utilization and coverage",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Capabilities Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/capabilities.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "e02b25d6ad014fe6"
+    },
+    "analyzer.constants": {
+      "id": "analyzer.constants",
+      "name": "Constants Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Detects and tracks constant values in reasoning",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Constants Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/constants.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "cff6af7e4a0379a0"
+    },
+    "analyzer.corrections": {
+      "id": "analyzer.corrections",
+      "name": "Corrections Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Analyzes belief corrections and revisions",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Corrections Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/corrections.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "1f6b71d25b3e3e81"
+    },
+    "analyzer.performance": {
+      "id": "analyzer.performance",
+      "name": "Performance Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Measures reasoning performance metrics",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Performance Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/performance.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "d1834d352e10fdec"
+    },
+    "analyzer.quality": {
+      "id": "analyzer.quality",
+      "name": "Quality Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Assesses reasoning quality and coherence",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Quality Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/quality.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c9929afa1d50ec12"
+    },
+    "analyzer.reasoning-patterns": {
+      "id": "analyzer.reasoning-patterns",
+      "name": "Reasoning Patterns Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Detects recurring reasoning patterns",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Reasoning Patterns Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/reasoning-patterns.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "0318ff850848b45b"
+    },
+    "analyzer.resources": {
+      "id": "analyzer.resources",
+      "name": "Resources Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Tracks computational resource usage",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Resources Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/resources.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a310c9e65d83ac7d"
+    },
+    "analyzer.term-patterns": {
+      "id": "analyzer.term-patterns",
+      "name": "Term Patterns Analyzer",
+      "category": "analysis",
+      "owner": "cognitive-analyzers",
+      "behavior": "Analyzes term usage patterns in memory",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "through conflict analyzers and truth revision",
+          "verifies": "Term Patterns Analyzer integrates with cognitive advantage measurement"
+        }
+      ],
+      "sources": [
+        "src/cognitive/impls/analyzers/term-patterns.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c314855f7b33b838"
+    },
+    "self-mod.tune-knob": {
+      "id": "self-mod.tune-knob",
+      "name": "Tune Knob",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Adjusts hyperparameter knobs via self-modification",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Tune Knob is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/tune-knob.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "2272da5cbfc33376"
+    },
+    "self-mod.switch-strategy": {
+      "id": "self-mod.switch-strategy",
+      "name": "Switch Strategy",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Switches reasoning strategies at runtime",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Switch Strategy is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/switch-strategy.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f3df3ebc55f2f708"
+    },
+    "self-mod.shadow-run": {
+      "id": "self-mod.shadow-run",
+      "name": "Shadow Run",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Runs shadow episodes for safe policy evaluation",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Shadow Run is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/shadow-run.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "8a61921812aafce1"
+    },
+    "self-mod.scaffold-capability": {
+      "id": "self-mod.scaffold-capability",
+      "name": "Scaffold Capability",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Generates capability scaffolding from templates",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Scaffold Capability is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/scaffold-capability.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "fac45d23c9e45f18"
+    },
+    "self-mod.register-tool": {
+      "id": "self-mod.register-tool",
+      "name": "Register Tool",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Registers new tools in the tool registry",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Register Tool is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/register-tool.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "1b30f249652dc7b6"
+    },
+    "self-mod.register-rule": {
+      "id": "self-mod.register-rule",
+      "name": "Register Rule",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Registers new derivation rules",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Register Rule is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/register-rule.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "967f40693e5fb550"
+    },
+    "self-mod.apply-fix": {
+      "id": "self-mod.apply-fix",
+      "name": "Apply Fix",
+      "category": "self-mod",
+      "owner": "self-mod-tools",
+      "behavior": "Applies automated fixes to code",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod Apply Fix is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/apply-fix.ts"
+      ],
+      "dependsOn": [
+        "tool.registry"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ee14d0c8a61ae71a"
+    },
+    "focus.focus": {
+      "id": "focus.focus",
+      "name": "Focus",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Core focus mechanism for attention allocation",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "Focus integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/Focus.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "a23de65a37b62d4d"
+    },
+    "focus.focus-bag": {
+      "id": "focus.focus-bag",
+      "name": "FocusBag",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Priority bag for focus tasks with decay",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "FocusBag integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/FocusBag.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "968fc4f8afa8be07"
+    },
+    "focus.focus-tree": {
+      "id": "focus.focus-tree",
+      "name": "FocusTree",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Hierarchical focus tree for structured attention",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "FocusTree integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/FocusTree.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "359e1eb7595d64d4"
+    },
+    "focus.focus-scheduler": {
+      "id": "focus.focus-scheduler",
+      "name": "FocusScheduler",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Schedules focus ticks across episodes",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "FocusScheduler integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/focus-scheduler.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5057395649232da3"
+    },
+    "focus.game-focus": {
+      "id": "focus.game-focus",
+      "name": "GameFocus",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Focus integration with game environments",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "GameFocus integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/GameFocus.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b1f17eb472568f17"
+    },
+    "focus.meta-focus": {
+      "id": "focus.meta-focus",
+      "name": "MetaFocus",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Meta-level focus for strategy selection",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "MetaFocus integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/MetaFocus.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "db87c993259cfa16"
+    },
+    "focus.schema-store": {
+      "id": "focus.schema-store",
+      "name": "SchemaStore",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Stores and retrieves induced schemas",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "SchemaStore integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/schema-store.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "080fe2bc58cb3bf9"
+    },
+    "focus.belief-seeding": {
+      "id": "focus.belief-seeding",
+      "name": "Belief Seeding",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Seeds initial beliefs for new concepts",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "Belief Seeding integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/belief-seeding.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "bb078e19de57cb71"
+    },
+    "focus.episode-schemas": {
+      "id": "focus.episode-schemas",
+      "name": "Episode Schemas",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "Induces schemas from episode traces",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "Episode Schemas integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/episode-schemas.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f4639c694fa87c8b"
+    },
+    "focus.nal-ab": {
+      "id": "focus.nal-ab",
+      "name": "NAL A/B Test",
+      "category": "focus",
+      "owner": "focus-engine",
+      "behavior": "A/B testing for NAL rule variants",
+      "tests": [
+        {
+          "path": "tests/nar/focus-game-reflex/kernel-slice1.test.ts",
+          "suite": "Kernel Slice 1",
+          "case": "focus.id",
+          "verifies": "NAL A/B Test integrates with kernel slice"
+        }
+      ],
+      "sources": [
+        "src/focus/nal-ab.ts"
+      ],
+      "dependsOn": [
+        "memory.index"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "9ca3dd1c23020c26"
+    },
+    "nl.understanding": {
+      "id": "nl.understanding",
+      "name": "NL Understanding",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Parses and understands natural language input",
+      "tests": [],
+      "sources": [
+        "src/nl/understanding.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "7b4a652c2ec0ebbf"
+    },
+    "nl.formalizer": {
+      "id": "nl.formalizer",
+      "name": "Formalizer",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Converts natural language to formal NARS terms",
+      "tests": [],
+      "sources": [
+        "src/nl/formalizer.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "9ba0a023d03c9bdd"
+    },
+    "nl.generation": {
+      "id": "nl.generation",
+      "name": "NL Generation",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Generates natural language from formal terms",
+      "tests": [],
+      "sources": [
+        "src/nl/generation.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "0cd88ac5169140ce"
+    },
+    "nl.explanation": {
+      "id": "nl.explanation",
+      "name": "Explanation Generator",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Generates explanations for reasoning traces",
+      "tests": [],
+      "sources": [
+        "src/nl/explanation.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b68a5bf99c6c38cc"
+    },
+    "nl.clarification": {
+      "id": "nl.clarification",
+      "name": "Clarification Handler",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Handles clarification dialogs for ambiguous input",
+      "tests": [],
+      "sources": [
+        "src/nl/clarification.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "22feded781c1f246"
+    },
+    "nl.firewall": {
+      "id": "nl.firewall",
+      "name": "Symbolic Firewall",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Filters and validates formalizations",
+      "tests": [],
+      "sources": [
+        "src/nl/firewall.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "20ec27c7d16da8fa"
+    },
+    "nl.classifier": {
+      "id": "nl.classifier",
+      "name": "Input Classifier",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Classifies input type and intent",
+      "tests": [],
+      "sources": [
+        "src/nl/classifier.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f800cf920a5894b4"
+    },
+    "nl.context-assembler": {
+      "id": "nl.context-assembler",
+      "name": "Context Assembler",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Assembles context for NL processing",
+      "tests": [],
+      "sources": [
+        "src/nl/context-assembler.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c3b9d9f9239f5da1"
+    },
+    "nl.cache": {
+      "id": "nl.cache",
+      "name": "Translation Cache",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Caches NL translations for efficiency",
+      "tests": [],
+      "sources": [
+        "src/nl/cache.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f4acc9bf3fc4109a"
+    },
+    "nl.narsese-intent": {
+      "id": "nl.narsese-intent",
+      "name": "Narsese Intent Dispatcher",
+      "category": "nl",
+      "owner": "nl-engine",
+      "behavior": "Dispatches Narsese intent to handlers",
+      "tests": [],
+      "sources": [
+        "src/nl/narsese-intent.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b8bfda9c2695b1c0"
+    },
+    "schema.truth": {
+      "id": "schema.truth",
+      "name": "Truth Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates truth values and source quality",
+      "tests": [],
+      "sources": [
+        "src/schemas/truth.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "4c941639a25ec39f"
+    },
+    "schema.reasoning-budget": {
+      "id": "schema.reasoning-budget",
+      "name": "Reasoning Budget Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates reasoning budget constraints",
+      "tests": [],
+      "sources": [
+        "src/schemas/reasoning-budget.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "8008a7cffafd300e"
+    },
+    "schema.cognitive-events": {
+      "id": "schema.cognitive-events",
+      "name": "Cognitive Events Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates cognitive event log entries",
+      "tests": [],
+      "sources": [
+        "src/schemas/cognitive-events.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "f62b7284575fd48f"
+    },
+    "schema.governance": {
+      "id": "schema.governance",
+      "name": "Governance Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates governance proposals and decisions",
+      "tests": [],
+      "sources": [
+        "src/schemas/governance.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "8686e2de08903154"
+    },
+    "schema.gate-io": {
+      "id": "schema.gate-io",
+      "name": "Gate I/O Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates gate inputs and outputs",
+      "tests": [],
+      "sources": [
+        "src/schemas/gate-io.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6ae441702cc8cd10"
+    },
+    "schema.proposal": {
+      "id": "schema.proposal",
+      "name": "Proposal Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates self-modification proposals",
+      "tests": [],
+      "sources": [
+        "src/schemas/proposal.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "4306afffb51be54d"
+    },
+    "schema.rule-table": {
+      "id": "schema.rule-table",
+      "name": "Rule Table Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates rule table structure",
+      "tests": [],
+      "sources": [
+        "src/schemas/rule-table.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5594584ee4f7a465"
+    },
+    "schema.task": {
+      "id": "schema.task",
+      "name": "Task Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates task types and punctuation",
+      "tests": [],
+      "sources": [
+        "src/schemas/task.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "35d35548d77235d9"
+    },
+    "schema.derivation-records": {
+      "id": "schema.derivation-records",
+      "name": "Derivation Records Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates derivation step records",
+      "tests": [],
+      "sources": [
+        "src/schemas/derivation-records.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "28675f61fa2549b3"
+    },
+    "schema.formalization": {
+      "id": "schema.formalization",
+      "name": "Formalization Schema",
+      "category": "schema",
+      "owner": "schema-validation",
+      "behavior": "Validates formalization candidates",
+      "tests": [],
+      "sources": [
+        "src/schemas/formalization.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "3c5a11a9050316ac"
+    },
+    "transport.cli": {
+      "id": "transport.cli",
+      "name": "CLI Transport",
+      "category": "transport",
+      "owner": "surface-transports",
+      "behavior": "Command-line interface transport",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/cli.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6dfdc80b1f040131"
+    },
+    "transport.http": {
+      "id": "transport.http",
+      "name": "HTTP Transport",
+      "category": "transport",
+      "owner": "surface-transports",
+      "behavior": "HTTP/REST transport for remote access",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/http.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "b2d7bb989d8d2b29"
+    },
+    "transport.ws": {
+      "id": "transport.ws",
+      "name": "WebSocket Transport",
+      "category": "transport",
+      "owner": "surface-transports",
+      "behavior": "WebSocket transport for real-time communication",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/ws.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "af74912efbe88176"
+    },
+    "transport.irc": {
+      "id": "transport.irc",
+      "name": "IRC Transport",
+      "category": "transport",
+      "owner": "surface-transports",
+      "behavior": "IRC transport for chat integration",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/irc.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c250edb26ccef769"
+    },
+    "transport.mcp": {
+      "id": "transport.mcp",
+      "name": "MCP Transport",
+      "category": "transport",
+      "owner": "surface-transports",
+      "behavior": "Model Context Protocol transport",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/mcp.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "6351098fc994042b"
+    },
+    "transport.stdio": {
+      "id": "transport.stdio",
+      "name": "Stdio Transport",
+      "category": "transport",
+      "owner": "surface-transports",
+      "behavior": "Standard I/O transport for subprocess communication",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/stdio.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "0a7784edffa6858a"
+    },
+    "premise.selection": {
+      "id": "premise.selection",
+      "name": "Premise Selection",
+      "category": "reasoning",
+      "owner": "premise-strategies",
+      "behavior": "Selects premises for inference steps",
+      "tests": [],
+      "sources": [
+        "src/strategies/premise/selection.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ffa9dd93f93d036c"
+    },
+    "premise.term-link": {
+      "id": "premise.term-link",
+      "name": "Term Link Premise",
+      "category": "reasoning",
+      "owner": "premise-strategies",
+      "behavior": "Links premises via term relationships",
+      "tests": [],
+      "sources": [
+        "src/strategies/premise/term-link.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "9c2136af094fd498"
+    },
+    "premise.prolog-resolution": {
+      "id": "premise.prolog-resolution",
+      "name": "Prolog Resolution Premise",
+      "category": "reasoning",
+      "owner": "premise-strategies",
+      "behavior": "Uses Prolog-style resolution for premises",
+      "tests": [],
+      "sources": [
+        "src/strategies/premise/prolog-resolution.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "652d18a54c0f63c4"
+    },
+    "premise.primitives": {
+      "id": "premise.primitives",
+      "name": "Premise Primitives",
+      "category": "reasoning",
+      "owner": "premise-strategies",
+      "behavior": "Primitive premise operations",
+      "tests": [],
+      "sources": [
+        "src/strategies/premise/primitives.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "73197a742fdbf9f5"
+    },
+    "memory.memory-index": {
+      "id": "memory.memory-index",
+      "name": "Memory Index",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Atomic and temporal indexes for concept retrieval",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Memory Index maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/memory-index.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "af02b87b45b8d297"
+    },
+    "memory.causal-index": {
+      "id": "memory.causal-index",
+      "name": "Causal Index",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Indexes causal relationships between concepts",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Causal Index maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/CausalIndex.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "40bac4accbc7afc5"
+    },
+    "memory.episodic-memory": {
+      "id": "memory.episodic-memory",
+      "name": "Episodic Memory",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Stores and retrieves episodic traces",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Episodic Memory maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/EpisodicMemory.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ef330b8f2d3578f4"
+    },
+    "memory.concept-graph": {
+      "id": "memory.concept-graph",
+      "name": "Concept Graph",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Graph structure over concepts and links",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Concept Graph maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/ConceptGraph.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "19c20cc3f838b1ca"
+    },
+    "memory.associative": {
+      "id": "memory.associative",
+      "name": "Associative Memory",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Associative retrieval via embedding layers",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Associative Memory maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/associative.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "4f7676b861a76635"
+    },
+    "memory.fold-memory": {
+      "id": "memory.fold-memory",
+      "name": "Fold Memory",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Memory as fold views over event log",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Fold Memory maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/fold-memory.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "2904d30625bc1bac"
+    },
+    "memory.focus-memory": {
+      "id": "memory.focus-memory",
+      "name": "Focus Memory",
+      "category": "memory",
+      "owner": "memory-engine",
+      "behavior": "Memory integration with focus system",
+      "tests": [
+        {
+          "path": "tests/nar/unit/memory-index.test.ts",
+          "suite": "MemoryIndex",
+          "case": "re-indexing the same concept does not duplicate it",
+          "verifies": "Focus Memory maintains correct index state"
+        }
+      ],
+      "sources": [
+        "src/memory/focus.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "7327d75f5d7c1b54"
     }
   }
 }
