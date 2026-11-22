@@ -154,6 +154,10 @@ export function extractOracleCapabilities(operations: readonly OracleOperation[]
     'engine.minisat': { provider: 'minisat', description: 'SAT solving via MiniSat' },
     'engine.tau-prolog': { provider: 'tau-prolog', description: 'Prolog reasoning via Tau Prolog' },
     'engine.custom': { provider: 'custom', description: 'Custom engine oracle' },
+    'embedding.generate': { provider: 'embedding', description: 'Embedding vector generation' },
+    'embedding.rerank': { provider: 'embedding', description: 'Embedding-based reranking' },
+    'embedding.contrastiveScore': { provider: 'embedding', description: 'Contrastive similarity scoring' },
+    'embedding.mineHardNegatives': { provider: 'embedding', description: 'Hard negative mining via embeddings' },
   };
 
   const capabilities: CapabilityManifestEntry[] = [];
@@ -225,6 +229,10 @@ function findOracleBehavioralTests(operation: OracleOperation): BehavioralTest[]
     'lm.stream': [],
     'retrieval.query': [],
     'engine.custom': [],
+    'embedding.generate': [],
+    'embedding.rerank': [],
+    'embedding.contrastiveScore': [],
+    'embedding.mineHardNegatives': [],
   };
 
   return testMap[operation] ?? [];

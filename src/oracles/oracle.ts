@@ -11,6 +11,8 @@ import type { Task } from '../kernel/types';
 import { FunctionRegistry } from '../util/registry';
 import { createLMGenerateTextOracle, createLMGenerateObjectOracle, createLMStreamOracle } from './lm';
 import { createNLToFormalOracle, createFormalToNlOracle } from './formalization';
+import { createEmbeddingGenerateOracle, createEmbeddingRerankOracle } from './embedding';
+import { MockEmbeddingGenerator } from '../memory/embedding';
 import { OraclePinStore } from './pins';
 import { createHash } from 'crypto';
 import type { BudgetSlice, BudgetResource } from '../budget/budget';
@@ -453,6 +455,16 @@ export function createStandardOracleRegistry(
 
   registry.register(nlToFormalOracle);
   registry.register(formalToNlOracle);
+
+  // Always register embedding oracles (they work with or without LM)
+  const mockEmbedder = new MockEmbeddingGenerator();
+  const embeddingGenerateOracle = createEmbeddingGenerateOracle(mockEmbedder, undefined);
+
+  if (pinStore) {
+    embeddingGenerateOracle.setPinStore(pinStore);
+  }
+
+  registry.register(embeddingGenerateOracle);
 
   return registry;
 }
