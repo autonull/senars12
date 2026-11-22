@@ -422,6 +422,8 @@ const aliases = [
   { find: '@senars/lm/rule-templates/schemas', replacement: path.resolve(__dirname, './src/lm/rule-templates/schemas.ts') },
   // @senars/kernel/*
   { find: '@senars/kernel/index', replacement: path.resolve(__dirname, './src/kernel/index.ts') },
+  { find: '@senars/kernel/step', replacement: path.resolve(__dirname, './src/kernel/step.ts') },
+  { find: '@senars/kernel/terms', replacement: path.resolve(__dirname, './src/kernel/terms/index.ts') },
   // @senars/io/*
   { find: '@senars/io/bridge/MiddlewarePipeline', replacement: path.resolve(__dirname, './src/io/bridge/MiddlewarePipeline.ts') },
   // @senars/game/*

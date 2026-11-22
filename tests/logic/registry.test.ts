@@ -46,7 +46,7 @@ describe('W1 — per-instance registries', () => {
   it('creates an isolated faculty registry with the core faculties', () => {
     const first = createFacultyRegistry();
     const second = createFacultyRegistry();
-    expect(first.getAll()).toHaveLength(10);
+    expect(first.getAll()).toHaveLength(11);
     expect(first).not.toBe(second);
   });
 
@@ -67,7 +67,7 @@ describe('W1 — per-instance registries', () => {
   it('lets an engine use only its injected registry', () => {
     const registry = createFacultyRegistry();
     const engine = new FacultyEngine({ registry });
-    expect(engine.getAvailableFaculties()).toHaveLength(10);
+    expect(engine.getAvailableFaculties()).toHaveLength(11);
   });
 
   it('runs two agents in one process with isolated registries', async () => {

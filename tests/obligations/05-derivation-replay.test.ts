@@ -7,10 +7,10 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { TermFactory } from '@senars/kernel';
+import { termInterner, TermFactory } from '@senars/kernel/terms';
 import { Truth } from '@senars/kernel';
 import { Stamp } from '@senars/kernel';
-import { createStepExecutor, StepExecutor } from '@senars/kernel';
+import { createStepExecutor, StepExecutor } from '@senars/kernel/step';
 import { NALRuleEngine } from '@senars/rules';
 import {
   DerivationRecorder,
@@ -29,7 +29,7 @@ describe('Obligation 5: Derivation Replay', () => {
   let interpreter: ReferenceInterpreter;
 
   beforeAll(() => {
-    TermFactory.reset();
+    termInterner.clear();
     executor = createStepExecutor();
     ruleEngine = new NALRuleEngine(executor);
     interpreter = createReferenceInterpreter();

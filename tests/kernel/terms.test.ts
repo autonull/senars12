@@ -37,7 +37,7 @@ import { canonicalize as canonicalizeTerm } from '@senars/kernel/terms';
 
 describe('TermFactory', () => {
   beforeEach(() => {
-    TermFactory.reset();
+    termInterner.clear();
   });
 
   it('should create interned variables', () => {

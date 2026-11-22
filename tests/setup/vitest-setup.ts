@@ -1,5 +1,12 @@
 // Global test utilities setup
 
+import { termInterner } from '../../src/kernel/terms/intern.js';
+
+// Reset term interner before each test to ensure deterministic term IDs
+beforeEach(() => {
+  termInterner.clear();
+});
+
 // No process-global gate registry exists any more (TODO33 §5.P2.7): a suite that
 // mutates autonomy modes or allowlists builds its own `createGateRegistry()`, so
 // nothing leaks across files and there is nothing to reset here.

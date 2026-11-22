@@ -78,6 +78,7 @@ Legend: `[x]` landed · `[~]` partial (named residual) · `[ ]` not started.
 
 - **Consolidation is done.** One `src/`; ~392 import errors → 0; **3,417 unit tests passing / 0 failing**; utilities, registries, catalogs, sampling strategies, and config defaults single-sourced; LogStore/GateEventLedger persistence repaired.
 - **The fold's skeleton is landed and wired.** `loop/`, `logics/`, `log/`, `faculties/`, `oracles/`, `admit/`, `economy/`, `worlds/`, `mining/`, `deck/`, `surface/mcp` execute and write to the log; `Env` threaded through all fold roots; `Math.random`/`Date.now` eliminated from fold; engines use WASM; DSL parser + dry-run sandbox real; three-valued `Verdict` and risk-tier machinery live.
+- **W2 complete — oracle seam is real.** WASM engines (Z3, Clingo, MiniSat, Tau Prolog) are the default; native Z3/Clingo/MiniSat available as optional high-power server-only providers via `createEngineOracleRegistry({ includeNative: true })`; MeTTa engine ported as `engine.metta` oracle; duplicate `logics/axiomatic/engines` wrapper layer removed — all engine access now exclusively through the oracle seam.
 - **The legacy runtime is still production** (`bin/senars.ts` → `createAgentFromEnv`) and carries a rich capability surface the fold plan never names: MeTTa engine, imagination/scenario generation, RLFP preference learning, RL baselines, premise-selection strategies, contrastive/embedding memory, distillation, GBNF-constrained decoding, portable WASI heads, causal/concept/associative memory indexes, self-modification tooling, 14 games, focus trees, metacognitive analyzers, NL/dialogue, schema induction, and transport/plugin/governance infrastructure.
 - **Known debt:** 45 active gates; `complexity:budget` suspended with a stale baseline; **`typecheck:bin` 0 errors (main package)**; tests excluded from typecheck; 560+ vitest aliases; dependency sprawl; stale scripts; one flaky test; four deferred UI tests.
 - **An honest negative result is on record:** the pre-registered arena run found `nal 0.229 < manifold 0.257 < lm 0.345` macro Brier, with *untrained* heads and asymmetric arms. An asset and a to-do, not a verdict.
@@ -222,9 +223,9 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 - [x] Charge every oracle call through `BUDGET_RESOURCES` — LM and Z3 WASM oracles done; remaining engines (clingo, minisat, tau-prolog, metta) done.
 - [x] Enforce the **`one-oracle` gate**: any `fetch`/client/`child_process` outside `src/oracles` fails CI.
 - [x] **Port WASM engines**: `z3-wasm` (z3-solver), `clingo-wasm`, `minisat-wasm` (logic-solver-plus), `tau-prolog` (existing). **WASM is the default.**
-- [ ] **Keep native `z3`/`clingo` as an optional high-power oracle provider** behind the same seam (server-only).
+- [x] **Keep native `z3`/`clingo` as an optional high-power oracle provider** behind the same seam (server-only). Implemented in `src/oracles/engines/{z3,clingo,minisat}.ts` with `createEngineOracleRegistry(includeNative: true)`.
 - [x] **Add `engine.metta`** as an oracle (evaluation/rewriting semantics), re-homing `metta/` and `meta/ProofMettaProposer`.
-- [ ] Consolidate the duplicate `logics/axiomatic/engines` wrapper layer into the seam (parity-gated).
+- [x] Consolidate the duplicate `logics/axiomatic/engines` wrapper layer into the seam (parity-gated). Removed `src/logics/axiomatic/engines.ts`; engine access now exclusively through oracle seam via `createEngineOracleRegistry()`.
 - [x] Pin store lives on the log — `LogBackedPinStore` in `src/oracles/log-pins.ts` uses `LogStore` for durable pin storage.
 
 **Accept:** obligation 11; **obligation 13 parity for the portable WASM profile** (node/browser/edge identical verdict hashes — the native provider is exempt as a server-only option); zero `child_process` outside `src/oracles`.

@@ -14,6 +14,11 @@ import { createNLToFormalOracle, createFormalToNlOracle } from './formalization.
 import { OraclePinStore } from './pins.js';
 import { createHash } from 'crypto';
 import type { BudgetSlice, BudgetResource } from '../budget/budget.js';
+import { createZ3WasmOracle } from './engines/z3-wasm.js';
+import { createClingoWasmOracle } from './engines/clingo-wasm.js';
+import { createMiniSatWasmOracle } from './engines/minisat-wasm.js';
+import { createTauPrologOracle } from './engines/tau-prolog.js';
+import { createMettaOracle } from './engines/metta.js';
 
 /** Oracle operation categories. */
 export const ORACLE_OPERATIONS = [
@@ -420,6 +425,86 @@ export function createStandardOracleRegistry(
 
   registry.register(nlToFormalOracle);
   registry.register(formalToNlOracle);
+
+  return registry;
+}
+
+/** Engine oracle registration options. */
+export interface EngineRegistryOptions {
+  /** Pin store for deterministic replay. */
+  pinStore?: OraclePinStore;
+  /** Budget slice for charging engine calls. */
+  budgetSlice?: BudgetSlice;
+  /** Budget resource for engine calls. */
+  budgetResource?: BudgetResource;
+  /** Whether to include native (child_process-based) engines as optional high-power providers.
+   *  Native engines require the binary to be installed (server-only). */
+  includeNative?: boolean;
+  /** Custom paths for native binaries. */
+  nativePaths?: { z3?: string; clingo?: string; minisat?: string };
+}
+
+/** Create an oracle registry with engine oracles (WASM by default, native optional). */
+export async function createEngineOracleRegistry(
+  options: EngineRegistryOptions = {}
+): Promise<OracleRegistry> {
+  const registry = new OracleRegistry();
+  const { pinStore, budgetSlice, budgetResource, includeNative = false, nativePaths = {} } = options;
+
+  // Register WASM engines (default, portable)
+  const z3Wasm = createZ3WasmOracle({ budgetSlice, budgetResource });
+  const clingoWasm = createClingoWasmOracle({ budgetSlice, budgetResource });
+  const minisatWasm = createMiniSatWasmOracle({ budgetSlice, budgetResource });
+  const tauProlog = createTauPrologOracle({ budgetSlice, budgetResource });
+  const metta = createMettaOracle({ budgetSlice, budgetResource });
+
+  if (pinStore) {
+    z3Wasm.setPinStore(pinStore);
+    clingoWasm.setPinStore(pinStore);
+    minisatWasm.setPinStore(pinStore);
+    tauProlog.setPinStore(pinStore);
+    metta.setPinStore(pinStore);
+  }
+
+  registry.register(z3Wasm);
+  registry.register(clingoWasm);
+  registry.register(minisatWasm);
+  registry.register(tauProlog);
+  registry.register(metta);
+
+  // Optionally register native engines (server-only, high-power)
+  if (includeNative) {
+    const { createZ3Oracle } = await import('./engines/z3.js');
+    const { createClingoOracle } = await import('./engines/clingo.js');
+    const { createMiniSatOracle } = await import('./engines/minisat.js');
+
+    const z3Native = createZ3Oracle({
+      budgetSlice,
+      budgetResource,
+      z3Path: nativePaths.z3,
+    });
+    const clingoNative = createClingoOracle({
+      budgetSlice,
+      budgetResource,
+      clingoPath: nativePaths.clingo,
+    });
+    const minisatNative = createMiniSatOracle({
+      budgetSlice,
+      budgetResource,
+      minisatPath: nativePaths.minisat,
+    });
+
+    if (pinStore) {
+      z3Native.setPinStore(pinStore);
+      clingoNative.setPinStore(pinStore);
+      minisatNative.setPinStore(pinStore);
+    }
+
+    // Register with distinct provider names to avoid conflicts
+    registry.register(z3Native);
+    registry.register(clingoNative);
+    registry.register(minisatNative);
+  }
 
   return registry;
 }
