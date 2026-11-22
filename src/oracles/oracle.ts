@@ -64,6 +64,19 @@ export const ORACLE_OPERATIONS = [
   'imagination.generate',
   'imagination.run',
   'imagination.profiles',
+  'self.mod.tuneKnob',
+  'self.mod.switchStrategy',
+  'self.mod.shadowRun',
+  'self.mod.scaffoldCapability',
+  'self.mod.registerTool',
+  'self.mod.registerRule',
+  'self.mod.applyFix',
+  'transport.cli',
+  'transport.http',
+  'transport.ws',
+  'transport.irc',
+  'transport.mcp',
+  'transport.stdio',
 ] as const;
 
 export type OracleOperation = (typeof ORACLE_OPERATIONS)[number];

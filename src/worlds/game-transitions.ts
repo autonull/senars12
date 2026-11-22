@@ -445,6 +445,41 @@ function conversationReward(
   return Math.min(1, gameState.history.length * 0.1);
 }
 
+/** Focus transition — attention allocation with focus trees. */
+function focusTransition(
+  state: HabitatState,
+  action: HabitatAction,
+  config: HabitatConfig
+): HabitatState {
+  // Focus habitat doesn't use a game instance; it simulates attention allocation
+  const entity = state.entities.get(config.id)!;
+  const props = entity.properties as GameEntityProps;
+  const treeType = config.initialState.env.get('treeType') as string;
+  const budget = config.initialState.env.get('budget') as number;
+  
+  // Simulate focus allocation step
+  const focusAllocated = Math.min(budget, state.step + 1);
+  props.set('focusAllocated', focusAllocated);
+  props.set('treeType', treeType);
+  
+  return { ...state, step: state.step + 1, entities: new Map(state.entities).set(config.id, entity) };
+}
+
+/** Focus reward (attention efficiency). */
+function focusReward(
+  state: HabitatState,
+  action: HabitatAction,
+  nextState: HabitatState,
+  config: HabitatConfig
+): number {
+  const entity = nextState.entities.get(config.id)!;
+  const props = entity.properties as GameEntityProps;
+  const focusAllocated = props.get('focusAllocated') as number;
+  const budget = config.initialState.env.get('budget') as number;
+  // Reward based on focus efficiency (allocated / budget)
+  return budget > 0 ? Math.min(1, focusAllocated / budget) : 0;
+}
+
 /** MetaGame transition. */
 function metagameTransition(
   state: HabitatState,
@@ -602,6 +637,7 @@ export function registerGameTransitions(registry: HabitatRegistry): void {
   registry.transitions.set('tetris', tetrisTransition);
   registry.transitions.set('tictactoe', tictactoeTransition);
   registry.transitions.set('conversation', conversationTransition);
+  registry.transitions.set('focus', focusTransition);
   registry.transitions.set('metagame', metagameTransition);
   registry.transitions.set('selfmeta', selfmetagameTransition);
   registry.transitions.set('reasoningmeta', reasoningmetagameTransition);
@@ -618,6 +654,7 @@ export function registerGameTransitions(registry: HabitatRegistry): void {
   registry.rewards.set('lines', tetrisReward);
   registry.rewards.set('win', tictactoeReward);
   registry.rewards.set('coherence', conversationReward);
+  registry.rewards.set('attention-efficiency', focusReward);
   registry.rewards.set('parameter_quality', metagameReward);
   registry.rewards.set('coherence', selfmetagameReward);
   registry.rewards.set('parameter_quality', reasoningmetagameReward);

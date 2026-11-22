@@ -115,6 +115,20 @@ export const GAME_PACKS: Record<string, () => HabitatPack> = {
     createConversationHabitat('conversation-basic' as HabitatId, 42, 50),
   ]),
 
+  /** Dialogue game — multi-turn dialogue with NL formalization. */
+  dialogue: () => createHabitatPack('dialogue', [
+    createDialogueHabitat('dialogue-open' as HabitatId, 42, 100),
+    createDialogueHabitat('dialogue-task' as HabitatId, 123, 100),
+    createDialogueHabitat('dialogue-debate' as HabitatId, 456, 150),
+  ]),
+
+  /** Focus game — attention allocation with focus trees. */
+  focus: () => createHabitatPack('focus', [
+    createFocusHabitat('focus-trees' as HabitatId, 42, 200),
+    createFocusHabitat('focus-meta' as HabitatId, 123, 200),
+    createFocusHabitat('focus-belief' as HabitatId, 456, 200),
+  ]),
+
   /** Game 2048. */
   game2048: () => createHabitatPack('game2048', [
     create2048Habitat('2048-standard' as HabitatId, 42, 1000),
@@ -263,6 +277,78 @@ function createConversationHabitat(id: HabitatId, seed: number, maxSteps: number
     reward: 'coherence',
     termination: { maxSteps: true, goalAchieved: true },
     metadata: { game: 'conversation' },
+  });
+}
+
+/** Create dialogue habitat — multi-turn with NL formalization. */
+function createDialogueHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
+  const variant = id.split('-')[1] ?? 'open';
+  const topics: Record<string, string> = {
+    open: 'open-ended conversation',
+    task: 'task-oriented dialogue',
+    debate: 'structured debate',
+  };
+  const maxTurns: Record<string, number> = {
+    open: 15,
+    task: 10,
+    debate: 20,
+  };
+  return enhanceHabitatConfig({
+    id,
+    name: id,
+    kind: 'dialogue',
+    seed,
+    maxSteps,
+    initialState: {
+      step: 0,
+      episode: 0,
+      entities: new Map(),
+      agent: { inventory: [], energy: 100, internal: new Map() },
+      env: new Map<string, unknown>([
+        ['topic', topics[variant] ?? 'general'],
+        ['maxTurns', maxTurns[variant] ?? 10],
+        ['variant', variant],
+      ]),
+      rngState: seed.toString(),
+    },
+    transition: 'conversation',
+    reward: 'coherence',
+    termination: { maxSteps: true, goalAchieved: true },
+    metadata: { game: 'dialogue', variant },
+  });
+}
+
+/** Create focus habitat — attention allocation with focus trees. */
+function createFocusHabitat(id: HabitatId, seed: number, maxSteps: number): HabitatConfig {
+  const variant = id.split('-')[1] ?? 'trees';
+  const configs: Record<string, { treeType: string; budget: number }> = {
+    trees: { treeType: 'focus-tree', budget: 100 },
+    meta: { treeType: 'meta-focus', budget: 50 },
+    belief: { treeType: 'belief-seeding', budget: 30 },
+  };
+  const cfg = configs[variant] ?? { treeType: 'focus-tree', budget: 100 };
+  return enhanceHabitatConfig({
+    id,
+    name: id,
+    kind: 'focus',
+    seed,
+    maxSteps,
+    initialState: {
+      step: 0,
+      episode: 0,
+      entities: new Map(),
+      agent: { inventory: [], energy: 100, internal: new Map() },
+      env: new Map<string, unknown>([
+        ['treeType', cfg.treeType],
+        ['budget', cfg.budget],
+        ['variant', variant],
+      ]),
+      rngState: seed.toString(),
+    },
+    transition: 'focus',
+    reward: 'attention-efficiency',
+    termination: { maxSteps: true, goalAchieved: true },
+    metadata: { game: 'focus', variant },
   });
 }
 

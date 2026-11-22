@@ -11,3 +11,4 @@ export * from './arena';
 export * from './arena-lanes';
 export * from './world-packs';
 export * from './soak';
+export * from './mining-lane';

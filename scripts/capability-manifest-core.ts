@@ -35,6 +35,7 @@ export const CAPABILITY_CATEGORIES = [
   'nl',
   'schema',
   'transport',
+  'mining',
 ] as const;
 
 export type CapabilityCategory = (typeof CAPABILITY_CATEGORIES)[number];
@@ -166,6 +167,19 @@ export function extractOracleCapabilities(operations: readonly OracleOperation[]
     'embedding.rerank': { provider: 'embedding', description: 'Embedding-based reranking' },
     'embedding.contrastiveScore': { provider: 'embedding', description: 'Contrastive similarity scoring' },
     'embedding.mineHardNegatives': { provider: 'embedding', description: 'Hard negative mining via embeddings' },
+    'self.mod.tuneKnob': { provider: 'self-mod', description: 'Tune hyperparameter knobs via self-modification' },
+    'self.mod.switchStrategy': { provider: 'self-mod', description: 'Switch reasoning strategies at runtime' },
+    'self.mod.shadowRun': { provider: 'self-mod', description: 'Run shadow episodes for safe policy evaluation' },
+    'self.mod.scaffoldCapability': { provider: 'self-mod', description: 'Generate capability scaffolding from templates' },
+    'self.mod.registerTool': { provider: 'self-mod', description: 'Register new tools in the tool registry' },
+    'self.mod.registerRule': { provider: 'self-mod', description: 'Register new derivation rules' },
+    'self.mod.applyFix': { provider: 'self-mod', description: 'Apply automated fixes to code' },
+    'transport.cli': { provider: 'transport', description: 'Command-line interface transport' },
+    'transport.http': { provider: 'transport', description: 'HTTP/REST transport for remote access' },
+    'transport.ws': { provider: 'transport', description: 'WebSocket transport for real-time communication' },
+    'transport.irc': { provider: 'transport', description: 'IRC transport for chat integration' },
+    'transport.mcp': { provider: 'transport', description: 'Model Context Protocol transport' },
+    'transport.stdio': { provider: 'transport', description: 'Standard I/O transport for subprocess communication' },
   };
 
   const capabilities: CapabilityManifestEntry[] = [];
@@ -183,7 +197,11 @@ export function extractOracleCapabilities(operations: readonly OracleOperation[]
       owner: 'oracle-seam',
       behavior: info.description,
       tests,
-      sources: [`src/oracles/engines/${info.provider}.ts`, `src/oracles/oracle.ts`],
+      sources: info.provider === 'self-mod'
+        ? [`src/tools/adapters/self/${op.split('.')[2]}.ts`, `src/oracles/oracle.ts`]
+        : info.provider === 'transport'
+        ? [`src/surface/transports/${op.split('.')[1]}.ts`, `src/oracles/oracle.ts`]
+        : [`src/oracles/engines/${info.provider}.ts`, `src/oracles/oracle.ts`],
       dependsOn: [],
       since: '0.1.0',
       active: true,
@@ -241,6 +259,33 @@ function findOracleBehavioralTests(operation: OracleOperation): BehavioralTest[]
     'embedding.rerank': [],
     'embedding.contrastiveScore': [],
     'embedding.mineHardNegatives': [],
+    'self.mod.tuneKnob': [
+      { path: 'tests/nar/todo7-validation.test.ts', suite: 'Validation', case: 'sabotage: self-mod attacks are refused at three layers', verifies: 'Self-mod tune-knob is gated by validation layers' },
+    ],
+    'self.mod.switchStrategy': [
+      { path: 'tests/nar/todo7-validation.test.ts', suite: 'Validation', case: 'sabotage: self-mod attacks are refused at three layers', verifies: 'Self-mod switch-strategy is gated by validation layers' },
+    ],
+    'self.mod.shadowRun': [
+      { path: 'tests/nar/todo7-validation.test.ts', suite: 'Validation', case: 'sabotage: self-mod attacks are refused at three layers', verifies: 'Self-mod shadow-run is gated by validation layers' },
+    ],
+    'self.mod.scaffoldCapability': [
+      { path: 'tests/nar/todo7-validation.test.ts', suite: 'Validation', case: 'sabotage: self-mod attacks are refused at three layers', verifies: 'Self-mod scaffold-capability is gated by validation layers' },
+    ],
+    'self.mod.registerTool': [
+      { path: 'tests/nar/todo7-validation.test.ts', suite: 'Validation', case: 'sabotage: self-mod attacks are refused at three layers', verifies: 'Self-mod register-tool is gated by validation layers' },
+    ],
+    'self.mod.registerRule': [
+      { path: 'tests/nar/todo7-validation.test.ts', suite: 'Validation', case: 'sabotage: self-mod attacks are refused at three layers', verifies: 'Self-mod register-rule is gated by validation layers' },
+    ],
+    'self.mod.applyFix': [
+      { path: 'tests/nar/todo7-validation.test.ts', suite: 'Validation', case: 'sabotage: self-mod attacks are refused at three layers', verifies: 'Self-mod apply-fix is gated by validation layers' },
+    ],
+    'transport.cli': [],
+    'transport.http': [],
+    'transport.ws': [],
+    'transport.irc': [],
+    'transport.mcp': [],
+    'transport.stdio': [],
   };
 
   return testMap[operation] ?? [];
@@ -467,6 +512,26 @@ export function extractNLCapabilities(): CapabilityManifestEntry[] {
   return capabilities;
 }
 
+/** Extract capabilities from schema induction (mining lane). */
+export function extractSchemaInductionCapabilities(): CapabilityManifestEntry[] {
+  const entry: Omit<CapabilityManifestEntry, 'hash'> = {
+    id: 'mining.schema-induction',
+    name: 'Schema Induction Mining Lane',
+    category: 'mining',
+    owner: 'mining-engine',
+    behavior: 'Induces reusable schemas from successful derivation patterns via AIKR-bounded fold queries over the event log',
+    tests: [
+      { path: 'tests/nar/rl/parity/cognitive-advantage.test.ts', suite: 'Cognitive Advantage', case: 'derivation chains can be recorded for schema induction', verifies: 'SchemaInductor admits and processes derivation chains' },
+      { path: 'tests/nar/todo25-derivation-capture.test.ts', suite: 'Derivation Capture', case: 'captured chains round-trip through SchemaInductor (real Memory, deterministic LM double)', verifies: 'Schema induction round-trips captured chains' },
+    ],
+    sources: ['src/learning/schema-induction.ts', 'src/mining/schema-mining.ts'],
+    dependsOn: ['memory.index', 'oracle.lm.generateText'],
+    since: '0.1.0',
+    active: true,
+  };
+  return [{ ...entry, hash: hashEntry(entry) }];
+}
+
 /** Extract capabilities from schema validation. */
 export function extractSchemaCapabilities(): CapabilityManifestEntry[] {
   const schemas = [
@@ -614,6 +679,7 @@ export async function buildCapabilityManifest(): Promise<CapabilityManifest> {
   const focusCapabilities = extractFocusCapabilities();
   const nlCapabilities = extractNLCapabilities();
   const schemaCapabilities = extractSchemaCapabilities();
+  const schemaInductionCapabilities = extractSchemaInductionCapabilities();
   const transportCapabilities = extractTransportCapabilities();
   const premiseCapabilities = extractPremiseCapabilities();
   const memoryIndexCapabilities = extractMemoryIndexCapabilities();
@@ -628,6 +694,7 @@ export async function buildCapabilityManifest(): Promise<CapabilityManifest> {
     ...focusCapabilities,
     ...nlCapabilities,
     ...schemaCapabilities,
+    ...schemaInductionCapabilities,
     ...transportCapabilities,
     ...premiseCapabilities,
     ...memoryIndexCapabilities,

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-22T21:50:11.380Z",
+  "generatedAt": "2026-11-22T22:39:39.796Z",
   "capabilities": [
     {
       "id": "faculty.grounding",
@@ -628,6 +628,263 @@
       "since": "0.1.0",
       "active": true,
       "hash": "210f4bdcf38f83e7"
+    },
+    {
+      "id": "oracle.self.mod.tuneKnob",
+      "name": "self.mod.tuneKnob",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Tune hyperparameter knobs via self-modification",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod tune-knob is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/tuneKnob.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c8e02bea96d05ce8"
+    },
+    {
+      "id": "oracle.self.mod.switchStrategy",
+      "name": "self.mod.switchStrategy",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Switch reasoning strategies at runtime",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod switch-strategy is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/switchStrategy.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "2a72aa0f497fd064"
+    },
+    {
+      "id": "oracle.self.mod.shadowRun",
+      "name": "self.mod.shadowRun",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Run shadow episodes for safe policy evaluation",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod shadow-run is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/shadowRun.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ba783cd7a52f344f"
+    },
+    {
+      "id": "oracle.self.mod.scaffoldCapability",
+      "name": "self.mod.scaffoldCapability",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Generate capability scaffolding from templates",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod scaffold-capability is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/scaffoldCapability.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ac5a927710ac982e"
+    },
+    {
+      "id": "oracle.self.mod.registerTool",
+      "name": "self.mod.registerTool",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Register new tools in the tool registry",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod register-tool is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/registerTool.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5d2cb920b8a7af76"
+    },
+    {
+      "id": "oracle.self.mod.registerRule",
+      "name": "self.mod.registerRule",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Register new derivation rules",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod register-rule is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/registerRule.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "e01be5f61f7c4425"
+    },
+    {
+      "id": "oracle.self.mod.applyFix",
+      "name": "self.mod.applyFix",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Apply automated fixes to code",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod apply-fix is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/applyFix.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5a2656658bb15619"
+    },
+    {
+      "id": "oracle.transport.cli",
+      "name": "transport.cli",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Command-line interface transport",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/cli.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "d97f9f347bcc3a5c"
+    },
+    {
+      "id": "oracle.transport.http",
+      "name": "transport.http",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "HTTP/REST transport for remote access",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/http.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "51b1f63fe7bbf00d"
+    },
+    {
+      "id": "oracle.transport.ws",
+      "name": "transport.ws",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "WebSocket transport for real-time communication",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/ws.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "366faeb3baf4d52a"
+    },
+    {
+      "id": "oracle.transport.irc",
+      "name": "transport.irc",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "IRC transport for chat integration",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/irc.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "eb14ff58ac48aa1c"
+    },
+    {
+      "id": "oracle.transport.mcp",
+      "name": "transport.mcp",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Model Context Protocol transport",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/mcp.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "88f616b43b33eff0"
+    },
+    {
+      "id": "oracle.transport.stdio",
+      "name": "transport.stdio",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Standard I/O transport for subprocess communication",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/stdio.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c96b973ee790d84c"
     },
     {
       "id": "game.snake",
@@ -2044,6 +2301,38 @@
       "hash": "3c5a11a9050316ac"
     },
     {
+      "id": "mining.schema-induction",
+      "name": "Schema Induction Mining Lane",
+      "category": "mining",
+      "owner": "mining-engine",
+      "behavior": "Induces reusable schemas from successful derivation patterns via AIKR-bounded fold queries over the event log",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "derivation chains can be recorded for schema induction",
+          "verifies": "SchemaInductor admits and processes derivation chains"
+        },
+        {
+          "path": "tests/nar/todo25-derivation-capture.test.ts",
+          "suite": "Derivation Capture",
+          "case": "captured chains round-trip through SchemaInductor (real Memory, deterministic LM double)",
+          "verifies": "Schema induction round-trips captured chains"
+        }
+      ],
+      "sources": [
+        "src/learning/schema-induction.ts",
+        "src/mining/schema-mining.ts"
+      ],
+      "dependsOn": [
+        "memory.index",
+        "oracle.lm.generateText"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "d25b9749a7d2d9c1"
+    },
+    {
       "id": "transport.cli",
       "name": "CLI Transport",
       "category": "transport",
@@ -2975,6 +3264,263 @@
       "since": "0.1.0",
       "active": true,
       "hash": "210f4bdcf38f83e7"
+    },
+    "oracle.self.mod.tuneKnob": {
+      "id": "oracle.self.mod.tuneKnob",
+      "name": "self.mod.tuneKnob",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Tune hyperparameter knobs via self-modification",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod tune-knob is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/tuneKnob.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c8e02bea96d05ce8"
+    },
+    "oracle.self.mod.switchStrategy": {
+      "id": "oracle.self.mod.switchStrategy",
+      "name": "self.mod.switchStrategy",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Switch reasoning strategies at runtime",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod switch-strategy is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/switchStrategy.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "2a72aa0f497fd064"
+    },
+    "oracle.self.mod.shadowRun": {
+      "id": "oracle.self.mod.shadowRun",
+      "name": "self.mod.shadowRun",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Run shadow episodes for safe policy evaluation",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod shadow-run is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/shadowRun.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ba783cd7a52f344f"
+    },
+    "oracle.self.mod.scaffoldCapability": {
+      "id": "oracle.self.mod.scaffoldCapability",
+      "name": "self.mod.scaffoldCapability",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Generate capability scaffolding from templates",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod scaffold-capability is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/scaffoldCapability.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "ac5a927710ac982e"
+    },
+    "oracle.self.mod.registerTool": {
+      "id": "oracle.self.mod.registerTool",
+      "name": "self.mod.registerTool",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Register new tools in the tool registry",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod register-tool is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/registerTool.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5d2cb920b8a7af76"
+    },
+    "oracle.self.mod.registerRule": {
+      "id": "oracle.self.mod.registerRule",
+      "name": "self.mod.registerRule",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Register new derivation rules",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod register-rule is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/registerRule.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "e01be5f61f7c4425"
+    },
+    "oracle.self.mod.applyFix": {
+      "id": "oracle.self.mod.applyFix",
+      "name": "self.mod.applyFix",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Apply automated fixes to code",
+      "tests": [
+        {
+          "path": "tests/nar/todo7-validation.test.ts",
+          "suite": "Validation",
+          "case": "sabotage: self-mod attacks are refused at three layers",
+          "verifies": "Self-mod apply-fix is gated by validation layers"
+        }
+      ],
+      "sources": [
+        "src/tools/adapters/self/applyFix.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "5a2656658bb15619"
+    },
+    "oracle.transport.cli": {
+      "id": "oracle.transport.cli",
+      "name": "transport.cli",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Command-line interface transport",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/cli.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "d97f9f347bcc3a5c"
+    },
+    "oracle.transport.http": {
+      "id": "oracle.transport.http",
+      "name": "transport.http",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "HTTP/REST transport for remote access",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/http.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "51b1f63fe7bbf00d"
+    },
+    "oracle.transport.ws": {
+      "id": "oracle.transport.ws",
+      "name": "transport.ws",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "WebSocket transport for real-time communication",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/ws.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "366faeb3baf4d52a"
+    },
+    "oracle.transport.irc": {
+      "id": "oracle.transport.irc",
+      "name": "transport.irc",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "IRC transport for chat integration",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/irc.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "eb14ff58ac48aa1c"
+    },
+    "oracle.transport.mcp": {
+      "id": "oracle.transport.mcp",
+      "name": "transport.mcp",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Model Context Protocol transport",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/mcp.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "88f616b43b33eff0"
+    },
+    "oracle.transport.stdio": {
+      "id": "oracle.transport.stdio",
+      "name": "transport.stdio",
+      "category": "coordination",
+      "owner": "oracle-seam",
+      "behavior": "Standard I/O transport for subprocess communication",
+      "tests": [],
+      "sources": [
+        "src/surface/transports/stdio.ts",
+        "src/oracles/oracle.ts"
+      ],
+      "dependsOn": [],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "c96b973ee790d84c"
     },
     "game.snake": {
       "id": "game.snake",
@@ -4389,6 +4935,38 @@
       "since": "0.1.0",
       "active": true,
       "hash": "3c5a11a9050316ac"
+    },
+    "mining.schema-induction": {
+      "id": "mining.schema-induction",
+      "name": "Schema Induction Mining Lane",
+      "category": "mining",
+      "owner": "mining-engine",
+      "behavior": "Induces reusable schemas from successful derivation patterns via AIKR-bounded fold queries over the event log",
+      "tests": [
+        {
+          "path": "tests/nar/rl/parity/cognitive-advantage.test.ts",
+          "suite": "Cognitive Advantage",
+          "case": "derivation chains can be recorded for schema induction",
+          "verifies": "SchemaInductor admits and processes derivation chains"
+        },
+        {
+          "path": "tests/nar/todo25-derivation-capture.test.ts",
+          "suite": "Derivation Capture",
+          "case": "captured chains round-trip through SchemaInductor (real Memory, deterministic LM double)",
+          "verifies": "Schema induction round-trips captured chains"
+        }
+      ],
+      "sources": [
+        "src/learning/schema-induction.ts",
+        "src/mining/schema-mining.ts"
+      ],
+      "dependsOn": [
+        "memory.index",
+        "oracle.lm.generateText"
+      ],
+      "since": "0.1.0",
+      "active": true,
+      "hash": "d25b9749a7d2d9c1"
     },
     "transport.cli": {
       "id": "transport.cli",

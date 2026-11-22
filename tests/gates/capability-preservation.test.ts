@@ -32,8 +32,8 @@ describe('Capability Preservation Gate', () => {
     expect(manifest.generatedAt).toBeDefined();
   });
 
-  it('should have 114 registered capabilities', () => {
-    expect(manifest.capabilities.length).toBe(114);
+  it('should have 128 registered capabilities', () => {
+    expect(manifest.capabilities.length).toBe(128);
   });
 
   it('should have all capability categories represented', () => {
@@ -41,7 +41,7 @@ describe('Capability Preservation Gate', () => {
     const expectedCategories = [
       'perception', 'reasoning', 'learning', 'planning',
       'evaluation', 'communication', 'governance', 'memory', 'coordination',
-      'games', 'rl', 'analysis', 'self-mod', 'focus', 'nl', 'schema', 'transport'
+      'games', 'rl', 'analysis', 'self-mod', 'focus', 'nl', 'schema', 'transport', 'mining'
     ];
 
     for (const cat of expectedCategories) {
