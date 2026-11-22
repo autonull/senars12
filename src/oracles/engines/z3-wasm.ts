@@ -4,6 +4,7 @@
 
 import { createHash } from 'crypto';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig } from '../oracle.js';
+import type { BudgetSlice, BudgetResource } from '../../budget/budget.js';
 import { OraclePinStore } from '../pins.js';
 
 /** Input for Z3 SMT solving. */
@@ -56,11 +57,13 @@ export class Z3WasmOracle implements Oracle<Z3WasmInput, Z3WasmResult> {
   public readonly operation: 'engine.z3' = 'engine.z3';
   public readonly provider: string = 'z3-wasm';
   public readonly version?: string;
+  public readonly budgetResource?: BudgetResource;
 
   private defaultTimeoutMs: number;
   private defaultFormat: 'smtlib2' | 'smtlib1';
   private pinStore: OraclePinStore | null = null;
   private isReplay = false;
+  private defaultBudgetSlice?: BudgetSlice;
 
   private stats = {
     totalCalls: 0,
@@ -72,6 +75,8 @@ export class Z3WasmOracle implements Oracle<Z3WasmInput, Z3WasmResult> {
 
   constructor(config: Z3WasmOracleConfig) {
     this.version = config.version;
+    this.budgetResource = config.budgetResource;
+    this.defaultBudgetSlice = config.budgetSlice;
     this.defaultTimeoutMs = config.defaultTimeoutMs ?? 30000;
     this.defaultFormat = config.defaultFormat ?? 'smtlib2';
   }
@@ -84,7 +89,33 @@ export class Z3WasmOracle implements Oracle<Z3WasmInput, Z3WasmResult> {
     this.isReplay = replay;
   }
 
-  async call(input: Z3WasmInput): Promise<OracleOutput<Z3WasmResult>> {
+  async call(input: Z3WasmInput, budgetSlice?: BudgetSlice): Promise<OracleOutput<Z3WasmResult>> {
+    // Charge budget if configured
+    const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
+    if (effectiveBudgetSlice && this.budgetResource) {
+      const { consume } = await import('../../budget/budget.js');
+      const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
+      if (!charged) {
+        const callId = crypto.randomUUID();
+        const startTs = Date.now();
+        this.stats.totalCalls++;
+        this.stats.failedCalls++;
+        const error = `Budget exhausted for ${this.budgetResource}`;
+        return {
+          value: { result: 'unknown' as const, stdout: '', stderr: '', exitCode: -1, durationMs: 0 },
+          meta: {
+            callId,
+            ts: startTs,
+            durationMs: 0,
+            provider: this.provider,
+            version: this.version,
+            pinned: false,
+            error,
+          },
+        };
+      }
+    }
+
     const callId = crypto.randomUUID();
     const startTs = Date.now();
     let pinned = false;
@@ -95,7 +126,7 @@ export class Z3WasmOracle implements Oracle<Z3WasmInput, Z3WasmResult> {
 
     try {
       if (this.isReplay && this.pinStore) {
-        const pinnedValue = await this.pinStore.getPin(this.operation, input.args);
+        const pinnedValue = await this.pinStore.getPin(this.operation, input.args, this.provider, this.version, input.context);
         if (pinnedValue !== null) {
           this.stats.pinnedCalls++;
           this.stats.successfulCalls++;
@@ -117,7 +148,7 @@ export class Z3WasmOracle implements Oracle<Z3WasmInput, Z3WasmResult> {
       this.stats.successfulCalls++;
 
       if (!this.isReplay && this.pinStore) {
-        await this.pinStore.pin(this.operation, this.hashInput(input.args), value);
+        await this.pinStore.pin(this.operation, this.hashInput(input.args), this.provider, this.version, input.context, value);
       }
     } catch (e) {
       this.stats.failedCalls++;

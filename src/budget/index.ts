@@ -29,6 +29,7 @@ export {
   budgetPressure,
   budgetRefusal,
   chargeBudget,
+  consume,
   consumeCycles,
   consumeDepth,
   consumeMemoryOps,

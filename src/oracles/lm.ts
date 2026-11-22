@@ -11,6 +11,7 @@ import { generateText, generateObject, streamText, type LanguageModel } from 'ai
 import { zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
 import type { Oracle, OracleInput, OracleOutput, OracleConfig, OracleOperation } from './oracle.js';
+import type { BudgetSlice, BudgetResource } from '../budget/budget.js';
 import { OraclePinStore } from './pins.js';
 
 /** Input for LM generateText. */
@@ -63,6 +64,7 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
   public readonly operation: 'lm.generateText' | 'lm.generateObject' | 'lm.stream';
   public readonly provider: string;
   public readonly version?: string;
+  public readonly budgetResource?: BudgetResource;
 
   private lmService: LMOracleService;
   private defaultTask: LMTask;
@@ -70,6 +72,7 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
   private temperature?: number;
   private pinStore: OraclePinStore | null = null;
   private isReplay = false;
+  private defaultBudgetSlice?: BudgetSlice;
 
   private stats = {
     totalCalls: 0,
@@ -84,6 +87,8 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
     this.operation = config.operation;
     this.provider = config.provider;
     this.version = config.version;
+    this.budgetResource = config.budgetResource;
+    this.defaultBudgetSlice = config.budgetSlice;
     this.lmService = config.lmService;
     this.defaultTask = config.defaultTask ?? 'fast';
     this.maxOutputTokens = config.maxOutputTokens;
@@ -100,7 +105,33 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
     this.isReplay = replay;
   }
 
-  async call(input: LMGenerateTextInput | LMGenerateObjectInput | LMStreamInput): Promise<OracleOutput<string | object | AsyncIterable<string>>> {
+  async call(input: LMGenerateTextInput | LMGenerateObjectInput | LMStreamInput, budgetSlice?: BudgetSlice): Promise<OracleOutput<string | object | AsyncIterable<string>>> {
+    // Charge budget if configured
+    const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
+    if (effectiveBudgetSlice && this.budgetResource) {
+      const { consume } = await import('../budget/budget.js');
+      const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
+      if (!charged) {
+        const callId = crypto.randomUUID();
+        const startTs = Date.now();
+        this.stats.totalCalls++;
+        this.stats.failedCalls++;
+        const error = `Budget exhausted for ${this.budgetResource}`;
+        return {
+          value: '' as string | object | AsyncIterable<string>,
+          meta: {
+            callId,
+            ts: startTs,
+            durationMs: 0,
+            provider: this.provider,
+            version: this.version,
+            pinned: false,
+            error,
+          },
+        };
+      }
+    }
+
     const callId = crypto.randomUUID();
     const startTs = Date.now();
     let pinned = false;
@@ -112,7 +143,7 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
     try {
       // Check pin store first if in replay mode
       if (this.isReplay && this.pinStore) {
-        const pinnedValue = await this.pinStore.getPin(this.operation, input.args);
+        const pinnedValue = await this.pinStore.getPin(this.operation, input.args, this.provider, this.version, input.context);
         if (pinnedValue !== null) {
           this.stats.pinnedCalls++;
           this.stats.successfulCalls++;
@@ -135,7 +166,7 @@ export class LMOracle implements Oracle<LMGenerateTextInput | LMGenerateObjectIn
 
       // Pin the result if not in replay mode
       if (!this.isReplay && this.pinStore) {
-        await this.pinStore.pin(this.operation, this.hashInput(input.args), value);
+        await this.pinStore.pin(this.operation, this.hashInput(input.args), this.provider, this.version, input.context, value);
       }
     } catch (e) {
       this.stats.failedCalls++;

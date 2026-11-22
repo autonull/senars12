@@ -18,7 +18,13 @@ export interface OraclePin<T = unknown> {
   /** Operation type that was pinned. */
   operation: OracleOperation;
   /** Input hash that produced this output. */
-  inputHash: string;
+  queryDigest: string;
+  /** Provider that fulfilled the call. */
+  provider: string;
+  /** Model/engine version. */
+  version?: string;
+  /** Context for pinning/replay. */
+  context?: Record<string, unknown>;
   /** The pinned output value. */
   output: T;
   /** When this pin was created. */
@@ -50,13 +56,48 @@ interface OraclePinEntry<T = unknown> extends OraclePin<T> {
   logSeq?: number;
 }
 
+/** Compute query digest from args. */
+function computeQueryDigest(args: unknown[]): string {
+  const json = JSON.stringify(args, (_, v) =>
+    typeof v === 'bigint' ? v.toString() : v
+  );
+  return createHash('sha256').update(json).digest('hex').substring(0, 32);
+}
+
+/** Generate full pin key from components. */
+function generatePinKey(
+  operation: OracleOperation,
+  args: unknown[],
+  provider: string,
+  version?: string,
+  context?: Record<string, unknown>
+): { queryDigest: string; key: string } {
+  const queryDigest = computeQueryDigest(args);
+  const serialized = `${operation}:${queryDigest}:${provider}:${version ?? ''}:${JSON.stringify(context ?? {})}`;
+  return { queryDigest, key: serialized };
+}
+
 /** In-memory pin index. */
 interface OraclePinIndexEntry {
   id: UUID;
   operation: OracleOperation;
-  inputHash: string;
+  queryDigest: string;
+  provider: string;
+  version?: string;
+  context?: Record<string, unknown>;
   file: string;
   offset: number;
+}
+
+/** Serialize pin key components to a string for index lookup. */
+function serializeIndexKey(
+  operation: OracleOperation,
+  queryDigest: string,
+  provider: string,
+  version?: string,
+  context?: Record<string, unknown>
+): string {
+  return `${operation}:${queryDigest}:${provider}:${version ?? ''}:${JSON.stringify(context ?? {})}`;
 }
 
 /**
@@ -98,11 +139,14 @@ export class OraclePinStore {
         for (const line of lines) {
           try {
             const pin = JSON.parse(line) as OraclePinEntry;
-            const key = `${pin.operation}:${pin.inputHash}`;
+            const key = serializeIndexKey(pin.operation, pin.queryDigest, pin.provider, pin.version, pin.context);
             this.index.set(key, {
               id: pin.id,
               operation: pin.operation,
-              inputHash: pin.inputHash,
+              queryDigest: pin.queryDigest,
+              provider: pin.provider,
+              version: pin.version,
+              context: pin.context,
               file,
               offset,
             });
@@ -126,9 +170,9 @@ export class OraclePinStore {
     this.currentFd = await fs.open(path, 'a');
   }
 
-  /** Generate input hash from operation and arguments. */
-  hashInput(operation: OracleOperation, args: unknown[]): string {
-    const json = JSON.stringify({ operation, args }, (_, v) =>
+  /** Compute query digest from args only. */
+  hashInput(args: unknown[]): string {
+    const json = JSON.stringify(args, (_, v) =>
       typeof v === 'bigint' ? v.toString() : v
     );
     return createHash('sha256').update(json).digest('hex').substring(0, 32);
@@ -138,12 +182,15 @@ export class OraclePinStore {
   async getOrPin<T>(
     operation: OracleOperation,
     args: unknown[],
+    provider: string,
+    version: string | undefined,
+    context: Record<string, unknown> | undefined,
     compute: () => Promise<T>
   ): Promise<T> {
     await this.open();
 
-    const inputHash = this.hashInput(operation, args);
-    const key = `${operation}:${inputHash}`;
+    const queryDigest = this.hashInput(args);
+    const key = serializeIndexKey(operation, queryDigest, provider, version, context);
 
     // Check index
     const existing = this.index.get(key);
@@ -154,7 +201,7 @@ export class OraclePinStore {
       const lines = content.trim().split('\n');
       for (const line of lines) {
         const pin = JSON.parse(line) as OraclePinEntry<T>;
-        if (pin.inputHash === inputHash && pin.operation === operation) {
+        if (pin.queryDigest === queryDigest && pin.operation === operation && pin.provider === provider && pin.version === version && JSON.stringify(pin.context ?? {}) === JSON.stringify(context ?? {})) {
           return pin.output;
         }
       }
@@ -162,12 +209,19 @@ export class OraclePinStore {
 
     // Compute and pin
     const output = await compute();
-    await this.pin(operation, inputHash, output);
+    await this.pin(operation, queryDigest, provider, version, context, output);
     return output;
   }
 
   /** Store a pin. */
-  async pin<T>(operation: OracleOperation, inputHash: string, output: T): Promise<UUID> {
+  async pin<T>(
+    operation: OracleOperation,
+    queryDigest: string,
+    provider: string,
+    version: string | undefined,
+    context: Record<string, unknown> | undefined,
+    output: T
+  ): Promise<UUID> {
     await this.open();
 
     if (this.currentFd === null) await this.openCurrentFile();
@@ -176,7 +230,10 @@ export class OraclePinStore {
     const pin: OraclePinEntry<T> = {
       id,
       operation,
-      inputHash,
+      queryDigest,
+      provider,
+      version,
+      context,
       output,
       ts: Date.now() as TimestampMs,
       schemaVersion: 1,
@@ -187,10 +244,14 @@ export class OraclePinStore {
     await this.currentFd!.write(buffer);
     this.currentCount++;
 
-    this.index.set(`${operation}:${inputHash}`, {
+    const key = serializeIndexKey(operation, queryDigest, provider, version, context);
+    this.index.set(key, {
       id,
       operation,
-      inputHash,
+      queryDigest,
+      provider,
+      version,
+      context,
       file: `pins-${this.currentFile.toString().padStart(4, '0')}.jsonl`,
       offset: 0,
     });
@@ -206,15 +267,16 @@ export class OraclePinStore {
   }
 
   /** Check if a pin exists. */
-  hasPin(operation: OracleOperation, args: unknown[]): boolean {
-    const inputHash = this.hashInput(operation, args);
-    return this.index.has(`${operation}:${inputHash}`);
+  hasPin(operation: OracleOperation, args: unknown[], provider: string, version?: string, context?: Record<string, unknown>): boolean {
+    const queryDigest = this.hashInput(args);
+    const key = serializeIndexKey(operation, queryDigest, provider, version, context);
+    return this.index.has(key);
   }
 
   /** Get a pinned value without computing. */
-  async getPin<T>(operation: OracleOperation, args: unknown[]): Promise<T | null> {
-    const inputHash = this.hashInput(operation, args);
-    const key = `${operation}:${inputHash}`;
+  async getPin<T>(operation: OracleOperation, args: unknown[], provider: string, version?: string, context?: Record<string, unknown>): Promise<T | null> {
+    const queryDigest = this.hashInput(args);
+    const key = serializeIndexKey(operation, queryDigest, provider, version, context);
     const existing = this.index.get(key);
     if (!existing) return null;
 
@@ -222,7 +284,7 @@ export class OraclePinStore {
     const content = await fs.readFile(path, 'utf-8');
     for (const line of content.trim().split('\n')) {
       const pin = JSON.parse(line) as OraclePinEntry<T>;
-      if (pin.inputHash === inputHash && pin.operation === operation) {
+      if (pin.queryDigest === queryDigest && pin.operation === operation && pin.provider === provider && pin.version === version && JSON.stringify(pin.context ?? {}) === JSON.stringify(context ?? {})) {
         return pin.output;
       }
     }
@@ -276,9 +338,14 @@ export function createOraclePinStore(config?: Partial<OraclePinStoreConfig>): Or
 
 /**
  * Pinning decorator for class methods.
- * Usage: @oraclePin('operation-name') async method(...args) { ... }
+ * Usage: @oraclePin('operation-name', 'provider', 'version', context) async method(...args) { ... }
  */
-export function oraclePin(operation: OracleOperation) {
+export function oraclePin(
+  operation: OracleOperation,
+  provider: string,
+  version?: string,
+  context?: Record<string, unknown>
+) {
   return function (
     target: Object,
     propertyKey: string | symbol,
@@ -293,7 +360,7 @@ export function oraclePin(operation: OracleOperation) {
         await store.open();
         initialized = true;
       }
-      return store.getOrPin(operation, args, () => originalMethod.apply(this, args));
+      return store.getOrPin(operation, args, provider, version, context, () => originalMethod.apply(this, args));
     };
 
     return descriptor;
@@ -304,10 +371,13 @@ export function oraclePin(operation: OracleOperation) {
 export function withOraclePin<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   operation: OracleOperation,
+  provider: string,
+  version: string | undefined,
+  context: Record<string, unknown> | undefined,
   store: OraclePinStore
 ): T {
   return (async (...args: unknown[]) => {
-    return store.getOrPin(operation, args, () => fn(...args));
+    return store.getOrPin(operation, args, provider, version, context, () => fn(...args));
   }) as T;
 }
 
@@ -317,15 +387,18 @@ export function withOraclePin<T extends (...args: unknown[]) => Promise<unknown>
 export function createReplayOraclePinned<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   operation: OracleOperation,
+  provider: string,
+  version: string | undefined,
+  context: Record<string, unknown> | undefined,
   store: OraclePinStore,
   isReplay: boolean
 ): T {
   return (async (...args: unknown[]) => {
     if (isReplay) {
-      const pinned = await store.getPin(operation, args);
+      const pinned = await store.getPin(operation, args, provider, version, context);
       if (pinned !== null) return pinned;
       console.warn(`[OraclePin] No pin found for ${operation} during replay, computing`);
     }
-    return store.getOrPin(operation, args, () => fn(...args));
+    return store.getOrPin(operation, args, provider, version, context, () => fn(...args));
   }) as T;
 }

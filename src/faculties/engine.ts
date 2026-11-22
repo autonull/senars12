@@ -131,6 +131,11 @@ export class FacultyEngine {
       throw new Error(`Faculty ${facultyName} is disabled`);
     }
 
+    // Get oracle for this faculty to extract provider/version for pinning
+    const oracle = this.oracles.get(spec.oracleOperation);
+    const provider = oracle?.provider ?? 'unknown';
+    const version = oracle?.version;
+
     const context: FacultyInvocationContext = {
       invocationId,
       faculty: facultyName,
@@ -152,7 +157,7 @@ export class FacultyEngine {
 
       // Check pin store first if in replay mode
       if (this.isReplay && this.pinStore) {
-        const pinned = await this.pinStore.getPin(spec.oracleOperation, oracleInput.args);
+        const pinned = await this.pinStore.getPin(spec.oracleOperation, oracleInput.args, provider, version, oracleInput.context);
         if (pinned !== null) {
           this.stats.pinnedInvocations++;
           this.stats.successfulInvocations++;
@@ -171,8 +176,8 @@ export class FacultyEngine {
 
       // Pin the result if not in replay mode
       if (!this.isReplay && this.pinStore) {
-        const inputHash = this.pinStore.hashInput(spec.oracleOperation, oracleInput.args);
-        await this.pinStore.pin(spec.oracleOperation, inputHash, output);
+        const queryDigest = this.pinStore.hashInput(oracleInput.args);
+        await this.pinStore.pin(spec.oracleOperation, queryDigest, provider, version, oracleInput.context, output);
       }
     } catch (error) {
       this.stats.failedInvocations++;

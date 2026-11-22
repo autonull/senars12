@@ -293,7 +293,7 @@ const sliceAnnouncement = (slice: BudgetSlice): BudgetEventMap['budget:slice:cre
  * the termination reason exactly once and reports the full consumed/total
  * snapshot; success accumulates and emits the resource-scoped event.
  */
-function consume(
+export function consume(
   budget: BudgetSlice,
   resource: BudgetResource,
   amount: number,

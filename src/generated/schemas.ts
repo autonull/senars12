@@ -539,6 +539,298 @@ export const FormalizationBatchSchema = z.object({
 });
 export type FormalizationBatch = z.infer<typeof FormalizationBatchSchema>;
 
+// ============================================================================
+// ORACLE SCHEMAS — per-operation query/result/cert schemas
+// ============================================================================
+
+export const LMGenerateTextQuerySchema = z.object({
+  prompt: z.string(),
+  options: z.object({
+    task: z.string().optional(),
+    model: z.string().optional(),
+    temperature: z.number().min(0).max(2).optional(),
+    maxOutputTokens: z.number().int().positive().optional(),
+    signal: z.any().optional(),
+  }).optional(),
+});
+export type LMGenerateTextQuery = z.infer<typeof LMGenerateTextQuerySchema>;
+
+export const LMGenerateTextResultSchema = z.object({
+  text: z.string(),
+  usage: z.object({
+    promptTokens: z.number().int().nonnegative(),
+    completionTokens: z.number().int().nonnegative(),
+    totalTokens: z.number().int().nonnegative(),
+  }).optional(),
+});
+export type LMGenerateTextResult = z.infer<typeof LMGenerateTextResultSchema>;
+
+export const LMGenerateTextCertSchema = z.object({
+  model: z.string(),
+  promptHash: z.string(),
+  seed: z.string().optional(),
+});
+export type LMGenerateTextCert = z.infer<typeof LMGenerateTextCertSchema>;
+
+export const LMGenerateObjectQuerySchema = z.object({
+  prompt: z.string(),
+  schema: z.any(),
+  options: z.object({
+    task: z.string().optional(),
+    model: z.string().optional(),
+    temperature: z.number().min(0).max(2).optional(),
+    maxOutputTokens: z.number().int().positive().optional(),
+  }).optional(),
+});
+export type LMGenerateObjectQuery = z.infer<typeof LMGenerateObjectQuerySchema>;
+
+export const LMGenerateObjectResultSchema = z.object({
+  object: z.any(),
+  usage: z.object({
+    promptTokens: z.number().int().nonnegative(),
+    completionTokens: z.number().int().nonnegative(),
+    totalTokens: z.number().int().nonnegative(),
+  }).optional(),
+});
+export type LMGenerateObjectResult = z.infer<typeof LMGenerateObjectResultSchema>;
+
+export const LMGenerateObjectCertSchema = z.object({
+  model: z.string(),
+  promptHash: z.string(),
+  schemaHash: z.string(),
+  seed: z.string().optional(),
+});
+export type LMGenerateObjectCert = z.infer<typeof LMGenerateObjectCertSchema>;
+
+export const LMStreamQuerySchema = z.object({
+  prompt: z.string(),
+  options: z.object({
+    task: z.string().optional(),
+    model: z.string().optional(),
+    temperature: z.number().min(0).max(2).optional(),
+    maxOutputTokens: z.number().int().positive().optional(),
+  }).optional(),
+});
+export type LMStreamQuery = z.infer<typeof LMStreamQuerySchema>;
+
+export const LMStreamResultSchema = z.object({
+  stream: z.any(),
+});
+export type LMStreamResult = z.infer<typeof LMStreamResultSchema>;
+
+export const LMStreamCertSchema = z.object({
+  model: z.string(),
+  promptHash: z.string(),
+  seed: z.string().optional(),
+});
+export type LMStreamCert = z.infer<typeof LMStreamCertSchema>;
+
+export const RetrievalQuerySchema = z.object({
+  query: z.string(),
+  topK: z.number().int().positive().optional(),
+  filter: z.record(z.string(), z.any()).optional(),
+});
+export type RetrievalQuery = z.infer<typeof RetrievalQuerySchema>;
+
+export const RetrievalResultSchema = z.object({
+  results: z.array(z.object({
+    id: z.string(),
+    content: z.string(),
+    score: z.number(),
+    metadata: z.record(z.string(), z.any()).optional(),
+  })),
+});
+export type RetrievalResult = z.infer<typeof RetrievalResultSchema>;
+
+export const RetrievalCertSchema = z.object({
+  index: z.string(),
+  queryHash: z.string(),
+  embeddingModel: z.string().optional(),
+});
+export type RetrievalCert = z.infer<typeof RetrievalCertSchema>;
+
+export const EngineZ3QuerySchema = z.object({
+  formula: z.string(),
+  timeoutMs: z.number().int().positive().optional(),
+});
+export type EngineZ3Query = z.infer<typeof EngineZ3QuerySchema>;
+
+export const EngineZ3ResultSchema = z.object({
+  satisfiable: z.boolean(),
+  model: z.any().optional(),
+  proof: z.string().optional(),
+  statistics: z.object({
+    timeMs: z.number().int().nonnegative(),
+    nodesVisited: z.number().int().nonnegative().optional(),
+    clausesGenerated: z.number().int().nonnegative().optional(),
+    backtracks: z.number().int().nonnegative().optional(),
+  }).optional(),
+});
+export type EngineZ3Result = z.infer<typeof EngineZ3ResultSchema>;
+
+export const EngineZ3CertSchema = z.object({
+  engine: z.literal('z3'),
+  formulaHash: z.string(),
+  proof: z.string().optional(),
+});
+export type EngineZ3Cert = z.infer<typeof EngineZ3CertSchema>;
+
+export const EngineClingoQuerySchema = z.object({
+  program: z.string(),
+  timeoutMs: z.number().int().positive().optional(),
+});
+export type EngineClingoQuery = z.infer<typeof EngineClingoQuerySchema>;
+
+export const EngineClingoResultSchema = z.object({
+  satisfiable: z.boolean(),
+  models: z.array(z.any()).optional(),
+  statistics: z.object({
+    timeMs: z.number().int().nonnegative(),
+    modelsFound: z.number().int().nonnegative().optional(),
+  }).optional(),
+});
+export type EngineClingoResult = z.infer<typeof EngineClingoResultSchema>;
+
+export const EngineClingoCertSchema = z.object({
+  engine: z.literal('clingo'),
+  programHash: z.string(),
+  modelHash: z.string().optional(),
+});
+export type EngineClingoCert = z.infer<typeof EngineClingoCertSchema>;
+
+export const EngineMiniSatQuerySchema = z.object({
+  cnf: z.string(),
+  timeoutMs: z.number().int().positive().optional(),
+});
+export type EngineMiniSatQuery = z.infer<typeof EngineMiniSatQuerySchema>;
+
+export const EngineMiniSatResultSchema = z.object({
+  satisfiable: z.boolean(),
+  model: z.any().optional(),
+  statistics: z.object({
+    timeMs: z.number().int().nonnegative(),
+    decisions: z.number().int().nonnegative().optional(),
+    conflicts: z.number().int().nonnegative().optional(),
+  }).optional(),
+});
+export type EngineMiniSatResult = z.infer<typeof EngineMiniSatResultSchema>;
+
+export const EngineMiniSatCertSchema = z.object({
+  engine: z.literal('minisat'),
+  cnfHash: z.string(),
+  modelHash: z.string().optional(),
+});
+export type EngineMiniSatCert = z.infer<typeof EngineMiniSatCertSchema>;
+
+export const EngineTauPrologQuerySchema = z.object({
+  program: z.string(),
+  query: z.string(),
+  timeoutMs: z.number().int().positive().optional(),
+});
+export type EngineTauPrologQuery = z.infer<typeof EngineTauPrologQuerySchema>;
+
+export const EngineTauPrologResultSchema = z.object({
+  success: z.boolean(),
+  bindings: z.array(z.record(z.string(), z.any())).optional(),
+  statistics: z.object({
+    timeMs: z.number().int().nonnegative(),
+    inferences: z.number().int().nonnegative().optional(),
+  }).optional(),
+});
+export type EngineTauPrologResult = z.infer<typeof EngineTauPrologResultSchema>;
+
+export const EngineTauPrologCertSchema = z.object({
+  engine: z.literal('tau-prolog'),
+  programHash: z.string(),
+  queryHash: z.string(),
+});
+export type EngineTauPrologCert = z.infer<typeof EngineTauPrologCertSchema>;
+
+export const EngineMettaQuerySchema = z.object({
+  program: z.string(),
+  query: z.string().optional(),
+  timeoutMs: z.number().int().positive().optional(),
+});
+export type EngineMettaQuery = z.infer<typeof EngineMettaQuerySchema>;
+
+export const EngineMettaResultSchema = z.object({
+  result: z.any(),
+  statistics: z.object({
+    timeMs: z.number().int().nonnegative(),
+  }).optional(),
+});
+export type EngineMettaResult = z.infer<typeof EngineMettaResultSchema>;
+
+export const EngineMettaCertSchema = z.object({
+  engine: z.literal('metta'),
+  programHash: z.string(),
+  queryHash: z.string().optional(),
+});
+export type EngineMettaCert = z.infer<typeof EngineMettaCertSchema>;
+
+export const EngineCustomQuerySchema = z.object({
+  engine: z.string(),
+  payload: z.any(),
+  timeoutMs: z.number().int().positive().optional(),
+});
+export type EngineCustomQuery = z.infer<typeof EngineCustomQuerySchema>;
+
+export const EngineCustomResultSchema = z.object({
+  result: z.any(),
+  statistics: z.object({
+    timeMs: z.number().int().nonnegative(),
+  }).optional(),
+});
+export type EngineCustomResult = z.infer<typeof EngineCustomResultSchema>;
+
+export const EngineCustomCertSchema = z.object({
+  engine: z.string(),
+  payloadHash: z.string(),
+});
+export type EngineCustomCert = z.infer<typeof EngineCustomCertSchema>;
+
+export const FormalizationNLToFormalQuerySchema = z.object({
+  text: z.string(),
+  context: z.record(z.string(), z.any()).optional(),
+});
+export type FormalizationNLToFormalQuery = z.infer<typeof FormalizationNLToFormalQuerySchema>;
+
+export const FormalizationNLToFormalResultSchema = z.object({
+  narsese: z.string(),
+  confidence: z.number().min(0).max(1),
+  ambiguities: z.array(z.object({
+    type: z.string(),
+    description: z.string(),
+    options: z.array(z.string()),
+    confidence: z.number().min(0).max(1),
+  })).optional(),
+});
+export type FormalizationNLToFormalResult = z.infer<typeof FormalizationNLToFormalResultSchema>;
+
+export const FormalizationNLToFormalCertSchema = z.object({
+  model: z.string().optional(),
+  textHash: z.string(),
+});
+export type FormalizationNLToFormalCert = z.infer<typeof FormalizationNLToFormalCertSchema>;
+
+export const FormalizationFormalToNLQuerySchema = z.object({
+  narsese: z.string(),
+  context: z.record(z.string(), z.any()).optional(),
+});
+export type FormalizationFormalToNLQuery = z.infer<typeof FormalizationFormalToNLQuerySchema>;
+
+export const FormalizationFormalToNLResultSchema = z.object({
+  text: z.string(),
+  confidence: z.number().min(0).max(1),
+});
+export type FormalizationFormalToNLResult = z.infer<typeof FormalizationFormalToNLResultSchema>;
+
+export const FormalizationFormalToNLCertSchema = z.object({
+  model: z.string().optional(),
+  narseseHash: z.string(),
+});
+export type FormalizationFormalToNLCert = z.infer<typeof FormalizationFormalToNLCertSchema>;
+
 export const TermOpSchema = z.enum([
   'var', 'const', '-->', '<->', '==>', '<=>', '&', '|', '~', '*', '@', '#', '|>', '||', ';', '|~', '.', '?', '!'
 ]);

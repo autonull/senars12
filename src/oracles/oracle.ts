@@ -12,6 +12,8 @@ import { FunctionRegistry } from '../util/registry.js';
 import { createLMGenerateTextOracle, createLMGenerateObjectOracle, createLMStreamOracle } from './lm.js';
 import { createNLToFormalOracle, createFormalToNlOracle } from './formalization.js';
 import { OraclePinStore } from './pins.js';
+import { createHash } from 'crypto';
+import type { BudgetSlice, BudgetResource } from '../budget/budget.js';
 
 /** Oracle operation categories. */
 export const ORACLE_OPERATIONS = [
@@ -77,6 +79,10 @@ export interface OracleConfig {
   provider: string;
   /** Model/engine version. */
   version?: string;
+  /** Budget resource to charge for this oracle's calls. */
+  budgetResource?: BudgetResource;
+  /** Default budget slice for charging (can be overridden per-call). */
+  budgetSlice?: BudgetSlice;
   /** Whether to enable pinning for deterministic replay. */
   pinning?: boolean;
   /** Timeout in milliseconds. */
@@ -99,9 +105,11 @@ export interface Oracle<TInput extends OracleInput = OracleInput, TOutput = unkn
   readonly provider: string;
   /** Model/engine version. */
   readonly version?: string;
+  /** Budget resource to charge for this oracle's calls. */
+  readonly budgetResource?: BudgetResource;
 
   /** Execute the oracle call. */
-  call(input: TInput): Promise<OracleOutput<TOutput>>;
+  call(input: TInput, budgetSlice?: BudgetSlice): Promise<OracleOutput<TOutput>>;
 
   /** Check if the oracle is available. */
   isAvailable(): Promise<boolean>;
@@ -126,10 +134,12 @@ export abstract class BaseOracle<TInput extends OracleInput, TOutput> implements
   public readonly operation: OracleOperation;
   public readonly provider: string;
   public readonly version?: string;
+  public readonly budgetResource?: BudgetResource;
 
   private readonly telemetrySink?: OracleTelemetrySink;
   private readonly clock: { now(): TimestampMs };
   private readonly ids: { uuid(): UUID };
+  private readonly defaultBudgetSlice?: BudgetSlice;
 
   protected stats: OracleStats = {
     totalCalls: 0,
@@ -143,15 +153,52 @@ export abstract class BaseOracle<TInput extends OracleInput, TOutput> implements
     this.operation = config.operation;
     this.provider = config.provider;
     this.version = config.version;
+    this.budgetResource = config.budgetResource;
+    this.defaultBudgetSlice = config.budgetSlice;
     this.telemetrySink = config.telemetry;
     this.clock = config.clock ?? { now: () => Date.now() as TimestampMs };
     this.ids = config.ids ?? { uuid: () => crypto.randomUUID() as UUID };
   }
 
-  async call(input: TInput): Promise<OracleOutput<TOutput>> {
+  async call(input: TInput, budgetSlice?: BudgetSlice): Promise<OracleOutput<TOutput>> {
+    // Charge budget if configured
+    const effectiveBudgetSlice = budgetSlice ?? this.defaultBudgetSlice;
+    if (effectiveBudgetSlice && this.budgetResource) {
+      const { consume } = await import('../budget/budget.js');
+      const charged = consume(effectiveBudgetSlice, this.budgetResource, 1);
+      if (!charged) {
+        // Budget exhausted - fail closed
+        const callId = this.ids.uuid();
+        const startTs = this.clock.now();
+        this.stats.totalCalls++;
+        this.stats.failedCalls++;
+        const error = `Budget exhausted for ${this.budgetResource}`;
+        this.emitTelemetry({
+          callId,
+          ts: startTs,
+          durationMs: 0,
+          provider: this.provider,
+          version: this.version,
+          pinned: false,
+          error,
+        });
+        return {
+          value: await this.failClosed(input, error),
+          meta: {
+            callId,
+            ts: startTs,
+            durationMs: 0,
+            provider: this.provider,
+            version: this.version,
+            pinned: false,
+            error,
+          },
+        };
+      }
+    }
+
     const callId = this.ids.uuid();
     const startTs = this.clock.now();
-    const durationMs = 0;
     let pinned = false;
     let error: string | undefined;
     let value: TOutput;
@@ -183,12 +230,15 @@ export abstract class BaseOracle<TInput extends OracleInput, TOutput> implements
       });
     }
 
+    const endTs = this.clock.now();
+    const actualDuration = endTs - startTs;
+
     return {
       value,
       meta: {
         callId,
         ts: startTs,
-        durationMs,
+        durationMs: actualDuration,
         provider: this.provider,
         version: this.version,
         pinned,
@@ -231,20 +281,29 @@ export class OracleRegistry extends FunctionRegistry<OracleOperation, Oracle> {
     this.ids = options.ids ?? { uuid: () => crypto.randomUUID() as UUID };
   }
 
-  /** Execute an oracle call with optional pinning. */
+  /** Execute an oracle call with optional pinning and budget charging. */
   async call<TInput extends OracleInput, TOutput>(
     operation: OracleOperation,
     input: TInput,
-    pinning = false
+    pinning = false,
+    budgetSlice?: BudgetSlice
   ): Promise<OracleOutput<TOutput>> {
     const oracle = this.get(operation);
     if (!oracle) {
       throw new Error(`No oracle registered for ${operation}`);
     }
 
+    const queryDigest = createHash('sha256').update(JSON.stringify(input.args)).digest('hex').substring(0, 32);
+    const pinKey: PinKey = {
+      operation,
+      queryDigest,
+      provider: oracle.provider,
+      version: oracle.version,
+      context: input.context,
+    };
+
     if (pinning && this.pinStore) {
       // Check pin store first
-      const pinKey = `${operation}:${JSON.stringify(input.args)}`;
       const pinned = await this.pinStore.getPin(pinKey);
       if (pinned !== null) {
         return {
@@ -261,10 +320,9 @@ export class OracleRegistry extends FunctionRegistry<OracleOperation, Oracle> {
       }
     }
 
-    const result = await oracle.call(input) as OracleOutput<TOutput>;
+    const result = await oracle.call(input, budgetSlice) as OracleOutput<TOutput>;
 
     if (pinning && this.pinStore && !result.meta.pinned) {
-      const pinKey = `${operation}:${JSON.stringify(input.args)}`;
       await this.pinStore.pin(pinKey, result.value);
     }
 
@@ -286,14 +344,41 @@ export class OracleRegistry extends FunctionRegistry<OracleOperation, Oracle> {
   }
 }
 
+/** Pin key components for deterministic replay. */
+export interface PinKey {
+  operation: OracleOperation;
+  queryDigest: string;
+  provider: string;
+  version?: string;
+  context?: Record<string, unknown>;
+}
+
 /** Pin store interface for deterministic replay. */
 export interface PinStore {
   /** Get a pinned value. */
-  getPin(key: string): Promise<unknown | null>;
+  getPin(key: PinKey): Promise<unknown | null>;
   /** Store a pinned value. */
-  pin(key: string, value: unknown): Promise<void>;
+  pin(key: PinKey, value: unknown): Promise<void>;
   /** Check if a pin exists. */
-  hasPin(key: string): boolean;
+  hasPin(key: PinKey): boolean;
+}
+
+/** Serialize a pin key to a string for storage. */
+export function serializePinKey(key: PinKey): string {
+  return `${key.operation}:${key.queryDigest}:${key.provider}:${key.version ?? ''}:${JSON.stringify(key.context ?? {})}`;
+}
+
+/** Deserialize a pin key from a string. */
+export function deserializePinKey(serialized: string): PinKey {
+  const parts = serialized.split(':');
+  if (parts.length < 3) throw new Error(`Invalid pin key: ${serialized}`);
+  const operation = parts[0]!;
+  const queryDigest = parts[1]!;
+  const provider = parts[2]!;
+  const rest = parts.slice(3);
+  const version = rest[0] || undefined;
+  const context = rest.length > 1 ? JSON.parse(rest.slice(1).join(':')) : undefined;
+  return { operation: operation as OracleOperation, queryDigest, provider, version, context };
 }
 
 /** Create an isolated oracle registry. */

@@ -218,13 +218,14 @@ Each workstream: **Actions · Accept · Preserves / consolidates.**
 **Known-red ledger (this pass):** `deps:direction` and root `typecheck` fail on the workspace layout (`util/src` absent; the repo is the single-package `senars12` tree) — pre-existing, not caused by W1. `test:unit` has 11 pre-existing failures (UI package export resolution + live transports); the 26 `scripts/lib/*.ts` "no test suite" entries are the vitest `include` list, also pre-existing. New tests: `tests/logic/verdict.test.ts` (7) + `tests/logic/registry.test.ts` (4) + `tests/obligations/06-seeded-replay.test.ts` (3).
 
 ### W2 — The oracle seam made real
-- [ ] Per-operation zod `query`/`result`/`cert` schemas; memo/pin keys = `(operation, queryDigest, provider, version, context)`; add `version` to memo entries; fix `meta.durationMs = 0`.
-- [ ] Charge every oracle call through `BUDGET_RESOURCES`; pin store lives on the log.
+- [x] Per-operation zod `query`/`result`/`cert` schemas; memo/pin keys = `(operation, queryDigest, provider, version, context)`; add `version` to memo entries; fix `meta.durationMs = 0`.
+- [~] Charge every oracle call through `BUDGET_RESOURCES` — LM and Z3 WASM oracles done; remaining engines pending.
 - [x] Enforce the **`one-oracle` gate**: any `fetch`/client/`child_process` outside `src/oracles` fails CI.
 - [x] **Port WASM engines**: `z3-wasm` (z3-solver), `clingo-wasm`, `minisat-wasm` (logic-solver-plus), `tau-prolog` (existing). **WASM is the default.**
 - [ ] **Keep native `z3`/`clingo` as an optional high-power oracle provider** behind the same seam (server-only).
 - [x] **Add `engine.metta`** as an oracle (evaluation/rewriting semantics), re-homing `metta/` and `meta/ProofMettaProposer`.
 - [ ] Consolidate the duplicate `logics/axiomatic/engines` wrapper layer into the seam (parity-gated).
+- [ ] Pin store lives on the log.
 
 **Accept:** obligation 11; **obligation 13 parity for the portable WASM profile** (node/browser/edge identical verdict hashes — the native provider is exempt as a server-only option); zero `child_process` outside `src/oracles`.
 **Preserves:** full solver power (native option), MeTTa; **consolidates:** the duplicate engine wrapper layer only.

@@ -87,7 +87,7 @@ export class MiniSatWasmOracle implements Oracle<MiniSatWasmInput, MiniSatWasmRe
 
     try {
       if (this.isReplay && this.pinStore) {
-        const pinnedValue = await this.pinStore.getPin(this.operation, input.args);
+        const pinnedValue = await this.pinStore.getPin(this.operation, input.args, this.provider, this.version, input.context);
         if (pinnedValue !== null) {
           this.stats.pinnedCalls++;
           this.stats.successfulCalls++;
@@ -109,7 +109,7 @@ export class MiniSatWasmOracle implements Oracle<MiniSatWasmInput, MiniSatWasmRe
       this.stats.successfulCalls++;
 
       if (!this.isReplay && this.pinStore) {
-        await this.pinStore.pin(this.operation, this.hashInput(input.args), value);
+        await this.pinStore.pin(this.operation, this.hashInput(input.args), this.provider, this.version, input.context, value);
       }
     } catch (e) {
       this.stats.failedCalls++;
