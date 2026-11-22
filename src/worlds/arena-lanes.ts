@@ -10,6 +10,13 @@ import type { ArenaAgent, ArenaMatch, ArenaTournament } from './arena';
 import type { EpisodeResult } from './pack';
 import { createHabitatRegistry } from './habitat';
 import { createArenaAgent } from './arena';
+import {
+  BASELINE_ARM_CONFIGS,
+  type BaselineArmConfig,
+  type BaselineAlgorithm,
+  createBaselineAlgorithm,
+  runBaselineArm,
+} from '@senars/rl/baselines';
 
 /** Lane identifier. */
 export type ArenaLaneId = 'A' | 'B' | 'C' | 'D';
@@ -383,4 +390,182 @@ export async function runNalAbAsLane(
   }
 
   return points;
+}
+
+/** Baseline algorithm arm for arena (config, not code). */
+export interface BaselineArm {
+  id: string;
+  algorithm: BaselineAlgorithm;
+  config: BaselineArmConfig;
+  habitatType: 'bandit' | 'gridworld';
+}
+
+/** Create baseline arms for arena evaluation. */
+export function createBaselineArms(): BaselineArm[] {
+  return Object.entries(BASELINE_ARM_CONFIGS).map(([key, config]) => ({
+    id: `baseline-${key}`,
+    algorithm: config.algorithm,
+    config,
+    habitatType: config.habitatType,
+  }));
+}
+
+/** Create a habitat for a baseline arm. */
+export function createBaselineHabitat(arm: BaselineArm, seed: number, maxSteps: number): HabitatConfig {
+  const gameType = arm.config.habitatType;
+  const baseConfig = arm.config.config;
+
+  if (gameType === 'bandit') {
+    return {
+      id: `baseline-${arm.algorithm}-${seed}` as any,
+      name: `Baseline ${arm.config.name}`,
+      kind: 'bandit',
+      seed,
+      maxSteps,
+      initialState: {
+        step: 0,
+        episode: 0,
+        entities: new Map(),
+        agent: { inventory: [], energy: 100, internal: new Map() },
+        env: new Map<string, unknown>([
+          ['arms', (baseConfig as any).numArms ?? 3],
+          ['armMeans', [0.2, 0.5, 0.8] as number[]],
+        ]),
+        rngState: seed.toString(),
+      },
+      transition: 'bandit',
+      reward: 'regret',
+      termination: { maxSteps: true },
+      metadata: { game: 'bandit', baseline: arm.algorithm },
+    };
+  } else {
+    // gridworld
+    return {
+      id: `baseline-${arm.algorithm}-${seed}` as any,
+      name: `Baseline ${arm.config.name}`,
+      kind: 'gridworld',
+      seed,
+      maxSteps,
+      initialState: {
+        step: 0,
+        episode: 0,
+        entities: new Map(),
+        agent: { position: { x: 0, y: 0 }, inventory: [], energy: 100, internal: new Map() },
+        env: new Map<string, unknown>([
+          ['size', 4],
+          ['grid', ['S...', '.#..', '..#.', '...G'] as string[]],
+        ]),
+        rngState: seed.toString(),
+      },
+      transition: 'gridworld',
+      reward: 'sparse',
+      termination: { maxSteps: true, goalAchieved: true },
+      metadata: { game: 'gridworld', baseline: arm.algorithm },
+    };
+  }
+}
+
+/** Run baseline arms as arena evaluation. */
+export async function runBaselineArms(
+  arms: BaselineArm[],
+  habitatRegistry: HabitatRegistry,
+  seeds: number[] = [42, 123, 456],
+  episodesPerSeed: number = 10,
+  maxStepsPerEpisode: number = 100
+): Promise<CostQualityPoint[]> {
+  const points: CostQualityPoint[] = [];
+
+  for (const arm of arms) {
+    let totalLmCalls = 0;
+    let totalOracleCalls = 0;
+    let totalWallTime = 0;
+    const allRewards: number[] = [];
+    const allSteps: number[] = [];
+
+    for (const seed of seeds) {
+      for (let ep = 0; ep < episodesPerSeed; ep++) {
+        const habitat = createBaselineHabitat(arm, seed, maxStepsPerEpisode);
+
+        const startTime = Date.now();
+        const algorithm = createBaselineAlgorithm(arm.config);
+
+        // Run episode using the algorithm directly on the game
+        const { createBanditGame } = await import('@senars/game/impls/BanditGame');
+        const { createGridWorldGame } = await import('@senars/game/impls/GridWorldGame');
+
+        let reward: number;
+        if (arm.habitatType === 'bandit') {
+          const game = createBanditGame({
+            seed,
+            numArms: (arm.config.config as any).numArms ?? 3,
+            armMeans: [0.2, 0.5, 0.8],
+          });
+          // EpsilonGreedy/UCB1 runEpisode takes Game<number, number>
+          reward = (algorithm as any).runEpisode(game, maxStepsPerEpisode);
+        } else {
+          const game = createGridWorldGame({
+            id: `gw-${seed}`,
+            grid: ['S...', '.#..', '..#.', '...G'],
+            seed,
+          });
+          // QLearning/SARSA runEpisode takes EpisodeGame<GridWorldState, GridAction>
+          reward = (algorithm as any).runEpisode(game, maxStepsPerEpisode);
+        }
+
+        allRewards.push(reward);
+        allSteps.push(maxStepsPerEpisode);
+        totalWallTime += Date.now() - startTime;
+      }
+    }
+
+    const meanReward = allRewards.reduce((a, b) => a + b, 0) / allRewards.length;
+    const stdReward = Math.sqrt(
+      allRewards.reduce((a, b) => a + (b - meanReward) ** 2, 0) / allRewards.length
+    );
+    const meanSteps = allSteps.reduce((a, b) => a + b, 0) / allSteps.length;
+
+    // Map baseline to a valid lane/tier for CostQualityPoint
+    const laneMap: Record<BaselineAlgorithm, ArenaLaneId> = {
+      'epsilon-greedy': 'A',
+      'ucb1': 'B',
+      'q-learning': 'C',
+      'sarsa': 'D',
+    };
+    const tierMap: Record<BaselineAlgorithm, DeliberationTier> = {
+      'epsilon-greedy': 'fast',
+      'ucb1': 'balanced',
+      'q-learning': 'fast',
+      'sarsa': 'balanced',
+    };
+
+    points.push({
+      lane: laneMap[arm.algorithm],
+      tier: tierMap[arm.algorithm],
+      meanReward,
+      stdReward,
+      meanSteps,
+      totalLmCalls,
+      totalOracleCalls,
+      wallTimeMs: totalWallTime,
+      metadata: { algorithm: arm.algorithm, config: arm.config, isBaseline: true },
+    });
+  }
+
+  return points;
+}
+
+/** Register baseline arms as symmetric arena arms. */
+export function registerBaselineArmsAsLane(
+  laneId: ArenaLaneId = 'A',
+  tier: 'fast' | 'balanced' | 'quality' = 'balanced'
+): SymmetricArmConfig[] {
+  const arms = createBaselineArms();
+  return arms.map((arm, i) => ({
+    id: `baseline-${arm.algorithm}-arm-${i + 1}`,
+    lane: laneId,
+    seed: 42,
+    modelConfig: { tier, provider: 'builtin', model: arm.algorithm },
+    toolConfig: { algorithm: arm.algorithm, habitatType: arm.habitatType },
+    schemaVersion: '1.0.0',
+  }));
 }

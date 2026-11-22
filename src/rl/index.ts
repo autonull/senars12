@@ -38,3 +38,18 @@ export {
 } from './parity-acceptance';
 export type { SeedRatio } from './parity-acceptance';
 export type { EpisodeGame } from './types';
+export {
+  EpsilonGreedy,
+  UCB1,
+  QLearning,
+  SARSA,
+  type EpsilonGreedyConfig,
+  type UCB1Config,
+  type QLearningConfig,
+  type SARSAConfig,
+  BASELINE_ARM_CONFIGS,
+  type BaselineArmConfig,
+  type BaselineAlgorithm,
+  createBaselineAlgorithm,
+  runBaselineArm,
+} from './baselines';

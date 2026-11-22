@@ -56,11 +56,19 @@
 
 **The gap is wiring, hardening, and giving every capability one elegant home.**
 
-**Phase 2 progress:** Games (14) → World packs (data) **COMPLETE**
-- `src/worlds/world-packs.ts`: 14 habitat packs with enhanced configs (game instances embedded)
-- `src/worlds/game-transitions.ts`: All 14 transition/reward functions registered in habitat registry
-- `src/worlds/habitat.ts`: Habitat registry with transitions, rewards, terminations
-- `src/worlds/arena-lanes.ts`: Arena A–D × fast/balanced/deliberate symmetric arms ready
+**Phase 2 progress:** 2/20 capabilities re-homed
+1. **Games (14) → World packs (data)** **COMPLETE**
+   - `src/worlds/world-packs.ts`: 14 habitat packs with enhanced configs
+   - `src/worlds/game-transitions.ts`: All 14 transition/reward functions registered
+   - `src/worlds/habitat.ts`: Habitat registry with transitions, rewards, terminations
+   - `src/worlds/arena-lanes.ts`: Arena A–D × fast/balanced/deliberate symmetric arms ready
+
+2. **RL baselines → Arena arms (config)** **COMPLETE**
+   - `src/rl/baselines/index.ts`: EpsilonGreedy, UCB1, QLearning, SARSA (moved from tests/)
+   - `src/rl/index.ts`: Exports baseline algorithms + arm configs
+   - `src/worlds/arena-lanes.ts`: `createBaselineArms`, `runBaselineArms`, `registerBaselineArmsAsLane`
+   - Baseline arms registered as symmetric arena arms (config, not code)
+
 - Preservation gate live: 30 capabilities tracked (20 faculties + 10 oracles)
 - All 3,667 tests pass; typecheck clean
 
@@ -185,13 +193,11 @@ type Verdict =
 
 One capability at a time, parity-gated by the preservation gate. **No bulk consolidation.**
 
-**Completed:** Games (14) → World packs (data)
-- `src/worlds/world-packs.ts`: 14 habitat packs defined with enhanced configs
-- `src/worlds/game-transitions.ts`: All 14 game transitions & rewards registered
-- `src/worlds/habitat.ts`: Habitat registry pattern established
-- Preservation gate live with 30 capabilities tracked
+**Completed:** 
+1. **Games (14) → World packs (data)** — `world-packs.ts`, `game-transitions.ts`, habitat registry
+2. **RL baselines → Arena arms (config)** — `src/rl/baselines/` (EpsilonGreedy, UCB1, QLearning, SARSA), arena-lanes integration
 
-**Next:** RL baselines → Arena arms (config) — `arena-lanes.ts` infrastructure ready
+**Next:** Premise selection → Rule-application strategy
 
 | Capability | Current Home | New Home | Parity Gate |
 |------------|-------------|----------|-------------|
@@ -365,7 +371,7 @@ All twelve demonstrations reproducible from seeds by a fresh contributor. One bi
 | P1 | K2: Memory as Fold Views | — | 2w ✅ |
 | P1 | K3: Economy → Scheduler pure function | — | 1w ✅ |
 | P1 | K4: Portals (Oracle + Logic interfaces frozen) | — | 1w ✅ |
-| P2 | Re-home 20 capabilities (Phase 2) | — | 4w | 🔄 Games (14) → World packs DONE; RL baselines → Arena arms next |
+| P2 | Re-home 20 capabilities (Phase 2) | — | 4w | 🔄 Games (14) + RL baselines (4) DONE; Premise selection next |
 | P2 | 7 missing gates as CI jobs (Phase 3) | — | 2w |
 | P2 | 12 demo scripts (Phase 4) | — | 1w |
 | P3 | Final 2-hour soak (Phase 5) | — | 2h |
